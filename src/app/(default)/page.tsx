@@ -1,0 +1,56 @@
+export default function Home() {
+  return (
+    <div className="flex flex-col pb-8">
+      <div>メイン1</div>
+      <div>メイン2</div>
+      <div>メイン3</div>
+      <div>メイン4</div>
+      <div>メイン5</div>
+      <div>メイン6</div>
+      <div>メイン7</div>
+      <div>メイン8</div>
+      <div>メイン9</div>
+      <div>メイン10</div>
+      <div>メイン11</div>
+      <div>メイン12</div>
+      <div>メイン13</div>
+      <div>メイン14</div>
+      <div>メイン15</div>
+      <div>メイン16</div>
+      <div>メイン17</div>
+      <div>メイン18</div>
+      <div>メイン19</div>
+      <div>メイン20</div>
+      <div>メイン21</div>
+      <div>メイン22</div>
+      <div>メイン23</div>
+      <div>メイン24</div>
+      <div>メイン25</div>
+      <div>メイン26</div>
+      <div>メイン27</div>
+      <div>メイン28</div>
+      <div>メイン29</div>
+      <div>メイン30</div>
+      <div>メイン31</div>
+      <div>メイン32</div>
+      <div>メイン33</div>
+      <div>メイン34</div>
+      <div>メイン35</div>
+      <div>メイン36</div>
+      <div>メイン37</div>
+      <div>メイン38</div>
+      <div>メイン39</div>
+      <div>メイン40</div>
+      <div>メイン41</div>
+      <div>メイン42</div>
+      <div>メイン45</div>
+      <div>メイン44</div>
+      <div>メイン45</div>
+      <div>メイン46</div>
+      <div>メイン47</div>
+      <div>メイン48</div>
+      <div>メイン49</div>
+      <div>メイン50</div>
+    </div>
+  );
+}

@@ -1,0 +1,10 @@
+{
+  "recommendations": [
+    "bradlc.vscode-tailwindcss",
+    "esbenp.prettier-vscode",
+    "oderwat.indent-rainbow",
+    "mosapride.zenkaku",
+    "aaron-bond.better-comments",
+    "dbaeumer.vscode-eslint"
+  ]
+}

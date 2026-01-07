@@ -4,16 +4,13 @@ import { auth } from "@app/(default)/auth";
 
 import * as jwt from "jsonwebtoken";
 
-type DeckResponse = {
-  limit: number;
-  offset: number;
-  cursor: string;
-  decks: Deck[];
-};
-
-type Deck = {
-  cursor: string;
-  data: DeckData;
+type DeckCode = {
+  id: string;
+  created_at: Date;
+  user_id: string;
+  deck_id: string;
+  code: string;
+  private_code_flg: boolean;
 };
 
 type DeckData = {
@@ -28,13 +25,16 @@ type DeckData = {
   latest_deck_code: DeckCode;
 };
 
-type DeckCode = {
-  id: string;
-  created_at: Date;
-  user_id: string;
-  deck_id: string;
-  code: string;
-  private_code_flg: boolean;
+type Deck = {
+  cursor: string;
+  data: DeckData;
+};
+
+type DeckGetResponseType = {
+  limit: number;
+  offset: number;
+  cursor: string;
+  decks: Deck[];
 };
 
 type DeckCreateRequestType = {
@@ -43,42 +43,54 @@ type DeckCreateRequestType = {
   private_code_flg: boolean;
 };
 
-async function getDecks() {
+async function getDecks(): Promise<DeckGetResponseType> {
   const domain = process.env.VSRECORDER_DOMAIN;
-  const res = await fetch(`https://` + domain + `/api/v1beta/decks?limit=50`, {
-    cache: "no-store",
-    method: "GET",
-    headers: {
-      Accept: "application/json",
-    },
-  });
 
-  const ret: DeckResponse = await res.json();
+  try {
+    const res = await fetch(`https://` + domain + `/api/v1beta/decks?limit=50`, {
+      cache: "no-store",
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
 
-  return ret;
+    const ret: DeckGetResponseType = await res.json();
+    return ret;
+  } catch (error) {
+    throw error;
+  }
 }
 
-async function getDecksWithAuth(token: string) {
+async function getDecksWithAuth(token: string): Promise<DeckGetResponseType> {
   const domain = process.env.VSRECORDER_DOMAIN;
-  const res = await fetch(`https://` + domain + `/api/v1beta/decks?limit=50`, {
-    cache: "no-store",
-    method: "GET",
-    headers: {
-      Authorization: "Bearer " + token,
-      Accept: "application/json",
-    },
-  });
 
-  const ret: DeckResponse = await res.json();
+  try {
+    const res = await fetch(`https://` + domain + `/api/v1beta/decks?limit=50`, {
+      cache: "no-store",
+      method: "GET",
+      headers: {
+        Authorization: "Bearer " + token,
+        Accept: "application/json",
+      },
+    });
 
-  return ret;
+    const ret: DeckGetResponseType = await res.json();
+    return ret;
+  } catch (error) {
+    throw error;
+  }
 }
 
 export async function GET() {
   const session = await auth();
   if (!session) {
-    const decks = await getDecks();
-    return NextResponse.json(decks, { status: 200 });
+    try {
+      const decks = await getDecks();
+      return NextResponse.json(decks, { status: 200 });
+    } catch (error) {
+      throw error;
+    }
   }
 
   const jwtSecret: jwt.Secret = process.env.VSRECORDER_JWT_SECRET as string;
@@ -95,15 +107,18 @@ export async function GET() {
 
   const token = jwt.sign(jwtPayload, jwtSecret, jwtSignOptions);
 
-  const decks = await getDecksWithAuth(token);
-
-  return NextResponse.json(decks, { status: 200 });
+  try {
+    const decks = await getDecksWithAuth(token);
+    return NextResponse.json(decks, { status: 200 });
+  } catch (error) {
+    throw error;
+  }
 }
 
 export async function POST(request: NextRequest) {
   const session = await auth();
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
   const deck: DeckCreateRequestType = await request.json();
@@ -120,19 +135,24 @@ export async function POST(request: NextRequest) {
   const token = jwt.sign(jwtPayload, jwtSecret, jwtSignOptions);
 
   const domain = process.env.VSRECORDER_DOMAIN;
-  const res = await fetch(`https://` + domain + `/api/v1beta/decks`, {
-    method: "POST",
-    headers: {
-      Authorization: "Bearer " + token,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(deck),
-  });
 
-  if (res.status == 201) {
-    const ret: DeckData = await res.json();
-    return NextResponse.json(ret, { status: 201 });
-  } else {
-    return res;
+  try {
+    const res = await fetch(`https://` + domain + `/api/v1beta/decks`, {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer " + token,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(deck),
+    });
+
+    if (res.status == 201) {
+      const ret: DeckData = await res.json();
+      return NextResponse.json(ret, { status: 201 });
+    } else {
+      return res;
+    }
+  } catch (error) {
+    throw error;
   }
 }

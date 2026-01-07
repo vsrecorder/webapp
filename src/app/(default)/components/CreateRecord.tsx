@@ -24,6 +24,10 @@ import Select from "react-select";
 import { Image } from "@heroui/react";
 import { Button } from "@heroui/react";
 
+import { addToast, closeToast } from "@heroui/react";
+
+import { useRouter } from "next/navigation";
+
 import {
   OfficialEventResponseType,
   OfficialEventType,
@@ -64,6 +68,30 @@ type DeckCode = {
   deck_id: string;
   code: string;
   private_code_flg: boolean;
+};
+
+type RecordCreateRequestType = {
+  official_event_id: number;
+  tonamel_event_id: string;
+  friend_id: string;
+  deck_id: string;
+  deck_code_id: string;
+  private_flg: boolean;
+  tcg_meister_url: string;
+  memo: string;
+};
+
+type RecordCreateResponseType = {
+  id: string;
+  created_at: Date;
+  official_event_id: number;
+  tonamel_event_id: string;
+  friend_id: string;
+  deck_id: string;
+  deck_code_id: string;
+  private_flg: boolean;
+  tcg_meister_url: string;
+  memo: string;
 };
 
 async function fetcherForOfficialEvent(url: string) {
@@ -188,6 +216,8 @@ function convertToDeckOption(deck: DeckType): DeckOption {
 }
 
 export default function CreateRecord() {
+  const router = useRouter();
+
   const [selectedDate, setSelectedDate] = useState<CalendarDate>(
     today(getLocalTimeZone()),
   );
@@ -294,6 +324,85 @@ export default function CreateRecord() {
 
     checkTonamelEventId();
   }, [tonamelEventId]);
+
+  /*
+    レコードを作成する関数
+  */
+  async function createOfficialEventRecord(
+    officialEventId: number,
+    deckId: string,
+    deckCodeId: string,
+  ) {
+    const toastId = addToast({
+      title: "レコード作成中",
+      description: "しばらくお待ちください",
+      color: "default",
+      promise: new Promise(() => {}),
+    });
+
+    const record: RecordCreateRequestType = {
+      official_event_id: officialEventId,
+      tonamel_event_id: "",
+      friend_id: "",
+      deck_id: deckId,
+      deck_code_id: deckCodeId,
+      private_flg: true,
+      tcg_meister_url: "",
+      memo: "",
+    };
+
+    try {
+      const res = await fetch("/api/records", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(record),
+      });
+
+      if (!res.ok) {
+        const t = await res.json();
+        throw new Error(`HTTP error: ${res.status} Message: ${t.message}`);
+      }
+
+      if (toastId) {
+        closeToast(toastId);
+      }
+
+      const ret: RecordCreateResponseType = await res.json();
+
+      addToast({
+        title: "レコード作成完了",
+        description: "レコードを作成しました",
+        color: "success",
+        timeout: 3000,
+      });
+
+      router.push("/records/" + ret.id);
+    } catch (error) {
+      console.error(error);
+
+      const errorMessage =
+        error instanceof Error ? error.message : "不明なエラーが発生しました";
+
+      if (toastId) {
+        closeToast(toastId);
+      }
+
+      addToast({
+        title: "レコード作成失敗",
+        description: (
+          <>
+            レコードの作成に失敗しました
+            <br />
+            {errorMessage}
+          </>
+        ),
+        color: "danger",
+        timeout: 5000,
+      });
+    }
+  }
 
   return (
     <div className="flex flex-col">
@@ -463,7 +572,17 @@ export default function CreateRecord() {
               <CreateDeckModal />
             </div>
 
-            <Button color="primary" isDisabled={true}>
+            <Button
+              color="primary"
+              isDisabled={false}
+              onPress={async () => {
+                await createOfficialEventRecord(
+                  selectedOfficialEventOption ? selectedOfficialEventOption.id : 0,
+                  selectedDeckOption ? selectedDeckOption.id : "",
+                  selectedDeckOption ? selectedDeckOption.latest_deck_code.id : "",
+                );
+              }}
+            >
               作成
             </Button>
           </div>

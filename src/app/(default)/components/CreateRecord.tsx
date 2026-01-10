@@ -31,9 +31,12 @@ import { useRouter } from "next/navigation";
 import {
   OfficialEventResponseType,
   OfficialEventType,
-  DeckResponseType,
-  DeckType,
-} from "@app/(default)/types";
+} from "@app/(default)/types/official_event";
+import { DeckGetResponseType, DeckType } from "@app/(default)/types/deck";
+import {
+  RecordCreateRequestType,
+  RecordCreateResponseType,
+} from "@app/(default)/types/record";
 
 import CreateDeckModal from "./CreateDeckModal";
 
@@ -70,30 +73,6 @@ type DeckCode = {
   private_code_flg: boolean;
 };
 
-type RecordCreateRequestType = {
-  official_event_id: number;
-  tonamel_event_id: string;
-  friend_id: string;
-  deck_id: string;
-  deck_code_id: string;
-  private_flg: boolean;
-  tcg_meister_url: string;
-  memo: string;
-};
-
-type RecordCreateResponseType = {
-  id: string;
-  created_at: Date;
-  official_event_id: number;
-  tonamel_event_id: string;
-  friend_id: string;
-  deck_id: string;
-  deck_code_id: string;
-  private_flg: boolean;
-  tcg_meister_url: string;
-  memo: string;
-};
-
 async function fetcherForOfficialEvent(url: string) {
   const res = await fetch(url, {
     headers: {
@@ -111,9 +90,9 @@ async function fetcherForDeck(url: string) {
       Accept: "application/json",
     },
   });
-  const ret: DeckResponseType = await res.json();
+  const ret: DeckGetResponseType = await res.json();
 
-  return ret.decks;
+  return ret;
 }
 
 function convertToOfficialEventOption(
@@ -265,7 +244,7 @@ export default function CreateRecord() {
   const deckOptions: DeckOption[] = [];
   let deckOptionsMessage = "対象のデッキがありません";
   {
-    const { data, error, isLoading } = useSWR<DeckType[], Error>(
+    const { data, error, isLoading } = useSWR<DeckGetResponseType, Error>(
       `/api/decks`,
       fetcherForDeck,
     );
@@ -277,10 +256,10 @@ export default function CreateRecord() {
       deckOptionsMessage = "検索中...";
     }
 
-    data?.map((deck: DeckType) => {
+    data?.decks.map((deck: DeckType) => {
       deckOptions.push(convertToDeckOption(deck));
     });
-    if (data?.length == 0) {
+    if (data?.decks.length == 0) {
       deckOptionsMessage = "デッキがありません";
     }
   }

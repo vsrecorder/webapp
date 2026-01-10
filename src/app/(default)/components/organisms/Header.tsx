@@ -1,9 +1,9 @@
 import { auth } from "@app/(default)/auth";
 
-import SignUp from "@app/(default)/components/SignUp/SignUp";
-import SignIn from "@app/(default)/components/SignIn/SignIn";
+import SignUp from "@app/(default)/components/organisms/SignUp";
+import SignIn from "@app/(default)/components/organisms/SignIn";
 import UserMenu from "@app/(default)/components/UserMenu";
-import { UserType } from "@app/(default)/types";
+import { UserType } from "@app/(default)/types/user";
 
 import Link from "next/link";
 

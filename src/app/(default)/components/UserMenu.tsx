@@ -9,7 +9,7 @@ import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@herou
 import { handleSignOut } from "@app/(default)/handlers/handleSignOut";
 
 import { Button } from "@heroui/react";
-import { UserType } from "@app/(default)/types";
+import { UserType } from "@app/(default)/types/user";
 
 type Props = {
   user: UserType;

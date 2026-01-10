@@ -4,7 +4,7 @@ import { useDisclosure } from "@heroui/react";
 import { Button } from "@heroui/react";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
 
-import XSignInButton from "./SocialSingIn";
+import SocialSignIn from "./SocialSingIn";
 
 export default function MobileSignIn() {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
@@ -37,7 +37,7 @@ export default function MobileSignIn() {
                   <p>記録できる　かっこいい　機械。</p>
                 </div>
                 <div className="text-md">お好みのアカウントでログイン</div>
-                <XSignInButton />
+                <SocialSignIn />
               </ModalBody>
 
               <ModalFooter></ModalFooter>

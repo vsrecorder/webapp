@@ -2,46 +2,13 @@ import { NextResponse, NextRequest } from "next/server";
 
 import { auth } from "@app/(default)/auth";
 
+import {
+  DeckGetResponseType,
+  DeckCreateRequestType,
+  DeckCreateResponseType,
+} from "@app/(default)/types/deck";
+
 import * as jwt from "jsonwebtoken";
-
-type DeckCode = {
-  id: string;
-  created_at: Date;
-  user_id: string;
-  deck_id: string;
-  code: string;
-  private_code_flg: boolean;
-};
-
-type DeckData = {
-  id: string;
-  created_at: Date;
-  archived_at: Date;
-  user_id: string;
-  name: string;
-  code: string;
-  private_code_flg: boolean;
-  private_flg: boolean;
-  latest_deck_code: DeckCode;
-};
-
-type Deck = {
-  cursor: string;
-  data: DeckData;
-};
-
-type DeckGetResponseType = {
-  limit: number;
-  offset: number;
-  cursor: string;
-  decks: Deck[];
-};
-
-type DeckCreateRequestType = {
-  name: string;
-  code: string;
-  private_code_flg: boolean;
-};
 
 async function getDecks(): Promise<DeckGetResponseType> {
   const domain = process.env.VSRECORDER_DOMAIN;
@@ -147,7 +114,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (res.status == 201) {
-      const ret: DeckData = await res.json();
+      const ret: DeckCreateResponseType = await res.json();
       return NextResponse.json(ret, { status: 201 });
     } else {
       return res;

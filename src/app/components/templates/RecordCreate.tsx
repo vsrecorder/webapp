@@ -28,17 +28,11 @@ import { addToast, closeToast } from "@heroui/react";
 
 import { useRouter } from "next/navigation";
 
-import {
-  OfficialEventResponseType,
-  OfficialEventType,
-} from "@app/(default)/types/official_event";
-import { DeckGetResponseType, DeckType } from "@app/(default)/types/deck";
-import {
-  RecordCreateRequestType,
-  RecordCreateResponseType,
-} from "@app/(default)/types/record";
+import { OfficialEventResponseType, OfficialEventType } from "@app/types/official_event";
+import { DeckGetResponseType, DeckType } from "@app/types/deck";
+import { RecordCreateRequestType, RecordCreateResponseType } from "@app/types/record";
 
-import CreateDeckModal from "./CreateDeckModal";
+import CreateDeckModal from "../CreateDeckModal";
 
 type OfficialEventOption = {
   label: string;
@@ -194,7 +188,7 @@ function convertToDeckOption(deck: DeckType): DeckOption {
   };
 }
 
-export default function CreateRecord() {
+export default function RecordCreate() {
   const router = useRouter();
 
   const [selectedDate, setSelectedDate] = useState<CalendarDate>(

@@ -8,7 +8,7 @@ import { TwitterAuthProvider, GoogleAuthProvider } from "firebase/auth";
 
 import { Button } from "@heroui/react";
 
-import { handleSignIn } from "@app/(default)/handlers/handleSignIn";
+import { handleSignIn } from "@app/handlers/handleSignIn";
 
 export default function SocialSignIn() {
   const [isLoadingGoogleSignInButton, setIsLoadingGoogleSignInButton] = useState(false);

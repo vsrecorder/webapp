@@ -6,7 +6,7 @@ import {
   DeckGetResponseType,
   DeckCreateRequestType,
   DeckCreateResponseType,
-} from "@app/(default)/types/deck";
+} from "@app/types/deck";
 
 import * as jwt from "jsonwebtoken";
 
@@ -23,6 +23,7 @@ async function getDecks(): Promise<DeckGetResponseType> {
     });
 
     const ret: DeckGetResponseType = await res.json();
+
     return ret;
   } catch (error) {
     throw error;
@@ -43,6 +44,7 @@ async function getDecksWithAuth(token: string): Promise<DeckGetResponseType> {
     });
 
     const ret: DeckGetResponseType = await res.json();
+
     return ret;
   } catch (error) {
     throw error;
@@ -76,6 +78,7 @@ export async function GET() {
 
   try {
     const decks = await getDecksWithAuth(token);
+
     return NextResponse.json(decks, { status: 200 });
   } catch (error) {
     throw error;
@@ -115,6 +118,7 @@ export async function POST(request: NextRequest) {
 
     if (res.status == 201) {
       const ret: DeckCreateResponseType = await res.json();
+
       return NextResponse.json(ret, { status: 201 });
     } else {
       return res;

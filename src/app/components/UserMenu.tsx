@@ -6,10 +6,10 @@ import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/d
 import { useDisclosure } from "@heroui/react";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/modal";
 
-import { handleSignOut } from "@app/(default)/handlers/handleSignOut";
+import { handleSignOut } from "@app/handlers/handleSignOut";
 
 import { Button } from "@heroui/react";
-import { UserType } from "@app/(default)/types/user";
+import { UserType } from "@app/types/user";
 
 type Props = {
   user: UserType;

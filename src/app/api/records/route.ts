@@ -2,10 +2,7 @@ import { NextResponse, NextRequest } from "next/server";
 
 import { auth } from "@app/(default)/auth";
 
-import {
-  RecordCreateRequestType,
-  RecordCreateResponseType,
-} from "@app/(default)/types/record";
+import { RecordCreateRequestType, RecordCreateResponseType } from "@app/types/record";
 
 import * as jwt from "jsonwebtoken";
 
@@ -42,6 +39,7 @@ export async function POST(request: NextRequest) {
 
     if (res.status == 201) {
       const ret: RecordCreateResponseType = await res.json();
+
       return NextResponse.json(ret, { status: 201 });
     } else {
       return res;

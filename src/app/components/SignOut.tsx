@@ -5,7 +5,7 @@ import { Button } from "@heroui/react";
 import { useDisclosure } from "@heroui/react";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/modal";
 
-import { handleSignOut } from "@app/(default)/handlers/handleSignOut";
+import { handleSignOut } from "@app/handlers/handleSignOut";
 
 export default function SignOut() {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();

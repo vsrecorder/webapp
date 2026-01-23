@@ -1,4 +1,4 @@
-import Providers from "@app/(default)/providers";
+import Providers from "@app/components/organisms/Providers";
 
 import Header from "@app/components/organisms/Header";
 import Navigation from "@app/components/organisms/Navigation";

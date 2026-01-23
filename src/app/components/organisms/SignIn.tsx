@@ -1,7 +1,7 @@
 "use client";
 
-import DesktopSignIn from "../molecules/SignIn/DesktopSignIn";
-import MobileSignIn from "../molecules/SignIn/MobileSignIn";
+import DesktopSignIn from "@app/components/molecules/SignIn/DesktopSignIn";
+import MobileSignIn from "@app/components/molecules/SignIn/MobileSignIn";
 
 export default function SignIn() {
   return (

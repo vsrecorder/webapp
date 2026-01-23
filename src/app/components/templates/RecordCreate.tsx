@@ -32,7 +32,7 @@ import { OfficialEventResponseType, OfficialEventType } from "@app/types/officia
 import { DeckGetResponseType, DeckType } from "@app/types/deck";
 import { RecordCreateRequestType, RecordCreateResponseType } from "@app/types/record";
 
-import CreateDeckModal from "../CreateDeckModal";
+import CreateDeckModal from "@app/components/organisms/CreateDeckModal";
 
 type OfficialEventOption = {
   label: string;

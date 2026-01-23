@@ -1,7 +1,7 @@
 "use client";
 
-import DesktopSignUp from "../molecules/SignUp/DesktopSignUp";
-import MobileSignUp from "../molecules/SignUp/MobileSignUp";
+import DesktopSignUp from "@app/components/molecules/SignUp/DesktopSignUp";
+import MobileSignUp from "@app/components/molecules/SignUp/MobileSignUp";
 
 export default function SignUp() {
   return (

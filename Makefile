@@ -1,5 +1,5 @@
-.PHONY: dev
-dev:
+.PHONY: run
+run:
 	npm run dev
 
 .PHONY: build
@@ -13,7 +13,7 @@ install:
 
 .PHONY: docker-build-and-push
 docker-build-and-push:
-	sudo docker build -t vsrecorder/webapp:latest . && sudo docker push vsrecorder/webapp:latest
+	docker build -t vsrecorder/webapp:latest . && docker push vsrecorder/webapp:latest
 
 .PHONY: deploy
 deploy:

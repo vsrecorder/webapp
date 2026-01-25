@@ -10,17 +10,25 @@ import {
 
 import * as jwt from "jsonwebtoken";
 
-async function getDecks(): Promise<DeckGetResponseType> {
-  const domain = process.env.VSRECORDER_DOMAIN;
-
+async function getDecks(
+  token: string,
+  archived: boolean,
+  cursor: string,
+): Promise<DeckGetResponseType> {
   try {
-    const res = await fetch(`https://` + domain + `/api/v1beta/decks?limit=50`, {
-      cache: "no-store",
-      method: "GET",
-      headers: {
-        Accept: "application/json",
+    const domain = process.env.VSRECORDER_DOMAIN;
+
+    const res = await fetch(
+      `https://${domain}/api/v1beta/decks?archived=${archived}&cursor=${cursor}`,
+      {
+        cache: "no-store",
+        method: "GET",
+        headers: {
+          Authorization: "Bearer " + token,
+          Accept: "application/json",
+        },
       },
-    });
+    );
 
     const ret: DeckGetResponseType = await res.json();
 
@@ -30,36 +38,10 @@ async function getDecks(): Promise<DeckGetResponseType> {
   }
 }
 
-async function getDecksWithAuth(token: string): Promise<DeckGetResponseType> {
-  const domain = process.env.VSRECORDER_DOMAIN;
-
-  try {
-    const res = await fetch(`https://` + domain + `/api/v1beta/decks?limit=50`, {
-      cache: "no-store",
-      method: "GET",
-      headers: {
-        Authorization: "Bearer " + token,
-        Accept: "application/json",
-      },
-    });
-
-    const ret: DeckGetResponseType = await res.json();
-
-    return ret;
-  } catch (error) {
-    throw error;
-  }
-}
-
-export async function GET() {
+export async function GET(request: NextRequest) {
   const session = await auth();
   if (!session) {
-    try {
-      const decks = await getDecks();
-      return NextResponse.json(decks, { status: 200 });
-    } catch (error) {
-      throw error;
-    }
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
   const jwtSecret: jwt.Secret = process.env.VSRECORDER_JWT_SECRET as string;
@@ -77,9 +59,14 @@ export async function GET() {
   const token = jwt.sign(jwtPayload, jwtSecret, jwtSignOptions);
 
   try {
-    const decks = await getDecksWithAuth(token);
+    const { searchParams } = new URL(request.url);
+    const archivedParam = searchParams.get("archived");
+    const archived = archivedParam === "true";
+    const cursor = searchParams.get("cursor") ?? "";
 
-    return NextResponse.json(decks, { status: 200 });
+    const ret = await getDecks(token, archived, cursor);
+
+    return NextResponse.json(ret, { status: 200 });
   } catch (error) {
     throw error;
   }
@@ -91,8 +78,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const deck: DeckCreateRequestType = await request.json();
-
   const jwtSecret: jwt.Secret = process.env.VSRECORDER_JWT_SECRET as string;
   const jwtSignOptions: jwt.SignOptions = {
     algorithm: "HS256",
@@ -104,10 +89,12 @@ export async function POST(request: NextRequest) {
   };
   const token = jwt.sign(jwtPayload, jwtSecret, jwtSignOptions);
 
-  const domain = process.env.VSRECORDER_DOMAIN;
-
   try {
-    const res = await fetch(`https://` + domain + `/api/v1beta/decks`, {
+    const domain = process.env.VSRECORDER_DOMAIN;
+
+    const deck: DeckCreateRequestType = await request.json();
+
+    const res = await fetch(`https://${domain}/api/v1beta/decks`, {
       method: "POST",
       headers: {
         Authorization: "Bearer " + token,

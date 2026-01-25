@@ -1,4 +1,4 @@
-import Record from "@app/components/templates/Record";
+import Deck from "@app/components/templates/Deck";
 
 type Props = {
   params: Promise<{
@@ -9,5 +9,5 @@ type Props = {
 export default async function Page({ params }: Props) {
   const { id } = await params;
 
-  return <Record id={id} />;
+  return <Deck id={id} />;
 }

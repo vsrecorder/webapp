@@ -27,3 +27,5 @@ export type OfficialEventType = {
   environment_id: string;
   environment_title: string;
 };
+
+export type OfficialEventGetByIdResponseType = OfficialEventType;

@@ -5,6 +5,7 @@ import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/d
 
 import { useDisclosure } from "@heroui/react";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/modal";
+import { useRouter } from "next/navigation";
 
 import { handleSignOut } from "@app/handlers/handleSignOut";
 
@@ -16,6 +17,8 @@ type Props = {
 };
 
 export default function UserMenu({ user }: Props) {
+  const router = useRouter();
+
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   return (
@@ -25,6 +28,16 @@ export default function UserMenu({ user }: Props) {
           <Avatar size="md" src={user.image_url} />
         </DropdownTrigger>
         <DropdownMenu>
+          <DropdownItem
+            key=""
+            className=""
+            color="default"
+            onPress={() => {
+              router.push("/users");
+            }}
+          >
+            ユーザ情報
+          </DropdownItem>
           <DropdownItem
             key="signout"
             className="text-danger"

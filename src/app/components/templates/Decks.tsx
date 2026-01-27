@@ -7,11 +7,11 @@ import { Tabs, Tab } from "@heroui/react";
 
 export default function Records() {
   return (
-    <Tabs fullWidth size="md">
-      <Tab key="" title="デッキ">
+    <Tabs fullWidth size="sm">
+      <Tab key="inuse" title="利用中">
         <Decks />
       </Tab>
-      <Tab key="archived" title="アーカイブ">
+      <Tab key="archived" title="アーカイブ済み">
         <ArchivedDecks />
       </Tab>
     </Tabs>

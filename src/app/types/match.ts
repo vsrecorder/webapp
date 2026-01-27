@@ -16,7 +16,7 @@ export type MatchType = {
   victory_flg: boolean;
   opponents_deck_info: string;
   memo: string;
-  games: GameType;
+  games: GameType[];
 };
 
 export type MatchGetResponseType = MatchType;

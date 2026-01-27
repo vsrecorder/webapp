@@ -15,7 +15,7 @@ async function fetchMatches(record_id: string) {
     });
 
     if (!res.ok) {
-      throw new Error("Failed to fetch record");
+      throw new Error("Failed to fetch");
     }
 
     const ret: MatchGetResponseType[] = await res.json();
@@ -36,7 +36,10 @@ export default function Matches({ record_id }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!record_id) return;
+    if (!record_id) {
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
 
@@ -75,6 +78,13 @@ export default function Matches({ record_id }: Props) {
           <div>ID: {match.id}</div>
           <div>勝敗: {match.victory_flg === true ? "⭕" : "❌"}</div>
           <div>相手のデッキ: {match.opponents_deck_info} </div>
+          {match.games.map((game) => (
+            <div key={game.id}>
+              <div>ID: {game.id}</div>
+              <div>先後: {game.go_first === true ? "先攻" : "後攻"}</div>
+              <div>メモ: {match.memo} </div>
+            </div>
+          ))}
         </div>
       ))}
     </div>

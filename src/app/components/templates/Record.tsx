@@ -6,6 +6,7 @@ import { Divider } from "@heroui/react";
 
 import OfficialEventInfo from "@app/components/organisms/OfficialEventInfo";
 import Matches from "@app/components/organisms/Matches";
+import Deck from "@app/components/organisms/Deck";
 
 import { RecordGetByIdResponseType } from "@app/types/record";
 
@@ -20,7 +21,7 @@ async function fetchRecordById(id: string) {
     });
 
     if (!res.ok) {
-      throw new Error("Failed to fetch record");
+      throw new Error("Failed to fetch");
     }
 
     const ret: RecordGetByIdResponseType = await res.json();
@@ -85,6 +86,8 @@ export default function Record({ id }: Props) {
       <OfficialEventInfo id={record.official_event_id} />
       <Divider />
       <Matches record_id={record.id} />
+      <Divider />
+      <Deck deck_id={record.deck_id} deck_code_id={record.deck_code_id} />
     </div>
   );
 }

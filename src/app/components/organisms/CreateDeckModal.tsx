@@ -226,9 +226,7 @@ export default function CreateDeckModal() {
                     alt={"test"}
                     src={
                       isValidatedDeckCode
-                        ? "https://xx8nnpgt.user.webaccel.jp/images/decks/" +
-                          deckcode +
-                          ".jpg"
+                        ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode}.jpg`
                         : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
                     }
                     onLoad={() => {}}

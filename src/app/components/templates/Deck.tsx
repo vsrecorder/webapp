@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+import DeckOrganism from "@app/components/organisms/Deck";
+
 import { DeckGetByIdResponseType } from "@app/types/deck";
 
 async function fetchDeckById(id: string) {
@@ -15,7 +17,7 @@ async function fetchDeckById(id: string) {
     });
 
     if (!res.ok) {
-      throw new Error("Failed to fetch record");
+      throw new Error("Failed to fetch");
     }
 
     const ret: DeckGetByIdResponseType = await res.json();
@@ -76,6 +78,7 @@ export default function Deck({ id }: Props) {
       <div>デッキコード: {deck.code}</div>
       <div>デッキの非公開: {deck.private_flg === true ? "true" : "false"}</div>
       <div>デッキコードの非公開: {deck.private_code_flg === true ? "true" : "false"}</div>
+      <DeckOrganism deck_id={deck.id} deck_code_id={deck.latest_deck_code.id} />
     </div>
   );
 }

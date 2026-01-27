@@ -7,7 +7,7 @@ import { Tabs, Tab } from "@heroui/react";
 
 export default function Records() {
   return (
-    <Tabs fullWidth size="md">
+    <Tabs fullWidth size="sm">
       <Tab key="official" title="公式イベント">
         <OfficialEventRecords />
       </Tab>

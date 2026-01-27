@@ -84,8 +84,6 @@ export default function TonamelEventRecords() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-bold">Tonamelのレコード</h2>
-
       {items.map((record) => (
         <Record key={record.data.id} {...record} />
       ))}

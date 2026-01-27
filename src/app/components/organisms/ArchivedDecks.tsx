@@ -84,8 +84,6 @@ export default function ArchivedDecks() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-bold">アーカイブ済みデッキ</h2>
-
       {items.map((deck) => (
         <Deck key={deck.data.id} {...deck} />
       ))}

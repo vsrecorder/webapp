@@ -15,7 +15,7 @@ async function fetchOfficialEventById(id: number) {
     });
 
     if (!res.ok) {
-      throw new Error("Failed to fetch record");
+      throw new Error("Failed to fetch");
     }
 
     const ret: OfficialEventGetByIdResponseType = await res.json();
@@ -37,7 +37,10 @@ export default function OfficialEventInfo({ id }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!id) return;
+    if (!id) {
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
 

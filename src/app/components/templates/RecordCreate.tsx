@@ -379,7 +379,7 @@ export default function RecordCreate() {
 
   return (
     <div className="flex flex-col">
-      <Tabs fullWidth size="md">
+      <Tabs fullWidth size="sm">
         <Tab key="official" title="公式イベント">
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-1">
@@ -534,9 +534,7 @@ export default function RecordCreate() {
                 alt={"test"}
                 src={
                   selectedDeckOption
-                    ? "https://xx8nnpgt.user.webaccel.jp/images/decks/" +
-                      selectedDeckOption.latest_deck_code.code +
-                      ".jpg"
+                    ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${selectedDeckOption.latest_deck_code.code}.jpg`
                     : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
                 }
                 onLoad={() => {}}
@@ -647,9 +645,7 @@ export default function RecordCreate() {
                 alt={"test"}
                 src={
                   selectedDeckOption
-                    ? "https://xx8nnpgt.user.webaccel.jp/images/decks/" +
-                      selectedDeckOption.latest_deck_code.code +
-                      ".jpg"
+                    ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${selectedDeckOption.latest_deck_code.code}`
                     : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
                 }
                 onLoad={() => {}}

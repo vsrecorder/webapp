@@ -2,11 +2,11 @@
 
 import { DeckType } from "@app/types/deck";
 
-import { Link } from "@heroui/link";
+import Link from "next/link";
 
 export default function Deck(deck: DeckType) {
   return (
-    <Link isBlock color="foreground" href={`/decks/${deck.data.id}`}>
+    <Link color="foreground" href={`/decks/${deck.data.id}`}>
       <div key={deck.data.id} className="rounded border p-3">
         <p className="font-medium">デッキID:</p>
         <p>{deck.data.id}</p>

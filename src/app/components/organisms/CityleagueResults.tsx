@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 
 import { Divider } from "@heroui/react";
-import { Image } from "@heroui/react";
+//import { Image } from "@heroui/react";
 
-import OfficialEventInfo from "@app/components/organisms/OfficialEventInfo";
+import CityleagueResult from "@app/components/organisms/CityleagueResult";
 
 import { CityleagueResultGetResponseType } from "@app/types/cityleague_result";
 
@@ -79,6 +79,20 @@ export default function CityleagueResults({ league_type }: Props) {
 
   return (
     <div className="flex flex-col gap-2">
+      {cityleagueResults.event_results.map((event_result) => (
+        <div key={event_result.official_event_id}>
+          <CityleagueResult event_result={event_result} />
+          <div className="pt-2">
+            <Divider />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
+  /*
+  return (
+    <div className="flex flex-col gap-2">
       {cityleagueResults.event_results.map((event) => (
         <div key={event.official_event_id}>
           <div>cityleague_schedule_id: {event.cityleague_schedule_id}</div>
@@ -116,4 +130,5 @@ export default function CityleagueResults({ league_type }: Props) {
       ))}
     </div>
   );
+  */
 }

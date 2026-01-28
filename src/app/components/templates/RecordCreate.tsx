@@ -507,7 +507,7 @@ export default function RecordCreate() {
                 formatOptionLabel={(option, { context }) => {
                   if (context === "menu") {
                     return (
-                      <div className="text-sm">
+                      <div className="text-sm truncate">
                         <div className="grid">
                           <span className="truncate">登録日：{option.created_at}</span>
                           <span className="truncate">デッキ名：{option.name}</span>
@@ -531,7 +531,11 @@ export default function RecordCreate() {
                 className="relative z-0"
                 radius="none"
                 shadow="none"
-                alt={"test"}
+                alt={
+                  selectedDeckOption
+                    ? selectedDeckOption.latest_deck_code.code
+                    : "デッキコードなし"
+                }
                 src={
                   selectedDeckOption
                     ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${selectedDeckOption.latest_deck_code.code}.jpg`
@@ -642,10 +646,14 @@ export default function RecordCreate() {
                 className="relative z-0"
                 radius="none"
                 shadow="none"
-                alt={"test"}
+                alt={
+                  selectedDeckOption
+                    ? selectedDeckOption.latest_deck_code.code
+                    : "デッキコードなし"
+                }
                 src={
                   selectedDeckOption
-                    ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${selectedDeckOption.latest_deck_code.code}`
+                    ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${selectedDeckOption.latest_deck_code.code}.jpg`
                     : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
                 }
                 onLoad={() => {}}

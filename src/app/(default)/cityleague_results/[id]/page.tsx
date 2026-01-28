@@ -1,11 +1,11 @@
 type Props = {
   params: Promise<{
-    date: string;
+    id: string;
   }>;
 };
 
 export default async function Page({ params }: Props) {
-  const { date } = await params;
+  const { id } = await params;
 
-  return <div className="">日付: {date}</div>;
+  return <div className="">ID: {id}</div>;
 }

@@ -26,6 +26,8 @@ export type OfficialEventType = {
   prefecture_name: string;
   environment_id: string;
   environment_title: string;
+  standard_regulation_id: string;
+  standard_regulation_marks: string;
 };
 
 export type OfficialEventGetByIdResponseType = OfficialEventType;

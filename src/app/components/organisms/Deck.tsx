@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { Image } from "@heroui/react";
+import DeckCard from "@app/components/organisms/DeckCard";
 
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
@@ -112,16 +112,5 @@ export default function Deck({ deck_id, deck_code_id }: Props) {
     return <div>データが存在しません</div>;
   }
 
-  return (
-    <div className="flex flex-col gap-2">
-      <div>ID: {deck.id}</div>
-      <div>デッキ名: {deck.name} </div>
-      <div>非公開: {deck.private_flg === true ? "true" : "false"}</div>
-      <Image
-        alt={deckcode.code}
-        src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
-        shadow={"none"}
-      />
-    </div>
-  );
+  return <DeckCard deck={deck} deckcode={deckcode} />;
 }

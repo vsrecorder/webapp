@@ -1,4 +1,4 @@
-type Result = {
+export type Result = {
   player_id: string;
   player_name: string;
   rank: number;

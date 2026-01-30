@@ -75,9 +75,7 @@ export default function Deck({ id }: Props) {
       <div>ID: {deck.id}</div>
       <div>作成日: {new Date(deck.created_at).toLocaleString()}</div>
       <div>デッキ名: {deck.name}</div>
-      <div>デッキコード: {deck.code}</div>
       <div>デッキの非公開: {deck.private_flg === true ? "true" : "false"}</div>
-      <div>デッキコードの非公開: {deck.private_code_flg === true ? "true" : "false"}</div>
       <DeckOrganism deck_id={deck.id} deck_code_id={deck.latest_deck_code.id} />
     </div>
   );

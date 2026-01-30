@@ -4,13 +4,12 @@ import { useEffect, useState } from "react";
 
 import { Divider } from "@heroui/react";
 
-import CityleagueResult from "@app/components/organisms/CityleagueResult";
+import CityleagueResultCard from "@app/components/organisms/CityleagueResultCard";
+import { CityleagueResultType } from "@app/types/cityleague_result";
 
-import { CityleagueResultGetResponseType } from "@app/types/cityleague_result";
-
-async function fetchCityleagueResults(league_type: string) {
+async function fetchCityleagueResultByOfficialEventById(id: number) {
   try {
-    const res = await fetch(`/api/cityleague_results?league_type=${league_type}`, {
+    const res = await fetch(`/api/cityleague_results/${id}`, {
       cache: "no-store",
       method: "GET",
       headers: {
@@ -22,7 +21,7 @@ async function fetchCityleagueResults(league_type: string) {
       throw new Error("Failed to fetch");
     }
 
-    const ret: CityleagueResultGetResponseType = await res.json();
+    const ret: CityleagueResultType = await res.json();
 
     return ret;
   } catch (error) {
@@ -31,17 +30,18 @@ async function fetchCityleagueResults(league_type: string) {
 }
 
 type Props = {
-  league_type: string;
+  id: number;
 };
 
-export default function CityleagueResults({ league_type }: Props) {
-  const [cityleagueResults, setCityleagueResults] =
-    useState<CityleagueResultGetResponseType | null>(null);
+export default function CityleagueResultByOfficialEventId({ id }: Props) {
+  const [cityleagueResult, setCityleagueResult] = useState<CityleagueResultType | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!league_type) {
+    if (!id) {
       setLoading(false);
       return;
     }
@@ -51,8 +51,8 @@ export default function CityleagueResults({ league_type }: Props) {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const data = await fetchCityleagueResults(league_type);
-        setCityleagueResults(data);
+        const data = await fetchCityleagueResultByOfficialEventById(id);
+        setCityleagueResult(data);
       } catch (err) {
         console.log(err);
         setError("データの取得に失敗しました");
@@ -62,7 +62,7 @@ export default function CityleagueResults({ league_type }: Props) {
     };
 
     fetchData();
-  }, [league_type]);
+  }, [id]);
 
   if (loading) {
     return <div>読み込み中...</div>;
@@ -72,15 +72,15 @@ export default function CityleagueResults({ league_type }: Props) {
     return <div className="text-red-500">{error}</div>;
   }
 
-  if (!cityleagueResults || cityleagueResults.count === 0) {
+  if (!cityleagueResult || cityleagueResult.results.length === 0) {
     return <div>データが存在しません</div>;
   }
 
   return (
     <div className="flex flex-col gap-2">
-      {cityleagueResults.event_results.map((event_result) => (
-        <div key={event_result.official_event_id}>
-          <CityleagueResult event_result={event_result} />
+      {cityleagueResult.results.map((result) => (
+        <div key={result.player_id}>
+          <CityleagueResultCard result={result} />
           <div className="pt-2">
             <Divider />
           </div>

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 
-import Deck from "@app/components/molecules/Deck";
+import Deck from "@app/components/organisms/Deck";
 
 import { DeckType, DeckGetResponseType } from "@app/types/deck";
 
@@ -85,7 +85,11 @@ export default function ArchivedDecks() {
   return (
     <div className="space-y-4">
       {items.map((deck) => (
-        <Deck key={deck.data.id} {...deck} />
+        <Deck
+          key={deck.data.id}
+          deck_id={deck.data.id}
+          deck_code_id={deck.data.latest_deck_code.id}
+        />
       ))}
 
       {hasMore && (

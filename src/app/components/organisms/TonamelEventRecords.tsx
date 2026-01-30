@@ -85,7 +85,7 @@ export default function TonamelEventRecords() {
   return (
     <div className="space-y-4">
       {items.map((record) => (
-        <Record key={record.data.id} {...record} />
+        <Record key={record.data.id} record={record} />
       ))}
 
       {hasMore && (

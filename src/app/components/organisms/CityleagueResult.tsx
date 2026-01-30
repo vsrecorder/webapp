@@ -2,11 +2,18 @@
 
 import { useEffect, useState } from "react";
 
-import { Card, CardHeader, CardBody } from "@heroui/react";
+import { Card, CardHeader, CardBody, CardFooter } from "@heroui/react";
 import { Chip } from "@heroui/react";
-import { Image } from "@heroui/react";
-
 import { Link } from "@heroui/react";
+
+import { A11y, Autoplay, Navigation, Pagination, Scrollbar } from "swiper/modules";
+import { Swiper, SwiperSlide } from "swiper/react";
+import "swiper/css";
+import "swiper/css/navigation";
+import "swiper/css/pagination";
+import "swiper/css/scrollbar";
+
+import CityleagueResultCard from "@app/components/organisms/CityleagueResultCard";
 
 import { CityleagueResultType } from "@app/types/cityleague_result";
 import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
@@ -66,6 +73,16 @@ export default function CityleagueResult({ event_result }: Props) {
     fetchData();
   }, [event_result.official_event_id]);
 
+  const isToday = (date: Date) => {
+    const today = new Date();
+
+    return (
+      date.getFullYear() === today.getFullYear() &&
+      date.getMonth() === today.getMonth() &&
+      date.getDate() === today.getDate()
+    );
+  };
+
   if (loading) {
     return <div>読み込み中...</div>;
   }
@@ -79,79 +96,85 @@ export default function CityleagueResult({ event_result }: Props) {
   }
 
   return (
-    <Card className="py-3">
-      <CardHeader className="pb-0 pt-0 px-3 flex-col items-start gap-0.5">
-        <small className="text-default-500">{event.title}</small>
-        <p className="font-bold text-tiny">
-          {new Date(event.date).toLocaleString("ja-JP", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-            weekday: "short",
-          })}
-        </p>
-        <div className="font-bold text-medium">{event.shop_name}</div>
-        <div className="flex flex-wrap items-start gap-1 pt-0.5">
-          <Chip size="sm" radius="md">
-            <small className="font-bold">{event.prefecture_name}</small>
-          </Chip>
-          <Chip size="sm" radius="md">
-            <small className="font-bold">{event.league_title}リーグ</small>
-          </Chip>
-          <Chip size="sm" radius="md">
-            <small className="font-bold">{event.environment_title}</small>
-          </Chip>
-        </div>
-      </CardHeader>
-      <CardBody className="py-3 gap-1">
-        <Card shadow="sm" className="py-3">
-          <CardHeader className="pb-0 pt-0 flex-col items-start gap-0.5">
-            <p className="text-tiny">
-              {event_result.results[0].rank === 1 ? "優勝" : ""}
-            </p>
-            <p className="text-tiny">
-              プレイヤー名: {event_result.results[0].player_name}
-            </p>
-            <p className="text-tiny">プレイヤーID: {event_result.results[0].player_id}</p>
-            <p className="text-tiny">
-              デッキコード:{" "}
-              {event_result.results[0].deck_code
-                ? event_result.results[0].deck_code
-                : "なし"}
-            </p>
-          </CardHeader>
-          <CardBody className="py-2">
-            {event_result.results[0].deck_code ? (
-              <>
-                <Image
-                  radius="none"
-                  shadow="none"
-                  alt={event_result.results[0].deck_code}
-                  src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${event_result.results[0].deck_code}.jpg`}
-                />
-              </>
-            ) : (
-              <>
-                <Image
-                  radius="none"
-                  shadow="none"
-                  alt={event_result.results[0].deck_code}
-                  src={"https://www.pokemon-card.com/deck/deckView.php/deckID/"}
-                />
-              </>
+    <Card className="pt-3">
+      <Link color="foreground" href={`/cityleague_results/${event.id}`}>
+        <CardHeader className="pb-0 pt-0 px-3 flex-col items-start gap-0.5">
+          <small className="text-default-500">{event.title}</small>
+          <p className="font-bold text-tiny">
+            {new Date(event.date).toLocaleString("ja-JP", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+              weekday: "short",
+            })}
+          </p>
+          <div className="font-bold text-medium">{event.shop_name}</div>
+          <div className="flex flex-wrap items-start gap-1 pt-0.5">
+            <Chip size="sm" radius="md" variant="bordered">
+              <small className="font-bold">{event.prefecture_name}</small>
+            </Chip>
+            <Chip size="sm" radius="md" variant="bordered">
+              <small className="font-bold">{event.league_title}リーグ</small>
+            </Chip>
+            <Chip size="sm" radius="md" variant="bordered">
+              <small className="font-bold">{event.environment_title}</small>
+            </Chip>
+            {isToday(new Date(event.date)) && (
+              <Chip
+                size="sm"
+                radius="md"
+                classNames={{
+                  base: "bg-linear-to-br from-indigo-500 to-pink-500 border-small border-white/50 ",
+                  //base: "bg-linear-to-br from-indigo-500 to-pink-500 border-small border-white/50 shadow-pink-500/30",
+                  content: "drop-shadow-xs shadow-black text-white",
+                }}
+                variant="shadow"
+              >
+                <small className="font-bold">New</small>
+              </Chip>
             )}
-          </CardBody>
-        </Card>
-        <Link
-          isExternal
-          showAnchorIcon
-          underline="always"
-          href={event_result.event_detail_result_url}
-          className="text-xs"
-        >
-          <span>このイベントの結果を見る</span>
-        </Link>
+          </div>
+        </CardHeader>
+      </Link>
+      <CardBody className="py-1 px-1">
+        <div>
+          <Swiper
+            modules={[A11y, Autoplay, Navigation, Pagination, Scrollbar]}
+            slidesPerView={"auto"}
+            centeredSlides={true}
+            loop={false}
+            speed={500}
+            /*
+            autoplay={{
+              delay: 1500,
+              disableOnInteraction: false,
+            }}
+            */
+            pagination={{
+              clickable: true,
+            }}
+          >
+            {event_result.results.map((result, index) => (
+              <SwiperSlide key={index} className="p-2">
+                <CityleagueResultCard result={result} />
+              </SwiperSlide>
+            ))}
+          </Swiper>
+        </div>
       </CardBody>
+      <CardFooter className="pt-0 pb-2">
+        <div>
+          <Link
+            isExternal
+            showAnchorIcon
+            underline="always"
+            href={event_result.event_detail_result_url}
+            className="text-xs"
+          >
+            <span>このイベント結果の公式ページを見る</span>
+          </Link>
+        </div>
+      </CardFooter>
     </Card>
   );
 }

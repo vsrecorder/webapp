@@ -26,7 +26,7 @@ async function getAcespec(code: string): Promise<AcespecType> {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ code: string }> },
 ) {
   const session = await auth();
   if (!session) {
@@ -34,9 +34,9 @@ export async function GET(
   }
 
   try {
-    const { id } = await params;
+    const { code } = await params;
 
-    const ret = await getAcespec(id);
+    const ret = await getAcespec(code);
 
     return NextResponse.json(ret, { status: 200 });
   } catch (error) {

@@ -16,7 +16,7 @@ import { EnvironmentType } from "@app/types/environment";
 
 async function fetchAcespec(code: string) {
   try {
-    const res = await fetch(`/api/deckcodes/${code}/acespec`, {
+    const res = await fetch(`/api/deckcards/${code}/acespec`, {
       cache: "no-store",
       method: "GET",
       headers: {

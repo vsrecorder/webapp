@@ -63,7 +63,7 @@ export default function Deck({ deck_id, deck_code_id }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!deck_id || !deck_code_id) {
+    if (!deck_id) {
       setLoading(false);
       return;
     }
@@ -85,9 +85,11 @@ export default function Deck({ deck_id, deck_code_id }: Props) {
 
     const fetchDeckCodeData = async () => {
       try {
-        setLoading(true);
-        const data = await fetchDeckCodeById(deck_code_id);
-        setDeckCode(data);
+        if (deck_code_id) {
+          setLoading(true);
+          const data = await fetchDeckCodeById(deck_code_id);
+          setDeckCode(data);
+        }
       } catch (err) {
         console.log(err);
         setError("データの取得に失敗しました");
@@ -108,8 +110,14 @@ export default function Deck({ deck_id, deck_code_id }: Props) {
     return <div className="text-red-500">{error}</div>;
   }
 
-  if (!deck || !deckcode) {
-    return <div>データが存在しません</div>;
+  if (!deck) {
+    return (
+      <div>
+        <div>データが存在しません</div>
+        <div>デッキID: {deck_id}</div>
+        <div>デッキコードID: {deck_code_id}</div>
+      </div>
+    );
   }
 
   return <DeckCard deck={deck} deckcode={deckcode} />;

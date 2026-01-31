@@ -6,9 +6,9 @@ import Deck from "@app/components/organisms/Deck";
 
 import { DeckType, DeckGetResponseType } from "@app/types/deck";
 
-async function fetchDecks(cursor: string) {
+async function fetchDecks(isArchived: boolean, cursor: string) {
   try {
-    const res = await fetch(`/api/decks?archived=false&cursor=` + cursor, {
+    const res = await fetch(`/api/decks?archived=${isArchived}&cursor=${cursor}`, {
       cache: "no-store",
       method: "GET",
       headers: {
@@ -24,7 +24,11 @@ async function fetchDecks(cursor: string) {
   }
 }
 
-export default function Decks() {
+type Props = {
+  isArchived: boolean;
+};
+
+export default function Decks({ isArchived }: Props) {
   const observerTarget = useRef<HTMLDivElement | null>(null);
 
   const [items, setItems] = useState<DeckType[]>([]);
@@ -38,7 +42,7 @@ export default function Decks() {
     setIsLoading(true);
 
     try {
-      const newItems: DeckGetResponseType = await fetchDecks(nextCursor);
+      const newItems: DeckGetResponseType = await fetchDecks(isArchived, nextCursor);
 
       if (newItems.decks.length === 0) {
         setHasMore(false);
@@ -59,7 +63,7 @@ export default function Decks() {
     } finally {
       setIsLoading(false);
     }
-  }, [nextCursor, isLoading, hasMore]);
+  }, [isArchived, nextCursor, isLoading, hasMore]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -85,7 +89,6 @@ export default function Decks() {
   return (
     <div className="space-y-4">
       {items.map((deck) => (
-        /*<Deck key={deck.data.id} {...deck} />*/
         <Deck
           key={deck.data.id}
           deck_id={deck.data.id}

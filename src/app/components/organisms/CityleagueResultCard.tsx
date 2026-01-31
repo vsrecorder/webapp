@@ -22,7 +22,8 @@ type Props = {
 };
 
 export default function CityleagueResultCard({ result }: Props) {
-  const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const { isOpen, onOpenChange } = useDisclosure();
+  //const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   useEffect(() => {
     if (!result.deck_code) return;
@@ -34,7 +35,7 @@ export default function CityleagueResultCard({ result }: Props) {
     <>
       <div
         onClick={() => {
-          onOpen();
+          //onOpen();
         }}
       >
         <Card shadow="sm" className="py-3">

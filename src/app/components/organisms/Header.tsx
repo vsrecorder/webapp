@@ -11,7 +11,7 @@ async function fetchUser(id: string) {
   const domain = process.env.VSRECORDER_DOMAIN;
 
   try {
-    const res = await fetch(`https://` + domain + `/api/v1beta/users/` + id, {
+    const res = await fetch(`https://${domain}/api/v1beta/users/${id}`, {
       cache: "no-store",
       method: "GET",
       headers: {

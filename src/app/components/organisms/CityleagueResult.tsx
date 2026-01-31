@@ -6,7 +6,8 @@ import { Card, CardHeader, CardBody, CardFooter } from "@heroui/react";
 import { Chip } from "@heroui/react";
 import { Link } from "@heroui/react";
 
-import { A11y, Autoplay, Navigation, Pagination, Scrollbar } from "swiper/modules";
+//import { A11y, Autoplay, Navigation, Pagination, Scrollbar } from "swiper/modules";
+import { Pagination } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
 import "swiper/css/navigation";
@@ -139,7 +140,7 @@ export default function CityleagueResult({ event_result }: Props) {
       <CardBody className="py-1 px-1">
         <div>
           <Swiper
-            modules={[A11y, Autoplay, Navigation, Pagination, Scrollbar]}
+            modules={[Pagination]}
             slidesPerView={"auto"}
             centeredSlides={true}
             loop={false}

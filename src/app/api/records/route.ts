@@ -11,9 +11,9 @@ async function getRecords(
   event_type: string,
   cursor: string,
 ): Promise<RecordGetResponseType> {
-  const domain = process.env.VSRECORDER_DOMAIN;
-
   try {
+    const domain = process.env.VSRECORDER_DOMAIN;
+
     const res = await fetch(
       `https://${domain}/api/v1beta/records?event_type=${event_type}&cursor=${cursor}`,
       {

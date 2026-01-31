@@ -19,7 +19,7 @@ async function getDecks(
     const domain = process.env.VSRECORDER_DOMAIN;
 
     const res = await fetch(
-      `https://${domain}/api/v1beta/decks?limit=50&archived=${archived}&cursor=${cursor}`,
+      `https://${domain}/api/v1beta/decks?limit=10&archived=${archived}&cursor=${cursor}`,
       {
         cache: "no-store",
         method: "GET",

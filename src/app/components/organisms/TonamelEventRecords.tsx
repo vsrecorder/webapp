@@ -8,7 +8,7 @@ import { RecordType, RecordGetResponseType } from "@app/types/record";
 
 async function fetchTonamelEventRecords(cursor: string) {
   try {
-    const res = await fetch(`/api/records?event_type=tonamel&cursor=` + cursor, {
+    const res = await fetch(`/api/records?event_type=tonamel&cursor=${cursor}`, {
       cache: "no-store",
       method: "GET",
       headers: {

@@ -2,15 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { auth } from "@app/(default)/auth";
 
-import { DeckGetByIdResponseType } from "@app/types/deck";
+import { DeckCodeType } from "@app/types/deck_code";
 
 import * as jwt from "jsonwebtoken";
 
-async function getDeckById(token: string, id: string): Promise<DeckGetByIdResponseType> {
+async function getDeckCodesByDeckId(
+  token: string,
+  deck_id: string,
+): Promise<DeckCodeType[]> {
   try {
     const domain = process.env.VSRECORDER_DOMAIN;
 
-    const res = await fetch(`https://${domain}/api/v1beta/decks/${id}`, {
+    const res = await fetch(`https://${domain}/api/v1beta/decks/${deck_id}/deckcodes`, {
       cache: "no-store",
       method: "GET",
       headers: {
@@ -19,7 +22,7 @@ async function getDeckById(token: string, id: string): Promise<DeckGetByIdRespon
       },
     });
 
-    const ret: DeckGetByIdResponseType = await res.json();
+    const ret: DeckCodeType[] = await res.json();
 
     return ret;
   } catch (error) {
@@ -49,8 +52,9 @@ export async function GET(
 
   try {
     const { id } = await params;
+    const deck_id = id;
 
-    const ret = await getDeckById(token, id);
+    const ret = await getDeckCodesByDeckId(token, deck_id);
 
     return NextResponse.json(ret, { status: 200 });
   } catch (error) {

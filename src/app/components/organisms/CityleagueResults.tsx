@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from "react";
 
-import { Divider } from "@heroui/react";
-
 import CityleagueResult from "@app/components/organisms/CityleagueResult";
 
 import { CityleagueResultGetResponseType } from "@app/types/cityleague_result";
@@ -81,9 +79,6 @@ export default function CityleagueResults({ league_type }: Props) {
       {cityleagueResults.event_results.map((event_result) => (
         <div key={event_result.official_event_id}>
           <CityleagueResult event_result={event_result} />
-          <div className="pt-2">
-            <Divider />
-          </div>
         </div>
       ))}
     </div>

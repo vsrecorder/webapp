@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
     expiresIn: "10s",
   };
   const jwtPayload = {
-    iss: "vsrecorder-web",
+    iss: "vsrecorder-webapp",
     uid: session.user.id,
   };
   const token = jwt.sign(jwtPayload, jwtSecret, jwtSignOptions);
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
     expiresIn: "10s",
   };
   const jwtPayload = {
-    iss: "vsrecorder-web",
+    iss: "vsrecorder-webapp",
     uid: session.user.id,
   };
   const token = jwt.sign(jwtPayload, jwtSecret, jwtSignOptions);

@@ -74,14 +74,13 @@ export default function CityleagueResult({ event_result }: Props) {
     fetchData();
   }, [event_result.official_event_id]);
 
-  const isToday = (date: Date) => {
-    const today = new Date();
+  const isNew = (date: Date) => {
+    const now = new Date();
 
-    return (
-      date.getFullYear() === today.getFullYear() &&
-      date.getMonth() === today.getMonth() &&
-      date.getDate() === today.getDate()
-    );
+    const diffInMs = now.getTime() - date.getTime();
+    const diffInHours = diffInMs / (1000 * 60 * 60);
+
+    return diffInHours <= 36;
   };
 
   if (loading) {
@@ -120,7 +119,7 @@ export default function CityleagueResult({ event_result }: Props) {
             <Chip size="sm" radius="md" variant="bordered">
               <small className="font-bold">{event.environment_title}</small>
             </Chip>
-            {isToday(new Date(event.date)) && (
+            {isNew(new Date(event.date)) && (
               <Chip
                 size="sm"
                 radius="md"

@@ -90,7 +90,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             };
 
             const jwtPayload = {
-              iss: "vsrecorder-web",
+              iss: "vsrecorder-webapp",
               uid: user.id,
             };
 

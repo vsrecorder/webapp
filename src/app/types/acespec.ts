@@ -1,6 +1,6 @@
 export type AcespecType = {
-  id: string;
-  name: string;
+  card_id: string;
+  card_name: string;
   detail_url: string;
   image_url: string;
 };

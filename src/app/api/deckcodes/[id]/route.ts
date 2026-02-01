@@ -42,7 +42,7 @@ export async function GET(
     expiresIn: "10s",
   };
   const jwtPayload = {
-    iss: "vsrecorder-web",
+    iss: "vsrecorder-webapp",
     uid: session.user.id,
   };
   const token = jwt.sign(jwtPayload, jwtSecret, jwtSignOptions);

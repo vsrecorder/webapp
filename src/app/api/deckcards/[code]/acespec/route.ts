@@ -6,9 +6,9 @@ import { AcespecType } from "@app/types/acespec";
 
 async function getAcespec(code: string): Promise<AcespecType> {
   try {
-    //const domain = process.env.VSRECORDER_DOMAIN;
+    const domain = process.env.VSRECORDER_DOMAIN;
 
-    const res = await fetch(`https://vsrecorder.mobi/api/v1/deckcards/${code}/acespec`, {
+    const res = await fetch(`https://${domain}/api/v1beta/deckcards/${code}/acespec`, {
       cache: "no-store",
       method: "GET",
       headers: {

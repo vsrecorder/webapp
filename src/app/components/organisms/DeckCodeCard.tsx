@@ -189,7 +189,7 @@ export default function DeckCodeCard({ deckcode }: Props) {
                   content: "text-white font-bold",
                 }}
               >
-                {acespec.name}
+                {acespec.card_name}
               </Chip>
             ) : (
               <></>

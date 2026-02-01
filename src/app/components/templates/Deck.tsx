@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react";
 
-import DeckOrganism from "@app/components/organisms/Deck";
+import { Image } from "@heroui/react";
 
 import { DeckGetByIdResponseType } from "@app/types/deck";
+import { DeckCodeType } from "@app/types/deck_code";
 
 async function fetchDeckById(id: string) {
   try {
-    const res = await fetch(`/api/decks/` + id, {
+    const res = await fetch(`/api/decks/${id}`, {
       cache: "no-store",
       method: "GET",
       headers: {
@@ -28,12 +29,35 @@ async function fetchDeckById(id: string) {
   }
 }
 
+async function fetchDeckCodesByDeckId(deck_id: string) {
+  try {
+    const res = await fetch(`/api/decks/${deck_id}/deckcodes`, {
+      cache: "no-store",
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    if (!res.ok) {
+      throw new Error("Failed to fetch");
+    }
+
+    const ret: DeckCodeType[] = await res.json();
+
+    return ret;
+  } catch (error) {
+    throw error;
+  }
+}
+
 type Props = {
   id: string;
 };
 
 export default function Deck({ id }: Props) {
   const [deck, setDeck] = useState<DeckGetByIdResponseType | null>(null);
+  const [deckcodes, setDeckCodes] = useState<DeckCodeType[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,11 +66,11 @@ export default function Deck({ id }: Props) {
 
     setLoading(true);
 
-    const fetchData = async () => {
+    const fetchDeckData = async () => {
       try {
         setLoading(true);
-        const deck = await fetchDeckById(id);
-        setDeck(deck);
+        const data = await fetchDeckById(id);
+        setDeck(data);
       } catch (err) {
         console.log(err);
         setError("データの取得に失敗しました");
@@ -55,7 +79,21 @@ export default function Deck({ id }: Props) {
       }
     };
 
-    fetchData();
+    const fetchDeckCodesData = async () => {
+      try {
+        setLoading(true);
+        const data = await fetchDeckCodesByDeckId(id);
+        setDeckCodes(data);
+      } catch (err) {
+        console.log(err);
+        setError("データの取得に失敗しました");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDeckData();
+    fetchDeckCodesData();
   }, [id]);
 
   if (loading) {
@@ -66,7 +104,7 @@ export default function Deck({ id }: Props) {
     return <div className="text-red-500">{error}</div>;
   }
 
-  if (!deck) {
+  if (!deck || !deckcodes) {
     return <div>データが存在しません</div>;
   }
 
@@ -76,7 +114,20 @@ export default function Deck({ id }: Props) {
       <div>作成日: {new Date(deck.created_at).toLocaleString()}</div>
       <div>デッキ名: {deck.name}</div>
       <div>デッキの非公開: {deck.private_flg === true ? "true" : "false"}</div>
-      <DeckOrganism deck_id={deck.id} deck_code_id={deck.latest_deck_code.id} />
+      {deckcodes.map((deckcode) => (
+        <div key={deckcode.id}>
+          {deckcode.code ? (
+            <Image
+              radius="none"
+              shadow="none"
+              alt={deckcode.code}
+              src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
+            />
+          ) : (
+            <></>
+          )}
+        </div>
+      ))}
     </div>
   );
 }

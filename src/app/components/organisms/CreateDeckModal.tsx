@@ -185,93 +185,91 @@ export default function CreateDeckModal() {
         <ModalContent>
           {(onClose) => (
             <>
-              <div className="pb-4">
-                <ModalHeader className="text-lg">新しいデッキを作成</ModalHeader>
-                <ModalBody>
-                  <Input
-                    isRequired
-                    type="text"
-                    label="デッキ名"
-                    labelPlacement="outside"
-                    placeholder="例）メガルカリオ"
-                    value={deckname}
-                    onChange={(e) => setDeckName(e.target.value)}
-                  />
-                  <Input
-                    isRequired
-                    isInvalid={!isValidatedDeckCode}
-                    errorMessage="有効なデッキコードを入力してください"
-                    type="text"
-                    label="デッキコード"
-                    labelPlacement="outside"
-                    placeholder="例）LnQLQn-SWgB9g-nngNgL"
-                    value={deckcode}
-                    onChange={(e) => setDeckCode(e.target.value)}
-                  />
+              <ModalHeader className="text-lg">新しいデッキを作成</ModalHeader>
+              <ModalBody>
+                <Input
+                  isRequired
+                  type="text"
+                  label="デッキ名"
+                  labelPlacement="outside"
+                  placeholder="例）メガルカリオ"
+                  value={deckname}
+                  onChange={(e) => setDeckName(e.target.value)}
+                />
+                <Input
+                  isRequired
+                  isInvalid={!isValidatedDeckCode}
+                  errorMessage="有効なデッキコードを入力してください"
+                  type="text"
+                  label="デッキコード"
+                  labelPlacement="outside"
+                  placeholder="例）LnQLQn-SWgB9g-nngNgL"
+                  value={deckcode}
+                  onChange={(e) => setDeckCode(e.target.value)}
+                />
 
-                  <Checkbox
-                    isDisabled={deckcode == "" || !isValidatedDeckCode}
-                    defaultSelected={false}
-                    size={"sm"}
-                    isSelected={isSelectedPrivateCode}
-                    onValueChange={setIsSelectedPrivateCode}
-                  >
-                    デッキコードを非公開にする
-                  </Checkbox>
+                <Checkbox
+                  isDisabled={deckcode == "" || !isValidatedDeckCode}
+                  defaultSelected={false}
+                  size={"sm"}
+                  isSelected={isSelectedPrivateCode}
+                  onValueChange={setIsSelectedPrivateCode}
+                >
+                  デッキコードを非公開にする
+                </Checkbox>
 
-                  <Image
-                    className="relative z-0"
-                    radius="none"
-                    shadow="none"
-                    alt={"test"}
-                    src={
-                      isValidatedDeckCode
-                        ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode}.jpg`
-                        : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
-                    }
-                    onLoad={() => {}}
-                    onError={() => {}}
-                  />
+                <Image
+                  className="relative z-0"
+                  radius="sm"
+                  shadow="none"
+                  alt={"test"}
+                  src={
+                    isValidatedDeckCode
+                      ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode}.jpg`
+                      : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
+                  }
+                  onLoad={() => {}}
+                  onError={() => {}}
+                />
 
-                  <Link
-                    isExternal
-                    showAnchorIcon
-                    underline="always"
-                    href="https://www.pokemon-card.com/deck/"
-                    className="text-xs"
-                  >
-                    <span>トレーナーズウェブサイトでデッキを構築する</span>
-                  </Link>
-                </ModalBody>
-                <ModalFooter>
-                  <Button
-                    color="danger"
-                    variant="solid"
-                    onPress={() => {
-                      setDeckName("");
-                      setDeckCode("");
-                      setIsSelectedPrivateCode(false);
-                      onClose();
-                    }}
-                  >
-                    閉じる
-                  </Button>
-                  <Button
-                    color="primary"
-                    variant="solid"
-                    isDisabled={isInvalid}
-                    onPress={() => {
-                      createDeck();
-                      setDeckName("");
-                      setDeckCode("");
-                      setIsSelectedPrivateCode(false);
-                      onClose();
-                    }}
-                  >
-                    作成
-                  </Button>
-                </ModalFooter>
-              </div>
+                <Link
+                  isExternal
+                  showAnchorIcon
+                  underline="always"
+                  href="https://www.pokemon-card.com/deck/"
+                  className="text-xs"
+                >
+                  <span>トレーナーズウェブサイトでデッキを構築する</span>
+                </Link>
+              </ModalBody>
+              <ModalFooter>
+                <Button
+                  color="danger"
+                  variant="solid"
+                  onPress={() => {
+                    setDeckName("");
+                    setDeckCode("");
+                    setIsSelectedPrivateCode(false);
+                    onClose();
+                  }}
+                >
+                  閉じる
+                </Button>
+                <Button
+                  color="primary"
+                  variant="solid"
+                  isDisabled={isInvalid}
+                  onPress={() => {
+                    createDeck();
+                    setDeckName("");
+                    setDeckCode("");
+                    setIsSelectedPrivateCode(false);
+                    onClose();
+                  }}
+                >
+                  作成
+                </Button>
+              </ModalFooter>
             </>
           )}
         </ModalContent>

@@ -529,7 +529,7 @@ export default function RecordCreate() {
             <div className="flex flex-col items-center gap-2">
               <Image
                 className="relative z-0"
-                radius="none"
+                radius="sm"
                 shadow="none"
                 alt={
                   selectedDeckOption
@@ -587,7 +587,7 @@ export default function RecordCreate() {
               <div className="w-4/6">
                 <Image
                   className="relative z-0"
-                  radius="none"
+                  radius="sm"
                   shadow="none"
                   alt={"test"}
                   src={
@@ -644,7 +644,7 @@ export default function RecordCreate() {
             <div className="flex flex-col items-center gap-2">
               <Image
                 className="relative z-0"
-                radius="none"
+                radius="sm"
                 shadow="none"
                 alt={
                   selectedDeckOption

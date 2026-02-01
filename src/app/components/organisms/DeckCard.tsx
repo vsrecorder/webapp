@@ -62,44 +62,42 @@ export default function DeckCard({ deck, deckcode }: Props) {
         <ModalContent>
           {(onClose) => (
             <>
-              <div className="pb-4">
-                <ModalHeader className="">{deck.name}</ModalHeader>
-                <ModalBody>
-                  <p className="text-tiny">{deckcode?.code}</p>
-                  <p className="text-tiny">
-                    {deckcode?.private_code_flg === true
-                      ? "デッキコード非公開"
-                      : "デッキコード公開"}
-                  </p>
-                  {deckcode ? (
-                    <>
-                      <Image
-                        radius="none"
-                        shadow="none"
-                        alt={deckcode.code}
-                        src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
-                      />
-                    </>
-                  ) : (
-                    <>
-                      <Image
-                        radius="none"
-                        shadow="none"
-                        alt="デッキコードなし"
-                        src={"https://www.pokemon-card.com/deck/deckView.php/deckID/"}
-                      />
-                    </>
-                  )}
-                  <Link href={`/decks/${deck.id}`}>
-                    <span>このデッキの詳細ページを見る</span>
-                  </Link>
-                </ModalBody>
-                <ModalFooter>
-                  <Button color="default" variant="solid" onPress={onClose}>
-                    Close
-                  </Button>
-                </ModalFooter>
-              </div>
+              <ModalHeader className="">{deck.name}</ModalHeader>
+              <ModalBody>
+                <p className="text-tiny">{deckcode?.code}</p>
+                <p className="text-tiny">
+                  {deckcode?.private_code_flg === true
+                    ? "デッキコード非公開"
+                    : "デッキコード公開"}
+                </p>
+                {deckcode ? (
+                  <>
+                    <Image
+                      radius="sm"
+                      shadow="none"
+                      alt={deckcode.code}
+                      src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <Image
+                      radius="sm"
+                      shadow="none"
+                      alt="デッキコードなし"
+                      src={"https://www.pokemon-card.com/deck/deckView.php/deckID/"}
+                    />
+                  </>
+                )}
+                <Link href={`/decks/${deck.id}`}>
+                  <span>このデッキの詳細ページを見る</span>
+                </Link>
+              </ModalBody>
+              <ModalFooter>
+                <Button color="default" variant="solid" onPress={onClose}>
+                  Close
+                </Button>
+              </ModalFooter>
             </>
           )}
         </ModalContent>

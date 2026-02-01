@@ -1,7 +1,10 @@
 "use client";
 
+import { createHash } from "crypto";
+
 import { useEffect, useState } from "react";
 
+import { Card, CardHeader, CardBody, CardFooter } from "@heroui/react";
 import { Image } from "@heroui/react";
 
 import { DeckGetByIdResponseType } from "@app/types/deck";
@@ -109,25 +112,179 @@ export default function Deck({ id }: Props) {
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      <div>ID: {deck.id}</div>
-      <div>作成日: {new Date(deck.created_at).toLocaleString()}</div>
-      <div>デッキ名: {deck.name}</div>
-      <div>デッキの非公開: {deck.private_flg === true ? "true" : "false"}</div>
-      {deckcodes.map((deckcode) => (
-        <div key={deckcode.id}>
-          {deckcode.code ? (
-            <Image
-              radius="none"
-              shadow="none"
-              alt={deckcode.code}
-              src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
-            />
-          ) : (
-            <></>
-          )}
+    <div className="flex flex-col gap-1">
+      <div className="p-3">
+        <div>ID: {deck.id}</div>
+        <div>作成日: {new Date(deck.created_at).toLocaleString()}</div>
+        <div>デッキ名: {deck.name}</div>
+        <div>デッキの非公開: {deck.private_flg === true ? "true" : "false"}</div>
+      </div>
+
+      <ol className="relative">
+        <div className="flex flex-col">
+          {deckcodes.map((deckcode: DeckCodeType, index: number) => (
+            <li
+              key={deckcode.id}
+              className={`border-s-2  ${
+                index === deckcodes.length - 1 ? "border-transparent" : "border-blue-300"
+              }`}
+            >
+              <div className="pb-5">
+                <div className="flex items-center ">
+                  <div className="flex pb-3">
+                    <div className="-translate-x-1/2 w-3 h-3 rounded-full bg-blue-400" />
+                    <div className="text-tiny">
+                      登録日：
+                      {new Date(deckcode.created_at).toLocaleString("ja-JP", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                        weekday: "short",
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pl-5">
+                  {deckcode.code ? (
+                    <Card shadow="sm" className="py-3">
+                      <CardHeader className="pb-0 pt-0 flex-col items-start gap-0">
+                        <div className="font-bold text-medium">
+                          バージョン：
+                          {createHash("sha1")
+                            .update(deckcode.id)
+                            .digest("hex")
+                            .slice(0, 8)}
+                        </div>
+                        <div className="text-tiny">
+                          デッキコード：
+                          {deckcode.code ? deckcode.code : "なし"}
+                        </div>
+                        <div className="text-tiny">
+                          デッキコードの公開：
+                          {deckcode.private_code_flg ? "非公開" : "公開"}
+                        </div>
+                      </CardHeader>
+                      <CardBody className="py-2">
+                        <Image
+                          radius="sm"
+                          shadow="none"
+                          alt={deckcode.code}
+                          src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
+                        />
+                      </CardBody>
+                      {index === deckcodes.length - 1 ? (
+                        deckcode.memo ? (
+                          <CardFooter>
+                            <div className="flex flex-col gap-3">
+                              <div className="font-bold text-tiny">メモ</div>
+                            </div>
+                          </CardFooter>
+                        ) : (
+                          <></>
+                        )
+                      ) : (
+                        <CardFooter>
+                          <div className="flex flex-col gap-3">
+                            <div className="font-bold text-tiny">追加されたカード</div>
+                            <div className="font-bold text-tiny">削除されたカード</div>
+                            {deckcode.memo ? (
+                              <div className="font-bold text-tiny">メモ</div>
+                            ) : (
+                              <></>
+                            )}
+                          </div>
+                        </CardFooter>
+                      )}
+                    </Card>
+                  ) : (
+                    <></>
+                  )}
+                </div>
+              </div>
+            </li>
+          ))}
         </div>
-      ))}
+      </ol>
     </div>
   );
+
+  /*
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="p-3">
+        <div>ID: {deck.id}</div>
+        <div>作成日: {new Date(deck.created_at).toLocaleString()}</div>
+        <div>デッキ名: {deck.name}</div>
+        <div>デッキの非公開: {deck.private_flg === true ? "true" : "false"}</div>
+      </div>
+
+      <div className="space-y-3">
+        <div className="flex flex-col">
+          {deckcodes.map((deckcode: DeckCodeType, index: number) => (
+            <div key={deckcode.id} className="pl-0 pb-3">
+              <div className="flex items-center pb-3">
+                <div className="left-0 top-0 -translate-x-1/2 w-3 h-3 rounded-full bg-blue-400 border-3 border-[#000000]" />
+                <div className="text-tiny">
+                  登録日：
+                  {new Date(deckcode.created_at).toLocaleString("ja-JP", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                    weekday: "short",
+                  })}
+                </div>
+              </div>
+              <div className="pl-5">
+                {deckcode.code ? (
+                  <Card shadow="sm" className="py-3">
+                    <CardHeader className="pb-0 pt-0 flex-col items-start gap-0">
+                      <div className="font-bold text-medium">
+                        バージョン：
+                        {createHash("sha1").update(deckcode.id).digest("hex").slice(0, 8)}
+                      </div>
+                      <div className="text-tiny">
+                        デッキコード：
+                        {deckcode.code ? deckcode.code : "なし"}
+                      </div>
+                      <div className="text-tiny">
+                        デッキコードの公開：
+                        {deckcode.private_code_flg ? "非公開" : "公開"}
+                      </div>
+                    </CardHeader>
+                    <CardBody className="py-2">
+                      <Image
+                        radius="sm"
+                        shadow="none"
+                        alt={deckcode.code}
+                        src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
+                      />
+                    </CardBody>
+                    {index === deckcodes.length - 1 ? (
+                      <CardFooter>
+                        <div className="flex flex-col gap-3">
+                          <div className="font-bold text-tiny">メモ</div>
+                        </div>
+                      </CardFooter>
+                    ) : (
+                      <CardFooter>
+                        <div className="flex flex-col gap-3">
+                          <div className="font-bold text-tiny">追加されたカード</div>
+                          <div className="font-bold text-tiny">削除されたカード</div>
+                          <div className="font-bold text-tiny">メモ</div>
+                        </div>
+                      </CardFooter>
+                    )}
+                  </Card>
+                ) : (
+                  <></>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+  */
 }

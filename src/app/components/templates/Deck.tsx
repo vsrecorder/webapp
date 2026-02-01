@@ -7,6 +7,8 @@ import { useEffect, useState } from "react";
 import { Card, CardHeader, CardBody, CardFooter } from "@heroui/react";
 import { Image } from "@heroui/react";
 
+import DeckCardDiff from "@app/components/organisms/DeckCardDiff";
+
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
 
@@ -185,9 +187,15 @@ export default function Deck({ id }: Props) {
                         )
                       ) : (
                         <CardFooter>
-                          <div className="flex flex-col gap-3">
-                            <div className="font-bold text-tiny">追加されたカード</div>
-                            <div className="font-bold text-tiny">削除されたカード</div>
+                          <div className="pl-3 flex flex-col gap-3">
+                            {index !== deckcodes.length - 1 ? (
+                              <DeckCardDiff
+                                current_deckcode={deckcodes[index]}
+                                previous_deckcode={deckcodes[index + 1]}
+                              />
+                            ) : (
+                              <></>
+                            )}
                             {deckcode.memo ? (
                               <div className="font-bold text-tiny">メモ</div>
                             ) : (

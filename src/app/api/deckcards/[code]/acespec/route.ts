@@ -4,7 +4,7 @@ import { auth } from "@app/(default)/auth";
 
 import { AcespecType } from "@app/types/acespec";
 
-async function getAcespec(code: string): Promise<AcespecType> {
+async function getAcespec(code: string) {
   try {
     const domain = process.env.VSRECORDER_DOMAIN;
 
@@ -15,6 +15,12 @@ async function getAcespec(code: string): Promise<AcespecType> {
         Accept: "application/json",
       },
     });
+
+    /*
+    if (res.status !== 200) {
+      return NextResponse.json({ error: "" }, { status: res.status });
+    }
+    */
 
     const ret: AcespecType = await res.json();
 

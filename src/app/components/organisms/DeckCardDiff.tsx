@@ -129,32 +129,50 @@ export default function DeckCardDiff({ current_deckcode, previous_deckcode }: Pr
 
   if (loading) {
     return (
-      <div className="flex gap-9">
-        <div className="pb-0.5">
+      <div className="flex flex-col gap-3">
+        <div className="pb-0.5 pr-3">
           <div className="font-bold text-tiny pb-1">追加されたカード</div>
-          <div className="pl-2 flex flex-col gap-1">
+          <div className="pl-2 flex flex-wrap gap-1">
             <div>
-              <Skeleton className="h-5 w-26 rounded-4xl" />
+              <Skeleton className="h-7 w-22 rounded-4xl" />
             </div>
             <div>
-              <Skeleton className="h-5 w-26 rounded-4xl" />
+              <Skeleton className="h-7 w-26 rounded-4xl" />
             </div>
             <div>
-              <Skeleton className="h-5 w-26 rounded-4xl" />
+              <Skeleton className="h-7 w-18 rounded-4xl" />
+            </div>
+            <div>
+              <Skeleton className="h-7 w-18 rounded-4xl" />
+            </div>
+            <div>
+              <Skeleton className="h-7 w-24 rounded-4xl" />
+            </div>
+            <div>
+              <Skeleton className="h-7 w-28 rounded-4xl" />
             </div>
           </div>
         </div>
-        <div className="pb-0.5">
+        <div className="pb-0.5 pr-3">
           <div className="font-bold text-tiny pb-1">削除されたカード</div>
-          <div className="pl-2 flex flex-col gap-1">
+          <div className="pl-2 flex flex-wrap gap-1">
             <div>
-              <Skeleton className="h-5 w-26 rounded-4xl" />
+              <Skeleton className="h-7 w-22 rounded-4xl" />
             </div>
             <div>
-              <Skeleton className="h-5 w-26 rounded-4xl" />
+              <Skeleton className="h-7 w-26 rounded-4xl" />
             </div>
             <div>
-              <Skeleton className="h-5 w-26 rounded-4xl" />
+              <Skeleton className="h-7 w-18 rounded-4xl" />
+            </div>
+            <div>
+              <Skeleton className="h-7 w-18 rounded-4xl" />
+            </div>
+            <div>
+              <Skeleton className="h-7 w-24 rounded-4xl" />
+            </div>
+            <div>
+              <Skeleton className="h-7 w-28 rounded-4xl" />
             </div>
           </div>
         </div>
@@ -177,10 +195,10 @@ export default function DeckCardDiff({ current_deckcode, previous_deckcode }: Pr
   }
 
   return (
-    <div className="flex gap-9">
-      <div className="pb-0.5">
+    <div className="flex flex-col gap-3">
+      <div className="pb-0.5 pr-3">
         <div className="font-bold text-tiny pb-1">追加されたカード</div>
-        <div className="pl-2 flex flex-col gap-1">
+        <div className="pl-2 flex flex-wrap gap-1">
           {diffByContentWithCount(currentDeckCardList, previousDeckCardList).map(
             (deckcard, index) => (
               <div key={index}>
@@ -200,9 +218,9 @@ export default function DeckCardDiff({ current_deckcode, previous_deckcode }: Pr
           )}
         </div>
       </div>
-      <div className="pb-0.5">
+      <div className="pb-0.5 pr-3">
         <div className="font-bold text-tiny pb-1">削除されたカード</div>
-        <div className="pl-2 flex flex-col gap-1">
+        <div className="pl-2 flex flex-wrap gap-1">
           {diffByContentWithCount(previousDeckCardList, currentDeckCardList).map(
             (deckcard, index) => (
               <div key={index}>

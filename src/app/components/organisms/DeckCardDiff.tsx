@@ -134,22 +134,22 @@ export default function DeckCardDiff({ current_deckcode, previous_deckcode }: Pr
           <div className="font-bold text-tiny pb-1">追加されたカード</div>
           <div className="pl-2 flex flex-wrap gap-1">
             <div>
-              <Skeleton className="h-7 w-22 rounded-4xl" />
+              <Skeleton className="h-6 w-22 rounded-2xl" />
             </div>
             <div>
-              <Skeleton className="h-7 w-26 rounded-4xl" />
+              <Skeleton className="h-6 w-26 rounded-2xl" />
             </div>
             <div>
-              <Skeleton className="h-7 w-18 rounded-4xl" />
+              <Skeleton className="h-6 w-18 rounded-2xl" />
             </div>
             <div>
-              <Skeleton className="h-7 w-18 rounded-4xl" />
+              <Skeleton className="h-6 w-18 rounded-2xl" />
             </div>
             <div>
-              <Skeleton className="h-7 w-24 rounded-4xl" />
+              <Skeleton className="h-6 w-24 rounded-2xl" />
             </div>
             <div>
-              <Skeleton className="h-7 w-28 rounded-4xl" />
+              <Skeleton className="h-6 w-28 rounded-2xl" />
             </div>
           </div>
         </div>
@@ -157,22 +157,22 @@ export default function DeckCardDiff({ current_deckcode, previous_deckcode }: Pr
           <div className="font-bold text-tiny pb-1">削除されたカード</div>
           <div className="pl-2 flex flex-wrap gap-1">
             <div>
-              <Skeleton className="h-7 w-22 rounded-4xl" />
+              <Skeleton className="h-6 w-22 rounded-2xl" />
             </div>
             <div>
-              <Skeleton className="h-7 w-26 rounded-4xl" />
+              <Skeleton className="h-6 w-26 rounded-2xl" />
             </div>
             <div>
-              <Skeleton className="h-7 w-18 rounded-4xl" />
+              <Skeleton className="h-6 w-18 rounded-2xl" />
             </div>
             <div>
-              <Skeleton className="h-7 w-18 rounded-4xl" />
+              <Skeleton className="h-6 w-18 rounded-2xl" />
             </div>
             <div>
-              <Skeleton className="h-7 w-24 rounded-4xl" />
+              <Skeleton className="h-6 w-24 rounded-2xl" />
             </div>
             <div>
-              <Skeleton className="h-7 w-28 rounded-4xl" />
+              <Skeleton className="h-6 w-28 rounded-2xl" />
             </div>
           </div>
         </div>

@@ -9,7 +9,6 @@ import { Chip } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
 import { Image } from "@heroui/react";
 
-import { DeckGetByIdResponseType } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
 import { AcespecType } from "@app/types/acespec";
 import { EnvironmentType } from "@app/types/environment";
@@ -51,7 +50,6 @@ async function fetchEnvironment(date: Date) {
 }
 
 type Props = {
-  deck: DeckGetByIdResponseType;
   deckcode: DeckCodeType | null;
 };
 
@@ -113,11 +111,55 @@ export default function DeckCodeCard({ deckcode }: Props) {
     fetchEnvironmentData();
   }, [deckcode]);
 
-  /*
   if (loadingAcespec || loadingEnvrionment) {
-    return <div>読み込み中...</div>;
+    return (
+      <Card shadow="sm" className="py-3">
+        <CardHeader className="pb-0 pt-0 flex-col items-start gap-0.5">
+          <div className="text-tiny">
+            <Skeleton className="h-4 w-24" />
+          </div>
+          <div className="text-tiny">
+            <Skeleton className="h-4 w-36" />
+          </div>
+          <div className="text-tiny">
+            <Skeleton className="h-4 w-32" />
+          </div>
+        </CardHeader>
+        <CardBody className="py-2">
+          {deckcode ? (
+            <>
+              <Skeleton>
+                <Image
+                  radius="sm"
+                  shadow="none"
+                  alt={deckcode.code}
+                  src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
+                />
+              </Skeleton>
+            </>
+          ) : (
+            <>
+              <Skeleton>
+                <Image
+                  radius="sm"
+                  shadow="none"
+                  alt="デッキコードなし"
+                  src={"https://www.pokemon-card.com/deck/deckView.php/deckID/"}
+                />
+              </Skeleton>
+            </>
+          )}
+        </CardBody>
+        <CardFooter>
+          <div className="flex flex-col gap-1">
+            <div className="flex gap-1">
+              <Skeleton className="bg-[#ee0077] h-6 w-32 rounded-2xl" />
+            </div>
+          </div>
+        </CardFooter>
+      </Card>
+    );
   }
-  */
 
   if (errorAcespec || errorEnvironment) {
     /*
@@ -146,9 +188,9 @@ export default function DeckCodeCard({ deckcode }: Props) {
         </div>
         <div className="text-tiny">
           {loadingEnvrionment ? (
-            <Skeleton className="h-3 w-32" />
+            <Skeleton className="h-4 w-32" />
           ) : environment ? (
-            <>{environment.title}</>
+            <>環境：{environment.title}</>
           ) : (
             <></>
           )}

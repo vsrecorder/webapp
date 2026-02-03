@@ -69,6 +69,7 @@ type DeckCode = {
 
 async function fetcherForOfficialEvent(url: string) {
   const res = await fetch(url, {
+    method: "GET",
     headers: {
       Accept: "application/json",
     },
@@ -80,6 +81,7 @@ async function fetcherForOfficialEvent(url: string) {
 
 async function fetcherForDeck(url: string) {
   const res = await fetch(url, {
+    method: "GET",
     headers: {
       Accept: "application/json",
     },

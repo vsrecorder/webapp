@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 
-import Deck from "@app/components/organisms/Deck";
+import DeckCard from "@app/components/organisms/DeckCard";
 
 import { DeckType, DeckGetResponseType } from "@app/types/deck";
 
@@ -89,7 +89,7 @@ export default function Decks({ isArchived }: Props) {
   return (
     <div className="space-y-4">
       {items.map((deck) => (
-        <Deck
+        <DeckCard
           key={deck.data.id}
           deck_id={deck.data.id}
           deck_code_id={deck.data.latest_deck_code.id}
@@ -98,7 +98,8 @@ export default function Decks({ isArchived }: Props) {
 
       {hasMore && (
         <div ref={observerTarget} className="h-10 flex justify-center items-center">
-          {isLoading && <span>読み込み中...</span>}
+          {/*{isLoading && <span>読み込み中...</span>}*/}
+          {isLoading}
         </div>
       )}
 

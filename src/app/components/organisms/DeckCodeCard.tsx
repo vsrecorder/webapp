@@ -73,8 +73,8 @@ export default function DeckCodeCard({ deckcode }: Props) {
 
   useEffect(() => {
     if (!deckcode) {
-      setLoadingAcespec(false);
-      setLoadingEnvironment(false);
+      //setLoadingAcespec(false);
+      //setLoadingEnvironment(false);
       return;
     }
 

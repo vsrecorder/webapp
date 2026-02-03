@@ -97,45 +97,43 @@ export default function CityleagueResult({ event_result }: Props) {
 
   return (
     <Card className="pt-3">
-      <Link color="foreground" href={`/cityleague_results/${event.id}`}>
-        <CardHeader className="pb-0 pt-0 px-3 flex-col items-start gap-0.5">
-          <small className="text-default-500">{event.title}</small>
-          <p className="font-bold text-tiny">
-            {new Date(event.date).toLocaleString("ja-JP", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-              weekday: "short",
-            })}
-          </p>
-          <div className="font-bold text-medium">{event.shop_name}</div>
-          <div className="flex flex-wrap items-start gap-1 pt-0.5">
-            <Chip size="sm" radius="md" variant="bordered">
-              <small className="font-bold">{event.prefecture_name}</small>
+      <CardHeader className="pb-0 pt-0 px-3 flex-col items-start gap-0.5">
+        <small className="text-default-500">{event.title}</small>
+        <p className="font-bold text-tiny">
+          {new Date(event.date).toLocaleString("ja-JP", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+            weekday: "short",
+          })}
+        </p>
+        <div className="font-bold text-medium">{event.shop_name}</div>
+        <div className="flex flex-wrap items-start gap-1 pt-0.5">
+          <Chip size="sm" radius="md" variant="bordered">
+            <small className="font-bold">{event.prefecture_name}</small>
+          </Chip>
+          <Chip size="sm" radius="md" variant="bordered">
+            <small className="font-bold">{event.league_title}リーグ</small>
+          </Chip>
+          <Chip size="sm" radius="md" variant="bordered">
+            <small className="font-bold">{event.environment_title}</small>
+          </Chip>
+          {isNew(new Date(event.date)) && (
+            <Chip
+              size="sm"
+              radius="md"
+              classNames={{
+                base: "bg-linear-to-br from-indigo-500 to-pink-500 border-small border-white/50 ",
+                //base: "bg-linear-to-br from-indigo-500 to-pink-500 border-small border-white/50 shadow-pink-500/30",
+                content: "drop-shadow-xs shadow-black text-white",
+              }}
+              variant="shadow"
+            >
+              <small className="font-bold">New</small>
             </Chip>
-            <Chip size="sm" radius="md" variant="bordered">
-              <small className="font-bold">{event.league_title}リーグ</small>
-            </Chip>
-            <Chip size="sm" radius="md" variant="bordered">
-              <small className="font-bold">{event.environment_title}</small>
-            </Chip>
-            {isNew(new Date(event.date)) && (
-              <Chip
-                size="sm"
-                radius="md"
-                classNames={{
-                  base: "bg-linear-to-br from-indigo-500 to-pink-500 border-small border-white/50 ",
-                  //base: "bg-linear-to-br from-indigo-500 to-pink-500 border-small border-white/50 shadow-pink-500/30",
-                  content: "drop-shadow-xs shadow-black text-white",
-                }}
-                variant="shadow"
-              >
-                <small className="font-bold">New</small>
-              </Chip>
-            )}
-          </div>
-        </CardHeader>
-      </Link>
+          )}
+        </div>
+      </CardHeader>
       <CardBody className="py-1 px-1">
         <div>
           <Swiper
@@ -154,11 +152,14 @@ export default function CityleagueResult({ event_result }: Props) {
               clickable: true,
             }}
           >
-            {event_result.results.map((result, index) => (
-              <SwiperSlide key={index} className="p-2">
-                <CityleagueResultCard result={result} />
-              </SwiperSlide>
-            ))}
+            {event_result.results.map(
+              (result, index) =>
+                result.rank < 9 && (
+                  <SwiperSlide key={index} className="p-2">
+                    <CityleagueResultCard result={result} />
+                  </SwiperSlide>
+                ),
+            )}
           </Swiper>
         </div>
       </CardBody>
@@ -168,10 +169,10 @@ export default function CityleagueResult({ event_result }: Props) {
             isExternal
             showAnchorIcon
             underline="always"
-            href={event_result.event_detail_result_url}
+            href={`/cityleague_results/${event.id}`}
             className="text-xs"
           >
-            <span>このイベント結果の公式ページを見る</span>
+            <span>このイベント結果の詳細ページを見る</span>
           </Link>
         </div>
       </CardFooter>

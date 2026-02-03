@@ -23,7 +23,7 @@ export default function UserMenu({ user }: Props) {
 
   return (
     <>
-      <Dropdown>
+      <Dropdown backdrop="opaque">
         <DropdownTrigger>
           <Avatar size="md" src={user.image_url} />
         </DropdownTrigger>

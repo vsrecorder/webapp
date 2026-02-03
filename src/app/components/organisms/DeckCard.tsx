@@ -17,9 +17,7 @@ import {
 
 import { Skeleton } from "@heroui/react";
 
-import { Link as HeroLink } from "@heroui/react";
-
-import Link from "next/link";
+import { Link } from "@heroui/react";
 
 import DeckCodeCard from "@app/components/organisms/DeckCodeCard";
 
@@ -140,7 +138,7 @@ export default function DeckCard({ deck_id, deck_code_id }: Props) {
           </div>
         </CardHeader>
         <CardBody className="py-3 px-3">
-          <div onClick={() => onOpen()}>
+          <div>
             <DeckCodeCard deckcode={deckcode} />
           </div>
         </CardBody>
@@ -167,7 +165,7 @@ export default function DeckCard({ deck_id, deck_code_id }: Props) {
   return (
     <>
       <Card className="pt-3">
-        <HeroLink color="foreground" href={`/decks/${deck.id}`}>
+        <Link color="foreground" href={`/decks/${deck.id}`}>
           <CardHeader className="pb-0 pt-0 px-3 flex flex-col items-start gap-1">
             <div className="flex flex-col gap-1">
               <div className="font-bold text-medium pb-1">{deck.name}</div>
@@ -185,7 +183,7 @@ export default function DeckCard({ deck_id, deck_code_id }: Props) {
               </div>
             </div>
           </CardHeader>
-        </HeroLink>
+        </Link>
         <CardBody className="py-3 px-3">
           <div onClick={() => onOpen()}>
             <DeckCodeCard deckcode={deckcode} />
@@ -230,7 +228,13 @@ export default function DeckCard({ deck_id, deck_code_id }: Props) {
                     />
                   </>
                 )}
-                <Link href={`/decks/${deck.id}`}>
+                <Link
+                  isExternal
+                  showAnchorIcon
+                  underline="always"
+                  href={`/decks/${deck.id}`}
+                  className="text-xs"
+                >
                   <span>このデッキの詳細ページを見る</span>
                 </Link>
               </ModalBody>

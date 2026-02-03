@@ -76,11 +76,14 @@ export default function CityleagueResults({ league_type }: Props) {
 
   return (
     <div className="flex flex-col gap-2">
-      {cityleagueResults.event_results.map((event_result) => (
-        <div key={event_result.official_event_id}>
-          <CityleagueResult event_result={event_result} />
-        </div>
-      ))}
+      {cityleagueResults.event_results.map(
+        (event_result, index) =>
+          index === index && (
+            <div key={event_result.official_event_id}>
+              <CityleagueResult event_result={event_result} />
+            </div>
+          ),
+      )}
     </div>
   );
 }

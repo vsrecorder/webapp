@@ -110,7 +110,7 @@ export default function Deck({ id }: Props) {
   }
 
   if (!deck || !deckcodes) {
-    return <div>データが存在しません</div>;
+    return;
   }
 
   return (

@@ -69,7 +69,7 @@ export default function OfficialEventInfo({ id }: Props) {
   }
 
   if (!officialEvent) {
-    return <div>データが存在しません</div>;
+    return;
   }
 
   return (

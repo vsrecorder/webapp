@@ -151,13 +151,7 @@ export default function DeckCard({ deck_id, deck_code_id }: Props) {
   }
 
   if (!deck) {
-    return (
-      <div>
-        <div>データが存在しません</div>
-        <div>デッキID: {deck_id}</div>
-        <div>デッキコードID: {deck_code_id}</div>
-      </div>
-    );
+    return;
   }
 
   //return <DeckCard deck={deck} deckcode={deckcode} />;
@@ -165,25 +159,23 @@ export default function DeckCard({ deck_id, deck_code_id }: Props) {
   return (
     <>
       <Card className="pt-3">
-        <Link color="foreground" href={`/decks/${deck.id}`}>
-          <CardHeader className="pb-0 pt-0 px-3 flex flex-col items-start gap-1">
-            <div className="flex flex-col gap-1">
-              <div className="font-bold text-medium pb-1">{deck.name}</div>
-              <div className="text-tiny">
-                作成日：
-                {new Date(deck.created_at).toLocaleString("ja-JP", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                  weekday: "short",
-                })}
-              </div>
-              <div className="text-tiny">
-                デッキ情報：{deck.private_flg ? "非公開" : "公開"}
-              </div>
+        <CardHeader className="pb-0 pt-0 px-3 flex flex-col items-start gap-1">
+          <div className="flex flex-col gap-1">
+            <div className="font-bold text-medium pb-1">{deck.name}</div>
+            <div className="text-tiny">
+              作成日：
+              {new Date(deck.created_at).toLocaleString("ja-JP", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+                weekday: "short",
+              })}
             </div>
-          </CardHeader>
-        </Link>
+            <div className="text-tiny">
+              デッキ情報：{deck.private_flg ? "非公開" : "公開"}
+            </div>
+          </div>
+        </CardHeader>
         <CardBody className="py-3 px-3">
           <div onClick={() => onOpen()}>
             <DeckCodeCard deckcode={deckcode} />

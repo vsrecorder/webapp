@@ -71,7 +71,7 @@ export default function Record({ id }: Props) {
   }
 
   if (!record) {
-    return <div>データが存在しません</div>;
+    return;
   }
 
   return (

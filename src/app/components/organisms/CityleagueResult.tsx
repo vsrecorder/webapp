@@ -92,7 +92,7 @@ export default function CityleagueResult({ event_result }: Props) {
   }
 
   if (!event) {
-    return <div>データが存在しません</div>;
+    return;
   }
 
   return (

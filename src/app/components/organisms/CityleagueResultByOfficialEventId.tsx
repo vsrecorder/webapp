@@ -71,7 +71,7 @@ export default function CityleagueResultByOfficialEventId({ id }: Props) {
   }
 
   if (!cityleagueResult || cityleagueResult.results.length === 0) {
-    return <div>データが存在しません</div>;
+    return;
   }
 
   return (

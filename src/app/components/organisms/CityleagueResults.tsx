@@ -71,7 +71,7 @@ export default function CityleagueResults({ league_type }: Props) {
   }
 
   if (!cityleagueResults || cityleagueResults.count === 0) {
-    return <div>データが存在しません</div>;
+    return;
   }
 
   return (

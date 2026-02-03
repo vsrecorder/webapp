@@ -68,7 +68,7 @@ export default function Matches({ record_id }: Props) {
   }
 
   if (!matches || matches.length === 0) {
-    return <div>データが存在しません</div>;
+    return;
   }
 
   return (

@@ -187,11 +187,7 @@ export default function DeckCardDiff({ current_deckcode, previous_deckcode }: Pr
   }
 
   if (!currentDeckCardList || !previousDeckCardList) {
-    return (
-      <div>
-        <div>一方のデータが存在しません</div>
-      </div>
-    );
+    return;
   }
 
   return (

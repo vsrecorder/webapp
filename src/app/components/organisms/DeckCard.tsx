@@ -132,9 +132,6 @@ export default function DeckCard({ deck_id, deck_code_id }: Props) {
             <div className="text-tiny">
               <Skeleton className="h-4 w-36" />
             </div>
-            <div className="text-tiny">
-              <Skeleton className="h-4 w-32" />
-            </div>
           </div>
         </CardHeader>
         <CardBody className="px-2 py-2">

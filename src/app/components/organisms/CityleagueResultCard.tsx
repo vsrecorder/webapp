@@ -61,7 +61,7 @@ export default function CityleagueResultCard({ result }: Props) {
               </p>
             </div>
           </CardHeader>
-          <CardBody className="px-1 py-3">
+          <CardBody className="px-2 py-3">
             {result.deck_code ? (
               <>
                 <Image

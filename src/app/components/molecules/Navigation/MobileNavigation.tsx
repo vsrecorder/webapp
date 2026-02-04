@@ -1,6 +1,6 @@
 import { LuHouse } from "react-icons/lu";
 import { LuFileText } from "react-icons/lu";
-import { LuSquarePen } from "react-icons/lu";
+import { LuFilePen } from "react-icons/lu";
 import { LuLayers } from "react-icons/lu";
 import { LuTrophy } from "react-icons/lu";
 
@@ -34,7 +34,7 @@ export default function MobileNavigation() {
           className="flex flex-col items-center gap-1 px-2 rounded-lg transition-all duration-150 active:scale-60"
         >
           <div className="text-2xl">
-            <LuSquarePen />
+            <LuFilePen />
           </div>
         </Link>
 

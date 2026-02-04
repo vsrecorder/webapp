@@ -8,33 +8,31 @@ import {
   ModalFooter,
   useDisclosure,
 } from "@heroui/react";
-
-import { CgAdd } from "react-icons/cg";
-
-import { Button } from "@heroui/react";
+import { Image, Button } from "@heroui/react";
 import { Input } from "@heroui/react";
 import { Checkbox } from "@heroui/react";
-import { Image } from "@heroui/react";
-import { Link } from "@heroui/react";
-
 import { useState } from "react";
 import { useEffect } from "react";
 
 import { addToast, closeToast } from "@heroui/react";
 
-import { useSWRConfig } from "swr";
+import { Link } from "@heroui/react";
+
+import { LuCirclePlus } from "react-icons/lu";
 
 import { DeckCreateRequestType } from "@app/types/deck";
 
-export default function CreateDeckModal() {
+type Props = {
+  onDeckCreated?: () => void;
+};
+
+export default function CreateDeckFloating({ onDeckCreated }: Props) {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [deckname, setDeckName] = useState<string>("");
   const [deckcode, setDeckCode] = useState<string>("");
   const [isSelectedPrivateCode, setIsSelectedPrivateCode] = useState<boolean>(false);
   const [isValidatedDeckCode, setIsValidatedDeckCode] = useState<boolean>(false);
   const [isInvalid, setIsInvalid] = useState<boolean>(true);
-
-  const { mutate } = useSWRConfig();
 
   /*
     入力項目のチェック
@@ -117,14 +115,14 @@ export default function CreateDeckModal() {
         closeToast(toastId);
       }
 
-      mutate(`/api/decks`);
-
       addToast({
         title: "デッキ作成完了",
         description: "デッキを作成しました",
         color: "success",
         timeout: 3000,
       });
+
+      onDeckCreated?.();
     } catch (error) {
       console.error(error);
 
@@ -152,16 +150,10 @@ export default function CreateDeckModal() {
 
   return (
     <>
-      <div className="">
-        <Button size="sm" radius="full" onPress={onOpen}>
-          <div className="flex items-center gap-1">
-            <span className="text-xs">
-              <CgAdd />
-            </span>
-            <span className="text-xs">新しいデッキを作成する</span>
-          </div>
-        </Button>
-      </div>
+      <LuCirclePlus
+        className="lg:hidden fixed z-30 w-12 h-12 bottom-35 right-3 text-gray-500 bg-gray-200 border-0 rounded-full"
+        onClick={() => onOpen()}
+      />
 
       <Modal
         isOpen={isOpen}

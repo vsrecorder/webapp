@@ -383,7 +383,7 @@ export default function RecordCreate() {
     <div className="flex flex-col">
       <Tabs fullWidth size="sm">
         <Tab key="official" title="公式イベント">
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2">
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium">日付</label>
               <DatePicker
@@ -551,7 +551,7 @@ export default function RecordCreate() {
 
             <Button
               color="primary"
-              isDisabled={false}
+              isDisabled={true}
               onPress={async () => {
                 await createOfficialEventRecord(
                   selectedOfficialEventOption ? selectedOfficialEventOption.id : 0,
@@ -565,7 +565,7 @@ export default function RecordCreate() {
           </div>
         </Tab>
         <Tab key="tonamel" title="Tonamel">
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2">
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium">イベントID</label>
               <Input
@@ -589,7 +589,7 @@ export default function RecordCreate() {
               <div className="w-4/6">
                 <Image
                   className="relative z-0"
-                  radius="sm"
+                  radius="none"
                   shadow="none"
                   alt={"test"}
                   src={

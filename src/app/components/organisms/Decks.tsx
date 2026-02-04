@@ -91,6 +91,7 @@ export default function Decks({ isArchived }: Props) {
       {items.map((deck) => (
         <DeckCard
           key={deck.data.id}
+          isArchived={isArchived}
           deck_id={deck.data.id}
           deck_code_id={deck.data.latest_deck_code.id}
         />

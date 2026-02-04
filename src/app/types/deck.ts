@@ -41,3 +41,9 @@ export type DeckCreateRequestType = {
 export type DeckGetByIdResponseType = Data;
 
 export type DeckCreateResponseType = Data;
+
+export type DeckUpdateResponseType = Data;
+
+export type DeckArchiveResponse = Data;
+
+export type DeckUnarchiveResponse = Data;

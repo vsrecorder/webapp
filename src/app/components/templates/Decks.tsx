@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 
 import UpFloating from "../molecules/UpFloating";
-import PlusFloating from "../molecules/PlusFloating";
+import CreateDeckFloating from "../molecules/CreateDeckFloating";
 
 import Decks from "@app/components/organisms/Decks";
 
@@ -13,6 +13,13 @@ type TabKey = "inuse" | "archived";
 
 export default function TemplateDecks() {
   const [selectedKey, setSelectedKey] = useState<"inuse" | "archived">("inuse");
+
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const handleDeckCreated = useCallback(() => {
+    setRefreshKey((prev) => prev + 1);
+    setSelectedKey("inuse");
+  }, []);
 
   // タブごとのスクロール位置を保存
   const scrollPositions = useRef<Record<TabKey, number>>({
@@ -38,7 +45,7 @@ export default function TemplateDecks() {
   return (
     <>
       <UpFloating />
-      <PlusFloating />
+      <CreateDeckFloating onDeckCreated={handleDeckCreated} />
       <Tabs
         fullWidth
         size="sm"
@@ -58,11 +65,11 @@ export default function TemplateDecks() {
 
       <div className="pt-12">
         <div hidden={selectedKey !== "inuse"}>
-          <Decks isArchived={false} />
+          <Decks key={refreshKey} isArchived={false} />
         </div>
 
         <div hidden={selectedKey !== "archived"}>
-          <Decks isArchived={true} />
+          <Decks key={refreshKey} isArchived={true} />
         </div>
       </div>
     </>

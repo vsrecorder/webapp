@@ -64,6 +64,7 @@ export default function CreateDeckFloating({ onDeckCreated }: Props) {
 
         const res = await fetch("https://www.pokemon-card.com/deck/deckIDCheck.php", {
           method: "POST",
+          headers: {},
           body: formData,
         });
 
@@ -210,7 +211,7 @@ export default function CreateDeckFloating({ onDeckCreated }: Props) {
                   className="relative z-0"
                   radius="sm"
                   shadow="none"
-                  alt={"test"}
+                  alt={deckcode ? deckcode : "デッキコードなし"}
                   src={
                     isValidatedDeckCode
                       ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode}.jpg`

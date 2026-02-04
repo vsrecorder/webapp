@@ -111,7 +111,7 @@ export default function DeckCodeCard({ deckcode }: Props) {
     fetchEnvironmentData();
   }, [deckcode]);
 
-  if (deckcode && (loadingAcespec || loadingEnvrionment)) {
+  if (loadingAcespec || loadingEnvrionment) {
     return (
       <Card shadow="sm" className="py-3">
         <CardHeader className="pb-0 pt-0 px-3 flex-col items-start gap-0.5">

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+//import { useEffect, useRef, useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 
 import UpFloating from "../molecules/UpFloating";
 import CreateDeckFloating from "../molecules/CreateDeckFloating";
@@ -13,7 +14,52 @@ type TabKey = "inuse" | "archived";
 
 export default function TemplateDecks() {
   const [selectedKey, setSelectedKey] = useState<"inuse" | "archived">("inuse");
+  const [refreshKey, setRefreshKey] = useState(0);
 
+  const handleDeckCreated = useCallback(() => {
+    setRefreshKey((prev) => prev + 1);
+    setSelectedKey("inuse");
+  }, []);
+
+  const handleSelectionChange = (key: React.Key) => {
+    setSelectedKey(key as TabKey);
+  };
+
+  return (
+    <>
+      <UpFloating />
+      <CreateDeckFloating onDeckCreated={handleDeckCreated} />
+      <div className="pt-12">
+        <Tabs
+          fullWidth
+          size="sm"
+          selectedKey={selectedKey}
+          onSelectionChange={handleSelectionChange}
+          className="fixed z-50 top-14 left-0 right-0 pl-1 pr-1"
+          classNames={{
+            cursor: selectedKey === "inuse" ? "bg-green-200" : "bg-red-200",
+            tab: "h-8",
+            tabList: "",
+            tabContent: "",
+          }}
+        >
+          <Tab key="inuse" title="利用中" className="font-bold">
+            <Decks key={refreshKey} isArchived={false} />
+          </Tab>
+          <Tab key="archived" title="アーカイブ済み" className="font-bold">
+            <Decks key={refreshKey} isArchived={true} />
+          </Tab>
+        </Tabs>
+      </div>
+    </>
+  );
+}
+
+/*
+type TabKey = "inuse" | "archived";
+
+export default function TemplateDecks() {
+  const [selectedKey, setSelectedKey] = useState<"inuse" | "archived">("inuse");
   const [refreshKey, setRefreshKey] = useState(0);
 
   const handleDeckCreated = useCallback(() => {
@@ -75,3 +121,4 @@ export default function TemplateDecks() {
     </>
   );
 }
+*/

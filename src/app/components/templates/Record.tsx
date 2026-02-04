@@ -87,7 +87,11 @@ export default function Record({ id }: Props) {
       <Divider />
       <Matches record_id={record.id} />
       <Divider />
-      <Deck deck_id={record.deck_id} deck_code_id={record.deck_code_id} />
+      <Deck
+        isArchived={false}
+        deck_id={record.deck_id}
+        deck_code_id={record.deck_code_id}
+      />
     </div>
   );
 }

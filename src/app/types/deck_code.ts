@@ -7,3 +7,12 @@ export type DeckCodeType = {
   private_code_flg: boolean;
   memo: string;
 };
+
+export type DeckCodeCreateRequestType = {
+  deck_id: string;
+  code: string;
+  private_code_flg: boolean;
+  memo: string;
+};
+
+export type DeckCodeCreateResponseType = DeckCodeType;

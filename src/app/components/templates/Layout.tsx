@@ -3,7 +3,7 @@ import Providers from "@app/components/organisms/Providers";
 import Header from "@app/components/organisms/Header";
 import Navigation from "@app/components/organisms/Navigation";
 
-export default function Layout({
+export default function TemplateLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;

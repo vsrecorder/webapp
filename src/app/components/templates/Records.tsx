@@ -5,7 +5,7 @@ import TonamelEventRecords from "@app/components/organisms/TonamelEventRecords";
 
 import { Tabs, Tab } from "@heroui/react";
 
-export default function Records() {
+export default function TemplateRecords() {
   return (
     <Tabs fullWidth size="sm">
       <Tab key="official" title="公式イベント">

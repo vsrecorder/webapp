@@ -1,7 +1,7 @@
 import { auth } from "@app/(default)/auth";
 import { redirect } from "next/navigation";
 
-import Deck from "@app/components/templates/Deck";
+import TemplateDeckById from "@app/components/templates/DeckById";
 
 type Props = {
   params: Promise<{
@@ -17,5 +17,5 @@ export default async function Page({ params }: Props) {
 
   const { id } = await params;
 
-  return <Deck id={id} />;
+  return <TemplateDeckById id={id} />;
 }

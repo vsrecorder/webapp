@@ -1,7 +1,7 @@
 import { auth } from "@app/(default)/auth";
 import { redirect } from "next/navigation";
 
-import CityleagueResultByOfficialEventId from "@app/components/templates/CityleagueResultByOfficialEventId";
+import TemplateCityleagueResultByOfficialEventId from "@app/components/templates/CityleagueResultByOfficialEventId";
 
 type Props = {
   params: Promise<{
@@ -17,5 +17,5 @@ export default async function Page({ params }: Props) {
 
   const { id } = await params;
 
-  return <CityleagueResultByOfficialEventId id={Number(id)} />;
+  return <TemplateCityleagueResultByOfficialEventId id={Number(id)} />;
 }

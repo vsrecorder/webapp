@@ -1,7 +1,7 @@
 import { auth } from "@app/(default)/auth";
 import { redirect } from "next/navigation";
 
-import RecordCreate from "@app/components/templates/RecordCreate";
+import TemplateRecordCreate from "@app/components/templates/RecordCreate";
 
 export default async function Page() {
   const session = await auth();
@@ -9,5 +9,5 @@ export default async function Page() {
     redirect("/");
   }
 
-  return <RecordCreate />;
+  return <TemplateRecordCreate />;
 }

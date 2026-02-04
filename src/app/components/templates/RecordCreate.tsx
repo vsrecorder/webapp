@@ -190,7 +190,7 @@ function convertToDeckOption(deck: DeckType): DeckOption {
   };
 }
 
-export default function RecordCreate() {
+export default function TemplateRecordCreate() {
   const router = useRouter();
 
   const [selectedDate, setSelectedDate] = useState<CalendarDate>(

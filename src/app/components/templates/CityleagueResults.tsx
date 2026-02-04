@@ -10,7 +10,7 @@ import CityleagueResults from "@app/components/organisms/CityleagueResults";
 
 type TabKey = "league_type_1" | "league_type_3" | "league_type_2";
 
-export default function CityleagueResultsTemplate() {
+export default function TemplateCityleagueResults() {
   const [selectedKey, setSelectedKey] = useState<
     "league_type_1" | "league_type_3" | "league_type_2"
   >("league_type_1");

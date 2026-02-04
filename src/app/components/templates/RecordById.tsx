@@ -36,7 +36,7 @@ type Props = {
   id: string;
 };
 
-export default function Record({ id }: Props) {
+export default function TemplateRecordById({ id }: Props) {
   const [record, setRecord] = useState<RecordGetByIdResponseType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

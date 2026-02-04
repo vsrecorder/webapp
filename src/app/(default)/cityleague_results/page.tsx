@@ -1,7 +1,7 @@
 import { auth } from "@app/(default)/auth";
 import { redirect } from "next/navigation";
 
-import CityleagueResultsTemplate from "@app/components/templates/CityleagueResults";
+import TemplateCityleagueResults from "@app/components/templates/CityleagueResults";
 
 export default async function Page() {
   const session = await auth();
@@ -9,5 +9,5 @@ export default async function Page() {
     redirect("/");
   }
 
-  return <CityleagueResultsTemplate />;
+  return <TemplateCityleagueResults />;
 }

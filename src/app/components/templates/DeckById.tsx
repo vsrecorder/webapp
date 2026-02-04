@@ -60,7 +60,7 @@ type Props = {
   id: string;
 };
 
-export default function Deck({ id }: Props) {
+export default function TemplateDeckById({ id }: Props) {
   const [deck, setDeck] = useState<DeckGetByIdResponseType | null>(null);
   const [deckcodes, setDeckCodes] = useState<DeckCodeType[] | null>(null);
   const [loading, setLoading] = useState(true);

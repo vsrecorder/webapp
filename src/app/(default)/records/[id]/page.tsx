@@ -1,7 +1,7 @@
 import { auth } from "@app/(default)/auth";
 import { redirect } from "next/navigation";
 
-import Record from "@app/components/templates/Record";
+import TemplateRecordById from "@app/components/templates/RecordById";
 
 type Props = {
   params: Promise<{
@@ -17,5 +17,5 @@ export default async function Page({ params }: Props) {
 
   const { id } = await params;
 
-  return <Record id={id} />;
+  return <TemplateRecordById id={id} />;
 }

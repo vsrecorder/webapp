@@ -6,6 +6,6 @@ type Props = {
   id: number;
 };
 
-export default function CityleagueResultByOfficialEventId({ id }: Props) {
+export default function TemplateCityleagueResultByOfficialEventId({ id }: Props) {
   return <ResultByOfficialEventId id={id} />;
 }

@@ -102,10 +102,6 @@ export default function Decks({ isArchived }: Props) {
           {isLoading}
         </div>
       )}
-
-      {!hasMore && (
-        <p className="text-center text-sm text-gray-500">これ以上データはありません</p>
-      )}
     </div>
   );
 }

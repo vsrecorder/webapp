@@ -6,11 +6,11 @@ import { Tabs, Tab } from "@heroui/react";
 
 import UpFloating from "../molecules/UpFloating";
 
-import Results from "@app/components/organisms/CityleagueResults";
+import CityleagueResults from "@app/components/organisms/CityleagueResults";
 
 type TabKey = "league_type_1" | "league_type_3" | "league_type_2";
 
-export default function CityleagueResults() {
+export default function CityleagueResultsTemplate() {
   const [selectedKey, setSelectedKey] = useState<
     "league_type_1" | "league_type_3" | "league_type_2"
   >("league_type_1");
@@ -54,13 +54,13 @@ export default function CityleagueResults() {
 
       <div className="pt-12">
         <div hidden={selectedKey !== "league_type_1"}>
-          <Results league_type={"1"} />
+          <CityleagueResults league_type={"1"} />
         </div>
         <div hidden={selectedKey !== "league_type_3"}>
-          <Results league_type={"3"} />
+          <CityleagueResults league_type={"3"} />
         </div>
         <div hidden={selectedKey !== "league_type_2"}>
-          <Results league_type={"2"} />
+          <CityleagueResults league_type={"2"} />
         </div>
       </div>
     </>

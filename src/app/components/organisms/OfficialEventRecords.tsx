@@ -93,10 +93,6 @@ export default function OfficialEventRecords() {
           {isLoading && <span>読み込み中...</span>}
         </div>
       )}
-
-      {!hasMore && (
-        <p className="text-center text-sm text-gray-500">これ以上データはありません</p>
-      )}
     </div>
   );
 }

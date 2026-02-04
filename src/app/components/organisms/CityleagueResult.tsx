@@ -134,7 +134,7 @@ export default function CityleagueResult({ event_result }: Props) {
           )}
         </div>
       </CardHeader>
-      <CardBody className="py-1 px-1">
+      <CardBody className="px-0 py-1">
         <div>
           <Swiper
             modules={[A11y, Pagination]}

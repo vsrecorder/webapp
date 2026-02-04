@@ -39,8 +39,8 @@ export default function CityleagueResultCard({ result }: Props) {
         }}
       >
         <Card shadow="sm" className="py-3">
-          <CardHeader className="pb-0 pt-0 flex-col items-start gap-0">
-            <p className="font-bold">
+          <CardHeader className="pb-0 pt-0 px-3 flex-col items-start gap-0.5">
+            <div className="font-bold text-medium">
               {result.rank === 1
                 ? "優勝"
                 : result.rank === 2
@@ -52,14 +52,16 @@ export default function CityleagueResultCard({ result }: Props) {
                       : result.rank === 9
                         ? "ベスト16"
                         : ""}
-            </p>
-            <p className="text-tiny">プレイヤー名: {result.player_name}</p>
-            <p className="text-tiny">プレイヤーID: {result.player_id}</p>
-            <p className="text-tiny">
-              デッキコード: {result.deck_code ? result.deck_code : "なし"}
-            </p>
+            </div>
+            <div className="px-1 flex flex-col items-start gap-0.5">
+              <p className="text-tiny">プレイヤー名: {result.player_name}</p>
+              <p className="text-tiny">プレイヤーID: {result.player_id}</p>
+              <p className="text-tiny">
+                デッキコード: {result.deck_code ? result.deck_code : "なし"}
+              </p>
+            </div>
           </CardHeader>
-          <CardBody className="py-2">
+          <CardBody className="px-1 py-3">
             {result.deck_code ? (
               <>
                 <Image

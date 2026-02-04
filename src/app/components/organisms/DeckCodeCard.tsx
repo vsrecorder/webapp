@@ -114,7 +114,7 @@ export default function DeckCodeCard({ deckcode }: Props) {
   if (loadingAcespec || loadingEnvrionment) {
     return (
       <Card shadow="sm" className="py-3">
-        <CardHeader className="pb-0 pt-0 flex-col items-start gap-0.5">
+        <CardHeader className="pb-0 pt-0 px-3 flex-col items-start gap-0.5">
           <div className="text-tiny">
             <Skeleton className="h-4 w-24" />
           </div>
@@ -125,7 +125,7 @@ export default function DeckCodeCard({ deckcode }: Props) {
             <Skeleton className="h-4 w-32" />
           </div>
         </CardHeader>
-        <CardBody className="py-2">
+        <CardBody className="px-1 py-1">
           {deckcode ? (
             <>
               <Skeleton>
@@ -173,7 +173,7 @@ export default function DeckCodeCard({ deckcode }: Props) {
 
   return (
     <Card shadow="sm" className="py-3">
-      <CardHeader className="pb-0 pt-0 flex-col items-start gap-0.5">
+      <CardHeader className="pb-0 pt-0 px-3 flex-col items-start gap-0.5">
         <div className="text-tiny">バージョン：{version}</div>
         <div className="text-tiny">
           登録日：
@@ -196,7 +196,7 @@ export default function DeckCodeCard({ deckcode }: Props) {
           )}
         </div>
       </CardHeader>
-      <CardBody className="py-2">
+      <CardBody className="px-1 py-1">
         {deckcode ? (
           <>
             <Image

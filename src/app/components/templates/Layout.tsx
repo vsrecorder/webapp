@@ -27,7 +27,7 @@ export default function Layout({
                   //backgroundColor: "#f7fbff",
                   backgroundColor: "#fafcff",
                 }}
-                className="flex-1 p-5 pt-14 pb-16 lg:pt-16 lg:pb-6 min-h-svh min-w-svw max-w-svw"
+                className="flex-1 p-2 pt-14 pb-16 lg:pt-16 lg:pb-6 min-h-svh min-w-svw max-w-svw"
               >
                 {children}
               </main>

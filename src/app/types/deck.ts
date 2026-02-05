@@ -1,11 +1,4 @@
-type DeckCode = {
-  id: string;
-  created_at: Date;
-  user_id: string;
-  deck_id: string;
-  code: string;
-  private_code_flg: boolean;
-};
+import { DeckCodeType } from "@app/types/deck_code";
 
 type Data = {
   id: string;
@@ -16,7 +9,7 @@ type Data = {
   code: string;
   private_code_flg: boolean;
   private_flg: boolean;
-  latest_deck_code: DeckCode;
+  latest_deck_code: DeckCodeType;
 };
 
 export type DeckType = {

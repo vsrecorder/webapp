@@ -6,6 +6,8 @@ import DeckCard from "@app/components/organisms/Deck/DeckCard";
 
 import { DeckType, DeckGetResponseType } from "@app/types/deck";
 
+import DeckCardSkeleton from "@app/components/organisms/Deck/DeckCardSkeleton";
+
 async function fetchDecks(isArchived: boolean, cursor: string) {
   try {
     const res = await fetch(`/api/decks?archived=${isArchived}&cursor=${cursor}`, {
@@ -84,30 +86,33 @@ export default function Decks({ isArchived }: Props) {
       if (target) observer.unobserve(target);
       observer.disconnect();
     };
-  }, [items, hasMore, isLoading, loadMore]);
+  }, [items, isLoading, hasMore, loadMore]);
 
   return (
     <div className="flex flex-col items-center space-y-4">
       {!isLoading && !hasMore && items.length === 0 ? (
         <>デッキがありません</>
+      ) : hasMore && items.length === 0 ? (
+        <>
+          <div ref={observerTarget}>
+            <DeckCardSkeleton />
+          </div>
+          <DeckCardSkeleton />
+          <DeckCardSkeleton />
+        </>
       ) : (
         <>
           {items.map((deck) => (
             <DeckCard
               key={deck.data.id}
-              isArchived={isArchived}
-              deck_id={deck.data.id}
-              deck_code_id={deck.data.latest_deck_code.id}
+              deckData={deck.data}
+              deckcodeData={deck.data.latest_deck_code}
             />
           ))}
+          {hasMore && (
+            <div ref={observerTarget} className="h-10 flex justify-center items-center" />
+          )}
         </>
-      )}
-
-      {hasMore && (
-        <div ref={observerTarget} className="h-10 flex justify-center items-center">
-          {/*{isLoading && <span>読み込み中...</span>}*/}
-          {isLoading}
-        </div>
       )}
     </div>
   );

@@ -73,8 +73,8 @@ export default function DeckCodeCard({ deckcode }: Props) {
 
   useEffect(() => {
     if (!deckcode) {
-      //setLoadingAcespec(false);
-      //setLoadingEnvironment(false);
+      setLoadingAcespec(false);
+      setLoadingEnvironment(false);
       return;
     }
 
@@ -88,7 +88,7 @@ export default function DeckCodeCard({ deckcode }: Props) {
         setAcespec(data);
       } catch (err) {
         console.log(err);
-        setErrorAcespec("データの取得に失敗しました");
+        setErrorAcespec(`Acespecデータの取得に失敗しました ${deckcode.code}`);
       } finally {
         setLoadingAcespec(false);
       }
@@ -101,7 +101,7 @@ export default function DeckCodeCard({ deckcode }: Props) {
         setEnvironment(data);
       } catch (err) {
         console.log(err);
-        setErrorEnvironment("データの取得に失敗しました");
+        setErrorEnvironment("環境データの取得に失敗しました");
       } finally {
         setLoadingEnvironment(false);
       }
@@ -162,13 +162,6 @@ export default function DeckCodeCard({ deckcode }: Props) {
   }
 
   if (errorAcespec || errorEnvironment) {
-    /*
-    return (
-      <div className="text-red-500">
-        {errorAcespec} {errorEnvironment}
-      </div>
-    );
-    */
   }
 
   return (

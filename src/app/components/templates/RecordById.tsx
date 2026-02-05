@@ -6,7 +6,6 @@ import { Divider } from "@heroui/react";
 
 import OfficialEventInfo from "@app/components/organisms/OfficialEventInfo";
 import Matches from "@app/components/organisms/Matches";
-import Deck from "@app/components/organisms/Deck/DeckCard";
 
 import { RecordGetByIdResponseType } from "@app/types/record";
 
@@ -86,12 +85,6 @@ export default function TemplateRecordById({ id }: Props) {
       <OfficialEventInfo id={record.official_event_id} />
       <Divider />
       <Matches record_id={record.id} />
-      <Divider />
-      <Deck
-        isArchived={false}
-        deck_id={record.deck_id}
-        deck_code_id={record.deck_code_id}
-      />
     </div>
   );
 }

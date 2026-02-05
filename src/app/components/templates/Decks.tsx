@@ -32,7 +32,7 @@ export default function TemplateDecks() {
       <div className="pt-12">
         <Tabs
           fullWidth
-          size="sm"
+          size="md"
           selectedKey={selectedKey}
           onSelectionChange={handleSelectionChange}
           className="fixed z-50 top-14 left-0 right-0 pl-1 pr-1 font-bold"

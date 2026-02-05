@@ -14,12 +14,13 @@ import {
   useDisclosure,
 } from "@heroui/react";
 
-import { addToast, closeToast } from "@heroui/react";
-
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
 
 import UpdateDeckModal from "@app/components/organisms/Deck/UpdateDeckModal";
+import CreateDeckCodeModal from "@app/components/organisms/Deck/CreateDeckCodeModal";
+import ArchiveDeckModal from "@app/components/organisms/Deck/ArchiveDeckModal";
+import UnarchiveDeckModal from "@app/components/organisms/Deck/UnarchiveDeckModal";
 
 import { LuSquarePen } from "react-icons/lu";
 
@@ -28,8 +29,6 @@ type Props = {
   setDeck: Dispatch<SetStateAction<DeckGetByIdResponseType | null>>;
   deckcode: DeckCodeType | null;
   setDeckCode: Dispatch<SetStateAction<DeckCodeType | null>>;
-  deckname: string;
-  setDeckName: Dispatch<SetStateAction<string>>;
   isOpen: boolean;
   onOpenChange: () => void;
 };
@@ -38,16 +37,14 @@ export default function ShowDeckModal({
   deck,
   setDeck,
   deckcode,
-  //setDeckCode,
-  deckname,
-  setDeckName,
+  setDeckCode,
   isOpen,
   onOpenChange,
 }: Props) {
   const {
-    //isOpen: isOpenForCreateDeckCode,
+    isOpen: isOpenForCreateDeckCode,
     onOpen: onOpenForCreateDeckCode,
-    //onOpenChange: onOpenChangeForCreateDeckCode,
+    onOpenChange: onOpenChangeForCreateDeckCode,
   } = useDisclosure();
 
   const {
@@ -56,133 +53,52 @@ export default function ShowDeckModal({
     onOpenChange: onOpenChangeForUpdateDeckModal,
   } = useDisclosure();
 
-  /*
-    デッキアーカイブ化のAPIを叩く関数
-    Next.jsのAPI Routesを経由してAPIを叩く
-  */
-  const archiveDeck = async () => {
-    const toastId = addToast({
-      title: "デッキをアーカイブ中",
-      description: "しばらくお待ちください",
-      color: "default",
-      promise: new Promise(() => {}),
-    });
+  const {
+    isOpen: isOpenForArchiveDeckModal,
+    onOpen: onOpenForArchiveDeckModal,
+    onOpenChange: onOpenChangeForArchiveDeckModal,
+  } = useDisclosure();
 
-    try {
-      const res = await fetch(`/api/decks/${deck?.id}/archive`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+  const {
+    isOpen: isOpenForUnarchiveDeckModal,
+    onOpen: onOpenForUnarchiveDeckModal,
+    onOpenChange: onOpenChangeForUnarchiveDeckModal,
+  } = useDisclosure();
 
-      if (!res.ok) {
-        const t = await res.json();
-        throw new Error(`HTTP error: ${res.status} Message: ${t.message}`);
-      }
-
-      if (toastId) {
-        closeToast(toastId);
-      }
-
-      addToast({
-        title: "デッキのアーカイブが完了",
-        description: "デッキをアーカイブしました",
-        color: "success",
-        timeout: 3000,
-      });
-
-      setDeck(null);
-    } catch (error) {
-      console.error(error);
-
-      const errorMessage =
-        error instanceof Error ? error.message : "不明なエラーが発生しました";
-
-      if (toastId) {
-        closeToast(toastId);
-      }
-
-      addToast({
-        title: "デッキのアーカイブに失敗",
-        description: (
-          <>
-            デッキのアーカイブに失敗しました
-            <br />
-            {errorMessage}
-          </>
-        ),
-        color: "danger",
-        timeout: 5000,
-      });
-    }
-  };
-
-  const unarchiveDeck = async () => {
-    const toastId = addToast({
-      title: "デッキをアンアーカイブ中",
-      description: "しばらくお待ちください",
-      color: "default",
-      promise: new Promise(() => {}),
-    });
-
-    try {
-      const res = await fetch(`/api/decks/${deck?.id}/unarchive`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!res.ok) {
-        const t = await res.json();
-        throw new Error(`HTTP error: ${res.status} Message: ${t.message}`);
-      }
-
-      if (toastId) {
-        closeToast(toastId);
-      }
-
-      addToast({
-        title: "デッキのアンアーカイブが完了",
-        description: "デッキをアンアーカイブしました",
-        color: "success",
-        timeout: 3000,
-      });
-
-      setDeck(null);
-    } catch (error) {
-      console.error(error);
-
-      const errorMessage =
-        error instanceof Error ? error.message : "不明なエラーが発生しました";
-
-      if (toastId) {
-        closeToast(toastId);
-      }
-
-      addToast({
-        title: "デッキのアンアーカイブに失敗",
-        description: (
-          <>
-            デッキのアンアーカイブに失敗しました
-            <br />
-            {errorMessage}
-          </>
-        ),
-        color: "danger",
-        timeout: 5000,
-      });
-    }
-  };
+  if (!deck) {
+    return;
+  }
 
   return (
     <>
       <UpdateDeckModal
-        deckname={deckname}
-        setDeckName={setDeckName}
+        deck={deck}
+        setDeck={setDeck}
         isOpen={isOpenForUpdateDeckModal}
         onOpenChange={onOpenChangeForUpdateDeckModal}
+      />
+
+      <CreateDeckCodeModal
+        deck={deck}
+        setDeck={setDeck}
+        deckcode={deckcode}
+        setDeckCode={setDeckCode}
+        isOpen={isOpenForCreateDeckCode}
+        onOpenChange={onOpenChangeForCreateDeckCode}
+      />
+
+      <ArchiveDeckModal
+        deck={deck}
+        setDeck={setDeck}
+        isOpen={isOpenForArchiveDeckModal}
+        onOpenChange={onOpenChangeForArchiveDeckModal}
+      />
+
+      <UnarchiveDeckModal
+        deck={deck}
+        setDeck={setDeck}
+        isOpen={isOpenForUnarchiveDeckModal}
+        onOpenChange={onOpenChangeForUnarchiveDeckModal}
       />
 
       <Modal
@@ -193,16 +109,31 @@ export default function ShowDeckModal({
         onOpenChange={onOpenChange}
       >
         <ModalContent>
-          {(onClose) => (
+          {() => (
             <>
               <ModalHeader className="px-3 flex items-center gap-2">
                 <>
-                  {deckname}
+                  {deck.name}
                   <LuSquarePen
                     onClick={() => {
                       onOpenForUpdateDeckModal();
                     }}
                   />
+
+                  {new Date(deck.archived_at).getFullYear() === 1 && (
+                    <div className="ml-auto">
+                      <Button
+                        color="danger"
+                        variant="ghost"
+                        size="sm"
+                        onPress={() => {
+                          onOpenForArchiveDeckModal();
+                        }}
+                      >
+                        アーカイブする
+                      </Button>
+                    </div>
+                  )}
                 </>
               </ModalHeader>
               <ModalBody className="px-2 py-1">
@@ -231,49 +162,38 @@ export default function ShowDeckModal({
                   isExternal
                   showAnchorIcon
                   underline="always"
-                  href={`/decks/${deck?.id}`}
+                  href={`/decks/${deck.id}`}
                   className="text-xs"
                 >
                   <span>このデッキの詳細ページを見る</span>
                 </Link>
               </ModalBody>
               <ModalFooter>
-                {deck?.archived_at ? (
+                {new Date(deck.archived_at).getFullYear() === 1 ? (
+                  <Button
+                    color="default"
+                    variant="solid"
+                    onPress={onOpenForCreateDeckCode}
+                  >
+                    新しいバージョンを作成する
+                  </Button>
+                ) : (
                   <Button
                     color="danger"
                     variant="solid"
                     onPress={() => {
-                      unarchiveDeck();
-                      onClose();
+                      onOpenForUnarchiveDeckModal();
                     }}
                   >
-                    アンアーカイブ
+                    利用中に変更する
                   </Button>
-                ) : (
-                  <>
-                    <Button
-                      color="default"
-                      variant="solid"
-                      onPress={onOpenForCreateDeckCode}
-                    >
-                      新しいバージョンを作成する
-                    </Button>
-                    <Button
-                      color="danger"
-                      variant="solid"
-                      onPress={() => {
-                        archiveDeck();
-                        onClose();
-                      }}
-                    >
-                      アーカイブ
-                    </Button>
-                  </>
                 )}
 
+                {/*
                 <Button color="default" variant="solid" onPress={onClose}>
-                  Close
+                  閉じる
                 </Button>
+                 */}
               </ModalFooter>
             </>
           )}

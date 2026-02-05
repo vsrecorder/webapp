@@ -381,10 +381,14 @@ export default function TemplateRecordCreate() {
 
   return (
     <div className="flex flex-col">
-      <Tabs fullWidth size="sm">
+      <Tabs
+        fullWidth
+        size="md"
+        className="fixed z-50 top-14 left-0 right-0 pl-1 pr-1 font-bold"
+      >
         <Tab key="official" title="公式イベント">
-          <div className="flex flex-col gap-2">
-            <div className="flex flex-col gap-1">
+          <div className="pt-9 flex flex-col gap-2">
+            <div className="flex flex-col gap-1 pt-1">
               <label className="text-sm font-medium">日付</label>
               <DatePicker
                 radius="none"
@@ -509,12 +513,20 @@ export default function TemplateRecordCreate() {
                 formatOptionLabel={(option, { context }) => {
                   if (context === "menu") {
                     return (
-                      <div className="text-sm truncate">
+                      <div className="text-sm truncate border-1">
                         <div className="grid">
                           <span className="truncate">登録日：{option.created_at}</span>
                           <span className="truncate">デッキ名：{option.name}</span>
                           <span className="truncate">
                             デッキコード：{option.latest_deck_code.code}
+                          </span>
+                          <span>
+                            <Image
+                              radius="none"
+                              shadow="none"
+                              alt={option.latest_deck_code.code}
+                              src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${option.latest_deck_code.code}.jpg`}
+                            />
                           </span>
                         </div>
                       </div>
@@ -565,7 +577,7 @@ export default function TemplateRecordCreate() {
           </div>
         </Tab>
         <Tab key="tonamel" title="Tonamel">
-          <div className="flex flex-col gap-2">
+          <div className="pt-9 flex flex-col gap-2">
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium">イベントID</label>
               <Input

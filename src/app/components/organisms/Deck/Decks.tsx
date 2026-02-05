@@ -67,6 +67,7 @@ export default function Decks({ isArchived }: Props) {
     }
   }, [isArchived, nextCursor, isLoading, hasMore]);
 
+  /*
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -87,33 +88,45 @@ export default function Decks({ isArchived }: Props) {
       observer.disconnect();
     };
   }, [items, isLoading, hasMore, loadMore]);
+  */
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          loadMore();
+        }
+      },
+      {
+        threshold: 0.25,
+      },
+    );
+
+    const target = observerTarget.current;
+    if (target) observer.observe(target);
+
+    return () => observer.disconnect();
+  }, [loadMore]);
 
   return (
     <div className="flex flex-col items-center space-y-4">
-      {!isLoading && !hasMore && items.length === 0 ? (
-        <>デッキがありません</>
-      ) : hasMore && items.length === 0 ? (
-        <>
-          <div ref={observerTarget}>
-            <DeckCardSkeleton />
-          </div>
-          <DeckCardSkeleton />
-          <DeckCardSkeleton />
-        </>
-      ) : (
-        <>
-          {items.map((deck) => (
-            <DeckCard
-              key={deck.data.id}
-              deckData={deck.data}
-              deckcodeData={deck.data.latest_deck_code}
-            />
-          ))}
-          {hasMore && (
-            <div ref={observerTarget} className="h-10 flex justify-center items-center" />
-          )}
-        </>
-      )}
+      {/* 空状態 */}
+      {!isLoading && !hasMore && items.length === 0 && <>デッキがありません</>}
+
+      <>
+        {items.map((deck) => (
+          <DeckCard
+            key={deck.data.id}
+            deckData={deck.data}
+            deckcodeData={deck.data.latest_deck_code}
+          />
+        ))}
+
+        {/* ローディング表示 */}
+        {isLoading && hasMore && <DeckCardSkeleton />}
+
+        {hasMore && <div ref={observerTarget} className="h-10 w-full" />}
+      </>
     </div>
   );
 }

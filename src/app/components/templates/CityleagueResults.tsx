@@ -42,14 +42,14 @@ export default function TemplateCityleagueResults() {
       <ScrollUpFloating />
       <Tabs
         fullWidth
-        size="sm"
+        size="md"
         selectedKey={selectedKey}
         onSelectionChange={handleSelectionChange}
-        className="fixed z-50 top-14 left-0 right-0 pl-1 pr-1"
+        className="fixed z-50 top-14 left-0 right-0 pl-1 pr-1 font-bold"
       >
-        <Tab key="league_type_1" title="オープンリーグ" className="font-bold" />
-        <Tab key="league_type_3" title="シニアリーグ" className="font-bold" />
-        <Tab key="league_type_2" title="ジュニアリーグ" className="font-bold" />
+        <Tab key="league_type_1" title="オープンリーグ" />
+        <Tab key="league_type_3" title="シニアリーグ" />
+        <Tab key="league_type_2" title="ジュニアリーグ" />
       </Tabs>
 
       <div className="pt-12">

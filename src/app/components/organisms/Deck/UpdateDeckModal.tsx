@@ -4,20 +4,21 @@ import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@herou
 import { Button } from "@heroui/react";
 import { Input } from "@heroui/react";
 
+import { DeckGetByIdResponseType } from "@app/types/deck";
+
 type Props = {
-  deckname: string;
-  setDeckName: Dispatch<SetStateAction<string>>;
+  deck: DeckGetByIdResponseType | null;
+  setDeck: Dispatch<SetStateAction<DeckGetByIdResponseType | null>>;
   isOpen: boolean;
   onOpenChange: () => void;
 };
 
-export default function UpdateDeckModal({
-  deckname,
-  setDeckName,
-  isOpen,
-  onOpenChange,
-}: Props) {
-  const [newDeckName, setNewDeckName] = useState<string>(deckname);
+export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }: Props) {
+  const [newDeckName, setNewDeckName] = useState<string>(deck ? deck.name : "");
+
+  if (!deck) {
+    return;
+  }
 
   return (
     <Modal
@@ -27,22 +28,22 @@ export default function UpdateDeckModal({
       hideCloseButton
       onOpenChange={onOpenChange}
       onClose={() => {}}
-      classNames={{
-        base: "sm:max-w-full md:max-w-lg",
-      }}
     >
       <ModalContent>
         {(onClose) => (
-          <div>
-            <ModalHeader className="flex flex-col gap-1 px-3">デッキ名を変更</ModalHeader>
+          <>
+            <ModalHeader className="flex flex-col gap-1 px-3">
+              デッキ情報を更新
+            </ModalHeader>
             <ModalBody className="px-3 py-1">
               <Input
+                isRequired
                 //isInvalid={!isValidedDeckName}
                 //errorMessage="有効なデッキコードを入力してください"
                 type="text"
                 label="デッキ名"
                 labelPlacement="outside"
-                placeholder={deckname}
+                placeholder={deck.name}
                 value={newDeckName}
                 onChange={(e) => setNewDeckName(e.target.value)}
               />
@@ -52,7 +53,7 @@ export default function UpdateDeckModal({
                 color="default"
                 variant="solid"
                 onPress={() => {
-                  setNewDeckName(deckname);
+                  setNewDeckName(deck.name);
                   onClose();
                 }}
               >
@@ -61,16 +62,17 @@ export default function UpdateDeckModal({
               <Button
                 color="primary"
                 variant="solid"
-                isDisabled={newDeckName === "" || newDeckName === deckname}
+                isDisabled={newDeckName === "" || newDeckName === deck.name}
                 onPress={() => {
-                  setDeckName(newDeckName);
+                  deck.name = newDeckName;
+                  setDeck(deck);
                   onClose();
                 }}
               >
                 更新
               </Button>
             </ModalFooter>
-          </div>
+          </>
         )}
       </ModalContent>
     </Modal>

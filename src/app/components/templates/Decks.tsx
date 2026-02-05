@@ -43,13 +43,14 @@ export default function TemplateDecks() {
             tabContent: "",
           }}
         >
-          <Tab key="inuse" title="利用中" className="">
-            <Decks key={refreshKey} isArchived={false} />
-          </Tab>
-          <Tab key="archived" title="アーカイブ済み" className="">
-            <Decks key={refreshKey} isArchived={true} />
-          </Tab>
+          <Tab key="inuse" title="利用中" />
+          <Tab key="archived" title="アーカイブ済み" />
         </Tabs>
+
+        <Decks
+          key={`${selectedKey}-${refreshKey}`}
+          isArchived={selectedKey === "archived"}
+        />
       </div>
     </>
   );

@@ -211,8 +211,8 @@ export default function CreateDeckFloating({ onCreate }: Props) {
                   shadow="none"
                   alt={deckcode ? deckcode : "デッキコードなし"}
                   src={
-                    isValidatedDeckCode
-                      ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode}.jpg`
+                    isValidatedDeckCode || deckcode
+                      ? `https://www.pokemon-card.com/deck/deckView.php/deckID/${deckcode}.jpg`
                       : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
                   }
                   onLoad={() => {}}

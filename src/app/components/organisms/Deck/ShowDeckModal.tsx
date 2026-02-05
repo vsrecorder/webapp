@@ -113,12 +113,14 @@ export default function ShowDeckModal({
             <>
               <ModalHeader className="px-3 flex items-center gap-2">
                 <>
-                  {deck.name}
-                  <LuSquarePen
-                    onClick={() => {
-                      onOpenForUpdateDeckModal();
-                    }}
-                  />
+                  <div className="truncate">{deck.name}</div>
+                  <div className="text-lg">
+                    <LuSquarePen
+                      onClick={() => {
+                        onOpenForUpdateDeckModal();
+                      }}
+                    />
+                  </div>
 
                   {new Date(deck.archived_at).getFullYear() === 1 && (
                     <div className="ml-auto">

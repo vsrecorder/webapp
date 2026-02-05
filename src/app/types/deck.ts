@@ -31,6 +31,11 @@ export type DeckCreateRequestType = {
   private_deck_code_flg: boolean;
 };
 
+export type DeckUpdateRequestType = {
+  name: string;
+  private_flg: boolean;
+};
+
 export type DeckGetByIdResponseType = Data;
 
 export type DeckCreateResponseType = Data;

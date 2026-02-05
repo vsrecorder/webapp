@@ -14,7 +14,7 @@ import "swiper/css/navigation";
 import "swiper/css/pagination";
 import "swiper/css/scrollbar";
 
-import CityleagueResultCard from "@app/components/organisms/CityleagueResultCard";
+import CityleagueResultCard from "@app/components/organisms/Cityleague/CityleagueResultCard";
 
 import { CityleagueResultType } from "@app/types/cityleague_result";
 import { OfficialEventGetByIdResponseType } from "@app/types/official_event";

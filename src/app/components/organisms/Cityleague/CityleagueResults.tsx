@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import CityleagueResult from "@app/components/organisms/CityleagueResult";
+import CityleagueResult from "@app/components/organisms/Cityleague/CityleagueResult";
 
 import { CityleagueResultGetResponseType } from "@app/types/cityleague_result";
 

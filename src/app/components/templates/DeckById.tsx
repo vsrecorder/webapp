@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { Card, CardHeader, CardBody, CardFooter } from "@heroui/react";
 import { Image } from "@heroui/react";
 
-import DeckCardDiff from "@app/components/organisms/DeckCardDiff";
+import DeckCardDiff from "@app/components/organisms/Deck/DeckCardDiff";
 
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";

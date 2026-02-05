@@ -6,7 +6,7 @@ import { useState, useCallback } from "react";
 import ScrollUpFloating from "@app/components/atoms/Floating/ScrollUpFloating";
 import CreateDeckFloating from "@app/components/molecules/Floating/CreateDeckFloating";
 
-import Decks from "@app/components/organisms/Decks";
+import Decks from "@app/components/organisms/Deck/Decks";
 
 import { Tabs, Tab } from "@heroui/react";
 
@@ -35,7 +35,7 @@ export default function TemplateDecks() {
           size="sm"
           selectedKey={selectedKey}
           onSelectionChange={handleSelectionChange}
-          className="fixed z-50 top-14 left-0 right-0 pl-1 pr-1"
+          className="fixed z-50 top-14 left-0 right-0 pl-1 pr-1 font-bold"
           classNames={{
             cursor: selectedKey === "inuse" ? "bg-green-200" : "bg-red-200",
             tab: "h-8",
@@ -43,10 +43,10 @@ export default function TemplateDecks() {
             tabContent: "",
           }}
         >
-          <Tab key="inuse" title="利用中" className="font-bold">
+          <Tab key="inuse" title="利用中" className="">
             <Decks key={refreshKey} isArchived={false} />
           </Tab>
-          <Tab key="archived" title="アーカイブ済み" className="font-bold">
+          <Tab key="archived" title="アーカイブ済み" className="">
             <Decks key={refreshKey} isArchived={true} />
           </Tab>
         </Tabs>

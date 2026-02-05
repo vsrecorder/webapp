@@ -1,6 +1,6 @@
 "use client";
 
-import ResultByOfficialEventId from "@app/components/organisms/CityleagueResultByOfficialEventId";
+import ResultByOfficialEventId from "@app/components/organisms/Cityleague/CityleagueResultByOfficialEventId";
 
 type Props = {
   id: number;

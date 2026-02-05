@@ -6,7 +6,7 @@ import { Tabs, Tab } from "@heroui/react";
 
 import ScrollUpFloating from "@app/components/atoms/Floating/ScrollUpFloating";
 
-import CityleagueResults from "@app/components/organisms/CityleagueResults";
+import CityleagueResults from "@app/components/organisms/Cityleague/CityleagueResults";
 
 type TabKey = "league_type_1" | "league_type_3" | "league_type_2";
 

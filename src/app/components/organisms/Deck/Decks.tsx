@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 
-import DeckCard from "@app/components/organisms/DeckCard";
+import DeckCard from "@app/components/organisms/Deck/DeckCard";
 
 import { DeckType, DeckGetResponseType } from "@app/types/deck";
 
@@ -87,15 +87,21 @@ export default function Decks({ isArchived }: Props) {
   }, [items, hasMore, isLoading, loadMore]);
 
   return (
-    <div className="space-y-4">
-      {items.map((deck) => (
-        <DeckCard
-          key={deck.data.id}
-          isArchived={isArchived}
-          deck_id={deck.data.id}
-          deck_code_id={deck.data.latest_deck_code.id}
-        />
-      ))}
+    <div className="flex flex-col items-center space-y-4">
+      {!isLoading && !hasMore && items.length === 0 ? (
+        <>デッキがありません</>
+      ) : (
+        <>
+          {items.map((deck) => (
+            <DeckCard
+              key={deck.data.id}
+              isArchived={isArchived}
+              deck_id={deck.data.id}
+              deck_code_id={deck.data.latest_deck_code.id}
+            />
+          ))}
+        </>
+      )}
 
       {hasMore && (
         <div ref={observerTarget} className="h-10 flex justify-center items-center">

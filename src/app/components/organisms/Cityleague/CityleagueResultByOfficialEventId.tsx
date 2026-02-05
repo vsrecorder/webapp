@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import CityleagueResultCard from "@app/components/organisms/CityleagueResultCard";
+import CityleagueResultCard from "@app/components/organisms/Cityleague/CityleagueResultCard";
 import { CityleagueResultType } from "@app/types/cityleague_result";
 
 async function fetchCityleagueResultByOfficialEventById(id: number) {

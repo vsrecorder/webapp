@@ -1,7 +1,7 @@
 "use client";
 
-import OfficialEventRecords from "@app/components/organisms/OfficialEventRecords";
-import TonamelEventRecords from "@app/components/organisms/TonamelEventRecords";
+import OfficialEventRecords from "@app/components/organisms/Record/OfficialEventRecords";
+import TonamelEventRecords from "@app/components/organisms/Record/TonamelEventRecords";
 
 import { Tabs, Tab } from "@heroui/react";
 

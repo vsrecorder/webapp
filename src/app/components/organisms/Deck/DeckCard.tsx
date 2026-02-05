@@ -26,7 +26,7 @@ import { addToast, closeToast } from "@heroui/react";
 
 import { LuSquarePen } from "react-icons/lu";
 
-import DeckCodeCard from "@app/components/organisms/DeckCodeCard";
+import DeckCodeCard from "@app/components/organisms/Deck/DeckCodeCard";
 
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { DeckCodeType, DeckCodeCreateRequestType } from "@app/types/deck_code";

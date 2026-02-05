@@ -62,7 +62,7 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
       }
 
       addToast({
-        title: "デッキ情報の更新がが完了",
+        title: "デッキ情報の更新が完了",
         description: "デッキ情報を更新しました",
         color: "success",
         timeout: 3000,

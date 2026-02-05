@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { Tabs, Tab } from "@heroui/react";
 
-import UpFloating from "../molecules/UpFloating";
+import ScrollUpFloating from "@app/components/atoms/Floating/ScrollUpFloating";
 
 import CityleagueResults from "@app/components/organisms/CityleagueResults";
 
@@ -39,7 +39,7 @@ export default function TemplateCityleagueResults() {
 
   return (
     <>
-      <UpFloating />
+      <ScrollUpFloating />
       <Tabs
         fullWidth
         size="sm"

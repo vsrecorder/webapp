@@ -3,8 +3,8 @@
 //import { useEffect, useRef, useState, useCallback } from "react";
 import { useState, useCallback } from "react";
 
-import UpFloating from "../molecules/UpFloating";
-import CreateDeckFloating from "../molecules/CreateDeckFloating";
+import ScrollUpFloating from "@app/components/atoms/Floating/ScrollUpFloating";
+import CreateDeckFloating from "@app/components/molecules/Floating/CreateDeckFloating";
 
 import Decks from "@app/components/organisms/Decks";
 
@@ -13,10 +13,10 @@ import { Tabs, Tab } from "@heroui/react";
 type TabKey = "inuse" | "archived";
 
 export default function TemplateDecks() {
-  const [selectedKey, setSelectedKey] = useState<"inuse" | "archived">("inuse");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [selectedKey, setSelectedKey] = useState<"inuse" | "archived">("inuse");
 
-  const handleDeckCreated = useCallback(() => {
+  const handleCreatedDeck = useCallback(() => {
     setRefreshKey((prev) => prev + 1);
     setSelectedKey("inuse");
   }, []);
@@ -27,8 +27,8 @@ export default function TemplateDecks() {
 
   return (
     <>
-      <UpFloating />
-      <CreateDeckFloating onDeckCreated={handleDeckCreated} />
+      <ScrollUpFloating />
+      <CreateDeckFloating onCreate={handleCreatedDeck} />
       <div className="pt-12">
         <Tabs
           fullWidth

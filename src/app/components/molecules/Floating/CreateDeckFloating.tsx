@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 import {
   Modal,
   ModalContent,
@@ -11,22 +13,18 @@ import {
 import { Image, Button } from "@heroui/react";
 import { Input } from "@heroui/react";
 import { Checkbox } from "@heroui/react";
-import { useState } from "react";
-import { useEffect } from "react";
-
-import { addToast, closeToast } from "@heroui/react";
-
 import { Link } from "@heroui/react";
+import { addToast, closeToast } from "@heroui/react";
 
 import { LuCirclePlus } from "react-icons/lu";
 
 import { DeckCreateRequestType } from "@app/types/deck";
 
 type Props = {
-  onDeckCreated?: () => void;
+  onCreate: () => void;
 };
 
-export default function CreateDeckFloating({ onDeckCreated }: Props) {
+export default function CreateDeckFloating({ onCreate }: Props) {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [deckname, setDeckName] = useState<string>("");
   const [deckcode, setDeckCode] = useState<string>("");
@@ -123,7 +121,7 @@ export default function CreateDeckFloating({ onDeckCreated }: Props) {
         timeout: 3000,
       });
 
-      onDeckCreated?.();
+      onCreate();
     } catch (error) {
       console.error(error);
 

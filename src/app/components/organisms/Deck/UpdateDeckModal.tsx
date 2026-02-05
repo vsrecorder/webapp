@@ -70,8 +70,8 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
 
       deck.name = newDeckName;
       setDeck(deck);
-      setIsDisabled(false);
 
+      setIsDisabled(false);
       onClose();
     } catch (error) {
       console.error(error);
@@ -95,6 +95,10 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
         color: "danger",
         timeout: 5000,
       });
+
+      setNewDeckName(deck.name);
+      setIsDisabled(false);
+      onClose();
     }
   };
 

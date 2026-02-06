@@ -1,3 +1,5 @@
+import { createHash } from "crypto";
+
 import { useEffect } from "react";
 import { SetStateAction, Dispatch } from "react";
 
@@ -28,6 +30,10 @@ import UnarchiveDeckModal from "@app/components/organisms/Deck/Modal/UnarchiveDe
 import { LuFolderInput } from "react-icons/lu";
 import { LuFolderOutput } from "react-icons/lu";
 import { LuUpload } from "react-icons/lu";
+import { LuTrash2 } from "react-icons/lu";
+import { LuExternalLink } from "react-icons/lu";
+import { LuFlaskConical } from "react-icons/lu";
+import { LuChartColumn } from "react-icons/lu";
 
 import { LuSquarePen } from "react-icons/lu";
 
@@ -71,6 +77,11 @@ export default function ShowDeckModal({
     onOpen: onOpenForUnarchiveDeckModal,
     onOpenChange: onOpenChangeForUnarchiveDeckModal,
   } = useDisclosure();
+
+  const version =
+    deckcode && deckcode.id
+      ? createHash("sha1").update(deckcode.id).digest("hex").slice(0, 8)
+      : "なし";
 
   useEffect(() => {
     if (!deckcode?.code) return;
@@ -118,7 +129,7 @@ export default function ShowDeckModal({
         isOpen={isOpen}
         size={"md"}
         placement={"center"}
-        hideCloseButton
+        //hideCloseButton
         onOpenChange={onOpenChange}
       >
         <ModalContent>
@@ -128,6 +139,7 @@ export default function ShowDeckModal({
                 <>
                   <div className="flex items-center gap-3">
                     <div className="font-bold text-large truncate">{deck.name}</div>
+                    {/*
                     <div className="text-xl">
                       <LuSquarePen
                         onClick={() => {
@@ -135,29 +147,13 @@ export default function ShowDeckModal({
                         }}
                       />
                     </div>
+                     */}
                   </div>
-
-                  {new Date(deck.archived_at).getFullYear() === 1 ? (
-                    <div className="ml-auto pr-1 text-2xl text-red-500">
-                      <LuFolderInput
-                        onClick={() => {
-                          onOpenForArchiveDeckModal();
-                        }}
-                      />
-                    </div>
-                  ) : (
-                    <div className="ml-auto pr-1 text-2xl text-green-500">
-                      <LuFolderOutput
-                        onClick={() => {
-                          onOpenForUnarchiveDeckModal();
-                        }}
-                      />
-                    </div>
-                  )}
                 </>
               </ModalHeader>
               <ModalBody className="px-1 py-1 flex flex-col gap-3">
-                <div className="pl-3 flex flex-col justify-center gap-1">
+                <div className="pl-3 flex flex-col justify-center gap-0.5">
+                  <div className="text-tiny">バージョンID：{version}</div>
                   <div className="flex items-center gap-2">
                     <div className="text-tiny">デッキコード：{deckcode?.code}</div>
                     <Chip size="sm" radius="md" variant="bordered">
@@ -187,19 +183,18 @@ export default function ShowDeckModal({
                     />
                   </>
                 )}
-                <Link
-                  isExternal
-                  showAnchorIcon
-                  underline="always"
-                  href={`/decks/${deck.id}`}
-                  className="text-xs"
-                >
-                  <span>このデッキの詳細ページを見る</span>
-                </Link>
               </ModalBody>
               <ModalFooter>
                 {new Date(deck.archived_at).getFullYear() === 1 ? (
-                  <div className="flex items-center gap-6">
+                  <div className="flex items-center justify-center gap-7 mx-auto">
+                    <div className="text-2xl">
+                      <LuSquarePen
+                        onClick={() => {
+                          onOpenForUpdateDeckModal();
+                        }}
+                      />
+                    </div>
+
                     <div className="text-2xl">
                       <LuUpload
                         onClick={() => {
@@ -207,9 +202,46 @@ export default function ShowDeckModal({
                         }}
                       />
                     </div>
-                    <Button color="default" variant="solid" onPress={onClose}>
-                      閉じる
-                    </Button>
+
+                    <div className="text-2xl text-gray-200">
+                      <LuChartColumn />
+                    </div>
+
+                    <div className="text-2xl text-gray-200">
+                      <LuFlaskConical />
+                    </div>
+
+                    <Link
+                      isExternal
+                      underline="always"
+                      href={`/decks/${deck.id}`}
+                      className="text-black"
+                    >
+                      <div className="text-2xl">
+                        <LuExternalLink />
+                      </div>
+                    </Link>
+
+                    {new Date(deck.archived_at).getFullYear() === 1 ? (
+                      <div className="text-2xl text-red-500">
+                        <LuFolderInput
+                          onClick={() => {
+                            onOpenForArchiveDeckModal();
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <div className="text-2xl text-green-500">
+                        <LuFolderOutput
+                          onClick={() => {
+                            onOpenForUnarchiveDeckModal();
+                          }}
+                        />
+                      </div>
+                    )}
+                    <div className="text-2xl text-red-500">
+                      <LuTrash2 />
+                    </div>
                     {/*
                     <Button
                       color="default"

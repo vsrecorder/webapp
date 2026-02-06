@@ -608,7 +608,7 @@ export default function TemplateRecordCreate() {
               </div>
               <div className="w-4/6">
                 <div className="relative w-full aspect-2/1">
-                  <Skeleton className="absolute inset-0 rounded-lg" />
+                  <Skeleton className="absolute inset-0" />
                   <Image
                     className="relative z-0"
                     radius="none"

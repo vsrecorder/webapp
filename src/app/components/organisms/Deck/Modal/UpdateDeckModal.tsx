@@ -68,13 +68,13 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
         timeout: 3000,
       });
 
-      deck.name = newDeckName;
-      setDeck(deck);
+      setDeck({
+        ...deck,
+        name: newDeckName,
+      });
 
       onClose();
       setIsDisabled(false);
-
-      setNewDeckName(deck.name);
     } catch (error) {
       console.error(error);
 

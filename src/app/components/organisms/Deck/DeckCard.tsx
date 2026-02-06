@@ -13,7 +13,7 @@ import { DeckGetByIdResponseType } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
 
 type Props = {
-  deckData: DeckGetByIdResponseType;
+  deckData: DeckGetByIdResponseType | null;
   deckcodeData: DeckCodeType | null;
 };
 

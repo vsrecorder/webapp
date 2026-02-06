@@ -77,7 +77,7 @@ export default function CreateDeckCodeModal({
     setIsDisabled(true);
 
     const toastId = addToast({
-      title: "デッキコードを作成中",
+      title: "新しいバージョンを登録中",
       description: "しばらくお待ちください",
       color: "default",
       promise: new Promise(() => {}),
@@ -104,8 +104,8 @@ export default function CreateDeckCodeModal({
       }
 
       addToast({
-        title: "デッキコードの作成が完了",
-        description: "デッキコードを作成しました",
+        title: "新しいバージョンの登録が完了",
+        description: "新しいバージョンを登録しました",
         color: "success",
         timeout: 3000,
       });
@@ -128,10 +128,10 @@ export default function CreateDeckCodeModal({
       }
 
       addToast({
-        title: "デッキコードの作成に失敗",
+        title: "新しいバージョンの登録に失敗",
         description: (
           <>
-            デッキコードの作成に失敗しました
+            新しいバージョンの登録に失敗しました
             <br />
             {errorMessage}
           </>
@@ -168,7 +168,7 @@ export default function CreateDeckCodeModal({
         {(onClose) => (
           <div>
             <ModalHeader className="flex flex-col gap-1 px-3">
-              新しいバージョンを作成
+              新しいバージョンを登録
             </ModalHeader>
             <ModalBody className="px-3 py-1">
               <Input
@@ -229,7 +229,7 @@ export default function CreateDeckCodeModal({
                   createNewDeckCode(onClose);
                 }}
               >
-                作成
+                登録
               </Button>
             </ModalFooter>
           </div>

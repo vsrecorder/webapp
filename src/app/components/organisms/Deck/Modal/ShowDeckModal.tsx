@@ -3,8 +3,6 @@ import { createHash } from "crypto";
 import { useEffect } from "react";
 import { SetStateAction, Dispatch } from "react";
 
-import { Button } from "@heroui/react";
-
 import { Link } from "@heroui/react";
 import { Image } from "@heroui/react";
 
@@ -34,6 +32,7 @@ import { LuTrash2 } from "react-icons/lu";
 import { LuExternalLink } from "react-icons/lu";
 import { LuFlaskConical } from "react-icons/lu";
 import { LuChartColumn } from "react-icons/lu";
+import { LuFilePen } from "react-icons/lu";
 
 import { LuSquarePen } from "react-icons/lu";
 
@@ -136,13 +135,12 @@ export default function ShowDeckModal({
         }}
       >
         <ModalContent>
-          {(onClose) => (
+          {() => (
             <>
               <ModalHeader className="px-3 py-3 flex items-center gap-3">
                 <>
                   <div className="flex items-center gap-3">
                     <div className="font-bold text-large truncate">{deck.name}</div>
-                    {/*
                     <div className="text-xl">
                       <LuSquarePen
                         onClick={() => {
@@ -150,7 +148,6 @@ export default function ShowDeckModal({
                         }}
                       />
                     </div>
-                     */}
                   </div>
                 </>
               </ModalHeader>
@@ -190,12 +187,8 @@ export default function ShowDeckModal({
               <ModalFooter>
                 {new Date(deck.archived_at).getFullYear() === 1 ? (
                   <div className="flex items-center justify-center gap-8 mx-auto">
-                    <div className="text-2xl">
-                      <LuSquarePen
-                        onClick={() => {
-                          onOpenForUpdateDeckModal();
-                        }}
-                      />
+                    <div className="text-2xl text-gray-200">
+                      <LuFilePen />
                     </div>
 
                     <div className="text-2xl">
@@ -225,41 +218,31 @@ export default function ShowDeckModal({
                       </div>
                     </Link>
 
-                    {new Date(deck.archived_at).getFullYear() === 1 ? (
-                      <div className="text-2xl text-red-500">
-                        <LuFolderInput
-                          onClick={() => {
-                            onOpenForArchiveDeckModal();
-                          }}
-                        />
-                      </div>
-                    ) : (
-                      <div className="text-2xl text-green-500">
-                        <LuFolderOutput
-                          onClick={() => {
-                            onOpenForUnarchiveDeckModal();
-                          }}
-                        />
-                      </div>
-                    )}
+                    <div className="text-2xl text-red-500">
+                      <LuFolderInput
+                        onClick={() => {
+                          onOpenForArchiveDeckModal();
+                        }}
+                      />
+                    </div>
+
                     <div className="text-2xl text-red-500">
                       <LuTrash2 />
                     </div>
-                    {/*
-                    <Button
-                      color="default"
-                      variant="solid"
-                      onPress={onOpenForCreateDeckCode}
-                    >
-                      新しいバージョンを作成する
-                    </Button>
-                     */}
                   </div>
                 ) : (
-                  <div className="flex items-center gap-3">
-                    <Button color="default" variant="solid" onPress={onClose}>
-                      閉じる
-                    </Button>
+                  <div className="flex items-center justify-center gap-8 mx-auto">
+                    <div className="text-2xl">
+                      <LuFolderOutput
+                        onClick={() => {
+                          onOpenForUnarchiveDeckModal();
+                        }}
+                      />
+                    </div>
+
+                    <div className="text-2xl text-red-500">
+                      <LuTrash2 />
+                    </div>
                   </div>
                 )}
               </ModalFooter>

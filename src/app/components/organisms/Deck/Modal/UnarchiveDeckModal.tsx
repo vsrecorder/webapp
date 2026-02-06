@@ -119,7 +119,7 @@ export default function UnarchiveDeckModal({
                 戻る
               </Button>
               <Button
-                color="success"
+                color="primary"
                 variant="solid"
                 isDisabled={isDisabled}
                 onPress={() => {

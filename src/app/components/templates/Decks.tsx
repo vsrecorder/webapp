@@ -35,12 +35,12 @@ export default function TemplateDecks() {
           size="md"
           selectedKey={selectedKey}
           onSelectionChange={handleSelectionChange}
-          className="fixed z-50 top-14 left-0 right-0 pl-1 pr-1 font-bold"
+          className="fixed z-50 top-14 left-0 right-0 pl-1 pr-1"
           classNames={{
             cursor: selectedKey === "inuse" ? "bg-green-200" : "bg-red-200",
             tab: "h-8",
-            tabList: "",
-            tabContent: "",
+            tabList: selectedKey === "inuse" ? "bg-red-100" : "bg-green-100",
+            tabContent: "font-bold",
           }}
         >
           <Tab key="inuse" title="利用中" />

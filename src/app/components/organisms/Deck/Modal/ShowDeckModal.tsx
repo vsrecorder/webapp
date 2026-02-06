@@ -155,12 +155,16 @@ export default function ShowDeckModal({
                 <div className="pl-3 flex flex-col justify-center gap-0.5">
                   <div className="text-tiny">バージョンID：{version}</div>
                   <div className="flex items-center gap-2">
-                    <div className="text-tiny">デッキコード：{deckcode?.code}</div>
-                    <Chip size="sm" radius="md" variant="bordered">
-                      <small className="font-bold">
-                        {deckcode?.private_code_flg ? <>非公開</> : <>公開</>}
-                      </small>
-                    </Chip>
+                    <div className="text-tiny">
+                      デッキコード：{deckcode?.code ? deckcode.code : "なし"}
+                    </div>
+                    {deckcode?.code && (
+                      <Chip size="sm" radius="md" variant="bordered">
+                        <small className="font-bold">
+                          {deckcode?.private_code_flg ? <>非公開</> : <>公開</>}
+                        </small>
+                      </Chip>
+                    )}
                   </div>
                 </div>
 

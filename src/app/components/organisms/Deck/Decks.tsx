@@ -6,7 +6,7 @@ import DeckCard from "@app/components/organisms/Deck/DeckCard";
 
 import { DeckType, DeckGetResponseType } from "@app/types/deck";
 
-import DeckCardSkeleton from "@app/components/organisms/Deck/DeckCardSkeleton";
+import DeckCardSkeleton from "@app/components/organisms/Deck/Skeleton/DeckCardSkeleton";
 
 async function fetchDecks(isArchived: boolean, cursor: string) {
   try {

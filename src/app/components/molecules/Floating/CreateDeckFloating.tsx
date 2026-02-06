@@ -15,6 +15,7 @@ import { Input } from "@heroui/react";
 import { Checkbox } from "@heroui/react";
 import { Link } from "@heroui/react";
 import { addToast, closeToast } from "@heroui/react";
+import { Skeleton } from "@heroui/react";
 
 import { LuCirclePlus } from "react-icons/lu";
 
@@ -167,7 +168,7 @@ export default function CreateDeckFloating({ onCreate }: Props) {
   return (
     <>
       <LuCirclePlus
-        className="lg:hidden fixed z-30 w-12 h-12 bottom-35 right-3 text-gray-500 bg-gray-200 border-0 rounded-full"
+        className="lg:hidden fixed z-30 w-12 h-12 bottom-35 right-3 text-gray-600 bg-blue-300 border-0 rounded-full"
         onClick={() => onOpen()}
       />
 
@@ -225,19 +226,22 @@ export default function CreateDeckFloating({ onCreate }: Props) {
                   デッキコードを非公開にする
                 </Checkbox>
 
-                <Image
-                  className="relative z-0"
-                  radius="sm"
-                  shadow="none"
-                  alt={deckcode ? deckcode : "デッキコードなし"}
-                  src={
-                    isValidatedDeckCode || deckcode
-                      ? `https://www.pokemon-card.com/deck/deckView.php/deckID/${deckcode}.png`
-                      : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
-                  }
-                  onLoad={() => {}}
-                  onError={() => {}}
-                />
+                <div className="relative w-full aspect-2/1">
+                  <Skeleton className="absolute inset-0 rounded-lg" />
+                  <Image
+                    className="relative z-0"
+                    radius="sm"
+                    shadow="none"
+                    alt={deckcode ? deckcode : "デッキコードなし"}
+                    src={
+                      isValidatedDeckCode || deckcode
+                        ? `https://www.pokemon-card.com/deck/deckView.php/deckID/${deckcode}.png`
+                        : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
+                    }
+                    onLoad={() => {}}
+                    onError={() => {}}
+                  />
+                </div>
 
                 <Link
                   isExternal

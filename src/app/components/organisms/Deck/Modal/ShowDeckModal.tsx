@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { SetStateAction, Dispatch } from "react";
 
 import { Button } from "@heroui/react";
@@ -17,10 +18,10 @@ import {
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
 
-import UpdateDeckModal from "@app/components/organisms/Deck/UpdateDeckModal";
-import CreateDeckCodeModal from "@app/components/organisms/Deck/CreateDeckCodeModal";
-import ArchiveDeckModal from "@app/components/organisms/Deck/ArchiveDeckModal";
-import UnarchiveDeckModal from "@app/components/organisms/Deck/UnarchiveDeckModal";
+import UpdateDeckModal from "@app/components/organisms/Deck/Modal/UpdateDeckModal";
+import CreateDeckCodeModal from "@app/components/organisms/Deck/Modal/CreateDeckCodeModal";
+import ArchiveDeckModal from "@app/components/organisms/Deck/Modal/ArchiveDeckModal";
+import UnarchiveDeckModal from "@app/components/organisms/Deck/Modal/UnarchiveDeckModal";
 
 import { LuFolderInput } from "react-icons/lu";
 import { LuFolderOutput } from "react-icons/lu";
@@ -68,6 +69,12 @@ export default function ShowDeckModal({
     onOpen: onOpenForUnarchiveDeckModal,
     onOpenChange: onOpenChangeForUnarchiveDeckModal,
   } = useDisclosure();
+
+  useEffect(() => {
+    if (!deckcode?.code) return;
+    const img = new window.Image();
+    img.src = `https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`;
+  }, [deckcode?.code]);
 
   if (!deck) {
     return;
@@ -118,7 +125,7 @@ export default function ShowDeckModal({
               <ModalHeader className="px-3 flex items-center gap-3">
                 <>
                   <div className="flex items-center gap-3">
-                    <div className="truncate">{deck.name}</div>
+                    <div className="font-bold text-large truncate">{deck.name}</div>
                     <div className="text-xl">
                       <LuSquarePen
                         onClick={() => {

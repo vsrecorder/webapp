@@ -7,7 +7,7 @@ import { Card, CardHeader, CardBody } from "@heroui/react";
 import { useDisclosure } from "@heroui/react";
 
 import DeckCodeCard from "@app/components/organisms/Deck/DeckCodeCard";
-import ShowDeckModal from "@app/components/organisms/Deck/ShowDeckModal";
+import ShowDeckModal from "@app/components/organisms/Deck/Modal/ShowDeckModal";
 
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
@@ -31,17 +31,19 @@ export default function DeckCard({ deckData, deckcodeData }: Props) {
     <>
       <div className="w-full" onClick={() => onOpen()}>
         <Card className="pt-3 w-full">
-          <CardHeader className="pb-0 pt-0 px-3 flex flex-col items-start gap-1">
+          <CardHeader className="pt-0 pb-0 px-3">
             <div className="flex flex-col gap-1">
-              <div className="font-bold text-medium pb-1">{deck.name}</div>
-              <div className="text-tiny">
-                作成日：
-                {new Date(deck.created_at).toLocaleString("ja-JP", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                  weekday: "short",
-                })}
+              <div className="font-bold text-large">{deck.name}</div>
+              <div className="pl-1">
+                <div className="text-tiny">
+                  作成日：
+                  {new Date(deck.created_at).toLocaleString("ja-JP", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                    weekday: "short",
+                  })}
+                </div>
               </div>
             </div>
           </CardHeader>

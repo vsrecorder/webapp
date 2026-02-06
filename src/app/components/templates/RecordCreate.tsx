@@ -24,6 +24,8 @@ import Select from "react-select";
 import { Image } from "@heroui/react";
 import { Button } from "@heroui/react";
 
+import { Skeleton } from "@heroui/react";
+
 import { addToast, closeToast } from "@heroui/react";
 
 import { useRouter } from "next/navigation";
@@ -521,12 +523,15 @@ export default function TemplateRecordCreate() {
                             デッキコード：{option.latest_deck_code.code}
                           </span>
                           <span>
-                            <Image
-                              radius="none"
-                              shadow="none"
-                              alt={option.latest_deck_code.code}
-                              src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${option.latest_deck_code.code}.jpg`}
-                            />
+                            <div className="relative w-full aspect-2/1">
+                              <Skeleton className="absolute inset-0 rounded-lg" />
+                              <Image
+                                radius="none"
+                                shadow="none"
+                                alt={option.latest_deck_code.code}
+                                src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${option.latest_deck_code.code}.jpg`}
+                              />
+                            </div>
                           </span>
                         </div>
                       </div>
@@ -541,23 +546,26 @@ export default function TemplateRecordCreate() {
               />
             </div>
             <div className="flex flex-col items-center gap-2">
-              <Image
-                className="relative z-0"
-                radius="sm"
-                shadow="none"
-                alt={
-                  selectedDeckOption
-                    ? selectedDeckOption.latest_deck_code.code
-                    : "デッキコードなし"
-                }
-                src={
-                  selectedDeckOption
-                    ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${selectedDeckOption.latest_deck_code.code}.jpg`
-                    : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
-                }
-                onLoad={() => {}}
-                onError={() => {}}
-              />
+              <div className="relative w-full aspect-2/1">
+                <Skeleton className="absolute inset-0 rounded-lg" />
+                <Image
+                  className="relative z-0"
+                  radius="sm"
+                  shadow="none"
+                  alt={
+                    selectedDeckOption
+                      ? selectedDeckOption.latest_deck_code.code
+                      : "デッキコードなし"
+                  }
+                  src={
+                    selectedDeckOption
+                      ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${selectedDeckOption.latest_deck_code.code}.jpg`
+                      : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
+                  }
+                  onLoad={() => {}}
+                  onError={() => {}}
+                />
+              </div>
               <CreateDeckModal />
             </div>
 
@@ -599,18 +607,21 @@ export default function TemplateRecordCreate() {
                 <span>』</span>
               </div>
               <div className="w-4/6">
-                <Image
-                  className="relative z-0"
-                  radius="none"
-                  shadow="none"
-                  alt={"test"}
-                  src={
-                    tonamelEventImage
-                      ? tonamelEventImage
-                      : "https://tonamel.com/nuxt/6421c0babd-048e71d12e-3c73406b87-f5f712130f/_nuxt/assets/images/figures/logo/cover.3df31ff29b40f8d4032c417f126b9713.jpg"
-                  }
-                  onLoad={() => {}}
-                />
+                <div className="relative w-full aspect-2/1">
+                  <Skeleton className="absolute inset-0 rounded-lg" />
+                  <Image
+                    className="relative z-0"
+                    radius="none"
+                    shadow="none"
+                    alt={"test"}
+                    src={
+                      tonamelEventImage
+                        ? tonamelEventImage
+                        : "https://tonamel.com/nuxt/6421c0babd-048e71d12e-3c73406b87-f5f712130f/_nuxt/assets/images/figures/logo/cover.3df31ff29b40f8d4032c417f126b9713.jpg"
+                    }
+                    onLoad={() => {}}
+                  />
+                </div>
               </div>
             </div>
             <div className="flex flex-col gap-1">
@@ -656,23 +667,26 @@ export default function TemplateRecordCreate() {
               />
             </div>
             <div className="flex flex-col items-center gap-2">
-              <Image
-                className="relative z-0"
-                radius="sm"
-                shadow="none"
-                alt={
-                  selectedDeckOption
-                    ? selectedDeckOption.latest_deck_code.code
-                    : "デッキコードなし"
-                }
-                src={
-                  selectedDeckOption
-                    ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${selectedDeckOption.latest_deck_code.code}.jpg`
-                    : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
-                }
-                onLoad={() => {}}
-                onError={() => {}}
-              />
+              <div className="relative w-full aspect-2/1">
+                <Skeleton className="absolute inset-0 rounded-lg" />
+                <Image
+                  className="relative z-0"
+                  radius="sm"
+                  shadow="none"
+                  alt={
+                    selectedDeckOption
+                      ? selectedDeckOption.latest_deck_code.code
+                      : "デッキコードなし"
+                  }
+                  src={
+                    selectedDeckOption
+                      ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${selectedDeckOption.latest_deck_code.code}.jpg`
+                      : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
+                  }
+                  onLoad={() => {}}
+                  onError={() => {}}
+                />
+              </div>
               <CreateDeckModal />
             </div>
 

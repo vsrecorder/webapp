@@ -113,16 +113,20 @@ export default function DeckCodeCard({ deckcode }: Props) {
 
   if (loadingAcespec || loadingEnvrionment) {
     return (
-      <Card shadow="sm" className="py-3">
-        <CardHeader className="pb-0 pt-0 px-3 flex-col items-start gap-0.5">
-          <div className="text-tiny">
-            <Skeleton className="h-4 w-24" />
-          </div>
-          <div className="text-tiny">
-            <Skeleton className="h-4 w-36" />
-          </div>
-          <div className="text-tiny">
-            <Skeleton className="h-4 w-32" />
+      <Card shadow="sm" className="py-3 w-full">
+        <CardHeader className="pt-0 pb-1 px-3">
+          <div className="flex flex-col gap-1">
+            <div className="font-bold text-base">
+              <Skeleton className="h-6 w-46" />
+            </div>
+            <div className="pl-1 flex flex-col gap-0.5">
+              <div className="text-tiny">
+                <Skeleton className="h-4 w-36" />
+              </div>
+              <div className="text-tiny">
+                <Skeleton className="h-4 w-40" />
+              </div>
+            </div>
           </div>
         </CardHeader>
         <CardBody className="px-2 py-1">
@@ -153,29 +157,37 @@ export default function DeckCodeCard({ deckcode }: Props) {
   if (errorAcespec || errorEnvironment) {
   }
 
+  if (!deckcode) {
+    return;
+  }
+
   return (
-    <Card shadow="sm" className="py-3">
-      <CardHeader className="pb-0 pt-0 px-3 flex-col items-start gap-0.5">
-        <div className="text-tiny">バージョン：{version}</div>
-        <div className="text-tiny">
-          登録日：
-          {deckcode
-            ? new Date(deckcode.created_at).toLocaleString("ja-JP", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-                weekday: "short",
-              })
-            : "なし"}
-        </div>
-        <div className="text-tiny">
-          {loadingEnvrionment ? (
-            <Skeleton className="h-4 w-32" />
-          ) : environment ? (
-            <>環境：{environment.title}</>
-          ) : (
-            <></>
-          )}
+    <Card shadow="sm" className="py-3 w-full">
+      <CardHeader className="pt-0 pb-1 px-3">
+        <div className="flex flex-col gap-1">
+          <div className="font-bold text-base text-gray-500">バージョンID：{version}</div>
+          <div className="pl-1 flex flex-col gap-0.5">
+            <div className="text-tiny">
+              登録日：
+              {deckcode
+                ? new Date(deckcode.created_at).toLocaleString("ja-JP", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                    weekday: "short",
+                  })
+                : "なし"}
+            </div>
+            <div className="text-tiny">
+              {loadingEnvrionment ? (
+                <Skeleton className="h-4 w-32" />
+              ) : environment ? (
+                <>環境名：『{environment.title}』</>
+              ) : (
+                <></>
+              )}
+            </div>
+          </div>
         </div>
       </CardHeader>
       <CardBody className="px-2 py-1">
@@ -207,19 +219,19 @@ export default function DeckCodeCard({ deckcode }: Props) {
           <div className="flex gap-1">
             {loadingAcespec ? (
               <Skeleton className="bg-[#ee0077] h-6 w-32 rounded-2xl" />
-            ) : acespec ? (
-              <Chip
-                size="sm"
-                radius="md"
-                classNames={{
-                  base: "bg-[#ee0077]",
-                  content: "text-white font-bold",
-                }}
-              >
-                {acespec.card_name}
-              </Chip>
             ) : (
-              <></>
+              acespec && (
+                <Chip
+                  size="sm"
+                  radius="md"
+                  classNames={{
+                    base: "bg-[#ee0077]",
+                    content: "text-white font-bold",
+                  }}
+                >
+                  {acespec.card_name}
+                </Chip>
+              )
             )}
           </div>
         </div>

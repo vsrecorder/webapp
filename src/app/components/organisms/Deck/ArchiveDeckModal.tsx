@@ -1,4 +1,4 @@
-import { SetStateAction, Dispatch } from "react";
+import { useState, SetStateAction, Dispatch } from "react";
 
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
 
@@ -16,11 +16,15 @@ type Props = {
 };
 
 export default function ArchiveDeckModal({ deck, setDeck, isOpen, onOpenChange }: Props) {
+  const [isDisabled, setIsDisabled] = useState<boolean>(false);
+
   if (!deck) {
     return;
   }
 
-  const archiveDeck = async () => {
+  const archiveDeck = async (onClose: () => void) => {
+    setIsDisabled(true);
+
     const toastId = addToast({
       title: "デッキをアーカイブ中",
       description: "しばらくお待ちください",
@@ -53,6 +57,9 @@ export default function ArchiveDeckModal({ deck, setDeck, isOpen, onOpenChange }
       });
 
       setDeck(null);
+
+      onClose();
+      setIsDisabled(false);
     } catch (error) {
       console.error(error);
 
@@ -75,6 +82,9 @@ export default function ArchiveDeckModal({ deck, setDeck, isOpen, onOpenChange }
         color: "danger",
         timeout: 5000,
       });
+
+      onClose();
+      setIsDisabled(false);
     }
   };
 
@@ -85,6 +95,7 @@ export default function ArchiveDeckModal({ deck, setDeck, isOpen, onOpenChange }
       placement={"center"}
       hideCloseButton
       onOpenChange={onOpenChange}
+      isDismissable={!isDisabled}
     >
       <ModalContent>
         {(onClose) => (
@@ -94,18 +105,23 @@ export default function ArchiveDeckModal({ deck, setDeck, isOpen, onOpenChange }
             </ModalHeader>
             <ModalBody className="px-2 py-1"></ModalBody>
             <ModalFooter>
-              <Button color="default" variant="solid" onPress={onClose}>
+              <Button
+                color="default"
+                variant="solid"
+                isDisabled={isDisabled}
+                onPress={onClose}
+              >
                 戻る
               </Button>
               <Button
                 color="danger"
                 variant="solid"
+                isDisabled={isDisabled}
                 onPress={() => {
-                  archiveDeck();
-                  onClose();
+                  archiveDeck(onClose);
                 }}
               >
-                アーカイブする
+                アーカイブ
               </Button>
             </ModalFooter>
           </>

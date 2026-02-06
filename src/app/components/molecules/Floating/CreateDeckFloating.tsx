@@ -31,6 +31,7 @@ export default function CreateDeckFloating({ onCreate }: Props) {
   const [isSelectedPrivateCode, setIsSelectedPrivateCode] = useState<boolean>(false);
   const [isValidatedDeckCode, setIsValidatedDeckCode] = useState<boolean>(false);
   const [isInvalid, setIsInvalid] = useState<boolean>(true);
+  const [isDisabled, setIsDisabled] = useState<boolean>(false);
 
   /*
     入力項目のチェック
@@ -81,13 +82,15 @@ export default function CreateDeckFloating({ onCreate }: Props) {
     デッキ作成のAPIを叩く関数
     Next.jsのAPI Routesを経由してAPIを叩く
   */
-  const createDeck = async () => {
+  const createDeck = async (onClose: () => void) => {
     const deck: DeckCreateRequestType = {
       name: deckname,
       private_flg: false,
       deck_code: deckcode,
       private_deck_code_flg: isSelectedPrivateCode,
     };
+
+    setIsDisabled(true);
 
     const toastId = addToast({
       title: "デッキ作成中",
@@ -122,6 +125,13 @@ export default function CreateDeckFloating({ onCreate }: Props) {
       });
 
       onCreate();
+
+      onClose();
+
+      setIsDisabled(false);
+      setDeckName("");
+      setDeckCode("");
+      setIsSelectedPrivateCode(false);
     } catch (error) {
       console.error(error);
 
@@ -144,6 +154,13 @@ export default function CreateDeckFloating({ onCreate }: Props) {
         color: "danger",
         timeout: 5000,
       });
+
+      onClose();
+
+      setIsDisabled(false);
+      setDeckName("");
+      setDeckCode("");
+      setIsSelectedPrivateCode(false);
     }
   };
 
@@ -160,6 +177,7 @@ export default function CreateDeckFloating({ onCreate }: Props) {
         placement="center"
         hideCloseButton
         onOpenChange={onOpenChange}
+        isDismissable={!isDisabled}
         onClose={() => {
           setDeckName("");
           setDeckCode("");
@@ -176,6 +194,7 @@ export default function CreateDeckFloating({ onCreate }: Props) {
               <ModalBody className="px-3 py-1">
                 <Input
                   isRequired
+                  isDisabled={isDisabled}
                   type="text"
                   label="デッキ名"
                   labelPlacement="outside"
@@ -185,6 +204,7 @@ export default function CreateDeckFloating({ onCreate }: Props) {
                 />
                 <Input
                   isRequired
+                  isDisabled={isDisabled}
                   isInvalid={!isValidatedDeckCode}
                   errorMessage="有効なデッキコードを入力してください"
                   type="text"
@@ -212,7 +232,7 @@ export default function CreateDeckFloating({ onCreate }: Props) {
                   alt={deckcode ? deckcode : "デッキコードなし"}
                   src={
                     isValidatedDeckCode || deckcode
-                      ? `https://www.pokemon-card.com/deck/deckView.php/deckID/${deckcode}.jpg`
+                      ? `https://www.pokemon-card.com/deck/deckView.php/deckID/${deckcode}.png`
                       : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
                   }
                   onLoad={() => {}}
@@ -233,6 +253,7 @@ export default function CreateDeckFloating({ onCreate }: Props) {
                 <Button
                   color="default"
                   variant="solid"
+                  isDisabled={isDisabled}
                   onPress={() => {
                     setDeckName("");
                     setDeckCode("");
@@ -245,13 +266,9 @@ export default function CreateDeckFloating({ onCreate }: Props) {
                 <Button
                   color="primary"
                   variant="solid"
-                  isDisabled={isInvalid}
+                  isDisabled={isInvalid || isDisabled}
                   onPress={() => {
-                    createDeck();
-                    setDeckName("");
-                    setDeckCode("");
-                    setIsSelectedPrivateCode(false);
-                    onClose();
+                    createDeck(onClose);
                   }}
                 >
                   作成

@@ -32,6 +32,7 @@ export default function CreateDeckCodeModal({
   const [newdeckcode, setNewDeckCode] = useState<string>("");
   const [isSelected, setIsSelected] = useState<boolean>(false);
   const [isValidedDeckCode, setIsValidedDeckCode] = useState<boolean>(true);
+  const [isDisabled, setIsDisabled] = useState<boolean>(false);
 
   useEffect(() => {
     if (!newdeckcode) {
@@ -65,13 +66,15 @@ export default function CreateDeckCodeModal({
     return;
   }
 
-  const createNewDeckCode = async () => {
+  const createNewDeckCode = async (onClose: () => void) => {
     const data: DeckCodeCreateRequestType = {
       deck_id: deck.id,
       code: newdeckcode,
       private_code_flg: isSelected,
       memo: "",
     };
+
+    setIsDisabled(true);
 
     const toastId = addToast({
       title: "デッキコードを作成中",
@@ -108,6 +111,12 @@ export default function CreateDeckCodeModal({
       });
 
       setDeckCode(ret);
+
+      onClose();
+      setIsDisabled(false);
+
+      setNewDeckCode("");
+      setIsSelected(false);
     } catch (error) {
       console.error(error);
 
@@ -130,6 +139,12 @@ export default function CreateDeckCodeModal({
         color: "danger",
         timeout: 5000,
       });
+
+      onClose();
+      setIsDisabled(false);
+
+      setNewDeckCode("");
+      setIsSelected(false);
     }
   };
 
@@ -140,6 +155,7 @@ export default function CreateDeckCodeModal({
       placement={"center"}
       hideCloseButton
       onOpenChange={onOpenChange}
+      isDismissable={!isDisabled}
       onClose={() => {
         setNewDeckCode("");
         setIsSelected(false);
@@ -156,8 +172,8 @@ export default function CreateDeckCodeModal({
             </ModalHeader>
             <ModalBody className="px-3 py-1">
               <Input
-                //isDisabled={isDisabled}
                 isRequired
+                isDisabled={isDisabled}
                 isInvalid={!isValidedDeckCode}
                 errorMessage="有効なデッキコードを入力してください"
                 type="text"
@@ -169,7 +185,7 @@ export default function CreateDeckCodeModal({
               />
 
               <Checkbox
-                isDisabled={newdeckcode == "" || !isValidedDeckCode}
+                isDisabled={newdeckcode == "" || !isValidedDeckCode || isDisabled}
                 defaultSelected={false}
                 size={"sm"}
                 isSelected={isSelected}
@@ -185,7 +201,7 @@ export default function CreateDeckCodeModal({
                 alt={newdeckcode ? newdeckcode : "デッキコードなし"}
                 src={
                   isValidedDeckCode || newdeckcode
-                    ? `https://www.pokemon-card.com/deck/deckView.php/deckID/${newdeckcode}.jpg`
+                    ? `https://www.pokemon-card.com/deck/deckView.php/deckID/${newdeckcode}.png`
                     : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
                 }
                 onLoad={() => {}}
@@ -196,6 +212,7 @@ export default function CreateDeckCodeModal({
               <Button
                 color="default"
                 variant="solid"
+                isDisabled={isDisabled}
                 onPress={() => {
                   setNewDeckCode("");
                   setIsSelected(false);
@@ -207,12 +224,9 @@ export default function CreateDeckCodeModal({
               <Button
                 color="primary"
                 variant="solid"
-                isDisabled={!isValidedDeckCode || !newdeckcode}
+                isDisabled={!isValidedDeckCode || !newdeckcode || isDisabled}
                 onPress={() => {
-                  createNewDeckCode();
-                  setNewDeckCode("");
-                  setIsSelected(false);
-                  onClose();
+                  createNewDeckCode(onClose);
                 }}
               >
                 作成

@@ -89,7 +89,7 @@ export default function TonamelEventRecords() {
       ))}
 
       {hasMore && (
-        <div ref={observerTarget} className="h-15 flex justify-center items-center">
+        <div ref={observerTarget} className="h-10  w-full">
           {isLoading && <span>読み込み中...</span>}
         </div>
       )}

@@ -126,29 +126,18 @@ export default function DeckCodeCard({ deckcode }: Props) {
           </div>
         </CardHeader>
         <CardBody className="px-2 py-1">
-          {deckcode ? (
-            <>
-              <Skeleton>
-                <Image
-                  radius="sm"
-                  shadow="none"
-                  alt={deckcode.code}
-                  src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
-                />
-              </Skeleton>
-            </>
-          ) : (
-            <>
-              <Skeleton>
-                <Image
-                  radius="sm"
-                  shadow="none"
-                  alt="デッキコードなし"
-                  src={"https://www.pokemon-card.com/deck/deckView.php/deckID/"}
-                />
-              </Skeleton>
-            </>
-          )}
+          <div className="relative w-full aspect-2/1">
+            <Skeleton className="absolute inset-0 rounded-lg" />
+            {deckcode && (
+              <Image
+                radius="sm"
+                shadow="none"
+                alt={deckcode.code}
+                src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
+                className="absolute inset-0 object-cover"
+              />
+            )}
+          </div>
         </CardBody>
         <CardFooter>
           <div className="flex flex-col gap-1">
@@ -190,25 +179,28 @@ export default function DeckCodeCard({ deckcode }: Props) {
         </div>
       </CardHeader>
       <CardBody className="px-2 py-1">
-        {deckcode ? (
-          <>
-            <Image
-              radius="sm"
-              shadow="none"
-              alt={deckcode.code}
-              src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
-            />
-          </>
-        ) : (
-          <>
-            <Image
-              radius="sm"
-              shadow="none"
-              alt="デッキコードなし"
-              src={"https://www.pokemon-card.com/deck/deckView.php/deckID/"}
-            />
-          </>
-        )}
+        <div className="relative w-full aspect-2/1">
+          <Skeleton className="absolute inset-0 rounded-lg" />
+          {deckcode ? (
+            <>
+              <Image
+                radius="sm"
+                shadow="none"
+                alt={deckcode.code}
+                src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
+              />
+            </>
+          ) : (
+            <>
+              <Image
+                radius="sm"
+                shadow="none"
+                alt="デッキコードなし"
+                src={"https://www.pokemon-card.com/deck/deckView.php/deckID/"}
+              />
+            </>
+          )}
+        </div>
       </CardBody>
       <CardFooter>
         <div className="flex flex-col gap-1">

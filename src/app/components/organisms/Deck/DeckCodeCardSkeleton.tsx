@@ -1,5 +1,4 @@
 import { Card, CardHeader, CardBody, CardFooter } from "@heroui/react";
-import { Image } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
 
 export default function DeckCodeCardSkeleton() {
@@ -17,16 +16,9 @@ export default function DeckCodeCardSkeleton() {
         </div>
       </CardHeader>
       <CardBody className="px-2 py-1">
-        <>
-          <Skeleton>
-            <Image
-              radius="sm"
-              shadow="none"
-              alt="デッキコードなし"
-              src={"https://www.pokemon-card.com/deck/deckView.php/deckID/"}
-            />
-          </Skeleton>
-        </>
+        <div className="relative w-full aspect-2/1">
+          <Skeleton className="absolute inset-0 rounded-lg" />
+        </div>
       </CardBody>
       <CardFooter>
         <div className="flex flex-col gap-1">

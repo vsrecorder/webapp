@@ -22,6 +22,10 @@ import CreateDeckCodeModal from "@app/components/organisms/Deck/CreateDeckCodeMo
 import ArchiveDeckModal from "@app/components/organisms/Deck/ArchiveDeckModal";
 import UnarchiveDeckModal from "@app/components/organisms/Deck/UnarchiveDeckModal";
 
+import { LuFolderInput } from "react-icons/lu";
+import { LuFolderOutput } from "react-icons/lu";
+import { LuUpload } from "react-icons/lu";
+
 import { LuSquarePen } from "react-icons/lu";
 
 type Props = {
@@ -109,31 +113,36 @@ export default function ShowDeckModal({
         onOpenChange={onOpenChange}
       >
         <ModalContent>
-          {() => (
+          {(onClose) => (
             <>
-              <ModalHeader className="px-3 flex items-center gap-2">
+              <ModalHeader className="px-3 flex items-center gap-3">
                 <>
-                  <div className="truncate">{deck.name}</div>
-                  <div className="text-lg">
-                    <LuSquarePen
-                      onClick={() => {
-                        onOpenForUpdateDeckModal();
-                      }}
-                    />
+                  <div className="flex items-center gap-3">
+                    <div className="truncate">{deck.name}</div>
+                    <div className="text-xl">
+                      <LuSquarePen
+                        onClick={() => {
+                          onOpenForUpdateDeckModal();
+                        }}
+                      />
+                    </div>
                   </div>
 
-                  {new Date(deck.archived_at).getFullYear() === 1 && (
-                    <div className="ml-auto">
-                      <Button
-                        color="danger"
-                        variant="ghost"
-                        size="sm"
-                        onPress={() => {
+                  {new Date(deck.archived_at).getFullYear() === 1 ? (
+                    <div className="ml-auto pr-1 text-2xl text-red-500">
+                      <LuFolderInput
+                        onClick={() => {
                           onOpenForArchiveDeckModal();
                         }}
-                      >
-                        アーカイブする
-                      </Button>
+                      />
+                    </div>
+                  ) : (
+                    <div className="ml-auto pr-1 text-2xl text-green-500">
+                      <LuFolderOutput
+                        onClick={() => {
+                          onOpenForUnarchiveDeckModal();
+                        }}
+                      />
                     </div>
                   )}
                 </>
@@ -172,30 +181,34 @@ export default function ShowDeckModal({
               </ModalBody>
               <ModalFooter>
                 {new Date(deck.archived_at).getFullYear() === 1 ? (
-                  <Button
-                    color="default"
-                    variant="solid"
-                    onPress={onOpenForCreateDeckCode}
-                  >
-                    新しいバージョンを作成する
-                  </Button>
+                  <div className="flex items-center gap-6">
+                    <div className="text-2xl">
+                      <LuUpload
+                        onClick={() => {
+                          onOpenForCreateDeckCode();
+                        }}
+                      />
+                    </div>
+                    <Button color="default" variant="solid" onPress={onClose}>
+                      閉じる
+                    </Button>
+                    {/*
+                    <Button
+                      color="default"
+                      variant="solid"
+                      onPress={onOpenForCreateDeckCode}
+                    >
+                      新しいバージョンを作成する
+                    </Button>
+                     */}
+                  </div>
                 ) : (
-                  <Button
-                    color="danger"
-                    variant="solid"
-                    onPress={() => {
-                      onOpenForUnarchiveDeckModal();
-                    }}
-                  >
-                    利用中に変更する
-                  </Button>
+                  <div className="flex items-center gap-3">
+                    <Button color="default" variant="solid" onPress={onClose}>
+                      閉じる
+                    </Button>
+                  </div>
                 )}
-
-                {/*
-                <Button color="default" variant="solid" onPress={onClose}>
-                  閉じる
-                </Button>
-                 */}
               </ModalFooter>
             </>
           )}

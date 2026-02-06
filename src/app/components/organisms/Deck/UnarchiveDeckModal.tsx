@@ -1,4 +1,4 @@
-import { SetStateAction, Dispatch } from "react";
+import { useState, SetStateAction, Dispatch } from "react";
 
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
 
@@ -21,11 +21,15 @@ export default function UnarchiveDeckModal({
   isOpen,
   onOpenChange,
 }: Props) {
+  const [isDisabled, setIsDisabled] = useState<boolean>(false);
+
   if (!deck) {
     return;
   }
 
-  const unarchiveDeck = async () => {
+  const unarchiveDeck = async (onClose: () => void) => {
+    setIsDisabled(true);
+
     const toastId = addToast({
       title: "デッキをアンアーカイブ中",
       description: "しばらくお待ちください",
@@ -58,6 +62,9 @@ export default function UnarchiveDeckModal({
       });
 
       setDeck(null);
+
+      onClose();
+      setIsDisabled(false);
     } catch (error) {
       console.error(error);
 
@@ -80,6 +87,9 @@ export default function UnarchiveDeckModal({
         color: "danger",
         timeout: 5000,
       });
+
+      onClose();
+      setIsDisabled(false);
     }
   };
 
@@ -90,6 +100,7 @@ export default function UnarchiveDeckModal({
       placement={"center"}
       hideCloseButton
       onOpenChange={onOpenChange}
+      isDismissable={!isDisabled}
     >
       <ModalContent>
         {(onClose) => (
@@ -99,18 +110,23 @@ export default function UnarchiveDeckModal({
             </ModalHeader>
             <ModalBody className="px-2 py-1"></ModalBody>
             <ModalFooter>
-              <Button color="default" variant="solid" onPress={onClose}>
+              <Button
+                color="default"
+                variant="solid"
+                isDisabled={isDisabled}
+                onPress={onClose}
+              >
                 戻る
               </Button>
               <Button
-                color="danger"
+                color="success"
                 variant="solid"
+                isDisabled={isDisabled}
                 onPress={() => {
-                  unarchiveDeck();
-                  onClose();
+                  unarchiveDeck(onClose);
                 }}
               >
-                利用中に変更する
+                変更
               </Button>
             </ModalFooter>
           </>

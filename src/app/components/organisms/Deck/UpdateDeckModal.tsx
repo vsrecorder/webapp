@@ -71,8 +71,10 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
       deck.name = newDeckName;
       setDeck(deck);
 
-      setIsDisabled(false);
       onClose();
+      setIsDisabled(false);
+
+      setNewDeckName(deck.name);
     } catch (error) {
       console.error(error);
 
@@ -96,9 +98,10 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
         timeout: 5000,
       });
 
-      setNewDeckName(deck.name);
-      setIsDisabled(false);
       onClose();
+      setIsDisabled(false);
+
+      setNewDeckName(deck.name);
     }
   };
 
@@ -121,6 +124,7 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
             <ModalBody className="px-3 py-1">
               <Input
                 isRequired
+                isDisabled={isDisabled}
                 //isInvalid={!isValidedDeckName}
                 //errorMessage="有効なデッキコードを入力してください"
                 type="text"

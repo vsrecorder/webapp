@@ -131,6 +131,9 @@ export default function ShowDeckModal({
         placement={"center"}
         //hideCloseButton
         onOpenChange={onOpenChange}
+        classNames={{
+          base: "sm:max-w-full",
+        }}
       >
         <ModalContent>
           {(onClose) => (
@@ -186,7 +189,7 @@ export default function ShowDeckModal({
               </ModalBody>
               <ModalFooter>
                 {new Date(deck.archived_at).getFullYear() === 1 ? (
-                  <div className="flex items-center justify-center gap-7 mx-auto">
+                  <div className="flex items-center justify-center gap-8 mx-auto">
                     <div className="text-2xl">
                       <LuSquarePen
                         onClick={() => {

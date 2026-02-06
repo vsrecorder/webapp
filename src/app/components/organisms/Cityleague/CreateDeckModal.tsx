@@ -1,5 +1,10 @@
 "use client";
 
+import { useSWRConfig } from "swr";
+
+import { useState } from "react";
+import { useEffect } from "react";
+
 import {
   Modal,
   ModalContent,
@@ -8,21 +13,14 @@ import {
   ModalFooter,
   useDisclosure,
 } from "@heroui/react";
-
-import { CgAdd } from "react-icons/cg";
-
 import { Button } from "@heroui/react";
 import { Input } from "@heroui/react";
 import { Checkbox } from "@heroui/react";
 import { Image } from "@heroui/react";
 import { Link } from "@heroui/react";
-
-import { useState } from "react";
-import { useEffect } from "react";
-
 import { addToast, closeToast } from "@heroui/react";
 
-import { useSWRConfig } from "swr";
+import { LuCirclePlus } from "react-icons/lu";
 
 import { DeckCreateRequestType } from "@app/types/deck";
 
@@ -152,16 +150,14 @@ export default function CreateDeckModal() {
 
   return (
     <>
-      <div className="">
-        <Button size="sm" radius="full" onPress={onOpen}>
-          <div className="flex items-center gap-1">
-            <span className="text-xs">
-              <CgAdd />
-            </span>
-            <span className="text-xs">新しいデッキを作成する</span>
-          </div>
-        </Button>
-      </div>
+      <Button size="sm" radius="full" onPress={onOpen}>
+        <div className="flex items-center gap-1">
+          <span className="text-xs">
+            <LuCirclePlus />
+          </span>
+          <span className="text-xs">新しいデッキを作成する</span>
+        </div>
+      </Button>
 
       <Modal
         isOpen={isOpen}

@@ -517,7 +517,7 @@ export default function TemplateRecordCreate() {
                     return (
                       <div className="text-sm truncate border-1">
                         <div className="grid">
-                          <span className="truncate">登録日：{option.created_at}</span>
+                          <span className="truncate">作成日：{option.created_at}</span>
                           <span className="truncate">デッキ名：{option.name}</span>
                           <span className="truncate">
                             デッキコード：{option.latest_deck_code.code}
@@ -647,12 +647,23 @@ export default function TemplateRecordCreate() {
                 formatOptionLabel={(option, { context }) => {
                   if (context === "menu") {
                     return (
-                      <div className="text-sm truncate">
+                      <div className="text-sm truncate border-1">
                         <div className="grid">
-                          <span className="truncate">登録日：{option.created_at}</span>
+                          <span className="truncate">作成日：{option.created_at}</span>
                           <span className="truncate">デッキ名：{option.name}</span>
                           <span className="truncate">
                             デッキコード：{option.latest_deck_code.code}
+                          </span>
+                          <span>
+                            <div className="relative w-full aspect-2/1">
+                              <Skeleton className="absolute inset-0 rounded-lg" />
+                              <Image
+                                radius="none"
+                                shadow="none"
+                                alt={option.latest_deck_code.code}
+                                src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${option.latest_deck_code.code}.jpg`}
+                              />
+                            </div>
                           </span>
                         </div>
                       </div>

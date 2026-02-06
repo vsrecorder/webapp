@@ -120,6 +120,7 @@ export default function ArchiveDeckModal({ deck, setDeck, isOpen, onOpenChange }
                 onPress={() => {
                   archiveDeck(onClose);
                 }}
+                className="text-white font-bold"
               >
                 アーカイブ
               </Button>

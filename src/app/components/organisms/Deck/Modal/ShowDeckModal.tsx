@@ -22,6 +22,7 @@ import { DeckCodeType } from "@app/types/deck_code";
 
 import UpdateDeckModal from "@app/components/organisms/Deck/Modal/UpdateDeckModal";
 import CreateDeckCodeModal from "@app/components/organisms/Deck/Modal/CreateDeckCodeModal";
+import DeleteDeckModal from "@app/components/organisms/Deck/Modal/DeleteDeckModal";
 import ArchiveDeckModal from "@app/components/organisms/Deck/Modal/ArchiveDeckModal";
 import UnarchiveDeckModal from "@app/components/organisms/Deck/Modal/UnarchiveDeckModal";
 
@@ -63,6 +64,12 @@ export default function ShowDeckModal({
     isOpen: isOpenForUpdateDeckModal,
     onOpen: onOpenForUpdateDeckModal,
     onOpenChange: onOpenChangeForUpdateDeckModal,
+  } = useDisclosure();
+
+  const {
+    isOpen: isOpenForDeleteDeckModal,
+    onOpen: onOpenForDeleteDeckModal,
+    onOpenChange: onOpenChangeForDeleteDeckModal,
   } = useDisclosure();
 
   const {
@@ -110,6 +117,13 @@ export default function ShowDeckModal({
         onOpenChange={onOpenChangeForCreateDeckCode}
       />
 
+      <DeleteDeckModal
+        deck={deck}
+        setDeck={setDeck}
+        isOpen={isOpenForDeleteDeckModal}
+        onOpenChange={onOpenChangeForDeleteDeckModal}
+      />
+
       <ArchiveDeckModal
         deck={deck}
         setDeck={setDeck}
@@ -141,13 +155,15 @@ export default function ShowDeckModal({
                 <>
                   <div className="flex items-center gap-3">
                     <div className="font-bold text-large truncate">{deck.name}</div>
-                    <div className="text-xl">
-                      <LuSquarePen
-                        onClick={() => {
-                          onOpenForUpdateDeckModal();
-                        }}
-                      />
-                    </div>
+                    {new Date(deck.archived_at).getFullYear() === 1 && (
+                      <div className="text-xl">
+                        <LuSquarePen
+                          onClick={() => {
+                            onOpenForUpdateDeckModal();
+                          }}
+                        />
+                      </div>
+                    )}
                   </div>
                 </>
               </ModalHeader>
@@ -231,12 +247,43 @@ export default function ShowDeckModal({
                     </div>
 
                     <div className="text-2xl text-red-500">
-                      <LuTrash2 />
+                      <LuTrash2
+                        onClick={() => {
+                          onOpenForDeleteDeckModal();
+                        }}
+                      />
                     </div>
                   </div>
                 ) : (
                   <div className="flex items-center justify-center gap-8 mx-auto">
-                    <div className="text-2xl">
+                    <div className="text-2xl text-gray-200">
+                      <LuFilePen />
+                    </div>
+
+                    <div className="text-2xl text-gray-200">
+                      <LuUpload />
+                    </div>
+
+                    <div className="text-2xl text-gray-200">
+                      <LuChartColumn />
+                    </div>
+
+                    <div className="text-2xl text-gray-200">
+                      <LuFlaskConical />
+                    </div>
+
+                    <Link
+                      isExternal
+                      underline="always"
+                      href={`/decks/${deck.id}`}
+                      className="text-black"
+                    >
+                      <div className="text-2xl">
+                        <LuExternalLink />
+                      </div>
+                    </Link>
+
+                    <div className="text-2xl text-green-500">
                       <LuFolderOutput
                         onClick={() => {
                           onOpenForUnarchiveDeckModal();
@@ -245,7 +292,11 @@ export default function ShowDeckModal({
                     </div>
 
                     <div className="text-2xl text-red-500">
-                      <LuTrash2 />
+                      <LuTrash2
+                        onClick={() => {
+                          onOpenForDeleteDeckModal();
+                        }}
+                      />
                     </div>
                   </div>
                 )}

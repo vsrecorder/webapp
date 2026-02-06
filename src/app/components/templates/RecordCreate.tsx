@@ -446,52 +446,54 @@ export default function TemplateRecordCreate() {
                 }}
               />
             </div>
-            <Card radius="none" shadow="sm">
-              <CardBody>
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-2">
-                    <span>
-                      <FiCalendar color="gray" />
-                    </span>
-                    <span className="text-xs text-gray-600 truncate">
-                      {selectedOfficialEventOption
-                        ? selectedOfficialEventOption.event_datetime
-                        : "イベント日時"}
-                    </span>
+            <div className="pt-0.5">
+              <Card radius="none" shadow="sm">
+                <CardBody>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                      <span>
+                        <FiCalendar color="gray" />
+                      </span>
+                      <span className="text-xs text-gray-600 truncate">
+                        {selectedOfficialEventOption
+                          ? selectedOfficialEventOption.event_datetime
+                          : "イベント日時"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span>
+                        <FiBookmark color="gray" />
+                      </span>
+                      <span className="text-xs text-gray-600 truncate">
+                        {selectedOfficialEventOption
+                          ? selectedOfficialEventOption.title
+                          : "イベント名"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span>
+                        <FiHome color="gray" />
+                      </span>
+                      <span className="text-xs text-gray-600 truncate">
+                        {selectedOfficialEventOption
+                          ? selectedOfficialEventOption.shop_name
+                          : "イベント主催者"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span>
+                        <FiMapPin color="gray" />
+                      </span>
+                      <span className="text-xs text-gray-600 truncate">
+                        {selectedOfficialEventOption
+                          ? selectedOfficialEventOption.address
+                          : "イベント会場"}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span>
-                      <FiBookmark color="gray" />
-                    </span>
-                    <span className="text-xs text-gray-600 truncate">
-                      {selectedOfficialEventOption
-                        ? selectedOfficialEventOption.title
-                        : "イベント名"}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span>
-                      <FiHome color="gray" />
-                    </span>
-                    <span className="text-xs text-gray-600 truncate">
-                      {selectedOfficialEventOption
-                        ? selectedOfficialEventOption.shop_name
-                        : "イベント主催者"}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span>
-                      <FiMapPin color="gray" />
-                    </span>
-                    <span className="text-xs text-gray-600 truncate">
-                      {selectedOfficialEventOption
-                        ? selectedOfficialEventOption.address
-                        : "イベント会場"}
-                    </span>
-                  </div>
-                </div>
-              </CardBody>
-            </Card>
+                </CardBody>
+              </Card>
+            </div>
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium">デッキ</label>
               <Select
@@ -586,7 +588,7 @@ export default function TemplateRecordCreate() {
         </Tab>
         <Tab key="tonamel" title="Tonamel">
           <div className="pt-9 flex flex-col gap-2">
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1 pt-1">
               <label className="text-sm font-medium">イベントID</label>
               <Input
                 isRequired
@@ -598,7 +600,7 @@ export default function TemplateRecordCreate() {
                 onChange={(e) => setTonamelEventId(e.target.value)}
               />
             </div>
-            <div className="flex flex-col items-center gap-2">
+            <div className="flex flex-col items-center gap-1.5">
               <div className="flex justify-center w-4/5">
                 <span>『</span>
                 <span className="truncate">
@@ -607,7 +609,7 @@ export default function TemplateRecordCreate() {
                 <span>』</span>
               </div>
               <div className="w-4/6">
-                <div className="relative w-full aspect-2/1">
+                <div className="relative w-full aspect-video">
                   <Skeleton className="absolute inset-0" />
                   <Image
                     className="relative z-0"

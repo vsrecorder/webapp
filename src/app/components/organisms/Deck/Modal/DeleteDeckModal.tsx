@@ -15,35 +15,34 @@ type Props = {
   onOpenChange: () => void;
 };
 
-export default function UnarchiveDeckModal({
-  deck,
-  setDeck,
-  isOpen,
-  onOpenChange,
-}: Props) {
+export default function DeleteDeckModal({ deck, setDeck, isOpen, onOpenChange }: Props) {
   const [isDisabled, setIsDisabled] = useState<boolean>(false);
 
   if (!deck) {
     return;
   }
 
-  const unarchiveDeck = async (onClose: () => void) => {
+  const archiveDeck = async (onClose: () => void) => {
     setIsDisabled(true);
 
     const toastId = addToast({
-      title: "デッキをアンアーカイブ中",
+      title: "デッキを削除中",
       description: "しばらくお待ちください",
       color: "default",
       promise: new Promise(() => {}),
     });
 
     try {
-      const res = await fetch(`/api/decks/${deck?.id}/unarchive`, {
-        method: "PATCH",
+      const res = await fetch(`/api/decks/${deck.id}`, {
+        method: "DELETE",
         headers: {
           "Content-Type": "application/json",
         },
       });
+
+      if (res.status === 409) {
+        throw new Error("このデッキを利用したレコードが存在するため削除できません。");
+      }
 
       if (!res.ok) {
         const t = await res.json();
@@ -55,8 +54,8 @@ export default function UnarchiveDeckModal({
       }
 
       addToast({
-        title: "デッキのアンアーカイブが完了",
-        description: "デッキをアンアーカイブしました",
+        title: "デッキの削除が完了",
+        description: "デッキを削除しました",
         color: "success",
         timeout: 3000,
       });
@@ -76,10 +75,10 @@ export default function UnarchiveDeckModal({
       }
 
       addToast({
-        title: "デッキのアンアーカイブに失敗",
+        title: "デッキの削除に失敗",
         description: (
           <>
-            デッキのアンアーカイブに失敗しました
+            デッキの削除に失敗しました
             <br />
             {errorMessage}
           </>
@@ -106,7 +105,7 @@ export default function UnarchiveDeckModal({
         {(onClose) => (
           <>
             <ModalHeader className="px-3 flex items-center gap-2">
-              このデッキを利用中に変更しますか？
+              このデッキを削除しますか？
             </ModalHeader>
             <ModalBody className="px-2 py-1"></ModalBody>
             <ModalFooter>
@@ -119,15 +118,15 @@ export default function UnarchiveDeckModal({
                 戻る
               </Button>
               <Button
-                color="success"
+                color="danger"
                 variant="solid"
                 isDisabled={isDisabled}
                 onPress={() => {
-                  unarchiveDeck(onClose);
+                  archiveDeck(onClose);
                 }}
                 className="text-white font-bold"
               >
-                変更
+                削除
               </Button>
             </ModalFooter>
           </>

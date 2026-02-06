@@ -6,6 +6,8 @@ import { Button } from "@heroui/react";
 import { Link } from "@heroui/react";
 import { Image } from "@heroui/react";
 
+import { Chip } from "@heroui/chip";
+
 import {
   Modal,
   ModalContent,
@@ -122,7 +124,7 @@ export default function ShowDeckModal({
         <ModalContent>
           {(onClose) => (
             <>
-              <ModalHeader className="px-3 flex items-center gap-3">
+              <ModalHeader className="px-3 py-3 flex items-center gap-3">
                 <>
                   <div className="flex items-center gap-3">
                     <div className="font-bold text-large truncate">{deck.name}</div>
@@ -154,9 +156,18 @@ export default function ShowDeckModal({
                   )}
                 </>
               </ModalHeader>
-              <ModalBody className="px-2 py-1">
-                <p className="text-tiny">デッキコード：</p>
-                <p className="text-tiny">デッキコードの公開：</p>
+              <ModalBody className="px-1 py-1 flex flex-col gap-3">
+                <div className="pl-3 flex flex-col justify-center gap-1">
+                  <div className="flex items-center gap-2">
+                    <div className="text-tiny">デッキコード：{deckcode?.code}</div>
+                    <Chip size="sm" radius="md" variant="bordered">
+                      <small className="font-bold">
+                        {deckcode?.private_code_flg ? <>非公開</> : <>公開</>}
+                      </small>
+                    </Chip>
+                  </div>
+                </div>
+
                 {deckcode ? (
                   <>
                     <Image

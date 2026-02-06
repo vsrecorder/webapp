@@ -23,6 +23,10 @@ async function fetchAcespec(code: string) {
       },
     });
 
+    if (res.status === 204) {
+      return null;
+    }
+
     const ret: AcespecType = await res.json();
 
     return ret;
@@ -61,9 +65,10 @@ export default function DeckCodeCard({ deckcode }: Props) {
   const [errorAcespec, setErrorAcespec] = useState<string | null>(null);
   const [errorEnvironment, setErrorEnvironment] = useState<string | null>(null);
 
-  const version = deckcode
-    ? createHash("sha1").update(deckcode.id).digest("hex").slice(0, 8)
-    : "なし";
+  const version =
+    deckcode && deckcode.id
+      ? createHash("sha1").update(deckcode.id).digest("hex").slice(0, 8)
+      : "なし";
 
   useEffect(() => {
     if (!deckcode?.code) return;
@@ -72,7 +77,7 @@ export default function DeckCodeCard({ deckcode }: Props) {
   }, [deckcode?.code]);
 
   useEffect(() => {
-    if (!deckcode) {
+    if (!deckcode || !deckcode.id) {
       setLoadingAcespec(false);
       setLoadingEnvironment(false);
       return;
@@ -88,7 +93,9 @@ export default function DeckCodeCard({ deckcode }: Props) {
         setAcespec(data);
       } catch (err) {
         console.log(err);
-        setErrorAcespec(`Acespecデータの取得に失敗しました ${deckcode.code}`);
+        setErrorAcespec(
+          `Acespecカードのデータ取得に失敗しました(デッキコード: ${deckcode.code})`,
+        );
       } finally {
         setLoadingAcespec(false);
       }
@@ -101,7 +108,7 @@ export default function DeckCodeCard({ deckcode }: Props) {
         setEnvironment(data);
       } catch (err) {
         console.log(err);
-        setErrorEnvironment("環境データの取得に失敗しました");
+        setErrorEnvironment("環境名のデータ取得に失敗しました");
       } finally {
         setLoadingEnvironment(false);
       }
@@ -110,49 +117,6 @@ export default function DeckCodeCard({ deckcode }: Props) {
     fetchAcespecData();
     fetchEnvironmentData();
   }, [deckcode]);
-
-  if (loadingAcespec || loadingEnvrionment) {
-    return (
-      <Card shadow="sm" className="py-3 w-full">
-        <CardHeader className="pt-0 pb-1 px-3">
-          <div className="flex flex-col gap-1">
-            <div className="font-bold text-base">
-              <Skeleton className="h-6 w-46" />
-            </div>
-            <div className="pl-1 flex flex-col gap-0.5">
-              <div className="text-tiny">
-                <Skeleton className="h-4 w-36" />
-              </div>
-              <div className="text-tiny">
-                <Skeleton className="h-4 w-40" />
-              </div>
-            </div>
-          </div>
-        </CardHeader>
-        <CardBody className="px-2 py-1">
-          <div className="relative w-full aspect-2/1">
-            <Skeleton className="absolute inset-0 rounded-lg" />
-            {deckcode && (
-              <Image
-                radius="sm"
-                shadow="none"
-                alt={deckcode.code}
-                src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
-                className="absolute inset-0 object-cover"
-              />
-            )}
-          </div>
-        </CardBody>
-        <CardFooter>
-          <div className="flex flex-col gap-1">
-            <div className="flex gap-1">
-              <Skeleton className="bg-[#ee0077] h-6 w-32 rounded-2xl" />
-            </div>
-          </div>
-        </CardFooter>
-      </Card>
-    );
-  }
 
   if (errorAcespec || errorEnvironment) {
   }
@@ -168,23 +132,30 @@ export default function DeckCodeCard({ deckcode }: Props) {
           <div className="font-bold text-base text-gray-500">バージョンID：{version}</div>
           <div className="pl-1 flex flex-col gap-0.5">
             <div className="text-tiny">
-              登録日：
-              {deckcode
-                ? new Date(deckcode.created_at).toLocaleString("ja-JP", {
+              {deckcode && deckcode.id ? (
+                <>
+                  登録日：
+                  {new Date(deckcode.created_at).toLocaleString("ja-JP", {
                     year: "numeric",
                     month: "long",
                     day: "numeric",
                     weekday: "short",
-                  })
-                : "なし"}
+                  })}
+                </>
+              ) : (
+                <>登録日：なし</>
+              )}
             </div>
             <div className="text-tiny">
               {loadingEnvrionment ? (
-                <Skeleton className="h-4 w-32" />
-              ) : environment ? (
+                <div className="flex items-center">
+                  環境名：
+                  <Skeleton className="h-4 w-32" />
+                </div>
+              ) : environment && environment.title ? (
                 <>環境名：『{environment.title}』</>
               ) : (
-                <></>
+                <>環境名：なし</>
               )}
             </div>
           </div>

@@ -21,11 +21,11 @@ export default function MobileNavigation() {
         </Link>
 
         <Link
-          href={"/records"}
+          href={"/decks"}
           className="flex flex-col items-center gap-1 px-2 rounded-lg transition-all duration-150 active:scale-60"
         >
           <div className="text-2xl">
-            <LuFileText />
+            <LuLayers />
           </div>
         </Link>
 
@@ -39,11 +39,11 @@ export default function MobileNavigation() {
         </Link>
 
         <Link
-          href={"/decks"}
+          href={"/records"}
           className="flex flex-col items-center gap-1 px-2 rounded-lg transition-all duration-150 active:scale-60"
         >
           <div className="text-2xl">
-            <LuLayers />
+            <LuFileText />
           </div>
         </Link>
 

@@ -31,10 +31,10 @@ import { addToast, closeToast } from "@heroui/react";
 import { useRouter } from "next/navigation";
 
 import { OfficialEventResponseType, OfficialEventType } from "@app/types/official_event";
-import { DeckGetResponseType, DeckType, DeckData } from "@app/types/deck";
+import { DeckGetAllType, DeckData } from "@app/types/deck";
 import { RecordCreateRequestType, RecordCreateResponseType } from "@app/types/record";
 
-import CreateDeckModal from "@app/components/organisms/Cityleague/CreateDeckModal";
+import CreateDeckModal from "@app/components/organisms/CreateDeckModal";
 
 type OfficialEventOption = {
   label: string;
@@ -88,7 +88,7 @@ async function fetcherForDeck(url: string) {
       Accept: "application/json",
     },
   });
-  const ret: DeckGetResponseType = await res.json();
+  const ret: DeckGetAllType = await res.json();
 
   return ret;
 }
@@ -246,8 +246,8 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
   const deckOptions: DeckOption[] = [];
   let deckOptionsMessage = "対象のデッキがありません";
   {
-    const { data, error, isLoading } = useSWR<DeckGetResponseType, Error>(
-      `/api/decks`,
+    const { data, error, isLoading } = useSWR<DeckGetAllType, Error>(
+      `/api/decks/all`,
       fetcherForDeck,
     );
 
@@ -258,10 +258,10 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
       deckOptionsMessage = "検索中...";
     }
 
-    data?.decks.map((deck: DeckType) => {
-      deckOptions.push(convertToDeckOption(deck.data));
+    data?.map((deck: DeckData) => {
+      deckOptions.push(convertToDeckOption(deck));
     });
-    if (data?.decks.length == 0) {
+    if (data?.length == 0) {
       deckOptionsMessage = "デッキがありません";
     }
   }

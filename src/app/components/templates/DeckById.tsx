@@ -9,6 +9,8 @@ import { Chip } from "@heroui/react";
 import { Card, CardHeader, CardBody, CardFooter } from "@heroui/react";
 import { Image } from "@heroui/react";
 
+import { LuTrash2 } from "react-icons/lu";
+
 import DeckCardDiff from "@app/components/organisms/Deck/DeckCardDiff";
 
 import { DeckGetByIdResponseType } from "@app/types/deck";
@@ -152,23 +154,38 @@ export default function TemplateDeckById({ id }: Props) {
                 <div className="pl-2">
                   {deckcode.code ? (
                     <Card shadow="sm" className="py-3">
-                      <CardHeader className="pb-0 pt-0 flex-col items-start gap-0">
-                        <div className="font-bold text-medium">
-                          バージョン：
-                          {createHash("sha1")
-                            .update(deckcode.id)
-                            .digest("hex")
-                            .slice(0, 8)}
+                      <CardHeader className="pb-0 pt-0 flex-col items-start gap-0 w-full">
+                        <div className="flex items-center justify-between w-full">
+                          {/* 左側 */}
+                          <div className="flex flex-col items-start">
+                            <div className="font-bold text-medium">
+                              バージョン：
+                              {createHash("sha1")
+                                .update(deckcode.id)
+                                .digest("hex")
+                                .slice(0, 8)}
+                            </div>
+                          </div>
+
+                          {/* 右側 */}
+                          <div className="">
+                            <LuTrash2
+                              className="text-xl text-red-500"
+                              onClick={() => {}}
+                            />
+                          </div>
                         </div>
+
                         <div className="pl-3 flex flex-col justify-center gap-0.5">
                           <div className="flex items-center gap-2">
                             <div className="text-tiny">
                               デッキコード：{deckcode?.code ? deckcode.code : "なし"}
                             </div>
+
                             {deckcode?.code && (
                               <Chip size="sm" radius="md" variant="bordered">
                                 <small className="font-bold">
-                                  {deckcode?.private_code_flg ? <>非公開</> : <>公開</>}
+                                  {deckcode?.private_code_flg ? "非公開" : "公開"}
                                 </small>
                               </Chip>
                             )}
@@ -229,6 +246,9 @@ export default function TemplateDeckById({ id }: Props) {
   );
 
   /*
+
+  デッキカードの差分を縦表示にするもの
+
   return (
     <div className="flex flex-col gap-1">
       <div className="p-3">

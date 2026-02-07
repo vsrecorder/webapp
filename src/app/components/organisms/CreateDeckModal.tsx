@@ -115,7 +115,7 @@ export default function CreateDeckModal() {
         closeToast(toastId);
       }
 
-      mutate(`/api/decks`);
+      mutate(`/api/decks/all`);
 
       addToast({
         title: "デッキ作成完了",

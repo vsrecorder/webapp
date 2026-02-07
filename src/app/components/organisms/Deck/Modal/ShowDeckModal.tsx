@@ -26,14 +26,20 @@ import CreateDeckCodeModal from "@app/components/organisms/Deck/Modal/CreateDeck
 import DeleteDeckModal from "@app/components/organisms/Deck/Modal/DeleteDeckModal";
 import ArchiveDeckModal from "@app/components/organisms/Deck/Modal/ArchiveDeckModal";
 import UnarchiveDeckModal from "@app/components/organisms/Deck/Modal/UnarchiveDeckModal";
+import InspectDeckModal from "@app/components/organisms/Deck/Modal/InspectDeckModal";
+import DisplayRecordsModal from "@app/components/organisms/Deck/Modal/DisplayRecordsModal";
+import DisplayDeckCodesModal from "@app/components/organisms/Deck/Modal/DisplayDeckCodes";
+
+import { LuExternalLink } from "react-icons/lu";
 
 import { LuFolderInput } from "react-icons/lu";
 import { LuFolderOutput } from "react-icons/lu";
-import { LuUpload } from "react-icons/lu";
+import { LuFileText } from "react-icons/lu";
+
+import { LuBookOpen } from "react-icons/lu";
+import { LuBookUp } from "react-icons/lu";
 import { LuTrash2 } from "react-icons/lu";
-import { LuExternalLink } from "react-icons/lu";
 import { LuFlaskConical } from "react-icons/lu";
-import { LuChartColumn } from "react-icons/lu";
 import { LuFilePen } from "react-icons/lu";
 
 import { LuSquarePen } from "react-icons/lu";
@@ -56,9 +62,9 @@ export default function ShowDeckModal({
   onOpenChange,
 }: Props) {
   const {
-    isOpen: isOpenForCreateDeckCode,
-    onOpen: onOpenForCreateDeckCode,
-    onOpenChange: onOpenChangeForCreateDeckCode,
+    isOpen: isOpenForCreateDeckCodeModal,
+    onOpen: onOpenForCreateDeckCodeModal,
+    onOpenChange: onOpenChangeForCreateDeckCodeModal,
   } = useDisclosure();
 
   const {
@@ -83,6 +89,24 @@ export default function ShowDeckModal({
     isOpen: isOpenForUnarchiveDeckModal,
     onOpen: onOpenForUnarchiveDeckModal,
     onOpenChange: onOpenChangeForUnarchiveDeckModal,
+  } = useDisclosure();
+
+  const {
+    isOpen: isOpenForInspectDeckModal,
+    onOpen: onOpenForInspectDeckModal,
+    onOpenChange: onOpenChangeForInspectDeckModal,
+  } = useDisclosure();
+
+  const {
+    isOpen: isOpenForDisplayRecordsModal,
+    onOpen: onOpenForDisplayRecordsModal,
+    onOpenChange: onOpenChangeForDisplayRecordsModal,
+  } = useDisclosure();
+
+  const {
+    isOpen: isOpenForDisplayDeckCodesModal,
+    onOpen: onOpenForDisplayDeckCodesModal,
+    onOpenChange: onOpenChangeForDisplayDeckCodesModal,
   } = useDisclosure();
 
   const version =
@@ -114,8 +138,8 @@ export default function ShowDeckModal({
         setDeck={setDeck}
         deckcode={deckcode}
         setDeckCode={setDeckCode}
-        isOpen={isOpenForCreateDeckCode}
-        onOpenChange={onOpenChangeForCreateDeckCode}
+        isOpen={isOpenForCreateDeckCodeModal}
+        onOpenChange={onOpenChangeForCreateDeckCodeModal}
       />
 
       <DeleteDeckModal
@@ -139,14 +163,33 @@ export default function ShowDeckModal({
         onOpenChange={onOpenChangeForUnarchiveDeckModal}
       />
 
+      <InspectDeckModal
+        deckcode={deckcode}
+        isOpen={isOpenForInspectDeckModal}
+        onOpenChange={onOpenChangeForInspectDeckModal}
+      />
+
+      <DisplayRecordsModal
+        deck={deck}
+        isOpen={isOpenForDisplayRecordsModal}
+        onOpenChange={onOpenChangeForDisplayRecordsModal}
+      />
+
+      <DisplayDeckCodesModal
+        deck={deck}
+        isOpen={isOpenForDisplayDeckCodesModal}
+        onOpenChange={onOpenChangeForDisplayDeckCodesModal}
+      />
+
       <Modal
         isOpen={isOpen}
         size={"md"}
         placement={"center"}
-        //hideCloseButton
+        hideCloseButton
         onOpenChange={onOpenChange}
         classNames={{
           base: "sm:max-w-full",
+          closeButton: "text-xl",
         }}
       >
         <ModalContent>
@@ -154,17 +197,33 @@ export default function ShowDeckModal({
             <>
               <ModalHeader className="px-3 py-3 flex items-center gap-3">
                 <>
-                  <div className="flex items-center gap-3">
-                    <div className="font-bold text-large truncate">{deck.name}</div>
-                    {new Date(deck.archived_at).getFullYear() === 1 && (
-                      <div className="text-xl">
-                        <LuSquarePen
-                          onClick={() => {
-                            onOpenForUpdateDeckModal();
-                          }}
-                        />
-                      </div>
-                    )}
+                  <div className="flex items-center justify-between w-full">
+                    <div className="flex items-center gap-3">
+                      <div className="font-bold text-large truncate">{deck.name}</div>
+                      {new Date(deck.archived_at).getFullYear() === 1 && (
+                        <div className="pb-2.5">
+                          <div className="text-lg">
+                            <LuSquarePen
+                              onClick={() => {
+                                onOpenForUpdateDeckModal();
+                              }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <div className="pb-1">
+                      <Link
+                        isExternal
+                        underline="always"
+                        href={`/decks/${deck.id}`}
+                        className="text-gray-500"
+                      >
+                        <div className="text-2xl">
+                          <LuExternalLink />
+                        </div>
+                      </Link>
+                    </div>
                   </div>
                 </>
               </ModalHeader>
@@ -223,46 +282,27 @@ export default function ShowDeckModal({
                     </Link>
 
                     <div className="text-2xl">
-                      <LuUpload
-                        onClick={() => {
-                          onOpenForCreateDeckCode();
-                        }}
-                      />
+                      <LuFileText onClick={onOpenForDisplayRecordsModal} />
                     </div>
 
-                    <div className="text-2xl text-gray-200">
-                      <LuChartColumn />
+                    <div className="text-2xl">
+                      <LuBookOpen onClick={onOpenForDisplayDeckCodesModal} />
                     </div>
 
-                    <div className="text-2xl text-gray-200">
-                      <LuFlaskConical />
+                    <div className="text-2xl">
+                      <LuFlaskConical onClick={onOpenForInspectDeckModal} />
                     </div>
 
-                    <Link
-                      isExternal
-                      underline="always"
-                      href={`/decks/${deck.id}`}
-                      className="text-black"
-                    >
-                      <div className="text-2xl">
-                        <LuExternalLink />
-                      </div>
-                    </Link>
-
-                    <div className="text-2xl text-red-500">
-                      <LuFolderInput
-                        onClick={() => {
-                          onOpenForArchiveDeckModal();
-                        }}
-                      />
+                    <div className="text-2xl">
+                      <LuBookUp onClick={onOpenForCreateDeckCodeModal} />
                     </div>
 
                     <div className="text-2xl text-red-500">
-                      <LuTrash2
-                        onClick={() => {
-                          onOpenForDeleteDeckModal();
-                        }}
-                      />
+                      <LuFolderInput onClick={onOpenForArchiveDeckModal} />
+                    </div>
+
+                    <div className="text-2xl text-red-500">
+                      <LuTrash2 onClick={onOpenForDeleteDeckModal} />
                     </div>
                   </div>
                 ) : (
@@ -271,43 +311,28 @@ export default function ShowDeckModal({
                       <LuFilePen />
                     </div>
 
-                    <div className="text-2xl text-gray-200">
-                      <LuUpload />
+                    <div className="text-2xl">
+                      <LuFileText onClick={onOpenForDisplayRecordsModal} />
                     </div>
 
-                    <div className="text-2xl text-gray-200">
-                      <LuChartColumn />
+                    <div className="text-2xl">
+                      <LuBookOpen onClick={onOpenForDisplayDeckCodesModal} />
                     </div>
 
                     <div className="text-2xl text-gray-200">
                       <LuFlaskConical />
                     </div>
 
-                    <Link
-                      isExternal
-                      underline="always"
-                      href={`/decks/${deck.id}`}
-                      className="text-black"
-                    >
-                      <div className="text-2xl">
-                        <LuExternalLink />
-                      </div>
-                    </Link>
+                    <div className="text-2xl text-gray-200">
+                      <LuBookUp />
+                    </div>
 
                     <div className="text-2xl text-green-500">
-                      <LuFolderOutput
-                        onClick={() => {
-                          onOpenForUnarchiveDeckModal();
-                        }}
-                      />
+                      <LuFolderOutput onClick={onOpenForUnarchiveDeckModal} />
                     </div>
 
                     <div className="text-2xl text-red-500">
-                      <LuTrash2
-                        onClick={() => {
-                          onOpenForDeleteDeckModal();
-                        }}
-                      />
+                      <LuTrash2 onClick={onOpenForDeleteDeckModal} />
                     </div>
                   </div>
                 )}

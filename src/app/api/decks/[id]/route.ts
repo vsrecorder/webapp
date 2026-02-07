@@ -23,6 +23,10 @@ async function getDeckById(token: string, id: string): Promise<DeckGetByIdRespon
       },
     });
 
+    if (!res.ok) {
+      throw Error("");
+    }
+
     const ret: DeckGetByIdResponseType = await res.json();
 
     return ret;

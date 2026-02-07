@@ -328,6 +328,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
         setSelectedDeckOption(convertToDeckOption(ret));
         return ret;
       } catch (error) {
+        setSelectedDeckOption(null);
         console.error(error);
       }
     };

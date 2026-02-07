@@ -4,6 +4,8 @@ import { createHash } from "crypto";
 
 import { useEffect, useState } from "react";
 
+import { Skeleton } from "@heroui/react";
+import { Chip } from "@heroui/react";
 import { Card, CardHeader, CardBody, CardFooter } from "@heroui/react";
 import { Image } from "@heroui/react";
 
@@ -147,7 +149,7 @@ export default function TemplateDeckById({ id }: Props) {
                   </div>
                 </div>
 
-                <div className="pl-5">
+                <div className="pl-2">
                   {deckcode.code ? (
                     <Card shadow="sm" className="py-3">
                       <CardHeader className="pb-0 pt-0 flex-col items-start gap-0">
@@ -158,22 +160,31 @@ export default function TemplateDeckById({ id }: Props) {
                             .digest("hex")
                             .slice(0, 8)}
                         </div>
-                        <div className="text-tiny">
-                          デッキコード：
-                          {deckcode.code ? deckcode.code : "なし"}
-                        </div>
-                        <div className="text-tiny">
-                          デッキコードの公開：
-                          {deckcode.private_code_flg ? "非公開" : "公開"}
+                        <div className="pl-3 flex flex-col justify-center gap-0.5">
+                          <div className="flex items-center gap-2">
+                            <div className="text-tiny">
+                              デッキコード：{deckcode?.code ? deckcode.code : "なし"}
+                            </div>
+                            {deckcode?.code && (
+                              <Chip size="sm" radius="md" variant="bordered">
+                                <small className="font-bold">
+                                  {deckcode?.private_code_flg ? <>非公開</> : <>公開</>}
+                                </small>
+                              </Chip>
+                            )}
+                          </div>
                         </div>
                       </CardHeader>
-                      <CardBody className="py-2">
-                        <Image
-                          radius="sm"
-                          shadow="none"
-                          alt={deckcode.code}
-                          src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
-                        />
+                      <CardBody className="px-1 py-2">
+                        <div className="relative w-full aspect-2/1">
+                          <Skeleton className="absolute inset-0 rounded-lg" />
+                          <Image
+                            radius="sm"
+                            shadow="none"
+                            alt={deckcode.code}
+                            src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
+                          />
+                        </div>
                       </CardBody>
                       {index === deckcodes.length - 1 ? (
                         deckcode.memo ? (

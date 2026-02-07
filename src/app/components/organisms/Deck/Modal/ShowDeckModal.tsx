@@ -3,6 +3,7 @@ import { createHash } from "crypto";
 import { useEffect } from "react";
 import { SetStateAction, Dispatch } from "react";
 
+import { Skeleton } from "@heroui/react";
 import { Link } from "@heroui/react";
 import { Image } from "@heroui/react";
 
@@ -184,25 +185,28 @@ export default function ShowDeckModal({
                   </div>
                 </div>
 
-                {deckcode ? (
-                  <>
-                    <Image
-                      radius="sm"
-                      shadow="none"
-                      alt={deckcode.code}
-                      src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
-                    />
-                  </>
-                ) : (
-                  <>
-                    <Image
-                      radius="sm"
-                      shadow="none"
-                      alt="デッキコードなし"
-                      src={"https://www.pokemon-card.com/deck/deckView.php/deckID/"}
-                    />
-                  </>
-                )}
+                <div className="relative w-full aspect-2/1">
+                  <Skeleton className="absolute inset-0 rounded-lg" />
+                  {deckcode ? (
+                    <>
+                      <Image
+                        radius="sm"
+                        shadow="none"
+                        alt={deckcode.code}
+                        src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <Image
+                        radius="sm"
+                        shadow="none"
+                        alt="デッキコードなし"
+                        src={"https://www.pokemon-card.com/deck/deckView.php/deckID/"}
+                      />
+                    </>
+                  )}
+                </div>
               </ModalBody>
               <ModalFooter>
                 {new Date(deck.archived_at).getFullYear() === 1 ? (

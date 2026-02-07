@@ -3,11 +3,23 @@ import { redirect } from "next/navigation";
 
 import TemplateRecordCreate from "@app/components/templates/RecordCreate";
 
-export default async function Page() {
+type Props = {
+  searchParams: Promise<{
+    deck_id?: string;
+  }>;
+};
+
+export default async function Page({ searchParams }: Props) {
   const session = await auth();
   if (!session) {
     redirect("/");
   }
 
-  return <TemplateRecordCreate />;
+  const { deck_id } = await searchParams;
+
+  return (
+    <>
+      <TemplateRecordCreate deck_id={deck_id ? deck_id : ""} />
+    </>
+  );
 }

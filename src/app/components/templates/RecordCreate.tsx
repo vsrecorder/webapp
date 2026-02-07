@@ -31,7 +31,7 @@ import { addToast, closeToast } from "@heroui/react";
 import { useRouter } from "next/navigation";
 
 import { OfficialEventResponseType, OfficialEventType } from "@app/types/official_event";
-import { DeckGetResponseType, DeckType } from "@app/types/deck";
+import { DeckGetResponseType, DeckType, DeckData } from "@app/types/deck";
 import { RecordCreateRequestType, RecordCreateResponseType } from "@app/types/record";
 
 import CreateDeckModal from "@app/components/organisms/Cityleague/CreateDeckModal";
@@ -162,8 +162,8 @@ function convertToOfficialEventOption(
   };
 }
 
-function convertToDeckOption(deck: DeckType): DeckOption {
-  const date = new Date(deck.data.created_at);
+function convertToDeckOption(data: DeckData): DeckOption {
+  const date = new Date(data.created_at);
   const year_str = date.getFullYear().toString();
   const month_str = ("0" + (1 + date.getMonth()).toString()).slice(-2);
   const day_str = ("0" + date.getDate().toString()).slice(-2);
@@ -182,17 +182,21 @@ function convertToDeckOption(deck: DeckType): DeckOption {
   const weekDay = weekDays[date.getDay()];
 
   return {
-    label: deck.data.name + "\n" + "[" + deck.data.latest_deck_code + "]",
-    value: deck.data.id,
-    id: deck.data.id,
+    label: data.name + "\n" + "[" + data.latest_deck_code + "]",
+    value: data.id,
+    id: data.id,
     created_at: year_str + "/" + month_str + "/" + day_str + weekDay,
-    name: deck.data.name,
-    private_flg: deck.data.private_flg,
-    latest_deck_code: deck.data.latest_deck_code,
+    name: data.name,
+    private_flg: data.private_flg,
+    latest_deck_code: data.latest_deck_code,
   };
 }
 
-export default function TemplateRecordCreate() {
+type Props = {
+  deck_id: string;
+};
+
+export default function TemplateRecordCreate({ deck_id }: Props) {
   const router = useRouter();
 
   const [selectedDate, setSelectedDate] = useState<CalendarDate>(
@@ -255,7 +259,7 @@ export default function TemplateRecordCreate() {
     }
 
     data?.decks.map((deck: DeckType) => {
-      deckOptions.push(convertToDeckOption(deck));
+      deckOptions.push(convertToDeckOption(deck.data));
     });
     if (data?.decks.length == 0) {
       deckOptionsMessage = "デッキがありません";
@@ -301,6 +305,35 @@ export default function TemplateRecordCreate() {
 
     checkTonamelEventId();
   }, [tonamelEventId]);
+
+  useEffect(() => {
+    if (!deck_id) return;
+
+    const setSelectedDeck = async () => {
+      try {
+        const res = await fetch(`/api/decks/${deck_id}`, {
+          cache: "no-store",
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+          },
+        });
+
+        if (!res.ok) {
+          throw new Error("Failed to fetch");
+        }
+
+        const ret: DeckData = await res.json();
+
+        setSelectedDeckOption(convertToDeckOption(ret));
+        return ret;
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    setSelectedDeck();
+  }, [deck_id]);
 
   /*
     レコードを作成する関数

@@ -211,9 +211,16 @@ export default function ShowDeckModal({
               <ModalFooter>
                 {new Date(deck.archived_at).getFullYear() === 1 ? (
                   <div className="flex items-center justify-center gap-8 mx-auto">
-                    <div className="text-2xl text-gray-200">
-                      <LuFilePen />
-                    </div>
+                    <Link
+                      isExternal
+                      underline="always"
+                      href={`/records/create?deck_id=${deck.id}`}
+                      className="text-black"
+                    >
+                      <div className="text-2xl">
+                        <LuFilePen />
+                      </div>
+                    </Link>
 
                     <div className="text-2xl">
                       <LuUpload

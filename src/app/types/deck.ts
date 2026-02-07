@@ -1,6 +1,6 @@
 import { DeckCodeType } from "@app/types/deck_code";
 
-type Data = {
+export type DeckData = {
   id: string;
   created_at: Date;
   archived_at: Date;
@@ -14,7 +14,7 @@ type Data = {
 
 export type DeckType = {
   cursor: string;
-  data: Data;
+  data: DeckData;
 };
 
 export type DeckGetResponseType = {
@@ -36,12 +36,12 @@ export type DeckUpdateRequestType = {
   private_flg: boolean;
 };
 
-export type DeckGetByIdResponseType = Data;
+export type DeckGetByIdResponseType = DeckData;
 
-export type DeckCreateResponseType = Data;
+export type DeckCreateResponseType = DeckData;
 
-export type DeckUpdateResponseType = Data;
+export type DeckUpdateResponseType = DeckData;
 
-export type DeckArchiveResponse = Data;
+export type DeckArchiveResponse = DeckData;
 
-export type DeckUnarchiveResponse = Data;
+export type DeckUnarchiveResponse = DeckData;

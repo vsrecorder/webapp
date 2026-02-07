@@ -29,7 +29,7 @@ export default function TemplateDecks() {
     <>
       <ScrollUpFloating />
       <CreateDeckFloating onCreate={handleCreatedDeck} />
-      <div className="pt-12">
+      <div className="pt-13">
         <Tabs
           fullWidth
           size="md"

@@ -17,6 +17,7 @@ import { Button } from "@heroui/react";
 import { Input } from "@heroui/react";
 import { Checkbox } from "@heroui/react";
 import { Image } from "@heroui/react";
+import { Skeleton } from "@heroui/react";
 import { Link } from "@heroui/react";
 import { addToast, closeToast } from "@heroui/react";
 
@@ -210,19 +211,22 @@ export default function CreateDeckModal() {
                   デッキコードを非公開にする
                 </Checkbox>
 
-                <Image
-                  className="relative z-0"
-                  radius="sm"
-                  shadow="none"
-                  alt={"test"}
-                  src={
-                    isValidatedDeckCode
-                      ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode}.jpg`
-                      : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
-                  }
-                  onLoad={() => {}}
-                  onError={() => {}}
-                />
+                <div className="relative w-full aspect-2/1">
+                  <Skeleton className="absolute inset-0 rounded-lg" />
+                  <Image
+                    className="relative z-0"
+                    radius="sm"
+                    shadow="none"
+                    alt={"test"}
+                    src={
+                      isValidatedDeckCode
+                        ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode}.jpg`
+                        : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
+                    }
+                    onLoad={() => {}}
+                    onError={() => {}}
+                  />
+                </div>
 
                 <Link
                   isExternal

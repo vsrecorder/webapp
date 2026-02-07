@@ -249,6 +249,9 @@ export default function TemplateDeckById({ id }: Props) {
 
   デッキカードの差分を縦表示にするもの
 
+  */
+
+  /*
   return (
     <div className="flex flex-col gap-1">
       <div className="p-3">
@@ -292,12 +295,15 @@ export default function TemplateDeckById({ id }: Props) {
                       </div>
                     </CardHeader>
                     <CardBody className="py-2">
-                      <Image
-                        radius="sm"
-                        shadow="none"
-                        alt={deckcode.code}
-                        src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
-                      />
+                      <div className="relative w-full aspect-2/1">
+                        <Skeleton className="absolute inset-0 rounded-lg" />
+                        <Image
+                          radius="sm"
+                          shadow="none"
+                          alt={deckcode.code}
+                          src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
+                        />
+                      </div>
                     </CardBody>
                     {index === deckcodes.length - 1 ? (
                       <CardFooter>
@@ -325,5 +331,5 @@ export default function TemplateDeckById({ id }: Props) {
       </div>
     </div>
   );
-  */
+*/
 }

@@ -4,6 +4,7 @@ import { useEffect } from "react";
 
 import { Card, CardHeader, CardBody } from "@heroui/react";
 import { Image } from "@heroui/react";
+import { Skeleton } from "@heroui/react";
 import { Button } from "@heroui/react";
 
 import {
@@ -62,25 +63,28 @@ export default function CityleagueResultCard({ result }: Props) {
             </div>
           </CardHeader>
           <CardBody className="px-2 py-3">
-            {result.deck_code ? (
-              <>
-                <Image
-                  radius="sm"
-                  shadow="none"
-                  alt={result.deck_code}
-                  src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${result.deck_code}.jpg`}
-                />
-              </>
-            ) : (
-              <>
-                <Image
-                  radius="sm"
-                  shadow="none"
-                  alt="デッキコードなし"
-                  src={"https://www.pokemon-card.com/deck/deckView.php/deckID/"}
-                />
-              </>
-            )}
+            <div className="relative w-full aspect-2/1">
+              <Skeleton className="absolute inset-0 rounded-lg" />
+              {result.deck_code ? (
+                <>
+                  <Image
+                    radius="sm"
+                    shadow="none"
+                    alt={result.deck_code}
+                    src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${result.deck_code}.jpg`}
+                  />
+                </>
+              ) : (
+                <>
+                  <Image
+                    radius="sm"
+                    shadow="none"
+                    alt="デッキコードなし"
+                    src={"https://www.pokemon-card.com/deck/deckView.php/deckID/"}
+                  />
+                </>
+              )}
+            </div>
           </CardBody>
         </Card>
       </div>
@@ -116,25 +120,28 @@ export default function CityleagueResultCard({ result }: Props) {
                     デッキコード: {result.deck_code ? result.deck_code : "なし"}
                   </p>
                 </div>
-                {result.deck_code ? (
-                  <>
-                    <Image
-                      radius="sm"
-                      shadow="none"
-                      alt={result.deck_code}
-                      src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${result.deck_code}.jpg`}
-                    />
-                  </>
-                ) : (
-                  <>
-                    <Image
-                      radius="sm"
-                      shadow="none"
-                      alt="デッキコードなし"
-                      src={"https://www.pokemon-card.com/deck/deckView.php/deckID/"}
-                    />
-                  </>
-                )}
+                <div className="relative w-full aspect-2/1">
+                  <Skeleton className="absolute inset-0 rounded-lg" />
+                  {result.deck_code ? (
+                    <>
+                      <Image
+                        radius="sm"
+                        shadow="none"
+                        alt={result.deck_code}
+                        src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${result.deck_code}.jpg`}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <Image
+                        radius="sm"
+                        shadow="none"
+                        alt="デッキコードなし"
+                        src={"https://www.pokemon-card.com/deck/deckView.php/deckID/"}
+                      />
+                    </>
+                  )}
+                </div>
               </ModalBody>
               <ModalFooter>
                 <Button color="default" variant="solid" onPress={onClose}>

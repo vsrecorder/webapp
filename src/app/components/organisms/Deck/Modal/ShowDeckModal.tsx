@@ -9,6 +9,8 @@ import { Image } from "@heroui/react";
 
 import { Chip } from "@heroui/chip";
 
+import { useClipboard } from "@chakra-ui/react";
+
 import {
   Modal,
   ModalContent,
@@ -35,13 +37,12 @@ import { LuExternalLink } from "react-icons/lu";
 import { LuFolderInput } from "react-icons/lu";
 import { LuFolderOutput } from "react-icons/lu";
 import { LuFileText } from "react-icons/lu";
-
 import { LuBookOpen } from "react-icons/lu";
 import { LuBookUp } from "react-icons/lu";
 import { LuTrash2 } from "react-icons/lu";
 import { LuFlaskConical } from "react-icons/lu";
 import { LuFilePen } from "react-icons/lu";
-
+import { LuPaperclip } from "react-icons/lu";
 import { LuSquarePen } from "react-icons/lu";
 
 type Props = {
@@ -61,6 +62,8 @@ export default function ShowDeckModal({
   isOpen,
   onOpenChange,
 }: Props) {
+  const { onCopy } = useClipboard(deckcode?.code ? deckcode.code : "");
+
   const {
     isOpen: isOpenForCreateDeckCodeModal,
     onOpen: onOpenForCreateDeckCodeModal,
@@ -126,61 +129,6 @@ export default function ShowDeckModal({
 
   return (
     <>
-      <UpdateDeckModal
-        deck={deck}
-        setDeck={setDeck}
-        isOpen={isOpenForUpdateDeckModal}
-        onOpenChange={onOpenChangeForUpdateDeckModal}
-      />
-
-      <CreateDeckCodeModal
-        deck={deck}
-        setDeck={setDeck}
-        deckcode={deckcode}
-        setDeckCode={setDeckCode}
-        isOpen={isOpenForCreateDeckCodeModal}
-        onOpenChange={onOpenChangeForCreateDeckCodeModal}
-      />
-
-      <DeleteDeckModal
-        deck={deck}
-        setDeck={setDeck}
-        isOpen={isOpenForDeleteDeckModal}
-        onOpenChange={onOpenChangeForDeleteDeckModal}
-      />
-
-      <ArchiveDeckModal
-        deck={deck}
-        setDeck={setDeck}
-        isOpen={isOpenForArchiveDeckModal}
-        onOpenChange={onOpenChangeForArchiveDeckModal}
-      />
-
-      <UnarchiveDeckModal
-        deck={deck}
-        setDeck={setDeck}
-        isOpen={isOpenForUnarchiveDeckModal}
-        onOpenChange={onOpenChangeForUnarchiveDeckModal}
-      />
-
-      <InspectDeckModal
-        deckcode={deckcode}
-        isOpen={isOpenForInspectDeckModal}
-        onOpenChange={onOpenChangeForInspectDeckModal}
-      />
-
-      <DisplayRecordsModal
-        deck={deck}
-        isOpen={isOpenForDisplayRecordsModal}
-        onOpenChange={onOpenChangeForDisplayRecordsModal}
-      />
-
-      <DisplayDeckCodesModal
-        deck={deck}
-        isOpen={isOpenForDisplayDeckCodesModal}
-        onOpenChange={onOpenChangeForDisplayDeckCodesModal}
-      />
-
       <Modal
         isOpen={isOpen}
         size={"md"}
@@ -212,6 +160,7 @@ export default function ShowDeckModal({
                         </div>
                       )}
                     </div>
+
                     <div className="pb-1">
                       <Link
                         isExternal
@@ -232,14 +181,30 @@ export default function ShowDeckModal({
                   <div className="text-tiny">バージョンID：{version}</div>
                   <div className="flex items-center gap-2">
                     <div className="text-tiny">
-                      デッキコード：{deckcode?.code ? deckcode.code : "なし"}
+                      デッキコード：
+                      {deckcode?.code ? (
+                        <Link
+                          isExternal
+                          underline="always"
+                          href={`https://www.pokemon-card.com/deck/confirm.html/deckID/${deckcode.code}`}
+                          className="text-tiny text-black"
+                        >
+                          {deckcode.code}
+                        </Link>
+                      ) : (
+                        "なし"
+                      )}
                     </div>
+
                     {deckcode?.code && (
-                      <Chip size="sm" radius="md" variant="bordered">
-                        <small className="font-bold">
-                          {deckcode?.private_code_flg ? <>非公開</> : <>公開</>}
-                        </small>
-                      </Chip>
+                      <>
+                        <Chip size="sm" radius="md" variant="bordered">
+                          <small className="font-bold">
+                            {deckcode?.private_code_flg ? <>非公開</> : <>公開</>}
+                          </small>
+                        </Chip>
+                        <LuPaperclip onClick={onCopy} />
+                      </>
                     )}
                   </div>
                 </div>
@@ -341,6 +306,61 @@ export default function ShowDeckModal({
           )}
         </ModalContent>
       </Modal>
+
+      <UpdateDeckModal
+        deck={deck}
+        setDeck={setDeck}
+        isOpen={isOpenForUpdateDeckModal}
+        onOpenChange={onOpenChangeForUpdateDeckModal}
+      />
+
+      <CreateDeckCodeModal
+        deck={deck}
+        setDeck={setDeck}
+        deckcode={deckcode}
+        setDeckCode={setDeckCode}
+        isOpen={isOpenForCreateDeckCodeModal}
+        onOpenChange={onOpenChangeForCreateDeckCodeModal}
+      />
+
+      <DeleteDeckModal
+        deck={deck}
+        setDeck={setDeck}
+        isOpen={isOpenForDeleteDeckModal}
+        onOpenChange={onOpenChangeForDeleteDeckModal}
+      />
+
+      <ArchiveDeckModal
+        deck={deck}
+        setDeck={setDeck}
+        isOpen={isOpenForArchiveDeckModal}
+        onOpenChange={onOpenChangeForArchiveDeckModal}
+      />
+
+      <UnarchiveDeckModal
+        deck={deck}
+        setDeck={setDeck}
+        isOpen={isOpenForUnarchiveDeckModal}
+        onOpenChange={onOpenChangeForUnarchiveDeckModal}
+      />
+
+      <InspectDeckModal
+        deckcode={deckcode}
+        isOpen={isOpenForInspectDeckModal}
+        onOpenChange={onOpenChangeForInspectDeckModal}
+      />
+
+      <DisplayRecordsModal
+        deck={deck}
+        isOpen={isOpenForDisplayRecordsModal}
+        onOpenChange={onOpenChangeForDisplayRecordsModal}
+      />
+
+      <DisplayDeckCodesModal
+        deck={deck}
+        isOpen={isOpenForDisplayDeckCodesModal}
+        onOpenChange={onOpenChangeForDisplayDeckCodesModal}
+      />
     </>
   );
 }

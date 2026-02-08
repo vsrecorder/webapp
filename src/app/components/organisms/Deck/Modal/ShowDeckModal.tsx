@@ -9,8 +9,6 @@ import { Image } from "@heroui/react";
 
 import { Chip } from "@heroui/chip";
 
-import { useClipboard } from "@chakra-ui/react";
-
 import {
   Modal,
   ModalContent,
@@ -42,7 +40,6 @@ import { LuBookUp } from "react-icons/lu";
 import { LuTrash2 } from "react-icons/lu";
 import { LuFlaskConical } from "react-icons/lu";
 import { LuFilePen } from "react-icons/lu";
-import { LuPaperclip } from "react-icons/lu";
 import { LuSquarePen } from "react-icons/lu";
 
 type Props = {
@@ -62,8 +59,6 @@ export default function ShowDeckModal({
   isOpen,
   onOpenChange,
 }: Props) {
-  const { onCopy } = useClipboard(deckcode?.code ? deckcode.code : "");
-
   const {
     isOpen: isOpenForCreateDeckCodeModal,
     onOpen: onOpenForCreateDeckCodeModal,
@@ -203,7 +198,6 @@ export default function ShowDeckModal({
                             {deckcode?.private_code_flg ? <>非公開</> : <>公開</>}
                           </small>
                         </Chip>
-                        <LuPaperclip onClick={onCopy} />
                       </>
                     )}
                   </div>

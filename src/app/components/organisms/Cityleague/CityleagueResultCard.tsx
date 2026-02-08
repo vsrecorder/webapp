@@ -63,8 +63,8 @@ export default function CityleagueResultCard({ result }: Props) {
             </div>
           </CardHeader>
           <CardBody className="px-2 py-3">
-            <div className="relative w-full aspect-2/1">
-              <Skeleton className="absolute inset-0 rounded-lg" />
+            <div className="relative w-full aspect-2/1 overflow-hidden">
+              <Skeleton className="rounded-lg" />
               {result.deck_code ? (
                 <>
                   <Image
@@ -72,6 +72,7 @@ export default function CityleagueResultCard({ result }: Props) {
                     shadow="none"
                     alt={result.deck_code}
                     src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${result.deck_code}.jpg`}
+                    className="object-cover"
                   />
                 </>
               ) : (
@@ -81,6 +82,7 @@ export default function CityleagueResultCard({ result }: Props) {
                     shadow="none"
                     alt="デッキコードなし"
                     src={"https://www.pokemon-card.com/deck/deckView.php/deckID/"}
+                    className="object-cover"
                   />
                 </>
               )}
@@ -120,8 +122,8 @@ export default function CityleagueResultCard({ result }: Props) {
                     デッキコード: {result.deck_code ? result.deck_code : "なし"}
                   </p>
                 </div>
-                <div className="relative w-full aspect-2/1">
-                  <Skeleton className="absolute inset-0 rounded-lg" />
+                <div className="relative w-full aspect-2/1 overflow-hidden">
+                  <Skeleton className="rounded-lg" />
                   {result.deck_code ? (
                     <>
                       <Image
@@ -129,6 +131,7 @@ export default function CityleagueResultCard({ result }: Props) {
                         shadow="none"
                         alt={result.deck_code}
                         src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${result.deck_code}.jpg`}
+                        className="object-cover"
                       />
                     </>
                   ) : (
@@ -138,6 +141,7 @@ export default function CityleagueResultCard({ result }: Props) {
                         shadow="none"
                         alt="デッキコードなし"
                         src={"https://www.pokemon-card.com/deck/deckView.php/deckID/"}
+                        className="object-cover"
                       />
                     </>
                   )}

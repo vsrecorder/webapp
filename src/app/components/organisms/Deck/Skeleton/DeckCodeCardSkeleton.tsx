@@ -20,8 +20,8 @@ export default function DeckCodeCardSkeleton() {
         </div>
       </CardHeader>
       <CardBody className="px-2 py-1">
-        <div className="relative w-full aspect-2/1">
-          <Skeleton className="absolute inset-0 rounded-lg" />
+        <div className="relative w-full aspect-2/1 overflow-hidden">
+          <Skeleton className="rounded-lg" />
         </div>
       </CardBody>
       <CardFooter>

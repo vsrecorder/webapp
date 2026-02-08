@@ -16,6 +16,10 @@ async function fetchOfficialEventRecords(cursor: string) {
       },
     });
 
+    if (!res.ok) {
+      throw new Error("Failed to fetch");
+    }
+
     const ret: RecordGetResponseType = await res.json();
 
     return ret;
@@ -61,6 +65,7 @@ export default function OfficialEventRecords() {
     }
   }, [nextCursor, isLoading, hasMore]);
 
+  /*
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -81,18 +86,42 @@ export default function OfficialEventRecords() {
       observer.disconnect();
     };
   }, [items, hasMore, isLoading, loadMore]);
+  */
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          loadMore();
+        }
+      },
+      {
+        threshold: 0.25,
+      },
+    );
+
+    const target = observerTarget.current;
+    if (target) observer.observe(target);
+
+    return () => observer.disconnect();
+  }, [loadMore]);
 
   return (
-    <div className="space-y-4">
-      {items.map((record) => (
-        <Record key={record.data.id} record={record} />
-      ))}
+    <div className="flex flex-col items-center space-y-4">
+      {/* 空状態 */}
+      {!isLoading && !hasMore && items.length === 0 && <>レコードがありません</>}
 
-      {hasMore && (
-        <div ref={observerTarget} className="h-10  w-full">
-          {isLoading && <span>読み込み中...</span>}
-        </div>
-      )}
+      <>
+        {items.map((record) => (
+          <Record key={record.data.id} record={record} />
+        ))}
+
+        {hasMore && (
+          <div ref={observerTarget} className="h-10  w-full">
+            {isLoading && <span>読み込み中...</span>}
+          </div>
+        )}
+      </>
     </div>
   );
 }

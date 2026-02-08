@@ -551,7 +551,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                 formatOptionLabel={(option, { context }) => {
                   if (context === "menu") {
                     return (
-                      <div className="text-sm truncate border-1">
+                      <div className="text-sm truncate border-1 p-3">
                         <div className="grid">
                           <span className="truncate">作成日：{option.created_at}</span>
                           <span className="truncate">デッキ名：{option.name}</span>
@@ -559,13 +559,14 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                             デッキコード：{option.latest_deck_code.code}
                           </span>
                           <span>
-                            <div className="relative w-full aspect-2/1">
-                              <Skeleton className="absolute inset-0 rounded-lg" />
+                            <div className="relative w-full aspect-2/1 overflow-hidden">
+                              <Skeleton className="rounded-lg" />
                               <Image
                                 radius="none"
                                 shadow="none"
                                 alt={option.latest_deck_code.code}
                                 src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${option.latest_deck_code.code}.jpg`}
+                                className="object-cover"
                               />
                             </div>
                           </span>
@@ -582,10 +583,9 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
               />
             </div>
             <div className="flex flex-col items-center gap-2">
-              <div className="relative w-full aspect-2/1">
-                <Skeleton className="absolute inset-0 rounded-lg" />
+              <div className="relative w-full aspect-2/1 overflow-hidden">
+                <Skeleton className="rounded-lg" />
                 <Image
-                  className="relative z-0"
                   radius="sm"
                   shadow="none"
                   alt={
@@ -600,6 +600,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                   }
                   onLoad={() => {}}
                   onError={() => {}}
+                  className="z-0 object-cover"
                 />
               </div>
               <CreateDeckModal />
@@ -683,7 +684,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                 formatOptionLabel={(option, { context }) => {
                   if (context === "menu") {
                     return (
-                      <div className="text-sm truncate border-1">
+                      <div className="text-sm truncate border-1 p-3">
                         <div className="grid">
                           <span className="truncate">作成日：{option.created_at}</span>
                           <span className="truncate">デッキ名：{option.name}</span>
@@ -691,13 +692,14 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                             デッキコード：{option.latest_deck_code.code}
                           </span>
                           <span>
-                            <div className="relative w-full aspect-2/1">
-                              <Skeleton className="absolute inset-0 rounded-lg" />
+                            <div className="relative w-full aspect-2/1 overflow-hidden">
+                              <Skeleton className="rounded-lg" />
                               <Image
                                 radius="none"
                                 shadow="none"
                                 alt={option.latest_deck_code.code}
                                 src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${option.latest_deck_code.code}.jpg`}
+                                className="object-cover"
                               />
                             </div>
                           </span>
@@ -714,10 +716,9 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
               />
             </div>
             <div className="flex flex-col items-center gap-2">
-              <div className="relative w-full aspect-2/1">
-                <Skeleton className="absolute inset-0 rounded-lg" />
+              <div className="relative w-full aspect-2/1 overflow-hidden">
+                <Skeleton className="rounded-lg" />
                 <Image
-                  className="relative z-0"
                   radius="sm"
                   shadow="none"
                   alt={
@@ -732,6 +733,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                   }
                   onLoad={() => {}}
                   onError={() => {}}
+                  className="z-0 object-cover"
                 />
               </div>
               <CreateDeckModal />

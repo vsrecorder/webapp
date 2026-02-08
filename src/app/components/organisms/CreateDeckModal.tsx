@@ -211,10 +211,9 @@ export default function CreateDeckModal() {
                   デッキコードを非公開にする
                 </Checkbox>
 
-                <div className="relative w-full aspect-2/1">
-                  <Skeleton className="absolute inset-0 rounded-lg" />
+                <div className="relative w-full aspect-2/1 overflow-hidden">
+                  <Skeleton className="rounded-lg" />
                   <Image
-                    className="relative z-0"
                     radius="sm"
                     shadow="none"
                     alt={"test"}
@@ -225,6 +224,7 @@ export default function CreateDeckModal() {
                     }
                     onLoad={() => {}}
                     onError={() => {}}
+                    className="object-cover"
                   />
                 </div>
 

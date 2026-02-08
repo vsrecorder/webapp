@@ -215,13 +215,14 @@ export default function DisplayDeckCodesModal({ deck, isOpen, onOpenChange }: Pr
                                     </div>
                                   </CardHeader>
                                   <CardBody className="px-1 py-2">
-                                    <div className="relative w-full aspect-2/1">
-                                      <Skeleton className="absolute inset-0 rounded-lg" />
+                                    <div className="relative w-full aspect-2/1 overflow-hidden">
+                                      <Skeleton className="rounded-lg" />
                                       <Image
                                         radius="sm"
                                         shadow="none"
                                         alt={deckcode.code}
                                         src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
+                                        className="object-cover"
                                       />
                                     </div>
                                   </CardBody>

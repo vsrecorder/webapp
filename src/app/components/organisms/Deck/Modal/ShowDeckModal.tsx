@@ -176,7 +176,7 @@ export default function ShowDeckModal({
                   </div>
                 </>
               </ModalHeader>
-              <ModalBody className="px-1 py-1 flex flex-col gap-3">
+              <ModalBody className="px-1 py-1 pb-3 flex flex-col gap-3">
                 <div className="pl-3 flex flex-col justify-center gap-0.5">
                   <div className="text-tiny">バージョンID：{version}</div>
                   <div className="flex items-center gap-2">

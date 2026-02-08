@@ -143,17 +143,18 @@ export default function ShowDeckModal({
                   <div className="flex items-center justify-between w-full">
                     <div className="flex items-center gap-3">
                       <div className="font-bold text-large truncate">{deck.name}</div>
-                      {new Date(deck.archived_at).getFullYear() === 1 && (
-                        <div className="pb-2.5">
-                          <div className="text-lg">
-                            <LuSquarePen
-                              onClick={() => {
-                                onOpenForUpdateDeckModal();
-                              }}
-                            />
-                          </div>
+                      {/*
+                      {new Date(deck.archived_at).getFullYear() === 1 && <></>}
+                      */}
+                      <div className="pb-2.5">
+                        <div className="text-lg">
+                          <LuSquarePen
+                            onClick={() => {
+                              onOpenForUpdateDeckModal();
+                            }}
+                          />
                         </div>
-                      )}
+                      </div>
                     </div>
 
                     <div className="pb-1">

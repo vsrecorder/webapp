@@ -162,7 +162,8 @@ export default function CreateDeckCodeModal({
         setIsSelected(false);
       }}
       classNames={{
-        base: "sm:max-w-full md:max-w-lg",
+        base: "sm:max-w-full",
+        closeButton: "text-xl",
       }}
     >
       <ModalContent>

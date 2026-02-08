@@ -40,28 +40,34 @@ export default function TemplateCityleagueResults() {
   return (
     <>
       <ScrollUpFloating />
-      <Tabs
-        fullWidth
-        size="md"
-        selectedKey={selectedKey}
-        onSelectionChange={handleSelectionChange}
-        className="fixed z-50 top-14 left-0 right-0 pl-1 pr-1 font-bold"
-      >
-        <Tab key="league_type_1" title="オープンリーグ" />
-        <Tab key="league_type_3" title="シニアリーグ" />
-        <Tab key="league_type_2" title="ジュニアリーグ" />
-      </Tabs>
+      <div className="pt-13">
+        <Tabs
+          fullWidth
+          size="md"
+          selectedKey={selectedKey}
+          onSelectionChange={handleSelectionChange}
+          className="fixed z-50 top-14 left-0 right-0 pl-1 pr-1"
+          classNames={{
+            cursor: "",
+            tab: "h-8",
+            tabList: "",
+            tabContent: "font-bold",
+          }}
+        >
+          <Tab key="league_type_1" title="オープンリーグ" />
+          <Tab key="league_type_3" title="シニアリーグ" />
+          <Tab key="league_type_2" title="ジュニアリーグ" />
+        </Tabs>
+      </div>
 
-      <div className="pt-12">
-        <div hidden={selectedKey !== "league_type_1"}>
-          <CityleagueResults league_type={"1"} />
-        </div>
-        <div hidden={selectedKey !== "league_type_3"}>
-          <CityleagueResults league_type={"3"} />
-        </div>
-        <div hidden={selectedKey !== "league_type_2"}>
-          <CityleagueResults league_type={"2"} />
-        </div>
+      <div hidden={selectedKey !== "league_type_1"}>
+        <CityleagueResults league_type={"1"} />
+      </div>
+      <div hidden={selectedKey !== "league_type_3"}>
+        <CityleagueResults league_type={"3"} />
+      </div>
+      <div hidden={selectedKey !== "league_type_2"}>
+        <CityleagueResults league_type={"2"} />
       </div>
     </>
   );

@@ -185,6 +185,7 @@ export default function CreateDeckFloating({ onCreate }: Props) {
           setIsSelectedPrivateCode(false);
         }}
         classNames={{
+          base: "sm:max-w-full",
           closeButton: "text-xl",
         }}
       >

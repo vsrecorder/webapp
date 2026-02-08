@@ -7,5 +7,5 @@ export default async function Page() {
     redirect("/");
   }
 
-  return <div className="">ユーザID: {session.user.id}</div>;
+  return <div>ユーザID: {session.user.id}</div>;
 }

@@ -126,7 +126,7 @@ export default function DeckCodeCard({ deckcode }: Props) {
   }
 
   return (
-    <Card shadow="sm" className="py-3 w-full">
+    <Card shadow="sm" className="py-3 relative w-full">
       <CardHeader className="pt-0 pb-1 px-3">
         <div className="flex flex-col gap-1">
           <div className="font-bold text-base text-gray-500">バージョンID：{version}</div>
@@ -162,8 +162,8 @@ export default function DeckCodeCard({ deckcode }: Props) {
         </div>
       </CardHeader>
       <CardBody className="px-2 py-1">
-        <div className="relative w-full aspect-2/1 overflow-hidden">
-          <Skeleton className="rounded-lg" />
+        <div className="relative w-full aspect-2/1">
+          <Skeleton className="absolute inset-0 rounded-lg" />
           {deckcode?.code ? (
             <>
               <Image

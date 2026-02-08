@@ -63,8 +63,8 @@ export default function CityleagueResultCard({ result }: Props) {
             </div>
           </CardHeader>
           <CardBody className="px-2 py-3">
-            <div className="relative w-full aspect-2/1 overflow-hidden">
-              <Skeleton className="rounded-lg" />
+            <div className="relative w-full aspect-2/1">
+              <Skeleton className="absolute inset-0 rounded-lg" />
               {result.deck_code ? (
                 <>
                   <Image
@@ -122,8 +122,8 @@ export default function CityleagueResultCard({ result }: Props) {
                     デッキコード: {result.deck_code ? result.deck_code : "なし"}
                   </p>
                 </div>
-                <div className="relative w-full aspect-2/1 overflow-hidden">
-                  <Skeleton className="rounded-lg" />
+                <div className="relative w-full aspect-2/1">
+                  <Skeleton className="absolute inset-0 rounded-lg" />
                   {result.deck_code ? (
                     <>
                       <Image

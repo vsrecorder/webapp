@@ -113,7 +113,7 @@ export default function Decks({ isArchived }: Props) {
       {/* 空状態 */}
       {!isLoading && !hasMore && items.length === 0 && <>デッキがありません</>}
 
-      <>
+      <div className="w-full">
         {items.map((deck) => (
           <DeckCard
             key={deck.data.id}
@@ -126,7 +126,7 @@ export default function Decks({ isArchived }: Props) {
         {isLoading && hasMore && <DeckCardSkeleton />}
 
         {hasMore && <div ref={observerTarget} className="h-10 w-full" />}
-      </>
+      </div>
     </div>
   );
 }

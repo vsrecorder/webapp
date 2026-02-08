@@ -173,7 +173,7 @@ export default function DisplayDeckCodesModal({ deck, isOpen, onOpenChange }: Pr
                                       </div>
 
                                       {/* 右側 */}
-                                      <div className="">
+                                      <div>
                                         <LuTrash2
                                           className="text-xl text-red-500"
                                           onClick={() => {}}
@@ -215,8 +215,8 @@ export default function DisplayDeckCodesModal({ deck, isOpen, onOpenChange }: Pr
                                     </div>
                                   </CardHeader>
                                   <CardBody className="px-1 py-2">
-                                    <div className="relative w-full aspect-2/1 overflow-hidden">
-                                      <Skeleton className="rounded-lg" />
+                                    <div className="relative w-full aspect-2/1">
+                                      <Skeleton className="absolute inset-0 rounded-lg" />
                                       <Image
                                         radius="sm"
                                         shadow="none"

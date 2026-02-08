@@ -111,7 +111,7 @@ export default function TonamelEventRecords() {
       {/* 空状態 */}
       {!isLoading && !hasMore && items.length === 0 && <>レコードがありません</>}
 
-      <>
+      <div className="w-full">
         {items.map((record) => (
           <Record key={record.data.id} record={record} />
         ))}
@@ -121,7 +121,7 @@ export default function TonamelEventRecords() {
             {isLoading && <span>読み込み中...</span>}
           </div>
         )}
-      </>
+      </div>
     </div>
   );
 }

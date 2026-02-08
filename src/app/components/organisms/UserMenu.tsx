@@ -30,7 +30,6 @@ export default function UserMenu({ user }: Props) {
         <DropdownMenu>
           <DropdownItem
             key=""
-            className=""
             color="default"
             onPress={() => {
               router.push("/users");

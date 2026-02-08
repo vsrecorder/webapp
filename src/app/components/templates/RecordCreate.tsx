@@ -559,8 +559,8 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                             デッキコード：{option.latest_deck_code.code}
                           </span>
                           <span>
-                            <div className="relative w-full aspect-2/1 overflow-hidden">
-                              <Skeleton className="rounded-lg" />
+                            <div className="relative w-full aspect-2/1">
+                              <Skeleton className="absolute inset-0 rounded-lg" />
                               <Image
                                 radius="none"
                                 shadow="none"
@@ -583,8 +583,8 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
               />
             </div>
             <div className="flex flex-col items-center gap-2">
-              <div className="relative w-full aspect-2/1 overflow-hidden">
-                <Skeleton className="rounded-lg" />
+              <div className="relative w-full aspect-2/1">
+                <Skeleton className="absolute inset-0 rounded-lg" />
                 <Image
                   radius="sm"
                   shadow="none"
@@ -600,7 +600,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                   }
                   onLoad={() => {}}
                   onError={() => {}}
-                  className="z-0 object-cover"
+                  className="z-0 "
                 />
               </div>
               <CreateDeckModal />
@@ -692,8 +692,8 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                             デッキコード：{option.latest_deck_code.code}
                           </span>
                           <span>
-                            <div className="relative w-full aspect-2/1 overflow-hidden">
-                              <Skeleton className="rounded-lg" />
+                            <div className="relative w-full aspect-2/1">
+                              <Skeleton className="absolute inset-0 rounded-lg" />
                               <Image
                                 radius="none"
                                 shadow="none"
@@ -716,8 +716,8 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
               />
             </div>
             <div className="flex flex-col items-center gap-2">
-              <div className="relative w-full aspect-2/1 overflow-hidden">
-                <Skeleton className="rounded-lg" />
+              <div className="relative w-full aspect-2/1">
+                <Skeleton className="absolute inset-0 rounded-lg" />
                 <Image
                   radius="sm"
                   shadow="none"
@@ -733,7 +733,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                   }
                   onLoad={() => {}}
                   onError={() => {}}
-                  className="z-0 object-cover"
+                  className="z-0 "
                 />
               </div>
               <CreateDeckModal />

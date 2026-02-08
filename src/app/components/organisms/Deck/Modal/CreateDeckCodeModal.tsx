@@ -196,8 +196,8 @@ export default function CreateDeckCodeModal({
                 デッキコードを非公開にする
               </Checkbox>
 
-              <div className="relative w-full aspect-2/1 overflow-hidden">
-                <Skeleton className="rounded-lg" />
+              <div className="relative w-full aspect-2/1">
+                <Skeleton className="absolute inset-0 rounded-lg" />
                 <Image
                   radius="sm"
                   shadow="none"

@@ -30,7 +30,7 @@ export default function DeckCard({ deckData, deckcodeData }: Props) {
   return (
     <>
       <div onClick={() => onOpen()}>
-        <Card className="pt-3 w-full">
+        <Card className="pt-3 relative w-full">
           <CardHeader className="pt-0 pb-0 px-3">
             <div className="flex flex-col gap-1">
               <div className="font-bold text-large">{deck.name}</div>

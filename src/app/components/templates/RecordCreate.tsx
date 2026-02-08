@@ -566,7 +566,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                                 shadow="none"
                                 alt={option.latest_deck_code.code}
                                 src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${option.latest_deck_code.code}.jpg`}
-                                className="object-cover"
+                                className=""
                               />
                             </div>
                           </span>
@@ -699,7 +699,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                                 shadow="none"
                                 alt={option.latest_deck_code.code}
                                 src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${option.latest_deck_code.code}.jpg`}
-                                className="object-cover"
+                                className=""
                               />
                             </div>
                           </span>

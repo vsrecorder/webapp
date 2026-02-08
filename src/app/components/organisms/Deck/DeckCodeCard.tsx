@@ -171,7 +171,7 @@ export default function DeckCodeCard({ deckcode }: Props) {
                 shadow="none"
                 alt={deckcode.code}
                 src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
-                className="object-cover"
+                className=""
               />
             </>
           ) : (
@@ -181,7 +181,7 @@ export default function DeckCodeCard({ deckcode }: Props) {
                 shadow="none"
                 alt="デッキコードなし"
                 src={"https://www.pokemon-card.com/deck/deckView.php/deckID/"}
-                className="object-cover"
+                className=""
               />
             </>
           )}

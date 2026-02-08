@@ -200,7 +200,7 @@ export default function TemplateDeckById({ id }: Props) {
                             shadow="none"
                             alt={deckcode.code}
                             src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
-                            className="object-cover"
+                            className=""
                           />
                         </div>
                       </CardBody>
@@ -303,7 +303,7 @@ export default function TemplateDeckById({ id }: Props) {
                           shadow="none"
                           alt={deckcode.code}
                           src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
-                          className="object-cover"
+                          className=""
                         />
                       </div>
                     </CardBody>

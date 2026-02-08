@@ -224,7 +224,7 @@ export default function CreateDeckModal() {
                     }
                     onLoad={() => {}}
                     onError={() => {}}
-                    className="object-cover"
+                    className=""
                   />
                 </div>
 

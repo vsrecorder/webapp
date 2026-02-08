@@ -209,7 +209,7 @@ export default function CreateDeckCodeModal({
                   }
                   onLoad={() => {}}
                   onError={() => {}}
-                  className="object-cover"
+                  className=""
                 />
               </div>
             </ModalBody>

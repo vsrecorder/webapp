@@ -240,7 +240,7 @@ export default function CreateDeckFloating({ onCreate }: Props) {
                     }
                     onLoad={() => {}}
                     onError={() => {}}
-                    className="object-cover"
+                    className=""
                   />
                 </div>
 

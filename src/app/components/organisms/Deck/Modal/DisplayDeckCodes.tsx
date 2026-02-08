@@ -181,7 +181,7 @@ export default function DisplayDeckCodesModal({ deck, isOpen, onOpenChange }: Pr
                                       </div>
                                     </div>
 
-                                    <div className="pl-1 flex flex-col justify-center gap-0.5">
+                                    <div className="flex flex-col justify-center gap-0.5">
                                       <div className="flex items-center gap-3">
                                         <div className="text-tiny">
                                           <>デッキコード：</>
@@ -222,7 +222,7 @@ export default function DisplayDeckCodesModal({ deck, isOpen, onOpenChange }: Pr
                                         shadow="none"
                                         alt={deckcode.code}
                                         src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
-                                        className="object-cover"
+                                        className=""
                                       />
                                     </div>
                                   </CardBody>

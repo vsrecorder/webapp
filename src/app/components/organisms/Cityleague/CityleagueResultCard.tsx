@@ -72,7 +72,7 @@ export default function CityleagueResultCard({ result }: Props) {
                     shadow="none"
                     alt={result.deck_code}
                     src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${result.deck_code}.jpg`}
-                    className="object-cover"
+                    className=""
                   />
                 </>
               ) : (
@@ -82,7 +82,7 @@ export default function CityleagueResultCard({ result }: Props) {
                     shadow="none"
                     alt="デッキコードなし"
                     src={"https://www.pokemon-card.com/deck/deckView.php/deckID/"}
-                    className="object-cover"
+                    className=""
                   />
                 </>
               )}
@@ -131,7 +131,7 @@ export default function CityleagueResultCard({ result }: Props) {
                         shadow="none"
                         alt={result.deck_code}
                         src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${result.deck_code}.jpg`}
-                        className="object-cover"
+                        className=""
                       />
                     </>
                   ) : (
@@ -141,7 +141,7 @@ export default function CityleagueResultCard({ result }: Props) {
                         shadow="none"
                         alt="デッキコードなし"
                         src={"https://www.pokemon-card.com/deck/deckView.php/deckID/"}
-                        className="object-cover"
+                        className=""
                       />
                     </>
                   )}

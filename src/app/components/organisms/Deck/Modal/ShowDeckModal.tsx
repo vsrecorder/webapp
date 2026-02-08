@@ -205,7 +205,7 @@ export default function ShowDeckModal({
 
                 <div className="relative w-full aspect-2/1">
                   <Skeleton className="absolute inset-0 rounded-lg" />
-                  {deckcode ? (
+                  {deckcode?.code ? (
                     <>
                       <Image
                         radius="sm"
@@ -228,7 +228,7 @@ export default function ShowDeckModal({
               </ModalBody>
               <ModalFooter>
                 {new Date(deck.archived_at).getFullYear() === 1 ? (
-                  <div className="flex items-center justify-center gap-8 mx-auto">
+                  <div className="flex items-center justify-center gap-7 mx-auto">
                     <Link
                       isExternal
                       underline="always"

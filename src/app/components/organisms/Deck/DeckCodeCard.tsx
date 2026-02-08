@@ -164,7 +164,7 @@ export default function DeckCodeCard({ deckcode }: Props) {
       <CardBody className="px-2 py-1">
         <div className="relative w-full aspect-2/1">
           <Skeleton className="absolute inset-0 rounded-lg" />
-          {deckcode ? (
+          {deckcode?.code ? (
             <>
               <Image
                 radius="sm"

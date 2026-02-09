@@ -76,29 +76,6 @@ export default function OfficialEventRecords() {
     }
   }, [nextCursor, isLoading, hasMore]);
 
-  /*
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting && hasMore && !isLoading) {
-            loadMore();
-          }
-        });
-      },
-      { threshold: 0.25 },
-    );
-
-    const target = observerTarget.current;
-    if (target) observer.observe(target);
-
-    return () => {
-      if (target) observer.unobserve(target);
-      observer.disconnect();
-    };
-  }, [items, hasMore, isLoading, loadMore]);
-  */
-
   useEffect(() => {
     if (isLoading || !hasMore) return;
 

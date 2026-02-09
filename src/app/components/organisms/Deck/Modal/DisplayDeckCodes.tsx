@@ -126,7 +126,7 @@ export default function DisplayDeckCodesModal({ deck, isOpen, onOpenChange }: Pr
               <div className="mx-auto h-1 w-15 rounded-full bg-default-300" />
               <div>バージョン一覧</div>
             </ModalHeader>
-            <ModalBody className="px-3 py-3 flex flex-col overflow-y-auto">
+            <ModalBody className="px-2 py-3 flex flex-col overflow-y-auto">
               <>
                 {loading ? (
                   <Spinner size="lg" className="pt-32" />

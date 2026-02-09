@@ -111,7 +111,7 @@ export default function Decks({ isArchived }: Props) {
         }
       },
       {
-        threshold: 0.25,
+        threshold: 0.5,
       },
     );
 

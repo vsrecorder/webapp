@@ -1,7 +1,7 @@
 import { auth } from "@app/(default)/auth";
 
-//import SignUp from "./SignUp";
-//import SignIn from "./SignIn";
+import SignUp from "./SignUp";
+import SignIn from "./SignIn";
 import UserMenu from "./UserMenu";
 import { UserType } from "@app/types/user";
 
@@ -84,7 +84,6 @@ export default async function Header() {
               <div className="text-2xl font-bold pl-2">バトレコ β版</div>
             </Link>
 
-            {/*
             <div className="flex items-center">
               <div className="mx-1">
                 <SignUp />
@@ -93,7 +92,6 @@ export default async function Header() {
                 <SignIn />
               </div>
             </div>
-            */}
           </div>
         </header>
       </>

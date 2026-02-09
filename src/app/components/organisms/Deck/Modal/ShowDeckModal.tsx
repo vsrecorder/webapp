@@ -1,5 +1,6 @@
 import { createHash } from "crypto";
 
+import { useState } from "react";
 import { useEffect } from "react";
 import { SetStateAction, Dispatch } from "react";
 
@@ -59,6 +60,8 @@ export default function ShowDeckModal({
   isOpen,
   onOpenChange,
 }: Props) {
+  const [imageLoaded, setImageLoaded] = useState(false);
+
   const {
     isOpen: isOpenForCreateDeckCodeModal,
     onOpen: onOpenForCreateDeckCodeModal,
@@ -205,7 +208,7 @@ export default function ShowDeckModal({
                 </div>
 
                 <div className="relative w-full aspect-2/1">
-                  <Skeleton className="absolute inset-0 rounded-lg" />
+                  {!imageLoaded && <Skeleton className="absolute inset-0 rounded-lg" />}
                   {deckcode?.code ? (
                     <>
                       <Image
@@ -214,6 +217,7 @@ export default function ShowDeckModal({
                         alt={deckcode.code}
                         src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
                         className=""
+                        onLoad={() => setImageLoaded(true)}
                       />
                     </>
                   ) : (
@@ -224,6 +228,7 @@ export default function ShowDeckModal({
                         alt="デッキコードなし"
                         src={"https://www.pokemon-card.com/deck/deckView.php/deckID/"}
                         className=""
+                        onLoad={() => setImageLoaded(true)}
                       />
                     </>
                   )}

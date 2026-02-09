@@ -50,6 +50,8 @@ type Props = {
 
 export default function DisplayDeckCodesModal({ deck, isOpen, onOpenChange }: Props) {
   const startY = useRef<number | null>(null);
+
+  const [imageLoaded, setImageLoaded] = useState(false);
   const [deckcodes, setDeckCodes] = useState<DeckCodeType[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -216,13 +218,16 @@ export default function DisplayDeckCodesModal({ deck, isOpen, onOpenChange }: Pr
                                   </CardHeader>
                                   <CardBody className="px-1 py-2">
                                     <div className="relative w-full aspect-2/1">
-                                      <Skeleton className="absolute inset-0 rounded-lg z-0" />
+                                      {!imageLoaded && (
+                                        <Skeleton className="absolute inset-0 rounded-lg" />
+                                      )}
                                       <Image
                                         radius="sm"
                                         shadow="none"
                                         alt={deckcode.code}
                                         src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
-                                        className="z-10"
+                                        className=""
+                                        onLoad={() => setImageLoaded(true)}
                                       />
                                     </div>
                                   </CardBody>

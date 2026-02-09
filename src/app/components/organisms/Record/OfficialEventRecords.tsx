@@ -109,7 +109,7 @@ export default function OfficialEventRecords() {
         }
       },
       {
-        threshold: 0.25,
+        threshold: 0.5,
       },
     );
 
@@ -130,7 +130,7 @@ export default function OfficialEventRecords() {
         ))}
 
         {/* ローディング表示 */}
-        {isLoading && hasMore && <Spinner size="lg" className="pt-16" />}
+        {isLoading && hasMore && <Spinner size="lg" className="pt-14" />}
 
         {hasMore && <div ref={observerTarget} className="h-10 w-full" />}
       </div>

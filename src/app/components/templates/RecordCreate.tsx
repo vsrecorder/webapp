@@ -199,6 +199,8 @@ type Props = {
 export default function TemplateRecordCreate({ deck_id }: Props) {
   const router = useRouter();
 
+  const [imageLoaded, setImageLoaded] = useState(false);
+
   const [selectedDate, setSelectedDate] = useState<CalendarDate>(
     today(getLocalTimeZone()),
   );
@@ -326,6 +328,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
         const ret: DeckData = await res.json();
 
         setSelectedDeckOption(convertToDeckOption(ret));
+        setImageLoaded(false);
         return ret;
       } catch (error) {
         setSelectedDeckOption(null);
@@ -547,6 +550,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                 value={selectedDeckOption}
                 onChange={(option) => {
                   setSelectedDeckOption(option);
+                  setImageLoaded(false);
                 }}
                 formatOptionLabel={(option, { context }) => {
                   if (context === "menu") {
@@ -560,7 +564,9 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                           </span>
                           <span>
                             <div className="relative w-full aspect-2/1">
-                              <Skeleton className="absolute inset-0 rounded-lg" />
+                              {!imageLoaded && (
+                                <Skeleton className="absolute inset-0 rounded-lg" />
+                              )}
                               <Image
                                 radius="none"
                                 shadow="none"
@@ -584,7 +590,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
             </div>
             <div className="flex flex-col items-center gap-2">
               <div className="relative w-full aspect-2/1">
-                <Skeleton className="absolute inset-0 rounded-lg" />
+                {!imageLoaded && <Skeleton className="absolute inset-0 rounded-lg" />}
                 <Image
                   radius="sm"
                   shadow="none"
@@ -598,9 +604,9 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                       ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${selectedDeckOption.latest_deck_code.code}.jpg`
                       : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
                   }
-                  onLoad={() => {}}
+                  className="z-0"
+                  onLoad={() => setImageLoaded(true)}
                   onError={() => {}}
-                  className="z-0 "
                 />
               </div>
               <CreateDeckModal />
@@ -680,6 +686,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                 value={selectedDeckOption}
                 onChange={(option) => {
                   setSelectedDeckOption(option);
+                  setImageLoaded(false);
                 }}
                 formatOptionLabel={(option, { context }) => {
                   if (context === "menu") {
@@ -693,13 +700,16 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                           </span>
                           <span>
                             <div className="relative w-full aspect-2/1">
-                              <Skeleton className="absolute inset-0 rounded-lg" />
+                              {!imageLoaded && (
+                                <Skeleton className="absolute inset-0 rounded-lg" />
+                              )}
                               <Image
                                 radius="none"
                                 shadow="none"
                                 alt={option.latest_deck_code.code}
                                 src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${option.latest_deck_code.code}.jpg`}
                                 className=""
+                                onLoad={() => setImageLoaded(true)}
                               />
                             </div>
                           </span>
@@ -717,7 +727,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
             </div>
             <div className="flex flex-col items-center gap-2">
               <div className="relative w-full aspect-2/1">
-                <Skeleton className="absolute inset-0 rounded-lg" />
+                {!imageLoaded && <Skeleton className="absolute inset-0 rounded-lg" />}
                 <Image
                   radius="sm"
                   shadow="none"
@@ -731,9 +741,9 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                       ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${selectedDeckOption.latest_deck_code.code}.jpg`
                       : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
                   }
-                  onLoad={() => {}}
+                  className="z-0"
+                  onLoad={() => setImageLoaded(true)}
                   onError={() => {}}
-                  className="z-0 "
                 />
               </div>
               <CreateDeckModal />

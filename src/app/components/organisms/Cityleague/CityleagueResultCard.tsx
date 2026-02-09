@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { Card, CardHeader, CardBody } from "@heroui/react";
 import { Image } from "@heroui/react";
@@ -24,7 +24,7 @@ type Props = {
 
 export default function CityleagueResultCard({ result }: Props) {
   const { isOpen, onOpenChange } = useDisclosure();
-  //const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   useEffect(() => {
     if (!result.deck_code) return;
@@ -64,7 +64,7 @@ export default function CityleagueResultCard({ result }: Props) {
           </CardHeader>
           <CardBody className="px-2 py-3">
             <div className="relative w-full aspect-2/1">
-              <Skeleton className="absolute inset-0 rounded-lg" />
+              {!imageLoaded && <Skeleton className="absolute inset-0 rounded-lg" />}
               {result.deck_code ? (
                 <>
                   <Image
@@ -73,6 +73,7 @@ export default function CityleagueResultCard({ result }: Props) {
                     alt={result.deck_code}
                     src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${result.deck_code}.jpg`}
                     className=""
+                    onLoad={() => setImageLoaded(true)}
                   />
                 </>
               ) : (
@@ -83,6 +84,7 @@ export default function CityleagueResultCard({ result }: Props) {
                     alt="デッキコードなし"
                     src={"https://www.pokemon-card.com/deck/deckView.php/deckID/"}
                     className=""
+                    onLoad={() => setImageLoaded(true)}
                   />
                 </>
               )}
@@ -123,7 +125,7 @@ export default function CityleagueResultCard({ result }: Props) {
                   </p>
                 </div>
                 <div className="relative w-full aspect-2/1">
-                  <Skeleton className="absolute inset-0 rounded-lg" />
+                  {!imageLoaded && <Skeleton className="absolute inset-0 rounded-lg" />}
                   {result.deck_code ? (
                     <>
                       <Image
@@ -132,6 +134,7 @@ export default function CityleagueResultCard({ result }: Props) {
                         alt={result.deck_code}
                         src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${result.deck_code}.jpg`}
                         className=""
+                        onLoad={() => setImageLoaded(true)}
                       />
                     </>
                   ) : (
@@ -142,6 +145,7 @@ export default function CityleagueResultCard({ result }: Props) {
                         alt="デッキコードなし"
                         src={"https://www.pokemon-card.com/deck/deckView.php/deckID/"}
                         className=""
+                        onLoad={() => setImageLoaded(true)}
                       />
                     </>
                   )}

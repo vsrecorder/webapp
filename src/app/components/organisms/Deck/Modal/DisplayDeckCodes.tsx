@@ -243,7 +243,7 @@ export default function DisplayDeckCodesModal({ deck, isOpen, onOpenChange }: Pr
                                     )
                                   ) : (
                                     <CardFooter>
-                                      <div className="pl-3 flex flex-col gap-3">
+                                      <div className="pl-1 flex flex-col gap-3">
                                         {index !== deckcodes.length - 1 ? (
                                           <DeckCardDiff
                                             current_deckcode={deckcodes[index]}

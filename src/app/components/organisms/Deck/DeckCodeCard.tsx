@@ -58,6 +58,7 @@ type Props = {
 };
 
 export default function DeckCodeCard({ deckcode }: Props) {
+  const [imageLoaded, setImageLoaded] = useState(false);
   const [acespec, setAcespec] = useState<AcespecType | null>(null);
   const [environment, setEnvironment] = useState<EnvironmentType | null>(null);
   const [loadingAcespec, setLoadingAcespec] = useState(true);
@@ -163,7 +164,7 @@ export default function DeckCodeCard({ deckcode }: Props) {
       </CardHeader>
       <CardBody className="px-2 py-1">
         <div className="relative w-full aspect-2/1">
-          <Skeleton className="absolute inset-0 rounded-lg" />
+          {!imageLoaded && <Skeleton className="absolute inset-0 rounded-lg" />}
           {deckcode?.code ? (
             <>
               <Image
@@ -172,6 +173,7 @@ export default function DeckCodeCard({ deckcode }: Props) {
                 alt={deckcode.code}
                 src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
                 className=""
+                onLoad={() => setImageLoaded(true)}
               />
             </>
           ) : (
@@ -182,6 +184,7 @@ export default function DeckCodeCard({ deckcode }: Props) {
                 alt="デッキコードなし"
                 src={"https://www.pokemon-card.com/deck/deckView.php/deckID/"}
                 className=""
+                onLoad={() => setImageLoaded(true)}
               />
             </>
           )}

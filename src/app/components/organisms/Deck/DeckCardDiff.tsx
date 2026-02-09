@@ -129,8 +129,8 @@ export default function DeckCardDiff({ current_deckcode, previous_deckcode }: Pr
 
   if (loading) {
     return (
-      <div className="flex flex-col gap-3">
-        <div className="pb-0.5 pr-3">
+      <div className="flex flex-col gap-1.5">
+        <div className="pb-0.5 pr-1.5">
           <div className="font-bold text-tiny pb-1">追加されたカード</div>
           <div className="pl-2 flex flex-wrap gap-1">
             <div>
@@ -153,7 +153,7 @@ export default function DeckCardDiff({ current_deckcode, previous_deckcode }: Pr
             </div>
           </div>
         </div>
-        <div className="pb-0.5 pr-3">
+        <div className="pb-0.5 pr-1.5">
           <div className="font-bold text-tiny pb-1">削除されたカード</div>
           <div className="pl-2 flex flex-wrap gap-1">
             <div>
@@ -178,8 +178,6 @@ export default function DeckCardDiff({ current_deckcode, previous_deckcode }: Pr
         </div>
       </div>
     );
-
-    return <div>読み込み中...</div>;
   }
 
   if (error) {
@@ -191,8 +189,8 @@ export default function DeckCardDiff({ current_deckcode, previous_deckcode }: Pr
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="pb-0.5 pr-3">
+    <div className="flex flex-col gap-1.5">
+      <div className="pb-0.5 pr-1.5">
         <div className="font-bold text-tiny pb-1">追加されたカード</div>
         <div className="pl-2 flex flex-wrap gap-1">
           {diffByContentWithCount(currentDeckCardList, previousDeckCardList).map(
@@ -214,7 +212,7 @@ export default function DeckCardDiff({ current_deckcode, previous_deckcode }: Pr
           )}
         </div>
       </div>
-      <div className="pb-0.5 pr-3">
+      <div className="pb-0.5 pr-1.5">
         <div className="font-bold text-tiny pb-1">削除されたカード</div>
         <div className="pl-2 flex flex-wrap gap-1">
           {diffByContentWithCount(previousDeckCardList, currentDeckCardList).map(

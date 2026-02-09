@@ -30,6 +30,7 @@ export default function CreateDeckCodeModal({
   isOpen,
   onOpenChange,
 }: Props) {
+  const [imageLoaded, setImageLoaded] = useState(false);
   const [newdeckcode, setNewDeckCode] = useState<string>("");
   const [isSelected, setIsSelected] = useState<boolean>(false);
   const [isValidedDeckCode, setIsValidedDeckCode] = useState<boolean>(true);
@@ -197,7 +198,7 @@ export default function CreateDeckCodeModal({
               </Checkbox>
 
               <div className="relative w-full aspect-2/1">
-                <Skeleton className="absolute inset-0 rounded-lg" />
+                {!imageLoaded && <Skeleton className="absolute inset-0 rounded-lg" />}
                 <Image
                   radius="sm"
                   shadow="none"
@@ -207,9 +208,9 @@ export default function CreateDeckCodeModal({
                       ? `https://www.pokemon-card.com/deck/deckView.php/deckID/${newdeckcode}.png`
                       : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
                   }
-                  onLoad={() => {}}
-                  onError={() => {}}
                   className=""
+                  onLoad={() => setImageLoaded(true)}
+                  onError={() => {}}
                 />
               </div>
             </ModalBody>

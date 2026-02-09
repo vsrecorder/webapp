@@ -65,6 +65,7 @@ type Props = {
 };
 
 export default function TemplateDeckById({ id }: Props) {
+  const [imageLoaded, setImageLoaded] = useState(false);
   const [deck, setDeck] = useState<DeckGetByIdResponseType | null>(null);
   const [deckcodes, setDeckCodes] = useState<DeckCodeType[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -194,13 +195,16 @@ export default function TemplateDeckById({ id }: Props) {
                       </CardHeader>
                       <CardBody className="px-1 py-2">
                         <div className="relative w-full aspect-2/1">
-                          <Skeleton className="absolute inset-0 rounded-lg" />
+                          {!imageLoaded && (
+                            <Skeleton className="absolute inset-0 rounded-lg" />
+                          )}
                           <Image
                             radius="sm"
                             shadow="none"
                             alt={deckcode.code}
                             src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
                             className=""
+                            onLoad={() => setImageLoaded(true)}
                           />
                         </div>
                       </CardBody>
@@ -216,7 +220,7 @@ export default function TemplateDeckById({ id }: Props) {
                         )
                       ) : (
                         <CardFooter>
-                          <div className="pl-3 flex flex-col gap-3">
+                          <div className="pl-1 flex flex-col gap-3">
                             {index !== deckcodes.length - 1 ? (
                               <DeckCardDiff
                                 current_deckcode={deckcodes[index]}

@@ -27,6 +27,7 @@ type Props = {
 
 export default function CreateDeckFloating({ onCreate }: Props) {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const [imageLoaded, setImageLoaded] = useState(false);
   const [deckname, setDeckName] = useState<string>("");
   const [deckcode, setDeckCode] = useState<string>("");
   const [isSelectedPrivateCode, setIsSelectedPrivateCode] = useState<boolean>(false);
@@ -228,7 +229,7 @@ export default function CreateDeckFloating({ onCreate }: Props) {
                 </Checkbox>
 
                 <div className="relative w-full aspect-2/1">
-                  <Skeleton className="absolute inset-0 rounded-lg" />
+                  {!imageLoaded && <Skeleton className="absolute inset-0 rounded-lg" />}
                   <Image
                     radius="sm"
                     shadow="none"
@@ -238,9 +239,9 @@ export default function CreateDeckFloating({ onCreate }: Props) {
                         ? `https://www.pokemon-card.com/deck/deckView.php/deckID/${deckcode}.png`
                         : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
                     }
-                    onLoad={() => {}}
-                    onError={() => {}}
                     className=""
+                    onLoad={() => setImageLoaded(true)}
+                    onError={() => {}}
                   />
                 </div>
 

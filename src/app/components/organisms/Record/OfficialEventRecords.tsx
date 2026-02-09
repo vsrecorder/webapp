@@ -2,7 +2,10 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 
-import Record from "@app/components/molecules/Record";
+import { Spinner } from "@heroui/spinner";
+
+import Record from "@app/components/organisms/Record/Record";
+//import OfficialEventRecordSkeleton from "@app/components/organisms/Record/Skeleton/OfficialEventRecordSkeleton";
 
 import { RecordType, RecordGetResponseType } from "@app/types/record";
 
@@ -53,7 +56,15 @@ export default function OfficialEventRecords() {
 
       const lastItem = newItems.records[newItems.records.length - 1];
       if (lastItem && lastItem.cursor) {
-        setNextCursor(lastItem.cursor);
+        const nextItems: RecordGetResponseType = await fetchOfficialEventRecords(
+          lastItem.cursor,
+        );
+
+        if (nextItems.records.length === 0) {
+          setHasMore(false);
+        } else {
+          setNextCursor(lastItem.cursor);
+        }
       } else {
         setHasMore(false);
       }
@@ -89,6 +100,8 @@ export default function OfficialEventRecords() {
   */
 
   useEffect(() => {
+    if (isLoading || !hasMore) return;
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -104,23 +117,22 @@ export default function OfficialEventRecords() {
     if (target) observer.observe(target);
 
     return () => observer.disconnect();
-  }, [loadMore]);
+  }, [isLoading, hasMore, loadMore]);
 
   return (
     <div className="flex flex-col items-center space-y-4">
       {/* 空状態 */}
       {!isLoading && !hasMore && items.length === 0 && <>レコードがありません</>}
 
-      <div className="w-full">
+      <div className="flex flex-col w-full">
         {items.map((record) => (
           <Record key={record.data.id} record={record} />
         ))}
 
-        {hasMore && (
-          <div ref={observerTarget} className="h-10  w-full">
-            {isLoading && <span>読み込み中...</span>}
-          </div>
-        )}
+        {/* ローディング表示 */}
+        {isLoading && hasMore && <Spinner size="lg" className="pt-16" />}
+
+        {hasMore && <div ref={observerTarget} className="h-10 w-full" />}
       </div>
     </div>
   );

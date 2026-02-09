@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 
-import Record from "@app/components/molecules/Record";
+import Record from "@app/components/organisms/Record/Record";
 
 import { RecordType, RecordGetResponseType } from "@app/types/record";
 

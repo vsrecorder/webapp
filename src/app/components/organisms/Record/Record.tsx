@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from "react";
 
-import { Card, CardHeader, CardBody } from "@heroui/react";
-import { Image } from "@heroui/react";
-
 import Link from "next/link";
 
-import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
+import { Card, CardHeader, CardBody } from "@heroui/react";
+import { Image } from "@heroui/react";
+import { Skeleton } from "@heroui/react";
 
 import { RecordType } from "@app/types/record";
+import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
 
 async function fetchOfficialEventById(id: number) {
   try {
@@ -70,10 +70,6 @@ export default function Record({ record }: Props) {
     fetchData();
   }, [record.data.official_event_id]);
 
-  if (loading) {
-    return <div>読み込み中...</div>;
-  }
-
   if (error) {
     return <div className="text-red-500">{error}</div>;
   }
@@ -83,22 +79,41 @@ export default function Record({ record }: Props) {
   }
 
   return (
-    <div className="w-full">
+    <div className="pb-3 w-full">
       <Link color="foreground" href={`/records/${record.data.id}`}>
-        <Card shadow="sm" className="py-3">
-          <CardHeader className="pb-0 pt-0 flex-col items-start gap-1">
-            <p className="font-bold text-tiny">
+        <Card shadow="sm" className="py-3 w-full">
+          <CardHeader className="px-5 pb-0 pt-0 flex-col items-start gap-1.5">
+            <div className="font-bold text-tiny">
               {new Date(record.data.created_at).toLocaleString("ja-JP", {
                 year: "numeric",
                 month: "long",
                 day: "numeric",
                 weekday: "short",
               })}
-            </p>
-            <p className="font-bold truncate w-full min-w-0">{officialEvent.title}</p>
+            </div>
+            <div className="font-bold truncate w-full min-w-0">
+              {loading ? <Skeleton className="h-6 w-50" /> : officialEvent.title}
+            </div>
           </CardHeader>
-          <CardBody className="py-2">
-            <Image alt="ジムバトル" src="/gym.png" radius="none" className="w-2/5" />
+          <CardBody className="px-5 py-3">
+            <div className="flex items-center gap-5">
+              <div>
+                <Image
+                  alt="シティリーグ"
+                  src="/city.png"
+                  radius="none"
+                  className="h-24 w-24 object-contain"
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <div className="font-bold text-tiny">
+                  <Skeleton className="h-3 w-32" />
+                </div>
+                <div className="font-bold truncate w-full min-w-0">
+                  <Skeleton className="h-5 w-44" />
+                </div>
+              </div>
+            </div>
           </CardBody>
         </Card>
       </Link>

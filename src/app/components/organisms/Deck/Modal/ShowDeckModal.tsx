@@ -238,46 +238,46 @@ export default function ShowDeckModal({
                       href={`/records/create?deck_id=${deck.id}`}
                       className="text-black"
                     >
-                      <div className="text-2xl">
+                      <div className="text-2xl cursor-pointer">
                         <LuFilePen />
                       </div>
                     </Link>
 
-                    <div className="text-2xl">
+                    <div className="text-2xl cursor-pointer">
                       <LuFileText onClick={onOpenForDisplayRecordsModal} />
                     </div>
 
-                    <div className="text-2xl">
+                    <div className="text-2xl cursor-pointer">
                       <LuBookOpen onClick={onOpenForDisplayDeckCodesModal} />
                     </div>
 
-                    <div className="text-2xl">
+                    <div className="text-2xl cursor-pointer">
                       <LuFlaskConical onClick={onOpenForInspectDeckModal} />
                     </div>
 
-                    <div className="text-2xl">
+                    <div className="text-2xl cursor-pointer">
                       <LuBookUp onClick={onOpenForCreateDeckCodeModal} />
                     </div>
 
-                    <div className="text-2xl text-red-500">
+                    <div className="text-2xl text-red-500 cursor-pointer">
                       <LuFolderInput onClick={onOpenForArchiveDeckModal} />
                     </div>
 
-                    <div className="text-2xl text-red-500">
+                    <div className="text-2xl text-red-500 cursor-pointer">
                       <LuTrash2 onClick={onOpenForDeleteDeckModal} />
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-center gap-8 mx-auto">
+                  <div className="flex items-center justify-center gap-7 mx-auto">
                     <div className="text-2xl text-gray-200">
                       <LuFilePen />
                     </div>
 
-                    <div className="text-2xl">
+                    <div className="text-2xl cursor-pointer">
                       <LuFileText onClick={onOpenForDisplayRecordsModal} />
                     </div>
 
-                    <div className="text-2xl">
+                    <div className="text-2xl cursor-pointer">
                       <LuBookOpen onClick={onOpenForDisplayDeckCodesModal} />
                     </div>
 
@@ -289,11 +289,11 @@ export default function ShowDeckModal({
                       <LuBookUp />
                     </div>
 
-                    <div className="text-2xl text-green-500">
+                    <div className="text-2xl text-green-500 cursor-pointer">
                       <LuFolderOutput onClick={onOpenForUnarchiveDeckModal} />
                     </div>
 
-                    <div className="text-2xl text-red-500">
+                    <div className="text-2xl text-red-500 cursor-pointer">
                       <LuTrash2 onClick={onOpenForDeleteDeckModal} />
                     </div>
                   </div>

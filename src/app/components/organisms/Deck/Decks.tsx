@@ -55,6 +55,17 @@ export default function Decks({ isArchived }: Props) {
 
       const lastItem = newItems.decks[newItems.decks.length - 1];
       if (lastItem && lastItem.cursor) {
+        const nextItems: DeckGetResponseType = await fetchDecks(
+          isArchived,
+          lastItem.cursor,
+        );
+
+        if (nextItems.decks.length === 0) {
+          setHasMore(false);
+        } else {
+          setNextCursor(lastItem.cursor);
+        }
+
         setNextCursor(lastItem.cursor);
       } else {
         setHasMore(false);
@@ -91,6 +102,8 @@ export default function Decks({ isArchived }: Props) {
   */
 
   useEffect(() => {
+    if (isLoading || !hasMore) return;
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -106,7 +119,7 @@ export default function Decks({ isArchived }: Props) {
     if (target) observer.observe(target);
 
     return () => observer.disconnect();
-  }, [loadMore]);
+  }, [isLoading, hasMore, loadMore]);
 
   return (
     <div className="flex flex-col items-center space-y-4">

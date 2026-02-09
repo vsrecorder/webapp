@@ -115,7 +115,7 @@ export default function Decks({ isArchived }: Props) {
         {/* ローディング表示 */}
         {isLoading && <DeckCardSkeleton />}
 
-        <div ref={observerTarget} className="h-10 w-full shrink-0" />
+        <div ref={observerTarget} className="h-10 w-full" />
       </div>
     </div>
   );

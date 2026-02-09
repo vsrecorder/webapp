@@ -2,10 +2,10 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 
-import { Spinner } from "@heroui/spinner";
+//import { Spinner } from "@heroui/spinner";
 
 import Record from "@app/components/organisms/Record/Record";
-//import OfficialEventRecordSkeleton from "@app/components/organisms/Record/Skeleton/OfficialEventRecordSkeleton";
+import OfficialEventRecordSkeleton from "@app/components/organisms/Record/Skeleton/OfficialEventRecordSkeleton";
 
 import { RecordType, RecordGetResponseType } from "@app/types/record";
 
@@ -40,6 +40,8 @@ export default function OfficialEventRecords() {
   const [hasMore, setHasMore] = useState(true);
 
   const loadMore = useCallback(async () => {
+    console.log("loadMore");
+
     if (isLoading || !hasMore) return;
 
     setIsLoading(true);
@@ -86,7 +88,8 @@ export default function OfficialEventRecords() {
         }
       },
       {
-        threshold: 0.5,
+        threshold: 0,
+        rootMargin: "200px",
       },
     );
 
@@ -107,7 +110,10 @@ export default function OfficialEventRecords() {
         ))}
 
         {/* ローディング表示 */}
+        {/*
         {isLoading && hasMore && <Spinner size="lg" className="pt-14" />}
+        */}
+        {isLoading && hasMore && <OfficialEventRecordSkeleton />}
 
         {hasMore && <div ref={observerTarget} className="h-10 w-full" />}
       </div>

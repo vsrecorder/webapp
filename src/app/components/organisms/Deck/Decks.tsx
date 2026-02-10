@@ -103,7 +103,7 @@ export default function Decks({ isArchived }: Props) {
       {/* 空状態 */}
       {!isLoading && !hasMore && items.length === 0 && <>デッキがありません</>}
 
-      <div className="flex flex-col w-full">
+      <div className="flex flex-col w-full gap-6">
         {items.map((deck) => (
           <DeckCard
             key={deck.data.id}
@@ -115,7 +115,7 @@ export default function Decks({ isArchived }: Props) {
         {/* ローディング表示 */}
         {isLoading && <DeckCardSkeleton />}
 
-        <div ref={observerTarget} className="h-10 w-full" />
+        <div ref={observerTarget} className="h-1 w-full" />
       </div>
     </div>
   );

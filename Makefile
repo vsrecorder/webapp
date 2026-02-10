@@ -10,7 +10,7 @@ build:
 
 .PHONY: install
 install:
-	rm -rf node_modules package-lock.json
+	rm -rf node_modules package-lock.json .next
 	npm install
 
 .PHONY: docker-build-and-push

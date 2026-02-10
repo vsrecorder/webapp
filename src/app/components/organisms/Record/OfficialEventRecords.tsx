@@ -88,8 +88,7 @@ export default function OfficialEventRecords() {
         }
       },
       {
-        threshold: 0,
-        rootMargin: "200px",
+        threshold: 0.5,
       },
     );
 
@@ -115,7 +114,7 @@ export default function OfficialEventRecords() {
         */}
         {isLoading && hasMore && <OfficialEventRecordSkeleton />}
 
-        {hasMore && <div ref={observerTarget} className="h-10 w-full" />}
+        {hasMore && <div ref={observerTarget} className="h-1 w-full" />}
       </div>
     </div>
   );

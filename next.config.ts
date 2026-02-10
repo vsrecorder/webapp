@@ -2,9 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
-  allowedDevOrigins: [
-    'local.vsrecorder.mobi'
-  ],
+  allowedDevOrigins: ["local.vsrecorder.mobi"],
   images: {
     remotePatterns: [
       {

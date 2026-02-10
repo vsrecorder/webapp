@@ -166,7 +166,6 @@ export default function CityleagueResult({ event_result }: Props) {
       <CardFooter className="pt-0 pb-2">
         <div>
           <Link
-            isExternal
             showAnchorIcon
             underline="always"
             href={`/cityleague_results/${event.id}`}

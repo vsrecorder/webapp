@@ -164,7 +164,6 @@ export default function ShowDeckModal({
 
                     <div className="pb-1">
                       <Link
-                        isExternal
                         underline="always"
                         href={`/decks/${deck.id}`}
                         className="text-gray-500"
@@ -243,7 +242,6 @@ export default function ShowDeckModal({
                 {new Date(deck.archived_at).getFullYear() === 1 ? (
                   <div className="flex items-center justify-center gap-7 mx-auto">
                     <Link
-                      isExternal
                       underline="always"
                       href={`/records/create?deck_id=${deck.id}`}
                       className="text-black"

@@ -89,37 +89,39 @@ type Props = {
 export default function DeckCardDiff({ current_deckcode, previous_deckcode }: Props) {
   const [currentDeckCardList, setCurrentDeckCardList] = useState<DeckCardType[]>();
   const [previousDeckCardList, setPreviousDeckCardList] = useState<DeckCardType[]>();
-  const [loading, setLoading] = useState(true);
+  const [loading1, setLoading1] = useState(true);
+  const [loading2, setLoading2] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!current_deckcode || !previous_deckcode) return;
 
-    setLoading(true);
+    setLoading1(true);
+    setLoading2(true);
 
     const fetchCurrentDeckCardListData = async () => {
       try {
-        setLoading(true);
+        setLoading1(true);
         const data = await fetchDeckCardListByDeckCodeId(current_deckcode.code);
         setCurrentDeckCardList(data);
       } catch (err) {
         console.log(err);
         setError("データの取得に失敗しました");
       } finally {
-        setLoading(false);
+        setLoading1(false);
       }
     };
 
     const fetchPreviousDeckCardListData = async () => {
       try {
-        setLoading(true);
+        setLoading2(true);
         const data = await fetchDeckCardListByDeckCodeId(previous_deckcode.code);
         setPreviousDeckCardList(data);
       } catch (err) {
         console.log(err);
         setError("データの取得に失敗しました");
       } finally {
-        setLoading(false);
+        setLoading2(false);
       }
     };
 
@@ -127,52 +129,36 @@ export default function DeckCardDiff({ current_deckcode, previous_deckcode }: Pr
     fetchPreviousDeckCardListData();
   }, [current_deckcode, previous_deckcode]);
 
-  if (loading) {
+  if (!current_deckcode || !previous_deckcode) return;
+
+  if (loading1 || loading2) {
     return (
-      <div className="flex flex-col gap-1.5">
-        <div className="pb-0.5 pr-1.5">
+      <div className="flex flex-col gap-3">
+        <div className="pb-0.5 pr-0">
           <div className="font-bold text-tiny pb-1">追加されたカード</div>
-          <div className="pl-2 flex flex-wrap gap-1">
+          <div className="pl-1 flex flex-wrap gap-1">
             <div>
-              <Skeleton className="h-6 w-22 rounded-2xl" />
+              <Skeleton className="h-6.5 w-22 rounded-2xl" />
             </div>
             <div>
-              <Skeleton className="h-6 w-26 rounded-2xl" />
+              <Skeleton className="h-6.5 w-26 rounded-2xl" />
             </div>
             <div>
-              <Skeleton className="h-6 w-18 rounded-2xl" />
-            </div>
-            <div>
-              <Skeleton className="h-6 w-18 rounded-2xl" />
-            </div>
-            <div>
-              <Skeleton className="h-6 w-24 rounded-2xl" />
-            </div>
-            <div>
-              <Skeleton className="h-6 w-28 rounded-2xl" />
+              <Skeleton className="h-6.5 w-18 rounded-2xl" />
             </div>
           </div>
         </div>
-        <div className="pb-0.5 pr-1.5">
+        <div className="pb-0.5 pr-0">
           <div className="font-bold text-tiny pb-1">削除されたカード</div>
-          <div className="pl-2 flex flex-wrap gap-1">
+          <div className="pl-1 flex flex-wrap gap-1">
             <div>
-              <Skeleton className="h-6 w-22 rounded-2xl" />
+              <Skeleton className="h-6.5 w-22 rounded-2xl" />
             </div>
             <div>
-              <Skeleton className="h-6 w-26 rounded-2xl" />
+              <Skeleton className="h-6.5 w-26 rounded-2xl" />
             </div>
             <div>
-              <Skeleton className="h-6 w-18 rounded-2xl" />
-            </div>
-            <div>
-              <Skeleton className="h-6 w-18 rounded-2xl" />
-            </div>
-            <div>
-              <Skeleton className="h-6 w-24 rounded-2xl" />
-            </div>
-            <div>
-              <Skeleton className="h-6 w-28 rounded-2xl" />
+              <Skeleton className="h-6.5 w-18 rounded-2xl" />
             </div>
           </div>
         </div>
@@ -184,15 +170,13 @@ export default function DeckCardDiff({ current_deckcode, previous_deckcode }: Pr
     return <div className="text-red-500">{error}</div>;
   }
 
-  if (!currentDeckCardList || !previousDeckCardList) {
-    return;
-  }
+  if (!currentDeckCardList || !previousDeckCardList) return;
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <div className="pb-0.5 pr-1.5">
+    <div className="flex flex-col gap-3">
+      <div className="pb-0.5 pr-0">
         <div className="font-bold text-tiny pb-1">追加されたカード</div>
-        <div className="pl-2 flex flex-wrap gap-1">
+        <div className="pl-1 flex flex-wrap gap-1">
           {diffByContentWithCount(currentDeckCardList, previousDeckCardList).map(
             (deckcard, index) => (
               <div key={index}>
@@ -212,9 +196,9 @@ export default function DeckCardDiff({ current_deckcode, previous_deckcode }: Pr
           )}
         </div>
       </div>
-      <div className="pb-0.5 pr-1.5">
+      <div className="pb-0.5 pr-0">
         <div className="font-bold text-tiny pb-1">削除されたカード</div>
-        <div className="pl-2 flex flex-wrap gap-1">
+        <div className="pl-1 flex flex-wrap gap-1">
           {diffByContentWithCount(previousDeckCardList, currentDeckCardList).map(
             (deckcard, index) => (
               <div key={index}>

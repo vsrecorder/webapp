@@ -49,12 +49,12 @@ type Props = {
 };
 
 export default function DisplayDeckCodesModal({ deck, isOpen, onOpenChange }: Props) {
-  const startY = useRef<number | null>(null);
-
   const [imageLoaded, setImageLoaded] = useState(false);
   const [deckcodes, setDeckCodes] = useState<DeckCodeType[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const startY = useRef<number | null>(null);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     startY.current = e.touches[0].clientY;

@@ -6,6 +6,7 @@ import { Input } from "@heroui/react";
 import { Checkbox } from "@heroui/react";
 import { Image } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
+import { Link } from "@heroui/react";
 
 import { addToast, closeToast } from "@heroui/react";
 
@@ -25,7 +26,7 @@ type Props = {
 export default function CreateDeckCodeModal({
   deck,
   //setDeck,
-  //deckcode,
+  deckcode,
   setDeckCode,
   isOpen,
   onOpenChange,
@@ -182,7 +183,7 @@ export default function CreateDeckCodeModal({
                 type="text"
                 label="デッキコード"
                 labelPlacement="outside"
-                placeholder="例）"
+                placeholder="デッキコードを入力"
                 value={newdeckcode}
                 onChange={(e) => setNewDeckCode(e.target.value)}
               />
@@ -213,6 +214,28 @@ export default function CreateDeckCodeModal({
                   onError={() => {}}
                 />
               </div>
+
+              {deckcode?.code ? (
+                <Link
+                  isExternal
+                  showAnchorIcon
+                  underline="always"
+                  href={`https://www.pokemon-card.com/deck/deck.html?deckID=${deckcode.code}`}
+                  className="pl-1 text-tiny"
+                >
+                  [{deckcode.code}] から新しいデッキコードを作成
+                </Link>
+              ) : (
+                <Link
+                  isExternal
+                  showAnchorIcon
+                  underline="always"
+                  href={`https://www.pokemon-card.com/deck/deck.html`}
+                  className="pl-1 text-tiny"
+                >
+                  新しいデッキコードを作成
+                </Link>
+              )}
             </ModalBody>
             <ModalFooter>
               <Button

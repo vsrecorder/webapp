@@ -7,7 +7,7 @@ import { SetStateAction, Dispatch } from "react";
 import { Skeleton } from "@heroui/react";
 import { Link } from "@heroui/react";
 import { Image } from "@heroui/react";
-
+import { Snippet } from "@heroui/react";
 import { Chip } from "@heroui/chip";
 
 import {
@@ -178,23 +178,20 @@ export default function ShowDeckModal({
                 </>
               </ModalHeader>
               <ModalBody className="px-1 py-1 pb-3 flex flex-col gap-3">
-                <div className="pl-3 flex flex-col justify-center gap-0.5">
+                <div className="pl-3 flex flex-col justify-center gap-3">
                   <div className="text-tiny">バージョンID：{version}</div>
                   <div className="flex items-center gap-2">
                     <div className="text-tiny">
-                      デッキコード：
-                      {deckcode?.code ? (
-                        <Link
-                          isExternal
-                          underline="always"
-                          href={`https://www.pokemon-card.com/deck/confirm.html/deckID/${deckcode.code}`}
-                          className="text-tiny text-black"
-                        >
-                          {deckcode.code}
-                        </Link>
-                      ) : (
-                        "なし"
-                      )}
+                      <>デッキコード：</>
+                      <Snippet
+                        size="sm"
+                        radius="none"
+                        timeout={3000}
+                        disableTooltip={true}
+                        hideSymbol={true}
+                      >
+                        {deckcode?.code ? deckcode.code : "なし"}
+                      </Snippet>
                     </div>
 
                     {deckcode?.code && (

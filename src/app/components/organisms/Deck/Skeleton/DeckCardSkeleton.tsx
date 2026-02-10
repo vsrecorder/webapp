@@ -6,7 +6,7 @@ import DeckCodeCardSkeleton from "@app/components/organisms/Deck/Skeleton/DeckCo
 export default function DeckCardSkeleton() {
   return (
     <>
-      <div className="pb-3">
+      <div className="">
         <Card className="pt-3 w-full">
           <CardHeader className="pt-0 pb-0 px-3">
             <div className="flex flex-col gap-1">
@@ -26,7 +26,7 @@ export default function DeckCardSkeleton() {
         </Card>
       </div>
 
-      <div className="pb-3">
+      <div className="">
         <Card className="pt-3 w-full">
           <CardHeader className="pt-0 pb-0 px-3">
             <div className="flex flex-col gap-1">

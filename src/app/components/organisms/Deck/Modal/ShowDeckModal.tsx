@@ -31,6 +31,8 @@ import InspectDeckModal from "@app/components/organisms/Deck/Modal/InspectDeckMo
 import DisplayRecordsModal from "@app/components/organisms/Deck/Modal/DisplayRecordsModal";
 import DisplayDeckCodesModal from "@app/components/organisms/Deck/Modal/DisplayDeckCodes";
 
+//import DeckCardSummary from "@app/components/organisms/Deck/DeckCardSummary";
+
 import { LuExternalLink } from "react-icons/lu";
 
 import { LuFolderInput } from "react-icons/lu";
@@ -233,6 +235,12 @@ export default function ShowDeckModal({
                     </>
                   )}
                 </div>
+
+                {/*
+                <div className="">
+                  {deckcode && <DeckCardSummary deckcode={deckcode} />}
+                </div>
+                */}
               </ModalBody>
               <ModalFooter>
                 {new Date(deck.archived_at).getFullYear() === 1 ? (

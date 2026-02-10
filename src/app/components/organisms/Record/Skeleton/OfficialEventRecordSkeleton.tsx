@@ -17,7 +17,8 @@ export default function OfficialEventRecordSkeleton() {
           <CardBody className="px-5 py-3">
             <div className="flex items-center gap-5">
               <Skeleton className="h-24 w-24" />
-              <div className="flex flex-col gap-2">
+
+              <div className="flex flex-col gap-2 w-full min-w-0">
                 <div className="font-bold text-tiny">
                   <Skeleton className="h-3 w-32" />
                 </div>
@@ -43,7 +44,8 @@ export default function OfficialEventRecordSkeleton() {
           <CardBody className="px-5 py-3">
             <div className="flex items-center gap-5">
               <Skeleton className="h-24 w-24" />
-              <div className="flex flex-col gap-2">
+
+              <div className="flex flex-col gap-2 w-full min-w-0">
                 <div className="font-bold text-tiny">
                   <Skeleton className="h-3 w-32" />
                 </div>
@@ -69,7 +71,8 @@ export default function OfficialEventRecordSkeleton() {
           <CardBody className="px-5 py-3">
             <div className="flex items-center gap-5">
               <Skeleton className="h-24 w-24" />
-              <div className="flex flex-col gap-2">
+
+              <div className="flex flex-col gap-2 w-full min-w-0">
                 <div className="font-bold text-tiny">
                   <Skeleton className="h-3 w-32" />
                 </div>

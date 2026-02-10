@@ -15,6 +15,7 @@ export type OfficialEventType = {
   date: Date;
   started_at: Date;
   ended_at: Date;
+  type_id: number;
   type_name: string;
   league_title: string;
   regulation_title: string;

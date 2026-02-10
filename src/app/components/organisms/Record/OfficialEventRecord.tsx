@@ -74,7 +74,7 @@ export default function OfficialEventRecord({ record }: Props) {
     return <div className="text-red-500">{error}</div>;
   }
 
-  if (loading) {
+  if (loading || !officialEvent) {
     return (
       <div className="pb-3 w-full">
         <Card shadow="sm" className="py-3 w-full">
@@ -89,7 +89,8 @@ export default function OfficialEventRecord({ record }: Props) {
           <CardBody className="px-5 py-3">
             <div className="flex items-center gap-5">
               <Skeleton className="h-24 w-24" />
-              <div className="flex flex-col gap-2">
+
+              <div className="flex flex-col gap-2 w-full min-w-0">
                 <div className="font-bold text-tiny">
                   <Skeleton className="h-3 w-32" />
                 </div>
@@ -118,30 +119,159 @@ export default function OfficialEventRecord({ record }: Props) {
               })}
             </div>
             <div className="font-bold truncate w-full min-w-0">
-              {officialEvent && loading ? (
-                <Skeleton className="h-6 w-50" />
-              ) : (
-                officialEvent?.title
-              )}
+              {loading ? <Skeleton className="h-6 w-50" /> : officialEvent.title}
             </div>
           </CardHeader>
           <CardBody className="px-5 py-3">
             <div className="flex items-center gap-5">
               <div>
-                <Image
-                  alt="シティリーグ"
-                  src="/city.png"
-                  radius="none"
-                  className="h-24 w-24 object-contain"
-                />
+                {officialEvent.type_id === 1 &&
+                  (officialEvent.title.includes(
+                    "ポケモンジャパンチャンピオンシップス",
+                  ) ? (
+                    <Image
+                      alt="ポケモンジャパンチャンピオンシップス"
+                      src="/jcs.png"
+                      radius="none"
+                      className="h-24 w-24 object-contain"
+                    />
+                  ) : officialEvent.title.includes("チャンピオンズリーグ") ? (
+                    <Image
+                      alt="チャンピオンズリーグ"
+                      src="/cl.png"
+                      radius="none"
+                      className="h-24 w-24 object-contain"
+                    />
+                  ) : officialEvent.title.includes("スクランブルバトル") ? (
+                    <Image
+                      alt="スクランブルバトル"
+                      src="/sb.png"
+                      radius="none"
+                      className="h-24 w-24 object-contain"
+                    />
+                  ) : (
+                    <Image
+                      alt="不明"
+                      src="/pokemon_card_game.png"
+                      radius="none"
+                      className="h-24 w-24 object-contain"
+                    />
+                  ))}
+
+                {officialEvent.type_id === 2 && (
+                  <Image
+                    alt="シティリーグ"
+                    src="/city.png"
+                    radius="none"
+                    className="h-24 w-24 object-contain"
+                  />
+                )}
+
+                {officialEvent.type_id === 3 && (
+                  <Image
+                    alt="トレーナーズリーグ"
+                    src="/trainers.png"
+                    radius="none"
+                    className="h-24 w-24 object-contain"
+                  />
+                )}
+
+                {officialEvent.type_id === 4 &&
+                  (officialEvent.title.includes("ジムバトル") ? (
+                    <Image
+                      alt="ジムバトル"
+                      src="/gym.png"
+                      radius="none"
+                      className="h-24 w-24 object-contain"
+                    />
+                  ) : officialEvent.title.includes("MEGAウインターリーグ") ? (
+                    <Image
+                      alt="MEGAウインターリーグ"
+                      src="/mega_winter_league.png"
+                      radius="none"
+                      className="h-24 w-24 object-contain"
+                    />
+                  ) : officialEvent.title.includes(
+                      "スタートデッキ100　そのままバトル",
+                    ) ? (
+                    <Image
+                      alt="スタートデッキ100　そのままバトル"
+                      src="/100_sonomama_battle.png"
+                      radius="none"
+                      className="h-24 w-24 object-contain"
+                    />
+                  ) : (
+                    <Image
+                      alt="不明"
+                      src="/pokemon_card_game.png"
+                      radius="none"
+                      className="h-24 w-24 object-contain"
+                    />
+                  ))}
+
+                {officialEvent.type_id === 6 && (
+                  <Image
+                    alt="公認自主イベント"
+                    src="/organizer.png"
+                    radius="none"
+                    className="h-24 w-24 object-contain"
+                  />
+                )}
+
+                {officialEvent.type_id === 7 &&
+                  (officialEvent.title.includes("ポケモンカードゲーム教室") ? (
+                    <Image
+                      alt="ポケモンカードゲーム教室"
+                      src="/classroom.png"
+                      radius="none"
+                      className="h-24 w-24 object-contain"
+                    />
+                  ) : officialEvent.title.includes("ビクティニBWR争奪戦") ? (
+                    <Image
+                      alt="ビクティニBWR争奪戦"
+                      src="/victini_bwr.png"
+                      radius="none"
+                      className="h-24 w-24 object-contain"
+                    />
+                  ) : officialEvent.title.includes(
+                      "スタートデッキ100　そのままバトル",
+                    ) ? (
+                    <Image
+                      alt="スタートデッキ100　そのままバトル"
+                      src="/100_sonomama_battle.png"
+                      radius="none"
+                      className="h-24 w-24 object-contain"
+                    />
+                  ) : officialEvent.title.includes(
+                      "100人大集合でたとこバトル ～スタートデッキ100 バトルコレクション～",
+                    ) ? (
+                    <Image
+                      alt="100人大集合でたとこバトル ～スタートデッキ100 バトルコレクション～"
+                      src="/100_sonomama_battle.png"
+                      radius="none"
+                      className="h-24 w-24 object-contain"
+                    />
+                  ) : (
+                    <Image
+                      alt="不明"
+                      src="/pokemon_card_game.png"
+                      radius="none"
+                      className="h-24 w-24 object-contain"
+                    />
+                  ))}
               </div>
-              <div className="flex flex-col gap-2">
-                <div className="font-bold text-tiny">
-                  <Skeleton className="h-3 w-32" />
+
+              <div className="flex flex-col gap-1 w-full min-w-0">
+                <div className="text-tiny">{officialEvent.shop_name}</div>
+                <div className="text-tiny">
+                  {officialEvent.league_title}
+                  {officialEvent.league_title !== "その他" && <>リーグ</>} /
+                  {officialEvent.regulation_title}
                 </div>
                 <div className="font-bold truncate w-full min-w-0">
                   <Skeleton className="h-5 w-44" />
                 </div>
+                <div className="text-tiny">『{officialEvent.environment_title}』</div>
               </div>
             </div>
           </CardBody>

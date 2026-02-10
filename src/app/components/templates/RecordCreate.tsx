@@ -430,6 +430,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
             <div className="flex flex-col gap-1 pt-1">
               <label className="text-sm font-medium">日付</label>
               <DatePicker
+                aria-label="日付"
                 radius="none"
                 size="sm"
                 firstDayOfWeek="mon"

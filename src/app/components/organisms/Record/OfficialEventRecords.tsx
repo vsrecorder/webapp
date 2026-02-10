@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 
-//import { Spinner } from "@heroui/spinner";
+import { Spinner } from "@heroui/spinner";
+import { Button } from "@heroui/react";
 
 import Record from "@app/components/organisms/Record/Record";
 import OfficialEventRecordSkeleton from "@app/components/organisms/Record/Skeleton/OfficialEventRecordSkeleton";
+
+import { LuCirclePlus } from "react-icons/lu";
 
 import { RecordType, RecordGetResponseType } from "@app/types/record";
 
@@ -32,16 +35,13 @@ async function fetchOfficialEventRecords(cursor: string) {
 }
 
 export default function OfficialEventRecords() {
-  const observerTarget = useRef<HTMLDivElement | null>(null);
-
   const [items, setItems] = useState<RecordType[]>([]);
   const [nextCursor, setNextCursor] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const [isInitialLoaded, setIsInitialLoaded] = useState(false);
 
   const loadMore = useCallback(async () => {
-    console.log("loadMore");
-
     if (isLoading || !hasMore) return;
 
     setIsLoading(true);
@@ -67,6 +67,8 @@ export default function OfficialEventRecords() {
         } else {
           setNextCursor(lastItem.cursor);
         }
+
+        setNextCursor(lastItem.cursor);
       } else {
         setHasMore(false);
       }
@@ -75,46 +77,43 @@ export default function OfficialEventRecords() {
       setHasMore(false);
     } finally {
       setIsLoading(false);
+      if (!isInitialLoaded) {
+        setIsInitialLoaded(true);
+      }
     }
-  }, [nextCursor, isLoading, hasMore]);
+  }, [nextCursor, isLoading, hasMore, isInitialLoaded]);
 
   useEffect(() => {
-    if (isLoading || !hasMore) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          loadMore();
-        }
-      },
-      {
-        threshold: 0.5,
-      },
-    );
-
-    const target = observerTarget.current;
-    if (target) observer.observe(target);
-
-    return () => observer.disconnect();
-  }, [isLoading, hasMore, loadMore]);
+    if (isInitialLoaded) return;
+    loadMore();
+  }, [isInitialLoaded, loadMore]);
 
   return (
-    <div className="flex flex-col items-center space-y-4">
+    <div className="flex flex-col items-center space-y-4 pb-3">
       {/* 空状態 */}
-      {!isLoading && !hasMore && items.length === 0 && <>レコードがありません</>}
+      {isInitialLoaded && !isLoading && !hasMore && items.length === 0 && (
+        <>レコードがありません</>
+      )}
 
-      <div className="flex flex-col w-full">
+      <div className="flex flex-col w-full gap-3">
         {items.map((record) => (
           <Record key={record.data.id} record={record} />
         ))}
 
         {/* ローディング表示 */}
-        {/*
-        {isLoading && hasMore && <Spinner size="lg" className="pt-14" />}
-        */}
-        {isLoading && hasMore && <OfficialEventRecordSkeleton />}
+        {!isInitialLoaded && <OfficialEventRecordSkeleton />}
+        {isInitialLoaded && isLoading && <Spinner size="lg" className="pt-0" />}
 
-        {hasMore && <div ref={observerTarget} className="h-1 w-full" />}
+        {isInitialLoaded && !isLoading && hasMore && (
+          <Button size="sm" radius="full" onPress={loadMore}>
+            <div className="flex items-center gap-1">
+              <span className="text-xs">
+                <LuCirclePlus />
+              </span>
+              <span className="font-bold text-xs">更に読み込む</span>
+            </div>
+          </Button>
+        )}
       </div>
     </div>
   );

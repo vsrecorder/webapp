@@ -7,7 +7,7 @@ import { Tabs, Tab } from "@heroui/react";
 import ScrollUpFloating from "@app/components/atoms/Floating/ScrollUpFloating";
 
 import OfficialEventRecords from "@app/components/organisms/Record/OfficialEventRecords";
-import TonamelEventRecords from "@app/components/organisms/Record/TonamelEventRecords";
+//import TonamelEventRecords from "@app/components/organisms/Record/TonamelEventRecords";
 
 type TabKey = "official" | "tonamel";
 
@@ -60,9 +60,11 @@ export default function TemplateRecords() {
       <div hidden={selectedKey !== "official"}>
         <OfficialEventRecords />
       </div>
+      {/*
       <div hidden={selectedKey !== "tonamel"}>
         <TonamelEventRecords />
       </div>
+      */}
     </>
   );
 }

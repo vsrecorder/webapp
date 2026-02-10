@@ -37,7 +37,7 @@ type Props = {
   record: RecordType;
 };
 
-export default function Record({ record }: Props) {
+export default function OfficialEventRecord({ record }: Props) {
   const [officialEvent, setOfficialEvent] =
     useState<OfficialEventGetByIdResponseType | null>(null);
   const [loading, setLoading] = useState(true);

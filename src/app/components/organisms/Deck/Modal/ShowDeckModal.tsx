@@ -163,8 +163,8 @@ export default function ShowDeckModal({
                     </div>
 
                     <div className="pb-1">
-                      <Link href={`/decks/${deck.id}`} className="text-gray-500">
-                        <div className="text-2xl">
+                      <Link href={`/decks/${deck.id}`} className="text-gray-400">
+                        <div className="text-xl">
                           <LuExternalLink />
                         </div>
                       </Link>

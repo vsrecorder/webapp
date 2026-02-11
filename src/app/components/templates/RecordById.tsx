@@ -7,6 +7,8 @@ import { Divider } from "@heroui/react";
 import OfficialEventInfo from "@app/components/organisms/OfficialEventInfo";
 import Matches from "@app/components/organisms/Matches";
 
+import CreateMatchModal from "@app/components/organisms/CreateMatchModal";
+
 import { RecordGetByIdResponseType } from "@app/types/record";
 
 async function fetchRecordById(id: string) {
@@ -85,6 +87,7 @@ export default function TemplateRecordById({ id }: Props) {
       <OfficialEventInfo id={record.official_event_id} />
       <Divider />
       <Matches record_id={record.id} />
+      <CreateMatchModal />
     </div>
   );
 }

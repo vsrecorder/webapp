@@ -19,7 +19,8 @@ export default function SignOut() {
         size="sm"
         placement="top"
         classNames={{
-          closeButton: "text-xl",
+          base: "sm:max-w-full",
+          closeButton: "text-2xl",
         }}
       >
         <ModalContent>

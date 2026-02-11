@@ -14,18 +14,21 @@ import {
   useDisclosure,
 } from "@heroui/react";
 import { Button } from "@heroui/react";
+import { Switch } from "@heroui/react";
 import { Input } from "@heroui/react";
-import { Checkbox } from "@heroui/react";
-import { Image } from "@heroui/react";
-import { Skeleton } from "@heroui/react";
-import { Link } from "@heroui/react";
 import { addToast, closeToast } from "@heroui/react";
+
+import { Tabs, Tab } from "@heroui/react";
+import { CheckboxGroup, Checkbox } from "@heroui/checkbox";
+import { RadioGroup, Radio } from "@heroui/react";
+import { NumberInput } from "@heroui/react";
+import { Textarea } from "@heroui/react";
 
 import { LuCirclePlus } from "react-icons/lu";
 
 import { DeckCreateRequestType } from "@app/types/deck";
 
-export default function CreateDeckModal() {
+export default function CreateMatchModal() {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [deckname, setDeckName] = useState<string>("");
   const [deckcode, setDeckCode] = useState<string>("");
@@ -80,7 +83,7 @@ export default function CreateDeckModal() {
   }, [deckcode]);
 
   /*
-    デッキ作成のAPIを叩く関数
+    マッチ作成のAPIを叩く関数
     Next.jsのAPI Routesを経由してAPIを叩く
   */
   const createDeck = async () => {
@@ -156,21 +159,22 @@ export default function CreateDeckModal() {
           <span className="text-xs">
             <LuCirclePlus />
           </span>
-          <span className="text-xs">新しいデッキを作成する</span>
+          <span className="text-xs">対戦結果を追加する</span>
         </div>
       </Button>
 
       <Modal
         isOpen={isOpen}
-        size="sm"
-        placement="center"
-        hideCloseButton
+        size="md"
+        placement="bottom"
+        //hideCloseButton
         onOpenChange={onOpenChange}
         onClose={() => {
           setDeckName("");
           setDeckCode("");
           setIsSelectedPrivateCode(false);
         }}
+        className="h-[calc(100dvh-192px)] max-h-[calc(100dvh-192px)] mt-26 my-0 rounded-b-none"
         classNames={{
           base: "sm:max-w-full",
           closeButton: "text-2xl",
@@ -179,65 +183,90 @@ export default function CreateDeckModal() {
         <ModalContent>
           {(onClose) => (
             <>
-              <ModalHeader className="text-lg px-3">新しいデッキを作成</ModalHeader>
-              <ModalBody className="px-3 py-1">
-                <Input
-                  isRequired
-                  type="text"
-                  label="デッキ名"
-                  labelPlacement="outside"
-                  placeholder="例）メガルカリオ"
-                  value={deckname}
-                  onChange={(e) => setDeckName(e.target.value)}
-                />
-                <Input
-                  isRequired
-                  isInvalid={!isValidatedDeckCode}
-                  errorMessage="有効なデッキコードを入力してください"
-                  type="text"
-                  label="デッキコード"
-                  labelPlacement="outside"
-                  placeholder="例）LnQLQn-SWgB9g-nngNgL"
-                  value={deckcode}
-                  onChange={(e) => setDeckCode(e.target.value)}
-                />
+              <ModalHeader className="text-lg px-3">対戦結果を追加</ModalHeader>
+              <ModalBody className="px-3 py-0 overflow-y-auto">
+                <Tabs fullWidth size="sm" className="left-0 right-0 pl-1 pr-1 font-bold">
+                  <Tab key="bo1" title="BO1">
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center gap-3">
+                        <Switch size="md">不戦勝</Switch>
+                        <Switch size="md">不戦敗</Switch>
+                      </div>
 
-                <Checkbox
-                  isDisabled={deckcode == "" || !isValidatedDeckCode}
-                  defaultSelected={false}
-                  size={"sm"}
-                  isSelected={isSelectedPrivateCode}
-                  onValueChange={setIsSelectedPrivateCode}
-                >
-                  デッキコードを非公開にする
-                </Checkbox>
+                      <CheckboxGroup
+                        defaultValue={[]}
+                        size="sm"
+                        label="予選 / トーナメント"
+                        classNames={{
+                          base: "",
+                          wrapper: "flex flex-row gap-4",
+                        }}
+                      >
+                        <Checkbox value="qualifying_round">予選</Checkbox>
+                        <Checkbox value="final_tournament">トーナメント</Checkbox>
+                      </CheckboxGroup>
 
-                <div className="relative w-full aspect-2/1">
-                  <Skeleton className="absolute inset-0 rounded-lg" />
-                  <Image
-                    radius="sm"
-                    shadow="none"
-                    alt={"test"}
-                    src={
-                      isValidatedDeckCode
-                        ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode}.jpg`
-                        : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
-                    }
-                    onLoad={() => {}}
-                    onError={() => {}}
-                    className=""
-                  />
-                </div>
+                      <Input
+                        isRequired
+                        type="text"
+                        label="相手のデッキ"
+                        labelPlacement="outside"
+                        placeholder="例）メガルカリオ"
+                        value={deckname}
+                        onChange={(e) => setDeckName(e.target.value)}
+                      />
 
-                <Link
-                  isExternal
-                  showAnchorIcon
-                  underline="always"
-                  href="https://www.pokemon-card.com/deck/"
-                  className="text-xs"
-                >
-                  <span>トレーナーズウェブサイトでデッキを構築する</span>
-                </Link>
+                      <RadioGroup
+                        size="sm"
+                        label="先攻 / 後攻"
+                        classNames={{
+                          base: "",
+                          wrapper: "flex flex-row gap-4",
+                        }}
+                      >
+                        <Radio value="head">先攻</Radio>
+                        <Radio value="tail">後攻</Radio>
+                      </RadioGroup>
+
+                      <RadioGroup
+                        size="sm"
+                        label="勝敗"
+                        classNames={{
+                          base: "",
+                          wrapper: "flex flex-row gap-4",
+                        }}
+                      >
+                        <Radio value="win">勝利</Radio>
+                        <Radio value="lose">敗北</Radio>
+                      </RadioGroup>
+
+                      <div className="flex items-center gap-5">
+                        <NumberInput
+                          isRequired
+                          className="max-w-xs"
+                          defaultValue={1024}
+                          label="your_prizes"
+                          placeholder="Enter the amount"
+                        />
+                        <NumberInput
+                          isRequired
+                          className="max-w-xs"
+                          defaultValue={1024}
+                          label="oppoments_prizes"
+                          placeholder="Enter the amount"
+                        />
+                      </div>
+
+                      <Textarea
+                        size="sm"
+                        className="w-full"
+                        label="Description"
+                        placeholder="Enter your description"
+                      />
+                    </div>
+                  </Tab>
+                  <Tab key="bo3" title="BO3" isDisabled></Tab>
+                </Tabs>
               </ModalBody>
               <ModalFooter>
                 <Button

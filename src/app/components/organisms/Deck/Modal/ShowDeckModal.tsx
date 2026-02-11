@@ -140,7 +140,7 @@ export default function ShowDeckModal({
         className="h-[calc(100dvh-256px)] max-h-[calc(100dvh-256px)]"
         classNames={{
           base: "sm:max-w-full",
-          closeButton: "text-xl",
+          closeButton: "text-2xl",
         }}
       >
         <ModalContent>

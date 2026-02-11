@@ -187,7 +187,7 @@ export default function CreateDeckFloating({ onCreate }: Props) {
         }}
         classNames={{
           base: "sm:max-w-full",
-          closeButton: "text-xl",
+          closeButton: "text-2xl",
         }}
       >
         <ModalContent>

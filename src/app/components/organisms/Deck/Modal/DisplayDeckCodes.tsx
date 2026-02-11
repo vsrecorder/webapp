@@ -111,7 +111,7 @@ export default function DisplayDeckCodesModal({ deck, isOpen, onOpenChange }: Pr
       className="h-[calc(100dvh-104px)] max-h-[calc(100dvh-104px)] mt-26 my-0 rounded-b-none"
       classNames={{
         base: "sm:max-w-full",
-        closeButton: "text-xl",
+        closeButton: "text-2xl",
       }}
     >
       <ModalContent>

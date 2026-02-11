@@ -23,7 +23,7 @@ type Props = {
 };
 
 export default function CityleagueResultCard({ result }: Props) {
-  const { isOpen, onOpenChange } = useDisclosure();
+  const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [imageLoaded, setImageLoaded] = useState(false);
 
   useEffect(() => {
@@ -36,7 +36,7 @@ export default function CityleagueResultCard({ result }: Props) {
     <>
       <div
         onClick={() => {
-          //onOpen();
+          onOpen();
         }}
       >
         <Card shadow="sm" className="py-3">

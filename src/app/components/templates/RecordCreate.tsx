@@ -34,8 +34,6 @@ import { OfficialEventResponseType, OfficialEventType } from "@app/types/officia
 import { DeckGetAllType, DeckData } from "@app/types/deck";
 import { RecordCreateRequestType, RecordCreateResponseType } from "@app/types/record";
 
-import CreateDeckModal from "@app/components/organisms/CreateDeckModal";
-
 type OfficialEventOption = {
   label: string;
   value: string;
@@ -589,7 +587,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                 }}
               />
             </div>
-            <div className="flex flex-col items-center gap-2">
+            <div className="flex flex-col items-center gap-2 pb-3">
               <div className="relative w-full aspect-2/1">
                 {!imageLoaded && <Skeleton className="absolute inset-0 rounded-lg" />}
                 <Image
@@ -610,7 +608,6 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                   onError={() => {}}
                 />
               </div>
-              <CreateDeckModal />
             </div>
 
             <Button
@@ -726,7 +723,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                 }}
               />
             </div>
-            <div className="flex flex-col items-center gap-2">
+            <div className="flex flex-col items-center gap-2 pb-3">
               <div className="relative w-full aspect-2/1">
                 {!imageLoaded && <Skeleton className="absolute inset-0 rounded-lg" />}
                 <Image
@@ -747,7 +744,6 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                   onError={() => {}}
                 />
               </div>
-              <CreateDeckModal />
             </div>
 
             <Button color="primary" isDisabled={true}>

@@ -65,7 +65,6 @@ export default function CreateDeckFloating({ onCreate }: Props) {
 
         const res = await fetch("https://www.pokemon-card.com/deck/deckIDCheck.php", {
           method: "POST",
-          headers: {},
           body: formData,
         });
 

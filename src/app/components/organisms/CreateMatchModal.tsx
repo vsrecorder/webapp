@@ -185,12 +185,16 @@ export default function CreateMatchModal() {
             <>
               <ModalHeader className="text-lg px-3">対戦結果を追加</ModalHeader>
               <ModalBody className="px-3 py-0 overflow-y-auto">
-                <Tabs fullWidth size="sm" className="left-0 right-0 pl-1 pr-1 font-bold">
+                <Tabs
+                  fullWidth
+                  size="sm"
+                  className="left-0 right-0 pl-1 pr-1 pt-0 pb-0 font-bold"
+                >
                   <Tab key="bo1" title="BO1">
-                    <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-3 pt-0">
                       <div className="flex items-center gap-3">
-                        <Switch size="md">不戦勝</Switch>
-                        <Switch size="md">不戦敗</Switch>
+                        <Switch size="sm">不戦勝</Switch>
+                        <Switch size="sm">不戦敗</Switch>
                       </div>
 
                       <CheckboxGroup
@@ -216,29 +220,31 @@ export default function CreateMatchModal() {
                         onChange={(e) => setDeckName(e.target.value)}
                       />
 
-                      <RadioGroup
-                        size="sm"
-                        label="先攻 / 後攻"
-                        classNames={{
-                          base: "",
-                          wrapper: "flex flex-row gap-4",
-                        }}
-                      >
-                        <Radio value="head">先攻</Radio>
-                        <Radio value="tail">後攻</Radio>
-                      </RadioGroup>
+                      <div className="flex items-center gap-3">
+                        <RadioGroup
+                          size="sm"
+                          label="先攻 / 後攻"
+                          classNames={{
+                            base: "",
+                            wrapper: "flex flex-row gap-4",
+                          }}
+                        >
+                          <Radio value="head">先攻</Radio>
+                          <Radio value="tail">後攻</Radio>
+                        </RadioGroup>
 
-                      <RadioGroup
-                        size="sm"
-                        label="勝敗"
-                        classNames={{
-                          base: "",
-                          wrapper: "flex flex-row gap-4",
-                        }}
-                      >
-                        <Radio value="win">勝利</Radio>
-                        <Radio value="lose">敗北</Radio>
-                      </RadioGroup>
+                        <RadioGroup
+                          size="sm"
+                          label="勝敗"
+                          classNames={{
+                            base: "",
+                            wrapper: "flex flex-row gap-4",
+                          }}
+                        >
+                          <Radio value="win">勝利</Radio>
+                          <Radio value="lose">敗北</Radio>
+                        </RadioGroup>
+                      </div>
 
                       <div className="flex items-center gap-5">
                         <NumberInput
@@ -258,7 +264,7 @@ export default function CreateMatchModal() {
                       </div>
 
                       <Textarea
-                        size="sm"
+                        size="md"
                         className="w-full"
                         label="Description"
                         placeholder="Enter your description"

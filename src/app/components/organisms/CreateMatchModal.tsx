@@ -12,6 +12,7 @@ import {
   ModalBody,
   ModalFooter,
   useDisclosure,
+  CardHeader,
 } from "@heroui/react";
 import { Button } from "@heroui/react";
 import { Switch } from "@heroui/react";
@@ -24,7 +25,10 @@ import { RadioGroup, Radio } from "@heroui/react";
 import { NumberInput } from "@heroui/react";
 import { Textarea } from "@heroui/react";
 
+import { Card, CardBody } from "@heroui/react";
+
 import { LuCirclePlus } from "react-icons/lu";
+import { LuPlus } from "react-icons/lu";
 
 import { DeckCreateRequestType } from "@app/types/deck";
 
@@ -174,7 +178,7 @@ export default function CreateMatchModal() {
           setDeckCode("");
           setIsSelectedPrivateCode(false);
         }}
-        className="h-[calc(100dvh-192px)] max-h-[calc(100dvh-192px)] mt-26 my-0 rounded-b-none"
+        className="h-[calc(100dvh-176px)] max-h-[calc(100dvh-176px)] mt-26 my-0 rounded-b-none"
         classNames={{
           base: "sm:max-w-full",
           closeButton: "text-2xl",
@@ -184,97 +188,163 @@ export default function CreateMatchModal() {
           {(onClose) => (
             <>
               <ModalHeader className="text-lg px-3">対戦結果を追加</ModalHeader>
-              <ModalBody className="px-3 py-0 overflow-y-auto">
-                <Tabs
-                  fullWidth
-                  size="sm"
-                  className="left-0 right-0 pl-1 pr-1 pt-0 pb-0 font-bold"
-                >
+              <ModalBody className="flex flex-col gap-0 px-1 py-1 overflow-y-auto">
+                <Tabs fullWidth size="sm" className="left-0 right-0 pl-1 pr-1 font-bold">
                   <Tab key="bo1" title="BO1">
                     <div className="flex flex-col gap-3 pt-0">
-                      <div className="flex items-center gap-3">
-                        <Switch size="sm">不戦勝</Switch>
-                        <Switch size="sm">不戦敗</Switch>
-                      </div>
+                      <Card shadow="md" className="w-full">
+                        <CardHeader className="pb-0 text-tiny">
+                          予選/トーナメント
+                        </CardHeader>
+                        <CardBody className="">
+                          <CheckboxGroup
+                            size="md"
+                            label=""
+                            orientation="horizontal"
+                            classNames={{
+                              base: "",
+                              wrapper: "flex items-center gap-4",
+                            }}
+                          >
+                            <Checkbox value="qualifying_round">予選</Checkbox>
+                            <Checkbox value="final_tournament">トーナメント</Checkbox>
+                          </CheckboxGroup>
+                        </CardBody>
+                      </Card>
 
-                      <CheckboxGroup
-                        defaultValue={[]}
-                        size="sm"
-                        label="予選 / トーナメント"
-                        classNames={{
-                          base: "",
-                          wrapper: "flex flex-row gap-4",
-                        }}
-                      >
-                        <Checkbox value="qualifying_round">予選</Checkbox>
-                        <Checkbox value="final_tournament">トーナメント</Checkbox>
-                      </CheckboxGroup>
+                      <Card shadow="md" className="w-full">
+                        <CardHeader className="pb-0 text-tiny">
+                          <label className="flex items-center gap-1">
+                            相手のデッキ
+                            <span className="text-red-500 text-sm">*</span>
+                          </label>
+                        </CardHeader>
+                        <CardBody className="flex items-center">
+                          <div className="flex gap-3 w-full">
+                            <div className="flex gap-2">
+                              <Button
+                                isIconOnly
+                                variant="bordered"
+                                className="rounded-xl border-gray-400"
+                              >
+                                <LuPlus className="text-lg text-gray-500" />
+                              </Button>
 
-                      <Input
-                        isRequired
-                        type="text"
-                        label="相手のデッキ"
-                        labelPlacement="outside"
-                        placeholder="例）メガルカリオ"
-                        value={deckname}
-                        onChange={(e) => setDeckName(e.target.value)}
-                      />
+                              <Button
+                                isIconOnly
+                                variant="bordered"
+                                className="rounded-xl border-gray-400"
+                              >
+                                <LuPlus className="text-lg text-gray-500" />
+                              </Button>
+                            </div>
 
-                      <div className="flex items-center gap-3">
-                        <RadioGroup
-                          size="sm"
-                          label="先攻 / 後攻"
-                          classNames={{
-                            base: "",
-                            wrapper: "flex flex-row gap-4",
-                          }}
-                        >
-                          <Radio value="head">先攻</Radio>
-                          <Radio value="tail">後攻</Radio>
-                        </RadioGroup>
+                            <Input
+                              isRequired
+                              size="md"
+                              radius="md"
+                              type="text"
+                              label=""
+                              labelPlacement="outside"
+                              placeholder="例）メガルカリオex"
+                              value={deckname}
+                              onChange={(e) => setDeckName(e.target.value)}
+                            />
+                          </div>
+                        </CardBody>
+                      </Card>
 
-                        <RadioGroup
-                          size="sm"
-                          label="勝敗"
-                          classNames={{
-                            base: "",
-                            wrapper: "flex flex-row gap-4",
-                          }}
-                        >
-                          <Radio value="win">勝利</Radio>
-                          <Radio value="lose">敗北</Radio>
-                        </RadioGroup>
+                      <div className="flex items-center gap-5">
+                        <Card shadow="md" className="w-full">
+                          <CardHeader className="pb-0 text-tiny">
+                            <label className="flex items-center gap-1">
+                              先攻/後攻
+                              <span className="text-red-500 text-sm">*</span>
+                            </label>
+                          </CardHeader>
+                          <CardBody className="">
+                            <RadioGroup
+                              isRequired
+                              size="md"
+                              label=""
+                              orientation="horizontal"
+                              classNames={{
+                                base: "items-center",
+                                wrapper: "flex items-center gap-4",
+                              }}
+                            >
+                              <Radio value="head">先攻</Radio>
+                              <Radio value="tail">後攻</Radio>
+                            </RadioGroup>
+                          </CardBody>
+                        </Card>
+
+                        <Card shadow="md" className="w-full">
+                          <CardHeader className="pb-0 text-tiny">
+                            <label className="flex items-center gap-1">
+                              勝ち/負け
+                              <span className="text-red-500 text-sm">*</span>
+                            </label>
+                          </CardHeader>
+                          <CardBody className="">
+                            <RadioGroup
+                              isRequired
+                              size="md"
+                              label=""
+                              orientation="horizontal"
+                              classNames={{
+                                base: "items-center",
+                                wrapper: "flex items-center gap-4",
+                              }}
+                            >
+                              <Radio value="win">勝ち</Radio>
+                              <Radio value="lose">負け</Radio>
+                            </RadioGroup>
+                          </CardBody>
+                        </Card>
                       </div>
 
                       <div className="flex items-center gap-5">
                         <NumberInput
-                          isRequired
-                          className="max-w-xs"
-                          defaultValue={1024}
-                          label="your_prizes"
-                          placeholder="Enter the amount"
+                          className=""
+                          minValue={0}
+                          maxValue={6}
+                          defaultValue={0}
+                          label="自分"
+                          placeholder=""
                         />
+
+                        <span className="text-bold text-3xl">-</span>
+
                         <NumberInput
-                          isRequired
-                          className="max-w-xs"
-                          defaultValue={1024}
-                          label="oppoments_prizes"
-                          placeholder="Enter the amount"
+                          className=""
+                          minValue={0}
+                          maxValue={6}
+                          defaultValue={0}
+                          label="相手"
+                          placeholder=""
                         />
                       </div>
 
                       <Textarea
                         size="md"
-                        className="w-full"
-                        label="Description"
-                        placeholder="Enter your description"
+                        className=""
+                        label="対戦メモ"
+                        placeholder="対戦のメモを残そう"
                       />
                     </div>
                   </Tab>
                   <Tab key="bo3" title="BO3" isDisabled></Tab>
                 </Tabs>
               </ModalBody>
-              <ModalFooter>
+              <ModalFooter className="flex items-center">
+                <div className="w-full">
+                  <div className="flex items-center gap-6">
+                    <Switch size="md">不戦勝</Switch>
+                    <Switch size="md">不戦敗</Switch>
+                  </div>
+                </div>
+                {/*
                 <Button
                   color="default"
                   variant="solid"
@@ -287,6 +357,7 @@ export default function CreateMatchModal() {
                 >
                   閉じる
                 </Button>
+                */}
                 <Button
                   color="primary"
                   variant="solid"

@@ -96,7 +96,7 @@ export default function ArchiveDeckModal({ deck, setDeck, isOpen, onOpenChange }
     <Modal
       isOpen={isOpen}
       size={"sm"}
-      placement={"center"}
+      placement="center"
       hideCloseButton
       onOpenChange={onOpenChange}
       isDismissable={!isDisabled}

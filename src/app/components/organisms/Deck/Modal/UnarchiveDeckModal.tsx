@@ -97,7 +97,7 @@ export default function UnarchiveDeckModal({
     <Modal
       isOpen={isOpen}
       size={"sm"}
-      placement={"center"}
+      placement="center"
       hideCloseButton
       onOpenChange={onOpenChange}
       isDismissable={!isDisabled}

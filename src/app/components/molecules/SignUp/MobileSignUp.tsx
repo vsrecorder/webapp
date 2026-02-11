@@ -11,13 +11,13 @@ export default function MobileSignUp() {
 
   return (
     <div className="lg:hidden">
-      <Button size={"md"} onPress={onOpen}>
+      <Button size="md" onPress={onOpen}>
         新規登録
       </Button>
 
       <Modal
         backdrop={"opaque"}
-        placement={"center"}
+        placement="center"
         size={"sm"}
         isOpen={isOpen}
         onOpenChange={onOpenChange}

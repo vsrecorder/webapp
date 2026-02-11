@@ -155,7 +155,7 @@ export default function CreateDeckCodeModal({
     <Modal
       isOpen={isOpen}
       size={"sm"}
-      placement={"center"}
+      placement="center"
       hideCloseButton
       onOpenChange={onOpenChange}
       isDismissable={!isDisabled}

@@ -11,14 +11,14 @@ export default function DesktopSignIn() {
 
   return (
     <div className="hidden lg:block">
-      <Button size={"md"} onPress={onOpen}>
+      <Button size="md" onPress={onOpen}>
         ログイン
       </Button>
 
       <Modal
         backdrop={"opaque"}
-        placement={"center"}
-        size={"md"}
+        placement="center"
+        size="md"
         isOpen={isOpen}
         onOpenChange={onOpenChange}
       >

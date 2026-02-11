@@ -24,7 +24,7 @@ export default function SocialSignIn() {
       <div className="flex items-center">
         <div className="mx-3">
           <Button
-            size={"md"}
+            size="md"
             isDisabled={false}
             isLoading={isLoadingGoogleSignInButton}
             onPress={() => {
@@ -41,7 +41,7 @@ export default function SocialSignIn() {
 
         <div className="mx-3">
           <Button
-            size={"md"}
+            size="md"
             isDisabled={false}
             isLoading={isLoadingXSignInButton}
             onPress={() => {

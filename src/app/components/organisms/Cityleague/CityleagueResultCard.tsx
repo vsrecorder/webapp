@@ -96,7 +96,7 @@ export default function CityleagueResultCard({ result }: Props) {
       <Modal
         isOpen={isOpen}
         size={"sm"}
-        placement={"center"}
+        placement="center"
         hideCloseButton
         onOpenChange={onOpenChange}
       >

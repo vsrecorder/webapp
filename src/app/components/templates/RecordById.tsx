@@ -87,7 +87,7 @@ export default function TemplateRecordById({ id }: Props) {
       <OfficialEventInfo id={record.official_event_id} />
       <Divider />
       <Matches record_id={record.id} />
-      <CreateMatchModal />
+      <CreateMatchModal record={record} />
     </div>
   );
 }

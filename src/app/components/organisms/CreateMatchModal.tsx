@@ -1,7 +1,5 @@
 "use client";
 
-import { useSWRConfig } from "swr";
-
 import { useState } from "react";
 import { useEffect } from "react";
 
@@ -30,88 +28,116 @@ import { Card, CardBody } from "@heroui/react";
 import { LuCirclePlus } from "react-icons/lu";
 import { LuPlus } from "react-icons/lu";
 
-import { DeckCreateRequestType } from "@app/types/deck";
+import { RecordGetByIdResponseType } from "@app/types/record";
+import { MatchCreateRequestType } from "@app/types/match";
+import { GameRequestType } from "@app/types/game";
 
-export default function CreateMatchModal() {
+type Props = {
+  record: RecordGetByIdResponseType;
+};
+
+export default function CreateMatchModal({ record }: Props) {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [deckname, setDeckName] = useState<string>("");
-  const [deckcode, setDeckCode] = useState<string>("");
-  const [isSelectedPrivateCode, setIsSelectedPrivateCode] = useState<boolean>(false);
-  const [isValidatedDeckCode, setIsValidatedDeckCode] = useState<boolean>(false);
-  const [isInvalid, setIsInvalid] = useState<boolean>(true);
 
-  const { mutate } = useSWRConfig();
+  const [qualifyingRoundFlg, setQualifyingRoundFlg] = useState(false);
+  const [finalTournamentFlg, setFinalTournamentFlg] = useState(false);
+  const [isValidedFlg, setIsValidedFlg] = useState(true);
 
-  /*
-    入力項目のチェック
-    - デッキ名
-    - デッキコード
-      - 有効なデッキコードかどうか
-  */
+  const [isVictory, setIsVictory] = useState("-1");
+  const [isGoFirst, setIsGoFirst] = useState("-1");
+
+  const [isDisabled, setIsDisabled] = useState(false);
+
+  const [isDefaultVictory, setIsDefaultVictory] = useState(false);
+  const [isDefaultDefeat, setIsDefaultDefeat] = useState(false);
+
+  const [yourPrizeCards, setYourPrizeCards] = useState(0);
+  const [opponentsPrizeCards, setOpponentsPrizeCards] = useState(0);
+
+  const [memo, setMemo] = useState("");
+
   useEffect(() => {
-    if (deckname != "" && deckcode != "" && isValidatedDeckCode) {
-      setIsInvalid(false);
+    if (qualifyingRoundFlg && finalTournamentFlg) {
+      setIsValidedFlg(false);
     } else {
-      setIsInvalid(true);
+      setIsValidedFlg(true);
     }
-  }, [deckname, deckcode, isValidatedDeckCode]);
+  }, [qualifyingRoundFlg, finalTournamentFlg]);
 
-  /*
-    デッキコードが有効かどうかチェック
-  */
   useEffect(() => {
-    if (!deckcode) {
-      setIsValidatedDeckCode(true);
-      return;
-    }
+    // 不戦勝/不戦敗が選択された場合
+    if (isDefaultVictory || isDefaultDefeat) {
+      setIsDisabled(true);
 
-    const checkDeckCode = async () => {
-      try {
-        const formData = new FormData();
-        formData.append("deckID", deckcode);
+      setDeckName("");
+      setIsVictory("");
+      setIsGoFirst("");
 
-        const res = await fetch("https://www.pokemon-card.com/deck/deckIDCheck.php", {
-          method: "POST",
-          body: formData,
-        });
+      setYourPrizeCards(0);
+      setOpponentsPrizeCards(0);
 
-        const data = await res.json();
-        setIsValidatedDeckCode(data.result === 1);
-      } catch (error) {
-        console.error(error);
-        setIsValidatedDeckCode(false);
+      if (isDefaultVictory) {
+        setIsVictory("1");
+      } else {
+        setIsVictory("0");
       }
-    };
-
-    checkDeckCode();
-  }, [deckcode]);
+      // どちらかが戻された場合
+    } else if (!isDefaultVictory && !isDefaultDefeat) {
+      setIsDisabled(false);
+      setIsVictory("-1");
+    }
+  }, [isDefaultVictory, isDefaultDefeat]);
 
   /*
     マッチ作成のAPIを叩く関数
     Next.jsのAPI Routesを経由してAPIを叩く
   */
-  const createDeck = async () => {
-    const deck: DeckCreateRequestType = {
-      name: deckname,
-      private_flg: false,
-      deck_code: deckcode,
-      private_deck_code_flg: isSelectedPrivateCode,
+  const createBO1Match = async (onClose: () => void) => {
+    let games: GameRequestType[] = [];
+
+    if (!isDefaultVictory && !isDefaultDefeat) {
+      const game: GameRequestType = {
+        go_first: isGoFirst === "1",
+        winnging_flg: isVictory === "1",
+        your_prize_cards: yourPrizeCards,
+        opponents_prize_cards: opponentsPrizeCards,
+        memo: "",
+      };
+
+      games = [game];
+    }
+
+    const match: MatchCreateRequestType = {
+      record_id: record.id,
+      deck_id: record.deck_id,
+      deck_code_id: record.deck_code_id,
+      opponents_user_id: "",
+      bo3_flg: false,
+      qualifying_round_flg: qualifyingRoundFlg,
+      final_tournament_flg: finalTournamentFlg,
+      default_victory_flg: isDefaultVictory,
+      default_defeat_flg: isDefaultDefeat,
+      victory_flg: isVictory === "1",
+      opponents_deck_info: deckname,
+      memo: memo,
+      games: games,
     };
 
     const toastId = addToast({
-      title: "デッキ作成中",
+      title: "対戦結果を追加中",
       description: "しばらくお待ちください",
       color: "default",
       promise: new Promise(() => {}),
     });
 
     try {
-      const res = await fetch("/api/decks", {
+      const res = await fetch("/api/matches", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(deck),
+        body: JSON.stringify(match),
       });
 
       if (!res.ok) {
@@ -123,14 +149,14 @@ export default function CreateMatchModal() {
         closeToast(toastId);
       }
 
-      mutate(`/api/decks/all`);
-
       addToast({
-        title: "デッキ作成完了",
-        description: "デッキを作成しました",
+        title: "対戦結果の追加が完了",
+        description: "対戦結果を追加しました",
         color: "success",
         timeout: 3000,
       });
+
+      onClose();
     } catch (error) {
       console.error(error);
 
@@ -142,10 +168,10 @@ export default function CreateMatchModal() {
       }
 
       addToast({
-        title: "デッキ作成失敗",
+        title: "対戦結果の追加に失敗",
         description: (
           <>
-            デッキの作成に失敗しました
+            対戦結果の追加に失敗しました
             <br />
             {errorMessage}
           </>
@@ -153,6 +179,8 @@ export default function CreateMatchModal() {
         color: "danger",
         timeout: 5000,
       });
+
+      onClose();
     }
   };
 
@@ -174,9 +202,22 @@ export default function CreateMatchModal() {
         //hideCloseButton
         onOpenChange={onOpenChange}
         onClose={() => {
+          setQualifyingRoundFlg(false);
+          setFinalTournamentFlg(false);
+
+          setIsDisabled(false);
+
           setDeckName("");
-          setDeckCode("");
-          setIsSelectedPrivateCode(false);
+          setIsVictory("");
+          setIsGoFirst("");
+
+          setIsDefaultVictory(false);
+          setIsDefaultDefeat(false);
+
+          setYourPrizeCards(0);
+          setOpponentsPrizeCards(0);
+
+          setMemo("");
         }}
         className="h-[calc(100dvh-176px)] max-h-[calc(100dvh-176px)] mt-26 my-0 rounded-b-none"
         classNames={{
@@ -200,14 +241,32 @@ export default function CreateMatchModal() {
                           <CheckboxGroup
                             size="md"
                             label=""
+                            isInvalid={!isValidedFlg}
+                            errorMessage="同時に選択することはできません"
                             orientation="horizontal"
                             classNames={{
                               base: "",
-                              wrapper: "flex items-center gap-4",
+                              wrapper: "flex items-center justify-center gap-21 mx-auto",
                             }}
                           >
-                            <Checkbox value="qualifying_round">予選</Checkbox>
-                            <Checkbox value="final_tournament">トーナメント</Checkbox>
+                            <Checkbox
+                              value="qualifying_round"
+                              isSelected={qualifyingRoundFlg}
+                              onChange={(e) => {
+                                setQualifyingRoundFlg(e.target.checked);
+                              }}
+                            >
+                              予選
+                            </Checkbox>
+                            <Checkbox
+                              value="final_tournament"
+                              isSelected={finalTournamentFlg}
+                              onChange={(e) => {
+                                setFinalTournamentFlg(e.target.checked);
+                              }}
+                            >
+                              トーナメント
+                            </Checkbox>
                           </CheckboxGroup>
                         </CardBody>
                       </Card>
@@ -223,6 +282,7 @@ export default function CreateMatchModal() {
                           <div className="flex gap-3 w-full">
                             <div className="flex gap-2">
                               <Button
+                                isDisabled={isDisabled}
                                 isIconOnly
                                 variant="bordered"
                                 className="rounded-xl border-gray-400"
@@ -231,6 +291,7 @@ export default function CreateMatchModal() {
                               </Button>
 
                               <Button
+                                isDisabled={isDisabled}
                                 isIconOnly
                                 variant="bordered"
                                 className="rounded-xl border-gray-400"
@@ -241,6 +302,7 @@ export default function CreateMatchModal() {
 
                             <Input
                               isRequired
+                              isDisabled={isDisabled}
                               size="md"
                               radius="md"
                               type="text"
@@ -265,16 +327,19 @@ export default function CreateMatchModal() {
                           <CardBody className="">
                             <RadioGroup
                               isRequired
+                              isDisabled={isDisabled}
                               size="md"
                               label=""
                               orientation="horizontal"
+                              value={isGoFirst}
+                              onValueChange={setIsGoFirst}
                               classNames={{
                                 base: "items-center",
                                 wrapper: "flex items-center gap-4",
                               }}
                             >
-                              <Radio value="head">先攻</Radio>
-                              <Radio value="tail">後攻</Radio>
+                              <Radio value="1">先攻</Radio>
+                              <Radio value="0">後攻</Radio>
                             </RadioGroup>
                           </CardBody>
                         </Card>
@@ -289,16 +354,19 @@ export default function CreateMatchModal() {
                           <CardBody className="">
                             <RadioGroup
                               isRequired
+                              isDisabled={isDisabled}
                               size="md"
                               label=""
                               orientation="horizontal"
+                              value={isVictory}
+                              onValueChange={setIsVictory}
                               classNames={{
                                 base: "items-center",
                                 wrapper: "flex items-center gap-4",
                               }}
                             >
-                              <Radio value="win">勝ち</Radio>
-                              <Radio value="lose">負け</Radio>
+                              <Radio value="1">勝ち</Radio>
+                              <Radio value="0">負け</Radio>
                             </RadioGroup>
                           </CardBody>
                         </Card>
@@ -306,23 +374,29 @@ export default function CreateMatchModal() {
 
                       <div className="flex items-center gap-5">
                         <NumberInput
-                          className=""
+                          label="自分"
+                          placeholder=""
+                          isDisabled={isDisabled}
                           minValue={0}
                           maxValue={6}
                           defaultValue={0}
-                          label="自分"
-                          placeholder=""
+                          value={yourPrizeCards}
+                          onValueChange={setYourPrizeCards}
+                          className=""
                         />
 
                         <span className="text-bold text-3xl">-</span>
 
                         <NumberInput
-                          className=""
+                          label="相手"
+                          placeholder=""
+                          isDisabled={isDisabled}
                           minValue={0}
                           maxValue={6}
                           defaultValue={0}
-                          label="相手"
-                          placeholder=""
+                          value={opponentsPrizeCards}
+                          onValueChange={setOpponentsPrizeCards}
+                          className=""
                         />
                       </div>
 
@@ -331,6 +405,10 @@ export default function CreateMatchModal() {
                         className=""
                         label="対戦メモ"
                         placeholder="対戦のメモを残そう"
+                        onChange={(e) => {
+                          const inputValue = e.target.value;
+                          setMemo(inputValue);
+                        }}
                       />
                     </div>
                   </Tab>
@@ -340,34 +418,30 @@ export default function CreateMatchModal() {
               <ModalFooter className="flex items-center">
                 <div className="w-full">
                   <div className="flex items-center gap-6">
-                    <Switch size="md">不戦勝</Switch>
-                    <Switch size="md">不戦敗</Switch>
+                    <Switch
+                      size="md"
+                      isDisabled={isDisabled && isDefaultDefeat}
+                      isSelected={isDefaultVictory}
+                      onValueChange={setIsDefaultVictory}
+                    >
+                      不戦勝
+                    </Switch>
+                    <Switch
+                      size="md"
+                      isDisabled={isDisabled && isDefaultVictory}
+                      isSelected={isDefaultDefeat}
+                      onValueChange={setIsDefaultDefeat}
+                    >
+                      不戦敗
+                    </Switch>
                   </div>
                 </div>
-                {/*
-                <Button
-                  color="default"
-                  variant="solid"
-                  onPress={() => {
-                    setDeckName("");
-                    setDeckCode("");
-                    setIsSelectedPrivateCode(false);
-                    onClose();
-                  }}
-                >
-                  閉じる
-                </Button>
-                */}
                 <Button
                   color="primary"
                   variant="solid"
-                  isDisabled={isInvalid}
+                  isDisabled={!isValidedFlg}
                   onPress={() => {
-                    createDeck();
-                    setDeckName("");
-                    setDeckCode("");
-                    setIsSelectedPrivateCode(false);
-                    onClose();
+                    createBO1Match(onClose);
                   }}
                 >
                   作成

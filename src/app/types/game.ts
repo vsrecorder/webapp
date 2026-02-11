@@ -9,3 +9,13 @@ export type GameType = {
   opponents_prize_cards: number;
   memo: string;
 };
+
+export type GameRequestType = {
+  go_first: boolean;
+  winnging_flg: boolean;
+  your_prize_cards: number;
+  opponents_prize_cards: number;
+  memo: string;
+};
+
+export type GameResponseType = GameType;

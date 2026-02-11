@@ -6,6 +6,13 @@ import { Card, CardHeader, CardBody } from "@heroui/react";
 import { Image } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
 
+import { LuMapPin } from "react-icons/lu";
+import { LuFlag } from "react-icons/lu";
+import { LuEarth } from "react-icons/lu";
+import { LuLayers } from "react-icons/lu";
+
+import { OfficialEventRecordSkeleton } from "@app/components/organisms/Record/Skeleton/OfficialEventRecordSkeleton";
+
 import { RecordType } from "@app/types/record";
 import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
 import { DeckGetByIdResponseType } from "@app/types/deck";
@@ -122,34 +129,7 @@ export default function OfficialEventRecord({ record }: Props) {
   }
 
   if (loadingOfficialEvent || !officialEvent) {
-    return (
-      <div className="pb-3 w-full">
-        <Card shadow="sm" className="py-3 w-full">
-          <CardHeader className="px-5 pb-0 pt-0 flex-col items-start gap-1.5">
-            <div className="font-bold text-tiny">
-              <Skeleton className="h-4 w-26" />
-            </div>
-            <div className="font-bold truncate w-full min-w-0">
-              <Skeleton className="h-6 w-50" />
-            </div>
-          </CardHeader>
-          <CardBody className="px-5 py-3">
-            <div className="flex items-center gap-5">
-              <Skeleton className="h-24 w-24" />
-
-              <div className="flex flex-col gap-2 w-full min-w-0">
-                <div className="font-bold text-tiny">
-                  <Skeleton className="h-3 w-32" />
-                </div>
-                <div className="font-bold truncate w-full min-w-0">
-                  <Skeleton className="h-5 w-44" />
-                </div>
-              </div>
-            </div>
-          </CardBody>
-        </Card>
-      </div>
-    );
+    return <OfficialEventRecordSkeleton />;
   }
 
   return (
@@ -164,7 +144,7 @@ export default function OfficialEventRecord({ record }: Props) {
               weekday: "short",
             })}
           </div>
-          <div className="font-bold truncate min-w-0">
+          <div className="font-bold truncate w-full min-w-0">
             {loadingOfficialEvent ? (
               <Skeleton className="h-6 w-50" />
             ) : (
@@ -172,7 +152,7 @@ export default function OfficialEventRecord({ record }: Props) {
             )}
           </div>
         </CardHeader>
-        <CardBody className="px-5 py-3">
+        <CardBody className="px-7 py-3">
           <div className="flex items-center gap-5">
             <div>
               {officialEvent.type_id === 1 &&
@@ -305,17 +285,48 @@ export default function OfficialEventRecord({ record }: Props) {
                 ))}
             </div>
 
-            <div className="flex flex-col gap-1 w-full">
-              <div className="text-tiny">{officialEvent.shop_name}</div>
-              <div className="text-tiny">
-                {officialEvent.league_title}
-                {officialEvent.league_title !== "その他" && <>リーグ</>} /
-                {officialEvent.regulation_title}
+            <div className="flex flex-col gap-1.5 truncate w-full min-w-0">
+              <div className="text-tiny truncate w-full min-w-0">
+                <div className="flex items-center gap-1">
+                  <LuMapPin className="text-gray-500" />
+
+                  <div className="truncate w-full min-w-0">
+                    {officialEvent.shop_name
+                      ? officialEvent.shop_name
+                      : officialEvent.venue}
+                  </div>
+                </div>
               </div>
-              <div className="text-tiny truncate min-w-0">
-                {loadingDeck ? <Skeleton className="h-5 w-44" /> : deck?.name}
+              <div className="text-tiny truncate w-full min-w-0">
+                <div className="flex items-center gap-1">
+                  <LuFlag className="text-gray-500" />
+
+                  <div className="truncate w-full min-w-0">
+                    {officialEvent.league_title}
+                    {officialEvent.league_title !== "その他" && <>リーグ</>} /
+                    {officialEvent.regulation_title}
+                  </div>
+                </div>
               </div>
-              <div className="text-tiny">『{officialEvent.environment_title}』</div>
+              <div className="text-tiny truncate w-full min-w-0">
+                {loadingDeck && !deck ? (
+                  <Skeleton className="h-4 w-32" />
+                ) : (
+                  <div className="flex items-center gap-1">
+                    <LuLayers className="text-gray-500" />
+
+                    <div className="truncate w-full min-w-0">{deck?.name}</div>
+                  </div>
+                )}
+              </div>
+              <div className="text-tiny truncate w-full min-w-0">
+                <div className="flex items-center gap-1">
+                  <LuEarth className="text-gray-500" />
+                  <div className="truncate w-full min-w-0">
+                    『{officialEvent.environment_title}』
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </CardBody>

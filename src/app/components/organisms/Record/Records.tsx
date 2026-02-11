@@ -6,7 +6,7 @@ import { Spinner } from "@heroui/spinner";
 import { Button } from "@heroui/react";
 
 import OfficialEventRecord from "@app/components/organisms/Record/OfficialEventRecord";
-import OfficialEventRecordSkeleton from "@app/components/organisms/Record/Skeleton/OfficialEventRecordSkeleton";
+import { OfficialEventRecordSkeletons } from "@app/components/organisms/Record/Skeleton/OfficialEventRecordSkeleton";
 
 import { LuCirclePlus } from "react-icons/lu";
 
@@ -171,7 +171,7 @@ export default function Records({ event_type }: Props) {
         )}
 
         {/* ローディング表示 */}
-        {!isInitialLoaded && <OfficialEventRecordSkeleton />}
+        {!isInitialLoaded && <OfficialEventRecordSkeletons />}
         {isInitialLoaded && isLoading && <Spinner size="lg" className="pt-0" />}
 
         {isInitialLoaded && !isLoading && hasMore && (

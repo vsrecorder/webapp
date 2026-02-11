@@ -150,9 +150,6 @@ export default function ShowDeckModal({
                   <div className="flex items-center justify-between w-full">
                     <div className="flex items-center gap-3">
                       <div className="font-bold text-large truncate">{deck.name}</div>
-                      {/*
-                      {new Date(deck.archived_at).getFullYear() === 1 && <></>}
-                      */}
                       <div className="pb-2.5">
                         <div className="text-lg">
                           <LuSquarePen
@@ -178,7 +175,7 @@ export default function ShowDeckModal({
                   </div>
                 </>
               </ModalHeader>
-              <ModalBody className="px-1 py-1 pb-6 flex flex-col gap-5 overflow-y-auto">
+              <ModalBody className="px-1 py-1 pb-3 flex flex-col gap-5 overflow-y-auto">
                 <div className="pl-3 flex flex-col justify-center gap-3">
                   <div className="text-tiny">バージョンID：{version}</div>
                   <div className="flex items-center gap-2">

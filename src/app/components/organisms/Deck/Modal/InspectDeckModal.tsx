@@ -48,14 +48,14 @@ export default function InspectDeckModal({ deckcode, isOpen, onOpenChange }: Pro
       <ModalContent>
         {() => (
           <>
-            {/* スワイプ検知エリア */}
+            {/* スワイプ検知 */}
             <ModalHeader
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
               className="px-3 py-3 flex flex-col gap-1 cursor-grab"
             >
               <div className="mx-auto h-1 w-15 rounded-full bg-default-300" />
-              初動チェック
+              <div>初動チェック</div>
             </ModalHeader>
             <ModalBody className="overflow-y-auto">
               <DeckCardSummary deckcode={deckcode} />

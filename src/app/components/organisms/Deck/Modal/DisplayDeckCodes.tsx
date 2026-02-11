@@ -117,7 +117,7 @@ export default function DisplayDeckCodesModal({ deck, isOpen, onOpenChange }: Pr
       <ModalContent>
         {() => (
           <>
-            {/* スワイプ検知エリア */}
+            {/* スワイプ検知 */}
             <ModalHeader
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}

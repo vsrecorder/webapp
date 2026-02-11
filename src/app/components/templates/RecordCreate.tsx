@@ -551,6 +551,8 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                   setSelectedDeckOption(option);
                   setImageLoaded(false);
                 }}
+                menuPosition="fixed"
+                menuShouldScrollIntoView={true}
                 formatOptionLabel={(option, { context }) => {
                   if (context === "menu") {
                     return (
@@ -572,6 +574,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                                 alt={option.latest_deck_code.code}
                                 src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${option.latest_deck_code.code}.jpg`}
                                 className=""
+                                onLoad={() => setImageLoaded(true)}
                               />
                             </div>
                           </span>
@@ -625,6 +628,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
             </Button>
           </div>
         </Tab>
+
         <Tab key="tonamel" title="Tonamel">
           <div className="pt-9 flex flex-col gap-2">
             <div className="flex flex-col gap-1 pt-1">

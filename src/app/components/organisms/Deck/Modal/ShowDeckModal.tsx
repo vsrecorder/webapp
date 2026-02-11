@@ -31,7 +31,7 @@ import InspectDeckModal from "@app/components/organisms/Deck/Modal/InspectDeckMo
 import DisplayRecordsModal from "@app/components/organisms/Deck/Modal/DisplayRecordsModal";
 import DisplayDeckCodesModal from "@app/components/organisms/Deck/Modal/DisplayDeckCodes";
 
-//import DeckCardSummary from "@app/components/organisms/Deck/DeckCardSummary";
+import DeckCardSummary from "@app/components/organisms/Deck/DeckCardSummary";
 
 import { LuExternalLink } from "react-icons/lu";
 
@@ -131,10 +131,12 @@ export default function ShowDeckModal({
     <>
       <Modal
         isOpen={isOpen}
-        size={"md"}
-        placement={"center"}
+        size="md"
+        placement="center"
         hideCloseButton
         onOpenChange={onOpenChange}
+        onClose={() => {}}
+        className="h-[calc(100dvh-256px)] max-h-[calc(100dvh-256px)]"
         classNames={{
           base: "sm:max-w-full",
           closeButton: "text-xl",
@@ -176,7 +178,7 @@ export default function ShowDeckModal({
                   </div>
                 </>
               </ModalHeader>
-              <ModalBody className="px-1 py-1 pb-3 flex flex-col gap-3">
+              <ModalBody className="px-1 py-1 pb-6 flex flex-col gap-5 overflow-y-auto">
                 <div className="pl-3 flex flex-col justify-center gap-3">
                   <div className="text-tiny">バージョンID：{version}</div>
                   <div className="flex items-center gap-2">
@@ -232,11 +234,9 @@ export default function ShowDeckModal({
                   )}
                 </div>
 
-                {/*
-                <div className="">
+                <div className="px-5 overflow-y-auto">
                   {deckcode && <DeckCardSummary deckcode={deckcode} />}
                 </div>
-                */}
               </ModalBody>
               <ModalFooter>
                 {new Date(deck.archived_at).getFullYear() === 1 ? (

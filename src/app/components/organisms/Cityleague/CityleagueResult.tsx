@@ -116,7 +116,7 @@ export default function CityleagueResult({ event_result }: Props) {
             <small className="font-bold">{event.league_title}リーグ</small>
           </Chip>
           <Chip size="sm" radius="md" variant="bordered">
-            <small className="font-bold">{event.environment_title}</small>
+            <small className="font-bold">『{event.environment_title}』</small>
           </Chip>
           {isNew(new Date(event.date)) && (
             <Chip
@@ -124,7 +124,6 @@ export default function CityleagueResult({ event_result }: Props) {
               radius="md"
               classNames={{
                 base: "bg-linear-to-br from-indigo-500 to-pink-500 border-small border-white/50 ",
-                //base: "bg-linear-to-br from-indigo-500 to-pink-500 border-small border-white/50 shadow-pink-500/30",
                 content: "drop-shadow-xs shadow-black text-white",
               }}
               variant="shadow"

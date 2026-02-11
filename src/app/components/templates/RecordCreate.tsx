@@ -615,7 +615,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
 
             <Button
               color="primary"
-              isDisabled={true}
+              isDisabled={false}
               onPress={async () => {
                 await createOfficialEventRecord(
                   selectedOfficialEventOption ? selectedOfficialEventOption.id : 0,

@@ -170,7 +170,7 @@ export default function CreateDeckFloating({ onCreate }: Props) {
     <>
       <LuCirclePlus
         className="lg:hidden fixed z-30 w-12 h-12 bottom-35 right-3 text-gray-600 bg-blue-300 border-0 rounded-full"
-        onClick={() => onOpen()}
+        onClick={onOpen}
       />
 
       <Modal

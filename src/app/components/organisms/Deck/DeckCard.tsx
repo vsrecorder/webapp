@@ -29,7 +29,7 @@ export default function DeckCard({ deckData, deckcodeData }: Props) {
 
   return (
     <>
-      <div className="" onClick={() => onOpen()}>
+      <div className="" onClick={onOpen}>
         <Card className="pt-3 w-full">
           <CardHeader className="pt-0 pb-0 px-3">
             <div className="flex flex-col gap-1">

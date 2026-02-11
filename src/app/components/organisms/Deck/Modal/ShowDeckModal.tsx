@@ -5,10 +5,11 @@ import { useEffect } from "react";
 import { SetStateAction, Dispatch } from "react";
 
 import { Skeleton } from "@heroui/react";
-import { Link } from "@heroui/react";
 import { Image } from "@heroui/react";
 import { Snippet } from "@heroui/react";
 import { Chip } from "@heroui/chip";
+
+import Link from "next/link";
 
 import {
   Modal,
@@ -162,11 +163,7 @@ export default function ShowDeckModal({
                     </div>
 
                     <div className="pb-1">
-                      <Link
-                        underline="always"
-                        href={`/decks/${deck.id}`}
-                        className="text-gray-500"
-                      >
+                      <Link href={`/decks/${deck.id}`} className="text-gray-500">
                         <div className="text-2xl">
                           <LuExternalLink />
                         </div>
@@ -239,7 +236,6 @@ export default function ShowDeckModal({
                 {new Date(deck.archived_at).getFullYear() === 1 ? (
                   <div className="flex items-center justify-center gap-7 mx-auto">
                     <Link
-                      underline="always"
                       href={`/records/create?deck_id=${deck.id}`}
                       className="text-black"
                     >

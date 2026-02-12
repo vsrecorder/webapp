@@ -115,7 +115,7 @@ export default function DeleteDeckModal({ deck, setDeck, isOpen, onOpenChange }:
               <Alert color="danger">
                 <Checkbox
                   size={"sm"}
-                  color="default"
+                  color="danger"
                   isDisabled={isDisabled}
                   isSelected={isSelected}
                   defaultSelected={false}

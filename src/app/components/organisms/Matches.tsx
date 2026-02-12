@@ -2,6 +2,15 @@
 
 import { useEffect, useState } from "react";
 
+import {
+  Table,
+  TableHeader,
+  TableColumn,
+  TableBody,
+  TableRow,
+  TableCell,
+} from "@heroui/react";
+
 import { MatchGetResponseType } from "@app/types/match";
 
 async function fetchMatches(record_id: string) {
@@ -72,21 +81,44 @@ export default function Matches({ record_id }: Props) {
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      {matches.map((match) => (
-        <div key={match.id}>
-          <div>ID: {match.id}</div>
-          <div>勝敗: {match.victory_flg === true ? "⭕" : "❌"}</div>
-          <div>相手のデッキ: {match.opponents_deck_info} </div>
-          {match.games.map((game) => (
-            <div key={game.id}>
-              <div>ID: {game.id}</div>
-              <div>先後: {game.go_first === true ? "先攻" : "後攻"}</div>
-              <div>メモ: {match.memo} </div>
-            </div>
+    <>
+      <Table
+        isStriped
+        hideHeader
+        //align="center"
+        aria-label="対戦結果"
+        classNames={{
+          th: "px-0 py-4",
+          td: "px-0 py-4",
+        }}
+      >
+        <TableHeader>
+          <TableColumn>勝ち/負け</TableColumn>
+          <TableColumn>先攻/後攻</TableColumn>
+          <TableColumn>相手のデッキ</TableColumn>
+        </TableHeader>
+        <TableBody>
+          {matches.map((match) => (
+            <TableRow key={match.id}>
+              <TableCell>{match.victory_flg === true ? "　⭕" : "　❌"}</TableCell>
+              <TableCell>
+                {match.default_victory_flg || match.default_defeat_flg ? (
+                  <>-</>
+                ) : (
+                  <>{match.games[0].go_first ? "先" : "後"}</>
+                )}
+              </TableCell>
+              <TableCell>
+                {match.default_victory_flg || match.default_defeat_flg ? (
+                  <>{match.default_victory_flg ? "不戦勝" : "不戦敗"}</>
+                ) : (
+                  <>{match.opponents_deck_info}</>
+                )}
+              </TableCell>
+            </TableRow>
           ))}
-        </div>
-      ))}
-    </div>
+        </TableBody>
+      </Table>
+    </>
   );
 }

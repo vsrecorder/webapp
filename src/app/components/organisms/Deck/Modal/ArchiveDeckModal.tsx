@@ -108,10 +108,10 @@ export default function ArchiveDeckModal({ deck, setDeck, isOpen, onOpenChange }
               このデッキをアーカイブしますか？
             </ModalHeader>
             <ModalBody className="px-2 py-1">
-              <Alert color="warning">
+              <Alert color="danger">
                 <Checkbox
                   size={"sm"}
-                  color="default"
+                  color="danger"
                   isDisabled={isDisabled}
                   isSelected={isSelected}
                   defaultSelected={false}

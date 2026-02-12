@@ -108,6 +108,8 @@ export default function CreateMatchModal({ record }: Props) {
     Next.jsのAPI Routesを経由してAPIを叩く
   */
   const createBO1Match = async (onClose: () => void) => {
+    setCouldCreate(false);
+
     let games: GameRequestType[] = [];
 
     if (isGoFirst === "-1" || isVictory === "-1") {
@@ -215,10 +217,10 @@ export default function CreateMatchModal({ record }: Props) {
     <>
       <Button size="sm" radius="full" onPress={onOpen}>
         <div className="flex items-center gap-1">
-          <span className="text-xs">
+          <span className="text-bold text-tiny ">
             <LuCirclePlus />
           </span>
-          <span className="text-xs">対戦結果を追加する</span>
+          <span className="text-bold text-tiny ">対戦結果を追加する</span>
         </div>
       </Button>
 

@@ -183,7 +183,7 @@ export default function CreateDeckCodeModal({
                 type="text"
                 label="デッキコード"
                 labelPlacement="outside"
-                placeholder="デッキコードを入力"
+                placeholder={deckcode ? deckcode.code : "デッキコードを入力"}
                 value={newdeckcode}
                 onChange={(e) => setNewDeckCode(e.target.value)}
               />
@@ -205,11 +205,13 @@ export default function CreateDeckCodeModal({
                   shadow="none"
                   alt={newdeckcode ? newdeckcode : "デッキコードなし"}
                   src={
-                    isValidedDeckCode || newdeckcode
+                    isValidedDeckCode && newdeckcode
                       ? `https://www.pokemon-card.com/deck/deckView.php/deckID/${newdeckcode}.png`
-                      : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
+                      : deckcode
+                        ? `https://www.pokemon-card.com/deck/deckView.php/deckID/${deckcode.code}.png`
+                        : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
                   }
-                  className=""
+                  className={isValidedDeckCode && newdeckcode ? "" : "grayscale-75"}
                   onLoad={() => setImageLoaded(true)}
                   onError={() => {}}
                 />

@@ -24,9 +24,10 @@ import { NumberInput } from "@heroui/react";
 import { Textarea } from "@heroui/react";
 
 import { Card, CardBody } from "@heroui/react";
+import { Image } from "@heroui/react";
 
 import { LuCirclePlus } from "react-icons/lu";
-import { LuPlus } from "react-icons/lu";
+//import { LuPlus } from "react-icons/lu";
 
 import { RecordGetByIdResponseType } from "@app/types/record";
 import { MatchCreateRequestType } from "@app/types/match";
@@ -38,16 +39,15 @@ type Props = {
 
 export default function CreateMatchModal({ record }: Props) {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
-  const [deckname, setDeckName] = useState<string>("");
 
   const [qualifyingRoundFlg, setQualifyingRoundFlg] = useState(false);
   const [finalTournamentFlg, setFinalTournamentFlg] = useState(false);
   const [isValidedFlg, setIsValidedFlg] = useState(true);
 
-  const [isVictory, setIsVictory] = useState("-1");
-  const [isGoFirst, setIsGoFirst] = useState("-1");
+  const [opponentsDeckInfo, setOpponentsDeckInfo] = useState<string>("");
 
-  const [isDisabled, setIsDisabled] = useState(false);
+  const [isGoFirst, setIsGoFirst] = useState("-1");
+  const [isVictory, setIsVictory] = useState("-1");
 
   const [isDefaultVictory, setIsDefaultVictory] = useState(false);
   const [isDefaultDefeat, setIsDefaultDefeat] = useState(false);
@@ -56,6 +56,9 @@ export default function CreateMatchModal({ record }: Props) {
   const [opponentsPrizeCards, setOpponentsPrizeCards] = useState(0);
 
   const [memo, setMemo] = useState("");
+
+  const [isDisabled, setIsDisabled] = useState(false);
+  const [couldCreate, setCouldCreate] = useState(false);
 
   useEffect(() => {
     if (qualifyingRoundFlg && finalTournamentFlg) {
@@ -66,13 +69,22 @@ export default function CreateMatchModal({ record }: Props) {
   }, [qualifyingRoundFlg, finalTournamentFlg]);
 
   useEffect(() => {
+    if (opponentsDeckInfo === "" || isGoFirst === "-1" || isVictory === "-1") {
+      setCouldCreate(false);
+    } else {
+      setCouldCreate(true);
+    }
+  }, [opponentsDeckInfo, isGoFirst, isVictory]);
+
+  useEffect(() => {
     // 不戦勝/不戦敗が選択された場合
     if (isDefaultVictory || isDefaultDefeat) {
       setIsDisabled(true);
 
-      setDeckName("");
-      setIsVictory("");
-      setIsGoFirst("");
+      setOpponentsDeckInfo("");
+
+      setIsGoFirst("-1");
+      setIsVictory("-1");
 
       setYourPrizeCards(0);
       setOpponentsPrizeCards(0);
@@ -82,9 +94,11 @@ export default function CreateMatchModal({ record }: Props) {
       } else {
         setIsVictory("0");
       }
+
       // どちらかが戻された場合
     } else if (!isDefaultVictory && !isDefaultDefeat) {
       setIsDisabled(false);
+
       setIsVictory("-1");
     }
   }, [isDefaultVictory, isDefaultDefeat]);
@@ -95,6 +109,19 @@ export default function CreateMatchModal({ record }: Props) {
   */
   const createBO1Match = async (onClose: () => void) => {
     let games: GameRequestType[] = [];
+
+    if (isGoFirst === "-1" || isVictory === "-1") {
+      addToast({
+        title: "エラーが発生しました",
+        description: <>エラーが発生しました</>,
+        color: "danger",
+        timeout: 5000,
+      });
+
+      onClose();
+
+      return;
+    }
 
     if (!isDefaultVictory && !isDefaultDefeat) {
       const game: GameRequestType = {
@@ -119,7 +146,7 @@ export default function CreateMatchModal({ record }: Props) {
       default_victory_flg: isDefaultVictory,
       default_defeat_flg: isDefaultDefeat,
       victory_flg: isVictory === "1",
-      opponents_deck_info: deckname,
+      opponents_deck_info: opponentsDeckInfo,
       memo: memo,
       games: games,
     };
@@ -199,17 +226,15 @@ export default function CreateMatchModal({ record }: Props) {
         isOpen={isOpen}
         size="md"
         placement="bottom"
-        //hideCloseButton
         onOpenChange={onOpenChange}
         onClose={() => {
           setQualifyingRoundFlg(false);
           setFinalTournamentFlg(false);
 
-          setIsDisabled(false);
+          setOpponentsDeckInfo("");
 
-          setDeckName("");
-          setIsVictory("");
-          setIsGoFirst("");
+          setIsGoFirst("-1");
+          setIsVictory("-1");
 
           setIsDefaultVictory(false);
           setIsDefaultDefeat(false);
@@ -218,6 +243,9 @@ export default function CreateMatchModal({ record }: Props) {
           setOpponentsPrizeCards(0);
 
           setMemo("");
+
+          setIsDisabled(false);
+          setCouldCreate(false);
         }}
         className="h-[calc(100dvh-176px)] max-h-[calc(100dvh-176px)] mt-26 my-0 rounded-b-none"
         classNames={{
@@ -242,7 +270,7 @@ export default function CreateMatchModal({ record }: Props) {
                             size="md"
                             label=""
                             isInvalid={!isValidedFlg}
-                            errorMessage="同時に選択することはできません"
+                            errorMessage=""
                             orientation="horizontal"
                             classNames={{
                               base: "",
@@ -279,29 +307,46 @@ export default function CreateMatchModal({ record }: Props) {
                           </label>
                         </CardHeader>
                         <CardBody className="flex items-center">
-                          <div className="flex gap-3 w-full">
+                          <div className="flex items-center gap-3 w-full">
                             <div className="flex gap-2">
                               <Button
                                 isDisabled={isDisabled}
                                 isIconOnly
+                                aria-label=""
                                 variant="bordered"
-                                className="rounded-xl border-gray-400"
+                                //className="rounded-xl border-gray-400"
+                                className="w-12 h-12 p-0 rounded-xl border-gray-400 overflow-hidden"
                               >
+                                <Image
+                                  alt="3_mega"
+                                  src="/3_mega.png"
+                                  className="w-full h-full object-cover scale-120 origin-bottom"
+                                />
+                                {/*
                                 <LuPlus className="text-lg text-gray-500" />
+                                 */}
                               </Button>
 
                               <Button
                                 isDisabled={isDisabled}
                                 isIconOnly
+                                aria-label=""
                                 variant="bordered"
-                                className="rounded-xl border-gray-400"
+                                //className="rounded-xl border-gray-400"
+                                className="w-12 h-12 p-0 rounded-xl border-gray-400 overflow-hidden"
                               >
+                                <Image
+                                  alt="1017_teal"
+                                  src="/1017_teal.png"
+                                  className="w-full h-full object-cover scale-120 origin-bottom"
+                                />
+                                {/*
                                 <LuPlus className="text-lg text-gray-500" />
+                                 */}
                               </Button>
                             </div>
 
                             <Input
-                              isRequired
                               isDisabled={isDisabled}
                               size="md"
                               radius="md"
@@ -309,14 +354,14 @@ export default function CreateMatchModal({ record }: Props) {
                               label=""
                               labelPlacement="outside"
                               placeholder="例）メガルカリオex"
-                              value={deckname}
-                              onChange={(e) => setDeckName(e.target.value)}
+                              value={opponentsDeckInfo}
+                              onChange={(e) => setOpponentsDeckInfo(e.target.value)}
                             />
                           </div>
                         </CardBody>
                       </Card>
 
-                      <div className="flex items-center gap-5">
+                      <div className="flex items-center gap-6">
                         <Card shadow="md" className="w-full">
                           <CardHeader className="pb-0 text-tiny">
                             <label className="flex items-center gap-1">
@@ -335,7 +380,7 @@ export default function CreateMatchModal({ record }: Props) {
                               onValueChange={setIsGoFirst}
                               classNames={{
                                 base: "items-center",
-                                wrapper: "flex items-center gap-4",
+                                wrapper: "flex items-center gap-6",
                               }}
                             >
                               <Radio value="1">先攻</Radio>
@@ -362,7 +407,7 @@ export default function CreateMatchModal({ record }: Props) {
                               onValueChange={setIsVictory}
                               classNames={{
                                 base: "items-center",
-                                wrapper: "flex items-center gap-4",
+                                wrapper: "flex items-center gap-6",
                               }}
                             >
                               <Radio value="1">勝ち</Radio>
@@ -439,7 +484,7 @@ export default function CreateMatchModal({ record }: Props) {
                 <Button
                   color="primary"
                   variant="solid"
-                  isDisabled={!isValidedFlg}
+                  isDisabled={!isValidedFlg || (!isDisabled && !couldCreate)}
                   onPress={() => {
                     createBO1Match(onClose);
                   }}

@@ -4,7 +4,7 @@ import { useRef } from "react";
 
 import { useEffect, useState } from "react";
 
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
+import { Modal, ModalContent, ModalHeader, ModalBody } from "@heroui/react";
 
 import { Skeleton } from "@heroui/react";
 import { Chip } from "@heroui/react";
@@ -275,7 +275,6 @@ export default function DisplayDeckCodesModal({ deck, isOpen, onOpenChange }: Pr
                 )}
               </>
             </ModalBody>
-            <ModalFooter></ModalFooter>
           </>
         )}
       </ModalContent>

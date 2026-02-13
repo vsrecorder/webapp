@@ -51,17 +51,17 @@ export default function TemplateRecords() {
             tabContent: "font-bold",
           }}
         >
-          <Tab key="official" title="公式イベント"></Tab>
-          <Tab key="tonamel" title="Tonamel"></Tab>
+          <Tab key="official" title="公式イベント" />
+          <Tab key="tonamel" title="Tonamel" />
         </Tabs>
       </div>
 
       <div hidden={selectedKey !== "official"}>
-        <Records event_type={"official"} />
+        <Records event_type={"official"} deck_id={""} />
       </div>
 
       <div hidden={selectedKey !== "tonamel"}>
-        <Records event_type={"tonamel"} />
+        <Records event_type={"tonamel"} deck_id={""} />
       </div>
     </>
   );

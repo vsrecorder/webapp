@@ -11,6 +11,9 @@ import {
   TableCell,
 } from "@heroui/react";
 
+import CreateMatchModal from "@app/components/organisms/CreateMatchModal";
+
+import { RecordGetByIdResponseType } from "@app/types/record";
 import { MatchGetResponseType } from "@app/types/match";
 
 async function fetchMatches(record_id: string) {
@@ -36,16 +39,16 @@ async function fetchMatches(record_id: string) {
 }
 
 type Props = {
-  record_id: string;
+  record: RecordGetByIdResponseType;
 };
 
-export default function Matches({ record_id }: Props) {
+export default function Matches({ record }: Props) {
   const [matches, setMatches] = useState<MatchGetResponseType[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!record_id) {
+    if (!record) {
       setLoading(false);
       return;
     }
@@ -55,7 +58,7 @@ export default function Matches({ record_id }: Props) {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const data = await fetchMatches(record_id);
+        const data = await fetchMatches(record.id);
         setMatches(data);
       } catch (err) {
         console.log(err);
@@ -66,7 +69,7 @@ export default function Matches({ record_id }: Props) {
     };
 
     fetchData();
-  }, [record_id]);
+  }, [record]);
 
   if (loading) {
     return <div>読み込み中...</div>;
@@ -119,6 +122,8 @@ export default function Matches({ record_id }: Props) {
           ))}
         </TableBody>
       </Table>
+
+      <CreateMatchModal record={record} />
     </>
   );
 }

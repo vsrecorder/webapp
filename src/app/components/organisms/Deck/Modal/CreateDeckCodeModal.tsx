@@ -211,7 +211,7 @@ export default function CreateDeckCodeModal({
                         ? `https://www.pokemon-card.com/deck/deckView.php/deckID/${deckcode.code}.png`
                         : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
                   }
-                  className={isValidedDeckCode && newdeckcode ? "" : "grayscale-75"}
+                  className={isValidedDeckCode && newdeckcode ? "" : "grayscale"}
                   onLoad={() => setImageLoaded(true)}
                   onError={() => {}}
                 />

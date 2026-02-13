@@ -6,8 +6,7 @@ import { Divider } from "@heroui/react";
 
 import OfficialEventInfo from "@app/components/organisms/OfficialEventInfo";
 import Matches from "@app/components/organisms/Matches";
-
-import CreateMatchModal from "@app/components/organisms/CreateMatchModal";
+import DeckById from "@app/components/organisms/DeckById";
 
 import { RecordGetByIdResponseType } from "@app/types/record";
 
@@ -77,17 +76,21 @@ export default function RecordById({ id }: Props) {
 
   return (
     <div className="flex flex-col gap-2">
-      <div>ID: {record.id}</div>
       <div>作成日: {new Date(record.created_at).toLocaleString()}</div>
       <div>公式イベントID: {record.official_event_id}</div>
       <div>デッキID: {record.deck_id}</div>
       <div>デッキコードID: {record.deck_code_id}</div>
       <div>非公開: {record.private_flg === true ? "true" : "false"}</div>
       <Divider />
-      <OfficialEventInfo id={record.official_event_id} />
+      {record.official_event_id !== 0 ? (
+        <OfficialEventInfo id={record.official_event_id} />
+      ) : (
+        <></>
+      )}
       <Divider />
-      <Matches record_id={record.id} />
-      <CreateMatchModal record={record} />
+
+      <Matches record={record} />
+      <DeckById id={record.deck_id} />
     </div>
   );
 }

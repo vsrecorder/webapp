@@ -9,13 +9,14 @@ import * as jwt from "jsonwebtoken";
 async function getRecords(
   token: string,
   event_type: string,
+  deck_id: string,
   cursor: string,
 ): Promise<RecordGetResponseType> {
   try {
     const domain = process.env.VSRECORDER_DOMAIN;
 
     const res = await fetch(
-      `https://${domain}/api/v1beta/records?event_type=${event_type}&cursor=${cursor}`,
+      `https://${domain}/api/v1beta/records?event_type=${event_type}&deck_id=${deck_id}&cursor=${cursor}`,
       {
         cache: "no-store",
         method: "GET",
@@ -53,10 +54,11 @@ export async function GET(request: NextRequest) {
 
   try {
     const { searchParams } = new URL(request.url);
+    const deck_id = searchParams.get("deck_id") ?? "";
     const event_type = searchParams.get("event_type") ?? "";
     const cursor = searchParams.get("cursor") ?? "";
 
-    const ret = await getRecords(token, event_type, cursor);
+    const ret = await getRecords(token, event_type, deck_id, cursor);
 
     return NextResponse.json(ret, { status: 200 });
   } catch (error) {

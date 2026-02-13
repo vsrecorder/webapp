@@ -12,6 +12,7 @@ import { LuCirclePlus } from "react-icons/lu";
 
 import { RecordType, RecordGetResponseType } from "@app/types/record";
 
+/*
 async function fetchOfficialEventRecords(cursor: string) {
   try {
     const res = await fetch(`/api/records?event_type=official&cursor=${cursor}`, {
@@ -55,18 +56,46 @@ async function fetchTonamelEventRecords(cursor: string) {
     throw error;
   }
 }
+*/
+
+async function fetchRecords(event_type: string, deck_id: string, cursor: string) {
+  try {
+    const res = await fetch(
+      `/api/records?event_type=${event_type}&deck_id=${deck_id}&cursor=${cursor}`,
+      {
+        cache: "no-store",
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+        },
+      },
+    );
+
+    if (!res.ok) {
+      throw new Error("Failed to fetch");
+    }
+
+    const ret: RecordGetResponseType = await res.json();
+
+    return ret;
+  } catch (error) {
+    throw error;
+  }
+}
 
 type Props = {
   event_type: string;
+  deck_id: string;
 };
 
-export default function Records({ event_type }: Props) {
+export default function Records({ event_type, deck_id }: Props) {
   const [items, setItems] = useState<RecordType[]>([]);
   const [nextCursor, setNextCursor] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [isInitialLoaded, setIsInitialLoaded] = useState(false);
 
+  /*
   const loadMore = useCallback(async () => {
     if (isLoading || !hasMore) return;
 
@@ -148,6 +177,55 @@ export default function Records({ event_type }: Props) {
       }
     }
   }, [event_type, nextCursor, isLoading, hasMore, isInitialLoaded]);
+  */
+
+  const loadMore = useCallback(async () => {
+    if (isLoading || !hasMore) return;
+
+    setIsLoading(true);
+
+    try {
+      const newItems: RecordGetResponseType = await fetchRecords(
+        event_type,
+        deck_id,
+        nextCursor,
+      );
+
+      if (newItems.records.length === 0) {
+        setHasMore(false);
+        return;
+      }
+
+      setItems((prev) => [...prev, ...newItems.records]);
+
+      const lastItem = newItems.records[newItems.records.length - 1];
+      if (lastItem && lastItem.cursor) {
+        const nextItems: RecordGetResponseType = await fetchRecords(
+          event_type,
+          deck_id,
+          lastItem.cursor,
+        );
+
+        if (nextItems.records.length === 0) {
+          setHasMore(false);
+        } else {
+          setNextCursor(lastItem.cursor);
+        }
+
+        setNextCursor(lastItem.cursor);
+      } else {
+        setHasMore(false);
+      }
+    } catch (error) {
+      console.error("Error loading items:", error);
+      setHasMore(false);
+    } finally {
+      setIsLoading(false);
+      if (!isInitialLoaded) {
+        setIsInitialLoaded(true);
+      }
+    }
+  }, [event_type, deck_id, nextCursor, isLoading, hasMore, isInitialLoaded]);
 
   useEffect(() => {
     if (isInitialLoaded) return;
@@ -166,7 +244,7 @@ export default function Records({ event_type }: Props) {
           event_type === "official" ? (
             <OfficialEventRecord key={record.data.id} record={record} />
           ) : (
-            event_type === "tonamel" && <div>{record.data.id}</div>
+            event_type === "tonamel" && <div key={record.data.id}>{record.data.id}</div>
           ),
         )}
 

@@ -109,7 +109,7 @@ export default function Records({ event_type, deck_id }: Props) {
         <>レコードがありません</>
       )}
 
-      <div className="flex flex-col w-full gap-3">
+      <div className="flex flex-col w-full gap-1.5">
         {items.map((record) =>
           event_type === "official" ? (
             <OfficialEventRecord key={record.data.id} record={record} />

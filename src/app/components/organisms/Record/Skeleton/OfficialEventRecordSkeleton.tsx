@@ -15,7 +15,7 @@ export function OfficialEventRecordSkeleton() {
         </CardHeader>
         <CardBody className="px-7 py-3">
           <div className="flex items-center gap-5">
-            <Skeleton className="h-24 w-24" />
+            <Skeleton className="h-22 w-22 shrink-0" />
 
             <div className="flex flex-col gap-1.5 truncate w-full min-w-0">
               <div className="font-bold text-tiny w-full min-w-0">

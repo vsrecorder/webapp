@@ -177,7 +177,7 @@ export default function OfficialEventRecord({ record }: Props) {
           </CardHeader>
           <CardBody className="px-7 py-3">
             <div className="flex items-center gap-5">
-              <div>
+              <div className="h-22 w-22 shrink-0">
                 {officialEvent.type_id === 1 &&
                   (officialEvent.title.includes(
                     "ポケモンジャパンチャンピオンシップス",
@@ -186,28 +186,28 @@ export default function OfficialEventRecord({ record }: Props) {
                       alt="ポケモンジャパンチャンピオンシップス"
                       src="/jcs.png"
                       radius="none"
-                      className="h-24 w-24 object-contain"
+                      className="h-22 w-22 object-contain"
                     />
                   ) : officialEvent.title.includes("チャンピオンズリーグ") ? (
                     <Image
                       alt="チャンピオンズリーグ"
                       src="/cl.png"
                       radius="none"
-                      className="h-24 w-24 object-contain"
+                      className="h-22 w-22 object-contain"
                     />
                   ) : officialEvent.title.includes("スクランブルバトル") ? (
                     <Image
                       alt="スクランブルバトル"
                       src="/sb.png"
                       radius="none"
-                      className="h-24 w-24 object-contain"
+                      className="h-22 w-22 object-contain"
                     />
                   ) : (
                     <Image
                       alt="不明"
                       src="/pokemon_card_game.png"
                       radius="none"
-                      className="h-24 w-24 object-contain"
+                      className="h-22 w-22 object-contain"
                     />
                   ))}
 
@@ -216,7 +216,7 @@ export default function OfficialEventRecord({ record }: Props) {
                     alt="シティリーグ"
                     src="/city.png"
                     radius="none"
-                    className="h-24 w-24 object-contain"
+                    className="h-22 w-22 object-contain"
                   />
                 )}
 
@@ -225,7 +225,7 @@ export default function OfficialEventRecord({ record }: Props) {
                     alt="トレーナーズリーグ"
                     src="/trainers.png"
                     radius="none"
-                    className="h-24 w-24 object-contain"
+                    className="h-22 w-22 object-contain"
                   />
                 )}
 
@@ -235,14 +235,14 @@ export default function OfficialEventRecord({ record }: Props) {
                       alt="ジムバトル"
                       src="/gym.png"
                       radius="none"
-                      className="h-24 w-24 object-contain"
+                      className="h-22 w-22 object-contain"
                     />
                   ) : officialEvent.title.includes("MEGAウインターリーグ") ? (
                     <Image
                       alt="MEGAウインターリーグ"
                       src="/mega_winter_league.png"
                       radius="none"
-                      className="h-24 w-24 object-contain"
+                      className="h-22 w-22 object-contain"
                     />
                   ) : officialEvent.title.includes(
                       "スタートデッキ100　そのままバトル",
@@ -251,14 +251,14 @@ export default function OfficialEventRecord({ record }: Props) {
                       alt="スタートデッキ100　そのままバトル"
                       src="/100_sonomama_battle.png"
                       radius="none"
-                      className="h-24 w-24 object-contain"
+                      className="h-22 w-22 object-contain"
                     />
                   ) : (
                     <Image
                       alt="不明"
                       src="/pokemon_card_game.png"
                       radius="none"
-                      className="h-24 w-24 object-contain"
+                      className="h-22 w-22 object-contain"
                     />
                   ))}
 
@@ -267,7 +267,7 @@ export default function OfficialEventRecord({ record }: Props) {
                     alt="公認自主イベント"
                     src="/organizer.png"
                     radius="none"
-                    className="h-24 w-24 object-contain"
+                    className="h-22 w-22 object-contain"
                   />
                 )}
 
@@ -277,14 +277,14 @@ export default function OfficialEventRecord({ record }: Props) {
                       alt="ポケモンカードゲーム教室"
                       src="/classroom.png"
                       radius="none"
-                      className="h-24 w-24 object-contain"
+                      className="h-22 w-22 object-contain"
                     />
                   ) : officialEvent.title.includes("ビクティニBWR争奪戦") ? (
                     <Image
                       alt="ビクティニBWR争奪戦"
                       src="/victini_bwr.png"
                       radius="none"
-                      className="h-24 w-24 object-contain"
+                      className="h-22 w-22 object-contain"
                     />
                   ) : officialEvent.title.includes(
                       "スタートデッキ100　そのままバトル",
@@ -293,7 +293,7 @@ export default function OfficialEventRecord({ record }: Props) {
                       alt="スタートデッキ100　そのままバトル"
                       src="/100_sonomama_battle.png"
                       radius="none"
-                      className="h-24 w-24 object-contain"
+                      className="h-22 w-22 object-contain"
                     />
                   ) : officialEvent.title.includes(
                       "100人大集合でたとこバトル ～スタートデッキ100 バトルコレクション～",
@@ -302,14 +302,14 @@ export default function OfficialEventRecord({ record }: Props) {
                       alt="100人大集合でたとこバトル ～スタートデッキ100 バトルコレクション～"
                       src="/100_sonomama_battle.png"
                       radius="none"
-                      className="h-24 w-24 object-contain"
+                      className="h-22 w-22 object-contain"
                     />
                   ) : (
                     <Image
                       alt="不明"
                       src="/pokemon_card_game.png"
                       radius="none"
-                      className="h-24 w-24 object-contain"
+                      className="h-22 w-22 object-contain"
                     />
                   ))}
               </div>

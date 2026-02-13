@@ -548,28 +548,28 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                                     alt="ポケモンジャパンチャンピオンシップス"
                                     src="/jcs.png"
                                     radius="none"
-                                    className="h-20 w-20 object-contain"
+                                    className="h-18 w-18 object-contain"
                                   />
                                 ) : option.title.includes("チャンピオンズリーグ") ? (
                                   <Image
                                     alt="チャンピオンズリーグ"
                                     src="/cl.png"
                                     radius="none"
-                                    className="h-20 w-20 object-contain"
+                                    className="h-18 w-18 object-contain"
                                   />
                                 ) : option.title.includes("スクランブルバトル") ? (
                                   <Image
                                     alt="スクランブルバトル"
                                     src="/sb.png"
                                     radius="none"
-                                    className="h-20 w-20 object-contain"
+                                    className="h-18 w-18 object-contain"
                                   />
                                 ) : (
                                   <Image
                                     alt="不明"
                                     src="/pokemon_card_game.png"
                                     radius="none"
-                                    className="h-20 w-20 object-contain"
+                                    className="h-18 w-18 object-contain"
                                   />
                                 ))}
 
@@ -578,7 +578,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                                   alt="シティリーグ"
                                   src="/city.png"
                                   radius="none"
-                                  className="h-20 w-20 object-contain"
+                                  className="h-18 w-18 object-contain"
                                 />
                               )}
 
@@ -587,7 +587,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                                   alt="トレーナーズリーグ"
                                   src="/trainers.png"
                                   radius="none"
-                                  className="h-20 w-20 object-contain"
+                                  className="h-18 w-18 object-contain"
                                 />
                               )}
 
@@ -597,14 +597,14 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                                     alt="ジムバトル"
                                     src="/gym.png"
                                     radius="none"
-                                    className="h-20 w-20 object-contain"
+                                    className="h-18 w-18 object-contain"
                                   />
                                 ) : option.title.includes("MEGAウインターリーグ") ? (
                                   <Image
                                     alt="MEGAウインターリーグ"
                                     src="/mega_winter_league.png"
                                     radius="none"
-                                    className="h-20 w-20 object-contain"
+                                    className="h-18 w-18 object-contain"
                                   />
                                 ) : option.title.includes(
                                     "スタートデッキ100　そのままバトル",
@@ -613,14 +613,14 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                                     alt="スタートデッキ100　そのままバトル"
                                     src="/100_sonomama_battle.png"
                                     radius="none"
-                                    className="h-20 w-20 object-contain"
+                                    className="h-18 w-18 object-contain"
                                   />
                                 ) : (
                                   <Image
                                     alt="不明"
                                     src="/pokemon_card_game.png"
                                     radius="none"
-                                    className="h-20 w-20 object-contain"
+                                    className="h-18 w-18 object-contain"
                                   />
                                 ))}
 
@@ -629,7 +629,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                                   alt="公認自主イベント"
                                   src="/organizer.png"
                                   radius="none"
-                                  className="h-20 w-20 object-contain"
+                                  className="h-18 w-18 object-contain"
                                 />
                               )}
 
@@ -639,14 +639,14 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                                     alt="ポケモンカードゲーム教室"
                                     src="/classroom.png"
                                     radius="none"
-                                    className="h-20 w-20 object-contain"
+                                    className="h-18 w-18 object-contain"
                                   />
                                 ) : option.title.includes("ビクティニBWR争奪戦") ? (
                                   <Image
                                     alt="ビクティニBWR争奪戦"
                                     src="/victini_bwr.png"
                                     radius="none"
-                                    className="h-20 w-20 object-contain"
+                                    className="h-18 w-18 object-contain"
                                   />
                                 ) : option.title.includes(
                                     "スタートデッキ100　そのままバトル",
@@ -655,7 +655,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                                     alt="スタートデッキ100　そのままバトル"
                                     src="/100_sonomama_battle.png"
                                     radius="none"
-                                    className="h-20 w-20 object-contain"
+                                    className="h-18 w-18 object-contain"
                                   />
                                 ) : option.title.includes(
                                     "100人大集合でたとこバトル ～スタートデッキ100 バトルコレクション～",
@@ -664,14 +664,14 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                                     alt="100人大集合でたとこバトル ～スタートデッキ100 バトルコレクション～"
                                     src="/100_sonomama_battle.png"
                                     radius="none"
-                                    className="h-20 w-20 object-contain"
+                                    className="h-18 w-18 object-contain"
                                   />
                                 ) : (
                                   <Image
                                     alt="不明"
                                     src="/pokemon_card_game.png"
                                     radius="none"
-                                    className="h-20 w-20 object-contain"
+                                    className="h-18 w-18 object-contain"
                                   />
                                 ))}
                             </div>
@@ -715,7 +715,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                               alt="不明"
                               src="/pokemon_card_game.png"
                               radius="none"
-                              className="h-20 w-20 object-contain"
+                              className="h-18 w-18 object-contain"
                             />
                           )}
 
@@ -727,7 +727,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                                 alt="ポケモンジャパンチャンピオンシップス"
                                 src="/jcs.png"
                                 radius="none"
-                                className="h-20 w-20 object-contain"
+                                className="h-18 w-18 object-contain"
                               />
                             ) : selectedOfficialEventOption.title.includes(
                                 "チャンピオンズリーグ",
@@ -736,7 +736,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                                 alt="チャンピオンズリーグ"
                                 src="/cl.png"
                                 radius="none"
-                                className="h-20 w-20 object-contain"
+                                className="h-18 w-18 object-contain"
                               />
                             ) : selectedOfficialEventOption.title.includes(
                                 "スクランブルバトル",
@@ -745,14 +745,14 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                                 alt="スクランブルバトル"
                                 src="/sb.png"
                                 radius="none"
-                                className="h-20 w-20 object-contain"
+                                className="h-18 w-18 object-contain"
                               />
                             ) : (
                               <Image
                                 alt="不明"
                                 src="/pokemon_card_game.png"
                                 radius="none"
-                                className="h-20 w-20 object-contain"
+                                className="h-18 w-18 object-contain"
                               />
                             ))}
 
@@ -761,7 +761,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                               alt="シティリーグ"
                               src="/city.png"
                               radius="none"
-                              className="h-20 w-20 object-contain"
+                              className="h-18 w-18 object-contain"
                             />
                           )}
 
@@ -770,7 +770,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                               alt="トレーナーズリーグ"
                               src="/trainers.png"
                               radius="none"
-                              className="h-20 w-20 object-contain"
+                              className="h-18 w-18 object-contain"
                             />
                           )}
 
@@ -780,7 +780,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                                 alt="ジムバトル"
                                 src="/gym.png"
                                 radius="none"
-                                className="h-20 w-20 object-contain"
+                                className="h-18 w-18 object-contain"
                               />
                             ) : selectedOfficialEventOption.title.includes(
                                 "MEGAウインターリーグ",
@@ -789,7 +789,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                                 alt="MEGAウインターリーグ"
                                 src="/mega_winter_league.png"
                                 radius="none"
-                                className="h-20 w-20 object-contain"
+                                className="h-18 w-18 object-contain"
                               />
                             ) : selectedOfficialEventOption.title.includes(
                                 "スタートデッキ100　そのままバトル",
@@ -798,14 +798,14 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                                 alt="スタートデッキ100　そのままバトル"
                                 src="/100_sonomama_battle.png"
                                 radius="none"
-                                className="h-20 w-20 object-contain"
+                                className="h-18 w-18 object-contain"
                               />
                             ) : (
                               <Image
                                 alt="不明"
                                 src="/pokemon_card_game.png"
                                 radius="none"
-                                className="h-20 w-20 object-contain"
+                                className="h-18 w-18 object-contain"
                               />
                             ))}
 
@@ -814,7 +814,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                               alt="公認自主イベント"
                               src="/organizer.png"
                               radius="none"
-                              className="h-20 w-20 object-contain"
+                              className="h-18 w-18 object-contain"
                             />
                           )}
 
@@ -826,7 +826,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                                 alt="ポケモンカードゲーム教室"
                                 src="/classroom.png"
                                 radius="none"
-                                className="h-20 w-20 object-contain"
+                                className="h-18 w-18 object-contain"
                               />
                             ) : selectedOfficialEventOption.title.includes(
                                 "ビクティニBWR争奪戦",
@@ -835,7 +835,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                                 alt="ビクティニBWR争奪戦"
                                 src="/victini_bwr.png"
                                 radius="none"
-                                className="h-20 w-20 object-contain"
+                                className="h-18 w-18 object-contain"
                               />
                             ) : selectedOfficialEventOption.title.includes(
                                 "スタートデッキ100　そのままバトル",
@@ -844,7 +844,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                                 alt="スタートデッキ100　そのままバトル"
                                 src="/100_sonomama_battle.png"
                                 radius="none"
-                                className="h-20 w-20 object-contain"
+                                className="h-18 w-18 object-contain"
                               />
                             ) : selectedOfficialEventOption.title.includes(
                                 "100人大集合でたとこバトル ～スタートデッキ100 バトルコレクション～",
@@ -853,14 +853,14 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                                 alt="100人大集合でたとこバトル ～スタートデッキ100 バトルコレクション～"
                                 src="/100_sonomama_battle.png"
                                 radius="none"
-                                className="h-20 w-20 object-contain"
+                                className="h-18 w-18 object-contain"
                               />
                             ) : (
                               <Image
                                 alt="不明"
                                 src="/pokemon_card_game.png"
                                 radius="none"
-                                className="h-20 w-20 object-contain"
+                                className="h-18 w-18 object-contain"
                               />
                             ))}
                         </div>

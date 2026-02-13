@@ -1,5 +1,7 @@
 "use client";
 
+import WindowedSelect from "react-windowed-select";
+
 import { useState } from "react";
 import { useEffect } from "react";
 
@@ -149,68 +151,68 @@ function convertToOfficialEventOption(
   officialEvent.title = officialEvent.title.replace(/（スタンダード）/g, "");
 
   let image_alt = "";
-  let image_src = "";
+  let image_src = "https://xx8nnpgt.user.webaccel.jp/images/icons/";
   if (officialEvent.type_id === 1) {
     if (officialEvent.title.includes("ポケモンジャパンチャンピオンシップス")) {
       image_alt = "ポケモンジャパンチャンピオンシップス";
-      image_src = "/jcs.png";
+      image_src += "jcs.png";
     } else if (officialEvent.title.includes("チャンピオンズリーグ")) {
       image_alt = "チャンピオンズリーグ";
-      image_src = "/cl.png";
+      image_src += "cl.png";
     } else if (officialEvent.title.includes("スクランブルバトル")) {
       image_alt = "スクランブルバトル";
-      image_src = "/sb.png";
+      image_src += "sb.png";
     } else {
       image_alt = "ポケモンカードゲーム";
-      image_src = "/pokemon_card_game.png";
+      image_src += "pokemon_card_game.png";
     }
   } else if (officialEvent.type_id === 2) {
     image_alt = "シティリーグ";
-    image_src = "/city.png";
+    image_src += "city.png";
   } else if (officialEvent.type_id === 3) {
     image_alt = "トレーナーズリーグ";
-    image_src = "/trainers.png";
+    image_src += "trainers.png";
   } else if (officialEvent.type_id === 4) {
     if (officialEvent.title.includes("ジムバトル")) {
       image_alt = "ジムバトル";
-      image_src = "/gym.png";
+      image_src += "gym.png";
     } else if (officialEvent.title.includes("MEGAウインターリーグ")) {
       image_alt = "MEGAウインターリーグ";
-      image_src = "/mega_winter_league.png";
+      image_src += "mega_winter_league.png";
     } else if (officialEvent.title.includes("スタートデッキ100　そのままバトル")) {
       image_alt = "スタートデッキ100　そのままバトル";
-      image_src = "/100_sonomama_battle.png";
+      image_src += "100_sonomama_battle.png";
     } else {
       image_alt = "ポケモンカードゲーム";
-      image_src = "/pokemon_card_game.png";
+      image_src += "pokemon_card_game.png";
     }
   } else if (officialEvent.type_id === 6) {
     image_alt = "公認自主イベント";
-    image_src = "/organizer.png";
+    image_src += "organizer.png";
   } else if (officialEvent.type_id === 7) {
     if (officialEvent.title.includes("ポケモンカードゲーム教室")) {
       image_alt = "ポケモンカードゲーム教室";
-      image_src = "/classroom.png";
+      image_src += "classroom.png";
     } else if (officialEvent.title.includes("ビクティニBWR争奪戦")) {
       image_alt = "ビクティニBWR争奪戦";
-      image_src = "/victini_bwr.png";
+      image_src += "victini_bwr.png";
     } else if (officialEvent.title.includes("スタートデッキ100　そのままバトル")) {
       image_alt = "スタートデッキ100　そのままバトル";
-      image_src = "/100_sonomama_battle.png";
+      image_src += "100_sonomama_battle.png";
     } else if (
       officialEvent.title.includes(
         "100人大集合でたとこバトル ～スタートデッキ100 バトルコレクション～",
       )
     ) {
       image_alt = "100人大集合でたとこバトル ～スタートデッキ100 バトルコレクション～";
-      image_src = "/100_sonomama_battle.png";
+      image_src += "100_sonomama_battle.png";
     } else {
       image_alt = "ポケモンカードゲーム";
-      image_src = "/pokemon_card_game.png";
+      image_src += "pokemon_card_game.png";
     }
   } else {
     image_alt = "ポケモンカードゲーム";
-    image_src = "/pokemon_card_game.png";
+    image_src += "pokemon_card_game.png";
   }
 
   return {
@@ -565,7 +567,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-sm font-medium">イベント</label>
-                <Select
+                <WindowedSelect
                   placeholder={
                     <div className="flex items-center gap-2">
                       <div className="text-xl">
@@ -575,42 +577,69 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                     </div>
                   }
                   isLoading={isLoading}
-                  isClearable={true}
-                  isSearchable={true}
+                  isClearable
+                  isSearchable
                   noOptionsMessage={() => officialEventOptionsMessage}
                   options={officialEventOptions}
                   value={selectedOfficialEventOption}
                   onChange={(option) => {
-                    setSelectedOfficialEventOption(option);
+                    setSelectedOfficialEventOption(option as OfficialEventOption);
                   }}
+                  maxMenuHeight={500}
+                  windowThreshold={100}
                   formatOptionLabel={(option, { context }) => {
+                    const opt = option as OfficialEventOption;
                     if (context === "menu") {
                       return (
-                        <div className="text-sm truncate border-1 p-2">
-                          <div className="flex items-center gap-5">
+                        <div className="text-sm border p-2 w-full">
+                          <div className="flex items-center gap-3 w-full min-w-0">
                             <div className="flex items-center justify-center shrink-0">
                               <Image
-                                alt={option.image_alt}
-                                src={option.image_src}
+                                alt={opt.image_alt}
+                                src={opt.image_src}
                                 radius="none"
                                 className="h-18 w-18 object-contain"
                               />
                             </div>
 
-                            <div className="grid gap-0.5">
-                              <span className="truncate">{option.title}</span>
-                              <span className="truncate">{option.event_datetime}</span>
-                              <span className="truncate">{option.shop_name}</span>
-                              <span className="truncate">{option.address}</span>
+                            <div className="grid gap-0.5 min-w-0">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span>
+                                  <LuBookmark color="gray" />
+                                </span>
+                                <span className="truncate">{opt.title}</span>
+                              </div>
+
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span>
+                                  <LuCalendar color="gray" />
+                                </span>
+                                <span className="truncate">{opt.event_datetime}</span>
+                              </div>
+
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span>
+                                  <LuHouse color="gray" />
+                                </span>
+                                <span className="truncate">{opt.shop_name}</span>
+                              </div>
+
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span>
+                                  <LuMapPin color="gray" />
+                                </span>
+                                <span className="truncate">{opt.address}</span>
+                              </div>
                             </div>
                           </div>
                         </div>
                       );
                     }
+
                     return (
                       <div className="text-sm truncate">
                         <span>
-                          {option.title} - {option.shop_name}
+                          {opt.title} - {opt.shop_name}
                         </span>
                       </div>
                     );
@@ -633,7 +662,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                           ) : (
                             <Image
                               alt="ポケモンカードゲーム"
-                              src="/pokemon_card_game.png"
+                              src="https://xx8nnpgt.user.webaccel.jp/images/icons/pokemon_card_game.png"
                               radius="none"
                               className="h-18 w-18 object-contain"
                             />
@@ -921,3 +950,57 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
     </>
   );
 }
+
+/*
+                <Select
+                  placeholder={
+                    <div className="flex items-center gap-2">
+                      <div className="text-xl">
+                        <CgSearch />
+                      </div>
+                      <span className="text-sm">例）町田市</span>
+                    </div>
+                  }
+                  isLoading={isLoading}
+                  isClearable={true}
+                  isSearchable={true}
+                  noOptionsMessage={() => officialEventOptionsMessage}
+                  options={officialEventOptions}
+                  value={selectedOfficialEventOption}
+                  onChange={(option) => {
+                    setSelectedOfficialEventOption(option);
+                  }}
+                  formatOptionLabel={(option, { context }) => {
+                    if (context === "menu") {
+                      return (
+                        <div className="text-sm truncate border-1 p-2">
+                          <div className="flex items-center gap-5">
+                            <div className="flex items-center justify-center shrink-0">
+                              <Image
+                                alt={option.image_alt}
+                                src={option.image_src}
+                                radius="none"
+                                className="h-18 w-18 object-contain"
+                              />
+                            </div>
+
+                            <div className="grid gap-0.5">
+                              <span className="truncate">{option.title}</span>
+                              <span className="truncate">{option.event_datetime}</span>
+                              <span className="truncate">{option.shop_name}</span>
+                              <span className="truncate">{option.address}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return (
+                      <div className="text-sm truncate">
+                        <span>
+                          {option.title} - {option.shop_name}
+                        </span>
+                      </div>
+                    );
+                  }}
+                />
+                */

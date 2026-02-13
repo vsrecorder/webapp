@@ -184,28 +184,28 @@ export default function OfficialEventRecord({ record }: Props) {
                   ) ? (
                     <Image
                       alt="ポケモンジャパンチャンピオンシップス"
-                      src="/jcs.png"
+                      src="https://xx8nnpgt.user.webaccel.jp/images/icons/jcs.png"
                       radius="none"
                       className="h-22 w-22 object-contain"
                     />
                   ) : officialEvent.title.includes("チャンピオンズリーグ") ? (
                     <Image
                       alt="チャンピオンズリーグ"
-                      src="/cl.png"
+                      src="https://xx8nnpgt.user.webaccel.jp/images/icons/cl.png"
                       radius="none"
                       className="h-22 w-22 object-contain"
                     />
                   ) : officialEvent.title.includes("スクランブルバトル") ? (
                     <Image
                       alt="スクランブルバトル"
-                      src="/sb.png"
+                      src="https://xx8nnpgt.user.webaccel.jp/images/icons/sb.png"
                       radius="none"
                       className="h-22 w-22 object-contain"
                     />
                   ) : (
                     <Image
                       alt="不明"
-                      src="/pokemon_card_game.png"
+                      src="https://xx8nnpgt.user.webaccel.jp/images/icons/pokemon_card_game.png"
                       radius="none"
                       className="h-22 w-22 object-contain"
                     />
@@ -214,7 +214,7 @@ export default function OfficialEventRecord({ record }: Props) {
                 {officialEvent.type_id === 2 && (
                   <Image
                     alt="シティリーグ"
-                    src="/city.png"
+                    src="https://xx8nnpgt.user.webaccel.jp/images/icons/city.png"
                     radius="none"
                     className="h-22 w-22 object-contain"
                   />
@@ -223,7 +223,7 @@ export default function OfficialEventRecord({ record }: Props) {
                 {officialEvent.type_id === 3 && (
                   <Image
                     alt="トレーナーズリーグ"
-                    src="/trainers.png"
+                    src="https://xx8nnpgt.user.webaccel.jp/images/icons/trainers.png"
                     radius="none"
                     className="h-22 w-22 object-contain"
                   />
@@ -233,14 +233,14 @@ export default function OfficialEventRecord({ record }: Props) {
                   (officialEvent.title.includes("ジムバトル") ? (
                     <Image
                       alt="ジムバトル"
-                      src="/gym.png"
+                      src="https://xx8nnpgt.user.webaccel.jp/images/icons/gym.png"
                       radius="none"
                       className="h-22 w-22 object-contain"
                     />
                   ) : officialEvent.title.includes("MEGAウインターリーグ") ? (
                     <Image
                       alt="MEGAウインターリーグ"
-                      src="/mega_winter_league.png"
+                      src="https://xx8nnpgt.user.webaccel.jp/images/icons/mega_winter_league.png"
                       radius="none"
                       className="h-22 w-22 object-contain"
                     />
@@ -249,14 +249,14 @@ export default function OfficialEventRecord({ record }: Props) {
                     ) ? (
                     <Image
                       alt="スタートデッキ100　そのままバトル"
-                      src="/100_sonomama_battle.png"
+                      src="https://xx8nnpgt.user.webaccel.jp/images/icons/100_sonomama_battle.png"
                       radius="none"
                       className="h-22 w-22 object-contain"
                     />
                   ) : (
                     <Image
                       alt="不明"
-                      src="/pokemon_card_game.png"
+                      src="https://xx8nnpgt.user.webaccel.jp/images/icons/pokemon_card_game.png"
                       radius="none"
                       className="h-22 w-22 object-contain"
                     />
@@ -265,7 +265,7 @@ export default function OfficialEventRecord({ record }: Props) {
                 {officialEvent.type_id === 6 && (
                   <Image
                     alt="公認自主イベント"
-                    src="/organizer.png"
+                    src="https://xx8nnpgt.user.webaccel.jp/images/icons/organizer.png"
                     radius="none"
                     className="h-22 w-22 object-contain"
                   />
@@ -275,14 +275,14 @@ export default function OfficialEventRecord({ record }: Props) {
                   (officialEvent.title.includes("ポケモンカードゲーム教室") ? (
                     <Image
                       alt="ポケモンカードゲーム教室"
-                      src="/classroom.png"
+                      src="https://xx8nnpgt.user.webaccel.jp/images/icons/classroom.png"
                       radius="none"
                       className="h-22 w-22 object-contain"
                     />
                   ) : officialEvent.title.includes("ビクティニBWR争奪戦") ? (
                     <Image
                       alt="ビクティニBWR争奪戦"
-                      src="/victini_bwr.png"
+                      src="https://xx8nnpgt.user.webaccel.jp/images/icons/victini_bwr.png"
                       radius="none"
                       className="h-22 w-22 object-contain"
                     />
@@ -291,7 +291,7 @@ export default function OfficialEventRecord({ record }: Props) {
                     ) ? (
                     <Image
                       alt="スタートデッキ100　そのままバトル"
-                      src="/100_sonomama_battle.png"
+                      src="https://xx8nnpgt.user.webaccel.jp/images/icons/100_sonomama_battle.png"
                       radius="none"
                       className="h-22 w-22 object-contain"
                     />
@@ -300,14 +300,14 @@ export default function OfficialEventRecord({ record }: Props) {
                     ) ? (
                     <Image
                       alt="100人大集合でたとこバトル ～スタートデッキ100 バトルコレクション～"
-                      src="/100_sonomama_battle.png"
+                      src="https://xx8nnpgt.user.webaccel.jp/images/icons/100_sonomama_battle.png"
                       radius="none"
                       className="h-22 w-22 object-contain"
                     />
                   ) : (
                     <Image
                       alt="不明"
-                      src="/pokemon_card_game.png"
+                      src="https://xx8nnpgt.user.webaccel.jp/images/icons/pokemon_card_game.png"
                       radius="none"
                       className="h-22 w-22 object-contain"
                     />

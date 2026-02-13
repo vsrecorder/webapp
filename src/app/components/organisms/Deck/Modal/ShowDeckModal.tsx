@@ -149,7 +149,7 @@ export default function ShowDeckModal({
               <ModalHeader className="px-3 py-3 flex items-center gap-3">
                 <>
                   <div className="flex items-center justify-between w-full">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 w-3/4">
                       <div className="font-bold text-large truncate">{deck.name}</div>
                       <div className="pb-2.5">
                         <div className="text-lg">

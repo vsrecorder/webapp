@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useEffect } from "react";
 
-//import useSWR, { useSWRConfig } from "swr";
 import useSWR from "swr";
 
 import { today, getLocalTimeZone } from "@internationalized/date";
@@ -13,8 +12,20 @@ import { CalendarDate } from "@internationalized/date";
 import { Tabs, Tab } from "@heroui/react";
 import { DatePicker } from "@heroui/react";
 import { Input } from "@heroui/react";
+import {
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  useDisclosure,
+} from "@heroui/react";
+import { Spinner } from "@heroui/spinner";
 
-import { FiCalendar, FiHome, FiMapPin, FiBookmark } from "react-icons/fi";
+import { LuBookmark } from "react-icons/lu";
+import { LuCalendar } from "react-icons/lu";
+import { LuHouse } from "react-icons/lu";
+import { LuMapPin } from "react-icons/lu";
 
 import { Card, CardBody } from "@heroui/react";
 import { CgSearch } from "react-icons/cg";
@@ -32,6 +43,7 @@ import { useRouter } from "next/navigation";
 
 import { OfficialEventResponseType, OfficialEventType } from "@app/types/official_event";
 import { DeckGetAllType, DeckData } from "@app/types/deck";
+import { DeckCodeType } from "@app/types/deck_code";
 import { RecordCreateRequestType, RecordCreateResponseType } from "@app/types/record";
 
 type OfficialEventOption = {
@@ -41,6 +53,7 @@ type OfficialEventOption = {
   date: Date;
   started_at: Date;
   ended_at: Date;
+  type_id: number;
   event_time: string;
   event_datetime: string;
   title: string;
@@ -55,16 +68,7 @@ type DeckOption = {
   created_at: string;
   name: string;
   private_flg: boolean;
-  latest_deck_code: DeckCode;
-};
-
-type DeckCode = {
-  id: string;
-  created_at: Date;
-  user_id: string;
-  deck_id: string;
-  code: string;
-  private_code_flg: boolean;
+  latest_deck_code: DeckCodeType;
 };
 
 async function fetcherForOfficialEvent(url: string) {
@@ -138,6 +142,19 @@ function convertToOfficialEventOption(
   const weekDay = weekDays[date.getDay()];
   const datetime = year + "/" + month + "/" + day + weekDay + " " + eventTime;
 
+  officialEvent.title = officialEvent.title.replace(/【.*?】ポケモンカードジム　/g, "");
+  officialEvent.title = officialEvent.title.replace(
+    /【.*?】エクストラバトルの日/g,
+    "エクストラバトルの日",
+  );
+  officialEvent.title = officialEvent.title.replace(/【.*?】ポケモンカードゲーム　/g, "");
+  officialEvent.title = officialEvent.title.replace(/ポケモンカードゲーム /g, "");
+  officialEvent.title = officialEvent.title.replace(/（オープンリーグ）/g, "");
+  officialEvent.title = officialEvent.title.replace(/（マスターリーグ）/g, "");
+  officialEvent.title = officialEvent.title.replace(/（シニアリーグ）/g, "");
+  officialEvent.title = officialEvent.title.replace(/（ジュニアリーグ）/g, "");
+  officialEvent.title = officialEvent.title.replace(/（スタンダード）/g, "");
+
   return {
     label:
       officialEvent.title +
@@ -152,6 +169,7 @@ function convertToOfficialEventOption(
     date: new Date(officialEvent.date),
     started_at: new Date(officialEvent.started_at),
     ended_at: new Date(officialEvent.ended_at),
+    type_id: officialEvent.type_id,
     event_time: eventTime,
     event_datetime: datetime,
     title: officialEvent.title,
@@ -197,7 +215,13 @@ type Props = {
 export default function TemplateRecordCreate({ deck_id }: Props) {
   const router = useRouter();
 
+  const { isOpen, onOpen, onClose, onOpenChange } = useDisclosure();
+
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [isDisabledCreateOfficialEventRecord, setIsDisabledCreateOfficialEventRecord] =
+    useState(true);
+  const [isDisabledCreateTonamelRecord, setIsDisabledCreateTonamelRecord] =
+    useState(true);
 
   const [selectedDate, setSelectedDate] = useState<CalendarDate>(
     today(getLocalTimeZone()),
@@ -234,15 +258,14 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
     officialEventOptionsMessage = "検索中...";
   }
 
-  data?.map((oe: OfficialEventType) => {
-    officialEventOptions.push(convertToOfficialEventOption(oe));
-  });
   if (data?.length == 0) {
     officialEventOptionsMessage = "イベントがありません";
   }
 
-  //const { mutate } = useSWRConfig();
-  //mutate(`/api/decks`);
+  data?.map((oe: OfficialEventType) => {
+    officialEventOptions.push(convertToOfficialEventOption(oe));
+  });
+
   const deckOptions: DeckOption[] = [];
   let deckOptionsMessage = "対象のデッキがありません";
   {
@@ -306,6 +329,9 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
     checkTonamelEventId();
   }, [tonamelEventId]);
 
+  /*
+    deck_idがある場合、deck_idのDeckを取得し、使用するデッキとして指定
+  */
   useEffect(() => {
     if (!deck_id) return;
 
@@ -337,14 +363,32 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
     setSelectedDeck();
   }, [deck_id]);
 
+  useEffect(() => {
+    if (selectedOfficialEventOption && selectedDeckOption) {
+      setIsDisabledCreateOfficialEventRecord(false);
+    } else {
+      setIsDisabledCreateOfficialEventRecord(true);
+    }
+  }, [selectedOfficialEventOption, selectedDeckOption]);
+
+  useEffect(() => {
+    if (tonamelEventId && isValidatedTonamelEventId && selectedDeckOption) {
+      setIsDisabledCreateTonamelRecord(false);
+    } else {
+      setIsDisabledCreateTonamelRecord(true);
+    }
+  }, [tonamelEventId, isValidatedTonamelEventId, selectedDeckOption]);
+
   /*
-    レコードを作成する関数
+    公式イベント用のレコードを作成する関数
   */
   async function createOfficialEventRecord(
     officialEventId: number,
     deckId: string,
     deckCodeId: string,
   ) {
+    setIsDisabledCreateOfficialEventRecord(true);
+
     const toastId = addToast({
       title: "レコード作成中",
       description: "しばらくお待ちください",
@@ -413,349 +457,692 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
         color: "danger",
         timeout: 5000,
       });
+
+      setIsDisabledCreateOfficialEventRecord(false);
+
+      onClose();
     }
   }
 
   return (
-    <div className="flex flex-col">
-      <Tabs
-        fullWidth
+    <>
+      <Modal
+        isOpen={isOpen}
+        onOpenChange={onOpenChange}
         size="md"
-        className="fixed z-50 top-14 left-0 right-0 pl-1 pr-1 font-bold"
+        placement="center"
+        hideCloseButton
+        isDismissable={false}
+        isKeyboardDismissDisabled
+        classNames={{
+          base: "sm:max-w-full",
+        }}
       >
-        <Tab key="official" title="公式イベント">
-          <div className="pt-9 flex flex-col gap-2">
-            <div className="flex flex-col gap-1 pt-1">
-              <label className="text-sm font-medium">日付</label>
-              <DatePicker
-                aria-label="日付"
-                radius="none"
-                size="sm"
-                firstDayOfWeek="mon"
-                defaultValue={selectedDate}
-                value={selectedDate}
-                onChange={(value) => {
-                  setSelectedDate(value == null ? today(getLocalTimeZone()) : value);
-                  setSelectedOfficialEventOption(null);
-                }}
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium">イベント</label>
-              <Select
-                placeholder={
-                  <div className="flex items-center gap-2">
-                    <div className="text-xl">
-                      <CgSearch />
-                    </div>
-                    <span className="text-sm">例）町田市</span>
-                  </div>
-                }
-                isLoading={isLoading}
-                isClearable={true}
-                isSearchable={true}
-                noOptionsMessage={() => officialEventOptionsMessage}
-                options={officialEventOptions}
-                value={selectedOfficialEventOption}
-                onChange={(option) => {
-                  setSelectedOfficialEventOption(option);
-                }}
-                formatOptionLabel={(option, { context }) => {
-                  if (context === "menu") {
-                    return (
-                      <div className="text-sm truncate">
-                        <div className="grid">
-                          <span>
-                            {option.title} {option.event_time}
-                          </span>
-                          <span>{option.shop_name}</span>
-                          <span>{option.address}</span>
-                        </div>
-                      </div>
-                    );
-                  }
-                  return (
-                    <div className="text-sm truncate">
-                      <span>{option.title}</span>
-                    </div>
-                  );
-                }}
-              />
-            </div>
-            <div className="pt-0.5">
-              <Card radius="none" shadow="sm">
-                <CardBody>
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-2">
-                      <span>
-                        <FiCalendar color="gray" />
-                      </span>
-                      <span className="text-xs text-gray-600 truncate">
-                        {selectedOfficialEventOption
-                          ? selectedOfficialEventOption.event_datetime
-                          : "イベント日時"}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span>
-                        <FiBookmark color="gray" />
-                      </span>
-                      <span className="text-xs text-gray-600 truncate">
-                        {selectedOfficialEventOption
-                          ? selectedOfficialEventOption.title
-                          : "イベント名"}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span>
-                        <FiHome color="gray" />
-                      </span>
-                      <span className="text-xs text-gray-600 truncate">
-                        {selectedOfficialEventOption
-                          ? selectedOfficialEventOption.shop_name
-                          : "イベント主催者"}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span>
-                        <FiMapPin color="gray" />
-                      </span>
-                      <span className="text-xs text-gray-600 truncate">
-                        {selectedOfficialEventOption
-                          ? selectedOfficialEventOption.address
-                          : "イベント会場"}
-                      </span>
-                    </div>
-                  </div>
-                </CardBody>
-              </Card>
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium">デッキ</label>
-              <Select
-                placeholder={
-                  <div className="flex items-center gap-2">
-                    <div className="text-xl">
-                      <CgSearch />
-                    </div>
-                    <span className="text-sm">デッキ名</span>
-                  </div>
-                }
-                isLoading={isLoading}
-                isClearable={true}
-                isSearchable={true}
-                noOptionsMessage={() => deckOptionsMessage}
-                options={deckOptions}
-                value={selectedDeckOption}
-                onChange={(option) => {
-                  setSelectedDeckOption(option);
-                  setImageLoaded(false);
-                }}
-                menuPosition="fixed"
-                menuShouldScrollIntoView={true}
-                formatOptionLabel={(option, { context }) => {
-                  if (context === "menu") {
-                    return (
-                      <div className="text-sm truncate border-1 p-3">
-                        <div className="grid">
-                          <span className="truncate">作成日：{option.created_at}</span>
-                          <span className="truncate">デッキ名：{option.name}</span>
-                          <span className="truncate">
-                            デッキコード：{option.latest_deck_code.code}
-                          </span>
-                          <span>
-                            <div className="relative w-full aspect-2/1">
-                              {!imageLoaded && (
-                                <Skeleton className="absolute inset-0 rounded-lg" />
-                              )}
-                              <Image
-                                radius="none"
-                                shadow="none"
-                                alt={option.latest_deck_code.code}
-                                src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${option.latest_deck_code.code}.jpg`}
-                                className=""
-                                onLoad={() => setImageLoaded(true)}
-                              />
-                            </div>
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  }
-                  return (
-                    <div className="text-sm truncate">
-                      <span>{option.name}</span>
-                    </div>
-                  );
-                }}
-              />
-            </div>
-            <div className="flex flex-col items-center gap-2 pb-3">
-              <div className="relative w-full aspect-2/1">
-                {!imageLoaded && <Skeleton className="absolute inset-0 rounded-lg" />}
-                <Image
-                  radius="sm"
-                  shadow="none"
-                  alt={
-                    selectedDeckOption
-                      ? selectedDeckOption.latest_deck_code.code
-                      : "デッキコードなし"
-                  }
-                  src={
-                    selectedDeckOption
-                      ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${selectedDeckOption.latest_deck_code.code}.jpg`
-                      : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
-                  }
-                  className="z-0"
-                  onLoad={() => setImageLoaded(true)}
-                  onError={() => {}}
+        <ModalContent>
+          {() => (
+            <>
+              <ModalHeader className=""></ModalHeader>
+              <ModalBody className="flex items-center justify-center h-60">
+                <Spinner size="lg" className="" />
+              </ModalBody>
+              <ModalFooter className=""></ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
+
+      <div className="flex flex-col">
+        <Tabs
+          fullWidth
+          size="md"
+          className="fixed z-50 top-14 left-0 right-0 pl-1 pr-1 font-bold"
+        >
+          <Tab key="official" title="公式イベント">
+            <div className="pt-9 flex flex-col gap-2">
+              <div className="flex flex-col gap-1 pt-1">
+                <label className="text-sm font-medium">日付</label>
+                <DatePicker
+                  aria-label="日付"
+                  radius="none"
+                  size="sm"
+                  firstDayOfWeek="mon"
+                  defaultValue={selectedDate}
+                  value={selectedDate}
+                  onChange={(value) => {
+                    setSelectedDate(value == null ? today(getLocalTimeZone()) : value);
+                    setSelectedOfficialEventOption(null);
+                  }}
                 />
               </div>
-            </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium">イベント</label>
+                <Select
+                  placeholder={
+                    <div className="flex items-center gap-2">
+                      <div className="text-xl">
+                        <CgSearch />
+                      </div>
+                      <span className="text-sm">例）町田市</span>
+                    </div>
+                  }
+                  isLoading={isLoading}
+                  isClearable={true}
+                  isSearchable={true}
+                  noOptionsMessage={() => officialEventOptionsMessage}
+                  options={officialEventOptions}
+                  value={selectedOfficialEventOption}
+                  onChange={(option) => {
+                    setSelectedOfficialEventOption(option);
+                  }}
+                  formatOptionLabel={(option, { context }) => {
+                    if (context === "menu") {
+                      return (
+                        <div className="text-sm truncate border-1 p-2">
+                          <div className="flex items-center gap-5">
+                            <div className="flex items-center justify-center shrink-0">
+                              {option.type_id === 1 &&
+                                (option.title.includes(
+                                  "ポケモンジャパンチャンピオンシップス",
+                                ) ? (
+                                  <Image
+                                    alt="ポケモンジャパンチャンピオンシップス"
+                                    src="/jcs.png"
+                                    radius="none"
+                                    className="h-20 w-20 object-contain"
+                                  />
+                                ) : option.title.includes("チャンピオンズリーグ") ? (
+                                  <Image
+                                    alt="チャンピオンズリーグ"
+                                    src="/cl.png"
+                                    radius="none"
+                                    className="h-20 w-20 object-contain"
+                                  />
+                                ) : option.title.includes("スクランブルバトル") ? (
+                                  <Image
+                                    alt="スクランブルバトル"
+                                    src="/sb.png"
+                                    radius="none"
+                                    className="h-20 w-20 object-contain"
+                                  />
+                                ) : (
+                                  <Image
+                                    alt="不明"
+                                    src="/pokemon_card_game.png"
+                                    radius="none"
+                                    className="h-20 w-20 object-contain"
+                                  />
+                                ))}
 
-            <Button
-              color="primary"
-              isDisabled={false}
-              onPress={async () => {
-                await createOfficialEventRecord(
-                  selectedOfficialEventOption ? selectedOfficialEventOption.id : 0,
-                  selectedDeckOption ? selectedDeckOption.id : "",
-                  selectedDeckOption ? selectedDeckOption.latest_deck_code.id : "",
-                );
-              }}
-            >
-              作成
-            </Button>
-          </div>
-        </Tab>
+                              {option.type_id === 2 && (
+                                <Image
+                                  alt="シティリーグ"
+                                  src="/city.png"
+                                  radius="none"
+                                  className="h-20 w-20 object-contain"
+                                />
+                              )}
 
-        <Tab key="tonamel" title="Tonamel">
-          <div className="pt-9 flex flex-col gap-2">
-            <div className="flex flex-col gap-1 pt-1">
-              <label className="text-sm font-medium">イベントID</label>
-              <Input
-                isRequired
-                type="text"
-                placeholder="例) YFUVY"
-                isInvalid={!isValidatedTonamelEventId}
-                errorMessage="無効なイベントIDです"
-                value={tonamelEventId}
-                onChange={(e) => setTonamelEventId(e.target.value)}
-              />
-            </div>
-            <div className="flex flex-col items-center gap-1.5">
-              <div className="flex justify-center w-4/5">
-                <span>『</span>
-                <span className="truncate">
-                  {tonamelEventTitle ? tonamelEventTitle : "イベント名"}
-                </span>
-                <span>』</span>
-              </div>
-              <div className="w-4/6">
-                <div className="relative w-full aspect-video">
-                  <Skeleton className="absolute inset-0" />
-                  <Image
-                    className="relative z-0"
-                    radius="none"
-                    shadow="none"
-                    alt={"test"}
-                    src={
-                      tonamelEventImage
-                        ? tonamelEventImage
-                        : "https://tonamel.com/nuxt/6421c0babd-048e71d12e-3c73406b87-f5f712130f/_nuxt/assets/images/figures/logo/cover.3df31ff29b40f8d4032c417f126b9713.jpg"
+                              {option.type_id === 3 && (
+                                <Image
+                                  alt="トレーナーズリーグ"
+                                  src="/trainers.png"
+                                  radius="none"
+                                  className="h-20 w-20 object-contain"
+                                />
+                              )}
+
+                              {option.type_id === 4 &&
+                                (option.title.includes("ジムバトル") ? (
+                                  <Image
+                                    alt="ジムバトル"
+                                    src="/gym.png"
+                                    radius="none"
+                                    className="h-20 w-20 object-contain"
+                                  />
+                                ) : option.title.includes("MEGAウインターリーグ") ? (
+                                  <Image
+                                    alt="MEGAウインターリーグ"
+                                    src="/mega_winter_league.png"
+                                    radius="none"
+                                    className="h-20 w-20 object-contain"
+                                  />
+                                ) : option.title.includes(
+                                    "スタートデッキ100　そのままバトル",
+                                  ) ? (
+                                  <Image
+                                    alt="スタートデッキ100　そのままバトル"
+                                    src="/100_sonomama_battle.png"
+                                    radius="none"
+                                    className="h-20 w-20 object-contain"
+                                  />
+                                ) : (
+                                  <Image
+                                    alt="不明"
+                                    src="/pokemon_card_game.png"
+                                    radius="none"
+                                    className="h-20 w-20 object-contain"
+                                  />
+                                ))}
+
+                              {option.type_id === 6 && (
+                                <Image
+                                  alt="公認自主イベント"
+                                  src="/organizer.png"
+                                  radius="none"
+                                  className="h-20 w-20 object-contain"
+                                />
+                              )}
+
+                              {option.type_id === 7 &&
+                                (option.title.includes("ポケモンカードゲーム教室") ? (
+                                  <Image
+                                    alt="ポケモンカードゲーム教室"
+                                    src="/classroom.png"
+                                    radius="none"
+                                    className="h-20 w-20 object-contain"
+                                  />
+                                ) : option.title.includes("ビクティニBWR争奪戦") ? (
+                                  <Image
+                                    alt="ビクティニBWR争奪戦"
+                                    src="/victini_bwr.png"
+                                    radius="none"
+                                    className="h-20 w-20 object-contain"
+                                  />
+                                ) : option.title.includes(
+                                    "スタートデッキ100　そのままバトル",
+                                  ) ? (
+                                  <Image
+                                    alt="スタートデッキ100　そのままバトル"
+                                    src="/100_sonomama_battle.png"
+                                    radius="none"
+                                    className="h-20 w-20 object-contain"
+                                  />
+                                ) : option.title.includes(
+                                    "100人大集合でたとこバトル ～スタートデッキ100 バトルコレクション～",
+                                  ) ? (
+                                  <Image
+                                    alt="100人大集合でたとこバトル ～スタートデッキ100 バトルコレクション～"
+                                    src="/100_sonomama_battle.png"
+                                    radius="none"
+                                    className="h-20 w-20 object-contain"
+                                  />
+                                ) : (
+                                  <Image
+                                    alt="不明"
+                                    src="/pokemon_card_game.png"
+                                    radius="none"
+                                    className="h-20 w-20 object-contain"
+                                  />
+                                ))}
+                            </div>
+
+                            <div className="grid gap-0.5">
+                              <span className="truncate">{option.title}</span>
+                              <span className="truncate">
+                                {new Date(option.date).toLocaleString("ja-JP", {
+                                  year: "numeric",
+                                  month: "long",
+                                  day: "numeric",
+                                  weekday: "short",
+                                })}{" "}
+                                {option.event_time}
+                              </span>
+                              <span className="truncate">{option.shop_name}</span>
+                              <span className="truncate">{option.address}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
                     }
-                    onLoad={() => {}}
+                    return (
+                      <div className="text-sm truncate">
+                        <span>
+                          {option.title} - {option.shop_name}
+                        </span>
+                      </div>
+                    );
+                  }}
+                />
+              </div>
+              <div className="pt-0.5">
+                <Card radius="none" shadow="sm">
+                  <CardBody>
+                    <div className="pl-1 pr-1 flex items-center gap-5 w-full truncate">
+                      <div className="flex items-center justify-center gap-5 truncate">
+                        <div className="z-0 shrink-0">
+                          {!selectedOfficialEventOption && (
+                            <Image
+                              alt="不明"
+                              src="/pokemon_card_game.png"
+                              radius="none"
+                              className="h-20 w-20 object-contain"
+                            />
+                          )}
+
+                          {selectedOfficialEventOption?.type_id === 1 &&
+                            (selectedOfficialEventOption.title.includes(
+                              "ポケモンジャパンチャンピオンシップス",
+                            ) ? (
+                              <Image
+                                alt="ポケモンジャパンチャンピオンシップス"
+                                src="/jcs.png"
+                                radius="none"
+                                className="h-20 w-20 object-contain"
+                              />
+                            ) : selectedOfficialEventOption.title.includes(
+                                "チャンピオンズリーグ",
+                              ) ? (
+                              <Image
+                                alt="チャンピオンズリーグ"
+                                src="/cl.png"
+                                radius="none"
+                                className="h-20 w-20 object-contain"
+                              />
+                            ) : selectedOfficialEventOption.title.includes(
+                                "スクランブルバトル",
+                              ) ? (
+                              <Image
+                                alt="スクランブルバトル"
+                                src="/sb.png"
+                                radius="none"
+                                className="h-20 w-20 object-contain"
+                              />
+                            ) : (
+                              <Image
+                                alt="不明"
+                                src="/pokemon_card_game.png"
+                                radius="none"
+                                className="h-20 w-20 object-contain"
+                              />
+                            ))}
+
+                          {selectedOfficialEventOption?.type_id === 2 && (
+                            <Image
+                              alt="シティリーグ"
+                              src="/city.png"
+                              radius="none"
+                              className="h-20 w-20 object-contain"
+                            />
+                          )}
+
+                          {selectedOfficialEventOption?.type_id === 3 && (
+                            <Image
+                              alt="トレーナーズリーグ"
+                              src="/trainers.png"
+                              radius="none"
+                              className="h-20 w-20 object-contain"
+                            />
+                          )}
+
+                          {selectedOfficialEventOption?.type_id === 4 &&
+                            (selectedOfficialEventOption.title.includes("ジムバトル") ? (
+                              <Image
+                                alt="ジムバトル"
+                                src="/gym.png"
+                                radius="none"
+                                className="h-20 w-20 object-contain"
+                              />
+                            ) : selectedOfficialEventOption.title.includes(
+                                "MEGAウインターリーグ",
+                              ) ? (
+                              <Image
+                                alt="MEGAウインターリーグ"
+                                src="/mega_winter_league.png"
+                                radius="none"
+                                className="h-20 w-20 object-contain"
+                              />
+                            ) : selectedOfficialEventOption.title.includes(
+                                "スタートデッキ100　そのままバトル",
+                              ) ? (
+                              <Image
+                                alt="スタートデッキ100　そのままバトル"
+                                src="/100_sonomama_battle.png"
+                                radius="none"
+                                className="h-20 w-20 object-contain"
+                              />
+                            ) : (
+                              <Image
+                                alt="不明"
+                                src="/pokemon_card_game.png"
+                                radius="none"
+                                className="h-20 w-20 object-contain"
+                              />
+                            ))}
+
+                          {selectedOfficialEventOption?.type_id === 6 && (
+                            <Image
+                              alt="公認自主イベント"
+                              src="/organizer.png"
+                              radius="none"
+                              className="h-20 w-20 object-contain"
+                            />
+                          )}
+
+                          {selectedOfficialEventOption?.type_id === 7 &&
+                            (selectedOfficialEventOption.title.includes(
+                              "ポケモンカードゲーム教室",
+                            ) ? (
+                              <Image
+                                alt="ポケモンカードゲーム教室"
+                                src="/classroom.png"
+                                radius="none"
+                                className="h-20 w-20 object-contain"
+                              />
+                            ) : selectedOfficialEventOption.title.includes(
+                                "ビクティニBWR争奪戦",
+                              ) ? (
+                              <Image
+                                alt="ビクティニBWR争奪戦"
+                                src="/victini_bwr.png"
+                                radius="none"
+                                className="h-20 w-20 object-contain"
+                              />
+                            ) : selectedOfficialEventOption.title.includes(
+                                "スタートデッキ100　そのままバトル",
+                              ) ? (
+                              <Image
+                                alt="スタートデッキ100　そのままバトル"
+                                src="/100_sonomama_battle.png"
+                                radius="none"
+                                className="h-20 w-20 object-contain"
+                              />
+                            ) : selectedOfficialEventOption.title.includes(
+                                "100人大集合でたとこバトル ～スタートデッキ100 バトルコレクション～",
+                              ) ? (
+                              <Image
+                                alt="100人大集合でたとこバトル ～スタートデッキ100 バトルコレクション～"
+                                src="/100_sonomama_battle.png"
+                                radius="none"
+                                className="h-20 w-20 object-contain"
+                              />
+                            ) : (
+                              <Image
+                                alt="不明"
+                                src="/pokemon_card_game.png"
+                                radius="none"
+                                className="h-20 w-20 object-contain"
+                              />
+                            ))}
+                        </div>
+
+                        <div className="flex flex-col gap-2 truncate">
+                          <div className="flex items-center gap-2">
+                            <span>
+                              <LuBookmark color="gray" />
+                            </span>
+                            <span className="text-xs text-gray-600 truncate">
+                              {selectedOfficialEventOption
+                                ? selectedOfficialEventOption.title
+                                : "イベント名"}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <span>
+                              <LuCalendar color="gray" />
+                            </span>
+                            <span className="text-xs text-gray-600 truncate">
+                              {selectedOfficialEventOption
+                                ? selectedOfficialEventOption.event_datetime
+                                : "イベント日時"}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <span>
+                              <LuHouse color="gray" />
+                            </span>
+                            <span className="text-xs text-gray-600 truncate">
+                              {selectedOfficialEventOption
+                                ? selectedOfficialEventOption.shop_name
+                                : "イベント主催者"}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <span>
+                              <LuMapPin color="gray" />
+                            </span>
+                            <span className="text-xs text-gray-600 truncate">
+                              {selectedOfficialEventOption
+                                ? selectedOfficialEventOption.address
+                                : "イベント会場"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardBody>
+                </Card>
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium">デッキ</label>
+                <Select
+                  placeholder={
+                    <div className="flex items-center gap-2">
+                      <div className="text-xl">
+                        <CgSearch />
+                      </div>
+                      <span className="text-sm">デッキ名</span>
+                    </div>
+                  }
+                  isLoading={isLoading}
+                  isClearable={true}
+                  isSearchable={true}
+                  noOptionsMessage={() => deckOptionsMessage}
+                  options={deckOptions}
+                  value={selectedDeckOption}
+                  onChange={(option) => {
+                    setSelectedDeckOption(option);
+                    setImageLoaded(false);
+                  }}
+                  menuPosition="fixed"
+                  menuShouldScrollIntoView={true}
+                  formatOptionLabel={(option, { context }) => {
+                    if (context === "menu") {
+                      return (
+                        <div className="text-sm truncate border-1 p-3">
+                          <div className="grid">
+                            <span className="truncate">作成日：{option.created_at}</span>
+                            <span className="truncate">デッキ名：{option.name}</span>
+                            <span className="truncate">
+                              デッキコード：{option.latest_deck_code.code}
+                            </span>
+                            <span>
+                              <div className="relative w-full aspect-2/1">
+                                {!imageLoaded && (
+                                  <Skeleton className="absolute inset-0 rounded-lg" />
+                                )}
+                                <Image
+                                  radius="none"
+                                  shadow="none"
+                                  alt={option.latest_deck_code.code}
+                                  src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${option.latest_deck_code.code}.jpg`}
+                                  className=""
+                                  onLoad={() => setImageLoaded(true)}
+                                />
+                              </div>
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return (
+                      <div className="text-sm truncate">
+                        <span>{option.name}</span>
+                      </div>
+                    );
+                  }}
+                />
+              </div>
+              <div className="flex flex-col items-center gap-2 pb-3">
+                <div className="relative w-full aspect-2/1">
+                  {!imageLoaded && <Skeleton className="absolute inset-0 rounded-lg" />}
+                  <Image
+                    radius="sm"
+                    shadow="none"
+                    alt={
+                      selectedDeckOption
+                        ? selectedDeckOption.latest_deck_code.code
+                        : "デッキコードなし"
+                    }
+                    src={
+                      selectedDeckOption
+                        ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${selectedDeckOption.latest_deck_code.code}.jpg`
+                        : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
+                    }
+                    className="z-0"
+                    onLoad={() => setImageLoaded(true)}
+                    onError={() => {}}
                   />
                 </div>
               </div>
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium">デッキ</label>
-              <Select
-                placeholder={
-                  <div className="flex items-center gap-2">
-                    <div className="text-xl">
-                      <CgSearch />
-                    </div>
-                    <span className="text-sm">デッキ名</span>
-                  </div>
-                }
-                isLoading={isLoading}
-                isClearable={true}
-                isSearchable={true}
-                noOptionsMessage={() => deckOptionsMessage}
-                options={deckOptions}
-                value={selectedDeckOption}
-                onChange={(option) => {
-                  setSelectedDeckOption(option);
-                  setImageLoaded(false);
-                }}
-                formatOptionLabel={(option, { context }) => {
-                  if (context === "menu") {
-                    return (
-                      <div className="text-sm truncate border-1 p-3">
-                        <div className="grid">
-                          <span className="truncate">作成日：{option.created_at}</span>
-                          <span className="truncate">デッキ名：{option.name}</span>
-                          <span className="truncate">
-                            デッキコード：{option.latest_deck_code.code}
-                          </span>
-                          <span>
-                            <div className="relative w-full aspect-2/1">
-                              {!imageLoaded && (
-                                <Skeleton className="absolute inset-0 rounded-lg" />
-                              )}
-                              <Image
-                                radius="none"
-                                shadow="none"
-                                alt={option.latest_deck_code.code}
-                                src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${option.latest_deck_code.code}.jpg`}
-                                className=""
-                                onLoad={() => setImageLoaded(true)}
-                              />
-                            </div>
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  }
-                  return (
-                    <div className="text-sm truncate">
-                      <span>{option.name}</span>
-                    </div>
+
+              <Button
+                color="primary"
+                isDisabled={isDisabledCreateOfficialEventRecord}
+                onPress={async () => {
+                  onOpen();
+                  await createOfficialEventRecord(
+                    selectedOfficialEventOption ? selectedOfficialEventOption.id : 0,
+                    selectedDeckOption ? selectedDeckOption.id : "",
+                    selectedDeckOption ? selectedDeckOption.latest_deck_code.id : "",
                   );
                 }}
-              />
+              >
+                作成
+              </Button>
             </div>
-            <div className="flex flex-col items-center gap-2 pb-3">
-              <div className="relative w-full aspect-2/1">
-                {!imageLoaded && <Skeleton className="absolute inset-0 rounded-lg" />}
-                <Image
-                  radius="sm"
-                  shadow="none"
-                  alt={
-                    selectedDeckOption
-                      ? selectedDeckOption.latest_deck_code.code
-                      : "デッキコードなし"
-                  }
-                  src={
-                    selectedDeckOption
-                      ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${selectedDeckOption.latest_deck_code.code}.jpg`
-                      : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
-                  }
-                  className="z-0"
-                  onLoad={() => setImageLoaded(true)}
-                  onError={() => {}}
+          </Tab>
+
+          <Tab key="tonamel" title="Tonamel">
+            <div className="pt-9 flex flex-col gap-2">
+              <div className="flex flex-col gap-1 pt-1">
+                <label className="text-sm font-medium">イベントID</label>
+                <Input
+                  isRequired
+                  type="text"
+                  placeholder="例) YFUVY"
+                  isInvalid={!isValidatedTonamelEventId}
+                  errorMessage="無効なイベントIDです"
+                  value={tonamelEventId}
+                  onChange={(e) => setTonamelEventId(e.target.value)}
                 />
               </div>
-            </div>
+              <div className="flex flex-col items-center gap-1.5">
+                <div className="flex justify-center w-4/5">
+                  <span>『</span>
+                  <span className="truncate">
+                    {tonamelEventTitle ? tonamelEventTitle : "イベント名"}
+                  </span>
+                  <span>』</span>
+                </div>
+                <div className="w-4/6">
+                  <div className="relative w-full aspect-video">
+                    <Skeleton className="absolute inset-0" />
+                    <Image
+                      className="relative z-0"
+                      radius="none"
+                      shadow="none"
+                      alt={"test"}
+                      src={
+                        tonamelEventImage
+                          ? tonamelEventImage
+                          : "https://tonamel.com/nuxt/6421c0babd-048e71d12e-3c73406b87-f5f712130f/_nuxt/assets/images/figures/logo/cover.3df31ff29b40f8d4032c417f126b9713.jpg"
+                      }
+                      onLoad={() => {}}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium">デッキ</label>
+                <Select
+                  placeholder={
+                    <div className="flex items-center gap-2">
+                      <div className="text-xl">
+                        <CgSearch />
+                      </div>
+                      <span className="text-sm">デッキ名</span>
+                    </div>
+                  }
+                  isLoading={isLoading}
+                  isClearable={true}
+                  isSearchable={true}
+                  noOptionsMessage={() => deckOptionsMessage}
+                  options={deckOptions}
+                  value={selectedDeckOption}
+                  onChange={(option) => {
+                    setSelectedDeckOption(option);
+                    setImageLoaded(false);
+                  }}
+                  formatOptionLabel={(option, { context }) => {
+                    if (context === "menu") {
+                      return (
+                        <div className="text-sm truncate border-1 p-3">
+                          <div className="grid">
+                            <span className="truncate">作成日：{option.created_at}</span>
+                            <span className="truncate">デッキ名：{option.name}</span>
+                            <span className="truncate">
+                              デッキコード：{option.latest_deck_code.code}
+                            </span>
+                            <span>
+                              <div className="relative w-full aspect-2/1">
+                                {!imageLoaded && (
+                                  <Skeleton className="absolute inset-0 rounded-lg" />
+                                )}
+                                <Image
+                                  radius="none"
+                                  shadow="none"
+                                  alt={option.latest_deck_code.code}
+                                  src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${option.latest_deck_code.code}.jpg`}
+                                  className=""
+                                  onLoad={() => setImageLoaded(true)}
+                                />
+                              </div>
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return (
+                      <div className="text-sm truncate">
+                        <span>{option.name}</span>
+                      </div>
+                    );
+                  }}
+                />
+              </div>
+              <div className="flex flex-col items-center gap-2 pb-3">
+                <div className="relative w-full aspect-2/1">
+                  {!imageLoaded && <Skeleton className="absolute inset-0 rounded-lg" />}
+                  <Image
+                    radius="sm"
+                    shadow="none"
+                    alt={
+                      selectedDeckOption
+                        ? selectedDeckOption.latest_deck_code.code
+                        : "デッキコードなし"
+                    }
+                    src={
+                      selectedDeckOption
+                        ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${selectedDeckOption.latest_deck_code.code}.jpg`
+                        : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
+                    }
+                    className="z-0"
+                    onLoad={() => setImageLoaded(true)}
+                    onError={() => {}}
+                  />
+                </div>
+              </div>
 
-            <Button color="primary" isDisabled={true}>
-              作成
-            </Button>
-          </div>
-        </Tab>
-      </Tabs>
-    </div>
+              <Button color="primary" isDisabled={isDisabledCreateTonamelRecord}>
+                作成
+              </Button>
+            </div>
+          </Tab>
+        </Tabs>
+      </div>
+    </>
   );
 }

@@ -8,7 +8,7 @@ import { Skeleton } from "@heroui/react";
 
 import { useDisclosure } from "@heroui/react";
 
-import { LuMapPin } from "react-icons/lu";
+import { LuHouse } from "react-icons/lu";
 import { LuFlag } from "react-icons/lu";
 import { LuEarth } from "react-icons/lu";
 import { LuLayers } from "react-icons/lu";
@@ -94,10 +94,22 @@ export default function OfficialEventRecord({ record }: Props) {
     const fetchData = async () => {
       try {
         setLoadingOfficialEvent(true);
+
         const data = await fetchOfficialEventById(record.data.official_event_id);
+
         data.title = data.title.replace(/【.*?】ポケモンカードジム　/g, "");
+        data.title = data.title.replace(
+          /【.*?】エクストラバトルの日/g,
+          "エクストラバトルの日",
+        );
         data.title = data.title.replace(/【.*?】ポケモンカードゲーム　/g, "");
         data.title = data.title.replace(/ポケモンカードゲーム /g, "");
+        data.title = data.title.replace(/（オープンリーグ）/g, "");
+        data.title = data.title.replace(/（マスターリーグ）/g, "");
+        data.title = data.title.replace(/（シニアリーグ）/g, "");
+        data.title = data.title.replace(/（ジュニアリーグ）/g, "");
+        data.title = data.title.replace(/（スタンダード）/g, "");
+
         setOfficialEvent(data);
       } catch (err) {
         console.log(err);
@@ -305,7 +317,7 @@ export default function OfficialEventRecord({ record }: Props) {
               <div className="flex flex-col gap-1.5 truncate w-full min-w-0">
                 <div className="text-tiny truncate w-full min-w-0">
                   <div className="flex items-center gap-1">
-                    <LuMapPin className="text-gray-500" />
+                    <LuHouse className="text-gray-500" />
 
                     <div className="truncate w-full min-w-0">
                       {officialEvent.shop_name

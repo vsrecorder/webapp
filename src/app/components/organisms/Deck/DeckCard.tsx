@@ -32,8 +32,10 @@ export default function DeckCard({ deckData, deckcodeData }: Props) {
       <div className="" onClick={onOpen}>
         <Card className="pt-3 w-full">
           <CardHeader className="pt-0 pb-0 px-3">
-            <div className="flex flex-col gap-1">
-              <div className="font-bold text-large">{deck.name}</div>
+            <div className="flex flex-col gap-1 w-full">
+              <div className="font-bold text-large truncate w-full min-w-0">
+                {deck.name}
+              </div>
               <div className="pl-1">
                 <div className="text-tiny">
                   作成日：

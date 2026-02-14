@@ -11,7 +11,7 @@ build:
 .PHONY: install
 install:
 	rm -rf node_modules .next
-	npm install
+	npm install --force
 
 .PHONY: docker-build-and-push
 docker-build-and-push:

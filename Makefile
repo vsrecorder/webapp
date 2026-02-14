@@ -13,6 +13,8 @@ install:
 	rm -rf node_modules .next
 	npm install --force
 
+
+
 .PHONY: docker-build-and-push
 docker-build-and-push:
 	docker build -t vsrecorder/webapp:latest . && docker push vsrecorder/webapp:latest
@@ -20,3 +22,15 @@ docker-build-and-push:
 .PHONY: deploy
 deploy:
 	docker compose pull && docker compose down && docker compose up -d
+
+.PHONY: restart
+restart:
+	docker compose down && docker compose up -d
+
+.PHONY: up
+up:
+	docker compose up -d
+
+.PHONY: down
+down:
+	docker compose down

@@ -167,7 +167,7 @@ export default function DeckCardDiff({ current_deckcode, previous_deckcode }: Pr
   }
 
   if (error) {
-    return <div className="text-red-500">{error}</div>;
+    return;
   }
 
   if (!currentDeckCardList || !previousDeckCardList) return;

@@ -133,7 +133,7 @@ export default function DeckCardSummary({ deckcode }: Props) {
   }
 
   if (error) {
-    return <div className="text-red-500">{error}</div>;
+    return;
   }
 
   if (!deckcardSummary) return;

@@ -89,7 +89,7 @@ export default function CityleagueResult({ event_result }: Props) {
   }
 
   if (error) {
-    return <div className="text-red-500">{error}</div>;
+    return;
   }
 
   if (!event) {

@@ -99,11 +99,11 @@ export default function Decks({ isArchived }: Props) {
   }, [isLoading, hasMore, loadMore]);
 
   return (
-    <div className="flex flex-col items-center space-y-4">
+    <div className="flex flex-col items-center space-y-3 pb-3">
       {/* 空状態 */}
       {!isLoading && !hasMore && items.length === 0 && <>デッキがありません</>}
 
-      <div className="flex flex-col w-full gap-6">
+      <div className="flex flex-col w-full gap-3">
         {items.map((deck) => (
           <DeckCard
             key={deck.data.id}

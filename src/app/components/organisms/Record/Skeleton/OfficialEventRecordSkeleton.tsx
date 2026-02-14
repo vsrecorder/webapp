@@ -3,7 +3,7 @@ import { Skeleton } from "@heroui/react";
 
 export function OfficialEventRecordSkeleton() {
   return (
-    <div className="pb-3 w-full">
+    <div className="">
       <Card shadow="sm" className="py-3 w-full">
         <CardHeader className="px-5 pb-0 pt-0 flex-col items-start gap-1.5">
           <div className="font-bold text-tiny">

@@ -103,13 +103,13 @@ export default function Records({ event_type, deck_id }: Props) {
   }, [isInitialLoaded, loadMore]);
 
   return (
-    <div className="flex flex-col items-center space-y-4 pb-3">
+    <div className="flex flex-col items-center space-y-3 pb-3">
       {/* 空状態 */}
       {isInitialLoaded && !isLoading && !hasMore && items.length === 0 && (
         <>レコードがありません</>
       )}
 
-      <div className="flex flex-col w-full gap-1.5">
+      <div className="flex flex-col w-full gap-3">
         {items.map((record) =>
           event_type === "official" ? (
             <OfficialEventRecord key={record.data.id} record={record} />

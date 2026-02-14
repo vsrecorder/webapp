@@ -11,13 +11,44 @@ async function getCityleagueResults(
     const domain = process.env.VSRECORDER_DOMAIN;
 
     const now = new Date();
-    const to_date = now.toISOString().split("T")[0];
     const yesterday = new Date(now);
     yesterday.setDate(now.getDate() - 1);
-    const from_date = yesterday.toISOString().split("T")[0];
+
+    const from_date_str = yesterday.toISOString().split("T")[0];
+    const to_date_str = now.toISOString().split("T")[0];
 
     const res = await fetch(
-      `https://${domain}/api/v1beta/cityleague_results?league_type=${league_type}&from_date=${from_date}&to_date=${to_date}`,
+      `https://${domain}/api/v1beta/cityleague_results?league_type=${league_type}&from_date=${from_date_str}&to_date=${to_date_str}`,
+      {
+        cache: "no-store",
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+        },
+      },
+    );
+
+    const ret: CityleagueResultGetResponseType = await res.json();
+
+    return ret;
+  } catch (error) {
+    throw error;
+  }
+}
+
+async function getCityleagueResultsByTerm(
+  league_type: number,
+  from_date: Date,
+  to_date: Date,
+): Promise<CityleagueResultGetResponseType> {
+  try {
+    const domain = process.env.VSRECORDER_DOMAIN;
+
+    const from_date_str = from_date.toISOString().split("T")[0];
+    const to_date_str = to_date.toISOString().split("T")[0];
+
+    const res = await fetch(
+      `https://${domain}/api/v1beta/cityleague_results?league_type=${league_type}&from_date=${from_date_str}&to_date=${to_date_str}`,
       {
         cache: "no-store",
         method: "GET",
@@ -44,6 +75,15 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const league_type = Number(searchParams.get("league_type")) ?? 0;
+
+    if (searchParams.get("from_date") && searchParams.get("to_date")) {
+      const from_date = new Date(searchParams.get("from_date") ?? "");
+      const to_date = new Date(searchParams.get("to_date") ?? "");
+
+      const ret = await getCityleagueResultsByTerm(league_type, from_date, to_date);
+
+      return NextResponse.json(ret, { status: 200 });
+    }
 
     const ret = await getCityleagueResults(league_type);
 

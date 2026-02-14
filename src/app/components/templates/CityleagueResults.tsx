@@ -61,13 +61,13 @@ export default function TemplateCityleagueResults() {
       </div>
 
       <div hidden={selectedKey !== "league_type_1"}>
-        <CityleagueResults league_type={"1"} />
+        <CityleagueResults league_type={1} />
       </div>
       <div hidden={selectedKey !== "league_type_3"}>
-        <CityleagueResults league_type={"3"} />
+        <CityleagueResults league_type={3} />
       </div>
       <div hidden={selectedKey !== "league_type_2"}>
-        <CityleagueResults league_type={"2"} />
+        <CityleagueResults league_type={2} />
       </div>
     </>
   );

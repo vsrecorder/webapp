@@ -156,7 +156,7 @@ export default function OfficialEventRecord({ record }: Props) {
 
   return (
     <>
-      <div className="pb-3 w-full" onClick={onOpenForDisplayRecordModal}>
+      <div className="" onClick={onOpenForDisplayRecordModal}>
         <Card shadow="sm" className="py-3 w-full">
           <CardHeader className="px-5 pb-0 pt-0 flex-col items-start gap-1.5">
             <div className="font-bold text-tiny">

@@ -8,6 +8,7 @@ import { Button } from "@heroui/react";
 import { LuCirclePlus } from "react-icons/lu";
 
 import CityleagueResult from "@app/components/organisms/Cityleague/CityleagueResult";
+import { CityleagueResultSkeletons } from "@app/components/organisms/Cityleague/Skeleton/CityleagueResultSkeleton";
 
 import {
   CityleagueResultGetResponseType,
@@ -125,6 +126,7 @@ export default function CityleagueResults({ league_type }: Props) {
         ))}
 
         {/* ローディング表示 */}
+        {!isInitialLoaded && <CityleagueResultSkeletons />}
         {isInitialLoaded && isLoading && <Spinner size="lg" className="pt-0" />}
 
         {isInitialLoaded && !isLoading && hasMore && (

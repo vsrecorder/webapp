@@ -15,6 +15,7 @@ import "swiper/css/pagination";
 import "swiper/css/scrollbar";
 
 import CityleagueResultCard from "@app/components/organisms/Cityleague/CityleagueResultCard";
+import { CityleagueResultSkeleton } from "@app/components/organisms/Cityleague/Skeleton/CityleagueResultSkeleton";
 
 import { CityleagueResultType } from "@app/types/cityleague_result";
 import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
@@ -84,7 +85,7 @@ export default function CityleagueResult({ event_result }: Props) {
   };
 
   if (loading) {
-    return <div>読み込み中...</div>;
+    return <CityleagueResultSkeleton />;
   }
 
   if (error) {
@@ -96,84 +97,86 @@ export default function CityleagueResult({ event_result }: Props) {
   }
 
   return (
-    <Card className="pt-3">
-      <CardHeader className="pb-0 pt-0 px-3 flex-col items-start gap-0.5">
-        <small className="text-default-500">{event.title}</small>
-        <p className="font-bold text-tiny">
-          {new Date(event.date).toLocaleString("ja-JP", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-            weekday: "short",
-          })}
-        </p>
-        <div className="font-bold text-medium">{event.shop_name}</div>
-        <div className="flex flex-wrap items-start gap-1 pt-0.5">
-          <Chip size="sm" radius="md" variant="bordered">
-            <small className="font-bold">{event.prefecture_name}</small>
-          </Chip>
-          <Chip size="sm" radius="md" variant="bordered">
-            <small className="font-bold">{event.league_title}リーグ</small>
-          </Chip>
-          <Chip size="sm" radius="md" variant="bordered">
-            <small className="font-bold">『{event.environment_title}』</small>
-          </Chip>
-          {isNew(new Date(event.date)) && (
-            <Chip
-              size="sm"
-              radius="md"
-              classNames={{
-                base: "bg-linear-to-br from-indigo-500 to-pink-500 border-small border-white/50 ",
-                content: "drop-shadow-xs shadow-black text-white",
-              }}
-              variant="shadow"
-            >
-              <small className="font-bold">New</small>
+    <div className="">
+      <Card className="pt-3 w-full">
+        <CardHeader className="pb-0 pt-0 px-3 flex-col items-start gap-0.5">
+          <small className="text-default-500">{event.title}</small>
+          <div className="font-bold text-tiny">
+            {new Date(event.date).toLocaleString("ja-JP", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+              weekday: "short",
+            })}
+          </div>
+          <div className="font-bold text-medium">{event.shop_name}</div>
+          <div className="flex flex-wrap items-start gap-1 pt-0.5">
+            <Chip size="sm" radius="md" variant="bordered">
+              <small className="font-bold">{event.prefecture_name}</small>
             </Chip>
-          )}
-        </div>
-      </CardHeader>
-      <CardBody className="px-0 py-1">
-        <div>
-          <Swiper
-            modules={[A11y, Pagination]}
-            slidesPerView={"auto"}
-            centeredSlides={true}
-            loop={false}
-            speed={500}
-            /*
+            <Chip size="sm" radius="md" variant="bordered">
+              <small className="font-bold">{event.league_title}リーグ</small>
+            </Chip>
+            <Chip size="sm" radius="md" variant="bordered">
+              <small className="font-bold">『{event.environment_title}』</small>
+            </Chip>
+            {isNew(new Date(event.date)) && (
+              <Chip
+                size="sm"
+                radius="md"
+                classNames={{
+                  base: "bg-linear-to-br from-indigo-500 to-pink-500 border-small border-white/50 ",
+                  content: "drop-shadow-xs shadow-black text-white",
+                }}
+                variant="shadow"
+              >
+                <small className="font-bold">New</small>
+              </Chip>
+            )}
+          </div>
+        </CardHeader>
+        <CardBody className="px-0 py-1">
+          <div>
+            <Swiper
+              modules={[A11y, Pagination]}
+              slidesPerView={"auto"}
+              centeredSlides={true}
+              loop={false}
+              speed={500}
+              /*
             autoplay={{
               delay: 1500,
               disableOnInteraction: false,
             }}
             */
-            pagination={{
-              clickable: true,
-            }}
-          >
-            {event_result.results.map(
-              (result, index) =>
-                result.rank < 9 && (
-                  <SwiperSlide key={index} className="p-2">
-                    <CityleagueResultCard result={result} />
-                  </SwiperSlide>
-                ),
-            )}
-          </Swiper>
-        </div>
-      </CardBody>
-      <CardFooter className="pt-0 pb-2">
-        <div>
-          <Link
-            showAnchorIcon
-            underline="always"
-            href={`/cityleague_results/${event.id}`}
-            className="text-xs"
-          >
-            <span>このイベント結果の詳細ページを見る</span>
-          </Link>
-        </div>
-      </CardFooter>
-    </Card>
+              pagination={{
+                clickable: true,
+              }}
+            >
+              {event_result.results.map(
+                (result, index) =>
+                  result.rank < 9 && (
+                    <SwiperSlide key={index} className="p-2">
+                      <CityleagueResultCard result={result} />
+                    </SwiperSlide>
+                  ),
+              )}
+            </Swiper>
+          </div>
+        </CardBody>
+        <CardFooter className="pt-0 pb-2">
+          <div>
+            <Link
+              showAnchorIcon
+              underline="always"
+              href={`/cityleague_results/${event.id}`}
+              className="text-xs"
+            >
+              <span>このイベント結果の詳細ページを見る</span>
+            </Link>
+          </div>
+        </CardFooter>
+      </Card>
+    </div>
   );
 }

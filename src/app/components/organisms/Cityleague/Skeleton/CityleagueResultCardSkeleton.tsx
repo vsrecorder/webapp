@@ -1,0 +1,31 @@
+import { Card, CardHeader, CardBody } from "@heroui/react";
+import { Skeleton } from "@heroui/react";
+
+export default function CityleagueResultCardSkeleton() {
+  return (
+    <Card shadow="sm" className="py-3 w-full">
+      <CardHeader className="pt-0 pb-0 px-3">
+        <div className="font-bold text-medium">
+          <Skeleton className="h-6 w-16" />
+        </div>
+      </CardHeader>
+      <CardBody className="p-3 gap-4">
+        <div className="flex flex-col items-start gap-1.5">
+          <div className="text-tiny">
+            <Skeleton className="h-3 w-32" />
+          </div>
+          <div className="text-tiny">
+            <Skeleton className="h-3 w-36" />
+          </div>
+          <div className="text-tiny">
+            <Skeleton className="h-3 w-52" />
+          </div>
+        </div>
+
+        <div className="relative w-full aspect-2/1">
+          <Skeleton className="absolute inset-0 rounded-lg" />
+        </div>
+      </CardBody>
+    </Card>
+  );
+}

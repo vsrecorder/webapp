@@ -6,7 +6,7 @@ import DeckCard from "@app/components/organisms/Deck/DeckCard";
 
 import { DeckType, DeckGetResponseType } from "@app/types/deck";
 
-import DeckCardSkeleton from "@app/components/organisms/Deck/Skeleton/DeckCardSkeleton";
+import { DeckCardSkeletons } from "@app/components/organisms/Deck/Skeleton/DeckCardSkeleton";
 
 async function fetchDecks(isArchived: boolean, cursor: string) {
   try {
@@ -113,7 +113,7 @@ export default function Decks({ isArchived }: Props) {
         ))}
 
         {/* ローディング表示 */}
-        {isLoading && <DeckCardSkeleton />}
+        {isLoading && <DeckCardSkeletons />}
 
         <div ref={observerTarget} className="h-1 w-full" />
       </div>

@@ -39,7 +39,7 @@ export default function CityleagueResultCard({ result }: Props) {
           onOpen();
         }}
       >
-        <Card shadow="sm" className="py-3">
+        <Card shadow="sm" className="py-3 w-full">
           <CardHeader className="pb-0 pt-0 px-3">
             <div className="font-bold text-medium">
               {result.rank === 1
@@ -57,11 +57,11 @@ export default function CityleagueResultCard({ result }: Props) {
           </CardHeader>
           <CardBody className="p-3 gap-3">
             <div className="flex flex-col items-start gap-0.5">
-              <p className="text-tiny">プレイヤー名: {result.player_name}</p>
-              <p className="text-tiny">プレイヤーID: {result.player_id}</p>
-              <p className="text-tiny">
+              <div className="text-tiny">プレイヤー名: {result.player_name}</div>
+              <div className="text-tiny">プレイヤーID: {result.player_id}</div>
+              <div className="text-tiny">
                 デッキコード: {result.deck_code ? result.deck_code : "なし"}
-              </p>
+              </div>
             </div>
 
             <div className="relative w-full aspect-2/1">
@@ -96,10 +96,14 @@ export default function CityleagueResultCard({ result }: Props) {
 
       <Modal
         isOpen={isOpen}
-        size={"sm"}
+        size={"md"}
         placement="center"
         hideCloseButton
         onOpenChange={onOpenChange}
+        classNames={{
+          base: "sm:max-w-full",
+          closeButton: "text-2xl",
+        }}
       >
         <ModalContent>
           {(onClose) => (

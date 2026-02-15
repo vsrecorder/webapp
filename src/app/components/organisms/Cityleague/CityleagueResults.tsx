@@ -61,10 +61,7 @@ export default function CityleagueResults({ league_type }: Props) {
   const [isInitialLoaded, setIsInitialLoaded] = useState(false);
 
   const loadMore = useCallback(async () => {
-    if (isLoading || !hasMore) {
-      setIsLoading(false);
-      return;
-    }
+    if (isLoading || !hasMore) return;
 
     setIsLoading(true);
 

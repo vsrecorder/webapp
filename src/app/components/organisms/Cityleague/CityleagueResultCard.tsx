@@ -16,6 +16,10 @@ import {
   useDisclosure,
 } from "@heroui/react";
 
+import { LuBookPlus } from "react-icons/lu";
+
+import CreateDeckModal from "@app/components/organisms/Deck/Modal/CreateDeckModal";
+
 import { Result } from "@app/types/cityleague_result";
 
 type Props = {
@@ -26,6 +30,12 @@ export default function CityleagueResultCard({ result }: Props) {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [imageLoaded, setImageLoaded] = useState(false);
 
+  const {
+    isOpen: isOpenForCreateDeckModal,
+    onOpen: onOpenForCreateDeckModal,
+    onOpenChange: onOpenChangeForCreateDeckModal,
+  } = useDisclosure();
+
   useEffect(() => {
     if (!result.deck_code) return;
     const img = new window.Image();
@@ -34,6 +44,13 @@ export default function CityleagueResultCard({ result }: Props) {
 
   return (
     <>
+      <CreateDeckModal
+        deck_code={result.deck_code}
+        isOpen={isOpenForCreateDeckModal}
+        onOpenChange={onOpenChangeForCreateDeckModal}
+        onCreated={() => {}}
+      />
+
       <div
         onClick={() => {
           onOpen();
@@ -108,19 +125,30 @@ export default function CityleagueResultCard({ result }: Props) {
         <ModalContent>
           {(onClose) => (
             <>
-              <ModalHeader className="p-3 pb-0">
-                <div className="font-bold text-medium">
-                  {result.rank === 1
-                    ? "優勝"
-                    : result.rank === 2
-                      ? "準優勝"
-                      : result.rank === 3
-                        ? "ベスト4"
-                        : result.rank === 5
-                          ? "ベスト8"
-                          : result.rank === 9
-                            ? "ベスト16"
-                            : ""}
+              <ModalHeader className="p-3 pb-0 flex flex-items-center">
+                <div className="flex items-center justify-between w-full">
+                  {/* 左側 */}
+                  <div className="font-bold text-medium">
+                    {result.rank === 1
+                      ? "優勝"
+                      : result.rank === 2
+                        ? "準優勝"
+                        : result.rank === 3
+                          ? "ベスト4"
+                          : result.rank === 5
+                            ? "ベスト8"
+                            : result.rank === 9
+                              ? "ベスト16"
+                              : ""}
+                  </div>
+
+                  {/* 右側 */}
+                  <div>
+                    <LuBookPlus
+                      className="text-2xl cursor-pointer"
+                      onClick={onOpenForCreateDeckModal}
+                    />
+                  </div>
                 </div>
               </ModalHeader>
               <ModalBody className="p-3 gap-3">
@@ -159,8 +187,13 @@ export default function CityleagueResultCard({ result }: Props) {
                 </div>
               </ModalBody>
               <ModalFooter>
-                <Button color="default" variant="solid" onPress={onClose}>
-                  Close
+                <Button
+                  color="default"
+                  variant="solid"
+                  onPress={onClose}
+                  className="font-bold"
+                >
+                  閉じる
                 </Button>
               </ModalFooter>
             </>

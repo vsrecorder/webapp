@@ -28,7 +28,7 @@ export default function TemplateDecks() {
   return (
     <>
       <ScrollUpFloating />
-      <CreateDeckFloating onCreate={handleCreatedDeck} />
+      <CreateDeckFloating onCreated={handleCreatedDeck} />
       <div className="pt-13">
         <Tabs
           fullWidth

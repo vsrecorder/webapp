@@ -22,10 +22,10 @@ import { LuCirclePlus } from "react-icons/lu";
 import { DeckCreateRequestType } from "@app/types/deck";
 
 type Props = {
-  onCreate: () => void;
+  onCreated: () => void;
 };
 
-export default function CreateDeckFloating({ onCreate }: Props) {
+export default function CreateDeckFloating({ onCreated }: Props) {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [imageLoaded, setImageLoaded] = useState(false);
   const [deckname, setDeckName] = useState<string>("");
@@ -94,7 +94,7 @@ export default function CreateDeckFloating({ onCreate }: Props) {
     setIsDisabled(true);
 
     const toastId = addToast({
-      title: "デッキ作成中",
+      title: "マイデッキ登録中",
       description: "しばらくお待ちください",
       color: "default",
       promise: new Promise(() => {}),
@@ -119,20 +119,20 @@ export default function CreateDeckFloating({ onCreate }: Props) {
       }
 
       addToast({
-        title: "デッキ作成完了",
-        description: "デッキを作成しました",
+        title: "マイデッキ登録完了",
+        description: "マイデッキに登録しました",
         color: "success",
         timeout: 3000,
       });
 
-      onCreate();
+      onCreated();
 
       onClose();
 
-      setIsDisabled(false);
-      setDeckName("");
-      setDeckCode("");
-      setIsSelectedPrivateCode(false);
+      //setIsDisabled(false);
+      //setDeckName("");
+      //setDeckCode("");
+      //setIsSelectedPrivateCode(false);
     } catch (error) {
       console.error(error);
 
@@ -144,10 +144,10 @@ export default function CreateDeckFloating({ onCreate }: Props) {
       }
 
       addToast({
-        title: "デッキ作成失敗",
+        title: "マイデッキ登録失敗",
         description: (
           <>
-            デッキの作成に失敗しました
+            マイデッキへの登録に失敗しました
             <br />
             {errorMessage}
           </>
@@ -158,10 +158,10 @@ export default function CreateDeckFloating({ onCreate }: Props) {
 
       onClose();
 
-      setIsDisabled(false);
-      setDeckName("");
-      setDeckCode("");
-      setIsSelectedPrivateCode(false);
+      //setIsDisabled(false);
+      //setDeckName("");
+      //setDeckCode("");
+      //setIsSelectedPrivateCode(false);
     }
   };
 
@@ -180,6 +180,7 @@ export default function CreateDeckFloating({ onCreate }: Props) {
         onOpenChange={onOpenChange}
         isDismissable={!isDisabled}
         onClose={() => {
+          setIsDisabled(false);
           setDeckName("");
           setDeckCode("");
           setIsSelectedPrivateCode(false);
@@ -192,7 +193,7 @@ export default function CreateDeckFloating({ onCreate }: Props) {
         <ModalContent>
           {(onClose) => (
             <>
-              <ModalHeader className="text-lg px-3">新しいデッキを作成</ModalHeader>
+              <ModalHeader className="text-lg px-3">マイデッキ登録</ModalHeader>
               <ModalBody className="px-3 py-1">
                 <Input
                   isRequired
@@ -260,9 +261,9 @@ export default function CreateDeckFloating({ onCreate }: Props) {
                   variant="solid"
                   isDisabled={isDisabled}
                   onPress={() => {
-                    setDeckName("");
-                    setDeckCode("");
-                    setIsSelectedPrivateCode(false);
+                    //setDeckName("");
+                    //setDeckCode("");
+                    //setIsSelectedPrivateCode(false);
                     onClose();
                   }}
                 >
@@ -276,7 +277,7 @@ export default function CreateDeckFloating({ onCreate }: Props) {
                     createDeck(onClose);
                   }}
                 >
-                  作成
+                  登録
                 </Button>
               </ModalFooter>
             </>

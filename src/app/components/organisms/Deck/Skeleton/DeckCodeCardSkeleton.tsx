@@ -1,4 +1,4 @@
-import { Card, CardHeader, CardBody, CardFooter } from "@heroui/react";
+import { Card, CardHeader, CardBody } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
 
 export default function DeckCodeCardSkeleton() {
@@ -24,6 +24,7 @@ export default function DeckCodeCardSkeleton() {
           <Skeleton className="absolute inset-0 rounded-lg" />
         </div>
       </CardBody>
+      {/*
       <CardFooter>
         <div className="flex flex-col gap-1">
           <div className="flex gap-1">
@@ -31,6 +32,7 @@ export default function DeckCodeCardSkeleton() {
           </div>
         </div>
       </CardFooter>
+      */}
     </Card>
   );
 }

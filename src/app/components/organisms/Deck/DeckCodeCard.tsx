@@ -4,15 +4,16 @@ import { createHash } from "crypto";
 
 import { useEffect, useState } from "react";
 
-import { Card, CardHeader, CardBody, CardFooter } from "@heroui/react";
-import { Chip } from "@heroui/react";
+import { Card, CardHeader, CardBody } from "@heroui/react";
+//import { Chip } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
 import { Image } from "@heroui/react";
 
 import { DeckCodeType } from "@app/types/deck_code";
-import { AcespecType } from "@app/types/acespec";
+//import { AcespecType } from "@app/types/acespec";
 import { EnvironmentType } from "@app/types/environment";
 
+/*
 async function fetchAcespec(code: string) {
   try {
     const res = await fetch(`/api/deckcards/${code}/acespec`, {
@@ -34,6 +35,7 @@ async function fetchAcespec(code: string) {
     throw error;
   }
 }
+  */
 
 async function fetchEnvironment(date: Date) {
   try {
@@ -59,11 +61,11 @@ type Props = {
 
 export default function DeckCodeCard({ deckcode }: Props) {
   const [imageLoaded, setImageLoaded] = useState(false);
-  const [acespec, setAcespec] = useState<AcespecType | null>(null);
+  //const [acespec, setAcespec] = useState<AcespecType | null>(null);
+  //const [loadingAcespec, setLoadingAcespec] = useState(true);
+  //const [errorAcespec, setErrorAcespec] = useState<string | null>(null);
   const [environment, setEnvironment] = useState<EnvironmentType | null>(null);
-  const [loadingAcespec, setLoadingAcespec] = useState(true);
   const [loadingEnvrionment, setLoadingEnvironment] = useState(true);
-  const [errorAcespec, setErrorAcespec] = useState<string | null>(null);
   const [errorEnvironment, setErrorEnvironment] = useState<string | null>(null);
 
   const version =
@@ -79,19 +81,20 @@ export default function DeckCodeCard({ deckcode }: Props) {
 
   useEffect(() => {
     if (!deckcode || !deckcode.id) {
-      setLoadingAcespec(false);
+      //setLoadingAcespec(false);
       setLoadingEnvironment(false);
       return;
     }
 
-    setLoadingAcespec(true);
+    //setLoadingAcespec(true);
     setLoadingEnvironment(true);
 
+    /*
     const fetchAcespecData = async () => {
       try {
         setLoadingAcespec(true);
         const data = await fetchAcespec(deckcode.code);
-        setAcespec(data);
+        //setAcespec(data);
       } catch (err) {
         console.log(err);
         setErrorAcespec(
@@ -101,6 +104,7 @@ export default function DeckCodeCard({ deckcode }: Props) {
         setLoadingAcespec(false);
       }
     };
+    */
 
     const fetchEnvironmentData = async () => {
       try {
@@ -115,11 +119,16 @@ export default function DeckCodeCard({ deckcode }: Props) {
       }
     };
 
-    fetchAcespecData();
+    //fetchAcespecData();
     fetchEnvironmentData();
   }, [deckcode]);
 
+  /*
   if (errorAcespec || errorEnvironment) {
+  }
+  */
+
+  if (errorEnvironment) {
   }
 
   if (!deckcode) {
@@ -190,6 +199,7 @@ export default function DeckCodeCard({ deckcode }: Props) {
           )}
         </div>
       </CardBody>
+      {/*
       <CardFooter>
         <div className="flex flex-col gap-1">
           <div className="flex gap-1">
@@ -212,6 +222,7 @@ export default function DeckCodeCard({ deckcode }: Props) {
           </div>
         </div>
       </CardFooter>
+      */}
     </Card>
   );
 }

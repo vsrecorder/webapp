@@ -50,11 +50,9 @@ type Props = {
 
 export default function CityleagueResults({ league_type }: Props) {
   const now = new Date();
-  const yesterday = new Date(now);
-  yesterday.setDate(now.getDate() - 1);
 
   const [items, setItems] = useState<CityleagueResultType[]>([]);
-  const [nextFromDate, setNextFromDate] = useState<Date>(yesterday);
+  const [nextFromDate, setNextFromDate] = useState<Date>(now);
   const [nextToDate, setNextToDate] = useState<Date>(now);
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -83,8 +81,8 @@ export default function CityleagueResults({ league_type }: Props) {
         if (newItems.count !== 0) {
           setItems((prev) => [...prev, ...newItems.event_results]);
 
-          fromDate.setDate(fromDate.getDate() - 2);
-          toDate.setDate(toDate.getDate() - 2);
+          fromDate.setDate(fromDate.getDate() - 1);
+          toDate.setDate(toDate.getDate() - 1);
 
           setNextFromDate(fromDate);
           setNextToDate(toDate);

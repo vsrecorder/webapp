@@ -177,7 +177,7 @@ export default function DisplayDeckCodesModal({ deck, isOpen, onOpenChange }: Pr
                                       {/* 右側 */}
                                       <div>
                                         <LuTrash2
-                                          className="text-xl text-red-500"
+                                          className="text-xl cursor-pointer text-red-500"
                                           onClick={() => {}}
                                         />
                                       </div>

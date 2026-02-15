@@ -27,7 +27,6 @@ import { Card, CardBody } from "@heroui/react";
 import { Image } from "@heroui/react";
 
 import { LuCirclePlus } from "react-icons/lu";
-//import { LuPlus } from "react-icons/lu";
 
 import { RecordGetByIdResponseType } from "@app/types/record";
 import { MatchCreateRequestType } from "@app/types/match";
@@ -355,7 +354,7 @@ export default function CreateMatchModal({ record }: Props) {
                               type="text"
                               label=""
                               labelPlacement="outside"
-                              placeholder="例）メガルカリオex"
+                              placeholder="例）メガルカリオ"
                               value={opponentsDeckInfo}
                               onChange={(e) => setOpponentsDeckInfo(e.target.value)}
                             />

@@ -193,7 +193,7 @@ export default function CreateDeckModal({
                 type="text"
                 label="デッキ名"
                 labelPlacement="outside"
-                placeholder="例）メガルカリオ"
+                placeholder="デッキ名を入力"
                 value={deckname}
                 onChange={(e) => setDeckName(e.target.value)}
               />
@@ -205,7 +205,7 @@ export default function CreateDeckModal({
                 type="text"
                 label="デッキコード"
                 labelPlacement="outside"
-                placeholder="例）LnQLQn-SWgB9g-nngNgL"
+                placeholder="デッキコードを入力"
                 value={deckcode}
                 onChange={(e) => setDeckCode(e.target.value)}
               />

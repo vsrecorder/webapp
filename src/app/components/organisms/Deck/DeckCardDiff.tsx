@@ -40,7 +40,7 @@ function makeCardKey(card: DeckCardType): string {
   ].join("||");
 }
 
-function toCardCountMap(cards: DeckCardType[]) {
+function toCardCountMap(cards: DeckCardType[] = []) {
   const map = new Map<string, { card: DeckCardType; count: number }>();
 
   for (const card of cards) {

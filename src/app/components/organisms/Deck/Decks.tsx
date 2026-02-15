@@ -39,7 +39,10 @@ export default function Decks({ isArchived }: Props) {
   const [hasMore, setHasMore] = useState(true);
 
   const loadMore = useCallback(async () => {
-    if (isLoading || !hasMore) return;
+    if (isLoading || !hasMore) {
+      setIsLoading(false);
+      return;
+    }
 
     setIsLoading(true);
 

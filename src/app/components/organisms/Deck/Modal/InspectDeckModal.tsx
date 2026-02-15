@@ -1,8 +1,17 @@
 import { useRef } from "react";
 
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
+import { useState } from "react";
 
-import DeckCardSummary from "../DeckCardSummary";
+import { Skeleton } from "@heroui/react";
+import { Image } from "@heroui/react";
+import { Snippet } from "@heroui/react";
+
+import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
+import { Button } from "@heroui/react";
+
+import { LuRepeat } from "react-icons/lu";
+
+import InspectDeck from "@app/components/organisms/Deck/InspectDeck";
 
 import { DeckCodeType } from "@app/types/deck_code";
 
@@ -13,6 +22,8 @@ type Props = {
 };
 
 export default function InspectDeckModal({ deckcode, isOpen, onOpenChange }: Props) {
+  const [imageLoaded, setImageLoaded] = useState(false);
+
   const startY = useRef<number | null>(null);
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -52,15 +63,77 @@ export default function InspectDeckModal({ deckcode, isOpen, onOpenChange }: Pro
             <ModalHeader
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
-              className="px-3 py-3 flex flex-col gap-1 cursor-grab"
+              className="px-1 py-3 flex flex-col gap-1 cursor-grab"
             >
               <div className="mx-auto h-1 w-15 rounded-full bg-default-300" />
-              <div>初動チェック</div>
+              <div className="px-2">初動チェック</div>
+              <div className="flex flex-col gap-5">
+                <div className="pt-5 flex flex-col items-center justify-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <div className="text-tiny">
+                      <>デッキコード：</>
+                      {deckcode?.code ? (
+                        <Snippet
+                          size="sm"
+                          radius="none"
+                          timeout={3000}
+                          disableTooltip={true}
+                          hideSymbol={true}
+                        >
+                          {deckcode.code}
+                        </Snippet>
+                      ) : (
+                        "なし"
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="relative w-full aspect-2/1">
+                  {!imageLoaded && <Skeleton className="absolute inset-0 rounded-lg" />}
+                  {deckcode?.code ? (
+                    <>
+                      <Image
+                        radius="sm"
+                        shadow="none"
+                        alt={deckcode.code}
+                        src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
+                        className=""
+                        onLoad={() => setImageLoaded(true)}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <Image
+                        radius="sm"
+                        shadow="none"
+                        alt="デッキコードなし"
+                        src={"https://www.pokemon-card.com/deck/deckView.php/deckID/"}
+                        className=""
+                        onLoad={() => setImageLoaded(true)}
+                      />
+                    </>
+                  )}
+                </div>
+              </div>
             </ModalHeader>
-            <ModalBody className="overflow-y-auto">
-              <DeckCardSummary deckcode={deckcode} />
+            <ModalBody className="px-1 overflow-y-auto">
+              <div className="px-1 pt-3">
+                <InspectDeck deckcode={deckcode} />
+              </div>
             </ModalBody>
-            <ModalFooter></ModalFooter>
+            <ModalFooter className="px-1 pt-3 pb-6 w-full">
+              <div className="w-full">
+                <Button size="md" radius="full" onPress={() => {}} className="w-full">
+                  <div className="flex items-center justify-center gap-3">
+                    <span className="font-bold ">
+                      <LuRepeat />
+                    </span>
+                    <span className="font-bold">再試行</span>
+                  </div>
+                </Button>
+              </div>
+            </ModalFooter>
           </>
         )}
       </ModalContent>

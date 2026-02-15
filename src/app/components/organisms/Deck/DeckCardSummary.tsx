@@ -74,7 +74,10 @@ export default function DeckCardSummary({ deckcode }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!deckcode) return;
+    if (!deckcode) {
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
 

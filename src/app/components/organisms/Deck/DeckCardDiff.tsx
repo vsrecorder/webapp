@@ -94,7 +94,11 @@ export default function DeckCardDiff({ current_deckcode, previous_deckcode }: Pr
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!current_deckcode || !previous_deckcode) return;
+    if (!current_deckcode || !previous_deckcode) {
+      setLoading1(false);
+      setLoading2(false);
+      return;
+    }
 
     setLoading1(true);
     setLoading2(true);

@@ -178,15 +178,19 @@ export default function ShowDeckModal({
                   <div className="flex items-center gap-2">
                     <div className="text-tiny">
                       <>デッキコード：</>
-                      <Snippet
-                        size="sm"
-                        radius="none"
-                        timeout={3000}
-                        disableTooltip={true}
-                        hideSymbol={true}
-                      >
-                        {deckcode?.code ? deckcode.code : "なし"}
-                      </Snippet>
+                      {deckcode?.code ? (
+                        <Snippet
+                          size="sm"
+                          radius="none"
+                          timeout={3000}
+                          disableTooltip={true}
+                          hideSymbol={true}
+                        >
+                          {deckcode.code}
+                        </Snippet>
+                      ) : (
+                        "なし"
+                      )}
                     </div>
 
                     {deckcode?.code && (
@@ -234,7 +238,7 @@ export default function ShowDeckModal({
               </ModalBody>
               <ModalFooter>
                 {new Date(deck.archived_at).getFullYear() === 1 ? (
-                  <div className="flex items-center justify-center gap-7 mx-auto">
+                  <div className="flex items-center justify-center gap-8 mx-auto">
                     <Link
                       href={`/records/create?deck_id=${deck.id}`}
                       className="text-black"
@@ -269,7 +273,7 @@ export default function ShowDeckModal({
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-center gap-7 mx-auto">
+                  <div className="flex items-center justify-center gap-8 mx-auto">
                     <div className="text-2xl text-gray-200">
                       <LuFilePen />
                     </div>

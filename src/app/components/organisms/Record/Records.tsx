@@ -50,7 +50,10 @@ export default function Records({ event_type, deck_id }: Props) {
   const [isInitialLoaded, setIsInitialLoaded] = useState(false);
 
   const loadMore = useCallback(async () => {
-    if (isLoading || !hasMore) return;
+    if (isLoading || !hasMore) {
+      setIsLoading(false);
+      return;
+    }
 
     setIsLoading(true);
 

@@ -8,7 +8,7 @@ import { addToast, closeToast } from "@heroui/react";
 import {
   DeckUpdateRequestType,
   DeckGetByIdResponseType,
-  //DeckUpdateResponseType,
+  DeckUpdateResponseType,
 } from "@app/types/deck";
 
 type Props = {
@@ -55,7 +55,7 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
         throw new Error(`HTTP error: ${res.status} Message: ${t.message}`);
       }
 
-      //const ret: DeckUpdateResponseType = await res.json();
+      const ret: DeckUpdateResponseType = await res.json();
 
       if (toastId) {
         closeToast(toastId);
@@ -69,7 +69,7 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
       });
 
       setDeck({
-        ...deck,
+        ...ret,
         name: newDeckName,
       });
 

@@ -42,3 +42,5 @@ export type DeckCardSummaryType = {
   card_ene: CardType[];
   card_ene_count: number;
 };
+
+export type DeckCardListType = CardType[];

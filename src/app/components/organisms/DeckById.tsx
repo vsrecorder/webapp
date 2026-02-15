@@ -72,7 +72,10 @@ export default function DeckById({ id }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!id) return;
+    if (!id) {
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
 

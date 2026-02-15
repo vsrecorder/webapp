@@ -415,12 +415,12 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
   }, [deck_id]);
 
   useEffect(() => {
-    if (selectedOfficialEventOption && selectedDeckOption) {
+    if (selectedOfficialEventOption) {
       setIsDisabledCreateOfficialEventRecord(false);
     } else {
       setIsDisabledCreateOfficialEventRecord(true);
     }
-  }, [selectedOfficialEventOption, selectedDeckOption]);
+  }, [selectedOfficialEventOption]);
 
   useEffect(() => {
     if (tonamelEventId && isValidatedTonamelEventId && selectedDeckOption) {

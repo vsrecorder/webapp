@@ -217,10 +217,10 @@ export default function CreateMatchModal({ record }: Props) {
     <>
       <Button size="sm" radius="full" onPress={onOpen}>
         <div className="flex items-center gap-1">
-          <span className="text-bold text-tiny ">
+          <span className="font-bold text-tiny ">
             <LuCirclePlus />
           </span>
-          <span className="text-bold text-tiny ">対戦結果を追加する</span>
+          <span className="font-bold text-tiny ">対戦結果を追加する</span>
         </div>
       </Button>
 
@@ -432,7 +432,7 @@ export default function CreateMatchModal({ record }: Props) {
                           className=""
                         />
 
-                        <span className="text-bold text-3xl">-</span>
+                        <span className="font-bold text-2xl">-</span>
 
                         <NumberInput
                           label="相手"

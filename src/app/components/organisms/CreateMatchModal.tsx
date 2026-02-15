@@ -248,7 +248,7 @@ export default function CreateMatchModal({ record }: Props) {
           setIsDisabled(false);
           setCouldCreate(false);
         }}
-        className="h-[calc(100dvh-176px)] max-h-[calc(100dvh-176px)] mt-26 my-0 rounded-b-none"
+        className="h-[calc(100dvh-160px)] max-h-[calc(100dvh-160px)] mt-26 my-0 rounded-b-none"
         classNames={{
           base: "sm:max-w-full",
           closeButton: "text-2xl",

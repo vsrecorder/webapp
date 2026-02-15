@@ -3,6 +3,8 @@ import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@herou
 
 import { LuExternalLink } from "react-icons/lu";
 
+import Matches from "@app/components/organisms/Matches";
+
 import { RecordType } from "@app/types/record";
 
 type Props = {
@@ -38,6 +40,8 @@ export default function DisplayRecordModal({ record, isOpen, onOpenChange }: Pro
                   <LuExternalLink />
                 </div>
               </Link>
+
+              <Matches record={record.data} />
             </ModalBody>
             <ModalFooter></ModalFooter>
           </>

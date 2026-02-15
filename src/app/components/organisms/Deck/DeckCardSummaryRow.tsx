@@ -138,7 +138,7 @@ export default function DeckCardSummaryRow({ deckcode }: Props) {
   if (!deckcardSummary) return;
 
   return (
-    <div className="w-full">
+    <div className="w-full overflow-y-auto">
       <Tabs fullWidth size="sm" className="">
         <Tab key="card_pke" title={`ポケモン：${deckcardSummary.card_pke_count}`}>
           <div className="pl-1 flex flex-wrap gap-1">

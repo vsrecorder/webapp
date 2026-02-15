@@ -156,6 +156,12 @@ export default function OfficialEventRecord({ record }: Props) {
 
   return (
     <>
+      <DisplayRecordModal
+        record={record}
+        isOpen={isOpenForDisplayRecordModal}
+        onOpenChange={onOpenChangeForDisplayRecordModal}
+      />
+
       <div className="" onClick={onOpenForDisplayRecordModal}>
         <Card shadow="sm" className="py-3 w-full">
           <CardHeader className="px-5 pb-0 pt-0 flex-col items-start gap-1.5">
@@ -361,12 +367,6 @@ export default function OfficialEventRecord({ record }: Props) {
           </CardBody>
         </Card>
       </div>
-
-      <DisplayRecordModal
-        record={record}
-        isOpen={isOpenForDisplayRecordModal}
-        onOpenChange={onOpenChangeForDisplayRecordModal}
-      />
     </>
   );
 }

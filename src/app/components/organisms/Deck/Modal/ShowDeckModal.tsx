@@ -32,7 +32,7 @@ import InspectDeckModal from "@app/components/organisms/Deck/Modal/InspectDeckMo
 import DisplayRecordsModal from "@app/components/organisms/Deck/Modal/DisplayRecordsModal";
 import DisplayDeckCodesModal from "@app/components/organisms/Deck/Modal/DisplayDeckCodes";
 
-import DeckCardSummary from "@app/components/organisms/Deck/DeckCardSummary";
+import DeckCardSummaryRow from "@app/components/organisms/Deck/DeckCardSummaryRow";
 
 import { LuExternalLink } from "react-icons/lu";
 
@@ -174,9 +174,9 @@ export default function ShowDeckModal({
               </ModalHeader>
               <ModalBody className="px-1 py-1 pb-3 flex flex-col gap-5 overflow-y-auto">
                 <div className="pl-3 flex flex-col justify-center gap-3">
-                  <div className="text-tiny">バージョンID：{version}</div>
+                  <div className="font-bold text-tiny">バージョンID：{version}</div>
                   <div className="flex items-center gap-2">
-                    <div className="text-tiny">
+                    <div className="font-bold text-tiny">
                       <>デッキコード：</>
                       {deckcode?.code ? (
                         <Snippet
@@ -232,13 +232,13 @@ export default function ShowDeckModal({
                   )}
                 </div>
 
-                <div className="px-5 overflow-y-auto">
-                  {deckcode && <DeckCardSummary deckcode={deckcode} />}
+                <div className="px-1 overflow-y-auto">
+                  {deckcode && <DeckCardSummaryRow deckcode={deckcode} />}
                 </div>
               </ModalBody>
-              <ModalFooter>
+              <ModalFooter className="px-1">
                 {new Date(deck.archived_at).getFullYear() === 1 ? (
-                  <div className="flex items-center justify-center gap-8 mx-auto">
+                  <div className="flex items-center gap-8 mx-auto overflow-x-auto">
                     <Link
                       href={`/records/create?deck_id=${deck.id}`}
                       className="text-black"

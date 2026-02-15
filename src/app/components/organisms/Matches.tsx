@@ -80,7 +80,7 @@ export default function Matches({ record }: Props) {
   }
 
   if (!matches || matches.length === 0) {
-    return;
+    return <CreateMatchModal record={record} />;
   }
 
   return (

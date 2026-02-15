@@ -6,8 +6,11 @@ import { useEffect, useState } from "react";
 import { Image } from "@heroui/react";
 import { Card, CardBody } from "@heroui/react";
 
-import { DeckCodeType } from "@app/types/deck_code";
+import { Button } from "@heroui/react";
 
+import { LuRepeat } from "react-icons/lu";
+
+import { DeckCodeType } from "@app/types/deck_code";
 import { DeckCardListType } from "@app/types/deckcard";
 
 async function fetchDeckCardList(code: string) {
@@ -78,7 +81,7 @@ export default function InspectDeck({ deckcode }: Props) {
   if (!deckcardList) return;
 
   return (
-    <div className="flex flex-col gap-9">
+    <div className="flex flex-col gap-3">
       <div className="px-6 flex justify-between w-full">
         <div className="flex flex-col justify-center gap-1">
           <div className="px-3 font-bold text-tiny">サイド</div>
@@ -145,6 +148,17 @@ export default function InspectDeck({ deckcode }: Props) {
             </div>
           </CardBody>
         </Card>
+      </div>
+
+      <div className="w-full">
+        <Button size="md" radius="full" onPress={() => {}} className="w-full">
+          <div className="flex items-center justify-center gap-3">
+            <span className="font-bold ">
+              <LuRepeat />
+            </span>
+            <span className="font-bold">再試行</span>
+          </div>
+        </Button>
       </div>
     </div>
   );

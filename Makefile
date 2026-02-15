@@ -15,8 +15,8 @@ install:
 
 
 
-.PHONY: docker-build-and-push
-docker-build-and-push:
+.PHONY: image
+image:
 	docker build -t vsrecorder/webapp:latest . && docker push vsrecorder/webapp:latest
 
 .PHONY: deploy

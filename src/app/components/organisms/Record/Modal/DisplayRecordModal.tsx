@@ -34,7 +34,7 @@ export default function DisplayRecordModal({ record, isOpen, onOpenChange }: Pro
             <ModalHeader>
               <div>対戦結果</div>
             </ModalHeader>
-            <ModalBody className="overflow-y-auto">
+            <ModalBody className="px-3 overflow-y-auto">
               <Link href={`/records/${record.data.id}`} className="text-gray-500">
                 <div className="text-2xl">
                   <LuExternalLink />

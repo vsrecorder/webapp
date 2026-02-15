@@ -34,9 +34,10 @@ import { GameRequestType } from "@app/types/game";
 
 type Props = {
   record: RecordGetByIdResponseType;
+  onCreated: () => void;
 };
 
-export default function CreateMatchModal({ record }: Props) {
+export default function CreateMatchModal({ record, onCreated }: Props) {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   const [qualifyingRoundFlg, setQualifyingRoundFlg] = useState(false);
@@ -112,16 +113,18 @@ export default function CreateMatchModal({ record }: Props) {
     let games: GameRequestType[] = [];
 
     if (isGoFirst === "-1" || isVictory === "-1") {
-      addToast({
-        title: "エラーが発生しました",
-        description: <>エラーが発生しました</>,
-        color: "danger",
-        timeout: 5000,
-      });
+      if (!(isDefaultVictory || isDefaultDefeat)) {
+        addToast({
+          title: "エラーが発生しました",
+          description: <>エラーが発生しました</>,
+          color: "danger",
+          timeout: 5000,
+        });
 
-      onClose();
+        onClose();
 
-      return;
+        return;
+      }
     }
 
     if (!isDefaultVictory && !isDefaultDefeat) {
@@ -184,6 +187,8 @@ export default function CreateMatchModal({ record }: Props) {
         timeout: 3000,
       });
 
+      onCreated();
+
       onClose();
     } catch (error) {
       console.error(error);
@@ -214,12 +219,12 @@ export default function CreateMatchModal({ record }: Props) {
 
   return (
     <>
-      <Button size="sm" radius="full" onPress={onOpen}>
+      <Button size="md" radius="full" onPress={onOpen}>
         <div className="flex items-center gap-1">
           <span className="font-bold text-tiny ">
             <LuCirclePlus />
           </span>
-          <span className="font-bold text-tiny ">対戦結果を追加する</span>
+          <span className="font-bold">対戦結果を追加する</span>
         </div>
       </Button>
 
@@ -321,7 +326,7 @@ export default function CreateMatchModal({ record }: Props) {
                                 <Image
                                   alt="3_mega"
                                   src="/3_mega.png"
-                                  className="w-full h-full object-cover scale-120 origin-bottom"
+                                  className="w-full h-full object-cover scale-125 origin-bottom -translate-y-0.5"
                                 />
                                 {/*
                                 <LuPlus className="text-lg text-gray-500" />
@@ -339,7 +344,7 @@ export default function CreateMatchModal({ record }: Props) {
                                 <Image
                                   alt="1017_teal"
                                   src="/1017_teal.png"
-                                  className="w-full h-full object-cover scale-120 origin-bottom"
+                                  className="w-full h-full object-cover scale-125 origin-bottom -translate-y-0.5"
                                 />
                                 {/*
                                 <LuPlus className="text-lg text-gray-500" />

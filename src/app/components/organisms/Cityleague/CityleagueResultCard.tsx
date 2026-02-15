@@ -16,7 +16,8 @@ import {
   useDisclosure,
 } from "@heroui/react";
 
-import { LuBookPlus } from "react-icons/lu";
+import { LuLayers } from "react-icons/lu";
+import { LuPlus } from "react-icons/lu";
 
 import CreateDeckModal from "@app/components/organisms/Deck/Modal/CreateDeckModal";
 
@@ -58,7 +59,7 @@ export default function CityleagueResultCard({ result }: Props) {
       >
         <Card shadow="sm" className="py-3 w-full">
           <CardHeader className="pb-0 pt-0 px-3">
-            <div className="font-bold text-medium">
+            <div className="font-bold">
               {result.rank === 1
                 ? "優勝"
                 : result.rank === 2
@@ -128,7 +129,7 @@ export default function CityleagueResultCard({ result }: Props) {
               <ModalHeader className="p-3 pb-0 flex flex-items-center">
                 <div className="flex items-center justify-between w-full">
                   {/* 左側 */}
-                  <div className="font-bold text-medium">
+                  <div className="font-bold">
                     {result.rank === 1
                       ? "優勝"
                       : result.rank === 2
@@ -144,10 +145,14 @@ export default function CityleagueResultCard({ result }: Props) {
 
                   {/* 右側 */}
                   <div>
-                    <LuBookPlus
-                      className="text-2xl cursor-pointer"
+                    <div
+                      className="relative w-fit cursor-pointer"
                       onClick={onOpenForCreateDeckModal}
-                    />
+                    >
+                      <LuLayers className="text-xl" />
+                      {/* 右上に重ねる */}
+                      <LuPlus className="absolute -top-1 -right-1 font-black text-xs bg-white rounded-full" />
+                    </div>
                   </div>
                 </div>
               </ModalHeader>

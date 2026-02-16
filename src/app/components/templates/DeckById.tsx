@@ -1,6 +1,6 @@
 "use client";
 
-import DeckById from "@app/components/organisms/DeckById";
+import DeckById from "@app/components/organisms/Deck/DeckById";
 
 type Props = {
   id: string;

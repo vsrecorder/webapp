@@ -7,7 +7,7 @@ import { Divider } from "@heroui/react";
 
 import OfficialEventInfo from "@app/components/organisms/OfficialEventInfo";
 import Matches from "@app/components/organisms/Matches";
-import DeckById from "@app/components/organisms/DeckById";
+import DeckById from "@app/components/organisms/Deck/DeckById";
 
 import { RecordGetByIdResponseType } from "@app/types/record";
 

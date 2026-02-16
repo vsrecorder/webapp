@@ -124,7 +124,7 @@ export default function DisplayDeckCodesModal({ deck, isOpen, onOpenChange }: Pr
               className="px-3 py-3 flex flex-col gap-1 cursor-grab"
             >
               {/* スワイプバー */}
-              <div className="mx-auto h-1 w-15 rounded-full bg-default-300" />
+              <div className="mx-auto h-1 w-32 mb-1.5 rounded-full bg-default-300" />
 
               <div>バージョン一覧</div>
             </ModalHeader>

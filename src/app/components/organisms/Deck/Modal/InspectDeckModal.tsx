@@ -63,7 +63,7 @@ export default function InspectDeckModal({ deckcode, isOpen, onOpenChange }: Pro
               className="px-1 py-3 flex flex-col gap-1 cursor-grab"
             >
               {/* スワイプバー */}
-              <div className="mx-auto h-1 w-15 rounded-full bg-default-300" />
+              <div className="mx-auto h-1 w-32 mb-1.5 rounded-full bg-default-300" />
 
               <div className="px-2">初動チェック</div>
 

@@ -10,7 +10,6 @@ import {
   ModalBody,
   ModalFooter,
   useDisclosure,
-  CardHeader,
 } from "@heroui/react";
 import { Button } from "@heroui/react";
 import { Switch } from "@heroui/react";
@@ -23,7 +22,7 @@ import { RadioGroup, Radio } from "@heroui/react";
 import { NumberInput } from "@heroui/react";
 import { Textarea } from "@heroui/react";
 
-import { Card, CardBody } from "@heroui/react";
+import { Card, CardHeader, CardBody } from "@heroui/react";
 import { Image } from "@heroui/react";
 
 import { LuCirclePlus } from "react-icons/lu";

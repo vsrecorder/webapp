@@ -5,7 +5,10 @@ import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@herou
 
 import { LuExternalLink } from "react-icons/lu";
 
+//import RecordById from "@app/components/organisms/Record/RecordById";
+
 import Matches from "@app/components/organisms/Matches";
+import UsedDeckById from "@app/components/organisms/Deck/UsedDeckById";
 
 import { RecordType } from "@app/types/record";
 
@@ -78,6 +81,10 @@ export default function DisplayRecordModal({ record, isOpen, onOpenChange }: Pro
             </ModalHeader>
             <ModalBody className="px-3 overflow-y-auto">
               <Matches record={record.data} />
+              <UsedDeckById
+                deck_id={record.data.deck_id}
+                deck_code_id={record.data.deck_code_id}
+              />
             </ModalBody>
             <ModalFooter></ModalFooter>
           </>

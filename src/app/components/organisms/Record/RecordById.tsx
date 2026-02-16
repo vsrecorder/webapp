@@ -7,7 +7,7 @@ import { Divider } from "@heroui/react";
 
 import OfficialEventInfo from "@app/components/organisms/OfficialEventInfo";
 import Matches from "@app/components/organisms/Matches";
-import DeckById from "@app/components/organisms/Deck/DeckById";
+import UsedDeckById from "@app/components/organisms/Deck/UsedDeckById";
 
 import { RecordGetByIdResponseType } from "@app/types/record";
 
@@ -101,7 +101,7 @@ export default function RecordById({ id }: Props) {
       <Divider />
 
       <Matches record={record} />
-      <DeckById id={record.deck_id} />
+      <UsedDeckById deck_id={record.deck_id} deck_code_id={record.deck_code_id} />
     </div>
   );
 }

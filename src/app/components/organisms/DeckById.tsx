@@ -159,6 +159,7 @@ export default function DeckById({ id }: Props) {
                   {deckcode.code ? (
                     <Card shadow="sm" className="py-3">
                       <CardHeader className="pb-0 pt-0 flex-col items-start gap-0 w-full">
+                        {/* 両端配置 */}
                         <div className="flex items-center justify-between w-full">
                           {/* 左側 */}
                           <div className="flex flex-col items-start">

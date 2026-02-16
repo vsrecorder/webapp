@@ -127,6 +127,7 @@ export default function CityleagueResultCard({ result }: Props) {
           {(onClose) => (
             <>
               <ModalHeader className="p-3 pb-0 flex flex-items-center">
+                {/* 両端配置 */}
                 <div className="flex items-center justify-between w-full">
                   {/* 左側 */}
                   <div className="font-bold">

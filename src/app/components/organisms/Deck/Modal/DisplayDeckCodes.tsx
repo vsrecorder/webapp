@@ -123,7 +123,9 @@ export default function DisplayDeckCodesModal({ deck, isOpen, onOpenChange }: Pr
               onTouchMove={handleTouchMove}
               className="px-3 py-3 flex flex-col gap-1 cursor-grab"
             >
+              {/* スワイプバー */}
               <div className="mx-auto h-1 w-15 rounded-full bg-default-300" />
+
               <div>バージョン一覧</div>
             </ModalHeader>
             <ModalBody className="px-2 py-3 flex flex-col overflow-y-auto">
@@ -162,6 +164,7 @@ export default function DisplayDeckCodesModal({ deck, isOpen, onOpenChange }: Pr
                               {deckcode.code ? (
                                 <Card shadow="sm" className="py-3">
                                   <CardHeader className="pb-0 pt-0 flex-col items-start gap-2 w-full">
+                                    {/* 両端配置 */}
                                     <div className="flex items-center justify-between w-full">
                                       {/* 左側 */}
                                       <div className="flex flex-col items-start">

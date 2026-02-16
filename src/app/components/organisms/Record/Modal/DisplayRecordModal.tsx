@@ -44,7 +44,8 @@ export default function DisplayRecordModal({ record, isOpen, onOpenChange }: Pro
       onClose={() => {}}
       className="z-20 h-[calc(100dvh-104px)] max-h-[calc(100dvh-104px)] mt-26 my-0 rounded-b-none"
       classNames={{
-        base: "sm:max-w-full touch-none",
+        base: "sm:max-w-full",
+        //base: "sm:max-w-full touch-none",
         closeButton: "text-2xl",
       }}
     >

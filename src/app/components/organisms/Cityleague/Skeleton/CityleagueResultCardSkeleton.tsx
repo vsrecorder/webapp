@@ -12,13 +12,10 @@ export default function CityleagueResultCardSkeleton() {
       <CardBody className="p-3 gap-4">
         <div className="flex flex-col items-start gap-1.5">
           <div className="text-tiny">
-            <Skeleton className="h-3 w-32" />
+            <Skeleton className="h-3.5 w-32" />
           </div>
           <div className="text-tiny">
-            <Skeleton className="h-3 w-36" />
-          </div>
-          <div className="text-tiny">
-            <Skeleton className="h-3 w-52" />
+            <Skeleton className="h-3.5 w-36" />
           </div>
         </div>
 

@@ -8,10 +8,20 @@ export function DeckCardSkeleton() {
     <div className="">
       <Card className="pt-3 w-full">
         <CardHeader className="pt-0 pb-0 px-3">
-          <div className="flex flex-col gap-1">
-            <div className="font-bold text-large">
-              <Skeleton className="h-7 w-44" />
+          <div className="flex flex-col gap-1 w-full">
+            {/* 両端配置 */}
+            <div className="flex items-center justify-between w-full">
+              {/* 左側 */}
+              <div className="font-bold text-large">
+                <Skeleton className="h-7 w-44" />
+              </div>
+
+              {/* 右側 */}
+              <div>
+                <Skeleton className="h-5 w-9 rounded-2xl" />
+              </div>
             </div>
+
             <div className="pl-1">
               <div className="text-tiny">
                 <Skeleton className="h-4 w-36" />

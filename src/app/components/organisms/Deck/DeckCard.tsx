@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { Card, CardHeader, CardBody } from "@heroui/react";
+import { Chip } from "@heroui/react";
 
 import { useDisclosure } from "@heroui/react";
 
@@ -33,9 +34,21 @@ export default function DeckCard({ deckData, deckcodeData }: Props) {
         <Card className="pt-3 w-full">
           <CardHeader className="pt-0 pb-0 px-3">
             <div className="flex flex-col gap-1 w-full">
-              <div className="font-bold text-large truncate w-full min-w-0">
-                {deck.name}
+              {/* 両端配置 */}
+              <div className="flex items-center justify-between w-full">
+                {/* 左側 */}
+                <div className="font-bold text-large truncate w-full min-w-0">
+                  {deck.name}
+                </div>
+
+                {/* 右側 */}
+                <Chip size="sm" radius="md" variant="bordered">
+                  <small className="font-bold">
+                    {deck.private_flg ? "非公開" : "公開"}
+                  </small>
+                </Chip>
               </div>
+
               <div className="pl-1">
                 <div className="text-tiny">
                   作成日：

@@ -8,6 +8,7 @@ import { Skeleton } from "@heroui/react";
 import { Chip } from "@heroui/react";
 import { Card, CardHeader, CardBody, CardFooter } from "@heroui/react";
 import { Image } from "@heroui/react";
+import { Snippet } from "@heroui/react";
 
 import { LuTrash2 } from "react-icons/lu";
 
@@ -158,7 +159,7 @@ export default function DeckById({ id }: Props) {
                 <div className="pl-2">
                   {deckcode.code ? (
                     <Card shadow="sm" className="py-3">
-                      <CardHeader className="pb-0 pt-0 flex-col items-start gap-0 w-full">
+                      <CardHeader className="pb-0 pt-0 flex-col items-start gap-2 w-full">
                         {/* 両端配置 */}
                         <div className="flex items-center justify-between w-full">
                           {/* 左側 */}
@@ -175,24 +176,35 @@ export default function DeckById({ id }: Props) {
                           {/* 右側 */}
                           <div>
                             <LuTrash2
-                              className="text-xl text-red-500"
+                              className="text-xl cursor-pointer text-red-500"
                               onClick={() => {}}
                             />
                           </div>
                         </div>
 
-                        <div className="pl-3 flex flex-col justify-center gap-0.5">
-                          <div className="flex items-center gap-2">
+                        <div className="flex flex-col justify-center gap-0.5">
+                          <div className="flex items-center gap-3">
                             <div className="text-tiny">
-                              デッキコード：{deckcode?.code ? deckcode.code : "なし"}
+                              <>デッキコード：</>
+                              <Snippet
+                                size="sm"
+                                radius="none"
+                                timeout={3000}
+                                disableTooltip={true}
+                                hideSymbol={true}
+                              >
+                                {deckcode?.code ? deckcode.code : "なし"}
+                              </Snippet>
                             </div>
 
                             {deckcode?.code && (
-                              <Chip size="sm" radius="md" variant="bordered">
-                                <small className="font-bold">
-                                  {deckcode?.private_code_flg ? "非公開" : "公開"}
-                                </small>
-                              </Chip>
+                              <>
+                                <Chip size="sm" radius="md" variant="bordered">
+                                  <small className="font-bold">
+                                    {deckcode.private_code_flg ? "非公開" : "公開"}
+                                  </small>
+                                </Chip>
+                              </>
                             )}
                           </div>
                         </div>

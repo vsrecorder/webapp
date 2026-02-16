@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from "react";
 
+import ScrollUpFloating from "@app/components/atoms/Floating/ScrollUpFloating";
+
 import CityleagueResultCard from "@app/components/organisms/Cityleague/CityleagueResultCard";
+import CityleagueResultCardSkeleton from "@app/components/organisms/Cityleague/Skeleton/CityleagueResultCardSkeleton";
+
 import { CityleagueResultType } from "@app/types/cityleague_result";
 
 async function fetchCityleagueResultByOfficialEventById(id: number) {
@@ -63,7 +67,17 @@ export default function CityleagueResultByOfficialEventId({ id }: Props) {
   }, [id]);
 
   if (loading) {
-    return <div>読み込み中...</div>;
+    return (
+      <>
+        <ScrollUpFloating />
+        <div className="flex flex-col gap-2">
+          <CityleagueResultCardSkeleton />
+          <CityleagueResultCardSkeleton />
+          <CityleagueResultCardSkeleton />
+          <CityleagueResultCardSkeleton />
+        </div>
+      </>
+    );
   }
 
   if (error) {
@@ -75,12 +89,15 @@ export default function CityleagueResultByOfficialEventId({ id }: Props) {
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      {cityleagueResult.results.map((result) => (
-        <div key={result.player_id}>
-          <CityleagueResultCard result={result} />
-        </div>
-      ))}
-    </div>
+    <>
+      <ScrollUpFloating />
+      <div className="flex flex-col gap-2">
+        {cityleagueResult.results.map((result) => (
+          <div key={result.player_id}>
+            <CityleagueResultCard result={result} />
+          </div>
+        ))}
+      </div>
+    </>
   );
 }

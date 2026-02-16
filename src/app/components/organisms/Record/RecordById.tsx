@@ -2,9 +2,6 @@
 
 import { useEffect, useState } from "react";
 
-import { Chip } from "@heroui/react";
-
-import OfficialEventInfo from "@app/components/organisms/Record/OfficialEventInfo";
 import OfficialEventRecord from "@app/components/organisms/Record/OfficialEventRecord";
 import Matches from "@app/components/organisms/Match/Matches";
 import UsedDeckById from "@app/components/organisms/Deck/UsedDeckById";
@@ -79,41 +76,36 @@ export default function RecordById({ id }: Props) {
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="pt-5 pb-0 flex flex-col items-center justify-center gap-0">
-        <div className="font-bold underline">イベント情報</div>
+    <div className="pt-3 flex flex-col gap-9">
+      <div className="flex flex-col gap-1.5">
+        <div className="pb-0 flex flex-col items-center justify-center gap-0">
+          <div className="font-bold underline">イベント情報</div>
+        </div>
+
+        {record.official_event_id !== 0 ? (
+          <OfficialEventRecord
+            record={{ data: record, cursor: "" }}
+            enableDisplayRecordModal={false}
+          />
+        ) : (
+          // TODO: Tonamelの場合
+          <></>
+        )}
       </div>
 
-      {record.official_event_id !== 0 ? (
-        <OfficialEventRecord
-          record={{ data: record, cursor: "" }}
-          enableDisplayRecordModal={false}
-        />
-      ) : (
-        <></>
-      )}
-
-      <Matches record={record} enableCreateMatchModal={true} />
-
-      <UsedDeckById deck_id={record.deck_id} deck_code_id={record.deck_code_id} />
-
-      <div>作成日: {new Date(record.created_at).toLocaleString()}</div>
-      <div>公式イベントID: {record.official_event_id}</div>
-      <div>Tonamel ID: {record.tonamel_event_id}</div>
-      <div>デッキID: {record.deck_id}</div>
-      <div>デッキコードID: {record.deck_code_id}</div>
-      <div>
-        <Chip size="sm" radius="md" variant="bordered">
-          <small className="font-bold">{record.private_flg ? "非公開" : "公開"}</small>
-        </Chip>
+      <div className="flex flex-col gap-1.5">
+        <div className="pb-0 flex flex-col items-center justify-center gap-0">
+          <div className="font-bold underline">対戦結果</div>
+        </div>
+        <Matches record={record} enableCreateMatchModal={true} />
       </div>
-      <div>TCGマイスターのURL{record.tcg_meister_url}</div>
 
-      {record.official_event_id !== 0 ? (
-        <OfficialEventInfo id={record.official_event_id} />
-      ) : (
-        <></>
-      )}
+      <div className="flex flex-col gap-1.5">
+        <div className="pb-0 flex flex-col items-center justify-center gap-0">
+          <div className="font-bold underline">使用したデッキ</div>
+        </div>
+        <UsedDeckById deck_id={record.deck_id} deck_code_id={record.deck_code_id} />
+      </div>
     </div>
   );
 }

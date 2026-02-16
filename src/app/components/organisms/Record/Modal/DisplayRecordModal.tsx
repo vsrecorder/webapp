@@ -85,11 +85,13 @@ export default function DisplayRecordModal({ record, isOpen, onOpenChange }: Pro
                 <div className="pb-0 flex flex-col items-center justify-center gap-0">
                   <div className="font-bold underline">イベント情報</div>
                 </div>
-                <OfficialEventRecord
-                  key={record.data.id}
-                  record={record}
-                  enableDisplayRecordModal={false}
-                />
+
+                {record.data.official_event_id !== 0 ? (
+                  <OfficialEventRecord record={record} enableDisplayRecordModal={false} />
+                ) : (
+                  // TODO: Tonamelの場合
+                  <></>
+                )}
               </div>
 
               <div className="flex flex-col gap-1.5">

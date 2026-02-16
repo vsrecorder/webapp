@@ -9,7 +9,6 @@ import {
   TableBody,
   TableRow,
   TableCell,
-  CardHeader,
 } from "@heroui/react";
 
 import { Button } from "@heroui/react";
@@ -45,9 +44,10 @@ async function fetchMatches(record_id: string) {
 
 type Props = {
   record: RecordGetByIdResponseType;
+  enableCreateMatchModal: boolean;
 };
 
-export default function Matches({ record }: Props) {
+export default function Matches({ record, enableCreateMatchModal }: Props) {
   const [matches, setMatches] = useState<MatchGetResponseType[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -101,15 +101,17 @@ export default function Matches({ record }: Props) {
   return (
     <div>
       <Card>
-        <CardBody>
-          <div className="flex flex-col gap-3">
+        <CardBody className="px-3 py-1.5 w-full">
+          <div className="flex flex-col gap-1.5 w-full">
             <Card>
+              {/*
               <CardHeader className="pb-0 flex justify-center">
                 <div className="font-bold text-sm underline">対戦結果</div>
               </CardHeader>
+              */}
 
-              <CardBody className="min-h-42 max-h-66 px-0 py-1.5 overflow-y-auto">
-                <div className="px-0 py-0 w-full overflow-y-auto">
+              <CardBody className="px-0 py-0.5 min-h-42 w-full">
+                <div className="px-0 py-0 w-full">
                   <Table
                     isStriped
                     hideHeader
@@ -195,7 +197,9 @@ export default function Matches({ record }: Props) {
               </CardBody>
             </Card>
 
-            <CreateMatchModal record={record} onCreated={handler} />
+            {enableCreateMatchModal && (
+              <CreateMatchModal record={record} onCreated={handler} />
+            )}
           </div>
         </CardBody>
       </Card>

@@ -67,9 +67,10 @@ async function fetchDeckById(id: string) {
 
 type Props = {
   record: RecordType;
+  enableDisplayRecordModal: boolean;
 };
 
-export default function OfficialEventRecord({ record }: Props) {
+export default function OfficialEventRecord({ record, enableDisplayRecordModal }: Props) {
   const [officialEvent, setOfficialEvent] =
     useState<OfficialEventGetByIdResponseType | null>(null);
   const [deck, setDeck] = useState<DeckGetByIdResponseType | null>(null);
@@ -156,11 +157,13 @@ export default function OfficialEventRecord({ record }: Props) {
 
   return (
     <>
-      <DisplayRecordModal
-        record={record}
-        isOpen={isOpenForDisplayRecordModal}
-        onOpenChange={onOpenChangeForDisplayRecordModal}
-      />
+      {enableDisplayRecordModal && (
+        <DisplayRecordModal
+          record={record}
+          isOpen={isOpenForDisplayRecordModal}
+          onOpenChange={onOpenChangeForDisplayRecordModal}
+        />
+      )}
 
       <div className="" onClick={onOpenForDisplayRecordModal}>
         <Card shadow="sm" className="py-3 w-full">

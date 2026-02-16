@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 
 import { Chip } from "@heroui/react";
-import { Divider } from "@heroui/react";
 
 import OfficialEventInfo from "@app/components/organisms/Record/OfficialEventInfo";
 import OfficialEventRecord from "@app/components/organisms/Record/OfficialEventRecord";
@@ -80,18 +79,23 @@ export default function RecordById({ id }: Props) {
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      <OfficialEventRecord record={{ data: record, cursor: "" }} />
+    <div className="flex flex-col gap-3">
+      <div className="pt-5 pb-0 flex flex-col items-center justify-center gap-0">
+        <div className="font-bold underline">イベント情報</div>
+      </div>
 
-      <Divider />
+      {record.official_event_id !== 0 ? (
+        <OfficialEventRecord
+          record={{ data: record, cursor: "" }}
+          enableDisplayRecordModal={false}
+        />
+      ) : (
+        <></>
+      )}
 
-      <Matches record={record} />
-
-      <Divider />
+      <Matches record={record} enableCreateMatchModal={true} />
 
       <UsedDeckById deck_id={record.deck_id} deck_code_id={record.deck_code_id} />
-
-      <Divider />
 
       <div>作成日: {new Date(record.created_at).toLocaleString()}</div>
       <div>公式イベントID: {record.official_event_id}</div>
@@ -104,14 +108,12 @@ export default function RecordById({ id }: Props) {
         </Chip>
       </div>
       <div>TCGマイスターのURL{record.tcg_meister_url}</div>
-      <Divider />
 
       {record.official_event_id !== 0 ? (
         <OfficialEventInfo id={record.official_event_id} />
       ) : (
         <></>
       )}
-      <Divider />
     </div>
   );
 }

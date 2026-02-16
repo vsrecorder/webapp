@@ -16,7 +16,7 @@ import { Button } from "@heroui/react";
 import { Image } from "@heroui/react";
 import { Card, CardBody } from "@heroui/react";
 
-import CreateMatchModal from "@app/components/organisms/CreateMatchModal";
+import CreateMatchModal from "@app/components/organisms/Match/Modal/CreateMatchModal";
 
 import { RecordGetByIdResponseType } from "@app/types/record";
 import { MatchGetResponseType } from "@app/types/match";
@@ -90,6 +90,7 @@ export default function Matches({ record }: Props) {
   }, [record]);
 
   if (loading) {
+    // TODO: スケルトンモーダル
     return <div>読み込み中...</div>;
   }
 

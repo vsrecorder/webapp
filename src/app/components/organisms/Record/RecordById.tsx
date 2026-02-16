@@ -6,7 +6,7 @@ import { Chip } from "@heroui/react";
 import { Divider } from "@heroui/react";
 
 import OfficialEventInfo from "@app/components/organisms/OfficialEventInfo";
-import Matches from "@app/components/organisms/Matches";
+import Matches from "@app/components/organisms/Match/Matches";
 import UsedDeckById from "@app/components/organisms/Deck/UsedDeckById";
 
 import { RecordGetByIdResponseType } from "@app/types/record";

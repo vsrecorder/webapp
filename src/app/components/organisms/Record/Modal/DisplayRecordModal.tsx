@@ -7,7 +7,7 @@ import { LuExternalLink } from "react-icons/lu";
 
 //import RecordById from "@app/components/organisms/Record/RecordById";
 
-import Matches from "@app/components/organisms/Matches";
+import Matches from "@app/components/organisms/Match/Matches";
 import UsedDeckById from "@app/components/organisms/Deck/UsedDeckById";
 
 import { RecordType } from "@app/types/record";

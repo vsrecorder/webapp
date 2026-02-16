@@ -323,8 +323,8 @@ export default function CreateMatchModal({ record, onCreated }: Props) {
                                 className="w-12 h-12 p-0 rounded-xl border-gray-400 overflow-hidden"
                               >
                                 <Image
-                                  alt="3_mega"
-                                  src="/3_mega.png"
+                                  alt="unknown"
+                                  src="/unknown.png"
                                   className="w-full h-full object-cover scale-125 origin-bottom -translate-y-0.5"
                                 />
                                 {/*
@@ -341,8 +341,8 @@ export default function CreateMatchModal({ record, onCreated }: Props) {
                                 className="w-12 h-12 p-0 rounded-xl border-gray-400 overflow-hidden"
                               >
                                 <Image
-                                  alt="1017_teal"
-                                  src="/1017_teal.png"
+                                  alt="unknown"
+                                  src="/unknown.png"
                                   className="w-full h-full object-cover scale-125 origin-bottom -translate-y-0.5"
                                 />
                                 {/*

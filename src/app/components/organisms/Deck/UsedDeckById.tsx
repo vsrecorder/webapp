@@ -112,7 +112,8 @@ export default function UsedDeckById({ deck_id, deck_code_id }: Props) {
     return <div className="text-red-500">{error}</div>;
   }
 
-  if (!deck || !deckcode) {
+  if (!deck) {
+    // TODO: 使用したデッキを更新できるようにする
     return;
   }
 

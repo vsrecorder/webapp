@@ -29,7 +29,7 @@ export default function CreateDeckModal({
   const [deckname, setDeckName] = useState<string>("");
   const [deckcode, setDeckCode] = useState<string>(deck_code);
   const [isSelectedPrivateCode, setIsSelectedPrivateCode] = useState<boolean>(false);
-  const [isValidatedDeckCode, setIsValidatedDeckCode] = useState<boolean>(false);
+  //const [isValidatedDeckCode, setIsValidatedDeckCode] = useState<boolean>(false);
   const [isInvalid, setIsInvalid] = useState<boolean>(true);
   const [isDisabled, setIsDisabled] = useState<boolean>(false);
 
@@ -40,16 +40,19 @@ export default function CreateDeckModal({
       - 有効なデッキコードかどうか
   */
   useEffect(() => {
-    if (deckname != "" && deckcode != "" && isValidatedDeckCode) {
+    if (deckname != "" && deckcode != "") {
+      //if (deckname != "" && deckcode != "" && isValidatedDeckCode) {
       setIsInvalid(false);
     } else {
       setIsInvalid(true);
     }
-  }, [deckname, deckcode, isValidatedDeckCode]);
+  }, [deckname, deckcode]);
+  //}, [deckname, deckcode, isValidatedDeckCode]);
 
   /*
     デッキコードが有効かどうかチェック
   */
+  /*
   useEffect(() => {
     if (!deckcode) {
       setIsValidatedDeckCode(true);
@@ -76,6 +79,7 @@ export default function CreateDeckModal({
 
     checkDeckCode();
   }, [deckcode]);
+  */
 
   /*
     デッキ作成のAPIを叩く関数
@@ -200,7 +204,7 @@ export default function CreateDeckModal({
               <Input
                 isRequired
                 isDisabled={isDisabled}
-                isInvalid={!isValidatedDeckCode}
+                //isInvalid={!isValidatedDeckCode}
                 errorMessage="有効なデッキコードを入力してください"
                 type="text"
                 label="デッキコード"
@@ -211,7 +215,8 @@ export default function CreateDeckModal({
               />
 
               <Checkbox
-                isDisabled={deckcode == "" || !isValidatedDeckCode}
+                isDisabled={deckcode == ""}
+                //isDisabled={deckcode == "" || !isValidatedDeckCode}
                 defaultSelected={false}
                 size={"sm"}
                 isSelected={isSelectedPrivateCode}
@@ -227,7 +232,8 @@ export default function CreateDeckModal({
                   shadow="none"
                   alt={deckcode ? deckcode : "デッキコードなし"}
                   src={
-                    isValidatedDeckCode || deckcode
+                    //isValidatedDeckCode || deckcode
+                    deckcode
                       ? `https://www.pokemon-card.com/deck/deckView.php/deckID/${deckcode}.png`
                       : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
                   }

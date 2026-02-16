@@ -11,7 +11,7 @@ import { Image } from "@heroui/react";
 
 import { LuTrash2 } from "react-icons/lu";
 
-import DeckCardDiff from "@app/components/organisms/Deck/DeckCardDiff";
+//import DeckCardDiff from "@app/components/organisms/Deck/DeckCardDiff";
 
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
@@ -225,10 +225,13 @@ export default function DeckById({ id }: Props) {
                         <CardFooter>
                           <div className="pl-1 flex flex-col gap-3">
                             {index !== deckcodes.length - 1 ? (
+                              /*
                               <DeckCardDiff
                                 current_deckcode={deckcodes[index]}
                                 previous_deckcode={deckcodes[index + 1]}
                               />
+                              */
+                              <></>
                             ) : (
                               <></>
                             )}

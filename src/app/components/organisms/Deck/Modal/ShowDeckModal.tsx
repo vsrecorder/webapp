@@ -32,7 +32,7 @@ import InspectDeckModal from "@app/components/organisms/Deck/Modal/InspectDeckMo
 import DisplayRecordsModal from "@app/components/organisms/Deck/Modal/DisplayRecordsModal";
 import DisplayDeckCodesModal from "@app/components/organisms/Deck/Modal/DisplayDeckCodes";
 
-import DeckCardSummaryRow from "@app/components/organisms/Deck/DeckCardSummaryRow";
+//import DeckCardSummaryRow from "@app/components/organisms/Deck/DeckCardSummaryRow";
 
 import { LuExternalLink } from "react-icons/lu";
 
@@ -42,7 +42,7 @@ import { LuFileText } from "react-icons/lu";
 import { LuBookOpen } from "react-icons/lu";
 import { LuBookUp } from "react-icons/lu";
 import { LuTrash2 } from "react-icons/lu";
-import { LuFlaskConical } from "react-icons/lu";
+//import { LuFlaskConical } from "react-icons/lu";
 import { LuFilePen } from "react-icons/lu";
 import { LuSquarePen } from "react-icons/lu";
 
@@ -97,7 +97,7 @@ export default function ShowDeckModal({
 
   const {
     isOpen: isOpenForInspectDeckModal,
-    onOpen: onOpenForInspectDeckModal,
+    //onOpen: onOpenForInspectDeckModal,
     onOpenChange: onOpenChangeForInspectDeckModal,
   } = useDisclosure();
 
@@ -137,7 +137,7 @@ export default function ShowDeckModal({
         hideCloseButton
         onOpenChange={onOpenChange}
         onClose={() => {}}
-        className="h-[calc(100dvh-256px)] max-h-[calc(100dvh-256px)]"
+        //className="h-[calc(100dvh-256px)] max-h-[calc(100dvh-256px)]"
         classNames={{
           base: "sm:max-w-full",
           closeButton: "text-2xl",
@@ -232,9 +232,11 @@ export default function ShowDeckModal({
                   )}
                 </div>
 
+                {/*
                 <div className="px-1 overflow-y-auto">
                   {deckcode && <DeckCardSummaryRow deckcode={deckcode} />}
                 </div>
+                */}
               </ModalBody>
               <ModalFooter className="px-1">
                 {new Date(deck.archived_at).getFullYear() === 1 ? (
@@ -256,9 +258,11 @@ export default function ShowDeckModal({
                       <LuBookOpen onClick={onOpenForDisplayDeckCodesModal} />
                     </div>
 
+                    {/*
                     <div className="text-2xl cursor-pointer">
                       <LuFlaskConical onClick={onOpenForInspectDeckModal} />
                     </div>
+                    */}
 
                     <div className="text-2xl cursor-pointer">
                       <LuBookUp onClick={onOpenForCreateDeckCodeModal} />
@@ -285,10 +289,11 @@ export default function ShowDeckModal({
                     <div className="text-2xl cursor-pointer">
                       <LuBookOpen onClick={onOpenForDisplayDeckCodesModal} />
                     </div>
-
+                    {/*
                     <div className="text-2xl text-gray-200">
                       <LuFlaskConical />
                     </div>
+                    */}
 
                     <div className="text-2xl text-gray-200">
                       <LuBookUp />

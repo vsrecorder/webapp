@@ -312,23 +312,27 @@ export default function CreateMatchModal({ record, onCreated }: Props) {
                           </label>
                         </CardHeader>
                         <CardBody className="flex items-center">
-                          <div className="flex items-center gap-3 w-full">
-                            <div className="flex gap-2">
+                          <div className="pl-1 flex items-center gap-3 w-full">
+                            <div className="flex gap-1.5">
                               <Button
                                 isDisabled={isDisabled}
                                 isIconOnly
                                 aria-label=""
                                 variant="bordered"
                                 //className="rounded-xl border-gray-400"
-                                className="w-12 h-12 p-0 rounded-xl border-gray-400 overflow-hidden"
+                                className="w-11 h-11 p-0 rounded-xl border-gray-400 overflow-hidden"
                               >
+                                <Image
+                                  alt="unknown"
+                                  src="/unknown.png"
+                                  className="w-full h-full object-cover scale-150 origin-bottom -translate-y-0.5"
+                                />
+                                {/*
                                 <Image
                                   alt="unknown"
                                   src="/unknown.png"
                                   className="w-full h-full object-cover scale-125 origin-bottom -translate-y-0.5"
                                 />
-                                {/*
-                                <LuPlus className="text-lg text-gray-500" />
                                  */}
                               </Button>
 
@@ -338,15 +342,19 @@ export default function CreateMatchModal({ record, onCreated }: Props) {
                                 aria-label=""
                                 variant="bordered"
                                 //className="rounded-xl border-gray-400"
-                                className="w-12 h-12 p-0 rounded-xl border-gray-400 overflow-hidden"
+                                className="w-11 h-11 p-0 rounded-xl border-gray-400 overflow-hidden"
                               >
+                                <Image
+                                  alt="unknown"
+                                  src="/unknown.png"
+                                  className="w-full h-full object-cover scale-150 origin-bottom -translate-y-0.5"
+                                />
+                                {/*
                                 <Image
                                   alt="unknown"
                                   src="/unknown.png"
                                   className="w-full h-full object-cover scale-125 origin-bottom -translate-y-0.5"
                                 />
-                                {/*
-                                <LuPlus className="text-lg text-gray-500" />
                                  */}
                               </Button>
                             </div>

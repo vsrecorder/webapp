@@ -105,13 +105,11 @@ export default function Matches({ record }: Props) {
           <div className="font-bold text-sm underline">対戦結果</div>
         </CardHeader>
 
-        <CardBody className="px-0 py-1.5">
+        <CardBody className="min-h-42 max-h-66 px-0 py-1.5">
           <div className="px-0 py-0 w-full overflow-y-auto">
             <Table
-              //removeWrapper
               isStriped
               hideHeader
-              //radius="none"
               aria-label="対戦結果"
               className=""
               classNames={{
@@ -119,7 +117,6 @@ export default function Matches({ record }: Props) {
                 table: "",
                 th: "px-0 py-0",
                 td: "px-0 py-0",
-                //tr: "border border-default-300",
               }}
             >
               <TableHeader>

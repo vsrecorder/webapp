@@ -148,9 +148,7 @@ export async function DELETE(
     });
 
     if (res.status == 204) {
-      const ret = await res.json();
-
-      return NextResponse.json(ret, { status: 204 });
+      return res;
     } else {
       return res;
     }

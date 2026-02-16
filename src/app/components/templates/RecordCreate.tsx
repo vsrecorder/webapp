@@ -524,7 +524,6 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
         placement="center"
         hideCloseButton
         isDismissable={false}
-        isKeyboardDismissDisabled
         classNames={{
           base: "sm:max-w-full",
         }}

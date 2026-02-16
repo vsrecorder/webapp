@@ -43,7 +43,7 @@ export default function DeleteDeckModal({ deck, setDeck, isOpen, onOpenChange }:
       });
 
       if (res.status === 409) {
-        throw new Error("このデッキを利用したレコードが存在するため削除できません。");
+        throw new Error("このデッキを利用したレコードが存在するため削除できません");
       }
 
       if (!res.ok) {

@@ -47,7 +47,6 @@ export default function DisplayRecordModal({ record, isOpen, onOpenChange }: Pro
       placement="bottom"
       hideCloseButton
       isDismissable={false}
-      isKeyboardDismissDisabled
       className="z-20 h-[calc(100dvh-104px)] max-h-[calc(100dvh-104px)] mt-26 my-0 rounded-b-none overscroll-contain"
       classNames={{
         base: "sm:max-w-full",

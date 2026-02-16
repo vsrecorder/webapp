@@ -268,7 +268,7 @@ export default function ShowDeckModal({
                       <LuBookPlus onClick={onOpenForCreateDeckCodeModal} />
                     </div>
 
-                    <div className="text-2xl text-red-500 cursor-pointer">
+                    <div className="text-2xl cursor-pointer">
                       <LuFolderInput onClick={onOpenForArchiveDeckModal} />
                     </div>
 
@@ -299,7 +299,7 @@ export default function ShowDeckModal({
                       <LuBookPlus />
                     </div>
 
-                    <div className="text-2xl text-green-500 cursor-pointer">
+                    <div className="text-2xl cursor-pointer">
                       <LuFolderOutput onClick={onOpenForUnarchiveDeckModal} />
                     </div>
 

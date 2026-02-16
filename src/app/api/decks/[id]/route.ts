@@ -105,7 +105,7 @@ export async function PUT(
     if (res.status == 200) {
       const ret: DeckUpdateResponseType = await res.json();
 
-      return NextResponse.json(ret, { status: 201 });
+      return NextResponse.json(ret, { status: 200 });
     } else {
       return res;
     }
@@ -147,10 +147,10 @@ export async function DELETE(
       },
     });
 
-    if (res.status == 200) {
-      const ret: DeckUpdateResponseType = await res.json();
+    if (res.status == 204) {
+      const ret = await res.json();
 
-      return NextResponse.json(ret, { status: 201 });
+      return NextResponse.json(ret, { status: 204 });
     } else {
       return res;
     }

@@ -24,7 +24,7 @@ export default function DeleteDeckModal({ deck, setDeck, isOpen, onOpenChange }:
     return;
   }
 
-  const archiveDeck = async (onClose: () => void) => {
+  const deleteDeck = async (onClose: () => void) => {
     setIsDisabled(true);
 
     const toastId = addToast({
@@ -143,7 +143,7 @@ export default function DeleteDeckModal({ deck, setDeck, isOpen, onOpenChange }:
                 variant="solid"
                 isDisabled={isDisabled || !isSelected}
                 onPress={() => {
-                  archiveDeck(onClose);
+                  deleteDeck(onClose);
                 }}
                 className="text-white font-bold"
               >

@@ -9,6 +9,7 @@ import {
   TableBody,
   TableRow,
   TableCell,
+  CardHeader,
 } from "@heroui/react";
 
 import { Button } from "@heroui/react";
@@ -101,8 +102,12 @@ export default function Matches({ record }: Props) {
   }
 
   return (
-    <>
+    <div className="flex flex-col gap-3">
       <Card>
+        <CardHeader className="pb-0 flex justify-center">
+          <div className="font-bold text-sm underline">対戦結果</div>
+        </CardHeader>
+
         <CardBody className="px-0 py-1.5">
           <div className="px-0 py-0 w-full overflow-y-auto">
             <Table
@@ -127,8 +132,8 @@ export default function Matches({ record }: Props) {
                 {matches.map((match) => (
                   <TableRow key={match.id}>
                     <TableCell>
-                      <Button radius="md" variant="light" className="px-3 py-6 w-full">
-                        <div className="flex items-center gap-3 w-full">
+                      <Button radius="md" variant="light" className="px-6 py-6 w-full">
+                        <div className="flex items-center gap-5 w-full">
                           <div>{match.victory_flg === true ? "⭕" : "❌"}</div>
 
                           <div className="flex items-center font-bold">
@@ -139,7 +144,7 @@ export default function Matches({ record }: Props) {
                             )}
                           </div>
 
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-0.5">
                             {match.default_victory_flg || match.default_defeat_flg ? (
                               <>{match.default_victory_flg ? "不戦勝" : "不戦敗"}</>
                             ) : (
@@ -176,6 +181,6 @@ export default function Matches({ record }: Props) {
       </Card>
 
       <CreateMatchModal record={record} onCreated={handler} />
-    </>
+    </div>
   );
 }

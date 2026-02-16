@@ -16,6 +16,7 @@ import { Image } from "@heroui/react";
 import { Card, CardBody } from "@heroui/react";
 
 import CreateMatchModal from "@app/components/organisms/Match/Modal/CreateMatchModal";
+import MatchSkeleton from "@app/components/organisms/Match/Skeleton/MatchSkeleton";
 
 import { RecordGetByIdResponseType } from "@app/types/record";
 import { MatchGetResponseType } from "@app/types/match";
@@ -90,8 +91,7 @@ export default function Matches({ record, enableCreateMatchModal }: Props) {
   }, [record]);
 
   if (loading) {
-    // TODO: スケルトンモーダル
-    return <div>読み込み中...</div>;
+    return <MatchSkeleton enableCreateMatchModal={enableCreateMatchModal} />;
   }
 
   if (error) {
@@ -104,12 +104,6 @@ export default function Matches({ record, enableCreateMatchModal }: Props) {
         <CardBody className="px-3 py-1.5 w-full">
           <div className="flex flex-col gap-1.5 w-full">
             <Card>
-              {/*
-              <CardHeader className="pb-0 flex justify-center">
-                <div className="font-bold text-sm underline">対戦結果</div>
-              </CardHeader>
-              */}
-
               <CardBody className="px-0 py-0.5 min-h-42 w-full">
                 <div className="px-0 py-0 w-full">
                   <Table
@@ -185,8 +179,10 @@ export default function Matches({ record, enableCreateMatchModal }: Props) {
                       ) : (
                         <>
                           <TableRow>
-                            <TableCell className="text-tiny text-center">
-                              対戦結果がありません
+                            <TableCell>
+                              <div className="pt-18 text-center">
+                                対戦結果がありません
+                              </div>
                             </TableCell>
                           </TableRow>
                         </>

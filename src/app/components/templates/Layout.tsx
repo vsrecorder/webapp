@@ -1,7 +1,7 @@
-import Providers from "@app/components/organisms/Providers";
+import Providers from "@app/components/organisms/Layout/Providers";
 
-import Header from "@app/components/organisms/Header";
-import Navigation from "@app/components/organisms/Navigation";
+import Header from "@app/components/organisms/Layout/Header";
+import Navigation from "@app/components/organisms/Layout/Navigation";
 
 export default function TemplateLayout({
   children,

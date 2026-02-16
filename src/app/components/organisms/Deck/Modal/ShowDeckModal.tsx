@@ -39,8 +39,8 @@ import { LuExternalLink } from "react-icons/lu";
 import { LuFolderInput } from "react-icons/lu";
 import { LuFolderOutput } from "react-icons/lu";
 import { LuFileText } from "react-icons/lu";
-import { LuBookOpen } from "react-icons/lu";
-import { LuBookUp } from "react-icons/lu";
+import { LuBook } from "react-icons/lu";
+import { LuBookPlus } from "react-icons/lu";
 import { LuTrash2 } from "react-icons/lu";
 //import { LuFlaskConical } from "react-icons/lu";
 import { LuFilePen } from "react-icons/lu";
@@ -255,7 +255,7 @@ export default function ShowDeckModal({
                     </div>
 
                     <div className="text-2xl cursor-pointer">
-                      <LuBookOpen onClick={onOpenForDisplayDeckCodesModal} />
+                      <LuBook onClick={onOpenForDisplayDeckCodesModal} />
                     </div>
 
                     {/*
@@ -265,7 +265,7 @@ export default function ShowDeckModal({
                     */}
 
                     <div className="text-2xl cursor-pointer">
-                      <LuBookUp onClick={onOpenForCreateDeckCodeModal} />
+                      <LuBookPlus onClick={onOpenForCreateDeckCodeModal} />
                     </div>
 
                     <div className="text-2xl text-red-500 cursor-pointer">
@@ -287,7 +287,7 @@ export default function ShowDeckModal({
                     </div>
 
                     <div className="text-2xl cursor-pointer">
-                      <LuBookOpen onClick={onOpenForDisplayDeckCodesModal} />
+                      <LuBook onClick={onOpenForDisplayDeckCodesModal} />
                     </div>
                     {/*
                     <div className="text-2xl text-gray-200">
@@ -296,7 +296,7 @@ export default function ShowDeckModal({
                     */}
 
                     <div className="text-2xl text-gray-200">
-                      <LuBookUp />
+                      <LuBookPlus />
                     </div>
 
                     <div className="text-2xl text-green-500 cursor-pointer">

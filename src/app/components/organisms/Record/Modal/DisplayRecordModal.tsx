@@ -7,6 +7,7 @@ import { LuExternalLink } from "react-icons/lu";
 
 //import RecordById from "@app/components/organisms/Record/RecordById";
 
+import OfficialEventRecord from "@app/components/organisms/Record/OfficialEventRecord";
 import Matches from "@app/components/organisms/Match/Matches";
 import UsedDeckById from "@app/components/organisms/Deck/UsedDeckById";
 
@@ -80,6 +81,7 @@ export default function DisplayRecordModal({ record, isOpen, onOpenChange }: Pro
               </div>
             </ModalHeader>
             <ModalBody className="px-3 overflow-y-auto">
+              <OfficialEventRecord key={record.data.id} record={record} />
               <Matches record={record.data} />
               <UsedDeckById
                 deck_id={record.data.deck_id}

@@ -6,6 +6,7 @@ import { Chip } from "@heroui/react";
 import { Divider } from "@heroui/react";
 
 import OfficialEventInfo from "@app/components/organisms/Record/OfficialEventInfo";
+import OfficialEventRecord from "@app/components/organisms/Record/OfficialEventRecord";
 import Matches from "@app/components/organisms/Match/Matches";
 import UsedDeckById from "@app/components/organisms/Deck/UsedDeckById";
 
@@ -80,6 +81,18 @@ export default function RecordById({ id }: Props) {
 
   return (
     <div className="flex flex-col gap-2">
+      <OfficialEventRecord record={{ data: record, cursor: "" }} />
+
+      <Divider />
+
+      <Matches record={record} />
+
+      <Divider />
+
+      <UsedDeckById deck_id={record.deck_id} deck_code_id={record.deck_code_id} />
+
+      <Divider />
+
       <div>作成日: {new Date(record.created_at).toLocaleString()}</div>
       <div>公式イベントID: {record.official_event_id}</div>
       <div>Tonamel ID: {record.tonamel_event_id}</div>
@@ -99,9 +112,6 @@ export default function RecordById({ id }: Props) {
         <></>
       )}
       <Divider />
-
-      <Matches record={record} />
-      <UsedDeckById deck_id={record.deck_id} deck_code_id={record.deck_code_id} />
     </div>
   );
 }

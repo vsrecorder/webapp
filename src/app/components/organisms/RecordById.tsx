@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { Chip } from "@heroui/react";
 import { Divider } from "@heroui/react";
 
 import OfficialEventInfo from "@app/components/organisms/OfficialEventInfo";
@@ -81,10 +82,17 @@ export default function RecordById({ id }: Props) {
     <div className="flex flex-col gap-2">
       <div>作成日: {new Date(record.created_at).toLocaleString()}</div>
       <div>公式イベントID: {record.official_event_id}</div>
+      <div>Tonamel ID: {record.tonamel_event_id}</div>
       <div>デッキID: {record.deck_id}</div>
       <div>デッキコードID: {record.deck_code_id}</div>
-      <div>非公開: {record.private_flg === true ? "true" : "false"}</div>
+      <div>
+        <Chip size="sm" radius="md" variant="bordered">
+          <small className="font-bold">{record.private_flg ? "非公開" : "公開"}</small>
+        </Chip>
+      </div>
+      <div>TCGマイスターのURL{record.tcg_meister_url}</div>
       <Divider />
+
       {record.official_event_id !== 0 ? (
         <OfficialEventInfo id={record.official_event_id} />
       ) : (

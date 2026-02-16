@@ -64,7 +64,7 @@ export default function DisplayRecordModal({ record, isOpen, onOpenChange }: Pro
               {/* 両端配置 */}
               <div className="flex items-center justify-between w-full">
                 {/* 左側 */}
-                <div>対戦結果</div>
+                <div>レコード情報</div>
 
                 {/* 右側 */}
                 <div>

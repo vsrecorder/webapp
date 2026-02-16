@@ -218,9 +218,9 @@ export default function CreateMatchModal({ record, onCreated }: Props) {
 
   return (
     <>
-      <Button size="md" radius="full" onPress={onOpen}>
+      <Button size="sm" radius="full" onPress={onOpen}>
         <div className="flex items-center gap-1">
-          <span className="font-bold text-tiny ">
+          <span className="font-bold text-tiny">
             <LuCirclePlus />
           </span>
           <span className="font-bold">対戦結果を追加する</span>

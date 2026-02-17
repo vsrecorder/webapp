@@ -1,5 +1,7 @@
 "use client";
 
+//import { createHash } from "crypto";
+
 import WindowedSelect from "react-windowed-select";
 
 import { useState } from "react";
@@ -213,14 +215,8 @@ function convertToOfficialEventOption(
   }
 
   return {
-    label:
-      officialEvent.title +
-      "\n" +
-      officialEvent.shop_name +
-      "\n" +
-      eventTime +
-      "\n" +
-      officialEvent.address,
+    //label: officialEvent.title + "\n" + officialEvent.shop_name + "\n" + eventTime + "\n" + officialEvent.address,
+    label: officialEvent.id.toString(),
     value: officialEvent.id.toString(),
     id: officialEvent.id,
     date: new Date(officialEvent.date),
@@ -246,7 +242,8 @@ function convertToDeckOption(data: DeckData): DeckOption {
   });
 
   return {
-    label: data.name + "\n" + "[" + data.latest_deck_code + "]",
+    //label: data.name + "\n" + "[" + data.latest_deck_code + "]",
+    label: data.id,
     value: data.id,
     id: data.id,
     created_at: created_at,

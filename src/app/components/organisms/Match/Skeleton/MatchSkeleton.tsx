@@ -24,7 +24,7 @@ export default function MatchSkeleton({ enableCreateMatchModalButton }: Props) {
         <CardBody className="px-2 py-2 w-full">
           <div className="flex flex-col gap-1.5 w-full">
             <Card>
-              <CardBody className="px-0 py-0.5 min-h-42 w-full">
+              <CardBody className="px-0 py-0.5 min-h-28 w-full">
                 <div className="px-0 py-0 w-full">
                   <Table
                     isStriped
@@ -42,18 +42,6 @@ export default function MatchSkeleton({ enableCreateMatchModalButton }: Props) {
                       <TableColumn>対戦結果</TableColumn>
                     </TableHeader>
                     <TableBody>
-                      <TableRow>
-                        <TableCell>
-                          <Button
-                            radius="md"
-                            variant="light"
-                            className="px-0 py-6 w-full"
-                          >
-                            <Skeleton className="w-full h-full" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-
                       <TableRow>
                         <TableCell>
                           <Button

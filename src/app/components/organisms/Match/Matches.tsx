@@ -107,7 +107,7 @@ export default function Matches({ record, enableCreateMatchModalButton }: Props)
             <div className="flex flex-col gap-1.5 w-full">
               <Card>
                 <CardBody
-                  className={`px-0 py-0.5 ${matches && matches.length === 0 ? "min-h-42" : ""} w-full`}
+                  className={`px-0 py-0.5 ${matches && matches.length === 0 ? "min-h-28" : ""} w-full`}
                 >
                   <div className="px-0 py-0 w-full">
                     <Table
@@ -208,7 +208,7 @@ export default function Matches({ record, enableCreateMatchModalButton }: Props)
                         ) : (
                           <TableRow>
                             <TableCell>
-                              <div className="pt-18 text-center">
+                              <div className="pt-10 text-center">
                                 対戦結果がありません
                               </div>
                             </TableCell>

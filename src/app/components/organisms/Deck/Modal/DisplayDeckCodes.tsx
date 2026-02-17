@@ -309,7 +309,7 @@ export default function DisplayDeckCodesModal({ deck, isOpen, onOpenChange }: Pr
                                 <div className="flex pb-3">
                                   <div className="-translate-x-1/2 w-3 h-3 rounded-full bg-blue-400" />
                                   <div className="text-tiny">
-                                    登録日：
+                                    作成日：
                                     {new Date(deckcode.created_at).toLocaleString(
                                       "ja-JP",
                                       {

@@ -126,7 +126,7 @@ export default function DeckById({ id }: Props) {
     <div className="flex flex-col gap-1">
       <div className="p-3">
         <div>ID: {deck.id}</div>
-        <div>作成日: {new Date(deck.created_at).toLocaleString()}</div>
+        <div>登録日: {new Date(deck.created_at).toLocaleString()}</div>
         <div>デッキ名: {deck.name}</div>
       </div>
 
@@ -144,7 +144,7 @@ export default function DeckById({ id }: Props) {
                   <div className="flex pb-3">
                     <div className="-translate-x-1/2 w-3 h-3 rounded-full bg-blue-400" />
                     <div className="text-tiny">
-                      登録日：
+                      作成日：
                       {new Date(deckcode.created_at).toLocaleString("ja-JP", {
                         year: "numeric",
                         month: "long",
@@ -281,7 +281,7 @@ export default function DeckById({ id }: Props) {
     <div className="flex flex-col gap-1">
       <div className="p-3">
         <div>ID: {deck.id}</div>
-        <div>作成日: {new Date(deck.created_at).toLocaleString()}</div>
+        <div>登録日: {new Date(deck.created_at).toLocaleString()}</div>
         <div>デッキ名: {deck.name}</div>
       </div>
 
@@ -292,7 +292,7 @@ export default function DeckById({ id }: Props) {
               <div className="flex items-center pb-3">
                 <div className="left-0 top-0 -translate-x-1/2 w-3 h-3 rounded-full bg-blue-400 border-3 border-[#000000]" />
                 <div className="text-tiny">
-                  登録日：
+                  作成日：
                   {new Date(deckcode.created_at).toLocaleString("ja-JP", {
                     year: "numeric",
                     month: "long",

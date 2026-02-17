@@ -771,7 +771,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                           <div className="text-sm truncate border-1 p-2">
                             <div className="grid">
                               <span className="truncate">
-                                作成日：{option.created_at}
+                                登録日：{option.created_at}
                               </span>
                               <span className="truncate">デッキ名：{option.name}</span>
                               {/*
@@ -935,7 +935,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                           <div className="text-sm truncate border-1 p-2">
                             <div className="grid">
                               <span className="truncate">
-                                作成日：{option.created_at}
+                                登録日：{option.created_at}
                               </span>
                               <span className="truncate">デッキ名：{option.name}</span>
                               {/*

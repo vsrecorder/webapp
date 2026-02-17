@@ -123,7 +123,7 @@ export default function CreateDeckModal({
       }
 
       addToast({
-        title: "マイデッキ登録完了",
+        title: "マイデッキ登録が完了",
         description: "マイデッキに登録しました",
         color: "success",
         timeout: 3000,
@@ -148,7 +148,7 @@ export default function CreateDeckModal({
       }
 
       addToast({
-        title: "マイデッキ登録失敗",
+        title: "マイデッキ登録に失敗",
         description: (
           <>
             マイデッキへの登録に失敗しました

@@ -144,7 +144,7 @@ export default function DeckCodeCard({ deckcode }: Props) {
             <div className="text-tiny">
               {deckcode && deckcode.id ? (
                 <>
-                  登録日：
+                  作成日：
                   {new Date(deckcode.created_at).toLocaleString("ja-JP", {
                     year: "numeric",
                     month: "long",
@@ -153,7 +153,7 @@ export default function DeckCodeCard({ deckcode }: Props) {
                   })}
                 </>
               ) : (
-                <>登録日：なし</>
+                <>作成日：なし</>
               )}
             </div>
             <div className="text-tiny">

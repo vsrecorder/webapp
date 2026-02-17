@@ -53,7 +53,7 @@ export default function DeckCard({ deckData, deckcodeData }: Props) {
 
               <div className="pl-1">
                 <div className="text-tiny">
-                  作成日：
+                  登録日：
                   {new Date(deck.created_at).toLocaleString("ja-JP", {
                     year: "numeric",
                     month: "long",

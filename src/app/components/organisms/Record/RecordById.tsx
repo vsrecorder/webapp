@@ -405,7 +405,7 @@ export default function RecordById({ id }: Props) {
                   return (
                     <div className="text-sm truncate border-1 p-2">
                       <div className="grid">
-                        <span className="truncate">作成日：{option.created_at}</span>
+                        <span className="truncate">登録日：{option.created_at}</span>
                         <span className="truncate">デッキ名：{option.name}</span>
                         {/*
                         <span className="truncate">
@@ -484,7 +484,7 @@ export default function RecordById({ id }: Props) {
                   return (
                     <div className="text-sm truncate border-1 p-2">
                       <div className="grid">
-                        <span className="truncate">登録日：{option.created_at}</span>
+                        <span className="truncate">作成日：{option.created_at}</span>
                         <span className="truncate">
                           バージョン：
                           {createHash("sha1").update(option.id).digest("hex").slice(0, 8)}

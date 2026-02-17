@@ -17,9 +17,11 @@ export function DeckCardSkeleton() {
               </div>
 
               {/* 右側 */}
+              {/*
               <div>
                 <Skeleton className="h-5 w-9 rounded-2xl" />
               </div>
+              */}
             </div>
 
             <div className="pl-1">

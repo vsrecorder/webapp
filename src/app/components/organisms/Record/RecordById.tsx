@@ -337,27 +337,6 @@ export default function RecordById({ id }: Props) {
           <div className="font-bold underline">使用したデッキ</div>
         </div>
 
-        <div className="relative w-full aspect-2/1">
-          {!imageLoadedForDeckCode && (
-            <Skeleton className="absolute inset-0 rounded-lg" />
-          )}
-          <Image
-            radius="sm"
-            shadow="none"
-            alt={
-              selectedDeckCodeOption ? selectedDeckCodeOption.code : "デッキコードなし"
-            }
-            src={
-              selectedDeckCodeOption
-                ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${selectedDeckCodeOption.code}.jpg`
-                : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
-            }
-            className="z-0"
-            //onLoad={() => {}}
-            onError={() => {}}
-          />
-        </div>
-
         <div className="flex flex-col gap-1">
           <label className="text-sm font-medium">デッキ名</label>
           <div ref={deckSelectRef}>
@@ -397,7 +376,7 @@ export default function RecordById({ id }: Props) {
                 setSelectedDeckCodeOption(null);
                 setImageLoadedForDeck(false);
               }}
-              menuPosition="absolute"
+              menuPosition="fixed"
               menuPlacement="bottom"
               menuShouldScrollIntoView={true}
               formatOptionLabel={(option, { context }) => {
@@ -441,7 +420,7 @@ export default function RecordById({ id }: Props) {
           </div>
         </div>
 
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1.5">
           <label className="text-sm font-medium">バージョン</label>
           <div ref={deckSelectRef}>
             <Select
@@ -476,7 +455,7 @@ export default function RecordById({ id }: Props) {
                 setSelectedDeckCodeOption(option);
                 setImageLoadedForDeckCode(false);
               }}
-              menuPosition="absolute"
+              menuPosition="fixed"
               menuPlacement="bottom"
               menuShouldScrollIntoView={true}
               formatOptionLabel={(option, { context }) => {
@@ -520,6 +499,27 @@ export default function RecordById({ id }: Props) {
               }}
             />
           </div>
+        </div>
+
+        <div className="relative w-full aspect-2/1">
+          {!imageLoadedForDeckCode && (
+            <Skeleton className="absolute inset-0 rounded-lg" />
+          )}
+          <Image
+            radius="sm"
+            shadow="none"
+            alt={
+              selectedDeckCodeOption ? selectedDeckCodeOption.code : "デッキコードなし"
+            }
+            src={
+              selectedDeckCodeOption
+                ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${selectedDeckCodeOption.code}.jpg`
+                : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
+            }
+            className="z-0"
+            //onLoad={() => {}}
+            onError={() => {}}
+          />
         </div>
       </div>
     </div>

@@ -762,7 +762,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                       setSelectedDeckOption(option);
                       setImageLoaded(false);
                     }}
-                    menuPosition="absolute"
+                    menuPosition="fixed"
                     menuPlacement="bottom"
                     menuShouldScrollIntoView={true}
                     formatOptionLabel={(option, { context }) => {
@@ -926,7 +926,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                       setSelectedDeckOption(option);
                       setImageLoaded(false);
                     }}
-                    menuPosition="absolute"
+                    menuPosition="fixed"
                     menuPlacement="bottom"
                     menuShouldScrollIntoView={true}
                     formatOptionLabel={(option, { context }) => {

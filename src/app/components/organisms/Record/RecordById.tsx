@@ -320,7 +320,7 @@ export default function RecordById({ id }: Props) {
         <div className="pb-0 flex flex-col items-center justify-center gap-0">
           <div className="font-bold underline">対戦結果</div>
         </div>
-        <Matches record={record} enableCreateMatchModal={true} />
+        <Matches record={record} enableCreateMatchModalButton={true} />
       </div>
 
       {/*

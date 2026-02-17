@@ -4,14 +4,7 @@ import { useState } from "react";
 import { useEffect } from "react";
 import { SetStateAction, Dispatch } from "react";
 
-import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  useDisclosure,
-} from "@heroui/react";
+import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
 import { Button } from "@heroui/react";
 import { Switch } from "@heroui/react";
 import { Input } from "@heroui/react";
@@ -26,8 +19,6 @@ import { Textarea } from "@heroui/react";
 import { Card, CardHeader, CardBody } from "@heroui/react";
 import { Image } from "@heroui/react";
 
-import { LuCirclePlus } from "react-icons/lu";
-
 import { RecordGetByIdResponseType } from "@app/types/record";
 import { MatchGetResponseType } from "@app/types/match";
 import { MatchCreateRequestType, MatchCreateResponseType } from "@app/types/match";
@@ -36,11 +27,16 @@ import { GameRequestType } from "@app/types/game";
 type Props = {
   record: RecordGetByIdResponseType;
   setMatches: Dispatch<SetStateAction<MatchGetResponseType[] | null>>;
+  isOpen: boolean;
+  onOpenChange: () => void;
 };
 
-export default function CreateMatchModal({ record, setMatches }: Props) {
-  const { isOpen, onOpen, onOpenChange } = useDisclosure();
-
+export default function CreateMatchModal({
+  record,
+  setMatches,
+  isOpen,
+  onOpenChange,
+}: Props) {
   const [qualifyingRoundFlg, setQualifyingRoundFlg] = useState(false);
   const [finalTournamentFlg, setFinalTournamentFlg] = useState(false);
   const [isValidedFlg, setIsValidedFlg] = useState(true);
@@ -224,298 +220,287 @@ export default function CreateMatchModal({ record, setMatches }: Props) {
   };
 
   return (
-    <>
-      <Button size="sm" radius="full" onPress={onOpen}>
-        <div className="flex items-center gap-1">
-          <span className="font-bold text-tiny">
-            <LuCirclePlus />
-          </span>
-          <span className="font-bold">対戦結果を追加する</span>
-        </div>
-      </Button>
+    <Modal
+      isOpen={isOpen}
+      size="md"
+      placement="bottom"
+      onOpenChange={onOpenChange}
+      onClose={() => {
+        setQualifyingRoundFlg(false);
+        setFinalTournamentFlg(false);
 
-      <Modal
-        isOpen={isOpen}
-        size="md"
-        placement="bottom"
-        onOpenChange={onOpenChange}
-        onClose={() => {
-          setQualifyingRoundFlg(false);
-          setFinalTournamentFlg(false);
+        setOpponentsDeckInfo("");
 
-          setOpponentsDeckInfo("");
+        setIsGoFirst("-1");
+        setIsVictory("-1");
 
-          setIsGoFirst("-1");
-          setIsVictory("-1");
+        setIsDefaultVictory(false);
+        setIsDefaultDefeat(false);
 
-          setIsDefaultVictory(false);
-          setIsDefaultDefeat(false);
+        setYourPrizeCards(0);
+        setOpponentsPrizeCards(0);
 
-          setYourPrizeCards(0);
-          setOpponentsPrizeCards(0);
+        setMemo("");
 
-          setMemo("");
-
-          setIsDisabled(false);
-          setCouldCreate(false);
-        }}
-        className="h-[calc(100dvh-168px)] max-h-[calc(100dvh-168px)] mt-26 my-0 rounded-b-none"
-        classNames={{
-          base: "sm:max-w-full",
-          closeButton: "text-2xl",
-        }}
-      >
-        <ModalContent>
-          {(onClose) => (
-            <>
-              <ModalHeader className="text-lg px-3">対戦結果を追加</ModalHeader>
-              <ModalBody className="flex flex-col gap-0 px-1 py-1 overflow-y-auto">
-                <Tabs fullWidth size="sm" className="left-0 right-0 pl-1 pr-1 font-bold">
-                  <Tab key="bo1" title="BO1">
-                    <div className="flex flex-col gap-3 pt-0">
-                      <Card shadow="md" className="w-full">
-                        <CardHeader className="pb-0 text-tiny">
-                          予選/トーナメント
-                        </CardHeader>
-                        <CardBody className="">
-                          <CheckboxGroup
-                            size="md"
-                            label=""
-                            isInvalid={!isValidedFlg}
-                            errorMessage=""
-                            orientation="horizontal"
-                            classNames={{
-                              base: "",
-                              wrapper: "flex items-center justify-center gap-21 mx-auto",
+        setIsDisabled(false);
+        setCouldCreate(false);
+      }}
+      className="h-[calc(100dvh-168px)] max-h-[calc(100dvh-168px)] mt-26 my-0 rounded-b-none"
+      classNames={{
+        base: "sm:max-w-full",
+        closeButton: "text-2xl",
+      }}
+    >
+      <ModalContent>
+        {(onClose) => (
+          <>
+            <ModalHeader className="text-lg px-3">対戦結果を追加</ModalHeader>
+            <ModalBody className="flex flex-col gap-0 px-1 py-1 overflow-y-auto">
+              <Tabs fullWidth size="sm" className="left-0 right-0 pl-1 pr-1 font-bold">
+                <Tab key="bo1" title="BO1">
+                  <div className="flex flex-col gap-3 pt-0">
+                    <Card shadow="md" className="w-full">
+                      <CardHeader className="pb-0 text-tiny">
+                        予選/トーナメント
+                      </CardHeader>
+                      <CardBody className="">
+                        <CheckboxGroup
+                          size="md"
+                          label=""
+                          isInvalid={!isValidedFlg}
+                          errorMessage=""
+                          orientation="horizontal"
+                          classNames={{
+                            base: "",
+                            wrapper: "flex items-center justify-center gap-21 mx-auto",
+                          }}
+                        >
+                          <Checkbox
+                            value="qualifying_round"
+                            isSelected={qualifyingRoundFlg}
+                            onChange={(e) => {
+                              setQualifyingRoundFlg(e.target.checked);
                             }}
                           >
-                            <Checkbox
-                              value="qualifying_round"
-                              isSelected={qualifyingRoundFlg}
-                              onChange={(e) => {
-                                setQualifyingRoundFlg(e.target.checked);
-                              }}
+                            予選
+                          </Checkbox>
+                          <Checkbox
+                            value="final_tournament"
+                            isSelected={finalTournamentFlg}
+                            onChange={(e) => {
+                              setFinalTournamentFlg(e.target.checked);
+                            }}
+                          >
+                            トーナメント
+                          </Checkbox>
+                        </CheckboxGroup>
+                      </CardBody>
+                    </Card>
+
+                    <Card shadow="md" className="w-full">
+                      <CardHeader className="pb-0 text-tiny">
+                        <label className="flex items-center gap-1">
+                          相手のデッキ
+                          <span className="text-red-500 text-sm">*</span>
+                        </label>
+                      </CardHeader>
+                      <CardBody className="flex items-center">
+                        <div className="pl-1 flex items-center gap-3 w-full">
+                          <div className="flex gap-1.5">
+                            <Button
+                              isDisabled={isDisabled}
+                              isIconOnly
+                              aria-label=""
+                              variant="bordered"
+                              //className="rounded-xl border-gray-400"
+                              className="w-11 h-11 p-0 rounded-xl border-gray-400 overflow-hidden"
                             >
-                              予選
-                            </Checkbox>
-                            <Checkbox
-                              value="final_tournament"
-                              isSelected={finalTournamentFlg}
-                              onChange={(e) => {
-                                setFinalTournamentFlg(e.target.checked);
-                              }}
+                              <Image
+                                alt="unknown"
+                                src="/unknown.png"
+                                className="w-full h-full object-cover scale-150 origin-bottom -translate-y-0.5"
+                              />
+                              {/*
+                                <Image
+                                  alt="unknown"
+                                  src="/unknown.png"
+                                  className="w-full h-full object-cover scale-125 origin-bottom -translate-y-0.5"
+                                />
+                                 */}
+                            </Button>
+
+                            <Button
+                              isDisabled={isDisabled}
+                              isIconOnly
+                              aria-label=""
+                              variant="bordered"
+                              //className="rounded-xl border-gray-400"
+                              className="w-11 h-11 p-0 rounded-xl border-gray-400 overflow-hidden"
                             >
-                              トーナメント
-                            </Checkbox>
-                          </CheckboxGroup>
+                              <Image
+                                alt="unknown"
+                                src="/unknown.png"
+                                className="w-full h-full object-cover scale-150 origin-bottom -translate-y-0.5"
+                              />
+                              {/*
+                                <Image
+                                  alt="unknown"
+                                  src="/unknown.png"
+                                  className="w-full h-full object-cover scale-125 origin-bottom -translate-y-0.5"
+                                />
+                                 */}
+                            </Button>
+                          </div>
+
+                          <Input
+                            isDisabled={isDisabled}
+                            size="md"
+                            radius="md"
+                            type="text"
+                            label=""
+                            labelPlacement="outside"
+                            placeholder="例）メガルカリオ"
+                            value={opponentsDeckInfo}
+                            onChange={(e) => setOpponentsDeckInfo(e.target.value)}
+                          />
+                        </div>
+                      </CardBody>
+                    </Card>
+
+                    <div className="flex items-center gap-6">
+                      <Card shadow="md" className="w-full">
+                        <CardHeader className="pb-0 text-tiny">
+                          <label className="flex items-center gap-1">
+                            先攻/後攻
+                            <span className="text-red-500 text-sm">*</span>
+                          </label>
+                        </CardHeader>
+                        <CardBody className="">
+                          <RadioGroup
+                            isRequired
+                            isDisabled={isDisabled}
+                            size="md"
+                            label=""
+                            orientation="horizontal"
+                            value={isGoFirst}
+                            onValueChange={setIsGoFirst}
+                            classNames={{
+                              base: "items-center",
+                              wrapper: "flex items-center gap-6",
+                            }}
+                          >
+                            <Radio value="1">先攻</Radio>
+                            <Radio value="0">後攻</Radio>
+                          </RadioGroup>
                         </CardBody>
                       </Card>
 
                       <Card shadow="md" className="w-full">
                         <CardHeader className="pb-0 text-tiny">
                           <label className="flex items-center gap-1">
-                            相手のデッキ
+                            勝ち/負け
                             <span className="text-red-500 text-sm">*</span>
                           </label>
                         </CardHeader>
-                        <CardBody className="flex items-center">
-                          <div className="pl-1 flex items-center gap-3 w-full">
-                            <div className="flex gap-1.5">
-                              <Button
-                                isDisabled={isDisabled}
-                                isIconOnly
-                                aria-label=""
-                                variant="bordered"
-                                //className="rounded-xl border-gray-400"
-                                className="w-11 h-11 p-0 rounded-xl border-gray-400 overflow-hidden"
-                              >
-                                <Image
-                                  alt="unknown"
-                                  src="/unknown.png"
-                                  className="w-full h-full object-cover scale-150 origin-bottom -translate-y-0.5"
-                                />
-                                {/*
-                                <Image
-                                  alt="unknown"
-                                  src="/unknown.png"
-                                  className="w-full h-full object-cover scale-125 origin-bottom -translate-y-0.5"
-                                />
-                                 */}
-                              </Button>
-
-                              <Button
-                                isDisabled={isDisabled}
-                                isIconOnly
-                                aria-label=""
-                                variant="bordered"
-                                //className="rounded-xl border-gray-400"
-                                className="w-11 h-11 p-0 rounded-xl border-gray-400 overflow-hidden"
-                              >
-                                <Image
-                                  alt="unknown"
-                                  src="/unknown.png"
-                                  className="w-full h-full object-cover scale-150 origin-bottom -translate-y-0.5"
-                                />
-                                {/*
-                                <Image
-                                  alt="unknown"
-                                  src="/unknown.png"
-                                  className="w-full h-full object-cover scale-125 origin-bottom -translate-y-0.5"
-                                />
-                                 */}
-                              </Button>
-                            </div>
-
-                            <Input
-                              isDisabled={isDisabled}
-                              size="md"
-                              radius="md"
-                              type="text"
-                              label=""
-                              labelPlacement="outside"
-                              placeholder="例）メガルカリオ"
-                              value={opponentsDeckInfo}
-                              onChange={(e) => setOpponentsDeckInfo(e.target.value)}
-                            />
-                          </div>
+                        <CardBody className="">
+                          <RadioGroup
+                            isRequired
+                            isDisabled={isDisabled}
+                            size="md"
+                            label=""
+                            orientation="horizontal"
+                            value={isVictory}
+                            onValueChange={setIsVictory}
+                            classNames={{
+                              base: "items-center",
+                              wrapper: "flex items-center gap-6",
+                            }}
+                          >
+                            <Radio value="1">勝ち</Radio>
+                            <Radio value="0">負け</Radio>
+                          </RadioGroup>
                         </CardBody>
                       </Card>
+                    </div>
 
-                      <div className="flex items-center gap-6">
-                        <Card shadow="md" className="w-full">
-                          <CardHeader className="pb-0 text-tiny">
-                            <label className="flex items-center gap-1">
-                              先攻/後攻
-                              <span className="text-red-500 text-sm">*</span>
-                            </label>
-                          </CardHeader>
-                          <CardBody className="">
-                            <RadioGroup
-                              isRequired
-                              isDisabled={isDisabled}
-                              size="md"
-                              label=""
-                              orientation="horizontal"
-                              value={isGoFirst}
-                              onValueChange={setIsGoFirst}
-                              classNames={{
-                                base: "items-center",
-                                wrapper: "flex items-center gap-6",
-                              }}
-                            >
-                              <Radio value="1">先攻</Radio>
-                              <Radio value="0">後攻</Radio>
-                            </RadioGroup>
-                          </CardBody>
-                        </Card>
-
-                        <Card shadow="md" className="w-full">
-                          <CardHeader className="pb-0 text-tiny">
-                            <label className="flex items-center gap-1">
-                              勝ち/負け
-                              <span className="text-red-500 text-sm">*</span>
-                            </label>
-                          </CardHeader>
-                          <CardBody className="">
-                            <RadioGroup
-                              isRequired
-                              isDisabled={isDisabled}
-                              size="md"
-                              label=""
-                              orientation="horizontal"
-                              value={isVictory}
-                              onValueChange={setIsVictory}
-                              classNames={{
-                                base: "items-center",
-                                wrapper: "flex items-center gap-6",
-                              }}
-                            >
-                              <Radio value="1">勝ち</Radio>
-                              <Radio value="0">負け</Radio>
-                            </RadioGroup>
-                          </CardBody>
-                        </Card>
-                      </div>
-
-                      <div className="flex items-center gap-5">
-                        <NumberInput
-                          label="自分"
-                          placeholder=""
-                          isDisabled={isDisabled}
-                          minValue={0}
-                          maxValue={6}
-                          defaultValue={0}
-                          value={yourPrizeCards}
-                          onValueChange={setYourPrizeCards}
-                          className=""
-                        />
-
-                        <span className="font-bold text-2xl">-</span>
-
-                        <NumberInput
-                          label="相手"
-                          placeholder=""
-                          isDisabled={isDisabled}
-                          minValue={0}
-                          maxValue={6}
-                          defaultValue={0}
-                          value={opponentsPrizeCards}
-                          onValueChange={setOpponentsPrizeCards}
-                          className=""
-                        />
-                      </div>
-
-                      <Textarea
-                        size="md"
+                    <div className="flex items-center gap-5">
+                      <NumberInput
+                        label="自分"
+                        placeholder=""
+                        isDisabled={isDisabled}
+                        minValue={0}
+                        maxValue={6}
+                        defaultValue={0}
+                        value={yourPrizeCards}
+                        onValueChange={setYourPrizeCards}
                         className=""
-                        label="対戦メモ"
-                        placeholder="対戦のメモを残そう"
-                        onChange={(e) => {
-                          const inputValue = e.target.value;
-                          setMemo(inputValue);
-                        }}
+                      />
+
+                      <span className="font-bold text-2xl">-</span>
+
+                      <NumberInput
+                        label="相手"
+                        placeholder=""
+                        isDisabled={isDisabled}
+                        minValue={0}
+                        maxValue={6}
+                        defaultValue={0}
+                        value={opponentsPrizeCards}
+                        onValueChange={setOpponentsPrizeCards}
+                        className=""
                       />
                     </div>
-                  </Tab>
-                  <Tab key="bo3" title="BO3" isDisabled></Tab>
-                </Tabs>
-              </ModalBody>
-              <ModalFooter className="flex items-center">
-                <div className="w-full">
-                  <div className="flex items-center gap-6">
-                    <Switch
+
+                    <Textarea
                       size="md"
-                      isDisabled={isDisabled && isDefaultDefeat}
-                      isSelected={isDefaultVictory}
-                      onValueChange={setIsDefaultVictory}
-                    >
-                      不戦勝
-                    </Switch>
-                    <Switch
-                      size="md"
-                      isDisabled={isDisabled && isDefaultVictory}
-                      isSelected={isDefaultDefeat}
-                      onValueChange={setIsDefaultDefeat}
-                    >
-                      不戦敗
-                    </Switch>
+                      className=""
+                      label="対戦メモ"
+                      placeholder="対戦のメモを残そう"
+                      onChange={(e) => {
+                        const inputValue = e.target.value;
+                        setMemo(inputValue);
+                      }}
+                    />
                   </div>
+                </Tab>
+                <Tab key="bo3" title="BO3" isDisabled></Tab>
+              </Tabs>
+            </ModalBody>
+            <ModalFooter className="flex items-center">
+              <div className="w-full">
+                <div className="flex items-center gap-6">
+                  <Switch
+                    size="md"
+                    isDisabled={isDisabled && isDefaultDefeat}
+                    isSelected={isDefaultVictory}
+                    onValueChange={setIsDefaultVictory}
+                  >
+                    不戦勝
+                  </Switch>
+                  <Switch
+                    size="md"
+                    isDisabled={isDisabled && isDefaultVictory}
+                    isSelected={isDefaultDefeat}
+                    onValueChange={setIsDefaultDefeat}
+                  >
+                    不戦敗
+                  </Switch>
                 </div>
-                <Button
-                  color="primary"
-                  variant="solid"
-                  isDisabled={!isValidedFlg || (!isDisabled && !couldCreate)}
-                  onPress={() => {
-                    createBO1Match(onClose);
-                  }}
-                >
-                  作成
-                </Button>
-              </ModalFooter>
-            </>
-          )}
-        </ModalContent>
-      </Modal>
-    </>
+              </div>
+              <Button
+                color="primary"
+                variant="solid"
+                isDisabled={!isValidedFlg || (!isDisabled && !couldCreate)}
+                onPress={() => {
+                  createBO1Match(onClose);
+                }}
+              >
+                作成
+              </Button>
+            </ModalFooter>
+          </>
+        )}
+      </ModalContent>
+    </Modal>
   );
 }

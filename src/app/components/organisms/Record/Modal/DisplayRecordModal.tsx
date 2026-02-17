@@ -98,7 +98,7 @@ export default function DisplayRecordModal({ record, isOpen, onOpenChange }: Pro
                 <div className="pb-0 flex flex-col items-center justify-center gap-0">
                   <div className="font-bold underline">対戦結果</div>
                 </div>
-                <Matches record={record.data} enableCreateMatchModal={true} />
+                <Matches record={record.data} enableCreateMatchModalButton={true} />
               </div>
 
               <div className="flex flex-col gap-1.5">

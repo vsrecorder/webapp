@@ -14,10 +14,10 @@ import { Button } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
 
 type Props = {
-  enableCreateMatchModal: boolean;
+  enableCreateMatchModalButton: boolean;
 };
 
-export default function MatchSkeleton({ enableCreateMatchModal }: Props) {
+export default function MatchSkeleton({ enableCreateMatchModalButton }: Props) {
   return (
     <div>
       <Card>
@@ -83,7 +83,9 @@ export default function MatchSkeleton({ enableCreateMatchModal }: Props) {
               </CardBody>
             </Card>
 
-            {enableCreateMatchModal && <Skeleton className="h-8 w-full rounded-2xl" />}
+            {enableCreateMatchModalButton && (
+              <Skeleton className="h-8 w-full rounded-2xl" />
+            )}
           </div>
         </CardBody>
       </Card>

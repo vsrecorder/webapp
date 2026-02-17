@@ -20,7 +20,7 @@ export function CityleagueResultSkeleton() {
             <Skeleton className="h-5.5 w-50" />
           </div>
 
-          <div className="flex flex-wrap items-start gap-1 pt-0.5">
+          <div className="flex flex-wrap items-start gap-1 pt-0">
             <Skeleton className="h-5.5 w-12 rounded-2xl" />
             <Skeleton className="h-5.5 w-21 rounded-2xl" />
             <Skeleton className="h-5.5 w-24 rounded-2xl" />

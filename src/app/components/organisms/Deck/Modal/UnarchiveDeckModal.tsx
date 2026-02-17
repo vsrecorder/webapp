@@ -115,6 +115,7 @@ export default function UnarchiveDeckModal({
                 variant="solid"
                 isDisabled={isDisabled}
                 onPress={onClose}
+                className="font-bold"
               >
                 戻る
               </Button>

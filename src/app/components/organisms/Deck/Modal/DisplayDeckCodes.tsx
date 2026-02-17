@@ -239,6 +239,7 @@ export default function DisplayDeckCodesModal({ deck, isOpen, onOpenChange }: Pr
                   onPress={() => {
                     onClose();
                   }}
+                  className="font-bold"
                 >
                   戻る
                 </Button>

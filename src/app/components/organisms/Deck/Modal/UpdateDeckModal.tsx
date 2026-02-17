@@ -144,6 +144,7 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
                   setNewDeckName(deck.name);
                   onClose();
                 }}
+                className="font-bold"
               >
                 閉じる
               </Button>
@@ -154,6 +155,7 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
                 onPress={() => {
                   updateDeck(onClose);
                 }}
+                className="font-bold"
               >
                 更新
               </Button>

@@ -131,6 +131,7 @@ export default function ArchiveDeckModal({ deck, setDeck, isOpen, onOpenChange }
                   setIsSelected(false);
                   setIsDisabled(false);
                 }}
+                className="font-bold"
               >
                 戻る
               </Button>

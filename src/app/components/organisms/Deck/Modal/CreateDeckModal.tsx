@@ -264,6 +264,7 @@ export default function CreateDeckModal({
                   //setIsSelectedPrivateCode(false);
                   onClose();
                 }}
+                className="font-bold"
               >
                 閉じる
               </Button>
@@ -274,6 +275,7 @@ export default function CreateDeckModal({
                 onPress={() => {
                   createDeck(onClose);
                 }}
+                className="font-bold"
               >
                 登録
               </Button>

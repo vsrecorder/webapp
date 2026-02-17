@@ -725,7 +725,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                 </Card>
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium">デッキ</label>
+                <label className="text-sm font-medium">デッキ名</label>
                 <div ref={deckSelectRef}>
                   <Select
                     onFocus={() => {
@@ -762,22 +762,24 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                       setSelectedDeckOption(option);
                       setImageLoaded(false);
                     }}
-                    //menuPosition="fixed"
-                    menuPlacement="auto"
+                    menuPosition="absolute"
+                    menuPlacement="bottom"
                     menuShouldScrollIntoView={true}
                     formatOptionLabel={(option, { context }) => {
                       if (context === "menu") {
                         return (
-                          <div className="text-sm truncate border-1 p-3">
+                          <div className="text-sm truncate border-1 p-2">
                             <div className="grid">
                               <span className="truncate">
                                 作成日：{option.created_at}
                               </span>
                               <span className="truncate">デッキ名：{option.name}</span>
+                              {/*
                               <span className="truncate">
                                 デッキコード：{option.latest_deck_code.code}
                               </span>
-                              <span>
+                              */}
+                              <span className="pt-1">
                                 <div className="relative w-full aspect-2/1">
                                   {!imageLoaded && (
                                     <Skeleton className="absolute inset-0 rounded-lg" />
@@ -887,7 +889,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                 </div>
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium">デッキ</label>
+                <label className="text-sm font-medium">デッキ名</label>
                 <div ref={deckSelectRef}>
                   <Select
                     onFocus={() => {
@@ -924,22 +926,24 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                       setSelectedDeckOption(option);
                       setImageLoaded(false);
                     }}
-                    //menuPosition="fixed"
-                    menuPlacement="auto"
+                    menuPosition="absolute"
+                    menuPlacement="bottom"
                     menuShouldScrollIntoView={true}
                     formatOptionLabel={(option, { context }) => {
                       if (context === "menu") {
                         return (
-                          <div className="text-sm truncate border-1 p-3">
+                          <div className="text-sm truncate border-1 p-2">
                             <div className="grid">
                               <span className="truncate">
                                 作成日：{option.created_at}
                               </span>
                               <span className="truncate">デッキ名：{option.name}</span>
+                              {/*
                               <span className="truncate">
                                 デッキコード：{option.latest_deck_code.code}
                               </span>
-                              <span>
+                               */}
+                              <span className="pt-1">
                                 <div className="relative w-full aspect-2/1">
                                   {!imageLoaded && (
                                     <Skeleton className="absolute inset-0 rounded-lg" />

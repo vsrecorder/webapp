@@ -224,25 +224,29 @@ export default function CreateDeckCodeModal({
               </div>
 
               {deckcode?.code ? (
-                <Link
-                  isExternal
-                  showAnchorIcon
-                  underline="always"
-                  href={`https://www.pokemon-card.com/deck/deck.html?deckID=${deckcode.code}`}
-                  className="pl-1 text-tiny"
-                >
-                  [{deckcode.code}] から新しいデッキコードを作成
-                </Link>
+                <div className="-translate-y-2">
+                  <Link
+                    isExternal
+                    showAnchorIcon
+                    underline="always"
+                    href={`https://www.pokemon-card.com/deck/deck.html?deckID=${deckcode.code}`}
+                    className="pl-1 text-tiny"
+                  >
+                    [{deckcode.code}] から新しいデッキコードを作成
+                  </Link>
+                </div>
               ) : (
-                <Link
-                  isExternal
-                  showAnchorIcon
-                  underline="always"
-                  href={`https://www.pokemon-card.com/deck/deck.html`}
-                  className="pl-1 text-tiny"
-                >
-                  新しいデッキコードを作成
-                </Link>
+                <div className="-translate-y-2">
+                  <Link
+                    isExternal
+                    showAnchorIcon
+                    underline="always"
+                    href={`https://www.pokemon-card.com/deck/deck.html`}
+                    className="pl-1 text-tiny"
+                  >
+                    新しいデッキコードを作成
+                  </Link>
+                </div>
               )}
             </ModalBody>
             <ModalFooter>

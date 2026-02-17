@@ -243,15 +243,17 @@ export default function CreateDeckModal({
                 />
               </div>
 
-              <Link
-                isExternal
-                showAnchorIcon
-                underline="always"
-                href="https://www.pokemon-card.com/deck/"
-                className="text-xs"
-              >
-                <span>トレーナーズウェブサイトでデッキを構築する</span>
-              </Link>
+              <div className="-translate-y-2">
+                <Link
+                  isExternal
+                  showAnchorIcon
+                  underline="always"
+                  href="https://www.pokemon-card.com/deck/"
+                  className="text-xs"
+                >
+                  <span>トレーナーズウェブサイトでデッキを構築する</span>
+                </Link>
+              </div>
             </ModalBody>
             <ModalFooter>
               <Button

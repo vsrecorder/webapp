@@ -33,12 +33,9 @@ import { Card, CardBody } from "@heroui/react";
 import { CgSearch } from "react-icons/cg";
 
 import Select from "react-select";
-
 import { Image } from "@heroui/react";
 import { Button } from "@heroui/react";
-
 import { Skeleton } from "@heroui/react";
-
 import { addToast, closeToast } from "@heroui/react";
 
 import { useRouter } from "next/navigation";
@@ -328,6 +325,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
     if (error) {
       deckOptionsMessage = "エラーが発生しました";
     }
+
     if (isLoading) {
       deckOptionsMessage = "検索中...";
     }
@@ -335,6 +333,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
     data?.map((deck: DeckData) => {
       deckOptions.push(convertToDeckOption(deck));
     });
+
     if (data?.length == 0) {
       deckOptionsMessage = "デッキがありません";
     }
@@ -729,7 +728,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                       <span className="text-sm">デッキ名</span>
                     </div>
                   }
-                  isLoading={isLoading}
+                  //isLoading={}
                   isClearable={true}
                   isSearchable={true}
                   noOptionsMessage={() => deckOptionsMessage}

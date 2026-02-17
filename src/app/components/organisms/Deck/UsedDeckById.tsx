@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 
 import DeckCard from "@app/components/organisms/Deck/DeckCard";
 import { DeckCardSkeleton } from "@app/components/organisms/Deck/Skeleton/DeckCardSkeleton";
-
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
 
@@ -113,9 +112,12 @@ export default function UsedDeckById({ deck_id, deck_code_id }: Props) {
   }
 
   if (!deck) {
-    // TODO: 使用したデッキを更新できるようにする
     return;
   }
 
-  return <DeckCard deckData={deck} deckcodeData={deckcode} />;
+  return (
+    <>
+      <DeckCard deckData={deck} deckcodeData={deckcode} />;
+    </>
+  );
 }

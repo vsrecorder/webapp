@@ -5,7 +5,7 @@ import { createHash } from "crypto";
 import { useEffect, useState } from "react";
 
 import { Skeleton } from "@heroui/react";
-import { Chip } from "@heroui/react";
+//import { Chip } from "@heroui/react";
 import { Card, CardHeader, CardBody, CardFooter } from "@heroui/react";
 import { Image } from "@heroui/react";
 import { Snippet } from "@heroui/react";
@@ -128,7 +128,6 @@ export default function DeckById({ id }: Props) {
         <div>ID: {deck.id}</div>
         <div>作成日: {new Date(deck.created_at).toLocaleString()}</div>
         <div>デッキ名: {deck.name}</div>
-        <div>デッキの非公開: {deck.private_flg === true ? "true" : "false"}</div>
       </div>
 
       <ol className="relative">
@@ -197,6 +196,7 @@ export default function DeckById({ id }: Props) {
                               </Snippet>
                             </div>
 
+                            {/*
                             {deckcode?.code && (
                               <>
                                 <Chip size="sm" radius="md" variant="bordered">
@@ -206,6 +206,7 @@ export default function DeckById({ id }: Props) {
                                 </Chip>
                               </>
                             )}
+                            */}
                           </div>
                         </div>
                       </CardHeader>
@@ -282,7 +283,6 @@ export default function DeckById({ id }: Props) {
         <div>ID: {deck.id}</div>
         <div>作成日: {new Date(deck.created_at).toLocaleString()}</div>
         <div>デッキ名: {deck.name}</div>
-        <div>デッキの非公開: {deck.private_flg === true ? "true" : "false"}</div>
       </div>
 
       <div className="space-y-3">
@@ -312,10 +312,6 @@ export default function DeckById({ id }: Props) {
                       <div className="text-tiny">
                         デッキコード：
                         {deckcode.code ? deckcode.code : "なし"}
-                      </div>
-                      <div className="text-tiny">
-                        デッキコードの公開：
-                        {deckcode.private_code_flg ? "非公開" : "公開"}
                       </div>
                     </CardHeader>
                     <CardBody className="py-2">

@@ -3,7 +3,7 @@ import { useState, SetStateAction, Dispatch } from "react";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
 import { Button } from "@heroui/react";
 import { Input } from "@heroui/react";
-import { Checkbox } from "@heroui/react";
+//import { Checkbox } from "@heroui/react";
 import { Image } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
 import { Link } from "@heroui/react";
@@ -33,10 +33,13 @@ export default function CreateDeckCodeModal({
 }: Props) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [newdeckcode, setNewDeckCode] = useState<string>("");
-  const [isSelected, setIsSelected] = useState<boolean>(false);
+  //const [isSelected, setIsSelected] = useState<boolean>(false);
   //const [isValidedDeckCode, setIsValidedDeckCode] = useState<boolean>(true);
   const [isDisabled, setIsDisabled] = useState<boolean>(false);
 
+  /*
+    デッキコードが有効かどうかチェック
+  */
   /*
   useEffect(() => {
     if (!newdeckcode) {
@@ -75,7 +78,8 @@ export default function CreateDeckCodeModal({
     const data: DeckCodeCreateRequestType = {
       deck_id: deck.id,
       code: newdeckcode,
-      private_code_flg: isSelected,
+      private_code_flg: true,
+      //private_code_flg: isSelected,
       memo: "",
     };
 
@@ -118,10 +122,6 @@ export default function CreateDeckCodeModal({
       setDeckCode(ret);
 
       onClose();
-
-      //setIsDisabled(false);
-      //setNewDeckCode("");
-      //setIsSelected(false);
     } catch (error) {
       console.error(error);
 
@@ -146,10 +146,6 @@ export default function CreateDeckCodeModal({
       });
 
       onClose();
-
-      //setIsDisabled(false);
-      //setNewDeckCode("");
-      //setIsSelected(false);
     }
   };
 
@@ -164,7 +160,7 @@ export default function CreateDeckCodeModal({
       onClose={() => {
         setIsDisabled(false);
         setNewDeckCode("");
-        setIsSelected(false);
+        //setIsSelected(false);
       }}
       classNames={{
         base: "sm:max-w-full",
@@ -191,6 +187,7 @@ export default function CreateDeckCodeModal({
                 onChange={(e) => setNewDeckCode(e.target.value)}
               />
 
+              {/*
               <Checkbox
                 isDisabled={newdeckcode == "" || isDisabled}
                 //isDisabled={newdeckcode == "" || !isValidedDeckCode || isDisabled}
@@ -201,6 +198,7 @@ export default function CreateDeckCodeModal({
               >
                 デッキコードを非公開にする
               </Checkbox>
+              */}
 
               <div className="relative w-full aspect-2/1">
                 {!imageLoaded && <Skeleton className="absolute inset-0 rounded-lg" />}

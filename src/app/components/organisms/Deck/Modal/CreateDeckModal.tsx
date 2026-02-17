@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
 import { Image, Button } from "@heroui/react";
 import { Input } from "@heroui/react";
-import { Checkbox } from "@heroui/react";
+//import { Checkbox } from "@heroui/react";
 import { Link } from "@heroui/react";
 import { addToast, closeToast } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
@@ -28,7 +28,7 @@ export default function CreateDeckModal({
   const [imageLoaded, setImageLoaded] = useState(false);
   const [deckname, setDeckName] = useState<string>("");
   const [deckcode, setDeckCode] = useState<string>(deck_code);
-  const [isSelectedPrivateCode, setIsSelectedPrivateCode] = useState<boolean>(false);
+  //const [isSelectedPrivateCode, setIsSelectedPrivateCode] = useState<boolean>(false);
   //const [isValidatedDeckCode, setIsValidatedDeckCode] = useState<boolean>(false);
   const [isInvalid, setIsInvalid] = useState<boolean>(true);
   const [isDisabled, setIsDisabled] = useState<boolean>(false);
@@ -88,9 +88,11 @@ export default function CreateDeckModal({
   const createDeck = async (onClose: () => void) => {
     const deck: DeckCreateRequestType = {
       name: deckname,
-      private_flg: false,
+      private_flg: true,
+      //private_flg: false,
       deck_code: deckcode,
-      private_deck_code_flg: isSelectedPrivateCode,
+      private_deck_code_flg: true,
+      //private_deck_code_flg: isSelectedPrivateCode,
     };
 
     setIsDisabled(true);
@@ -179,7 +181,7 @@ export default function CreateDeckModal({
         setIsDisabled(false);
         setDeckName("");
         setDeckCode(deck_code);
-        setIsSelectedPrivateCode(false);
+        //setIsSelectedPrivateCode(false);
       }}
       classNames={{
         base: "sm:max-w-full",
@@ -214,6 +216,7 @@ export default function CreateDeckModal({
                 onChange={(e) => setDeckCode(e.target.value)}
               />
 
+              {/*
               <Checkbox
                 isDisabled={deckcode == ""}
                 //isDisabled={deckcode == "" || !isValidatedDeckCode}
@@ -224,6 +227,7 @@ export default function CreateDeckModal({
               >
                 デッキコードを非公開にする
               </Checkbox>
+              */}
 
               <div className="relative w-full aspect-2/1">
                 {!imageLoaded && <Skeleton className="absolute inset-0 rounded-lg" />}

@@ -3,6 +3,7 @@ import { useState, SetStateAction, Dispatch } from "react";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
 import { Button } from "@heroui/react";
 import { Input } from "@heroui/react";
+//import { Checkbox } from "@heroui/react";
 import { addToast, closeToast } from "@heroui/react";
 
 import {
@@ -20,6 +21,11 @@ type Props = {
 
 export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }: Props) {
   const [newDeckName, setNewDeckName] = useState<string>(deck ? deck.name : "");
+  /*
+  const [isSelectedPrivate, setIsSelectedPrivate] = useState<boolean>(
+    deck ? deck.private_flg : false,
+  );
+  */
   const [isDisabled, setIsDisabled] = useState<boolean>(false);
 
   if (!deck) {
@@ -29,7 +35,8 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
   const updateDeck = async (onClose: () => void) => {
     const data: DeckUpdateRequestType = {
       name: newDeckName,
-      private_flg: deck.private_flg,
+      private_flg: true,
+      //private_flg: isSelectedPrivate,
     };
 
     setIsDisabled(true);
@@ -74,7 +81,6 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
       });
 
       onClose();
-      setIsDisabled(false);
     } catch (error) {
       console.error(error);
 
@@ -99,9 +105,6 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
       });
 
       onClose();
-      setIsDisabled(false);
-
-      setNewDeckName(deck.name);
     }
   };
 
@@ -112,7 +115,9 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
       placement="center"
       hideCloseButton
       onOpenChange={onOpenChange}
-      onClose={() => {}}
+      onClose={() => {
+        setIsDisabled(false);
+      }}
       isDismissable={!isDisabled}
     >
       <ModalContent>
@@ -134,6 +139,18 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
                 value={newDeckName}
                 onChange={(e) => setNewDeckName(e.target.value)}
               />
+
+              {/*
+              <Checkbox
+                isDisabled={isDisabled}
+                defaultSelected={false}
+                size={"sm"}
+                isSelected={isSelectedPrivate}
+                onValueChange={setIsSelectedPrivate}
+              >
+                デッキ情報を非公開にする
+              </Checkbox>
+              */}
             </ModalBody>
             <ModalFooter>
               <Button
@@ -152,6 +169,13 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
                 color="primary"
                 variant="solid"
                 isDisabled={newDeckName === "" || newDeckName === deck.name || isDisabled}
+                /*
+                isDisabled={
+                  newDeckName === "" ||
+                  (newDeckName === deck.name && isSelectedPrivate === deck.private_flg) ||
+                  isDisabled
+                }
+                 */
                 onPress={() => {
                   updateDeck(onClose);
                 }}

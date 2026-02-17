@@ -7,7 +7,7 @@ import { SetStateAction, Dispatch } from "react";
 import { Skeleton } from "@heroui/react";
 import { Image } from "@heroui/react";
 import { Snippet } from "@heroui/react";
-import { Chip } from "@heroui/chip";
+//import { Chip } from "@heroui/chip";
 
 import Link from "next/link";
 
@@ -193,6 +193,7 @@ export default function ShowDeckModal({
                       )}
                     </div>
 
+                    {/*
                     {deckcode?.code && (
                       <>
                         <Chip size="sm" radius="md" variant="bordered">
@@ -202,6 +203,7 @@ export default function ShowDeckModal({
                         </Chip>
                       </>
                     )}
+                    */}
                   </div>
                 </div>
 

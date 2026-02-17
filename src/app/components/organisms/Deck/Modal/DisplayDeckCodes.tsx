@@ -14,7 +14,7 @@ import {
 } from "@heroui/react";
 
 import { Skeleton } from "@heroui/react";
-import { Chip } from "@heroui/react";
+//import { Chip } from "@heroui/react";
 import { Card, CardHeader, CardBody, CardFooter } from "@heroui/react";
 import { Image } from "@heroui/react";
 import { Snippet } from "@heroui/react";
@@ -367,6 +367,7 @@ export default function DisplayDeckCodesModal({ deck, isOpen, onOpenChange }: Pr
                                             </Snippet>
                                           </div>
 
+                                          {/*
                                           {deckcode?.code && (
                                             <>
                                               <Chip
@@ -382,6 +383,7 @@ export default function DisplayDeckCodesModal({ deck, isOpen, onOpenChange }: Pr
                                               </Chip>
                                             </>
                                           )}
+                                          */}
                                         </div>
                                       </div>
                                     </CardHeader>

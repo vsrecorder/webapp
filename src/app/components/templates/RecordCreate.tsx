@@ -7,6 +7,8 @@ import WindowedSelect from "react-windowed-select";
 import { useState } from "react";
 import { useEffect } from "react";
 
+import { useRef } from "react";
+
 import useSWR from "swr";
 
 import { today, getLocalTimeZone } from "@internationalized/date";
@@ -215,8 +217,14 @@ function convertToOfficialEventOption(
   }
 
   return {
-    //label: officialEvent.title + "\n" + officialEvent.shop_name + "\n" + eventTime + "\n" + officialEvent.address,
-    label: officialEvent.id.toString(),
+    label:
+      officialEvent.title +
+      " " +
+      officialEvent.shop_name +
+      " " +
+      eventTime +
+      " " +
+      officialEvent.address,
     value: officialEvent.id.toString(),
     id: officialEvent.id,
     date: new Date(officialEvent.date),
@@ -242,8 +250,7 @@ function convertToDeckOption(data: DeckData): DeckOption {
   });
 
   return {
-    //label: data.name + "\n" + "[" + data.latest_deck_code + "]",
-    label: data.id,
+    label: data.name + " " + data.latest_deck_code,
     value: data.id,
     id: data.id,
     created_at: created_at,
@@ -281,6 +288,8 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
     useState<boolean>(false);
 
   const [selectedDeckOption, setSelectedDeckOption] = useState<DeckOption | null>(null);
+
+  const deckSelectRef = useRef<HTMLDivElement | null>(null);
 
   const y = selectedDate.year;
   const m = String(selectedDate.month).padStart(2, "0");
@@ -717,63 +726,84 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-sm font-medium">デッキ</label>
-                <Select
-                  placeholder={
-                    <div className="flex items-center gap-2">
-                      <div className="text-xl">
-                        <CgSearch />
+                <div ref={deckSelectRef}>
+                  <Select
+                    onFocus={() => {
+                      setTimeout(() => {
+                        deckSelectRef.current?.scrollIntoView({
+                          behavior: "smooth",
+                          block: "center",
+                        });
+                      }, 150);
+                    }}
+                    onMenuOpen={() => {
+                      setTimeout(() => {
+                        deckSelectRef.current?.scrollIntoView({
+                          behavior: "smooth",
+                          block: "center",
+                        });
+                      }, 150);
+                    }}
+                    placeholder={
+                      <div className="flex items-center gap-2">
+                        <div className="text-xl">
+                          <CgSearch />
+                        </div>
+                        <span className="text-sm">デッキ名</span>
                       </div>
-                      <span className="text-sm">デッキ名</span>
-                    </div>
-                  }
-                  //isLoading={}
-                  isClearable={true}
-                  isSearchable={true}
-                  noOptionsMessage={() => deckOptionsMessage}
-                  options={deckOptions}
-                  value={selectedDeckOption}
-                  onChange={(option) => {
-                    setSelectedDeckOption(option);
-                    setImageLoaded(false);
-                  }}
-                  menuPosition="fixed"
-                  menuShouldScrollIntoView={true}
-                  formatOptionLabel={(option, { context }) => {
-                    if (context === "menu") {
-                      return (
-                        <div className="text-sm truncate border-1 p-3">
-                          <div className="grid">
-                            <span className="truncate">作成日：{option.created_at}</span>
-                            <span className="truncate">デッキ名：{option.name}</span>
-                            <span className="truncate">
-                              デッキコード：{option.latest_deck_code.code}
-                            </span>
-                            <span>
-                              <div className="relative w-full aspect-2/1">
-                                {!imageLoaded && (
-                                  <Skeleton className="absolute inset-0 rounded-lg" />
-                                )}
-                                <Image
-                                  radius="none"
-                                  shadow="none"
-                                  alt={option.latest_deck_code.code}
-                                  src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${option.latest_deck_code.code}.jpg`}
-                                  className=""
-                                  onLoad={() => setImageLoaded(true)}
-                                />
-                              </div>
-                            </span>
+                    }
+                    //isLoading={}
+                    isClearable={true}
+                    isSearchable={true}
+                    noOptionsMessage={() => deckOptionsMessage}
+                    options={deckOptions}
+                    value={selectedDeckOption}
+                    onChange={(option) => {
+                      setSelectedDeckOption(option);
+                      setImageLoaded(false);
+                    }}
+                    //menuPosition="fixed"
+                    menuPlacement="auto"
+                    menuShouldScrollIntoView={true}
+                    formatOptionLabel={(option, { context }) => {
+                      if (context === "menu") {
+                        return (
+                          <div className="text-sm truncate border-1 p-3">
+                            <div className="grid">
+                              <span className="truncate">
+                                作成日：{option.created_at}
+                              </span>
+                              <span className="truncate">デッキ名：{option.name}</span>
+                              <span className="truncate">
+                                デッキコード：{option.latest_deck_code.code}
+                              </span>
+                              <span>
+                                <div className="relative w-full aspect-2/1">
+                                  {!imageLoaded && (
+                                    <Skeleton className="absolute inset-0 rounded-lg" />
+                                  )}
+                                  <Image
+                                    radius="none"
+                                    shadow="none"
+                                    alt={option.latest_deck_code.code}
+                                    src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${option.latest_deck_code.code}.jpg`}
+                                    className=""
+                                    onLoad={() => setImageLoaded(true)}
+                                  />
+                                </div>
+                              </span>
+                            </div>
                           </div>
+                        );
+                      }
+                      return (
+                        <div className="text-sm truncate">
+                          <span>{option.name}</span>
                         </div>
                       );
-                    }
-                    return (
-                      <div className="text-sm truncate">
-                        <span>{option.name}</span>
-                      </div>
-                    );
-                  }}
-                />
+                    }}
+                  />
+                </div>
               </div>
               <div className="flex flex-col items-center gap-2 pb-3">
                 <div className="relative w-full aspect-2/1">
@@ -858,61 +888,84 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-sm font-medium">デッキ</label>
-                <Select
-                  placeholder={
-                    <div className="flex items-center gap-2">
-                      <div className="text-xl">
-                        <CgSearch />
+                <div ref={deckSelectRef}>
+                  <Select
+                    onFocus={() => {
+                      setTimeout(() => {
+                        deckSelectRef.current?.scrollIntoView({
+                          behavior: "smooth",
+                          block: "center",
+                        });
+                      }, 150);
+                    }}
+                    onMenuOpen={() => {
+                      setTimeout(() => {
+                        deckSelectRef.current?.scrollIntoView({
+                          behavior: "smooth",
+                          block: "center",
+                        });
+                      }, 150);
+                    }}
+                    placeholder={
+                      <div className="flex items-center gap-2">
+                        <div className="text-xl">
+                          <CgSearch />
+                        </div>
+                        <span className="text-sm">デッキ名</span>
                       </div>
-                      <span className="text-sm">デッキ名</span>
-                    </div>
-                  }
-                  //isLoading={isLoading}
-                  isClearable={true}
-                  isSearchable={true}
-                  noOptionsMessage={() => deckOptionsMessage}
-                  options={deckOptions}
-                  value={selectedDeckOption}
-                  onChange={(option) => {
-                    setSelectedDeckOption(option);
-                    setImageLoaded(false);
-                  }}
-                  formatOptionLabel={(option, { context }) => {
-                    if (context === "menu") {
-                      return (
-                        <div className="text-sm truncate border-1 p-3">
-                          <div className="grid">
-                            <span className="truncate">作成日：{option.created_at}</span>
-                            <span className="truncate">デッキ名：{option.name}</span>
-                            <span className="truncate">
-                              デッキコード：{option.latest_deck_code.code}
-                            </span>
-                            <span>
-                              <div className="relative w-full aspect-2/1">
-                                {!imageLoaded && (
-                                  <Skeleton className="absolute inset-0 rounded-lg" />
-                                )}
-                                <Image
-                                  radius="none"
-                                  shadow="none"
-                                  alt={option.latest_deck_code.code}
-                                  src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${option.latest_deck_code.code}.jpg`}
-                                  className=""
-                                  onLoad={() => setImageLoaded(true)}
-                                />
-                              </div>
-                            </span>
+                    }
+                    //isLoading={isLoading}
+                    isClearable={true}
+                    isSearchable={true}
+                    noOptionsMessage={() => deckOptionsMessage}
+                    options={deckOptions}
+                    value={selectedDeckOption}
+                    onChange={(option) => {
+                      setSelectedDeckOption(option);
+                      setImageLoaded(false);
+                    }}
+                    //menuPosition="fixed"
+                    menuPlacement="auto"
+                    menuShouldScrollIntoView={true}
+                    formatOptionLabel={(option, { context }) => {
+                      if (context === "menu") {
+                        return (
+                          <div className="text-sm truncate border-1 p-3">
+                            <div className="grid">
+                              <span className="truncate">
+                                作成日：{option.created_at}
+                              </span>
+                              <span className="truncate">デッキ名：{option.name}</span>
+                              <span className="truncate">
+                                デッキコード：{option.latest_deck_code.code}
+                              </span>
+                              <span>
+                                <div className="relative w-full aspect-2/1">
+                                  {!imageLoaded && (
+                                    <Skeleton className="absolute inset-0 rounded-lg" />
+                                  )}
+                                  <Image
+                                    radius="none"
+                                    shadow="none"
+                                    alt={option.latest_deck_code.code}
+                                    src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${option.latest_deck_code.code}.jpg`}
+                                    className=""
+                                    onLoad={() => setImageLoaded(true)}
+                                  />
+                                </div>
+                              </span>
+                            </div>
                           </div>
+                        );
+                      }
+                      return (
+                        <div className="text-sm truncate">
+                          <span>{option.name}</span>
                         </div>
                       );
-                    }
-                    return (
-                      <div className="text-sm truncate">
-                        <span>{option.name}</span>
-                      </div>
-                    );
-                  }}
-                />
+                    }}
+                  />
+                </div>
               </div>
               <div className="flex flex-col items-center gap-2 pb-3">
                 <div className="relative w-full aspect-2/1">

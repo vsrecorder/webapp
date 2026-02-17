@@ -115,9 +115,5 @@ export default function UsedDeckById({ deck_id, deck_code_id }: Props) {
     return;
   }
 
-  return (
-    <>
-      <DeckCard deckData={deck} deckcodeData={deckcode} />;
-    </>
-  );
+  return <DeckCard deckData={deck} deckcodeData={deckcode} />;
 }

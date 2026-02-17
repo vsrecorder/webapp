@@ -34,8 +34,7 @@ import DisplayDeckCodesModal from "@app/components/organisms/Deck/Modal/DisplayD
 
 //import DeckCardSummaryRow from "@app/components/organisms/Deck/DeckCardSummaryRow";
 
-import { LuExternalLink } from "react-icons/lu";
-
+//import { LuExternalLink } from "react-icons/lu";
 import { LuFolderInput } from "react-icons/lu";
 import { LuFolderOutput } from "react-icons/lu";
 import { LuFileText } from "react-icons/lu";
@@ -161,7 +160,7 @@ export default function ShowDeckModal({
                         </div>
                       </div>
                     </div>
-
+                    {/*
                     <div className="pb-1">
                       <Link href={`/decks/${deck.id}`} className="text-gray-400">
                         <div className="text-xl">
@@ -169,6 +168,7 @@ export default function ShowDeckModal({
                         </div>
                       </Link>
                     </div>
+                    */}
                   </div>
                 </>
               </ModalHeader>

@@ -812,6 +812,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                     selectedDeckOption ? selectedDeckOption.latest_deck_code.id : "",
                   );
                 }}
+                className="font-bold"
               >
                 作成
               </Button>
@@ -939,7 +940,11 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                 </div>
               </div>
 
-              <Button color="primary" isDisabled={isDisabledCreateTonamelRecord}>
+              <Button
+                color="primary"
+                isDisabled={isDisabledCreateTonamelRecord}
+                className="font-bold"
+              >
                 作成
               </Button>
             </div>

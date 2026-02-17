@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 
 import {
   Table,
@@ -53,19 +53,6 @@ export default function Matches({ record, enableCreateMatchModal }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const handler = useCallback(async () => {
-    try {
-      setLoading(true);
-      const data = await fetchMatches(record.id);
-      setMatches(data);
-    } catch (err) {
-      console.log(err);
-      setError("データの取得に失敗しました");
-    } finally {
-      setLoading(false);
-    }
-  }, [record.id]);
-
   useEffect(() => {
     if (!record) {
       setLoading(false);
@@ -101,7 +88,7 @@ export default function Matches({ record, enableCreateMatchModal }: Props) {
   return (
     <div>
       <Card>
-        <CardBody className="px-3 py-1.5 w-full">
+        <CardBody className="px-2 py-2 w-full">
           <div className="flex flex-col gap-1.5 w-full">
             <Card>
               <CardBody className="px-0 py-0.5 min-h-42 w-full">
@@ -112,7 +99,7 @@ export default function Matches({ record, enableCreateMatchModal }: Props) {
                     aria-label="対戦結果"
                     className=""
                     classNames={{
-                      wrapper: "p-1.5 shadow-none",
+                      wrapper: "p-1.5 shadow-none overflow-x-hidden",
                       table: "",
                       th: "px-0 py-0",
                       td: "px-0 py-0",
@@ -129,7 +116,7 @@ export default function Matches({ record, enableCreateMatchModal }: Props) {
                               <Button
                                 radius="md"
                                 variant="light"
-                                className="px-6 py-6 w-full"
+                                className="px-5 py-6 w-full"
                               >
                                 <div className="flex items-center gap-5 w-full">
                                   <div>{match.victory_flg === true ? "⭕" : "❌"}</div>
@@ -143,33 +130,55 @@ export default function Matches({ record, enableCreateMatchModal }: Props) {
                                     )}
                                   </div>
 
-                                  <div className="flex items-center gap-0.5">
+                                  <div className="flex items-center gap-1.5">
                                     {match.default_victory_flg ||
                                     match.default_defeat_flg ? (
                                       <>
-                                        {match.default_victory_flg ? "不戦勝" : "不戦敗"}
+                                        <>
+                                          <div className="flex items-center gap-1 translate-x-1 -translate-y-1 shrink-0">
+                                            <Image
+                                              alt="unknown"
+                                              src="/unknown.png"
+                                              className="w-11 h-11 object-cover scale-125 origin-bottom -translate-y-0.5"
+                                            />
+
+                                            <Image
+                                              alt="unknown"
+                                              src="/unknown.png"
+                                              className="w-11 h-11 object-cover scale-125 origin-bottom -translate-y-0.5"
+                                            />
+                                          </div>
+                                        </>
+
+                                        <div className="font-bold truncate translate-x-1">
+                                          {match.default_victory_flg
+                                            ? "不戦勝"
+                                            : "不戦敗"}
+                                        </div>
                                       </>
                                     ) : (
                                       <>
-                                        <div className="flex items-center gap-0 -translate-y-1 shrink-0">
-                                          <Image
-                                            alt="3_mega"
-                                            src="/3_mega.png"
-                                            className="w-11 h-11 object-cover scale-120 origin-bottom"
-                                          />
+                                        <>
+                                          <div className="flex items-center gap-1 -translate-y-1 shrink-0">
+                                            <Image
+                                              alt="3_mega"
+                                              src="/3_mega.png"
+                                              className="w-11 h-11 object-cover scale-120 origin-bottom"
+                                            />
 
-                                          <Image
-                                            alt="1017_teal"
-                                            src="/1017_teal.png"
-                                            className="w-11 h-11 object-cover scale-120 origin-bottom"
-                                          />
+                                            <Image
+                                              alt="1017_teal"
+                                              src="/1017_teal.png"
+                                              className="w-11 h-11 object-cover scale-120 origin-bottom"
+                                            />
+                                          </div>
+                                        </>
+
+                                        <div className="font-bold truncate">
+                                          {match.opponents_deck_info}
                                         </div>
                                       </>
                                     )}
-
-                                    <div className="font-bold truncate">
-                                      {match.opponents_deck_info}
-                                    </div>
                                   </div>
                                 </div>
                               </Button>
@@ -194,7 +203,7 @@ export default function Matches({ record, enableCreateMatchModal }: Props) {
             </Card>
 
             {enableCreateMatchModal && (
-              <CreateMatchModal record={record} onCreated={handler} />
+              <CreateMatchModal record={record} setMatches={setMatches} />
             )}
           </div>
         </CardBody>

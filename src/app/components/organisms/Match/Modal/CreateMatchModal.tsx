@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useEffect } from "react";
+import { SetStateAction, Dispatch } from "react";
 
 import {
   Modal,
@@ -28,15 +29,16 @@ import { Image } from "@heroui/react";
 import { LuCirclePlus } from "react-icons/lu";
 
 import { RecordGetByIdResponseType } from "@app/types/record";
-import { MatchCreateRequestType } from "@app/types/match";
+import { MatchGetResponseType } from "@app/types/match";
+import { MatchCreateRequestType, MatchCreateResponseType } from "@app/types/match";
 import { GameRequestType } from "@app/types/game";
 
 type Props = {
   record: RecordGetByIdResponseType;
-  onCreated: () => void;
+  setMatches: Dispatch<SetStateAction<MatchGetResponseType[] | null>>;
 };
 
-export default function CreateMatchModal({ record, onCreated }: Props) {
+export default function CreateMatchModal({ record, setMatches }: Props) {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   const [qualifyingRoundFlg, setQualifyingRoundFlg] = useState(false);
@@ -175,6 +177,8 @@ export default function CreateMatchModal({ record, onCreated }: Props) {
         throw new Error(`HTTP error: ${res.status} Message: ${t.message}`);
       }
 
+      const ret: MatchCreateResponseType = await res.json();
+
       if (toastId) {
         closeToast(toastId);
       }
@@ -186,7 +190,10 @@ export default function CreateMatchModal({ record, onCreated }: Props) {
         timeout: 3000,
       });
 
-      onCreated();
+      setMatches((prev) => {
+        if (!prev) return [ret];
+        return [...prev, ret];
+      });
 
       onClose();
     } catch (error) {

@@ -288,28 +288,29 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
 
   const officialEventOptions: OfficialEventOption[] = [];
   let officialEventOptionsMessage = "対象のイベントがありません";
+  {
+    const url =
+      "https://beta.vsrecorder.mobi/api/v1beta/official_events?date=" + `${y}-${m}-${d}`;
+    const { data, error, isLoading } = useSWR<OfficialEventType[], Error>(
+      url,
+      fetcherForOfficialEvent,
+    );
 
-  const url =
-    "https://beta.vsrecorder.mobi/api/v1beta/official_events?date=" + `${y}-${m}-${d}`;
-  const { data, error, isLoading } = useSWR<OfficialEventType[], Error>(
-    url,
-    fetcherForOfficialEvent,
-  );
+    if (error) {
+      officialEventOptionsMessage = "エラーが発生しました";
+    }
+    if (isLoading) {
+      officialEventOptionsMessage = "検索中...";
+    }
 
-  if (error) {
-    officialEventOptionsMessage = "エラーが発生しました";
+    if (data?.length == 0) {
+      officialEventOptionsMessage = "イベントがありません";
+    }
+
+    data?.map((oe: OfficialEventType) => {
+      officialEventOptions.push(convertToOfficialEventOption(oe));
+    });
   }
-  if (isLoading) {
-    officialEventOptionsMessage = "検索中...";
-  }
-
-  if (data?.length == 0) {
-    officialEventOptionsMessage = "イベントがありません";
-  }
-
-  data?.map((oe: OfficialEventType) => {
-    officialEventOptions.push(convertToOfficialEventOption(oe));
-  });
 
   const deckOptions: DeckOption[] = [];
   let deckOptionsMessage = "対象のデッキがありません";
@@ -327,13 +328,13 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
       deckOptionsMessage = "検索中...";
     }
 
-    data?.map((deck: DeckData) => {
-      deckOptions.push(convertToDeckOption(deck));
-    });
-
     if (data?.length == 0) {
       deckOptionsMessage = "デッキがありません";
     }
+
+    data?.map((deck: DeckData) => {
+      deckOptions.push(convertToDeckOption(deck));
+    });
   }
 
   /*
@@ -571,7 +572,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                       <span className="text-sm">例）町田市</span>
                     </div>
                   }
-                  isLoading={isLoading}
+                  //isLoading={isLoading}
                   isClearable
                   isSearchable
                   noOptionsMessage={() => officialEventOptionsMessage}
@@ -866,7 +867,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                       <span className="text-sm">デッキ名</span>
                     </div>
                   }
-                  isLoading={isLoading}
+                  //isLoading={isLoading}
                   isClearable={true}
                   isSearchable={true}
                   noOptionsMessage={() => deckOptionsMessage}

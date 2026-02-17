@@ -108,6 +108,7 @@ export default function DisplayRecordModal({ record, isOpen, onOpenChange }: Pro
                 <UsedDeckById
                   deck_id={record.data.deck_id}
                   deck_code_id={record.data.deck_code_id}
+                  enableShowDeckModal={false}
                 />
               </div>
             </ModalBody>

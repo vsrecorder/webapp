@@ -109,6 +109,7 @@ export default function Decks({ isArchived }: Props) {
             key={deck.data.id}
             deckData={deck.data}
             deckcodeData={deck.data.latest_deck_code}
+            enableShowDeckModal={true}
           />
         ))}
 

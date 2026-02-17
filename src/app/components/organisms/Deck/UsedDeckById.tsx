@@ -54,9 +54,14 @@ async function fetchDeckCodeById(id: string) {
 type Props = {
   deck_id: string;
   deck_code_id: string;
+  enableShowDeckModal: boolean;
 };
 
-export default function UsedDeckById({ deck_id, deck_code_id }: Props) {
+export default function UsedDeckById({
+  deck_id,
+  deck_code_id,
+  enableShowDeckModal,
+}: Props) {
   const [deck, setDeck] = useState<DeckGetByIdResponseType | null>(null);
   const [deckcode, setDeckCode] = useState<DeckCodeType | null>(null);
   const [loading1, setLoading1] = useState(true);
@@ -115,5 +120,11 @@ export default function UsedDeckById({ deck_id, deck_code_id }: Props) {
     return;
   }
 
-  return <DeckCard deckData={deck} deckcodeData={deckcode} />;
+  return (
+    <DeckCard
+      deckData={deck}
+      deckcodeData={deckcode}
+      enableShowDeckModal={enableShowDeckModal}
+    />
+  );
 }

@@ -80,7 +80,7 @@ export default function DisplayRecordModal({ record, isOpen, onOpenChange }: Pro
                 </div>
               </div>
             </ModalHeader>
-            <ModalBody className="px-3 gap-9 overflow-y-auto">
+            <ModalBody className="px-3 pb-9 gap-9 overflow-y-auto">
               <div className="flex flex-col gap-3">
                 <div className="pb-0 flex flex-col items-center justify-center gap-0">
                   <div className="font-bold underline">イベント情報</div>

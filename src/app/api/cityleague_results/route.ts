@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { auth } from "@app/(default)/auth";
-
 import { CityleagueResultGetResponseType } from "@app/types/cityleague_result";
 
 async function getCityleagueResults(
@@ -11,14 +9,10 @@ async function getCityleagueResults(
     const domain = process.env.VSRECORDER_DOMAIN;
 
     const now = new Date();
-    const yesterday = new Date(now);
-    yesterday.setDate(now.getDate() - 1);
-
-    const from_date_str = yesterday.toISOString().split("T")[0];
-    const to_date_str = now.toISOString().split("T")[0];
+    const date = now.toISOString().split("T")[0];
 
     const res = await fetch(
-      `https://${domain}/api/v1beta/cityleague_results?league_type=${league_type}&from_date=${from_date_str}&to_date=${to_date_str}`,
+      `https://${domain}/api/v1beta/cityleague_results?league_type=${league_type}&date=${date}`,
       {
         cache: "no-store",
         method: "GET",
@@ -67,11 +61,6 @@ async function getCityleagueResultsByTerm(
 }
 
 export async function GET(request: NextRequest) {
-  const session = await auth();
-  if (!session) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
-
   try {
     const { searchParams } = new URL(request.url);
     const league_type = Number(searchParams.get("league_type")) ?? 0;

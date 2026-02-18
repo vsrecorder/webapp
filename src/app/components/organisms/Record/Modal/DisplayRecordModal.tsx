@@ -83,7 +83,7 @@ export default function DisplayRecordModal({ record, isOpen, onOpenChange }: Pro
             <ModalBody className="px-3 pb-9 gap-9 overflow-y-auto">
               <div className="flex flex-col gap-3">
                 <div className="pb-0 flex flex-col items-center justify-center gap-0">
-                  <div className="font-bold underline">イベント情報</div>
+                  <div className="font-bold underline">参加したイベント</div>
                 </div>
 
                 {record.data.official_event_id !== 0 ? (

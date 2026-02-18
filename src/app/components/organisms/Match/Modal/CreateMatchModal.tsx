@@ -221,9 +221,10 @@ export default function CreateMatchModal({
 
   return (
     <Modal
-      isOpen={isOpen}
       size="md"
       placement="bottom"
+      //isDismissable={}
+      isOpen={isOpen}
       onOpenChange={onOpenChange}
       onClose={() => {
         setQualifyingRoundFlg(false);
@@ -494,6 +495,7 @@ export default function CreateMatchModal({
                 onPress={() => {
                   createBO1Match(onClose);
                 }}
+                className="font-bold"
               >
                 作成
               </Button>

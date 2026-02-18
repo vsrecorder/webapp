@@ -100,7 +100,7 @@ export default function CityleagueResult({ event_result }: Props) {
   return (
     <div className="">
       <Card className="pt-3 w-full">
-        <CardHeader className="pb-0 pt-0 px-3 flex-col items-start gap-0.5">
+        <CardHeader className="pt-0 pb-0 px-3 flex-col items-start gap-0.5">
           {/* 両端配置 */}
           <div className="flex items-center justify-between w-full">
             <div>

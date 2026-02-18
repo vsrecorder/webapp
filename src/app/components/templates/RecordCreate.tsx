@@ -773,12 +773,9 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                               <span className="truncate">
                                 登録日：{option.created_at}
                               </span>
+
                               <span className="truncate">デッキ名：{option.name}</span>
-                              {/*
-                              <span className="truncate">
-                                デッキコード：{option.latest_deck_code.code}
-                              </span>
-                              */}
+
                               <span className="pt-1">
                                 <div className="relative w-full aspect-2/1">
                                   {!imageLoaded && (
@@ -799,7 +796,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                         );
                       }
                       return (
-                        <div className="text-sm truncate">
+                        <div className="truncate">
                           <span>{option.name}</span>
                         </div>
                       );
@@ -937,12 +934,9 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                               <span className="truncate">
                                 登録日：{option.created_at}
                               </span>
+
                               <span className="truncate">デッキ名：{option.name}</span>
-                              {/*
-                              <span className="truncate">
-                                デッキコード：{option.latest_deck_code.code}
-                              </span>
-                               */}
+
                               <span className="pt-1">
                                 <div className="relative w-full aspect-2/1">
                                   {!imageLoaded && (
@@ -963,7 +957,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                         );
                       }
                       return (
-                        <div className="text-sm truncate">
+                        <div className="truncate">
                           <span>{option.name}</span>
                         </div>
                       );

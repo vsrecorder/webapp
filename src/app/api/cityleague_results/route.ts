@@ -8,11 +8,10 @@ async function getCityleagueResults(
   try {
     const domain = process.env.VSRECORDER_DOMAIN;
 
-    const now = new Date();
-    const date = now.toISOString().split("T")[0];
+    const today = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().split("T")[0];
 
     const res = await fetch(
-      `https://${domain}/api/v1beta/cityleague_results?league_type=${league_type}&date=${date}`,
+      `https://${domain}/api/v1beta/cityleague_results?league_type=${league_type}&date=${today}`,
       {
         cache: "no-store",
         method: "GET",

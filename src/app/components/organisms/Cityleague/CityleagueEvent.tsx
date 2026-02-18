@@ -88,13 +88,13 @@ export default function CityleagueEvent({ league_type }: Props) {
 
     setIsLoading1(true);
     setIsLoading2(true);
-    const now = new Date();
+    const today = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().split("T")[0];
 
     const fetchfetchCityleagueInfoData = async () => {
       try {
         const data: OfficialEventResponseType = await fetchCityleagueInfoByDate(
           league_type,
-          now.toISOString().split("T")[0],
+          today,
         );
         setCityleague(data);
 
@@ -114,8 +114,8 @@ export default function CityleagueEvent({ league_type }: Props) {
       try {
         const data: CityleagueResultGetResponseType = await fetchCityleagueResultsByTerm(
           league_type,
-          now.toISOString().split("T")[0],
-          now.toISOString().split("T")[0],
+          today,
+          today,
         );
         setCityleagueResults(data);
 

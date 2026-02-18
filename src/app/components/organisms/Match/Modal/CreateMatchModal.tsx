@@ -55,7 +55,7 @@ export default function CreateMatchModal({
   const [memo, setMemo] = useState("");
 
   const [isDisabled, setIsDisabled] = useState(false);
-  const [couldCreate, setCouldCreate] = useState(false);
+  const [couldCreateFlg, setCouldCreateFlg] = useState(false);
 
   useEffect(() => {
     if (qualifyingRoundFlg && finalTournamentFlg) {
@@ -67,9 +67,9 @@ export default function CreateMatchModal({
 
   useEffect(() => {
     if (opponentsDeckInfo === "" || isGoFirst === "-1" || isVictory === "-1") {
-      setCouldCreate(false);
+      setCouldCreateFlg(false);
     } else {
-      setCouldCreate(true);
+      setCouldCreateFlg(true);
     }
   }, [opponentsDeckInfo, isGoFirst, isVictory]);
 
@@ -105,7 +105,7 @@ export default function CreateMatchModal({
     Next.jsのAPI Routesを経由してAPIを叩く
   */
   const createBO1Match = async (onClose: () => void) => {
-    setCouldCreate(false);
+    setCouldCreateFlg(false);
 
     let games: GameRequestType[] = [];
 
@@ -244,7 +244,7 @@ export default function CreateMatchModal({
         setMemo("");
 
         setIsDisabled(false);
-        setCouldCreate(false);
+        setCouldCreateFlg(false);
       }}
       className="h-[calc(100dvh-168px)] max-h-[calc(100dvh-168px)] mt-26 my-0 rounded-b-none"
       classNames={{
@@ -491,7 +491,7 @@ export default function CreateMatchModal({
               <Button
                 color="primary"
                 variant="solid"
-                isDisabled={!isValidedFlg || (!isDisabled && !couldCreate)}
+                isDisabled={!isValidedFlg || (!isDisabled && !couldCreateFlg)}
                 onPress={() => {
                   createBO1Match(onClose);
                 }}

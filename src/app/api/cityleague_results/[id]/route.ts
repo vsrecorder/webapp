@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { auth } from "@app/(default)/auth";
-
 import { CityleagueResultType } from "@app/types/cityleague_result";
 
 async function getCityleagueResultByOfficialEventId(
@@ -33,11 +31,6 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await auth();
-  if (!session) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
-
   try {
     const { id } = await params;
 

@@ -15,7 +15,7 @@ import { Skeleton } from "@heroui/react";
 
 import { CgSearch } from "react-icons/cg";
 
-import OfficialEventRecord from "@app/components/organisms/Record/OfficialEventRecord";
+import OfficialEventInfo from "@app/components/organisms/Record/OfficialEventInfo";
 import Matches from "@app/components/organisms/Match/Matches";
 //import UsedDeckById from "@app/components/organisms/Deck/UsedDeckById";
 
@@ -306,10 +306,7 @@ export default function RecordById({ id }: Props) {
         </div>
 
         {record.official_event_id !== 0 ? (
-          <OfficialEventRecord
-            record={{ data: record, cursor: "" }}
-            enableDisplayRecordModal={false}
-          />
+          <OfficialEventInfo record={{ data: record, cursor: "" }} />
         ) : (
           // TODO: Tonamelの場合
           <></>

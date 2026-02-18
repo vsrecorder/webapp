@@ -7,7 +7,7 @@ import { LuExternalLink } from "react-icons/lu";
 
 //import RecordById from "@app/components/organisms/Record/RecordById";
 
-import OfficialEventRecord from "@app/components/organisms/Record/OfficialEventRecord";
+import OfficialEventInfo from "@app/components/organisms/Record/OfficialEventInfo";
 import Matches from "@app/components/organisms/Match/Matches";
 import UsedDeckById from "@app/components/organisms/Deck/UsedDeckById";
 
@@ -87,7 +87,7 @@ export default function DisplayRecordModal({ record, isOpen, onOpenChange }: Pro
                 </div>
 
                 {record.data.official_event_id !== 0 ? (
-                  <OfficialEventRecord record={record} enableDisplayRecordModal={false} />
+                  <OfficialEventInfo record={record} />
                 ) : (
                   // TODO: Tonamelの場合
                   <></>

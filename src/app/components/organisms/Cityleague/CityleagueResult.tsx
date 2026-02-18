@@ -165,12 +165,6 @@ export default function CityleagueResult({ event_result }: Props) {
               centeredSlides={true}
               loop={false}
               speed={500}
-              /*
-            autoplay={{
-              delay: 1500,
-              disableOnInteraction: false,
-            }}
-            */
               pagination={{
                 clickable: true,
               }}

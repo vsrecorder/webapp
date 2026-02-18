@@ -1,7 +1,5 @@
 import { NextResponse, NextRequest } from "next/server";
 
-import { auth } from "@app/(default)/auth";
-
 import { EnvironmentType } from "@app/types/environment";
 
 async function getEnvironmentById(id: string): Promise<EnvironmentType> {
@@ -28,11 +26,6 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await auth();
-  if (!session) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
-
   try {
     const { id } = await params;
 

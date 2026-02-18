@@ -1,7 +1,5 @@
 import { NextResponse, NextRequest } from "next/server";
 
-import { auth } from "@app/(default)/auth";
-
 import { EnvironmentType } from "@app/types/environment";
 
 async function getEnvironment(date: string): Promise<EnvironmentType> {
@@ -25,11 +23,6 @@ async function getEnvironment(date: string): Promise<EnvironmentType> {
 }
 
 export async function GET(request: NextRequest) {
-  const session = await auth();
-  if (!session) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
-
   try {
     const { searchParams } = new URL(request.url);
     const date = searchParams.get("date") ?? "";

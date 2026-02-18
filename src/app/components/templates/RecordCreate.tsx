@@ -796,7 +796,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                         );
                       }
                       return (
-                        <div className="truncate">
+                        <div className="text-sm truncate">
                           <span>{option.name}</span>
                         </div>
                       );
@@ -957,7 +957,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                         );
                       }
                       return (
-                        <div className="truncate">
+                        <div className="text-sm truncate">
                           <span>{option.name}</span>
                         </div>
                       );

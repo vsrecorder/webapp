@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { auth } from "@app/(default)/auth";
-
 import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
 
 async function getOfficialEventById(
@@ -30,11 +28,6 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await auth();
-  if (!session) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
-
   try {
     const { id } = await params;
 

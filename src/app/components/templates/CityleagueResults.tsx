@@ -40,7 +40,7 @@ export default function TemplateCityleagueResults() {
   return (
     <>
       <ScrollUpFloating />
-      <div className="pt-13">
+      <div className="pt-13 w-full">
         <Tabs
           fullWidth
           size="md"
@@ -60,13 +60,13 @@ export default function TemplateCityleagueResults() {
         </Tabs>
       </div>
 
-      <div hidden={selectedKey !== "league_type_1"}>
+      <div className="w-full" hidden={selectedKey !== "league_type_1"}>
         <CityleagueResults league_type={1} />
       </div>
-      <div hidden={selectedKey !== "league_type_3"}>
+      <div className="w-full" hidden={selectedKey !== "league_type_3"}>
         <CityleagueResults league_type={3} />
       </div>
-      <div hidden={selectedKey !== "league_type_2"}>
+      <div className="w-full" hidden={selectedKey !== "league_type_2"}>
         <CityleagueResults league_type={2} />
       </div>
     </>

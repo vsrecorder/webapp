@@ -37,7 +37,7 @@ export default function TemplateRecords() {
   return (
     <>
       <ScrollUpFloating />
-      <div className="pt-13">
+      <div className="pt-13 w-full">
         <Tabs
           fullWidth
           size="md"
@@ -56,11 +56,11 @@ export default function TemplateRecords() {
         </Tabs>
       </div>
 
-      <div hidden={selectedKey !== "official"}>
+      <div className="w-full" hidden={selectedKey !== "official"}>
         <Records event_type={"official"} deck_id={""} />
       </div>
 
-      <div hidden={selectedKey !== "tonamel"}>
+      <div className="w-full" hidden={selectedKey !== "tonamel"}>
         <Records event_type={"tonamel"} deck_id={""} />
       </div>
     </>

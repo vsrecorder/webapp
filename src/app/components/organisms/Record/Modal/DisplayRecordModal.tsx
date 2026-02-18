@@ -81,7 +81,7 @@ export default function DisplayRecordModal({ record, isOpen, onOpenChange }: Pro
               </div>
             </ModalHeader>
             <ModalBody className="px-3 gap-9 overflow-y-auto">
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-3">
                 <div className="pb-0 flex flex-col items-center justify-center gap-0">
                   <div className="font-bold underline">イベント情報</div>
                 </div>
@@ -94,18 +94,19 @@ export default function DisplayRecordModal({ record, isOpen, onOpenChange }: Pro
                 )}
               </div>
 
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-3">
                 <div className="pb-0 flex flex-col items-center justify-center gap-0">
                   <div className="font-bold underline">対戦結果</div>
                 </div>
                 <Matches record={record.data} enableCreateMatchModalButton={true} />
               </div>
 
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-3">
                 <div className="pb-0 flex flex-col items-center justify-center gap-0">
                   <div className="font-bold underline">使用したデッキ</div>
                 </div>
                 <UsedDeckById
+                  record={record}
                   deck_id={record.data.deck_id}
                   deck_code_id={record.data.deck_code_id}
                   enableShowDeckModal={false}

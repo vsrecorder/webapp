@@ -2,8 +2,13 @@
 
 import { useEffect, useState } from "react";
 
+import { useDisclosure } from "@heroui/react";
+
+import UpdateUsedDeckModal from "@app/components/organisms/Deck/Modal/UpdateUsedDeckModal";
 import DeckCard from "@app/components/organisms/Deck/DeckCard";
 import { DeckCardSkeleton } from "@app/components/organisms/Deck/Skeleton/DeckCardSkeleton";
+
+import { RecordType } from "@app/types/record";
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
 
@@ -52,12 +57,14 @@ async function fetchDeckCodeById(id: string) {
 }
 
 type Props = {
+  record: RecordType;
   deck_id: string;
   deck_code_id: string;
   enableShowDeckModal: boolean;
 };
 
 export default function UsedDeckById({
+  record,
   deck_id,
   deck_code_id,
   enableShowDeckModal,
@@ -67,6 +74,12 @@ export default function UsedDeckById({
   const [loading1, setLoading1] = useState(true);
   const [loading2, setLoading2] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const {
+    isOpen: isOpenForUpdateUsedDeckModal,
+    onOpen: onOpenForUpdateUsedDeckModal,
+    onOpenChange: onOpenChangeForUpdateUsedDeckModal,
+  } = useDisclosure();
 
   useEffect(() => {
     if (!deck_id) {
@@ -121,10 +134,20 @@ export default function UsedDeckById({
   }
 
   return (
-    <DeckCard
-      deckData={deck}
-      deckcodeData={deckcode}
-      enableShowDeckModal={enableShowDeckModal}
-    />
+    <>
+      <UpdateUsedDeckModal
+        record={record}
+        isOpen={isOpenForUpdateUsedDeckModal}
+        onOpenChange={onOpenChangeForUpdateUsedDeckModal}
+      />
+
+      <div onClick={onOpenForUpdateUsedDeckModal}>
+        <DeckCard
+          deckData={deck}
+          deckcodeData={deckcode}
+          enableShowDeckModal={enableShowDeckModal}
+        />
+      </div>
+    </>
   );
 }

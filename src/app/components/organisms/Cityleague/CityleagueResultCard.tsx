@@ -44,6 +44,23 @@ export default function CityleagueResultCard({ result }: Props) {
     img.src = `https://xx8nnpgt.user.webaccel.jp/images/decks/${result.deck_code}.jpg`;
   }, [result.deck_code]);
 
+  const getBorderColor = (rank: number) => {
+    switch (rank) {
+      case 1:
+        return "border-amber-400 bg-amber-50";
+      case 2:
+        return "border-gray-400 bg-gray-100";
+      case 3:
+        return "border-orange-700  bg-orange-100";
+        return "";
+      case 5:
+        //return "border-blue-500 bg-blue-50";
+        return "border-green-500 bg-green-50";
+      default:
+        return "";
+    }
+  };
+
   return (
     <>
       <CreateDeckModal
@@ -58,15 +75,18 @@ export default function CityleagueResultCard({ result }: Props) {
           onOpen();
         }}
       >
-        <Card shadow="sm" className="py-3 w-full">
+        <Card
+          shadow="sm"
+          className={`py-3 w-full border-3 border-gray-100 ${getBorderColor(result.rank)}`}
+        >
           <CardHeader className="pb-0 pt-0 px-3">
             <div className="font-bold">
               {result.rank === 1
-                ? "優勝"
+                ? "🥇 優勝"
                 : result.rank === 2
-                  ? "準優勝"
+                  ? "🥈 準優勝"
                   : result.rank === 3
-                    ? "ベスト4"
+                    ? "🥉 ベスト4"
                     : result.rank === 5
                       ? "ベスト8"
                       : result.rank === 9

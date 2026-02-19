@@ -3,7 +3,7 @@ import { Skeleton } from "@heroui/react";
 
 export default function CityleagueResultCardSkeleton() {
   return (
-    <Card shadow="sm" className="py-3 w-full">
+    <Card shadow="sm" className="py-3 w-full border-3 border-gray-100">
       <CardHeader className="pt-0 pb-0 px-3">
         <div className="font-bold text-medium">
           <Skeleton className="h-6 w-16" />

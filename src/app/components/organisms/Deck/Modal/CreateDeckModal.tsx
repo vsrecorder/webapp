@@ -81,10 +81,6 @@ export default function CreateDeckModal({
   }, [deckcode]);
   */
 
-  /*
-    デッキ作成のAPIを叩く関数
-    Next.jsのAPI Routesを経由してAPIを叩く
-  */
   const createDeck = async (onClose: () => void) => {
     const deck: DeckCreateRequestType = {
       name: deckname,

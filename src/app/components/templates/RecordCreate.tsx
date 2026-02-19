@@ -298,8 +298,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
   const officialEventOptions: OfficialEventOption[] = [];
   let officialEventOptionsMessage = "対象のイベントがありません";
   {
-    const url =
-      "https://beta.vsrecorder.mobi/api/v1beta/official_events?date=" + `${y}-${m}-${d}`;
+    const url = `/api/official_events?date=${y}-${m}-${d}`;
     const { data, error, isLoading } = useSWR<OfficialEventType[], Error>(
       url,
       fetcherForOfficialEvent,
@@ -359,12 +358,9 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
 
     const checkTonamelEventId = async () => {
       try {
-        const res = await fetch(
-          "https://beta.vsrecorder.mobi/api/v1beta/tonamel_events/" + tonamelEventId,
-          {
-            method: "GET",
-          },
-        );
+        const res = await fetch(`/api/tonamel_events/${tonamelEventId}`, {
+          method: "GET",
+        });
 
         if (!res.ok) {
           const ret = await res.json();

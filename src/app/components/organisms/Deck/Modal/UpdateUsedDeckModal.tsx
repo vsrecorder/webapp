@@ -335,7 +335,7 @@ export default function UpdateUsedDeckModal({ record, isOpen, onOpenChange }: Pr
                             );
                           }
                           return (
-                            <div className="truncate">
+                            <div className="text-sm truncate">
                               <span>{option.name}</span>
                             </div>
                           );

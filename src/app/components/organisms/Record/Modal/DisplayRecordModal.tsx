@@ -1,5 +1,7 @@
 import { useRef } from "react";
 
+import { SetStateAction, Dispatch } from "react";
+
 import Link from "next/link";
 import { Modal, ModalContent, ModalHeader, ModalBody } from "@heroui/react";
 
@@ -15,6 +17,7 @@ import { RecordType } from "@app/types/record";
 
 type Props = {
   record: RecordType;
+  setRecords: Dispatch<SetStateAction<RecordType[]>>;
   isOpen: boolean;
   onOpenChange: () => void;
   onClose: () => void;
@@ -22,6 +25,7 @@ type Props = {
 
 export default function DisplayRecordModal({
   record,
+  setRecords,
   isOpen,
   onOpenChange,
   onClose,
@@ -113,6 +117,7 @@ export default function DisplayRecordModal({
                 </div>
                 <UsedDeckById
                   record={record}
+                  setRecords={setRecords}
                   deck_id={record.data.deck_id}
                   deck_code_id={record.data.deck_code_id}
                   enableShowDeckModal={false}

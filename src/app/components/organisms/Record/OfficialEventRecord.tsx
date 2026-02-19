@@ -1,5 +1,6 @@
 "use client";
 
+import { SetStateAction, Dispatch } from "react";
 import { useEffect, useState } from "react";
 
 import { Card, CardHeader, CardBody } from "@heroui/react";
@@ -67,10 +68,15 @@ async function fetchDeckById(id: string) {
 
 type Props = {
   record: RecordType;
+  setRecords: Dispatch<SetStateAction<RecordType[]>>;
   enableDisplayRecordModal: boolean;
 };
 
-export default function OfficialEventRecord({ record, enableDisplayRecordModal }: Props) {
+export default function OfficialEventRecord({
+  record,
+  setRecords,
+  enableDisplayRecordModal,
+}: Props) {
   const [officialEvent, setOfficialEvent] =
     useState<OfficialEventGetByIdResponseType | null>(null);
   const [deck, setDeck] = useState<DeckGetByIdResponseType | null>(null);
@@ -161,6 +167,7 @@ export default function OfficialEventRecord({ record, enableDisplayRecordModal }
       {enableDisplayRecordModal && (
         <DisplayRecordModal
           record={record}
+          setRecords={setRecords}
           isOpen={isOpenForDisplayRecordModal}
           onOpenChange={onOpenChangeForDisplayRecordModal}
           onClose={onCloseForDisplayRecordModal}

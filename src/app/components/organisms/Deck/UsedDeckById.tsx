@@ -1,5 +1,7 @@
 "use client";
 
+import { SetStateAction, Dispatch } from "react";
+
 import { useEffect, useState } from "react";
 
 import { useDisclosure } from "@heroui/react";
@@ -58,6 +60,7 @@ async function fetchDeckCodeById(id: string) {
 
 type Props = {
   record: RecordType;
+  setRecords: Dispatch<SetStateAction<RecordType[]>>;
   deck_id: string;
   deck_code_id: string;
   enableShowDeckModal: boolean;
@@ -65,6 +68,7 @@ type Props = {
 
 export default function UsedDeckById({
   record,
+  setRecords,
   deck_id,
   deck_code_id,
   enableShowDeckModal,
@@ -137,6 +141,7 @@ export default function UsedDeckById({
     <>
       <UpdateUsedDeckModal
         record={record}
+        setRecords={setRecords}
         isOpen={isOpenForUpdateUsedDeckModal}
         onOpenChange={onOpenChangeForUpdateUsedDeckModal}
       />

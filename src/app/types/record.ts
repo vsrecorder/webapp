@@ -35,6 +35,19 @@ export type RecordCreateRequestType = {
   memo: string;
 };
 
+export type RecordUpdateRequestType = {
+  official_event_id: number;
+  tonamel_event_id: string;
+  friend_id: string;
+  deck_id: string;
+  deck_code_id: string;
+  private_flg: boolean;
+  tcg_meister_url: string;
+  memo: string;
+};
+
 export type RecordGetByIdResponseType = Data;
 
 export type RecordCreateResponseType = Data;
+
+export type RecordUpdateResponseType = Data;

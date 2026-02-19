@@ -115,6 +115,7 @@ export default function Records({ event_type, deck_id }: Props) {
             <OfficialEventRecord
               key={record.data.id}
               record={record}
+              setRecords={setItems}
               enableDisplayRecordModal={true}
             />
           ) : (

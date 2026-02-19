@@ -4,10 +4,10 @@ import useSWR from "swr";
 
 import Select from "react-select";
 
-import { useRef } from "react";
-
+import { SetStateAction, Dispatch } from "react";
 import { useEffect, useState } from "react";
 
+import { addToast, closeToast } from "@heroui/react";
 import { Image } from "@heroui/react";
 import { Button } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
@@ -17,6 +17,8 @@ import { CgSearch } from "react-icons/cg";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
 
 import { RecordType } from "@app/types/record";
+
+import { RecordUpdateRequestType, RecordUpdateResponseType } from "@app/types/record";
 
 import { DeckGetAllType, DeckData } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
@@ -105,18 +107,25 @@ function convertToDeckCodeOption(data: DeckCodeType): DeckCodeOption {
 
 type Props = {
   record: RecordType;
+  setRecords: Dispatch<SetStateAction<RecordType[]>>;
   isOpen: boolean;
   onOpenChange: () => void;
 };
 
-export default function UpdateUsedDeckModal({ record, isOpen, onOpenChange }: Props) {
-  const [imageLoadedForDeck, setImageLoadedForDeck] = useState(false);
+export default function UpdateUsedDeckModal({
+  record,
+  isOpen,
+  setRecords,
+  onOpenChange,
+}: Props) {
   const [selectedDeckOption, setSelectedDeckOption] = useState<DeckOption | null>(null);
-  const [imageLoadedForDeckCode, setImageLoadedForDeckCode] = useState(false);
   const [selectedDeckCodeOption, setSelectedDeckCodeOption] =
     useState<DeckCodeOption | null>(null);
 
-  const deckSelectRef = useRef<HTMLDivElement | null>(null);
+  const [imageLoadedForDeck, setImageLoadedForDeck] = useState(false);
+  const [imageLoadedForDeckCode, setImageLoadedForDeckCode] = useState(false);
+
+  const [isDisabled, setIsDisabled] = useState<boolean>(false);
 
   /*
     recordにdeck_idとdeck_code_idがある場合、deck_idのDeckとdeck_code_idのDeckCodeを取得し、使用するデッキとして指定
@@ -240,6 +249,95 @@ export default function UpdateUsedDeckModal({ record, isOpen, onOpenChange }: Pr
     return;
   }
 
+  /*
+    レコードを更新する関数
+  */
+  async function updateRecord(deckId: string, deckCodeId: string, onClose: () => void) {
+    setIsDisabled(true);
+
+    const toastId = addToast({
+      title: "変更中",
+      description: "しばらくお待ちください",
+      color: "default",
+      promise: new Promise(() => {}),
+    });
+
+    const data: RecordUpdateRequestType = {
+      official_event_id: record.data.official_event_id,
+      tonamel_event_id: record.data.tonamel_event_id,
+      friend_id: record.data.friend_id,
+      deck_id: deckId,
+      deck_code_id: deckCodeId,
+      private_flg: record.data.private_flg,
+      tcg_meister_url: record.data.tcg_meister_url,
+      memo: record.data.memo,
+    };
+
+    try {
+      const res = await fetch(`/api/records/${record.data.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!res.ok) {
+        const t = await res.json();
+        throw new Error(`HTTP error: ${res.status} Message: ${t.message}`);
+      }
+
+      if (toastId) {
+        closeToast(toastId);
+      }
+
+      const ret: RecordUpdateResponseType = await res.json();
+
+      addToast({
+        title: "変更完了",
+        description: "変更しました",
+        color: "success",
+        timeout: 3000,
+      });
+
+      setRecords((prev) => {
+        if (!prev) return [{ cursor: "", data: ret }];
+
+        return prev.map((m) =>
+          m.data.id === ret.id ? { cursor: m.cursor, data: ret } : m,
+        );
+      });
+
+      onClose();
+    } catch (error) {
+      console.error(error);
+
+      const errorMessage =
+        error instanceof Error ? error.message : "不明なエラーが発生しました";
+
+      if (toastId) {
+        closeToast(toastId);
+      }
+
+      addToast({
+        title: "変更失敗",
+        description: (
+          <>
+            変更に失敗しました
+            <br />
+            {errorMessage}
+          </>
+        ),
+        color: "danger",
+        timeout: 5000,
+      });
+
+      setIsDisabled(false);
+
+      onClose();
+    }
+  }
+
   return (
     <Modal
       isOpen={isOpen}
@@ -247,7 +345,7 @@ export default function UpdateUsedDeckModal({ record, isOpen, onOpenChange }: Pr
       placement="center"
       //hideCloseButton
       onOpenChange={onOpenChange}
-      //isDismissable={}
+      isDismissable={!isDisabled}
       classNames={{
         base: "sm:max-w-full",
         closeButton: "text-2xl",
@@ -262,7 +360,7 @@ export default function UpdateUsedDeckModal({ record, isOpen, onOpenChange }: Pr
                 <div className="flex flex-col gap-1.5">
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-medium">デッキ名</label>
-                    <div ref={deckSelectRef}>
+                    <div>
                       <Select
                         placeholder={
                           <div className="flex items-center gap-2">
@@ -272,22 +370,6 @@ export default function UpdateUsedDeckModal({ record, isOpen, onOpenChange }: Pr
                             <span className="text-sm">デッキ名</span>
                           </div>
                         }
-                        onFocus={() => {
-                          setTimeout(() => {
-                            deckSelectRef.current?.scrollIntoView({
-                              behavior: "smooth",
-                              block: "center",
-                            });
-                          }, 100);
-                        }}
-                        onMenuOpen={() => {
-                          setTimeout(() => {
-                            deckSelectRef.current?.scrollIntoView({
-                              behavior: "smooth",
-                              block: "center",
-                            });
-                          }, 100);
-                        }}
                         //isLoading={}
                         isClearable={true}
                         isSearchable={true}
@@ -448,7 +530,7 @@ export default function UpdateUsedDeckModal({ record, isOpen, onOpenChange }: Pr
               <Button
                 color="default"
                 variant="solid"
-                //isDisabled={isDisabled}
+                isDisabled={isDisabled}
                 onPress={onClose}
                 className="font-bold"
               >
@@ -457,8 +539,14 @@ export default function UpdateUsedDeckModal({ record, isOpen, onOpenChange }: Pr
               <Button
                 color="success"
                 variant="solid"
-                //isDisabled={isDisabled}
-                onPress={() => {}}
+                isDisabled={isDisabled}
+                onPress={() => {
+                  updateRecord(
+                    selectedDeckOption ? selectedDeckOption.id : "",
+                    selectedDeckCodeOption ? selectedDeckCodeOption.id : "",
+                    onClose,
+                  );
+                }}
                 className="text-white font-bold"
               >
                 変更

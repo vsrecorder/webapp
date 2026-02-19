@@ -206,7 +206,7 @@ function convertToOfficialEventOption(
       )
     ) {
       image_alt = "100人大集合でたとこバトル ～スタートデッキ100 バトルコレクション～";
-      image_src += "100_sonomama_battle.png";
+      image_src += "100_detatoko_battle.png";
     } else {
       image_alt = "ポケモンカードゲーム";
       image_src += "pokemon_card_game.png";

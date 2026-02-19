@@ -334,7 +334,7 @@ export default function OfficialEventInfo({ record }: Props) {
                     ) ? (
                     <Image
                       alt="100人大集合でたとこバトル ～スタートデッキ100 バトルコレクション～"
-                      src="https://xx8nnpgt.user.webaccel.jp/images/icons/100_sonomama_battle.png"
+                      src="https://xx8nnpgt.user.webaccel.jp/images/icons/100_detatoko_battle.png"
                       radius="none"
                       className="h-22 w-22 object-contain"
                     />

@@ -264,22 +264,6 @@ export default function UpdateUsedDeckModal({ record, isOpen, onOpenChange }: Pr
                     <label className="text-sm font-medium">デッキ名</label>
                     <div ref={deckSelectRef}>
                       <Select
-                        onFocus={() => {
-                          setTimeout(() => {
-                            deckSelectRef.current?.scrollIntoView({
-                              behavior: "smooth",
-                              block: "center",
-                            });
-                          }, 150);
-                        }}
-                        onMenuOpen={() => {
-                          setTimeout(() => {
-                            deckSelectRef.current?.scrollIntoView({
-                              behavior: "smooth",
-                              block: "center",
-                            });
-                          }, 150);
-                        }}
                         placeholder={
                           <div className="flex items-center gap-2">
                             <div className="text-xl">
@@ -288,6 +272,22 @@ export default function UpdateUsedDeckModal({ record, isOpen, onOpenChange }: Pr
                             <span className="text-sm">デッキ名</span>
                           </div>
                         }
+                        onFocus={() => {
+                          setTimeout(() => {
+                            deckSelectRef.current?.scrollIntoView({
+                              behavior: "smooth",
+                              block: "center",
+                            });
+                          }, 100);
+                        }}
+                        onMenuOpen={() => {
+                          setTimeout(() => {
+                            deckSelectRef.current?.scrollIntoView({
+                              behavior: "smooth",
+                              block: "center",
+                            });
+                          }, 100);
+                        }}
                         //isLoading={}
                         isClearable={true}
                         isSearchable={true}
@@ -346,24 +346,8 @@ export default function UpdateUsedDeckModal({ record, isOpen, onOpenChange }: Pr
 
                   <div className="pb-3 flex flex-col gap-1.5">
                     <label className="text-sm font-medium">バージョン</label>
-                    <div ref={deckSelectRef}>
+                    <div>
                       <Select
-                        onFocus={() => {
-                          setTimeout(() => {
-                            deckSelectRef.current?.scrollIntoView({
-                              behavior: "smooth",
-                              block: "center",
-                            });
-                          }, 150);
-                        }}
-                        onMenuOpen={() => {
-                          setTimeout(() => {
-                            deckSelectRef.current?.scrollIntoView({
-                              behavior: "smooth",
-                              block: "center",
-                            });
-                          }, 150);
-                        }}
                         placeholder={
                           <div className="flex items-center gap-2">
                             <span className="text-sm">バージョン</span>

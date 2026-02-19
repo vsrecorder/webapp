@@ -5,7 +5,14 @@ import { useRef } from "react";
 import { useEffect } from "react";
 import { SetStateAction, Dispatch } from "react";
 
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
+import {
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  useDisclosure,
+} from "@heroui/react";
 import { Button } from "@heroui/react";
 import { Switch } from "@heroui/react";
 import { Input } from "@heroui/react";
@@ -20,9 +27,12 @@ import { Textarea } from "@heroui/react";
 import { Card, CardHeader, CardBody } from "@heroui/react";
 import { Image } from "@heroui/react";
 
+import PokemonSpriteModal from "@app/components/organisms/Match/Modal/PokemonSpriteModal";
+
 import { MatchGetResponseType } from "@app/types/match";
 import { MatchUpdateRequestType, MatchUpdateResponseType } from "@app/types/match";
 import { GameRequestType } from "@app/types/game";
+import { PokemonSpriteType } from "@app/types/pokemon_sprite";
 
 type Props = {
   match: MatchGetResponseType | null;
@@ -58,6 +68,21 @@ export default function UpdateMatchModal({
 
   const [isDisabled, setIsDisabled] = useState(false);
   const [couldUpdateFlg, setCouldUpdateFlg] = useState(false);
+
+  const [pokemonSprite1, setPokemonSprite1] = useState<PokemonSpriteType | null>(null);
+  const [pokemonSprite2, setPokemonSprite2] = useState<PokemonSpriteType | null>(null);
+
+  const {
+    isOpen: isOpenForPokemonSprite1Modal,
+    onOpen: onOpenForPokemonSprite1Modal,
+    onOpenChange: onOpenChangeForPokemonSprite1Modal,
+  } = useDisclosure();
+
+  const {
+    isOpen: isOpenForPokemonSprite2Modal,
+    onOpen: onOpenForPokemonSprite2Modal,
+    onOpenChange: onOpenChangeForPokemonSprite2Modal,
+  } = useDisclosure();
 
   const startY = useRef<number | null>(null);
 
@@ -256,299 +281,313 @@ export default function UpdateMatchModal({
   };
 
   return (
-    <Modal
-      size="md"
-      placement="bottom"
-      isDismissable={false}
-      isOpen={isOpen}
-      onOpenChange={onOpenChange}
-      onClose={() => {
-        setQualifyingRoundFlg(false);
-        setFinalTournamentFlg(false);
+    <>
+      <PokemonSpriteModal
+        pokemonSprite={pokemonSprite1}
+        setPokemonSprite={setPokemonSprite1}
+        isOpen={isOpenForPokemonSprite1Modal}
+        onOpenChange={onOpenChangeForPokemonSprite1Modal}
+      />
 
-        setOpponentsDeckInfo("");
+      <PokemonSpriteModal
+        pokemonSprite={pokemonSprite2}
+        setPokemonSprite={setPokemonSprite2}
+        isOpen={isOpenForPokemonSprite2Modal}
+        onOpenChange={onOpenChangeForPokemonSprite2Modal}
+      />
 
-        setIsGoFirst("-1");
-        setIsVictory("-1");
+      <Modal
+        size="md"
+        placement="bottom"
+        isDismissable={false}
+        isOpen={isOpen}
+        onOpenChange={onOpenChange}
+        onClose={() => {
+          setQualifyingRoundFlg(false);
+          setFinalTournamentFlg(false);
 
-        setIsDefaultVictory(false);
-        setIsDefaultDefeat(false);
+          setOpponentsDeckInfo("");
 
-        setYourPrizeCards(0);
-        setOpponentsPrizeCards(0);
+          setIsGoFirst("-1");
+          setIsVictory("-1");
 
-        setMemo("");
+          setIsDefaultVictory(false);
+          setIsDefaultDefeat(false);
 
-        setIsDisabled(false);
-        setCouldUpdateFlg(false);
-      }}
-      hideCloseButton
-      className="h-[calc(100dvh-168px)] max-h-[calc(100dvh-168px)] mt-26 my-0 rounded-b-none"
-      classNames={{
-        base: "sm:max-w-full",
-        closeButton: "text-2xl",
-      }}
-    >
-      <ModalContent>
-        {(onClose) => (
-          <>
-            {/* スワイプ検知 */}
-            <ModalHeader
-              onTouchStart={handleTouchStart}
-              onTouchMove={handleTouchMove}
-              className="px-3 py-3 flex flex-col gap-1 cursor-grab"
-            >
-              {/* スワイプバー */}
-              <div className="mx-auto h-1 w-32 mb-1.5 rounded-full bg-default-300" />
-              <div>対戦結果を編集</div>
-            </ModalHeader>
-            <ModalBody className="flex flex-col gap-0 px-1 py-1 overflow-y-auto">
-              <Tabs fullWidth size="sm" className="left-0 right-0 pl-1 pr-1 font-bold">
-                <Tab key="bo1" title="BO1">
-                  <div className="flex flex-col gap-3 pt-0">
-                    <Card shadow="md" className="w-full">
-                      <CardHeader className="pb-0 text-tiny">
-                        予選/トーナメント
-                      </CardHeader>
-                      <CardBody className="">
-                        <CheckboxGroup
-                          size="md"
-                          label=""
-                          isInvalid={!isValidedFlg}
-                          errorMessage=""
-                          orientation="horizontal"
-                          classNames={{
-                            base: "",
-                            wrapper: "flex items-center justify-center gap-21 mx-auto",
-                          }}
-                        >
-                          <Checkbox
-                            value="qualifying_round"
-                            isSelected={qualifyingRoundFlg}
-                            onChange={(e) => {
-                              setQualifyingRoundFlg(e.target.checked);
-                            }}
-                          >
-                            予選
-                          </Checkbox>
-                          <Checkbox
-                            value="final_tournament"
-                            isSelected={finalTournamentFlg}
-                            onChange={(e) => {
-                              setFinalTournamentFlg(e.target.checked);
-                            }}
-                          >
-                            トーナメント
-                          </Checkbox>
-                        </CheckboxGroup>
-                      </CardBody>
-                    </Card>
+          setYourPrizeCards(0);
+          setOpponentsPrizeCards(0);
 
-                    <Card shadow="md" className="w-full">
-                      <CardHeader className="pb-0 text-tiny">
-                        <label className="flex items-center gap-1">
-                          相手のデッキ
-                          <span className="text-red-500 text-sm">*</span>
-                        </label>
-                      </CardHeader>
-                      <CardBody className="flex items-center">
-                        <div className="pl-1 flex items-center gap-3 w-full">
-                          <div className="flex gap-1.5">
-                            <Button
-                              isDisabled={isDisabled}
-                              isIconOnly
-                              aria-label=""
-                              variant="bordered"
-                              //className="rounded-xl border-gray-400"
-                              className="w-11 h-11 p-0 rounded-xl border-gray-400 overflow-hidden"
-                            >
-                              <Image
-                                alt="unknown"
-                                src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
-                                className="w-full h-full object-cover scale-150 origin-bottom -translate-y-0.5"
-                              />
-                              {/*
-                                <Image
-                                  alt="unknown"
-                                  src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
-                                  className="w-full h-full object-cover scale-125 origin-bottom -translate-y-0.5"
-                                />
-                                 */}
-                            </Button>
+          setMemo("");
 
-                            <Button
-                              isDisabled={isDisabled}
-                              isIconOnly
-                              aria-label=""
-                              variant="bordered"
-                              //className="rounded-xl border-gray-400"
-                              className="w-11 h-11 p-0 rounded-xl border-gray-400 overflow-hidden"
-                            >
-                              <Image
-                                alt="unknown"
-                                src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
-                                className="w-full h-full object-cover scale-150 origin-bottom -translate-y-0.5"
-                              />
-                              {/*
-                                <Image
-                                  alt="unknown"
-                                  src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
-                                  className="w-full h-full object-cover scale-125 origin-bottom -translate-y-0.5"
-                                />
-                                 */}
-                            </Button>
-                          </div>
-
-                          <Input
-                            isDisabled={isDisabled}
-                            size="md"
-                            radius="md"
-                            type="text"
-                            label=""
-                            labelPlacement="outside"
-                            placeholder="例）メガルカリオ"
-                            value={opponentsDeckInfo}
-                            onChange={(e) => setOpponentsDeckInfo(e.target.value)}
-                          />
-                        </div>
-                      </CardBody>
-                    </Card>
-
-                    <div className="flex items-center gap-6">
-                      <Card shadow="md" className="w-full">
-                        <CardHeader className="pb-0 text-tiny">
-                          <label className="flex items-center gap-1">
-                            先攻/後攻
-                            <span className="text-red-500 text-sm">*</span>
-                          </label>
-                        </CardHeader>
-                        <CardBody className="">
-                          <RadioGroup
-                            isRequired
-                            isDisabled={isDisabled}
-                            size="md"
-                            label=""
-                            orientation="horizontal"
-                            value={isGoFirst}
-                            onValueChange={setIsGoFirst}
-                            classNames={{
-                              base: "items-center",
-                              wrapper: "flex items-center gap-6",
-                            }}
-                          >
-                            <Radio value="1">先攻</Radio>
-                            <Radio value="0">後攻</Radio>
-                          </RadioGroup>
-                        </CardBody>
-                      </Card>
-
-                      <Card shadow="md" className="w-full">
-                        <CardHeader className="pb-0 text-tiny">
-                          <label className="flex items-center gap-1">
-                            勝ち/負け
-                            <span className="text-red-500 text-sm">*</span>
-                          </label>
-                        </CardHeader>
-                        <CardBody className="">
-                          <RadioGroup
-                            isRequired
-                            isDisabled={isDisabled}
-                            size="md"
-                            label=""
-                            orientation="horizontal"
-                            value={isVictory}
-                            onValueChange={setIsVictory}
-                            classNames={{
-                              base: "items-center",
-                              wrapper: "flex items-center gap-6",
-                            }}
-                          >
-                            <Radio value="1">勝ち</Radio>
-                            <Radio value="0">負け</Radio>
-                          </RadioGroup>
-                        </CardBody>
-                      </Card>
-                    </div>
-
-                    <div className="flex items-center gap-5">
-                      <NumberInput
-                        label="自分"
-                        placeholder=""
-                        isDisabled={isDisabled}
-                        minValue={0}
-                        maxValue={6}
-                        defaultValue={0}
-                        value={yourPrizeCards}
-                        onValueChange={setYourPrizeCards}
-                        className=""
-                      />
-
-                      <span className="font-bold text-2xl">-</span>
-
-                      <NumberInput
-                        label="相手"
-                        placeholder=""
-                        isDisabled={isDisabled}
-                        minValue={0}
-                        maxValue={6}
-                        defaultValue={0}
-                        value={opponentsPrizeCards}
-                        onValueChange={setOpponentsPrizeCards}
-                        className=""
-                      />
-                    </div>
-
-                    <Textarea
-                      size="md"
-                      className=""
-                      label="対戦メモ"
-                      placeholder="対戦のメモを残そう"
-                      onChange={(e) => {
-                        const inputValue = e.target.value;
-                        setMemo(inputValue);
-                      }}
-                    />
-                  </div>
-                </Tab>
-                <Tab key="bo3" title="BO3" isDisabled></Tab>
-              </Tabs>
-            </ModalBody>
-            <ModalFooter className="flex items-center">
-              <div className="w-full">
-                <div className="flex items-center gap-6">
-                  <Switch
-                    size="md"
-                    isDisabled={isDisabled && isDefaultDefeat}
-                    isSelected={isDefaultVictory}
-                    onValueChange={setIsDefaultVictory}
-                  >
-                    不戦勝
-                  </Switch>
-                  <Switch
-                    size="md"
-                    isDisabled={isDisabled && isDefaultVictory}
-                    isSelected={isDefaultDefeat}
-                    onValueChange={setIsDefaultDefeat}
-                  >
-                    不戦敗
-                  </Switch>
-                </div>
-              </div>
-              <Button
-                color="success"
-                variant="solid"
-                isDisabled={!isValidedFlg || (!isDisabled && !couldUpdateFlg)}
-                onPress={() => {
-                  updateBO1Match(onClose);
-                }}
-                className="font-bold"
+          setIsDisabled(false);
+          setCouldUpdateFlg(false);
+        }}
+        hideCloseButton
+        className="h-[calc(100dvh-168px)] max-h-[calc(100dvh-168px)] mt-26 my-0 rounded-b-none"
+        classNames={{
+          base: "sm:max-w-full",
+          closeButton: "text-2xl",
+        }}
+      >
+        <ModalContent>
+          {(onClose) => (
+            <>
+              {/* スワイプ検知 */}
+              <ModalHeader
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                className="px-3 py-3 flex flex-col gap-1 cursor-grab"
               >
-                更新
-              </Button>
-            </ModalFooter>
-          </>
-        )}
-      </ModalContent>
-    </Modal>
+                {/* スワイプバー */}
+                <div className="mx-auto h-1 w-32 mb-1.5 rounded-full bg-default-300" />
+                <div>対戦結果を編集</div>
+              </ModalHeader>
+              <ModalBody className="flex flex-col gap-0 px-1 py-1 overflow-y-auto">
+                <Tabs fullWidth size="sm" className="left-0 right-0 pl-1 pr-1 font-bold">
+                  <Tab key="bo1" title="BO1">
+                    <div className="flex flex-col gap-3 pt-0">
+                      <Card shadow="md" className="w-full">
+                        <CardHeader className="pb-0 text-tiny">
+                          予選/トーナメント
+                        </CardHeader>
+                        <CardBody className="">
+                          <CheckboxGroup
+                            size="md"
+                            label=""
+                            isInvalid={!isValidedFlg}
+                            errorMessage=""
+                            orientation="horizontal"
+                            classNames={{
+                              base: "",
+                              wrapper: "flex items-center justify-center gap-21 mx-auto",
+                            }}
+                          >
+                            <Checkbox
+                              value="qualifying_round"
+                              isSelected={qualifyingRoundFlg}
+                              onChange={(e) => {
+                                setQualifyingRoundFlg(e.target.checked);
+                              }}
+                            >
+                              予選
+                            </Checkbox>
+                            <Checkbox
+                              value="final_tournament"
+                              isSelected={finalTournamentFlg}
+                              onChange={(e) => {
+                                setFinalTournamentFlg(e.target.checked);
+                              }}
+                            >
+                              トーナメント
+                            </Checkbox>
+                          </CheckboxGroup>
+                        </CardBody>
+                      </Card>
+
+                      <Card shadow="md" className="w-full">
+                        <CardHeader className="pb-0 text-tiny">
+                          <label className="flex items-center gap-1">
+                            相手のデッキ
+                            <span className="text-red-500 text-sm">*</span>
+                          </label>
+                        </CardHeader>
+                        <CardBody className="flex items-center">
+                          <div className="flex items-center gap-3 w-full">
+                            <div className="flex items-center gap-1">
+                              <div className="w-11 h-11 p-0 shrink-0">
+                                {pokemonSprite1 ? (
+                                  <Image
+                                    onClick={onOpenForPokemonSprite1Modal}
+                                    alt={pokemonSprite1.name}
+                                    src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${pokemonSprite1.id.replace(/^0+(?!$)/, "")}.png`}
+                                    radius="none"
+                                    className="w-full h-full object-contain scale-130 origin-bottom"
+                                  />
+                                ) : (
+                                  <Image
+                                    onClick={onOpenForPokemonSprite1Modal}
+                                    alt="unknown"
+                                    src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
+                                    radius="none"
+                                    loading="eager"
+                                    className="w-full h-full object-contain scale-150 origin-bottom"
+                                  />
+                                )}
+                              </div>
+
+                              <div className="w-11 h-11 p-0 shrink-0">
+                                {pokemonSprite2 ? (
+                                  <Image
+                                    onClick={onOpenForPokemonSprite2Modal}
+                                    alt={pokemonSprite2.name}
+                                    src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${pokemonSprite2.id.replace(/^0+(?!$)/, "")}.png`}
+                                    radius="none"
+                                    className="w-full h-full object-contain scale-130 origin-bottom"
+                                  />
+                                ) : (
+                                  <Image
+                                    onClick={onOpenForPokemonSprite2Modal}
+                                    alt="unknown"
+                                    src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
+                                    radius="none"
+                                    loading="eager"
+                                    className="w-full h-full object-contain scale-150 origin-bottom"
+                                  />
+                                )}
+                              </div>
+                            </div>
+
+                            <Input
+                              isDisabled={isDisabled}
+                              size="md"
+                              radius="md"
+                              type="text"
+                              label=""
+                              labelPlacement="outside"
+                              placeholder="例）メガルカリオ"
+                              value={opponentsDeckInfo}
+                              onChange={(e) => setOpponentsDeckInfo(e.target.value)}
+                            />
+                          </div>
+                        </CardBody>
+                      </Card>
+
+                      <div className="flex items-center gap-6">
+                        <Card shadow="md" className="w-full">
+                          <CardHeader className="pb-0 text-tiny">
+                            <label className="flex items-center gap-1">
+                              先攻/後攻
+                              <span className="text-red-500 text-sm">*</span>
+                            </label>
+                          </CardHeader>
+                          <CardBody className="">
+                            <RadioGroup
+                              isRequired
+                              isDisabled={isDisabled}
+                              size="md"
+                              label=""
+                              orientation="horizontal"
+                              value={isGoFirst}
+                              onValueChange={setIsGoFirst}
+                              classNames={{
+                                base: "items-center",
+                                wrapper: "flex items-center gap-6",
+                              }}
+                            >
+                              <Radio value="1">先攻</Radio>
+                              <Radio value="0">後攻</Radio>
+                            </RadioGroup>
+                          </CardBody>
+                        </Card>
+
+                        <Card shadow="md" className="w-full">
+                          <CardHeader className="pb-0 text-tiny">
+                            <label className="flex items-center gap-1">
+                              勝ち/負け
+                              <span className="text-red-500 text-sm">*</span>
+                            </label>
+                          </CardHeader>
+                          <CardBody className="">
+                            <RadioGroup
+                              isRequired
+                              isDisabled={isDisabled}
+                              size="md"
+                              label=""
+                              orientation="horizontal"
+                              value={isVictory}
+                              onValueChange={setIsVictory}
+                              classNames={{
+                                base: "items-center",
+                                wrapper: "flex items-center gap-6",
+                              }}
+                            >
+                              <Radio value="1">勝ち</Radio>
+                              <Radio value="0">負け</Radio>
+                            </RadioGroup>
+                          </CardBody>
+                        </Card>
+                      </div>
+
+                      <div className="flex items-center gap-5">
+                        <NumberInput
+                          label="自分"
+                          placeholder=""
+                          isDisabled={isDisabled}
+                          minValue={0}
+                          maxValue={6}
+                          defaultValue={0}
+                          value={yourPrizeCards}
+                          onValueChange={setYourPrizeCards}
+                          className=""
+                        />
+
+                        <span className="font-bold text-2xl">-</span>
+
+                        <NumberInput
+                          label="相手"
+                          placeholder=""
+                          isDisabled={isDisabled}
+                          minValue={0}
+                          maxValue={6}
+                          defaultValue={0}
+                          value={opponentsPrizeCards}
+                          onValueChange={setOpponentsPrizeCards}
+                          className=""
+                        />
+                      </div>
+
+                      <Textarea
+                        size="md"
+                        className=""
+                        label="対戦メモ"
+                        placeholder="対戦のメモを残そう"
+                        onChange={(e) => {
+                          const inputValue = e.target.value;
+                          setMemo(inputValue);
+                        }}
+                      />
+                    </div>
+                  </Tab>
+                  <Tab key="bo3" title="BO3" isDisabled></Tab>
+                </Tabs>
+              </ModalBody>
+              <ModalFooter className="flex items-center">
+                <div className="w-full">
+                  <div className="flex items-center gap-6">
+                    <Switch
+                      size="md"
+                      isDisabled={isDisabled && isDefaultDefeat}
+                      isSelected={isDefaultVictory}
+                      onValueChange={setIsDefaultVictory}
+                    >
+                      不戦勝
+                    </Switch>
+                    <Switch
+                      size="md"
+                      isDisabled={isDisabled && isDefaultVictory}
+                      isSelected={isDefaultDefeat}
+                      onValueChange={setIsDefaultDefeat}
+                    >
+                      不戦敗
+                    </Switch>
+                  </div>
+                </div>
+                <Button
+                  color="success"
+                  variant="solid"
+                  isDisabled={!isValidedFlg || (!isDisabled && !couldUpdateFlg)}
+                  onPress={() => {
+                    updateBO1Match(onClose);
+                  }}
+                  className="font-bold"
+                >
+                  更新
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
+    </>
   );
 }

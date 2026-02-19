@@ -13,9 +13,15 @@ type Props = {
   deck: DeckGetByIdResponseType | null;
   isOpen: boolean;
   onOpenChange: () => void;
+  onClose: () => void;
 };
 
-export default function DisplayRecordsModal({ deck, isOpen, onOpenChange }: Props) {
+export default function DisplayRecordsModal({
+  deck,
+  isOpen,
+  onOpenChange,
+  onClose,
+}: Props) {
   const startY = useRef<number | null>(null);
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -30,7 +36,7 @@ export default function DisplayRecordsModal({ deck, isOpen, onOpenChange }: Prop
     // 下方向に30px以上スワイプしたら閉じる
     if (diff > 30) {
       startY.current = null;
-      onOpenChange();
+      onClose();
     }
   };
   const [selectedKey, setSelectedKey] = useState<"official" | "tonamel">("official");

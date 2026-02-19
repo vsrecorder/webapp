@@ -82,6 +82,7 @@ export default function OfficialEventRecord({ record, enableDisplayRecordModal }
     isOpen: isOpenForDisplayRecordModal,
     onOpen: onOpenForDisplayRecordModal,
     onOpenChange: onOpenChangeForDisplayRecordModal,
+    onClose: onCloseForDisplayRecordModal,
   } = useDisclosure();
 
   useEffect(() => {
@@ -162,6 +163,7 @@ export default function OfficialEventRecord({ record, enableDisplayRecordModal }
           record={record}
           isOpen={isOpenForDisplayRecordModal}
           onOpenChange={onOpenChangeForDisplayRecordModal}
+          onClose={onCloseForDisplayRecordModal}
         />
       )}
 

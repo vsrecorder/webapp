@@ -59,9 +59,15 @@ type Props = {
   deck: DeckGetByIdResponseType | null;
   isOpen: boolean;
   onOpenChange: () => void;
+  onClose: () => void;
 };
 
-export default function DisplayDeckCodesModal({ deck, isOpen, onOpenChange }: Props) {
+export default function DisplayDeckCodesModal({
+  deck,
+  isOpen,
+  onOpenChange,
+  onClose,
+}: Props) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [deckcode, setDeckCode] = useState<DeckCodeType | null>(null);
   const [deckcodes, setDeckCodes] = useState<DeckCodeType[] | null>(null);
@@ -91,7 +97,7 @@ export default function DisplayDeckCodesModal({ deck, isOpen, onOpenChange }: Pr
     // 下方向に30px以上スワイプしたら閉じる
     if (diff > 30) {
       startY.current = null;
-      onOpenChange();
+      onClose();
     }
   };
 

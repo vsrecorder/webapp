@@ -16,9 +16,15 @@ type Props = {
   deckcode: DeckCodeType | null;
   isOpen: boolean;
   onOpenChange: () => void;
+  onClose: () => void;
 };
 
-export default function InspectDeckModal({ deckcode, isOpen, onOpenChange }: Props) {
+export default function InspectDeckModal({
+  deckcode,
+  isOpen,
+  onOpenChange,
+  onClose,
+}: Props) {
   const [imageLoaded, setImageLoaded] = useState(false);
 
   const startY = useRef<number | null>(null);
@@ -35,7 +41,7 @@ export default function InspectDeckModal({ deckcode, isOpen, onOpenChange }: Pro
     // 下方向に30px以上スワイプしたら閉じる
     if (diff > 30) {
       startY.current = null;
-      onOpenChange();
+      onClose();
     }
   };
 

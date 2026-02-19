@@ -17,9 +17,15 @@ type Props = {
   record: RecordType;
   isOpen: boolean;
   onOpenChange: () => void;
+  onClose: () => void;
 };
 
-export default function DisplayRecordModal({ record, isOpen, onOpenChange }: Props) {
+export default function DisplayRecordModal({
+  record,
+  isOpen,
+  onOpenChange,
+  onClose,
+}: Props) {
   const startY = useRef<number | null>(null);
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -34,7 +40,7 @@ export default function DisplayRecordModal({ record, isOpen, onOpenChange }: Pro
     // 下方向に30px以上スワイプしたら閉じる
     if (diff > 30) {
       startY.current = null;
-      onOpenChange();
+      onClose();
     }
   };
 

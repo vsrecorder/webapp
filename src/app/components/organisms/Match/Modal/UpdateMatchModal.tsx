@@ -29,6 +29,7 @@ type Props = {
   setMatches: Dispatch<SetStateAction<MatchGetResponseType[] | null>>;
   isOpen: boolean;
   onOpenChange: () => void;
+  onClose: () => void;
 };
 
 export default function UpdateMatchModal({
@@ -36,6 +37,7 @@ export default function UpdateMatchModal({
   setMatches,
   isOpen,
   onOpenChange,
+  onClose,
 }: Props) {
   const [qualifyingRoundFlg, setQualifyingRoundFlg] = useState(false);
   const [finalTournamentFlg, setFinalTournamentFlg] = useState(false);
@@ -71,7 +73,7 @@ export default function UpdateMatchModal({
     // 下方向に30px以上スワイプしたら閉じる
     if (diff > 30) {
       startY.current = null;
-      onOpenChange();
+      onClose();
     }
   };
 

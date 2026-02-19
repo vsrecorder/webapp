@@ -19,6 +19,7 @@ export default function CreateMatchModalButton({ record, setMatches }: Props) {
     isOpen: isOpenForCreateMatchModal,
     onOpen: onOpenForCreateMatchModal,
     onOpenChange: onOpenChangeForCreateMatchModal,
+    onClose: onCloseForCreateMatchModal,
   } = useDisclosure();
 
   return (
@@ -37,6 +38,7 @@ export default function CreateMatchModalButton({ record, setMatches }: Props) {
         setMatches={setMatches}
         isOpen={isOpenForCreateMatchModal}
         onOpenChange={onOpenChangeForCreateMatchModal}
+        onClose={onCloseForCreateMatchModal}
       />
     </>
   );

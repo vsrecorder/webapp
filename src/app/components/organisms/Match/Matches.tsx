@@ -61,6 +61,7 @@ export default function Matches({ record, enableCreateMatchModalButton }: Props)
     isOpen: isOpenForUpdateMatchModal,
     onOpen: onOpenForUpdateMatchModal,
     onOpenChange: onOpenChangeForUpdateMatchModal,
+    onClose: onCloseForUpdateMatchModal,
   } = useDisclosure();
 
   useEffect(() => {
@@ -102,6 +103,7 @@ export default function Matches({ record, enableCreateMatchModalButton }: Props)
         setMatches={setMatches}
         isOpen={isOpenForUpdateMatchModal}
         onOpenChange={onOpenChangeForUpdateMatchModal}
+        onClose={onCloseForUpdateMatchModal}
       />
 
       <div>

@@ -98,18 +98,21 @@ export default function ShowDeckModal({
     isOpen: isOpenForInspectDeckModal,
     //onOpen: onOpenForInspectDeckModal,
     onOpenChange: onOpenChangeForInspectDeckModal,
+    onClose: onCloseForInspectDeckModal,
   } = useDisclosure();
 
   const {
     isOpen: isOpenForDisplayRecordsModal,
     onOpen: onOpenForDisplayRecordsModal,
     onOpenChange: onOpenChangeForDisplayRecordsModal,
+    onClose: onCloseForDisplayRecordsModal,
   } = useDisclosure();
 
   const {
     isOpen: isOpenForDisplayDeckCodesModal,
     onOpen: onOpenForDisplayDeckCodesModal,
     onOpenChange: onOpenChangeForDisplayDeckCodesModal,
+    onClose: onCloseForDisplayDeckCodesModal,
   } = useDisclosure();
 
   const version =
@@ -357,18 +360,21 @@ export default function ShowDeckModal({
         deckcode={deckcode}
         isOpen={isOpenForInspectDeckModal}
         onOpenChange={onOpenChangeForInspectDeckModal}
+        onClose={onCloseForInspectDeckModal}
       />
 
       <DisplayRecordsModal
         deck={deck}
         isOpen={isOpenForDisplayRecordsModal}
         onOpenChange={onOpenChangeForDisplayRecordsModal}
+        onClose={onCloseForDisplayRecordsModal}
       />
 
       <DisplayDeckCodesModal
         deck={deck}
         isOpen={isOpenForDisplayDeckCodesModal}
         onOpenChange={onOpenChangeForDisplayDeckCodesModal}
+        onClose={onCloseForDisplayDeckCodesModal}
       />
     </>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRef } from "react";
 import { useEffect } from "react";
 import { SetStateAction, Dispatch } from "react";
 
@@ -57,6 +58,24 @@ export default function CreateMatchModal({
   const [isDisabled, setIsDisabled] = useState(false);
   const [couldCreateFlg, setCouldCreateFlg] = useState(false);
 
+  const startY = useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    startY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (startY.current === null) return;
+
+    const diff = e.touches[0].clientY - startY.current;
+
+    // 下方向に30px以上スワイプしたら閉じる
+    if (diff > 30) {
+      startY.current = null;
+      onOpenChange();
+    }
+  };
+
   useEffect(() => {
     if (qualifyingRoundFlg && finalTournamentFlg) {
       setIsValidedFlg(false);
@@ -100,10 +119,6 @@ export default function CreateMatchModal({
     }
   }, [isDefaultVictory, isDefaultDefeat]);
 
-  /*
-    マッチ作成のAPIを叩く関数
-    Next.jsのAPI Routesを経由してAPIを叩く
-  */
   const createBO1Match = async (onClose: () => void) => {
     setCouldCreateFlg(false);
 
@@ -223,7 +238,7 @@ export default function CreateMatchModal({
     <Modal
       size="md"
       placement="bottom"
-      //isDismissable={}
+      isDismissable={false}
       isOpen={isOpen}
       onOpenChange={onOpenChange}
       onClose={() => {
@@ -246,6 +261,7 @@ export default function CreateMatchModal({
         setIsDisabled(false);
         setCouldCreateFlg(false);
       }}
+      hideCloseButton
       className="h-[calc(100dvh-168px)] max-h-[calc(100dvh-168px)] mt-26 my-0 rounded-b-none"
       classNames={{
         base: "sm:max-w-full",
@@ -255,7 +271,16 @@ export default function CreateMatchModal({
       <ModalContent>
         {(onClose) => (
           <>
-            <ModalHeader className="text-lg px-3">対戦結果を追加</ModalHeader>
+            {/* スワイプ検知 */}
+            <ModalHeader
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              className="px-3 py-3 flex flex-col gap-1 cursor-grab"
+            >
+              {/* スワイプバー */}
+              <div className="mx-auto h-1 w-32 mb-1.5 rounded-full bg-default-300" />
+              <div>対戦結果を追加</div>
+            </ModalHeader>
             <ModalBody className="flex flex-col gap-0 px-1 py-1 overflow-y-auto">
               <Tabs fullWidth size="sm" className="left-0 right-0 pl-1 pr-1 font-bold">
                 <Tab key="bo1" title="BO1">

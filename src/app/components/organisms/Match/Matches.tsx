@@ -52,6 +52,7 @@ type Props = {
 };
 
 export default function Matches({ record, enableCreateMatchModalButton }: Props) {
+  const [selectedMatch, setSelectedMatch] = useState<MatchGetResponseType | null>(null);
   const [matches, setMatches] = useState<MatchGetResponseType[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -97,6 +98,8 @@ export default function Matches({ record, enableCreateMatchModalButton }: Props)
   return (
     <>
       <UpdateMatchModal
+        match={selectedMatch}
+        setMatches={setMatches}
         isOpen={isOpenForUpdateMatchModal}
         onOpenChange={onOpenChangeForUpdateMatchModal}
       />
@@ -135,6 +138,7 @@ export default function Matches({ record, enableCreateMatchModalButton }: Props)
                                   variant="light"
                                   className="px-5 py-6 w-full"
                                   onPress={() => {
+                                    setSelectedMatch(match);
                                     onOpenForUpdateMatchModal();
                                   }}
                                 >

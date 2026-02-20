@@ -2,6 +2,8 @@ import { createHash } from "crypto";
 
 import { useRef } from "react";
 
+import { SetStateAction, Dispatch } from "react";
+
 import { useEffect, useState } from "react";
 
 import {
@@ -57,6 +59,7 @@ async function fetchDeckCodesByDeckId(deck_id: string) {
 
 type Props = {
   deck: DeckGetByIdResponseType | null;
+  setDeckCode: Dispatch<SetStateAction<DeckCodeType | null>>;
   isOpen: boolean;
   onOpenChange: () => void;
   onClose: () => void;
@@ -64,13 +67,14 @@ type Props = {
 
 export default function DisplayDeckCodesModal({
   deck,
+  setDeckCode,
   isOpen,
   onOpenChange,
   onClose,
 }: Props) {
   const [imageLoaded, setImageLoaded] = useState(false);
-  const [deckcode, setDeckCode] = useState<DeckCodeType | null>(null);
-  const [deckcodes, setDeckCodes] = useState<DeckCodeType[] | null>(null);
+  const [displayDeckCode, setDisplayDeckCode] = useState<DeckCodeType | null>(null);
+  const [displayDeckCodes, setDisplayDeckCodes] = useState<DeckCodeType[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -113,7 +117,7 @@ export default function DisplayDeckCodesModal({
       try {
         setLoading(true);
         const data = await fetchDeckCodesByDeckId(deck.id);
-        setDeckCodes(data);
+        setDisplayDeckCodes(data);
       } catch (err) {
         console.log(err);
         setError("データの取得に失敗しました");
@@ -140,7 +144,7 @@ export default function DisplayDeckCodesModal({
     });
 
     try {
-      const res = await fetch(`/api/deckcodes/${deckcode?.id}`, {
+      const res = await fetch(`/api/deckcodes/${displayDeckCode?.id}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -169,11 +173,33 @@ export default function DisplayDeckCodesModal({
         timeout: 3000,
       });
 
-      // 削除したdeckcodeを一覧から除外
-      setDeckCodes((prev) => (prev ? prev.filter((dc) => dc.id !== deckcode?.id) : prev));
+      // 削除したバージョンを一覧から除外
+      setDisplayDeckCodes((prev) => {
+        if (!prev) return prev;
+
+        const filtered = prev.filter((dc) => dc.id !== displayDeckCode?.id);
+
+        // deckcodeも更新
+        setDeckCode((prevDeckCode) => {
+          if (!prevDeckCode) return prevDeckCode;
+
+          // 削除対象が最新のものだった場合、次に新しいバージョンに変える
+          if (prevDeckCode.id === displayDeckCode?.id) {
+            if (filtered.length > 0) {
+              return filtered[0];
+            }
+
+            return null;
+          }
+
+          return prevDeckCode;
+        });
+
+        return filtered;
+      });
 
       // deckcodeをリセット
-      setDeckCode(null);
+      setDisplayDeckCode(null);
 
       onClose();
     } catch (error) {
@@ -301,83 +327,84 @@ export default function DisplayDeckCodesModal({
                   ) : !error ? (
                     <ol className="relative">
                       <div className="flex flex-col">
-                        {!deckcodes && (
+                        {(!displayDeckCodes || displayDeckCodes.length === 0) && (
                           <div className="text-center">バージョンがありません</div>
                         )}
 
-                        {deckcodes?.map((deckcode: DeckCodeType, index: number) => (
-                          <li
-                            key={deckcode.id}
-                            className={`border-s-2  ${
-                              index === deckcodes.length - 1
-                                ? "border-transparent"
-                                : "border-blue-300"
-                            }`}
-                          >
-                            <div className="pb-5">
-                              <div className="flex items-center ">
-                                <div className="flex pb-3">
-                                  <div className="-translate-x-1/2 w-3 h-3 rounded-full bg-blue-400" />
-                                  <div className="text-tiny">
-                                    作成日：
-                                    {new Date(deckcode.created_at).toLocaleString(
-                                      "ja-JP",
-                                      {
-                                        year: "numeric",
-                                        month: "long",
-                                        day: "numeric",
-                                        weekday: "short",
-                                      },
-                                    )}
+                        {displayDeckCodes?.map(
+                          (deckcode: DeckCodeType, index: number) => (
+                            <li
+                              key={deckcode.id}
+                              className={`border-s-2  ${
+                                index === displayDeckCodes.length - 1
+                                  ? "border-transparent"
+                                  : "border-blue-300"
+                              }`}
+                            >
+                              <div className="pb-5">
+                                <div className="flex items-center ">
+                                  <div className="flex pb-3">
+                                    <div className="-translate-x-1/2 w-3 h-3 rounded-full bg-blue-400" />
+                                    <div className="text-tiny">
+                                      作成日：
+                                      {new Date(deckcode.created_at).toLocaleString(
+                                        "ja-JP",
+                                        {
+                                          year: "numeric",
+                                          month: "long",
+                                          day: "numeric",
+                                          weekday: "short",
+                                        },
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
 
-                              <div className="pl-2">
-                                {deckcode.code ? (
-                                  <Card shadow="sm" className="py-3">
-                                    <CardHeader className="pb-0 pt-0 flex-col items-start gap-2 w-full">
-                                      {/* 両端配置 */}
-                                      <div className="flex items-center justify-between w-full">
-                                        {/* 左側 */}
-                                        <div className="flex flex-col items-start">
-                                          <div className="font-bold text-medium">
-                                            バージョン：
-                                            {createHash("sha1")
-                                              .update(deckcode.id)
-                                              .digest("hex")
-                                              .slice(0, 8)}
+                                <div className="pl-2">
+                                  {deckcode.code ? (
+                                    <Card shadow="sm" className="py-3">
+                                      <CardHeader className="pb-0 pt-0 flex-col items-start gap-2 w-full">
+                                        {/* 両端配置 */}
+                                        <div className="flex items-center justify-between w-full">
+                                          {/* 左側 */}
+                                          <div className="flex flex-col items-start">
+                                            <div className="font-bold text-medium">
+                                              バージョン：
+                                              {createHash("sha1")
+                                                .update(deckcode.id)
+                                                .digest("hex")
+                                                .slice(0, 8)}
+                                            </div>
+                                          </div>
+
+                                          {/* 右側 */}
+                                          <div>
+                                            <LuTrash2
+                                              className="text-xl cursor-pointer text-red-500"
+                                              onClick={() => {
+                                                setDisplayDeckCode(deckcode);
+                                                onOpenForDeleteDeckCodeModal();
+                                              }}
+                                            />
                                           </div>
                                         </div>
 
-                                        {/* 右側 */}
-                                        <div>
-                                          <LuTrash2
-                                            className="text-xl cursor-pointer text-red-500"
-                                            onClick={() => {
-                                              setDeckCode(deckcode);
-                                              onOpenForDeleteDeckCodeModal();
-                                            }}
-                                          />
-                                        </div>
-                                      </div>
+                                        <div className="flex flex-col justify-center gap-0.5">
+                                          <div className="flex items-center gap-3">
+                                            <div className="text-tiny">
+                                              <>デッキコード：</>
+                                              <Snippet
+                                                size="sm"
+                                                radius="none"
+                                                timeout={3000}
+                                                disableTooltip={true}
+                                                hideSymbol={true}
+                                              >
+                                                {deckcode?.code ? deckcode.code : "なし"}
+                                              </Snippet>
+                                            </div>
 
-                                      <div className="flex flex-col justify-center gap-0.5">
-                                        <div className="flex items-center gap-3">
-                                          <div className="text-tiny">
-                                            <>デッキコード：</>
-                                            <Snippet
-                                              size="sm"
-                                              radius="none"
-                                              timeout={3000}
-                                              disableTooltip={true}
-                                              hideSymbol={true}
-                                            >
-                                              {deckcode?.code ? deckcode.code : "なし"}
-                                            </Snippet>
-                                          </div>
-
-                                          {/*
+                                            {/*
                                           {deckcode?.code && (
                                             <>
                                               <Chip
@@ -394,65 +421,68 @@ export default function DisplayDeckCodesModal({
                                             </>
                                           )}
                                           */}
+                                          </div>
                                         </div>
-                                      </div>
-                                    </CardHeader>
-                                    <CardBody className="px-1 py-2">
-                                      <div className="relative w-full aspect-2/1">
-                                        {!imageLoaded && (
-                                          <Skeleton className="absolute inset-0 rounded-lg" />
-                                        )}
-                                        <Image
-                                          radius="sm"
-                                          shadow="none"
-                                          alt={deckcode.code}
-                                          src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
-                                          className=""
-                                          onLoad={() => setImageLoaded(true)}
-                                        />
-                                      </div>
-                                    </CardBody>
-                                    {index === deckcodes.length - 1 ? (
-                                      deckcode.memo ? (
+                                      </CardHeader>
+                                      <CardBody className="px-1 py-2">
+                                        <div className="relative w-full aspect-2/1">
+                                          {!imageLoaded && (
+                                            <Skeleton className="absolute inset-0 rounded-lg" />
+                                          )}
+                                          <Image
+                                            radius="sm"
+                                            shadow="none"
+                                            alt={deckcode.code}
+                                            src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
+                                            className=""
+                                            onLoad={() => setImageLoaded(true)}
+                                          />
+                                        </div>
+                                      </CardBody>
+                                      {index === displayDeckCodes.length - 1 ? (
+                                        deckcode.memo ? (
+                                          <CardFooter>
+                                            <div className="flex flex-col gap-3">
+                                              <div className="font-bold text-tiny">
+                                                メモ
+                                              </div>
+                                            </div>
+                                          </CardFooter>
+                                        ) : (
+                                          <></>
+                                        )
+                                      ) : (
                                         <CardFooter>
                                           <div className="flex flex-col gap-3">
-                                            <div className="font-bold text-tiny">
-                                              メモ
-                                            </div>
+                                            {index !== displayDeckCodes.length - 1 ? (
+                                              <DeckCardDiff
+                                                current_deckcode={displayDeckCodes[index]}
+                                                previous_deckcode={
+                                                  displayDeckCodes[index + 1]
+                                                }
+                                              />
+                                            ) : (
+                                              <></>
+                                            )}
+                                            {deckcode.memo ? (
+                                              <div className="font-bold text-tiny">
+                                                メモ
+                                              </div>
+                                            ) : (
+                                              <></>
+                                            )}
                                           </div>
                                         </CardFooter>
-                                      ) : (
-                                        <></>
-                                      )
-                                    ) : (
-                                      <CardFooter>
-                                        <div className="flex flex-col gap-3">
-                                          {index !== deckcodes.length - 1 ? (
-                                            <DeckCardDiff
-                                              current_deckcode={deckcodes[index]}
-                                              previous_deckcode={deckcodes[index + 1]}
-                                            />
-                                          ) : (
-                                            <></>
-                                          )}
-                                          {deckcode.memo ? (
-                                            <div className="font-bold text-tiny">
-                                              メモ
-                                            </div>
-                                          ) : (
-                                            <></>
-                                          )}
-                                        </div>
-                                      </CardFooter>
-                                    )}
-                                  </Card>
-                                ) : (
-                                  <></>
-                                )}
+                                      )}
+                                    </Card>
+                                  ) : (
+                                    <></>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          </li>
-                        ))}
+                            </li>
+                          ),
+                        )}
                       </div>
                     </ol>
                   ) : (

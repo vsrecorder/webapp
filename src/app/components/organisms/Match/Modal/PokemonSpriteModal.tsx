@@ -166,8 +166,8 @@ export default function PokemonSpriteModal({
                   }),
                 }}
                 //isLoading={isLoading}
-                isClearable
-                isSearchable
+                isClearable={true}
+                isSearchable={true}
                 noOptionsMessage={() => pokemonSpritesOptionsMessage}
                 options={pokemonSpritesOptions}
                 value={selectedPokemonSpriteOption}

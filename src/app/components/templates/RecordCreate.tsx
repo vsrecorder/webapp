@@ -100,6 +100,15 @@ async function fetcherForDeck(url: string) {
   return ret;
 }
 
+function katakanaToHiragana(str: string): string {
+  return str.replace(/[\u30A1-\u30F6]/g, (match) => {
+    const charCode = match.charCodeAt(0);
+
+    // 「ヴ」はひらがなの「ゔ」（\u3094）へ、それ以外は一律 -0x60
+    return String.fromCharCode(charCode === 0x30f4 ? 0x3094 : charCode - 0x60);
+  });
+}
+
 function convertToOfficialEventOption(
   officialEvent: OfficialEventType,
 ): OfficialEventOption {
@@ -250,7 +259,7 @@ function convertToDeckOption(data: DeckData): DeckOption {
   });
 
   return {
-    label: data.name + " " + data.latest_deck_code,
+    label: data.name + " - " + katakanaToHiragana(data.name),
     value: data.id,
     id: data.id,
     created_at: created_at,
@@ -577,9 +586,9 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                       <span className="text-sm">例）町田市</span>
                     </div>
                   }
-                  //isLoading={isLoading}
-                  isClearable
-                  isSearchable
+                  //isLoading={}
+                  isClearable={true}
+                  isSearchable={true}
                   noOptionsMessage={() => officialEventOptionsMessage}
                   options={officialEventOptions}
                   value={selectedOfficialEventOption}
@@ -724,6 +733,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                 <label className="text-sm font-medium">デッキ名</label>
                 <div ref={deckSelectRef}>
                   <Select
+                    menuShouldBlockScroll={true}
                     onFocus={() => {
                       setTimeout(() => {
                         deckSelectRef.current?.scrollIntoView({
@@ -885,6 +895,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                 <label className="text-sm font-medium">デッキ名</label>
                 <div ref={deckSelectRef}>
                   <Select
+                    menuShouldBlockScroll={true}
                     onFocus={() => {
                       setTimeout(() => {
                         deckSelectRef.current?.scrollIntoView({
@@ -909,7 +920,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                         <span className="text-sm">デッキ名</span>
                       </div>
                     }
-                    //isLoading={isLoading}
+                    //isLoading={}
                     isClearable={true}
                     isSearchable={true}
                     noOptionsMessage={() => deckOptionsMessage}

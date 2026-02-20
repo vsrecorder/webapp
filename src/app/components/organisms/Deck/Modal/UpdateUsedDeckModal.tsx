@@ -509,10 +509,8 @@ export default function UpdateUsedDeckModal({
                     <label className="text-sm font-medium">デッキ名</label>
                     <div>
                       <Select
-                        closeMenuOnSelect={false} // ← 自動制御を無効化
                         minMenuHeight={325}
                         maxMenuHeight={325}
-                        menuShouldBlockScroll={true}
                         placeholder={
                           <div className="flex items-center gap-2">
                             <div className="text-xl">
@@ -537,6 +535,7 @@ export default function UpdateUsedDeckModal({
                         }}
                         menuPosition="fixed"
                         menuPlacement="bottom"
+                        menuShouldBlockScroll={true}
                         menuShouldScrollIntoView={true}
                         formatOptionLabel={(option, { context }) => {
                           if (context === "menu") {

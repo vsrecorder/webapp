@@ -733,7 +733,6 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                 <label className="text-sm font-medium">デッキ名</label>
                 <div ref={deckSelectRef}>
                   <Select
-                    menuShouldBlockScroll={true}
                     onFocus={() => {
                       setTimeout(() => {
                         deckSelectRef.current?.scrollIntoView({
@@ -770,6 +769,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                     }}
                     menuPosition="fixed"
                     menuPlacement="bottom"
+                    menuShouldBlockScroll={true}
                     menuShouldScrollIntoView={true}
                     formatOptionLabel={(option, { context }) => {
                       if (context === "menu") {

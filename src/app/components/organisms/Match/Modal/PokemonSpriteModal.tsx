@@ -138,7 +138,6 @@ export default function PokemonSpriteModal({
             <ModalHeader className="px-3">ポケモンのアイコンを選択</ModalHeader>
             <ModalBody className="px-5">
               <WindowedSelect
-                //menuIsOpen={}
                 placeholder={
                   <div className="flex items-center gap-2">
                     <div className="text-xl">

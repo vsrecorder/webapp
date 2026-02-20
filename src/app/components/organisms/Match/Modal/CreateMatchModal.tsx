@@ -549,6 +549,7 @@ export default function CreateMatchModal({
                         size="md"
                         className=""
                         label="対戦メモ"
+                        value={memo}
                         placeholder="対戦のメモを残そう"
                         onChange={(e) => {
                           const inputValue = e.target.value;

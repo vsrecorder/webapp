@@ -301,6 +301,10 @@ export default function DisplayDeckCodesModal({
                   ) : !error ? (
                     <ol className="relative">
                       <div className="flex flex-col">
+                        {!deckcodes && (
+                          <div className="text-center">バージョンがありません</div>
+                        )}
+
                         {deckcodes?.map((deckcode: DeckCodeType, index: number) => (
                           <li
                             key={deckcode.id}

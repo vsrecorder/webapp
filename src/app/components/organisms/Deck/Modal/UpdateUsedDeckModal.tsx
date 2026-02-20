@@ -17,7 +17,6 @@ import { CgSearch } from "react-icons/cg";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
 
 import { RecordType } from "@app/types/record";
-
 import { RecordUpdateRequestType, RecordUpdateResponseType } from "@app/types/record";
 
 import { DeckGetAllType, DeckData } from "@app/types/deck";
@@ -45,6 +44,15 @@ type DeckOption = {
   latest_deck_code: DeckCodeType;
 };
 
+function katakanaToHiragana(str: string): string {
+  return str.replace(/[\u30A1-\u30F6]/g, (match) => {
+    const charCode = match.charCodeAt(0);
+
+    // 「ヴ」はひらがなの「ゔ」（\u3094）へ、それ以外は一律 -0x60
+    return String.fromCharCode(charCode === 0x30f4 ? 0x3094 : charCode - 0x60);
+  });
+}
+
 function convertToDeckOption(data: DeckData): DeckOption {
   const created_at = new Date(data.created_at).toLocaleString("ja-JP", {
     year: "numeric",
@@ -54,7 +62,7 @@ function convertToDeckOption(data: DeckData): DeckOption {
   });
 
   return {
-    label: data.name + " " + data.latest_deck_code,
+    label: data.name + " - " + katakanaToHiragana(data.name),
     value: data.id,
     id: data.id,
     created_at: created_at,
@@ -114,8 +122,8 @@ type Props = {
 
 export default function UpdateUsedDeckModal({
   record,
-  isOpen,
   setRecords,
+  isOpen,
   onOpenChange,
 }: Props) {
   const [selectedDeckOption, setSelectedDeckOption] = useState<DeckOption | null>(null);
@@ -291,31 +299,45 @@ export default function UpdateUsedDeckModal({
   useEffect(() => {
     // レコードに設定されている使用されたデッキがない場合
     if (!record.data.deck_id) {
-      if (selectedDeckOption) {
+      // 選択されたデッキとデッキコードがある場合
+      if (selectedDeckOption && selectedDeckCodeOption) {
         setIsDisabled(false);
       } else {
         setIsDisabled(true);
       }
 
-      return;
-    }
-
-    // レコードに設定されている使用されたデッキコードがない場合
-    if (!record.data.deck_code_id) {
+      // レコードに設定されている使用されたデッキコードがない場合
+    } else if (!record.data.deck_code_id) {
       // レコードに設定されている使用されたデッキと選択したデッキが異なる場合
       if (record.data.deck_id !== selectedDeckOption?.id) {
         setIsDisabled(false);
       } else {
+        // 選択されたデッキコードがある場合
+        if (selectedDeckCodeOption?.id) {
+          setIsDisabled(false);
+        } else {
+          setIsDisabled(true);
+        }
+      }
+
+      // 選択されたデッキがない場合
+      if (!selectedDeckOption) {
         setIsDisabled(true);
       }
 
-      return;
-    }
-
-    if (
+      // レコードに設定されている使用されたデッキとデッキコードが
+      // 選択されたデッキとデッキコードと同じ場合
+    } else if (
       record.data.deck_id === selectedDeckOption?.id &&
       record.data.deck_code_id === selectedDeckCodeOption?.id
     ) {
+      setIsDisabled(true);
+
+      // 選択されたデッキがない場合
+    } else if (!selectedDeckOption) {
+      setIsDisabled(true);
+      // 選択されたデッキコードがない場合
+    } else if (!selectedDeckCodeOption) {
       setIsDisabled(true);
     } else {
       setIsDisabled(false);
@@ -457,7 +479,6 @@ export default function UpdateUsedDeckModal({
       placement="center"
       onOpenChange={onOpenChange}
       isDismissable={false}
-      //isDismissable={!isUpdating}
       onClose={() => {
         setSelectedDeckOption(null);
         setSelectedDeckCodeOption(null);
@@ -488,6 +509,10 @@ export default function UpdateUsedDeckModal({
                     <label className="text-sm font-medium">デッキ名</label>
                     <div>
                       <Select
+                        closeMenuOnSelect={false} // ← 自動制御を無効化
+                        minMenuHeight={325}
+                        maxMenuHeight={325}
+                        menuShouldBlockScroll={true}
                         placeholder={
                           <div className="flex items-center gap-2">
                             <div className="text-xl">
@@ -504,13 +529,11 @@ export default function UpdateUsedDeckModal({
                         options={deckOptions}
                         value={selectedDeckOption}
                         onChange={(option) => {
-                          setIsLoadingDeckCodeOptions(true);
-
                           setSelectedDeckCodeOption(null);
                           setIsDeckChangedByUser(true);
                           setSelectedDeckOption(option);
-
                           setImageLoadedForDeck(false);
+                          setIsLoadingDeckCodeOptions(true);
                         }}
                         menuPosition="fixed"
                         menuPlacement="bottom"
@@ -561,6 +584,8 @@ export default function UpdateUsedDeckModal({
                     <label className="text-sm font-medium">バージョン</label>
                     <div>
                       <Select
+                        minMenuHeight={270}
+                        maxMenuHeight={270}
                         placeholder={
                           <div className="flex items-center gap-2">
                             <span className="text-sm">バージョン</span>

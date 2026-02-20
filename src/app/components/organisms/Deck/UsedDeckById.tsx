@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { useDisclosure } from "@heroui/react";
 
 import UpdateUsedDeckModal from "@app/components/organisms/Deck/Modal/UpdateUsedDeckModal";
-import DeckCard from "@app/components/organisms/Deck/DeckCard";
+import UsedDeckCard from "@app/components/organisms/Deck/UsedDeckCard";
 import { DeckCardSkeleton } from "@app/components/organisms/Deck/Skeleton/DeckCardSkeleton";
 
 import { RecordType } from "@app/types/record";
@@ -158,9 +158,11 @@ export default function UsedDeckById({
       />
 
       <div onClick={onOpenForUpdateUsedDeckModal}>
-        <DeckCard
-          deckData={deck}
-          deckcodeData={deckcode}
+        <UsedDeckCard
+          deck={deck}
+          setDeck={setDeck}
+          deckcode={deckcode}
+          setDeckCode={setDeckCode}
           enableShowDeckModal={enableShowDeckModal}
         />
       </div>

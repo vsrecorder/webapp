@@ -148,10 +148,6 @@ export default function UsedDeckById({
     );
   }
 
-  if (!deck) {
-    return;
-  }
-
   return (
     <>
       <UpdateUsedDeckModal

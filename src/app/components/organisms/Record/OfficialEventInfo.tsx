@@ -378,7 +378,9 @@ export default function OfficialEventInfo({ record }: Props) {
                     <div className="flex items-center gap-1">
                       <LuLayers className="text-gray-500" />
 
-                      <div className="truncate w-full min-w-0">{deck?.name}</div>
+                      <div className="truncate w-full min-w-0">
+                        {deck ? deck.name : "なし"}
+                      </div>
                     </div>
                   )}
                 </div>

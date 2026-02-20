@@ -77,7 +77,8 @@ export default function UsedDeckById({
   const [deckcode, setDeckCode] = useState<DeckCodeType | null>(null);
   const [loading1, setLoading1] = useState(true);
   const [loading2, setLoading2] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error1, setError1] = useState<string | null>(null);
+  const [error2, setError2] = useState<string | null>(null);
 
   const {
     isOpen: isOpenForUpdateUsedDeckModal,
@@ -92,45 +93,59 @@ export default function UsedDeckById({
       return;
     }
 
-    setLoading1(true);
-    setLoading2(true);
-
     const fetchDeckData = async () => {
+      setLoading1(true);
+
       try {
-        setLoading1(true);
         const data = await fetchDeckById(deck_id);
         setDeck(data);
       } catch (err) {
         console.log(err);
-        setError("データの取得に失敗しました");
+        setError1("デッキデータの取得に失敗しました");
       } finally {
         setLoading1(false);
       }
     };
 
     const fetchDeckCodesData = async () => {
+      setLoading2(true);
+
       try {
-        setLoading2(true);
         const data = await fetchDeckCodeById(deck_code_id);
         setDeckCode(data);
       } catch (err) {
         console.log(err);
-        setError("データの取得に失敗しました");
+        setError2("デッキコードデータの取得に失敗しました");
       } finally {
         setLoading2(false);
       }
     };
 
-    fetchDeckData();
-    fetchDeckCodesData();
+    if (deck_id) {
+      fetchDeckData();
+    } else {
+      setLoading1(false);
+    }
+
+    if (deck_code_id) {
+      fetchDeckCodesData();
+    } else {
+      setLoading2(false);
+    }
   }, [deck_id, deck_code_id]);
 
   if (loading1 || loading2) {
     return <DeckCardSkeleton />;
   }
 
-  if (error) {
-    return <div className="text-red-500">{error}</div>;
+  if (error1 || error2) {
+    return (
+      <div className="text-red-500">
+        {error1}
+        <br />
+        {error2}
+      </div>
+    );
   }
 
   if (!deck) {

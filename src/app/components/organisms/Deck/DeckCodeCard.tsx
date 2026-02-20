@@ -132,7 +132,64 @@ export default function DeckCodeCard({ deckcode }: Props) {
   }
 
   if (!deckcode) {
-    return;
+    return (
+      <Card shadow="sm" className="py-3 relative w-full">
+        <CardHeader className="pt-0 pb-1 px-3">
+          <div className="flex flex-col gap-1">
+            <div className="font-bold text-base text-gray-500">
+              バージョンID：{version}
+            </div>
+            <div className="pl-1 flex flex-col gap-0.5">
+              <div className="text-tiny">
+                <>作成日：なし</>
+              </div>
+              <div className="text-tiny">
+                <>環境名：なし</>
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+        <CardBody className="px-2 py-1">
+          <div className="relative w-full aspect-2/1">
+            {!imageLoaded && <Skeleton className="absolute inset-0 rounded-lg" />}
+            <>
+              <Image
+                radius="sm"
+                shadow="none"
+                alt="デッキコードなし"
+                src={"https://www.pokemon-card.com/deck/deckView.php/deckID/"}
+                className=""
+                onLoad={() => setImageLoaded(true)}
+              />
+            </>
+          </div>
+        </CardBody>
+        {/*
+      <CardFooter>
+        <div className="flex flex-col gap-1">
+          <div className="flex gap-1">
+            {loadingAcespec ? (
+              <Skeleton className="bg-[#ee0077] h-6 w-32 rounded-2xl" />
+            ) : (
+              acespec && (
+                <Chip
+                  size="sm"
+                  radius="md"
+                  classNames={{
+                    base: "bg-[#ee0077]",
+                    content: "text-white font-bold",
+                  }}
+                >
+                  {acespec.card_name}
+                </Chip>
+              )
+            )}
+          </div>
+        </div>
+      </CardFooter>
+      */}
+      </Card>
+    );
   }
 
   return (

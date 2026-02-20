@@ -125,15 +125,29 @@ export default function UpdateUsedDeckModal({
   const [imageLoadedForDeck, setImageLoadedForDeck] = useState(false);
   const [imageLoadedForDeckCode, setImageLoadedForDeckCode] = useState(false);
 
+  const [isLoadingDeckOptions, setIsLoadingDeckOptions] = useState<boolean>(true);
+  const [isLoadingDeckCodeOptions, setIsLoadingDeckCodeOptions] = useState<boolean>(true);
+
+  const [isDeckChangedByUser, setIsDeckChangedByUser] = useState(false);
+
   const [isDisabled, setIsDisabled] = useState<boolean>(false);
+  const [isUpdating, setIsUpdating] = useState<boolean>(false);
 
   /*
-    recordにdeck_idとdeck_code_idがある場合、deck_idのDeckとdeck_code_idのDeckCodeを取得し、使用するデッキとして指定
+    recordにdeck_idとdeck_code_idがある場合、
+    deck_idのDeckとdeck_code_idのDeckCodeを取得し、
+    選択しているデッキ/バージョンとして指定
   */
   useEffect(() => {
-    if (!record) return;
+    if (!isOpen || !record) {
+      setIsLoadingDeckOptions(false);
+      setIsLoadingDeckCodeOptions(false);
+      return;
+    }
 
     const setSelectedDeck = async () => {
+      setIsLoadingDeckOptions(true);
+
       try {
         const res = await fetch(`/api/decks/${record.data.deck_id}`, {
           cache: "no-store",
@@ -150,15 +164,20 @@ export default function UpdateUsedDeckModal({
         const ret: DeckData = await res.json();
 
         setSelectedDeckOption(convertToDeckOption(ret));
+
         setImageLoadedForDeck(false);
         return ret;
       } catch (error) {
         setSelectedDeckOption(null);
         console.error(error);
+      } finally {
+        setIsLoadingDeckOptions(false);
       }
     };
 
     const setSelectedDeckCode = async () => {
+      setIsLoadingDeckCodeOptions(true);
+
       try {
         const res = await fetch(`/api/deckcodes/${record.data.deck_code_id}`, {
           cache: "no-store",
@@ -175,24 +194,35 @@ export default function UpdateUsedDeckModal({
         const ret: DeckCodeType = await res.json();
 
         setSelectedDeckCodeOption(convertToDeckCodeOption(ret));
+
         setImageLoadedForDeckCode(false);
         return ret;
       } catch (error) {
         setSelectedDeckCodeOption(null);
         console.error(error);
+      } finally {
+        setIsLoadingDeckCodeOptions(false);
       }
     };
 
     if (record.data.deck_id) {
       setSelectedDeck();
+    } else {
+      setIsLoadingDeckOptions(false);
     }
 
     if (record.data.deck_code_id) {
       setSelectedDeckCode();
+    } else {
+      setIsLoadingDeckCodeOptions(false);
     }
-  }, [record]);
+  }, [isOpen, record]);
 
-  // デッキの選択が変更されたとき
+  /*
+   *
+   * デッキ選択のデータを取得
+   *
+   */
   const deckOptions: DeckOption[] = [];
   let deckOptionsMessage = "デッキがありません";
   {
@@ -218,6 +248,15 @@ export default function UpdateUsedDeckModal({
     }
   }
 
+  /*
+   *
+   * バージョン(デッキコード)選択のデータを取得
+   *
+   * 選択されたデッキが変更されるたびに実施される
+   *
+   */
+  const deckcodeOptions: DeckCodeOption[] = [];
+  let deckcodeOptionsMessage = "バージョンがありません";
   const {
     data: deckcodeData,
     error: deckcodeError,
@@ -226,8 +265,6 @@ export default function UpdateUsedDeckModal({
     selectedDeckOption ? `/api/decks/${selectedDeckOption.id}/deckcodes` : null,
     fetcherForDeckCode,
   );
-  const deckcodeOptions: DeckCodeOption[] = [];
-  let deckcodeOptionsMessage = "バージョンがありません";
 
   if (deckcodeError) {
     deckcodeOptionsMessage = "エラーが発生しました";
@@ -245,15 +282,88 @@ export default function UpdateUsedDeckModal({
     deckcodeOptionsMessage = "対象のデッキにバージョンがありません";
   }
 
-  if (!record) {
-    return;
-  }
+  /*
+   *
+   * recordのdeck_id/deck_code_idと選択されたデッキ/バージョンが
+   * 同じである場合は変更できないようにする
+   *
+   */
+  useEffect(() => {
+    // レコードに設定されている使用されたデッキがない場合
+    if (!record.data.deck_id) {
+      if (selectedDeckOption) {
+        setIsDisabled(false);
+      } else {
+        setIsDisabled(true);
+      }
+
+      return;
+    }
+
+    // レコードに設定されている使用されたデッキコードがない場合
+    if (!record.data.deck_code_id) {
+      // レコードに設定されている使用されたデッキと選択したデッキが異なる場合
+      if (record.data.deck_id !== selectedDeckOption?.id) {
+        setIsDisabled(false);
+      } else {
+        setIsDisabled(true);
+      }
+
+      return;
+    }
+
+    if (
+      record.data.deck_id === selectedDeckOption?.id &&
+      record.data.deck_code_id === selectedDeckCodeOption?.id
+    ) {
+      setIsDisabled(true);
+    } else {
+      setIsDisabled(false);
+    }
+  }, [
+    record.data.deck_id,
+    record.data.deck_code_id,
+    selectedDeckOption,
+    selectedDeckCodeOption,
+  ]);
 
   /*
-    レコードを更新する関数
-  */
-  async function updateRecord(deckId: string, deckCodeId: string, onClose: () => void) {
-    setIsDisabled(true);
+   *
+   * バージョン(デッキコード)選択のデータが変更された場合、
+   * 最新のデッキコードのデータを選択されたバージョンとして設定する
+   *
+   */
+  useEffect(() => {
+    setIsLoadingDeckCodeOptions(true);
+
+    if (!deckcodeData || deckcodeData.length === 0) {
+      setSelectedDeckCodeOption(null);
+
+      setImageLoadedForDeckCode(false);
+      setIsLoadingDeckCodeOptions(false);
+
+      return;
+    }
+
+    // ユーザによるデッキ選択の操作が行われる前は実行されないようにする
+    if (isDeckChangedByUser) {
+      // 最新のデッキコードのデータを選択されたバージョンとして設定する
+      setSelectedDeckCodeOption(convertToDeckCodeOption(deckcodeData[0]));
+      // 初期化
+      setIsDeckChangedByUser(false);
+    }
+
+    setImageLoadedForDeckCode(false);
+    setIsLoadingDeckCodeOptions(false);
+  }, [deckcodeData, isDeckChangedByUser]);
+
+  /*
+   *
+   * レコードを更新する関数
+   *
+   */
+  async function updateRecord(deckId: string, deckcodeId: string, onClose: () => void) {
+    setIsUpdating(true);
 
     const toastId = addToast({
       title: "変更中",
@@ -267,7 +377,7 @@ export default function UpdateUsedDeckModal({
       tonamel_event_id: record.data.tonamel_event_id,
       friend_id: record.data.friend_id,
       deck_id: deckId,
-      deck_code_id: deckCodeId,
+      deck_code_id: deckcodeId,
       private_flg: record.data.private_flg,
       tcg_meister_url: record.data.tcg_meister_url,
       memo: record.data.memo,
@@ -332,10 +442,12 @@ export default function UpdateUsedDeckModal({
         timeout: 5000,
       });
 
-      setIsDisabled(false);
-
       onClose();
     }
+  }
+
+  if (!record) {
+    return;
   }
 
   return (
@@ -343,9 +455,23 @@ export default function UpdateUsedDeckModal({
       isOpen={isOpen}
       size={"md"}
       placement="center"
-      //hideCloseButton
       onOpenChange={onOpenChange}
-      isDismissable={!isDisabled}
+      isDismissable={false}
+      //isDismissable={!isUpdating}
+      onClose={() => {
+        setSelectedDeckOption(null);
+        setSelectedDeckCodeOption(null);
+
+        setImageLoadedForDeck(false);
+        setImageLoadedForDeckCode(false);
+
+        setIsLoadingDeckOptions(true);
+        setIsLoadingDeckCodeOptions(true);
+
+        setIsDeckChangedByUser(false);
+        setIsDisabled(false);
+        setIsUpdating(false);
+      }}
       classNames={{
         base: "sm:max-w-full",
         closeButton: "text-2xl",
@@ -370,15 +496,20 @@ export default function UpdateUsedDeckModal({
                             <span className="text-sm">デッキ名</span>
                           </div>
                         }
-                        //isLoading={}
+                        isLoading={isLoadingDeckOptions}
+                        isDisabled={isLoadingDeckOptions}
                         isClearable={true}
                         isSearchable={true}
                         noOptionsMessage={() => deckOptionsMessage}
                         options={deckOptions}
                         value={selectedDeckOption}
                         onChange={(option) => {
-                          setSelectedDeckOption(option);
+                          setIsLoadingDeckCodeOptions(true);
+
                           setSelectedDeckCodeOption(null);
+                          setIsDeckChangedByUser(true);
+                          setSelectedDeckOption(option);
+
                           setImageLoadedForDeck(false);
                         }}
                         menuPosition="fixed"
@@ -435,7 +566,8 @@ export default function UpdateUsedDeckModal({
                             <span className="text-sm">バージョン</span>
                           </div>
                         }
-                        //isLoading={}
+                        isLoading={isLoadingDeckCodeOptions}
+                        isDisabled={isLoadingDeckCodeOptions}
                         isClearable={true}
                         isSearchable={false}
                         noOptionsMessage={() => deckcodeOptionsMessage}
@@ -443,6 +575,7 @@ export default function UpdateUsedDeckModal({
                         value={selectedDeckCodeOption}
                         onChange={(option) => {
                           setSelectedDeckCodeOption(option);
+
                           setImageLoadedForDeckCode(false);
                         }}
                         menuPosition="fixed"
@@ -530,7 +663,7 @@ export default function UpdateUsedDeckModal({
               <Button
                 color="default"
                 variant="solid"
-                isDisabled={isDisabled}
+                isDisabled={isUpdating}
                 onPress={onClose}
                 className="font-bold"
               >
@@ -539,7 +672,12 @@ export default function UpdateUsedDeckModal({
               <Button
                 color="success"
                 variant="solid"
-                isDisabled={isDisabled}
+                isDisabled={
+                  isUpdating ||
+                  isDisabled ||
+                  isLoadingDeckOptions ||
+                  isLoadingDeckCodeOptions
+                }
                 onPress={() => {
                   updateRecord(
                     selectedDeckOption ? selectedDeckOption.id : "",

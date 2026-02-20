@@ -2,6 +2,7 @@ import { createHash } from "crypto";
 
 import useSWR from "swr";
 
+import WindowedSelect from "react-windowed-select";
 import Select from "react-select";
 
 import { SetStateAction, Dispatch } from "react";
@@ -508,9 +509,10 @@ export default function UpdateUsedDeckModal({
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-medium">デッキ名</label>
                     <div>
-                      <Select
-                        minMenuHeight={325}
-                        maxMenuHeight={325}
+                      <WindowedSelect
+                        windowThreshold={50}
+                        minMenuHeight={330}
+                        maxMenuHeight={330}
                         placeholder={
                           <div className="flex items-center gap-2">
                             <div className="text-xl">
@@ -529,7 +531,7 @@ export default function UpdateUsedDeckModal({
                         onChange={(option) => {
                           setSelectedDeckCodeOption(null);
                           setIsDeckChangedByUser(true);
-                          setSelectedDeckOption(option);
+                          setSelectedDeckOption(option as DeckOption);
                           setImageLoadedForDeck(false);
                           setIsLoadingDeckCodeOptions(true);
                         }}
@@ -538,17 +540,16 @@ export default function UpdateUsedDeckModal({
                         menuShouldBlockScroll={true}
                         menuShouldScrollIntoView={true}
                         formatOptionLabel={(option, { context }) => {
+                          const opt = option as DeckOption;
                           if (context === "menu") {
                             return (
                               <div className="text-sm truncate border-1 p-2">
                                 <div className="grid">
                                   <span className="truncate">
-                                    登録日：{option.created_at}
+                                    登録日：{opt.created_at}
                                   </span>
 
-                                  <span className="truncate">
-                                    デッキ名：{option.name}
-                                  </span>
+                                  <span className="truncate">デッキ名：{opt.name}</span>
 
                                   <span className="pt-1">
                                     <div className="relative w-full aspect-2/1">
@@ -558,8 +559,8 @@ export default function UpdateUsedDeckModal({
                                       <Image
                                         radius="none"
                                         shadow="none"
-                                        alt={option.latest_deck_code.code}
-                                        src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${option.latest_deck_code.code}.jpg`}
+                                        alt={opt.latest_deck_code.code}
+                                        src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${opt.latest_deck_code.code}.jpg`}
                                         className=""
                                         onLoad={() => setImageLoadedForDeck(true)}
                                       />
@@ -571,7 +572,7 @@ export default function UpdateUsedDeckModal({
                           }
                           return (
                             <div className="text-sm truncate">
-                              <span>{option.name}</span>
+                              <span>{opt.name}</span>
                             </div>
                           );
                         }}

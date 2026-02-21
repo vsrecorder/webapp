@@ -281,7 +281,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [isDisabledCreateOfficialEventRecord, setIsDisabledCreateOfficialEventRecord] =
     useState(true);
-  const [isDisabledCreateTonamelRecord, setIsDisabledCreateTonamelRecord] =
+  const [isDisabledCreateTonamelEventRecord, setIsDisabledCreateTonamelEventRecord] =
     useState(true);
 
   const [selectedDate, setSelectedDate] = useState<CalendarDate>(
@@ -362,6 +362,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
       setTonamelEventTitle("");
       setTonamelEventImage("");
       setIsValidatedTonamelEventId(true);
+      setIsDisabledCreateTonamelEventRecord(false);
       return;
     }
 
@@ -380,11 +381,13 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
         setTonamelEventTitle(data.title);
         setTonamelEventImage(data.image);
         setIsValidatedTonamelEventId(true);
+        setIsDisabledCreateTonamelEventRecord(false);
       } catch (error) {
         console.error(error);
         setTonamelEventTitle("");
         setTonamelEventImage("");
         setIsValidatedTonamelEventId(false);
+        setIsDisabledCreateTonamelEventRecord(true);
       }
     };
 
@@ -435,15 +438,19 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
 
   useEffect(() => {
     if (tonamelEventId && isValidatedTonamelEventId && selectedDeckOption) {
-      setIsDisabledCreateTonamelRecord(false);
+      setIsDisabledCreateTonamelEventRecord(false);
     } else {
-      setIsDisabledCreateTonamelRecord(true);
+      setIsDisabledCreateTonamelEventRecord(true);
     }
   }, [tonamelEventId, isValidatedTonamelEventId, selectedDeckOption]);
 
   /*
-    公式イベント用のレコードを作成する関数
-  */
+   *
+   *
+   * 公式イベント用のレコードを作成する関数
+   *
+   *
+   */
   async function createOfficialEventRecord(
     officialEventId: number,
     deckId: string,
@@ -526,6 +533,95 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
     }
   }
 
+  /*
+   *
+   *
+   * Tonamel用のレコードを作成する関数
+   *
+   *
+   */
+  async function createTonamelEventRecord(
+    tonamelEventId: string,
+    deckId: string,
+    deckCodeId: string,
+  ) {
+    setIsDisabledCreateTonamelEventRecord(true);
+
+    const toastId = addToast({
+      title: "レコード作成中",
+      description: "しばらくお待ちください",
+      color: "default",
+      promise: new Promise(() => {}),
+    });
+
+    const record: RecordCreateRequestType = {
+      official_event_id: 0,
+      tonamel_event_id: tonamelEventId,
+      friend_id: "",
+      deck_id: deckId,
+      deck_code_id: deckCodeId,
+      private_flg: true,
+      tcg_meister_url: "",
+      memo: "",
+    };
+
+    try {
+      const res = await fetch("/api/records", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(record),
+      });
+
+      if (!res.ok) {
+        const t = await res.json();
+        throw new Error(`HTTP error: ${res.status} Message: ${t.message}`);
+      }
+
+      if (toastId) {
+        closeToast(toastId);
+      }
+
+      const ret: RecordCreateResponseType = await res.json();
+
+      addToast({
+        title: "レコード作成完了",
+        description: "レコードを作成しました",
+        color: "success",
+        timeout: 3000,
+      });
+
+      router.push("/records/" + ret.id);
+    } catch (error) {
+      console.error(error);
+
+      const errorMessage =
+        error instanceof Error ? error.message : "不明なエラーが発生しました";
+
+      if (toastId) {
+        closeToast(toastId);
+      }
+
+      addToast({
+        title: "レコード作成失敗",
+        description: (
+          <>
+            レコードの作成に失敗しました
+            <br />
+            {errorMessage}
+          </>
+        ),
+        color: "danger",
+        timeout: 5000,
+      });
+
+      setIsDisabledCreateTonamelEventRecord(false);
+
+      onClose();
+    }
+  }
+
   return (
     <>
       <Modal
@@ -558,7 +654,14 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
           size="md"
           className="fixed z-50 top-14 left-0 right-0 pl-1 pr-1 font-bold"
         >
-          <Tab key="official" title="公式イベント">
+          {/*
+           *
+           *
+           * 公式イベント
+           *
+           *
+           */}
+          <Tab key="official" title="公式イベント" isDisabled={false}>
             <div className="pt-9 flex flex-col gap-2">
               <div className="flex flex-col gap-1 pt-1">
                 <label className="text-sm font-medium">日付</label>
@@ -851,7 +954,15 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
             </div>
           </Tab>
 
-          <Tab key="tonamel" title="Tonamel">
+          {/*
+           *
+           *
+           * Tonamel
+           *
+           *
+           */}
+
+          <Tab key="tonamel" title="Tonamel" isDisabled={false}>
             <div className="pt-9 flex flex-col gap-2">
               <div className="flex flex-col gap-1 pt-1">
                 <label className="text-sm font-medium">イベントID</label>
@@ -997,7 +1108,17 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
 
               <Button
                 color="primary"
-                isDisabled={isDisabledCreateTonamelRecord}
+                isDisabled={
+                  !isValidatedTonamelEventId || isDisabledCreateTonamelEventRecord
+                }
+                onPress={async () => {
+                  onOpen();
+                  await createTonamelEventRecord(
+                    tonamelEventId ? tonamelEventId : "",
+                    selectedDeckOption ? selectedDeckOption.id : "",
+                    selectedDeckOption ? selectedDeckOption.latest_deck_code.id : "",
+                  );
+                }}
                 className="font-bold"
               >
                 作成

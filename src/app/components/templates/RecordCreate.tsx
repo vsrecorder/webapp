@@ -225,15 +225,21 @@ function convertToOfficialEventOption(
     image_src += "pokemon_card_game.png";
   }
 
+  const tag = officialEvent.type_id === 3 ? "とれり トレリ" : "";
+
   return {
     label:
       officialEvent.title +
+      " - " +
+      katakanaToHiragana(officialEvent.title) +
       " " +
       officialEvent.shop_name +
       " " +
       eventTime +
       " " +
-      officialEvent.address,
+      officialEvent.address +
+      " " +
+      tag,
     value: officialEvent.id.toString(),
     id: officialEvent.id,
     date: new Date(officialEvent.date),

@@ -186,15 +186,20 @@ export default function UpdateUsedDeckModal({
                 value={tcgMeisterURL}
                 onChange={(e) => setTCGMeisterURL(e.target.value)}
               />
-              <HeroLink
-                isExternal
-                showAnchorIcon
-                underline="always"
-                href={record.tcg_meister_url}
-                className="text-tiny"
-              >
-                {record.tcg_meister_url}
-              </HeroLink>
+
+              {record.tcg_meister_url ? (
+                <HeroLink
+                  isExternal
+                  showAnchorIcon
+                  underline="always"
+                  href={record.tcg_meister_url}
+                  className="text-tiny"
+                >
+                  {record.tcg_meister_url}
+                </HeroLink>
+              ) : (
+                <></>
+              )}
             </ModalBody>
             <ModalFooter>
               <Button

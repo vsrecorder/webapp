@@ -182,7 +182,9 @@ export default function CreateDeckCodeModal({
                 type="text"
                 label="デッキコード"
                 labelPlacement="outside"
-                placeholder={deckcode ? deckcode.code : "デッキコードを入力"}
+                placeholder={
+                  deckcode && deckcode.code ? deckcode.code : "デッキコードを入力"
+                }
                 value={newdeckcode}
                 onChange={(e) => setNewDeckCode(e.target.value)}
               />

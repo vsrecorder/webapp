@@ -145,7 +145,7 @@ export default function CityleagueEvent({ league_type }: Props) {
             <div className="text-center">
               <div className="">
                 <Card className="pt-3 w-full">
-                  <CardHeader className="pt-10.5 pb-10 px-3 flex-col items-center gap-0">
+                  <CardHeader className="pt-11.5 pb-9 px-3 flex-col items-center gap-0.5">
                     <div className="text-center">本日の開催はありません</div>
                   </CardHeader>
                   <CardBody className="px-0 py-1"></CardBody>

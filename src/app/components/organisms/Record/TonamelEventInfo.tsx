@@ -4,14 +4,11 @@ import { Card, CardHeader, CardBody } from "@heroui/react";
 import { Image } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
 
-import { useDisclosure } from "@heroui/react";
-
 import { LuLayers } from "react-icons/lu";
 
-import DisplayRecordModal from "@app/components/organisms/Record/Modal/DisplayRecordModal";
-import { TonamelEventRecordSkeleton } from "@app/components/organisms/Record/Skeleton/TonamelEventRecordSkeleton";
+import TonamelEventInfoSkeleton from "@app/components/organisms/Record/Skeleton/TonamelEventInfoSkeleton";
 
-import { RecordType, RecordGetByIdResponseType } from "@app/types/record";
+import { RecordGetByIdResponseType } from "@app/types/record";
 import { TonamelEventGetByIdResponseType } from "@app/types/tonamel_event";
 import { DeckGetByIdResponseType } from "@app/types/deck";
 
@@ -60,14 +57,10 @@ async function fetchDeckById(id: string) {
 }
 
 type Props = {
-  recordData: RecordType;
-  enableDisplayRecordModal: boolean;
+  record: RecordGetByIdResponseType;
 };
 
-export default function TonamelEventRecord({
-  recordData,
-  enableDisplayRecordModal,
-}: Props) {
+export default function TonamelEventInfo({ record }: Props) {
   const [deck, setDeck] = useState<DeckGetByIdResponseType | null>(null);
   const [loadingDeck, setLoadingDeck] = useState(true);
 
@@ -77,17 +70,8 @@ export default function TonamelEventRecord({
 
   const [error, setError] = useState<string | null>(null);
 
-  const [record, setRecord] = useState<RecordGetByIdResponseType>(recordData.data);
-
-  const {
-    isOpen: isOpenForDisplayRecordModal,
-    onOpen: onOpenForDisplayRecordModal,
-    onOpenChange: onOpenChangeForDisplayRecordModal,
-    onClose: onCloseForDisplayRecordModal,
-  } = useDisclosure();
-
   useEffect(() => {
-    if (!recordData.data.tonamel_event_id) {
+    if (!record.tonamel_event_id) {
       setLoadingTonamelEvent(false);
       return;
     }
@@ -98,7 +82,7 @@ export default function TonamelEventRecord({
       try {
         setLoadingTonamelEvent(true);
 
-        const data = await fetchTonamelEventById(recordData.data.tonamel_event_id);
+        const data = await fetchTonamelEventById(record.tonamel_event_id);
 
         setTonamelEvent(data);
       } catch (err) {
@@ -110,7 +94,7 @@ export default function TonamelEventRecord({
     };
 
     fetchData();
-  }, [recordData.data.tonamel_event_id]);
+  }, [record.tonamel_event_id]);
 
   useEffect(() => {
     if (!record.deck_id) {
@@ -141,7 +125,7 @@ export default function TonamelEventRecord({
   }
 
   if (loadingTonamelEvent || !tonamelEvent) {
-    return <TonamelEventRecordSkeleton />;
+    return <TonamelEventInfoSkeleton />;
   }
 
   const date = new Date(record.created_at).toLocaleString("ja-JP", {
@@ -153,19 +137,9 @@ export default function TonamelEventRecord({
 
   return (
     <>
-      {enableDisplayRecordModal && (
-        <DisplayRecordModal
-          record={record}
-          setRecord={setRecord}
-          isOpen={isOpenForDisplayRecordModal}
-          onOpenChange={onOpenChangeForDisplayRecordModal}
-          onClose={onCloseForDisplayRecordModal}
-        />
-      )}
-
-      <div className="" onClick={onOpenForDisplayRecordModal}>
+      <div className="">
         <Card shadow="sm" className="py-3 w-full">
-          <CardHeader className="px-5 pb-0 pt-0 flex flex-col items-start gap-1.5">
+          <CardHeader className="px-5 pb-0 pt-0 flex flex-col items-start  justify-center gap-1.5">
             <div className="flex items-center gap-3 w-full">
               <div className="font-bold text-tiny">{date}</div>
 

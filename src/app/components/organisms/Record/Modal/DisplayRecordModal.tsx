@@ -10,6 +10,7 @@ import { LuExternalLink } from "react-icons/lu";
 //import RecordById from "@app/components/organisms/Record/RecordById";
 
 import OfficialEventInfo from "@app/components/organisms/Record/OfficialEventInfo";
+import TonamelEventInfo from "@app/components/organisms/Record/TonamelEventInfo";
 import Matches from "@app/components/organisms/Match/Matches";
 import UsedDeckById from "@app/components/organisms/Deck/UsedDeckById";
 
@@ -96,12 +97,17 @@ export default function DisplayRecordModal({
                   <div className="font-bold underline">参加したイベント</div>
                 </div>
 
-                {record.official_event_id !== 0 ? (
-                  <OfficialEventInfo record={record} setRecord={setRecord} />
-                ) : (
-                  // TODO: Tonamelの場合
-                  <></>
-                )}
+                {
+                  // 公式イベントの場合
+                  record.official_event_id !== 0 ? (
+                    <OfficialEventInfo record={record} setRecord={setRecord} />
+                  ) : // Tonamelの場合
+                  record.tonamel_event_id !== "" ? (
+                    <TonamelEventInfo record={record} />
+                  ) : (
+                    <></>
+                  )
+                }
               </div>
 
               <div className="flex flex-col gap-3">

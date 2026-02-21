@@ -8,6 +8,7 @@ import { Button } from "@heroui/react";
 import OfficialEventRecord from "@app/components/organisms/Record/OfficialEventRecord";
 import TonamelEventRecord from "@app/components/organisms/Record/TonamelEventRecord";
 import { OfficialEventRecordSkeletons } from "@app/components/organisms/Record/Skeleton/OfficialEventRecordSkeleton";
+import { TonamelEventRecordSkeletons } from "@app/components/organisms/Record/Skeleton/TonamelEventRecordSkeleton";
 
 import { LuCirclePlus } from "react-icons/lu";
 
@@ -130,7 +131,10 @@ export default function Records({ event_type, deck_id }: Props) {
         )}
 
         {/* ローディング表示 */}
-        {!isInitialLoaded && <OfficialEventRecordSkeletons />}
+        {!isInitialLoaded && event_type === "official" && (
+          <OfficialEventRecordSkeletons />
+        )}
+        {!isInitialLoaded && event_type === "tonamel" && <TonamelEventRecordSkeletons />}
         {isInitialLoaded && isLoading && <Spinner size="lg" className="pt-0" />}
 
         {isInitialLoaded && !isLoading && hasMore && (

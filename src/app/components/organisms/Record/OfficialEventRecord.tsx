@@ -1,6 +1,5 @@
 "use client";
 
-import { SetStateAction, Dispatch } from "react";
 import { useEffect, useState } from "react";
 
 import { Card, CardHeader, CardBody } from "@heroui/react";
@@ -67,14 +66,12 @@ async function fetchDeckById(id: string) {
 }
 
 type Props = {
-  record: RecordType;
-  setRecords: Dispatch<SetStateAction<RecordType[]>>;
+  recordData: RecordType;
   enableDisplayRecordModal: boolean;
 };
 
 export default function OfficialEventRecord({
-  record,
-  setRecords,
+  recordData,
   enableDisplayRecordModal,
 }: Props) {
   const [officialEvent, setOfficialEvent] =
@@ -84,9 +81,7 @@ export default function OfficialEventRecord({
   const [loadingDeck, setLoadingDeck] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [tmpRecord, setTmpRecord] = useState<RecordGetByIdResponseType | null>(
-    record.data,
-  );
+  const [record, setRecord] = useState<RecordGetByIdResponseType>(recordData.data);
 
   const {
     isOpen: isOpenForDisplayRecordModal,
@@ -96,7 +91,7 @@ export default function OfficialEventRecord({
   } = useDisclosure();
 
   useEffect(() => {
-    if (!record.data.official_event_id) {
+    if (!recordData.data.official_event_id) {
       setLoadingOfficialEvent(false);
       return;
     }
@@ -107,7 +102,7 @@ export default function OfficialEventRecord({
       try {
         setLoadingOfficialEvent(true);
 
-        const data = await fetchOfficialEventById(record.data.official_event_id);
+        const data = await fetchOfficialEventById(recordData.data.official_event_id);
 
         data.title = data.title.replace(/【.*?】ポケモンカードジム　/g, "");
         data.title = data.title.replace(
@@ -132,10 +127,10 @@ export default function OfficialEventRecord({
     };
 
     fetchData();
-  }, [record.data.official_event_id]);
+  }, [recordData.data.official_event_id]);
 
   useEffect(() => {
-    if (!record.data.deck_id) {
+    if (!record.deck_id) {
       setLoadingDeck(false);
       return;
     }
@@ -145,7 +140,7 @@ export default function OfficialEventRecord({
     const fetchData = async () => {
       try {
         setLoadingDeck(true);
-        const data = await fetchDeckById(record.data.deck_id);
+        const data = await fetchDeckById(record.deck_id);
         setDeck(data);
       } catch (err) {
         console.log(err);
@@ -156,7 +151,7 @@ export default function OfficialEventRecord({
     };
 
     fetchData();
-  }, [record.data.deck_id]);
+  }, [record.deck_id]);
 
   if (error) {
     return <div className="text-red-500">{error}</div>;
@@ -168,12 +163,10 @@ export default function OfficialEventRecord({
 
   return (
     <>
-      {enableDisplayRecordModal && tmpRecord && (
+      {enableDisplayRecordModal && (
         <DisplayRecordModal
           record={record}
-          setRecords={setRecords}
-          tmpRecord={tmpRecord}
-          setTmpRecord={setTmpRecord}
+          setRecord={setRecord}
           isOpen={isOpenForDisplayRecordModal}
           onOpenChange={onOpenChangeForDisplayRecordModal}
           onClose={onCloseForDisplayRecordModal}
@@ -184,7 +177,7 @@ export default function OfficialEventRecord({
         <Card shadow="sm" className="py-3 w-full">
           <CardHeader className="px-5 pb-0 pt-0 flex-col items-start gap-1.5">
             <div className="font-bold text-tiny">
-              {new Date(record.data.created_at).toLocaleString("ja-JP", {
+              {new Date(record.created_at).toLocaleString("ja-JP", {
                 year: "numeric",
                 month: "long",
                 day: "numeric",

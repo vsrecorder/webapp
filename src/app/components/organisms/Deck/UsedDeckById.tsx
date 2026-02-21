@@ -10,7 +10,7 @@ import UpdateUsedDeckModal from "@app/components/organisms/Deck/Modal/UpdateUsed
 import UsedDeckCard from "@app/components/organisms/Deck/UsedDeckCard";
 import { DeckCardSkeleton } from "@app/components/organisms/Deck/Skeleton/DeckCardSkeleton";
 
-import { RecordType } from "@app/types/record";
+import { RecordGetByIdResponseType } from "@app/types/record";
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
 
@@ -59,20 +59,12 @@ async function fetchDeckCodeById(id: string) {
 }
 
 type Props = {
-  record: RecordType;
-  setRecords: Dispatch<SetStateAction<RecordType[]>>;
-  deck_id: string;
-  deck_code_id: string;
+  record: RecordGetByIdResponseType;
+  setRecord: Dispatch<SetStateAction<RecordGetByIdResponseType>>;
   enableShowDeckModal: boolean;
 };
 
-export default function UsedDeckById({
-  record,
-  setRecords,
-  deck_id,
-  deck_code_id,
-  enableShowDeckModal,
-}: Props) {
+export default function UsedDeckById({ record, setRecord, enableShowDeckModal }: Props) {
   const [deck, setDeck] = useState<DeckGetByIdResponseType | null>(null);
   const [deckcode, setDeckCode] = useState<DeckCodeType | null>(null);
   const [loading1, setLoading1] = useState(true);
@@ -87,7 +79,7 @@ export default function UsedDeckById({
   } = useDisclosure();
 
   useEffect(() => {
-    if (!deck_id) {
+    if (!record.deck_id) {
       setLoading1(false);
       setLoading2(false);
       return;
@@ -97,7 +89,7 @@ export default function UsedDeckById({
       setLoading1(true);
 
       try {
-        const data = await fetchDeckById(deck_id);
+        const data = await fetchDeckById(record.deck_id);
         setDeck(data);
       } catch (err) {
         console.log(err);
@@ -111,7 +103,7 @@ export default function UsedDeckById({
       setLoading2(true);
 
       try {
-        const data = await fetchDeckCodeById(deck_code_id);
+        const data = await fetchDeckCodeById(record.deck_code_id);
         setDeckCode(data);
       } catch (err) {
         console.log(err);
@@ -121,18 +113,18 @@ export default function UsedDeckById({
       }
     };
 
-    if (deck_id) {
+    if (record.deck_id) {
       fetchDeckData();
     } else {
       setLoading1(false);
     }
 
-    if (deck_code_id) {
+    if (record.deck_code_id) {
       fetchDeckCodesData();
     } else {
       setLoading2(false);
     }
-  }, [deck_id, deck_code_id]);
+  }, [record]);
 
   if (loading1 || loading2) {
     return <DeckCardSkeleton />;
@@ -152,7 +144,7 @@ export default function UsedDeckById({
     <>
       <UpdateUsedDeckModal
         record={record}
-        setRecords={setRecords}
+        setRecord={setRecord}
         isOpen={isOpenForUpdateUsedDeckModal}
         onOpenChange={onOpenChangeForUpdateUsedDeckModal}
       />

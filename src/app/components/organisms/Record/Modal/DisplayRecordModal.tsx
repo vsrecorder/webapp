@@ -13,13 +13,11 @@ import OfficialEventInfo from "@app/components/organisms/Record/OfficialEventInf
 import Matches from "@app/components/organisms/Match/Matches";
 import UsedDeckById from "@app/components/organisms/Deck/UsedDeckById";
 
-import { RecordType, RecordGetByIdResponseType } from "@app/types/record";
+import { RecordGetByIdResponseType } from "@app/types/record";
 
 type Props = {
-  record: RecordType;
-  setRecords: Dispatch<SetStateAction<RecordType[]>>;
-  tmpRecord: RecordGetByIdResponseType;
-  setTmpRecord: Dispatch<SetStateAction<RecordGetByIdResponseType | null>>;
+  record: RecordGetByIdResponseType;
+  setRecord: Dispatch<SetStateAction<RecordGetByIdResponseType>>;
   isOpen: boolean;
   onOpenChange: () => void;
   onClose: () => void;
@@ -27,9 +25,7 @@ type Props = {
 
 export default function DisplayRecordModal({
   record,
-  setRecords,
-  tmpRecord,
-  setTmpRecord,
+  setRecord,
   isOpen,
   onOpenChange,
   onClose,
@@ -86,7 +82,7 @@ export default function DisplayRecordModal({
 
                 {/* 右側 */}
                 <div>
-                  <Link href={`/records/${record.data.id}`} className="text-gray-500">
+                  <Link href={`/records/${record.id}`} className="text-gray-500">
                     <div className="text-xl -translate-y-3">
                       <LuExternalLink />
                     </div>
@@ -100,8 +96,8 @@ export default function DisplayRecordModal({
                   <div className="font-bold underline">参加したイベント</div>
                 </div>
 
-                {record.data.official_event_id !== 0 ? (
-                  <OfficialEventInfo record={tmpRecord} setRecord={setTmpRecord} />
+                {record.official_event_id !== 0 ? (
+                  <OfficialEventInfo record={record} setRecord={setRecord} />
                 ) : (
                   // TODO: Tonamelの場合
                   <></>
@@ -112,7 +108,7 @@ export default function DisplayRecordModal({
                 <div className="pb-0 flex flex-col items-center justify-center gap-0">
                   <div className="font-bold underline">対戦結果</div>
                 </div>
-                <Matches record={record.data} enableCreateMatchModalButton={true} />
+                <Matches record={record} enableCreateMatchModalButton={true} />
               </div>
 
               <div className="flex flex-col gap-3">
@@ -121,9 +117,7 @@ export default function DisplayRecordModal({
                 </div>
                 <UsedDeckById
                   record={record}
-                  setRecords={setRecords}
-                  deck_id={record.data.deck_id}
-                  deck_code_id={record.data.deck_code_id}
+                  setRecord={setRecord}
                   enableShowDeckModal={false}
                 />
               </div>

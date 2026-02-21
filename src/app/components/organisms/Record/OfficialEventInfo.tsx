@@ -68,7 +68,7 @@ async function fetchDeckById(id: string) {
 
 type Props = {
   record: RecordGetByIdResponseType;
-  setRecord: Dispatch<SetStateAction<RecordGetByIdResponseType | null>>;
+  setRecord: Dispatch<SetStateAction<RecordGetByIdResponseType>>;
 };
 
 export default function OfficialEventInfo({ record, setRecord }: Props) {

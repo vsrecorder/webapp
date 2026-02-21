@@ -17,7 +17,7 @@ import { CgSearch } from "react-icons/cg";
 
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
 
-import { RecordType } from "@app/types/record";
+import { RecordGetByIdResponseType } from "@app/types/record";
 import { RecordUpdateRequestType, RecordUpdateResponseType } from "@app/types/record";
 
 import { DeckGetAllType, DeckData } from "@app/types/deck";
@@ -115,15 +115,15 @@ function convertToDeckCodeOption(data: DeckCodeType): DeckCodeOption {
 }
 
 type Props = {
-  record: RecordType;
-  setRecords: Dispatch<SetStateAction<RecordType[]>>;
+  record: RecordGetByIdResponseType;
+  setRecord: Dispatch<SetStateAction<RecordGetByIdResponseType>>;
   isOpen: boolean;
   onOpenChange: () => void;
 };
 
 export default function UpdateUsedDeckModal({
   record,
-  setRecords,
+  setRecord,
   isOpen,
   onOpenChange,
 }: Props) {
@@ -158,7 +158,7 @@ export default function UpdateUsedDeckModal({
       setIsLoadingDeckOptions(true);
 
       try {
-        const res = await fetch(`/api/decks/${record.data.deck_id}`, {
+        const res = await fetch(`/api/decks/${record.deck_id}`, {
           cache: "no-store",
           method: "GET",
           headers: {
@@ -188,7 +188,7 @@ export default function UpdateUsedDeckModal({
       setIsLoadingDeckCodeOptions(true);
 
       try {
-        const res = await fetch(`/api/deckcodes/${record.data.deck_code_id}`, {
+        const res = await fetch(`/api/deckcodes/${record.deck_code_id}`, {
           cache: "no-store",
           method: "GET",
           headers: {
@@ -214,13 +214,13 @@ export default function UpdateUsedDeckModal({
       }
     };
 
-    if (record.data.deck_id) {
+    if (record.deck_id) {
       setSelectedDeck();
     } else {
       setIsLoadingDeckOptions(false);
     }
 
-    if (record.data.deck_code_id) {
+    if (record.deck_code_id) {
       setSelectedDeckCode();
     } else {
       setIsLoadingDeckCodeOptions(false);
@@ -299,7 +299,7 @@ export default function UpdateUsedDeckModal({
    */
   useEffect(() => {
     // レコードに設定されている使用されたデッキがない場合
-    if (!record.data.deck_id) {
+    if (!record.deck_id) {
       // 選択されたデッキとデッキコードがある場合
       if (selectedDeckOption && selectedDeckCodeOption) {
         setIsDisabled(false);
@@ -308,9 +308,9 @@ export default function UpdateUsedDeckModal({
       }
 
       // レコードに設定されている使用されたデッキコードがない場合
-    } else if (!record.data.deck_code_id) {
+    } else if (!record.deck_code_id) {
       // レコードに設定されている使用されたデッキと選択したデッキが異なる場合
-      if (record.data.deck_id !== selectedDeckOption?.id) {
+      if (record.deck_id !== selectedDeckOption?.id) {
         setIsDisabled(false);
       } else {
         // 選択されたデッキコードがある場合
@@ -329,8 +329,8 @@ export default function UpdateUsedDeckModal({
       // レコードに設定されている使用されたデッキとデッキコードが
       // 選択されたデッキとデッキコードと同じ場合
     } else if (
-      record.data.deck_id === selectedDeckOption?.id &&
-      record.data.deck_code_id === selectedDeckCodeOption?.id
+      record.deck_id === selectedDeckOption?.id &&
+      record.deck_code_id === selectedDeckCodeOption?.id
     ) {
       setIsDisabled(true);
 
@@ -343,12 +343,7 @@ export default function UpdateUsedDeckModal({
     } else {
       setIsDisabled(false);
     }
-  }, [
-    record.data.deck_id,
-    record.data.deck_code_id,
-    selectedDeckOption,
-    selectedDeckCodeOption,
-  ]);
+  }, [record.deck_id, record.deck_code_id, selectedDeckOption, selectedDeckCodeOption]);
 
   /*
    *
@@ -396,18 +391,18 @@ export default function UpdateUsedDeckModal({
     });
 
     const data: RecordUpdateRequestType = {
-      official_event_id: record.data.official_event_id,
-      tonamel_event_id: record.data.tonamel_event_id,
-      friend_id: record.data.friend_id,
+      official_event_id: record.official_event_id,
+      tonamel_event_id: record.tonamel_event_id,
+      friend_id: record.friend_id,
       deck_id: deckId,
       deck_code_id: deckcodeId,
-      private_flg: record.data.private_flg,
-      tcg_meister_url: record.data.tcg_meister_url,
-      memo: record.data.memo,
+      private_flg: record.private_flg,
+      tcg_meister_url: record.tcg_meister_url,
+      memo: record.memo,
     };
 
     try {
-      const res = await fetch(`/api/records/${record.data.id}`, {
+      const res = await fetch(`/api/records/${record.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -433,12 +428,14 @@ export default function UpdateUsedDeckModal({
         timeout: 3000,
       });
 
-      setRecords((prev) => {
-        if (!prev) return [{ cursor: "", data: ret }];
+      setRecord((prev) => {
+        if (!prev) return prev;
 
-        return prev.map((m) =>
-          m.data.id === ret.id ? { cursor: m.cursor, data: ret } : m,
-        );
+        return {
+          ...prev,
+          deck_id: ret.deck_id,
+          deck_code_id: ret.deck_code_id,
+        };
       });
 
       onClose();

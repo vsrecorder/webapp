@@ -110,16 +110,17 @@ export default function Records({ event_type, deck_id }: Props) {
       )}
 
       <div className="flex flex-col w-full gap-3">
-        {items.map((record) =>
+        {items.map((recordData) =>
           event_type === "official" ? (
             <OfficialEventRecord
-              key={record.data.id}
-              record={record}
-              setRecords={setItems}
+              key={recordData.data.id}
+              recordData={recordData}
               enableDisplayRecordModal={true}
             />
           ) : (
-            event_type === "tonamel" && <div key={record.data.id}>{record.data.id}</div>
+            event_type === "tonamel" && (
+              <div key={recordData.data.id}>{recordData.data.id}</div>
+            )
           ),
         )}
 

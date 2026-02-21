@@ -10,7 +10,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@heroui/react": "^2.8.6",
+    "@heroui/react": "^2.8.9",
     "firebase": "^12.6.0",
     "firebase-admin": "^12.7.0",
     "framer-motion": "^12.33.0",
@@ -26,13 +26,13 @@
     "swr": "^2.3.8"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3",
+    "@eslint/eslintrc": "^0.1.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "15.3.8",
+    "eslint": "^10.0.1",
+    "eslint-config-next": "^0.2.4",
     "tailwindcss": "^4",
     "typescript": "^5"
   },

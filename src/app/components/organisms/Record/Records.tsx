@@ -6,6 +6,7 @@ import { Spinner } from "@heroui/spinner";
 import { Button } from "@heroui/react";
 
 import OfficialEventRecord from "@app/components/organisms/Record/OfficialEventRecord";
+import TonamelEventRecord from "@app/components/organisms/Record/TonamelEventRecord";
 import { OfficialEventRecordSkeletons } from "@app/components/organisms/Record/Skeleton/OfficialEventRecordSkeleton";
 
 import { LuCirclePlus } from "react-icons/lu";
@@ -119,7 +120,11 @@ export default function Records({ event_type, deck_id }: Props) {
             />
           ) : (
             event_type === "tonamel" && (
-              <div key={recordData.data.id}>{recordData.data.id}</div>
+              <TonamelEventRecord
+                key={recordData.data.id}
+                recordData={recordData}
+                enableDisplayRecordModal={true}
+              />
             )
           ),
         )}

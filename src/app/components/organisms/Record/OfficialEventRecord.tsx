@@ -76,9 +76,11 @@ export default function OfficialEventRecord({
 }: Props) {
   const [officialEvent, setOfficialEvent] =
     useState<OfficialEventGetByIdResponseType | null>(null);
-  const [deck, setDeck] = useState<DeckGetByIdResponseType | null>(null);
   const [loadingOfficialEvent, setLoadingOfficialEvent] = useState(true);
+
+  const [deck, setDeck] = useState<DeckGetByIdResponseType | null>(null);
   const [loadingDeck, setLoadingDeck] = useState(true);
+
   const [error, setError] = useState<string | null>(null);
 
   const [record, setRecord] = useState<RecordGetByIdResponseType>(recordData.data);
@@ -182,7 +184,7 @@ export default function OfficialEventRecord({
 
       <div className="" onClick={onOpenForDisplayRecordModal}>
         <Card shadow="sm" className="py-3 w-full">
-          <CardHeader className="px-5 pb-0 pt-0 flex-col items-start gap-1.5">
+          <CardHeader className="px-5 pb-0 pt-0 felx flex-col items-start gap-1.5">
             <div className="font-bold text-tiny">{date}</div>
             <div className="font-bold truncate w-full min-w-0">
               {loadingOfficialEvent ? (
@@ -193,7 +195,7 @@ export default function OfficialEventRecord({
             </div>
           </CardHeader>
           <CardBody className="px-7 py-3">
-            <div className="flex items-center gap-5">
+            <div className="pl-1 flex items-center gap-5">
               <div className="h-22 w-22 shrink-0">
                 {officialEvent.type_id === 1 &&
                   (officialEvent.title.includes(

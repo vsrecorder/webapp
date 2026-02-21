@@ -14,6 +14,11 @@ async function getTonamelEventById(id: string): Promise<TonamelEventGetByIdRespo
       },
     });
 
+    if (!res.ok) {
+      const ret = await res.json();
+      throw new Error(`HTTP error: ${res.status} Message: ${ret.message}`);
+    }
+
     const ret: TonamelEventGetByIdResponseType = await res.json();
 
     return ret;

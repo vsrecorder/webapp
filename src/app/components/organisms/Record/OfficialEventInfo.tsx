@@ -1,19 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { SetStateAction, Dispatch } from "react";
 
 import { Card, CardHeader, CardBody } from "@heroui/react";
 import { Image } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
 
-import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  useDisclosure,
-} from "@heroui/react";
+import { useDisclosure } from "@heroui/react";
 
 import { LuHouse } from "react-icons/lu";
 import { LuFlag } from "react-icons/lu";
@@ -22,8 +16,9 @@ import { LuLayers } from "react-icons/lu";
 import { LuLink } from "react-icons/lu";
 
 import OfficialEventInfoSkeleton from "@app/components/organisms/Record/Skeleton/OfficialEventInfoSkeleton";
+import EditTCGMeisterURLModal from "@app/components/organisms/Record/Modal//EditTCGMeisterURLModal";
 
-import { RecordType } from "@app/types/record";
+import { RecordGetByIdResponseType } from "@app/types/record";
 import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
 import { DeckGetByIdResponseType } from "@app/types/deck";
 
@@ -72,10 +67,11 @@ async function fetchDeckById(id: string) {
 }
 
 type Props = {
-  record: RecordType;
+  record: RecordGetByIdResponseType;
+  setRecord: Dispatch<SetStateAction<RecordGetByIdResponseType | null>>;
 };
 
-export default function OfficialEventInfo({ record }: Props) {
+export default function OfficialEventInfo({ record, setRecord }: Props) {
   const [officialEvent, setOfficialEvent] =
     useState<OfficialEventGetByIdResponseType | null>(null);
   const [deck, setDeck] = useState<DeckGetByIdResponseType | null>(null);
@@ -87,11 +83,10 @@ export default function OfficialEventInfo({ record }: Props) {
     isOpen: isOpenForTCGMeisterURLModal,
     onOpen: onOpenForTCGMeisterURLModal,
     onOpenChange: onOpenChangeForTCGMeisterURLModal,
-    //onClose: onCloseForTCGMeisterURLModal,
   } = useDisclosure();
 
   useEffect(() => {
-    if (!record.data.official_event_id) {
+    if (!record.official_event_id) {
       setLoadingOfficialEvent(false);
       return;
     }
@@ -102,7 +97,7 @@ export default function OfficialEventInfo({ record }: Props) {
       try {
         setLoadingOfficialEvent(true);
 
-        const data = await fetchOfficialEventById(record.data.official_event_id);
+        const data = await fetchOfficialEventById(record.official_event_id);
 
         data.title = data.title.replace(/【.*?】ポケモンカードジム　/g, "");
         data.title = data.title.replace(
@@ -127,10 +122,10 @@ export default function OfficialEventInfo({ record }: Props) {
     };
 
     fetchData();
-  }, [record.data.official_event_id]);
+  }, [record.official_event_id]);
 
   useEffect(() => {
-    if (!record.data.deck_id) {
+    if (!record.deck_id) {
       setLoadingDeck(false);
       return;
     }
@@ -140,7 +135,7 @@ export default function OfficialEventInfo({ record }: Props) {
     const fetchData = async () => {
       try {
         setLoadingDeck(true);
-        const data = await fetchDeckById(record.data.deck_id);
+        const data = await fetchDeckById(record.deck_id);
         setDeck(data);
       } catch (err) {
         console.log(err);
@@ -151,7 +146,7 @@ export default function OfficialEventInfo({ record }: Props) {
     };
 
     fetchData();
-  }, [record.data.deck_id]);
+  }, [record.deck_id]);
 
   if (error) {
     return <div className="text-red-500">{error}</div>;
@@ -163,30 +158,18 @@ export default function OfficialEventInfo({ record }: Props) {
 
   return (
     <>
-      <Modal
+      <EditTCGMeisterURLModal
+        record={record}
+        setRecord={setRecord}
         isOpen={isOpenForTCGMeisterURLModal}
-        size={"sm"}
-        placement="center"
-        hideCloseButton
         onOpenChange={onOpenChangeForTCGMeisterURLModal}
-        //isDismissable={}
-      >
-        <ModalContent>
-          {() => (
-            <>
-              <ModalHeader>TCGマイスターのURLを編集</ModalHeader>
-              <ModalBody></ModalBody>
-              <ModalFooter></ModalFooter>
-            </>
-          )}
-        </ModalContent>
-      </Modal>
+      />
 
       <div className="">
         <Card shadow="sm" className="py-3 w-full">
           <CardHeader className="relative px-5 pb-0 pt-0 flex-col items-center justify-center gap-1.5">
             <div className="font-bold text-tiny">
-              {new Date(record.data.created_at).toLocaleString("ja-JP", {
+              {new Date(record.created_at).toLocaleString("ja-JP", {
                 year: "numeric",
                 month: "long",
                 day: "numeric",

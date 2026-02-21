@@ -306,7 +306,7 @@ export default function RecordById({ id }: Props) {
         </div>
 
         {record.official_event_id !== 0 ? (
-          <OfficialEventInfo record={{ data: record, cursor: "" }} />
+          <OfficialEventInfo record={record} setRecord={setRecord} />
         ) : (
           // TODO: Tonamelの場合
           <></>

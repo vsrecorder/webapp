@@ -18,7 +18,7 @@ import DisplayRecordModal from "@app/components/organisms/Record/Modal/DisplayRe
 
 import { OfficialEventRecordSkeleton } from "@app/components/organisms/Record/Skeleton/OfficialEventRecordSkeleton";
 
-import { RecordType } from "@app/types/record";
+import { RecordType, RecordGetByIdResponseType } from "@app/types/record";
 import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
 import { DeckGetByIdResponseType } from "@app/types/deck";
 
@@ -83,6 +83,10 @@ export default function OfficialEventRecord({
   const [loadingOfficialEvent, setLoadingOfficialEvent] = useState(true);
   const [loadingDeck, setLoadingDeck] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [tmpRecord, setTmpRecord] = useState<RecordGetByIdResponseType | null>(
+    record.data,
+  );
 
   const {
     isOpen: isOpenForDisplayRecordModal,
@@ -164,10 +168,12 @@ export default function OfficialEventRecord({
 
   return (
     <>
-      {enableDisplayRecordModal && (
+      {enableDisplayRecordModal && tmpRecord && (
         <DisplayRecordModal
           record={record}
           setRecords={setRecords}
+          tmpRecord={tmpRecord}
+          setTmpRecord={setTmpRecord}
           isOpen={isOpenForDisplayRecordModal}
           onOpenChange={onOpenChangeForDisplayRecordModal}
           onClose={onCloseForDisplayRecordModal}

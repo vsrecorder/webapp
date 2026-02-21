@@ -13,11 +13,13 @@ import OfficialEventInfo from "@app/components/organisms/Record/OfficialEventInf
 import Matches from "@app/components/organisms/Match/Matches";
 import UsedDeckById from "@app/components/organisms/Deck/UsedDeckById";
 
-import { RecordType } from "@app/types/record";
+import { RecordType, RecordGetByIdResponseType } from "@app/types/record";
 
 type Props = {
   record: RecordType;
   setRecords: Dispatch<SetStateAction<RecordType[]>>;
+  tmpRecord: RecordGetByIdResponseType;
+  setTmpRecord: Dispatch<SetStateAction<RecordGetByIdResponseType | null>>;
   isOpen: boolean;
   onOpenChange: () => void;
   onClose: () => void;
@@ -26,6 +28,8 @@ type Props = {
 export default function DisplayRecordModal({
   record,
   setRecords,
+  tmpRecord,
+  setTmpRecord,
   isOpen,
   onOpenChange,
   onClose,
@@ -97,7 +101,7 @@ export default function DisplayRecordModal({
                 </div>
 
                 {record.data.official_event_id !== 0 ? (
-                  <OfficialEventInfo record={record} />
+                  <OfficialEventInfo record={tmpRecord} setRecord={setTmpRecord} />
                 ) : (
                   // TODO: Tonamelの場合
                   <></>

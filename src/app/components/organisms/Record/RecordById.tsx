@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+import { Spinner } from "@heroui/spinner";
+
 import DisplayRecordById from "@app/components/organisms/Record//DisplayRecordById";
 
 import { RecordGetByIdResponseType } from "@app/types/record";
@@ -62,11 +64,19 @@ export default function RecordById({ id }: Props) {
   }, [id]);
 
   if (loading) {
-    return <div>読み込み中...</div>;
+    return (
+      <div className="pt-30 flex items-center justify-center">
+        <Spinner size="lg" />
+      </div>
+    );
   }
 
   if (error) {
-    return <div className="text-red-500">{error}</div>;
+    return (
+      <div className="pt-15 flex items-center justify-center">
+        <div className="text-red-500">{error}</div>;
+      </div>
+    );
   }
 
   if (!record) {

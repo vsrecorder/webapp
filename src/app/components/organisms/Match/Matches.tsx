@@ -187,14 +187,14 @@ export default function Matches({ record, enableCreateMatchModalButton }: Props)
                                           <>
                                             <div className="flex items-center gap-1 -translate-y-1 shrink-0">
                                               <Image
-                                                alt="3_mega"
-                                                src="/3_mega.png"
+                                                alt="003_mega"
+                                                src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/3_mega.png"
                                                 className="w-11 h-11 object-cover scale-120 origin-bottom"
                                               />
 
                                               <Image
                                                 alt="1017_teal"
-                                                src="/1017_teal.png"
+                                                src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/1017_teal.png"
                                                 className="w-11 h-11 object-cover scale-120 origin-bottom"
                                               />
                                             </div>

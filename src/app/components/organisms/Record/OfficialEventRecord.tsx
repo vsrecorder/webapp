@@ -161,6 +161,13 @@ export default function OfficialEventRecord({
     return <OfficialEventRecordSkeleton />;
   }
 
+  const date = new Date(record.created_at).toLocaleString("ja-JP", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    weekday: "short",
+  });
+
   return (
     <>
       {enableDisplayRecordModal && (
@@ -176,14 +183,7 @@ export default function OfficialEventRecord({
       <div className="" onClick={onOpenForDisplayRecordModal}>
         <Card shadow="sm" className="py-3 w-full">
           <CardHeader className="px-5 pb-0 pt-0 flex-col items-start gap-1.5">
-            <div className="font-bold text-tiny">
-              {new Date(record.created_at).toLocaleString("ja-JP", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-                weekday: "short",
-              })}
-            </div>
+            <div className="font-bold text-tiny">{date}</div>
             <div className="font-bold truncate w-full min-w-0">
               {loadingOfficialEvent ? (
                 <Skeleton className="h-6 w-50" />

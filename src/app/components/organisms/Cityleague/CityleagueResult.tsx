@@ -97,6 +97,13 @@ export default function CityleagueResult({ event_result }: Props) {
     return;
   }
 
+  const date = new Date(event.date).toLocaleString("ja-JP", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    weekday: "short",
+  });
+
   return (
     <div className="">
       <Card className="pt-3 w-full">
@@ -105,14 +112,7 @@ export default function CityleagueResult({ event_result }: Props) {
           <div className="flex items-center justify-between w-full">
             <div>
               <small className="text-default-500">{event.title}</small>
-              <div className="font-bold text-tiny">
-                {new Date(event.date).toLocaleString("ja-JP", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                  weekday: "short",
-                })}
-              </div>
+              <div className="font-bold text-tiny">{date}</div>
               <div className="font-bold text-medium">
                 {event.shop_name}
                 <div className="flex flex-wrap items-start gap-1 pt-0.5">

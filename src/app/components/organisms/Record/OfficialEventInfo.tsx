@@ -156,6 +156,13 @@ export default function OfficialEventInfo({ record, setRecord }: Props) {
     return <OfficialEventInfoSkeleton />;
   }
 
+  const date = new Date(record.created_at).toLocaleString("ja-JP", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    weekday: "short",
+  });
+
   return (
     <>
       <EditTCGMeisterURLModal
@@ -168,14 +175,7 @@ export default function OfficialEventInfo({ record, setRecord }: Props) {
       <div className="">
         <Card shadow="sm" className="py-3 w-full">
           <CardHeader className="relative px-5 pb-0 pt-0 flex-col items-center justify-center gap-1.5">
-            <div className="font-bold text-tiny">
-              {new Date(record.created_at).toLocaleString("ja-JP", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-                weekday: "short",
-              })}
-            </div>
+            <div className="font-bold text-tiny">{date}</div>
 
             <LuLink
               className="absolute -top-1 right-2 text-gray-500"

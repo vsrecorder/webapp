@@ -26,6 +26,13 @@ export default function CityleagueEventCard({ event, results }: Props) {
   // resultを取得できている場合は大会が終了しており、シティリーグの結果が出ている
   const isFinished = !!matchedResult;
 
+  const date = new Date(event.date).toLocaleString("ja-JP", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    weekday: "short",
+  });
+
   return (
     <>
       {isFinished && (
@@ -62,14 +69,7 @@ export default function CityleagueEventCard({ event, results }: Props) {
             <div className="flex items-center justify-between w-full">
               <div>
                 <small className="text-default-500">{event.title}</small>
-                <div className="font-bold text-tiny">
-                  {new Date(event.date).toLocaleString("ja-JP", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                    weekday: "short",
-                  })}
-                </div>
+                <div className="font-bold text-tiny">{date}</div>
                 <div className="font-bold text-medium">
                   {event.shop_name}
                   <div className="flex flex-wrap items-start gap-1 pt-0.5">

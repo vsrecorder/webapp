@@ -86,6 +86,13 @@ export default function UsedDeckCard({
     );
   }
 
+  const date = new Date(deck.created_at).toLocaleString("ja-JP", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    weekday: "short",
+  });
+
   return (
     <>
       <div className="" onClick={onOpen}>
@@ -112,12 +119,7 @@ export default function UsedDeckCard({
               <div className="pl-1">
                 <div className="text-tiny">
                   登録日：
-                  {new Date(deck.created_at).toLocaleString("ja-JP", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                    weekday: "short",
-                  })}
+                  {date}
                 </div>
               </div>
             </div>

@@ -192,6 +192,13 @@ export default function DeckCodeCard({ deckcode }: Props) {
     );
   }
 
+  const date = new Date(deckcode.created_at).toLocaleString("ja-JP", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    weekday: "short",
+  });
+
   return (
     <Card shadow="sm" className="py-3 relative w-full">
       <CardHeader className="pt-0 pb-1 px-3">
@@ -202,12 +209,7 @@ export default function DeckCodeCard({ deckcode }: Props) {
               {deckcode && deckcode.id ? (
                 <>
                   作成日：
-                  {new Date(deckcode.created_at).toLocaleString("ja-JP", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                    weekday: "short",
-                  })}
+                  {date}
                 </>
               ) : (
                 <>作成日：なし</>

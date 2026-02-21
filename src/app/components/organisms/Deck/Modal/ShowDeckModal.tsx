@@ -130,6 +130,8 @@ export default function ShowDeckModal({
     return;
   }
 
+  const isArchived = new Date(deck.archived_at).getFullYear() === 1;
+
   return (
     <>
       <Modal
@@ -244,7 +246,7 @@ export default function ShowDeckModal({
                 */}
               </ModalBody>
               <ModalFooter className="px-1">
-                {new Date(deck.archived_at).getFullYear() === 1 ? (
+                {isArchived ? (
                   <div className="flex items-center gap-8 mx-auto overflow-x-auto">
                     <Link
                       href={`/records/create?deck_id=${deck.id}`}

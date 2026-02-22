@@ -161,17 +161,17 @@ export default function Matches({ record, enableCreateMatchModalButton }: Props)
                                       match.default_defeat_flg ? (
                                         <>
                                           <>
-                                            <div className="flex items-center gap-1 translate-x-1 -translate-y-1 shrink-0">
+                                            <div className="flex items-center gap-1 translate-x-1 shrink-0">
                                               <Image
                                                 alt="unknown"
                                                 src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
-                                                className="w-11 h-11 object-cover scale-125 origin-bottom -translate-y-0.5"
+                                                className="w-11 h-11 object-cover scale-125 origin-bottom -translate-y-2"
                                               />
 
                                               <Image
                                                 alt="unknown"
                                                 src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
-                                                className="w-11 h-11 object-cover scale-125 origin-bottom -translate-y-0.5"
+                                                className="w-11 h-11 object-cover scale-125 origin-bottom -translate-y-2"
                                               />
                                             </div>
                                           </>
@@ -185,17 +185,17 @@ export default function Matches({ record, enableCreateMatchModalButton }: Props)
                                       ) : (
                                         <>
                                           <>
-                                            <div className="flex items-center gap-1 -translate-y-1 shrink-0">
+                                            <div className="flex items-center gap-1 shrink-0">
                                               <Image
-                                                alt="003_mega"
-                                                src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/3_mega.png"
-                                                className="w-11 h-11 object-cover scale-120 origin-bottom"
+                                                alt="unknown"
+                                                src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
+                                                className="w-11 h-11 object-cover scale-125 origin-bottom -translate-y-2"
                                               />
 
                                               <Image
-                                                alt="1017_teal"
-                                                src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/1017_teal.png"
-                                                className="w-11 h-11 object-cover scale-120 origin-bottom"
+                                                alt="unknown"
+                                                src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
+                                                className="w-11 h-11 object-cover scale-125 origin-bottom -translate-y-2"
                                               />
                                             </div>
                                           </>

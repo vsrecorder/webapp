@@ -419,10 +419,15 @@ export default function UpdateMatchModal({
                       </Card>
 
                       <Card shadow="md" className="w-full">
-                        <CardHeader className="pb-0 text-tiny">
+                        <CardHeader className="pb-0 flex flex-col items-start text-tiny">
                           <label className="flex items-center gap-1">
-                            相手のデッキ
-                            <span className="text-red-500 text-sm">*</span>
+                            <span>相手のデッキ</span>
+                            <span className="text-sm text-red-500">*</span>
+                          </label>
+                          <label>
+                            <span className="text-tiny text-red-500">
+                              *ポケモンのアイコン選択機能は現在準備中です
+                            </span>
                           </label>
                         </CardHeader>
                         <CardBody className="flex items-center">

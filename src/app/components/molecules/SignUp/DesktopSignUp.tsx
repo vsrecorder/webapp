@@ -34,7 +34,7 @@ export default function DesktopSignUp() {
                 <div className="text-xs text-gray-500">
                   <p>友達との　勝負や</p>
                   <p>特殊な　施設での　勝負を</p>
-                  <p>記録できる　かっこいい　機械。</p>
+                  <p>記録できる　かっこいい　アプリ。</p>
                 </div>
                 <div className="text-md">お好みのアカウントで新規登録</div>
                 <SocialSignIn />

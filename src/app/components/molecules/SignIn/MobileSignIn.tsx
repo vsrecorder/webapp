@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import { useDisclosure } from "@heroui/react";
 import { Button } from "@heroui/react";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
@@ -30,12 +32,27 @@ export default function MobileSignIn() {
               </ModalHeader>
 
               <ModalBody className="items-center px-16">
-                <div className="text-xl">バトレコ</div>
-                <div className="text-xs text-gray-500">
-                  <p>友達との　勝負や</p>
-                  <p>特殊な　施設での　勝負を</p>
-                  <p>記録できる　かっこいい　機械。</p>
+                <div className="pt-6 flex flex-col items-center justify-center gap-4.5 w-full">
+                  <div className="w-24 h-24 relative">
+                    <Image
+                      alt="バトレコ"
+                      src="https://xx8nnpgt.user.webaccel.jp/images/icons/logo.png"
+                      fill
+                      className="object-contain"
+                      sizes="96px"
+                      priority
+                    />
+                  </div>
+
+                  <span className="text-3xl font-bold">バトレコ</span>
+
+                  <div className="flex flex-col justify-center gap-0.5">
+                    <span className="text-tiny">友達との　勝負や</span>
+                    <span className="text-tiny">特殊な　施設での　勝負を</span>
+                    <span className="text-tiny">記録できる　かっこいい　アプリ。</span>
+                  </div>
                 </div>
+
                 <div className="text-md">お好みのアカウントでログイン</div>
                 <SocialSignIn />
               </ModalBody>

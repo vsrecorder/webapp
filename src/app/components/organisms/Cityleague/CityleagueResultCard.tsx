@@ -1,5 +1,7 @@
 "use client";
 
+import { useSession } from "next-auth/react";
+
 import { useEffect, useState } from "react";
 
 import { Card, CardHeader, CardBody } from "@heroui/react";
@@ -38,6 +40,8 @@ export default function CityleagueResultCard({ result }: Props) {
     onOpenChange: onOpenChangeForCreateDeckModal,
   } = useDisclosure();
 
+  const { status } = useSession();
+
   useEffect(() => {
     if (!result.deck_code) return;
     const img = new window.Image();
@@ -52,7 +56,6 @@ export default function CityleagueResultCard({ result }: Props) {
         return "border-gray-400 bg-gray-100";
       case 3:
         return "border-orange-700  bg-orange-100";
-        return "";
       case 5:
         //return "border-blue-500 bg-blue-50";
         return "border-green-500 bg-green-50";
@@ -163,16 +166,18 @@ export default function CityleagueResultCard({ result }: Props) {
                   </div>
 
                   {/* 右側 */}
-                  <div className="-translate-x-3">
-                    <div
-                      className="relative w-fit cursor-pointer"
-                      onClick={onOpenForCreateDeckModal}
-                    >
-                      <LuLayers className="text-xl" />
-                      {/* 右上に重ねる */}
-                      <LuPlus className="absolute -top-1 -right-1 font-black text-xs bg-white rounded-full" />
+                  {status === "authenticated" && (
+                    <div className="-translate-x-3">
+                      <div
+                        className="relative w-fit cursor-pointer"
+                        onClick={onOpenForCreateDeckModal}
+                      >
+                        <LuLayers className="text-xl" />
+                        {/* 右上に重ねる */}
+                        <LuPlus className="absolute -top-1 -right-1 font-black text-xs bg-white rounded-full" />
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </ModalHeader>
               <ModalBody className="p-3 gap-3">

@@ -144,7 +144,7 @@ export default function Matches({ record, enableCreateMatchModalButton }: Props)
                                     onOpenForUpdateMatchModal();
                                   }}
                                 >
-                                  <div className="flex items-center gap-5 w-full">
+                                  <div className="flex items-center gap-3 w-full">
                                     <div>{match.victory_flg === true ? "⭕" : "❌"}</div>
 
                                     <div className="flex items-center font-bold">
@@ -161,7 +161,7 @@ export default function Matches({ record, enableCreateMatchModalButton }: Props)
                                       match.default_defeat_flg ? (
                                         <>
                                           <>
-                                            <div className="flex items-center gap-1 translate-x-1 shrink-0">
+                                            <div className="flex items-center gap-1.5 shrink-0 translate-x-1">
                                               <Image
                                                 alt="unknown"
                                                 src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
@@ -185,7 +185,7 @@ export default function Matches({ record, enableCreateMatchModalButton }: Props)
                                       ) : (
                                         <>
                                           <>
-                                            <div className="flex items-center gap-1 shrink-0">
+                                            <div className="flex items-center gap-1.5 shrink-0">
                                               <Image
                                                 alt="unknown"
                                                 src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"

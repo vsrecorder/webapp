@@ -171,21 +171,23 @@ export default function PokemonSpriteModal({
                   onChange={(option) => {
                     setSelectedPokemonSpriteOption(option as PokemonSpriteOption);
                   }}
-                  maxMenuHeight={200}
+                  maxMenuHeight={175}
                   windowThreshold={100}
                   formatOptionLabel={(option, { context }) => {
                     const opt = option as PokemonSpriteOption;
 
                     if (context === "menu") {
                       return (
-                        <div className="flex flex-col items-center justify-center">
+                        <div className="flex flex-col items-center justify-center h-23.5">
                           <Image
                             alt={opt.name}
                             src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${opt.image}.png`}
                             radius="none"
-                            className="object-contain"
+                            className="w-16 h-16 object-contain"
                           />
-                          <div className="text-tiny">{opt.name}</div>
+                          <div className="truncate w-full text-center text-tiny">
+                            {opt.name}
+                          </div>
                         </div>
                       );
                     }

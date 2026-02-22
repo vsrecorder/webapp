@@ -431,8 +431,8 @@ export default function UpdateMatchModal({
                           </label>
                         </CardHeader>
                         <CardBody className="flex items-center">
-                          <div className="flex items-center gap-3 w-full">
-                            <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1.5 w-full">
+                            <div className="flex items-center gap-1.5">
                               <div className="w-11 h-11 p-0 shrink-0">
                                 {pokemonSprite1 ? (
                                   <Image
@@ -440,7 +440,7 @@ export default function UpdateMatchModal({
                                     alt={pokemonSprite1.name}
                                     src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${pokemonSprite1.id.replace(/^0+(?!$)/, "")}.png`}
                                     radius="none"
-                                    className="w-full h-full object-contain scale-130 origin-bottom"
+                                    className="w-full h-full object-contain scale-150 origin-bottom"
                                   />
                                 ) : (
                                   <Image
@@ -461,7 +461,7 @@ export default function UpdateMatchModal({
                                     alt={pokemonSprite2.name}
                                     src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${pokemonSprite2.id.replace(/^0+(?!$)/, "")}.png`}
                                     radius="none"
-                                    className="w-full h-full object-contain scale-130 origin-bottom"
+                                    className="w-full h-full object-contain scale-150 origin-bottom"
                                   />
                                 ) : (
                                   <Image

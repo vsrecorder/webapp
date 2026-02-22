@@ -62,16 +62,18 @@ export default function CityleagueEventCard({ event, results }: Props) {
         </Modal>
       )}
 
-      <div className="" onClick={onOpen}>
-        <Card className="pt-3 w-full">
-          <CardHeader className="pt-2.5 pb-1.5 px-3 flex-col items-start gap-0.5">
+      <div className="w-full" onClick={onOpen}>
+        <Card className="pt-3 w-full max-w-full">
+          <CardHeader className="pt-2.5 pb-1.5 px-3 flex-col items-start">
             {/* 両端配置 */}
             <div className="flex items-center justify-between w-full">
-              <div>
-                <small className="text-default-500">{event.title}</small>
-                <div className="font-bold text-tiny">{date}</div>
-                <div className="font-bold text-medium">
-                  {event.shop_name}
+              <div className="w-full">
+                <small className="font-bold text-default-400 w-full truncate block">
+                  {event.title}
+                </small>
+                <div className="font-bold text-tiny text-default-500">{date}</div>
+                <div className="pt-1 pb-1 font-bold text-small">{event.shop_name}</div>
+                <div>
                   <div className="flex flex-wrap items-start gap-1 pt-0.5">
                     <Chip size="sm" radius="md" variant="bordered">
                       <small className="font-bold">{event.prefecture_name}</small>
@@ -97,15 +99,6 @@ export default function CityleagueEventCard({ event, results }: Props) {
                     )}
                   </div>
                 </div>
-              </div>
-
-              <div className="z-0 shrink-0 translate-x-1 -translate-y-5">
-                <Image
-                  alt="シティリーグ"
-                  src="https://xx8nnpgt.user.webaccel.jp/images/icons/city.png"
-                  radius="none"
-                  className="h-9 w-9 object-contain"
-                />
               </div>
             </div>
           </CardHeader>

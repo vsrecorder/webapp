@@ -5,7 +5,7 @@ export default function CityleagueEventSkeleton() {
   return (
     <div className="">
       <Card className="pt-3 w-full">
-        <CardHeader className="pt-2.5 pb-1.5 px-3 flex-col items-start gap-1.5">
+        <CardHeader className="pt-2.5 pb-1 px-3 flex-col items-start gap-1.5">
           <small className="text-default-500">
             <Skeleton className="h-4 w-44" />
           </small>
@@ -18,10 +18,10 @@ export default function CityleagueEventSkeleton() {
             <Skeleton className="h-5.5 w-50" />
           </div>
 
-          <div className="flex flex-wrap items-start gap-1 pt-0">
-            <Skeleton className="h-5.5 w-12 rounded-2xl" />
-            <Skeleton className="h-5.5 w-21 rounded-2xl" />
-            <Skeleton className="h-5.5 w-24 rounded-2xl" />
+          <div className="pb-1 flex flex-wrap items-start gap-1 pt-0">
+            <Skeleton className="h-5 w-12 rounded-2xl" />
+            <Skeleton className="h-5 w-21 rounded-2xl" />
+            <Skeleton className="h-5 w-24 rounded-2xl" />
           </div>
         </CardHeader>
         <CardBody className="px-0 py-1"></CardBody>

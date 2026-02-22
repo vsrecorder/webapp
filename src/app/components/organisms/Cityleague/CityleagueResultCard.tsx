@@ -57,8 +57,8 @@ export default function CityleagueResultCard({ result }: Props) {
       case 3:
         return "border-orange-700  bg-orange-100";
       case 5:
-        //return "border-blue-500 bg-blue-50";
-        return "border-green-500 bg-green-50";
+        return "border-blue-500 bg-blue-50";
+      //return "border-green-500 bg-green-50";
       default:
         return "";
     }

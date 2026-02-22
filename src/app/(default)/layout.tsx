@@ -16,9 +16,24 @@ const geistMono = Geist_Mono({
 });
 */
 
+const domain = process.env.VSRECORDER_DOMAIN;
+
 export const metadata: Metadata = {
-  title: "バトレコ β版",
-  description: "",
+  metadataBase: new URL(`https://` + domain),
+  title: "バトレコ - ポケカ対戦記録作成・共有サービス",
+  description: "ポケモンカードゲームの対戦記録を作成・共有できるWebサービス",
+  openGraph: {
+    url: "/",
+    type: "website",
+    title: "バトレコ - ポケカ対戦記録作成・共有サービス",
+    images: `/images/icon.png`,
+    description: "ポケモンカードゲームの対戦記録を作成・共有できるWebサービス",
+    locale: "ja_JP",
+  },
+  twitter: {
+    card: "summary",
+    site: "@vsrecorder_mobi",
+  },
 };
 
 export default function RootLayout({
@@ -26,5 +41,11 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return <Layout>{children}</Layout>;
+  return (
+    <html lang="ja">
+      <body className="overflow-x-hidden">
+        <Layout>{children}</Layout>
+      </body>
+    </html>
+  );
 }

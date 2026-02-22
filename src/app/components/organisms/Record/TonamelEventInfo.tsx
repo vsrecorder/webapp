@@ -57,7 +57,7 @@ async function fetchDeckById(id: string) {
 }
 
 type Props = {
-  record: RecordGetByIdResponseType;
+  record: RecordGetByIdResponseType | null;
 };
 
 export default function TonamelEventInfo({ record }: Props) {
@@ -71,7 +71,7 @@ export default function TonamelEventInfo({ record }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!record.tonamel_event_id) {
+    if (!record?.tonamel_event_id) {
       setLoadingTonamelEvent(false);
       return;
     }
@@ -94,10 +94,10 @@ export default function TonamelEventInfo({ record }: Props) {
     };
 
     fetchData();
-  }, [record.tonamel_event_id]);
+  }, [record?.tonamel_event_id]);
 
   useEffect(() => {
-    if (!record.deck_id) {
+    if (!record?.deck_id) {
       setLoadingDeck(false);
       return;
     }
@@ -118,7 +118,7 @@ export default function TonamelEventInfo({ record }: Props) {
     };
 
     fetchData();
-  }, [record.deck_id]);
+  }, [record?.deck_id]);
 
   if (error) {
     return <div className="text-red-500">{error}</div>;
@@ -126,6 +126,10 @@ export default function TonamelEventInfo({ record }: Props) {
 
   if (loadingTonamelEvent || !tonamelEvent) {
     return <TonamelEventInfoSkeleton />;
+  }
+
+  if (!record) {
+    return;
   }
 
   const date = new Date(record.created_at).toLocaleString("ja-JP", {

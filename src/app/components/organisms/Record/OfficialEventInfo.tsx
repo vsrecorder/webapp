@@ -21,6 +21,7 @@ import EditTCGMeisterURLModal from "@app/components/organisms/Record/Modal//Edit
 import { RecordGetByIdResponseType } from "@app/types/record";
 import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
 import { DeckGetByIdResponseType } from "@app/types/deck";
+import { i } from "framer-motion/client";
 
 async function fetchOfficialEventById(id: number) {
   try {
@@ -67,8 +68,8 @@ async function fetchDeckById(id: string) {
 }
 
 type Props = {
-  record: RecordGetByIdResponseType;
-  setRecord: Dispatch<SetStateAction<RecordGetByIdResponseType>>;
+  record: RecordGetByIdResponseType | null;
+  setRecord: Dispatch<SetStateAction<RecordGetByIdResponseType | null>>;
 };
 
 export default function OfficialEventInfo({ record, setRecord }: Props) {
@@ -86,7 +87,7 @@ export default function OfficialEventInfo({ record, setRecord }: Props) {
   } = useDisclosure();
 
   useEffect(() => {
-    if (!record.official_event_id) {
+    if (!record?.official_event_id) {
       setLoadingOfficialEvent(false);
       return;
     }
@@ -122,10 +123,10 @@ export default function OfficialEventInfo({ record, setRecord }: Props) {
     };
 
     fetchData();
-  }, [record.official_event_id]);
+  }, [record?.official_event_id]);
 
   useEffect(() => {
-    if (!record.deck_id) {
+    if (!record?.deck_id) {
       setLoadingDeck(false);
       return;
     }
@@ -146,7 +147,7 @@ export default function OfficialEventInfo({ record, setRecord }: Props) {
     };
 
     fetchData();
-  }, [record.deck_id]);
+  }, [record?.deck_id]);
 
   if (error) {
     return <div className="text-red-500">{error}</div>;
@@ -154,6 +155,10 @@ export default function OfficialEventInfo({ record, setRecord }: Props) {
 
   if (loadingOfficialEvent || !officialEvent) {
     return <OfficialEventInfoSkeleton />;
+  }
+
+  if (!record) {
+    return;
   }
 
   const date = new Date(record.created_at).toLocaleString("ja-JP", {

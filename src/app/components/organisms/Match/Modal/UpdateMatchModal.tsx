@@ -30,6 +30,7 @@ import { Image } from "@heroui/react";
 import { LuTrash2 } from "react-icons/lu";
 
 import PokemonSpriteModal from "@app/components/organisms/Match/Modal/PokemonSpriteModal";
+import DeleteMatchModal from "@app/components/organisms/Match/Modal/DeleteMatchModal";
 
 import { MatchGetResponseType } from "@app/types/match";
 import { MatchUpdateRequestType, MatchUpdateResponseType } from "@app/types/match";
@@ -84,6 +85,12 @@ export default function UpdateMatchModal({
     isOpen: isOpenForPokemonSprite2Modal,
     onOpen: onOpenForPokemonSprite2Modal,
     onOpenChange: onOpenChangeForPokemonSprite2Modal,
+  } = useDisclosure();
+
+  const {
+    isOpen: isOpenForDeleteMatchModal,
+    onOpen: onOpenForDeleteMatchModal,
+    onOpenChange: onOpenChangeForDeleteMatchModal,
   } = useDisclosure();
 
   const startY = useRef<number | null>(null);
@@ -298,6 +305,14 @@ export default function UpdateMatchModal({
         onOpenChange={onOpenChangeForPokemonSprite2Modal}
       />
 
+      <DeleteMatchModal
+        match={match}
+        setMatches={setMatches}
+        isOpen={isOpenForDeleteMatchModal}
+        onOpenChange={onOpenChangeForDeleteMatchModal}
+        onCloseForCallBackModal={onClose}
+      />
+
       <Modal
         size="md"
         placement="bottom"
@@ -354,7 +369,9 @@ export default function UpdateMatchModal({
                   <div>
                     <LuTrash2
                       className="text-xl cursor-pointer text-red-500"
-                      onClick={() => {}}
+                      onClick={() => {
+                        onOpenForDeleteMatchModal();
+                      }}
                     />
                   </div>
                 </div>

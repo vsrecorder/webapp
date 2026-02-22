@@ -77,7 +77,7 @@ export default function TonamelEventRecord({
 
   const [error, setError] = useState<string | null>(null);
 
-  const [record, setRecord] = useState<RecordGetByIdResponseType>(recordData.data);
+  const [record, setRecord] = useState<RecordGetByIdResponseType | null>(recordData.data);
 
   const {
     isOpen: isOpenForDisplayRecordModal,
@@ -113,7 +113,7 @@ export default function TonamelEventRecord({
   }, [recordData.data.tonamel_event_id]);
 
   useEffect(() => {
-    if (!record.deck_id) {
+    if (!record?.deck_id) {
       setLoadingDeck(false);
       return;
     }
@@ -134,7 +134,7 @@ export default function TonamelEventRecord({
     };
 
     fetchData();
-  }, [record.deck_id]);
+  }, [record?.deck_id]);
 
   if (error) {
     return <div className="text-red-500">{error}</div>;
@@ -144,7 +144,11 @@ export default function TonamelEventRecord({
     return <TonamelEventRecordSkeleton />;
   }
 
-  const date = new Date(record.created_at).toLocaleString("ja-JP", {
+  if (!record) {
+    return;
+  }
+
+  const date = new Date(record?.created_at).toLocaleString("ja-JP", {
     year: "numeric",
     month: "long",
     day: "numeric",

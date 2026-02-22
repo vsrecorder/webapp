@@ -59,8 +59,8 @@ async function fetchDeckCodeById(id: string) {
 }
 
 type Props = {
-  record: RecordGetByIdResponseType;
-  setRecord: Dispatch<SetStateAction<RecordGetByIdResponseType>>;
+  record: RecordGetByIdResponseType | null;
+  setRecord: Dispatch<SetStateAction<RecordGetByIdResponseType | null>>;
   enableShowDeckModal: boolean;
 };
 
@@ -79,7 +79,7 @@ export default function UsedDeckById({ record, setRecord, enableShowDeckModal }:
   } = useDisclosure();
 
   useEffect(() => {
-    if (!record.deck_id) {
+    if (!record?.deck_id) {
       setLoading1(false);
       setLoading2(false);
       return;

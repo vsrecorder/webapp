@@ -53,3 +53,46 @@ export async function PUT(
     throw error;
   }
 }
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const session = await auth();
+  if (!session) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  const jwtSecret: jwt.Secret = process.env.VSRECORDER_JWT_SECRET as string;
+  const jwtSignOptions: jwt.SignOptions = {
+    algorithm: "HS256",
+    expiresIn: "10s",
+  };
+  const jwtPayload = {
+    iss: "vsrecorder-webapp",
+    uid: session.user.id,
+  };
+  const token = jwt.sign(jwtPayload, jwtSecret, jwtSignOptions);
+
+  try {
+    const { id } = await params;
+
+    const domain = process.env.VSRECORDER_DOMAIN;
+
+    const res = await fetch(`https://${domain}/api/v1beta/matches/${id}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: "Bearer " + token,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (res.status == 204) {
+      return res;
+    } else {
+      return res;
+    }
+  } catch (error) {
+    throw error;
+  }
+}

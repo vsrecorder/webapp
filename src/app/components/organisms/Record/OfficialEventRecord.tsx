@@ -83,7 +83,7 @@ export default function OfficialEventRecord({
 
   const [error, setError] = useState<string | null>(null);
 
-  const [record, setRecord] = useState<RecordGetByIdResponseType>(recordData.data);
+  const [record, setRecord] = useState<RecordGetByIdResponseType | null>(recordData.data);
 
   const {
     isOpen: isOpenForDisplayRecordModal,
@@ -132,7 +132,7 @@ export default function OfficialEventRecord({
   }, [recordData.data.official_event_id]);
 
   useEffect(() => {
-    if (!record.deck_id) {
+    if (!record?.deck_id) {
       setLoadingDeck(false);
       return;
     }
@@ -153,7 +153,7 @@ export default function OfficialEventRecord({
     };
 
     fetchData();
-  }, [record.deck_id]);
+  }, [record?.deck_id]);
 
   if (error) {
     return <div className="text-red-500">{error}</div>;
@@ -161,6 +161,10 @@ export default function OfficialEventRecord({
 
   if (loadingOfficialEvent || !officialEvent) {
     return <OfficialEventRecordSkeleton />;
+  }
+
+  if (!record) {
+    return;
   }
 
   const date = new Date(record.created_at).toLocaleString("ja-JP", {

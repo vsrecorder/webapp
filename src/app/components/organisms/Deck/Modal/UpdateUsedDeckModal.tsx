@@ -115,8 +115,8 @@ function convertToDeckCodeOption(data: DeckCodeType): DeckCodeOption {
 }
 
 type Props = {
-  record: RecordGetByIdResponseType;
-  setRecord: Dispatch<SetStateAction<RecordGetByIdResponseType>>;
+  record: RecordGetByIdResponseType | null;
+  setRecord: Dispatch<SetStateAction<RecordGetByIdResponseType | null>>;
   isOpen: boolean;
   onOpenChange: () => void;
 };
@@ -299,7 +299,7 @@ export default function UpdateUsedDeckModal({
    */
   useEffect(() => {
     // レコードに設定されている使用されたデッキがない場合
-    if (!record.deck_id) {
+    if (!record?.deck_id) {
       // 選択されたデッキとデッキコードがある場合
       if (selectedDeckOption && selectedDeckCodeOption) {
         setIsDisabled(false);
@@ -343,7 +343,7 @@ export default function UpdateUsedDeckModal({
     } else {
       setIsDisabled(false);
     }
-  }, [record.deck_id, record.deck_code_id, selectedDeckOption, selectedDeckCodeOption]);
+  }, [record?.deck_id, record?.deck_code_id, selectedDeckOption, selectedDeckCodeOption]);
 
   /*
    *
@@ -391,18 +391,18 @@ export default function UpdateUsedDeckModal({
     });
 
     const data: RecordUpdateRequestType = {
-      official_event_id: record.official_event_id,
-      tonamel_event_id: record.tonamel_event_id,
-      friend_id: record.friend_id,
+      official_event_id: record ? record.official_event_id : 0,
+      tonamel_event_id: record ? record.tonamel_event_id : "",
+      friend_id: record ? record.friend_id : "",
       deck_id: deckId,
       deck_code_id: deckcodeId,
-      private_flg: record.private_flg,
-      tcg_meister_url: record.tcg_meister_url,
-      memo: record.memo,
+      private_flg: record ? record.private_flg : true,
+      tcg_meister_url: record ? record.tcg_meister_url : "",
+      memo: record ? record.memo : "",
     };
 
     try {
-      const res = await fetch(`/api/records/${record.id}`, {
+      const res = await fetch(`/api/records/${record?.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

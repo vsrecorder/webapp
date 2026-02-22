@@ -47,7 +47,7 @@ async function fetchMatches(record_id: string) {
 }
 
 type Props = {
-  record: RecordGetByIdResponseType;
+  record: RecordGetByIdResponseType | null;
   enableCreateMatchModalButton: boolean;
 };
 

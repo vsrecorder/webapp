@@ -14,7 +14,7 @@ type Props = {
 };
 
 export default function DisplayRecordById({ recordData }: Props) {
-  const [record, setRecord] = useState<RecordGetByIdResponseType>(recordData);
+  const [record, setRecord] = useState<RecordGetByIdResponseType | null>(recordData);
   return (
     <div className="px-3 pt-3 pb-3 flex flex-col gap-9 overflow-y-auto">
       <div className="flex flex-col gap-3">
@@ -24,10 +24,10 @@ export default function DisplayRecordById({ recordData }: Props) {
 
         {
           // 公式イベントの場合
-          record.official_event_id !== 0 ? (
+          record?.official_event_id !== 0 ? (
             <OfficialEventInfo record={record} setRecord={setRecord} />
           ) : // Tonamelの場合
-          record.tonamel_event_id !== "" ? (
+          record?.tonamel_event_id !== "" ? (
             <TonamelEventInfo record={record} />
           ) : (
             <></>

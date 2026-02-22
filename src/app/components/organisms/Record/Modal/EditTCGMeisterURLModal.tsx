@@ -16,7 +16,7 @@ import {
 
 type Props = {
   record: RecordGetByIdResponseType;
-  setRecord: Dispatch<SetStateAction<RecordGetByIdResponseType>>;
+  setRecord: Dispatch<SetStateAction<RecordGetByIdResponseType | null>>;
   isOpen: boolean;
   onOpenChange: () => void;
 };

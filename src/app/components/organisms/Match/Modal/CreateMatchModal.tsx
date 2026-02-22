@@ -36,7 +36,7 @@ import { GameRequestType } from "@app/types/game";
 import { PokemonSpriteType } from "@app/types/pokemon_sprite";
 
 type Props = {
-  record: RecordGetByIdResponseType;
+  record: RecordGetByIdResponseType | null;
   setMatches: Dispatch<SetStateAction<MatchGetResponseType[] | null>>;
   isOpen: boolean;
   onOpenChange: () => void;
@@ -204,9 +204,9 @@ export default function CreateMatchModal({
     }
 
     const match: MatchCreateRequestType = {
-      record_id: record.id,
-      deck_id: record.deck_id,
-      deck_code_id: record.deck_code_id,
+      record_id: record ? record.id : "",
+      deck_id: record ? record.deck_id : "",
+      deck_code_id: record ? record.deck_code_id : "",
       opponents_user_id: "",
       bo3_flg: false,
       qualifying_round_flg: qualifyingRoundFlg,

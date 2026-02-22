@@ -10,7 +10,7 @@ import { RecordGetByIdResponseType } from "@app/types/record";
 import { MatchGetResponseType } from "@app/types/match";
 
 type Props = {
-  record: RecordGetByIdResponseType;
+  record: RecordGetByIdResponseType | null;
   setMatches: Dispatch<SetStateAction<MatchGetResponseType[] | null>>;
 };
 

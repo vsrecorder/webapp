@@ -1,5 +1,9 @@
 "use client";
 
+import { useSession } from "next-auth/react";
+
+import { redirect } from "next/navigation";
+
 import { useEffect, useState } from "react";
 
 import { Spinner } from "@heroui/spinner";
@@ -40,6 +44,8 @@ export default function RecordById({ id }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const { data: session, status } = useSession();
+
   useEffect(() => {
     if (!id) {
       return;
@@ -63,6 +69,18 @@ export default function RecordById({ id }: Props) {
     fetchData();
   }, [id]);
 
+  if (status === "loading") {
+    return (
+      <div className="pt-30 flex items-center justify-center">
+        <Spinner size="lg" />
+      </div>
+    );
+  }
+
+  if (!session) {
+    redirect("/");
+  }
+
   if (loading) {
     return (
       <div className="pt-30 flex items-center justify-center">
@@ -74,13 +92,22 @@ export default function RecordById({ id }: Props) {
   if (error) {
     return (
       <div className="pt-15 flex items-center justify-center">
-        <div className="text-red-500">{error}</div>;
+        <div className="text-red-500">{error}</div>
       </div>
     );
   }
 
   if (!record) {
     return;
+  }
+
+  if (record.user_id !== session.user.id) {
+    console.log(record);
+    return (
+      <div className="flex flex-col items-center justify-center gap-1">
+        <div className="text-sm text-center">このレコードは非公開に設定されています</div>
+      </div>
+    );
   }
 
   return (

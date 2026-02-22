@@ -27,7 +27,7 @@ import { Textarea } from "@heroui/react";
 import { Card, CardHeader, CardBody } from "@heroui/react";
 import { Image } from "@heroui/react";
 
-import PokemonSpriteModal from "@app/components/organisms/Match/Modal/TestPokemonSpriteModal";
+import PokemonSpriteModal from "@app/components/organisms/Match/Modal/PokemonSpriteModal";
 
 import { RecordGetByIdResponseType } from "@app/types/record";
 import { MatchGetResponseType } from "@app/types/match";

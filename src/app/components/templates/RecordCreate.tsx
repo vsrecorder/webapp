@@ -695,7 +695,6 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                       <span className="text-sm">例）町田市</span>
                     </div>
                   }
-                  //isLoading={}
                   isClearable={true}
                   isSearchable={true}
                   noOptionsMessage={() => officialEventOptionsMessage}
@@ -704,10 +703,11 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                   onChange={(option) => {
                     setSelectedOfficialEventOption(option as OfficialEventOption);
                   }}
-                  maxMenuHeight={500}
+                  maxMenuHeight={485}
                   windowThreshold={100}
                   formatOptionLabel={(option, { context }) => {
                     const opt = option as OfficialEventOption;
+
                     if (context === "menu") {
                       return (
                         <div className="text-sm border p-2 w-full">
@@ -878,7 +878,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                     }}
                     menuPosition="fixed"
                     menuPlacement="bottom"
-                    menuShouldBlockScroll={true}
+                    //menuShouldBlockScroll={true}
                     menuShouldScrollIntoView={true}
                     formatOptionLabel={(option, { context }) => {
                       if (context === "menu") {
@@ -1012,7 +1012,6 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                 <label className="text-sm font-medium">デッキ名</label>
                 <div ref={deckSelectRef}>
                   <Select
-                    menuShouldBlockScroll={true}
                     onFocus={() => {
                       setTimeout(() => {
                         deckSelectRef.current?.scrollIntoView({
@@ -1049,6 +1048,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                     }}
                     menuPosition="fixed"
                     menuPlacement="bottom"
+                    //menuShouldBlockScroll={true}
                     menuShouldScrollIntoView={true}
                     formatOptionLabel={(option, { context }) => {
                       if (context === "menu") {

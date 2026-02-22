@@ -27,6 +27,8 @@ import { Textarea } from "@heroui/react";
 import { Card, CardHeader, CardBody } from "@heroui/react";
 import { Image } from "@heroui/react";
 
+import { LuTrash2 } from "react-icons/lu";
+
 import PokemonSpriteModal from "@app/components/organisms/Match/Modal/PokemonSpriteModal";
 
 import { MatchGetResponseType } from "@app/types/match";
@@ -340,7 +342,22 @@ export default function UpdateMatchModal({
               >
                 {/* スワイプバー */}
                 <div className="mx-auto h-1 w-32 mb-1.5 rounded-full bg-default-300" />
-                <div>対戦結果を編集</div>
+
+                {/* 両端配置 */}
+                <div className="flex items-center justify-between w-full">
+                  {/* 左側 */}
+                  <div className="flex flex-col items-start">
+                    <div>対戦結果を編集</div>
+                  </div>
+
+                  {/* 右側 */}
+                  <div>
+                    <LuTrash2
+                      className="text-xl cursor-pointer text-red-500"
+                      onClick={() => {}}
+                    />
+                  </div>
+                </div>
               </ModalHeader>
               <ModalBody className="flex flex-col gap-0 px-1 py-1 overflow-y-auto">
                 <Tabs fullWidth size="sm" className="left-0 right-0 pl-1 pr-1 font-bold">

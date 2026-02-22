@@ -3,7 +3,9 @@ import { useRef } from "react";
 import { SetStateAction, Dispatch } from "react";
 
 import Link from "next/link";
+
 import { Modal, ModalContent, ModalHeader, ModalBody } from "@heroui/react";
+import { Button } from "@heroui/react";
 
 import { LuExternalLink } from "react-icons/lu";
 
@@ -91,7 +93,7 @@ export default function DisplayRecordModal({
                 </div>
               </div>
             </ModalHeader>
-            <ModalBody className="px-3 pb-9 gap-9 overflow-y-auto">
+            <ModalBody className="px-3 pb-6 gap-9 overflow-y-auto">
               <div className="flex flex-col gap-3">
                 <div className="pb-0 flex flex-col items-center justify-center gap-0">
                   <div className="font-bold underline">参加したイベント</div>
@@ -126,6 +128,12 @@ export default function DisplayRecordModal({
                   setRecord={setRecord}
                   enableShowDeckModal={false}
                 />
+              </div>
+
+              <div className="pt-6 w-full">
+                <Button color="danger" onPress={() => {}} className="font-bold w-full">
+                  このレコードを削除する
+                </Button>
               </div>
             </ModalBody>
           </>

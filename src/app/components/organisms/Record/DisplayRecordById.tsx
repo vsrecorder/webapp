@@ -1,5 +1,7 @@
 import { useState } from "react";
 
+import { Button } from "@heroui/react";
+
 import OfficialEventInfo from "@app/components/organisms/Record/OfficialEventInfo";
 import TonamelEventInfo from "@app/components/organisms/Record/TonamelEventInfo";
 import Matches from "@app/components/organisms/Match/Matches";
@@ -14,7 +16,7 @@ type Props = {
 export default function DisplayRecordById({ recordData }: Props) {
   const [record, setRecord] = useState<RecordGetByIdResponseType>(recordData);
   return (
-    <div className="px-3 pt-3 pb-9 flex flex-col gap-9 overflow-y-auto">
+    <div className="px-3 pt-3 pb-3 flex flex-col gap-9 overflow-y-auto">
       <div className="flex flex-col gap-3">
         <div className="pb-0 flex flex-col items-center justify-center gap-0">
           <div className="font-bold underline">参加したイベント</div>
@@ -45,6 +47,12 @@ export default function DisplayRecordById({ recordData }: Props) {
           <div className="font-bold underline">使用したデッキ</div>
         </div>
         <UsedDeckById record={record} setRecord={setRecord} enableShowDeckModal={false} />
+      </div>
+
+      <div className="pt-6 w-full">
+        <Button color="danger" onPress={() => {}} className="font-bold w-full">
+          このレコードを削除する
+        </Button>
       </div>
     </div>
   );

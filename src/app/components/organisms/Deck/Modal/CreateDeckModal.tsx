@@ -85,7 +85,6 @@ export default function CreateDeckModal({
     const deck: DeckCreateRequestType = {
       name: deckname,
       private_flg: true,
-      //private_flg: false,
       deck_code: deckcode,
       private_deck_code_flg: true,
       //private_deck_code_flg: isSelectedPrivateCode,
@@ -128,11 +127,6 @@ export default function CreateDeckModal({
       onCreated();
 
       onClose();
-
-      //setIsDisabled(false);
-      //setDeckName("");
-      //setDeckCode(deck_code);
-      //setIsSelectedPrivateCode(false);
     } catch (error) {
       console.error(error);
 
@@ -157,11 +151,6 @@ export default function CreateDeckModal({
       });
 
       onClose();
-
-      //setIsDisabled(false);
-      //setDeckName("");
-      //setDeckCode(deck_code);
-      //setIsSelectedPrivateCode(false);
     }
   };
 

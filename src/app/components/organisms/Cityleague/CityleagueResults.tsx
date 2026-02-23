@@ -64,7 +64,7 @@ export default function CityleagueResults({ league_type }: Props) {
     setIsLoading(true);
 
     try {
-      for (let i = 0; i <= 7; i++) {
+      for (let i = 0; i < 14; i++) {
         const fromDate = new Date(nextFromDate);
         const toDate = new Date(nextToDate);
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { useEffect, useState, useCallback } from "react";
 
 import { Card, CardHeader, CardBody, CardFooter } from "@heroui/react";
@@ -83,58 +84,86 @@ export default function CityleagueEvent({ league_type }: Props) {
   const [isLoading2, setIsLoading2] = useState(false);
   const [isInitialLoaded, setIsInitialLoaded] = useState(false);
 
-  const load = useCallback(async () => {
-    if (isLoading1 || isLoading2) return;
+  const sortedEvents = useMemo(() => {
+    if (!cityleague?.official_events) return [];
 
-    setIsLoading1(true);
-    setIsLoading2(true);
-    const today = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().split("T")[0];
+    if (!cityleagueResults?.event_results) {
+      return cityleague.official_events;
+    }
 
-    const fetchfetchCityleagueInfoData = async () => {
-      try {
-        const data: OfficialEventResponseType = await fetchCityleagueInfoByDate(
-          league_type,
-          today,
-        );
-        setCityleague(data);
+    const orderMap = new Map(
+      cityleagueResults.event_results.map((result, index) => [
+        result.official_event_id,
+        index,
+      ]),
+    );
 
-        return;
-      } catch (error) {
-        console.error("Error loading items:", error);
-      } finally {
-        setIsLoading1(false);
+    return [...cityleague.official_events].sort((a, b) => {
+      const aIndex = orderMap.get(a.id);
+      const bIndex = orderMap.get(b.id);
 
-        if (!isInitialLoaded) {
-          setIsInitialLoaded(true);
-        }
+      // 両方 results に存在する
+      if (aIndex !== undefined && bIndex !== undefined) {
+        return aIndex - bIndex;
       }
-    };
 
-    const fetchfetchCityleagueResultsData = async () => {
-      try {
-        const data: CityleagueResultGetResponseType = await fetchCityleagueResultsByTerm(
-          league_type,
-          today,
-          today,
-        );
-        setCityleagueResults(data);
+      // 片方だけ存在する → results にある方を前に
+      if (aIndex !== undefined) return -1;
+      if (bIndex !== undefined) return 1;
 
-        return;
-      } catch (error) {
-        console.error("Error loading items:", error);
-      } finally {
-        setIsLoading2(false);
-      }
-    };
-
-    fetchfetchCityleagueInfoData();
-    fetchfetchCityleagueResultsData();
-  }, [league_type, isLoading1, isLoading2, isInitialLoaded]);
+      // 両方存在しない → 元順
+      return 0;
+    });
+  }, [cityleague, cityleagueResults]);
 
   useEffect(() => {
-    if (isInitialLoaded) return;
+    const load = async () => {
+      if (isLoading1 || isLoading2) return;
+
+      setIsLoading1(true);
+      setIsLoading2(true);
+      const today = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().split("T")[0];
+
+      const fetchfetchCityleagueInfoData = async () => {
+        try {
+          const data: OfficialEventResponseType = await fetchCityleagueInfoByDate(
+            league_type,
+            today,
+          );
+          setCityleague(data);
+
+          return;
+        } catch (error) {
+          console.error("Error loading items:", error);
+        } finally {
+          setIsLoading1(false);
+
+          if (!isInitialLoaded) {
+            setIsInitialLoaded(true);
+          }
+        }
+      };
+
+      const fetchfetchCityleagueResultsData = async () => {
+        try {
+          const data: CityleagueResultGetResponseType =
+            await fetchCityleagueResultsByTerm(league_type, today, today);
+          setCityleagueResults(data);
+
+          return;
+        } catch (error) {
+          console.error("Error loading items:", error);
+        } finally {
+          setIsLoading2(false);
+        }
+      };
+
+      fetchfetchCityleagueInfoData();
+      fetchfetchCityleagueResultsData();
+    };
+
     load();
-  }, [isInitialLoaded, load]);
+  }, [league_type, isInitialLoaded]);
 
   return (
     <>
@@ -183,6 +212,22 @@ export default function CityleagueEvent({ league_type }: Props) {
                   clickable: true,
                 }}
               >
+                {sortedEvents.map((event) => (
+                  <SwiperSlide key={event.id} className="p-3">
+                    <CityleagueEventCard
+                      event={event}
+                      results={
+                        cityleagueResults
+                          ? cityleagueResults?.event_results
+                            ? cityleagueResults.event_results
+                            : []
+                          : []
+                      }
+                    />
+                  </SwiperSlide>
+                ))}
+
+                {/*}
                 {cityleague?.official_events?.map((event, index) => (
                   <SwiperSlide key={index} className="p-3">
                     <CityleagueEventCard
@@ -197,6 +242,7 @@ export default function CityleagueEvent({ league_type }: Props) {
                     />
                   </SwiperSlide>
                 ))}
+                */}
               </Swiper>
             </div>
           )}

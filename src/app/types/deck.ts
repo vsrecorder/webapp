@@ -7,7 +7,6 @@ export type DeckData = {
   user_id: string;
   name: string;
   code: string;
-  private_code_flg: boolean;
   private_flg: boolean;
   latest_deck_code: DeckCodeType;
 };

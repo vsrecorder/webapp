@@ -6,7 +6,7 @@ export type DeckData = {
   archived_at: Date;
   user_id: string;
   name: string;
-  code: string;
+  //code: string;
   private_flg: boolean;
   latest_deck_code: DeckCodeType;
 };

@@ -6,10 +6,6 @@ export default async function Footer() {
       <div className="flex flex-col items-center">
         {/* 上段リンク */}
         <div className="flex gap-3">
-          <a href="/faq" className="text-sm">
-            FAQ
-          </a>
-
           <a href="/terms" className="text-sm">
             利用規約
           </a>

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 //import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
+import { GoogleAnalytics } from "@next/third-parties/google";
+
 import Layout from "@app/components/templates/Layout";
 
 /*
@@ -17,6 +19,10 @@ const geistMono = Geist_Mono({
 */
 
 const domain = process.env.VSRECORDER_DOMAIN;
+
+const gaId = process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+  ? process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+  : "";
 
 export const metadata: Metadata = {
   metadataBase: new URL(`https://` + domain),
@@ -44,6 +50,7 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body className="overflow-x-hidden">
+        <GoogleAnalytics gaId={gaId} />
         <Layout>{children}</Layout>
       </body>
     </html>

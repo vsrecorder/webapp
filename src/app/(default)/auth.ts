@@ -121,17 +121,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               console.error("Failed to create user");
               return null;
             }
-
-            /* 
-            特定ユーザ以外のログイン不可
-            */
-            if (
-              user.id !== "d4385mX98abtmLny3qxlmBlBLIu1" &&
-              user.id !== "Slyx3pHi6JX5cFIYCB7qiZwRH922" &&
-              user.id !== "CFRE0E4k0AWE8FTZaSvNQHTqR2U2"
-            ) {
-              throw new Error("不可");
-            }
           } else if (ret.status != 200) {
             console.error("Unexpected status from user API:", ret.status);
             return null;

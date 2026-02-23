@@ -2,7 +2,6 @@ services:
   webapp:
     image: vsrecorder/webapp:latest
     restart: always
-    network_mode: "host"
     ports:
       - 3003:3003
     environment:

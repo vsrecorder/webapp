@@ -38,6 +38,10 @@ export default function Decks({ isArchived }: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
 
+  const handleRemove = (id: string) => {
+    setItems((prev) => prev.filter((d) => d.data.id !== id));
+  };
+
   const loadMore = useCallback(async () => {
     if (isLoading || !hasMore) return;
 
@@ -109,6 +113,7 @@ export default function Decks({ isArchived }: Props) {
             key={deck.data.id}
             deckData={deck.data}
             deckcodeData={deck.data.latest_deck_code}
+            onRemove={handleRemove}
             enableShowDeckModal={true}
           />
         ))}

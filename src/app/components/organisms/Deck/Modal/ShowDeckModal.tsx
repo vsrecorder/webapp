@@ -20,9 +20,6 @@ import {
   useDisclosure,
 } from "@heroui/react";
 
-import { DeckGetByIdResponseType } from "@app/types/deck";
-import { DeckCodeType } from "@app/types/deck_code";
-
 import UpdateDeckModal from "@app/components/organisms/Deck/Modal/UpdateDeckModal";
 import CreateDeckCodeModal from "@app/components/organisms/Deck/Modal/CreateDeckCodeModal";
 import DeleteDeckModal from "@app/components/organisms/Deck/Modal/DeleteDeckModal";
@@ -45,6 +42,9 @@ import { LuTrash2 } from "react-icons/lu";
 import { LuFilePen } from "react-icons/lu";
 import { LuSquarePen } from "react-icons/lu";
 
+import { DeckGetByIdResponseType } from "@app/types/deck";
+import { DeckCodeType } from "@app/types/deck_code";
+
 type Props = {
   deck: DeckGetByIdResponseType | null;
   setDeck: Dispatch<SetStateAction<DeckGetByIdResponseType | null>>;
@@ -52,6 +52,7 @@ type Props = {
   setDeckCode: Dispatch<SetStateAction<DeckCodeType | null>>;
   isOpen: boolean;
   onOpenChange: () => void;
+  onRemove: (id: string) => void;
 };
 
 export default function ShowDeckModal({
@@ -61,6 +62,7 @@ export default function ShowDeckModal({
   setDeckCode,
   isOpen,
   onOpenChange,
+  onRemove,
 }: Props) {
   const [imageLoaded, setImageLoaded] = useState(false);
 
@@ -127,7 +129,7 @@ export default function ShowDeckModal({
   }, [deckcode?.code]);
 
   if (!deck) {
-    return;
+    return null;
   }
 
   const isArchived = new Date(deck.archived_at).getFullYear() === 1;
@@ -339,23 +341,23 @@ export default function ShowDeckModal({
 
       <DeleteDeckModal
         deck={deck}
-        setDeck={setDeck}
         isOpen={isOpenForDeleteDeckModal}
         onOpenChange={onOpenChangeForDeleteDeckModal}
+        onRemove={onRemove}
       />
 
       <ArchiveDeckModal
         deck={deck}
-        setDeck={setDeck}
         isOpen={isOpenForArchiveDeckModal}
         onOpenChange={onOpenChangeForArchiveDeckModal}
+        onRemove={onRemove}
       />
 
       <UnarchiveDeckModal
         deck={deck}
-        setDeck={setDeck}
         isOpen={isOpenForUnarchiveDeckModal}
         onOpenChange={onOpenChangeForUnarchiveDeckModal}
+        onRemove={onRemove}
       />
 
       <InspectDeckModal

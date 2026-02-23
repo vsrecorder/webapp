@@ -16,10 +16,16 @@ import { DeckCodeType } from "@app/types/deck_code";
 type Props = {
   deckData: DeckGetByIdResponseType | null;
   deckcodeData: DeckCodeType | null;
+  onRemove: (id: string) => void;
   enableShowDeckModal: boolean;
 };
 
-export default function DeckCard({ deckData, deckcodeData, enableShowDeckModal }: Props) {
+export default function DeckCard({
+  deckData,
+  deckcodeData,
+  onRemove,
+  enableShowDeckModal,
+}: Props) {
   const [deck, setDeck] = useState<DeckGetByIdResponseType | null>(deckData);
   const [deckcode, setDeckCode] = useState<DeckCodeType | null>(deckcodeData);
 
@@ -70,6 +76,7 @@ export default function DeckCard({ deckData, deckcodeData, enableShowDeckModal }
             setDeckCode={setDeckCode}
             isOpen={isOpen}
             onOpenChange={onOpenChange}
+            onRemove={onRemove}
           />
         )}
       </>
@@ -128,6 +135,7 @@ export default function DeckCard({ deckData, deckcodeData, enableShowDeckModal }
           setDeckCode={setDeckCode}
           isOpen={isOpen}
           onOpenChange={onOpenChange}
+          onRemove={onRemove}
         />
       )}
     </>

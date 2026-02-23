@@ -80,6 +80,7 @@ export default function UsedDeckCard({
             setDeckCode={setDeckCode}
             isOpen={isOpen}
             onOpenChange={onOpenChange}
+            onRemove={() => {}}
           />
         )}
       </>
@@ -138,6 +139,7 @@ export default function UsedDeckCard({
           setDeckCode={setDeckCode}
           isOpen={isOpen}
           onOpenChange={onOpenChange}
+          onRemove={() => {}}
         />
       )}
     </>

@@ -11,12 +11,12 @@ import { DeckGetByIdResponseType } from "@app/types/deck";
 
 type Props = {
   deck: DeckGetByIdResponseType | null;
-  setDeck: Dispatch<SetStateAction<DeckGetByIdResponseType | null>>;
   isOpen: boolean;
   onOpenChange: () => void;
+  onRemove: (id: string) => void;
 };
 
-export default function DeleteDeckModal({ deck, setDeck, isOpen, onOpenChange }: Props) {
+export default function DeleteDeckModal({ deck, isOpen, onOpenChange, onRemove }: Props) {
   const [isSelected, setIsSelected] = useState<boolean>(false);
   const [isDisabled, setIsDisabled] = useState<boolean>(false);
 
@@ -62,7 +62,7 @@ export default function DeleteDeckModal({ deck, setDeck, isOpen, onOpenChange }:
         timeout: 3000,
       });
 
-      setDeck(null);
+      onRemove(deck.id);
 
       onClose();
       setIsSelected(false);

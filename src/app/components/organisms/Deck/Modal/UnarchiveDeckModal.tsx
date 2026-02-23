@@ -10,16 +10,16 @@ import { DeckGetByIdResponseType } from "@app/types/deck";
 
 type Props = {
   deck: DeckGetByIdResponseType | null;
-  setDeck: Dispatch<SetStateAction<DeckGetByIdResponseType | null>>;
   isOpen: boolean;
   onOpenChange: () => void;
+  onRemove: (id: string) => void;
 };
 
 export default function UnarchiveDeckModal({
   deck,
-  setDeck,
   isOpen,
   onOpenChange,
+  onRemove,
 }: Props) {
   const [isDisabled, setIsDisabled] = useState<boolean>(false);
 
@@ -61,7 +61,7 @@ export default function UnarchiveDeckModal({
         timeout: 3000,
       });
 
-      setDeck(null);
+      onRemove(deck.id);
 
       onClose();
       setIsDisabled(false);

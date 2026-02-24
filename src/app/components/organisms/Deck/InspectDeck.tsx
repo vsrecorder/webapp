@@ -64,6 +64,8 @@ export default function InspectDeck({ deckcode }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [prizecardsReversedState, setPrizeCardsReversedState] = useState<boolean>(false);
+
   const handScrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -151,7 +153,7 @@ export default function InspectDeck({ deckcode }: Props) {
                         shadow="none"
                         alt="ポケモンカード"
                         src="https://www.pokemon-card.com/assets/images/noimage/poke_ura.jpg"
-                        className="w-12 h-17 rounded-xs object-cover"
+                        className="w-12 h-17.5 rounded-xs object-cover"
                       />
                     </div>
                   ))}
@@ -172,7 +174,7 @@ export default function InspectDeck({ deckcode }: Props) {
                         shadow="none"
                         alt="ポケモンカード"
                         src="https://www.pokemon-card.com/assets/images/noimage/poke_ura.jpg"
-                        className="w-12 h-17 rounded-xs object-cover"
+                        className="w-12 h-17.5 rounded-xs object-cover"
                       />
                     </div>
                   ))}
@@ -194,7 +196,7 @@ export default function InspectDeck({ deckcode }: Props) {
                       shadow="none"
                       alt="ポケモンカード"
                       src="https://www.pokemon-card.com/assets/images/noimage/poke_ura.jpg"
-                      className="w-12 h-17 rounded-xs object-cover"
+                      className="w-12 h-17.5 rounded-xs object-cover"
                     />
                   </div>
                 ))}
@@ -228,28 +230,54 @@ export default function InspectDeck({ deckcode }: Props) {
   return (
     <div className="flex flex-col gap-3">
       <div className="px-6 flex justify-between w-full">
-        <div className="flex flex-col justify-center gap-1">
+        <div
+          onClick={() => setPrizeCardsReversedState((prev) => !prev)}
+          className="flex flex-col justify-center gap-1"
+        >
           <div className="px-3 font-bold text-tiny">サイド</div>
-          <Card shadow="md" className="w-fit">
-            <CardBody className="">
-              <div className="flex justify-center items-center gap-1">
-                {prizecardList.map((card, index) => (
-                  <div
-                    key={index}
-                    className="-ml-7 first:ml-0 w-12 aspect-686/1212 shrink-0"
-                  >
-                    <Image
-                      radius="none"
-                      shadow="none"
-                      alt={card.card_name}
-                      src={card.image_url}
-                      className="w-12 h-17 rounded-xs object-cover"
-                    />
-                  </div>
-                ))}
-              </div>
-            </CardBody>
-          </Card>
+          {prizecardsReversedState ? (
+            <Card shadow="md" className="w-fit">
+              <CardBody className="">
+                <div className="flex justify-center items-center gap-1">
+                  {prizecardList.map((card, index) => (
+                    <div
+                      key={index}
+                      className="-ml-7 first:ml-0 w-12 aspect-686/1212 shrink-0"
+                    >
+                      <Image
+                        radius="none"
+                        shadow="none"
+                        alt={card.card_name}
+                        src={card.image_url}
+                        className="w-12 h-17.5 rounded-xs object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </CardBody>
+            </Card>
+          ) : (
+            <Card shadow="md" className="w-fit">
+              <CardBody className="">
+                <div className="flex justify-center items-center gap-1">
+                  {Array.from({ length: 6 }).map((_, index) => (
+                    <div
+                      key={index}
+                      className="-ml-7 first:ml-0 w-12 aspect-686/1212 shrink-0"
+                    >
+                      <Image
+                        radius="none"
+                        shadow="none"
+                        alt="ポケモンカード"
+                        src="https://www.pokemon-card.com/assets/images/noimage/poke_ura.jpg"
+                        className="w-12 h-17.5 rounded-xs object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </CardBody>
+            </Card>
+          )}
         </div>
 
         <div
@@ -267,7 +295,7 @@ export default function InspectDeck({ deckcode }: Props) {
                       shadow="none"
                       alt="ポケモンカード"
                       src="https://www.pokemon-card.com/assets/images/noimage/poke_ura.jpg"
-                      className="w-12 h-17 rounded-xs object-cover"
+                      className="w-12 h-17.5 rounded-xs object-cover"
                     />
                   </div>
                 )}
@@ -282,7 +310,7 @@ export default function InspectDeck({ deckcode }: Props) {
                       shadow="none"
                       alt={card.card_name}
                       src={card.image_url}
-                      className="w-12 h-17 rounded-xs object-cover"
+                      className="w-12 h-17.5 rounded-xs object-cover"
                     />
                   </div>
                 ))}
@@ -311,7 +339,7 @@ export default function InspectDeck({ deckcode }: Props) {
                       shadow="none"
                       alt={card.card_name}
                       src={card.image_url}
-                      className="w-12 h-17 rounded-xs object-cover"
+                      className="w-12 h-17.5 rounded-xs object-cover"
                     />
                   </div>
                 ))}

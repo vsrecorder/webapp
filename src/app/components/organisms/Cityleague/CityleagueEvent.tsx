@@ -169,36 +169,32 @@ export default function CityleagueEvent({ league_type }: Props) {
     <>
       {/* 空状態 */}
       {isInitialLoaded && !isLoading1 && cityleague?.count === 0 ? (
-        <div className="">
-          <Swiper>
-            <SwiperSlide className="p-3">
-              <div className="text-center">
-                <div className="">
-                  <Card className="pt-3 w-full">
-                    <CardHeader className="pt-11.5 pb-9 px-3 flex-col items-center gap-0.5">
-                      <div className="text-center">本日の開催はありません</div>
-                    </CardHeader>
-                    <CardBody className="px-0 py-1"></CardBody>
-                    <CardFooter className="pt-1 pb-2"></CardFooter>
-                  </Card>
-                </div>
+        <Swiper>
+          <SwiperSlide className="p-3">
+            <div className="text-center">
+              <div className="">
+                <Card className="pt-3 w-full">
+                  <CardHeader className="pt-11.5 pb-9 px-3 flex-col items-center gap-0.5">
+                    <div className="text-center">本日の開催はありません</div>
+                  </CardHeader>
+                  <CardBody className="px-0 py-1"></CardBody>
+                  <CardFooter className="pt-1 pb-2"></CardFooter>
+                </Card>
               </div>
-            </SwiperSlide>
-          </Swiper>
-        </div>
+            </div>
+          </SwiperSlide>
+        </Swiper>
       ) : (
         <>
           {/* ローディング表示 */}
           {isLoading1 || isLoading2 ? (
-            <div className="">
-              <Swiper>
-                <SwiperSlide className="p-3">
-                  <div className="text-center">
-                    <CityleagueEventSkeleton />
-                  </div>
-                </SwiperSlide>
-              </Swiper>
-            </div>
+            <Swiper>
+              <SwiperSlide className="p-3">
+                <div className="text-center">
+                  <CityleagueEventSkeleton />
+                </div>
+              </SwiperSlide>
+            </Swiper>
           ) : (
             <div className="">
               <Swiper

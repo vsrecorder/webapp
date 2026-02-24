@@ -34,15 +34,21 @@ async function fetchDeckCardList(code: string) {
     throw error;
   }
 }
+function unbiasedRandom(max: number): number {
+  const limit = Math.floor(2 ** 32 / max) * max;
+  let value: number;
+  do {
+    value = crypto.getRandomValues(new Uint32Array(1))[0];
+  } while (value >= limit);
+  return value % max;
+}
 
 function shuffleArray<T>(array: T[]): T[] {
   const shuffled = [...array];
-
   for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = unbiasedRandom(i + 1);
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
-
   return shuffled;
 }
 
@@ -82,18 +88,12 @@ export default function InspectDeck({ deckcode }: Props) {
         setLoading(true);
         const data = await fetchDeckCardList(deckcode.code);
 
-        let shuffledData = shuffleArray(data);
-        shuffledData = shuffleArray(shuffledData);
-        shuffledData = shuffleArray(shuffledData);
-        shuffledData = shuffleArray(shuffledData);
-        shuffledData = shuffleArray(shuffledData);
-        shuffledData = shuffleArray(shuffledData);
+        const shuffledData = shuffleArray(data); // カードをシャッフル
 
         setCardList(shuffledData);
-
-        setHandCardList(shuffledData.slice(0, 7));
-        setPrizeCardList(shuffledData.slice(7, 13));
-        setDeckCardList(shuffledData.slice(13));
+        setHandCardList(shuffledData.slice(0, 7)); // デッキの上から7枚を取得
+        setPrizeCardList(shuffledData.slice(7, 13)); // サイドカードを取得
+        setDeckCardList(shuffledData.slice(13)); // デッキのトップカードを取得
       } catch (err) {
         console.log(err);
         setError("データの取得に失敗しました");
@@ -109,8 +109,8 @@ export default function InspectDeck({ deckcode }: Props) {
     if (!cardList) return;
 
     const shuffledData = shuffleArray(cardList); // カードをシャッフル
-    setCardList(shuffledData);
 
+    setCardList(shuffledData);
     setHandCardList(shuffledData.slice(0, 7)); // デッキの上から7枚を取得
     setPrizeCardList(shuffledData.slice(7, 13)); // サイドカードを取得
     setDeckCardList(shuffledData.slice(13)); // デッキのトップカードを取得
@@ -161,7 +161,7 @@ export default function InspectDeck({ deckcode }: Props) {
           </div>
 
           <div className="pr-3 flex flex-col items-center justify-center gap-1">
-            <div className="font-bold text-tiny">山札</div>
+            <div className="font-bold text-tiny">山札：47</div>
             <Card shadow="md" className="w-fit">
               <CardBody className="">
                 <div className="flex justify-center items-center gap-1">
@@ -183,7 +183,7 @@ export default function InspectDeck({ deckcode }: Props) {
         </div>
 
         <div className="flex flex-col justify-center gap-1">
-          <div className="px-3 font-bold text-tiny">手札</div>
+          <div className="px-3 font-bold text-tiny">手札：7</div>
           <Card shadow="md">
             <CardBody className="px-2.5">
               <div className="flex justify-center items-center gap-1">
@@ -256,7 +256,7 @@ export default function InspectDeck({ deckcode }: Props) {
           onClick={handleDraw}
           className="pr-3 flex flex-col items-center justify-center gap-1"
         >
-          <div className="font-bold text-tiny">山札</div>
+          <div className="font-bold text-tiny">山札：{deckcardList.length}</div>
           <Card shadow="md" className="w-fit">
             <CardBody className="">
               <div className="flex justify-center items-center gap-1">
@@ -293,7 +293,7 @@ export default function InspectDeck({ deckcode }: Props) {
       </div>
 
       <div className="flex flex-col justify-center gap-1">
-        <div className="px-3 font-bold text-tiny">手札</div>
+        <div className="px-3 font-bold text-tiny">手札：{handcardList.length}</div>
         <Card shadow="md">
           <CardBody className="px-2.5">
             <div className="flex justify-center">

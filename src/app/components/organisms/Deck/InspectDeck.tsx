@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 //import { Skeleton } from "@heroui/react";
 import { Image } from "@heroui/react";
@@ -35,14 +35,39 @@ async function fetchDeckCardList(code: string) {
   }
 }
 
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array];
+
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+
+  return shuffled;
+}
+
 type Props = {
   deckcode: DeckCodeType | null;
 };
 
 export default function InspectDeck({ deckcode }: Props) {
-  const [deckcardList, setDeckCardList] = useState<DeckCardListType | null>(null);
+  const [cardList, setCardList] = useState<DeckCardListType | null>(null);
+  const [handcardList, setHandCardList] = useState<DeckCardListType>([]);
+  const [prizecardList, setPrizeCardList] = useState<DeckCardListType>([]);
+  const [deckcardList, setDeckCardList] = useState<DeckCardListType>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const handScrollRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!handScrollRef.current) return;
+
+    handScrollRef.current.scrollTo({
+      left: handScrollRef.current.scrollWidth,
+      behavior: "smooth",
+    });
+  }, [handcardList]);
 
   useEffect(() => {
     if (!deckcode) {
@@ -56,7 +81,19 @@ export default function InspectDeck({ deckcode }: Props) {
       try {
         setLoading(true);
         const data = await fetchDeckCardList(deckcode.code);
-        setDeckCardList(data);
+
+        let shuffledData = shuffleArray(data);
+        shuffledData = shuffleArray(shuffledData);
+        shuffledData = shuffleArray(shuffledData);
+        shuffledData = shuffleArray(shuffledData);
+        shuffledData = shuffleArray(shuffledData);
+        shuffledData = shuffleArray(shuffledData);
+
+        setCardList(shuffledData);
+
+        setHandCardList(shuffledData.slice(0, 7));
+        setPrizeCardList(shuffledData.slice(7, 13));
+        setDeckCardList(shuffledData.slice(13));
       } catch (err) {
         console.log(err);
         setError("データの取得に失敗しました");
@@ -68,17 +105,125 @@ export default function InspectDeck({ deckcode }: Props) {
     fetchCurrentDeckCardListData();
   }, [deckcode]);
 
-  if (!deckcode) return;
+  const handleShuffle = () => {
+    if (!cardList) return;
 
-  if (loading) {
+    const shuffledData = shuffleArray(cardList); // カードをシャッフル
+    setCardList(shuffledData);
+
+    setHandCardList(shuffledData.slice(0, 7)); // デッキの上から7枚を取得
+    setPrizeCardList(shuffledData.slice(7, 13)); // サイドカードを取得
+    setDeckCardList(shuffledData.slice(13)); // デッキのトップカードを取得
+  };
+
+  const handleDraw = () => {
+    if (!deckcardList || deckcardList.length === 0) return;
+
+    const drawnCard = deckcardList[0]; // デッキのトップカードを取得
+    const newDeck = deckcardList.slice(1); // デッキのトップカードを除いたすべてのカードを取得
+
+    setDeckCardList(newDeck);
+    setHandCardList((prev) => [...prev, drawnCard]);
+
+    console.log(handcardList.length);
+  };
+
+  if (!deckcode) {
     return <></>;
   }
 
-  if (error) {
-    return;
+  if (loading) {
+    return (
+      <div className="flex flex-col gap-3">
+        <div className="px-6 flex justify-between w-full">
+          <div className="flex flex-col justify-center gap-1">
+            <div className="px-3 font-bold text-tiny">サイド</div>
+            <Card shadow="md" className="w-fit">
+              <CardBody className="">
+                <div className="flex justify-center items-center gap-1">
+                  {Array.from({ length: 6 }).map((_, index) => (
+                    <div
+                      key={index}
+                      className="-ml-7 first:ml-0 w-12 aspect-686/1212 shrink-0"
+                    >
+                      <Image
+                        radius="none"
+                        shadow="none"
+                        alt="ポケモンカード"
+                        src="https://www.pokemon-card.com/assets/images/noimage/poke_ura.jpg"
+                        className="w-12 h-17 rounded-xs object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </CardBody>
+            </Card>
+          </div>
+
+          <div className="pr-3 flex flex-col items-center justify-center gap-1">
+            <div className="font-bold text-tiny">山札</div>
+            <Card shadow="md" className="w-fit">
+              <CardBody className="">
+                <div className="flex justify-center items-center gap-1">
+                  {Array.from({ length: 1 }).map((_, index) => (
+                    <div key={index} className="w-12 aspect-686/1212 shrink-0">
+                      <Image
+                        radius="none"
+                        shadow="none"
+                        alt="ポケモンカード"
+                        src="https://www.pokemon-card.com/assets/images/noimage/poke_ura.jpg"
+                        className="w-12 h-17 rounded-xs object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </CardBody>
+            </Card>
+          </div>
+        </div>
+
+        <div className="flex flex-col justify-center gap-1">
+          <div className="px-3 font-bold text-tiny">手札</div>
+          <Card shadow="md">
+            <CardBody className="px-2.5">
+              <div className="flex justify-center items-center gap-1">
+                {Array.from({ length: 7 }).map((_, index) => (
+                  <div key={index} className="w-12 aspect-686/1212 shrink-0">
+                    <Image
+                      radius="none"
+                      shadow="none"
+                      alt="ポケモンカード"
+                      src="https://www.pokemon-card.com/assets/images/noimage/poke_ura.jpg"
+                      className="w-12 h-17 rounded-xs object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
+            </CardBody>
+          </Card>
+        </div>
+
+        <div className="pt-3 w-full">
+          <Button size="md" radius="full" isDisabled className="w-full">
+            <div className="flex items-center justify-center gap-3">
+              <span className="font-bold ">
+                <LuRepeat />
+              </span>
+              <span className="font-bold">再試行</span>
+            </div>
+          </Button>
+        </div>
+      </div>
+    );
   }
 
-  if (!deckcardList) return;
+  if (error) {
+    return <></>;
+  }
+
+  if (!cardList) {
+    return <></>;
+  }
 
   return (
     <div className="flex flex-col gap-3">
@@ -88,7 +233,7 @@ export default function InspectDeck({ deckcode }: Props) {
           <Card shadow="md" className="w-fit">
             <CardBody className="">
               <div className="flex justify-center items-center gap-1">
-                {deckcardList.slice(0, 6).map((card, index) => (
+                {prizecardList.map((card, index) => (
                   <div
                     key={index}
                     className="-ml-7 first:ml-0 w-12 aspect-686/1212 shrink-0"
@@ -98,7 +243,7 @@ export default function InspectDeck({ deckcode }: Props) {
                       shadow="none"
                       alt={card.card_name}
                       src={card.image_url}
-                      className="object-cover"
+                      className="w-12 h-17 rounded-xs object-cover"
                     />
                   </div>
                 ))}
@@ -107,19 +252,37 @@ export default function InspectDeck({ deckcode }: Props) {
           </Card>
         </div>
 
-        <div className="pr-3 flex flex-col items-center justify-center gap-1">
+        <div
+          onClick={handleDraw}
+          className="pr-3 flex flex-col items-center justify-center gap-1"
+        >
           <div className="font-bold text-tiny">山札</div>
           <Card shadow="md" className="w-fit">
             <CardBody className="">
               <div className="flex justify-center items-center gap-1">
+                {deckcardList.length === 0 && (
+                  <div className="w-12 aspect-686/1212 shrink-0">
+                    <Image
+                      radius="none"
+                      shadow="none"
+                      alt="ポケモンカード"
+                      src="https://www.pokemon-card.com/assets/images/noimage/poke_ura.jpg"
+                      className="w-12 h-17 rounded-xs object-cover"
+                    />
+                  </div>
+                )}
+
                 {deckcardList.slice(0, 1).map((card, index) => (
-                  <div key={index} className="w-12 aspect-686/1212 shrink-0">
+                  <div
+                    key={`${card.card_id}-${index}`}
+                    className="w-12 aspect-686/1212 shrink-0"
+                  >
                     <Image
                       radius="none"
                       shadow="none"
                       alt={card.card_name}
                       src={card.image_url}
-                      className="object-cover"
+                      className="w-12 h-17 rounded-xs object-cover"
                     />
                   </div>
                 ))}
@@ -132,26 +295,34 @@ export default function InspectDeck({ deckcode }: Props) {
       <div className="flex flex-col justify-center gap-1">
         <div className="px-3 font-bold text-tiny">手札</div>
         <Card shadow="md">
-          <CardBody className="px-1">
-            <div className="flex justify-center items-center gap-1">
-              {deckcardList.slice(0, 7).map((card, index) => (
-                <div key={index} className="w-12 aspect-686/1212 shrink-0">
-                  <Image
-                    radius="none"
-                    shadow="none"
-                    alt={card.card_name}
-                    src={card.image_url}
-                    className="object-cover"
-                  />
-                </div>
-              ))}
+          <CardBody className="px-2.5">
+            <div className="flex justify-center">
+              <div
+                ref={handScrollRef}
+                className="flex overflow-x-scroll gap-1 whitespace-nowrap"
+              >
+                {handcardList.map((card, index) => (
+                  <div
+                    key={`${card.card_id}-${index}`}
+                    className="w-12 aspect-686/1212 shrink-0"
+                  >
+                    <Image
+                      radius="none"
+                      shadow="none"
+                      alt={card.card_name}
+                      src={card.image_url}
+                      className="w-12 h-17 rounded-xs object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
           </CardBody>
         </Card>
       </div>
 
-      <div className="w-full">
-        <Button size="md" radius="full" onPress={() => {}} className="w-full">
+      <div className="pt-3 w-full">
+        <Button size="md" radius="full" onPress={handleShuffle} className="w-full">
           <div className="flex items-center justify-center gap-3">
             <span className="font-bold ">
               <LuRepeat />

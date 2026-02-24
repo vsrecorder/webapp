@@ -53,6 +53,7 @@ export default function InspectDeckModal({
       hideCloseButton
       onOpenChange={onOpenChange}
       onClose={() => {}}
+      isDismissable={false}
       className="h-[calc(100dvh-104px)] max-h-[calc(100dvh-104px)] mt-26 my-0 rounded-b-none"
       classNames={{
         base: "sm:max-w-full",
@@ -66,13 +67,15 @@ export default function InspectDeckModal({
             <ModalHeader
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
-              className="px-1 py-3 flex flex-col gap-1 cursor-grab"
+              className="px-1 py-3 pb-0 flex flex-col gap-1 cursor-grab"
             >
               {/* スワイプバー */}
               <div className="mx-auto h-1 w-32 mb-1.5 rounded-full bg-default-300" />
 
               <div className="px-2">初動チェック</div>
+            </ModalHeader>
 
+            <ModalBody className="px-1">
               <div className="flex flex-col gap-5">
                 <div className="pt-5 flex flex-col items-center justify-center gap-3">
                   <div className="flex items-center gap-2">
@@ -122,8 +125,7 @@ export default function InspectDeckModal({
                   )}
                 </div>
               </div>
-            </ModalHeader>
-            <ModalBody className="px-1 overflow-y-auto">
+
               <div className="px-1 pt-1">
                 <InspectDeck deckcode={deckcode} />
               </div>

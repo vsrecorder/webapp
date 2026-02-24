@@ -38,7 +38,7 @@ import { LuFileText } from "react-icons/lu";
 import { LuBook } from "react-icons/lu";
 import { LuBookPlus } from "react-icons/lu";
 import { LuTrash2 } from "react-icons/lu";
-//import { LuFlaskConical } from "react-icons/lu";
+import { LuFlaskConical } from "react-icons/lu";
 import { LuFilePen } from "react-icons/lu";
 import { LuSquarePen } from "react-icons/lu";
 
@@ -98,7 +98,7 @@ export default function ShowDeckModal({
 
   const {
     isOpen: isOpenForInspectDeckModal,
-    //onOpen: onOpenForInspectDeckModal,
+    onOpen: onOpenForInspectDeckModal,
     onOpenChange: onOpenChangeForInspectDeckModal,
     onClose: onCloseForInspectDeckModal,
   } = useDisclosure();
@@ -267,11 +267,9 @@ export default function ShowDeckModal({
                       <LuBook onClick={onOpenForDisplayDeckCodesModal} />
                     </div>
 
-                    {/*
                     <div className="text-2xl cursor-pointer">
                       <LuFlaskConical onClick={onOpenForInspectDeckModal} />
                     </div>
-                    */}
 
                     <div className="text-2xl cursor-pointer">
                       <LuBookPlus onClick={onOpenForCreateDeckCodeModal} />
@@ -298,11 +296,10 @@ export default function ShowDeckModal({
                     <div className="text-2xl cursor-pointer">
                       <LuBook onClick={onOpenForDisplayDeckCodesModal} />
                     </div>
-                    {/*
-                    <div className="text-2xl text-gray-200">
-                      <LuFlaskConical />
+
+                    <div className="text-2xl cursor-pointer">
+                      <LuFlaskConical onClick={onOpenForInspectDeckModal} />
                     </div>
-                    */}
 
                     <div className="text-2xl text-gray-200">
                       <LuBookPlus />

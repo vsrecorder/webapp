@@ -340,6 +340,9 @@ export default function DisplayDeckCodesModal({
                                 month: "long",
                                 day: "numeric",
                                 weekday: "short",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                                second: "2-digit",
                               },
                             );
 
@@ -357,7 +360,7 @@ export default function DisplayDeckCodesModal({
                                     <div className="flex pb-3">
                                       <div className="-translate-x-1/2 w-3 h-3 rounded-full bg-blue-400" />
                                       <div className="text-tiny">
-                                        作成日：
+                                        作成日時：
                                         {date}
                                       </div>
                                     </div>

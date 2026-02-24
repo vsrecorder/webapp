@@ -169,32 +169,36 @@ export default function CityleagueEvent({ league_type }: Props) {
     <>
       {/* 空状態 */}
       {isInitialLoaded && !isLoading1 && cityleague?.count === 0 ? (
-        <Swiper>
-          <SwiperSlide className="p-3">
-            <div className="text-center">
-              <div className="">
-                <Card className="pt-3 w-full">
-                  <CardHeader className="pt-11.5 pb-9 px-3 flex-col items-center gap-0.5">
-                    <div className="text-center">本日の開催はありません</div>
-                  </CardHeader>
-                  <CardBody className="px-0 py-1"></CardBody>
-                  <CardFooter className="pt-1 pb-2"></CardFooter>
-                </Card>
+        <div className="">
+          <Swiper>
+            <SwiperSlide className="p-3">
+              <div className="text-center">
+                <div className="">
+                  <Card className="pt-3 w-full">
+                    <CardHeader className="pt-11.5 pb-9 px-3 flex-col items-center gap-0.5">
+                      <div className="text-center">本日の開催はありません</div>
+                    </CardHeader>
+                    <CardBody className="px-0 py-1"></CardBody>
+                    <CardFooter className="pt-1 pb-2"></CardFooter>
+                  </Card>
+                </div>
               </div>
-            </div>
-          </SwiperSlide>
-        </Swiper>
+            </SwiperSlide>
+          </Swiper>
+        </div>
       ) : (
         <>
           {/* ローディング表示 */}
           {isLoading1 || isLoading2 ? (
-            <Swiper>
-              <SwiperSlide className="p-3">
-                <div className="text-center">
-                  <CityleagueEventSkeleton />
-                </div>
-              </SwiperSlide>
-            </Swiper>
+            <div className="">
+              <Swiper>
+                <SwiperSlide className="p-3">
+                  <div className="text-center">
+                    <CityleagueEventSkeleton />
+                  </div>
+                </SwiperSlide>
+              </Swiper>
+            </div>
           ) : (
             <div className="">
               <Swiper
@@ -226,23 +230,6 @@ export default function CityleagueEvent({ league_type }: Props) {
                     />
                   </SwiperSlide>
                 ))}
-
-                {/*}
-                {cityleague?.official_events?.map((event, index) => (
-                  <SwiperSlide key={index} className="p-3">
-                    <CityleagueEventCard
-                      event={event}
-                      results={
-                        cityleagueResults
-                          ? cityleagueResults?.event_results
-                            ? cityleagueResults.event_results
-                            : []
-                          : []
-                      }
-                    />
-                  </SwiperSlide>
-                ))}
-                */}
               </Swiper>
             </div>
           )}

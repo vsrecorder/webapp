@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { useState } from "react";
 import { useRef } from "react";
 import { useEffect } from "react";
@@ -54,7 +55,6 @@ export default function UpdateMatchModal({
 }: Props) {
   const [qualifyingRoundFlg, setQualifyingRoundFlg] = useState(false);
   const [finalTournamentFlg, setFinalTournamentFlg] = useState(false);
-  const [isValidedFlg, setIsValidedFlg] = useState(true);
 
   const [opponentsDeckInfo, setOpponentsDeckInfo] = useState<string>("");
 
@@ -69,6 +69,7 @@ export default function UpdateMatchModal({
 
   const [memo, setMemo] = useState("");
 
+  const [isValidedFlg, setIsValidedFlg] = useState(true);
   const [isDisabled, setIsDisabled] = useState(false);
   const [couldUpdateFlg, setCouldUpdateFlg] = useState(false);
 
@@ -116,6 +117,7 @@ export default function UpdateMatchModal({
 
     setQualifyingRoundFlg(match.qualifying_round_flg ?? false);
     setFinalTournamentFlg(match.final_tournament_flg ?? false);
+
     setOpponentsDeckInfo(match.opponents_deck_info ?? "");
 
     setIsGoFirst(match.games?.[0]?.go_first ? "1" : "0");

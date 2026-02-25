@@ -21,6 +21,7 @@ import OfficialEventInfo from "@app/components/organisms/Record/OfficialEventInf
 import TonamelEventInfo from "@app/components/organisms/Record/TonamelEventInfo";
 import Matches from "@app/components/organisms/Match/Matches";
 import UsedDeckById from "@app/components/organisms/Deck/UsedDeckById";
+import TweetButton from "@app/components/organisms/Record/TweetButton";
 
 import DeleteRecordModal from "@app/components/organisms/Record/Modal/DeleteRecordModal";
 
@@ -138,7 +139,7 @@ export default function DisplayRecordModal({
                   <div className="pb-0 flex flex-col items-center justify-center gap-0">
                     <div className="font-bold underline">対戦結果</div>
                   </div>
-                  <Matches record={record} enableCreateMatchModalButton={true} />
+                  <Matches record={record} enableCreateMatchModalButton={false} />
                 </div>
 
                 <div className="flex flex-col gap-3">
@@ -152,16 +153,22 @@ export default function DisplayRecordModal({
                   />
                 </div>
 
-                <div className="pt-6 w-full">
-                  <Button
-                    color="danger"
-                    onPress={() => {
-                      onOpenForDeleteRecordModal();
-                    }}
-                    className="font-bold w-full"
-                  >
-                    このレコードを削除する
-                  </Button>
+                <div className="flex flex-col items-center justify-center gap-3 w-full">
+                  <div className="w-full">
+                    <TweetButton record={record} />
+                  </div>
+
+                  <div className="w-full">
+                    <Button
+                      color="danger"
+                      onPress={() => {
+                        onOpenForDeleteRecordModal();
+                      }}
+                      className="font-bold w-full"
+                    >
+                      このレコードを削除する
+                    </Button>
+                  </div>
                 </div>
               </ModalBody>
             </>

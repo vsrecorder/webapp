@@ -139,7 +139,11 @@ export default function DisplayRecordModal({
                   <div className="pb-0 flex flex-col items-center justify-center gap-0">
                     <div className="font-bold underline">対戦結果</div>
                   </div>
-                  <Matches record={record} enableCreateMatchModalButton={false} />
+                  <Matches
+                    record={record}
+                    enableCreateMatchModalButton={false}
+                    enableUpdateMatchModalButton={false}
+                  />
                 </div>
 
                 <div className="flex flex-col gap-3">
@@ -150,6 +154,7 @@ export default function DisplayRecordModal({
                     record={record}
                     setRecord={setRecord}
                     enableShowDeckModal={false}
+                    enableUpdateUsedDeckModal={false}
                   />
                 </div>
 

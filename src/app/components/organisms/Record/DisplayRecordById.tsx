@@ -38,14 +38,23 @@ export default function DisplayRecordById({ recordData }: Props) {
         <div className="pb-0 flex flex-col items-center justify-center gap-0">
           <div className="font-bold underline">対戦結果</div>
         </div>
-        <Matches record={record} enableCreateMatchModalButton={true} />
+        <Matches
+          record={record}
+          enableCreateMatchModalButton={true}
+          enableUpdateMatchModalButton={true}
+        />
       </div>
 
       <div className="flex flex-col gap-3">
         <div className="pb-0 flex flex-col items-center justify-center gap-0">
           <div className="font-bold underline">使用したデッキ</div>
         </div>
-        <UsedDeckById record={record} setRecord={setRecord} enableShowDeckModal={false} />
+        <UsedDeckById
+          record={record}
+          setRecord={setRecord}
+          enableShowDeckModal={false}
+          enableUpdateUsedDeckModal={true}
+        />
       </div>
     </div>
   );

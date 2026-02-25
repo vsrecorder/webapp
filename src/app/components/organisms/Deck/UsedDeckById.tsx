@@ -62,9 +62,15 @@ type Props = {
   record: RecordGetByIdResponseType | null;
   setRecord: Dispatch<SetStateAction<RecordGetByIdResponseType | null>>;
   enableShowDeckModal: boolean;
+  enableUpdateUsedDeckModal: boolean;
 };
 
-export default function UsedDeckById({ record, setRecord, enableShowDeckModal }: Props) {
+export default function UsedDeckById({
+  record,
+  setRecord,
+  enableShowDeckModal,
+  enableUpdateUsedDeckModal,
+}: Props) {
   const [deck, setDeck] = useState<DeckGetByIdResponseType | null>(null);
   const [deckcode, setDeckCode] = useState<DeckCodeType | null>(null);
   const [loading1, setLoading1] = useState(true);
@@ -145,7 +151,7 @@ export default function UsedDeckById({ record, setRecord, enableShowDeckModal }:
       <UpdateUsedDeckModal
         record={record}
         setRecord={setRecord}
-        isOpen={isOpenForUpdateUsedDeckModal}
+        isOpen={isOpenForUpdateUsedDeckModal && enableUpdateUsedDeckModal}
         onOpenChange={onOpenChangeForUpdateUsedDeckModal}
       />
 

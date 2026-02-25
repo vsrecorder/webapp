@@ -49,9 +49,14 @@ async function fetchMatches(record_id: string) {
 type Props = {
   record: RecordGetByIdResponseType | null;
   enableCreateMatchModalButton: boolean;
+  enableUpdateMatchModalButton: boolean;
 };
 
-export default function Matches({ record, enableCreateMatchModalButton }: Props) {
+export default function Matches({
+  record,
+  enableCreateMatchModalButton,
+  enableUpdateMatchModalButton,
+}: Props) {
   const [selectedMatch, setSelectedMatch] = useState<MatchGetResponseType | null>(null);
   const [matches, setMatches] = useState<MatchGetResponseType[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -101,7 +106,7 @@ export default function Matches({ record, enableCreateMatchModalButton }: Props)
       <UpdateMatchModal
         match={selectedMatch}
         setMatches={setMatches}
-        isOpen={isOpenForUpdateMatchModal}
+        isOpen={isOpenForUpdateMatchModal && enableUpdateMatchModalButton}
         onOpenChange={onOpenChangeForUpdateMatchModal}
         onClose={onCloseForUpdateMatchModal}
       />

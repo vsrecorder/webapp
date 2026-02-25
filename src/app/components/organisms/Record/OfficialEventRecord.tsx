@@ -118,6 +118,7 @@ export default function OfficialEventRecord({
         data.title = data.title.replace(/（シニアリーグ）/g, "");
         data.title = data.title.replace(/（ジュニアリーグ）/g, "");
         data.title = data.title.replace(/（スタンダード）/g, "");
+        data.title = data.title.replace(/（.*?）/g, "");
 
         setOfficialEvent(data);
       } catch (err) {

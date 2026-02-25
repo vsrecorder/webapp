@@ -2,8 +2,6 @@
 
 import { useSession } from "next-auth/react";
 
-import { redirect } from "next/navigation";
-
 import { useEffect, useState } from "react";
 
 import { Spinner } from "@heroui/spinner";
@@ -75,10 +73,8 @@ export default function RecordById({ id }: Props) {
         <Spinner size="lg" />
       </div>
     );
-  }
-
-  if (!session) {
-    redirect("/");
+  } else if (status == "unauthenticated") {
+    return;
   }
 
   if (loading) {
@@ -97,12 +93,11 @@ export default function RecordById({ id }: Props) {
     );
   }
 
-  if (!record) {
+  if (!record || !session) {
     return;
   }
 
   if (record.user_id !== session.user.id) {
-    console.log(record);
     return (
       <div className="flex flex-col items-center justify-center gap-1">
         <div className="text-sm text-center">このレコードは非公開に設定されています</div>

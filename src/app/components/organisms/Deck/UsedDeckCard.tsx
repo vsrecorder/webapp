@@ -5,6 +5,7 @@
 import { SetStateAction, Dispatch } from "react";
 
 import { Card, CardHeader, CardBody } from "@heroui/react";
+import { Image } from "@heroui/react";
 //import { Chip } from "@heroui/react";
 
 import { useDisclosure } from "@heroui/react";
@@ -103,8 +104,35 @@ export default function UsedDeckCard({
               {/* 両端配置 */}
               <div className="flex items-center justify-between w-full">
                 {/* 左側 */}
-                <div className="font-bold text-large truncate w-full min-w-0">
-                  {deck.name}
+
+                <div className="flex items-center gap-0 shrink-0">
+                  {deck.pokemon_sprites[0] ? (
+                    <Image
+                      alt={deck.pokemon_sprites[0].id.replace(/^0+(?!$)/, "")}
+                      src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${deck.pokemon_sprites[0].id.replace(/^0+(?!$)/, "")}.png`}
+                      className="w-11 h-11 object-cover scale-125 origin-bottom -translate-y-1"
+                    />
+                  ) : (
+                    <Image
+                      alt="unknown"
+                      src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
+                      className="w-11 h-11 object-cover scale-125 origin-bottom -translate-y-2"
+                    />
+                  )}
+
+                  {deck.pokemon_sprites[1] ? (
+                    <Image
+                      alt={deck.pokemon_sprites[1].id.replace(/^0+(?!$)/, "")}
+                      src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${deck.pokemon_sprites[1].id.replace(/^0+(?!$)/, "")}.png`}
+                      className="w-11 h-11 object-cover scale-125 origin-bottom -translate-y-1"
+                    />
+                  ) : (
+                    <Image
+                      alt="unknown"
+                      src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
+                      className="w-11 h-11 object-cover scale-125 origin-bottom -translate-y-2"
+                    />
+                  )}
                 </div>
 
                 {/* 右側 */}
@@ -115,6 +143,10 @@ export default function UsedDeckCard({
                   </small>
                 </Chip>
                 */}
+              </div>
+
+              <div className="font-bold text-large truncate w-full min-w-0">
+                {deck.name}
               </div>
 
               <div className="pl-1">

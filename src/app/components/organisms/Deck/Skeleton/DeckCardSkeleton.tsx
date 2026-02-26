@@ -12,8 +12,9 @@ export function DeckCardSkeleton() {
             {/* 両端配置 */}
             <div className="flex items-center justify-between w-full">
               {/* 左側 */}
-              <div className="font-bold text-large">
-                <Skeleton className="h-7 w-44" />
+              <div className="pt-1 flex items-center gap-1.5 shrink-0">
+                <Skeleton className="h-10 w-10 rounded-2xl" />
+                <Skeleton className="h-10 w-10 rounded-2xl" />
               </div>
 
               {/* 右側 */}
@@ -22,6 +23,10 @@ export function DeckCardSkeleton() {
                 <Skeleton className="h-5 w-9 rounded-2xl" />
               </div>
               */}
+            </div>
+
+            <div className="font-bold text-large">
+              <Skeleton className="h-7 w-44" />
             </div>
 
             <div className="pl-1">

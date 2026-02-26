@@ -129,7 +129,7 @@ export default function ShowDeckModal({
   }, [deckcode?.code]);
 
   if (!deck) {
-    return null;
+    return;
   }
 
   const isArchived = new Date(deck.archived_at).getFullYear() === 1;
@@ -155,15 +155,50 @@ export default function ShowDeckModal({
               <ModalHeader className="px-3 py-3 flex items-center gap-3">
                 <>
                   <div className="flex items-center justify-between w-full">
-                    <div className="flex items-center gap-3 w-3/4">
-                      <div className="font-bold text-large truncate">{deck.name}</div>
-                      <div className="pb-2.5">
-                        <div className="text-lg">
-                          <LuSquarePen
-                            onClick={() => {
-                              onOpenForUpdateDeckModal();
-                            }}
+                    <div className="flex flex-col gap-1 w-full">
+                      <div
+                        onClick={onOpenForUpdateDeckModal}
+                        className="flex items-center gap-0 shrink-0"
+                      >
+                        {deck.pokemon_sprites[0] ? (
+                          <Image
+                            alt={deck.pokemon_sprites[0].id.replace(/^0+(?!$)/, "")}
+                            src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${deck.pokemon_sprites[0].id.replace(/^0+(?!$)/, "")}.png`}
+                            className="w-11 h-11 object-cover scale-125 origin-bottom -translate-y-1"
                           />
+                        ) : (
+                          <Image
+                            alt="unknown"
+                            src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
+                            className="w-11 h-11 object-cover scale-125 origin-bottom -translate-y-2"
+                          />
+                        )}
+
+                        {deck.pokemon_sprites[1] ? (
+                          <Image
+                            alt={deck.pokemon_sprites[1].id.replace(/^0+(?!$)/, "")}
+                            src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${deck.pokemon_sprites[1].id.replace(/^0+(?!$)/, "")}.png`}
+                            className="w-11 h-11 object-cover scale-125 origin-bottom -translate-y-1"
+                          />
+                        ) : (
+                          <Image
+                            alt="unknown"
+                            src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
+                            className="w-11 h-11 object-cover scale-125 origin-bottom -translate-y-2"
+                          />
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-3 w-3/4">
+                        <div className="font-bold text-large truncate">{deck.name}</div>
+                        <div className="pb-2.5">
+                          <div className="text-lg">
+                            <LuSquarePen
+                              onClick={() => {
+                                onOpenForUpdateDeckModal();
+                              }}
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>

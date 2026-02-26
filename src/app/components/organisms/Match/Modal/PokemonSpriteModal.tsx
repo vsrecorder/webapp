@@ -1,6 +1,6 @@
 import useSWR from "swr";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { SetStateAction, Dispatch } from "react";
 
 import WindowedSelect from "react-windowed-select";
@@ -75,24 +75,7 @@ export default function PokemonSpriteModal({
 
   const [isDisabled, setIsDisabled] = useState<boolean>(false);
 
-  useEffect(() => {
-    if (isOpen) {
-      setSelectedPokemonSpriteOption(
-        pokemonSprite ? convertToPokemonSpriteOption(pokemonSprite) : null,
-      );
-    }
-  }, [isOpen, pokemonSprite]);
-
-  useEffect(() => {
-    if (pokemonSprite?.name === selectedPokemonSpriteOption?.name) {
-      setIsDisabled(true);
-      return;
-    }
-
-    setIsDisabled(false);
-  }, [pokemonSprite, selectedPokemonSpriteOption]);
-
-  const pokemonSpritesOptions: PokemonSpriteOption[] = [];
+  let pokemonSpritesOptions: PokemonSpriteOption[] = [];
   let pokemonSpritesOptionsMessage = "対象のポケモンはいません";
   {
     const url = "/api/pokemon-sprites";
@@ -112,10 +95,48 @@ export default function PokemonSpriteModal({
       pokemonSpritesOptionsMessage = "ポケモンがいません";
     }
 
+    pokemonSpritesOptions = useMemo(() => {
+      if (!data) return [];
+      return data.map(convertToPokemonSpriteOption);
+    }, [data]);
+
+    /*
     data?.forEach((s: PokemonSpriteType) => {
       pokemonSpritesOptions.push(convertToPokemonSpriteOption(s));
     });
+    */
   }
+
+  useEffect(() => {
+    if (isOpen) {
+      if (pokemonSprite) {
+        const targetId = pokemonSprite.id;
+
+        const matchedOption = pokemonSpritesOptions.find(
+          (option) => option.id === targetId,
+        );
+
+        if (matchedOption) {
+          setSelectedPokemonSpriteOption(matchedOption);
+        }
+      }
+
+      /*
+      setSelectedPokemonSpriteOption(
+        pokemonSprite ? convertToPokemonSpriteOption(pokemonSprite) : null,
+      );
+      */
+    }
+  }, [isOpen, pokemonSprite]);
+
+  useEffect(() => {
+    if (pokemonSprite?.id === selectedPokemonSpriteOption?.id) {
+      setIsDisabled(true);
+      return;
+    }
+
+    setIsDisabled(false);
+  }, [pokemonSprite, selectedPokemonSpriteOption]);
 
   return (
     <Modal
@@ -210,6 +231,16 @@ export default function PokemonSpriteModal({
             <ModalFooter>
               <Button
                 color="default"
+                variant="solid"
+                onPress={() => {
+                  onClose();
+                }}
+                className="font-bold"
+              >
+                戻る
+              </Button>
+              <Button
+                color="primary"
                 variant="solid"
                 isDisabled={isDisabled}
                 onPress={() => {

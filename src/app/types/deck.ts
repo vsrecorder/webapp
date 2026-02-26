@@ -1,4 +1,5 @@
 import { DeckCodeType } from "@app/types/deck_code";
+import { DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
 
 export type DeckData = {
   id: string;
@@ -8,6 +9,7 @@ export type DeckData = {
   name: string;
   private_flg: boolean;
   latest_deck_code: DeckCodeType;
+  pokemon_sprites: DeckPokemonSpriteType[];
 };
 
 export type DeckType = {
@@ -32,6 +34,7 @@ export type DeckCreateRequestType = {
 export type DeckUpdateRequestType = {
   name: string;
   private_flg: boolean;
+  pokemon_sprites: DeckPokemonSpriteType[];
 };
 
 export type DeckGetAllType = DeckData[];

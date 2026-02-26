@@ -1,4 +1,5 @@
 import { GameType, GameRequestType } from "@app/types/game";
+import { MatchPokemonSpriteType } from "@app/types/pokemon_sprite";
 
 export type MatchType = {
   id: string;
@@ -17,6 +18,7 @@ export type MatchType = {
   opponents_deck_info: string;
   memo: string;
   games: GameType[];
+  pokemon_sprites: MatchPokemonSpriteType[];
 };
 
 export type MatchCreateRequestType = {
@@ -33,6 +35,7 @@ export type MatchCreateRequestType = {
   opponents_deck_info: string;
   memo: string;
   games: GameRequestType[];
+  pokemon_sprites: MatchPokemonSpriteType[];
 };
 
 export type MatchUpdateRequestType = {
@@ -49,6 +52,7 @@ export type MatchUpdateRequestType = {
   opponents_deck_info: string;
   memo: string;
   games: GameRequestType[];
+  pokemon_sprites: MatchPokemonSpriteType[];
 };
 
 export type MatchCreateResponseType = MatchType;

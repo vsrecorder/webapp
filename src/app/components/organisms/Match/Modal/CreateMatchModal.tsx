@@ -203,6 +203,16 @@ export default function CreateMatchModal({
       games = [game];
     }
 
+    let pokemon_sprites: PokemonSpriteType[] = [];
+
+    if (pokemonSprite1) {
+      pokemon_sprites.push(pokemonSprite1);
+    }
+
+    if (pokemonSprite2) {
+      pokemon_sprites.push(pokemonSprite2);
+    }
+
     const match: MatchCreateRequestType = {
       record_id: record ? record.id : "",
       deck_id: record ? record.deck_id : "",
@@ -217,6 +227,7 @@ export default function CreateMatchModal({
       opponents_deck_info: opponentsDeckInfo,
       memo: memo,
       games: games,
+      pokemon_sprites: pokemon_sprites,
     };
 
     const toastId = addToast({
@@ -351,7 +362,7 @@ export default function CreateMatchModal({
                 <div className="mx-auto h-1 w-32 mb-1.5 rounded-full bg-default-300" />
                 <div>対戦結果を追加</div>
               </ModalHeader>
-              <ModalBody className="flex flex-col gap-0 px-1 py-1 overflow-y-auto">
+              <ModalBody className="flex flex-col gap-0 px-1 py-1 pb-0 overflow-y-auto">
                 <Tabs fullWidth size="sm" className="left-0 right-0 pl-1 pr-1 font-bold">
                   <Tab key="bo1" title="BO1">
                     <div className="flex flex-col gap-3 pt-0">
@@ -399,20 +410,15 @@ export default function CreateMatchModal({
                             <span>相手のデッキ</span>
                             <span className="text-sm text-red-500">*</span>
                           </label>
-                          <label>
-                            <span className="text-tiny text-red-500">
-                              *ポケモンのアイコン選択機能は現在準備中です
-                            </span>
-                          </label>
                         </CardHeader>
                         <CardBody className="flex items-center">
                           <div className="flex items-center gap-1.5 w-full">
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-0 shrink-0">
                               <div className="w-11 h-11 p-0 shrink-0">
                                 {pokemonSprite1 ? (
                                   <Image
                                     onClick={onOpenForPokemonSprite1Modal}
-                                    alt={pokemonSprite1.name}
+                                    alt={pokemonSprite1.id.replace(/^0+(?!$)/, "")}
                                     src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${pokemonSprite1.id.replace(/^0+(?!$)/, "")}.png`}
                                     radius="none"
                                     className="w-full h-full object-contain scale-150 origin-bottom"
@@ -433,7 +439,7 @@ export default function CreateMatchModal({
                                 {pokemonSprite2 ? (
                                   <Image
                                     onClick={onOpenForPokemonSprite2Modal}
-                                    alt={pokemonSprite2.name}
+                                    alt={pokemonSprite2.id.replace(/^0+(?!$)/, "")}
                                     src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${pokemonSprite2.id.replace(/^0+(?!$)/, "")}.png`}
                                     radius="none"
                                     className="w-full h-full object-contain scale-150 origin-bottom"
@@ -566,7 +572,7 @@ export default function CreateMatchModal({
                   <Tab key="bo3" title="BO3" isDisabled></Tab>
                 </Tabs>
               </ModalBody>
-              <ModalFooter className="flex items-center">
+              <ModalFooter className="pt-0 flex items-center">
                 <div className="w-full">
                   <div className="flex items-center gap-6">
                     <Switch

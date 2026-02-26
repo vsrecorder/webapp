@@ -166,7 +166,7 @@ export default function Matches({
                                       match.default_defeat_flg ? (
                                         <>
                                           <>
-                                            <div className="flex items-center gap-1.5 shrink-0 translate-x-1">
+                                            <div className="flex items-center gap-0 shrink-0 translate-x-1">
                                               <Image
                                                 alt="unknown"
                                                 src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
@@ -190,18 +190,40 @@ export default function Matches({
                                       ) : (
                                         <>
                                           <>
-                                            <div className="flex items-center gap-1.5 shrink-0">
-                                              <Image
-                                                alt="unknown"
-                                                src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
-                                                className="w-11 h-11 object-cover scale-125 origin-bottom -translate-y-2"
-                                              />
+                                            <div className="flex items-center gap-0 shrink-0">
+                                              {match.pokemon_sprites[0] ? (
+                                                <Image
+                                                  alt={match.pokemon_sprites[0].id.replace(
+                                                    /^0+(?!$)/,
+                                                    "",
+                                                  )}
+                                                  src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${match.pokemon_sprites[0].id.replace(/^0+(?!$)/, "")}.png`}
+                                                  className="w-11 h-11 object-cover scale-125 origin-bottom -translate-y-1"
+                                                />
+                                              ) : (
+                                                <Image
+                                                  alt="unknown"
+                                                  src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
+                                                  className="w-11 h-11 object-cover scale-125 origin-bottom -translate-y-2"
+                                                />
+                                              )}
 
-                                              <Image
-                                                alt="unknown"
-                                                src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
-                                                className="w-11 h-11 object-cover scale-125 origin-bottom -translate-y-2"
-                                              />
+                                              {match.pokemon_sprites[1] ? (
+                                                <Image
+                                                  alt={match.pokemon_sprites[1].id.replace(
+                                                    /^0+(?!$)/,
+                                                    "",
+                                                  )}
+                                                  src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${match.pokemon_sprites[1].id.replace(/^0+(?!$)/, "")}.png`}
+                                                  className="w-11 h-11 object-cover scale-125 origin-bottom -translate-y-1"
+                                                />
+                                              ) : (
+                                                <Image
+                                                  alt="unknown"
+                                                  src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
+                                                  className="w-11 h-11 object-cover scale-125 origin-bottom -translate-y-2"
+                                                />
+                                              )}
                                             </div>
                                           </>
 

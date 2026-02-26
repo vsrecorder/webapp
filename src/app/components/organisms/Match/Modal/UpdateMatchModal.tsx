@@ -36,7 +36,7 @@ import DeleteMatchModal from "@app/components/organisms/Match/Modal/DeleteMatchM
 import { MatchGetResponseType } from "@app/types/match";
 import { MatchUpdateRequestType, MatchUpdateResponseType } from "@app/types/match";
 import { GameRequestType } from "@app/types/game";
-import { PokemonSpriteType } from "@app/types/pokemon_sprite";
+import { PokemonSpriteType, MatchPokemonSpriteType } from "@app/types/pokemon_sprite";
 
 type Props = {
   match: MatchGetResponseType | null;
@@ -130,6 +130,24 @@ export default function UpdateMatchModal({
     setOpponentsPrizeCards(match.games?.[0]?.opponents_prize_cards ?? 0);
 
     setMemo(match.memo ?? "");
+
+    setPokemonSprite1(
+      match.pokemon_sprites[0]
+        ? {
+            id: match.pokemon_sprites[0].id,
+            name: "",
+          }
+        : null,
+    );
+
+    setPokemonSprite2(
+      match.pokemon_sprites[1]
+        ? {
+            id: match.pokemon_sprites[1].id,
+            name: "",
+          }
+        : null,
+    );
   }, [match, isOpen]);
 
   useEffect(() => {
@@ -207,6 +225,16 @@ export default function UpdateMatchModal({
       games = [game];
     }
 
+    let pokemon_sprites: MatchPokemonSpriteType[] = [];
+
+    if (pokemonSprite1) {
+      pokemon_sprites.push(pokemonSprite1);
+    }
+
+    if (pokemonSprite2) {
+      pokemon_sprites.push(pokemonSprite2);
+    }
+
     const data: MatchUpdateRequestType = {
       record_id: match?.record_id ?? "",
       deck_id: match?.deck_id ?? "",
@@ -221,6 +249,7 @@ export default function UpdateMatchModal({
       opponents_deck_info: opponentsDeckInfo,
       memo: memo,
       games: games,
+      pokemon_sprites: pokemon_sprites,
     };
 
     const toastId = addToast({
@@ -340,6 +369,9 @@ export default function UpdateMatchModal({
 
           setIsDisabled(false);
           setCouldUpdateFlg(false);
+
+          setPokemonSprite1(null);
+          setPokemonSprite2(null);
         }}
         hideCloseButton
         className="h-[calc(100dvh-168px)] max-h-[calc(100dvh-168px)] mt-26 my-0 rounded-b-none"
@@ -378,7 +410,7 @@ export default function UpdateMatchModal({
                   </div>
                 </div>
               </ModalHeader>
-              <ModalBody className="flex flex-col gap-0 px-1 py-1 overflow-y-auto">
+              <ModalBody className="flex flex-col gap-0 px-1 py-1 pb-0 overflow-y-auto">
                 <Tabs fullWidth size="sm" className="left-0 right-0 pl-1 pr-1 font-bold">
                   <Tab key="bo1" title="BO1">
                     <div className="flex flex-col gap-3 pt-0">
@@ -426,20 +458,15 @@ export default function UpdateMatchModal({
                             <span>相手のデッキ</span>
                             <span className="text-sm text-red-500">*</span>
                           </label>
-                          <label>
-                            <span className="text-tiny text-red-500">
-                              *ポケモンのアイコン選択機能は現在準備中です
-                            </span>
-                          </label>
                         </CardHeader>
                         <CardBody className="flex items-center">
                           <div className="flex items-center gap-1.5 w-full">
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-0 shrink-0">
                               <div className="w-11 h-11 p-0 shrink-0">
                                 {pokemonSprite1 ? (
                                   <Image
                                     onClick={onOpenForPokemonSprite1Modal}
-                                    alt={pokemonSprite1.name}
+                                    alt={pokemonSprite1.id.replace(/^0+(?!$)/, "")}
                                     src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${pokemonSprite1.id.replace(/^0+(?!$)/, "")}.png`}
                                     radius="none"
                                     className="w-full h-full object-contain scale-150 origin-bottom"
@@ -460,7 +487,7 @@ export default function UpdateMatchModal({
                                 {pokemonSprite2 ? (
                                   <Image
                                     onClick={onOpenForPokemonSprite2Modal}
-                                    alt={pokemonSprite2.name}
+                                    alt={pokemonSprite2.id.replace(/^0+(?!$)/, "")}
                                     src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${pokemonSprite2.id.replace(/^0+(?!$)/, "")}.png`}
                                     radius="none"
                                     className="w-full h-full object-contain scale-150 origin-bottom"
@@ -593,7 +620,7 @@ export default function UpdateMatchModal({
                   <Tab key="bo3" title="BO3" isDisabled></Tab>
                 </Tabs>
               </ModalBody>
-              <ModalFooter className="flex items-center">
+              <ModalFooter className="pt-0 flex items-center">
                 <div className="w-full">
                   <div className="flex items-center gap-6">
                     <Switch

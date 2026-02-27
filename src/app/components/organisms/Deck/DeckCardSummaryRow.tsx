@@ -39,28 +39,34 @@ function CardSkelton() {
   return (
     <div className="pl-1 flex flex-wrap gap-1">
       <div>
-        <Skeleton className="h-6.5 w-24 rounded-2xl" />
+        <Skeleton className="h-5.5 w-24 rounded-2xl" />
       </div>
       <div>
-        <Skeleton className="h-6.5 w-16 rounded-2xl" />
+        <Skeleton className="h-5.5 w-21 rounded-2xl" />
       </div>
       <div>
-        <Skeleton className="h-6.5 w-18 rounded-2xl" />
+        <Skeleton className="h-5.5 w-18 rounded-2xl" />
       </div>
       <div>
-        <Skeleton className="h-6.5 w-22 rounded-2xl" />
+        <Skeleton className="h-5.5 w-22 rounded-2xl" />
       </div>
       <div>
-        <Skeleton className="h-6.5 w-26 rounded-2xl" />
+        <Skeleton className="h-5.5 w-28 rounded-2xl" />
       </div>
       <div>
-        <Skeleton className="h-6.5 w-18 rounded-2xl" />
+        <Skeleton className="h-5.5 w-32 rounded-2xl" />
       </div>
       <div>
-        <Skeleton className="h-6.5 w-22 rounded-2xl" />
+        <Skeleton className="h-5.5 w-22 rounded-2xl" />
       </div>
       <div>
-        <Skeleton className="h-6.5 w-16 rounded-2xl" />
+        <Skeleton className="h-5.5 w-18 rounded-2xl" />
+      </div>
+      <div>
+        <Skeleton className="h-5.5 w-28 rounded-2xl" />
+      </div>
+      <div>
+        <Skeleton className="h-5.5 w-32 rounded-2xl" />
       </div>
     </div>
   );
@@ -101,7 +107,7 @@ export default function DeckCardSummaryRow({ deckcode }: Props) {
 
   if (loading) {
     return (
-      <div className="w-full">
+      <div className="h-44 w-full">
         <Tabs fullWidth size="sm" className="">
           <Tab key="card_pke" title={`ポケモン：??`}>
             <CardSkelton />
@@ -138,10 +144,19 @@ export default function DeckCardSummaryRow({ deckcode }: Props) {
   if (!deckcardSummary) return;
 
   return (
-    <div className="w-full overflow-y-auto">
-      <Tabs fullWidth size="sm" className="">
+    <div className="h-44 w-full flex flex-col">
+      <Tabs
+        fullWidth
+        size="sm"
+        className="flex flex-col"
+        classNames={{
+          base: "flex flex-col",
+          tabList: "shrink-0",
+          panel: "flex-1 overflow-y-auto",
+        }}
+      >
         <Tab key="card_pke" title={`ポケモン：${deckcardSummary.card_pke_count}`}>
-          <div className="pl-1 flex flex-wrap gap-1">
+          <div className="overflow-y-auto pl-1 flex flex-wrap gap-1">
             {deckcardSummary.card_pke.map((deckcard, index) => (
               <div key={index}>
                 <Chip

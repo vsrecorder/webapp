@@ -29,7 +29,7 @@ import InspectDeckModal from "@app/components/organisms/Deck/Modal/InspectDeckMo
 import DisplayRecordsModal from "@app/components/organisms/Deck/Modal/DisplayRecordsModal";
 import DisplayDeckCodesModal from "@app/components/organisms/Deck/Modal/DisplayDeckCodes";
 
-//import DeckCardSummaryRow from "@app/components/organisms/Deck/DeckCardSummaryRow";
+import DeckCardSummaryRow from "@app/components/organisms/Deck/DeckCardSummaryRow";
 
 //import { LuExternalLink } from "react-icons/lu";
 import { LuFolderInput } from "react-icons/lu";
@@ -214,7 +214,7 @@ export default function ShowDeckModal({
                   </div>
                 </>
               </ModalHeader>
-              <ModalBody className="px-1 py-1 pb-3 flex flex-col gap-5 overflow-y-auto">
+              <ModalBody className="px-1 py-1 pb-3 flex flex-col gap-3 overflow-y-auto">
                 <div className="pl-3 flex flex-col justify-center gap-3">
                   <div className="font-bold text-tiny">バージョンID：{version}</div>
                   <div className="flex items-center gap-2">
@@ -276,13 +276,11 @@ export default function ShowDeckModal({
                   )}
                 </div>
 
-                {/*
                 <div className="px-1 overflow-y-auto">
                   {deckcode && <DeckCardSummaryRow deckcode={deckcode} />}
                 </div>
-                */}
               </ModalBody>
-              <ModalFooter className="px-1">
+              <ModalFooter className="px-1 pt-0">
                 {isArchived ? (
                   <div className="flex items-center gap-8 mx-auto overflow-x-auto">
                     <Link

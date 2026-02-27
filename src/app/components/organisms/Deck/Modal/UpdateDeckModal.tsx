@@ -249,23 +249,47 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
       onClose={() => {
         setIsDisabled(false);
 
-        deck &&
-          deck.pokemon_sprites[0] &&
+        if (deck && deck.pokemon_sprites[0] && selectedPokemonSpriteOption1) {
+          /*
           setSelectedPokemonSpriteOption1(
             convertToPokemonSpriteOption({
               id: deck.pokemon_sprites[0].id,
               name: "",
             }),
           );
+          */
 
-        deck &&
-          deck.pokemon_sprites[1] &&
+          const targetId = deck.pokemon_sprites[0].id;
+
+          const matchedOption = pokemonSpritesOptions.find(
+            (option) => option.id === targetId,
+          );
+
+          if (matchedOption) {
+            setSelectedPokemonSpriteOption1(matchedOption);
+          }
+        }
+
+        if (deck && deck.pokemon_sprites[1] && selectedPokemonSpriteOption2) {
+          /*
           setSelectedPokemonSpriteOption2(
             convertToPokemonSpriteOption({
               id: deck.pokemon_sprites[1].id,
               name: "",
             }),
           );
+          */
+
+          const targetId = deck.pokemon_sprites[1].id;
+
+          const matchedOption = pokemonSpritesOptions.find(
+            (option) => option.id === targetId,
+          );
+
+          if (matchedOption) {
+            setSelectedPokemonSpriteOption2(matchedOption);
+          }
+        }
       }}
       classNames={{
         base: "sm:max-w-full",

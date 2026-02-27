@@ -110,13 +110,13 @@ export default function UsedDeckCard({
                     <Image
                       alt={deck.pokemon_sprites[0].id.replace(/^0+(?!$)/, "")}
                       src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${deck.pokemon_sprites[0].id.replace(/^0+(?!$)/, "")}.png`}
-                      className="w-11 h-11 object-cover scale-125 origin-bottom -translate-y-1"
+                      className="w-11 h-11 object-contain scale-150 origin-bottom"
                     />
                   ) : (
                     <Image
                       alt="unknown"
                       src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
-                      className="w-11 h-11 object-cover scale-125 origin-bottom -translate-y-2"
+                      className="w-11 h-11 object-contain scale-150 origin-bottom"
                     />
                   )}
 
@@ -124,13 +124,13 @@ export default function UsedDeckCard({
                     <Image
                       alt={deck.pokemon_sprites[1].id.replace(/^0+(?!$)/, "")}
                       src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${deck.pokemon_sprites[1].id.replace(/^0+(?!$)/, "")}.png`}
-                      className="w-11 h-11 object-cover scale-125 origin-bottom -translate-y-1"
+                      className="w-11 h-11 object-contain scale-150 origin-bottom"
                     />
                   ) : (
                     <Image
                       alt="unknown"
                       src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
-                      className="w-11 h-11 object-cover scale-125 origin-bottom -translate-y-2"
+                      className="w-11 h-11 object-contain scale-150 origin-bottom"
                     />
                   )}
                 </div>

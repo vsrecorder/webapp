@@ -48,7 +48,7 @@ export default function MobileNavigation() {
 
         <Link
           href={"/cityleague_results"}
-          className="flex flex-col items-center gap-1 px-2 rounded-lg transition-all duration-150 active:scale-50"
+          className="flex flex-col items-center gap-1 px-2 rounded-lg transition-all duration-150 active:scale-60"
         >
           <div className="text-2xl">
             <LuTrophy />

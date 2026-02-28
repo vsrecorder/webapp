@@ -24,7 +24,11 @@ export default function DisplayRecordById({ recordData }: Props) {
         {
           // 公式イベントの場合
           record?.official_event_id !== 0 ? (
-            <OfficialEventInfo record={record} setRecord={setRecord} />
+            <OfficialEventInfo
+              record={record}
+              setRecord={setRecord}
+              enableEditTCGMeisterURL={true}
+            />
           ) : // Tonamelの場合
           record?.tonamel_event_id !== "" ? (
             <TonamelEventInfo record={record} />

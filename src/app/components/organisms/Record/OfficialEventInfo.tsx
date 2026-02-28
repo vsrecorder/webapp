@@ -5,6 +5,7 @@ import { SetStateAction, Dispatch } from "react";
 
 import { Card, CardHeader, CardBody } from "@heroui/react";
 import { Image } from "@heroui/react";
+import { Link } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
 
 import { useDisclosure } from "@heroui/react";
@@ -70,9 +71,14 @@ async function fetchDeckById(id: string) {
 type Props = {
   record: RecordGetByIdResponseType | null;
   setRecord: Dispatch<SetStateAction<RecordGetByIdResponseType | null>>;
+  enableEditTCGMeisterURL: boolean;
 };
 
-export default function OfficialEventInfo({ record, setRecord }: Props) {
+export default function OfficialEventInfo({
+  record,
+  setRecord,
+  enableEditTCGMeisterURL,
+}: Props) {
   const [officialEvent, setOfficialEvent] =
     useState<OfficialEventGetByIdResponseType | null>(null);
   const [deck, setDeck] = useState<DeckGetByIdResponseType | null>(null);
@@ -174,7 +180,7 @@ export default function OfficialEventInfo({ record, setRecord }: Props) {
       <EditTCGMeisterURLModal
         record={record}
         setRecord={setRecord}
-        isOpen={isOpenForTCGMeisterURLModal}
+        isOpen={isOpenForTCGMeisterURLModal && enableEditTCGMeisterURL}
         onOpenChange={onOpenChangeForTCGMeisterURLModal}
       />
 
@@ -183,12 +189,24 @@ export default function OfficialEventInfo({ record, setRecord }: Props) {
           <CardHeader className="relative px-5 pb-0 pt-0 flex-col items-center justify-center gap-1.5">
             <div className="font-bold text-tiny">{date}</div>
 
-            <LuLink
-              className="absolute -top-1 right-2 text-gray-500"
-              onClick={() => {
-                onOpenForTCGMeisterURLModal();
-              }}
-            />
+            {enableEditTCGMeisterURL ? (
+              <LuLink
+                className="absolute -top-1 right-2 text-gray-500"
+                onClick={() => {
+                  onOpenForTCGMeisterURLModal();
+                }}
+              />
+            ) : (
+              record.tcg_meister_url && (
+                <Link
+                  isExternal
+                  href={record.tcg_meister_url}
+                  className={"absolute -top-1 right-2 text-gray-500"}
+                >
+                  <LuLink className="" />
+                </Link>
+              )
+            )}
 
             <div className="font-bold truncate w-full min-w-0 text-center">
               {loadingOfficialEvent ? (

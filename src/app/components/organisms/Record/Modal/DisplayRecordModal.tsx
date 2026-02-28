@@ -125,7 +125,11 @@ export default function DisplayRecordModal({
                   {
                     // 公式イベントの場合
                     record.official_event_id !== 0 ? (
-                      <OfficialEventInfo record={record} setRecord={setRecord} />
+                      <OfficialEventInfo
+                        record={record}
+                        setRecord={setRecord}
+                        enableEditTCGMeisterURL={false}
+                      />
                     ) : // Tonamelの場合
                     record.tonamel_event_id !== "" ? (
                       <TonamelEventInfo record={record} />

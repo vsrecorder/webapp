@@ -1,3 +1,5 @@
+import { toPng } from "html-to-image";
+
 import { useRef } from "react";
 
 import { SetStateAction, Dispatch } from "react";
@@ -12,7 +14,9 @@ import {
   useDisclosure,
 } from "@heroui/react";
 import { Button } from "@heroui/react";
+import { addToast, closeToast } from "@heroui/react";
 
+import { LuImageDown } from "react-icons/lu";
 import { LuExternalLink } from "react-icons/lu";
 
 //import RecordById from "@app/components/organisms/Record/RecordById";
@@ -64,6 +68,133 @@ export default function DisplayRecordModal({
       startY.current = null;
       onClose();
     }
+  };
+
+  const eventCardRef = useRef<HTMLDivElement>(null);
+
+  const handleSavingEventCardImage = async () => {
+    const toastId = addToast({
+      title: "画像をダウンロード中",
+      description: "しばらくお待ちください",
+      color: "default",
+      promise: new Promise(() => {}),
+    });
+
+    if (!eventCardRef.current) {
+      if (toastId) {
+        closeToast(toastId);
+      }
+
+      addToast({
+        title: "画像のダウンロードに失敗",
+        description: "画像のダウンロードに失敗しました",
+        color: "danger",
+        timeout: 5000,
+      });
+
+      return;
+    }
+
+    try {
+      const dataUrl = await toPng(eventCardRef.current, {
+        cacheBust: true,
+        pixelRatio: 3,
+        backgroundColor: "#ffffff", // 透過防止
+      });
+
+      const link = document.createElement("a");
+      link.download = `${record.id}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (e) {
+      console.log(e);
+
+      if (toastId) {
+        closeToast(toastId);
+      }
+
+      addToast({
+        title: "画像のダウンロードに失敗",
+        description: "画像のダウンロードに失敗しました",
+        color: "danger",
+        timeout: 5000,
+      });
+
+      return;
+    }
+
+    if (toastId) {
+      closeToast(toastId);
+    }
+
+    addToast({
+      title: "画像のダウンロードが完了",
+      description: "画像をダウンロードしました",
+      color: "success",
+      timeout: 3000,
+    });
+  };
+
+  const deckCardRef = useRef<HTMLDivElement>(null);
+
+  const handleSavingDeckCardImage = async () => {
+    const toastId = addToast({
+      title: "画像をダウンロード中",
+      description: "しばらくお待ちください",
+      color: "default",
+      promise: new Promise(() => {}),
+    });
+
+    if (!deckCardRef.current) {
+      if (toastId) {
+        closeToast(toastId);
+      }
+
+      addToast({
+        title: "画像のダウンロードに失敗",
+        description: "画像のダウンロードに失敗しました",
+        color: "danger",
+        timeout: 5000,
+      });
+      return;
+    }
+
+    try {
+      const dataUrl = await toPng(deckCardRef.current, {
+        cacheBust: true,
+        pixelRatio: 3,
+        backgroundColor: "#ffffff", // 透過防止
+      });
+
+      const link = document.createElement("a");
+      link.download = `${record.deck_id}_${record.deck_code_id}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch {
+      if (toastId) {
+        closeToast(toastId);
+      }
+
+      addToast({
+        title: "画像のダウンロードに失敗",
+        description: "画像のダウンロードに失敗しました",
+        color: "danger",
+        timeout: 5000,
+      });
+
+      return;
+    }
+
+    if (toastId) {
+      closeToast(toastId);
+    }
+
+    addToast({
+      title: "画像のダウンロードが完了",
+      description: "画像をダウンロードしました",
+      color: "success",
+      timeout: 3000,
+    });
   };
 
   return (
@@ -118,48 +249,63 @@ export default function DisplayRecordModal({
               </ModalHeader>
               <ModalBody className="px-3 pb-6 gap-9 overflow-y-auto">
                 <div className="flex flex-col gap-3">
-                  <div className="pb-0 flex flex-col items-center justify-center gap-0">
+                  <div className="pb-0 flex items-center justify-center gap-1.5">
                     <div className="font-bold underline">参加したイベント</div>
-                  </div>
 
-                  {
-                    // 公式イベントの場合
-                    record.official_event_id !== 0 ? (
-                      <OfficialEventInfo
-                        record={record}
-                        setRecord={setRecord}
-                        enableEditTCGMeisterURL={false}
+                    {/* 公式イベントのみ画像の保存が可能 */}
+                    {/* TonamelはCORSによって画像の保存が不可能 */}
+                    {record.official_event_id !== 0 && (
+                      <LuImageDown
+                        onClick={handleSavingEventCardImage}
+                        className="text-lg -translate-y-1"
                       />
-                    ) : // Tonamelの場合
-                    record.tonamel_event_id !== "" ? (
-                      <TonamelEventInfo record={record} />
-                    ) : (
-                      <></>
-                    )
-                  }
-                </div>
-
-                <div className="flex flex-col gap-3">
-                  <div className="pb-0 flex flex-col items-center justify-center gap-0">
-                    <div className="font-bold underline">対戦結果</div>
+                    )}
                   </div>
-                  <Matches
-                    record={record}
-                    enableCreateMatchModalButton={false}
-                    enableUpdateMatchModalButton={false}
-                  />
+
+                  <div ref={eventCardRef} className="p-1 flex flex-col gap-3 bg-white">
+                    {
+                      // 公式イベントの場合
+                      record.official_event_id !== 0 ? (
+                        <OfficialEventInfo
+                          record={record}
+                          setRecord={setRecord}
+                          enableEditTCGMeisterURL={false}
+                        />
+                      ) : // Tonamelの場合
+                      record.tonamel_event_id !== "" ? (
+                        <TonamelEventInfo record={record} />
+                      ) : (
+                        <></>
+                      )
+                    }
+
+                    <div className="flex flex-col gap-3">
+                      <Matches
+                        record={record}
+                        enableCreateMatchModalButton={false}
+                        enableUpdateMatchModalButton={false}
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="flex flex-col gap-3">
-                  <div className="pb-0 flex flex-col items-center justify-center gap-0">
+                  <div className="pb-0 flex items-center justify-center gap-1.5">
                     <div className="font-bold underline">使用したデッキ</div>
+                    <LuImageDown
+                      onClick={handleSavingDeckCardImage}
+                      className="text-lg -translate-y-1"
+                    />
                   </div>
-                  <UsedDeckById
-                    record={record}
-                    setRecord={setRecord}
-                    enableShowDeckModal={false}
-                    enableUpdateUsedDeckModal={false}
-                  />
+
+                  <div ref={deckCardRef} className="p-1 bg-white">
+                    <UsedDeckById
+                      record={record}
+                      setRecord={setRecord}
+                      enableShowDeckModal={false}
+                      enableUpdateUsedDeckModal={false}
+                    />
+                  </div>
                 </div>
 
                 <div className="flex flex-col items-center justify-center gap-3 w-full">

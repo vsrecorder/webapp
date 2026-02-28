@@ -142,7 +142,7 @@ export default function DeckCardDiff({ current_deckcode, previous_deckcode }: Pr
           <div className="font-bold text-tiny pb-1">追加されたカード</div>
           <div className="pl-1 pb-1 flex flex-wrap gap-1">
             <div>
-              <Skeleton className="h-5.5 w-22 rounded-2xl" />
+              <Skeleton className="h-5.5 w-20 rounded-2xl" />
             </div>
             <div>
               <Skeleton className="h-5.5 w-26 rounded-2xl" />
@@ -156,13 +156,13 @@ export default function DeckCardDiff({ current_deckcode, previous_deckcode }: Pr
           <div className="font-bold text-tiny pb-1">削除されたカード</div>
           <div className="pl-1 pb-1 flex flex-wrap gap-1">
             <div>
+              <Skeleton className="h-5.5 w-16 rounded-2xl" />
+            </div>
+            <div>
               <Skeleton className="h-5.5 w-22 rounded-2xl" />
             </div>
             <div>
-              <Skeleton className="h-5.5 w-26 rounded-2xl" />
-            </div>
-            <div>
-              <Skeleton className="h-5.5 w-18 rounded-2xl" />
+              <Skeleton className="h-5.5 w-28 rounded-2xl" />
             </div>
           </div>
         </div>

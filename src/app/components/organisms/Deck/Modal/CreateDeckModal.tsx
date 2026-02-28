@@ -29,7 +29,7 @@ export default function CreateDeckModal({
   const [deckname, setDeckName] = useState<string>("");
   const [deckcode, setDeckCode] = useState<string>(deck_code);
   //const [isSelectedPrivateCode, setIsSelectedPrivateCode] = useState<boolean>(false);
-  //const [isValidatedDeckCode, setIsValidatedDeckCode] = useState<boolean>(false);
+  const [isValidatedDeckCode, setIsValidatedDeckCode] = useState<boolean>(false);
   const [isInvalid, setIsInvalid] = useState<boolean>(true);
   const [isDisabled, setIsDisabled] = useState<boolean>(false);
 
@@ -40,19 +40,16 @@ export default function CreateDeckModal({
       - 有効なデッキコードかどうか
   */
   useEffect(() => {
-    if (deckname != "" && deckcode != "") {
-      //if (deckname != "" && deckcode != "" && isValidatedDeckCode) {
+    if (deckname != "" && deckcode != "" && isValidatedDeckCode) {
       setIsInvalid(false);
     } else {
       setIsInvalid(true);
     }
-  }, [deckname, deckcode]);
-  //}, [deckname, deckcode, isValidatedDeckCode]);
+  }, [deckname, deckcode, isValidatedDeckCode]);
 
   /*
     デッキコードが有効かどうかチェック
   */
-  /*
   useEffect(() => {
     if (!deckcode) {
       setIsValidatedDeckCode(true);
@@ -79,7 +76,6 @@ export default function CreateDeckModal({
 
     checkDeckCode();
   }, [deckcode]);
-  */
 
   const createDeck = async (onClose: () => void) => {
     const deck: DeckCreateRequestType = {
@@ -164,6 +160,8 @@ export default function CreateDeckModal({
       isDismissable={!isDisabled}
       onClose={() => {
         setIsDisabled(false);
+        setIsValidatedDeckCode(true);
+
         setDeckName("");
         setDeckCode(deck_code);
         //setIsSelectedPrivateCode(false);
@@ -191,7 +189,7 @@ export default function CreateDeckModal({
               <Input
                 isRequired
                 isDisabled={isDisabled}
-                //isInvalid={!isValidatedDeckCode}
+                isInvalid={!isValidatedDeckCode}
                 errorMessage="有効なデッキコードを入力してください"
                 type="text"
                 label="デッキコード"
@@ -221,8 +219,7 @@ export default function CreateDeckModal({
                   shadow="none"
                   alt={deckcode ? deckcode : "デッキコードなし"}
                   src={
-                    //isValidatedDeckCode || deckcode
-                    deckcode
+                    isValidatedDeckCode && deckcode
                       ? `https://www.pokemon-card.com/deck/deckView.php/deckID/${deckcode}.png`
                       : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
                   }
@@ -250,9 +247,6 @@ export default function CreateDeckModal({
                 variant="solid"
                 isDisabled={isDisabled}
                 onPress={() => {
-                  //setDeckName("");
-                  //setDeckCode(deck_code);
-                  //setIsSelectedPrivateCode(false);
                   onClose();
                 }}
                 className="font-bold"
@@ -262,7 +256,7 @@ export default function CreateDeckModal({
               <Button
                 color="primary"
                 variant="solid"
-                isDisabled={isInvalid || isDisabled}
+                isDisabled={!isValidatedDeckCode || isInvalid || isDisabled}
                 onPress={() => {
                   createDeck(onClose);
                 }}

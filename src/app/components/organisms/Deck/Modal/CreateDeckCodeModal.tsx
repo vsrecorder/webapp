@@ -1,4 +1,4 @@
-import { useState, SetStateAction, Dispatch } from "react";
+import { useEffect, useState, SetStateAction, Dispatch } from "react";
 
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
 import { Button } from "@heroui/react";
@@ -34,13 +34,12 @@ export default function CreateDeckCodeModal({
   const [imageLoaded, setImageLoaded] = useState(false);
   const [newdeckcode, setNewDeckCode] = useState<string>("");
   //const [isSelected, setIsSelected] = useState<boolean>(false);
-  //const [isValidedDeckCode, setIsValidedDeckCode] = useState<boolean>(true);
+  const [isValidedDeckCode, setIsValidedDeckCode] = useState<boolean>(true);
   const [isDisabled, setIsDisabled] = useState<boolean>(false);
 
   /*
     デッキコードが有効かどうかチェック
   */
-  /*
   useEffect(() => {
     if (!newdeckcode) {
       setIsValidedDeckCode(true);
@@ -68,7 +67,6 @@ export default function CreateDeckCodeModal({
 
     checkDeckCode();
   }, [newdeckcode]);
-  */
 
   if (!deck) {
     return;
@@ -159,6 +157,8 @@ export default function CreateDeckCodeModal({
       isDismissable={!isDisabled}
       onClose={() => {
         setIsDisabled(false);
+        setIsValidedDeckCode(true);
+
         setNewDeckCode("");
         //setIsSelected(false);
       }}
@@ -177,7 +177,7 @@ export default function CreateDeckCodeModal({
               <Input
                 isRequired
                 isDisabled={isDisabled}
-                //isInvalid={!isValidedDeckCode}
+                isInvalid={!isValidedDeckCode}
                 errorMessage="有効なデッキコードを入力してください"
                 type="text"
                 label="デッキコード"
@@ -209,15 +209,13 @@ export default function CreateDeckCodeModal({
                   shadow="none"
                   alt={newdeckcode ? newdeckcode : "デッキコードなし"}
                   src={
-                    //isValidedDeckCode && newdeckcode
-                    newdeckcode
+                    isValidedDeckCode && newdeckcode
                       ? `https://www.pokemon-card.com/deck/deckView.php/deckID/${newdeckcode}.png`
                       : deckcode
                         ? `https://www.pokemon-card.com/deck/deckView.php/deckID/${deckcode.code}.png`
                         : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
                   }
-                  className={newdeckcode ? "" : "grayscale"}
-                  //className={isValidedDeckCode && newdeckcode ? "" : "grayscale"}
+                  className={isValidedDeckCode && newdeckcode ? "" : "grayscale"}
                   onLoad={() => setImageLoaded(true)}
                   onError={() => {}}
                 />
@@ -248,6 +246,7 @@ export default function CreateDeckCodeModal({
                   </Link>
                 </div>
               )}
+              {deckcode?.code && newdeckcode && isValidedDeckCode && <></>}
             </ModalBody>
             <ModalFooter>
               <Button
@@ -255,8 +254,6 @@ export default function CreateDeckCodeModal({
                 variant="solid"
                 isDisabled={isDisabled}
                 onPress={() => {
-                  //setNewDeckCode("");
-                  //setIsSelected(false);
                   onClose();
                 }}
                 className="font-bold"
@@ -266,8 +263,7 @@ export default function CreateDeckCodeModal({
               <Button
                 color="primary"
                 variant="solid"
-                isDisabled={!newdeckcode || isDisabled}
-                //isDisabled={!isValidedDeckCode || !newdeckcode || isDisabled}
+                isDisabled={!isValidedDeckCode || !newdeckcode || isDisabled}
                 onPress={() => {
                   createNewDeckCode(onClose);
                 }}

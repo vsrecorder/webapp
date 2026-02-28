@@ -1,4 +1,4 @@
-import { useEffect, useState, SetStateAction, Dispatch } from "react";
+import { useEffect, useMemo, useState, SetStateAction, Dispatch } from "react";
 
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
 import { Button } from "@heroui/react";
@@ -10,8 +10,9 @@ import { Link } from "@heroui/react";
 
 import { addToast, closeToast } from "@heroui/react";
 
-import { DeckGetByIdResponseType } from "@app/types/deck";
+import DeckCardDiff from "@app/components/organisms/Deck/DeckCardDiff";
 
+import { DeckGetByIdResponseType } from "@app/types/deck";
 import { DeckCodeType, DeckCodeCreateRequestType } from "@app/types/deck_code";
 
 type Props = {
@@ -147,6 +148,11 @@ export default function CreateDeckCodeModal({
     }
   };
 
+  const currentDeckCode = useMemo(
+    () => ({ code: newdeckcode }) as DeckCodeType,
+    [newdeckcode],
+  );
+
   return (
     <Modal
       isOpen={isOpen}
@@ -172,80 +178,121 @@ export default function CreateDeckCodeModal({
             <ModalHeader className="flex flex-col gap-1 px-3">
               新しいバージョンを作成
             </ModalHeader>
-            <ModalBody className="px-3 py-1">
-              <Input
-                isRequired
-                isDisabled={isDisabled}
-                isInvalid={!isValidedDeckCode}
-                errorMessage="有効なデッキコードを入力してください"
-                type="text"
-                label="デッキコード"
-                labelPlacement="outside"
-                placeholder={
-                  deckcode && deckcode.code ? deckcode.code : "デッキコードを入力"
-                }
-                value={newdeckcode}
-                onChange={(e) => setNewDeckCode(e.target.value)}
-              />
-
-              {/*
-              <Checkbox
-                isDisabled={newdeckcode == "" || isDisabled}
-                //isDisabled={newdeckcode == "" || !isValidedDeckCode || isDisabled}
-                defaultSelected={false}
-                size={"sm"}
-                isSelected={isSelected}
-                onValueChange={setIsSelected}
-              >
-                デッキコードを非公開にする
-              </Checkbox>
-              */}
-
-              <div className="relative w-full aspect-2/1">
-                {!imageLoaded && <Skeleton className="absolute inset-0 rounded-lg" />}
-                <Image
-                  radius="sm"
-                  shadow="none"
-                  alt={newdeckcode ? newdeckcode : "デッキコードなし"}
-                  src={
-                    isValidedDeckCode && newdeckcode
-                      ? `https://www.pokemon-card.com/deck/deckView.php/deckID/${newdeckcode}.png`
-                      : deckcode
-                        ? `https://www.pokemon-card.com/deck/deckView.php/deckID/${deckcode.code}.png`
-                        : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
+            <ModalBody className="px-3 py-1 overflow-y-auto">
+              <div className="flex flex-col gap-2">
+                <Input
+                  isRequired
+                  isDisabled={isDisabled}
+                  isInvalid={!isValidedDeckCode}
+                  errorMessage="有効なデッキコードを入力してください"
+                  type="text"
+                  label="デッキコード"
+                  labelPlacement="outside"
+                  placeholder={
+                    deckcode && deckcode.code ? deckcode.code : "デッキコードを入力"
                   }
-                  className={isValidedDeckCode && newdeckcode ? "" : "grayscale"}
-                  onLoad={() => setImageLoaded(true)}
-                  onError={() => {}}
+                  value={newdeckcode}
+                  onChange={(e) => setNewDeckCode(e.target.value)}
                 />
+
+                {/*
+                <Checkbox
+                  isDisabled={newdeckcode == "" || isDisabled}
+                  //isDisabled={newdeckcode == "" || !isValidedDeckCode || isDisabled}
+                  defaultSelected={false}
+                  size={"sm"}
+                  isSelected={isSelected}
+                  onValueChange={setIsSelected}
+                >
+                  デッキコードを非公開にする
+                </Checkbox>
+                */}
+
+                <div className="relative w-full aspect-2/1">
+                  {!imageLoaded && <Skeleton className="absolute inset-0 rounded-lg" />}
+                  <Image
+                    radius="sm"
+                    shadow="none"
+                    alt={newdeckcode ? newdeckcode : "デッキコードなし"}
+                    src={
+                      isValidedDeckCode && newdeckcode
+                        ? `https://www.pokemon-card.com/deck/deckView.php/deckID/${newdeckcode}.png`
+                        : deckcode
+                          ? `https://www.pokemon-card.com/deck/deckView.php/deckID/${deckcode.code}.png`
+                          : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
+                    }
+                    className={isValidedDeckCode && newdeckcode ? "" : "grayscale"}
+                    onLoad={() => setImageLoaded(true)}
+                    onError={() => {}}
+                  />
+                </div>
+
+                {deckcode?.code ? (
+                  <div className="-translate-y-2">
+                    <Link
+                      isExternal
+                      showAnchorIcon
+                      underline="always"
+                      href={`https://www.pokemon-card.com/deck/deck.html?deckID=${deckcode.code}`}
+                      className="pl-1 text-tiny"
+                    >
+                      [{deckcode.code}] から新しいデッキコードを作成
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="-translate-y-2">
+                    <Link
+                      isExternal
+                      showAnchorIcon
+                      underline="always"
+                      href={`https://www.pokemon-card.com/deck/deck.html`}
+                      className="pl-1 text-tiny"
+                    >
+                      新しいデッキコードを作成
+                    </Link>
+                  </div>
+                )}
               </div>
 
-              {deckcode?.code ? (
-                <div className="-translate-y-2">
-                  <Link
-                    isExternal
-                    showAnchorIcon
-                    underline="always"
-                    href={`https://www.pokemon-card.com/deck/deck.html?deckID=${deckcode.code}`}
-                    className="pl-1 text-tiny"
-                  >
-                    [{deckcode.code}] から新しいデッキコードを作成
-                  </Link>
-                </div>
-              ) : (
-                <div className="-translate-y-2">
-                  <Link
-                    isExternal
-                    showAnchorIcon
-                    underline="always"
-                    href={`https://www.pokemon-card.com/deck/deck.html`}
-                    className="pl-1 text-tiny"
-                  >
-                    新しいデッキコードを作成
-                  </Link>
-                </div>
-              )}
-              {deckcode?.code && newdeckcode && isValidedDeckCode && <></>}
+              <div className="h-30 overflow-y-auto">
+                {deckcode?.code && newdeckcode && isValidedDeckCode && !isDisabled ? (
+                  <DeckCardDiff
+                    current_deckcode={currentDeckCode}
+                    previous_deckcode={deckcode}
+                  />
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    <div className="pb-0.5 pr-0">
+                      <div className="font-bold text-tiny pb-1">追加されたカード</div>
+                      <div className="pl-1 pb-1 flex flex-wrap gap-1">
+                        <div>
+                          <Skeleton className="h-5.5 w-20 rounded-2xl" />
+                        </div>
+                        <div>
+                          <Skeleton className="h-5.5 w-26 rounded-2xl" />
+                        </div>
+                        <div>
+                          <Skeleton className="h-5.5 w-18 rounded-2xl" />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="pb-0.5 pr-0">
+                      <div className="font-bold text-tiny pb-1">削除されたカード</div>
+                      <div className="pl-1 pb-1 flex flex-wrap gap-1">
+                        <div>
+                          <Skeleton className="h-5.5 w-16 rounded-2xl" />
+                        </div>
+                        <div>
+                          <Skeleton className="h-5.5 w-22 rounded-2xl" />
+                        </div>
+                        <div>
+                          <Skeleton className="h-5.5 w-28 rounded-2xl" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </ModalBody>
             <ModalFooter>
               <Button

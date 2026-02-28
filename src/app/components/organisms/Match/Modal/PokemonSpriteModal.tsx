@@ -69,9 +69,7 @@ export default function PokemonSpriteModal({
   onOpenChange,
 }: Props) {
   const [selectedPokemonSpriteOption, setSelectedPokemonSpriteOption] =
-    useState<PokemonSpriteOption | null>(
-      pokemonSprite ? convertToPokemonSpriteOption(pokemonSprite) : null,
-    );
+    useState<PokemonSpriteOption | null>(null);
 
   const [isDisabled, setIsDisabled] = useState<boolean>(false);
 
@@ -119,13 +117,9 @@ export default function PokemonSpriteModal({
         if (matchedOption) {
           setSelectedPokemonSpriteOption(matchedOption);
         }
+      } else {
+        setSelectedPokemonSpriteOption(null);
       }
-
-      /*
-      setSelectedPokemonSpriteOption(
-        pokemonSprite ? convertToPokemonSpriteOption(pokemonSprite) : null,
-      );
-      */
     }
   }, [isOpen, pokemonSprite]);
 
@@ -145,7 +139,9 @@ export default function PokemonSpriteModal({
       isOpen={isOpen}
       isDismissable={false}
       onOpenChange={onOpenChange}
-      onClose={() => {}}
+      onClose={() => {
+        setSelectedPokemonSpriteOption(null);
+      }}
       classNames={{
         base: "sm:max-w-full",
         closeButton: "text-2xl",

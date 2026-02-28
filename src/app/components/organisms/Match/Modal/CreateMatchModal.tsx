@@ -417,7 +417,11 @@ export default function CreateMatchModal({
                               <div className="w-11 h-11 p-0 shrink-0">
                                 {pokemonSprite1 ? (
                                   <Image
-                                    onClick={onOpenForPokemonSprite1Modal}
+                                    onClick={() => {
+                                      !isDefaultVictory &&
+                                        !isDefaultDefeat &&
+                                        onOpenForPokemonSprite1Modal();
+                                    }}
                                     alt={pokemonSprite1.id.replace(/^0+(?!$)/, "")}
                                     src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${pokemonSprite1.id.replace(/^0+(?!$)/, "")}.png`}
                                     radius="none"
@@ -425,12 +429,16 @@ export default function CreateMatchModal({
                                   />
                                 ) : (
                                   <Image
-                                    onClick={onOpenForPokemonSprite1Modal}
+                                    onClick={() => {
+                                      !isDefaultVictory &&
+                                        !isDefaultDefeat &&
+                                        onOpenForPokemonSprite1Modal();
+                                    }}
                                     alt="unknown"
                                     src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
                                     radius="none"
                                     loading="eager"
-                                    className="w-full h-full object-contain scale-150 origin-bottom"
+                                    className={`w-full h-full object-contain scale-150 origin-bottom ${isDefaultVictory || isDefaultDefeat ? "contrast-0" : ""}`}
                                   />
                                 )}
                               </div>
@@ -438,7 +446,11 @@ export default function CreateMatchModal({
                               <div className="w-11 h-11 p-0 shrink-0">
                                 {pokemonSprite2 ? (
                                   <Image
-                                    onClick={onOpenForPokemonSprite2Modal}
+                                    onClick={() => {
+                                      !isDefaultVictory &&
+                                        !isDefaultDefeat &&
+                                        onOpenForPokemonSprite2Modal();
+                                    }}
                                     alt={pokemonSprite2.id.replace(/^0+(?!$)/, "")}
                                     src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${pokemonSprite2.id.replace(/^0+(?!$)/, "")}.png`}
                                     radius="none"
@@ -446,12 +458,16 @@ export default function CreateMatchModal({
                                   />
                                 ) : (
                                   <Image
-                                    onClick={onOpenForPokemonSprite2Modal}
+                                    onClick={() => {
+                                      !isDefaultVictory &&
+                                        !isDefaultDefeat &&
+                                        onOpenForPokemonSprite2Modal();
+                                    }}
                                     alt="unknown"
                                     src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
                                     radius="none"
                                     loading="eager"
-                                    className="w-full h-full object-contain scale-150 origin-bottom"
+                                    className={`w-full h-full object-contain scale-150 origin-bottom ${isDefaultVictory || isDefaultDefeat ? "contrast-0" : ""}`}
                                   />
                                 )}
                               </div>
@@ -579,7 +595,11 @@ export default function CreateMatchModal({
                       size="md"
                       isDisabled={isDisabled && isDefaultDefeat}
                       isSelected={isDefaultVictory}
-                      onValueChange={setIsDefaultVictory}
+                      onValueChange={(isSelected) => {
+                        setPokemonSprite1(null);
+                        setPokemonSprite2(null);
+                        setIsDefaultVictory(isSelected);
+                      }}
                     >
                       不戦勝
                     </Switch>
@@ -587,7 +607,11 @@ export default function CreateMatchModal({
                       size="md"
                       isDisabled={isDisabled && isDefaultVictory}
                       isSelected={isDefaultDefeat}
-                      onValueChange={setIsDefaultDefeat}
+                      onValueChange={(isSelected) => {
+                        setPokemonSprite1(null);
+                        setPokemonSprite2(null);
+                        setIsDefaultDefeat(isSelected);
+                      }}
                     >
                       不戦敗
                     </Switch>

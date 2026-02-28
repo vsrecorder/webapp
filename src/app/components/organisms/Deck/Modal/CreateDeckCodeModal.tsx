@@ -152,9 +152,8 @@ export default function CreateDeckCodeModal({
       isOpen={isOpen}
       size={"sm"}
       placement="center"
-      hideCloseButton
       onOpenChange={onOpenChange}
-      isDismissable={!isDisabled}
+      isDismissable={false}
       onClose={() => {
         setIsDisabled(false);
         setIsValidedDeckCode(true);

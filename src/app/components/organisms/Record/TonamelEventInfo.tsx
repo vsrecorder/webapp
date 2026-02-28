@@ -3,8 +3,10 @@ import { useEffect, useState } from "react";
 import { Card, CardHeader, CardBody } from "@heroui/react";
 import { Image } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
+import { Link } from "@heroui/react";
 
 import { LuLayers } from "react-icons/lu";
+import { LuLink } from "react-icons/lu";
 
 import TonamelEventInfoSkeleton from "@app/components/organisms/Record/Skeleton/TonamelEventInfoSkeleton";
 
@@ -160,6 +162,14 @@ export default function TonamelEventInfo({ record }: Props) {
                   </div>
                 )}
               </div>
+
+              <Link
+                isExternal
+                href={`https://tonamel.com/competition/${record.tonamel_event_id}`}
+                className={"absolute top-2 right-2 text-gray-500"}
+              >
+                <LuLink className="" />
+              </Link>
             </div>
 
             <div className="font-bold truncate w-full min-w-0">

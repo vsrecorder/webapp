@@ -364,7 +364,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
     TonamelのイベントIDが有効かどうかチェック
   */
   useEffect(() => {
-    if (tonamelEventId === "") {
+    if (!tonamelEventId) {
       setTonamelEventTitle("");
       setTonamelEventImage("");
       setIsValidatedTonamelEventId(true);
@@ -992,9 +992,11 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                 </div>
                 <div className="w-4/6">
                   <div className="relative w-full aspect-video">
-                    <Skeleton className="absolute inset-0" />
+                    {!isValidatedTonamelEventId && (
+                      <Skeleton className="absolute inset-0" />
+                    )}
                     <Image
-                      className="relative z-0"
+                      className="relative z-0 h-36 w-[256px] object-contain"
                       radius="none"
                       shadow="none"
                       alt={"test"}

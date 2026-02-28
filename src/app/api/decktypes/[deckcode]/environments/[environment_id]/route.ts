@@ -2,9 +2,7 @@ import { NextResponse, NextRequest } from "next/server";
 
 import { auth } from "@app/(default)/auth";
 
-type DeckTypeData = {
-  title: string;
-};
+import { DeckTypeData } from "@app/types/decktype";
 
 async function getDeckType(
   deckcode: string,

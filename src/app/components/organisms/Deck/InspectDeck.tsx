@@ -290,13 +290,7 @@ export default function InspectDeck({ deckcode }: Props) {
               <div className="flex justify-center items-center gap-1">
                 {deckcardList.length === 0 && (
                   <div className="w-12 aspect-686/1212 shrink-0">
-                    <Image
-                      radius="none"
-                      shadow="none"
-                      alt="ポケモンカード"
-                      src="https://www.pokemon-card.com/assets/images/noimage/poke_ura.jpg"
-                      className="w-12 h-17.5 rounded-xs object-cover"
-                    />
+                    <div className="w-12 h-17.5" />
                   </div>
                 )}
 
@@ -305,11 +299,23 @@ export default function InspectDeck({ deckcode }: Props) {
                     key={`${card.card_id}-${index}`}
                     className="w-12 aspect-686/1212 shrink-0"
                   >
+                    {/* 表面 */}
+                    {/*
                     <Image
                       radius="none"
                       shadow="none"
                       alt={card.card_name}
                       src={card.image_url}
+                      className="w-12 h-17.5 rounded-xs object-cover"
+                    />
+                    */}
+
+                    {/* 裏面 */}
+                    <Image
+                      radius="none"
+                      shadow="none"
+                      alt="ポケモンカード"
+                      src="https://www.pokemon-card.com/assets/images/noimage/poke_ura.jpg"
                       className="w-12 h-17.5 rounded-xs object-cover"
                     />
                   </div>

@@ -208,7 +208,7 @@ export default function CityleagueResultByOfficialEventId({ id }: Props) {
           <div className="flex flex-col gap-3">
             {cityleagueResult.results.map((result) => (
               <div key={result.player_id}>
-                <CityleagueResultCard result={result} />
+                <CityleagueResultCard result={result} date={cityleagueResult.date} />
               </div>
             ))}
           </div>

@@ -1,4 +1,4 @@
-import { Card, CardHeader, CardBody } from "@heroui/react";
+import { Card, CardHeader, CardBody, CardFooter } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
 
 export default function CityleagueResultCardSkeleton() {
@@ -23,6 +23,17 @@ export default function CityleagueResultCardSkeleton() {
           <Skeleton className="absolute inset-0 rounded-lg" />
         </div>
       </CardBody>
+      <CardFooter>
+        <div className="flex flex-col gap-2">
+          <div className="flex gap-1">
+            <Skeleton className="h-6 w-32 rounded-2xl" />
+          </div>
+
+          <div className="flex gap-1">
+            <Skeleton className="bg-[#ee0077] h-6 w-32 rounded-2xl" />
+          </div>
+        </div>
+      </CardFooter>
     </Card>
   );
 }

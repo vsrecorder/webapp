@@ -4,8 +4,9 @@ import { useSession } from "next-auth/react";
 
 import { useEffect, useState } from "react";
 
-import { Card, CardHeader, CardBody } from "@heroui/react";
+import { Card, CardHeader, CardBody, CardFooter } from "@heroui/react";
 import { Image } from "@heroui/react";
+import { Chip } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
 import { Button } from "@heroui/react";
 import { Snippet } from "@heroui/react";
@@ -25,14 +26,93 @@ import { LuPlus } from "react-icons/lu";
 import CreateDeckModal from "@app/components/organisms/Deck/Modal/CreateDeckModal";
 
 import { Result } from "@app/types/cityleague_result";
+import { AcespecType } from "@app/types/acespec";
+import { EnvironmentType } from "@app/types/environment";
+import { DeckTypeData } from "@app/types/decktype";
+import { env } from "process";
+
+async function fetchAcespec(code: string) {
+  try {
+    const res = await fetch(`/api/deckcards/${code}/acespec`, {
+      cache: "no-store",
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    if (res.status === 204) {
+      return null;
+    }
+
+    const ret: AcespecType = await res.json();
+
+    return ret;
+  } catch (error) {
+    throw error;
+  }
+}
+
+async function fetchEnvironment(date: Date) {
+  try {
+    const res = await fetch(`/api/environments?date=${date.toString().split("T")[0]}`, {
+      cache: "no-store",
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    const ret: EnvironmentType = await res.json();
+
+    return ret;
+  } catch (error) {
+    throw error;
+  }
+}
+
+async function fetchDeckType(code: string, environment_id: string) {
+  try {
+    const res = await fetch(`/api/decktypes/${code}/environments/${environment_id}`, {
+      cache: "no-store",
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    if (res.status === 204) {
+      return null;
+    }
+
+    const ret: DeckTypeData[] = await res.json();
+
+    return ret;
+  } catch (error) {
+    throw error;
+  }
+}
 
 type Props = {
   result: Result;
+  date: Date;
 };
 
-export default function CityleagueResultCard({ result }: Props) {
+export default function CityleagueResultCard({ result, date }: Props) {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [imageLoaded, setImageLoaded] = useState(false);
+
+  const [environment, setEnvironment] = useState<EnvironmentType | null>(null);
+  const [loadingEnvrionment, setLoadingEnvironment] = useState(true);
+  const [errorEnvironment, setErrorEnvironment] = useState<string | null>(null);
+
+  const [acespec, setAcespec] = useState<AcespecType | null>(null);
+  const [loadingAcespec, setLoadingAcespec] = useState(true);
+  const [errorAcespec, setErrorAcespec] = useState<string | null>(null);
+
+  const [decktype, setDeckType] = useState<DeckTypeData[] | null>(null);
+  const [loadingDeckType, setLoadingDeckType] = useState(true);
+  const [errorDeckType, setErrorDeckType] = useState<string | null>(null);
 
   const {
     isOpen: isOpenForCreateDeckModal,
@@ -43,10 +123,75 @@ export default function CityleagueResultCard({ result }: Props) {
   const { status } = useSession();
 
   useEffect(() => {
-    if (!result.deck_code) return;
+    if (!result.deck_code) {
+      setLoadingAcespec(false);
+      setLoadingEnvironment(false);
+      return;
+    }
+
     const img = new window.Image();
     img.src = `https://xx8nnpgt.user.webaccel.jp/images/decks/${result.deck_code}.jpg`;
+
+    setLoadingAcespec(true);
+    setLoadingEnvironment(true);
+
+    const fetchAcespecData = async () => {
+      try {
+        setLoadingAcespec(true);
+        const data = await fetchAcespec(result.deck_code);
+        setAcespec(data);
+      } catch (err) {
+        console.log(err);
+        setErrorAcespec(
+          `Acespecカードのデータ取得に失敗しました(デッキコード: ${result.deck_code})`,
+        );
+      } finally {
+        setLoadingAcespec(false);
+      }
+    };
+
+    const fetchEnvironmentData = async () => {
+      try {
+        setLoadingEnvironment(true);
+        const data = await fetchEnvironment(date);
+        setEnvironment(data);
+      } catch (err) {
+        console.log(err);
+        setErrorEnvironment("環境名のデータ取得に失敗しました");
+      } finally {
+        setLoadingEnvironment(false);
+      }
+    };
+
+    fetchAcespecData();
+    fetchEnvironmentData();
   }, [result.deck_code]);
+
+  useEffect(() => {
+    if (!result.deck_code || !environment || !environment.id) {
+      setLoadingDeckType(false);
+      return;
+    }
+
+    setLoadingDeckType(true);
+
+    const fetchDeckTypeData = async () => {
+      try {
+        setLoadingDeckType(true);
+        const data = await fetchDeckType(result.deck_code, environment.id);
+        setDeckType(data);
+      } catch (err) {
+        console.log(err);
+        setErrorDeckType(
+          `デッキタイプのデータ取得に失敗しました(デッキコード: ${result.deck_code}, 環境ID: ${environment.id})`,
+        );
+      } finally {
+        setLoadingDeckType(false);
+      }
+    };
+
+    fetchDeckTypeData();
+  }, [result.deck_code, environment]);
 
   const getBorderColor = (rank: number) => {
     switch (rank) {
@@ -130,6 +275,49 @@ export default function CityleagueResultCard({ result }: Props) {
               )}
             </div>
           </CardBody>
+          <CardFooter>
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-1">
+                {loadingEnvrionment || loadingDeckType ? (
+                  <Skeleton className="h-6 w-32 rounded-2xl" />
+                ) : (
+                  decktype &&
+                  decktype.map((type, index) => (
+                    <Chip
+                      key={index}
+                      size="sm"
+                      radius="md"
+                      classNames={{
+                        //base: "bg-[#ee0077]",
+                        content: "font-bold",
+                      }}
+                    >
+                      {type.title}
+                    </Chip>
+                  ))
+                )}
+              </div>
+
+              <div className="flex gap-1">
+                {loadingAcespec ? (
+                  <Skeleton className="bg-[#ee0077] h-6 w-32 rounded-2xl" />
+                ) : (
+                  acespec && (
+                    <Chip
+                      size="sm"
+                      radius="md"
+                      classNames={{
+                        base: "bg-[#ee0077]",
+                        content: "text-white font-bold",
+                      }}
+                    >
+                      {acespec.card_name}
+                    </Chip>
+                  )
+                )}
+              </div>
+            </div>
+          </CardFooter>
         </Card>
       </div>
 

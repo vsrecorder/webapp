@@ -163,8 +163,8 @@ export default function CityleagueResultCard({ result, date }: Props) {
       }
     };
 
-    fetchAcespecData();
-    fetchEnvironmentData();
+    //fetchAcespecData();
+    //fetchEnvironmentData();
   }, [result.deck_code]);
 
   useEffect(() => {
@@ -275,6 +275,7 @@ export default function CityleagueResultCard({ result, date }: Props) {
               )}
             </div>
           </CardBody>
+          {/*
           <CardFooter>
             <div className="flex flex-col gap-2">
               <div className="flex gap-1">
@@ -318,6 +319,7 @@ export default function CityleagueResultCard({ result, date }: Props) {
               </div>
             </div>
           </CardFooter>
+          */}
         </Card>
       </div>
 

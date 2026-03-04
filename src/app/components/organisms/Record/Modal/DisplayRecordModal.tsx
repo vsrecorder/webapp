@@ -103,7 +103,7 @@ export default function DisplayRecordModal({
       });
 
       const link = document.createElement("a");
-      link.download = `${record.id}.png`;
+      link.download = `${record.id}_${Date.now()}.png`;
       link.href = dataUrl;
       link.click();
     } catch (e) {
@@ -167,7 +167,7 @@ export default function DisplayRecordModal({
       });
 
       const link = document.createElement("a");
-      link.download = `${record.deck_id}_${record.deck_code_id}.png`;
+      link.download = `${record.deck_id}_${record.deck_code_id}_${Date.now()}.png`;
       link.href = dataUrl;
       link.click();
     } catch {

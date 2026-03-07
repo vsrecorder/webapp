@@ -3,6 +3,8 @@
 import { useMemo } from "react";
 import { useEffect, useState, useCallback } from "react";
 
+import { SetStateAction, Dispatch } from "react";
+
 import { Card, CardHeader, CardBody, CardFooter } from "@heroui/react";
 
 import { A11y, Autoplay, Pagination } from "swiper/modules";
@@ -74,9 +76,10 @@ async function fetchCityleagueResultsByTerm(
 
 type Props = {
   league_type: number;
+  setLeagueTypeCount: Dispatch<SetStateAction<number | undefined>>;
 };
 
-export default function CityleagueEvent({ league_type }: Props) {
+export default function CityleagueEvent({ league_type, setLeagueTypeCount }: Props) {
   const [cityleague, setCityleague] = useState<OfficialEventResponseType | null>(null);
   const [cityleagueResults, setCityleagueResults] =
     useState<CityleagueResultGetResponseType | null>(null);
@@ -131,6 +134,7 @@ export default function CityleagueEvent({ league_type }: Props) {
             today,
           );
           setCityleague(data);
+          setLeagueTypeCount(data.official_events.length);
 
           return;
         } catch (error) {
@@ -208,9 +212,7 @@ export default function CityleagueEvent({ league_type }: Props) {
                   delay: 1500,
                   disableOnInteraction: false,
                 }}
-                pagination={{
-                  clickable: true,
-                }}
+                pagination={false}
               >
                 {sortedEvents.map((event) => (
                   <SwiperSlide key={event.id} className="p-3">

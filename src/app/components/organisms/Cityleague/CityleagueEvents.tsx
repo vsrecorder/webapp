@@ -60,15 +60,15 @@ export default function CityleagueEvents() {
             >
               <Tab
                 key="league_type_1"
-                title={`オープン：${leagueType1Count ? leagueType1Count : "??"}`}
+                title={`オープン：${leagueType1Count === 0 ? "0" : leagueType1Count ? leagueType1Count : "??"}`}
               />
               <Tab
                 key="league_type_3"
-                title={`シニア：${leagueType3Count ? leagueType3Count : "??"}`}
+                title={`シニア：${leagueType3Count === 0 ? "0" : leagueType3Count ? leagueType3Count : "??"}`}
               />
               <Tab
                 key="league_type_2"
-                title={`ジュニア：${leagueType2Count ? leagueType2Count : "??"}`}
+                title={`ジュニア：${leagueType2Count === 0 ? "0" : leagueType2Count ? leagueType2Count : "??"}`}
               />
             </Tabs>
           </div>

@@ -134,7 +134,7 @@ export default function CityleagueEvent({ league_type, setLeagueTypeCount }: Pro
             today,
           );
           setCityleague(data);
-          setLeagueTypeCount(data.official_events.length);
+          setLeagueTypeCount(data.count);
 
           return;
         } catch (error) {

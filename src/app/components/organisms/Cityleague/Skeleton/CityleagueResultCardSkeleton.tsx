@@ -23,7 +23,6 @@ export default function CityleagueResultCardSkeleton() {
           <Skeleton className="absolute inset-0 rounded-lg" />
         </div>
       </CardBody>
-      {/*
       <CardFooter>
         <div className="flex flex-col gap-2">
           <div className="flex gap-1">
@@ -35,7 +34,6 @@ export default function CityleagueResultCardSkeleton() {
           </div>
         </div>
       </CardFooter>
-      */}
     </Card>
   );
 }

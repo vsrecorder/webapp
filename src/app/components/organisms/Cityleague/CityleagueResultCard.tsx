@@ -29,7 +29,6 @@ import { Result } from "@app/types/cityleague_result";
 import { AcespecType } from "@app/types/acespec";
 import { EnvironmentType } from "@app/types/environment";
 import { DeckTypeData } from "@app/types/decktype";
-import { env } from "process";
 
 async function fetchAcespec(code: string) {
   try {
@@ -163,8 +162,8 @@ export default function CityleagueResultCard({ result, date }: Props) {
       }
     };
 
-    //fetchAcespecData();
-    //fetchEnvironmentData();
+    fetchAcespecData();
+    fetchEnvironmentData();
   }, [result.deck_code]);
 
   useEffect(() => {
@@ -275,7 +274,6 @@ export default function CityleagueResultCard({ result, date }: Props) {
               )}
             </div>
           </CardBody>
-          {/*
           <CardFooter>
             <div className="flex flex-col gap-2">
               <div className="flex gap-1">
@@ -319,7 +317,6 @@ export default function CityleagueResultCard({ result, date }: Props) {
               </div>
             </div>
           </CardFooter>
-          */}
         </Card>
       </div>
 

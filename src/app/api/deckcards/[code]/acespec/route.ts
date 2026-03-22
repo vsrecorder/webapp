@@ -1,7 +1,5 @@
 import { NextResponse, NextRequest } from "next/server";
 
-import { auth } from "@app/(default)/auth";
-
 import { AcespecType } from "@app/types/acespec";
 
 async function getAcespec(code: string) {
@@ -34,11 +32,6 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ code: string }> },
 ) {
-  const session = await auth();
-  if (!session) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
-
   try {
     const { code } = await params;
 

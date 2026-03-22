@@ -1,7 +1,5 @@
 import { NextResponse, NextRequest } from "next/server";
 
-import { auth } from "@app/(default)/auth";
-
 import { DeckTypeData } from "@app/types/decktype";
 
 async function getDeckType(
@@ -34,11 +32,6 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ deckcode: string; environment_id: string }> },
 ) {
-  const session = await auth();
-  if (!session) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
-
   try {
     const { deckcode, environment_id } = await params;
     const ret = await getDeckType(deckcode, environment_id);

@@ -10,6 +10,7 @@ import { Chip } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
 import { Button } from "@heroui/react";
 import { Snippet } from "@heroui/react";
+import { Link } from "@heroui/react";
 
 import {
   Modal,
@@ -398,6 +399,20 @@ export default function CityleagueResultCard({ result, date }: Props) {
                     </>
                   )}
                 </div>
+
+                {result.deck_code && (
+                  <div className="-translate-y-2">
+                    <Link
+                      isExternal
+                      showAnchorIcon
+                      underline="always"
+                      href={`https://www.pokemon-card.com/deck/deck.html?deckID=${result.deck_code}`}
+                      className="pl-1 text-tiny"
+                    >
+                      [{result.deck_code}] から新しいデッキコードを作成
+                    </Link>
+                  </div>
+                )}
               </ModalBody>
               <ModalFooter className="flex items-center justify-between w-full">
                 <div className="flex flex-col text-tiny -translate-y-2">

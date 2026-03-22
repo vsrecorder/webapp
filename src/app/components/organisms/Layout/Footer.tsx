@@ -2,7 +2,7 @@ import { LuExternalLink } from "react-icons/lu";
 
 export default async function Footer() {
   return (
-    <footer className="text-center pt-27 pb-0 p-6 w-full">
+    <footer className="text-center pt-20 pb-0 p-6 w-full">
       <div className="flex flex-col items-center">
         {/* 上段リンク */}
         <div className="flex gap-3">
@@ -15,12 +15,19 @@ export default async function Footer() {
           </a>
         </div>
 
-        {/* 下段リンク */}
+        {/* 中段リンク */}
         <div className="flex gap-3 mt-2">
           <a href="/policy" className="text-sm">
             本サービスにつきまして
           </a>
 
+          <a href="/credits" className="text-sm">
+            クレジット
+          </a>
+        </div>
+
+        {/* 下段リンク */}
+        <div className="flex gap-3 mt-2">
           <a
             href="https://forms.gle/pN8vUF9sQMPnZWc5A"
             target="_blank"

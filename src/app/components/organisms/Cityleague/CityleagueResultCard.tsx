@@ -25,6 +25,7 @@ import { LuLayers } from "react-icons/lu";
 import { LuPlus } from "react-icons/lu";
 
 import CreateDeckModal from "@app/components/organisms/Deck/Modal/CreateDeckModal";
+import DeckCardSummaryRow from "@app/components/organisms/Deck/DeckCardSummaryRow";
 
 import { Result } from "@app/types/cityleague_result";
 import { AcespecType } from "@app/types/acespec";
@@ -401,17 +402,22 @@ export default function CityleagueResultCard({ result, date }: Props) {
                 </div>
 
                 {result.deck_code && (
-                  <div className="-translate-y-2">
-                    <Link
-                      isExternal
-                      showAnchorIcon
-                      underline="always"
-                      href={`https://www.pokemon-card.com/deck/deck.html?deckID=${result.deck_code}`}
-                      className="pl-1 text-tiny"
-                    >
-                      [{result.deck_code}] から新しいデッキコードを作成
-                    </Link>
-                  </div>
+                  <>
+                    <div className="-translate-y-2">
+                      <Link
+                        isExternal
+                        showAnchorIcon
+                        underline="always"
+                        href={`https://www.pokemon-card.com/deck/deck.html?deckID=${result.deck_code}`}
+                        className="pl-1 text-tiny"
+                      >
+                        [{result.deck_code}] から新しいデッキコードを作成
+                      </Link>
+                    </div>
+                    <div className="px-1 overflow-y-auto">
+                      <DeckCardSummaryRow code={result.deck_code} />
+                    </div>
+                  </>
                 )}
               </ModalBody>
               <ModalFooter className="flex items-center justify-between w-full">

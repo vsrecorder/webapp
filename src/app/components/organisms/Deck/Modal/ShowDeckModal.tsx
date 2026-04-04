@@ -277,7 +277,7 @@ export default function ShowDeckModal({
                 </div>
 
                 <div className="px-1 overflow-y-auto">
-                  {deckcode && <DeckCardSummaryRow deckcode={deckcode} />}
+                  {deckcode && <DeckCardSummaryRow code={deckcode.code} />}
                 </div>
               </ModalBody>
               <ModalFooter className="px-1 pt-0">

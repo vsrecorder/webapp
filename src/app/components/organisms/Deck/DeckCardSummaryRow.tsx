@@ -6,7 +6,6 @@ import { Chip } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
 import { Tabs, Tab } from "@heroui/tabs";
 
-import { DeckCodeType } from "@app/types/deck_code";
 import { DeckCardSummaryType } from "@app/types/deckcard";
 
 async function fetchDeckCardSummary(code: string) {
@@ -32,7 +31,7 @@ async function fetchDeckCardSummary(code: string) {
 }
 
 type Props = {
-  deckcode: DeckCodeType | null;
+  code: string | null;
 };
 
 function CardSkelton() {
@@ -72,7 +71,7 @@ function CardSkelton() {
   );
 }
 
-export default function DeckCardSummaryRow({ deckcode }: Props) {
+export default function DeckCardSummaryRow({ code }: Props) {
   const [deckcardSummary, setDeckCardSummary] = useState<DeckCardSummaryType | null>(
     null,
   );
@@ -80,7 +79,7 @@ export default function DeckCardSummaryRow({ deckcode }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!deckcode) {
+    if (!code) {
       setLoading(false);
       return;
     }
@@ -90,7 +89,7 @@ export default function DeckCardSummaryRow({ deckcode }: Props) {
     const fetchCurrentDeckCardSummaryData = async () => {
       try {
         setLoading(true);
-        const data = await fetchDeckCardSummary(deckcode.code);
+        const data = await fetchDeckCardSummary(code);
         setDeckCardSummary(data);
       } catch (err) {
         console.log(err);
@@ -101,9 +100,9 @@ export default function DeckCardSummaryRow({ deckcode }: Props) {
     };
 
     fetchCurrentDeckCardSummaryData();
-  }, [deckcode]);
+  }, [code]);
 
-  if (!deckcode) return;
+  if (!code) return;
 
   if (loading) {
     return (

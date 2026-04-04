@@ -8,10 +8,14 @@ import { Card, CardBody } from "@heroui/react";
 
 import { Button } from "@heroui/react";
 
+import { Modal, ModalContent, ModalBody, useDisclosure } from "@heroui/react";
+
 import { LuRepeat } from "react-icons/lu";
 
 import { DeckCodeType } from "@app/types/deck_code";
 import { DeckCardListType } from "@app/types/deckcard";
+
+import { CardType } from "@app/types/deckcard";
 
 async function fetchDeckCardList(code: string) {
   try {
@@ -65,6 +69,13 @@ export default function InspectDeck({ deckcode }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const [prizecardsReversedState, setPrizeCardsReversedState] = useState<boolean>(false);
+
+  const [card, setCard] = useState<CardType>();
+  const {
+    isOpen: isOpenForShowCardModal,
+    onOpen: onOpenForShowCardModal,
+    onOpenChange: onOpenChangeForShowCardModal,
+  } = useDisclosure();
 
   const handScrollRef = useRef<HTMLDivElement | null>(null);
 
@@ -228,43 +239,90 @@ export default function InspectDeck({ deckcode }: Props) {
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="px-6 flex justify-between w-full">
-        <div
-          onClick={() => setPrizeCardsReversedState((prev) => !prev)}
-          className="flex flex-col justify-center gap-1"
-        >
-          <div className="px-3 font-bold text-tiny">サイド</div>
-          {prizecardsReversedState ? (
+    <>
+      <div className="flex flex-col gap-3">
+        <div className="px-6 flex justify-between w-full">
+          <div
+            onClick={() => setPrizeCardsReversedState((prev) => !prev)}
+            className="flex flex-col justify-center gap-1"
+          >
+            <div className="px-3 font-bold text-tiny">サイド</div>
+            {prizecardsReversedState ? (
+              <Card shadow="md" className="w-fit">
+                <CardBody className="">
+                  <div className="flex justify-center items-center gap-1">
+                    {prizecardList.map((card, index) => (
+                      <div
+                        key={index}
+                        className="-ml-7 first:ml-0 w-12 aspect-686/1212 shrink-0"
+                      >
+                        <Image
+                          radius="none"
+                          shadow="none"
+                          alt={card.card_name}
+                          src={card.image_url}
+                          className="w-12 h-17.5 rounded-xs object-cover"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </CardBody>
+              </Card>
+            ) : (
+              <Card shadow="md" className="w-fit">
+                <CardBody className="">
+                  <div className="flex justify-center items-center gap-1">
+                    {Array.from({ length: 6 }).map((_, index) => (
+                      <div
+                        key={index}
+                        className="-ml-7 first:ml-0 w-12 aspect-686/1212 shrink-0"
+                      >
+                        <Image
+                          radius="none"
+                          shadow="none"
+                          alt="ポケモンカード"
+                          src="https://www.pokemon-card.com/assets/images/noimage/poke_ura.jpg"
+                          className="w-12 h-17.5 rounded-xs object-cover"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </CardBody>
+              </Card>
+            )}
+          </div>
+
+          <div
+            onClick={handleDraw}
+            className="pr-3 flex flex-col items-center justify-center gap-1"
+          >
+            <div className="font-bold text-tiny">山札：{deckcardList.length}</div>
             <Card shadow="md" className="w-fit">
               <CardBody className="">
                 <div className="flex justify-center items-center gap-1">
-                  {prizecardList.map((card, index) => (
-                    <div
-                      key={index}
-                      className="-ml-7 first:ml-0 w-12 aspect-686/1212 shrink-0"
-                    >
-                      <Image
-                        radius="none"
-                        shadow="none"
-                        alt={card.card_name}
-                        src={card.image_url}
-                        className="w-12 h-17.5 rounded-xs object-cover"
-                      />
+                  {deckcardList.length === 0 && (
+                    <div className="w-12 aspect-686/1212 shrink-0">
+                      <div className="w-12 h-17.5" />
                     </div>
-                  ))}
-                </div>
-              </CardBody>
-            </Card>
-          ) : (
-            <Card shadow="md" className="w-fit">
-              <CardBody className="">
-                <div className="flex justify-center items-center gap-1">
-                  {Array.from({ length: 6 }).map((_, index) => (
+                  )}
+
+                  {deckcardList.slice(0, 1).map((card, index) => (
                     <div
-                      key={index}
-                      className="-ml-7 first:ml-0 w-12 aspect-686/1212 shrink-0"
+                      key={`${card.card_id}-${index}`}
+                      className="w-12 aspect-686/1212 shrink-0"
                     >
+                      {/* 表面 */}
+                      {/*
+                    <Image
+                      radius="none"
+                      shadow="none"
+                      alt={card.card_name}
+                      src={card.image_url}
+                      className="w-12 h-17.5 rounded-xs object-cover"
+                    />
+                    */}
+
+                      {/* 裏面 */}
                       <Image
                         radius="none"
                         shadow="none"
@@ -277,94 +335,82 @@ export default function InspectDeck({ deckcode }: Props) {
                 </div>
               </CardBody>
             </Card>
-          )}
+          </div>
         </div>
 
-        <div
-          onClick={handleDraw}
-          className="pr-3 flex flex-col items-center justify-center gap-1"
-        >
-          <div className="font-bold text-tiny">山札：{deckcardList.length}</div>
-          <Card shadow="md" className="w-fit">
-            <CardBody className="">
-              <div className="flex justify-center items-center gap-1">
-                {deckcardList.length === 0 && (
-                  <div className="w-12 aspect-686/1212 shrink-0">
-                    <div className="w-12 h-17.5" />
-                  </div>
-                )}
-
-                {deckcardList.slice(0, 1).map((card, index) => (
-                  <div
-                    key={`${card.card_id}-${index}`}
-                    className="w-12 aspect-686/1212 shrink-0"
-                  >
-                    {/* 表面 */}
-                    {/*
-                    <Image
-                      radius="none"
-                      shadow="none"
-                      alt={card.card_name}
-                      src={card.image_url}
-                      className="w-12 h-17.5 rounded-xs object-cover"
-                    />
-                    */}
-
-                    {/* 裏面 */}
-                    <Image
-                      radius="none"
-                      shadow="none"
-                      alt="ポケモンカード"
-                      src="https://www.pokemon-card.com/assets/images/noimage/poke_ura.jpg"
-                      className="w-12 h-17.5 rounded-xs object-cover"
-                    />
-                  </div>
-                ))}
+        <div className="flex flex-col justify-center gap-1">
+          <div className="px-3 font-bold text-tiny">手札：{handcardList.length}</div>
+          <Card shadow="md">
+            <CardBody className="px-2.5">
+              <div className="flex justify-center">
+                <div
+                  ref={handScrollRef}
+                  className="flex overflow-x-scroll gap-1 whitespace-nowrap"
+                >
+                  {handcardList.map((card, index) => (
+                    <div
+                      key={`${card.card_id}-${index}`}
+                      onClick={() => {
+                        setCard(card);
+                        onOpenForShowCardModal();
+                      }}
+                      className="w-12 aspect-686/1212 shrink-0"
+                    >
+                      <Image
+                        radius="none"
+                        shadow="none"
+                        alt={card.card_name}
+                        src={card.image_url}
+                        className="w-12 h-17.5 rounded-xs object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
             </CardBody>
           </Card>
         </div>
-      </div>
 
-      <div className="flex flex-col justify-center gap-1">
-        <div className="px-3 font-bold text-tiny">手札：{handcardList.length}</div>
-        <Card shadow="md">
-          <CardBody className="px-2.5">
-            <div className="flex justify-center">
-              <div
-                ref={handScrollRef}
-                className="flex overflow-x-scroll gap-1 whitespace-nowrap"
-              >
-                {handcardList.map((card, index) => (
-                  <div
-                    key={`${card.card_id}-${index}`}
-                    className="w-12 aspect-686/1212 shrink-0"
-                  >
-                    <Image
-                      radius="none"
-                      shadow="none"
-                      alt={card.card_name}
-                      src={card.image_url}
-                      className="w-12 h-17.5 rounded-xs object-cover"
-                    />
-                  </div>
-                ))}
-              </div>
+        <div className="pt-3 w-full">
+          <Button size="md" radius="full" onPress={handleShuffle} className="w-full">
+            <div className="flex items-center justify-center gap-3">
+              <span className="font-bold ">
+                <LuRepeat />
+              </span>
+              <span className="font-bold">再試行</span>
             </div>
-          </CardBody>
-        </Card>
+          </Button>
+        </div>
       </div>
 
-      <div className="pt-3 w-full">
-        <Button size="md" radius="full" onPress={handleShuffle} className="w-full">
-          <div className="flex items-center justify-center gap-3">
-            <span className="font-bold ">
-              <LuRepeat />
-            </span>
-            <span className="font-bold">再試行</span>
-          </div>
-        </Button>
-      </div>
-    </div>
+      <Modal
+        isOpen={isOpenForShowCardModal}
+        size={"sm"}
+        placement="center"
+        hideCloseButton
+        onOpenChange={onOpenChangeForShowCardModal}
+        classNames={{
+          base: "sm:max-w-full bg-transparent shadow-none border-none",
+          closeButton: "text-2xl",
+        }}
+      >
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalBody>
+                <Image
+                  radius="none"
+                  shadow="none"
+                  alt={card?.card_name}
+                  src={card?.image_url}
+                  className=""
+                  onLoad={() => {}}
+                />
+              </ModalBody>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
+    </>
   );
 }

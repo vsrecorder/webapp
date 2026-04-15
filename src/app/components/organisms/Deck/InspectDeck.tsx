@@ -107,6 +107,16 @@ export default function InspectDeck({ deckcode }: Props) {
         setHandCardList(shuffledData.slice(0, 7)); // デッキの上から7枚を取得
         setPrizeCardList(shuffledData.slice(7, 13)); // サイドカードを取得
         setDeckCardList(shuffledData.slice(13)); // デッキのトップカードを取得
+
+        const img = new window.Image();
+        img.src = "https://www.pokemon-card.com/assets/images/noimage/poke_ura.jpg";
+
+        const urls = [...shuffledData].map((c) => c.image_url);
+        const uniqueUrls = [...new Set(urls)];
+        uniqueUrls.forEach((url) => {
+          const img = new window.Image();
+          img.src = url;
+        });
       } catch (err) {
         console.log(err);
         setError("データの取得に失敗しました");
@@ -313,14 +323,14 @@ export default function InspectDeck({ deckcode }: Props) {
                     >
                       {/* 表面 */}
                       {/*
-                    <Image
-                      radius="none"
-                      shadow="none"
-                      alt={card.card_name}
-                      src={card.image_url}
-                      className="w-12 h-17.5 rounded-xs object-cover"
-                    />
-                    */}
+                      <Image
+                        radius="none"
+                        shadow="none"
+                        alt={card.card_name}
+                        src={card.image_url}
+                        className="w-12 h-17.5 rounded-xs object-cover"
+                      />
+                      */}
 
                       {/* 裏面 */}
                       <Image
@@ -391,11 +401,10 @@ export default function InspectDeck({ deckcode }: Props) {
         onOpenChange={onOpenChangeForShowCardModal}
         classNames={{
           base: "sm:max-w-full bg-transparent shadow-none border-none",
-          closeButton: "text-2xl",
         }}
       >
         <ModalContent>
-          {(onClose) => (
+          {() => (
             <>
               <ModalBody>
                 <Image
@@ -403,8 +412,7 @@ export default function InspectDeck({ deckcode }: Props) {
                   shadow="none"
                   alt={card?.card_name}
                   src={card?.image_url}
-                  className=""
-                  onLoad={() => {}}
+                  className="rounded-[20px]"
                 />
               </ModalBody>
             </>

@@ -98,6 +98,28 @@ export default function DeckCardSummaryRow({ code }: Props) {
   } = useDisclosure();
 
   useEffect(() => {
+    if (!deckcardSummary) {
+      return;
+    }
+
+    const urls = [
+      ...deckcardSummary.card_pke,
+      ...deckcardSummary.card_gds,
+      ...deckcardSummary.card_tool,
+      ...deckcardSummary.card_sup,
+      ...deckcardSummary.card_sta,
+      ...deckcardSummary.card_ene,
+    ].map((c) => c.image_url);
+
+    const uniqueUrls = [...new Set(urls)];
+
+    uniqueUrls.forEach((url) => {
+      const img = new window.Image();
+      img.src = url;
+    });
+  }, [deckcardSummary]);
+
+  useEffect(() => {
     if (!code) {
       setLoading(false);
       return;
@@ -336,13 +358,13 @@ export default function DeckCardSummaryRow({ code }: Props) {
         placement="center"
         hideCloseButton
         onOpenChange={onOpenChangeForShowPkeCardModal}
+        onClose={() => {}}
         classNames={{
           base: "sm:max-w-full bg-transparent shadow-none border-none",
-          closeButton: "text-2xl",
         }}
       >
         <ModalContent>
-          {(onClose) => (
+          {() => (
             <>
               <ModalBody>
                 <Image
@@ -350,8 +372,8 @@ export default function DeckCardSummaryRow({ code }: Props) {
                   shadow="none"
                   alt={pkecard?.card_name}
                   src={pkecard?.image_url}
-                  className=""
                   onLoad={() => {}}
+                  className="rounded-[20px]"
                 />
               </ModalBody>
             </>
@@ -365,13 +387,13 @@ export default function DeckCardSummaryRow({ code }: Props) {
         placement="center"
         hideCloseButton
         onOpenChange={onOpenChangeForShowCardModal}
+        onClose={() => {}}
         classNames={{
           base: "sm:max-w-full bg-transparent shadow-none border-none",
-          closeButton: "text-2xl",
         }}
       >
         <ModalContent>
-          {(onClose) => (
+          {() => (
             <>
               <ModalBody>
                 <Image
@@ -379,8 +401,8 @@ export default function DeckCardSummaryRow({ code }: Props) {
                   shadow="none"
                   alt={card?.card_name}
                   src={card?.image_url}
-                  className=""
                   onLoad={() => {}}
+                  className="rounded-[20px]"
                 />
               </ModalBody>
             </>

@@ -4,9 +4,12 @@ import { useEffect, useState } from "react";
 
 import { Chip } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
+import { Image } from "@heroui/react";
+
+import { Modal, ModalContent, ModalBody, useDisclosure } from "@heroui/react";
 
 import { DeckCodeType } from "@app/types/deck_code";
-import { DeckCardType } from "@app/types/deckcard";
+import { DeckCardType, CardType } from "@app/types/deckcard";
 
 async function fetchDeckCardListByDeckCodeId(code: string) {
   try {
@@ -93,6 +96,13 @@ export default function DeckCardDiff({ current_deckcode, previous_deckcode }: Pr
   const [loading2, setLoading2] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [card, setCard] = useState<CardType>();
+  const {
+    isOpen: isOpenForShowCardModal,
+    onOpen: onOpenForShowCardModal,
+    onOpenChange: onOpenChangeForShowCardModal,
+  } = useDisclosure();
+
   useEffect(() => {
     if (!current_deckcode || !previous_deckcode) {
       setLoading1(false);
@@ -108,6 +118,13 @@ export default function DeckCardDiff({ current_deckcode, previous_deckcode }: Pr
         setLoading1(true);
         const data = await fetchDeckCardListByDeckCodeId(current_deckcode.code);
         setCurrentDeckCardList(data);
+
+        const urls = [...data].map((c) => c.image_url);
+        const uniqueUrls = [...new Set(urls)];
+        uniqueUrls.forEach((url) => {
+          const img = new window.Image();
+          img.src = url;
+        });
       } catch (err) {
         console.log(err);
         setError("データの取得に失敗しました");
@@ -121,6 +138,13 @@ export default function DeckCardDiff({ current_deckcode, previous_deckcode }: Pr
         setLoading2(true);
         const data = await fetchDeckCardListByDeckCodeId(previous_deckcode.code);
         setPreviousDeckCardList(data);
+
+        const urls = [...data].map((c) => c.image_url);
+        const uniqueUrls = [...new Set(urls)];
+        uniqueUrls.forEach((url) => {
+          const img = new window.Image();
+          img.src = url;
+        });
       } catch (err) {
         console.log(err);
         setError("データの取得に失敗しました");
@@ -177,51 +201,92 @@ export default function DeckCardDiff({ current_deckcode, previous_deckcode }: Pr
   if (!currentDeckCardList || !previousDeckCardList) return;
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="pb-0.5 pr-0">
-        <div className="font-bold text-tiny pb-1">追加されたカード</div>
-        <div className="pl-1 flex flex-wrap gap-1">
-          {diffByContentWithCount(currentDeckCardList, previousDeckCardList).map(
-            (deckcard, index) => (
-              <div key={index}>
-                <Chip
-                  size="sm"
-                  radius="md"
-                  color="success"
-                  variant="bordered"
-                  className="border-1.5 text-black"
+    <>
+      <div className="flex flex-col gap-3">
+        <div className="pb-0.5 pr-0">
+          <div className="font-bold text-tiny pb-1">追加されたカード</div>
+          <div className="pl-1 flex flex-wrap gap-1">
+            {diffByContentWithCount(currentDeckCardList, previousDeckCardList).map(
+              (deckcard, index) => (
+                <div
+                  key={index}
+                  onClick={() => {
+                    setCard(deckcard);
+                    onOpenForShowCardModal();
+                  }}
                 >
-                  <small className="font-bold">
-                    {deckcard.card_name}: {deckcard.card_count}
-                  </small>
-                </Chip>
-              </div>
-            ),
-          )}
+                  <Chip
+                    size="sm"
+                    radius="md"
+                    color="success"
+                    variant="bordered"
+                    className="border-1.5 text-black"
+                  >
+                    <small className="font-bold">
+                      {deckcard.card_name}: {deckcard.card_count}
+                    </small>
+                  </Chip>
+                </div>
+              ),
+            )}
+          </div>
+        </div>
+        <div className="pb-0.5 pr-0">
+          <div className="font-bold text-tiny pb-1">削除されたカード</div>
+          <div className="pl-1 flex flex-wrap gap-1">
+            {diffByContentWithCount(previousDeckCardList, currentDeckCardList).map(
+              (deckcard, index) => (
+                <div
+                  key={index}
+                  onClick={() => {
+                    setCard(deckcard);
+                    onOpenForShowCardModal();
+                  }}
+                >
+                  <Chip
+                    size="sm"
+                    radius="md"
+                    color="danger"
+                    variant="bordered"
+                    className="border-1.5 text-black"
+                  >
+                    <small className="font-bold">
+                      {deckcard.card_name}: {deckcard.card_count}
+                    </small>
+                  </Chip>
+                </div>
+              ),
+            )}
+          </div>
         </div>
       </div>
-      <div className="pb-0.5 pr-0">
-        <div className="font-bold text-tiny pb-1">削除されたカード</div>
-        <div className="pl-1 flex flex-wrap gap-1">
-          {diffByContentWithCount(previousDeckCardList, currentDeckCardList).map(
-            (deckcard, index) => (
-              <div key={index}>
-                <Chip
-                  size="sm"
-                  radius="md"
-                  color="danger"
-                  variant="bordered"
-                  className="border-1.5 text-black"
-                >
-                  <small className="font-bold">
-                    {deckcard.card_name}: {deckcard.card_count}
-                  </small>
-                </Chip>
-              </div>
-            ),
+
+      <Modal
+        isOpen={isOpenForShowCardModal}
+        size={"sm"}
+        placement="center"
+        hideCloseButton
+        onOpenChange={onOpenChangeForShowCardModal}
+        classNames={{
+          base: "sm:max-w-full bg-transparent shadow-none border-none",
+        }}
+      >
+        <ModalContent>
+          {() => (
+            <>
+              <ModalBody>
+                <Image
+                  radius="none"
+                  shadow="none"
+                  alt={card?.card_name}
+                  src={card?.image_url}
+                  className="rounded-[20px]"
+                />
+              </ModalBody>
+            </>
           )}
-        </div>
-      </div>
-    </div>
+        </ModalContent>
+      </Modal>
+    </>
   );
 }

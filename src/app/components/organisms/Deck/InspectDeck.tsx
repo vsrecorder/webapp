@@ -261,7 +261,7 @@ export default function InspectDeck({ deckcode }: Props) {
               <Card shadow="md" className="w-fit">
                 <CardBody className="">
                   <div className="flex justify-center items-center gap-1">
-                    {prizecardList.map((card, index) => (
+                    {prizecardList.map((prizecard, index) => (
                       <div
                         key={index}
                         className="-ml-7 first:ml-0 w-12 aspect-686/1212 shrink-0"
@@ -269,8 +269,8 @@ export default function InspectDeck({ deckcode }: Props) {
                         <Image
                           radius="none"
                           shadow="none"
-                          alt={card.card_name}
-                          src={card.image_url}
+                          alt={prizecard.card_name}
+                          src={prizecard.image_url}
                           className="w-12 h-17.5 rounded-xs object-cover"
                         />
                       </div>
@@ -316,22 +316,11 @@ export default function InspectDeck({ deckcode }: Props) {
                     </div>
                   )}
 
-                  {deckcardList.slice(0, 1).map((card, index) => (
+                  {deckcardList.slice(0, 1).map((deckcard, index) => (
                     <div
-                      key={`${card.card_id}-${index}`}
+                      key={`${deckcard.card_id}-${index}`}
                       className="w-12 aspect-686/1212 shrink-0"
                     >
-                      {/* 表面 */}
-                      {/*
-                      <Image
-                        radius="none"
-                        shadow="none"
-                        alt={card.card_name}
-                        src={card.image_url}
-                        className="w-12 h-17.5 rounded-xs object-cover"
-                      />
-                      */}
-
                       {/* 裏面 */}
                       <Image
                         radius="none"
@@ -357,11 +346,11 @@ export default function InspectDeck({ deckcode }: Props) {
                   ref={handScrollRef}
                   className="flex overflow-x-scroll gap-1 whitespace-nowrap"
                 >
-                  {handcardList.map((card, index) => (
+                  {handcardList.map((handcard, index) => (
                     <div
-                      key={`${card.card_id}-${index}`}
+                      key={`${handcard.card_id}-${index}`}
                       onClick={() => {
-                        setCard(card);
+                        setCard(handcard);
                         onOpenForShowCardModal();
                       }}
                       className="w-12 aspect-686/1212 shrink-0"
@@ -369,8 +358,8 @@ export default function InspectDeck({ deckcode }: Props) {
                       <Image
                         radius="none"
                         shadow="none"
-                        alt={card.card_name}
-                        src={card.image_url}
+                        alt={handcard.card_name}
+                        src={handcard.image_url}
                         className="w-12 h-17.5 rounded-xs object-cover"
                       />
                     </div>

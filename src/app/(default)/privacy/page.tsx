@@ -1,9 +1,9 @@
 export default function Page() {
   return (
     <div className="max-w-3xl mx-auto px-6 py-12 text-sm leading-relaxed">
-      <div className="flex flex-col gap-10">
+      <div className="flex flex-col gap-10 py-10">
         {/* タイトル */}
-        <section className="px-12.5text-sm">
+        <section className="px-6 text-sm">
           <h1 className="text-2xl font-bold mb-5">プライバシーポリシー</h1>
           <p>
             バトレコ（以下、「運営者」といいます。）は、本ウェブサイト上で提供するサービス（以下、「本サービス」といいます。）における、
@@ -12,7 +12,7 @@ export default function Page() {
         </section>
 
         {/* 第1条 */}
-        <section className="px-12.5text-sm">
+        <section className="px-6 text-sm">
           <h2 className="text-lg font-semibold mb-3">第1条（個人情報）</h2>
           <p>
             「個人情報」とは、個人情報保護法にいう「個人情報」を指すものとし、生存する個人に関する情報であって、
@@ -22,7 +22,7 @@ export default function Page() {
         </section>
 
         {/* 第2条 */}
-        <section className="px-12.5text-sm">
+        <section className="px-6 text-sm">
           <h2 className="text-lg font-semibold mb-3">第2条（個人情報の収集方法）</h2>
           <p>
             運営者は、ユーザーが利用登録をする際に氏名、生年月日、住所、電話番号、メールアドレス、銀行口座番号、
@@ -33,7 +33,7 @@ export default function Page() {
         </section>
 
         {/* 第3条 */}
-        <section className="px-12.5text-sm">
+        <section className="px-6 text-sm">
           <h2 className="text-lg font-semibold mb-3">
             第3条（個人情報を収集・利用する目的）
           </h2>
@@ -51,7 +51,7 @@ export default function Page() {
         </section>
 
         {/* 第4条 */}
-        <section className="px-12.5text-sm">
+        <section className="px-6 text-sm">
           <h2 className="text-lg font-semibold mb-3">第4条（利用目的の変更）</h2>
           <ul className="list-disc pl-6 space-y-1">
             <li>合理的関連性がある場合に限り利用目的を変更します。</li>
@@ -60,7 +60,7 @@ export default function Page() {
         </section>
 
         {/* 第5条 */}
-        <section className="px-12.5text-sm">
+        <section className="px-6 text-sm">
           <h2 className="text-lg font-semibold mb-3">第5条（個人情報の第三者提供）</h2>
           <ul className="list-disc pl-6 space-y-2">
             <li>
@@ -77,7 +77,7 @@ export default function Page() {
         </section>
 
         {/* 第6条 */}
-        <section className="px-12.5text-sm">
+        <section className="px-6 text-sm">
           <h2 className="text-lg font-semibold mb-3">第6条（個人情報の開示）</h2>
           <ul className="list-disc pl-6 space-y-1">
             <li>
@@ -90,7 +90,7 @@ export default function Page() {
         </section>
 
         {/* 第7条 */}
-        <section className="px-12.5text-sm">
+        <section className="px-6 text-sm">
           <h2 className="text-lg font-semibold mb-3">
             第7条（個人情報の訂正および削除）
           </h2>
@@ -102,7 +102,7 @@ export default function Page() {
         </section>
 
         {/* 第8条 */}
-        <section className="px-12.5text-sm">
+        <section className="px-6 text-sm">
           <h2 className="text-lg font-semibold mb-3">第8条（個人情報の利用停止等）</h2>
           <ul className="list-disc pl-6 space-y-1">
             <li>利用停止等の請求があった場合は調査を行います。</li>
@@ -113,7 +113,7 @@ export default function Page() {
         </section>
 
         {/* 第9条 */}
-        <section className="px-12.5text-sm pb-16">
+        <section className="px-6 text-sm pb-16">
           <h2 className="text-lg font-semibold mb-3">
             第9条（プライバシーポリシーの変更）
           </h2>

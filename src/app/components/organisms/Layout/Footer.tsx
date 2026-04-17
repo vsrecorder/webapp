@@ -2,7 +2,7 @@ import { LuExternalLink } from "react-icons/lu";
 
 export default async function Footer() {
   return (
-    <footer className="text-center pt-20 pb-0 p-6 w-full">
+    <footer className="text-center pt-12 pb-0 p-6 w-full">
       <div className="flex flex-col items-center">
         {/* 上段リンク */}
         <div className="flex gap-3">

@@ -1,7 +1,7 @@
 export default function Page() {
   return (
-    <div className="max-w-3xl mx-auto px-6 py-12 text-sm leading-relaxed">
-      <div className="flex flex-col gap-10 py-10">
+    <div className="max-w-3xl mx-auto px-3 py-6 text-sm leading-relaxed">
+      <div className="flex flex-col gap-10 py-3">
         <section className="px-6 text-sm">
           <h1 className="text-2xl font-bold mb-5">本サービスにつきまして</h1>
           <p>

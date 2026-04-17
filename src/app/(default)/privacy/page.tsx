@@ -1,7 +1,7 @@
 export default function Page() {
   return (
-    <div className="max-w-3xl mx-auto px-6 py-12 text-sm leading-relaxed">
-      <div className="flex flex-col gap-10 py-10">
+    <div className="max-w-3xl mx-auto px-3 py-6 text-sm leading-relaxed">
+      <div className="flex flex-col gap-10 py-3">
         {/* タイトル */}
         <section className="px-6 text-sm">
           <h1 className="text-2xl font-bold mb-5">プライバシーポリシー</h1>
@@ -113,7 +113,7 @@ export default function Page() {
         </section>
 
         {/* 第9条 */}
-        <section className="px-6 text-sm pb-16">
+        <section className="px-6 text-sm pb-9">
           <h2 className="text-lg font-semibold mb-3">
             第9条（プライバシーポリシーの変更）
           </h2>

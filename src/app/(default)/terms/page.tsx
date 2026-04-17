@@ -1,7 +1,7 @@
 export default function Page() {
   return (
-    <div className="max-w-3xl mx-auto px-3 py-12 text-sm leading-relaxed">
-      <div className="flex flex-col gap-10 py-10">
+    <div className="max-w-3xl mx-auto px-6 py-12 text-sm leading-relaxed">
+      <div className="flex flex-col gap-10 py-3">
         <section className="px-6 text-sm">
           <h1 className="text-2xl font-bold mb-5">利用規約</h1>
           <p>
@@ -162,7 +162,7 @@ export default function Page() {
           </p>
         </section>
 
-        <section className="px-6 text-sm pb-16">
+        <section className="px-6 text-sm pb-9">
           <h2 className="text-lg font-semibold mb-3">第16条（準拠法・裁判管轄）</h2>
           <p>
             本規約の解釈にあたっては、日本法を準拠法とします。

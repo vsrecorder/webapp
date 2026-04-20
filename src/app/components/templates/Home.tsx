@@ -5,6 +5,7 @@ import Footer from "@app/components/organisms/Layout/Footer";
 import CityleagueEvents from "@app/components/organisms/Cityleague/CityleagueEvents";
 
 import { CityleagueScheduleType } from "@app/types/cityleague_schedule";
+import { EnvironmentType } from "@app/types/environment";
 
 async function getCityleagueScheduleByDate(date: Date): Promise<CityleagueScheduleType> {
   try {
@@ -28,6 +29,32 @@ async function getCityleagueScheduleByDate(date: Date): Promise<CityleagueSchedu
       return ret;
     } else if (res.status === 404) {
       throw new Error("not found");
+    } else {
+      throw new Error("error");
+    }
+  } catch (error) {
+    throw error;
+  }
+}
+async function getEnvironmentByDate(date: Date): Promise<EnvironmentType> {
+  try {
+    const domain = process.env.VSRECORDER_DOMAIN;
+
+    const today = date.toISOString().split("T")[0];
+
+    const res = await fetch(`https://${domain}/api/v1beta/environments?date=${today}`, {
+      cache: "no-store",
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    if (res.status === 200) {
+      const ret: EnvironmentType = await res.json();
+      return ret;
+    } else if (res.status === 400) {
+      throw new Error("bad request");
     } else {
       throw new Error("error");
     }

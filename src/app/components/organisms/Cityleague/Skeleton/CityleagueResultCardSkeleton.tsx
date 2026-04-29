@@ -9,7 +9,7 @@ export default function CityleagueResultCardSkeleton() {
           <Skeleton className="h-6 w-16" />
         </div>
       </CardHeader>
-      <CardBody className="p-3 gap-4">
+      <CardBody className="p-3 gap-3">
         <div className="flex flex-col items-start gap-1.5">
           <div className="text-tiny">
             <Skeleton className="h-3.5 w-32" />

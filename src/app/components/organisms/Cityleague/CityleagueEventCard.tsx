@@ -5,7 +5,6 @@ import { Modal, ModalContent, ModalHeader, ModalBody } from "@heroui/react";
 import { useDisclosure } from "@heroui/react";
 
 import { Chip } from "@heroui/react";
-import { Image } from "@heroui/react";
 
 import CityleagueResult from "@app/components/organisms/Cityleague/CityleagueResult";
 
@@ -32,6 +31,8 @@ export default function CityleagueEventCard({ event, results }: Props) {
     day: "numeric",
     weekday: "short",
   });
+
+  event.shop_name = event.shop_name.replace(/ポケモンカードステーション・/g, "");
 
   return (
     <>
@@ -63,16 +64,16 @@ export default function CityleagueEventCard({ event, results }: Props) {
       )}
 
       <div className="w-full" onClick={onOpen}>
-        <Card className="pt-3 w-full max-w-full">
+        <Card className="pt-1.5 w-full max-w-full">
           <CardHeader className="pt-2.5 pb-1.5 px-3 flex-col items-start">
             {/* 両端配置 */}
             <div className="flex items-center justify-between w-full">
-              <div className="w-full">
-                <small className="font-bold text-default-400 w-full truncate block">
+              <div>
+                <small className="font-bold text-tiny text-default-400">
                   {event.title}
                 </small>
                 <div className="font-bold text-tiny text-default-500">{date}</div>
-                <div className="pt-1 pb-1 font-bold text-small">{event.shop_name}</div>
+                <div className="pt-1 pb-1 font-bold text-[13px]">{event.shop_name}</div>
                 <div>
                   <div className="flex flex-wrap items-start gap-1 pt-0.5">
                     <Chip size="sm" radius="md" variant="bordered">

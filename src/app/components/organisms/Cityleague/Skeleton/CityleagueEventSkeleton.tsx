@@ -15,10 +15,10 @@ export default function CityleagueEventSkeleton() {
           </div>
 
           <div className="font-bold text-medium">
-            <Skeleton className="h-5.5 w-50" />
+            <Skeleton className="h-5 w-50" />
           </div>
 
-          <div className="pb-1 flex flex-wrap items-start gap-1 pt-0">
+          <div className="pt-0 pb-1 flex flex-wrap items-start gap-1">
             <Skeleton className="h-5 w-12 rounded-2xl" />
             <Skeleton className="h-5 w-21 rounded-2xl" />
             <Skeleton className="h-5 w-24 rounded-2xl" />

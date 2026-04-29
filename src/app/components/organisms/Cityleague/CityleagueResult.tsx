@@ -104,6 +104,8 @@ export default function CityleagueResult({ event_result }: Props) {
     weekday: "short",
   });
 
+  event.shop_name = event.shop_name.replace(/ポケモンカードステーション・/g, "");
+
   return (
     <div className="">
       <Card className="pt-3 w-full">
@@ -113,7 +115,7 @@ export default function CityleagueResult({ event_result }: Props) {
             <div>
               <small className="font-bold text-default-400">{event.title}</small>
               <div className="font-bold text-tiny text-default-500">{date}</div>
-              <div className="pt-1 pb-1 font-bold text-small">{event.shop_name}</div>
+              <div className="pt-1 pb-1 font-bold text-[13px]">{event.shop_name}</div>
               <div>
                 <div className="flex flex-wrap items-start gap-1 pt-0.5">
                   <Chip size="sm" radius="md" variant="bordered">

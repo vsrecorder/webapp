@@ -125,13 +125,21 @@ export default function CityleagueResultCard({ result, date }: Props) {
 
   useEffect(() => {
     if (!result.deck_code) {
-      setLoadingAcespec(false);
-      setLoadingEnvironment(false);
       return;
     }
 
     const img = new window.Image();
     img.src = `https://xx8nnpgt.user.webaccel.jp/images/decks/${result.deck_code}.jpg`;
+  }, [result.deck_code]);
+
+  {
+    /*
+  useEffect(() => {
+    if (!result.deck_code) {
+      setLoadingAcespec(false);
+      setLoadingEnvironment(false);
+      return;
+    }
 
     setLoadingAcespec(true);
     setLoadingEnvironment(true);
@@ -167,7 +175,11 @@ export default function CityleagueResultCard({ result, date }: Props) {
     fetchAcespecData();
     fetchEnvironmentData();
   }, [result.deck_code]);
+    */
+  }
 
+  {
+    /*
   useEffect(() => {
     if (!result.deck_code || !environment || !environment.id) {
       setLoadingDeckType(false);
@@ -193,6 +205,8 @@ export default function CityleagueResultCard({ result, date }: Props) {
 
     fetchDeckTypeData();
   }, [result.deck_code, environment]);
+  */
+  }
 
   const getBorderColor = (rank: number) => {
     switch (rank) {
@@ -277,6 +291,7 @@ export default function CityleagueResultCard({ result, date }: Props) {
             </div>
           </CardBody>
           <CardFooter>
+            {/*
             <div className="flex flex-col gap-2">
               <div className="flex gap-1">
                 {loadingEnvrionment || loadingDeckType ? (
@@ -318,6 +333,7 @@ export default function CityleagueResultCard({ result, date }: Props) {
                 )}
               </div>
             </div>
+            */}
           </CardFooter>
         </Card>
       </div>

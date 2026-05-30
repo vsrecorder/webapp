@@ -29,7 +29,7 @@ export function CityleagueResultSkeleton() {
         <CardBody className="px-2 py-1">
           <CityleagueResultCardSkeleton />
         </CardBody>
-        <CardFooter className="pt-4 pb-2">
+        <CardFooter className="pt-5 pb-2">
           <Skeleton className="h-4 w-56" />
         </CardFooter>
       </Card>

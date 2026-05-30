@@ -182,7 +182,7 @@ export default function CityleagueResult({ event_result }: Props) {
             </Swiper>
           </div>
         </CardBody>
-        <CardFooter className="pt-0 pb-2">
+        <CardFooter className="pt-1 pb-2">
           <div>
             <HeroLink
               showAnchorIcon

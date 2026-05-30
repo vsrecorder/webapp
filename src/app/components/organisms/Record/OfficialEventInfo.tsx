@@ -107,6 +107,9 @@ export default function OfficialEventInfo({
         const data = await fetchOfficialEventById(record.official_event_id);
 
         data.title = data.title.replace(/【.*?】ポケモンカードジム　/g, "");
+        data.title = data.title.replace(/【.*?】ポケモンカードジム /g, "");
+        data.title = data.title.replace(/【.*?】ポケモンカードジム  /g, "");
+        data.title = data.title.replace(/【.*?】ポケモンカードジム   /g, "");
         data.title = data.title.replace(
           /【.*?】エクストラバトルの日/g,
           "エクストラバトルの日",
@@ -291,6 +294,13 @@ export default function OfficialEventInfo({
                     <Image
                       alt="スタートデッキ100　そのままバトル"
                       src="https://xx8nnpgt.user.webaccel.jp/images/icons/100_sonomama_battle.png"
+                      radius="none"
+                      className="h-22 w-22 object-contain"
+                    />
+                  ) : officialEvent.title.includes("マイジムNo.1決定戦") ? (
+                    <Image
+                      alt="マイジムNo.1決定戦"
+                      src="https://xx8nnpgt.user.webaccel.jp/images/icons/mygym_no1.png"
                       radius="none"
                       className="h-22 w-22 object-contain"
                     />

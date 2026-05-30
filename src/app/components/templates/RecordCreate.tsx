@@ -148,6 +148,9 @@ function convertToOfficialEventOption(
     eventTime;
 
   officialEvent.title = officialEvent.title.replace(/【.*?】ポケモンカードジム　/g, "");
+  officialEvent.title = officialEvent.title.replace(/【.*?】ポケモンカードジム /g, "");
+  officialEvent.title = officialEvent.title.replace(/【.*?】ポケモンカードジム  /g, "");
+  officialEvent.title = officialEvent.title.replace(/【.*?】ポケモンカードジム   /g, "");
   officialEvent.title = officialEvent.title.replace(
     /【.*?】エクストラバトルの日/g,
     "エクストラバトルの日",
@@ -192,6 +195,9 @@ function convertToOfficialEventOption(
     } else if (officialEvent.title.includes("スタートデッキ100　そのままバトル")) {
       image_alt = "スタートデッキ100　そのままバトル";
       image_src += "100_sonomama_battle.png";
+    } else if (officialEvent.title.includes("マイジムNo.1決定戦")) {
+      image_alt = "マイジムNo.1決定戦";
+      image_src += "mygym_no1.png";
     } else {
       image_alt = "ポケモンカードゲーム";
       image_src += "pokemon_card_game.png";

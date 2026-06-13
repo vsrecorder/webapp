@@ -8,7 +8,7 @@ import Link from "next/link";
 
 export default function MobileNavigation() {
   return (
-    <nav className="fixed z-50 lg:hidden bottom-0 left-0 right-0 h-14 bg-white">
+    <nav className="fixed z-50 lg:hidden bottom-0 left-0 right-0 h-14 bg-white shadow-[0_-4px_6px_-1px_rgb(0_0_0/0.1),0_-2px_4px_-2px_rgb(0_0_0/0.1)]">
       <div className="grid grid-cols-5 gap-1 pb-0 h-full items-center">
         <Link
           href={"/"}

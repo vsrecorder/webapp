@@ -20,8 +20,8 @@ const geistMono = Geist_Mono({
 
 const domain = process.env.VSRECORDER_DOMAIN;
 
-const gaId = process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
-  ? process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+const gaId = process.env.FIREBASE_MEASUREMENT_ID
+  ? process.env.FIREBASE_MEASUREMENT_ID
   : "";
 
 export const metadata: Metadata = {

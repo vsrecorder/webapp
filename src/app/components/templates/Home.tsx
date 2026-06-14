@@ -88,7 +88,7 @@ export default async function TemplateHome() {
             />
           </div>
 
-          <span className="text-3xl font-bold">バトレコ</span>
+          <span className="text-3xl font-bold">バトレコ β版</span>
 
           <div className="flex flex-col justify-center gap-0.5">
             <span className="text-tiny">友達との　勝負や</span>

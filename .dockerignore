@@ -1,0 +1,9 @@
+.env
+.env.production
+.env.production.local
+.env.development
+.env.development.local
+.next
+.github
+.vscode
+node_modules

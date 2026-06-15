@@ -4,11 +4,11 @@ on:
   workflow_dispatch:
   pull_request:
     branches:
-      - 'main'
-      - 'master'
+      - "main"
+      - "master"
 
 jobs:
-  build-container-image:
+  build-and-push-container-image:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -28,13 +28,16 @@ jobs:
             --build-arg NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="${{ secrets.FIREBASE_STORAGE_BUCKET }}" \
             --build-arg NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}" \
             --build-arg NEXT_PUBLIC_FIREBASE_APP_ID="${{ secrets.FIREBASE_APP_ID }}" \
-            --cache-from vsrecorder/webapp:latest \
-            --tag vsrecorder/webapp:latest
+            --cache-from vsrecorder/webapp:develop \
+            --tag vsrecorder/webapp:develop
+      - name: Push Container Image
+        run: |
+          docker push vsrecorder/webapp:develop
 
   notify-slack:
     if: ${{ always() }}
     needs:
-      - build-container-image
+      - build-and-push-container-image
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository

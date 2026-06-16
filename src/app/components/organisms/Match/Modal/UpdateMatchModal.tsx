@@ -136,6 +136,7 @@ export default function UpdateMatchModal({
         ? {
             id: match.pokemon_sprites[0].id,
             name: "",
+            image_url: "",
           }
         : null,
     );
@@ -145,6 +146,7 @@ export default function UpdateMatchModal({
         ? {
             id: match.pokemon_sprites[1].id,
             name: "",
+            image_url: "",
           }
         : null,
     );
@@ -470,8 +472,8 @@ export default function UpdateMatchModal({
                                         !isDefaultDefeat &&
                                         onOpenForPokemonSprite1Modal();
                                     }}
-                                    alt={pokemonSprite1.id.replace(/^0+(?!$)/, "")}
-                                    src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${pokemonSprite1.id.replace(/^0+(?!$)/, "")}.png`}
+                                    alt={pokemonSprite1.id}
+                                    src={pokemonSprite1.image_url}
                                     radius="none"
                                     className="w-full h-full object-contain scale-150 origin-bottom"
                                   />
@@ -499,8 +501,8 @@ export default function UpdateMatchModal({
                                         !isDefaultDefeat &&
                                         onOpenForPokemonSprite2Modal();
                                     }}
-                                    alt={pokemonSprite2.id.replace(/^0+(?!$)/, "")}
-                                    src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${pokemonSprite2.id.replace(/^0+(?!$)/, "")}.png`}
+                                    alt={pokemonSprite2.id}
+                                    src={pokemonSprite2.image_url}
                                     radius="none"
                                     className="w-full h-full object-contain scale-150 origin-bottom"
                                   />

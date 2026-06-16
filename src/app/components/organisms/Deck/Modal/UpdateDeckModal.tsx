@@ -26,7 +26,7 @@ type PokemonSpriteOption = {
   value: string;
   id: string;
   name: string;
-  image: string;
+  image_url: string;
 };
 
 async function fetcherForPokemonSprites(url: string) {
@@ -58,7 +58,7 @@ function convertToPokemonSpriteOption(
     value: pokemonSprite.id,
     id: pokemonSprite.id,
     name: pokemonSprite.name,
-    image: pokemonSprite.id.replace(/^0+(?!$)/, ""),
+    image_url: pokemonSprite.image_url,
   };
 }
 
@@ -376,7 +376,7 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
                         <div className="flex flex-col items-center justify-center h-23.5">
                           <Image
                             alt={opt.name}
-                            src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${opt.image}.png`}
+                            src={opt.image_url}
                             radius="none"
                             className="w-16 h-16 object-contain"
                           />
@@ -391,7 +391,7 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
                       <div className="w-full h-full flex items-center gap-3">
                         <Image
                           alt={opt.name}
-                          src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${opt.image}.png`}
+                          src={opt.image_url}
                           radius="none"
                           className="object-contain pb-3"
                         />
@@ -450,7 +450,7 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
                         <div className="flex flex-col items-center justify-center h-23.5">
                           <Image
                             alt={opt.name}
-                            src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${opt.image}.png`}
+                            src={opt.image_url}
                             radius="none"
                             className="w-16 h-16 object-contain"
                           />
@@ -465,7 +465,7 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
                       <div className="w-full h-full flex items-center gap-3">
                         <Image
                           alt={opt.name}
-                          src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${opt.image}.png`}
+                          src={opt.image_url}
                           radius="none"
                           className="object-contain pb-3"
                         />

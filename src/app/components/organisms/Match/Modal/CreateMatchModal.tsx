@@ -422,8 +422,8 @@ export default function CreateMatchModal({
                                         !isDefaultDefeat &&
                                         onOpenForPokemonSprite1Modal();
                                     }}
-                                    alt={pokemonSprite1.id.replace(/^0+(?!$)/, "")}
-                                    src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${pokemonSprite1.id.replace(/^0+(?!$)/, "")}.png`}
+                                    alt={pokemonSprite1.id}
+                                    src={pokemonSprite1.image_url}
                                     radius="none"
                                     className="w-full h-full object-contain scale-150 origin-bottom"
                                   />
@@ -451,8 +451,8 @@ export default function CreateMatchModal({
                                         !isDefaultDefeat &&
                                         onOpenForPokemonSprite2Modal();
                                     }}
-                                    alt={pokemonSprite2.id.replace(/^0+(?!$)/, "")}
-                                    src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${pokemonSprite2.id.replace(/^0+(?!$)/, "")}.png`}
+                                    alt={pokemonSprite2.id}
+                                    src={pokemonSprite2.image_url}
                                     radius="none"
                                     className="w-full h-full object-contain scale-150 origin-bottom"
                                   />

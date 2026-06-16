@@ -1,6 +1,7 @@
 export type PokemonSpriteType = {
   id: string;
   name: string;
+  image_url: string;
 };
 
 export type MatchPokemonSpriteType = {

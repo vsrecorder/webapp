@@ -30,7 +30,10 @@ export default function DesktopSignIn() {
               </ModalHeader>
 
               <ModalBody className="items-center px-24">
-                <div className="text-xl">バトレコ</div>
+                <div className="w-24 h-24 relative"></div>
+
+                <span className="text-3xl font-bold">バトレコ</span>
+
                 <div className="text-xs text-gray-500">
                   <p>友達との　勝負や</p>
                   <p>特殊な　施設での　勝負を</p>

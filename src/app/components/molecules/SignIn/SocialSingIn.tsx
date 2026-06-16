@@ -8,7 +8,6 @@ import { TwitterAuthProvider, GoogleAuthProvider } from "firebase/auth";
 
 import { Button } from "@heroui/react";
 
-import { RiGoogleFill } from "react-icons/ri";
 import { FcGoogle } from "react-icons/fc";
 
 import { RiTwitterXLine } from "react-icons/ri";

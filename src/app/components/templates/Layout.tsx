@@ -13,7 +13,7 @@ export default function TemplateLayout({
       <div className="flex">
         <Navigation />
 
-        <div className="flex flex-col flex-1 lg:ml-72">
+        <div className="flex flex-col flex-1">
           <Header />
 
           <main

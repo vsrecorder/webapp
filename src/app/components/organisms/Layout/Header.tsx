@@ -37,7 +37,7 @@ export default async function Header() {
 
       return (
         <>
-          <header className="fixed z-50 top-0 left-0 lg:left-72 right-0 bg-white text-gray-700 lg:shadow-none shadow-md h-12 lg:h-16">
+          <header className="fixed z-50 top-0 left-0 right-0 bg-white text-gray-700 shadow-md h-12 lg:h-14">
             <div className="flex items-center justify-between p-2 h-full">
               <div>
                 <Link href="/" className="font-medium text-gray-900">
@@ -59,7 +59,7 @@ export default async function Header() {
 
       return (
         <>
-          <header className="fixed z-50 top-0 left-0 lg:left-72 right-0 bg-white text-gray-700 lg:shadow-none shadow-md h-12 lg:h-16">
+          <header className="fixed z-50 top-0 left-0 right-0 bg-white text-gray-700 shadow-md h-12 lg:h-14">
             <div className="flex items-center justify-between p-2 h-full">
               <div>
                 <Link href="/" className="font-medium text-gray-900">
@@ -78,7 +78,7 @@ export default async function Header() {
   } else {
     return (
       <>
-        <header className="fixed z-50 top-0 left-0 right-0 bg-white text-gray-700 lg:shadow-none shadow-md h-12 lg:h-16">
+        <header className="fixed z-50 top-0 left-0 right-0 bg-white text-gray-700 shadow-md h-12 lg:h-14">
           <div className="flex items-center justify-between p-2 h-full">
             <Link href="/" className="font-medium text-gray-900">
               <div className="text-2xl font-bold pl-2">バトレコ β版</div>

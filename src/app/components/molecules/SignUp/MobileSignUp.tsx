@@ -33,16 +33,7 @@ export default function MobileSignUp() {
 
               <ModalBody className="items-center px-16">
                 <div className="pt-6 flex flex-col items-center justify-center gap-4.5 w-full">
-                  <div className="w-24 h-24 relative">
-                    <Image
-                      alt="バトレコ"
-                      src="https://xx8nnpgt.user.webaccel.jp/images/icons/logo.png"
-                      fill
-                      className="object-contain"
-                      sizes="96px"
-                      priority
-                    />
-                  </div>
+                  <div className="w-24 h-24 relative"></div>
 
                   <span className="text-3xl font-bold">バトレコ</span>
 

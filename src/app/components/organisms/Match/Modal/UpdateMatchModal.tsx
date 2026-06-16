@@ -136,7 +136,7 @@ export default function UpdateMatchModal({
         ? {
             id: match.pokemon_sprites[0].id,
             name: "",
-            image_url: "",
+            image_url: `https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${match.pokemon_sprites[0].id}.replace(/^0+(?!$)/, "")}.png`,
           }
         : null,
     );
@@ -146,7 +146,7 @@ export default function UpdateMatchModal({
         ? {
             id: match.pokemon_sprites[1].id,
             name: "",
-            image_url: "",
+            image_url: `https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${match.pokemon_sprites[1].id}.replace(/^0+(?!$)/, "")}.png`,
           }
         : null,
     );

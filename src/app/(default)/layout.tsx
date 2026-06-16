@@ -15,7 +15,7 @@ const gaId = process.env.FIREBASE_MEASUREMENT_ID
 
 export const metadata: Metadata = {
   metadataBase: new URL(`https://` + domain),
-  title: "バトレコ - ポケカ対戦記録作成・共有サービス",
+  title: "バトレコ",
   description: "ポケモンカードゲームの対戦記録を作成・共有できるWebサービス",
   openGraph: {
     url: "/",

@@ -25,8 +25,7 @@ image:
 		--build-arg NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="$(NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET)" \
 		--build-arg NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="$(NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID)" \
 		--build-arg NEXT_PUBLIC_FIREBASE_APP_ID="$(NEXT_PUBLIC_FIREBASE_APP_ID)" \
-		-t vsrecorder/webapp:local && \
-	docker push vsrecorder/webapp:local
+		-t vsrecorder/webapp:local && docker push vsrecorder/webapp:local
 
 .PHONY: deploy
 deploy:

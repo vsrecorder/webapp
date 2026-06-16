@@ -1,22 +1,11 @@
 import type { Metadata } from "next";
-//import { Geist, Geist_Mono } from "next/font/google";
+
+// @ts-ignore: CSS module declarations not available in this environment
 import "./globals.css";
 
 import { GoogleAnalytics } from "@next/third-parties/google";
 
 import Layout from "@app/components/templates/Layout";
-
-/*
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-*/
 
 const domain = process.env.VSRECORDER_DOMAIN;
 

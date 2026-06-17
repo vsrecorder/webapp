@@ -93,9 +93,6 @@ export default async function Header() {
 
             <div className="flex items-center">
               <div className="mx-1">
-                <ThemeSwitcher />
-              </div>
-              <div className="mx-1">
                 <SignUp />
               </div>
               <div className="mx-1">

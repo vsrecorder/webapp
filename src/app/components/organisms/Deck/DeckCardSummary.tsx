@@ -154,7 +154,7 @@ export default function DeckCardSummary({ deckcode }: Props) {
                 radius="md"
                 color="default"
                 variant="bordered"
-                className="border-1.5 text-black"
+                className="border-1.5 text-foreground"
               >
                 <small className="font-bold">
                   {deckcard.card_name}: {deckcard.card_count}
@@ -176,7 +176,7 @@ export default function DeckCardSummary({ deckcode }: Props) {
                 radius="md"
                 color="default"
                 variant="bordered"
-                className="border-1.5 text-black"
+                className="border-1.5 text-foreground"
               >
                 <small className="font-bold">
                   {deckcard.card_name}: {deckcard.card_count}
@@ -198,7 +198,7 @@ export default function DeckCardSummary({ deckcode }: Props) {
                 radius="md"
                 color="default"
                 variant="bordered"
-                className="border-1.5 text-black"
+                className="border-1.5 text-foreground"
               >
                 <small className="font-bold">
                   {deckcard.card_name}: {deckcard.card_count}
@@ -220,7 +220,7 @@ export default function DeckCardSummary({ deckcode }: Props) {
                 radius="md"
                 color="default"
                 variant="bordered"
-                className="border-1.5 text-black"
+                className="border-1.5 text-foreground"
               >
                 <small className="font-bold">
                   {deckcard.card_name}: {deckcard.card_count}
@@ -242,7 +242,7 @@ export default function DeckCardSummary({ deckcode }: Props) {
                 radius="md"
                 color="default"
                 variant="bordered"
-                className="border-1.5 text-black"
+                className="border-1.5 text-foreground"
               >
                 <small className="font-bold">
                   {deckcard.card_name}: {deckcard.card_count}
@@ -264,7 +264,7 @@ export default function DeckCardSummary({ deckcode }: Props) {
                 radius="md"
                 color="default"
                 variant="bordered"
-                className="border-1.5 text-black"
+                className="border-1.5 text-foreground"
               >
                 <small className="font-bold">
                   {deckcard.card_name}: {deckcard.card_count}

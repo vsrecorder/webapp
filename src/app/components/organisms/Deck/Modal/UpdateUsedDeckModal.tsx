@@ -4,6 +4,7 @@ import useSWR from "swr";
 
 import WindowedSelect from "react-windowed-select";
 import Select from "react-select";
+import { useReactSelectTheme } from "@app/components/molecules/Select/useReactSelectTheme";
 
 import { SetStateAction, Dispatch } from "react";
 import { useEffect, useState } from "react";
@@ -127,6 +128,9 @@ export default function UpdateUsedDeckModal({
   isOpen,
   onOpenChange,
 }: Props) {
+  // react-select をダークモードに追従させるテーマ
+  const reactSelectTheme = useReactSelectTheme();
+
   const [selectedDeckOption, setSelectedDeckOption] = useState<DeckOption | null>(null);
   const [selectedDeckCodeOption, setSelectedDeckCodeOption] =
     useState<DeckCodeOption | null>(null);
@@ -507,6 +511,7 @@ export default function UpdateUsedDeckModal({
                     <label className="text-sm font-medium">デッキ名</label>
                     <div>
                       <WindowedSelect
+                        theme={reactSelectTheme}
                         windowThreshold={50}
                         minMenuHeight={330}
                         maxMenuHeight={330}
@@ -581,6 +586,7 @@ export default function UpdateUsedDeckModal({
                     <label className="text-sm font-medium">バージョン</label>
                     <div>
                       <Select
+                        theme={reactSelectTheme}
                         minMenuHeight={270}
                         maxMenuHeight={270}
                         placeholder={

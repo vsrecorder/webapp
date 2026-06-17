@@ -136,7 +136,7 @@ export default function DeckCodeCard({ deckcode }: Props) {
       <Card shadow="sm" className="py-3 relative w-full">
         <CardHeader className="pt-0 pb-1 px-3">
           <div className="flex flex-col gap-1">
-            <div className="font-bold text-base text-gray-500">
+            <div className="font-bold text-base text-default-500">
               バージョンID：{version}
             </div>
             <div className="pl-1 flex flex-col gap-0.5">
@@ -203,7 +203,7 @@ export default function DeckCodeCard({ deckcode }: Props) {
     <Card shadow="sm" className="py-3 relative w-full">
       <CardHeader className="pt-0 pb-1 px-3">
         <div className="flex flex-col gap-1">
-          <div className="font-bold text-base text-gray-500">バージョンID：{version}</div>
+          <div className="font-bold text-base text-default-500">バージョンID：{version}</div>
           <div className="pl-1 flex flex-col gap-0.5">
             <div className="text-tiny">
               {deckcode && deckcode.id ? (

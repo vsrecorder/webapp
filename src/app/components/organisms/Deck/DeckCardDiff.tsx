@@ -220,7 +220,7 @@ export default function DeckCardDiff({ current_deckcode, previous_deckcode }: Pr
                     radius="md"
                     color="success"
                     variant="bordered"
-                    className="border-1.5 text-black"
+                    className="border-1.5 text-foreground"
                   >
                     <small className="font-bold">
                       {deckcard.card_name}: {deckcard.card_count}
@@ -248,7 +248,7 @@ export default function DeckCardDiff({ current_deckcode, previous_deckcode }: Pr
                     radius="md"
                     color="danger"
                     variant="bordered"
-                    className="border-1.5 text-black"
+                    className="border-1.5 text-foreground"
                   >
                     <small className="font-bold">
                       {deckcard.card_name}: {deckcard.card_count}

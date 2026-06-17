@@ -37,8 +37,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ja">
-      <body className="overflow-x-hidden">
+    <html lang="ja" suppressHydrationWarning>
+      <body className="overflow-x-hidden bg-white text-foreground dark:bg-neutral-950">
         <GoogleAnalytics gaId={gaId} />
         <Layout>{children}</Layout>
       </body>

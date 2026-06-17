@@ -37,6 +37,7 @@ import { Card, CardBody } from "@heroui/react";
 import { CgSearch } from "react-icons/cg";
 
 import Select from "react-select";
+import { useReactSelectTheme } from "@app/components/molecules/Select/useReactSelectTheme";
 import { Image } from "@heroui/react";
 import { Button } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
@@ -287,6 +288,9 @@ type Props = {
 
 export default function TemplateRecordCreate({ deck_id }: Props) {
   const router = useRouter();
+
+  // react-select をダークモードに追従させるテーマ
+  const reactSelectTheme = useReactSelectTheme();
 
   const { isOpen, onOpen, onClose, onOpenChange } = useDisclosure();
 
@@ -693,6 +697,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
               <div className="flex flex-col gap-1">
                 <label className="text-sm font-medium">イベント</label>
                 <WindowedSelect
+                  theme={reactSelectTheme}
                   placeholder={
                     <div className="flex items-center gap-2">
                       <div className="text-xl">
@@ -799,7 +804,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                             <span>
                               <LuBookmark color="gray" />
                             </span>
-                            <span className="text-xs text-gray-600 truncate">
+                            <span className="text-xs text-default-600 truncate">
                               {selectedOfficialEventOption
                                 ? selectedOfficialEventOption.title
                                 : "イベント名"}
@@ -810,7 +815,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                             <span>
                               <LuCalendar color="gray" />
                             </span>
-                            <span className="text-xs text-gray-600 truncate">
+                            <span className="text-xs text-default-600 truncate">
                               {selectedOfficialEventOption
                                 ? selectedOfficialEventOption.event_datetime
                                 : "イベント日時"}
@@ -821,7 +826,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                             <span>
                               <LuHouse color="gray" />
                             </span>
-                            <span className="text-xs text-gray-600 truncate">
+                            <span className="text-xs text-default-600 truncate">
                               {selectedOfficialEventOption
                                 ? selectedOfficialEventOption.shop_name
                                 : "イベント主催者"}
@@ -832,7 +837,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                             <span>
                               <LuMapPin color="gray" />
                             </span>
-                            <span className="text-xs text-gray-600 truncate">
+                            <span className="text-xs text-default-600 truncate">
                               {selectedOfficialEventOption
                                 ? selectedOfficialEventOption.address
                                 : "イベント会場"}
@@ -848,6 +853,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                 <label className="text-sm font-medium">デッキ名</label>
                 <div ref={deckSelectRef}>
                   <Select
+                    theme={reactSelectTheme}
                     onFocus={() => {
                       setTimeout(() => {
                         deckSelectRef.current?.scrollIntoView({
@@ -1020,6 +1026,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                 <label className="text-sm font-medium">デッキ名</label>
                 <div ref={deckSelectRef}>
                   <Select
+                    theme={reactSelectTheme}
                     onFocus={() => {
                       setTimeout(() => {
                         deckSelectRef.current?.scrollIntoView({

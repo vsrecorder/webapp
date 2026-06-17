@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { SetStateAction, Dispatch } from "react";
 
 import WindowedSelect from "react-windowed-select";
+import { useReactSelectTheme } from "@app/components/molecules/Select/useReactSelectTheme";
 
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
 
@@ -68,6 +69,9 @@ export default function PokemonSpriteModal({
   isOpen,
   onOpenChange,
 }: Props) {
+  // react-select をダークモードに追従させるテーマ
+  const reactSelectTheme = useReactSelectTheme();
+
   const [selectedPokemonSpriteOption, setSelectedPokemonSpriteOption] =
     useState<PokemonSpriteOption | null>(null);
 
@@ -154,6 +158,7 @@ export default function PokemonSpriteModal({
             <ModalBody className="px-5">
               <div>
                 <WindowedSelect
+                  theme={reactSelectTheme}
                   placeholder={
                     <div className="flex items-center gap-2">
                       <div className="text-xl">

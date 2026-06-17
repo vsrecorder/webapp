@@ -154,7 +154,7 @@ export default function TonamelEventInfo({ record }: Props) {
                   <Skeleton className="h-4 w-32" />
                 ) : (
                   <div className="flex items-center gap-1">
-                    <LuLayers className="text-gray-500" />
+                    <LuLayers className="text-default-500" />
 
                     <div className="truncate w-full min-w-0">
                       {deck ? deck.name : "なし"}
@@ -166,7 +166,7 @@ export default function TonamelEventInfo({ record }: Props) {
               <Link
                 isExternal
                 href={`https://tonamel.com/competition/${record.tonamel_event_id}`}
-                className={"absolute top-2 right-2 text-gray-500"}
+                className={"absolute top-2 right-2 text-default-500"}
               >
                 <LuLink className="" />
               </Link>

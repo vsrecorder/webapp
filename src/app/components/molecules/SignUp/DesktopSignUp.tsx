@@ -34,7 +34,7 @@ export default function DesktopSignUp() {
 
                 <span className="text-3xl font-bold">バトレコ</span>
 
-                <div className="text-xs text-gray-500">
+                <div className="text-xs text-default-500">
                   <p>友達との　勝負や</p>
                   <p>特殊な　施設での　勝負を</p>
                   <p>記録できる　かっこいい　アプリ。</p>

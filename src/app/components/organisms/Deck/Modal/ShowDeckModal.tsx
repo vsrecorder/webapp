@@ -204,7 +204,7 @@ export default function ShowDeckModal({
                     </div>
                     {/*
                     <div className="pb-1">
-                      <Link href={`/decks/${deck.id}`} className="text-gray-400">
+                      <Link href={`/decks/${deck.id}`} className="text-default-400">
                         <div className="text-xl">
                           <LuExternalLink />
                         </div>
@@ -285,7 +285,7 @@ export default function ShowDeckModal({
                   <div className="flex items-center gap-8 mx-auto overflow-x-auto">
                     <Link
                       href={`/records/create?deck_id=${deck.id}`}
-                      className="text-black"
+                      className="text-foreground"
                     >
                       <div className="text-2xl cursor-pointer">
                         <LuFilePen />
@@ -318,7 +318,7 @@ export default function ShowDeckModal({
                   </div>
                 ) : (
                   <div className="flex items-center justify-center gap-8 mx-auto">
-                    <div className="text-2xl text-gray-200">
+                    <div className="text-2xl text-default-300">
                       <LuFilePen />
                     </div>
 
@@ -334,7 +334,7 @@ export default function ShowDeckModal({
                       <LuFlaskConical onClick={onOpenForInspectDeckModal} />
                     </div>
 
-                    <div className="text-2xl text-gray-200">
+                    <div className="text-2xl text-default-300">
                       <LuBookPlus />
                     </div>
 

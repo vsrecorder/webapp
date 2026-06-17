@@ -3,6 +3,7 @@ import { auth } from "@app/(default)/auth";
 import SignUp from "./SignUp";
 import SignIn from "./SignIn";
 import UserMenu from "./UserMenu";
+import ThemeSwitcher from "@app/components/molecules/Theme/ThemeSwitcher";
 import { UserType } from "@app/types/user";
 
 import Link from "next/link";
@@ -37,15 +38,18 @@ export default async function Header() {
 
       return (
         <>
-          <header className="fixed z-50 top-0 left-0 right-0 bg-white text-gray-700 shadow-md h-12 lg:h-14">
+          <header className="fixed z-50 top-0 left-0 right-0 bg-white text-gray-700 shadow-md h-14 lg:h-14 dark:bg-neutral-900 dark:text-default-300 dark:shadow-none dark:border-b dark:border-neutral-800">
             <div className="flex items-center justify-between p-2 h-full">
               <div>
-                <Link href="/" className="font-medium text-gray-900">
+                <Link href="/" className="font-medium text-gray-900 dark:text-gray-100">
                   <div className="lg:hidden text-2xl font-bold pl-2">バトレコ β版</div>
                 </Link>
               </div>
 
-              <div className="items-end">
+              <div className="flex items-center">
+                <div className="mx-1">
+                  <ThemeSwitcher />
+                </div>
                 <div className="mx-1">
                   <UserMenu user={user} />
                 </div>
@@ -59,15 +63,18 @@ export default async function Header() {
 
       return (
         <>
-          <header className="fixed z-50 top-0 left-0 right-0 bg-white text-gray-700 shadow-md h-12 lg:h-14">
+          <header className="fixed z-50 top-0 left-0 right-0 bg-white text-gray-700 shadow-md h-14 lg:h-14 dark:bg-neutral-900 dark:text-default-300 dark:shadow-none dark:border-b dark:border-neutral-800">
             <div className="flex items-center justify-between p-2 h-full">
               <div>
-                <Link href="/" className="font-medium text-gray-900">
+                <Link href="/" className="font-medium text-gray-900 dark:text-gray-100">
                   <div className="lg:hidden text-2xl font-bold pl-2">バトレコ β版</div>
                 </Link>
               </div>
 
-              <div className="items-end">
+              <div className="flex items-center">
+                <div className="mx-1">
+                  <ThemeSwitcher />
+                </div>
                 <div className="mx-1">エラー</div>
               </div>
             </div>
@@ -78,13 +85,16 @@ export default async function Header() {
   } else {
     return (
       <>
-        <header className="fixed z-50 top-0 left-0 right-0 bg-white text-gray-700 shadow-md h-12 lg:h-14">
+        <header className="fixed z-50 top-0 left-0 right-0 bg-white text-gray-700 shadow-md h-14 lg:h-14 dark:bg-neutral-900 dark:text-default-300 dark:shadow-none dark:border-b dark:border-neutral-800">
           <div className="flex items-center justify-between p-2 h-full">
-            <Link href="/" className="font-medium text-gray-900">
+            <Link href="/" className="font-medium text-gray-900 dark:text-gray-100">
               <div className="text-2xl font-bold pl-2">バトレコ β版</div>
             </Link>
 
             <div className="flex items-center">
+              <div className="mx-1">
+                <ThemeSwitcher />
+              </div>
               <div className="mx-1">
                 <SignUp />
               </div>

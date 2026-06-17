@@ -70,6 +70,25 @@ export default function DisplayRecordModal({
     }
   };
 
+  // キャプチャの瞬間だけ light クラス＋白背景を一時付与し、
+  // 画面はテーマ追従（ダーク可）のまま、書き出し画像は常にライトにする
+  const captureAsLightPng = async (el: HTMLElement) => {
+    el.classList.add("light");
+    const prevBg = el.style.backgroundColor;
+    el.style.backgroundColor = "#ffffff";
+
+    try {
+      return await toPng(el, {
+        cacheBust: true,
+        pixelRatio: 3,
+        backgroundColor: "#ffffff", // 透過防止
+      });
+    } finally {
+      el.classList.remove("light");
+      el.style.backgroundColor = prevBg;
+    }
+  };
+
   const eventCardRef = useRef<HTMLDivElement>(null);
 
   const handleSavingEventCardImage = async () => {
@@ -96,11 +115,7 @@ export default function DisplayRecordModal({
     }
 
     try {
-      const dataUrl = await toPng(eventCardRef.current, {
-        cacheBust: true,
-        pixelRatio: 3,
-        backgroundColor: "#ffffff", // 透過防止
-      });
+      const dataUrl = await captureAsLightPng(eventCardRef.current);
 
       const link = document.createElement("a");
       link.download = `${record.id}_${Date.now()}.png`;
@@ -160,11 +175,7 @@ export default function DisplayRecordModal({
     }
 
     try {
-      const dataUrl = await toPng(deckCardRef.current, {
-        cacheBust: true,
-        pixelRatio: 3,
-        backgroundColor: "#ffffff", // 透過防止
-      });
+      const dataUrl = await captureAsLightPng(deckCardRef.current);
 
       const link = document.createElement("a");
       link.download = `${record.deck_id}_${record.deck_code_id}_${Date.now()}.png`;
@@ -239,7 +250,7 @@ export default function DisplayRecordModal({
 
                   {/* 右側 */}
                   <div>
-                    <Link href={`/records/${record.id}`} className="text-gray-500">
+                    <Link href={`/records/${record.id}`} className="text-default-500">
                       <div className="text-xl -translate-y-3">
                         <LuExternalLink />
                       </div>
@@ -262,7 +273,8 @@ export default function DisplayRecordModal({
                     )}
                   </div>
 
-                  <div ref={eventCardRef} className="p-1 flex flex-col gap-3 bg-white">
+                  {/* 画面はテーマ追従。書き出し時のみ light を一時付与する */}
+                  <div ref={eventCardRef} className="p-1 flex flex-col gap-3">
                     {
                       // 公式イベントの場合
                       record.official_event_id !== 0 ? (
@@ -298,7 +310,8 @@ export default function DisplayRecordModal({
                     />
                   </div>
 
-                  <div ref={deckCardRef} className="p-1 bg-white">
+                  {/* 画面はテーマ追従。書き出し時のみ light を一時付与する */}
+                  <div ref={deckCardRef} className="p-1">
                     <UsedDeckById
                       record={record}
                       setRecord={setRecord}

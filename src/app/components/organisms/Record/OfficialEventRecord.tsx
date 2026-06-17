@@ -351,7 +351,7 @@ export default function OfficialEventRecord({
               <div className="flex flex-col gap-1.5 truncate w-full min-w-0">
                 <div className="text-tiny truncate w-full min-w-0">
                   <div className="flex items-center gap-1">
-                    <LuHouse className="text-gray-500" />
+                    <LuHouse className="text-default-500" />
 
                     <div className="truncate w-full min-w-0">
                       {officialEvent.shop_name
@@ -362,7 +362,7 @@ export default function OfficialEventRecord({
                 </div>
                 <div className="text-tiny truncate w-full min-w-0">
                   <div className="flex items-center gap-1">
-                    <LuFlag className="text-gray-500" />
+                    <LuFlag className="text-default-500" />
 
                     <div className="truncate w-full min-w-0">
                       {officialEvent.league_title}
@@ -376,7 +376,7 @@ export default function OfficialEventRecord({
                     <Skeleton className="h-4 w-32" />
                   ) : (
                     <div className="flex items-center gap-1">
-                      <LuLayers className="text-gray-500" />
+                      <LuLayers className="text-default-500" />
 
                       <div className="truncate w-full min-w-0">
                         {deck ? deck.name : "なし"}
@@ -386,7 +386,7 @@ export default function OfficialEventRecord({
                 </div>
                 <div className="text-tiny truncate w-full min-w-0">
                   <div className="flex items-center gap-1">
-                    <LuEarth className="text-gray-500" />
+                    <LuEarth className="text-default-500" />
                     <div className="truncate w-full min-w-0">
                       『{officialEvent.environment_title}』
                     </div>

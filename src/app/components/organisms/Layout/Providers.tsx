@@ -3,6 +3,7 @@
 import { SessionProvider } from "next-auth/react";
 import { HeroUIProvider } from "@heroui/react";
 import { ToastProvider } from "@heroui/toast";
+import { ThemeProvider as NextThemesProvider } from "next-themes";
 
 export default function Providers({
   children,
@@ -12,8 +13,15 @@ export default function Providers({
   return (
     <SessionProvider>
       <HeroUIProvider>
-        <ToastProvider placement={"top-center"} />
-        {children}
+        {/* 手動トグル方式: classで.darkを付与、初期値はライト、OS設定には連動しない */}
+        <NextThemesProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem={false}
+        >
+          <ToastProvider placement={"top-center"} />
+          {children}
+        </NextThemesProvider>
       </HeroUIProvider>
     </SessionProvider>
   );

@@ -3,6 +3,7 @@ import useSWR from "swr";
 import { useEffect, useMemo, useState, SetStateAction, Dispatch } from "react";
 
 import WindowedSelect from "react-windowed-select";
+import { useReactSelectTheme } from "@app/components/molecules/Select/useReactSelectTheme";
 
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
 import { Button } from "@heroui/react";
@@ -70,6 +71,9 @@ type Props = {
 };
 
 export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }: Props) {
+  // react-select をダークモードに追従させるテーマ
+  const reactSelectTheme = useReactSelectTheme();
+
   const [newDeckName, setNewDeckName] = useState<string>("");
   /*
   const [isSelectedPrivate, setIsSelectedPrivate] = useState<boolean>(
@@ -331,6 +335,7 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
               <div className="flex flex-col gap-0.5">
                 <label className="text-sm">ポケモンのアイコン1を選択</label>
                 <WindowedSelect
+                  theme={reactSelectTheme}
                   className="z-110"
                   placeholder={
                     <div className="flex items-center gap-2">
@@ -405,6 +410,7 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
               <div className="flex flex-col gap-0.5">
                 <label className="text-sm">ポケモンのアイコン2を選択</label>
                 <WindowedSelect
+                  theme={reactSelectTheme}
                   className="z-100"
                   placeholder={
                     <div className="flex items-center gap-2">

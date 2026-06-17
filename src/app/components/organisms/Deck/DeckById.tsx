@@ -312,7 +312,7 @@ export default function DeckById({ id }: Props) {
               return (
                 <div key={deckcode.id} className="pl-0 pb-3">
                   <div className="flex items-center pb-3">
-                    <div className="left-0 top-0 -translate-x-1/2 w-3 h-3 rounded-full bg-blue-400 border-3 border-[#000000]" />
+                    <div className="left-0 top-0 -translate-x-1/2 w-3 h-3 rounded-full bg-blue-400 border-3 border-foreground" />
                     <div className="text-tiny">
                       作成日：
                       {date}

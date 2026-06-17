@@ -2,7 +2,20 @@
 @plugin './hero.ts';
 
 @source '../../../node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}';
-@custom-variant dark (&:is(.dark *));
+/* dark バリアントは .light 配下では無効化する（画像書き出し領域を常にライト表示にするため） */
+@custom-variant dark (&:is(.dark *):not(.light *));
+
+/* メイン領域のドット背景: ライト/ダークでドット色と地色を切り替える */
+.app-dot-bg {
+  background-color: #fafcff;
+  background-image: radial-gradient(#dee5ea 1.2px, transparent 1.2px);
+  background-size: 24px 24px;
+}
+
+.dark .app-dot-bg {
+  background-color: #0a0a0a;
+  background-image: radial-gradient(#27272a 1.2px, transparent 1.2px);
+}
 
 /*
 :root {

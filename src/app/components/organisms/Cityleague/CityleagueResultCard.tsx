@@ -213,7 +213,7 @@ export default function CityleagueResultCard({ result, date }: Props) {
       case 1:
         return "border-amber-400 bg-amber-50";
       case 2:
-        return "border-gray-400 bg-gray-100";
+        return "border-default-400 bg-default-100";
       case 3:
         return "border-orange-700  bg-orange-100";
       case 5:
@@ -240,7 +240,7 @@ export default function CityleagueResultCard({ result, date }: Props) {
       >
         <Card
           shadow="sm"
-          className={`py-3 w-full border-3 border-gray-100 ${getBorderColor(result.rank)}`}
+          className={`py-3 w-full border-3 border-default-100 ${getBorderColor(result.rank)}`}
         >
           <CardHeader className="pb-0 pt-0 px-3">
             <div className="font-bold">
@@ -379,7 +379,7 @@ export default function CityleagueResultCard({ result, date }: Props) {
                       >
                         <LuLayers className="text-xl" />
                         {/* 右上に重ねる */}
-                        <LuPlus className="absolute -top-1 -right-1 font-black text-xs bg-white rounded-full" />
+                        <LuPlus className="absolute -top-1 -right-1 font-black text-xs bg-background rounded-full" />
                       </div>
                     </div>
                   )}

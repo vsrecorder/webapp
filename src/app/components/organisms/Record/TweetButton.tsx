@@ -318,7 +318,7 @@ export default function TweetButton({ record }: Props) {
     hashtag;
 
   return (
-    <Link href={href} className="text-black text-sm w-full">
+    <Link href={href} className="text-foreground text-sm w-full">
       <Button color="default" onPress={() => {}} className="font-bold w-full">
         <div className="flex items-center gap-1">
           <RiTwitterXLine />

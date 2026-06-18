@@ -21,7 +21,7 @@ async function getGrafanaStat(panelId: number): Promise<number | undefined> {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ timeRange: { timezone: "Asia/Tokyo" } }),
-        next: { revalidate: 3600 },
+        next: { revalidate: 300 },
       },
     );
     if (!res.ok) return undefined;
@@ -153,7 +153,7 @@ const steps = [
   {
     no: "2",
     title: "対戦を記録",
-    description: "対戦ごとに相手デッキと勝敗を記録します。",
+    description: "対戦ごとに相手のデッキと勝敗を記録します。",
   },
   {
     no: "3",
@@ -261,7 +261,10 @@ export default async function TemplateHome() {
           <section className="flex flex-col gap-3">
             <div className="grid grid-cols-3 divide-x divide-default-200">
               {statsItems.map((item) => (
-                <div key={item.label} className="flex flex-col items-center gap-1 px-4 py-2">
+                <div
+                  key={item.label}
+                  className="flex flex-col items-center gap-1 px-4 py-2"
+                >
                   <span className="text-3xl font-black tabular-nums text-foreground">
                     <StatsCounter value={item.value} />
                     <span className="text-xl text-primary">+</span>

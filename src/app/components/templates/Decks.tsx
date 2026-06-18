@@ -49,6 +49,7 @@ export default function TemplateDecks() {
         <Decks
           key={`${selectedKey}-${refreshKey}`}
           isArchived={selectedKey === "archived"}
+          onCreated={handleCreatedDeck}
         />
       </div>
     </>

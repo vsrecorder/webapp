@@ -3,14 +3,14 @@
 import { useEffect, useState, useCallback } from "react";
 
 import { Spinner } from "@heroui/spinner";
-import { Button } from "@heroui/react";
+import { Button, Link } from "@heroui/react";
 
 import OfficialEventRecord from "@app/components/organisms/Record/OfficialEventRecord";
 import TonamelEventRecord from "@app/components/organisms/Record/TonamelEventRecord";
 import { OfficialEventRecordSkeletons } from "@app/components/organisms/Record/Skeleton/OfficialEventRecordSkeleton";
 import { TonamelEventRecordSkeletons } from "@app/components/organisms/Record/Skeleton/TonamelEventRecordSkeleton";
 
-import { LuCirclePlus } from "react-icons/lu";
+import { LuCirclePlus, LuFilePen, LuClipboardList } from "react-icons/lu";
 
 import { RecordType, RecordGetResponseType } from "@app/types/record";
 
@@ -108,7 +108,69 @@ export default function Records({ event_type, deck_id }: Props) {
     <div className="flex flex-col items-center space-y-3 pb-3">
       {/* 空状態 */}
       {isInitialLoaded && !isLoading && !hasMore && items.length === 0 && (
-        <>記録がありません</>
+        <div className="flex flex-col items-center justify-center py-10 px-4 gap-6">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <div className="p-4 rounded-full bg-primary/10">
+              <LuClipboardList className="w-12 h-12 text-primary" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <p className="font-bold text-lg">記録を作成しましょう</p>
+              <p className="text-sm text-default-500">
+                {event_type === "official"
+                  ? "公式イベントの対戦記録を管理できます"
+                  : "Tonamelイベントの対戦記録を管理できます"}
+              </p>
+            </div>
+          </div>
+
+          <div className="w-full max-w-sm flex flex-col gap-3">
+            <p className="text-xs font-bold text-center text-default-400 uppercase tracking-wider">
+              記録の作成方法
+            </p>
+            <div className="flex flex-col gap-2">
+              <div className="flex items-start gap-3 p-3 rounded-xl bg-default-100">
+                <div className="shrink-0 w-6 h-6 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center">
+                  1
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <p className="text-sm font-bold">デッキを登録する</p>
+                  <p className="text-xs text-default-500">
+                    まだデッキを登録していない場合は先に
+                    <Link href="/decks" className="text-xs text-primary" underline="always">
+                      デッキページ
+                    </Link>
+                    で登録してください
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 p-3 rounded-xl bg-default-100">
+                <div className="shrink-0 w-6 h-6 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center">
+                  2
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <p className="text-sm font-bold">記録を作成する</p>
+                  <p className="text-xs text-default-500">
+                    {event_type === "official"
+                      ? "下のボタンから日付・イベント・デッキを選択して記録を作成してください"
+                      : "下のボタンからTonamelイベントID・デッキを選択して記録を作成してください"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <Button
+            as={Link}
+            href="/records/create"
+            color="primary"
+            size="md"
+            radius="full"
+            startContent={<LuFilePen className="w-4 h-4" />}
+            className="font-bold shadow-md"
+          >
+            記録を作成する
+          </Button>
+        </div>
       )}
 
       <div className="flex flex-col w-full gap-3">

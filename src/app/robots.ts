@@ -7,8 +7,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "Twitterbot",
-        allow: ["/decks", "/records"],
-        disallow: "/",
+        allow: "/",
       },
       {
         userAgent: [

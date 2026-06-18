@@ -32,12 +32,19 @@ export default function MobileSignUp() {
               </ModalHeader>
 
               <ModalBody className="items-center px-16">
-                <div className="pt-6 flex flex-col items-center justify-center gap-4.5 w-full">
-                  <div className="w-24 h-24 relative"></div>
+                <div className="pt-3 flex flex-col items-center justify-center gap-4.5 w-full">
+                  <div className="w-20 h-20 relative">
+                    <Image
+                      src="/images/icon.png"
+                      alt="バトレコ"
+                      fill
+                      priority
+                      sizes="80px"
+                      className="object-contain rounded-2xl shadow-lg"
+                    />
+                  </div>
 
-                  <span className="text-3xl font-bold">バトレコ</span>
-
-                  <div className="flex flex-col justify-center gap-0.5">
+                  <div className="pt-3 flex flex-col justify-center gap-0.5">
                     <span className="text-tiny">友達との　勝負や</span>
                     <span className="text-tiny">特殊な　施設での　勝負を</span>
                     <span className="text-tiny">記録できる　かっこいい　アプリ。</span>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { auth } from "@app/(default)/auth";
+import { auth } from "@app/auth";
 
 import { DeckUnarchiveResponse } from "@app/types/deck";
 

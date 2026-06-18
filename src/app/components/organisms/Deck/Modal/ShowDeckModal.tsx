@@ -300,9 +300,11 @@ export default function ShowDeckModal({
                       <LuBook onClick={onOpenForDisplayDeckCodesModal} />
                     </div>
 
+                    {/*
                     <div className="text-2xl cursor-pointer">
                       <LuFlaskConical onClick={onOpenForInspectDeckModal} />
                     </div>
+                    */}
 
                     <div className="text-2xl cursor-pointer">
                       <LuBookPlus onClick={onOpenForCreateDeckCodeModal} />
@@ -330,9 +332,11 @@ export default function ShowDeckModal({
                       <LuBook onClick={onOpenForDisplayDeckCodesModal} />
                     </div>
 
+                    {/*
                     <div className="text-2xl cursor-pointer">
                       <LuFlaskConical onClick={onOpenForInspectDeckModal} />
                     </div>
+                    */}
 
                     <div className="text-2xl text-default-300">
                       <LuBookPlus />

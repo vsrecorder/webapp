@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { auth } from "@app/(default)/auth";
+import { auth } from "@app/auth";
 
 import { DeckGetAllType } from "@app/types/deck";
 

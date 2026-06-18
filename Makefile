@@ -5,6 +5,7 @@ export
 
 .PHONY: run
 run:
+	rm -rf .next
 	npm run dev
 
 .PHONY: build

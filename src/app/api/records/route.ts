@@ -1,6 +1,6 @@
 import { NextResponse, NextRequest } from "next/server";
 
-import { auth } from "@app/(default)/auth";
+import { auth } from "@app/auth";
 
 import { RecordGetResponseType, RecordCreateRequestType } from "@app/types/record";
 

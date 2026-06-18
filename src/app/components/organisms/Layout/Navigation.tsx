@@ -1,4 +1,4 @@
-import { auth } from "@app/(default)/auth";
+import { auth } from "@app/auth";
 
 import DesktopNavigation from "@app/components/molecules/Navigation/DesktopNavigation";
 import MobileNavigation from "@app/components/molecules/Navigation/MobileNavigation";

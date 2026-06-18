@@ -1,4 +1,6 @@
-import { auth } from "@app/(default)/auth";
+import { auth } from "@app/auth";
+
+import Image from "next/image";
 
 import SignUp from "./SignUp";
 import SignIn from "./SignIn";
@@ -42,7 +44,15 @@ export default async function Header() {
             <div className="flex items-center justify-between p-2 h-full">
               <div>
                 <Link href="/" className="font-medium text-gray-900 dark:text-gray-100">
-                  <div className="lg:hidden text-2xl font-bold pl-2">バトレコ β版</div>
+                  <div className="w-11 h-11 relative shrink-0">
+                    <Image
+                      src="/images/icon.png"
+                      alt="バトレコ"
+                      fill
+                      sizes="32px"
+                      className="object-contain rounded-lg"
+                    />
+                  </div>
                 </Link>
               </div>
 
@@ -67,7 +77,15 @@ export default async function Header() {
             <div className="flex items-center justify-between p-2 h-full">
               <div>
                 <Link href="/" className="font-medium text-gray-900 dark:text-gray-100">
-                  <div className="lg:hidden text-2xl font-bold pl-2">バトレコ β版</div>
+                  <div className="w-11 h-11 relative shrink-0">
+                    <Image
+                      src="/images/icon.png"
+                      alt="バトレコ"
+                      fill
+                      sizes="32px"
+                      className="object-contain rounded-lg"
+                    />
+                  </div>
                 </Link>
               </div>
 
@@ -88,7 +106,15 @@ export default async function Header() {
         <header className="fixed z-50 top-0 left-0 right-0 bg-white text-gray-700 shadow-md h-14 lg:h-14 dark:bg-neutral-900 dark:text-default-300 dark:shadow-none dark:border-b dark:border-neutral-800">
           <div className="flex items-center justify-between p-2 h-full">
             <Link href="/" className="font-medium text-gray-900 dark:text-gray-100">
-              <div className="text-2xl font-bold pl-2">バトレコ β版</div>
+              <div className="w-11 h-11 relative shrink-0">
+                <Image
+                  src="/images/icon.png"
+                  alt="バトレコ"
+                  fill
+                  sizes="32px"
+                  className="object-contain rounded-lg"
+                />
+              </div>
             </Link>
 
             <div className="flex items-center">

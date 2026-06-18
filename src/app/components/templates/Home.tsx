@@ -1,14 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import { Card, CardBody } from "@heroui/react";
 import { Button } from "@heroui/react";
-import { Chip } from "@heroui/react";
-
 import { LuFilePen, LuLayers, LuFileText, LuTrophy, LuArrowRight } from "react-icons/lu";
 
 import Footer from "@app/components/organisms/Layout/Footer";
-
 import CityleagueEvents from "@app/components/organisms/Cityleague/CityleagueEvents";
 
 import { CityleagueScheduleType } from "@app/types/cityleague_schedule";
@@ -71,36 +67,60 @@ async function getEnvironmentByDate(date: Date): Promise<EnvironmentType> {
   }
 }
 
-// トップページで紹介する機能一覧（機能ごとに画面イメージを表示）
 const features = [
   {
     icon: <LuLayers />,
     title: "デッキを管理",
-    description: "デッキコードからデッキを登録して一覧で管理できます。",
-    images: ["/images/decks.png"],
+    description: (
+      <>
+        デッキコードからデッキを登録して一覧で確認。
+        <br />
+        どのデッキを使ったかすぐわかります。
+      </>
+    ),
+    images: [{ src: "/images/decks.png", rotateClass: "rotate-1" }],
   },
   {
     icon: <LuFilePen />,
     title: "対戦を記録",
-    description:
-      "参加したイベントと使用デッキを紐付け、1戦ごとに勝敗をかんたんに記録できます。",
-    images: ["/images/records-create.png", "/images/records-id.png"],
+    description: (
+      <>
+        イベントと使用デッキを紐付け、
+        <br />
+        相手デッキ・先後・勝敗を1戦ずつ記録できます。
+      </>
+    ),
+    images: [
+      { src: "/images/records-create.png", rotateClass: "-rotate-2" },
+      { src: "/images/records-id.png", rotateClass: "rotate-2" },
+    ],
   },
   {
     icon: <LuFileText />,
     title: "戦績を振り返る",
-    description: "作成した対戦記録を一覧で振り返り、次の対戦に活かせます。",
-    images: ["/images/records.png"],
+    description: (
+      <>
+        作成した対戦記録を一覧で確認。
+        <br />
+        積み重ねた戦績が次の対戦へのヒントに。
+      </>
+    ),
+    images: [{ src: "/images/records.png", rotateClass: "-rotate-1" }],
   },
   {
     icon: <LuTrophy />,
     title: "シティリーグ結果",
-    description: "全国のシティリーグの入賞デッキをチェックできます。",
-    images: ["/images/cityleague_results.png"],
+    description: (
+      <>
+        全国のシティリーグの入賞デッキをチェック。
+        <br />
+        環境の最前線をいつでも把握できます。
+      </>
+    ),
+    images: [{ src: "/images/cityleague_results.png", rotateClass: "rotate-1" }],
   },
 ];
 
-// 使い方の3ステップ
 const steps = [
   {
     no: "1",
@@ -119,16 +139,24 @@ const steps = [
   },
 ];
 
-// スマホ実機風フレームにスクリーンショットを表示するコンポーネント
-function PhoneMock({ src, alt }: { src: string; alt: string }) {
+type PhoneMockProps = {
+  src: string;
+  alt: string;
+  rotateClass?: string;
+  sizeClass?: string;
+};
+
+function PhoneMock({ src, alt, rotateClass = "", sizeClass = "w-44" }: PhoneMockProps) {
   return (
-    <div className="w-37.5 shrink-0 rounded-[1.6rem] border-[5px] border-neutral-800 bg-neutral-800 shadow-lg overflow-hidden dark:border-neutral-700 dark:bg-neutral-700">
-      <div className="relative aspect-864/1920 w-full overflow-hidden rounded-[1.2rem] bg-white">
+    <div
+      className={`${sizeClass} shrink-0 rounded-4xl border-[6px] border-neutral-800 bg-neutral-800 shadow-2xl overflow-hidden dark:border-neutral-700 dark:bg-neutral-700 ${rotateClass}`}
+    >
+      <div className="relative aspect-864/1920 w-full overflow-hidden rounded-3xl bg-white">
         <Image
           src={src}
           alt={alt}
           fill
-          sizes="150px"
+          sizes="176px"
           className="object-cover object-top"
         />
       </div>
@@ -146,7 +174,6 @@ export default async function TemplateHome() {
     cs = undefined;
   }
 
-  // 現在の環境（レギュレーション）を取得
   let env: EnvironmentType | undefined;
   try {
     env = await getEnvironmentByDate(date);
@@ -156,126 +183,139 @@ export default async function TemplateHome() {
 
   return (
     <>
-      <div className="flex flex-col gap-8 max-w-2xl mx-auto w-full">
-        {/* ヒーローセクション */}
-        <div className="pt-6 flex flex-col items-center justify-center gap-4 w-full">
-          <div className="w-24 h-24 relative"></div>
-
-          <span className="text-3xl font-bold">バトレコ β版</span>
-
-          <div className="flex flex-col items-center justify-center gap-0.5">
-            <span className="text-tiny">友達との　勝負や</span>
-            <span className="text-tiny">特殊な　施設での　勝負を</span>
-            <span className="text-tiny">記録できる　かっこいい　アプリ。</span>
-          </div>
-
-          {env && (
-            <Chip size="sm" radius="md" variant="bordered">
-              <small className="font-bold">現在のポケカ環境：『{env.title}』</small>
-            </Chip>
-          )}
-
-          {/*
-          <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
-            <Button
-              as={Link}
-              href="/records/create"
-              color="primary"
-              radius="full"
-              size="md"
-              className="font-bold"
-              endContent={<LuArrowRight />}
-            >
-              対戦を記録する
-            </Button>
-            <Button
-              as={Link}
-              href="/cityleague_results"
-              variant="bordered"
-              radius="full"
-              size="md"
-              className="font-bold"
-            >
-              シティリーグ結果を見る
-            </Button>
-          </div>
-          */}
+      {/* ヒーローセクション：グラデーション背景で全幅に広げる */}
+      <section className="-mx-2 bg-linear-to-br from-blue-600 via-indigo-600 to-violet-700 text-white px-6 pt-8 pb-14 flex flex-col items-center gap-5">
+        <div className="w-20 h-20 relative">
+          <Image
+            src="/images/icon.png"
+            alt="バトレコ"
+            fill
+            priority
+            sizes="80px"
+            className="object-contain rounded-2xl shadow-lg"
+          />
         </div>
 
+        <div className="flex flex-col items-center gap-2 text-center">
+          <h1 className="text-3xl font-black tracking-tight leading-snug">
+            ポケカの対戦を、
+            <br />
+            記録しよう。
+          </h1>
+          <p className="text-sm text-white/80 max-w-s leading-relaxed pt-1">
+            対戦記録・デッキ管理・シティリーグの結果閲覧まで。
+            <br />
+            ポケカプレイヤーのための対戦記録サービス。
+          </p>
+        </div>
+
+        {env && (
+          <div className="inline-flex items-center gap-2 rounded-full bg-white/20 backdrop-blur-sm px-4 py-1.5 text-xs font-bold">
+            <span className="w-2 h-2 rounded-full bg-green-300 animate-pulse shrink-0" />
+            現在のポケカ環境：『{env.title}』
+          </div>
+        )}
+
+        <p className="text-xs text-white/50 pt-1">無料でご利用いただけます。</p>
+      </section>
+
+      <div className="flex flex-col gap-16 max-w-2xl mx-auto w-full pt-14">
         {/* できること別の画面イメージ */}
-        <div className="flex flex-col gap-10 w-full">
-          <div className="flex flex-col items-center justify-center">
-            <div className="text-base font-bold underline">バトレコでできること</div>
+        <section className="flex flex-col gap-4">
+          <div className="flex flex-col items-center gap-1 text-center">
+            <span className="text-xs font-bold text-primary uppercase tracking-widest">
+              FEATURES
+            </span>
+            <h2 className="text-2xl font-black">バトレコでできるこ</h2>
           </div>
 
-          {features.map((feature, index) => (
-            <div
-              key={index}
-              className={`flex flex-col items-center gap-4 lg:gap-10 lg:flex-row ${
-                index % 2 === 1 ? "lg:flex-row-reverse" : ""
-              }`}
-            >
-              {/* 機能の説明 */}
-              <div className="flex flex-1 flex-col items-center gap-2 text-center lg:items-start lg:text-left">
-                <div className="flex items-center gap-2">
-                  <span className="flex items-center justify-center w-9 h-9 rounded-xl bg-primary/10 text-xl text-primary">
+          <div className="flex flex-col gap-14 pt-4">
+            {features.map((feature, index) => (
+              <div
+                key={index}
+                className={`flex flex-col items-center gap-8 lg:gap-12 lg:flex-row ${
+                  index % 2 === 1 ? "lg:flex-row-reverse" : ""
+                }`}
+              >
+                {/* 機能の説明 */}
+                <div className="flex flex-1 flex-col items-center gap-3 text-center lg:items-start lg:text-left">
+                  <span className="flex items-center justify-center w-12 h-12 rounded-2xl bg-primary/10 text-2xl text-primary">
                     {feature.icon}
                   </span>
-                  <span className="text-lg font-bold">{feature.title}</span>
+                  <div className="flex flex-col gap-1.5">
+                    <h3 className="text-xl font-black">{feature.title}</h3>
+                    <p className="text-sm text-default-500 leading-relaxed max-w-xs">
+                      {feature.description}
+                    </p>
+                  </div>
                 </div>
-                <span className="max-w-xs text-sm text-default-500">
-                  {feature.description}
-                </span>
+
+                {/* 画面イメージ */}
+                <div className="flex flex-1 flex-wrap justify-center items-end gap-4">
+                  {feature.images.map((img) => (
+                    <PhoneMock
+                      key={img.src}
+                      src={img.src}
+                      alt={feature.title}
+                      rotateClass={img.rotateClass}
+                      sizeClass={feature.images.length > 1 ? "w-40" : "w-44"}
+                    />
+                  ))}
+                </div>
               </div>
-
-              {/* 画面イメージ（スマホのモックアップ） */}
-              <div className="flex flex-1 flex-wrap justify-center gap-3">
-                {feature.images.map((src) => (
-                  <PhoneMock key={src} src={src} alt={feature.title} />
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* 使い方 */}
-        <div className="flex flex-col gap-3 w-full">
-          <div className="flex flex-col items-center justify-center">
-            <div className="text-base font-bold underline">かんたん3ステップ</div>
-          </div>
-
-          <div className="flex flex-col gap-2 w-full">
-            {steps.map((step) => (
-              <Card key={step.no} className="w-full">
-                <CardBody className="flex flex-row items-center gap-3 p-3">
-                  <div className="flex items-center justify-center shrink-0 w-7 h-7 rounded-full bg-primary text-white font-bold text-sm">
-                    {step.no}
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-sm font-bold">{step.title}</span>
-                    <span className="text-tiny text-default-500">{step.description}</span>
-                  </div>
-                </CardBody>
-              </Card>
             ))}
           </div>
-        </div>
+        </section>
+
+        {/* かんたん3ステップ */}
+        <section className="rounded-3xl bg-linear-to-br from-blue-50 via-indigo-50 to-violet-50 dark:from-blue-950/50 dark:via-indigo-950/40 dark:to-violet-950/50 px-6 py-8 flex flex-col gap-4">
+          <div className="flex flex-col items-center gap-1 text-center">
+            <span className="text-xs font-bold text-indigo-500 dark:text-indigo-400 uppercase tracking-widest">
+              HOW TO USE
+            </span>
+            <h2 className="text-2xl font-black">かんたん3ステップ</h2>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-6 sm:gap-2 pt-4">
+            {steps.map((step, index) => (
+              <div
+                key={step.no}
+                className="flex sm:flex-col sm:items-center gap-4 sm:gap-3 flex-1 sm:text-center"
+              >
+                <div className="relative flex items-center justify-center shrink-0 w-12 h-12 rounded-full bg-linear-to-br from-blue-500 to-violet-600 text-white font-black text-lg shadow-md">
+                  {step.no}
+                  {index < steps.length - 1 && (
+                    <span className="hidden sm:block absolute -right-4 top-1/2 -translate-y-1/2 text-indigo-300 dark:text-indigo-600 text-lg font-black">
+                      ›
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-sm font-bold">{step.title}</span>
+                  <span className="text-xs text-default-500 leading-relaxed">
+                    {step.description}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
 
         {/* 本日のシティリーグ */}
         {cs && (
-          <div className="flex flex-col gap-1.5">
-            <div className="flex flex-col items-center justify-center">
-              <div className="text-lg font-bold">{cs.title} 開催中！</div>
+          <section className="flex flex-col gap-4">
+            <div className="flex flex-col items-center gap-1 text-center">
+              <span className="text-xs font-bold text-primary uppercase tracking-widest">
+                TODAY
+              </span>
+              <h2 className="text-2xl font-black">{cs.title} 開催中！</h2>
+              <p className="text-sm text-default-500">本日開催のシティリーグ会場</p>
             </div>
-            <div className="flex flex-col gap-3 w-full">
-              <div className="pb-0 flex flex-col items-center justify-center gap-0">
-                <div className="text-base font-bold underline">本日のシティリーグ</div>
-              </div>
-              <CityleagueEvents />
-            </div>
-          </div>
+            <CityleagueEvents />
+          </section>
         )}
       </div>
+
       <Footer />
     </>
   );

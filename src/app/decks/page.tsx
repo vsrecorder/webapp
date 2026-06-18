@@ -1,4 +1,4 @@
-import { auth } from "@app/(default)/auth";
+import { auth } from "@app/auth";
 import { redirect } from "next/navigation";
 
 import TemplateDecks from "@app/components/templates/Decks";

@@ -4,7 +4,7 @@ import Image from "next/image";
 
 import { useDisclosure } from "@heroui/react";
 import { Button } from "@heroui/react";
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
+import { Modal, ModalContent, ModalBody, ModalFooter } from "@heroui/react";
 
 import SocialSignIn from "./SocialSingIn";
 
@@ -13,49 +13,42 @@ export default function MobileSignIn() {
 
   return (
     <div className="lg:hidden">
-      <Button size="md" onPress={onOpen}>
+      <Button
+        size="sm"
+        variant="bordered"
+        onPress={onOpen}
+        className="border-white/60 text-white font-medium"
+      >
         ログイン
       </Button>
 
-      <Modal
-        backdrop={"opaque"}
-        placement="center"
-        size={"sm"}
-        isOpen={isOpen}
-        onOpenChange={onOpenChange}
-      >
+      <Modal backdrop="blur" placement="center" size="sm" isOpen={isOpen} onOpenChange={onOpenChange}>
         <ModalContent>
           {() => (
             <>
-              <ModalHeader className="flex flex-col gap-1">
-                <div className="text-2xl">ログイン</div>
-              </ModalHeader>
-
-              <ModalBody className="items-center px-16">
-                <div className="pt-3 flex flex-col items-center justify-center gap-4.5 w-full">
-                  <div className="w-20 h-20 relative">
-                    <Image
-                      src="/images/icon.png"
-                      alt="バトレコ"
-                      fill
-                      priority
-                      sizes="80px"
-                      className="object-contain rounded-2xl shadow-lg"
-                    />
-                  </div>
-
-                  <div className="pt-3 flex flex-col justify-center gap-0.5">
-                    <span className="text-tiny">友達との　勝負や</span>
-                    <span className="text-tiny">特殊な　施設での　勝負を</span>
-                    <span className="text-tiny">記録できる　かっこいい　アプリ。</span>
-                  </div>
+              <div className="bg-linear-to-br from-blue-600 via-indigo-600 to-violet-700 px-6 pt-8 pb-7 flex flex-col items-center gap-3 rounded-t-xl">
+                <div className="w-14 h-14 relative">
+                  <Image
+                    src="/images/icon.png"
+                    alt="バトレコ"
+                    fill
+                    priority
+                    sizes="56px"
+                    className="object-contain rounded-xl shadow-lg"
+                  />
                 </div>
+                <div className="text-center">
+                  <p className="text-white font-bold text-lg leading-tight">バトレコ</p>
+                  <p className="text-white/70 text-xs mt-1">ポケカの対戦を、記録しよう。</p>
+                </div>
+              </div>
 
-                <div className="text-md">お好みのアカウントでログイン</div>
+              <ModalBody className="px-6 pt-6 pb-2 flex flex-col gap-4">
+                <p className="text-center text-sm text-default-500">アカウントでログイン</p>
                 <SocialSignIn />
               </ModalBody>
 
-              <ModalFooter></ModalFooter>
+              <ModalFooter />
             </>
           )}
         </ModalContent>

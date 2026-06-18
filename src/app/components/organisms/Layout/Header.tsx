@@ -30,6 +30,35 @@ async function fetchUser(id: string) {
   }
 }
 
+function HeaderShell({ children }: { children: React.ReactNode }) {
+  return (
+    <header className="fixed z-50 top-0 left-0 right-0 h-14 bg-linear-to-br from-blue-600/90 via-indigo-600/90 to-violet-700/90 backdrop-blur-md border-b border-white/15">
+      <div className="max-w-7xl mx-auto flex items-center justify-between px-4 h-full">
+        {children}
+      </div>
+    </header>
+  );
+}
+
+function Logo() {
+  return (
+    <Link href="/" className="flex items-center gap-2.5">
+      <div className="w-8 h-8 relative shrink-0">
+        <Image
+          src="/images/icon.png"
+          alt="バトレコ"
+          fill
+          sizes="32px"
+          className="object-contain rounded-lg"
+        />
+      </div>
+      <span className="font-semibold text-white tracking-wide">
+        バトレコ
+      </span>
+    </Link>
+  );
+}
+
 export default async function Header() {
   const session = await auth();
 
@@ -39,95 +68,35 @@ export default async function Header() {
       const user: UserType = await fetchUser(session.user.id);
 
       return (
-        <>
-          <header className="fixed z-50 top-0 left-0 right-0 bg-white text-gray-700 shadow-md h-14 lg:h-14 dark:bg-neutral-900 dark:text-default-300 dark:shadow-none dark:border-b dark:border-neutral-800">
-            <div className="flex items-center justify-between p-2 h-full">
-              <div>
-                <Link href="/" className="font-medium text-gray-900 dark:text-gray-100">
-                  <div className="w-11 h-11 relative shrink-0">
-                    <Image
-                      src="/images/icon.png"
-                      alt="バトレコ"
-                      fill
-                      sizes="32px"
-                      className="object-contain rounded-lg"
-                    />
-                  </div>
-                </Link>
-              </div>
-
-              <div className="flex items-center">
-                <div className="mx-1">
-                  <ThemeSwitcher />
-                </div>
-                <div className="mx-1">
-                  <UserMenu user={user} />
-                </div>
-              </div>
-            </div>
-          </header>
-        </>
+        <HeaderShell>
+          <Logo />
+          <div className="flex items-center gap-1">
+            <ThemeSwitcher />
+            <UserMenu user={user} />
+          </div>
+        </HeaderShell>
       );
     } catch (error) {
       console.log(error);
 
       return (
-        <>
-          <header className="fixed z-50 top-0 left-0 right-0 bg-white text-gray-700 shadow-md h-14 lg:h-14 dark:bg-neutral-900 dark:text-default-300 dark:shadow-none dark:border-b dark:border-neutral-800">
-            <div className="flex items-center justify-between p-2 h-full">
-              <div>
-                <Link href="/" className="font-medium text-gray-900 dark:text-gray-100">
-                  <div className="w-11 h-11 relative shrink-0">
-                    <Image
-                      src="/images/icon.png"
-                      alt="バトレコ"
-                      fill
-                      sizes="32px"
-                      className="object-contain rounded-lg"
-                    />
-                  </div>
-                </Link>
-              </div>
-
-              <div className="flex items-center">
-                <div className="mx-1">
-                  <ThemeSwitcher />
-                </div>
-                <div className="mx-1">エラー</div>
-              </div>
-            </div>
-          </header>
-        </>
+        <HeaderShell>
+          <Logo />
+          <div className="flex items-center gap-1">
+            <ThemeSwitcher />
+          </div>
+        </HeaderShell>
       );
     }
   } else {
     return (
-      <>
-        <header className="fixed z-50 top-0 left-0 right-0 bg-white text-gray-700 shadow-md h-14 lg:h-14 dark:bg-neutral-900 dark:text-default-300 dark:shadow-none dark:border-b dark:border-neutral-800">
-          <div className="flex items-center justify-between p-2 h-full">
-            <Link href="/" className="font-medium text-gray-900 dark:text-gray-100">
-              <div className="w-11 h-11 relative shrink-0">
-                <Image
-                  src="/images/icon.png"
-                  alt="バトレコ"
-                  fill
-                  sizes="32px"
-                  className="object-contain rounded-lg"
-                />
-              </div>
-            </Link>
-
-            <div className="flex items-center">
-              <div className="mx-1">
-                <SignUp />
-              </div>
-              <div className="mx-1">
-                <SignIn />
-              </div>
-            </div>
-          </div>
-        </header>
-      </>
+      <HeaderShell>
+        <Logo />
+        <div className="flex items-center gap-1">
+          <SignUp />
+          <SignIn />
+        </div>
+      </HeaderShell>
     );
   }
 }

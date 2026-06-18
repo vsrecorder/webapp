@@ -23,7 +23,7 @@ export default function ThemeSwitcher() {
         variant="light"
         radius="full"
         aria-label="テーマ切り替え"
-        className="text-gray-700 dark:text-default-300"
+        className="text-white/70"
       />
     );
   }
@@ -36,12 +36,11 @@ export default function ThemeSwitcher() {
       variant="light"
       radius="full"
       aria-label={isDark ? "ライトモードに切り替え" : "ダークモードに切り替え"}
-      className="text-gray-700 dark:text-default-300"
+      className="text-white/70 hover:text-white"
       onPress={() => setTheme(isDark ? "light" : "dark")}
     >
       {isDark ? (
-        // ダークモード時は太陽アイコンを白くして目立たせる
-        <LuSun className="text-xl text-white drop-shadow-[0_0_6px_rgba(255,255,255,0.6)]" />
+        <LuSun className="text-xl drop-shadow-[0_0_6px_rgba(255,255,255,0.6)]" />
       ) : (
         <LuMoon className="text-xl" />
       )}

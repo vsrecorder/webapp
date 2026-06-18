@@ -5,7 +5,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Spinner } from "@heroui/spinner";
 import { Button } from "@heroui/react";
 
-import { LuCirclePlus } from "react-icons/lu";
+import { LuCirclePlus, LuTrophy, LuCalendar } from "react-icons/lu";
 
 import CityleagueResult from "@app/components/organisms/Cityleague/CityleagueResult";
 import { CityleagueResultSkeletons } from "@app/components/organisms/Cityleague/Skeleton/CityleagueResultSkeleton";
@@ -113,7 +113,24 @@ export default function CityleagueResults({ league_type }: Props) {
     <div className="flex flex-col items-center space-y-3 pb-3">
       {/* 空状態 */}
       {isInitialLoaded && !isLoading && !hasMore && items.length === 0 && (
-        <>直近でシティリーグの開催はありません</>
+        <div className="flex flex-col items-center gap-5 py-14 px-6 text-center">
+          <div className="relative">
+            <LuTrophy className="text-6xl text-default-200" />
+            <LuCalendar className="text-2xl text-default-300 absolute -bottom-1 -right-2" />
+          </div>
+          <div className="flex flex-col gap-2">
+            <p className="font-bold text-sm text-default-600">
+              直近のシティリーグ結果はありません
+            </p>
+            <p className="text-xs text-default-400 leading-relaxed max-w-xs">
+              シティリーグは年に数回、特定の期間に集中して開催されます。
+              現在は開催期間外か、まだ結果が登録されていない可能性があります。
+            </p>
+            <p className="text-xs text-default-300 mt-1">
+              次のシーズン開幕をお楽しみに
+            </p>
+          </div>
+        </div>
       )}
 
       <div className="flex flex-col w-full gap-3">

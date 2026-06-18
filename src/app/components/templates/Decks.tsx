@@ -1,6 +1,5 @@
 "use client";
 
-//import { useEffect, useRef, useState, useCallback } from "react";
 import { useState, useCallback } from "react";
 
 import ScrollUpFloating from "@app/components/atoms/Floating/ScrollUpFloating";

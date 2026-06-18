@@ -6,9 +6,32 @@ import { LuFilePen, LuLayers, LuFileText, LuTrophy, LuArrowRight } from "react-i
 
 import Footer from "@app/components/organisms/Layout/Footer";
 import CityleagueEvents from "@app/components/organisms/Cityleague/CityleagueEvents";
+import StatsCounter from "@app/components/molecules/StatsCounter";
 
 import { CityleagueScheduleType } from "@app/types/cityleague_schedule";
 import { EnvironmentType } from "@app/types/environment";
+
+const GRAFANA_DASHBOARD_UID = "636db44742fb4dca801d0b1c9343642a";
+
+async function getGrafanaStat(panelId: number): Promise<number | undefined> {
+  try {
+    const res = await fetch(
+      `https://dashboard.vsrecorder.mobi/api/public/dashboards/${GRAFANA_DASHBOARD_UID}/panels/${panelId}/query`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ timeRange: { timezone: "Asia/Tokyo" } }),
+        next: { revalidate: 3600 },
+      },
+    );
+    if (!res.ok) return undefined;
+    const data = await res.json();
+    const value = data?.results?.A?.frames?.[0]?.data?.values?.[0]?.[0];
+    return typeof value === "number" ? Math.floor(value) : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 async function getCityleagueScheduleByDate(date: Date): Promise<CityleagueScheduleType> {
   try {
@@ -181,6 +204,19 @@ export default async function TemplateHome() {
     env = undefined;
   }
 
+  // Grafanaから統計データを並列取得（パネルID: 2=対戦記録数, 7=ユーザ数, 8=デッキ数）
+  const [userCount, deckCount, recordCount] = await Promise.all([
+    getGrafanaStat(8),
+    getGrafanaStat(2),
+    getGrafanaStat(7),
+  ]);
+
+  const statsItems = [
+    { value: deckCount, label: "デッキコード数" },
+    { value: recordCount, label: "対戦記録数" },
+    { value: userCount, label: "ユーザ数" },
+  ].filter((item) => item.value !== undefined) as { value: number; label: string }[];
+
   return (
     <>
       {/* ヒーローセクション：グラデーション背景で全幅に広げる */}
@@ -220,13 +256,30 @@ export default async function TemplateHome() {
       </section>
 
       <div className="flex flex-col gap-16 max-w-2xl mx-auto w-full pt-14">
+        {/* 統計カウンター */}
+        {statsItems.length > 0 && (
+          <section className="flex flex-col gap-3">
+            <div className="grid grid-cols-3 divide-x divide-default-200">
+              {statsItems.map((item) => (
+                <div key={item.label} className="flex flex-col items-center gap-1 px-4 py-2">
+                  <span className="text-3xl font-black tabular-nums text-foreground">
+                    <StatsCounter value={item.value} />
+                    <span className="text-xl text-primary">+</span>
+                  </span>
+                  <span className="text-xs text-default-500">{item.label}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* できること別の画面イメージ */}
         <section className="flex flex-col gap-4">
           <div className="flex flex-col items-center gap-1 text-center">
             <span className="text-xs font-bold text-primary uppercase tracking-widest">
               FEATURES
             </span>
-            <h2 className="text-2xl font-black">バトレコでできるこ</h2>
+            <h2 className="text-2xl font-black">バトレコでできること</h2>
           </div>
 
           <div className="flex flex-col gap-14 pt-4">

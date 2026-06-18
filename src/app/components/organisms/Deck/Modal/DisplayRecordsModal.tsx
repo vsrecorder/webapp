@@ -94,7 +94,7 @@ export default function DisplayRecordsModal({
               {/* スワイプバー */}
               <div className="mx-auto h-1 w-32 mb-1.5 rounded-full bg-default-300" />
 
-              <div>レコード一覧</div>
+              <div>記録一覧</div>
 
               <div className="pt-0">
                 <Tabs

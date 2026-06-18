@@ -474,7 +474,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
   /*
    *
    *
-   * 公式イベント用のレコードを作成する関数
+   * 公式イベント用の記録を作成する関数
    *
    *
    */
@@ -486,7 +486,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
     setIsDisabledCreateOfficialEventRecord(true);
 
     const toastId = addToast({
-      title: "レコード作成中",
+      title: "記録作成中",
       description: "しばらくお待ちください",
       color: "default",
       promise: new Promise(() => {}),
@@ -524,8 +524,8 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
       const ret: RecordCreateResponseType = await res.json();
 
       addToast({
-        title: "レコード作成完了",
-        description: "レコードを作成しました",
+        title: "記録作成完了",
+        description: "記録を作成しました",
         color: "success",
         timeout: 3000,
       });
@@ -542,10 +542,10 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
       }
 
       addToast({
-        title: "レコード作成失敗",
+        title: "記録作成失敗",
         description: (
           <>
-            レコードの作成に失敗しました
+            記録の作成に失敗しました
             <br />
             {errorMessage}
           </>
@@ -563,7 +563,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
   /*
    *
    *
-   * Tonamel用のレコードを作成する関数
+   * Tonamel用の記録を作成する関数
    *
    *
    */
@@ -575,7 +575,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
     setIsDisabledCreateTonamelEventRecord(true);
 
     const toastId = addToast({
-      title: "レコード作成中",
+      title: "記録作成中",
       description: "しばらくお待ちください",
       color: "default",
       promise: new Promise(() => {}),
@@ -613,8 +613,8 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
       const ret: RecordCreateResponseType = await res.json();
 
       addToast({
-        title: "レコード作成完了",
-        description: "レコードを作成しました",
+        title: "記録作成完了",
+        description: "記録を作成しました",
         color: "success",
         timeout: 3000,
       });
@@ -631,10 +631,10 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
       }
 
       addToast({
-        title: "レコード作成失敗",
+        title: "記録作成失敗",
         description: (
           <>
-            レコードの作成に失敗しました
+            記録の作成に失敗しました
             <br />
             {errorMessage}
           </>
@@ -988,7 +988,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                 }}
                 className="font-bold"
               >
-                レコードを作成
+                記録を作成
               </Button>
             </div>
           </Tab>
@@ -1170,7 +1170,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                 }}
                 className="font-bold"
               >
-                レコードを作成
+                記録を作成
               </Button>
             </div>
           </Tab>

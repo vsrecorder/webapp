@@ -153,7 +153,7 @@ export default function DisplayDeckCodesModal({
 
       if (res.status === 409) {
         throw new Error(
-          "このバージョンのデッキを利用したレコードが存在するため削除できません",
+          "このバージョンのデッキを利用した記録が存在するため削除できません",
         );
       }
 

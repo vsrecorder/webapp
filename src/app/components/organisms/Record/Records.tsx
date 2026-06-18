@@ -108,7 +108,7 @@ export default function Records({ event_type, deck_id }: Props) {
     <div className="flex flex-col items-center space-y-3 pb-3">
       {/* 空状態 */}
       {isInitialLoaded && !isLoading && !hasMore && items.length === 0 && (
-        <>レコードがありません</>
+        <>記録がありません</>
       )}
 
       <div className="flex flex-col w-full gap-3">

@@ -1,8 +1,7 @@
 "use client";
 
-import { useDisclosure } from "@heroui/react";
-
-import { LuCirclePlus } from "react-icons/lu";
+import { Button, useDisclosure } from "@heroui/react";
+import { LuPlus } from "react-icons/lu";
 
 import CreateDeckModal from "@app/components/organisms/Deck/Modal/CreateDeckModal";
 
@@ -15,10 +14,17 @@ export default function CreateDeckFloating({ onCreated }: Props) {
 
   return (
     <>
-      <LuCirclePlus
-        className="lg:hidden fixed z-30 w-12 h-12 bottom-35 right-3 text-gray-600 bg-blue-300 border-0 rounded-full"
-        onClick={onOpen}
-      />
+      <Button
+        isIconOnly
+        aria-label="デッキを作成する"
+        radius="full"
+        size="lg"
+        color="primary"
+        className="lg:hidden fixed z-30 bottom-35 right-3 shadow-lg active:scale-95 transition-all duration-200"
+        onPress={onOpen}
+      >
+        <LuPlus className="w-5 h-5" />
+      </Button>
 
       <CreateDeckModal
         deck_code={""}

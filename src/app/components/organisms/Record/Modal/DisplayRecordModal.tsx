@@ -246,7 +246,7 @@ export default function DisplayRecordModal({
                 {/* 両端配置 */}
                 <div className="flex items-center justify-between w-full">
                   {/* 左側 */}
-                  <div>レコード情報</div>
+                  <div>記録情報</div>
 
                   {/* 右側 */}
                   <div>
@@ -334,7 +334,7 @@ export default function DisplayRecordModal({
                       }}
                       className="font-bold w-full"
                     >
-                      このレコードを削除する
+                      この記録を削除する
                     </Button>
                   </div>
                 </div>

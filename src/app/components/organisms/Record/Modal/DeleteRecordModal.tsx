@@ -29,7 +29,7 @@ export default function DeleteRecordModal({
     setIsDisabled(true);
 
     const toastId = addToast({
-      title: "レコードを削除中",
+      title: "記録を削除中",
       description: "しばらくお待ちください",
       color: "default",
       promise: new Promise(() => {}),
@@ -53,8 +53,8 @@ export default function DeleteRecordModal({
       }
 
       addToast({
-        title: "レコードの削除が完了",
-        description: "レコードを削除しました",
+        title: "記録の削除が完了",
+        description: "記録を削除しました",
         color: "success",
         timeout: 3000,
       });
@@ -75,10 +75,10 @@ export default function DeleteRecordModal({
       }
 
       addToast({
-        title: "レコードの削除に失敗",
+        title: "記録の削除に失敗",
         description: (
           <>
-            レコードの削除に失敗しました
+            記録の削除に失敗しました
             <br />
             {errorMessage}
           </>
@@ -106,7 +106,7 @@ export default function DeleteRecordModal({
         {(onClose) => (
           <>
             <ModalHeader className="px-3 flex items-center gap-2">
-              このレコードを削除しますか？
+              この記録を削除しますか？
             </ModalHeader>
             <ModalBody className="px-2 py-1">
               <Alert color="danger">

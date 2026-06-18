@@ -100,7 +100,7 @@ export default function RecordById({ id }: Props) {
   if (record.user_id !== session.user.id) {
     return (
       <div className="flex flex-col items-center justify-center gap-1">
-        <div className="text-sm text-center">このレコードは非公開に設定されています</div>
+        <div className="text-sm text-center">この記録は非公開に設定されています</div>
       </div>
     );
   }

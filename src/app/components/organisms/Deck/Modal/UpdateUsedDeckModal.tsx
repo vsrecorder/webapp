@@ -302,7 +302,7 @@ export default function UpdateUsedDeckModal({
    *
    */
   useEffect(() => {
-    // レコードに設定されている使用されたデッキがない場合
+    // 記録に設定されている使用されたデッキがない場合
     if (!record?.deck_id) {
       // 選択されたデッキとデッキコードがある場合
       if (selectedDeckOption && selectedDeckCodeOption) {
@@ -311,9 +311,9 @@ export default function UpdateUsedDeckModal({
         setIsDisabled(true);
       }
 
-      // レコードに設定されている使用されたデッキコードがない場合
+      // 記録に設定されている使用されたデッキコードがない場合
     } else if (!record.deck_code_id) {
-      // レコードに設定されている使用されたデッキと選択したデッキが異なる場合
+      // 記録に設定されている使用されたデッキと選択したデッキが異なる場合
       if (record.deck_id !== selectedDeckOption?.id) {
         setIsDisabled(false);
       } else {
@@ -330,7 +330,7 @@ export default function UpdateUsedDeckModal({
         setIsDisabled(true);
       }
 
-      // レコードに設定されている使用されたデッキとデッキコードが
+      // 記録に設定されている使用されたデッキとデッキコードが
       // 選択されたデッキとデッキコードと同じ場合
     } else if (
       record.deck_id === selectedDeckOption?.id &&
@@ -381,7 +381,7 @@ export default function UpdateUsedDeckModal({
 
   /*
    *
-   * レコードを更新する関数
+   * 記録を更新する関数
    *
    */
   async function updateRecord(deckId: string, deckcodeId: string, onClose: () => void) {

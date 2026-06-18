@@ -66,7 +66,7 @@ export default function UpdateUsedDeckModal({
 
   /*
    *
-   * レコードを更新する関数
+   * 記録を更新する関数
    *
    */
   async function updateRecord(onClose: () => void) {

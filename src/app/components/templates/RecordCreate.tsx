@@ -282,6 +282,17 @@ function convertToDeckOption(data: DeckData): DeckOption {
   };
 }
 
+function StepLabel({ num, children }: { num: number; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary text-white text-[10px] font-bold shrink-0">
+        {num}
+      </span>
+      <span className="text-sm font-semibold">{children}</span>
+    </div>
+  );
+}
+
 type Props = {
   deck_id: string;
 };
@@ -648,16 +659,14 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
         hideCloseButton
         isDismissable={false}
         classNames={{
-          base: "sm:max-w-full",
+          base: "bg-transparent shadow-none sm:max-w-full",
         }}
       >
         <ModalContent>
           {() => (
             <>
               <ModalHeader className=""></ModalHeader>
-              <ModalBody className="flex items-center justify-center h-60">
-                <Spinner size="lg" className="" />
-              </ModalBody>
+              <ModalBody className=""></ModalBody>
               <ModalFooter className=""></ModalFooter>
             </>
           )}
@@ -680,7 +689,10 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
           <Tab key="official" title="公式イベント" isDisabled={false}>
             <div className="pt-9 flex flex-col gap-2">
               <div className="flex flex-col gap-1 pt-1">
-                <label className="text-sm font-medium">日付</label>
+                <div className="flex flex-col gap-2">
+                  <StepLabel num={1}>日付</StepLabel>
+                </div>
+
                 <DatePicker
                   aria-label="日付"
                   radius="none"
@@ -694,8 +706,12 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                   }}
                 />
               </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium">イベント</label>
+
+              <div className="flex flex-col gap-1 pt-1">
+                <div className="flex flex-col gap-2">
+                  <StepLabel num={2}>イベント</StepLabel>
+                </div>
+
                 <WindowedSelect
                   theme={reactSelectTheme}
                   placeholder={
@@ -776,7 +792,8 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                   }}
                 />
               </div>
-              <div className="pt-0.5">
+
+              <div className="pt-1">
                 <Card radius="none" shadow="sm">
                   <CardBody>
                     <div className="pl-1 pr-1 flex items-center gap-5 w-full truncate">
@@ -849,8 +866,12 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                   </CardBody>
                 </Card>
               </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium">デッキ名</label>
+
+              <div className="flex flex-col gap-1 pt-1.5">
+                <div className="flex flex-col gap-2">
+                  <StepLabel num={3}>デッキ</StepLabel>
+                </div>
+
                 <div ref={deckSelectRef}>
                   <Select
                     theme={reactSelectTheme}
@@ -875,7 +896,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                         <div className="text-xl">
                           <CgSearch />
                         </div>
-                        <span className="text-sm">デッキ名</span>
+                        <span className="text-sm">デッキ名で検索</span>
                       </div>
                     }
                     //isLoading={}
@@ -967,7 +988,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                 }}
                 className="font-bold"
               >
-                作成
+                レコードを作成
               </Button>
             </div>
           </Tab>
@@ -983,7 +1004,10 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
           <Tab key="tonamel" title="Tonamel" isDisabled={false}>
             <div className="pt-9 flex flex-col gap-2">
               <div className="flex flex-col gap-1 pt-1">
-                <label className="text-sm font-medium">イベントID</label>
+                <div className="flex flex-col gap-2">
+                  <StepLabel num={1}>イベントID</StepLabel>
+                </div>
+
                 <Input
                   isRequired
                   type="text"
@@ -1002,7 +1026,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                   </span>
                   <span>』</span>
                 </div>
-                <div className="w-4/6">
+                <div className="w-4/6 pb-3">
                   <div className="relative w-full aspect-video">
                     {!isValidatedTonamelEventId && (
                       <Skeleton className="absolute inset-0" />
@@ -1022,8 +1046,12 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                   </div>
                 </div>
               </div>
+
               <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium">デッキ名</label>
+                <div className="flex flex-col gap-2">
+                  <StepLabel num={2}>デッキ</StepLabel>
+                </div>
+
                 <div ref={deckSelectRef}>
                   <Select
                     theme={reactSelectTheme}
@@ -1048,7 +1076,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                         <div className="text-xl">
                           <CgSearch />
                         </div>
-                        <span className="text-sm">デッキ名</span>
+                        <span className="text-sm">デッキ名で検索</span>
                       </div>
                     }
                     //isLoading={}
@@ -1142,7 +1170,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                 }}
                 className="font-bold"
               >
-                作成
+                レコードを作成
               </Button>
             </div>
           </Tab>

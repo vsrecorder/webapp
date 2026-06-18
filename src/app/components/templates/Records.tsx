@@ -37,13 +37,13 @@ export default function TemplateRecords() {
   return (
     <>
       <ScrollUpFloating />
-      <div className="pt-13 w-full">
+      <div className="pt-12 w-full">
         <Tabs
           fullWidth
           size="md"
           selectedKey={selectedKey}
           onSelectionChange={handleSelectionChange}
-          className="fixed z-50 top-14 left-0 right-0 pl-1 pr-1"
+          className="fixed z-50 top-15 left-0 right-0 pl-1 pr-1"
           classNames={{
             cursor: "",
             tab: "h-8",

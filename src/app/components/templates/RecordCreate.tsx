@@ -664,11 +664,11 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
         </ModalContent>
       </Modal>
 
-      <div className="flex flex-col">
+      <div className="flex flex-col pt-3 w-full">
         <Tabs
           fullWidth
           size="md"
-          className="fixed z-50 top-14 left-0 right-0 pl-1 pr-1 font-bold"
+          className="fixed z-50 top-15 left-0 right-0 pl-1 pr-1 font-bold"
         >
           {/*
            *

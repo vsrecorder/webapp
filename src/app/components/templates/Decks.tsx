@@ -29,13 +29,13 @@ export default function TemplateDecks() {
     <>
       <ScrollUpFloating />
       <CreateDeckFloating onCreated={handleCreatedDeck} />
-      <div className="pt-13">
+      <div className="pt-12 w-full">
         <Tabs
           fullWidth
           size="md"
           selectedKey={selectedKey}
           onSelectionChange={handleSelectionChange}
-          className="fixed z-50 top-14 left-0 right-0 pl-1 pr-1"
+          className="fixed z-50 top-15 left-0 right-0 pl-1 pr-1"
           classNames={{
             cursor: selectedKey === "inuse" ? "bg-green-200" : "bg-red-200",
             tab: "h-8",

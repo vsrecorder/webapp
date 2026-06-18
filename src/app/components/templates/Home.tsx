@@ -205,7 +205,7 @@ export default async function TemplateHome() {
   }
 
   // Grafanaから統計データを並列取得（パネルID: 2=対戦記録数, 7=ユーザ数, 8=デッキ数）
-  const [userCount, deckCount, recordCount] = await Promise.all([
+  const [deckCount, recordCount, userCount] = await Promise.all([
     getGrafanaStat(8),
     getGrafanaStat(2),
     getGrafanaStat(7),

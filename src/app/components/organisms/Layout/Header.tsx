@@ -52,9 +52,7 @@ function Logo() {
           className="object-contain rounded-lg"
         />
       </div>
-      <span className="font-semibold text-white tracking-wide">
-        バトレコ
-      </span>
+      <span className="font-semibold text-white tracking-wide">バトレコ</span>
     </Link>
   );
 }
@@ -70,7 +68,7 @@ export default async function Header() {
       return (
         <HeaderShell>
           <Logo />
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-3">
             <ThemeSwitcher />
             <UserMenu user={user} />
           </div>

@@ -7,7 +7,7 @@ import { Image } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
 import { useDisclosure } from "@heroui/react";
 
-import { LuHouse, LuLayers, LuChevronRight } from "react-icons/lu";
+import { LuHouse, LuLayers } from "react-icons/lu";
 
 import DisplayRecordModal from "@app/components/organisms/Record/Modal/DisplayRecordModal";
 import { OfficialEventRecordSkeleton } from "@app/components/organisms/Record/Skeleton/OfficialEventRecordSkeleton";
@@ -293,17 +293,16 @@ export default function OfficialEventRecord({
               <div className={`w-1 shrink-0 ${getEventAccentColor(officialEvent)}`} />
 
               <div className="flex-1 px-4 py-3.5 min-w-0">
-                {/* タイトル行 */}
-                <div className="flex items-start gap-2">
-                  <p className="flex-1 font-bold text-sm leading-snug truncate min-w-0">
-                    {officialEvent.title}
-                  </p>
-                  <LuChevronRight className="shrink-0 mt-0.5 w-4 h-4 text-default-300 group-hover:text-primary transition-colors duration-200" />
-                </div>
+                {/* 日付 */}
+                <span className="text-xs text-default-500">{date}</span>
 
-                {/* 日付 + イベント種別バッジ + 環境バッジ */}
+                {/* タイトル */}
+                <p className="font-bold text-sm leading-snug truncate min-w-0 mt-0.5">
+                  {officialEvent.title}
+                </p>
+
+                {/* イベント種別バッジ + 環境バッジ */}
                 <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                  <span className="text-xs text-default-500">{date}</span>
                   <Chip
                     size="sm"
                     variant="flat"

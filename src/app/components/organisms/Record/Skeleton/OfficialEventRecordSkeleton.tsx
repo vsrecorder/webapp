@@ -9,14 +9,12 @@ export function OfficialEventRecordSkeleton() {
           <div className="flex">
             <Skeleton className="w-1 shrink-0 rounded-none" />
             <div className="flex-1 px-4 py-3.5">
-              {/* タイトル行 */}
-              <div className="flex items-start gap-2">
-                <Skeleton className="h-5 w-48 rounded-md" />
-                <Skeleton className="h-4 w-4 rounded-md shrink-0" />
-              </div>
-              {/* 日付 + バッジ */}
+              {/* 日付 */}
+              <Skeleton className="h-3.5 w-28 rounded-md" />
+              {/* タイトル */}
+              <Skeleton className="h-5 w-48 rounded-md mt-0.5" />
+              {/* イベント種別バッジ + 環境バッジ */}
               <div className="flex items-center gap-2 mt-1.5">
-                <Skeleton className="h-3.5 w-28 rounded-md" />
                 <Skeleton className="h-5 w-16 rounded-full" />
                 <Skeleton className="h-5 w-20 rounded-full" />
               </div>

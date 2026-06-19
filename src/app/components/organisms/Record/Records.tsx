@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, Fragment } from "react";
 
 import { Spinner } from "@heroui/spinner";
 import { Button, Link } from "@heroui/react";
@@ -174,23 +174,42 @@ export default function Records({ event_type, deck_id }: Props) {
       )}
 
       <div className="flex flex-col w-full gap-3">
-        {items.map((recordData) =>
-          event_type === "official" ? (
-            <OfficialEventRecord
-              key={recordData.data.id}
-              recordData={recordData}
-              enableDisplayRecordModal={true}
-            />
-          ) : (
-            event_type === "tonamel" && (
-              <TonamelEventRecord
-                key={recordData.data.id}
-                recordData={recordData}
-                enableDisplayRecordModal={true}
-              />
-            )
-          ),
-        )}
+        {event_type === "official"
+          ? items.map((recordData, index) => {
+              const d = new Date(recordData.data.created_at);
+              const monthKey = `${d.getFullYear()}年${d.getMonth() + 1}月`;
+              const prev = index > 0 ? new Date(items[index - 1].data.created_at) : null;
+              const prevMonthKey = prev
+                ? `${prev.getFullYear()}年${prev.getMonth() + 1}月`
+                : null;
+
+              return (
+                <Fragment key={recordData.data.id}>
+                  {monthKey !== prevMonthKey && (
+                    <div className="flex items-center gap-3 pt-1 pb-0.5">
+                      <span className="text-xs font-bold text-default-400 tracking-wide shrink-0">
+                        {monthKey}
+                      </span>
+                      <div className="flex-1 h-px bg-divider" />
+                    </div>
+                  )}
+                  <OfficialEventRecord
+                    recordData={recordData}
+                    enableDisplayRecordModal={true}
+                  />
+                </Fragment>
+              );
+            })
+          : items.map(
+              (recordData) =>
+                event_type === "tonamel" && (
+                  <TonamelEventRecord
+                    key={recordData.data.id}
+                    recordData={recordData}
+                    enableDisplayRecordModal={true}
+                  />
+                ),
+            )}
 
         {/* ローディング表示 */}
         {!isInitialLoaded && event_type === "official" && (

@@ -141,8 +141,10 @@ function getChipColor(officialEvent: OfficialEventGetByIdResponseType): ChipColo
 
 function getEventTypeName(officialEvent: OfficialEventGetByIdResponseType): string {
   if (officialEvent.type_id === 1) {
-    if (officialEvent.title.includes("ポケモンジャパンチャンピオンシップス")) return "JCS";
-    if (officialEvent.title.includes("チャンピオンズリーグ")) return "CL";
+    if (officialEvent.title.includes("ポケモンジャパンチャンピオンシップス"))
+      return "PJCS";
+    if (officialEvent.title.includes("チャンピオンズリーグ"))
+      return "チャンピオンズリーグ";
     if (officialEvent.title.includes("スクランブルバトル")) return "スクランブルバトル";
     return "大型大会";
   }
@@ -150,7 +152,8 @@ function getEventTypeName(officialEvent: OfficialEventGetByIdResponseType): stri
   if (officialEvent.type_id === 3) return "トレーナーズリーグ";
   if (officialEvent.type_id === 4) {
     if (officialEvent.title.includes("ジムバトル")) return "ジムバトル";
-    if (officialEvent.title.includes("MEGAウインターリーグ")) return "MEGAウインターリーグ";
+    if (officialEvent.title.includes("MEGAウインターリーグ"))
+      return "MEGAウインターリーグ";
     return "その他";
   }
   if (officialEvent.type_id === 6) return "公認自主";
@@ -343,7 +346,9 @@ export default function OfficialEventRecord({
                     <div className="flex items-center gap-1 min-w-0">
                       <LuHouse className="w-3.5 h-3.5 text-default-400 shrink-0" />
                       <span className="text-xs text-default-600 truncate">
-                        {officialEvent.shop_name ? officialEvent.shop_name : officialEvent.venue}
+                        {officialEvent.shop_name
+                          ? officialEvent.shop_name
+                          : officialEvent.venue}
                       </span>
                     </div>
 

@@ -45,12 +45,13 @@ export default function TemplateDecks() {
           <Tab key="inuse" title="利用中" />
           <Tab key="archived" title="アーカイブ済み" />
         </Tabs>
-
-        <Decks
-          key={`${selectedKey}-${refreshKey}`}
-          isArchived={selectedKey === "archived"}
-          onCreated={handleCreatedDeck}
-        />
+        <div className="pt-2">
+          <Decks
+            key={`${selectedKey}-${refreshKey}`}
+            isArchived={selectedKey === "archived"}
+            onCreated={handleCreatedDeck}
+          />
+        </div>
       </div>
     </>
   );

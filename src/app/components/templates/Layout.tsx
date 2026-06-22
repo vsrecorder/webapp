@@ -2,6 +2,7 @@ import Providers from "@app/components/organisms/Layout/Providers";
 
 import Header from "@app/components/organisms/Layout/Header";
 import Navigation from "@app/components/organisms/Layout/Navigation";
+import AddToHomeScreenBanner from "@app/components/molecules/PWA/AddToHomeScreenBanner";
 
 export default function TemplateLayout({
   children,
@@ -21,6 +22,8 @@ export default function TemplateLayout({
           </main>
         </div>
       </div>
+
+      <AddToHomeScreenBanner />
     </Providers>
   );
 }

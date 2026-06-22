@@ -8,11 +8,11 @@ export function OfficialEventRecordSkeleton() {
         <CardBody className="p-0">
           <div className="flex">
             <Skeleton className="w-1 shrink-0 rounded-none" />
-            <div className="flex-1 px-4 py-3.5">
+            <div className="flex-1 px-4 py-5">
               {/* 日付 */}
               <Skeleton className="h-3.5 w-28 rounded-md" />
               {/* タイトル */}
-              <Skeleton className="h-5 w-48 rounded-md mt-0.5" />
+              <Skeleton className="h-5 w-48 rounded-md mt-1" />
               {/* イベント種別バッジ + 環境バッジ */}
               <div className="flex items-center gap-2 mt-1.5">
                 <Skeleton className="h-5 w-16 rounded-full" />

@@ -6,6 +6,7 @@ import Footer from "@app/components/organisms/Layout/Footer";
 import CityleagueEvents from "@app/components/organisms/Cityleague/CityleagueEvents";
 import Records from "@app/components/organisms/Record/Records";
 import UserStatPanel from "@app/components/organisms/UserStat/UserStatPanel";
+import UserStatHistoryChart from "@app/components/organisms/UserStat/UserStatHistoryChart";
 
 import { CityleagueScheduleType } from "@app/types/cityleague_schedule";
 import { EnvironmentType } from "@app/types/environment";
@@ -180,6 +181,10 @@ export default async function TemplateDashboard({ userId }: Props) {
             currentEnvironmentId={env?.id}
             userCreatedAt={user?.created_at != null ? String(user.created_at) : undefined}
           />
+          <UserStatHistoryChart
+            userId={userId}
+            userCreatedAt={user?.created_at != null ? String(user.created_at) : undefined}
+          />
         </section>
 
         {/* 最近の記録 */}
@@ -198,7 +203,7 @@ export default async function TemplateDashboard({ userId }: Props) {
               すべて見る
             </Button>
           </div>
-          <Records event_type="official" deck_id="" />
+          <Records event_type="official" deck_id="" disable_more_load={true} />
         </section>
       </div>
 

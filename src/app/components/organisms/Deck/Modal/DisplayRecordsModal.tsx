@@ -117,11 +117,19 @@ export default function DisplayRecordsModal({
             </ModalHeader>
             <ModalBody ref={bodyRef} className="px-2 py-2 flex flex-col overflow-y-auto">
               <div hidden={selectedKey !== "official"} className="pt-12">
-                <Records event_type={"official"} deck_id={deck ? deck.id : ""} />
+                <Records
+                  event_type={"official"}
+                  deck_id={deck ? deck.id : ""}
+                  disable_more_load={false}
+                />
               </div>
 
               <div hidden={selectedKey !== "tonamel"} className="pt-12">
-                <Records event_type={"tonamel"} deck_id={deck ? deck.id : ""} />
+                <Records
+                  event_type={"tonamel"}
+                  deck_id={deck ? deck.id : ""}
+                  disable_more_load={false}
+                />
               </div>
             </ModalBody>
           </>

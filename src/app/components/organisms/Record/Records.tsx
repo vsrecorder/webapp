@@ -42,9 +42,10 @@ async function fetchRecords(event_type: string, deck_id: string, cursor: string)
 type Props = {
   event_type: string;
   deck_id: string;
+  disable_more_load: boolean;
 };
 
-export default function Records({ event_type, deck_id }: Props) {
+export default function Records({ event_type, deck_id, disable_more_load }: Props) {
   const [items, setItems] = useState<RecordType[]>([]);
   const [nextCursor, setNextCursor] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
@@ -190,7 +191,11 @@ export default function Records({ event_type, deck_id }: Props) {
                   <p className="text-sm font-bold">デッキを登録する</p>
                   <p className="text-xs text-default-500">
                     まだデッキを登録していない場合は先に
-                    <Link href="/decks" className="text-xs text-primary" underline="always">
+                    <Link
+                      href="/decks"
+                      className="text-xs text-primary"
+                      underline="always"
+                    >
                       デッキページ
                     </Link>
                     で登録してください
@@ -282,7 +287,7 @@ export default function Records({ event_type, deck_id }: Props) {
         {!isInitialLoaded && event_type === "tonamel" && <TonamelEventRecordSkeletons />}
         {isInitialLoaded && isLoading && <Spinner size="lg" className="pt-0" />}
 
-        {isInitialLoaded && !isLoading && hasMore && (
+        {!disable_more_load && isInitialLoaded && !isLoading && hasMore && (
           <Button size="sm" radius="full" onPress={loadMore}>
             <div className="flex items-center gap-1">
               <span className="text-xs">

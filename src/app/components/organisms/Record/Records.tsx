@@ -41,11 +41,17 @@ async function fetchRecords(event_type: string, deck_id: string, cursor: string)
 
 type Props = {
   event_type: string;
-  deck_id: string;
-  disable_more_load: boolean;
+  deck_id?: string;
+  disable_more_load?: boolean;
+  limit?: number;
 };
 
-export default function Records({ event_type, deck_id, disable_more_load }: Props) {
+export default function Records({
+  event_type,
+  deck_id = "",
+  disable_more_load = false,
+  limit = 0,
+}: Props) {
   const [items, setItems] = useState<RecordType[]>([]);
   const [nextCursor, setNextCursor] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
@@ -91,10 +97,16 @@ export default function Records({ event_type, deck_id, disable_more_load }: Prop
         return;
       }
 
-      setItems((prev) => [...prev, ...newItems.records]);
+      setItems((prev) => {
+        const next = [...prev, ...newItems.records];
+        return limit != 0 ? next.slice(0, limit) : next;
+      });
 
       const lastItem = newItems.records[newItems.records.length - 1];
-      if (lastItem && lastItem.cursor) {
+
+      if (limit != 0 && items.length + newItems.records.length >= limit) {
+        setHasMore(false);
+      } else if (lastItem && lastItem.cursor) {
         const nextItems: RecordGetResponseType = await fetchRecords(
           event_type,
           deck_id,
@@ -279,14 +291,12 @@ export default function Records({ event_type, deck_id, disable_more_load }: Prop
                   />
                 ),
             )}
-
         {/* ローディング表示 */}
         {!isInitialLoaded && event_type === "official" && (
           <OfficialEventRecordSkeletons />
         )}
         {!isInitialLoaded && event_type === "tonamel" && <TonamelEventRecordSkeletons />}
         {isInitialLoaded && isLoading && <Spinner size="lg" className="pt-0" />}
-
         {!disable_more_load && isInitialLoaded && !isLoading && hasMore && (
           <Button size="sm" radius="full" onPress={loadMore}>
             <div className="flex items-center gap-1">

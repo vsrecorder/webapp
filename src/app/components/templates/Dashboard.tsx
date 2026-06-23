@@ -203,7 +203,7 @@ export default async function TemplateDashboard({ userId }: Props) {
               すべて見る
             </Button>
           </div>
-          <Records event_type="official" deck_id="" disable_more_load={true} />
+          <Records event_type="official" disable_more_load={true} limit={5} />
         </section>
       </div>
 

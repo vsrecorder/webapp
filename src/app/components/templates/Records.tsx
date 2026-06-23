@@ -57,11 +57,11 @@ export default function TemplateRecords() {
       </div>
 
       <div className="w-full" hidden={selectedKey !== "official"}>
-        <Records event_type={"official"} deck_id={""} disable_more_load={false} />
+        <Records event_type={"official"} />
       </div>
 
       <div className="w-full pt-2" hidden={selectedKey !== "tonamel"}>
-        <Records event_type={"tonamel"} deck_id={""} disable_more_load={false} />
+        <Records event_type={"tonamel"} />
       </div>
     </>
   );

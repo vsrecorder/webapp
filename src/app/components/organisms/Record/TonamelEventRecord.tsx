@@ -87,6 +87,14 @@ export default function TonamelEventRecord({
   } = useDisclosure();
 
   useEffect(() => {
+    const pendingId = sessionStorage.getItem("reopenModalRecordId");
+    if (pendingId && pendingId === recordData.data.id) {
+      sessionStorage.removeItem("reopenModalRecordId");
+      onOpenForDisplayRecordModal();
+    }
+  }, []);
+
+  useEffect(() => {
     if (!recordData.data.tonamel_event_id) {
       setLoadingTonamelEvent(false);
       return;

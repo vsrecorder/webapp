@@ -188,6 +188,14 @@ export default function OfficialEventRecord({
   } = useDisclosure();
 
   useEffect(() => {
+    const pendingId = sessionStorage.getItem("reopenModalRecordId");
+    if (pendingId && pendingId === recordData.data.id) {
+      sessionStorage.removeItem("reopenModalRecordId");
+      onOpenForDisplayRecordModal();
+    }
+  }, []);
+
+  useEffect(() => {
     if (!recordData.data.official_event_id) {
       setLoadingOfficialEvent(false);
       return;

@@ -60,7 +60,7 @@ export default function TemplateRecords() {
         <Records event_type={"official"} deck_id={""} />
       </div>
 
-      <div className="w-full" hidden={selectedKey !== "tonamel"}>
+      <div className="w-full pt-2" hidden={selectedKey !== "tonamel"}>
         <Records event_type={"tonamel"} deck_id={""} />
       </div>
     </>

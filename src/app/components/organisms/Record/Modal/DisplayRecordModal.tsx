@@ -1,10 +1,12 @@
+"use client";
+
 import { toPng } from "html-to-image";
 
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 
 import { SetStateAction, Dispatch } from "react";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import {
   Modal,
@@ -12,24 +14,138 @@ import {
   ModalHeader,
   ModalBody,
   useDisclosure,
+  Button,
 } from "@heroui/react";
-import { Button } from "@heroui/react";
 import { addToast, closeToast } from "@heroui/react";
+import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/dropdown";
 
-import { LuImageDown } from "react-icons/lu";
-import { LuExternalLink } from "react-icons/lu";
-
-//import RecordById from "@app/components/organisms/Record/RecordById";
+import {
+  LuImageDown,
+  LuEllipsisVertical,
+  LuExternalLink,
+  LuTrash2,
+} from "react-icons/lu";
+import { RiTwitterXLine } from "react-icons/ri";
 
 import OfficialEventInfo from "@app/components/organisms/Record/OfficialEventInfo";
 import TonamelEventInfo from "@app/components/organisms/Record/TonamelEventInfo";
 import Matches from "@app/components/organisms/Match/Matches";
 import UsedDeckById from "@app/components/organisms/Deck/UsedDeckById";
-import TweetButton from "@app/components/organisms/Record/TweetButton";
 
 import DeleteRecordModal from "@app/components/organisms/Record/Modal/DeleteRecordModal";
 
 import { RecordGetByIdResponseType } from "@app/types/record";
+import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
+import { TonamelEventGetByIdResponseType } from "@app/types/tonamel_event";
+import { DeckGetByIdResponseType } from "@app/types/deck";
+import { MatchGetResponseType } from "@app/types/match";
+
+// ツイートURL生成ヘルパー
+
+function toFullWidth(str: string) {
+  return str.replace(/[A-Za-z0-9]/g, (s) =>
+    String.fromCharCode(s.charCodeAt(0) + 0xfee0),
+  );
+}
+
+async function fetchOfficialEventForTweet(
+  id: number,
+): Promise<OfficialEventGetByIdResponseType> {
+  const res = await fetch(`/api/official_events/${id}`, {
+    cache: "no-store",
+    method: "GET",
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok) throw new Error("Failed to fetch");
+  return res.json();
+}
+
+async function fetchTonamelEventForTweet(
+  id: string,
+): Promise<TonamelEventGetByIdResponseType> {
+  const res = await fetch(`/api/tonamel_events/${id}`, {
+    cache: "no-store",
+    method: "GET",
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok) throw new Error("Failed to fetch");
+  return res.json();
+}
+
+async function fetchDeckForTweet(id: string): Promise<DeckGetByIdResponseType> {
+  const res = await fetch(`/api/decks/${id}`, {
+    cache: "no-store",
+    method: "GET",
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok) throw new Error("Failed to fetch");
+  return res.json();
+}
+
+async function fetchMatchesForTweet(record_id: string): Promise<MatchGetResponseType[]> {
+  const res = await fetch(`/api/records/${record_id}/matches`, {
+    cache: "no-store",
+    method: "GET",
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok) throw new Error("Failed to fetch");
+  return res.json();
+}
+
+function buildTweetHref(
+  officialEvent: OfficialEventGetByIdResponseType | null,
+  tonamelEvent: TonamelEventGetByIdResponseType | null,
+  deck: DeckGetByIdResponseType | null,
+  matches: MatchGetResponseType[] | null,
+): string {
+  let results = "";
+  if (matches && matches.length !== 0) {
+    results = "\n対戦結果\n";
+    matches.forEach((match) => {
+      const victory = match.victory_flg ? "⭕" : "❌";
+      const go_first =
+        match.default_victory_flg || match.default_defeat_flg
+          ? "　"
+          : match.games[0].go_first
+            ? "先"
+            : "後";
+      const opponents_deck_info = match.default_victory_flg
+        ? "不戦勝"
+        : match.default_defeat_flg
+          ? "不戦敗"
+          : match.opponents_deck_info;
+      results += ` ${victory} ${go_first} ${opponents_deck_info}\n`;
+    });
+  }
+
+  let encoded = "";
+  if (officialEvent) {
+    let title = officialEvent.title
+      .replace(/【.*?】ポケモンカードジム　/g, "")
+      .replace(/【.*?】エクストラバトルの日/g, "エクストラバトルの日")
+      .replace(/【.*?】ポケモンカードゲーム　/g, "")
+      .replace(/ポケモンカードゲーム /g, "")
+      .replace(/（オープンリーグ）/g, "")
+      .replace(/（マスターリーグ）/g, "")
+      .replace(/（シニアリーグ）/g, "")
+      .replace(/（ジュニアリーグ）/g, "")
+      .replace(/（スタンダード）/g, "")
+      .replace(/（.*?）/g, "");
+    const shopName = officialEvent.shop_name || officialEvent.venue;
+    encoded = encodeURIComponent(`${title}\n${shopName}\n${results}\n`);
+  } else if (tonamelEvent) {
+    encoded = encodeURIComponent(`${tonamelEvent.title}\n${results}\n`);
+  }
+
+  if (deck && deck.name !== "") {
+    encoded += encodeURIComponent(`使用デッキ：${deck.name}\n`);
+  }
+
+  const hashtag = encodeURIComponent("バトレコ");
+  return `https://twitter.com/intent/tweet?text=${encoded}&via=vsrecorder_mobi&hashtags=${hashtag}`;
+}
+
+// コンポーネント
 
 type Props = {
   record: RecordGetByIdResponseType;
@@ -46,11 +162,66 @@ export default function DisplayRecordModal({
   onOpenChange,
   onClose,
 }: Props) {
+  const router = useRouter();
+
   const {
     isOpen: isOpenForDeleteRecordModal,
     onOpen: onOpenForDeleteRecordModal,
     onOpenChange: onOpenChangeForDeleteRecordModal,
   } = useDisclosure();
+
+  const [tweetHref, setTweetHref] = useState<string>("");
+
+  useEffect(() => {
+    if (!record) return;
+
+    let officialEvent: OfficialEventGetByIdResponseType | null = null;
+    let tonamelEvent: TonamelEventGetByIdResponseType | null = null;
+    let deck: DeckGetByIdResponseType | null = null;
+    let matches: MatchGetResponseType[] | null = null;
+
+    const tasks: Promise<void>[] = [];
+
+    if (record.official_event_id !== 0) {
+      tasks.push(
+        fetchOfficialEventForTweet(record.official_event_id)
+          .then((d) => {
+            officialEvent = d;
+          })
+          .catch(() => {}),
+      );
+    } else if (record.tonamel_event_id !== "") {
+      tasks.push(
+        fetchTonamelEventForTweet(record.tonamel_event_id)
+          .then((d) => {
+            tonamelEvent = d;
+          })
+          .catch(() => {}),
+      );
+    }
+
+    if (record.deck_id) {
+      tasks.push(
+        fetchDeckForTweet(record.deck_id)
+          .then((d) => {
+            deck = d;
+          })
+          .catch(() => {}),
+      );
+    }
+
+    tasks.push(
+      fetchMatchesForTweet(record.id)
+        .then((d) => {
+          matches = d;
+        })
+        .catch(() => {}),
+    );
+
+    Promise.all(tasks).then(() => {
+      setTweetHref(buildTweetHref(officialEvent, tonamelEvent, deck, matches));
+    });
+  }, [record]);
 
   const startY = useRef<number | null>(null);
 
@@ -60,11 +231,7 @@ export default function DisplayRecordModal({
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (startY.current === null) return;
-
-    const diff = e.touches[0].clientY - startY.current;
-
-    // 下方向に30px以上スワイプしたら閉じる
-    if (diff > 30) {
+    if (e.touches[0].clientY - startY.current > 30) {
       startY.current = null;
       onClose();
     }
@@ -81,7 +248,7 @@ export default function DisplayRecordModal({
       return await toPng(el, {
         cacheBust: true,
         pixelRatio: 3,
-        backgroundColor: "#ffffff", // 透過防止
+        backgroundColor: "#ffffff",
       });
     } finally {
       el.classList.remove("light");
@@ -100,48 +267,35 @@ export default function DisplayRecordModal({
     });
 
     if (!eventCardRef.current) {
-      if (toastId) {
-        closeToast(toastId);
-      }
-
+      if (toastId) closeToast(toastId);
       addToast({
         title: "画像のダウンロードに失敗",
         description: "画像のダウンロードに失敗しました",
         color: "danger",
         timeout: 5000,
       });
-
       return;
     }
 
     try {
       const dataUrl = await captureAsLightPng(eventCardRef.current);
-
       const link = document.createElement("a");
       link.download = `${record.id}_${Date.now()}.png`;
       link.href = dataUrl;
       link.click();
     } catch (e) {
       console.log(e);
-
-      if (toastId) {
-        closeToast(toastId);
-      }
-
+      if (toastId) closeToast(toastId);
       addToast({
         title: "画像のダウンロードに失敗",
         description: "画像のダウンロードに失敗しました",
         color: "danger",
         timeout: 5000,
       });
-
       return;
     }
 
-    if (toastId) {
-      closeToast(toastId);
-    }
-
+    if (toastId) closeToast(toastId);
     addToast({
       title: "画像のダウンロードが完了",
       description: "画像をダウンロードしました",
@@ -161,10 +315,7 @@ export default function DisplayRecordModal({
     });
 
     if (!deckCardRef.current) {
-      if (toastId) {
-        closeToast(toastId);
-      }
-
+      if (toastId) closeToast(toastId);
       addToast({
         title: "画像のダウンロードに失敗",
         description: "画像のダウンロードに失敗しました",
@@ -176,30 +327,22 @@ export default function DisplayRecordModal({
 
     try {
       const dataUrl = await captureAsLightPng(deckCardRef.current);
-
       const link = document.createElement("a");
       link.download = `${record.deck_id}_${record.deck_code_id}_${Date.now()}.png`;
       link.href = dataUrl;
       link.click();
     } catch {
-      if (toastId) {
-        closeToast(toastId);
-      }
-
+      if (toastId) closeToast(toastId);
       addToast({
         title: "画像のダウンロードに失敗",
         description: "画像のダウンロードに失敗しました",
         color: "danger",
         timeout: 5000,
       });
-
       return;
     }
 
-    if (toastId) {
-      closeToast(toastId);
-    }
-
+    if (toastId) closeToast(toastId);
     addToast({
       title: "画像のダウンロードが完了",
       description: "画像をダウンロードしました",
@@ -245,69 +388,104 @@ export default function DisplayRecordModal({
 
                 {/* 両端配置 */}
                 <div className="flex items-center justify-between w-full">
-                  {/* 左側 */}
                   <div>記録情報</div>
 
-                  {/* 右側 */}
-                  <div>
-                    <Link href={`/records/${record.id}`} className="text-default-500">
-                      <div className="text-xl -translate-y-3">
-                        <LuExternalLink />
-                      </div>
-                    </Link>
-                  </div>
+                  {/* 3点メニュー */}
+                  <Dropdown>
+                    <DropdownTrigger>
+                      <Button
+                        isIconOnly
+                        variant="light"
+                        size="sm"
+                        className="text-default-500 -translate-y-3"
+                        aria-label="メニューを開く"
+                      >
+                        <LuEllipsisVertical className="text-xl" />
+                      </Button>
+                    </DropdownTrigger>
+                    <DropdownMenu aria-label="記録の操作">
+                      <DropdownItem
+                        key="save-event-image"
+                        startContent={<LuImageDown />}
+                        onPress={handleSavingEventCardImage}
+                      >
+                        対戦結果の画像を保存
+                      </DropdownItem>
+                      <DropdownItem
+                        key="save-deck-image"
+                        startContent={<LuImageDown />}
+                        onPress={handleSavingDeckCardImage}
+                      >
+                        使用したデッキの画像を保存
+                      </DropdownItem>
+                      <DropdownItem
+                        key="detail"
+                        startContent={<LuExternalLink />}
+                        onPress={() => {
+                          sessionStorage.setItem("reopenModalRecordId", record.id);
+                          router.push(`/records/${record.id}`);
+                        }}
+                      >
+                        詳細・編集ページを開く
+                      </DropdownItem>
+                      <DropdownItem
+                        key="tweet"
+                        startContent={<RiTwitterXLine />}
+                        isDisabled={!tweetHref}
+                        onPress={() => window.open(tweetHref, "_blank")}
+                      >
+                        この対戦結果をポストする
+                      </DropdownItem>
+                      <DropdownItem
+                        key="delete"
+                        startContent={<LuTrash2 />}
+                        color="danger"
+                        className="text-danger"
+                        onPress={() => onOpenForDeleteRecordModal()}
+                      >
+                        この記録を削除する
+                      </DropdownItem>
+                    </DropdownMenu>
+                  </Dropdown>
                 </div>
               </ModalHeader>
+
               <ModalBody className="px-3 pb-6 gap-9 overflow-y-auto">
                 <div className="flex flex-col gap-3">
-                  <div className="pb-0 flex items-center justify-center gap-1.5">
+                  <div className="pb-0 flex items-center justify-center">
                     <div className="font-bold underline">参加したイベント</div>
-
-                    {/* 公式イベントのみ画像の保存が可能 */}
-                    {/* TonamelはCORSによって画像の保存が不可能 */}
-                    {record.official_event_id !== 0 && (
-                      <LuImageDown
-                        onClick={handleSavingEventCardImage}
-                        className="text-lg -translate-y-1"
-                      />
-                    )}
                   </div>
 
+                  {record.official_event_id !== 0 ? (
+                    <OfficialEventInfo
+                      record={record}
+                      setRecord={setRecord}
+                      enableEditTCGMeisterURL={false}
+                    />
+                  ) : record.tonamel_event_id !== "" ? (
+                    <TonamelEventInfo record={record} />
+                  ) : (
+                    <></>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  <div className="pb-0 flex items-center justify-center">
+                    <div className="font-bold underline">対戦結果</div>
+                  </div>
                   {/* 画面はテーマ追従。書き出し時のみ light を一時付与する */}
                   <div ref={eventCardRef} className="p-1 flex flex-col gap-3">
-                    {
-                      // 公式イベントの場合
-                      record.official_event_id !== 0 ? (
-                        <OfficialEventInfo
-                          record={record}
-                          setRecord={setRecord}
-                          enableEditTCGMeisterURL={false}
-                        />
-                      ) : // Tonamelの場合
-                      record.tonamel_event_id !== "" ? (
-                        <TonamelEventInfo record={record} />
-                      ) : (
-                        <></>
-                      )
-                    }
-
-                    <div className="flex flex-col gap-3">
-                      <Matches
-                        record={record}
-                        enableCreateMatchModalButton={false}
-                        enableUpdateMatchModalButton={false}
-                      />
-                    </div>
+                    <Matches
+                      record={record}
+                      enableCreateMatchModalButton={false}
+                      enableUpdateMatchModalButton={false}
+                    />
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-3">
-                  <div className="pb-0 flex items-center justify-center gap-1.5">
+                  <div className="pb-0 flex items-center justify-center">
                     <div className="font-bold underline">使用したデッキ</div>
-                    <LuImageDown
-                      onClick={handleSavingDeckCardImage}
-                      className="text-lg -translate-y-1"
-                    />
                   </div>
 
                   {/* 画面はテーマ追従。書き出し時のみ light を一時付与する */}
@@ -318,24 +496,6 @@ export default function DisplayRecordModal({
                       enableShowDeckModal={false}
                       enableUpdateUsedDeckModal={false}
                     />
-                  </div>
-                </div>
-
-                <div className="flex flex-col items-center justify-center gap-3 w-full">
-                  <div className="w-full">
-                    <TweetButton record={record} />
-                  </div>
-
-                  <div className="w-full">
-                    <Button
-                      color="danger"
-                      onPress={() => {
-                        onOpenForDeleteRecordModal();
-                      }}
-                      className="font-bold w-full"
-                    >
-                      この記録を削除する
-                    </Button>
                   </div>
                 </div>
               </ModalBody>

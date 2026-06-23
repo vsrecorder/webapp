@@ -6,12 +6,14 @@ async function getUserStat(
   userId: string,
   yearMonth: string,
   environmentId: string,
+  season: string,
 ): Promise<UserStatType> {
   const domain = process.env.VSRECORDER_DOMAIN;
 
   const params = new URLSearchParams();
   if (yearMonth) params.set("year_month", yearMonth);
   if (environmentId) params.set("environment_id", environmentId);
+  if (season) params.set("season", season);
 
   const query = params.toString() ? `?${params.toString()}` : "";
 
@@ -39,7 +41,8 @@ export async function GET(
   const { searchParams } = new URL(request.url);
   const yearMonth = searchParams.get("year_month") ?? "";
   const environmentId = searchParams.get("environment_id") ?? "";
+  const season = searchParams.get("season") ?? "";
 
-  const stat = await getUserStat(id, yearMonth, environmentId);
+  const stat = await getUserStat(id, yearMonth, environmentId, season);
   return NextResponse.json(stat, { status: 200 });
 }

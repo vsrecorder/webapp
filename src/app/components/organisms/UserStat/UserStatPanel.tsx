@@ -10,7 +10,7 @@ import UserStatPanelSkeleton from "@app/components/organisms/UserStat/Skeleton/U
 import { EnvironmentType } from "@app/types/environment";
 import { UserStatType } from "@app/types/user_stat";
 
-type FilterMode = "month" | "environment";
+type FilterMode = "month" | "environment" | "season";
 
 type Props = {
   userId: string;
@@ -22,6 +22,28 @@ type Props = {
 function getCurrentYearMonth(): string {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function getCurrentSeason(): string {
+  const now = new Date();
+  // 9月(month=8)以降なら翌年がシーズン開始年、それ以前なら当年
+  const year = now.getMonth() >= 9 ? now.getFullYear() + 1 : now.getFullYear();
+  return String(year);
+}
+
+function generateSeasonOptions(createdAt?: Date): { value: string; label: string }[] {
+  const now = new Date();
+  const currentSeason = now.getMonth() >= 9 ? now.getFullYear() + 1 : now.getFullYear();
+  const firstSeason = createdAt
+    ? createdAt.getMonth() >= 9
+      ? createdAt.getFullYear() + 1
+      : createdAt.getFullYear()
+    : currentSeason;
+  const options: { value: string; label: string }[] = [];
+  for (let s = currentSeason; s >= firstSeason; s--) {
+    options.push({ value: String(s), label: `${s + 1}シーズン` });
+  }
+  return options;
 }
 
 function generateYearMonthOptions(createdAt?: Date) {
@@ -102,12 +124,13 @@ export default function UserStatPanel({
   const [environmentId, setEnvironmentId] = useState<string>(
     currentEnvironmentId ?? environments[0]?.id ?? "",
   );
+  const [season, setSeason] = useState<string>(getCurrentSeason);
   const [stat, setStat] = useState<UserStatType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const yearMonthOptions = generateYearMonthOptions(
-    userCreatedAt != null ? new Date(userCreatedAt) : undefined,
-  );
+  const createdAtDate = userCreatedAt != null ? new Date(userCreatedAt) : undefined;
+  const yearMonthOptions = generateYearMonthOptions(createdAtDate);
+  const seasonOptions = generateSeasonOptions(createdAtDate);
 
   useEffect(() => {
     let cancelled = false;
@@ -120,6 +143,8 @@ export default function UserStatPanel({
           params.set("year_month", yearMonth);
         } else if (filterMode === "environment" && environmentId) {
           params.set("environment_id", environmentId);
+        } else if (filterMode === "season" && season) {
+          params.set("season", season);
         }
 
         const res = await fetch(`/api/users/${userId}/stat?${params.toString()}`, {
@@ -141,12 +166,14 @@ export default function UserStatPanel({
     return () => {
       cancelled = true;
     };
-  }, [userId, filterMode, yearMonth, environmentId]);
+  }, [userId, filterMode, yearMonth, environmentId, season]);
 
   const filterLabel =
     filterMode === "month"
       ? (yearMonthOptions.find((o) => o.value === yearMonth)?.label ?? yearMonth)
-      : `『${environments.find((e) => e.id === environmentId)?.title ?? ""}』`;
+      : filterMode === "environment"
+        ? `『${environments.find((e) => e.id === environmentId)?.title ?? ""}』`
+        : (seasonOptions.find((o) => o.value === season)?.label ?? season);
 
   if (isLoading && !stat) {
     return <UserStatPanelSkeleton />;
@@ -168,17 +195,26 @@ export default function UserStatPanel({
         >
           <Tab key="month" title="月別" />
           <Tab key="environment" title="環境別" />
+          <Tab key="season" title="シーズン別" />
         </Tabs>
 
         {/* セレクタ */}
         <div className="relative">
           <select
-            value={filterMode === "month" ? yearMonth : environmentId}
+            value={
+              filterMode === "month"
+                ? yearMonth
+                : filterMode === "environment"
+                  ? environmentId
+                  : season
+            }
             onChange={(e) => {
               if (filterMode === "month") {
                 setYearMonth(e.target.value);
-              } else {
+              } else if (filterMode === "environment") {
                 setEnvironmentId(e.target.value);
+              } else {
+                setSeason(e.target.value);
               }
             }}
             className="w-full appearance-none rounded-xl border border-default-200 bg-default-100 px-4 py-2.5 pr-10 text-sm font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
@@ -189,11 +225,17 @@ export default function UserStatPanel({
                     {opt.label}
                   </option>
                 ))
-              : environments.map((env) => (
-                  <option key={env.id} value={env.id}>
-                    『{env.title}』
-                  </option>
-                ))}
+              : filterMode === "environment"
+                ? environments.map((env) => (
+                    <option key={env.id} value={env.id}>
+                      『{env.title}』
+                    </option>
+                  ))
+                : seasonOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
           </select>
           <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-default-400 text-xs">
             ▼

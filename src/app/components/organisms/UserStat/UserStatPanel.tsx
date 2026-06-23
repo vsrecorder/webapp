@@ -41,7 +41,7 @@ function generateSeasonOptions(createdAt?: Date): { value: string; label: string
     : currentSeason;
   const options: { value: string; label: string }[] = [];
   for (let s = currentSeason; s >= firstSeason; s--) {
-    options.push({ value: String(s), label: `${s + 1}シーズン` });
+    options.push({ value: String(s), label: `${s}シーズン` });
   }
   return options;
 }

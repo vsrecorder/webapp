@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, Fragment } from "react";
+import { useEffect, useRef, useState, useCallback, Fragment } from "react";
 
 import { Spinner } from "@heroui/spinner";
 import { Button, Link } from "@heroui/react";
@@ -51,6 +51,27 @@ export default function Records({ event_type, deck_id }: Props) {
   const [hasMore, setHasMore] = useState(true);
   const [isInitialLoaded, setIsInitialLoaded] = useState(false);
   const [pendingReopenId, setPendingReopenId] = useState<string | null>(null);
+  const scrollToIdRef = useRef<string | null>(null);
+
+  // カード側からモーダルを開く直前に呼ばれるコールバック
+  const handleReopenComplete = useCallback((id: string) => {
+    scrollToIdRef.current = id;
+    setPendingReopenId(null);
+  }, []);
+
+  // スピナーが消えた後（= pendingReopenId が null になった後）にスクロール実行
+  useEffect(() => {
+    if (pendingReopenId !== null) return;
+    const id = scrollToIdRef.current;
+    if (!id) return;
+    scrollToIdRef.current = null;
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`record-card-${id}`);
+      if (!el) return;
+      const y = el.getBoundingClientRect().top + window.scrollY - 80;
+      window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+    });
+  }, [pendingReopenId]);
 
   const loadMore = useCallback(async () => {
     if (isLoading || !hasMore) return;
@@ -115,21 +136,30 @@ export default function Records({ event_type, deck_id }: Props) {
   }, [event_type]);
 
   // 対象 record が描画されるまで自動ロード
+  // found になったときは何もしない（カード側の handleReopenComplete が pendingReopenId を null にする）
   useEffect(() => {
     if (!pendingReopenId) return;
     if (!isInitialLoaded || isLoading) return;
 
     const found = items.some((item) => item.data.id === pendingReopenId);
-    if (found || !hasMore) {
-      setPendingReopenId(null);
-      return;
+    if (!found) {
+      if (hasMore) {
+        loadMore();
+      } else {
+        // 全件読み込んでも見つからなかった場合はスピナーを解除
+        setPendingReopenId(null);
+      }
     }
-
-    loadMore();
   }, [pendingReopenId, isInitialLoaded, isLoading, items, hasMore, loadMore]);
 
   return (
     <div className="flex flex-col items-center space-y-3 pb-3">
+      {/* 対象 record を探している間はオーバーレイでスピナーを表示 */}
+      {pendingReopenId && (
+        <div className="fixed inset-0 z-200 flex items-center justify-center bg-background/90">
+          <Spinner size="lg" />
+        </div>
+      )}
       {/* 空状態 */}
       {isInitialLoaded && !isLoading && !hasMore && items.length === 0 && (
         <div className="flex flex-col items-center justify-center py-10 px-4 gap-6">
@@ -220,6 +250,11 @@ export default function Records({ event_type, deck_id }: Props) {
                   <OfficialEventRecord
                     recordData={recordData}
                     enableDisplayRecordModal={true}
+                    onReopenComplete={
+                      recordData.data.id === pendingReopenId
+                        ? () => handleReopenComplete(recordData.data.id)
+                        : undefined
+                    }
                   />
                 </Fragment>
               );
@@ -231,6 +266,11 @@ export default function Records({ event_type, deck_id }: Props) {
                     key={recordData.data.id}
                     recordData={recordData}
                     enableDisplayRecordModal={true}
+                    onReopenComplete={
+                      recordData.data.id === pendingReopenId
+                        ? () => handleReopenComplete(recordData.data.id)
+                        : undefined
+                    }
                   />
                 ),
             )}

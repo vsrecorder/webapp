@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 import { Card, CardHeader, CardBody } from "@heroui/react";
 import { Image } from "@heroui/react";
@@ -62,11 +62,13 @@ async function fetchDeckById(id: string) {
 type Props = {
   recordData: RecordType;
   enableDisplayRecordModal: boolean;
+  onReopenComplete?: () => void;
 };
 
 export default function TonamelEventRecord({
   recordData,
   enableDisplayRecordModal,
+  onReopenComplete,
 }: Props) {
   const [deck, setDeck] = useState<DeckGetByIdResponseType | null>(null);
   const [loadingDeck, setLoadingDeck] = useState(true);
@@ -79,6 +81,10 @@ export default function TonamelEventRecord({
 
   const [record, setRecord] = useState<RecordGetByIdResponseType | null>(recordData.data);
 
+  const [shouldReopen, setShouldReopen] = useState(false);
+  const onReopenCompleteRef = useRef(onReopenComplete);
+  onReopenCompleteRef.current = onReopenComplete;
+
   const {
     isOpen: isOpenForDisplayRecordModal,
     onOpen: onOpenForDisplayRecordModal,
@@ -86,13 +92,22 @@ export default function TonamelEventRecord({
     onClose: onCloseForDisplayRecordModal,
   } = useDisclosure();
 
+  // マウント時に対象 record か判定だけ行う
   useEffect(() => {
     const pendingId = sessionStorage.getItem("reopenModalRecordId");
     if (pendingId && pendingId === recordData.data.id) {
       sessionStorage.removeItem("reopenModalRecordId");
-      onOpenForDisplayRecordModal();
+      setShouldReopen(true);
     }
   }, []);
+
+  // データロード完了後にスクロール通知 + モーダルオープン
+  useEffect(() => {
+    if (!shouldReopen || loadingTonamelEvent) return;
+    setShouldReopen(false);
+    onReopenCompleteRef.current?.();
+    onOpenForDisplayRecordModal();
+  }, [shouldReopen, loadingTonamelEvent]);
 
   useEffect(() => {
     if (!recordData.data.tonamel_event_id) {
@@ -175,7 +190,7 @@ export default function TonamelEventRecord({
         />
       )}
 
-      <div className="" onClick={onOpenForDisplayRecordModal}>
+      <div id={`record-card-${recordData.data.id}`} className="" onClick={onOpenForDisplayRecordModal}>
         <Card shadow="sm" className="py-3 w-full">
           <CardHeader className="px-5 pb-0 pt-0 flex flex-col items-start gap-1.5">
             <div className="flex items-center gap-3 w-full">

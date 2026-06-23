@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 import { Card, CardBody, Chip } from "@heroui/react";
 import { Image } from "@heroui/react";
@@ -163,11 +163,13 @@ function getEventTypeName(officialEvent: OfficialEventGetByIdResponseType): stri
 type Props = {
   recordData: RecordType;
   enableDisplayRecordModal: boolean;
+  onReopenComplete?: () => void;
 };
 
 export default function OfficialEventRecord({
   recordData,
   enableDisplayRecordModal,
+  onReopenComplete,
 }: Props) {
   const [officialEvent, setOfficialEvent] =
     useState<OfficialEventGetByIdResponseType | null>(null);
@@ -180,6 +182,10 @@ export default function OfficialEventRecord({
 
   const [record, setRecord] = useState<RecordGetByIdResponseType | null>(recordData.data);
 
+  const [shouldReopen, setShouldReopen] = useState(false);
+  const onReopenCompleteRef = useRef(onReopenComplete);
+  onReopenCompleteRef.current = onReopenComplete;
+
   const {
     isOpen: isOpenForDisplayRecordModal,
     onOpen: onOpenForDisplayRecordModal,
@@ -187,13 +193,22 @@ export default function OfficialEventRecord({
     onClose: onCloseForDisplayRecordModal,
   } = useDisclosure();
 
+  // マウント時に対象 record か判定だけ行う
   useEffect(() => {
     const pendingId = sessionStorage.getItem("reopenModalRecordId");
     if (pendingId && pendingId === recordData.data.id) {
       sessionStorage.removeItem("reopenModalRecordId");
-      onOpenForDisplayRecordModal();
+      setShouldReopen(true);
     }
   }, []);
+
+  // データロード完了後にスクロール通知 + モーダルオープン
+  useEffect(() => {
+    if (!shouldReopen || loadingOfficialEvent) return;
+    setShouldReopen(false);
+    onReopenCompleteRef.current?.();
+    onOpenForDisplayRecordModal();
+  }, [shouldReopen, loadingOfficialEvent]);
 
   useEffect(() => {
     if (!recordData.data.official_event_id) {
@@ -293,7 +308,7 @@ export default function OfficialEventRecord({
         />
       )}
 
-      <div className="cursor-pointer group" onClick={onOpenForDisplayRecordModal}>
+      <div id={`record-card-${recordData.data.id}`} className="cursor-pointer group" onClick={onOpenForDisplayRecordModal}>
         <Card
           shadow="none"
           className="border border-divider overflow-hidden hover:border-primary/50 transition-colors duration-200"

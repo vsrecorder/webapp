@@ -666,7 +666,11 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
           {() => (
             <>
               <ModalHeader className=""></ModalHeader>
-              <ModalBody className=""></ModalBody>
+              <ModalBody className="">
+                <div className="flex items-center justify-center">
+                  <Spinner size="lg" />
+                </div>
+              </ModalBody>
               <ModalFooter className=""></ModalFooter>
             </>
           )}

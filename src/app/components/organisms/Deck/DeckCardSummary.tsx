@@ -147,7 +147,7 @@ export default function DeckCardSummary({ deckcode }: Props) {
           ポケモン：{deckcardSummary.card_pke_count}
         </div>
         <div className="pl-1 flex flex-wrap gap-1">
-          {deckcardSummary.card_pke.map((deckcard, index) => (
+          {(deckcardSummary.card_pke ?? []).map((deckcard, index) => (
             <div key={index}>
               <Chip
                 size="sm"
@@ -169,7 +169,7 @@ export default function DeckCardSummary({ deckcode }: Props) {
           グッズ：{deckcardSummary.card_gds_count}
         </div>
         <div className="pl-1 flex flex-wrap gap-1">
-          {deckcardSummary.card_gds.map((deckcard, index) => (
+          {(deckcardSummary.card_gds ?? []).map((deckcard, index) => (
             <div key={index}>
               <Chip
                 size="sm"
@@ -191,7 +191,7 @@ export default function DeckCardSummary({ deckcode }: Props) {
           ポケモンのどうぐ：{deckcardSummary.card_tool_count}
         </div>
         <div className="pl-1 flex flex-wrap gap-1">
-          {deckcardSummary.card_tool.map((deckcard, index) => (
+          {(deckcardSummary.card_tool ?? []).map((deckcard, index) => (
             <div key={index}>
               <Chip
                 size="sm"
@@ -213,7 +213,7 @@ export default function DeckCardSummary({ deckcode }: Props) {
           サポート：{deckcardSummary.card_sup_count}
         </div>
         <div className="pl-1 flex flex-wrap gap-1">
-          {deckcardSummary.card_sup.map((deckcard, index) => (
+          {(deckcardSummary.card_sup ?? []).map((deckcard, index) => (
             <div key={index}>
               <Chip
                 size="sm"
@@ -235,7 +235,7 @@ export default function DeckCardSummary({ deckcode }: Props) {
           スタジアム：{deckcardSummary.card_sta_count}
         </div>
         <div className="pl-1 flex flex-wrap gap-1">
-          {deckcardSummary.card_sta.map((deckcard, index) => (
+          {(deckcardSummary.card_sta ?? []).map((deckcard, index) => (
             <div key={index}>
               <Chip
                 size="sm"
@@ -257,7 +257,7 @@ export default function DeckCardSummary({ deckcode }: Props) {
           エネルギー：{deckcardSummary.card_ene_count}
         </div>
         <div className="pl-1 flex flex-wrap gap-1">
-          {deckcardSummary.card_ene.map((deckcard, index) => (
+          {(deckcardSummary.card_ene ?? []).map((deckcard, index) => (
             <div key={index}>
               <Chip
                 size="sm"

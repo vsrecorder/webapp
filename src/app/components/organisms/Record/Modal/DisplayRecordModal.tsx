@@ -422,7 +422,10 @@ export default function DisplayRecordModal({
                         key="detail"
                         startContent={<LuExternalLink />}
                         onPress={() => {
+                          const eventType =
+                            record.official_event_id !== 0 ? "official" : "tonamel";
                           sessionStorage.setItem("reopenModalRecordId", record.id);
+                          sessionStorage.setItem("reopenModalEventType", eventType);
                           router.push(`/records/${record.id}`);
                         }}
                       >

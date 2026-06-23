@@ -50,6 +50,7 @@ export default function Records({ event_type, deck_id }: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [isInitialLoaded, setIsInitialLoaded] = useState(false);
+  const [pendingReopenId, setPendingReopenId] = useState<string | null>(null);
 
   const loadMore = useCallback(async () => {
     if (isLoading || !hasMore) return;
@@ -103,6 +104,29 @@ export default function Records({ event_type, deck_id }: Props) {
     if (isInitialLoaded) return;
     loadMore();
   }, [isInitialLoaded, loadMore]);
+
+  // 戻り遷移時に対象 record の event_type が一致する場合だけ ID を保持
+  useEffect(() => {
+    const id = sessionStorage.getItem("reopenModalRecordId");
+    const storedType = sessionStorage.getItem("reopenModalEventType");
+    if (id && storedType === event_type) {
+      setPendingReopenId(id);
+    }
+  }, [event_type]);
+
+  // 対象 record が描画されるまで自動ロード
+  useEffect(() => {
+    if (!pendingReopenId) return;
+    if (!isInitialLoaded || isLoading) return;
+
+    const found = items.some((item) => item.data.id === pendingReopenId);
+    if (found || !hasMore) {
+      setPendingReopenId(null);
+      return;
+    }
+
+    loadMore();
+  }, [pendingReopenId, isInitialLoaded, isLoading, items, hasMore, loadMore]);
 
   return (
     <div className="flex flex-col items-center space-y-3 pb-3">

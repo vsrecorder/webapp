@@ -405,6 +405,19 @@ export default function DisplayRecordModal({
                     </DropdownTrigger>
                     <DropdownMenu aria-label="記録の操作">
                       <DropdownItem
+                        key="detail"
+                        startContent={<LuExternalLink />}
+                        onPress={() => {
+                          const eventType =
+                            record.official_event_id !== 0 ? "official" : "tonamel";
+                          sessionStorage.setItem("reopenModalRecordId", record.id);
+                          sessionStorage.setItem("reopenModalEventType", eventType);
+                          router.push(`/records/${record.id}`);
+                        }}
+                      >
+                        詳細・編集ページを開く
+                      </DropdownItem>
+                      <DropdownItem
                         key="save-event-image"
                         startContent={<LuImageDown />}
                         onPress={handleSavingEventCardImage}
@@ -417,19 +430,6 @@ export default function DisplayRecordModal({
                         onPress={handleSavingDeckCardImage}
                       >
                         使用したデッキの画像を保存
-                      </DropdownItem>
-                      <DropdownItem
-                        key="detail"
-                        startContent={<LuExternalLink />}
-                        onPress={() => {
-                          const eventType =
-                            record.official_event_id !== 0 ? "official" : "tonamel";
-                          sessionStorage.setItem("reopenModalRecordId", record.id);
-                          sessionStorage.setItem("reopenModalEventType", eventType);
-                          router.push(`/records/${record.id}`);
-                        }}
-                      >
-                        詳細・編集ページを開く
                       </DropdownItem>
                       <DropdownItem
                         key="tweet"

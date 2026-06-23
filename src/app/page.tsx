@@ -7,7 +7,7 @@ export default async function Home() {
   const session = await auth();
 
   if (session) {
-    return <TemplateDashboard />;
+    return <TemplateDashboard userId={session.user.id} />;
   }
 
   return <TemplateHome />;

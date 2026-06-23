@@ -5,9 +5,11 @@ import { LuFilePen, LuLayers, LuFileText, LuTrophy } from "react-icons/lu";
 import Footer from "@app/components/organisms/Layout/Footer";
 import CityleagueEvents from "@app/components/organisms/Cityleague/CityleagueEvents";
 import Records from "@app/components/organisms/Record/Records";
+import UserStatPanel from "@app/components/organisms/UserStat/UserStatPanel";
 
 import { CityleagueScheduleType } from "@app/types/cityleague_schedule";
 import { EnvironmentType } from "@app/types/environment";
+import { UserType } from "@app/types/user";
 
 async function getCityleagueScheduleByDate(date: Date): Promise<CityleagueScheduleType> {
   const domain = process.env.VSRECORDER_DOMAIN;
@@ -67,7 +69,37 @@ const quickActions = [
   },
 ];
 
-export default async function TemplateDashboard() {
+type Props = {
+  userId: string;
+};
+
+async function getUser(userId: string): Promise<UserType | null> {
+  const domain = process.env.VSRECORDER_DOMAIN;
+
+  const res = await fetch(`https://${domain}/api/v1beta/users/${userId}`, {
+    cache: "no-store",
+    method: "GET",
+    headers: { Accept: "application/json" },
+  });
+
+  if (res.status === 200) return res.json();
+  return null;
+}
+
+async function getAllEnvironments(): Promise<EnvironmentType[]> {
+  const domain = process.env.VSRECORDER_DOMAIN;
+
+  const res = await fetch(`https://${domain}/api/v1beta/environments`, {
+    cache: "no-store",
+    method: "GET",
+    headers: { Accept: "application/json" },
+  });
+
+  if (res.status === 200) return res.json();
+  return [];
+}
+
+export default async function TemplateDashboard({ userId }: Props) {
   const date = new Date(Date.now() + 9 * 60 * 60 * 1000);
 
   let cs: CityleagueScheduleType | undefined;
@@ -83,6 +115,9 @@ export default async function TemplateDashboard() {
   } catch {
     env = undefined;
   }
+
+  const environments = await getAllEnvironments();
+  const user = await getUser(userId);
 
   return (
     <>
@@ -135,6 +170,17 @@ export default async function TemplateDashboard() {
             <CityleagueEvents />
           </section>
         )}
+
+        {/* 戦績分析 */}
+        <section className="flex flex-col gap-3">
+          <h2 className="text-sm font-bold text-default-700">戦績分析</h2>
+          <UserStatPanel
+            userId={userId}
+            environments={environments}
+            currentEnvironmentId={env?.id}
+            userCreatedAt={user?.created_at != null ? String(user.created_at) : undefined}
+          />
+        </section>
 
         {/* 最近の記録 */}
         <section className="flex flex-col gap-3">

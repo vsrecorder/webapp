@@ -152,6 +152,21 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
     return;
   }
 
+  const hasChanges =
+    newDeckName !== deck.name ||
+    (selectedPokemonSpriteOption1?.id ?? null) !== (deck.pokemon_sprites?.[0]?.id ?? null) ||
+    (selectedPokemonSpriteOption2?.id ?? null) !== (deck.pokemon_sprites?.[1]?.id ?? null);
+
+  const resetToDefaults = () => {
+    setNewDeckName(deck.name);
+    setSelectedPokemonSpriteOption1(
+      pokemonSpritesOptions.find((opt) => opt.id === deck.pokemon_sprites?.[0]?.id) ?? null,
+    );
+    setSelectedPokemonSpriteOption2(
+      pokemonSpritesOptions.find((opt) => opt.id === deck.pokemon_sprites?.[1]?.id) ?? null,
+    );
+  };
+
   const updateDeck = async (onClose: () => void) => {
     let pokemon_sprites: DeckPokemonSpriteType[] = [];
 
@@ -252,48 +267,7 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
       onOpenChange={onOpenChange}
       onClose={() => {
         setIsDisabled(false);
-
-        if (deck && deck.pokemon_sprites[0] && selectedPokemonSpriteOption1) {
-          /*
-          setSelectedPokemonSpriteOption1(
-            convertToPokemonSpriteOption({
-              id: deck.pokemon_sprites[0].id,
-              name: "",
-            }),
-          );
-          */
-
-          const targetId = deck.pokemon_sprites[0].id;
-
-          const matchedOption = pokemonSpritesOptions.find(
-            (option) => option.id === targetId,
-          );
-
-          if (matchedOption) {
-            setSelectedPokemonSpriteOption1(matchedOption);
-          }
-        }
-
-        if (deck && deck.pokemon_sprites[1] && selectedPokemonSpriteOption2) {
-          /*
-          setSelectedPokemonSpriteOption2(
-            convertToPokemonSpriteOption({
-              id: deck.pokemon_sprites[1].id,
-              name: "",
-            }),
-          );
-          */
-
-          const targetId = deck.pokemon_sprites[1].id;
-
-          const matchedOption = pokemonSpritesOptions.find(
-            (option) => option.id === targetId,
-          );
-
-          if (matchedOption) {
-            setSelectedPokemonSpriteOption2(matchedOption);
-          }
-        }
+        resetToDefaults();
       }}
       classNames={{
         base: "sm:max-w-full",
@@ -488,7 +462,7 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
                 variant="solid"
                 isDisabled={isDisabled}
                 onPress={() => {
-                  setNewDeckName(deck.name);
+                  resetToDefaults();
                   onClose();
                 }}
                 className="font-bold"
@@ -498,15 +472,7 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
               <Button
                 color="primary"
                 variant="solid"
-                //isDisabled={newDeckName === "" || newDeckName === deck.name || isDisabled}
-                isDisabled={isDisabled}
-                /*
-                isDisabled={
-                  newDeckName === "" ||
-                  (newDeckName === deck.name && isSelectedPrivate === deck.private_flg) ||
-                  isDisabled
-                }
-                 */
+                isDisabled={!hasChanges || isDisabled}
                 onPress={() => {
                   updateDeck(onClose);
                 }}

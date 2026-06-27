@@ -29,6 +29,7 @@ export type DeckCreateRequestType = {
   private_flg: boolean;
   deck_code: string;
   private_deck_code_flg: boolean;
+  pokemon_sprites: DeckPokemonSpriteType[];
 };
 
 export type DeckUpdateRequestType = {

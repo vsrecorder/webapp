@@ -9,8 +9,15 @@ import { Input } from "@heroui/react";
 import { Link } from "@heroui/react";
 import { addToast, closeToast } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
+import { useDisclosure } from "@heroui/react";
 
+import PokemonSpriteModal from "@app/components/organisms/Match/Modal/PokemonSpriteModal";
+
+import { PokemonSpriteType, DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
 import { DeckCreateRequestType } from "@app/types/deck";
+
+const UNKNOWN_SPRITE_URL =
+  "https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png";
 
 type Props = {
   deck_code: string;
@@ -32,6 +39,21 @@ export default function CreateDeckModal({
   const [isValidatedDeckCode, setIsValidatedDeckCode] = useState<boolean>(true);
   const [isInvalid, setIsInvalid] = useState<boolean>(true);
   const [isDisabled, setIsDisabled] = useState<boolean>(false);
+
+  const [sprite1, setSprite1] = useState<PokemonSpriteType | null>(null);
+  const [sprite2, setSprite2] = useState<PokemonSpriteType | null>(null);
+
+  const {
+    isOpen: isSprite1Open,
+    onOpen: onSprite1Open,
+    onOpenChange: onSprite1OpenChange,
+  } = useDisclosure();
+
+  const {
+    isOpen: isSprite2Open,
+    onOpen: onSprite2Open,
+    onOpenChange: onSprite2OpenChange,
+  } = useDisclosure();
 
   /*
     入力項目のチェック
@@ -87,13 +109,28 @@ export default function CreateDeckModal({
     };
   }, [deckcode]);
 
+  const resetState = () => {
+    setIsDisabled(false);
+    setIsValidatedDeckCode(true);
+    setDeckName("");
+    setDeckCode(deck_code);
+    setSprite1(null);
+    setSprite2(null);
+    //setIsSelectedPrivateCode(false);
+  };
+
   const createDeck = async (onClose: () => void) => {
+    const pokemon_sprites: DeckPokemonSpriteType[] = [];
+    if (sprite1) pokemon_sprites.push({ id: sprite1.id });
+    if (sprite2) pokemon_sprites.push({ id: sprite2.id });
+
     const deck: DeckCreateRequestType = {
       name: deckname,
       private_flg: true,
       deck_code: deckcode,
       private_deck_code_flg: true,
       //private_deck_code_flg: isSelectedPrivateCode,
+      pokemon_sprites,
     };
 
     setIsDisabled(true);
@@ -131,7 +168,6 @@ export default function CreateDeckModal({
       });
 
       onCreated();
-
       onClose();
     } catch (error) {
       console.error(error);
@@ -161,121 +197,155 @@ export default function CreateDeckModal({
   };
 
   return (
-    <Modal
-      isOpen={isOpen}
-      size="sm"
-      placement="center"
-      onOpenChange={onOpenChange}
-      isDismissable={false}
-      onClose={() => {
-        setIsDisabled(false);
-        setIsValidatedDeckCode(true);
+    <>
+      <Modal
+        isOpen={isOpen}
+        size="sm"
+        placement="center"
+        onOpenChange={onOpenChange}
+        isDismissable={false}
+        onClose={resetState}
+        classNames={{
+          base: "sm:max-w-full",
+          closeButton: "text-2xl",
+        }}
+      >
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader className="text-lg px-3">マイデッキ登録</ModalHeader>
+              <ModalBody className="px-3 py-1 gap-3">
+                {/* スプライト2枚 */}
+                <div className="flex items-center gap-0">
+                  <div className="w-11 h-11 p-0 shrink-0">
+                    <Image
+                      onClick={() => !isDisabled && onSprite1Open()}
+                      alt={sprite1 ? sprite1.name : "アイコン1"}
+                      src={sprite1 ? sprite1.image_url : UNKNOWN_SPRITE_URL}
+                      radius="none"
+                      loading="eager"
+                      className={`w-full h-full object-contain scale-150 origin-bottom ${isDisabled ? "contrast-0" : "cursor-pointer"}`}
+                    />
+                  </div>
+                  <div className="w-11 h-11 p-0 shrink-0">
+                    <Image
+                      onClick={() => !isDisabled && onSprite2Open()}
+                      alt={sprite2 ? sprite2.name : "アイコン2"}
+                      src={sprite2 ? sprite2.image_url : UNKNOWN_SPRITE_URL}
+                      radius="none"
+                      loading="eager"
+                      className={`w-full h-full object-contain scale-150 origin-bottom ${isDisabled ? "contrast-0" : "cursor-pointer"}`}
+                    />
+                  </div>
+                </div>
 
-        setDeckName("");
-        setDeckCode(deck_code);
-        //setIsSelectedPrivateCode(false);
-      }}
-      classNames={{
-        base: "sm:max-w-full",
-        closeButton: "text-2xl",
-      }}
-    >
-      <ModalContent>
-        {(onClose) => (
-          <>
-            <ModalHeader className="text-lg px-3">マイデッキ登録</ModalHeader>
-            <ModalBody className="px-3 py-1">
-              <Input
-                isRequired
-                isDisabled={isDisabled}
-                type="text"
-                label="デッキ名"
-                labelPlacement="outside"
-                placeholder="デッキ名を入力"
-                value={deckname}
-                onChange={(e) => setDeckName(e.target.value)}
-              />
-              <Input
-                isDisabled={isDisabled}
-                isInvalid={!isValidatedDeckCode}
-                errorMessage="有効なデッキコードを入力してください"
-                type="text"
-                label="デッキコード"
-                labelPlacement="outside"
-                placeholder="デッキコードを入力"
-                value={deckcode}
-                onChange={(e) => setDeckCode(e.target.value)}
-              />
-
-              {/*
-              <Checkbox
-                isDisabled={deckcode == ""}
-                //isDisabled={deckcode == "" || !isValidatedDeckCode}
-                defaultSelected={false}
-                size={"sm"}
-                isSelected={isSelectedPrivateCode}
-                onValueChange={setIsSelectedPrivateCode}
-              >
-                デッキコードを非公開にする
-              </Checkbox>
-              */}
-
-              <div className="relative w-full aspect-2/1">
-                {!imageLoaded && <Skeleton className="absolute inset-0 rounded-lg" />}
-                <Image
-                  radius="sm"
-                  shadow="none"
-                  alt={deckcode ? deckcode : "デッキコードなし"}
-                  src={
-                    isValidatedDeckCode && deckcode
-                      ? `https://www.pokemon-card.com/deck/deckView.php/deckID/${deckcode}.png`
-                      : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
-                  }
-                  className=""
-                  onLoad={() => setImageLoaded(true)}
-                  onError={() => {}}
+                <Input
+                  isRequired
+                  isDisabled={isDisabled}
+                  type="text"
+                  label="デッキ名"
+                  labelPlacement="outside"
+                  placeholder="デッキ名を入力"
+                  value={deckname}
+                  onChange={(e) => setDeckName(e.target.value)}
                 />
-              </div>
 
-              <div className="-translate-y-2">
-                <Link
-                  isExternal
-                  showAnchorIcon
-                  underline="always"
-                  href="https://www.pokemon-card.com/deck/"
-                  className="text-xs"
+                <Input
+                  isDisabled={isDisabled}
+                  isInvalid={!isValidatedDeckCode}
+                  errorMessage="有効なデッキコードを入力してください"
+                  type="text"
+                  label="デッキコード"
+                  labelPlacement="outside"
+                  placeholder="デッキコードを入力"
+                  value={deckcode}
+                  onChange={(e) => setDeckCode(e.target.value)}
+                />
+
+                {/*
+                <Checkbox
+                  isDisabled={deckcode == ""}
+                  //isDisabled={deckcode == "" || !isValidatedDeckCode}
+                  defaultSelected={false}
+                  size={"sm"}
+                  isSelected={isSelectedPrivateCode}
+                  onValueChange={setIsSelectedPrivateCode}
                 >
-                  <span>トレーナーズウェブサイトでデッキを構築する</span>
-                </Link>
-              </div>
-            </ModalBody>
-            <ModalFooter>
-              <Button
-                color="default"
-                variant="solid"
-                isDisabled={isDisabled}
-                onPress={() => {
-                  onClose();
-                }}
-                className="font-bold"
-              >
-                閉じる
-              </Button>
-              <Button
-                color="primary"
-                variant="solid"
-                isDisabled={!isValidatedDeckCode || isInvalid || isDisabled}
-                onPress={() => {
-                  createDeck(onClose);
-                }}
-                className="font-bold"
-              >
-                登録
-              </Button>
-            </ModalFooter>
-          </>
-        )}
-      </ModalContent>
-    </Modal>
+                  デッキコードを非公開にする
+                </Checkbox>
+                */}
+
+                <div className="relative w-full aspect-2/1">
+                  {!imageLoaded && <Skeleton className="absolute inset-0 rounded-lg" />}
+                  <Image
+                    radius="sm"
+                    shadow="none"
+                    alt={deckcode ? deckcode : "デッキコードなし"}
+                    src={
+                      isValidatedDeckCode && deckcode
+                        ? `https://www.pokemon-card.com/deck/deckView.php/deckID/${deckcode}.png`
+                        : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
+                    }
+                    className=""
+                    onLoad={() => setImageLoaded(true)}
+                    onError={() => {}}
+                  />
+                </div>
+
+                <div className="-translate-y-2">
+                  <Link
+                    isExternal
+                    showAnchorIcon
+                    underline="always"
+                    href="https://www.pokemon-card.com/deck/"
+                    className="text-xs"
+                  >
+                    <span>トレーナーズウェブサイトでデッキを構築する</span>
+                  </Link>
+                </div>
+              </ModalBody>
+              <ModalFooter>
+                <Button
+                  color="default"
+                  variant="solid"
+                  isDisabled={isDisabled}
+                  onPress={() => {
+                    onClose();
+                  }}
+                  className="font-bold"
+                >
+                  閉じる
+                </Button>
+                <Button
+                  color="primary"
+                  variant="solid"
+                  isDisabled={!isValidatedDeckCode || isInvalid || isDisabled}
+                  onPress={() => {
+                    createDeck(onClose);
+                  }}
+                  className="font-bold"
+                >
+                  登録
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
+
+      <PokemonSpriteModal
+        pokemonSprite={sprite1}
+        setPokemonSprite={setSprite1}
+        isOpen={isSprite1Open}
+        onOpenChange={onSprite1OpenChange}
+      />
+
+      <PokemonSpriteModal
+        pokemonSprite={sprite2}
+        setPokemonSprite={setSprite2}
+        isOpen={isSprite2Open}
+        onOpenChange={onSprite2OpenChange}
+      />
+    </>
   );
 }

@@ -14,6 +14,7 @@ type Props = {
   setRecord: Dispatch<SetStateAction<RecordGetByIdResponseType | null>>;
   isOpen: boolean;
   onOpenChange: () => void;
+  onDeleted?: () => void;
 };
 
 export default function DeleteRecordModal({
@@ -21,6 +22,7 @@ export default function DeleteRecordModal({
   setRecord,
   isOpen,
   onOpenChange,
+  onDeleted,
 }: Props) {
   const [isSelected, setIsSelected] = useState<boolean>(false);
   const [isDisabled, setIsDisabled] = useState<boolean>(false);
@@ -58,6 +60,8 @@ export default function DeleteRecordModal({
         color: "success",
         timeout: 3000,
       });
+
+      onDeleted?.();
 
       setRecord(null);
 

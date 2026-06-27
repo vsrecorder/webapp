@@ -283,7 +283,7 @@ export default function UserStatHistoryChart({ userId, userCreatedAt }: Props) {
             {/* カスタムツールチップ（DOM 直接操作） */}
             <div
               ref={tooltipRef}
-              className="absolute z-50 pointer-events-none bg-content1 border border-default-200 rounded-xl p-3 shadow-lg text-xs whitespace-nowrap"
+              className="absolute z-40 pointer-events-none bg-content1 border border-default-200 rounded-xl p-3 shadow-lg text-xs whitespace-nowrap"
               style={{ display: "none", transform: "translate(-50%, calc(-100% - 8px))" }}
             >
               <p ref={tooltipTitleRef} className="font-bold text-default-700 mb-1.5" />

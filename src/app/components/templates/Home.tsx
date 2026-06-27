@@ -101,7 +101,7 @@ const features = [
         どのデッキを使ったかすぐわかります。
       </>
     ),
-    images: [{ src: "/images/decks.png", rotateClass: "rotate-1" }],
+    images: [{ src: "/images/decks.png", rotateClass: "rotate" }],
   },
   {
     icon: <LuFilePen />,
@@ -114,8 +114,8 @@ const features = [
       </>
     ),
     images: [
-      { src: "/images/records-create.png", rotateClass: "-rotate-2" },
-      { src: "/images/records-id.png", rotateClass: "rotate-2" },
+      { src: "/images/records-create.png", rotateClass: "-rotate-1" },
+      { src: "/images/records-id.png", rotateClass: "rotate-1" },
     ],
   },
   {
@@ -128,7 +128,10 @@ const features = [
         積み重ねた戦績が次の対戦へのヒントに。
       </>
     ),
-    images: [{ src: "/images/records.png", rotateClass: "-rotate-1" }],
+    images: [
+      { src: "/images/user_stats.png", rotateClass: "-rotate-1" },
+      { src: "/images/opponents_deck_info_stats.png", rotateClass: "rotate-1" },
+    ],
   },
   {
     icon: <LuTrophy />,
@@ -140,7 +143,7 @@ const features = [
         環境の最前線をいつでも把握できます。
       </>
     ),
-    images: [{ src: "/images/cityleague_results.png", rotateClass: "rotate-1" }],
+    images: [{ src: "/images/cityleague_results.png", rotateClass: "rotate" }],
   },
 ];
 

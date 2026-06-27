@@ -9,20 +9,50 @@ const secretAccessKey = process.env.SAKURA_OBJECTSTORAGE_SECRET_ACCESS_KEY;
 const endpoint = process.env.SAKURA_OBJECTSTORAGE_ENDPOINT;
 const region = process.env.SAKURA_OBJECTSTORAGE_REGION;
 const bucketName = process.env.SAKURA_OBJECTSTORAGE_BUCKET_NAME;
+const cdnUrl = process.env.SAKURA_OBJECTSTORAGE_CDN_URL;
 
-export async function POST(request: NextRequest) {
+function buildDatetimeString(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return (
+    date.getUTCFullYear().toString() +
+    pad(date.getUTCMonth() + 1) +
+    pad(date.getUTCDate()) +
+    pad(date.getUTCHours()) +
+    pad(date.getUTCMinutes()) +
+    pad(date.getUTCSeconds())
+  );
+}
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
   const session = await auth();
   if (!session) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  const { id } = await params;
+
+  if (session.user.id !== id) {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
   try {
     const formData = await request.formData();
     const image = formData.get("image") as File;
 
+    if (!image) {
+      return NextResponse.json({ error: "image is required" }, { status: 400 });
+    }
+
+    const datetime = buildDatetimeString(new Date());
+    const filename = `${id}_${datetime}.png`;
+    const key = `images/users/${filename}`;
+
     const s3Client = new S3Client({
-      region: region,
-      endpoint: endpoint,
+      region,
+      endpoint,
       credentials: {
         accessKeyId: accessKeyId || "",
         secretAccessKey: secretAccessKey || "",
@@ -31,19 +61,21 @@ export async function POST(request: NextRequest) {
 
     const buffer = Buffer.from(await image.arrayBuffer());
 
-    const uploadImage: any = {
+    const command = new PutObjectCommand({
       Bucket: bucketName,
-      Key: "images/users/" + image.name,
+      Key: key,
       Body: buffer,
-      ContentType: image.type,
+      ContentType: "image/png",
       ACL: "public-read",
-    };
+    } as any);
 
-    const command = new PutObjectCommand(uploadImage);
     await s3Client.send(command);
 
-    return new NextResponse(JSON.stringify({}));
+    const imageUrl = `${cdnUrl}/${key}`;
+
+    return NextResponse.json({ url: imageUrl }, { status: 200 });
   } catch (error) {
-    throw error;
+    console.error(error);
+    return NextResponse.json({ error: "upload failed" }, { status: 500 });
   }
 }

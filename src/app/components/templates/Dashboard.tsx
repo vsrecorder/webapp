@@ -7,6 +7,9 @@ import CityleagueEvents from "@app/components/organisms/Cityleague/CityleagueEve
 import Records from "@app/components/organisms/Record/Records";
 import UserStatPanel from "@app/components/organisms/UserStat/UserStatPanel";
 import UserStatHistoryChart from "@app/components/organisms/UserStat/UserStatHistoryChart";
+import DeckUsagePanel from "@app/components/organisms/DeckUsage/DeckUsagePanel";
+import OpponentDeckUsagePanel from "@app/components/organisms/DeckUsage/OpponentDeckUsagePanel";
+import UserProfileCard from "@app/components/organisms/User/UserProfileCard";
 
 import { CityleagueScheduleType } from "@app/types/cityleague_schedule";
 import { EnvironmentType } from "@app/types/environment";
@@ -42,33 +45,6 @@ async function getEnvironmentByDate(date: Date): Promise<EnvironmentType> {
   if (res.status === 200) return res.json();
   throw new Error("error");
 }
-
-const quickActions = [
-  {
-    href: "/records/create",
-    icon: LuFilePen,
-    label: "記録を作成",
-    color: "primary" as const,
-  },
-  {
-    href: "/decks",
-    icon: LuLayers,
-    label: "デッキ管理",
-    color: "default" as const,
-  },
-  {
-    href: "/records",
-    icon: LuFileText,
-    label: "記録一覧",
-    color: "default" as const,
-  },
-  {
-    href: "/cityleague_results",
-    icon: LuTrophy,
-    label: "大会結果",
-    color: "default" as const,
-  },
-];
 
 type Props = {
   userId: string;
@@ -122,34 +98,9 @@ export default async function TemplateDashboard({ userId }: Props) {
 
   return (
     <>
-      <div className="flex flex-col gap-6 max-w-2xl mx-auto w-full">
-        {/* 環境バッジ */}
-        {env && (
-          <div className="flex justify-center pt-2">
-            <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 text-primary px-4 py-1.5 text-xs font-bold">
-              <span className="w-2 h-2 rounded-full bg-primary animate-pulse shrink-0" />
-              現在の環境：『{env.title}』
-            </div>
-          </div>
-        )}
-
-        {/* クイックアクション */}
-        <section className="grid grid-cols-4 gap-2">
-          {quickActions.map(({ href, icon: Icon, label, color }) => (
-            <Button
-              key={href}
-              as={Link}
-              href={href}
-              color={color}
-              variant={color === "primary" ? "solid" : "flat"}
-              className="flex flex-col h-auto py-3 gap-1.5"
-              radius="lg"
-            >
-              <Icon className="w-5 h-5 shrink-0" />
-              <span className="text-[10px] font-bold leading-none">{label}</span>
-            </Button>
-          ))}
-        </section>
+      <div className="flex flex-col pt-6 gap-6 max-w-2xl mx-auto w-full">
+        {/* プロフィールカード */}
+        {user && <UserProfileCard user={user} />}
 
         {/* 本日のシティリーグ */}
         {cs && (
@@ -183,6 +134,28 @@ export default async function TemplateDashboard({ userId }: Props) {
           />
           <UserStatHistoryChart
             userId={userId}
+            userCreatedAt={user?.created_at != null ? String(user.created_at) : undefined}
+          />
+        </section>
+
+        {/* デッキ使用率分析 */}
+        <section className="flex flex-col gap-3">
+          <h2 className="text-sm font-bold text-default-700">デッキ使用率分析</h2>
+          <DeckUsagePanel
+            userId={userId}
+            environments={environments}
+            currentEnvironmentId={env?.id}
+            userCreatedAt={user?.created_at != null ? String(user.created_at) : undefined}
+          />
+        </section>
+
+        {/* 対戦相手のデッキ分布 */}
+        <section className="flex flex-col gap-3">
+          <h2 className="text-sm font-bold text-default-700">対戦相手のデッキ分布</h2>
+          <OpponentDeckUsagePanel
+            userId={userId}
+            environments={environments}
+            currentEnvironmentId={env?.id}
             userCreatedAt={user?.created_at != null ? String(user.created_at) : undefined}
           />
         </section>

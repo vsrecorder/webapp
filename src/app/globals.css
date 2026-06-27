@@ -17,6 +17,26 @@
   background-image: radial-gradient(#27272a 1.2px, transparent 1.2px);
 }
 
+/* ヘッダーの環境テキストスクロールアニメーション */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  animation: marquee 12s linear infinite;
+}
+
+/* デッキ候補カードのデッキ名マーキー */
+.animate-marquee-card {
+  animation: marquee 4s linear infinite;
+}
+
+/* 記録一覧カードのイベント名マーキー */
+.animate-marquee-card-slow {
+  animation: marquee 9s linear infinite;
+}
+
 /*
 :root {
   --background: #ffffff;

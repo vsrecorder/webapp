@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 
 import { Spinner } from "@heroui/spinner";
-import { Button } from "@heroui/react";
+import { Button, Skeleton } from "@heroui/react";
 
 import { LuCirclePlus, LuTrophy, LuCalendar } from "react-icons/lu";
 
@@ -14,6 +14,7 @@ import {
   CityleagueResultGetResponseType,
   CityleagueResultType,
 } from "@app/types/cityleague_result";
+import { CityleagueScheduleType } from "@app/types/cityleague_schedule";
 
 async function fetchCityleagueResultsByTerm(
   league_type: number,
@@ -44,12 +45,41 @@ async function fetchCityleagueResultsByTerm(
   }
 }
 
+async function fetchScheduleByDate(date: string): Promise<CityleagueScheduleType | null> {
+  const res = await fetch(`/api/cityleague_schedules?date=${date}`, {
+    cache: "no-store",
+    method: "GET",
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok) return null;
+  return res.json();
+}
+
+async function fetchAllSchedules(): Promise<CityleagueScheduleType[]> {
+  const res = await fetch("/api/cityleague_schedules", {
+    cache: "no-store",
+    method: "GET",
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok) return [];
+  return res.json();
+}
+
+// バックエンドは JST 0:00 を UTC 変換して返すため、+9h して JST 日付として扱う
+function toJSTDate(date: Date | string): Date {
+  return new Date(new Date(date).getTime() + 9 * 60 * 60 * 1000);
+}
+
+function toJSTDateString(date: Date | string): string {
+  return toJSTDate(date).toISOString().split("T")[0];
+}
+
 type Props = {
   league_type: number;
 };
 
 export default function CityleagueResults({ league_type }: Props) {
-  const now = new Date();
+  const now = new Date(Date.now() + 9 * 60 * 60 * 1000);
 
   const [items, setItems] = useState<CityleagueResultType[]>([]);
   const [nextFromDate, setNextFromDate] = useState<Date>(now);
@@ -58,8 +88,45 @@ export default function CityleagueResults({ league_type }: Props) {
   const [hasMore, setHasMore] = useState(true);
   const [isInitialLoaded, setIsInitialLoaded] = useState(false);
 
+  // スケジュール情報
+  const [schedule, setSchedule] = useState<CityleagueScheduleType | null>(null);
+  const [isScheduleInitialized, setIsScheduleInitialized] = useState(false);
+
+  // スケジュールを確認して開始日・終了日を設定
+  useEffect(() => {
+    async function initSchedule() {
+      const todayStr = now.toISOString().split("T")[0];
+
+      // 今日のスケジュールを確認（開催中かどうか）
+      let foundSchedule = await fetchScheduleByDate(todayStr);
+
+      if (!foundSchedule) {
+        // 開催中でない場合、全スケジュールから直近のものを取得
+        const allSchedules = await fetchAllSchedules();
+
+        const pastSchedules = allSchedules
+          .filter((s) => toJSTDateString(s.to_date) < todayStr)
+          .sort((a, b) => toJSTDate(b.to_date).getTime() - toJSTDate(a.to_date).getTime());
+
+        foundSchedule = pastSchedules[0] ?? null;
+      }
+
+      if (foundSchedule) {
+        setSchedule(foundSchedule);
+        const toDate = toJSTDate(foundSchedule.to_date);
+        setNextFromDate(toDate);
+        setNextToDate(toDate);
+      }
+
+      setIsScheduleInitialized(true);
+    }
+
+    initSchedule();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const loadMore = useCallback(async () => {
-    if (isLoading || !hasMore) return;
+    if (isLoading || !hasMore || !isScheduleInitialized) return;
 
     setIsLoading(true);
 
@@ -70,6 +137,15 @@ export default function CityleagueResults({ league_type }: Props) {
 
         fromDate.setDate(fromDate.getDate() - i);
         toDate.setDate(toDate.getDate() - i);
+
+        // スケジュールの from_date より前には遡らない
+        if (schedule) {
+          const fromDateStr = fromDate.toISOString().split("T")[0];
+          if (fromDateStr < toJSTDateString(schedule.from_date)) {
+            setHasMore(false);
+            return;
+          }
+        }
 
         const newItems: CityleagueResultGetResponseType =
           await fetchCityleagueResultsByTerm(
@@ -102,15 +178,60 @@ export default function CityleagueResults({ league_type }: Props) {
         setIsInitialLoaded(true);
       }
     }
-  }, [league_type, nextFromDate, nextToDate, isLoading, hasMore, isInitialLoaded]);
+  }, [
+    league_type,
+    nextFromDate,
+    nextToDate,
+    isLoading,
+    hasMore,
+    isInitialLoaded,
+    isScheduleInitialized,
+    schedule,
+  ]);
 
   useEffect(() => {
-    if (isInitialLoaded) return;
+    if (!isScheduleInitialized || isInitialLoaded) return;
     loadMore();
-  }, [isInitialLoaded, loadMore]);
+  }, [isScheduleInitialized, isInitialLoaded, loadMore]);
+
+  const formatDate = (date: Date | string) => {
+    const d = toJSTDate(date);
+    return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
+  };
+
+  const isOngoing = schedule
+    ? (() => {
+        const todayStr = now.toISOString().split("T")[0];
+        return toJSTDateString(schedule.from_date) <= todayStr && todayStr <= toJSTDateString(schedule.to_date);
+      })()
+    : false;
 
   return (
     <div className="flex flex-col items-center space-y-3 pb-3">
+      {/* スケジュール情報ヘッダー */}
+      {!isScheduleInitialized ? (
+        <div className="w-full rounded-2xl bg-default-100 px-4 py-4 flex flex-col items-center gap-3">
+          <Skeleton className="h-3 w-16 rounded-full" />
+          <Skeleton className="h-4 w-52 rounded-lg" />
+          <Skeleton className="h-3 w-36 rounded-lg" />
+        </div>
+      ) : schedule ? (
+        <div className="w-full rounded-2xl bg-violet-500/15 border border-violet-500/30 px-4 py-4 flex flex-col items-center gap-1.5">
+          <div className="flex items-center gap-1.5">
+            {isOngoing && (
+              <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse shrink-0" />
+            )}
+            <span className="text-[10px] font-bold text-primary uppercase tracking-widest">
+              {isOngoing ? "開催中" : "直近の結果"}
+            </span>
+          </div>
+          <p className="text-sm font-bold text-default-800">{schedule.title}</p>
+          <p className="text-xs text-default-400">
+            {formatDate(schedule.from_date)} 〜 {formatDate(schedule.to_date)}
+          </p>
+        </div>
+      ) : null}
+
       {/* 空状態 */}
       {isInitialLoaded && !isLoading && !hasMore && items.length === 0 && (
         <div className="flex flex-col items-center gap-5 py-14 px-6 text-center">
@@ -126,9 +247,7 @@ export default function CityleagueResults({ league_type }: Props) {
               シティリーグは年に数回、特定の期間に集中して開催されます。
               現在は開催期間外か、まだ結果が登録されていない可能性があります。
             </p>
-            <p className="text-xs text-default-300 mt-1">
-              次のシーズン開幕をお楽しみに
-            </p>
+            <p className="text-xs text-default-300 mt-1">次のシーズン開幕をお楽しみに</p>
           </div>
         </div>
       )}

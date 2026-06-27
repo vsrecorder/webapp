@@ -9,6 +9,7 @@ import { useDisclosure } from "@heroui/react";
 
 import { LuHouse, LuLayers } from "react-icons/lu";
 
+import ScrollingText from "@app/components/molecules/ScrollingText";
 import DisplayRecordModal from "@app/components/organisms/Record/Modal/DisplayRecordModal";
 import { OfficialEventRecordSkeleton } from "@app/components/organisms/Record/Skeleton/OfficialEventRecordSkeleton";
 
@@ -323,9 +324,11 @@ export default function OfficialEventRecord({
                 <span className="text-xs text-default-500">{date}</span>
 
                 {/* タイトル */}
-                <p className="font-bold text-sm leading-snug truncate min-w-0 mt-0.5">
-                  {officialEvent.title}
-                </p>
+                <ScrollingText
+                  text={officialEvent.title}
+                  animationClass="animate-marquee-card-slow"
+                  className="font-bold text-sm leading-snug mt-0.5"
+                />
 
                 {/* イベント種別バッジ + 環境バッジ */}
                 <div className="flex items-center gap-2 mt-1.5 flex-wrap">

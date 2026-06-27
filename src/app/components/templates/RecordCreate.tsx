@@ -45,6 +45,8 @@ import { addToast, closeToast } from "@heroui/react";
 
 import { useRouter } from "next/navigation";
 
+import ScrollingText from "@app/components/molecules/ScrollingText";
+
 import { OfficialEventResponseType, OfficialEventType } from "@app/types/official_event";
 import { DeckGetAllType, DeckData } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
@@ -754,10 +756,10 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
 
                             <div className="grid gap-0.5 min-w-0">
                               <div className="flex items-center gap-2 min-w-0">
-                                <span>
+                                <span className="shrink-0">
                                   <LuBookmark color="gray" />
                                 </span>
-                                <span className="truncate">{opt.title}</span>
+                                <ScrollingText text={opt.title} className="flex-1 min-w-0 text-sm" />
                               </div>
 
                               <div className="flex items-center gap-2 min-w-0">
@@ -768,17 +770,17 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                               </div>
 
                               <div className="flex items-center gap-2 min-w-0">
-                                <span>
+                                <span className="shrink-0">
                                   <LuHouse color="gray" />
                                 </span>
-                                <span className="truncate">{opt.shop_name}</span>
+                                <ScrollingText text={opt.shop_name} className="flex-1 min-w-0 text-sm" />
                               </div>
 
                               <div className="flex items-center gap-2 min-w-0">
-                                <span>
+                                <span className="shrink-0">
                                   <LuMapPin color="gray" />
                                 </span>
-                                <span className="truncate">{opt.address}</span>
+                                <ScrollingText text={opt.address} className="flex-1 min-w-0 text-sm" />
                               </div>
                             </div>
                           </div>
@@ -787,11 +789,10 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                     }
 
                     return (
-                      <div className="text-sm truncate">
-                        <span>
-                          {opt.title} - {opt.shop_name}
-                        </span>
-                      </div>
+                      <ScrollingText
+                        text={`${opt.title} - ${opt.shop_name}`}
+                        className="text-sm"
+                      />
                     );
                   }}
                 />
@@ -800,8 +801,8 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
               <div className="pt-1">
                 <Card radius="none" shadow="sm">
                   <CardBody>
-                    <div className="pl-1 pr-1 flex items-center gap-5 w-full truncate">
-                      <div className="flex items-center justify-center gap-5 truncate">
+                    <div className="pl-1 pr-1 flex items-center gap-5 w-full min-w-0">
+                      <div className="flex items-center justify-center gap-5 min-w-0">
                         <div className="z-0 shrink-0">
                           {selectedOfficialEventOption ? (
                             <Image
@@ -820,20 +821,23 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                           )}
                         </div>
 
-                        <div className="flex flex-col gap-2 truncate">
-                          <div className="flex items-center gap-2">
-                            <span>
+                        <div className="flex flex-col gap-2 min-w-0 flex-1">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="shrink-0">
                               <LuBookmark color="gray" />
                             </span>
-                            <span className="text-xs text-default-600 truncate">
-                              {selectedOfficialEventOption
-                                ? selectedOfficialEventOption.title
-                                : "イベント名"}
-                            </span>
+                            <ScrollingText
+                              text={
+                                selectedOfficialEventOption
+                                  ? selectedOfficialEventOption.title
+                                  : "イベント名"
+                              }
+                              className="flex-1 min-w-0 text-xs text-default-600"
+                            />
                           </div>
 
-                          <div className="flex items-center gap-2">
-                            <span>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="shrink-0">
                               <LuCalendar color="gray" />
                             </span>
                             <span className="text-xs text-default-600 truncate">
@@ -843,26 +847,32 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                             </span>
                           </div>
 
-                          <div className="flex items-center gap-2">
-                            <span>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="shrink-0">
                               <LuHouse color="gray" />
                             </span>
-                            <span className="text-xs text-default-600 truncate">
-                              {selectedOfficialEventOption
-                                ? selectedOfficialEventOption.shop_name
-                                : "イベント主催者"}
-                            </span>
+                            <ScrollingText
+                              text={
+                                selectedOfficialEventOption
+                                  ? selectedOfficialEventOption.shop_name
+                                  : "イベント主催者"
+                              }
+                              className="flex-1 min-w-0 text-xs text-default-600"
+                            />
                           </div>
 
-                          <div className="flex items-center gap-2">
-                            <span>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="shrink-0">
                               <LuMapPin color="gray" />
                             </span>
-                            <span className="text-xs text-default-600 truncate">
-                              {selectedOfficialEventOption
-                                ? selectedOfficialEventOption.address
-                                : "イベント会場"}
-                            </span>
+                            <ScrollingText
+                              text={
+                                selectedOfficialEventOption
+                                  ? selectedOfficialEventOption.address
+                                  : "イベント会場"
+                              }
+                              className="flex-1 min-w-0 text-xs text-default-600"
+                            />
                           </div>
                         </div>
                       </div>

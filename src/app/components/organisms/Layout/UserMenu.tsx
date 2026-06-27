@@ -11,6 +11,7 @@ import { handleSignOut } from "@app/handlers/handleSignOut";
 
 import { Button } from "@heroui/react";
 import { UserType } from "@app/types/user";
+import { useUserAvatar } from "@app/contexts/UserAvatarContext";
 
 type Props = {
   user: UserType;
@@ -25,13 +26,14 @@ function isPWA() {
 
 export default function UserMenu({ user }: Props) {
   const router = useRouter();
+  const { avatarUrl } = useUserAvatar();
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   return (
     <>
       <Dropdown backdrop="opaque">
         <DropdownTrigger>
-          <Avatar size="md" src={user.image_url} />
+          <Avatar size="md" src={avatarUrl ?? user.image_url} />
         </DropdownTrigger>
         <DropdownMenu>
           <DropdownItem

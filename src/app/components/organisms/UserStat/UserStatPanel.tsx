@@ -119,7 +119,7 @@ export default function UserStatPanel({
   currentEnvironmentId,
   userCreatedAt,
 }: Props) {
-  const [filterMode, setFilterMode] = useState<FilterMode>("month");
+  const [filterMode, setFilterMode] = useState<FilterMode>("environment");
   const [yearMonth, setYearMonth] = useState<string>(getCurrentYearMonth);
   const [environmentId, setEnvironmentId] = useState<string>(
     currentEnvironmentId ?? environments[0]?.id ?? "",

@@ -6,27 +6,39 @@ import SignUp from "./SignUp";
 import SignIn from "./SignIn";
 import UserMenu from "./UserMenu";
 import ThemeSwitcher from "@app/components/molecules/Theme/ThemeSwitcher";
+import ScrollingText from "@app/components/molecules/ScrollingText";
 import { UserType } from "@app/types/user";
+import { EnvironmentType } from "@app/types/environment";
 
 import Link from "next/link";
 
-async function fetchUser(id: string) {
+async function fetchUser(id: string): Promise<UserType> {
   const domain = process.env.VSRECORDER_DOMAIN;
 
+  const res = await fetch(`https://${domain}/api/v1beta/users/${id}`, {
+    cache: "no-store",
+    method: "GET",
+    headers: { Accept: "application/json" },
+  });
+
+  const ret: UserType = await res.json();
+  return ret;
+}
+
+async function fetchCurrentEnvironment(): Promise<EnvironmentType | null> {
+  const domain = process.env.VSRECORDER_DOMAIN;
+  const today = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().split("T")[0];
+
   try {
-    const res = await fetch(`https://${domain}/api/v1beta/users/${id}`, {
+    const res = await fetch(`https://${domain}/api/v1beta/environments?date=${today}`, {
       cache: "no-store",
       method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
+      headers: { Accept: "application/json" },
     });
-
-    const ret: UserType = await res.json();
-
-    return ret;
-  } catch (error) {
-    throw error;
+    if (res.status === 200) return res.json();
+    return null;
+  } catch {
+    return null;
   }
 }
 
@@ -38,6 +50,18 @@ function HeaderShell({ children }: { children: React.ReactNode }) {
       </div>
     </header>
   );
+}
+
+// 残り日数に応じてドットの色を返す（14日以上: 緑, 14日以内: 黄=warning, 7日以内: 赤=critical）
+function getEnvDotColor(toDate: Date): string {
+  const now = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  const daysLeft = Math.ceil(
+    (new Date(toDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+  );
+
+  if (daysLeft <= 7) return "bg-red-400";
+  if (daysLeft <= 14) return "bg-yellow-400";
+  return "bg-green-400";
 }
 
 function Logo() {
@@ -52,7 +76,6 @@ function Logo() {
           className="object-contain rounded-lg"
         />
       </div>
-      <span className="font-semibold text-white tracking-wide">バトレコ</span>
     </Link>
   );
 }
@@ -61,31 +84,35 @@ export default async function Header() {
   const session = await auth();
 
   if (session) {
-    // TODO: エラー処理
-    try {
-      const user: UserType = await fetchUser(session.user.id);
+    const [user, env] = await Promise.allSettled([
+      fetchUser(session.user.id),
+      fetchCurrentEnvironment(),
+    ]);
 
-      return (
-        <HeaderShell>
-          <Logo />
-          <div className="flex items-center gap-3">
-            <ThemeSwitcher />
-            <UserMenu user={user} />
-          </div>
-        </HeaderShell>
-      );
-    } catch (error) {
-      console.log(error);
+    const resolvedUser = user.status === "fulfilled" ? user.value : null;
+    const resolvedEnv = env.status === "fulfilled" ? env.value : null;
 
-      return (
-        <HeaderShell>
-          <Logo />
-          <div className="flex items-center gap-1">
-            <ThemeSwitcher />
+    return (
+      <HeaderShell>
+        <Logo />
+        {resolvedEnv && (
+          <div className="flex items-center gap-1.5 flex-1 min-w-0 mx-4">
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${getEnvDotColor(resolvedEnv.to_date)} animate-pulse shrink-0`}
+            />
+            <ScrollingText
+              text={`現在の環境：『${resolvedEnv.title}』`}
+              className="text-white/80 text-xs font-medium min-w-0"
+            />
           </div>
-        </HeaderShell>
-      );
-    }
+        )}
+
+        <div className="flex items-center gap-3 shrink-0">
+          <ThemeSwitcher />
+          {resolvedUser && <UserMenu user={resolvedUser} />}
+        </div>
+      </HeaderShell>
+    );
   } else {
     return (
       <HeaderShell>

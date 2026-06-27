@@ -4,3 +4,12 @@ export type UserType = {
   name: string;
   image_url: string;
 };
+
+export type UserGetByIdResponseType = UserType;
+
+export type UserUpdateRequestType = {
+  name: string;
+  image_url: string;
+};
+
+export type UserUpdateResponseType = UserType;

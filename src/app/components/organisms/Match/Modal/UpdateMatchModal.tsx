@@ -1,10 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
-import { useState } from "react";
-import { useRef } from "react";
-import { useEffect } from "react";
+import { useState, useRef, useEffect, useMemo, useLayoutEffect } from "react";
 import { SetStateAction, Dispatch } from "react";
+
+import useSWR from "swr";
 
 import {
   Modal,
@@ -27,6 +26,7 @@ import { Textarea } from "@heroui/react";
 
 import { Card, CardHeader, CardBody } from "@heroui/react";
 import { Image } from "@heroui/react";
+import { Skeleton } from "@heroui/react";
 
 import { LuTrash2 } from "react-icons/lu";
 
@@ -37,6 +37,63 @@ import { MatchGetResponseType } from "@app/types/match";
 import { MatchUpdateRequestType, MatchUpdateResponseType } from "@app/types/match";
 import { GameRequestType } from "@app/types/game";
 import { PokemonSpriteType, MatchPokemonSpriteType } from "@app/types/pokemon_sprite";
+
+const SPRITE_BASE_URL = "https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites";
+
+// ひらがなをカタカナに統一して比較できるようにする
+const toKatakana = (str: string) =>
+  str.replace(/[ぁ-ゖ]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) + 0x60));
+
+function CardDeckName({ text }: { text: string }) {
+  const spanRef = useRef<HTMLSpanElement>(null);
+  const [shouldMarquee, setShouldMarquee] = useState(false);
+
+  // テキスト変更時はマーキー状態をリセット
+  useLayoutEffect(() => {
+    setShouldMarquee(false);
+  }, [text]);
+
+  // 非マーキー時にオーバーフローを検出（レンダー後に毎回確認）
+  useLayoutEffect(() => {
+    if (shouldMarquee) return;
+    const el = spanRef.current;
+    if (el) {
+      setShouldMarquee(el.scrollWidth > el.clientWidth);
+    }
+  });
+
+  return (
+    <div className="w-full overflow-hidden flex items-center">
+      {shouldMarquee ? (
+        <span className="text-[10px] leading-snug whitespace-nowrap inline-block animate-marquee-card">
+          {text}&nbsp;&nbsp;&nbsp;{text}&nbsp;&nbsp;&nbsp;
+        </span>
+      ) : (
+        <span
+          ref={spanRef}
+          className="text-[10px] leading-snug whitespace-nowrap flex-1 min-w-0 text-center"
+        >
+          {text}
+        </span>
+      )}
+    </div>
+  );
+}
+
+type DeckHistory = {
+  deckInfo: string;
+  sprite1: PokemonSpriteType | null;
+  sprite2: PokemonSpriteType | null;
+};
+
+async function fetchMatches(url: string): Promise<MatchGetResponseType[]> {
+  const res = await fetch(url, {
+    method: "GET",
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok) return [];
+  return res.json();
+}
 
 type Props = {
   match: MatchGetResponseType | null;
@@ -75,6 +132,149 @@ export default function UpdateMatchModal({
 
   const [pokemonSprite1, setPokemonSprite1] = useState<PokemonSpriteType | null>(null);
   const [pokemonSprite2, setPokemonSprite2] = useState<PokemonSpriteType | null>(null);
+
+  // モーダルが開いているときだけ直近マッチを取得（limit=50 で十分な候補数を確保）
+  const { data: recentMatches } = useSWR<MatchGetResponseType[]>(
+    isOpen && match ? `/api/users/${match.user_id}/matches?limit=50` : null,
+    fetchMatches,
+  );
+
+  // 出現回数の多い順に並んだデッキ履歴（上位10件、不戦勝/不戦敗を除外）
+  const deckHistories = useMemo<DeckHistory[]>(() => {
+    if (!recentMatches) return [];
+    const countMap = new Map<string, { history: DeckHistory; count: number }>();
+    for (const m of recentMatches) {
+      if (m.default_victory_flg || m.default_defeat_flg) continue;
+      if (!m.opponents_deck_info) continue;
+      const s1Id = m.pokemon_sprites[0]?.id;
+      const s2Id = m.pokemon_sprites[1]?.id;
+      const key = `${m.opponents_deck_info}|${s1Id ?? ""}|${s2Id ?? ""}`;
+      const entry = countMap.get(key);
+      if (entry) {
+        entry.count++;
+      } else {
+        countMap.set(key, {
+          count: 1,
+          history: {
+            deckInfo: m.opponents_deck_info,
+            sprite1: s1Id
+              ? {
+                  id: s1Id,
+                  name: "",
+                  image_url: `${SPRITE_BASE_URL}/${s1Id.replace(/^0+(?!$)/, "")}.png`,
+                }
+              : null,
+            sprite2: s2Id
+              ? {
+                  id: s2Id,
+                  name: "",
+                  image_url: `${SPRITE_BASE_URL}/${s2Id.replace(/^0+(?!$)/, "")}.png`,
+                }
+              : null,
+          },
+        });
+      }
+    }
+    return Array.from(countMap.values())
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10)
+      .map((item) => item.history);
+  }, [recentMatches]);
+
+  // ユーザー履歴がない場合のみ全体の直近20件を取得してダミー候補を作成
+  const { data: globalMatches } = useSWR<MatchGetResponseType[]>(
+    isOpen && recentMatches !== undefined && deckHistories.length === 0
+      ? `/api/matches?limit=20`
+      : null,
+    fetchMatches,
+  );
+
+  const dummyHistories = useMemo<DeckHistory[]>(() => {
+    if (!globalMatches) return [];
+    const seen = new Set<string>();
+    const result: DeckHistory[] = [];
+    for (const m of globalMatches) {
+      if (m.default_victory_flg || m.default_defeat_flg) continue;
+      if (!m.opponents_deck_info) continue;
+      const s1Id = m.pokemon_sprites[0]?.id;
+      const s2Id = m.pokemon_sprites[1]?.id;
+      const key = `${m.opponents_deck_info}|${s1Id ?? ""}|${s2Id ?? ""}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      result.push({
+        deckInfo: m.opponents_deck_info,
+        sprite1: s1Id
+          ? {
+              id: s1Id,
+              name: "",
+              image_url: `${SPRITE_BASE_URL}/${s1Id.replace(/^0+(?!$)/, "")}.png`,
+            }
+          : null,
+        sprite2: s2Id
+          ? {
+              id: s2Id,
+              name: "",
+              image_url: `${SPRITE_BASE_URL}/${s2Id.replace(/^0+(?!$)/, "")}.png`,
+            }
+          : null,
+      });
+    }
+    return result;
+  }, [globalMatches]);
+
+  // 元の match データとの差分があるかを判定
+  const hasChanges = useMemo(() => {
+    if (!match) return false;
+
+    if (qualifyingRoundFlg !== (match.qualifying_round_flg ?? false)) return true;
+    if (finalTournamentFlg !== (match.final_tournament_flg ?? false)) return true;
+    if (isDefaultVictory !== (match.default_victory_flg ?? false)) return true;
+    if (isDefaultDefeat !== (match.default_defeat_flg ?? false)) return true;
+    if (memo !== (match.memo ?? "")) return true;
+
+    if (!isDefaultVictory && !isDefaultDefeat) {
+      if (opponentsDeckInfo !== (match.opponents_deck_info ?? "")) return true;
+      if (isGoFirst !== (match.games?.[0]?.go_first ? "1" : "0")) return true;
+      if (isVictory !== (match.victory_flg ? "1" : "0")) return true;
+      if (yourPrizeCards !== (match.games?.[0]?.your_prize_cards ?? 0)) return true;
+      if (opponentsPrizeCards !== (match.games?.[0]?.opponents_prize_cards ?? 0)) return true;
+      if ((pokemonSprite1?.id ?? null) !== (match.pokemon_sprites[0]?.id ?? null)) return true;
+      if ((pokemonSprite2?.id ?? null) !== (match.pokemon_sprites[1]?.id ?? null)) return true;
+    }
+
+    return false;
+  }, [
+    match,
+    qualifyingRoundFlg,
+    finalTournamentFlg,
+    isDefaultVictory,
+    isDefaultDefeat,
+    memo,
+    opponentsDeckInfo,
+    isGoFirst,
+    isVictory,
+    yourPrizeCards,
+    opponentsPrizeCards,
+    pokemonSprite1,
+    pokemonSprite2,
+  ]);
+
+  // 表示に使う候補（ユーザー履歴優先、なければダミー）
+  const activeCandidates = deckHistories.length > 0 ? deckHistories : dummyHistories;
+
+  // ユーザー履歴ロード中、またはダミー候補フェッチ中
+  const isCandidatesLoading =
+    recentMatches === undefined ||
+    (deckHistories.length === 0 && globalMatches === undefined);
+
+  // 入力テキストにマッチする候補（空入力は全件）
+  const filteredHistories = useMemo(() => {
+    if (!opponentsDeckInfo.trim()) return activeCandidates;
+    const query = toKatakana(opponentsDeckInfo.toLowerCase());
+    return activeCandidates.filter((h) =>
+      toKatakana(h.deckInfo.toLowerCase()).includes(query),
+    );
+  }, [opponentsDeckInfo, activeCandidates]);
 
   const {
     isOpen: isOpenForPokemonSprite1Modal,
@@ -136,7 +336,7 @@ export default function UpdateMatchModal({
         ? {
             id: match.pokemon_sprites[0].id,
             name: "",
-            image_url: `https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${match.pokemon_sprites[0].id.replace(/^0+(?!$)/, "")}.png`,
+            image_url: `${SPRITE_BASE_URL}/${match.pokemon_sprites[0].id.replace(/^0+(?!$)/, "")}.png`,
           }
         : null,
     );
@@ -146,7 +346,7 @@ export default function UpdateMatchModal({
         ? {
             id: match.pokemon_sprites[1].id,
             name: "",
-            image_url: `https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${match.pokemon_sprites[1].id.replace(/^0+(?!$)/, "")}.png`,
+            image_url: `${SPRITE_BASE_URL}/${match.pokemon_sprites[1].id.replace(/^0+(?!$)/, "")}.png`,
           }
         : null,
     );
@@ -376,7 +576,7 @@ export default function UpdateMatchModal({
           setPokemonSprite2(null);
         }}
         hideCloseButton
-        className="h-[calc(100dvh-168px)] max-h-[calc(100dvh-168px)] mt-26 my-0 rounded-b-none"
+        className="h-[calc(100dvh-108px)] max-h-[calc(100dvh-108px)] my-0 rounded-b-none"
         classNames={{
           base: "sm:max-w-full",
           closeButton: "text-2xl",
@@ -415,7 +615,7 @@ export default function UpdateMatchModal({
               <ModalBody className="flex flex-col gap-0 px-1 py-1 pb-0 overflow-y-auto">
                 <Tabs fullWidth size="sm" className="left-0 right-0 pl-1 pr-1 font-bold">
                   <Tab key="bo1" title="BO1">
-                    <div className="flex flex-col gap-3 pt-0">
+                    <div className="flex flex-col gap-2 pt-0">
                       <Card shadow="md" className="w-full">
                         <CardHeader className="pb-0 text-tiny">
                           予選/トーナメント
@@ -461,7 +661,8 @@ export default function UpdateMatchModal({
                             <span className="text-sm text-red-500">*</span>
                           </label>
                         </CardHeader>
-                        <CardBody className="flex items-center">
+                        <CardBody className="flex flex-col gap-3">
+                          {/* スプライト + デッキ名入力 */}
                           <div className="flex items-center gap-1.5 w-full">
                             <div className="flex items-center gap-0 shrink-0">
                               <div className="w-11 h-11 p-0 shrink-0">
@@ -485,7 +686,7 @@ export default function UpdateMatchModal({
                                         onOpenForPokemonSprite1Modal();
                                     }}
                                     alt="unknown"
-                                    src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
+                                    src={`${SPRITE_BASE_URL}/unknown.png`}
                                     radius="none"
                                     loading="eager"
                                     className={`w-full h-full object-contain scale-150 origin-bottom ${isDefaultVictory || isDefaultDefeat ? "contrast-0" : ""}`}
@@ -514,7 +715,7 @@ export default function UpdateMatchModal({
                                         onOpenForPokemonSprite2Modal();
                                     }}
                                     alt="unknown"
-                                    src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
+                                    src={`${SPRITE_BASE_URL}/unknown.png`}
                                     radius="none"
                                     loading="eager"
                                     className={`w-full h-full object-contain scale-150 origin-bottom ${isDefaultVictory || isDefaultDefeat ? "contrast-0" : ""}`}
@@ -535,6 +736,109 @@ export default function UpdateMatchModal({
                               onChange={(e) => setOpponentsDeckInfo(e.target.value)}
                             />
                           </div>
+
+                          {/* 履歴候補 - 横スクロールカード（入力欄の下に自動表示） */}
+                          {isCandidatesLoading ? (
+                            <div className="flex gap-2 overflow-x-auto py-2">
+                              {[...Array(4)].map((_, i) => (
+                                <div
+                                  key={i}
+                                  className="shrink-0 w-24 rounded-xl border-2 border-default-200 bg-default-50 py-2 px-2 flex flex-col items-center gap-1"
+                                >
+                                  <Skeleton className="w-full h-9 rounded-lg" />
+                                  <Skeleton className="w-full h-3 rounded-md" />
+                                </div>
+                              ))}
+                            </div>
+                          ) : activeCandidates.length > 0 ? (
+                            <div className="flex gap-2 overflow-x-auto py-2">
+                              {filteredHistories.length > 0 ? (
+                                filteredHistories.map((history, index) => {
+                                  const isSelected =
+                                    opponentsDeckInfo === history.deckInfo &&
+                                    pokemonSprite1?.id ===
+                                      (history.sprite1?.id ?? undefined) &&
+                                    pokemonSprite2?.id ===
+                                      (history.sprite2?.id ?? undefined);
+                                  return (
+                                    <button
+                                      key={index}
+                                      disabled={isDisabled}
+                                      className={`shrink-0 flex flex-col items-center gap-1 py-2 px-2 rounded-xl border-2 w-24 transition-colors ${
+                                        isDisabled
+                                          ? "opacity-40 cursor-not-allowed border-default-200 bg-default-50"
+                                          : isSelected
+                                            ? "border-primary bg-primary/10"
+                                            : "border-default-200 bg-default-50 active:bg-default-100"
+                                      }`}
+                                      onClick={() => {
+                                        if (isDisabled) return;
+                                        if (isSelected) {
+                                          setOpponentsDeckInfo("");
+                                          setPokemonSprite1(null);
+                                          setPokemonSprite2(null);
+                                        } else {
+                                          setOpponentsDeckInfo(history.deckInfo);
+                                          setPokemonSprite1(history.sprite1);
+                                          setPokemonSprite2(history.sprite2);
+                                        }
+                                      }}
+                                    >
+                                      <div className="flex items-end justify-center w-full h-9">
+                                        <div className="w-9 h-9 shrink-0">
+                                          <Image
+                                            alt={history.sprite1?.id ?? "unknown"}
+                                            src={
+                                              history.sprite1?.image_url ??
+                                              `${SPRITE_BASE_URL}/unknown.png`
+                                            }
+                                            radius="none"
+                                            className="w-full h-full object-contain scale-150 origin-bottom"
+                                          />
+                                        </div>
+                                        <div className="w-9 h-9 shrink-0">
+                                          <Image
+                                            alt={history.sprite2?.id ?? "unknown"}
+                                            src={
+                                              history.sprite2?.image_url ??
+                                              `${SPRITE_BASE_URL}/unknown.png`
+                                            }
+                                            radius="none"
+                                            className="w-full h-full object-contain scale-150 origin-bottom"
+                                          />
+                                        </div>
+                                      </div>
+                                      <CardDeckName text={history.deckInfo} />
+                                    </button>
+                                  );
+                                })
+                              ) : (
+                                <div className="shrink-0 flex flex-col items-center gap-1 py-2 px-2 rounded-xl border-2 w-24 border-default-200 bg-default-50 opacity-40">
+                                  <div className="flex items-end justify-center w-full h-9">
+                                    <div className="w-9 h-9 shrink-0">
+                                      <Image
+                                        alt="unknown"
+                                        src={`${SPRITE_BASE_URL}/unknown.png`}
+                                        radius="none"
+                                        className="w-full h-full object-contain scale-150 origin-bottom"
+                                      />
+                                    </div>
+                                    <div className="w-9 h-9 shrink-0">
+                                      <Image
+                                        alt="unknown"
+                                        src={`${SPRITE_BASE_URL}/unknown.png`}
+                                        radius="none"
+                                        className="w-full h-full object-contain scale-150 origin-bottom"
+                                      />
+                                    </div>
+                                  </div>
+                                  <span className="text-[10px] leading-snug w-full text-center whitespace-nowrap">
+                                    候補なし
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          ) : null}
                         </CardBody>
                       </Card>
 
@@ -638,7 +942,7 @@ export default function UpdateMatchModal({
                   <Tab key="bo3" title="BO3" isDisabled></Tab>
                 </Tabs>
               </ModalBody>
-              <ModalFooter className="pt-0 flex items-center">
+              <ModalFooter className="pt-2 pb-2 flex items-center">
                 <div className="w-full">
                   <div className="flex items-center gap-6">
                     <Switch
@@ -670,7 +974,7 @@ export default function UpdateMatchModal({
                 <Button
                   color="success"
                   variant="solid"
-                  isDisabled={!isValidedFlg || (!isDisabled && !couldUpdateFlg)}
+                  isDisabled={!isValidedFlg || (!isDisabled && !couldUpdateFlg) || !hasChanges}
                   onPress={() => {
                     updateBO1Match(onClose);
                   }}

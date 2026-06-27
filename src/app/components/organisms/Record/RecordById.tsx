@@ -44,6 +44,49 @@ export default function RecordById({ id }: Props) {
 
   const { data: session, status } = useSession();
 
+  // モーダルから遷移してきた場合のフラグ管理。
+  // マウント時に reopenModalRecordId を詳細ページ専用キーへ移動しておき、
+  // ナビバー等のリンク遷移（router.push → pushState）が発生した場合はキーを削除する。
+  // スワイプバック・ブラウザバック（popstate）では pushState が呼ばれないため
+  // キーはそのまま残り、cleanup 時に reopenModalRecordId として復元することで
+  // バック遷移時のみモーダルを再開する。
+  useEffect(() => {
+    const pendingId = sessionStorage.getItem("reopenModalRecordId");
+    const pendingEventType = sessionStorage.getItem("reopenModalEventType");
+
+    if (pendingId && pendingId === id) {
+      sessionStorage.setItem("detailPagePendingReopenRecordId", pendingId);
+      if (pendingEventType) {
+        sessionStorage.setItem("detailPagePendingReopenEventType", pendingEventType);
+      }
+      sessionStorage.removeItem("reopenModalRecordId");
+      sessionStorage.removeItem("reopenModalEventType");
+    }
+
+    const originalPushState = window.history.pushState;
+    window.history.pushState = function (...args: Parameters<typeof window.history.pushState>) {
+      sessionStorage.removeItem("detailPagePendingReopenRecordId");
+      sessionStorage.removeItem("detailPagePendingReopenEventType");
+      return originalPushState.apply(window.history, args);
+    };
+
+    return () => {
+      window.history.pushState = originalPushState;
+
+      const savedId = sessionStorage.getItem("detailPagePendingReopenRecordId");
+      const savedEventType = sessionStorage.getItem("detailPagePendingReopenEventType");
+      if (savedId) {
+        // pushState が発生しなかった（バック遷移）場合のみここに来る
+        sessionStorage.setItem("reopenModalRecordId", savedId);
+        if (savedEventType) {
+          sessionStorage.setItem("reopenModalEventType", savedEventType);
+        }
+        sessionStorage.removeItem("detailPagePendingReopenRecordId");
+        sessionStorage.removeItem("detailPagePendingReopenEventType");
+      }
+    };
+  }, [id]);
+
   useEffect(() => {
     if (!id) {
       return;

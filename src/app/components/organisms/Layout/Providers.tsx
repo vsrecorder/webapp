@@ -4,6 +4,7 @@ import { SessionProvider } from "next-auth/react";
 import { HeroUIProvider } from "@heroui/react";
 import { ToastProvider } from "@heroui/toast";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
+import { UserAvatarProvider } from "@app/contexts/UserAvatarContext";
 
 export default function Providers({
   children,
@@ -19,8 +20,10 @@ export default function Providers({
           defaultTheme="light"
           enableSystem={false}
         >
-          <ToastProvider placement={"top-center"} />
-          {children}
+          <UserAvatarProvider>
+            <ToastProvider placement={"top-center"} />
+            {children}
+          </UserAvatarProvider>
         </NextThemesProvider>
       </HeroUIProvider>
     </SessionProvider>

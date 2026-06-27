@@ -30,7 +30,8 @@ image:
 
 .PHONY: deploy
 deploy:
-	docker compose pull && docker compose down && docker compose up -d
+	docker compose pull
+	docker compose up -d --no-deps --wait webapp
 
 .PHONY: restart
 restart:

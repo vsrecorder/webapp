@@ -759,7 +759,10 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                                 <span className="shrink-0">
                                   <LuBookmark color="gray" />
                                 </span>
-                                <ScrollingText text={opt.title} className="flex-1 min-w-0 text-sm" />
+                                <ScrollingText
+                                  text={opt.title}
+                                  className="flex-1 min-w-0 text-sm"
+                                />
                               </div>
 
                               <div className="flex items-center gap-2 min-w-0">
@@ -773,14 +776,20 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                                 <span className="shrink-0">
                                   <LuHouse color="gray" />
                                 </span>
-                                <ScrollingText text={opt.shop_name} className="flex-1 min-w-0 text-sm" />
+                                <ScrollingText
+                                  text={opt.shop_name}
+                                  className="flex-1 min-w-0 text-sm"
+                                />
                               </div>
 
                               <div className="flex items-center gap-2 min-w-0">
                                 <span className="shrink-0">
                                   <LuMapPin color="gray" />
                                 </span>
-                                <ScrollingText text={opt.address} className="flex-1 min-w-0 text-sm" />
+                                <ScrollingText
+                                  text={opt.address}
+                                  className="flex-1 min-w-0 text-sm"
+                                />
                               </div>
                             </div>
                           </div>
@@ -946,8 +955,12 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                                   <Image
                                     radius="none"
                                     shadow="none"
-                                    alt={option.latest_deck_code.code}
-                                    src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${option.latest_deck_code.code}.jpg`}
+                                    alt={option.latest_deck_code?.code || "デッキコードなし"}
+                                    src={
+                                      option.latest_deck_code?.code
+                                        ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${option.latest_deck_code.code}.jpg`
+                                        : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
+                                    }
                                     className=""
                                     onLoad={() => setImageLoaded(true)}
                                   />
@@ -973,12 +986,12 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                     radius="sm"
                     shadow="none"
                     alt={
-                      selectedDeckOption
+                      selectedDeckOption?.latest_deck_code?.code
                         ? selectedDeckOption.latest_deck_code.code
                         : "デッキコードなし"
                     }
                     src={
-                      selectedDeckOption
+                      selectedDeckOption?.latest_deck_code?.code
                         ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${selectedDeckOption.latest_deck_code.code}.jpg`
                         : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
                     }
@@ -1126,8 +1139,12 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                                   <Image
                                     radius="none"
                                     shadow="none"
-                                    alt={option.latest_deck_code.code}
-                                    src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${option.latest_deck_code.code}.jpg`}
+                                    alt={option.latest_deck_code?.code || "デッキコードなし"}
+                                    src={
+                                      option.latest_deck_code?.code
+                                        ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${option.latest_deck_code.code}.jpg`
+                                        : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
+                                    }
                                     className=""
                                     onLoad={() => setImageLoaded(true)}
                                   />
@@ -1153,12 +1170,12 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                     radius="sm"
                     shadow="none"
                     alt={
-                      selectedDeckOption
+                      selectedDeckOption?.latest_deck_code?.code
                         ? selectedDeckOption.latest_deck_code.code
                         : "デッキコードなし"
                     }
                     src={
-                      selectedDeckOption
+                      selectedDeckOption?.latest_deck_code?.code
                         ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${selectedDeckOption.latest_deck_code.code}.jpg`
                         : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
                     }

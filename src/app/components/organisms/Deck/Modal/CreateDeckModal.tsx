@@ -29,7 +29,7 @@ export default function CreateDeckModal({
   const [deckname, setDeckName] = useState<string>("");
   const [deckcode, setDeckCode] = useState<string>(deck_code);
   //const [isSelectedPrivateCode, setIsSelectedPrivateCode] = useState<boolean>(false);
-  const [isValidatedDeckCode, setIsValidatedDeckCode] = useState<boolean>(false);
+  const [isValidatedDeckCode, setIsValidatedDeckCode] = useState<boolean>(true);
   const [isInvalid, setIsInvalid] = useState<boolean>(true);
   const [isDisabled, setIsDisabled] = useState<boolean>(false);
 
@@ -40,12 +40,12 @@ export default function CreateDeckModal({
       - 有効なデッキコードかどうか
   */
   useEffect(() => {
-    if (deckname != "" && deckcode != "" && isValidatedDeckCode) {
+    if (deckname != "" && isValidatedDeckCode) {
       setIsInvalid(false);
     } else {
       setIsInvalid(true);
     }
-  }, [deckname, deckcode, isValidatedDeckCode]);
+  }, [deckname, isValidatedDeckCode]);
 
   /*
     デッキコードが有効かどうかチェック
@@ -55,6 +55,8 @@ export default function CreateDeckModal({
       setIsValidatedDeckCode(true);
       return;
     }
+
+    let cancelled = false;
 
     const checkDeckCode = async () => {
       try {
@@ -67,14 +69,22 @@ export default function CreateDeckModal({
         });
 
         const data = await res.json();
-        setIsValidatedDeckCode(data.result === 1);
+        if (!cancelled) {
+          setIsValidatedDeckCode(data.result === 1);
+        }
       } catch (error) {
         console.error(error);
-        setIsValidatedDeckCode(false);
+        if (!cancelled) {
+          setIsValidatedDeckCode(false);
+        }
       }
     };
 
     checkDeckCode();
+
+    return () => {
+      cancelled = true;
+    };
   }, [deckcode]);
 
   const createDeck = async (onClose: () => void) => {
@@ -186,7 +196,6 @@ export default function CreateDeckModal({
                 onChange={(e) => setDeckName(e.target.value)}
               />
               <Input
-                isRequired
                 isDisabled={isDisabled}
                 isInvalid={!isValidatedDeckCode}
                 errorMessage="有効なデッキコードを入力してください"

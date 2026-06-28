@@ -159,21 +159,12 @@ export default function Matches({
                                         {match.victory_flg === true ? "⭕" : "❌"}
                                       </div>
 
-                                      <div className="flex items-center font-bold">
-                                        {match.default_victory_flg ||
-                                        match.default_defeat_flg ? (
-                                          <div className="pl-1">-</div>
-                                        ) : (
-                                          <>{match.games[0].go_first ? "先" : "後"}</>
-                                        )}
-                                      </div>
-
                                       <div className="flex items-center gap-1.5">
                                         {match.default_victory_flg ||
                                         match.default_defeat_flg ? (
                                           <>
                                             <>
-                                              <div className="flex items-center gap-0 shrink-0 translate-x-1">
+                                              <div className="flex items-center gap-0 shrink-0">
                                                 <Image
                                                   alt="unknown"
                                                   src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
@@ -188,7 +179,7 @@ export default function Matches({
                                               </div>
                                             </>
 
-                                            <div className="font-bold truncate translate-x-1">
+                                            <div className="font-bold truncate">
                                               {match.default_victory_flg
                                                 ? "不戦勝"
                                                 : "不戦敗"}
@@ -234,8 +225,25 @@ export default function Matches({
                                               </div>
                                             </>
 
-                                            <div className="font-bold truncate">
-                                              {match.opponents_deck_info}
+                                            <div className="flex flex-col items-center justify-center gap-1 min-w-0">
+                                              <div className="">
+                                                <div className="font-bold truncate">
+                                                  {match.opponents_deck_info}
+                                                </div>
+
+                                                <div className="flex gap-1">
+                                                  <div className="text-xs text-default-400">
+                                                    {match.games[0].go_first
+                                                      ? "先攻"
+                                                      : "後攻"}
+                                                  </div>
+                                                  <div className="text-xs text-default-400">
+                                                    {match.games[0].your_prize_cards}
+                                                    {" - "}
+                                                    {match.games[0].opponents_prize_cards}
+                                                  </div>
+                                                </div>
+                                              </div>
                                             </div>
                                           </>
                                         )}

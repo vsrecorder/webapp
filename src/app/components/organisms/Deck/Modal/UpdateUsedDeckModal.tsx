@@ -7,7 +7,7 @@ import Select from "react-select";
 import { useReactSelectTheme } from "@app/components/molecules/Select/useReactSelectTheme";
 
 import { SetStateAction, Dispatch } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { addToast, closeToast } from "@heroui/react";
 import { Image } from "@heroui/react";
@@ -130,6 +130,10 @@ export default function UpdateUsedDeckModal({
 }: Props) {
   // react-select をダークモードに追従させるテーマ
   const reactSelectTheme = useReactSelectTheme();
+
+  // セレクターを閉じたときにフォーカスを引き受けるための要素
+  // フォーカストラップを満たしつつキーボードを閉じるために使用
+  const focusSinkRef = useRef<HTMLDivElement>(null);
 
   const [selectedDeckOption, setSelectedDeckOption] = useState<DeckOption | null>(null);
   const [selectedDeckCodeOption, setSelectedDeckCodeOption] =
@@ -503,10 +507,9 @@ export default function UpdateUsedDeckModal({
       <ModalContent>
         {(onClose) => (
           <>
-            <ModalHeader className="px-3">使用したデッキを編集</ModalHeader>
-            <ModalBody className="px-3 py-1">
+            <ModalHeader className="text-lg px-3">使用したデッキを編集</ModalHeader>
+            <ModalBody className="px-3 py-1 gap-3">
               <>
-                <div className="flex flex-col gap-1.5">
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-medium">デッキ名</label>
                     <div>
@@ -538,9 +541,15 @@ export default function UpdateUsedDeckModal({
                           setIsLoadingDeckCodeOptions(true);
                         }}
                         menuPosition="fixed"
+                        menuPortalTarget={
+                          typeof document !== "undefined" ? document.body : null
+                        }
+                        styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
                         menuPlacement="bottom"
-                        menuShouldBlockScroll={true}
                         menuShouldScrollIntoView={true}
+                        onMenuClose={() => {
+                          focusSinkRef.current?.focus();
+                        }}
                         formatOptionLabel={(option, { context }) => {
                           const opt = option as DeckOption;
                           if (context === "menu") {
@@ -562,7 +571,11 @@ export default function UpdateUsedDeckModal({
                                         radius="none"
                                         shadow="none"
                                         alt={opt.latest_deck_code.code}
-                                        src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${opt.latest_deck_code.code}.jpg`}
+                                        src={
+                                          opt.latest_deck_code?.code
+                                            ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${opt.latest_deck_code.code}.jpg`
+                                            : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
+                                        }
                                         className=""
                                         onLoad={() => setImageLoadedForDeck(true)}
                                       />
@@ -582,7 +595,7 @@ export default function UpdateUsedDeckModal({
                     </div>
                   </div>
 
-                  <div className="pb-3 flex flex-col gap-1.5">
+                  <div className="flex flex-col gap-1.5">
                     <label className="text-sm font-medium">バージョン</label>
                     <div>
                       <Select
@@ -595,7 +608,7 @@ export default function UpdateUsedDeckModal({
                           </div>
                         }
                         isLoading={isLoadingDeckCodeOptions}
-                        isDisabled={isLoadingDeckCodeOptions}
+                        isDisabled={isLoadingDeckCodeOptions || !selectedDeckOption}
                         isClearable={true}
                         isSearchable={false}
                         noOptionsMessage={() => deckcodeOptionsMessage}
@@ -607,6 +620,10 @@ export default function UpdateUsedDeckModal({
                           setImageLoadedForDeckCode(false);
                         }}
                         menuPosition="fixed"
+                        menuPortalTarget={
+                          typeof document !== "undefined" ? document.body : null
+                        }
+                        styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
                         menuPlacement="bottom"
                         menuShouldScrollIntoView={true}
                         formatOptionLabel={(option, { context }) => {
@@ -684,7 +701,13 @@ export default function UpdateUsedDeckModal({
                       onError={() => {}}
                     />
                   </div>
-                </div>
+                {/* セレクターを閉じたときのフォーカス受け皿（キーボードを閉じるために使用） */}
+                <div
+                  ref={focusSinkRef}
+                  tabIndex={-1}
+                  className="sr-only"
+                  aria-hidden="true"
+                />
               </>
             </ModalBody>
             <ModalFooter>

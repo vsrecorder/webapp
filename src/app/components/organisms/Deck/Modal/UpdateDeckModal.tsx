@@ -1,9 +1,6 @@
 import useSWR from "swr";
 
-import { useEffect, useMemo, useState, SetStateAction, Dispatch } from "react";
-
-import WindowedSelect from "react-windowed-select";
-import { useReactSelectTheme } from "@app/components/molecules/Select/useReactSelectTheme";
+import { useEffect, useState, SetStateAction, Dispatch } from "react";
 
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
 import { Button } from "@heroui/react";
@@ -11,10 +8,12 @@ import { Input } from "@heroui/react";
 import { Image } from "@heroui/react";
 //import { Checkbox } from "@heroui/react";
 import { addToast, closeToast } from "@heroui/react";
+import { useDisclosure } from "@heroui/react";
 
-import { CgSearch } from "react-icons/cg";
+import PokemonSpriteModal from "@app/components/organisms/Match/Modal/PokemonSpriteModal";
 
 import { PokemonSpriteType, DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
+import { spriteScaleClass } from "@app/utils/sprite";
 
 import {
   DeckUpdateRequestType,
@@ -22,13 +21,8 @@ import {
   DeckUpdateResponseType,
 } from "@app/types/deck";
 
-type PokemonSpriteOption = {
-  label: string;
-  value: string;
-  id: string;
-  name: string;
-  image_url: string;
-};
+const UNKNOWN_SPRITE_URL =
+  "https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png";
 
 async function fetcherForPokemonSprites(url: string) {
   const res = await fetch(url, {
@@ -42,27 +36,6 @@ async function fetcherForPokemonSprites(url: string) {
   return ret;
 }
 
-function katakanaToHiragana(str: string): string {
-  return str.replace(/[\u30A1-\u30F6]/g, (match) => {
-    const charCode = match.charCodeAt(0);
-
-    // 「ヴ」はひらがなの「ゔ」（\u3094）へ、それ以外は一律 -0x60
-    return String.fromCharCode(charCode === 0x30f4 ? 0x3094 : charCode - 0x60);
-  });
-}
-
-function convertToPokemonSpriteOption(
-  pokemonSprite: PokemonSpriteType,
-): PokemonSpriteOption {
-  return {
-    label: pokemonSprite.name + " - " + katakanaToHiragana(pokemonSprite.name),
-    value: pokemonSprite.id,
-    id: pokemonSprite.id,
-    name: pokemonSprite.name,
-    image_url: pokemonSprite.image_url,
-  };
-}
-
 type Props = {
   deck: DeckGetByIdResponseType | null;
   setDeck: Dispatch<SetStateAction<DeckGetByIdResponseType | null>>;
@@ -71,9 +44,6 @@ type Props = {
 };
 
 export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }: Props) {
-  // react-select をダークモードに追従させるテーマ
-  const reactSelectTheme = useReactSelectTheme();
-
   const [newDeckName, setNewDeckName] = useState<string>("");
   /*
   const [isSelectedPrivate, setIsSelectedPrivate] = useState<boolean>(
@@ -82,65 +52,47 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
   */
   const [isDisabled, setIsDisabled] = useState<boolean>(false);
 
-  const [selectedPokemonSpriteOption1, setSelectedPokemonSpriteOption1] =
-    useState<PokemonSpriteOption | null>(null);
+  const [sprite1, setSprite1] = useState<PokemonSpriteType | null>(null);
+  const [sprite2, setSprite2] = useState<PokemonSpriteType | null>(null);
 
-  const [selectedPokemonSpriteOption2, setSelectedPokemonSpriteOption2] =
-    useState<PokemonSpriteOption | null>(null);
+  const {
+    isOpen: isSprite1Open,
+    onOpen: onSprite1Open,
+    onOpenChange: onSprite1OpenChange,
+  } = useDisclosure();
 
-  let pokemonSpritesOptions: PokemonSpriteOption[] = [];
-  let pokemonSpritesOptionsMessage = "対象のポケモンはいません";
-  {
-    const url = "/api/pokemon-sprites";
-    const { data, error, isLoading } = useSWR<PokemonSpriteType[], Error>(
-      url,
-      fetcherForPokemonSprites,
-    );
+  const {
+    isOpen: isSprite2Open,
+    onOpen: onSprite2Open,
+    onOpenChange: onSprite2OpenChange,
+  } = useDisclosure();
 
-    if (error) {
-      pokemonSpritesOptionsMessage = "エラーが発生しました";
-    }
-    if (isLoading) {
-      pokemonSpritesOptionsMessage = "検索中...";
-    }
+  // ポケモンのアイコン一覧を取得（初期スプライトの解決に使用）
+  const { data: pokemonSpritesData } = useSWR<PokemonSpriteType[], Error>(
+    "/api/pokemon-sprites",
+    fetcherForPokemonSprites,
+  );
 
-    if (data?.length == 0) {
-      pokemonSpritesOptionsMessage = "ポケモンがいません";
-    }
-
-    pokemonSpritesOptions = useMemo(() => {
-      if (!data) return [];
-      return data.map(convertToPokemonSpriteOption);
-    }, [data]);
-  }
-
+  // デッキに設定済みのアイコンを初期値として反映
   useEffect(() => {
-    if (!deck?.pokemon_sprites?.[0] || pokemonSpritesOptions.length === 0) return;
+    if (!deck?.pokemon_sprites?.[0] || !pokemonSpritesData) return;
 
-    {
-      const targetId = deck.pokemon_sprites[0].id;
-
-      const matchedOption = pokemonSpritesOptions.find(
-        (option) => option.id === targetId,
-      );
-
-      if (matchedOption) {
-        setSelectedPokemonSpriteOption1(matchedOption);
-      }
+    const matched1 = pokemonSpritesData.find(
+      (s) => s.id === deck.pokemon_sprites[0].id,
+    );
+    if (matched1) {
+      setSprite1(matched1);
     }
 
     if (deck?.pokemon_sprites?.[1]) {
-      const targetId = deck.pokemon_sprites[1].id;
-
-      const matchedOption = pokemonSpritesOptions.find(
-        (option) => option.id === targetId,
+      const matched2 = pokemonSpritesData.find(
+        (s) => s.id === deck.pokemon_sprites[1].id,
       );
-
-      if (matchedOption) {
-        setSelectedPokemonSpriteOption2(matchedOption);
+      if (matched2) {
+        setSprite2(matched2);
       }
     }
-  }, [deck, pokemonSpritesOptions]);
+  }, [deck, pokemonSpritesData]);
 
   useEffect(() => {
     if (deck) {
@@ -154,31 +106,31 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
 
   const hasChanges =
     newDeckName !== deck.name ||
-    (selectedPokemonSpriteOption1?.id ?? null) !== (deck.pokemon_sprites?.[0]?.id ?? null) ||
-    (selectedPokemonSpriteOption2?.id ?? null) !== (deck.pokemon_sprites?.[1]?.id ?? null);
+    (sprite1?.id ?? null) !== (deck.pokemon_sprites?.[0]?.id ?? null) ||
+    (sprite2?.id ?? null) !== (deck.pokemon_sprites?.[1]?.id ?? null);
 
   const resetToDefaults = () => {
     setNewDeckName(deck.name);
-    setSelectedPokemonSpriteOption1(
-      pokemonSpritesOptions.find((opt) => opt.id === deck.pokemon_sprites?.[0]?.id) ?? null,
+    setSprite1(
+      pokemonSpritesData?.find((s) => s.id === deck.pokemon_sprites?.[0]?.id) ?? null,
     );
-    setSelectedPokemonSpriteOption2(
-      pokemonSpritesOptions.find((opt) => opt.id === deck.pokemon_sprites?.[1]?.id) ?? null,
+    setSprite2(
+      pokemonSpritesData?.find((s) => s.id === deck.pokemon_sprites?.[1]?.id) ?? null,
     );
   };
 
   const updateDeck = async (onClose: () => void) => {
-    let pokemon_sprites: DeckPokemonSpriteType[] = [];
+    const pokemon_sprites: DeckPokemonSpriteType[] = [];
 
-    if (selectedPokemonSpriteOption1) {
+    if (sprite1) {
       pokemon_sprites.push({
-        id: selectedPokemonSpriteOption1.id,
+        id: sprite1.id,
       });
     }
 
-    if (selectedPokemonSpriteOption2) {
+    if (sprite2) {
       pokemon_sprites.push({
-        id: selectedPokemonSpriteOption2.id,
+        id: sprite2.id,
       });
     }
 
@@ -259,231 +211,119 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
   };
 
   return (
-    <Modal
-      size={"sm"}
-      placement="center"
-      isOpen={isOpen}
-      isDismissable={false}
-      onOpenChange={onOpenChange}
-      onClose={() => {
-        setIsDisabled(false);
-        resetToDefaults();
-      }}
-      classNames={{
-        base: "sm:max-w-full",
-        closeButton: "text-2xl",
-      }}
-    >
-      <ModalContent>
-        {(onClose) => (
-          <>
-            <ModalHeader className="flex flex-col gap-1 px-3">
-              デッキ情報を更新
-            </ModalHeader>
-            <ModalBody className="px-3 py-1 pb-18">
-              <Input
-                isRequired
-                isDisabled={isDisabled}
-                //isInvalid={!isValidedDeckName}
-                //errorMessage="有効なデッキコードを入力してください"
-                type="text"
-                label="デッキ名"
-                labelPlacement="outside"
-                placeholder={deck.name}
-                value={newDeckName}
-                onChange={(e) => setNewDeckName(e.target.value)}
-              />
+    <>
+      <Modal
+        size={"sm"}
+        placement="center"
+        isOpen={isOpen}
+        isDismissable={false}
+        onOpenChange={onOpenChange}
+        onClose={() => {
+          setIsDisabled(false);
+          resetToDefaults();
+        }}
+        classNames={{
+          base: "sm:max-w-full",
+          closeButton: "text-2xl",
+        }}
+      >
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader className="text-lg px-3">デッキ情報を更新</ModalHeader>
+              <ModalBody className="px-3 py-1 gap-3">
+                {/* スプライト2枚 */}
+                <div className="flex items-center gap-0">
+                  <div className="w-11 h-11 p-0 shrink-0">
+                    <Image
+                      onClick={() => !isDisabled && onSprite1Open()}
+                      alt={sprite1 ? sprite1.name : "アイコン1"}
+                      src={sprite1 ? sprite1.image_url : UNKNOWN_SPRITE_URL}
+                      radius="none"
+                      loading="eager"
+                      className={`w-full h-full object-contain ${spriteScaleClass(sprite1?.id)} origin-bottom ${isDisabled ? "contrast-0" : "cursor-pointer"}`}
+                    />
+                  </div>
+                  <div className="w-11 h-11 p-0 shrink-0">
+                    <Image
+                      onClick={() => !isDisabled && onSprite2Open()}
+                      alt={sprite2 ? sprite2.name : "アイコン2"}
+                      src={sprite2 ? sprite2.image_url : UNKNOWN_SPRITE_URL}
+                      radius="none"
+                      loading="eager"
+                      className={`w-full h-full object-contain ${spriteScaleClass(sprite2?.id)} origin-bottom ${isDisabled ? "contrast-0" : "cursor-pointer"}`}
+                    />
+                  </div>
+                </div>
 
-              {/*
-              <Checkbox
-                isDisabled={isDisabled}
-                defaultSelected={false}
-                size={"sm"}
-                isSelected={isSelectedPrivate}
-                onValueChange={setIsSelectedPrivate}
-              >
-                デッキ情報を非公開にする
-              </Checkbox>
-              */}
-
-              <div className="flex flex-col gap-0.5">
-                <label className="text-sm">ポケモンのアイコン1を選択</label>
-                <WindowedSelect
-                  theme={reactSelectTheme}
-                  className="z-110"
-                  placeholder={
-                    <div className="flex items-center gap-2">
-                      <div className="text-xl">
-                        <CgSearch />
-                      </div>
-                      <span className="text-sm">ポケモンの名前を入力</span>
-                    </div>
-                  }
-                  styles={{
-                    control: (base) => ({
-                      ...base,
-                      height: 81,
-                      minHeight: 81,
-                    }),
-                    clearIndicator: (base) => ({
-                      ...base,
-                      marginRight: 12,
-                      padding: 5,
-                      transform: "scale(1.2)",
-                      "& svg": {
-                        width: 15,
-                        height: 15,
-                        strokeWidth: 0.75,
-                      },
-                    }),
-                  }}
-                  isClearable={true}
-                  isSearchable={true}
-                  noOptionsMessage={() => pokemonSpritesOptionsMessage}
-                  options={pokemonSpritesOptions}
-                  value={selectedPokemonSpriteOption1}
-                  onChange={(option) => {
-                    setSelectedPokemonSpriteOption1(option as PokemonSpriteOption);
-                  }}
-                  maxMenuHeight={120}
-                  windowThreshold={100}
-                  formatOptionLabel={(option, { context }) => {
-                    const opt = option as PokemonSpriteOption;
-
-                    if (context === "menu") {
-                      return (
-                        <div className="flex flex-col items-center justify-center h-23.5">
-                          <Image
-                            alt={opt.name}
-                            src={opt.image_url}
-                            radius="none"
-                            className="w-16 h-16 object-contain"
-                          />
-                          <div className="truncate w-full text-center text-tiny">
-                            {opt.name}
-                          </div>
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <div className="w-full h-full flex items-center gap-3">
-                        <Image
-                          alt={opt.name}
-                          src={opt.image_url}
-                          radius="none"
-                          className="object-contain pb-3"
-                        />
-                        <div className="text-sm truncate">{opt.name}</div>
-                      </div>
-                    );
-                  }}
+                <Input
+                  isRequired
+                  isDisabled={isDisabled}
+                  //isInvalid={!isValidedDeckName}
+                  //errorMessage="有効なデッキコードを入力してください"
+                  type="text"
+                  label="デッキ名"
+                  labelPlacement="outside"
+                  placeholder={deck.name}
+                  value={newDeckName}
+                  onChange={(e) => setNewDeckName(e.target.value)}
                 />
-              </div>
 
-              <div className="flex flex-col gap-0.5">
-                <label className="text-sm">ポケモンのアイコン2を選択</label>
-                <WindowedSelect
-                  theme={reactSelectTheme}
-                  className="z-100"
-                  placeholder={
-                    <div className="flex items-center gap-2">
-                      <div className="text-xl">
-                        <CgSearch />
-                      </div>
-                      <span className="text-sm">ポケモンの名前を入力</span>
-                    </div>
-                  }
-                  styles={{
-                    control: (base) => ({
-                      ...base,
-                      height: 81,
-                      minHeight: 81,
-                    }),
-                    clearIndicator: (base) => ({
-                      ...base,
-                      marginRight: 12,
-                      padding: 5,
-                      transform: "scale(1.2)",
-                      "& svg": {
-                        width: 15,
-                        height: 15,
-                        strokeWidth: 0.75,
-                      },
-                    }),
+                {/*
+                <Checkbox
+                  isDisabled={isDisabled}
+                  defaultSelected={false}
+                  size={"sm"}
+                  isSelected={isSelectedPrivate}
+                  onValueChange={setIsSelectedPrivate}
+                >
+                  デッキ情報を非公開にする
+                </Checkbox>
+                */}
+              </ModalBody>
+              <ModalFooter>
+                <Button
+                  color="default"
+                  variant="solid"
+                  isDisabled={isDisabled}
+                  onPress={() => {
+                    resetToDefaults();
+                    onClose();
                   }}
-                  isClearable={true}
-                  isSearchable={true}
-                  noOptionsMessage={() => pokemonSpritesOptionsMessage}
-                  options={pokemonSpritesOptions}
-                  value={selectedPokemonSpriteOption2}
-                  onChange={(option) => {
-                    setSelectedPokemonSpriteOption2(option as PokemonSpriteOption);
+                  className="font-bold"
+                >
+                  閉じる
+                </Button>
+                <Button
+                  color="primary"
+                  variant="solid"
+                  isDisabled={!hasChanges || isDisabled}
+                  onPress={() => {
+                    updateDeck(onClose);
                   }}
-                  maxMenuHeight={120}
-                  windowThreshold={100}
-                  formatOptionLabel={(option, { context }) => {
-                    const opt = option as PokemonSpriteOption;
+                  className="font-bold"
+                >
+                  更新
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
 
-                    if (context === "menu") {
-                      return (
-                        <div className="flex flex-col items-center justify-center h-23.5">
-                          <Image
-                            alt={opt.name}
-                            src={opt.image_url}
-                            radius="none"
-                            className="w-16 h-16 object-contain"
-                          />
-                          <div className="truncate w-full text-center text-tiny">
-                            {opt.name}
-                          </div>
-                        </div>
-                      );
-                    }
+      <PokemonSpriteModal
+        pokemonSprite={sprite1}
+        setPokemonSprite={setSprite1}
+        isOpen={isSprite1Open}
+        onOpenChange={onSprite1OpenChange}
+      />
 
-                    return (
-                      <div className="w-full h-full flex items-center gap-3">
-                        <Image
-                          alt={opt.name}
-                          src={opt.image_url}
-                          radius="none"
-                          className="object-contain pb-3"
-                        />
-                        <div className="text-sm truncate">{opt.name}</div>
-                      </div>
-                    );
-                  }}
-                />
-              </div>
-            </ModalBody>
-            <ModalFooter>
-              <Button
-                color="default"
-                variant="solid"
-                isDisabled={isDisabled}
-                onPress={() => {
-                  resetToDefaults();
-                  onClose();
-                }}
-                className="font-bold"
-              >
-                閉じる
-              </Button>
-              <Button
-                color="primary"
-                variant="solid"
-                isDisabled={!hasChanges || isDisabled}
-                onPress={() => {
-                  updateDeck(onClose);
-                }}
-                className="font-bold"
-              >
-                更新
-              </Button>
-            </ModalFooter>
-          </>
-        )}
-      </ModalContent>
-    </Modal>
+      <PokemonSpriteModal
+        pokemonSprite={sprite2}
+        setPokemonSprite={setSprite2}
+        isOpen={isSprite2Open}
+        onOpenChange={onSprite2OpenChange}
+      />
+    </>
   );
 }

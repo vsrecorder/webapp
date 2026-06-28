@@ -1136,9 +1136,14 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id }: Props) {
                     onFocus={handleDeckSelectOpen}
                     onMenuOpen={handleDeckSelectOpen}
                     menuPosition="fixed"
+                    menuPortalTarget={typeof document !== "undefined" ? document.body : null}
+                    styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
                     menuPlacement="bottom"
                     //menuShouldBlockScroll={true}
                     menuShouldScrollIntoView={true}
+                    onMenuClose={() => {
+                      (document.activeElement as HTMLElement)?.blur();
+                    }}
                     components={{ MenuList: MenuListScrollToSelected }}
                     formatOptionLabel={(option, { context }) => {
                       if (context === "menu") {
@@ -1210,6 +1215,8 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id }: Props) {
                         setImageLoadedForDeckCode(false);
                       }}
                       menuPosition="fixed"
+                      menuPortalTarget={typeof document !== "undefined" ? document.body : null}
+                      styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
                       menuPlacement="bottom"
                       menuShouldScrollIntoView={true}
                       components={{ MenuList: MenuListScrollToSelected }}
@@ -1391,9 +1398,14 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id }: Props) {
                     onFocus={handleDeckSelectOpen}
                     onMenuOpen={handleDeckSelectOpen}
                     menuPosition="fixed"
+                    menuPortalTarget={typeof document !== "undefined" ? document.body : null}
+                    styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
                     menuPlacement="bottom"
                     //menuShouldBlockScroll={true}
                     menuShouldScrollIntoView={true}
+                    onMenuClose={() => {
+                      (document.activeElement as HTMLElement)?.blur();
+                    }}
                     components={{ MenuList: MenuListScrollToSelected }}
                     formatOptionLabel={(option, { context }) => {
                       if (context === "menu") {
@@ -1465,6 +1477,8 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id }: Props) {
                         setImageLoadedForDeckCode(false);
                       }}
                       menuPosition="fixed"
+                      menuPortalTarget={typeof document !== "undefined" ? document.body : null}
+                      styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
                       menuPlacement="bottom"
                       menuShouldScrollIntoView={true}
                       components={{ MenuList: MenuListScrollToSelected }}

@@ -1,6 +1,6 @@
 import useSWR from "swr";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { SetStateAction, Dispatch } from "react";
 
 import WindowedSelect from "react-windowed-select";
@@ -71,6 +71,8 @@ export default function PokemonSpriteModal({
 }: Props) {
   // react-select をダークモードに追従させるテーマ
   const reactSelectTheme = useReactSelectTheme();
+
+  const focusSinkRef = useRef<HTMLDivElement>(null);
 
   const [selectedPokemonSpriteOption, setSelectedPokemonSpriteOption] =
     useState<PokemonSpriteOption | null>(null);
@@ -184,6 +186,12 @@ export default function PokemonSpriteModal({
                         strokeWidth: 0.75,
                       },
                     }),
+                    menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+                  }}
+                  menuPosition="fixed"
+                  menuPortalTarget={typeof document !== "undefined" ? document.body : null}
+                  onMenuClose={() => {
+                    focusSinkRef.current?.focus();
                   }}
                   isClearable={true}
                   isSearchable={true}
@@ -228,6 +236,7 @@ export default function PokemonSpriteModal({
                   }}
                 />
               </div>
+              <div ref={focusSinkRef} tabIndex={-1} className="sr-only" aria-hidden="true" />
             </ModalBody>
             <ModalFooter>
               <Button

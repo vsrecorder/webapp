@@ -13,6 +13,8 @@ import {
 
 import { Button } from "@heroui/react";
 import { Image } from "@heroui/react";
+
+import { spriteScaleClass } from "@app/utils/sprite";
 import { Card, CardBody } from "@heroui/react";
 
 import { useDisclosure } from "@heroui/react";
@@ -198,7 +200,7 @@ export default function Matches({
                                                     "",
                                                   )}
                                                   src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${match.pokemon_sprites[0].id.replace(/^0+(?!$)/, "")}.png`}
-                                                  className="w-11 h-11 object-contain scale-150 origin-bottom"
+                                                  className={`w-11 h-11 object-contain ${spriteScaleClass(match.pokemon_sprites[0].id)} origin-bottom`}
                                                 />
                                               ) : (
                                                 <Image
@@ -215,7 +217,7 @@ export default function Matches({
                                                     "",
                                                   )}
                                                   src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${match.pokemon_sprites[1].id.replace(/^0+(?!$)/, "")}.png`}
-                                                  className="w-11 h-11 object-contain scale-150 origin-bottom"
+                                                  className={`w-11 h-11 object-contain ${spriteScaleClass(match.pokemon_sprites[1].id)} origin-bottom`}
                                                 />
                                               ) : (
                                                 <Image

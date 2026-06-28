@@ -37,6 +37,7 @@ import { MatchGetResponseType } from "@app/types/match";
 import { MatchUpdateRequestType, MatchUpdateResponseType } from "@app/types/match";
 import { GameRequestType } from "@app/types/game";
 import { PokemonSpriteType, MatchPokemonSpriteType } from "@app/types/pokemon_sprite";
+import { spriteScaleClass } from "@app/utils/sprite";
 
 const SPRITE_BASE_URL = "https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites";
 
@@ -676,7 +677,7 @@ export default function UpdateMatchModal({
                                     alt={pokemonSprite1.id}
                                     src={pokemonSprite1.image_url}
                                     radius="none"
-                                    className="w-full h-full object-contain scale-150 origin-bottom"
+                                    className={`w-full h-full object-contain ${spriteScaleClass(pokemonSprite1.id)} origin-bottom`}
                                   />
                                 ) : (
                                   <Image
@@ -705,7 +706,7 @@ export default function UpdateMatchModal({
                                     alt={pokemonSprite2.id}
                                     src={pokemonSprite2.image_url}
                                     radius="none"
-                                    className="w-full h-full object-contain scale-150 origin-bottom"
+                                    className={`w-full h-full object-contain ${spriteScaleClass(pokemonSprite2.id)} origin-bottom`}
                                   />
                                 ) : (
                                   <Image
@@ -793,7 +794,7 @@ export default function UpdateMatchModal({
                                               `${SPRITE_BASE_URL}/unknown.png`
                                             }
                                             radius="none"
-                                            className="w-full h-full object-contain scale-150 origin-bottom"
+                                            className={`w-full h-full object-contain ${spriteScaleClass(history.sprite1?.id)} origin-bottom`}
                                           />
                                         </div>
                                         <div className="w-9 h-9 shrink-0">
@@ -804,7 +805,7 @@ export default function UpdateMatchModal({
                                               `${SPRITE_BASE_URL}/unknown.png`
                                             }
                                             radius="none"
-                                            className="w-full h-full object-contain scale-150 origin-bottom"
+                                            className={`w-full h-full object-contain ${spriteScaleClass(history.sprite2?.id)} origin-bottom`}
                                           />
                                         </div>
                                       </div>

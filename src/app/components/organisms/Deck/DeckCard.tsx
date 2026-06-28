@@ -4,6 +4,8 @@ import { useState } from "react";
 
 import { Card, CardHeader, CardBody } from "@heroui/react";
 import { Image } from "@heroui/react";
+
+import { spriteScaleClass } from "@app/utils/sprite";
 //import { Chip } from "@heroui/react";
 
 import { useDisclosure } from "@heroui/react";
@@ -105,7 +107,7 @@ export default function DeckCard({
                     <Image
                       alt={deck.pokemon_sprites[0].id}
                       src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${deck.pokemon_sprites[0].id.replace(/^0+(?!$)/, "")}.png`}
-                      className="w-11 h-11 object-contain scale-150 origin-bottom"
+                      className={`w-11 h-11 object-contain ${spriteScaleClass(deck.pokemon_sprites[0].id)} origin-bottom`}
                     />
                   ) : (
                     <Image
@@ -119,7 +121,7 @@ export default function DeckCard({
                     <Image
                       alt={deck.pokemon_sprites[1].id}
                       src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${deck.pokemon_sprites[1].id.replace(/^0+(?!$)/, "")}.png`}
-                      className="w-11 h-11 object-contain scale-150 origin-bottom"
+                      className={`w-11 h-11 object-contain ${spriteScaleClass(deck.pokemon_sprites[1].id)} origin-bottom`}
                     />
                   ) : (
                     <Image

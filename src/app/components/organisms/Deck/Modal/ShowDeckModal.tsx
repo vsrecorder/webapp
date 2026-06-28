@@ -30,6 +30,7 @@ import DisplayRecordsModal from "@app/components/organisms/Deck/Modal/DisplayRec
 import DisplayDeckCodesModal from "@app/components/organisms/Deck/Modal/DisplayDeckCodes";
 
 import DeckCardSummaryRow from "@app/components/organisms/Deck/DeckCardSummaryRow";
+import { spriteScaleClass } from "@app/utils/sprite";
 
 //import { LuExternalLink } from "react-icons/lu";
 import { LuFolderInput } from "react-icons/lu";
@@ -164,7 +165,7 @@ export default function ShowDeckModal({
                           <Image
                             alt={deck.pokemon_sprites[0].id}
                             src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${deck.pokemon_sprites[0].id.replace(/^0+(?!$)/, "")}.png`}
-                            className="w-11 h-11 object-contain scale-150 origin-bottom"
+                            className={`w-11 h-11 object-contain ${spriteScaleClass(deck.pokemon_sprites[0].id)} origin-bottom`}
                           />
                         ) : (
                           <Image
@@ -178,7 +179,7 @@ export default function ShowDeckModal({
                           <Image
                             alt={deck.pokemon_sprites[1].id}
                             src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${deck.pokemon_sprites[1].id.replace(/^0+(?!$)/, "")}.png`}
-                            className="w-11 h-11 object-contain scale-150 origin-bottom"
+                            className={`w-11 h-11 object-contain ${spriteScaleClass(deck.pokemon_sprites[1].id)} origin-bottom`}
                           />
                         ) : (
                           <Image
@@ -284,7 +285,7 @@ export default function ShowDeckModal({
                 {isArchived ? (
                   <div className="flex items-center gap-8 mx-auto overflow-x-auto">
                     <Link
-                      href={`/records/create?deck_id=${deck.id}`}
+                      href={`/records/create?deck_id=${deck.id}${deckcode?.id ? `&deck_code_id=${deckcode.id}` : ""}`}
                       className="text-foreground"
                     >
                       <div className="text-2xl cursor-pointer">

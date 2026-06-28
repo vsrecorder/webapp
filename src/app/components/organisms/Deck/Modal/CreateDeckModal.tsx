@@ -15,6 +15,7 @@ import PokemonSpriteModal from "@app/components/organisms/Match/Modal/PokemonSpr
 
 import { PokemonSpriteType, DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
 import { DeckCreateRequestType } from "@app/types/deck";
+import { spriteScaleClass } from "@app/utils/sprite";
 
 const UNKNOWN_SPRITE_URL =
   "https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png";
@@ -224,7 +225,7 @@ export default function CreateDeckModal({
                       src={sprite1 ? sprite1.image_url : UNKNOWN_SPRITE_URL}
                       radius="none"
                       loading="eager"
-                      className={`w-full h-full object-contain scale-150 origin-bottom ${isDisabled ? "contrast-0" : "cursor-pointer"}`}
+                      className={`w-full h-full object-contain ${spriteScaleClass(sprite1?.id)} origin-bottom ${isDisabled ? "contrast-0" : "cursor-pointer"}`}
                     />
                   </div>
                   <div className="w-11 h-11 p-0 shrink-0">
@@ -234,7 +235,7 @@ export default function CreateDeckModal({
                       src={sprite2 ? sprite2.image_url : UNKNOWN_SPRITE_URL}
                       radius="none"
                       loading="eager"
-                      className={`w-full h-full object-contain scale-150 origin-bottom ${isDisabled ? "contrast-0" : "cursor-pointer"}`}
+                      className={`w-full h-full object-contain ${spriteScaleClass(sprite2?.id)} origin-bottom ${isDisabled ? "contrast-0" : "cursor-pointer"}`}
                     />
                   </div>
                 </div>

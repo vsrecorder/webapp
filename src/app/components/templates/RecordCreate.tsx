@@ -1,6 +1,6 @@
 "use client";
 
-//import { createHash } from "crypto";
+import { createHash } from "crypto";
 
 import WindowedSelect from "react-windowed-select";
 
@@ -36,7 +36,7 @@ import { LuMapPin } from "react-icons/lu";
 import { Card, CardBody } from "@heroui/react";
 import { CgSearch } from "react-icons/cg";
 
-import Select from "react-select";
+import Select, { components } from "react-select";
 import { useReactSelectTheme } from "@app/components/molecules/Select/useReactSelectTheme";
 import { Image } from "@heroui/react";
 import { Button } from "@heroui/react";
@@ -79,6 +79,16 @@ type DeckOption = {
   latest_deck_code: DeckCodeType;
 };
 
+type DeckCodeOption = {
+  label: string;
+  value: string;
+  id: string;
+  deck_id: string;
+  created_at: string;
+  code: string;
+  private_code_flg: boolean;
+};
+
 async function fetcherForOfficialEvent(url: string) {
   const res = await fetch(url, {
     method: "GET",
@@ -99,6 +109,18 @@ async function fetcherForDeck(url: string) {
     },
   });
   const ret: DeckGetAllType = await res.json();
+
+  return ret;
+}
+
+async function fetcherForDeckCode(url: string) {
+  const res = await fetch(url, {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+    },
+  });
+  const ret: DeckCodeType[] = await res.json();
 
   return ret;
 }
@@ -284,6 +306,25 @@ function convertToDeckOption(data: DeckData): DeckOption {
   };
 }
 
+function convertToDeckCodeOption(data: DeckCodeType): DeckCodeOption {
+  const created_at = new Date(data.created_at).toLocaleString("ja-JP", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    weekday: "short",
+  });
+
+  return {
+    label: createHash("sha1").update(data.id).digest("hex").slice(0, 8),
+    value: data.id,
+    id: data.id,
+    deck_id: data.deck_id,
+    created_at: created_at,
+    code: data.code,
+    private_code_flg: data.private_code_flg,
+  };
+}
+
 function StepLabel({ num, children }: { num: number; children: React.ReactNode }) {
   return (
     <div className="flex items-center gap-2">
@@ -297,9 +338,79 @@ function StepLabel({ num, children }: { num: number; children: React.ReactNode }
 
 type Props = {
   deck_id: string;
+  deck_code_id: string;
 };
 
-export default function TemplateRecordCreate({ deck_id }: Props) {
+// メニューを開いたとき、選択済みオプションがリストの先頭に来るようにスクロールする
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const MenuListScrollToSelected = ({ innerRef, ...props }: any) => {
+  const nodeRef = useRef<HTMLDivElement | null>(null);
+  const hasValue: boolean = !!props.hasValue;
+
+  // 選択なしの初回オープンでは、react-select が一瞬だけ下方向へスクロールする。
+  // 補正前の誤った位置が描画されるとチラつくため、先頭へ揃え終わるまで非表示にする。
+  // 選択ありの場合は流れるアニメーションを見せたいので、最初から表示しておく。
+  const [hidden, setHidden] = useState(!hasValue);
+
+  useEffect(() => {
+    if (hasValue) {
+      // 選択あり: レイアウト確定後に選択項目を先頭へ滑らかにスクロールする
+      const timer = setTimeout(() => {
+        const node = nodeRef.current;
+        if (!node) return;
+        const selected = node.querySelector(
+          '[aria-selected="true"]',
+        ) as HTMLElement | null;
+        if (!selected) return;
+        const nodeRect = node.getBoundingClientRect();
+        const selectedRect = selected.getBoundingClientRect();
+        const target = node.scrollTop + (selectedRect.top - nodeRect.top);
+        node.scrollTo({ top: target, behavior: "smooth" });
+      }, 80);
+      return () => clearTimeout(timer);
+    }
+
+    // 選択なし: 非表示のまま毎フレーム先頭へ固定し続け、
+    // react-select の位置計算が落ち着いてから表示する（チラつき防止）
+    let rafId = 0;
+    const start =
+      typeof performance !== "undefined" ? performance.now() : Date.now();
+    const loop = () => {
+      const node = nodeRef.current;
+      if (node) node.scrollTop = 0;
+      const now =
+        typeof performance !== "undefined" ? performance.now() : Date.now();
+      if (now - start < 80) {
+        rafId = requestAnimationFrame(loop);
+      } else {
+        setHidden(false);
+      }
+    };
+    rafId = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(rafId);
+  }, [hasValue]);
+
+  return (
+    <components.MenuList
+      {...props}
+      innerRef={(node: HTMLDivElement | null) => {
+        nodeRef.current = node;
+        // react-select 内部の innerRef も維持する
+        if (typeof innerRef === "function") innerRef(node);
+        else if (innerRef) innerRef.current = node;
+      }}
+      innerProps={{
+        ...props.innerProps,
+        style: {
+          ...(props.innerProps?.style ?? {}),
+          visibility: hidden ? "hidden" : "visible",
+        },
+      }}
+    />
+  );
+};
+
+export default function TemplateRecordCreate({ deck_id, deck_code_id }: Props) {
   const router = useRouter();
 
   // react-select をダークモードに追従させるテーマ
@@ -326,6 +437,10 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
     useState<boolean>(false);
 
   const [selectedDeckOption, setSelectedDeckOption] = useState<DeckOption | null>(null);
+  const [selectedDeckCodeOption, setSelectedDeckCodeOption] =
+    useState<DeckCodeOption | null>(null);
+  const [imageLoadedForDeckCode, setImageLoadedForDeckCode] = useState(false);
+  const [isDeckChangedByUser, setIsDeckChangedByUser] = useState(false);
 
   const deckSelectRef = useRef<HTMLDivElement | null>(null);
 
@@ -384,6 +499,42 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
   }
 
   /*
+   *
+   * バージョン(デッキコード)選択のデータを取得
+   *
+   * 選択されたデッキが変更されるたびに実施される
+   *
+   */
+  const deckcodeOptions: DeckCodeOption[] = [];
+  let deckcodeOptionsMessage = "バージョンがありません";
+  const {
+    data: deckcodeData,
+    error: deckcodeError,
+    isLoading: deckcodeLoading,
+  } = useSWR<DeckCodeType[], Error>(
+    selectedDeckOption ? `/api/decks/${selectedDeckOption.id}/deckcodes` : null,
+    fetcherForDeckCode,
+  );
+
+  if (deckcodeError) {
+    deckcodeOptionsMessage = "エラーが発生しました";
+  }
+  if (deckcodeLoading) {
+    deckcodeOptionsMessage = "検索中...";
+  }
+  deckcodeData?.forEach((deckcode: DeckCodeType) => {
+    deckcodeOptions.push(convertToDeckCodeOption(deckcode));
+  });
+  if (deckcodeData?.length === 0) {
+    deckcodeOptionsMessage = "対象のデッキにバージョンがありません";
+  }
+
+  // デッキが選択されていてバージョンが存在するのに未選択の場合は作成不可
+  const isDeckVersionInvalid =
+    !!selectedDeckOption &&
+    (deckcodeLoading || ((deckcodeData?.length ?? 0) > 0 && !selectedDeckCodeOption));
+
+  /*
     TonamelのイベントIDが有効かどうかチェック
   */
   useEffect(() => {
@@ -425,6 +576,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
 
   /*
     deck_idがある場合、deck_idのDeckを取得し、使用するデッキとして指定
+    deck_code_idがある場合はそのバージョンを直接取得してセット（SWRキャッシュを迂回）
   */
   useEffect(() => {
     if (!deck_id) return;
@@ -444,18 +596,43 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
         }
 
         const ret: DeckData = await res.json();
-
         setSelectedDeckOption(convertToDeckOption(ret));
         setImageLoaded(false);
+
+        if (deck_code_id) {
+          try {
+            const codeRes = await fetch(`/api/deckcodes/${deck_code_id}`, {
+              cache: "no-store",
+              method: "GET",
+              headers: {
+                Accept: "application/json",
+              },
+            });
+
+            if (!codeRes.ok) throw new Error("Failed to fetch deck code");
+
+            const codeData: DeckCodeType = await codeRes.json();
+            setSelectedDeckCodeOption(convertToDeckCodeOption(codeData));
+            setImageLoadedForDeckCode(false);
+          } catch (error) {
+            // deck_code_id の取得に失敗した場合はSWRに任せる
+            setIsDeckChangedByUser(true);
+            console.error(error);
+          }
+        } else {
+          setIsDeckChangedByUser(true);
+        }
+
         return ret;
       } catch (error) {
         setSelectedDeckOption(null);
+        setSelectedDeckCodeOption(null);
         console.error(error);
       }
     };
 
     setSelectedDeck();
-  }, [deck_id]);
+  }, [deck_id, deck_code_id]);
 
   useEffect(() => {
     if (selectedOfficialEventOption) {
@@ -472,6 +649,43 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
       setIsDisabledCreateTonamelEventRecord(true);
     }
   }, [tonamelEventId, isValidatedTonamelEventId, selectedDeckOption]);
+
+  /*
+   * デッキが変更されたとき、SWR でデッキコードが取得され次第
+   * 最初のバージョンをデフォルトとして設定する
+   */
+  useEffect(() => {
+    if (!isDeckChangedByUser) return;
+    // SWR がまだ取得中の場合は待つ（isDeckChangedByUser は true のまま）
+    if (deckcodeData === undefined) return;
+
+    if (deckcodeData.length === 0) {
+      setSelectedDeckCodeOption(null);
+    } else {
+      setSelectedDeckCodeOption(convertToDeckCodeOption(deckcodeData[0]));
+    }
+    setImageLoadedForDeckCode(false);
+    setIsDeckChangedByUser(false);
+  }, [deckcodeData, isDeckChangedByUser]);
+
+  /*
+   * デッキ選択セレクターのメニューを開いたときにキーボード上部へスクロールする
+   * visualViewport でキーボード表示完了を検知し、固定ヘッダー分オフセットして上部に配置
+   */
+  const handleDeckSelectOpen = () => {
+    const doScroll = () => {
+      if (!deckSelectRef.current) return;
+      deckSelectRef.current.style.scrollMarginTop = "80px";
+      deckSelectRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+
+    if (typeof window !== "undefined" && window.visualViewport) {
+      window.visualViewport.addEventListener("resize", doScroll, { once: true });
+      setTimeout(doScroll, 500);
+    } else {
+      setTimeout(doScroll, 300);
+    }
+  };
 
   /*
    *
@@ -679,7 +893,7 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
         </ModalContent>
       </Modal>
 
-      <div className="flex flex-col pt-3 w-full">
+      <div className="flex flex-col pt-1 w-full">
         <Tabs
           fullWidth
           size="md"
@@ -898,22 +1112,6 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                 <div ref={deckSelectRef}>
                   <Select
                     theme={reactSelectTheme}
-                    onFocus={() => {
-                      setTimeout(() => {
-                        deckSelectRef.current?.scrollIntoView({
-                          behavior: "smooth",
-                          block: "center",
-                        });
-                      }, 150);
-                    }}
-                    onMenuOpen={() => {
-                      setTimeout(() => {
-                        deckSelectRef.current?.scrollIntoView({
-                          behavior: "smooth",
-                          block: "center",
-                        });
-                      }, 150);
-                    }}
                     placeholder={
                       <div className="flex items-center gap-2">
                         <div className="text-xl">
@@ -931,11 +1129,17 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                     onChange={(option) => {
                       setSelectedDeckOption(option);
                       setImageLoaded(false);
+                      setSelectedDeckCodeOption(null);
+                      setIsDeckChangedByUser(true);
+                      setImageLoadedForDeckCode(false);
                     }}
+                    onFocus={handleDeckSelectOpen}
+                    onMenuOpen={handleDeckSelectOpen}
                     menuPosition="fixed"
                     menuPlacement="bottom"
                     //menuShouldBlockScroll={true}
                     menuShouldScrollIntoView={true}
+                    components={{ MenuList: MenuListScrollToSelected }}
                     formatOptionLabel={(option, { context }) => {
                       if (context === "menu") {
                         return (
@@ -955,7 +1159,9 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                                   <Image
                                     radius="none"
                                     shadow="none"
-                                    alt={option.latest_deck_code?.code || "デッキコードなし"}
+                                    alt={
+                                      option.latest_deck_code?.code || "デッキコードなし"
+                                    }
                                     src={
                                       option.latest_deck_code?.code
                                         ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${option.latest_deck_code.code}.jpg`
@@ -979,24 +1185,103 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                   />
                 </div>
               </div>
-              <div className="flex flex-col items-center gap-2 pb-3">
+
+              <div className="pb-1.5 flex flex-col gap-1">
+                <label className="text-sm font-medium">バージョン</label>
+                <div>
+                  <Select
+                    theme={reactSelectTheme}
+                    minMenuHeight={270}
+                    maxMenuHeight={270}
+                    placeholder={
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm">バージョン</span>
+                      </div>
+                    }
+                    isLoading={deckcodeLoading}
+                    isDisabled={!selectedDeckOption || deckcodeLoading}
+                      isClearable={true}
+                      isSearchable={false}
+                      noOptionsMessage={() => deckcodeOptionsMessage}
+                      options={deckcodeOptions}
+                      value={selectedDeckCodeOption}
+                      onChange={(option) => {
+                        setSelectedDeckCodeOption(option);
+                        setImageLoadedForDeckCode(false);
+                      }}
+                      menuPosition="fixed"
+                      menuPlacement="bottom"
+                      menuShouldScrollIntoView={true}
+                      components={{ MenuList: MenuListScrollToSelected }}
+                      formatOptionLabel={(option, { context }) => {
+                        if (context === "menu") {
+                          return (
+                            <div className="text-sm truncate border-1 p-2">
+                              <div className="grid">
+                                <span className="truncate">
+                                  作成日：{option.created_at}
+                                </span>
+                                <span className="truncate">
+                                  バージョン：
+                                  {createHash("sha1")
+                                    .update(option.id)
+                                    .digest("hex")
+                                    .slice(0, 8)}
+                                </span>
+                                <span className="truncate">
+                                  デッキコード：{option.code}
+                                </span>
+                                <span className="pt-1">
+                                  <div className="relative w-full aspect-2/1">
+                                    {!imageLoadedForDeckCode && (
+                                      <Skeleton className="absolute inset-0 rounded-lg" />
+                                    )}
+                                    <Image
+                                      radius="none"
+                                      shadow="none"
+                                      alt={option.code}
+                                      src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${option.code}.jpg`}
+                                      className=""
+                                      onLoad={() => setImageLoadedForDeckCode(true)}
+                                    />
+                                  </div>
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return (
+                          <div className="text-sm truncate">
+                            <span>
+                              バージョン：
+                              {createHash("sha1")
+                                .update(option.id)
+                                .digest("hex")
+                                .slice(0, 8)}
+                            </span>
+                          </div>
+                        );
+                      }}
+                    />
+                  </div>
+                </div>
+
+              <div className="flex flex-col items-center gap-2 pb-1.5">
                 <div className="relative w-full aspect-2/1">
-                  {!imageLoaded && <Skeleton className="absolute inset-0 rounded-lg" />}
+                  {!imageLoadedForDeckCode && (
+                    <Skeleton className="absolute inset-0 rounded-lg" />
+                  )}
                   <Image
                     radius="sm"
                     shadow="none"
-                    alt={
-                      selectedDeckOption?.latest_deck_code?.code
-                        ? selectedDeckOption.latest_deck_code.code
-                        : "デッキコードなし"
-                    }
+                    alt={selectedDeckCodeOption?.code || "デッキコードなし"}
                     src={
-                      selectedDeckOption?.latest_deck_code?.code
-                        ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${selectedDeckOption.latest_deck_code.code}.jpg`
+                      selectedDeckCodeOption?.code
+                        ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${selectedDeckCodeOption.code}.jpg`
                         : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
                     }
                     className="z-0"
-                    onLoad={() => setImageLoaded(true)}
+                    onLoad={() => setImageLoadedForDeckCode(true)}
                     onError={() => {}}
                   />
                 </div>
@@ -1004,13 +1289,13 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
 
               <Button
                 color="primary"
-                isDisabled={isDisabledCreateOfficialEventRecord}
+                isDisabled={isDisabledCreateOfficialEventRecord || isDeckVersionInvalid}
                 onPress={async () => {
                   onOpen();
                   await createOfficialEventRecord(
                     selectedOfficialEventOption ? selectedOfficialEventOption.id : 0,
                     selectedDeckOption ? selectedDeckOption.id : "",
-                    selectedDeckOption ? selectedDeckOption.latest_deck_code.id : "",
+                    selectedDeckCodeOption ? selectedDeckCodeOption.id : "",
                   );
                 }}
                 className="font-bold"
@@ -1082,22 +1367,6 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                 <div ref={deckSelectRef}>
                   <Select
                     theme={reactSelectTheme}
-                    onFocus={() => {
-                      setTimeout(() => {
-                        deckSelectRef.current?.scrollIntoView({
-                          behavior: "smooth",
-                          block: "center",
-                        });
-                      }, 150);
-                    }}
-                    onMenuOpen={() => {
-                      setTimeout(() => {
-                        deckSelectRef.current?.scrollIntoView({
-                          behavior: "smooth",
-                          block: "center",
-                        });
-                      }, 150);
-                    }}
                     placeholder={
                       <div className="flex items-center gap-2">
                         <div className="text-xl">
@@ -1115,11 +1384,17 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                     onChange={(option) => {
                       setSelectedDeckOption(option);
                       setImageLoaded(false);
+                      setSelectedDeckCodeOption(null);
+                      setIsDeckChangedByUser(true);
+                      setImageLoadedForDeckCode(false);
                     }}
+                    onFocus={handleDeckSelectOpen}
+                    onMenuOpen={handleDeckSelectOpen}
                     menuPosition="fixed"
                     menuPlacement="bottom"
                     //menuShouldBlockScroll={true}
                     menuShouldScrollIntoView={true}
+                    components={{ MenuList: MenuListScrollToSelected }}
                     formatOptionLabel={(option, { context }) => {
                       if (context === "menu") {
                         return (
@@ -1139,7 +1414,9 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                                   <Image
                                     radius="none"
                                     shadow="none"
-                                    alt={option.latest_deck_code?.code || "デッキコードなし"}
+                                    alt={
+                                      option.latest_deck_code?.code || "デッキコードなし"
+                                    }
                                     src={
                                       option.latest_deck_code?.code
                                         ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${option.latest_deck_code.code}.jpg`
@@ -1163,24 +1440,103 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
                   />
                 </div>
               </div>
-              <div className="flex flex-col items-center gap-2 pb-3">
+
+              <div className="pb-1.5 flex flex-col gap-1">
+                <label className="text-sm font-medium">バージョン</label>
+                <div>
+                  <Select
+                    theme={reactSelectTheme}
+                    minMenuHeight={270}
+                    maxMenuHeight={270}
+                    placeholder={
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm">バージョン</span>
+                      </div>
+                    }
+                    isLoading={deckcodeLoading}
+                    isDisabled={!selectedDeckOption || deckcodeLoading}
+                      isClearable={true}
+                      isSearchable={false}
+                      noOptionsMessage={() => deckcodeOptionsMessage}
+                      options={deckcodeOptions}
+                      value={selectedDeckCodeOption}
+                      onChange={(option) => {
+                        setSelectedDeckCodeOption(option);
+                        setImageLoadedForDeckCode(false);
+                      }}
+                      menuPosition="fixed"
+                      menuPlacement="bottom"
+                      menuShouldScrollIntoView={true}
+                      components={{ MenuList: MenuListScrollToSelected }}
+                      formatOptionLabel={(option, { context }) => {
+                        if (context === "menu") {
+                          return (
+                            <div className="text-sm truncate border-1 p-2">
+                              <div className="grid">
+                                <span className="truncate">
+                                  作成日：{option.created_at}
+                                </span>
+                                <span className="truncate">
+                                  バージョン：
+                                  {createHash("sha1")
+                                    .update(option.id)
+                                    .digest("hex")
+                                    .slice(0, 8)}
+                                </span>
+                                <span className="truncate">
+                                  デッキコード：{option.code}
+                                </span>
+                                <span className="pt-1">
+                                  <div className="relative w-full aspect-2/1">
+                                    {!imageLoadedForDeckCode && (
+                                      <Skeleton className="absolute inset-0 rounded-lg" />
+                                    )}
+                                    <Image
+                                      radius="none"
+                                      shadow="none"
+                                      alt={option.code}
+                                      src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${option.code}.jpg`}
+                                      className=""
+                                      onLoad={() => setImageLoadedForDeckCode(true)}
+                                    />
+                                  </div>
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return (
+                          <div className="text-sm truncate">
+                            <span>
+                              バージョン：
+                              {createHash("sha1")
+                                .update(option.id)
+                                .digest("hex")
+                                .slice(0, 8)}
+                            </span>
+                          </div>
+                        );
+                      }}
+                    />
+                  </div>
+                </div>
+
+              <div className="flex flex-col items-center gap-2 pb-1.5">
                 <div className="relative w-full aspect-2/1">
-                  {!imageLoaded && <Skeleton className="absolute inset-0 rounded-lg" />}
+                  {!imageLoadedForDeckCode && (
+                    <Skeleton className="absolute inset-0 rounded-lg" />
+                  )}
                   <Image
                     radius="sm"
                     shadow="none"
-                    alt={
-                      selectedDeckOption?.latest_deck_code?.code
-                        ? selectedDeckOption.latest_deck_code.code
-                        : "デッキコードなし"
-                    }
+                    alt={selectedDeckCodeOption?.code || "デッキコードなし"}
                     src={
-                      selectedDeckOption?.latest_deck_code?.code
-                        ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${selectedDeckOption.latest_deck_code.code}.jpg`
+                      selectedDeckCodeOption?.code
+                        ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${selectedDeckCodeOption.code}.jpg`
                         : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
                     }
                     className="z-0"
-                    onLoad={() => setImageLoaded(true)}
+                    onLoad={() => setImageLoadedForDeckCode(true)}
                     onError={() => {}}
                   />
                 </div>
@@ -1189,14 +1545,16 @@ export default function TemplateRecordCreate({ deck_id }: Props) {
               <Button
                 color="primary"
                 isDisabled={
-                  !isValidatedTonamelEventId || isDisabledCreateTonamelEventRecord
+                  !isValidatedTonamelEventId ||
+                  isDisabledCreateTonamelEventRecord ||
+                  isDeckVersionInvalid
                 }
                 onPress={async () => {
                   onOpen();
                   await createTonamelEventRecord(
                     tonamelEventId ? tonamelEventId : "",
                     selectedDeckOption ? selectedDeckOption.id : "",
-                    selectedDeckOption ? selectedDeckOption.latest_deck_code.id : "",
+                    selectedDeckCodeOption ? selectedDeckCodeOption.id : "",
                   );
                 }}
                 className="font-bold"

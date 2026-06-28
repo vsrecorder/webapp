@@ -13,6 +13,7 @@ import { Pie } from "react-chartjs-2";
 import { Card, CardBody, Image, Tab, Tabs } from "@heroui/react";
 
 import { EnvironmentType } from "@app/types/environment";
+import { spriteScaleClass } from "@app/utils/sprite";
 import {
   OpponentDeckUsageItemType,
   OpponentDeckUsageStatType,
@@ -125,7 +126,7 @@ function DeckSprites({ deck }: { deck: OpponentDeckUsageItemType }) {
             key={`${sprite.id}-${idx}`}
             alt={sprite.id}
             src={spriteUrl(sprite.id)}
-            className="w-8 h-8 object-contain scale-150 origin-bottom"
+            className={`w-8 h-8 object-contain ${spriteScaleClass(sprite.id)} origin-bottom`}
           />
         ))}
         <Image
@@ -144,7 +145,7 @@ function DeckSprites({ deck }: { deck: OpponentDeckUsageItemType }) {
           key={`${sprite.id}-${idx}`}
           alt={sprite.id}
           src={spriteUrl(sprite.id)}
-          className="w-8 h-8 object-contain scale-150 origin-bottom"
+          className={`w-8 h-8 object-contain ${spriteScaleClass(sprite.id)} origin-bottom`}
         />
       ))}
     </div>

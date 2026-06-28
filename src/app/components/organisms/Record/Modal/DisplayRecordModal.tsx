@@ -387,7 +387,7 @@ export default function DisplayRecordModal({
                 <div className="mx-auto h-1 w-32 mb-1.5 rounded-full bg-default-300" />
 
                 {/* 両端配置 */}
-                <div className="flex items-center justify-between w-full">
+                <div className="flex items-center justiry-center justify-between w-full">
                   <div>記録情報</div>
 
                   {/* 3点メニュー */}
@@ -476,12 +476,12 @@ export default function DisplayRecordModal({
                   <div className="pb-0 flex items-center justify-center">
                     <div className="font-bold underline">対戦結果</div>
                   </div>
-                  {/* 画面はテーマ追従。書き出し時のみ light を一時付与する */}
-                  <div ref={matchCardRef} className="p-1 flex flex-col gap-3">
+                  <div className="p-1 flex flex-col gap-3">
                     <Matches
                       record={record}
                       enableCreateMatchModalButton={false}
                       enableUpdateMatchModalButton={false}
+                      matchCardRef={matchCardRef}
                     />
                   </div>
                 </div>
@@ -491,7 +491,6 @@ export default function DisplayRecordModal({
                     <div className="font-bold underline">使用したデッキ</div>
                   </div>
 
-                  {/* 画面はテーマ追従。書き出し時のみ light を一時付与する */}
                   <div ref={deckCardRef} className="p-1">
                     <UsedDeckById
                       record={record}

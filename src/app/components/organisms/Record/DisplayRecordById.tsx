@@ -46,11 +46,12 @@ export default function DisplayRecordById({ recordData }: Props) {
         <div className="pb-0 flex flex-col items-center justify-center gap-0">
           <div className="font-bold underline">対戦結果</div>
         </div>
-        <div ref={matchCardRef} className="p-1 flex flex-col gap-3">
+        <div className="p-1 flex flex-col gap-3">
           <Matches
             record={record}
             enableCreateMatchModalButton={true}
             enableUpdateMatchModalButton={true}
+            matchCardRef={matchCardRef}
           />
         </div>
       </div>

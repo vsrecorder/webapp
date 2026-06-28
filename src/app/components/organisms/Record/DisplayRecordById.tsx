@@ -15,7 +15,7 @@ type Props = {
 export default function DisplayRecordById({ recordData }: Props) {
   const [record, setRecord] = useState<RecordGetByIdResponseType | null>(recordData);
 
-  const eventCardRef = useRef<HTMLDivElement>(null);
+  const matchCardRef = useRef<HTMLDivElement>(null);
   const deckCardRef = useRef<HTMLDivElement>(null);
 
   return (
@@ -46,7 +46,7 @@ export default function DisplayRecordById({ recordData }: Props) {
         <div className="pb-0 flex flex-col items-center justify-center gap-0">
           <div className="font-bold underline">対戦結果</div>
         </div>
-        <div ref={eventCardRef} className="p-1 flex flex-col gap-3">
+        <div ref={matchCardRef} className="p-1 flex flex-col gap-3">
           <Matches
             record={record}
             enableCreateMatchModalButton={true}
@@ -73,7 +73,7 @@ export default function DisplayRecordById({ recordData }: Props) {
         <RecordActionsFloating
           record={record}
           setRecord={setRecord}
-          eventCardRef={eventCardRef}
+          matchCardRef={matchCardRef}
           deckCardRef={deckCardRef}
         />
       )}

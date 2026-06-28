@@ -256,7 +256,7 @@ export default function DisplayRecordModal({
     }
   };
 
-  const eventCardRef = useRef<HTMLDivElement>(null);
+  const matchCardRef = useRef<HTMLDivElement>(null);
 
   const handleSavingEventCardImage = async () => {
     const toastId = addToast({
@@ -266,7 +266,7 @@ export default function DisplayRecordModal({
       promise: new Promise(() => {}),
     });
 
-    if (!eventCardRef.current) {
+    if (!matchCardRef.current) {
       if (toastId) closeToast(toastId);
       addToast({
         title: "画像のダウンロードに失敗",
@@ -278,7 +278,7 @@ export default function DisplayRecordModal({
     }
 
     try {
-      const dataUrl = await captureAsLightPng(eventCardRef.current);
+      const dataUrl = await captureAsLightPng(matchCardRef.current);
       const link = document.createElement("a");
       link.download = `${record.id}_${Date.now()}.png`;
       link.href = dataUrl;
@@ -477,7 +477,7 @@ export default function DisplayRecordModal({
                     <div className="font-bold underline">対戦結果</div>
                   </div>
                   {/* 画面はテーマ追従。書き出し時のみ light を一時付与する */}
-                  <div ref={eventCardRef} className="p-1 flex flex-col gap-3">
+                  <div ref={matchCardRef} className="p-1 flex flex-col gap-3">
                     <Matches
                       record={record}
                       enableCreateMatchModalButton={false}

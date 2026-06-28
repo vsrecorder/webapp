@@ -138,14 +138,14 @@ async function captureAsLightPng(el: HTMLElement): Promise<string> {
 type Props = {
   record: RecordGetByIdResponseType;
   setRecord: Dispatch<SetStateAction<RecordGetByIdResponseType | null>>;
-  eventCardRef: RefObject<HTMLDivElement | null>;
+  matchCardRef: RefObject<HTMLDivElement | null>;
   deckCardRef: RefObject<HTMLDivElement | null>;
 };
 
 export default function RecordActionsFloating({
   record,
   setRecord,
-  eventCardRef,
+  matchCardRef,
   deckCardRef,
 }: Props) {
   const router = useRouter();
@@ -172,13 +172,17 @@ export default function RecordActionsFloating({
     if (record.official_event_id !== 0) {
       tasks.push(
         fetchOfficialEventForTweet(record.official_event_id)
-          .then((d) => { officialEvent = d; })
+          .then((d) => {
+            officialEvent = d;
+          })
           .catch(() => {}),
       );
     } else if (record.tonamel_event_id !== "") {
       tasks.push(
         fetchTonamelEventForTweet(record.tonamel_event_id)
-          .then((d) => { tonamelEvent = d; })
+          .then((d) => {
+            tonamelEvent = d;
+          })
           .catch(() => {}),
       );
     }
@@ -186,14 +190,18 @@ export default function RecordActionsFloating({
     if (record.deck_id) {
       tasks.push(
         fetchDeckForTweet(record.deck_id)
-          .then((d) => { deck = d; })
+          .then((d) => {
+            deck = d;
+          })
           .catch(() => {}),
       );
     }
 
     tasks.push(
       fetchMatchesForTweet(record.id)
-        .then((d) => { matches = d; })
+        .then((d) => {
+          matches = d;
+        })
         .catch(() => {}),
     );
 
@@ -210,7 +218,7 @@ export default function RecordActionsFloating({
       promise: new Promise(() => {}),
     });
 
-    if (!eventCardRef.current) {
+    if (!matchCardRef.current) {
       if (toastId) closeToast(toastId);
       addToast({
         title: "画像のダウンロードに失敗",
@@ -222,7 +230,7 @@ export default function RecordActionsFloating({
     }
 
     try {
-      const dataUrl = await captureAsLightPng(eventCardRef.current);
+      const dataUrl = await captureAsLightPng(matchCardRef.current);
       const link = document.createElement("a");
       link.download = `${record.id}_${Date.now()}.png`;
       link.href = dataUrl;

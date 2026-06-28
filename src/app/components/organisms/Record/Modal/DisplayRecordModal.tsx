@@ -453,7 +453,7 @@ export default function DisplayRecordModal({
                 </div>
               </ModalHeader>
 
-              <ModalBody className="px-3 pb-6 gap-9 overflow-y-auto">
+              <ModalBody className="px-3 pb-6 gap-9 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                 <div className="flex flex-col gap-3">
                   <div className="pb-0 flex items-center justify-center">
                     <div className="font-bold underline">参加したイベント</div>

@@ -29,6 +29,7 @@ import { RiTwitterXLine } from "react-icons/ri";
 
 import OfficialEventInfo from "@app/components/organisms/Record/OfficialEventInfo";
 import TonamelEventInfo from "@app/components/organisms/Record/TonamelEventInfo";
+import UnofficialEventInfo from "@app/components/organisms/Record/UnofficialEventInfo";
 import Matches from "@app/components/organisms/Match/Matches";
 import UsedDeckById from "@app/components/organisms/Deck/UsedDeckById";
 
@@ -409,7 +410,11 @@ export default function DisplayRecordModal({
                         startContent={<LuExternalLink />}
                         onPress={() => {
                           const eventType =
-                            record.official_event_id !== 0 ? "official" : "tonamel";
+                            record.official_event_id !== 0
+                              ? "official"
+                              : record.tonamel_event_id !== ""
+                                ? "tonamel"
+                                : "unofficial";
                           sessionStorage.setItem("reopenModalRecordId", record.id);
                           sessionStorage.setItem("reopenModalEventType", eventType);
                           router.push(`/records/${record.id}`);
@@ -453,7 +458,7 @@ export default function DisplayRecordModal({
                 </div>
               </ModalHeader>
 
-              <ModalBody className="px-3 pb-6 gap-9 overflow-y-auto">
+              <ModalBody className="px-3 pb-6 gap-9 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                 <div className="flex flex-col gap-3">
                   <div className="pb-0 flex items-center justify-center">
                     <div className="font-bold underline">参加したイベント</div>
@@ -467,6 +472,8 @@ export default function DisplayRecordModal({
                     />
                   ) : record.tonamel_event_id !== "" ? (
                     <TonamelEventInfo record={record} />
+                  ) : record.unofficial_event_id !== "" ? (
+                    <UnofficialEventInfo record={record} />
                   ) : (
                     <></>
                   )}

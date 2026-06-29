@@ -28,7 +28,7 @@ import { Button } from "@heroui/react";
 
 import { addToast, closeToast } from "@heroui/react";
 
-import { LuTrash2 } from "react-icons/lu";
+import { LuTrash2, LuLayers, LuFilePen, LuBook, LuBookPlus } from "react-icons/lu";
 
 import DeckCardDiff from "@app/components/organisms/Deck/DeckCardDiff";
 
@@ -59,18 +59,22 @@ async function fetchDeckCodesByDeckId(deck_id: string) {
 
 type Props = {
   deck: DeckGetByIdResponseType | null;
+  deckcode: DeckCodeType | null;
   setDeckCode: Dispatch<SetStateAction<DeckCodeType | null>>;
   isOpen: boolean;
   onOpenChange: () => void;
   onClose: () => void;
+  onOpenCreateDeckCode?: () => void;
 };
 
 export default function DisplayDeckCodesModal({
   deck,
+  deckcode,
   setDeckCode,
   isOpen,
   onOpenChange,
   onClose,
+  onOpenCreateDeckCode,
 }: Props) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [displayDeckCode, setDisplayDeckCode] = useState<DeckCodeType | null>(null);
@@ -128,6 +132,21 @@ export default function DisplayDeckCodesModal({
 
     fetchDeckCodesData();
   }, [isOpen, deck]);
+
+  // 新しいバージョンが作成されたら、一覧の先頭に動的に追加する
+  useEffect(() => {
+    if (!isOpen || !deckcode?.id) return;
+
+    setDisplayDeckCodes((prev) => {
+      // まだ未取得（0件）の場合はそのまま先頭に
+      if (!prev) return [deckcode];
+
+      // すでに一覧に存在する場合は何もしない（重複防止）
+      if (prev.some((dc) => dc.id === deckcode.id)) return prev;
+
+      return [deckcode, ...prev];
+    });
+  }, [isOpen, deckcode?.id]);
 
   if (!deck) {
     return;
@@ -229,6 +248,10 @@ export default function DisplayDeckCodesModal({
     }
   };
 
+  // バージョンが1件のときは、タイムラインの続きとして次バージョン作成を促す
+  const showNextVersionPrompt =
+    displayDeckCodes?.length === 1 && !!onOpenCreateDeckCode;
+
   return (
     <>
       <Modal
@@ -320,7 +343,7 @@ export default function DisplayDeckCodesModal({
 
                 <div>バージョン一覧</div>
               </ModalHeader>
-              <ModalBody className="px-2 py-3 flex flex-col overflow-y-auto">
+              <ModalBody className="px-2 py-3 flex flex-col overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                 <>
                   {loading ? (
                     <Spinner size="lg" className="pt-32" />
@@ -328,7 +351,67 @@ export default function DisplayDeckCodesModal({
                     <ol className="relative">
                       <div className="flex flex-col">
                         {(!displayDeckCodes || displayDeckCodes.length === 0) && (
-                          <div className="text-center">バージョンがありません</div>
+                          <div className="flex flex-col items-center gap-5 py-8 px-3">
+                            <div className="w-20 h-20 rounded-full bg-linear-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-lg">
+                              <LuLayers className="text-white text-4xl" />
+                            </div>
+
+                            <div className="text-center">
+                              <div className="font-bold text-lg">
+                                デッキのバージョンを記録しよう
+                              </div>
+                              <div className="text-default-400 text-sm mt-1">
+                                デッキの変遷を残して、強化の歴史を振り返ろう
+                              </div>
+                            </div>
+
+                            <div className="w-full flex flex-col gap-2.5">
+                              <div className="flex items-center gap-3 bg-default-100 rounded-xl px-4 py-3">
+                                <LuLayers className="text-blue-500 text-xl shrink-0" />
+                                <div>
+                                  <div className="font-bold text-sm">変更履歴を追跡</div>
+                                  <div className="text-tiny text-default-400">
+                                    どのカードを入れ替えたか一目でわかる
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-3 bg-default-100 rounded-xl px-4 py-3">
+                                <LuFilePen className="text-green-500 text-xl shrink-0" />
+                                <div>
+                                  <div className="font-bold text-sm">差分を比較</div>
+                                  <div className="text-tiny text-default-400">
+                                    バージョン間のカード増減をひと目で確認
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-3 bg-default-100 rounded-xl px-4 py-3">
+                                <LuBook className="text-purple-500 text-xl shrink-0" />
+                                <div>
+                                  <div className="font-bold text-sm">
+                                    過去のデッキコードを保存
+                                  </div>
+                                  <div className="text-tiny text-default-400">
+                                    バージョン変更前後の構成をいつでも見返せる
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {onOpenCreateDeckCode && (
+                              <Button
+                                color="primary"
+                                variant="solid"
+                                size="lg"
+                                startContent={<LuBookPlus className="text-xl" />}
+                                onPress={() => {
+                                  onOpenCreateDeckCode();
+                                }}
+                                className="font-bold w-full"
+                              >
+                                最初のバージョンを作成する
+                              </Button>
+                            )}
+                          </div>
                         )}
 
                         {displayDeckCodes?.map(
@@ -351,7 +434,9 @@ export default function DisplayDeckCodesModal({
                                 key={deckcode.id}
                                 className={`border-s-2  ${
                                   index === displayDeckCodes.length - 1
-                                    ? "border-transparent"
+                                    ? showNextVersionPrompt
+                                      ? "border-blue-300 border-dashed"
+                                      : "border-transparent"
                                     : "border-blue-300"
                                 }`}
                               >
@@ -493,6 +578,44 @@ export default function DisplayDeckCodesModal({
                               </li>
                             );
                           },
+                        )}
+
+                        {showNextVersionPrompt && (
+                          <li className="border-s-2 border-transparent">
+                            <div className="pb-2">
+                              <div className="flex items-center">
+                                <div className="flex pb-3 items-center">
+                                  {/* 未作成を示す中空ノード */}
+                                  <div className="-translate-x-1/2 w-3 h-3 rounded-full border-2 border-blue-400 bg-content1" />
+                                  <div className="text-tiny text-default-400">
+                                    次のバージョン
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="pl-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    onOpenCreateDeckCode?.();
+                                  }}
+                                  className="group w-full flex flex-col items-center gap-2 rounded-xl border-2 border-dashed border-blue-300 bg-primary-50/50 px-4 py-5 transition-colors hover:border-blue-400 hover:bg-primary-50 active:opacity-80"
+                                >
+                                  <div className="w-11 h-11 rounded-full bg-primary-100 flex items-center justify-center transition-colors group-hover:bg-primary-200">
+                                    <LuBookPlus className="text-2xl text-primary" />
+                                  </div>
+                                  <div className="font-bold text-sm text-primary">
+                                    次のバージョンを作成
+                                  </div>
+                                  <div className="text-tiny text-default-400 text-center">
+                                    デッキを更新したら記録して、
+                                    <br />
+                                    変化を時系列で振り返ろう
+                                  </div>
+                                </button>
+                              </div>
+                            </div>
+                          </li>
                         )}
                       </div>
                     </ol>

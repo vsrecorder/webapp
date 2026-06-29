@@ -6,6 +6,7 @@ export type UserStatType = {
   total_records: number;
   official_event_count: number;
   tonamel_event_count: number;
+  unofficial_event_count: number;
   total_matches: number;
   wins: number;
   losses: number;

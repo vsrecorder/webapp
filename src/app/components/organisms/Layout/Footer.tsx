@@ -10,7 +10,7 @@ export default async function Footer() {
         <div className="flex flex-col sm:flex-row sm:justify-between gap-8 pb-8 border-b border-neutral-800">
           {/* ブランドエリア */}
           <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <div className="w-8 h-8 relative shrink-0">
                 <Image
                   src="/images/icon.png"
@@ -20,7 +20,7 @@ export default async function Footer() {
                   className="object-contain rounded-lg"
                 />
               </div>
-              <span className="text-white font-bold text-base">バトレコ</span>
+              <span className="text-white font-bold text-md">バトレコ</span>
             </div>
             <p className="text-xs leading-relaxed">
               ポケカプレイヤーのための

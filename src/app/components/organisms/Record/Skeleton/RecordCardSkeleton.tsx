@@ -1,32 +1,38 @@
 import { Card, CardBody } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
 
-export function OfficialEventRecordSkeleton() {
+/*
+ * RecordCardBase と同じ骨格のローディングスケルトン。
+ * 公式/Tonamel/記入形式の全カードで共有する。
+ */
+export function RecordCardSkeleton() {
   return (
     <div>
       <Card shadow="none" className="border border-divider overflow-hidden">
         <CardBody className="p-0">
           <div className="flex">
+            {/* 左アクセントバー */}
             <Skeleton className="w-1 shrink-0 rounded-none" />
-            <div className="flex-1 px-4 py-5">
-              {/* 日付 */}
+
+            <div className="flex-1 px-4 py-3.5 min-w-0">
+              {/* 開催日 */}
               <Skeleton className="h-3.5 w-28 rounded-md" />
-              {/* タイトル */}
+
+              {/* イベント名 */}
               <Skeleton className="h-5 w-48 rounded-md mt-1" />
-              {/* イベント種別バッジ + 環境バッジ */}
+
+              {/* チップ */}
               <div className="flex items-center gap-2 mt-1.5">
-                <Skeleton className="h-5 w-16 rounded-full" />
-                <Skeleton className="h-5 w-20 rounded-full" />
+                <Skeleton className="h-4 w-16 rounded-full" />
               </div>
+
               {/* 区切り線 */}
               <div className="border-t border-divider mt-3 mb-2.5" />
-              {/* 情報行 */}
-              <div className="flex items-center gap-2">
+
+              {/* 情報行(アイコン枠 + デッキ) */}
+              <div className="flex items-center gap-3">
                 <Skeleton className="w-8 h-8 rounded-lg shrink-0" />
-                <div className="flex flex-col gap-2">
-                  <Skeleton className="h-3.5 w-32 rounded-md" />
-                  <Skeleton className="h-3.5 w-24 rounded-md" />
-                </div>
+                <Skeleton className="h-3.5 w-24 rounded-md" />
               </div>
             </div>
           </div>
@@ -45,14 +51,14 @@ function MonthHeaderSkeleton() {
   );
 }
 
-export function OfficialEventRecordSkeletons() {
+export function RecordCardSkeletons() {
   return (
     <>
       <MonthHeaderSkeleton />
-      <OfficialEventRecordSkeleton />
-      <OfficialEventRecordSkeleton />
+      <RecordCardSkeleton />
+      <RecordCardSkeleton />
       <MonthHeaderSkeleton />
-      <OfficialEventRecordSkeleton />
+      <RecordCardSkeleton />
     </>
   );
 }

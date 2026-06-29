@@ -51,6 +51,10 @@ import { OfficialEventResponseType, OfficialEventType } from "@app/types/officia
 import { DeckGetAllType, DeckData } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
 import { RecordCreateRequestType, RecordCreateResponseType } from "@app/types/record";
+import {
+  UnofficialEventCreateRequestType,
+  UnofficialEventCreateResponseType,
+} from "@app/types/unofficial_event";
 
 type OfficialEventOption = {
   label: string;
@@ -325,13 +329,31 @@ function convertToDeckCodeOption(data: DeckCodeType): DeckCodeOption {
   };
 }
 
-function StepLabel({ num, children }: { num: number; children: React.ReactNode }) {
+// 必須項目であることを示すバッジ
+function RequiredBadge() {
+  return (
+    <span className="text-[10px] font-bold text-danger border border-danger rounded px-1 leading-tight">
+      必須
+    </span>
+  );
+}
+
+function StepLabel({
+  num,
+  required,
+  children,
+}: {
+  num: number;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
   return (
     <div className="flex items-center gap-2">
       <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary text-white text-[10px] font-bold shrink-0">
         {num}
       </span>
       <span className="text-sm font-semibold">{children}</span>
+      {required && <RequiredBadge />}
     </div>
   );
 }
@@ -339,6 +361,7 @@ function StepLabel({ num, children }: { num: number; children: React.ReactNode }
 type Props = {
   deck_id: string;
   deck_code_id: string;
+  tab?: "official" | "tonamel" | "unofficial";
 };
 
 // メニューを開いたとき、選択済みオプションがリストの先頭に来るようにスクロールする
@@ -373,13 +396,11 @@ const MenuListScrollToSelected = ({ innerRef, ...props }: any) => {
     // 選択なし: 非表示のまま毎フレーム先頭へ固定し続け、
     // react-select の位置計算が落ち着いてから表示する（チラつき防止）
     let rafId = 0;
-    const start =
-      typeof performance !== "undefined" ? performance.now() : Date.now();
+    const start = typeof performance !== "undefined" ? performance.now() : Date.now();
     const loop = () => {
       const node = nodeRef.current;
       if (node) node.scrollTop = 0;
-      const now =
-        typeof performance !== "undefined" ? performance.now() : Date.now();
+      const now = typeof performance !== "undefined" ? performance.now() : Date.now();
       if (now - start < 80) {
         rafId = requestAnimationFrame(loop);
       } else {
@@ -410,7 +431,11 @@ const MenuListScrollToSelected = ({ innerRef, ...props }: any) => {
   );
 };
 
-export default function TemplateRecordCreate({ deck_id, deck_code_id }: Props) {
+export default function TemplateRecordCreate({
+  deck_id,
+  deck_code_id,
+  tab = "official",
+}: Props) {
   const router = useRouter();
 
   // react-select をダークモードに追従させるテーマ
@@ -435,6 +460,17 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id }: Props) {
   const [tonamelEventImage, setTonamelEventImage] = useState<string>("");
   const [isValidatedTonamelEventId, setIsValidatedTonamelEventId] =
     useState<boolean>(false);
+  const [tonamelEventDate, setTonamelEventDate] = useState<CalendarDate>(
+    today(getLocalTimeZone()),
+  );
+
+  // 記入形式イベント用の状態。ユーザが任意に開催日とイベント名を入力する
+  const [unofficialEventDate, setUnofficialEventDate] = useState<CalendarDate>(
+    today(getLocalTimeZone()),
+  );
+  const [unofficialEventTitle, setUnofficialEventTitle] = useState<string>("");
+  const [isDisabledCreateUnofficialRecord, setIsDisabledCreateUnofficialRecord] =
+    useState(true);
 
   const [selectedDeckOption, setSelectedDeckOption] = useState<DeckOption | null>(null);
   const [selectedDeckCodeOption, setSelectedDeckCodeOption] =
@@ -533,6 +569,9 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id }: Props) {
   const isDeckVersionInvalid =
     !!selectedDeckOption &&
     (deckcodeLoading || ((deckcodeData?.length ?? 0) > 0 && !selectedDeckCodeOption));
+
+  // デッキを選択していてバージョンが存在する場合のみ、バージョンは必須となる
+  const isDeckVersionRequired = !!selectedDeckOption && (deckcodeData?.length ?? 0) > 0;
 
   /*
     TonamelのイベントIDが有効かどうかチェック
@@ -642,13 +681,23 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id }: Props) {
     }
   }, [selectedOfficialEventOption]);
 
+  // Tonamelは開催日(常に既定値あり)とイベントIDが必須。デッキは任意のため必須にしない
   useEffect(() => {
-    if (tonamelEventId && isValidatedTonamelEventId && selectedDeckOption) {
+    if (tonamelEventId && isValidatedTonamelEventId) {
       setIsDisabledCreateTonamelEventRecord(false);
     } else {
       setIsDisabledCreateTonamelEventRecord(true);
     }
-  }, [tonamelEventId, isValidatedTonamelEventId, selectedDeckOption]);
+  }, [tonamelEventId, isValidatedTonamelEventId]);
+
+  // 記入形式はイベント名が入力されていれば作成可能（デッキは任意）
+  useEffect(() => {
+    if (unofficialEventTitle.trim() !== "") {
+      setIsDisabledCreateUnofficialRecord(false);
+    } else {
+      setIsDisabledCreateUnofficialRecord(true);
+    }
+  }, [unofficialEventTitle]);
 
   /*
    * デッキが変更されたとき、SWR でデッキコードが取得され次第
@@ -696,6 +745,7 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id }: Props) {
    */
   async function createOfficialEventRecord(
     officialEventId: number,
+    eventDate: Date,
     deckId: string,
     deckCodeId: string,
   ) {
@@ -708,6 +758,14 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id }: Props) {
       promise: new Promise(() => {}),
     });
 
+    // eventDate は JST オフセット付き(例: 2026-06-29T00:00:00+09:00)で渡される。
+    // toISOString() を使うと UTC に変換され日付が一日前へずれるため、
+    // Tonamel/記入形式と同様にローカル(壁時計)の年月日から組み立てる。
+    const yyyy = eventDate.getFullYear();
+    const mm = String(eventDate.getMonth() + 1).padStart(2, "0");
+    const dd = String(eventDate.getDate()).padStart(2, "0");
+    const eventDateISO = `${yyyy}-${mm}-${dd}T00:00:00Z`;
+
     const record: RecordCreateRequestType = {
       official_event_id: officialEventId,
       tonamel_event_id: "",
@@ -717,6 +775,8 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id }: Props) {
       private_flg: true,
       tcg_meister_url: "",
       memo: "",
+      event_date: eventDateISO,
+      unofficial_event_id: "",
     };
 
     try {
@@ -785,6 +845,7 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id }: Props) {
    */
   async function createTonamelEventRecord(
     tonamelEventId: string,
+    eventDate: CalendarDate,
     deckId: string,
     deckCodeId: string,
   ) {
@@ -797,6 +858,11 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id }: Props) {
       promise: new Promise(() => {}),
     });
 
+    const yyyy = eventDate.year;
+    const mm = String(eventDate.month).padStart(2, "0");
+    const dd = String(eventDate.day).padStart(2, "0");
+    const eventDateISO = `${yyyy}-${mm}-${dd}T00:00:00Z`;
+
     const record: RecordCreateRequestType = {
       official_event_id: 0,
       tonamel_event_id: tonamelEventId,
@@ -806,6 +872,8 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id }: Props) {
       private_flg: true,
       tcg_meister_url: "",
       memo: "",
+      event_date: eventDateISO,
+      unofficial_event_id: "",
     };
 
     try {
@@ -865,6 +933,130 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id }: Props) {
     }
   }
 
+  /*
+   *
+   *
+   * 記入形式イベント用の記録を作成する関数
+   *
+   * 非公式イベントやTonamel以外で運営される大会など、
+   * ユーザが任意に開催日とイベント名を入力して記録を作成する
+   *
+   */
+  async function createUnofficialRecord(
+    eventDate: CalendarDate,
+    eventTitle: string,
+    deckId: string,
+    deckCodeId: string,
+  ) {
+    setIsDisabledCreateUnofficialRecord(true);
+
+    const toastId = addToast({
+      title: "記録作成中",
+      description: "しばらくお待ちください",
+      color: "default",
+      promise: new Promise(() => {}),
+    });
+
+    // CalendarDate を RFC3339(UTC 0時)の文字列へ変換する
+    const yyyy = eventDate.year;
+    const mm = String(eventDate.month).padStart(2, "0");
+    const dd = String(eventDate.day).padStart(2, "0");
+    const eventDateISO = `${yyyy}-${mm}-${dd}T00:00:00Z`;
+
+    try {
+      // 1. 先に記入形式イベント(unofficial_events)を作成し、そのIDを取得する。
+      //    records とは疎結合とし、records は unofficial_event_id で参照する。
+      const unofficialEventReq: UnofficialEventCreateRequestType = {
+        title: eventTitle.trim(),
+        date: eventDateISO,
+      };
+
+      const unofficialEventRes = await fetch("/api/unofficial_events", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(unofficialEventReq),
+      });
+
+      if (!unofficialEventRes.ok) {
+        const t = await unofficialEventRes.json();
+        throw new Error(`HTTP error: ${unofficialEventRes.status} Message: ${t.message}`);
+      }
+
+      const unofficialEvent: UnofficialEventCreateResponseType =
+        await unofficialEventRes.json();
+
+      // 2. 取得した unofficial_event_id を使って記録を作成する。
+      const record: RecordCreateRequestType = {
+        official_event_id: 0,
+        tonamel_event_id: "",
+        friend_id: "",
+        deck_id: deckId,
+        deck_code_id: deckCodeId,
+        private_flg: true,
+        tcg_meister_url: "",
+        memo: "",
+        event_date: eventDateISO,
+        unofficial_event_id: unofficialEvent.id,
+      };
+
+      const res = await fetch("/api/records", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(record),
+      });
+
+      if (!res.ok) {
+        const t = await res.json();
+        throw new Error(`HTTP error: ${res.status} Message: ${t.message}`);
+      }
+
+      if (toastId) {
+        closeToast(toastId);
+      }
+
+      const ret: RecordCreateResponseType = await res.json();
+
+      addToast({
+        title: "記録作成完了",
+        description: "記録を作成しました",
+        color: "success",
+        timeout: 3000,
+      });
+
+      router.push("/records/" + ret.id);
+    } catch (error) {
+      console.error(error);
+
+      const errorMessage =
+        error instanceof Error ? error.message : "不明なエラーが発生しました";
+
+      if (toastId) {
+        closeToast(toastId);
+      }
+
+      addToast({
+        title: "記録作成失敗",
+        description: (
+          <>
+            記録の作成に失敗しました
+            <br />
+            {errorMessage}
+          </>
+        ),
+        color: "danger",
+        timeout: 5000,
+      });
+
+      setIsDisabledCreateUnofficialRecord(false);
+
+      onClose();
+    }
+  }
+
   return (
     <>
       <Modal
@@ -897,6 +1089,7 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id }: Props) {
         <Tabs
           fullWidth
           size="md"
+          defaultSelectedKey={tab}
           className="fixed z-50 top-15 left-0 right-0 pl-1 pr-1 font-bold"
         >
           {/*
@@ -910,11 +1103,13 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id }: Props) {
             <div className="pt-9 flex flex-col gap-2">
               <div className="flex flex-col gap-1 pt-1">
                 <div className="flex flex-col gap-2">
-                  <StepLabel num={1}>日付</StepLabel>
+                  <StepLabel num={1} required>
+                    開催日
+                  </StepLabel>
                 </div>
 
                 <DatePicker
-                  aria-label="日付"
+                  aria-label="開催日"
                   radius="none"
                   size="sm"
                   firstDayOfWeek="mon"
@@ -929,7 +1124,9 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id }: Props) {
 
               <div className="flex flex-col gap-1 pt-1">
                 <div className="flex flex-col gap-2">
-                  <StepLabel num={2}>イベント</StepLabel>
+                  <StepLabel num={2} required>
+                    イベント
+                  </StepLabel>
                 </div>
 
                 <WindowedSelect
@@ -1136,7 +1333,9 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id }: Props) {
                     onFocus={handleDeckSelectOpen}
                     onMenuOpen={handleDeckSelectOpen}
                     menuPosition="fixed"
-                    menuPortalTarget={typeof document !== "undefined" ? document.body : null}
+                    menuPortalTarget={
+                      typeof document !== "undefined" ? document.body : null
+                    }
                     styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
                     menuPlacement="bottom"
                     //menuShouldBlockScroll={true}
@@ -1192,7 +1391,10 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id }: Props) {
               </div>
 
               <div className="pb-1.5 flex flex-col gap-1">
-                <label className="text-sm font-medium">バージョン</label>
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium">バージョン</label>
+                  {isDeckVersionRequired && <RequiredBadge />}
+                </div>
                 <div>
                   <Select
                     theme={reactSelectTheme}
@@ -1205,73 +1407,75 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id }: Props) {
                     }
                     isLoading={deckcodeLoading}
                     isDisabled={!selectedDeckOption || deckcodeLoading}
-                      isClearable={true}
-                      isSearchable={false}
-                      noOptionsMessage={() => deckcodeOptionsMessage}
-                      options={deckcodeOptions}
-                      value={selectedDeckCodeOption}
-                      onChange={(option) => {
-                        setSelectedDeckCodeOption(option);
-                        setImageLoadedForDeckCode(false);
-                      }}
-                      menuPosition="fixed"
-                      menuPortalTarget={typeof document !== "undefined" ? document.body : null}
-                      styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
-                      menuPlacement="bottom"
-                      menuShouldScrollIntoView={true}
-                      components={{ MenuList: MenuListScrollToSelected }}
-                      formatOptionLabel={(option, { context }) => {
-                        if (context === "menu") {
-                          return (
-                            <div className="text-sm truncate border-1 p-2">
-                              <div className="grid">
-                                <span className="truncate">
-                                  作成日：{option.created_at}
-                                </span>
-                                <span className="truncate">
-                                  バージョン：
-                                  {createHash("sha1")
-                                    .update(option.id)
-                                    .digest("hex")
-                                    .slice(0, 8)}
-                                </span>
-                                <span className="truncate">
-                                  デッキコード：{option.code}
-                                </span>
-                                <span className="pt-1">
-                                  <div className="relative w-full aspect-2/1">
-                                    {!imageLoadedForDeckCode && (
-                                      <Skeleton className="absolute inset-0 rounded-lg" />
-                                    )}
-                                    <Image
-                                      radius="none"
-                                      shadow="none"
-                                      alt={option.code}
-                                      src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${option.code}.jpg`}
-                                      className=""
-                                      onLoad={() => setImageLoadedForDeckCode(true)}
-                                    />
-                                  </div>
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        }
+                    isClearable={true}
+                    isSearchable={false}
+                    noOptionsMessage={() => deckcodeOptionsMessage}
+                    options={deckcodeOptions}
+                    value={selectedDeckCodeOption}
+                    onChange={(option) => {
+                      setSelectedDeckCodeOption(option);
+                      setImageLoadedForDeckCode(false);
+                    }}
+                    menuPosition="fixed"
+                    menuPortalTarget={
+                      typeof document !== "undefined" ? document.body : null
+                    }
+                    styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
+                    menuPlacement="bottom"
+                    menuShouldScrollIntoView={true}
+                    components={{ MenuList: MenuListScrollToSelected }}
+                    formatOptionLabel={(option, { context }) => {
+                      if (context === "menu") {
                         return (
-                          <div className="text-sm truncate">
-                            <span>
-                              バージョン：
-                              {createHash("sha1")
-                                .update(option.id)
-                                .digest("hex")
-                                .slice(0, 8)}
-                            </span>
+                          <div className="text-sm truncate border-1 p-2">
+                            <div className="grid">
+                              <span className="truncate">
+                                作成日：{option.created_at}
+                              </span>
+                              <span className="truncate">
+                                バージョン：
+                                {createHash("sha1")
+                                  .update(option.id)
+                                  .digest("hex")
+                                  .slice(0, 8)}
+                              </span>
+                              <span className="truncate">
+                                デッキコード：{option.code}
+                              </span>
+                              <span className="pt-1">
+                                <div className="relative w-full aspect-2/1">
+                                  {!imageLoadedForDeckCode && (
+                                    <Skeleton className="absolute inset-0 rounded-lg" />
+                                  )}
+                                  <Image
+                                    radius="none"
+                                    shadow="none"
+                                    alt={option.code}
+                                    src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${option.code}.jpg`}
+                                    className=""
+                                    onLoad={() => setImageLoadedForDeckCode(true)}
+                                  />
+                                </div>
+                              </span>
+                            </div>
                           </div>
                         );
-                      }}
-                    />
-                  </div>
+                      }
+                      return (
+                        <div className="text-sm truncate">
+                          <span>
+                            バージョン：
+                            {createHash("sha1")
+                              .update(option.id)
+                              .digest("hex")
+                              .slice(0, 8)}
+                          </span>
+                        </div>
+                      );
+                    }}
+                  />
                 </div>
+              </div>
 
               <div className="flex flex-col items-center gap-2 pb-1.5">
                 <div className="relative w-full aspect-2/1">
@@ -1301,6 +1505,9 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id }: Props) {
                   onOpen();
                   await createOfficialEventRecord(
                     selectedOfficialEventOption ? selectedOfficialEventOption.id : 0,
+                    selectedOfficialEventOption
+                      ? selectedOfficialEventOption.date
+                      : new Date(),
                     selectedDeckOption ? selectedDeckOption.id : "",
                     selectedDeckCodeOption ? selectedDeckCodeOption.id : "",
                   );
@@ -1324,7 +1531,31 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id }: Props) {
             <div className="pt-9 flex flex-col gap-2">
               <div className="flex flex-col gap-1 pt-1">
                 <div className="flex flex-col gap-2">
-                  <StepLabel num={1}>イベントID</StepLabel>
+                  <StepLabel num={1} required>
+                    開催日
+                  </StepLabel>
+                </div>
+
+                <DatePicker
+                  aria-label="開催日"
+                  radius="none"
+                  size="sm"
+                  firstDayOfWeek="mon"
+                  defaultValue={tonamelEventDate}
+                  value={tonamelEventDate}
+                  onChange={(value) => {
+                    setTonamelEventDate(
+                      value == null ? today(getLocalTimeZone()) : value,
+                    );
+                  }}
+                />
+              </div>
+
+              <div className="flex flex-col gap-1 pt-1">
+                <div className="flex flex-col gap-2">
+                  <StepLabel num={2} required>
+                    イベントID
+                  </StepLabel>
                 </div>
 
                 <Input
@@ -1368,7 +1599,7 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id }: Props) {
 
               <div className="flex flex-col gap-1">
                 <div className="flex flex-col gap-2">
-                  <StepLabel num={2}>デッキ</StepLabel>
+                  <StepLabel num={3}>デッキ</StepLabel>
                 </div>
 
                 <div ref={deckSelectRef}>
@@ -1398,7 +1629,9 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id }: Props) {
                     onFocus={handleDeckSelectOpen}
                     onMenuOpen={handleDeckSelectOpen}
                     menuPosition="fixed"
-                    menuPortalTarget={typeof document !== "undefined" ? document.body : null}
+                    menuPortalTarget={
+                      typeof document !== "undefined" ? document.body : null
+                    }
                     styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
                     menuPlacement="bottom"
                     //menuShouldBlockScroll={true}
@@ -1454,7 +1687,10 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id }: Props) {
               </div>
 
               <div className="pb-1.5 flex flex-col gap-1">
-                <label className="text-sm font-medium">バージョン</label>
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium">バージョン</label>
+                  {isDeckVersionRequired && <RequiredBadge />}
+                </div>
                 <div>
                   <Select
                     theme={reactSelectTheme}
@@ -1467,73 +1703,75 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id }: Props) {
                     }
                     isLoading={deckcodeLoading}
                     isDisabled={!selectedDeckOption || deckcodeLoading}
-                      isClearable={true}
-                      isSearchable={false}
-                      noOptionsMessage={() => deckcodeOptionsMessage}
-                      options={deckcodeOptions}
-                      value={selectedDeckCodeOption}
-                      onChange={(option) => {
-                        setSelectedDeckCodeOption(option);
-                        setImageLoadedForDeckCode(false);
-                      }}
-                      menuPosition="fixed"
-                      menuPortalTarget={typeof document !== "undefined" ? document.body : null}
-                      styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
-                      menuPlacement="bottom"
-                      menuShouldScrollIntoView={true}
-                      components={{ MenuList: MenuListScrollToSelected }}
-                      formatOptionLabel={(option, { context }) => {
-                        if (context === "menu") {
-                          return (
-                            <div className="text-sm truncate border-1 p-2">
-                              <div className="grid">
-                                <span className="truncate">
-                                  作成日：{option.created_at}
-                                </span>
-                                <span className="truncate">
-                                  バージョン：
-                                  {createHash("sha1")
-                                    .update(option.id)
-                                    .digest("hex")
-                                    .slice(0, 8)}
-                                </span>
-                                <span className="truncate">
-                                  デッキコード：{option.code}
-                                </span>
-                                <span className="pt-1">
-                                  <div className="relative w-full aspect-2/1">
-                                    {!imageLoadedForDeckCode && (
-                                      <Skeleton className="absolute inset-0 rounded-lg" />
-                                    )}
-                                    <Image
-                                      radius="none"
-                                      shadow="none"
-                                      alt={option.code}
-                                      src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${option.code}.jpg`}
-                                      className=""
-                                      onLoad={() => setImageLoadedForDeckCode(true)}
-                                    />
-                                  </div>
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        }
+                    isClearable={true}
+                    isSearchable={false}
+                    noOptionsMessage={() => deckcodeOptionsMessage}
+                    options={deckcodeOptions}
+                    value={selectedDeckCodeOption}
+                    onChange={(option) => {
+                      setSelectedDeckCodeOption(option);
+                      setImageLoadedForDeckCode(false);
+                    }}
+                    menuPosition="fixed"
+                    menuPortalTarget={
+                      typeof document !== "undefined" ? document.body : null
+                    }
+                    styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
+                    menuPlacement="bottom"
+                    menuShouldScrollIntoView={true}
+                    components={{ MenuList: MenuListScrollToSelected }}
+                    formatOptionLabel={(option, { context }) => {
+                      if (context === "menu") {
                         return (
-                          <div className="text-sm truncate">
-                            <span>
-                              バージョン：
-                              {createHash("sha1")
-                                .update(option.id)
-                                .digest("hex")
-                                .slice(0, 8)}
-                            </span>
+                          <div className="text-sm truncate border-1 p-2">
+                            <div className="grid">
+                              <span className="truncate">
+                                作成日：{option.created_at}
+                              </span>
+                              <span className="truncate">
+                                バージョン：
+                                {createHash("sha1")
+                                  .update(option.id)
+                                  .digest("hex")
+                                  .slice(0, 8)}
+                              </span>
+                              <span className="truncate">
+                                デッキコード：{option.code}
+                              </span>
+                              <span className="pt-1">
+                                <div className="relative w-full aspect-2/1">
+                                  {!imageLoadedForDeckCode && (
+                                    <Skeleton className="absolute inset-0 rounded-lg" />
+                                  )}
+                                  <Image
+                                    radius="none"
+                                    shadow="none"
+                                    alt={option.code}
+                                    src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${option.code}.jpg`}
+                                    className=""
+                                    onLoad={() => setImageLoadedForDeckCode(true)}
+                                  />
+                                </div>
+                              </span>
+                            </div>
                           </div>
                         );
-                      }}
-                    />
-                  </div>
+                      }
+                      return (
+                        <div className="text-sm truncate">
+                          <span>
+                            バージョン：
+                            {createHash("sha1")
+                              .update(option.id)
+                              .digest("hex")
+                              .slice(0, 8)}
+                          </span>
+                        </div>
+                      );
+                    }}
+                  />
                 </div>
+              </div>
 
               <div className="flex flex-col items-center gap-2 pb-1.5">
                 <div className="relative w-full aspect-2/1">
@@ -1567,6 +1805,270 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id }: Props) {
                   onOpen();
                   await createTonamelEventRecord(
                     tonamelEventId ? tonamelEventId : "",
+                    tonamelEventDate,
+                    selectedDeckOption ? selectedDeckOption.id : "",
+                    selectedDeckCodeOption ? selectedDeckCodeOption.id : "",
+                  );
+                }}
+                className="font-bold"
+              >
+                記録を作成
+              </Button>
+            </div>
+          </Tab>
+
+          {/*
+           *
+           *
+           * 記入形式
+           *
+           *
+           */}
+
+          <Tab key="unofficial" title="記入形式" isDisabled={false}>
+            <div className="pt-9 flex flex-col gap-2">
+              <div className="flex flex-col gap-1 pt-1">
+                <div className="flex flex-col gap-2">
+                  <StepLabel num={1} required>
+                    開催日
+                  </StepLabel>
+                </div>
+
+                <DatePicker
+                  aria-label="開催日"
+                  radius="none"
+                  size="sm"
+                  firstDayOfWeek="mon"
+                  defaultValue={unofficialEventDate}
+                  value={unofficialEventDate}
+                  onChange={(value) => {
+                    setUnofficialEventDate(
+                      value == null ? today(getLocalTimeZone()) : value,
+                    );
+                  }}
+                />
+              </div>
+
+              <div className="flex flex-col gap-1 pt-1">
+                <div className="flex flex-col gap-2">
+                  <StepLabel num={2} required>
+                    イベント名
+                  </StepLabel>
+                </div>
+
+                <Input
+                  isRequired
+                  type="text"
+                  radius="none"
+                  placeholder="例）〇〇自主大会"
+                  value={unofficialEventTitle}
+                  onChange={(e) => setUnofficialEventTitle(e.target.value)}
+                />
+              </div>
+
+              <div className="flex flex-col gap-1 pt-1.5">
+                <div className="flex flex-col gap-2">
+                  <StepLabel num={3}>デッキ</StepLabel>
+                </div>
+
+                <div ref={deckSelectRef}>
+                  <Select
+                    theme={reactSelectTheme}
+                    placeholder={
+                      <div className="flex items-center gap-2">
+                        <div className="text-xl">
+                          <CgSearch />
+                        </div>
+                        <span className="text-sm">デッキ名で検索</span>
+                      </div>
+                    }
+                    isClearable={true}
+                    isSearchable={true}
+                    noOptionsMessage={() => deckOptionsMessage}
+                    options={deckOptions}
+                    value={selectedDeckOption}
+                    onChange={(option) => {
+                      setSelectedDeckOption(option);
+                      setImageLoaded(false);
+                      setSelectedDeckCodeOption(null);
+                      setIsDeckChangedByUser(true);
+                      setImageLoadedForDeckCode(false);
+                    }}
+                    onFocus={handleDeckSelectOpen}
+                    onMenuOpen={handleDeckSelectOpen}
+                    menuPosition="fixed"
+                    menuPortalTarget={
+                      typeof document !== "undefined" ? document.body : null
+                    }
+                    styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
+                    menuPlacement="bottom"
+                    menuShouldScrollIntoView={true}
+                    onMenuClose={() => {
+                      (document.activeElement as HTMLElement)?.blur();
+                    }}
+                    components={{ MenuList: MenuListScrollToSelected }}
+                    formatOptionLabel={(option, { context }) => {
+                      if (context === "menu") {
+                        return (
+                          <div className="text-sm truncate border-1 p-2">
+                            <div className="grid">
+                              <span className="truncate">
+                                登録日：{option.created_at}
+                              </span>
+
+                              <span className="truncate">デッキ名：{option.name}</span>
+
+                              <span className="pt-1">
+                                <div className="relative w-full aspect-2/1">
+                                  {!imageLoaded && (
+                                    <Skeleton className="absolute inset-0 rounded-lg" />
+                                  )}
+                                  <Image
+                                    radius="none"
+                                    shadow="none"
+                                    alt={
+                                      option.latest_deck_code?.code || "デッキコードなし"
+                                    }
+                                    src={
+                                      option.latest_deck_code?.code
+                                        ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${option.latest_deck_code.code}.jpg`
+                                        : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
+                                    }
+                                    className=""
+                                    onLoad={() => setImageLoaded(true)}
+                                  />
+                                </div>
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="text-sm truncate">
+                          <span>{option.name}</span>
+                        </div>
+                      );
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="pb-1.5 flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium">バージョン</label>
+                  {isDeckVersionRequired && <RequiredBadge />}
+                </div>
+                <div>
+                  <Select
+                    theme={reactSelectTheme}
+                    minMenuHeight={270}
+                    maxMenuHeight={270}
+                    placeholder={
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm">バージョン</span>
+                      </div>
+                    }
+                    isLoading={deckcodeLoading}
+                    isDisabled={!selectedDeckOption || deckcodeLoading}
+                    isClearable={true}
+                    isSearchable={false}
+                    noOptionsMessage={() => deckcodeOptionsMessage}
+                    options={deckcodeOptions}
+                    value={selectedDeckCodeOption}
+                    onChange={(option) => {
+                      setSelectedDeckCodeOption(option);
+                      setImageLoadedForDeckCode(false);
+                    }}
+                    menuPosition="fixed"
+                    menuPortalTarget={
+                      typeof document !== "undefined" ? document.body : null
+                    }
+                    styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
+                    menuPlacement="bottom"
+                    menuShouldScrollIntoView={true}
+                    components={{ MenuList: MenuListScrollToSelected }}
+                    formatOptionLabel={(option, { context }) => {
+                      if (context === "menu") {
+                        return (
+                          <div className="text-sm truncate border-1 p-2">
+                            <div className="grid">
+                              <span className="truncate">
+                                作成日：{option.created_at}
+                              </span>
+                              <span className="truncate">
+                                バージョン：
+                                {createHash("sha1")
+                                  .update(option.id)
+                                  .digest("hex")
+                                  .slice(0, 8)}
+                              </span>
+                              <span className="truncate">
+                                デッキコード：{option.code}
+                              </span>
+                              <span className="pt-1">
+                                <div className="relative w-full aspect-2/1">
+                                  {!imageLoadedForDeckCode && (
+                                    <Skeleton className="absolute inset-0 rounded-lg" />
+                                  )}
+                                  <Image
+                                    radius="none"
+                                    shadow="none"
+                                    alt={option.code}
+                                    src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${option.code}.jpg`}
+                                    className=""
+                                    onLoad={() => setImageLoadedForDeckCode(true)}
+                                  />
+                                </div>
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="text-sm truncate">
+                          <span>
+                            バージョン：
+                            {createHash("sha1")
+                              .update(option.id)
+                              .digest("hex")
+                              .slice(0, 8)}
+                          </span>
+                        </div>
+                      );
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col items-center gap-2 pb-1.5">
+                <div className="relative w-full aspect-2/1">
+                  {!imageLoadedForDeckCode && (
+                    <Skeleton className="absolute inset-0 rounded-lg" />
+                  )}
+                  <Image
+                    radius="sm"
+                    shadow="none"
+                    alt={selectedDeckCodeOption?.code || "デッキコードなし"}
+                    src={
+                      selectedDeckCodeOption?.code
+                        ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${selectedDeckCodeOption.code}.jpg`
+                        : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
+                    }
+                    className="z-0"
+                    onLoad={() => setImageLoadedForDeckCode(true)}
+                    onError={() => {}}
+                  />
+                </div>
+              </div>
+
+              <Button
+                color="primary"
+                isDisabled={isDisabledCreateUnofficialRecord || isDeckVersionInvalid}
+                onPress={async () => {
+                  onOpen();
+                  await createUnofficialRecord(
+                    unofficialEventDate,
+                    unofficialEventTitle,
                     selectedDeckOption ? selectedDeckOption.id : "",
                     selectedDeckCodeOption ? selectedDeckCodeOption.id : "",
                   );

@@ -18,8 +18,20 @@ export default function UserStatPanelSkeleton() {
         </div>
 
         {/* 統計グリッドのスケルトン */}
+        <div className="flex flex-col gap-1.5 items-center p-3 rounded-xl bg-default-100">
+          <Skeleton className="h-3 w-12 rounded-full" />
+          <Skeleton className="h-7 w-10 rounded-full" />
+        </div>
         <div className="grid grid-cols-3 gap-3">
-          {[...Array(6)].map((_, i) => (
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="flex flex-col gap-1.5 items-center p-3 rounded-xl bg-default-100">
+              <Skeleton className="h-3 w-12 rounded-full" />
+              <Skeleton className="h-7 w-10 rounded-full" />
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          {[...Array(3)].map((_, i) => (
             <div key={i} className="flex flex-col gap-1.5 items-center p-3 rounded-xl bg-default-100">
               <Skeleton className="h-3 w-12 rounded-full" />
               <Skeleton className="h-7 w-10 rounded-full" />

@@ -98,7 +98,7 @@ export default async function TemplateDashboard({ userId }: Props) {
 
   return (
     <>
-      <div className="flex flex-col pt-6 gap-6 max-w-2xl mx-auto w-full">
+      <div className="flex flex-col pt-2 gap-3 max-w-2xl mx-auto w-full">
         {/* プロフィールカード */}
         {user && <UserProfileCard user={user} />}
 

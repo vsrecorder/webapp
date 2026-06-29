@@ -251,7 +251,7 @@ export default async function TemplateHome() {
         {env && (
           <div className="inline-flex items-center gap-2 rounded-full bg-white/20 backdrop-blur-sm px-4 py-1.5 text-xs font-bold">
             <span className="w-2 h-2 rounded-full bg-green-300 animate-pulse shrink-0" />
-            現在の環境：『{env.title}』
+            現在の対戦環境：『{env.title}』
           </div>
         )}
 

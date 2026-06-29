@@ -407,6 +407,8 @@ export default function UpdateUsedDeckModal({
       private_flg: record ? record.private_flg : true,
       tcg_meister_url: record ? record.tcg_meister_url : "",
       memo: record ? record.memo : "",
+      event_date: record ? record.event_date : "",
+      unofficial_event_id: record ? record.unofficial_event_id : "",
     };
 
     try {
@@ -510,197 +512,195 @@ export default function UpdateUsedDeckModal({
             <ModalHeader className="text-lg px-3">使用したデッキを編集</ModalHeader>
             <ModalBody className="px-3 py-1 gap-3">
               <>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-medium">デッキ名</label>
-                    <div>
-                      <WindowedSelect
-                        theme={reactSelectTheme}
-                        windowThreshold={50}
-                        minMenuHeight={330}
-                        maxMenuHeight={330}
-                        placeholder={
-                          <div className="flex items-center gap-2">
-                            <div className="text-xl">
-                              <CgSearch />
-                            </div>
-                            <span className="text-sm">デッキ名</span>
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-medium">デッキ名</label>
+                  <div>
+                    <WindowedSelect
+                      theme={reactSelectTheme}
+                      windowThreshold={50}
+                      minMenuHeight={330}
+                      maxMenuHeight={330}
+                      placeholder={
+                        <div className="flex items-center gap-2">
+                          <div className="text-xl">
+                            <CgSearch />
                           </div>
-                        }
-                        isLoading={isLoadingDeckOptions}
-                        isDisabled={isLoadingDeckOptions}
-                        isClearable={true}
-                        isSearchable={true}
-                        noOptionsMessage={() => deckOptionsMessage}
-                        options={deckOptions}
-                        value={selectedDeckOption}
-                        onChange={(option) => {
-                          setSelectedDeckCodeOption(null);
-                          setIsDeckChangedByUser(true);
-                          setSelectedDeckOption(option as DeckOption);
-                          setImageLoadedForDeck(false);
-                          setIsLoadingDeckCodeOptions(true);
-                        }}
-                        menuPosition="fixed"
-                        menuPortalTarget={
-                          typeof document !== "undefined" ? document.body : null
-                        }
-                        styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
-                        menuPlacement="bottom"
-                        menuShouldScrollIntoView={true}
-                        onMenuClose={() => {
-                          focusSinkRef.current?.focus();
-                        }}
-                        formatOptionLabel={(option, { context }) => {
-                          const opt = option as DeckOption;
-                          if (context === "menu") {
-                            return (
-                              <div className="text-sm truncate border-1 p-2">
-                                <div className="grid">
-                                  <span className="truncate">
-                                    登録日：{opt.created_at}
-                                  </span>
-
-                                  <span className="truncate">デッキ名：{opt.name}</span>
-
-                                  <span className="pt-1">
-                                    <div className="relative w-full aspect-2/1">
-                                      {!imageLoadedForDeck && (
-                                        <Skeleton className="absolute inset-0 rounded-lg" />
-                                      )}
-                                      <Image
-                                        radius="none"
-                                        shadow="none"
-                                        alt={opt.latest_deck_code.code}
-                                        src={
-                                          opt.latest_deck_code?.code
-                                            ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${opt.latest_deck_code.code}.jpg`
-                                            : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
-                                        }
-                                        className=""
-                                        onLoad={() => setImageLoadedForDeck(true)}
-                                      />
-                                    </div>
-                                  </span>
-                                </div>
-                              </div>
-                            );
-                          }
+                          <span className="text-sm">デッキ名</span>
+                        </div>
+                      }
+                      isLoading={isLoadingDeckOptions}
+                      isDisabled={isLoadingDeckOptions}
+                      isClearable={true}
+                      isSearchable={true}
+                      noOptionsMessage={() => deckOptionsMessage}
+                      options={deckOptions}
+                      value={selectedDeckOption}
+                      onChange={(option) => {
+                        setSelectedDeckCodeOption(null);
+                        setIsDeckChangedByUser(true);
+                        setSelectedDeckOption(option as DeckOption);
+                        setImageLoadedForDeck(false);
+                        setIsLoadingDeckCodeOptions(true);
+                      }}
+                      menuPosition="fixed"
+                      menuPortalTarget={
+                        typeof document !== "undefined" ? document.body : null
+                      }
+                      styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
+                      menuPlacement="bottom"
+                      menuShouldScrollIntoView={true}
+                      onMenuClose={() => {
+                        focusSinkRef.current?.focus();
+                      }}
+                      formatOptionLabel={(option, { context }) => {
+                        const opt = option as DeckOption;
+                        if (context === "menu") {
                           return (
-                            <div className="text-sm truncate">
-                              <span>{opt.name}</span>
+                            <div className="text-sm truncate border-1 p-2">
+                              <div className="grid">
+                                <span className="truncate">登録日：{opt.created_at}</span>
+
+                                <span className="truncate">デッキ名：{opt.name}</span>
+
+                                <span className="pt-1">
+                                  <div className="relative w-full aspect-2/1">
+                                    {!imageLoadedForDeck && (
+                                      <Skeleton className="absolute inset-0 rounded-lg" />
+                                    )}
+                                    <Image
+                                      radius="none"
+                                      shadow="none"
+                                      alt={opt.latest_deck_code.code}
+                                      src={
+                                        opt.latest_deck_code?.code
+                                          ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${opt.latest_deck_code.code}.jpg`
+                                          : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
+                                      }
+                                      className=""
+                                      onLoad={() => setImageLoadedForDeck(true)}
+                                    />
+                                  </div>
+                                </span>
+                              </div>
                             </div>
                           );
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-medium">バージョン</label>
-                    <div>
-                      <Select
-                        theme={reactSelectTheme}
-                        minMenuHeight={270}
-                        maxMenuHeight={270}
-                        placeholder={
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm">バージョン</span>
+                        }
+                        return (
+                          <div className="text-sm truncate">
+                            <span>{opt.name}</span>
                           </div>
-                        }
-                        isLoading={isLoadingDeckCodeOptions}
-                        isDisabled={isLoadingDeckCodeOptions || !selectedDeckOption}
-                        isClearable={true}
-                        isSearchable={false}
-                        noOptionsMessage={() => deckcodeOptionsMessage}
-                        options={deckcodeOptions}
-                        value={selectedDeckCodeOption}
-                        onChange={(option) => {
-                          setSelectedDeckCodeOption(option);
-
-                          setImageLoadedForDeckCode(false);
-                        }}
-                        menuPosition="fixed"
-                        menuPortalTarget={
-                          typeof document !== "undefined" ? document.body : null
-                        }
-                        styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
-                        menuPlacement="bottom"
-                        menuShouldScrollIntoView={true}
-                        formatOptionLabel={(option, { context }) => {
-                          if (context === "menu") {
-                            return (
-                              <div className="text-sm truncate border-1 p-2">
-                                <div className="grid">
-                                  <span className="truncate">
-                                    作成日：{option.created_at}
-                                  </span>
-                                  <span className="truncate">
-                                    バージョン：
-                                    {createHash("sha1")
-                                      .update(option.id)
-                                      .digest("hex")
-                                      .slice(0, 8)}
-                                  </span>
-                                  <span className="truncate">
-                                    デッキコード：{option.code}
-                                  </span>
-                                  <span className="pt-1">
-                                    <div className="relative w-full aspect-2/1">
-                                      {!imageLoadedForDeckCode && (
-                                        <Skeleton className="absolute inset-0 rounded-lg" />
-                                      )}
-                                      <Image
-                                        radius="none"
-                                        shadow="none"
-                                        alt={option.code}
-                                        src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${option.code}.jpg`}
-                                        className=""
-                                        onLoad={() => setImageLoadedForDeckCode(true)}
-                                      />
-                                    </div>
-                                  </span>
-                                </div>
-                              </div>
-                            );
-                          }
-                          return (
-                            <div className="text-sm truncate">
-                              <span>
-                                バージョン：
-                                {createHash("sha1")
-                                  .update(option.id)
-                                  .digest("hex")
-                                  .slice(0, 8)}
-                              </span>
-                            </div>
-                          );
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="relative w-full aspect-2/1">
-                    {!imageLoadedForDeckCode && (
-                      <Skeleton className="absolute inset-0 rounded-lg" />
-                    )}
-                    <Image
-                      radius="sm"
-                      shadow="none"
-                      alt={
-                        selectedDeckCodeOption
-                          ? selectedDeckCodeOption.code
-                          : "デッキコードなし"
-                      }
-                      src={
-                        selectedDeckCodeOption
-                          ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${selectedDeckCodeOption.code}.jpg`
-                          : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
-                      }
-                      className="z-0"
-                      //onLoad={() => {}}
-                      onError={() => {}}
+                        );
+                      }}
                     />
                   </div>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium">バージョン</label>
+                  <div>
+                    <Select
+                      theme={reactSelectTheme}
+                      minMenuHeight={270}
+                      maxMenuHeight={270}
+                      placeholder={
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm">バージョン</span>
+                        </div>
+                      }
+                      isLoading={isLoadingDeckCodeOptions}
+                      isDisabled={isLoadingDeckCodeOptions || !selectedDeckOption}
+                      isClearable={true}
+                      isSearchable={false}
+                      noOptionsMessage={() => deckcodeOptionsMessage}
+                      options={deckcodeOptions}
+                      value={selectedDeckCodeOption}
+                      onChange={(option) => {
+                        setSelectedDeckCodeOption(option);
+
+                        setImageLoadedForDeckCode(false);
+                      }}
+                      menuPosition="fixed"
+                      menuPortalTarget={
+                        typeof document !== "undefined" ? document.body : null
+                      }
+                      styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
+                      menuPlacement="bottom"
+                      menuShouldScrollIntoView={true}
+                      formatOptionLabel={(option, { context }) => {
+                        if (context === "menu") {
+                          return (
+                            <div className="text-sm truncate border-1 p-2">
+                              <div className="grid">
+                                <span className="truncate">
+                                  作成日：{option.created_at}
+                                </span>
+                                <span className="truncate">
+                                  バージョン：
+                                  {createHash("sha1")
+                                    .update(option.id)
+                                    .digest("hex")
+                                    .slice(0, 8)}
+                                </span>
+                                <span className="truncate">
+                                  デッキコード：{option.code}
+                                </span>
+                                <span className="pt-1">
+                                  <div className="relative w-full aspect-2/1">
+                                    {!imageLoadedForDeckCode && (
+                                      <Skeleton className="absolute inset-0 rounded-lg" />
+                                    )}
+                                    <Image
+                                      radius="none"
+                                      shadow="none"
+                                      alt={option.code}
+                                      src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${option.code}.jpg`}
+                                      className=""
+                                      onLoad={() => setImageLoadedForDeckCode(true)}
+                                    />
+                                  </div>
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return (
+                          <div className="text-sm truncate">
+                            <span>
+                              バージョン：
+                              {createHash("sha1")
+                                .update(option.id)
+                                .digest("hex")
+                                .slice(0, 8)}
+                            </span>
+                          </div>
+                        );
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div className="relative w-full aspect-2/1">
+                  {!imageLoadedForDeckCode && (
+                    <Skeleton className="absolute inset-0 rounded-lg" />
+                  )}
+                  <Image
+                    radius="sm"
+                    shadow="none"
+                    alt={
+                      selectedDeckCodeOption
+                        ? selectedDeckCodeOption.code
+                        : "デッキコードなし"
+                    }
+                    src={
+                      selectedDeckCodeOption
+                        ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${selectedDeckCodeOption.code}.jpg`
+                        : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
+                    }
+                    className="z-0"
+                    //onLoad={() => {}}
+                    onError={() => {}}
+                  />
+                </div>
                 {/* セレクターを閉じたときのフォーカス受け皿（キーボードを閉じるために使用） */}
                 <div
                   ref={focusSinkRef}

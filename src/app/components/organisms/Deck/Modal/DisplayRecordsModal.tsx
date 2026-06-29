@@ -5,7 +5,7 @@ import { Modal, ModalContent, ModalHeader, ModalBody } from "@heroui/react";
 
 import Records from "@app/components/organisms/Record/Records";
 
-type TabKey = "official" | "tonamel";
+type TabKey = "official" | "tonamel" | "unofficial";
 
 import { DeckGetByIdResponseType } from "@app/types/deck";
 
@@ -39,13 +39,14 @@ export default function DisplayRecordsModal({
       onClose();
     }
   };
-  const [selectedKey, setSelectedKey] = useState<"official" | "tonamel">("official");
+  const [selectedKey, setSelectedKey] = useState<TabKey>("official");
   const bodyRef = useRef<HTMLDivElement | null>(null);
 
   // タブごとのスクロール位置を保存
   const scrollPositions = useRef<Record<TabKey, number>>({
     official: 0,
     tonamel: 0,
+    unofficial: 0,
   });
 
   const handleSelectionChange = (key: React.Key) => {
@@ -112,16 +113,24 @@ export default function DisplayRecordsModal({
                 >
                   <Tab key="official" title="公式イベント" />
                   <Tab key="tonamel" title="Tonamel" />
+                  <Tab key="unofficial" title="記入形式" />
                 </Tabs>
               </div>
             </ModalHeader>
-            <ModalBody ref={bodyRef} className="px-2 py-2 flex flex-col overflow-y-auto">
+            <ModalBody
+              ref={bodyRef}
+              className="px-2 py-2 flex flex-col overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+            >
               <div hidden={selectedKey !== "official"} className="pt-12">
                 <Records event_type={"official"} deck_id={deck ? deck.id : ""} />
               </div>
 
               <div hidden={selectedKey !== "tonamel"} className="pt-12">
                 <Records event_type={"tonamel"} deck_id={deck ? deck.id : ""} />
+              </div>
+
+              <div hidden={selectedKey !== "unofficial"} className="pt-12">
+                <Records event_type={"unofficial"} deck_id={deck ? deck.id : ""} />
               </div>
             </ModalBody>
           </>

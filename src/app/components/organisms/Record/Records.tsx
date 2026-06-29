@@ -7,8 +7,8 @@ import { Button, Link } from "@heroui/react";
 
 import OfficialEventRecord from "@app/components/organisms/Record/OfficialEventRecord";
 import TonamelEventRecord from "@app/components/organisms/Record/TonamelEventRecord";
-import { OfficialEventRecordSkeletons } from "@app/components/organisms/Record/Skeleton/OfficialEventRecordSkeleton";
-import { TonamelEventRecordSkeletons } from "@app/components/organisms/Record/Skeleton/TonamelEventRecordSkeleton";
+import UnofficialEventRecord from "@app/components/organisms/Record/UnofficialEventRecord";
+import { RecordCardSkeletons } from "@app/components/organisms/Record/Skeleton/RecordCardSkeleton";
 
 import { LuCirclePlus, LuFilePen, LuClipboardList } from "react-icons/lu";
 
@@ -185,7 +185,9 @@ export default function Records({
               <p className="text-sm text-default-500">
                 {event_type === "official"
                   ? "公式イベントの対戦記録を管理できます"
-                  : "Tonamelイベントの対戦記録を管理できます"}
+                  : event_type === "tonamel"
+                    ? "Tonamelイベントの対戦記録を管理できます"
+                    : "記入形式でイベントの対戦記録を管理できます"}
               </p>
             </div>
           </div>
@@ -222,8 +224,10 @@ export default function Records({
                   <p className="text-sm font-bold">記録を作成する</p>
                   <p className="text-xs text-default-500">
                     {event_type === "official"
-                      ? "下のボタンから日付・イベント・デッキを選択して記録を作成してください"
-                      : "下のボタンからTonamelイベントID・デッキを選択して記録を作成してください"}
+                      ? "下のボタンから開催日・イベント・デッキを選択して記録を作成してください"
+                      : event_type === "tonamel"
+                        ? "下のボタンから開催日・TonamelイベントID・デッキを選択して記録を作成してください"
+                        : "下のボタンから開催日・イベント名・デッキを入力して記録を作成してください"}
                   </p>
                 </div>
               </div>
@@ -232,7 +236,7 @@ export default function Records({
 
           <Button
             as={Link}
-            href="/records/create"
+            href={`/records/create?event_type=${event_type}`}
             color="primary"
             size="md"
             radius="full"
@@ -247,9 +251,21 @@ export default function Records({
       <div className="flex flex-col w-full gap-3">
         {event_type === "official"
           ? items.map((recordData, index) => {
-              const d = new Date(recordData.data.created_at);
+              const rawDate =
+                recordData.data.event_date &&
+                !recordData.data.event_date.startsWith("0001-01-01")
+                  ? recordData.data.event_date
+                  : recordData.data.created_at;
+              const d = new Date(rawDate);
               const monthKey = `${d.getFullYear()}年${d.getMonth() + 1}月`;
-              const prev = index > 0 ? new Date(items[index - 1].data.created_at) : null;
+              const prevRawDate =
+                index > 0
+                  ? items[index - 1].data.event_date &&
+                    !items[index - 1].data.event_date.startsWith("0001-01-01")
+                    ? items[index - 1].data.event_date
+                    : items[index - 1].data.created_at
+                  : null;
+              const prev = prevRawDate ? new Date(prevRawDate) : null;
               const prevMonthKey = prev
                 ? `${prev.getFullYear()}年${prev.getMonth() + 1}月`
                 : null;
@@ -276,26 +292,62 @@ export default function Records({
                 </Fragment>
               );
             })
-          : items.map(
-              (recordData) =>
-                event_type === "tonamel" && (
-                  <TonamelEventRecord
-                    key={recordData.data.id}
-                    recordData={recordData}
-                    enableDisplayRecordModal={true}
-                    onReopenComplete={
-                      recordData.data.id === pendingReopenId
-                        ? () => handleReopenComplete(recordData.data.id)
-                        : undefined
-                    }
-                  />
-                ),
-            )}
+          : items.map((recordData, index) => {
+              const rawDate =
+                recordData.data.event_date &&
+                !recordData.data.event_date.startsWith("0001-01-01")
+                  ? recordData.data.event_date
+                  : recordData.data.created_at;
+              const d = new Date(rawDate);
+              const monthKey = `${d.getFullYear()}年${d.getMonth() + 1}月`;
+              const prevRawDate =
+                index > 0
+                  ? items[index - 1].data.event_date &&
+                    !items[index - 1].data.event_date.startsWith("0001-01-01")
+                    ? items[index - 1].data.event_date
+                    : items[index - 1].data.created_at
+                  : null;
+              const prev = prevRawDate ? new Date(prevRawDate) : null;
+              const prevMonthKey = prev
+                ? `${prev.getFullYear()}年${prev.getMonth() + 1}月`
+                : null;
+
+              return (
+                <Fragment key={recordData.data.id}>
+                  {monthKey !== prevMonthKey && (
+                    <div className="flex items-center gap-3 pt-1 pb-0.5">
+                      <span className="text-xs font-bold text-default-400 tracking-wide shrink-0">
+                        {monthKey}
+                      </span>
+                      <div className="flex-1 h-px bg-divider" />
+                    </div>
+                  )}
+                  {event_type === "tonamel" ? (
+                    <TonamelEventRecord
+                      recordData={recordData}
+                      enableDisplayRecordModal={true}
+                      onReopenComplete={
+                        recordData.data.id === pendingReopenId
+                          ? () => handleReopenComplete(recordData.data.id)
+                          : undefined
+                      }
+                    />
+                  ) : event_type === "unofficial" ? (
+                    <UnofficialEventRecord
+                      recordData={recordData}
+                      enableDisplayRecordModal={true}
+                      onReopenComplete={
+                        recordData.data.id === pendingReopenId
+                          ? () => handleReopenComplete(recordData.data.id)
+                          : undefined
+                      }
+                    />
+                  ) : null}
+                </Fragment>
+              );
+            })}
         {/* ローディング表示 */}
-        {!isInitialLoaded && event_type === "official" && (
-          <OfficialEventRecordSkeletons />
-        )}
-        {!isInitialLoaded && event_type === "tonamel" && <TonamelEventRecordSkeletons />}
+        {!isInitialLoaded && <RecordCardSkeletons />}
         {isInitialLoaded && isLoading && <Spinner size="lg" className="pt-0" />}
         {!disable_more_load && isInitialLoaded && !isLoading && hasMore && (
           <Button size="sm" radius="full" onPress={loadMore}>

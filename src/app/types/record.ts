@@ -10,6 +10,9 @@ type Data = {
   private_flg: boolean;
   tcg_meister_url: string;
   memo: string;
+  // 記入形式イベント用。開催日(ISO文字列)と unofficial_events のID
+  event_date: string;
+  unofficial_event_id: string;
 };
 
 export type RecordType = {
@@ -33,6 +36,8 @@ export type RecordCreateRequestType = {
   private_flg: boolean;
   tcg_meister_url: string;
   memo: string;
+  event_date: string;
+  unofficial_event_id: string;
 };
 
 export type RecordUpdateRequestType = {
@@ -44,6 +49,8 @@ export type RecordUpdateRequestType = {
   private_flg: boolean;
   tcg_meister_url: string;
   memo: string;
+  event_date: string;
+  unofficial_event_id: string;
 };
 
 export type RecordGetByIdResponseType = Data;

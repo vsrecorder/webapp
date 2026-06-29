@@ -246,12 +246,12 @@ export default function UserStatPanel({
         <p className="text-center text-xs text-default-400 -mt-2">{filterLabel} の戦績</p>
 
         {/* 統計グリッド */}
+        <StatCell
+          label="対戦記録"
+          value={stat?.total_records ?? 0}
+          isLoading={isLoading}
+        />
         <div className="grid grid-cols-3 gap-2">
-          <StatCell
-            label="対戦記録"
-            value={stat?.total_records ?? 0}
-            isLoading={isLoading}
-          />
           <StatCell
             label="公式イベント"
             value={stat?.official_event_count ?? 0}
@@ -262,6 +262,13 @@ export default function UserStatPanel({
             value={stat?.tonamel_event_count ?? 0}
             isLoading={isLoading}
           />
+          <StatCell
+            label="記入形式"
+            value={stat?.unofficial_event_count ?? 0}
+            isLoading={isLoading}
+          />
+        </div>
+        <div className="grid grid-cols-3 gap-2">
           <StatCell
             label="試合数"
             value={stat?.total_matches ?? 0}

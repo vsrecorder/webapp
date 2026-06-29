@@ -101,7 +101,7 @@ export default async function Header() {
               className={`w-1.5 h-1.5 rounded-full ${getEnvDotColor(resolvedEnv.to_date)} animate-pulse shrink-0`}
             />
             <ScrollingText
-              text={`現在の環境：『${resolvedEnv.title}』`}
+              text={`現在の対戦環境：『${resolvedEnv.title}』`}
               className="text-white/80 text-xs font-medium min-w-0"
             />
           </div>

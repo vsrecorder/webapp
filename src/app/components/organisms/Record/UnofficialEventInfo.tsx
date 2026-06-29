@@ -1,37 +1,32 @@
 import { useEffect, useState } from "react";
 
-import { Link } from "@heroui/react";
 import { Chip } from "@heroui/react";
 
-import { LuLink } from "react-icons/lu";
+import { LuPencilLine } from "react-icons/lu";
 
 import RecordInfoCardBase from "@app/components/organisms/Record/RecordInfoCardBase";
 import RecordInfoCardSkeleton from "@app/components/organisms/Record/Skeleton/RecordInfoCardSkeleton";
 
 import { RecordGetByIdResponseType } from "@app/types/record";
-import { TonamelEventGetByIdResponseType } from "@app/types/tonamel_event";
+import { UnofficialEventGetByIdResponseType } from "@app/types/unofficial_event";
 import { EnvironmentType } from "@app/types/environment";
 
-async function fetchTonamelEventById(id: string) {
-  try {
-    const res = await fetch(`/api/tonamel_events/${id}`, {
-      cache: "no-store",
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
-    });
+async function fetchUnofficialEventById(
+  id: string,
+): Promise<UnofficialEventGetByIdResponseType> {
+  const res = await fetch(`/api/unofficial_events/${id}`, {
+    cache: "no-store",
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+    },
+  });
 
-    if (!res.ok) {
-      throw new Error("Failed to fetch");
-    }
-
-    const ret: TonamelEventGetByIdResponseType = await res.json();
-
-    return ret;
-  } catch (error) {
-    throw error;
+  if (!res.ok) {
+    throw new Error("Failed to fetch");
   }
+
+  return (await res.json()) as UnofficialEventGetByIdResponseType;
 }
 
 // 開催日(YYYY-MM-DD)時点の対戦環境を取得する
@@ -57,47 +52,48 @@ type Props = {
   record: RecordGetByIdResponseType | null;
 };
 
-export default function TonamelEventInfo({ record }: Props) {
-  const [tonamelEvent, setTonamelEvent] =
-    useState<TonamelEventGetByIdResponseType | null>(null);
-  const [loadingTonamelEvent, setLoadingTonamelEvent] = useState(true);
+export default function UnofficialEventInfo({ record }: Props) {
+  const [unofficialEvent, setUnofficialEvent] =
+    useState<UnofficialEventGetByIdResponseType | null>(null);
+  const [loadingUnofficialEvent, setLoadingUnofficialEvent] = useState(true);
 
   const [environment, setEnvironment] = useState<EnvironmentType | null>(null);
 
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!record?.tonamel_event_id) {
-      setLoadingTonamelEvent(false);
+    if (!record?.unofficial_event_id) {
+      setLoadingUnofficialEvent(false);
       return;
     }
 
-    setLoadingTonamelEvent(true);
+    setLoadingUnofficialEvent(true);
 
     const fetchData = async () => {
       try {
-        setLoadingTonamelEvent(true);
-
-        const data = await fetchTonamelEventById(record.tonamel_event_id);
-
-        setTonamelEvent(data);
+        setLoadingUnofficialEvent(true);
+        const data = await fetchUnofficialEventById(record.unofficial_event_id);
+        setUnofficialEvent(data);
       } catch (err) {
         console.log(err);
         setError("データの取得に失敗しました");
       } finally {
-        setLoadingTonamelEvent(false);
+        setLoadingUnofficialEvent(false);
       }
     };
 
     fetchData();
-  }, [record?.tonamel_event_id]);
+  }, [record?.unofficial_event_id]);
 
-  // 開催日(event_date 優先、ゼロ値なら created_at)を基に対戦環境を取得する
+  // 開催日(event_date 優先、ゼロ値なら unofficial_events.date / created_at)を基に
+  // 対戦環境を取得する
   useEffect(() => {
     const dateStr =
       record?.event_date && !record.event_date.startsWith("0001-01-01")
         ? record.event_date
-        : record?.created_at;
+        : unofficialEvent?.date && !unofficialEvent.date.startsWith("0001-01-01")
+          ? unofficialEvent.date
+          : record?.created_at;
     if (!dateStr) {
       return;
     }
@@ -112,13 +108,13 @@ export default function TonamelEventInfo({ record }: Props) {
     };
 
     fetchData();
-  }, [record?.event_date, record?.created_at]);
+  }, [record?.event_date, record?.created_at, unofficialEvent?.date]);
 
   if (error) {
     return <div className="text-red-500">{error}</div>;
   }
 
-  if (loadingTonamelEvent || !tonamelEvent) {
+  if (loadingUnofficialEvent) {
     return <RecordInfoCardSkeleton />;
   }
 
@@ -126,11 +122,16 @@ export default function TonamelEventInfo({ record }: Props) {
     return;
   }
 
-  const dateStr =
+  // 開催日は records.event_date(ユーザ入力値)を優先し、
+  // 未設定(ゼロ値)の場合は unofficial_events.date または記録の作成日へフォールバックする。
+  const eventDateSource =
     record.event_date && !record.event_date.startsWith("0001-01-01")
       ? record.event_date
-      : record.created_at;
-  const date = new Date(dateStr).toLocaleString("ja-JP", {
+      : unofficialEvent?.date && !unofficialEvent.date.startsWith("0001-01-01")
+        ? unofficialEvent.date
+        : record.created_at;
+
+  const date = new Date(eventDateSource).toLocaleString("ja-JP", {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -140,16 +141,15 @@ export default function TonamelEventInfo({ record }: Props) {
   return (
     <>
       <RecordInfoCardBase
-        iconBoxClassName="bg-orange-600"
-        icon={<span className="text-xl font-black text-white">T</span>}
+        icon={<LuPencilLine className="w-6 h-6 text-default-500" />}
         chips={
           <>
             <Chip
               size="sm"
               variant="flat"
-              className="h-5 text-[10px] font-bold bg-orange-100 text-orange-600"
+              className="h-5 text-[10px] font-bold gap-0.5 pl-1.5 bg-default-200 text-default-600"
             >
-              Tonamel
+              記入形式
             </Chip>
             {environment?.title && (
               <Chip
@@ -164,18 +164,8 @@ export default function TonamelEventInfo({ record }: Props) {
             )}
           </>
         }
-        title={tonamelEvent.title}
+        title={unofficialEvent?.title ?? "無題のイベント"}
         date={date}
-        action={
-          <Link
-            isExternal
-            href={`https://tonamel.com/competition/${record.tonamel_event_id}`}
-            aria-label="Tonamelで開く"
-            className="p-2 rounded-lg text-default-400 hover:text-default-600 hover:bg-default-100 transition-colors"
-          >
-            <LuLink className="w-4 h-4" />
-          </Link>
-        }
         metaRows={[]}
       />
     </>

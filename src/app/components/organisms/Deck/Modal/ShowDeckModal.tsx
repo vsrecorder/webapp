@@ -411,10 +411,12 @@ export default function ShowDeckModal({
 
       <DisplayDeckCodesModal
         deck={deck}
+        deckcode={deckcode}
         setDeckCode={setDeckCode}
         isOpen={isOpenForDisplayDeckCodesModal}
         onOpenChange={onOpenChangeForDisplayDeckCodesModal}
         onClose={onCloseForDisplayDeckCodesModal}
+        onOpenCreateDeckCode={onOpenForCreateDeckCodeModal}
       />
     </>
   );

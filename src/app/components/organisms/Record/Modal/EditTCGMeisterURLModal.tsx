@@ -88,6 +88,8 @@ export default function UpdateUsedDeckModal({
       private_flg: record.private_flg,
       tcg_meister_url: tcgMeisterURL,
       memo: record.memo,
+      event_date: record.event_date,
+      unofficial_event_id: record.unofficial_event_id,
     };
 
     try {

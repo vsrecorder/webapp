@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 
 import OfficialEventInfo from "@app/components/organisms/Record/OfficialEventInfo";
 import TonamelEventInfo from "@app/components/organisms/Record/TonamelEventInfo";
+import UnofficialEventInfo from "@app/components/organisms/Record/UnofficialEventInfo";
 import Matches from "@app/components/organisms/Match/Matches";
 import UsedDeckById from "@app/components/organisms/Deck/UsedDeckById";
 import RecordActionsFloating from "@app/components/molecules/Floating/RecordActionsFloating";
@@ -36,6 +37,9 @@ export default function DisplayRecordById({ recordData }: Props) {
           ) : // Tonamelの場合
           record?.tonamel_event_id !== "" ? (
             <TonamelEventInfo record={record} />
+          ) : // 記入形式の場合
+          record?.unofficial_event_id !== "" ? (
+            <UnofficialEventInfo record={record} />
           ) : (
             <></>
           )

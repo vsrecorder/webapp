@@ -19,7 +19,10 @@ import { Card, CardBody } from "@heroui/react";
 
 import { useDisclosure } from "@heroui/react";
 
+import { LuStickyNote } from "react-icons/lu";
+
 import UpdateMatchModal from "@app/components/organisms/Match/Modal/UpdateMatchModal";
+import DisplayMatchMemoModal from "@app/components/organisms/Match/Modal/DisplayMatchMemoModal";
 import CreateMatchModalButton from "@app/components/organisms/Match/CreateMatchModalButton";
 import MatchSkeleton from "@app/components/organisms/Match/Skeleton/MatchSkeleton";
 
@@ -73,6 +76,12 @@ export default function Matches({
     onClose: onCloseForUpdateMatchModal,
   } = useDisclosure();
 
+  const {
+    isOpen: isOpenForDisplayMatchMemoModal,
+    onOpen: onOpenForDisplayMatchMemoModal,
+    onOpenChange: onOpenChangeForDisplayMatchMemoModal,
+  } = useDisclosure();
+
   useEffect(() => {
     if (!record) {
       setLoading(false);
@@ -115,6 +124,12 @@ export default function Matches({
         onClose={onCloseForUpdateMatchModal}
       />
 
+      <DisplayMatchMemoModal
+        match={selectedMatch}
+        isOpen={isOpenForDisplayMatchMemoModal}
+        onOpenChange={onOpenChangeForDisplayMatchMemoModal}
+      />
+
       <div>
         <Card>
           <CardBody className="px-2 py-2 w-full">
@@ -151,7 +166,13 @@ export default function Matches({
                                     className="px-5 py-6 w-full"
                                     onPress={() => {
                                       setSelectedMatch(match);
-                                      onOpenForUpdateMatchModal();
+                                      // 編集可能な場合は編集モーダル、
+                                      // それ以外でメモがある場合はメモ表示モーダルを開く
+                                      if (enableUpdateMatchModalButton) {
+                                        onOpenForUpdateMatchModal();
+                                      } else if (match.memo && match.memo !== "") {
+                                        onOpenForDisplayMatchMemoModal();
+                                      }
                                     }}
                                   >
                                     <div className="flex items-center gap-3 w-full">
@@ -248,6 +269,11 @@ export default function Matches({
                                           </>
                                         )}
                                       </div>
+
+                                      {/* メモがある場合は右端にアイコンを表示 */}
+                                      {match.memo && match.memo !== "" && (
+                                        <LuStickyNote className="ml-auto shrink-0 text-lg text-default-400" />
+                                      )}
                                     </div>
                                   </Button>
                                 </TableCell>

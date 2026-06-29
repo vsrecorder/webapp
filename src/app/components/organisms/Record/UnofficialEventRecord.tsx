@@ -4,35 +4,33 @@ import { Chip } from "@heroui/react";
 
 import { useDisclosure } from "@heroui/react";
 
+import { LuPencilLine } from "react-icons/lu";
+
 import RecordCardBase from "@app/components/organisms/Record/RecordCardBase";
 import DisplayRecordModal from "@app/components/organisms/Record/Modal/DisplayRecordModal";
 import { RecordCardSkeleton } from "@app/components/organisms/Record/Skeleton/RecordCardSkeleton";
 
 import { RecordType, RecordGetByIdResponseType } from "@app/types/record";
-import { TonamelEventGetByIdResponseType } from "@app/types/tonamel_event";
 import { DeckGetByIdResponseType } from "@app/types/deck";
+import { UnofficialEventGetByIdResponseType } from "@app/types/unofficial_event";
 import { EnvironmentType } from "@app/types/environment";
 
-async function fetchTonamelEventById(id: string) {
-  try {
-    const res = await fetch(`/api/tonamel_events/${id}`, {
-      cache: "no-store",
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
-    });
+async function fetchUnofficialEventById(
+  id: string,
+): Promise<UnofficialEventGetByIdResponseType> {
+  const res = await fetch(`/api/unofficial_events/${id}`, {
+    cache: "no-store",
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+    },
+  });
 
-    if (!res.ok) {
-      throw new Error("Failed to fetch");
-    }
-
-    const ret: TonamelEventGetByIdResponseType = await res.json();
-
-    return ret;
-  } catch (error) {
-    throw error;
+  if (!res.ok) {
+    throw new Error("Failed to fetch");
   }
+
+  return (await res.json()) as UnofficialEventGetByIdResponseType;
 }
 
 async function fetchDeckById(id: string) {
@@ -82,7 +80,7 @@ type Props = {
   onReopenComplete?: () => void;
 };
 
-export default function TonamelEventRecord({
+export default function UnofficialEventRecord({
   recordData,
   enableDisplayRecordModal,
   onReopenComplete,
@@ -92,9 +90,9 @@ export default function TonamelEventRecord({
 
   const [environment, setEnvironment] = useState<EnvironmentType | null>(null);
 
-  const [tonamelEvent, setTonamelEvent] =
-    useState<TonamelEventGetByIdResponseType | null>(null);
-  const [loadingTonamelEvent, setLoadingTonamelEvent] = useState(true);
+  const [unofficialEvent, setUnofficialEvent] =
+    useState<UnofficialEventGetByIdResponseType | null>(null);
+  const [loadingUnofficialEvent, setLoadingUnofficialEvent] = useState(true);
 
   const [error, setError] = useState<string | null>(null);
 
@@ -122,37 +120,35 @@ export default function TonamelEventRecord({
 
   // データロード完了後にスクロール通知 + モーダルオープン
   useEffect(() => {
-    if (!shouldReopen || loadingTonamelEvent) return;
+    if (!shouldReopen || loadingUnofficialEvent) return;
     setShouldReopen(false);
     onReopenCompleteRef.current?.();
     onOpenForDisplayRecordModal();
-  }, [shouldReopen, loadingTonamelEvent]);
+  }, [shouldReopen, loadingUnofficialEvent]);
 
   useEffect(() => {
-    if (!recordData.data.tonamel_event_id) {
-      setLoadingTonamelEvent(false);
+    if (!recordData.data.unofficial_event_id) {
+      setLoadingUnofficialEvent(false);
       return;
     }
 
-    setLoadingTonamelEvent(true);
+    setLoadingUnofficialEvent(true);
 
     const fetchData = async () => {
       try {
-        setLoadingTonamelEvent(true);
-
-        const data = await fetchTonamelEventById(recordData.data.tonamel_event_id);
-
-        setTonamelEvent(data);
+        setLoadingUnofficialEvent(true);
+        const data = await fetchUnofficialEventById(recordData.data.unofficial_event_id);
+        setUnofficialEvent(data);
       } catch (err) {
         console.log(err);
         setError("データの取得に失敗しました");
       } finally {
-        setLoadingTonamelEvent(false);
+        setLoadingUnofficialEvent(false);
       }
     };
 
     fetchData();
-  }, [recordData.data.tonamel_event_id]);
+  }, [recordData.data.unofficial_event_id]);
 
   useEffect(() => {
     if (!record?.deck_id) {
@@ -178,12 +174,15 @@ export default function TonamelEventRecord({
     fetchData();
   }, [record?.deck_id]);
 
-  // 開催日(event_date 優先、ゼロ値なら created_at)を基に対戦環境を取得する
+  // 開催日(event_date 優先、ゼロ値なら unofficial_events.date / created_at)を基に
+  // 対戦環境を取得する
   useEffect(() => {
     const dateStr =
       record?.event_date && !record.event_date.startsWith("0001-01-01")
         ? record.event_date
-        : record?.created_at;
+        : unofficialEvent?.date && !unofficialEvent.date.startsWith("0001-01-01")
+          ? unofficialEvent.date
+          : record?.created_at;
     if (!dateStr) {
       return;
     }
@@ -198,13 +197,13 @@ export default function TonamelEventRecord({
     };
 
     fetchData();
-  }, [record?.event_date, record?.created_at]);
+  }, [record?.event_date, record?.created_at, unofficialEvent?.date]);
 
   if (error) {
     return <div className="text-red-500">{error}</div>;
   }
 
-  if (loadingTonamelEvent || !tonamelEvent) {
+  if (loadingUnofficialEvent) {
     return <RecordCardSkeleton />;
   }
 
@@ -212,11 +211,16 @@ export default function TonamelEventRecord({
     return;
   }
 
-  const dateStr =
-    record?.event_date && !record.event_date.startsWith("0001-01-01")
+  // 開催日は records.event_date(ユーザ入力値)を優先し、
+  // 未設定(ゼロ値)の場合は unofficial_events.date または記録の作成日へフォールバックする。
+  const eventDateSource =
+    record.event_date && !record.event_date.startsWith("0001-01-01")
       ? record.event_date
-      : record?.created_at;
-  const date = new Date(dateStr).toLocaleString("ja-JP", {
+      : unofficialEvent?.date && !unofficialEvent.date.startsWith("0001-01-01")
+        ? unofficialEvent.date
+        : record.created_at;
+
+  const date = new Date(eventDateSource).toLocaleString("ja-JP", {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -238,18 +242,18 @@ export default function TonamelEventRecord({
       <RecordCardBase
         cardId={`record-card-${recordData.data.id}`}
         onClick={onOpenForDisplayRecordModal}
-        accentColorClass="bg-orange-600"
+        accentColorClass="bg-default-400"
         date={date}
-        title={tonamelEvent.title}
-        loadingTitle={false}
+        title={unofficialEvent?.title ?? ""}
+        loadingTitle={loadingUnofficialEvent}
         chips={
           <>
             <Chip
               size="sm"
               variant="flat"
-              className="h-5 text-[10px] font-bold bg-orange-100 text-orange-600"
+              className="h-5 text-[10px] font-bold gap-0.5 pl-1.5 bg-default-200 text-default-600"
             >
-              Tonamel
+              記入形式
             </Chip>
             {environment?.title && (
               <Chip
@@ -263,11 +267,7 @@ export default function TonamelEventRecord({
             )}
           </>
         }
-        icon={
-          <div className="w-full h-full bg-orange-600 flex items-center justify-center">
-            <span className="text-xs font-black text-white">T</span>
-          </div>
-        }
+        icon={<LuPencilLine className="w-4 h-4 text-default-500" />}
         deckName={deck ? deck.name : null}
         deckSprites={deck?.pokemon_sprites}
         loadingDeck={loadingDeck}

@@ -163,7 +163,7 @@ export default function Matches({
                                   <Button
                                     radius="md"
                                     variant="light"
-                                    className="px-5 py-6 w-full"
+                                    className="pl-3 pr-2 py-6 w-full"
                                     onPress={() => {
                                       setSelectedMatch(match);
                                       // 編集可能な場合は編集モーダル、
@@ -180,7 +180,7 @@ export default function Matches({
                                         {match.victory_flg === true ? "⭕" : "❌"}
                                       </div>
 
-                                      <div className="flex items-center gap-1.5">
+                                      <div className="flex items-center gap-1.5 flex-1 min-w-0">
                                         {match.default_victory_flg ||
                                         match.default_defeat_flg ? (
                                           <>
@@ -246,9 +246,9 @@ export default function Matches({
                                               </div>
                                             </>
 
-                                            <div className="flex flex-col items-center justify-center gap-1 min-w-0">
-                                              <div className="">
-                                                <div className="font-bold truncate">
+                                            <div className="flex flex-col justify-center gap-1 min-w-0 flex-1">
+                                              <div className="min-w-0">
+                                                <div className="font-bold truncate text-left">
                                                   {match.opponents_deck_info}
                                                 </div>
 

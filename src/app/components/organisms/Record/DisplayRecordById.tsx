@@ -20,7 +20,7 @@ export default function DisplayRecordById({ recordData }: Props) {
   const deckCardRef = useRef<HTMLDivElement>(null);
 
   return (
-    <div className="px-3 pt-3 pb-3 flex flex-col gap-9 overflow-y-auto">
+    <div className="px-0.5 pt-3 pb-3 flex flex-col gap-9 overflow-y-auto">
       <div className="flex flex-col gap-3">
         <div className="pb-0 flex flex-col items-center justify-center gap-0">
           <div className="font-bold underline">参加したイベント</div>
@@ -50,7 +50,7 @@ export default function DisplayRecordById({ recordData }: Props) {
         <div className="pb-0 flex flex-col items-center justify-center gap-0">
           <div className="font-bold underline">対戦結果</div>
         </div>
-        <div className="p-1 flex flex-col gap-3">
+        <div className="px-0.5 py-1 flex flex-col gap-3">
           <Matches
             record={record}
             enableCreateMatchModalButton={true}
@@ -64,7 +64,7 @@ export default function DisplayRecordById({ recordData }: Props) {
         <div className="pb-0 flex flex-col items-center justify-center gap-0">
           <div className="font-bold underline">使用したデッキ</div>
         </div>
-        <div ref={deckCardRef} className="p-1">
+        <div ref={deckCardRef} className="px-0.5 py-1">
           <UsedDeckById
             record={record}
             setRecord={setRecord}

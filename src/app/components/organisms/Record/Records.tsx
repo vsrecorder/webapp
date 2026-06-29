@@ -14,6 +14,30 @@ import { LuCirclePlus, LuFilePen, LuClipboardList } from "react-icons/lu";
 
 import { RecordType, RecordGetResponseType } from "@app/types/record";
 
+// レコードのデータから種別（公式 / Tonamel / 記入形式）を判定する。
+// すべて表示("all")のとき、各カードをどのコンポーネントで描画するか決めるために使う。
+function resolveEventType(
+  data: RecordType["data"],
+): "official" | "tonamel" | "unofficial" | null {
+  if (data.official_event_id && data.official_event_id !== 0) return "official";
+  if (data.tonamel_event_id) return "tonamel";
+  if (data.unofficial_event_id) return "unofficial";
+  return null;
+}
+
+// 月見出しの判定に使う日付（開催日が無ければ作成日）を取得する。
+function getRawDate(data: RecordType["data"]): string {
+  return data.event_date && !data.event_date.startsWith("0001-01-01")
+    ? data.event_date
+    : (data.created_at as unknown as string);
+}
+
+// "YYYY年M月" 形式の月キーを生成する。
+function getMonthKey(data: RecordType["data"]): string {
+  const d = new Date(getRawDate(data));
+  return `${d.getFullYear()}年${d.getMonth() + 1}月`;
+}
+
 async function fetchRecords(event_type: string, deck_id: string, cursor: string) {
   try {
     const res = await fetch(
@@ -52,6 +76,9 @@ export default function Records({
   disable_more_load = false,
   limit = 0,
 }: Props) {
+  // "all"(すべて)のときはバックエンドの event_type フィルタを掛けずに全件取得する。
+  const apiEventType = event_type === "all" ? "" : event_type;
+
   const [items, setItems] = useState<RecordType[]>([]);
   const [nextCursor, setNextCursor] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
@@ -87,7 +114,7 @@ export default function Records({
 
     try {
       const newItems: RecordGetResponseType = await fetchRecords(
-        event_type,
+        apiEventType,
         deck_id,
         nextCursor,
       );
@@ -108,7 +135,7 @@ export default function Records({
         setHasMore(false);
       } else if (lastItem && lastItem.cursor) {
         const nextItems: RecordGetResponseType = await fetchRecords(
-          event_type,
+          apiEventType,
           deck_id,
           lastItem.cursor,
         );
@@ -132,7 +159,7 @@ export default function Records({
         setIsInitialLoaded(true);
       }
     }
-  }, [event_type, deck_id, nextCursor, isLoading, hasMore, isInitialLoaded]);
+  }, [apiEventType, deck_id, nextCursor, isLoading, hasMore, isInitialLoaded]);
 
   useEffect(() => {
     if (isInitialLoaded) return;
@@ -143,7 +170,8 @@ export default function Records({
   useEffect(() => {
     const id = sessionStorage.getItem("reopenModalRecordId");
     const storedType = sessionStorage.getItem("reopenModalEventType");
-    if (id && storedType === event_type) {
+    // すべて表示では全種別を含むため、保存された種別に関わらず再開対象とする。
+    if (id && (event_type === "all" || storedType === event_type)) {
       setPendingReopenId(id);
     }
   }, [event_type]);
@@ -183,11 +211,13 @@ export default function Records({
             <div className="flex flex-col gap-1">
               <p className="font-bold text-lg">記録を作成しましょう</p>
               <p className="text-sm text-default-500">
-                {event_type === "official"
-                  ? "公式イベントの対戦記録を管理できます"
-                  : event_type === "tonamel"
-                    ? "Tonamelイベントの対戦記録を管理できます"
-                    : "記入形式でイベントの対戦記録を管理できます"}
+                {event_type === "all"
+                  ? "公式・Tonamel・記入形式の対戦記録を管理できます"
+                  : event_type === "official"
+                    ? "公式イベントの対戦記録を管理できます"
+                    : event_type === "tonamel"
+                      ? "Tonamelイベントの対戦記録を管理できます"
+                      : "記入形式でイベントの対戦記録を管理できます"}
               </p>
             </div>
           </div>
@@ -223,11 +253,13 @@ export default function Records({
                 <div className="flex flex-col gap-0.5">
                   <p className="text-sm font-bold">記録を作成する</p>
                   <p className="text-xs text-default-500">
-                    {event_type === "official"
-                      ? "下のボタンから開催日・イベント・デッキを選択して記録を作成してください"
-                      : event_type === "tonamel"
-                        ? "下のボタンから開催日・TonamelイベントID・デッキを選択して記録を作成してください"
-                        : "下のボタンから開催日・イベント名・デッキを入力して記録を作成してください"}
+                    {event_type === "all"
+                      ? "下のボタンから記録を作成してください"
+                      : event_type === "official"
+                        ? "下のボタンから開催日・イベント・デッキを選択して記録を作成してください"
+                        : event_type === "tonamel"
+                          ? "下のボタンから開催日・TonamelイベントID・デッキを選択して記録を作成してください"
+                          : "下のボタンから開催日・イベント名・デッキを入力して記録を作成してください"}
                   </p>
                 </div>
               </div>
@@ -236,7 +268,7 @@ export default function Records({
 
           <Button
             as={Link}
-            href={`/records/create?event_type=${event_type}`}
+            href={`/records/create?event_type=${event_type === "all" ? "official" : event_type}`}
             color="primary"
             size="md"
             radius="full"
@@ -249,103 +281,54 @@ export default function Records({
       )}
 
       <div className="flex flex-col w-full gap-3">
-        {event_type === "official"
-          ? items.map((recordData, index) => {
-              const rawDate =
-                recordData.data.event_date &&
-                !recordData.data.event_date.startsWith("0001-01-01")
-                  ? recordData.data.event_date
-                  : recordData.data.created_at;
-              const d = new Date(rawDate);
-              const monthKey = `${d.getFullYear()}年${d.getMonth() + 1}月`;
-              const prevRawDate =
-                index > 0
-                  ? items[index - 1].data.event_date &&
-                    !items[index - 1].data.event_date.startsWith("0001-01-01")
-                    ? items[index - 1].data.event_date
-                    : items[index - 1].data.created_at
-                  : null;
-              const prev = prevRawDate ? new Date(prevRawDate) : null;
-              const prevMonthKey = prev
-                ? `${prev.getFullYear()}年${prev.getMonth() + 1}月`
-                : null;
+        {items.map((recordData, index) => {
+          const monthKey = getMonthKey(recordData.data);
+          const prevMonthKey =
+            index > 0 ? getMonthKey(items[index - 1].data) : null;
 
-              return (
-                <Fragment key={recordData.data.id}>
-                  {monthKey !== prevMonthKey && (
-                    <div className="flex items-center gap-3 pt-1 pb-0.5">
-                      <span className="text-xs font-bold text-default-400 tracking-wide shrink-0">
-                        {monthKey}
-                      </span>
-                      <div className="flex-1 h-px bg-divider" />
-                    </div>
-                  )}
-                  <OfficialEventRecord
-                    recordData={recordData}
-                    enableDisplayRecordModal={true}
-                    onReopenComplete={
-                      recordData.data.id === pendingReopenId
-                        ? () => handleReopenComplete(recordData.data.id)
-                        : undefined
-                    }
-                  />
-                </Fragment>
-              );
-            })
-          : items.map((recordData, index) => {
-              const rawDate =
-                recordData.data.event_date &&
-                !recordData.data.event_date.startsWith("0001-01-01")
-                  ? recordData.data.event_date
-                  : recordData.data.created_at;
-              const d = new Date(rawDate);
-              const monthKey = `${d.getFullYear()}年${d.getMonth() + 1}月`;
-              const prevRawDate =
-                index > 0
-                  ? items[index - 1].data.event_date &&
-                    !items[index - 1].data.event_date.startsWith("0001-01-01")
-                    ? items[index - 1].data.event_date
-                    : items[index - 1].data.created_at
-                  : null;
-              const prev = prevRawDate ? new Date(prevRawDate) : null;
-              const prevMonthKey = prev
-                ? `${prev.getFullYear()}年${prev.getMonth() + 1}月`
-                : null;
+          // "all" のときはレコードごとに種別を判定し、それ以外は固定の event_type を使う。
+          const recordType =
+            event_type === "all"
+              ? resolveEventType(recordData.data)
+              : event_type;
 
-              return (
-                <Fragment key={recordData.data.id}>
-                  {monthKey !== prevMonthKey && (
-                    <div className="flex items-center gap-3 pt-1 pb-0.5">
-                      <span className="text-xs font-bold text-default-400 tracking-wide shrink-0">
-                        {monthKey}
-                      </span>
-                      <div className="flex-1 h-px bg-divider" />
-                    </div>
-                  )}
-                  {event_type === "tonamel" ? (
-                    <TonamelEventRecord
-                      recordData={recordData}
-                      enableDisplayRecordModal={true}
-                      onReopenComplete={
-                        recordData.data.id === pendingReopenId
-                          ? () => handleReopenComplete(recordData.data.id)
-                          : undefined
-                      }
-                    />
-                  ) : event_type === "unofficial" ? (
-                    <UnofficialEventRecord
-                      recordData={recordData}
-                      enableDisplayRecordModal={true}
-                      onReopenComplete={
-                        recordData.data.id === pendingReopenId
-                          ? () => handleReopenComplete(recordData.data.id)
-                          : undefined
-                      }
-                    />
-                  ) : null}
-                </Fragment>
-              );
-            })}
+          const onReopenComplete =
+            recordData.data.id === pendingReopenId
+              ? () => handleReopenComplete(recordData.data.id)
+              : undefined;
+
+          return (
+            <Fragment key={recordData.data.id}>
+              {monthKey !== prevMonthKey && (
+                <div className="flex items-center gap-3 pt-1 pb-0.5">
+                  <span className="text-xs font-bold text-default-400 tracking-wide shrink-0">
+                    {monthKey}
+                  </span>
+                  <div className="flex-1 h-px bg-divider" />
+                </div>
+              )}
+              {recordType === "official" ? (
+                <OfficialEventRecord
+                  recordData={recordData}
+                  enableDisplayRecordModal={true}
+                  onReopenComplete={onReopenComplete}
+                />
+              ) : recordType === "tonamel" ? (
+                <TonamelEventRecord
+                  recordData={recordData}
+                  enableDisplayRecordModal={true}
+                  onReopenComplete={onReopenComplete}
+                />
+              ) : recordType === "unofficial" ? (
+                <UnofficialEventRecord
+                  recordData={recordData}
+                  enableDisplayRecordModal={true}
+                  onReopenComplete={onReopenComplete}
+                />
+              ) : null}
+            </Fragment>
+          );
+        })}
         {/* ローディング表示 */}
         {!isInitialLoaded && <RecordCardSkeletons />}
         {isInitialLoaded && isLoading && <Spinner size="lg" className="pt-0" />}

@@ -323,6 +323,11 @@ export default function RecordActionsFloating({
         placement="top-end"
         isOpen={isDropdownOpen}
         onOpenChange={setIsDropdownOpen}
+        // HeroUI 側の「メニュー外押下で閉じる」を無効化する。
+        // これを有効にしたままだと、押下時にオーバーレイが先に消えてしまい、
+        // 直後のクリックが背後のデッキカードに着弾してモーダルが開いてしまう。
+        // クローズはオーバーレイの onClick に一本化し、クリックをオーバーレイに消費させる。
+        shouldCloseOnInteractOutside={() => false}
       >
         <DropdownTrigger>
           <Button

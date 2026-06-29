@@ -67,7 +67,7 @@ export default function InspectDeckModal({
             <ModalHeader
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
-              className="px-1 py-3 pb-0 flex flex-col gap-1 cursor-grab"
+              className="px-1 py-3 pb-0 flex flex-col gap-1 cursor-grab touch-none"
             >
               {/* スワイプバー */}
               <div className="mx-auto h-1 w-32 mb-1.5 rounded-full bg-default-300" />

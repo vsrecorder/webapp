@@ -69,12 +69,17 @@ type Props = {
   recordData: RecordType;
   enableDisplayRecordModal: boolean;
   onReopenComplete?: () => void;
+  // 再開対象として reopenModalRecordId を消費してよいか。
+  // 記録一覧では「すべて」タブと種別タブで同じ記録が重複マウントされるため、
+  // アクティブなタブのインスタンスだけ true にしてキーの奪い合いを防ぐ。
+  enableReopen?: boolean;
 };
 
 export default function OfficialEventRecord({
   recordData,
   enableDisplayRecordModal,
   onReopenComplete,
+  enableReopen = true,
 }: Props) {
   const [officialEvent, setOfficialEvent] =
     useState<OfficialEventGetByIdResponseType | null>(null);
@@ -100,12 +105,13 @@ export default function OfficialEventRecord({
 
   // マウント時に対象 record か判定だけ行う
   useEffect(() => {
+    if (!enableReopen) return;
     const pendingId = sessionStorage.getItem("reopenModalRecordId");
     if (pendingId && pendingId === recordData.data.id) {
       sessionStorage.removeItem("reopenModalRecordId");
       setShouldReopen(true);
     }
-  }, []);
+  }, [enableReopen]);
 
   // データロード完了後にスクロール通知 + モーダルオープン
   useEffect(() => {

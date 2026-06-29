@@ -11,35 +11,40 @@ import Records from "@app/components/organisms/Record/Records";
 
 type TabKey = "all" | "official" | "tonamel" | "unofficial";
 
-function getInitialTab(): TabKey {
-  if (typeof window === "undefined") return "all";
-
-  // 戻り遷移時のモーダル再開フローに合わせてタブを復元する。
-  // 詳細ページ滞在中は detailPagePendingReopen* に値が退避され、
-  // RecordById の cleanup 後に reopenModal* へ復元されるため、
-  // マウント順序の競合に備えて両方のキーを参照する。
-  // recordId は対象カード描画時に必ず削除される一方、
-  // eventType は残り続けるため、判定は recordId の有無でゲートする
-  //（残存した eventType によるタブ誤選択を防ぐ）。
-  const recordId =
-    sessionStorage.getItem("detailPagePendingReopenRecordId") ??
-    sessionStorage.getItem("reopenModalRecordId");
-  if (!recordId) return "all";
-
-  const eventType =
-    sessionStorage.getItem("detailPagePendingReopenEventType") ??
-    sessionStorage.getItem("reopenModalEventType");
+// マウント後に復元すべきタブを算出する。
+// 必ずクライアント側（useEffect 内）からのみ呼ぶ。
+//
+// リロード・戻り遷移のいずれの場合も「ユーザーが実際に選択していたタブ」を
+// recordsSelectedTab から復元する。カードの種別（eventType）ではなく
+// 選択タブを基準にすることで、「すべて」タブで個別種別のカードを開いて
+// 戻った際に個別タブへ切り替わってしまう問題を防ぐ。
+// モーダルの再開自体は Records 子コンポーネントが reopenModalRecordId を
+// 独立して処理するため、親はタブ選択だけを正しく復元すればよい。
+function resolveRestoredTab(): TabKey {
+  const savedTab = sessionStorage.getItem("recordsSelectedTab");
   if (
-    eventType === "official" ||
-    eventType === "tonamel" ||
-    eventType === "unofficial"
+    savedTab === "official" ||
+    savedTab === "tonamel" ||
+    savedTab === "unofficial"
   )
-    return eventType;
+    return savedTab;
   return "all";
 }
 
 export default function TemplateRecords() {
-  const [selectedKey, setSelectedKey] = useState<TabKey>(getInitialTab);
+  // SSR と初回クライアントレンダリングを一致させるため、初期値は必ず "all" にする。
+  // 実際の復元はマウント後の useEffect で行う（ハイドレーション不整合の回避）。
+  const [selectedKey, setSelectedKey] = useState<TabKey>("all");
+
+  // マウント後に保存済みタブを復元する。
+  // 初回 "all" からの state 遷移により通常の再レンダリングが走り、
+  // 各タブ内容の hidden 属性も正しく更新される。
+  useEffect(() => {
+    const restored = resolveRestoredTab();
+    if (restored !== "all") {
+      setSelectedKey(restored);
+    }
+  }, []);
 
   // タブごとのスクロール位置を保存
   const scrollPositions = useRef<Record<TabKey, number>>({
@@ -52,6 +57,9 @@ export default function TemplateRecords() {
   const handleSelectionChange = (key: React.Key) => {
     // 切り替え前のスクロール位置を保存
     scrollPositions.current[selectedKey] = window.scrollY;
+
+    // リロード時の復元用に選択タブを保存
+    sessionStorage.setItem("recordsSelectedTab", key as string);
 
     setSelectedKey(key as TabKey);
   };
@@ -90,19 +98,22 @@ export default function TemplateRecords() {
       </div>
 
       <div className="w-full pt-2" hidden={selectedKey !== "all"}>
-        <Records event_type={"all"} />
+        <Records event_type={"all"} isActive={selectedKey === "all"} />
       </div>
 
       <div className="w-full pt-2" hidden={selectedKey !== "official"}>
-        <Records event_type={"official"} />
+        <Records event_type={"official"} isActive={selectedKey === "official"} />
       </div>
 
       <div className="w-full pt-2" hidden={selectedKey !== "tonamel"}>
-        <Records event_type={"tonamel"} />
+        <Records event_type={"tonamel"} isActive={selectedKey === "tonamel"} />
       </div>
 
       <div className="w-full pt-2" hidden={selectedKey !== "unofficial"}>
-        <Records event_type={"unofficial"} />
+        <Records
+          event_type={"unofficial"}
+          isActive={selectedKey === "unofficial"}
+        />
       </div>
     </>
   );

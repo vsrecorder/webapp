@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback, Fragment } from "react";
+import { createPortal } from "react-dom";
 
 import { Spinner } from "@heroui/spinner";
 import { Button, Link } from "@heroui/react";
@@ -68,6 +69,11 @@ type Props = {
   deck_id?: string;
   disable_more_load?: boolean;
   limit?: number;
+  // このインスタンスが現在表示中（アクティブ）のタブか。
+  // 記録一覧では「すべて」タブと種別タブの両インスタンスが同時にマウントされ、
+  // 同一記録が重複するため、アクティブなインスタンスだけが
+  // reopenModalRecordId を消費してモーダル再開を担う。
+  isActive?: boolean;
 };
 
 export default function Records({
@@ -75,6 +81,7 @@ export default function Records({
   deck_id = "",
   disable_more_load = false,
   limit = 0,
+  isActive = true,
 }: Props) {
   // "all"(すべて)のときはバックエンドの event_type フィルタを掛けずに全件取得する。
   const apiEventType = event_type === "all" ? "" : event_type;
@@ -168,13 +175,19 @@ export default function Records({
 
   // 戻り遷移時に対象 record の event_type が一致する場合だけ ID を保持
   useEffect(() => {
+    // 非アクティブなタブのインスタンスはスピナーを表示せず再開も担わない
+    //（アクティブなインスタンスとのキー奪い合いを防ぐ）。
+    if (!isActive) {
+      setPendingReopenId(null);
+      return;
+    }
     const id = sessionStorage.getItem("reopenModalRecordId");
     const storedType = sessionStorage.getItem("reopenModalEventType");
     // すべて表示では全種別を含むため、保存された種別に関わらず再開対象とする。
     if (id && (event_type === "all" || storedType === event_type)) {
       setPendingReopenId(id);
     }
-  }, [event_type]);
+  }, [event_type, isActive]);
 
   // 対象 record が描画されるまで自動ロード
   // found になったときは何もしない（カード側の handleReopenComplete が pendingReopenId を null にする）
@@ -196,11 +209,17 @@ export default function Records({
   return (
     <div className="flex flex-col items-center space-y-3 pb-3">
       {/* 対象 record を探している間はオーバーレイでスピナーを表示 */}
-      {pendingReopenId && (
-        <div className="fixed inset-0 z-200 flex items-center justify-center bg-background/90">
-          <Spinner size="lg" />
-        </div>
-      )}
+      {/* createPortal で body 直下に置くことで、祖先要素の包含ブロック問題を回避しビューポート全体を覆う */}
+      {pendingReopenId && typeof document !== "undefined" &&
+        createPortal(
+          <div
+            style={{ zIndex: 9999 }}
+            className="fixed inset-0 flex items-center justify-center bg-background/80"
+          >
+            <Spinner size="lg" />
+          </div>,
+          document.body,
+        )}
       {/* 空状態 */}
       {isInitialLoaded && !isLoading && !hasMore && items.length === 0 && (
         <div className="flex flex-col items-center justify-center py-10 px-4 gap-6">
@@ -283,14 +302,11 @@ export default function Records({
       <div className="flex flex-col w-full gap-3">
         {items.map((recordData, index) => {
           const monthKey = getMonthKey(recordData.data);
-          const prevMonthKey =
-            index > 0 ? getMonthKey(items[index - 1].data) : null;
+          const prevMonthKey = index > 0 ? getMonthKey(items[index - 1].data) : null;
 
           // "all" のときはレコードごとに種別を判定し、それ以外は固定の event_type を使う。
           const recordType =
-            event_type === "all"
-              ? resolveEventType(recordData.data)
-              : event_type;
+            event_type === "all" ? resolveEventType(recordData.data) : event_type;
 
           const onReopenComplete =
             recordData.data.id === pendingReopenId
@@ -312,18 +328,21 @@ export default function Records({
                   recordData={recordData}
                   enableDisplayRecordModal={true}
                   onReopenComplete={onReopenComplete}
+                  enableReopen={isActive}
                 />
               ) : recordType === "tonamel" ? (
                 <TonamelEventRecord
                   recordData={recordData}
                   enableDisplayRecordModal={true}
                   onReopenComplete={onReopenComplete}
+                  enableReopen={isActive}
                 />
               ) : recordType === "unofficial" ? (
                 <UnofficialEventRecord
                   recordData={recordData}
                   enableDisplayRecordModal={true}
                   onReopenComplete={onReopenComplete}
+                  enableReopen={isActive}
                 />
               ) : null}
             </Fragment>

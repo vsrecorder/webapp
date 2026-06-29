@@ -21,7 +21,7 @@ export default function DisplayRecordById({ recordData }: Props) {
 
   return (
     <div className="px-0.5 pt-3 pb-3 flex flex-col gap-9 overflow-y-auto">
-      <div className="flex flex-col gap-3">
+      <div className="px-0.5 flex flex-col gap-3">
         <div className="pb-0 flex flex-col items-center justify-center gap-0">
           <div className="font-bold underline">参加したイベント</div>
         </div>

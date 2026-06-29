@@ -459,7 +459,7 @@ export default function DisplayRecordModal({
               </ModalHeader>
 
               <ModalBody className="px-1 pb-6 gap-9 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                <div className="flex flex-col gap-3">
+                <div className="px-1 flex flex-col gap-3">
                   <div className="pb-0 flex items-center justify-center">
                     <div className="font-bold underline">参加したイベント</div>
                   </div>
@@ -483,7 +483,7 @@ export default function DisplayRecordModal({
                   <div className="pb-0 flex items-center justify-center">
                     <div className="font-bold underline">対戦結果</div>
                   </div>
-                  <div className="p-1 flex flex-col gap-3">
+                  <div className="px-0.5 flex flex-col gap-3">
                     <Matches
                       record={record}
                       enableCreateMatchModalButton={false}

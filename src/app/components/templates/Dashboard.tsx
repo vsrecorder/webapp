@@ -160,10 +160,12 @@ export default async function TemplateDashboard({ userId }: Props) {
           />
         </section>
 
-        {/* 最近の記録 */}
+        {/* 最近の公式イベントの記録 */}
         <section className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-default-700">最近の記録</h2>
+            <h2 className="text-sm font-bold text-default-700">
+              最近の公式イベントの記録
+            </h2>
             <Button
               as={Link}
               href="/records"

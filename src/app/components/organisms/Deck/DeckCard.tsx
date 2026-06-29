@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Card, CardHeader, CardBody } from "@heroui/react";
 import { Image } from "@heroui/react";
@@ -33,6 +33,22 @@ export default function DeckCard({
   const [deckcode, setDeckCode] = useState<DeckCodeType | null>(deckcodeData);
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
+
+  // 記録の詳細ページから戻ってきた際、対象デッキならデッキモーダルを再開する。
+  // 併せて記録一覧モーダルも再開するためのフラグを ShowDeckModal へ渡す。
+  const [reopenRecordsModal, setReopenRecordsModal] = useState(false);
+
+  useEffect(() => {
+    if (!enableShowDeckModal || !deck) return;
+    const pendingDeckId = sessionStorage.getItem("reopenDeckModalDeckId");
+    if (pendingDeckId && pendingDeckId === deck.id) {
+      sessionStorage.removeItem("reopenDeckModalDeckId");
+      setReopenRecordsModal(true);
+      onOpen();
+    }
+    // deck.id を依存に含め、対象デッキのカードでのみ一度だけ実行する。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enableShowDeckModal, deck?.id]);
 
   if (!deck) {
     return (
@@ -80,6 +96,7 @@ export default function DeckCard({
             isOpen={isOpen}
             onOpenChange={onOpenChange}
             onRemove={onRemove}
+            reopenRecordsModalOnOpen={reopenRecordsModal}
           />
         )}
       </>

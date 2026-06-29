@@ -53,20 +53,28 @@ export default function RecordById({ id }: Props) {
   useEffect(() => {
     const pendingId = sessionStorage.getItem("reopenModalRecordId");
     const pendingEventType = sessionStorage.getItem("reopenModalEventType");
+    // デッキの記録一覧モーダルから遷移してきた場合の再開対象 deck.id。
+    // record 系キーと同じライフサイクル（バック遷移時のみ復元）で扱う。
+    const pendingDeckId = sessionStorage.getItem("reopenDeckModalDeckId");
 
     if (pendingId && pendingId === id) {
       sessionStorage.setItem("detailPagePendingReopenRecordId", pendingId);
       if (pendingEventType) {
         sessionStorage.setItem("detailPagePendingReopenEventType", pendingEventType);
       }
+      if (pendingDeckId) {
+        sessionStorage.setItem("detailPagePendingReopenDeckId", pendingDeckId);
+      }
       sessionStorage.removeItem("reopenModalRecordId");
       sessionStorage.removeItem("reopenModalEventType");
+      sessionStorage.removeItem("reopenDeckModalDeckId");
     }
 
     const originalPushState = window.history.pushState;
     window.history.pushState = function (...args: Parameters<typeof window.history.pushState>) {
       sessionStorage.removeItem("detailPagePendingReopenRecordId");
       sessionStorage.removeItem("detailPagePendingReopenEventType");
+      sessionStorage.removeItem("detailPagePendingReopenDeckId");
       return originalPushState.apply(window.history, args);
     };
 
@@ -75,14 +83,19 @@ export default function RecordById({ id }: Props) {
 
       const savedId = sessionStorage.getItem("detailPagePendingReopenRecordId");
       const savedEventType = sessionStorage.getItem("detailPagePendingReopenEventType");
+      const savedDeckId = sessionStorage.getItem("detailPagePendingReopenDeckId");
       if (savedId) {
         // pushState が発生しなかった（バック遷移）場合のみここに来る
         sessionStorage.setItem("reopenModalRecordId", savedId);
         if (savedEventType) {
           sessionStorage.setItem("reopenModalEventType", savedEventType);
         }
+        if (savedDeckId) {
+          sessionStorage.setItem("reopenDeckModalDeckId", savedDeckId);
+        }
         sessionStorage.removeItem("detailPagePendingReopenRecordId");
         sessionStorage.removeItem("detailPagePendingReopenEventType");
+        sessionStorage.removeItem("detailPagePendingReopenDeckId");
       }
     };
   }, [id]);

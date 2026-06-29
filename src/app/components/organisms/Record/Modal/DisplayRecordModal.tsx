@@ -417,6 +417,14 @@ export default function DisplayRecordModal({
                                 : "unofficial";
                           sessionStorage.setItem("reopenModalRecordId", record.id);
                           sessionStorage.setItem("reopenModalEventType", eventType);
+                          // デッキの記録一覧モーダル内から開いた場合は、戻り遷移で
+                          // デッキモーダル＋記録一覧モーダルを再開するため deck.id も保存する。
+                          const activeDeckId = sessionStorage.getItem(
+                            "activeDeckRecordsModalDeckId",
+                          );
+                          if (activeDeckId) {
+                            sessionStorage.setItem("reopenDeckModalDeckId", activeDeckId);
+                          }
                           router.push(`/records/${record.id}`);
                         }}
                       >

@@ -1,7 +1,7 @@
 import { createHash } from "crypto";
 
 import { useState } from "react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { SetStateAction, Dispatch } from "react";
 
 import { Skeleton } from "@heroui/react";
@@ -54,6 +54,9 @@ type Props = {
   isOpen: boolean;
   onOpenChange: () => void;
   onRemove: (id: string) => void;
+  // 記録詳細ページからの戻り遷移時に、デッキモーダルと同時に
+  // 記録一覧モーダルも自動で開くかどうか。
+  reopenRecordsModalOnOpen?: boolean;
 };
 
 export default function ShowDeckModal({
@@ -64,6 +67,7 @@ export default function ShowDeckModal({
   isOpen,
   onOpenChange,
   onRemove,
+  reopenRecordsModalOnOpen = false,
 }: Props) {
   const [imageLoaded, setImageLoaded] = useState(false);
 
@@ -117,6 +121,25 @@ export default function ShowDeckModal({
     onOpenChange: onOpenChangeForDisplayDeckCodesModal,
     onClose: onCloseForDisplayDeckCodesModal,
   } = useDisclosure();
+
+  // 戻り遷移での再開時、デッキモーダルが開いたら記録一覧モーダルも一度だけ開く。
+  // デッキモーダルと同時に開くと HeroUI のモーダルスタック/フォーカス管理が競合し
+  // 記録一覧モーダルが開かないため、デッキモーダルの開閉アニメーション完了後に開く。
+  const reopenRecordsConsumedRef = useRef(false);
+  useEffect(() => {
+    if (
+      !isOpen ||
+      !reopenRecordsModalOnOpen ||
+      reopenRecordsConsumedRef.current
+    ) {
+      return;
+    }
+    reopenRecordsConsumedRef.current = true;
+    const timer = setTimeout(() => {
+      onOpenForDisplayRecordsModal();
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [isOpen, reopenRecordsModalOnOpen, onOpenForDisplayRecordsModal]);
 
   const version =
     deckcode && deckcode.id
@@ -407,6 +430,7 @@ export default function ShowDeckModal({
         isOpen={isOpenForDisplayRecordsModal}
         onOpenChange={onOpenChangeForDisplayRecordsModal}
         onClose={onCloseForDisplayRecordsModal}
+        disableAnimation={reopenRecordsModalOnOpen}
       />
 
       <DisplayDeckCodesModal

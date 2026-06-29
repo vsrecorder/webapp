@@ -5,7 +5,7 @@ import { Modal, ModalContent, ModalHeader, ModalBody } from "@heroui/react";
 
 import Records from "@app/components/organisms/Record/Records";
 
-type TabKey = "official" | "tonamel" | "unofficial";
+type TabKey = "all" | "official" | "tonamel" | "unofficial";
 
 import { DeckGetByIdResponseType } from "@app/types/deck";
 
@@ -14,6 +14,11 @@ type Props = {
   isOpen: boolean;
   onOpenChange: () => void;
   onClose: () => void;
+  // 記録詳細ページからの戻り遷移で再開した場合 true。
+  // 開閉アニメーションを無効化して即時表示することで、記録カードのモーダルが
+  // このモーダルのアニメーション中に開いて HeroUI のフォーカス管理と競合し
+  // 表示されなくなる問題を回避する。
+  disableAnimation?: boolean;
 };
 
 export default function DisplayRecordsModal({
@@ -21,6 +26,7 @@ export default function DisplayRecordsModal({
   isOpen,
   onOpenChange,
   onClose,
+  disableAnimation = false,
 }: Props) {
   const startY = useRef<number | null>(null);
 
@@ -39,11 +45,12 @@ export default function DisplayRecordsModal({
       onClose();
     }
   };
-  const [selectedKey, setSelectedKey] = useState<TabKey>("official");
+  const [selectedKey, setSelectedKey] = useState<TabKey>("all");
   const bodyRef = useRef<HTMLDivElement | null>(null);
 
   // タブごとのスクロール位置を保存
   const scrollPositions = useRef<Record<TabKey, number>>({
+    all: 0,
     official: 0,
     tonamel: 0,
     unofficial: 0,
@@ -68,12 +75,28 @@ export default function DisplayRecordsModal({
     }
   }, [selectedKey]);
 
+  // このモーダルが開いている間だけ「デッキの記録一覧モーダル内にいる」ことを記録する。
+  // 記録カードから詳細ページへ遷移した際、DisplayRecordModal がこの値を読み取り、
+  // 戻り遷移でデッキモーダル＋記録一覧モーダルを再開するための deck.id を保存する。
+  useEffect(() => {
+    if (isOpen && deck) {
+      sessionStorage.setItem("activeDeckRecordsModalDeckId", deck.id);
+    } else {
+      sessionStorage.removeItem("activeDeckRecordsModalDeckId");
+    }
+
+    return () => {
+      sessionStorage.removeItem("activeDeckRecordsModalDeckId");
+    };
+  }, [isOpen, deck]);
+
   return (
     <Modal
       isOpen={isOpen}
       size="md"
       placement="bottom"
       hideCloseButton
+      disableAnimation={disableAnimation}
       onOpenChange={onOpenChange}
       onClose={() => {}}
       isDismissable={false}
@@ -111,6 +134,7 @@ export default function DisplayRecordsModal({
                     tabContent: "font-bold",
                   }}
                 >
+                  <Tab key="all" title="すべて" />
                   <Tab key="official" title="公式イベント" />
                   <Tab key="tonamel" title="Tonamel" />
                   <Tab key="unofficial" title="記入形式" />
@@ -121,16 +145,36 @@ export default function DisplayRecordsModal({
               ref={bodyRef}
               className="px-2 py-2 flex flex-col overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
             >
+              <div hidden={selectedKey !== "all"} className="pt-12">
+                <Records
+                  event_type={"all"}
+                  deck_id={deck ? deck.id : ""}
+                  isActive={selectedKey === "all"}
+                />
+              </div>
+
               <div hidden={selectedKey !== "official"} className="pt-12">
-                <Records event_type={"official"} deck_id={deck ? deck.id : ""} />
+                <Records
+                  event_type={"official"}
+                  deck_id={deck ? deck.id : ""}
+                  isActive={selectedKey === "official"}
+                />
               </div>
 
               <div hidden={selectedKey !== "tonamel"} className="pt-12">
-                <Records event_type={"tonamel"} deck_id={deck ? deck.id : ""} />
+                <Records
+                  event_type={"tonamel"}
+                  deck_id={deck ? deck.id : ""}
+                  isActive={selectedKey === "tonamel"}
+                />
               </div>
 
               <div hidden={selectedKey !== "unofficial"} className="pt-12">
-                <Records event_type={"unofficial"} deck_id={deck ? deck.id : ""} />
+                <Records
+                  event_type={"unofficial"}
+                  deck_id={deck ? deck.id : ""}
+                  isActive={selectedKey === "unofficial"}
+                />
               </div>
             </ModalBody>
           </>

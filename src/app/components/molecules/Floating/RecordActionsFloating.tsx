@@ -118,25 +118,37 @@ function buildTweetHref(
 }
 
 // キャプチャ時に現在のテーマ（ライト/ダーク）へ追従して書き出す。
-// ダークモード時はダーク表示のまま、ライトモード時は light クラスを補って確実にライト化する。
+// 画面外への退避は「外側のラッパー」だけが担い、キャプチャ対象(clone)自身には
+// 位置スタイルを一切付けない。こうすることで clone は通常フロー(0,0)のまま描画され、
+// 書き出し画像の最上部に帯が出る／コンテンツがずれる、といった座標起因の不具合を防ぐ。
 async function captureThemedPng(el: HTMLElement): Promise<string> {
   const isDark = document.documentElement.classList.contains("dark");
   // ライトは白、ダークはメイン領域と同じ地色（app-dot-bg のダーク背景）
   const bgColor = isDark ? "#0a0a0a" : "#ffffff";
 
-  if (!isDark) el.classList.add("light");
-  const prevBg = el.style.backgroundColor;
-  el.style.backgroundColor = bgColor;
+  // 画面外に逃がすためのラッパー（位置指定はここだけが持つ）
+  const wrapper = document.createElement("div");
+  wrapper.style.position = "fixed";
+  wrapper.style.top = "-10000px";
+  wrapper.style.left = "0";
+  wrapper.style.width = `${el.offsetWidth}px`;
+  wrapper.style.backgroundColor = bgColor;
+
+  const clone = el.cloneNode(true) as HTMLElement;
+  clone.style.width = `${el.offsetWidth}px`;
+  if (!isDark) clone.classList.add("light");
+
+  wrapper.appendChild(clone);
+  document.body.appendChild(wrapper);
 
   try {
-    return await toPng(el, {
+    return await toPng(clone, {
       cacheBust: true,
       pixelRatio: 3,
       backgroundColor: bgColor,
     });
   } finally {
-    if (!isDark) el.classList.remove("light");
-    el.style.backgroundColor = prevBg;
+    document.body.removeChild(wrapper);
   }
 }
 

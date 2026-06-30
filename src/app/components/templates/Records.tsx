@@ -36,17 +36,10 @@ export default function TemplateRecords() {
   // 実際の復元はマウント後の useEffect で行う（ハイドレーション不整合の回避）。
   const [selectedKey, setSelectedKey] = useState<TabKey>("all");
 
-  // HeroUI(Tabs) は React Aria の useId で内部 ID（data-collection / id）を生成するが、
-  // フルページ SSR → ハイドレーション時にサーバーとクライアントで ID が食い違い、
-  // ハイドレーション不整合の警告が出る。タブバーはマウント後にのみ描画して回避する。
-  // （このページは auth ガード済み・一覧はクライアント取得のため SSR 上の損失はない）
-  const [mounted, setMounted] = useState(false);
-
   // マウント後に保存済みタブを復元する。
   // 初回 "all" からの state 遷移により通常の再レンダリングが走り、
   // 各タブ内容の hidden 属性も正しく更新される。
   useEffect(() => {
-    setMounted(true);
     const restored = resolveRestoredTab();
     if (restored !== "all") {
       setSelectedKey(restored);
@@ -84,50 +77,24 @@ export default function TemplateRecords() {
       <ScrollUpFloating />
       <CreateRecordFloating eventType={selectedKey} />
       <div className="pt-12 w-full">
-        {mounted ? (
-          <Tabs
-            fullWidth
-            size="md"
-            selectedKey={selectedKey}
-            onSelectionChange={handleSelectionChange}
-            className="fixed z-50 top-15 left-0 right-0 pl-1 pr-1"
-            classNames={{
-              cursor: "",
-              tab: "h-8",
-              tabList: "",
-              tabContent: "font-bold",
-            }}
-          >
-            <Tab key="all" title="すべて" />
-            <Tab key="official" title="公式イベント" />
-            <Tab key="tonamel" title="Tonamel" />
-            <Tab key="unofficial" title="記入形式" />
-          </Tabs>
-        ) : (
-          // マウント前のプレースホルダ（静的HTMLなのでハイドレーション不整合は起きない）。
-          // 実際のタブバーと同じ位置・高さにしてレイアウトのちらつきを防ぐ。
-          <div
-            aria-hidden
-            className="fixed z-50 top-15 left-0 right-0 pl-1 pr-1"
-          >
-            <div className="flex w-full p-1 gap-2 items-center rounded-medium bg-default-100">
-              {["すべて", "公式イベント", "Tonamel", "記入形式"].map(
-                (title, i) => (
-                  <div
-                    key={title}
-                    className={`flex-1 h-8 flex justify-center items-center rounded-small text-sm font-bold ${
-                      i === 0
-                        ? "bg-white text-default-foreground shadow-small"
-                        : "text-default-500"
-                    }`}
-                  >
-                    {title}
-                  </div>
-                ),
-              )}
-            </div>
-          </div>
-        )}
+        <Tabs
+          fullWidth
+          size="md"
+          selectedKey={selectedKey}
+          onSelectionChange={handleSelectionChange}
+          className="fixed z-50 top-15 left-0 right-0 pl-1 pr-1"
+          classNames={{
+            cursor: "",
+            tab: "h-8",
+            tabList: "",
+            tabContent: "font-bold",
+          }}
+        >
+          <Tab key="all" title="すべて" />
+          <Tab key="official" title="公式イベント" />
+          <Tab key="tonamel" title="Tonamel" />
+          <Tab key="unofficial" title="記入形式" />
+        </Tabs>
       </div>
 
       <div className="w-full pt-2" hidden={selectedKey !== "all"}>

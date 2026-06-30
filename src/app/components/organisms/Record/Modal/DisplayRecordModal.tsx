@@ -430,6 +430,16 @@ export default function DisplayRecordModal({
                           );
                           if (activeDeckId) {
                             sessionStorage.setItem("reopenDeckModalDeckId", activeDeckId);
+                            // アーカイブ状態も引き継ぐ（戻り時のタブ切り替え用）
+                            const activeArchived = sessionStorage.getItem(
+                              "activeDeckRecordsModalArchived",
+                            );
+                            if (activeArchived) {
+                              sessionStorage.setItem(
+                                "reopenDeckModalArchived",
+                                activeArchived,
+                              );
+                            }
                           }
                           router.push(`/records/${record.id}`);
                         }}

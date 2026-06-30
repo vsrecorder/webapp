@@ -56,6 +56,8 @@ export default function RecordById({ id }: Props) {
     // デッキの記録一覧モーダルから遷移してきた場合の再開対象 deck.id。
     // record 系キーと同じライフサイクル（バック遷移時のみ復元）で扱う。
     const pendingDeckId = sessionStorage.getItem("reopenDeckModalDeckId");
+    // 対象デッキがアーカイブ済みか（戻り時のデッキページのタブ切り替え用）。
+    const pendingDeckArchived = sessionStorage.getItem("reopenDeckModalArchived");
 
     if (pendingId && pendingId === id) {
       sessionStorage.setItem("detailPagePendingReopenRecordId", pendingId);
@@ -65,9 +67,13 @@ export default function RecordById({ id }: Props) {
       if (pendingDeckId) {
         sessionStorage.setItem("detailPagePendingReopenDeckId", pendingDeckId);
       }
+      if (pendingDeckArchived) {
+        sessionStorage.setItem("detailPagePendingReopenArchived", pendingDeckArchived);
+      }
       sessionStorage.removeItem("reopenModalRecordId");
       sessionStorage.removeItem("reopenModalEventType");
       sessionStorage.removeItem("reopenDeckModalDeckId");
+      sessionStorage.removeItem("reopenDeckModalArchived");
     }
 
     const originalPushState = window.history.pushState;
@@ -75,6 +81,7 @@ export default function RecordById({ id }: Props) {
       sessionStorage.removeItem("detailPagePendingReopenRecordId");
       sessionStorage.removeItem("detailPagePendingReopenEventType");
       sessionStorage.removeItem("detailPagePendingReopenDeckId");
+      sessionStorage.removeItem("detailPagePendingReopenArchived");
       return originalPushState.apply(window.history, args);
     };
 
@@ -84,6 +91,7 @@ export default function RecordById({ id }: Props) {
       const savedId = sessionStorage.getItem("detailPagePendingReopenRecordId");
       const savedEventType = sessionStorage.getItem("detailPagePendingReopenEventType");
       const savedDeckId = sessionStorage.getItem("detailPagePendingReopenDeckId");
+      const savedDeckArchived = sessionStorage.getItem("detailPagePendingReopenArchived");
       if (savedId) {
         // pushState が発生しなかった（バック遷移）場合のみここに来る
         sessionStorage.setItem("reopenModalRecordId", savedId);
@@ -93,9 +101,13 @@ export default function RecordById({ id }: Props) {
         if (savedDeckId) {
           sessionStorage.setItem("reopenDeckModalDeckId", savedDeckId);
         }
+        if (savedDeckArchived) {
+          sessionStorage.setItem("reopenDeckModalArchived", savedDeckArchived);
+        }
         sessionStorage.removeItem("detailPagePendingReopenRecordId");
         sessionStorage.removeItem("detailPagePendingReopenEventType");
         sessionStorage.removeItem("detailPagePendingReopenDeckId");
+        sessionStorage.removeItem("detailPagePendingReopenArchived");
       }
     };
   }, [id]);

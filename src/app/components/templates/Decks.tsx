@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 
 import ScrollUpFloating from "@app/components/atoms/Floating/ScrollUpFloating";
 import CreateDeckFloating from "@app/components/molecules/Floating/CreateDeckFloating";
@@ -14,6 +14,17 @@ type TabKey = "inuse" | "archived";
 export default function TemplateDecks() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedKey, setSelectedKey] = useState<"inuse" | "archived">("inuse");
+
+  // 記録詳細ページからの戻り（再開）時、対象デッキがアーカイブ済みなら
+  // 「アーカイブ済み」タブへ切り替える。そうしないと対象デッキの DeckCard が
+  // マウントされず、デッキモーダル以降の再開が走らない。
+  useEffect(() => {
+    if (sessionStorage.getItem("reopenDeckModalArchived") === "1") {
+      setSelectedKey("archived");
+    }
+    // 役目を終えたフラグは削除（DeckCard が使う reopenDeckModalDeckId は残す）。
+    sessionStorage.removeItem("reopenDeckModalArchived");
+  }, []);
 
   const handleCreatedDeck = useCallback(() => {
     setRefreshKey((prev) => prev + 1);

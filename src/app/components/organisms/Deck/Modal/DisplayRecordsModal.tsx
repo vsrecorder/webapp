@@ -115,12 +115,21 @@ export default function DisplayRecordsModal({
   useEffect(() => {
     if (isOpen && deck) {
       sessionStorage.setItem("activeDeckRecordsModalDeckId", deck.id);
+      // アーカイブ済みデッキかどうかも記録する（archived_at がゼロ値=未アーカイブ）。
+      // 戻り時にデッキページのタブ（利用中/アーカイブ済み）を切り替えるために使う。
+      const archived = new Date(deck.archived_at).getFullYear() !== 1;
+      sessionStorage.setItem(
+        "activeDeckRecordsModalArchived",
+        archived ? "1" : "0",
+      );
     } else {
       sessionStorage.removeItem("activeDeckRecordsModalDeckId");
+      sessionStorage.removeItem("activeDeckRecordsModalArchived");
     }
 
     return () => {
       sessionStorage.removeItem("activeDeckRecordsModalDeckId");
+      sessionStorage.removeItem("activeDeckRecordsModalArchived");
     };
   }, [isOpen, deck]);
 

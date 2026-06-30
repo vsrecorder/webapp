@@ -115,6 +115,45 @@ export default function Matches({
     return <div className="text-red-500">{error}</div>;
   }
 
+  // フェーズフラグの有無でセクション分けするかを決定
+  const orderedItems = (() => {
+    if (!matches || matches.length === 0) return [];
+
+    const hasAnyPhaseFlag = matches.some(
+      (m) => m.qualifying_round_flg || m.final_tournament_flg,
+    );
+
+    if (!hasAnyPhaseFlag) {
+      return matches.map((m) => ({ kind: "match" as const, match: m }));
+    }
+
+    const qualifying = matches.filter((m) => m.qualifying_round_flg);
+    const finalTournament = matches.filter((m) => m.final_tournament_flg);
+    const other = matches.filter(
+      (m) => !m.qualifying_round_flg && !m.final_tournament_flg,
+    );
+
+    const items: Array<
+      | { kind: "header"; label: string; id: string }
+      | { kind: "match"; match: MatchGetResponseType }
+    > = [];
+
+    if (qualifying.length > 0) {
+      items.push({ kind: "header", label: "🎯 予選", id: "section-qualifying" });
+      qualifying.forEach((m) => items.push({ kind: "match", match: m }));
+    }
+    if (finalTournament.length > 0) {
+      items.push({ kind: "header", label: "🏆 本戦", id: "section-final" });
+      finalTournament.forEach((m) => items.push({ kind: "match", match: m }));
+    }
+    if (other.length > 0) {
+      items.push({ kind: "header", label: "📝 その他", id: "section-other" });
+      other.forEach((m) => items.push({ kind: "match", match: m }));
+    }
+
+    return items;
+  })();
+
   return (
     <>
       <UpdateMatchModal
@@ -158,215 +197,237 @@ export default function Matches({
                             <TableColumn>対戦結果</TableColumn>
                           </TableHeader>
                           <TableBody>
-                            {matches.map((match) => (
-                              <TableRow key={match.id}>
-                                <TableCell>
-                                  <Button
-                                    radius="md"
-                                    variant="light"
-                                    className="pl-3 pr-2 py-6 w-full"
-                                    onPress={() => {
-                                      setSelectedMatch(match);
-                                      // 編集可能な場合は編集モーダル、
-                                      // それ以外でメモがある場合はメモ表示モーダルを開く
-                                      if (enableUpdateMatchModalButton) {
-                                        onOpenForUpdateMatchModal();
-                                      } else if (match.memo && match.memo !== "") {
-                                        onOpenForDisplayMatchMemoModal();
-                                      }
-                                    }}
+                            {orderedItems.map((item, index) => {
+                              if (item.kind === "header") {
+                                return (
+                                  <TableRow
+                                    key={item.id}
+                                    className="bg-content1! hover:bg-content1! cursor-default"
                                   >
-                                    <div className="flex items-center gap-3 w-full">
-                                      {/* チーム戦は個人とチームの勝敗を並べて表示、BO1は個人の勝敗のみ */}
-                                      {match.group_match_flg ? (
-                                        <div className="flex shrink-0 items-stretch gap-2">
-                                          <div className="flex flex-col items-center gap-1">
-                                            <span className="text-[9px] leading-none text-default-400">
-                                              個人
-                                            </span>
-                                            <span className="text-base leading-none">
-                                              {match.victory_flg === true ? "⭕" : "❌"}
-                                            </span>
-                                          </div>
-                                          <div className="flex flex-col items-center gap-1">
-                                            <span className="text-[9px] leading-none text-default-400">
-                                              チーム
-                                            </span>
-                                            <span className="text-base leading-none">
-                                              {match.group_match_victory_flg
-                                                ? "⭕"
-                                                : "❌"}
-                                            </span>
-                                          </div>
-                                        </div>
-                                      ) : (
-                                        <div className="shrink-0">
-                                          {match.victory_flg === true ? "⭕" : "❌"}
-                                        </div>
-                                      )}
+                                    <TableCell className={`px-2 pb-1.5 ${index === 0 ? "pt-1.5" : "pt-6"}`}>
+                                      <div className="flex items-center gap-2">
+                                        <div className="flex-1 h-px bg-default-200" />
+                                        <span className="text-[10px] font-bold text-default-400">
+                                          {item.label}
+                                        </span>
+                                        <div className="flex-1 h-px bg-default-200" />
+                                      </div>
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              }
 
-                                      <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                                        {match.default_victory_flg ||
-                                        match.default_defeat_flg ? (
-                                          <>
-                                            <>
-                                              <div className="flex items-center gap-0 shrink-0">
-                                                <Image
-                                                  alt="unknown"
-                                                  src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
-                                                  className="w-11 h-11 object-contain scale-150 origin-bottom"
-                                                />
-
-                                                <Image
-                                                  alt="unknown"
-                                                  src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
-                                                  className="w-11 h-11 object-contain scale-150 origin-bottom"
-                                                />
-                                              </div>
-                                            </>
-
-                                            <div className="flex flex-col justify-center gap-1 min-w-0 flex-1">
-                                              <div className="min-w-0">
-                                                <div className="font-bold truncate text-left">
-                                                  {match.default_victory_flg
-                                                    ? "不戦勝"
-                                                    : "不戦敗"}
-                                                </div>
-                                                <div className="mt-0.5 flex flex-wrap items-center gap-1">
-                                                  <Chip
-                                                    size="sm"
-                                                    variant="flat"
-                                                    radius="sm"
-                                                    color={
-                                                      match.group_match_flg
-                                                        ? "secondary"
-                                                        : "default"
-                                                    }
-                                                    classNames={{
-                                                      base: "h-4 px-1",
-                                                      content:
-                                                        "px-1 text-[8px] font-bold",
-                                                    }}
-                                                  >
-                                                    {match.group_match_flg
-                                                      ? "チーム戦"
-                                                      : "BO1"}
-                                                  </Chip>
-                                                </div>
-                                              </div>
+                              const { match } = item;
+                              return (
+                                <TableRow key={match.id}>
+                                  <TableCell>
+                                    <Button
+                                      radius="md"
+                                      variant="light"
+                                      className="pl-3 pr-2 py-6 w-full"
+                                      onPress={() => {
+                                        setSelectedMatch(match);
+                                        // 編集可能な場合は編集モーダル、
+                                        // それ以外でメモがある場合はメモ表示モーダルを開く
+                                        if (enableUpdateMatchModalButton) {
+                                          onOpenForUpdateMatchModal();
+                                        } else if (match.memo && match.memo !== "") {
+                                          onOpenForDisplayMatchMemoModal();
+                                        }
+                                      }}
+                                    >
+                                      <div className="flex items-center gap-3 w-full">
+                                        {/* チーム戦は個人とチームの勝敗を並べて表示、BO1は個人の勝敗のみ */}
+                                        {match.group_match_flg ? (
+                                          <div className="flex shrink-0 items-stretch gap-2">
+                                            <div className="flex flex-col items-center gap-1">
+                                              <span className="text-[9px] leading-none text-default-400">
+                                                個人
+                                              </span>
+                                              <span className="text-base leading-none">
+                                                {match.victory_flg === true ? "⭕" : "❌"}
+                                              </span>
                                             </div>
-                                          </>
+                                            <div className="flex flex-col items-center gap-1">
+                                              <span className="text-[9px] leading-none text-default-400">
+                                                チーム
+                                              </span>
+                                              <span className="text-base leading-none">
+                                                {match.group_match_victory_flg
+                                                  ? "⭕"
+                                                  : "❌"}
+                                              </span>
+                                            </div>
+                                          </div>
                                         ) : (
-                                          <>
+                                          <div className="shrink-0">
+                                            {match.victory_flg === true ? "⭕" : "❌"}
+                                          </div>
+                                        )}
+
+                                        <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                          {match.default_victory_flg ||
+                                          match.default_defeat_flg ? (
                                             <>
-                                              <div className="flex items-center gap-0 shrink-0">
-                                                {match.pokemon_sprites[0] ? (
-                                                  <Image
-                                                    alt={match.pokemon_sprites[0].id.replace(
-                                                      /^0+(?!$)/,
-                                                      "",
-                                                    )}
-                                                    src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${match.pokemon_sprites[0].id.replace(/^0+(?!$)/, "")}.png`}
-                                                    className={`w-11 h-11 object-contain ${spriteScaleClass(match.pokemon_sprites[0].id)} origin-bottom`}
-                                                  />
-                                                ) : (
+                                              <>
+                                                <div className="flex items-center gap-0 shrink-0">
                                                   <Image
                                                     alt="unknown"
                                                     src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
                                                     className="w-11 h-11 object-contain scale-150 origin-bottom"
                                                   />
-                                                )}
 
-                                                {match.pokemon_sprites[1] ? (
-                                                  <Image
-                                                    alt={match.pokemon_sprites[1].id.replace(
-                                                      /^0+(?!$)/,
-                                                      "",
-                                                    )}
-                                                    src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${match.pokemon_sprites[1].id.replace(/^0+(?!$)/, "")}.png`}
-                                                    className={`w-11 h-11 object-contain ${spriteScaleClass(match.pokemon_sprites[1].id)} origin-bottom`}
-                                                  />
-                                                ) : (
                                                   <Image
                                                     alt="unknown"
                                                     src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
-                                                    className="w-11 h-11 object-contain scale-150 origin-bottom "
+                                                    className="w-11 h-11 object-contain scale-150 origin-bottom"
                                                   />
-                                                )}
+                                                </div>
+                                              </>
+
+                                              <div className="flex flex-col justify-center gap-1 min-w-0 flex-1">
+                                                <div className="min-w-0">
+                                                  <div className="font-bold truncate text-left">
+                                                    {match.default_victory_flg
+                                                      ? "不戦勝"
+                                                      : "不戦敗"}
+                                                  </div>
+                                                  <div className="mt-0.5 flex flex-wrap items-center gap-1">
+                                                    <Chip
+                                                      size="sm"
+                                                      variant="flat"
+                                                      radius="sm"
+                                                      color={
+                                                        match.group_match_flg
+                                                          ? "secondary"
+                                                          : "default"
+                                                      }
+                                                      classNames={{
+                                                        base: "h-4 px-1",
+                                                        content:
+                                                          "px-1 text-[8px] font-bold",
+                                                      }}
+                                                    >
+                                                      {match.group_match_flg
+                                                        ? "チーム戦"
+                                                        : "BO1"}
+                                                    </Chip>
+                                                  </div>
+                                                </div>
                                               </div>
                                             </>
+                                          ) : (
+                                            <>
+                                              <>
+                                                <div className="flex items-center gap-0 shrink-0">
+                                                  {match.pokemon_sprites[0] ? (
+                                                    <Image
+                                                      alt={match.pokemon_sprites[0].id.replace(
+                                                        /^0+(?!$)/,
+                                                        "",
+                                                      )}
+                                                      src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${match.pokemon_sprites[0].id.replace(/^0+(?!$)/, "")}.png`}
+                                                      className={`w-11 h-11 object-contain ${spriteScaleClass(match.pokemon_sprites[0].id)} origin-bottom`}
+                                                    />
+                                                  ) : (
+                                                    <Image
+                                                      alt="unknown"
+                                                      src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
+                                                      className="w-11 h-11 object-contain scale-150 origin-bottom"
+                                                    />
+                                                  )}
 
-                                            <div className="flex flex-col justify-center gap-1 min-w-0 flex-1">
-                                              <div className="min-w-0">
-                                                <div className="font-bold truncate text-left">
-                                                  {match.opponents_deck_info}
+                                                  {match.pokemon_sprites[1] ? (
+                                                    <Image
+                                                      alt={match.pokemon_sprites[1].id.replace(
+                                                        /^0+(?!$)/,
+                                                        "",
+                                                      )}
+                                                      src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${match.pokemon_sprites[1].id.replace(/^0+(?!$)/, "")}.png`}
+                                                      className={`w-11 h-11 object-contain ${spriteScaleClass(match.pokemon_sprites[1].id)} origin-bottom`}
+                                                    />
+                                                  ) : (
+                                                    <Image
+                                                      alt="unknown"
+                                                      src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
+                                                      className="w-11 h-11 object-contain scale-150 origin-bottom "
+                                                    />
+                                                  )}
                                                 </div>
+                                              </>
 
-                                                {/* 種別・先後・サイド数を chip で表示（種別を先頭に配置） */}
-                                                <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-                                                  <Chip
-                                                    size="sm"
-                                                    variant="flat"
-                                                    radius="sm"
-                                                    color={
-                                                      match.group_match_flg
-                                                        ? "secondary"
-                                                        : "default"
-                                                    }
-                                                    classNames={{
-                                                      base: "h-4 px-1",
-                                                      content:
-                                                        "px-1 text-[8px] font-bold",
-                                                    }}
-                                                  >
-                                                    {match.group_match_flg
-                                                      ? "チーム戦"
-                                                      : "BO1"}
-                                                  </Chip>
-                                                  <Chip
-                                                    size="sm"
-                                                    variant="flat"
-                                                    radius="sm"
-                                                    classNames={{
-                                                      base: "h-4 px-1",
-                                                      content:
-                                                        "px-1 text-[8px] font-bold",
-                                                    }}
-                                                  >
-                                                    {match.games[0].go_first
-                                                      ? "先攻"
-                                                      : "後攻"}
-                                                  </Chip>
-                                                  <Chip
-                                                    size="sm"
-                                                    variant="flat"
-                                                    radius="sm"
-                                                    classNames={{
-                                                      base: "h-4 px-1",
-                                                      content:
-                                                        "px-1 text-[8px] font-bold",
-                                                    }}
-                                                  >
-                                                    {match.games[0].your_prize_cards}
-                                                    {" - "}
-                                                    {match.games[0].opponents_prize_cards}
-                                                  </Chip>
+                                              <div className="flex flex-col justify-center gap-1 min-w-0 flex-1">
+                                                <div className="min-w-0">
+                                                  <div className="font-bold truncate text-left">
+                                                    {match.opponents_deck_info}
+                                                  </div>
+
+                                                  {/* 種別・先後・サイド数を chip で表示（種別を先頭に配置） */}
+                                                  <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                                                    <Chip
+                                                      size="sm"
+                                                      variant="flat"
+                                                      radius="sm"
+                                                      color={
+                                                        match.group_match_flg
+                                                          ? "secondary"
+                                                          : "default"
+                                                      }
+                                                      classNames={{
+                                                        base: "h-4 px-1",
+                                                        content:
+                                                          "px-1 text-[8px] font-bold",
+                                                      }}
+                                                    >
+                                                      {match.group_match_flg
+                                                        ? "チーム戦"
+                                                        : "BO1"}
+                                                    </Chip>
+                                                    <Chip
+                                                      size="sm"
+                                                      variant="flat"
+                                                      radius="sm"
+                                                      classNames={{
+                                                        base: "h-4 px-1",
+                                                        content:
+                                                          "px-1 text-[8px] font-bold",
+                                                      }}
+                                                    >
+                                                      {match.games[0].go_first
+                                                        ? "先攻"
+                                                        : "後攻"}
+                                                    </Chip>
+                                                    <Chip
+                                                      size="sm"
+                                                      variant="flat"
+                                                      radius="sm"
+                                                      classNames={{
+                                                        base: "h-4 px-1",
+                                                        content:
+                                                          "px-1 text-[8px] font-bold",
+                                                      }}
+                                                    >
+                                                      {match.games[0].your_prize_cards}
+                                                      {" - "}
+                                                      {match.games[0].opponents_prize_cards}
+                                                    </Chip>
+                                                  </div>
                                                 </div>
                                               </div>
-                                            </div>
-                                          </>
+                                            </>
+                                          )}
+                                        </div>
+
+                                        {/* メモがある場合は右端にアイコンを表示 */}
+                                        {match.memo && match.memo !== "" && (
+                                          <LuStickyNote className="ml-auto shrink-0 text-lg text-default-400" />
                                         )}
                                       </div>
-
-                                      {/* メモがある場合は右端にアイコンを表示 */}
-                                      {match.memo && match.memo !== "" && (
-                                        <LuStickyNote className="ml-auto shrink-0 text-lg text-default-400" />
-                                      )}
-                                    </div>
-                                  </Button>
-                                </TableCell>
-                              </TableRow>
-                            ))}
+                                    </Button>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
                           </TableBody>
                         </Table>
                       </div>

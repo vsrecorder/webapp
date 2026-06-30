@@ -488,7 +488,7 @@ export default function CreateMatchModal({
   const renderMatchForm = (showGroupMatch: boolean) => (
     <div className="flex flex-col gap-2 pt-0">
       <Card shadow="md" className="w-full">
-        <CardHeader className="pb-0 text-tiny">予選/トーナメント</CardHeader>
+        <CardHeader className="pb-0 text-tiny">予選/本戦</CardHeader>
         <CardBody className="">
           <CheckboxGroup
             size="md"
@@ -517,7 +517,7 @@ export default function CreateMatchModal({
                 setFinalTournamentFlg(e.target.checked);
               }}
             >
-              トーナメント
+              本戦
             </Checkbox>
           </CheckboxGroup>
         </CardBody>

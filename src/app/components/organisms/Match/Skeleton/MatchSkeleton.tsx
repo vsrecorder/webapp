@@ -65,6 +65,18 @@ export default function MatchSkeleton({ enableCreateMatchModalButton }: Props) {
                           </Button>
                         </TableCell>
                       </TableRow>
+
+                      <TableRow>
+                        <TableCell>
+                          <Button
+                            radius="md"
+                            variant="light"
+                            className="px-0 py-6 w-full"
+                          >
+                            <Skeleton className="w-full h-full" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
                     </TableBody>
                   </Table>
                 </div>

@@ -140,25 +140,25 @@ export default function Matches({
                   <CardBody
                     className={`px-0 py-0.5 ${matches && matches.length === 0 ? "min-h-28" : ""} w-full`}
                   >
-                    <div className="px-0 py-0 w-full">
-                      <Table
-                        isStriped
-                        hideHeader
-                        aria-label="対戦結果"
-                        className=""
-                        classNames={{
-                          wrapper: "p-1.5 shadow-none overflow-x-hidden",
-                          table: "",
-                          th: "px-0 py-0",
-                          td: "px-0 py-0",
-                        }}
-                      >
-                        <TableHeader>
-                          <TableColumn>対戦結果</TableColumn>
-                        </TableHeader>
-                        <TableBody>
-                          {matches && matches.length !== 0 ? (
-                            matches.map((match) => (
+                    {matches && matches.length !== 0 ? (
+                      <div className="px-0 py-0 w-full">
+                        <Table
+                          isStriped
+                          hideHeader
+                          aria-label="対戦結果"
+                          className=""
+                          classNames={{
+                            wrapper: "p-1.5 shadow-none overflow-x-hidden",
+                            table: "",
+                            th: "px-0 py-0",
+                            td: "px-0 py-0",
+                          }}
+                        >
+                          <TableHeader>
+                            <TableColumn>対戦結果</TableColumn>
+                          </TableHeader>
+                          <TableBody>
+                            {matches.map((match) => (
                               <TableRow key={match.id}>
                                 <TableCell>
                                   <Button
@@ -366,19 +366,15 @@ export default function Matches({
                                   </Button>
                                 </TableCell>
                               </TableRow>
-                            ))
-                          ) : (
-                            <TableRow>
-                              <TableCell>
-                                <div className="pt-10 text-center">
-                                  対戦結果がありません
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          )}
-                        </TableBody>
-                      </Table>
-                    </div>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col pt-10 items-center justify-center">
+                        対戦結果がありません
+                      </div>
+                    )}
                   </CardBody>
                 </Card>
               </div>

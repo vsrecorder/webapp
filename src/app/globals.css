@@ -27,6 +27,15 @@
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
+/*
+ * ただしカードの入れ子（カードの中のカード）では、内側の枠が
+ * 「中身に走る線」として見えてしまうため枠を付けない。
+ * 内側サーフェスは背景の明度差だけで十分に分離できる。
+ */
+.dark .bg-content1 .bg-content1 {
+  border: none;
+}
+
 /* ヘッダーの環境テキストスクロールアニメーション */
 @keyframes marquee {
   from { transform: translateX(0); }

@@ -133,14 +133,15 @@ export default function CityleagueResultCard({ result }: Props) {
   const getBorderColor = (rank: number) => {
     switch (rank) {
       case 1:
-        return "border-amber-400 bg-amber-50";
+        // ダークモードでは淡色背景に白文字が埋もれるため、背景を暗いトーンに切り替える
+        return "border-amber-400 bg-amber-50 dark:bg-amber-900/30";
       case 2:
         return "border-default-400 bg-default-100";
       case 3:
-        return "border-orange-700  bg-orange-100";
+        return "border-orange-700 bg-orange-100 dark:bg-orange-900/30";
       case 5:
-        return "border-blue-500 bg-blue-50";
-      //return "border-green-500 bg-green-50";
+        return "border-blue-500 bg-blue-50 dark:bg-blue-900/30";
+      //return "border-green-500 bg-green-50 dark:bg-green-900/30";
       default:
         return "";
     }

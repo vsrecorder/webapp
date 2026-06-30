@@ -47,9 +47,12 @@ import { useRouter } from "next/navigation";
 
 import ScrollingText from "@app/components/molecules/ScrollingText";
 
+import { spriteImageUrl, spriteScaleClass } from "@app/utils/sprite";
+
 import { OfficialEventResponseType, OfficialEventType } from "@app/types/official_event";
 import { DeckGetAllType, DeckData } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
+import { DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
 import { RecordCreateRequestType, RecordCreateResponseType } from "@app/types/record";
 import {
   UnofficialEventCreateRequestType,
@@ -81,6 +84,7 @@ type DeckOption = {
   name: string;
   private_flg: boolean;
   latest_deck_code: DeckCodeType;
+  pokemon_sprites: DeckPokemonSpriteType[];
 };
 
 type DeckCodeOption = {
@@ -307,6 +311,7 @@ function convertToDeckOption(data: DeckData): DeckOption {
     name: data.name,
     private_flg: data.private_flg,
     latest_deck_code: data.latest_deck_code,
+    pokemon_sprites: data.pokemon_sprites ?? [],
   };
 }
 
@@ -327,6 +332,34 @@ function convertToDeckCodeOption(data: DeckCodeType): DeckCodeOption {
     code: data.code,
     private_code_flg: data.private_code_flg,
   };
+}
+
+// デッキの先頭2匹のポケモンスプライトを表示する。
+// スプライトが未設定のスロットは unknown 画像で補完し、UsedDeckCard と同じ見た目を踏襲する。
+function DeckSprites({
+  sprites,
+  sizeClass = "w-9 h-9",
+}: {
+  sprites: DeckPokemonSpriteType[];
+  sizeClass?: string;
+}) {
+  const slots = [sprites?.[0], sprites?.[1]];
+
+  return (
+    <div className="flex items-center gap-0 shrink-0">
+      {slots.map((sprite, i) => (
+        <Image
+          key={i}
+          alt={sprite?.id || "unknown"}
+          src={spriteImageUrl(sprite?.id)}
+          radius="none"
+          className={`${sizeClass} object-contain ${
+            sprite ? spriteScaleClass(sprite.id) : "scale-150"
+          } origin-bottom`}
+        />
+      ))}
+    </div>
+  );
 }
 
 // 必須項目であることを示すバッジ
@@ -1353,7 +1386,15 @@ export default function TemplateRecordCreate({
                                 登録日：{option.created_at}
                               </span>
 
-                              <span className="truncate">デッキ名：{option.name}</span>
+                              <div className="flex items-center gap-2 min-w-0">
+                                <DeckSprites
+                                  sprites={option.pokemon_sprites}
+                                  sizeClass="w-8 h-8"
+                                />
+                                <span className="truncate">
+                                  デッキ名：{option.name}
+                                </span>
+                              </div>
 
                               <span className="pt-1">
                                 <div className="relative w-full aspect-2/1">
@@ -1381,8 +1422,12 @@ export default function TemplateRecordCreate({
                         );
                       }
                       return (
-                        <div className="text-sm truncate">
-                          <span>{option.name}</span>
+                        <div className="flex items-center gap-2 text-sm min-w-0">
+                          <DeckSprites
+                            sprites={option.pokemon_sprites}
+                            sizeClass="w-7 h-7"
+                          />
+                          <span className="truncate">{option.name}</span>
                         </div>
                       );
                     }}
@@ -1649,7 +1694,15 @@ export default function TemplateRecordCreate({
                                 登録日：{option.created_at}
                               </span>
 
-                              <span className="truncate">デッキ名：{option.name}</span>
+                              <div className="flex items-center gap-2 min-w-0">
+                                <DeckSprites
+                                  sprites={option.pokemon_sprites}
+                                  sizeClass="w-8 h-8"
+                                />
+                                <span className="truncate">
+                                  デッキ名：{option.name}
+                                </span>
+                              </div>
 
                               <span className="pt-1">
                                 <div className="relative w-full aspect-2/1">
@@ -1677,8 +1730,12 @@ export default function TemplateRecordCreate({
                         );
                       }
                       return (
-                        <div className="text-sm truncate">
-                          <span>{option.name}</span>
+                        <div className="flex items-center gap-2 text-sm min-w-0">
+                          <DeckSprites
+                            sprites={option.pokemon_sprites}
+                            sizeClass="w-7 h-7"
+                          />
+                          <span className="truncate">{option.name}</span>
                         </div>
                       );
                     }}
@@ -1916,7 +1973,15 @@ export default function TemplateRecordCreate({
                                 登録日：{option.created_at}
                               </span>
 
-                              <span className="truncate">デッキ名：{option.name}</span>
+                              <div className="flex items-center gap-2 min-w-0">
+                                <DeckSprites
+                                  sprites={option.pokemon_sprites}
+                                  sizeClass="w-8 h-8"
+                                />
+                                <span className="truncate">
+                                  デッキ名：{option.name}
+                                </span>
+                              </div>
 
                               <span className="pt-1">
                                 <div className="relative w-full aspect-2/1">
@@ -1944,8 +2009,12 @@ export default function TemplateRecordCreate({
                         );
                       }
                       return (
-                        <div className="text-sm truncate">
-                          <span>{option.name}</span>
+                        <div className="flex items-center gap-2 text-sm min-w-0">
+                          <DeckSprites
+                            sprites={option.pokemon_sprites}
+                            sizeClass="w-7 h-7"
+                          />
+                          <span className="truncate">{option.name}</span>
                         </div>
                       );
                     }}

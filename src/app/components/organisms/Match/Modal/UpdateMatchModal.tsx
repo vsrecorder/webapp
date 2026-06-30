@@ -673,8 +673,7 @@ export default function UpdateMatchModal({
               type="text"
               label=""
               labelPlacement="outside"
-              placeholder={"例）メガルカリオ"}
-              //placeholder={"例）" + deckHistories[0].deckInfo}
+              placeholder={"例）" + (activeCandidates[0]?.deckInfo ?? "メガルカリオ")}
               value={opponentsDeckInfo}
               onChange={(e) => setOpponentsDeckInfo(e.target.value)}
             />

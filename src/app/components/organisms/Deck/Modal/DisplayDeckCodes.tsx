@@ -248,8 +248,10 @@ export default function DisplayDeckCodesModal({
     }
   };
 
-  // バージョンが1件のときは、タイムラインの続きとして次バージョン作成を促す
-  const showNextVersionPrompt = displayDeckCodes?.length === 1 && !!onOpenCreateDeckCode;
+  const isArchived = deck ? new Date(deck.archived_at).getFullYear() !== 1 : false;
+
+  // バージョンが1件のときは、タイムラインの続きとして次バージョン作成を促す（アーカイブ済みは非表示）
+  const showNextVersionPrompt = displayDeckCodes?.length === 1 && !!onOpenCreateDeckCode && !isArchived;
 
   return (
     <>
@@ -350,6 +352,14 @@ export default function DisplayDeckCodesModal({
                     <ol className="relative">
                       <div className="flex flex-col">
                         {(!displayDeckCodes || displayDeckCodes.length === 0) && (
+                          isArchived ? (
+                            <div className="flex flex-col items-center gap-3 py-10 px-3 text-center">
+                              <LuLayers className="text-default-300 text-4xl" />
+                              <div className="text-default-400 text-sm">
+                                バージョンが記録されていません
+                              </div>
+                            </div>
+                          ) : (
                           <div className="flex flex-col items-center gap-5 py-8 px-3">
                             <div className="w-20 h-20 rounded-full bg-linear-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-lg">
                               <LuLayers className="text-white text-4xl" />
@@ -411,6 +421,7 @@ export default function DisplayDeckCodesModal({
                               </Button>
                             )}
                           </div>
+                          )
                         )}
 
                         {displayDeckCodes?.map(

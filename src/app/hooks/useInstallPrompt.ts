@@ -40,6 +40,9 @@ export function useInstallPrompt() {
     // Android / Chrome: beforeinstallprompt を待つ
     const handler = (e: Event) => {
       e.preventDefault();
+      // ナビゲーション後に再発火した場合に備えてここでも確認
+      const at = localStorage.getItem(DISMISS_KEY);
+      if (at && Date.now() - Number(at) < DISMISS_DURATION_MS) return;
       setDeferredPrompt(e as BeforeInstallPromptEvent);
       setInstallState("android");
     };

@@ -111,6 +111,9 @@ export default function UpdateMatchModal({
   onOpenChange,
   onClose,
 }: Props) {
+  // 選択中のタブ（"bo1" or "team"）。"team" の場合はチーム戦として登録する
+  const [selectedTab, setSelectedTab] = useState("bo1");
+
   const [qualifyingRoundFlg, setQualifyingRoundFlg] = useState(false);
   const [finalTournamentFlg, setFinalTournamentFlg] = useState(false);
 
@@ -118,6 +121,8 @@ export default function UpdateMatchModal({
 
   const [isGoFirst, setIsGoFirst] = useState("-1");
   const [isVictory, setIsVictory] = useState("-1");
+  // チーム戦におけるチームの勝敗（group_match_victory_flg）
+  const [isGroupMatchVictory, setIsGroupMatchVictory] = useState("-1");
 
   const [isDefaultVictory, setIsDefaultVictory] = useState(false);
   const [isDefaultDefeat, setIsDefaultDefeat] = useState(false);
@@ -233,6 +238,13 @@ export default function UpdateMatchModal({
     if (isDefaultDefeat !== (match.default_defeat_flg ?? false)) return true;
     if (memo !== (match.memo ?? "")) return true;
 
+    // チーム戦の切り替え、またはチームの勝敗が変更された場合
+    if ((selectedTab === "team") !== (match.group_match_flg ?? false)) return true;
+    if (selectedTab === "team") {
+      if (isGroupMatchVictory !== (match.group_match_victory_flg ? "1" : "0"))
+        return true;
+    }
+
     if (!isDefaultVictory && !isDefaultDefeat) {
       if (opponentsDeckInfo !== (match.opponents_deck_info ?? "")) return true;
       if (isGoFirst !== (match.games?.[0]?.go_first ? "1" : "0")) return true;
@@ -249,6 +261,7 @@ export default function UpdateMatchModal({
     return false;
   }, [
     match,
+    selectedTab,
     qualifyingRoundFlg,
     finalTournamentFlg,
     isDefaultVictory,
@@ -257,6 +270,7 @@ export default function UpdateMatchModal({
     opponentsDeckInfo,
     isGoFirst,
     isVictory,
+    isGroupMatchVictory,
     yourPrizeCards,
     opponentsPrizeCards,
     pokemonSprite1,
@@ -319,6 +333,8 @@ export default function UpdateMatchModal({
   useEffect(() => {
     if (!match || !isOpen) return;
 
+    setSelectedTab(match.group_match_flg ? "team" : "bo1");
+
     setQualifyingRoundFlg(match.qualifying_round_flg ?? false);
     setFinalTournamentFlg(match.final_tournament_flg ?? false);
 
@@ -326,6 +342,7 @@ export default function UpdateMatchModal({
 
     setIsGoFirst(match.games?.[0]?.go_first ? "1" : "0");
     setIsVictory(match.victory_flg ? "1" : "0");
+    setIsGroupMatchVictory(match.group_match_victory_flg ? "1" : "0");
 
     setIsDefaultVictory(match.default_victory_flg ?? false);
     setIsDefaultDefeat(match.default_defeat_flg ?? false);
@@ -367,10 +384,13 @@ export default function UpdateMatchModal({
   useEffect(() => {
     if (opponentsDeckInfo === "" || isGoFirst === "-1" || isVictory === "-1") {
       setCouldUpdateFlg(false);
+      // チーム戦タブの場合はチームの勝敗（group_match_victory_flg）も必須
+    } else if (selectedTab === "team" && isGroupMatchVictory === "-1") {
+      setCouldUpdateFlg(false);
     } else {
       setCouldUpdateFlg(true);
     }
-  }, [opponentsDeckInfo, isGoFirst, isVictory]);
+  }, [opponentsDeckInfo, isGoFirst, isVictory, isGroupMatchVictory, selectedTab]);
 
   useEffect(() => {
     // 不戦勝/不戦敗が選択された場合
@@ -380,15 +400,16 @@ export default function UpdateMatchModal({
       setOpponentsDeckInfo("");
 
       setIsGoFirst("-1");
-      setIsVictory("-1");
 
       setYourPrizeCards(0);
       setOpponentsPrizeCards(0);
 
       if (isDefaultVictory) {
         setIsVictory("1");
+        setIsGroupMatchVictory("1");
       } else {
         setIsVictory("0");
+        setIsGroupMatchVictory("0");
       }
 
       // どちらかが戻された場合
@@ -396,6 +417,7 @@ export default function UpdateMatchModal({
       setIsDisabled(false);
 
       setIsVictory("-1");
+      setIsGroupMatchVictory("-1");
     }
   }, [isDefaultVictory, isDefaultDefeat]);
 
@@ -441,17 +463,25 @@ export default function UpdateMatchModal({
       pokemon_sprites.push(pokemonSprite2);
     }
 
+    // チーム戦タブが選択されている場合はチーム戦として更新する
+    const isGroupMatch = selectedTab === "team";
+
     const data: MatchUpdateRequestType = {
       record_id: match?.record_id ?? "",
       deck_id: match?.deck_id ?? "",
       deck_code_id: match?.deck_code_id ?? "",
       opponents_user_id: "",
       bo3_flg: false,
+      group_match_flg: isGroupMatch,
       qualifying_round_flg: qualifyingRoundFlg,
       final_tournament_flg: finalTournamentFlg,
       default_victory_flg: isDefaultVictory,
       default_defeat_flg: isDefaultDefeat,
       victory_flg: isVictory === "1",
+      // チーム戦のときのみチームの勝敗を設定（個人戦では常に false）
+      // 不戦勝の場合はチームも勝ちとして扱う
+      group_match_victory_flg:
+        isGroupMatch && (isDefaultVictory || isGroupMatchVictory === "1"),
       opponents_deck_info: opponentsDeckInfo,
       memo: memo,
       games: games,
@@ -526,6 +556,359 @@ export default function UpdateMatchModal({
     }
   };
 
+  // BO1 / チーム戦タブで共通の入力フォーム
+  // showGroupMatch が true の場合はチームの勝敗（group_match_victory_flg）の入力欄も表示する
+  const renderMatchForm = (showGroupMatch: boolean) => (
+    <div className="flex flex-col gap-2 pt-0">
+      <Card shadow="md" className="w-full">
+        <CardHeader className="pb-0 text-tiny">予選/トーナメント</CardHeader>
+        <CardBody className="">
+          <CheckboxGroup
+            size="md"
+            label=""
+            isInvalid={!isValidedFlg}
+            errorMessage=""
+            orientation="horizontal"
+            classNames={{
+              base: "",
+              wrapper: "flex items-center justify-center gap-21 mx-auto",
+            }}
+          >
+            <Checkbox
+              value="qualifying_round"
+              isSelected={qualifyingRoundFlg}
+              onChange={(e) => {
+                setQualifyingRoundFlg(e.target.checked);
+              }}
+            >
+              予選
+            </Checkbox>
+            <Checkbox
+              value="final_tournament"
+              isSelected={finalTournamentFlg}
+              onChange={(e) => {
+                setFinalTournamentFlg(e.target.checked);
+              }}
+            >
+              トーナメント
+            </Checkbox>
+          </CheckboxGroup>
+        </CardBody>
+      </Card>
+
+      <Card shadow="md" className="w-full">
+        <CardHeader className="pb-0 flex flex-col items-start text-tiny">
+          <label className="flex items-center gap-1">
+            <span>相手のデッキ</span>
+            <span className="text-sm text-red-500">*</span>
+          </label>
+        </CardHeader>
+        <CardBody className="flex flex-col gap-3">
+          {/* スプライト + デッキ名入力 */}
+          <div className="flex items-center gap-1.5 w-full">
+            <div className="flex items-center gap-0 shrink-0">
+              <div className="w-11 h-11 p-0 shrink-0">
+                {pokemonSprite1 ? (
+                  <Image
+                    onClick={() => {
+                      !isDefaultVictory &&
+                        !isDefaultDefeat &&
+                        onOpenForPokemonSprite1Modal();
+                    }}
+                    alt={pokemonSprite1.id}
+                    src={pokemonSprite1.image_url}
+                    radius="none"
+                    className={`w-full h-full object-contain ${spriteScaleClass(pokemonSprite1.id)} origin-bottom`}
+                  />
+                ) : (
+                  <Image
+                    onClick={() => {
+                      !isDefaultVictory &&
+                        !isDefaultDefeat &&
+                        onOpenForPokemonSprite1Modal();
+                    }}
+                    alt="unknown"
+                    src={`${SPRITE_BASE_URL}/unknown.png`}
+                    radius="none"
+                    loading="eager"
+                    className={`w-full h-full object-contain scale-150 origin-bottom ${isDefaultVictory || isDefaultDefeat ? "contrast-0" : ""}`}
+                  />
+                )}
+              </div>
+
+              <div className="w-11 h-11 p-0 shrink-0">
+                {pokemonSprite2 ? (
+                  <Image
+                    onClick={() => {
+                      !isDefaultVictory &&
+                        !isDefaultDefeat &&
+                        onOpenForPokemonSprite2Modal();
+                    }}
+                    alt={pokemonSprite2.id}
+                    src={pokemonSprite2.image_url}
+                    radius="none"
+                    className={`w-full h-full object-contain ${spriteScaleClass(pokemonSprite2.id)} origin-bottom`}
+                  />
+                ) : (
+                  <Image
+                    onClick={() => {
+                      !isDefaultVictory &&
+                        !isDefaultDefeat &&
+                        onOpenForPokemonSprite2Modal();
+                    }}
+                    alt="unknown"
+                    src={`${SPRITE_BASE_URL}/unknown.png`}
+                    radius="none"
+                    loading="eager"
+                    className={`w-full h-full object-contain scale-150 origin-bottom ${isDefaultVictory || isDefaultDefeat ? "contrast-0" : ""}`}
+                  />
+                )}
+              </div>
+            </div>
+
+            <Input
+              isDisabled={isDisabled}
+              size="md"
+              radius="md"
+              type="text"
+              label=""
+              labelPlacement="outside"
+              placeholder={"例）" + deckHistories[0].deckInfo}
+              value={opponentsDeckInfo}
+              onChange={(e) => setOpponentsDeckInfo(e.target.value)}
+            />
+          </div>
+
+          {/* 履歴候補 - 横スクロールカード（入力欄の下に自動表示） */}
+          {isCandidatesLoading ? (
+            <div className="flex gap-2 overflow-x-auto py-2">
+              {[...Array(4)].map((_, i) => (
+                <div
+                  key={i}
+                  className="shrink-0 w-24 rounded-xl border-2 border-default-200 bg-default-50 py-2 px-2 flex flex-col items-center gap-1"
+                >
+                  <Skeleton className="w-full h-9 rounded-lg" />
+                  <Skeleton className="w-full h-3 rounded-md" />
+                </div>
+              ))}
+            </div>
+          ) : activeCandidates.length > 0 ? (
+            <div className="flex gap-2 overflow-x-auto py-2">
+              {filteredHistories.length > 0 ? (
+                filteredHistories.map((history, index) => {
+                  const isSelected =
+                    opponentsDeckInfo === history.deckInfo &&
+                    pokemonSprite1?.id === (history.sprite1?.id ?? undefined) &&
+                    pokemonSprite2?.id === (history.sprite2?.id ?? undefined);
+                  return (
+                    <button
+                      key={index}
+                      disabled={isDisabled}
+                      className={`shrink-0 flex flex-col items-center gap-1 py-2 px-2 rounded-xl border-2 w-24 transition-colors ${
+                        isDisabled
+                          ? "opacity-40 cursor-not-allowed border-default-200 bg-default-50"
+                          : isSelected
+                            ? "border-primary bg-primary/10"
+                            : "border-default-200 bg-default-50 active:bg-default-100"
+                      }`}
+                      onClick={() => {
+                        if (isDisabled) return;
+                        if (isSelected) {
+                          setOpponentsDeckInfo("");
+                          setPokemonSprite1(null);
+                          setPokemonSprite2(null);
+                        } else {
+                          setOpponentsDeckInfo(history.deckInfo);
+                          setPokemonSprite1(history.sprite1);
+                          setPokemonSprite2(history.sprite2);
+                        }
+                      }}
+                    >
+                      <div className="flex items-end justify-center w-full h-9">
+                        <div className="w-9 h-9 shrink-0">
+                          <Image
+                            alt={history.sprite1?.id ?? "unknown"}
+                            src={
+                              history.sprite1?.image_url ??
+                              `${SPRITE_BASE_URL}/unknown.png`
+                            }
+                            radius="none"
+                            className={`w-full h-full object-contain ${spriteScaleClass(history.sprite1?.id)} origin-bottom`}
+                          />
+                        </div>
+                        <div className="w-9 h-9 shrink-0">
+                          <Image
+                            alt={history.sprite2?.id ?? "unknown"}
+                            src={
+                              history.sprite2?.image_url ??
+                              `${SPRITE_BASE_URL}/unknown.png`
+                            }
+                            radius="none"
+                            className={`w-full h-full object-contain ${spriteScaleClass(history.sprite2?.id)} origin-bottom`}
+                          />
+                        </div>
+                      </div>
+                      <CardDeckName text={history.deckInfo} />
+                    </button>
+                  );
+                })
+              ) : (
+                <div className="shrink-0 flex flex-col items-center gap-1 py-2 px-2 rounded-xl border-2 w-24 border-default-200 bg-default-50 opacity-40">
+                  <div className="flex items-end justify-center w-full h-9">
+                    <div className="w-9 h-9 shrink-0">
+                      <Image
+                        alt="unknown"
+                        src={`${SPRITE_BASE_URL}/unknown.png`}
+                        radius="none"
+                        className="w-full h-full object-contain scale-150 origin-bottom"
+                      />
+                    </div>
+                    <div className="w-9 h-9 shrink-0">
+                      <Image
+                        alt="unknown"
+                        src={`${SPRITE_BASE_URL}/unknown.png`}
+                        radius="none"
+                        className="w-full h-full object-contain scale-150 origin-bottom"
+                      />
+                    </div>
+                  </div>
+                  <span className="text-[10px] leading-snug w-full text-center whitespace-nowrap">
+                    候補なし
+                  </span>
+                </div>
+              )}
+            </div>
+          ) : null}
+        </CardBody>
+      </Card>
+
+      <div className="flex items-center gap-6">
+        <Card shadow="md" className="w-full">
+          <CardHeader className="pb-0 text-tiny">
+            <label className="flex items-center gap-1">
+              先攻/後攻
+              <span className="text-red-500 text-sm">*</span>
+            </label>
+          </CardHeader>
+          <CardBody className="">
+            <RadioGroup
+              isRequired
+              isDisabled={isDisabled}
+              size="md"
+              label=""
+              orientation="horizontal"
+              value={isGoFirst}
+              onValueChange={setIsGoFirst}
+              classNames={{
+                base: "items-center",
+                wrapper: "flex items-center gap-6",
+              }}
+            >
+              <Radio value="1">先攻</Radio>
+              <Radio value="0">後攻</Radio>
+            </RadioGroup>
+          </CardBody>
+        </Card>
+
+        <Card shadow="md" className="w-full">
+          <CardHeader className="pb-0 text-tiny">
+            <label className="flex items-center gap-1">
+              {showGroupMatch ? "自分の勝敗" : "勝ち/負け"}
+              <span className="text-red-500 text-sm">*</span>
+            </label>
+          </CardHeader>
+          <CardBody className="">
+            <RadioGroup
+              isRequired
+              isDisabled={isDisabled}
+              size="md"
+              label=""
+              orientation="horizontal"
+              value={isVictory}
+              onValueChange={setIsVictory}
+              classNames={{
+                base: "items-center",
+                wrapper: "flex items-center gap-6",
+              }}
+            >
+              <Radio value="1">勝ち</Radio>
+              <Radio value="0">負け</Radio>
+            </RadioGroup>
+          </CardBody>
+        </Card>
+      </div>
+
+      <div className="flex items-center gap-5">
+        <NumberInput
+          label="自分"
+          placeholder=""
+          isDisabled={isDisabled}
+          minValue={0}
+          maxValue={6}
+          defaultValue={0}
+          value={yourPrizeCards}
+          onValueChange={setYourPrizeCards}
+          className=""
+        />
+
+        <span className="font-bold text-2xl">-</span>
+
+        <NumberInput
+          label="相手"
+          placeholder=""
+          isDisabled={isDisabled}
+          minValue={0}
+          maxValue={6}
+          defaultValue={0}
+          value={opponentsPrizeCards}
+          onValueChange={setOpponentsPrizeCards}
+          className=""
+        />
+      </div>
+
+      {showGroupMatch && (
+        <Card shadow="md" className="w-full">
+          <CardHeader className="pb-0 text-tiny">
+            <label className="flex items-center gap-1">
+              チームの勝敗
+              <span className="text-red-500 text-sm">*</span>
+            </label>
+          </CardHeader>
+          <CardBody className="">
+            <RadioGroup
+              isRequired
+              isDisabled={isDisabled}
+              size="md"
+              label=""
+              orientation="horizontal"
+              value={isGroupMatchVictory}
+              onValueChange={setIsGroupMatchVictory}
+              classNames={{
+                base: "items-center",
+                wrapper: "flex items-center gap-6",
+              }}
+            >
+              <Radio value="1">勝ち</Radio>
+              <Radio value="0">負け</Radio>
+            </RadioGroup>
+          </CardBody>
+        </Card>
+      )}
+
+      <Textarea
+        size="md"
+        className=""
+        label="対戦メモ"
+        value={memo}
+        placeholder="対戦のメモを残そう"
+        onChange={(e) => {
+          const inputValue = e.target.value;
+          setMemo(inputValue);
+        }}
+      />
+    </div>
+  );
+
   return (
     <>
       <PokemonSpriteModal
@@ -557,6 +940,8 @@ export default function UpdateMatchModal({
         isOpen={isOpen}
         onOpenChange={onOpenChange}
         onClose={() => {
+          setSelectedTab("bo1");
+
           setQualifyingRoundFlg(false);
           setFinalTournamentFlg(false);
 
@@ -564,6 +949,7 @@ export default function UpdateMatchModal({
 
           setIsGoFirst("-1");
           setIsVictory("-1");
+          setIsGroupMatchVictory("-1");
 
           setIsDefaultVictory(false);
           setIsDefaultDefeat(false);
@@ -617,333 +1003,32 @@ export default function UpdateMatchModal({
                 </div>
               </ModalHeader>
               <ModalBody className="flex flex-col gap-0 px-1 py-1 pb-0 overflow-y-auto">
-                <Tabs fullWidth size="sm" className="left-0 right-0 pl-1 pr-1 font-bold">
-                  <Tab key="bo1" title="BO1">
-                    <div className="flex flex-col gap-2 pt-0">
-                      <Card shadow="md" className="w-full">
-                        <CardHeader className="pb-0 text-tiny">
-                          予選/トーナメント
-                        </CardHeader>
-                        <CardBody className="">
-                          <CheckboxGroup
-                            size="md"
-                            label=""
-                            isInvalid={!isValidedFlg}
-                            errorMessage=""
-                            orientation="horizontal"
-                            classNames={{
-                              base: "",
-                              wrapper: "flex items-center justify-center gap-21 mx-auto",
-                            }}
-                          >
-                            <Checkbox
-                              value="qualifying_round"
-                              isSelected={qualifyingRoundFlg}
-                              onChange={(e) => {
-                                setQualifyingRoundFlg(e.target.checked);
-                              }}
-                            >
-                              予選
-                            </Checkbox>
-                            <Checkbox
-                              value="final_tournament"
-                              isSelected={finalTournamentFlg}
-                              onChange={(e) => {
-                                setFinalTournamentFlg(e.target.checked);
-                              }}
-                            >
-                              トーナメント
-                            </Checkbox>
-                          </CheckboxGroup>
-                        </CardBody>
-                      </Card>
-
-                      <Card shadow="md" className="w-full">
-                        <CardHeader className="pb-0 flex flex-col items-start text-tiny">
-                          <label className="flex items-center gap-1">
-                            <span>相手のデッキ</span>
-                            <span className="text-sm text-red-500">*</span>
-                          </label>
-                        </CardHeader>
-                        <CardBody className="flex flex-col gap-3">
-                          {/* スプライト + デッキ名入力 */}
-                          <div className="flex items-center gap-1.5 w-full">
-                            <div className="flex items-center gap-0 shrink-0">
-                              <div className="w-11 h-11 p-0 shrink-0">
-                                {pokemonSprite1 ? (
-                                  <Image
-                                    onClick={() => {
-                                      !isDefaultVictory &&
-                                        !isDefaultDefeat &&
-                                        onOpenForPokemonSprite1Modal();
-                                    }}
-                                    alt={pokemonSprite1.id}
-                                    src={pokemonSprite1.image_url}
-                                    radius="none"
-                                    className={`w-full h-full object-contain ${spriteScaleClass(pokemonSprite1.id)} origin-bottom`}
-                                  />
-                                ) : (
-                                  <Image
-                                    onClick={() => {
-                                      !isDefaultVictory &&
-                                        !isDefaultDefeat &&
-                                        onOpenForPokemonSprite1Modal();
-                                    }}
-                                    alt="unknown"
-                                    src={`${SPRITE_BASE_URL}/unknown.png`}
-                                    radius="none"
-                                    loading="eager"
-                                    className={`w-full h-full object-contain scale-150 origin-bottom ${isDefaultVictory || isDefaultDefeat ? "contrast-0" : ""}`}
-                                  />
-                                )}
-                              </div>
-
-                              <div className="w-11 h-11 p-0 shrink-0">
-                                {pokemonSprite2 ? (
-                                  <Image
-                                    onClick={() => {
-                                      !isDefaultVictory &&
-                                        !isDefaultDefeat &&
-                                        onOpenForPokemonSprite2Modal();
-                                    }}
-                                    alt={pokemonSprite2.id}
-                                    src={pokemonSprite2.image_url}
-                                    radius="none"
-                                    className={`w-full h-full object-contain ${spriteScaleClass(pokemonSprite2.id)} origin-bottom`}
-                                  />
-                                ) : (
-                                  <Image
-                                    onClick={() => {
-                                      !isDefaultVictory &&
-                                        !isDefaultDefeat &&
-                                        onOpenForPokemonSprite2Modal();
-                                    }}
-                                    alt="unknown"
-                                    src={`${SPRITE_BASE_URL}/unknown.png`}
-                                    radius="none"
-                                    loading="eager"
-                                    className={`w-full h-full object-contain scale-150 origin-bottom ${isDefaultVictory || isDefaultDefeat ? "contrast-0" : ""}`}
-                                  />
-                                )}
-                              </div>
-                            </div>
-
-                            <Input
-                              isDisabled={isDisabled}
-                              size="md"
-                              radius="md"
-                              type="text"
-                              label=""
-                              labelPlacement="outside"
-                              placeholder="例）メガルカリオ"
-                              value={opponentsDeckInfo}
-                              onChange={(e) => setOpponentsDeckInfo(e.target.value)}
-                            />
-                          </div>
-
-                          {/* 履歴候補 - 横スクロールカード（入力欄の下に自動表示） */}
-                          {isCandidatesLoading ? (
-                            <div className="flex gap-2 overflow-x-auto py-2">
-                              {[...Array(4)].map((_, i) => (
-                                <div
-                                  key={i}
-                                  className="shrink-0 w-24 rounded-xl border-2 border-default-200 bg-default-50 py-2 px-2 flex flex-col items-center gap-1"
-                                >
-                                  <Skeleton className="w-full h-9 rounded-lg" />
-                                  <Skeleton className="w-full h-3 rounded-md" />
-                                </div>
-                              ))}
-                            </div>
-                          ) : activeCandidates.length > 0 ? (
-                            <div className="flex gap-2 overflow-x-auto py-2">
-                              {filteredHistories.length > 0 ? (
-                                filteredHistories.map((history, index) => {
-                                  const isSelected =
-                                    opponentsDeckInfo === history.deckInfo &&
-                                    pokemonSprite1?.id ===
-                                      (history.sprite1?.id ?? undefined) &&
-                                    pokemonSprite2?.id ===
-                                      (history.sprite2?.id ?? undefined);
-                                  return (
-                                    <button
-                                      key={index}
-                                      disabled={isDisabled}
-                                      className={`shrink-0 flex flex-col items-center gap-1 py-2 px-2 rounded-xl border-2 w-24 transition-colors ${
-                                        isDisabled
-                                          ? "opacity-40 cursor-not-allowed border-default-200 bg-default-50"
-                                          : isSelected
-                                            ? "border-primary bg-primary/10"
-                                            : "border-default-200 bg-default-50 active:bg-default-100"
-                                      }`}
-                                      onClick={() => {
-                                        if (isDisabled) return;
-                                        if (isSelected) {
-                                          setOpponentsDeckInfo("");
-                                          setPokemonSprite1(null);
-                                          setPokemonSprite2(null);
-                                        } else {
-                                          setOpponentsDeckInfo(history.deckInfo);
-                                          setPokemonSprite1(history.sprite1);
-                                          setPokemonSprite2(history.sprite2);
-                                        }
-                                      }}
-                                    >
-                                      <div className="flex items-end justify-center w-full h-9">
-                                        <div className="w-9 h-9 shrink-0">
-                                          <Image
-                                            alt={history.sprite1?.id ?? "unknown"}
-                                            src={
-                                              history.sprite1?.image_url ??
-                                              `${SPRITE_BASE_URL}/unknown.png`
-                                            }
-                                            radius="none"
-                                            className={`w-full h-full object-contain ${spriteScaleClass(history.sprite1?.id)} origin-bottom`}
-                                          />
-                                        </div>
-                                        <div className="w-9 h-9 shrink-0">
-                                          <Image
-                                            alt={history.sprite2?.id ?? "unknown"}
-                                            src={
-                                              history.sprite2?.image_url ??
-                                              `${SPRITE_BASE_URL}/unknown.png`
-                                            }
-                                            radius="none"
-                                            className={`w-full h-full object-contain ${spriteScaleClass(history.sprite2?.id)} origin-bottom`}
-                                          />
-                                        </div>
-                                      </div>
-                                      <CardDeckName text={history.deckInfo} />
-                                    </button>
-                                  );
-                                })
-                              ) : (
-                                <div className="shrink-0 flex flex-col items-center gap-1 py-2 px-2 rounded-xl border-2 w-24 border-default-200 bg-default-50 opacity-40">
-                                  <div className="flex items-end justify-center w-full h-9">
-                                    <div className="w-9 h-9 shrink-0">
-                                      <Image
-                                        alt="unknown"
-                                        src={`${SPRITE_BASE_URL}/unknown.png`}
-                                        radius="none"
-                                        className="w-full h-full object-contain scale-150 origin-bottom"
-                                      />
-                                    </div>
-                                    <div className="w-9 h-9 shrink-0">
-                                      <Image
-                                        alt="unknown"
-                                        src={`${SPRITE_BASE_URL}/unknown.png`}
-                                        radius="none"
-                                        className="w-full h-full object-contain scale-150 origin-bottom"
-                                      />
-                                    </div>
-                                  </div>
-                                  <span className="text-[10px] leading-snug w-full text-center whitespace-nowrap">
-                                    候補なし
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          ) : null}
-                        </CardBody>
-                      </Card>
-
-                      <div className="flex items-center gap-6">
-                        <Card shadow="md" className="w-full">
-                          <CardHeader className="pb-0 text-tiny">
-                            <label className="flex items-center gap-1">
-                              先攻/後攻
-                              <span className="text-red-500 text-sm">*</span>
-                            </label>
-                          </CardHeader>
-                          <CardBody className="">
-                            <RadioGroup
-                              isRequired
-                              isDisabled={isDisabled}
-                              size="md"
-                              label=""
-                              orientation="horizontal"
-                              value={isGoFirst}
-                              onValueChange={setIsGoFirst}
-                              classNames={{
-                                base: "items-center",
-                                wrapper: "flex items-center gap-6",
-                              }}
-                            >
-                              <Radio value="1">先攻</Radio>
-                              <Radio value="0">後攻</Radio>
-                            </RadioGroup>
-                          </CardBody>
-                        </Card>
-
-                        <Card shadow="md" className="w-full">
-                          <CardHeader className="pb-0 text-tiny">
-                            <label className="flex items-center gap-1">
-                              勝ち/負け
-                              <span className="text-red-500 text-sm">*</span>
-                            </label>
-                          </CardHeader>
-                          <CardBody className="">
-                            <RadioGroup
-                              isRequired
-                              isDisabled={isDisabled}
-                              size="md"
-                              label=""
-                              orientation="horizontal"
-                              value={isVictory}
-                              onValueChange={setIsVictory}
-                              classNames={{
-                                base: "items-center",
-                                wrapper: "flex items-center gap-6",
-                              }}
-                            >
-                              <Radio value="1">勝ち</Radio>
-                              <Radio value="0">負け</Radio>
-                            </RadioGroup>
-                          </CardBody>
-                        </Card>
-                      </div>
-
-                      <div className="flex items-center gap-5">
-                        <NumberInput
-                          label="自分"
-                          placeholder=""
-                          isDisabled={isDisabled}
-                          minValue={0}
-                          maxValue={6}
-                          defaultValue={0}
-                          value={yourPrizeCards}
-                          onValueChange={setYourPrizeCards}
-                          className=""
-                        />
-
-                        <span className="font-bold text-2xl">-</span>
-
-                        <NumberInput
-                          label="相手"
-                          placeholder=""
-                          isDisabled={isDisabled}
-                          minValue={0}
-                          maxValue={6}
-                          defaultValue={0}
-                          value={opponentsPrizeCards}
-                          onValueChange={setOpponentsPrizeCards}
-                          className=""
-                        />
-                      </div>
-
-                      <Textarea
-                        size="md"
-                        className=""
-                        label="対戦メモ"
-                        value={memo}
-                        placeholder="対戦のメモを残そう"
-                        onChange={(e) => {
-                          const inputValue = e.target.value;
-                          setMemo(inputValue);
-                        }}
-                      />
-                    </div>
+                <Tabs
+                  fullWidth
+                  size="sm"
+                  className="left-0 right-0 pl-1 pr-1 font-bold"
+                  selectedKey={selectedTab}
+                  onSelectionChange={(key) => setSelectedTab(key as string)}
+                >
+                  {/* 編集時は元の試合の種別に応じてタブを固定する */}
+                  {/* group_match_flg と bo3_flg が共に false の場合のみ BO1 を有効化 */}
+                  <Tab
+                    key="bo1"
+                    title="BO1"
+                    isDisabled={
+                      (match?.group_match_flg ?? false) || (match?.bo3_flg ?? false)
+                    }
+                  >
+                    {renderMatchForm(false)}
                   </Tab>
-                  <Tab key="bo3" title="BO3" isDisabled></Tab>
+                  {/* group_match_flg が true の場合のみ チーム戦 を有効化 */}
+                  <Tab
+                    key="team"
+                    title="チーム戦"
+                    isDisabled={!(match?.group_match_flg ?? false)}
+                  >
+                    {renderMatchForm(true)}
+                  </Tab>
                 </Tabs>
               </ModalBody>
               <ModalFooter className="pt-2 pb-2 flex items-center">

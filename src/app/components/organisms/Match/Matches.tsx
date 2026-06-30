@@ -13,6 +13,7 @@ import {
 
 import { Button } from "@heroui/react";
 import { Image } from "@heroui/react";
+import { Chip } from "@heroui/react";
 
 import { spriteScaleClass } from "@app/utils/sprite";
 import { Card, CardBody } from "@heroui/react";
@@ -176,9 +177,33 @@ export default function Matches({
                                     }}
                                   >
                                     <div className="flex items-center gap-3 w-full">
-                                      <div>
-                                        {match.victory_flg === true ? "⭕" : "❌"}
-                                      </div>
+                                      {/* チーム戦は個人とチームの勝敗を並べて表示、BO1は個人の勝敗のみ */}
+                                      {match.group_match_flg ? (
+                                        <div className="flex shrink-0 items-stretch gap-2">
+                                          <div className="flex flex-col items-center gap-1">
+                                            <span className="text-[9px] leading-none text-default-400">
+                                              個人
+                                            </span>
+                                            <span className="text-base leading-none">
+                                              {match.victory_flg === true ? "⭕" : "❌"}
+                                            </span>
+                                          </div>
+                                          <div className="flex flex-col items-center gap-1">
+                                            <span className="text-[9px] leading-none text-default-400">
+                                              チーム
+                                            </span>
+                                            <span className="text-base leading-none">
+                                              {match.group_match_victory_flg
+                                                ? "⭕"
+                                                : "❌"}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div className="shrink-0">
+                                          {match.victory_flg === true ? "⭕" : "❌"}
+                                        </div>
+                                      )}
 
                                       <div className="flex items-center gap-1.5 flex-1 min-w-0">
                                         {match.default_victory_flg ||
@@ -200,10 +225,35 @@ export default function Matches({
                                               </div>
                                             </>
 
-                                            <div className="font-bold truncate">
-                                              {match.default_victory_flg
-                                                ? "不戦勝"
-                                                : "不戦敗"}
+                                            <div className="flex flex-col justify-center gap-1 min-w-0 flex-1">
+                                              <div className="min-w-0">
+                                                <div className="font-bold truncate text-left">
+                                                  {match.default_victory_flg
+                                                    ? "不戦勝"
+                                                    : "不戦敗"}
+                                                </div>
+                                                <div className="mt-0.5 flex flex-wrap items-center gap-1">
+                                                  <Chip
+                                                    size="sm"
+                                                    variant="flat"
+                                                    radius="sm"
+                                                    color={
+                                                      match.group_match_flg
+                                                        ? "secondary"
+                                                        : "default"
+                                                    }
+                                                    classNames={{
+                                                      base: "h-4 px-1",
+                                                      content:
+                                                        "px-1 text-[8px] font-bold",
+                                                    }}
+                                                  >
+                                                    {match.group_match_flg
+                                                      ? "チーム戦"
+                                                      : "BO1"}
+                                                  </Chip>
+                                                </div>
+                                              </div>
                                             </div>
                                           </>
                                         ) : (
@@ -252,17 +302,55 @@ export default function Matches({
                                                   {match.opponents_deck_info}
                                                 </div>
 
-                                                <div className="flex gap-1">
-                                                  <div className="text-xs text-default-400">
+                                                {/* 種別・先後・サイド数を chip で表示（種別を先頭に配置） */}
+                                                <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                                                  <Chip
+                                                    size="sm"
+                                                    variant="flat"
+                                                    radius="sm"
+                                                    color={
+                                                      match.group_match_flg
+                                                        ? "secondary"
+                                                        : "default"
+                                                    }
+                                                    classNames={{
+                                                      base: "h-4 px-1",
+                                                      content:
+                                                        "px-1 text-[8px] font-bold",
+                                                    }}
+                                                  >
+                                                    {match.group_match_flg
+                                                      ? "チーム戦"
+                                                      : "BO1"}
+                                                  </Chip>
+                                                  <Chip
+                                                    size="sm"
+                                                    variant="flat"
+                                                    radius="sm"
+                                                    classNames={{
+                                                      base: "h-4 px-1",
+                                                      content:
+                                                        "px-1 text-[8px] font-bold",
+                                                    }}
+                                                  >
                                                     {match.games[0].go_first
                                                       ? "先攻"
                                                       : "後攻"}
-                                                  </div>
-                                                  <div className="text-xs text-default-400">
+                                                  </Chip>
+                                                  <Chip
+                                                    size="sm"
+                                                    variant="flat"
+                                                    radius="sm"
+                                                    classNames={{
+                                                      base: "h-4 px-1",
+                                                      content:
+                                                        "px-1 text-[8px] font-bold",
+                                                    }}
+                                                  >
                                                     {match.games[0].your_prize_cards}
                                                     {" - "}
                                                     {match.games[0].opponents_prize_cards}
-                                                  </div>
+                                                  </Chip>
                                                 </div>
                                               </div>
                                             </div>

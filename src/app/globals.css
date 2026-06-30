@@ -17,6 +17,16 @@
   background-image: radial-gradient(#27272a 1.2px, transparent 1.2px);
 }
 
+/*
+ * ダークモードのカードの見やすさ対策。
+ * HeroUI の Card / Popover などサーフェス(bg-content1)は背景と明度が近く
+ * 境界が分かりにくいため、枠線クラスを持たない要素に薄い枠を補う。
+ * （border 系ユーティリティを明示しているカードは既存の枠を優先するため除外）
+ */
+.dark .bg-content1:not([class*="border"]) {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
 /* ヘッダーの環境テキストスクロールアニメーション */
 @keyframes marquee {
   from { transform: translateX(0); }

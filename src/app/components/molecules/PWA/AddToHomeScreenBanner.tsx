@@ -3,12 +3,15 @@
 import Image from "next/image";
 import { Button } from "@heroui/react";
 import { LuX } from "react-icons/lu";
+import { useSession } from "next-auth/react";
 
 import { useInstallPrompt } from "@app/hooks/useInstallPrompt";
 
 export default function AddToHomeScreenBanner() {
+  const { status } = useSession();
   const { installState, install, dismiss } = useInstallPrompt();
 
+  if (status !== "authenticated") return null;
   if (installState === "idle") return null;
 
   return (

@@ -6,6 +6,7 @@ import WindowedSelect from "react-windowed-select";
 
 import { useState } from "react";
 import { useEffect } from "react";
+import { useMemo } from "react";
 
 import { useRef } from "react";
 
@@ -517,54 +518,53 @@ export default function TemplateRecordCreate({
   const m = String(selectedDate.month).padStart(2, "0");
   const d = String(selectedDate.day).padStart(2, "0");
 
-  const officialEventOptions: OfficialEventOption[] = [];
+  const officialEventUrl = `/api/official_events?date=${y}-${m}-${d}`;
+  const {
+    data: officialEventData,
+    error: officialEventError,
+    isLoading: officialEventLoading,
+  } = useSWR<OfficialEventType[], Error>(officialEventUrl, fetcherForOfficialEvent, {
+    revalidateOnFocus: false,
+  });
+
+  // イベント一覧の整形(正規表現・日付ローカライズ)はコストが高いため、
+  // データが更新されたときだけ再計算する。これを怠ると imageLoaded 等の
+  // 些細な state 変更による再レンダーごとに全件分の整形が走り重くなる。
+  const officialEventOptions = useMemo<OfficialEventOption[]>(
+    () => (officialEventData ?? []).map(convertToOfficialEventOption),
+    [officialEventData],
+  );
+
   let officialEventOptionsMessage = "対象のイベントがありません";
-  {
-    const url = `/api/official_events?date=${y}-${m}-${d}`;
-    const { data, error, isLoading } = useSWR<OfficialEventType[], Error>(
-      url,
-      fetcherForOfficialEvent,
-    );
-
-    if (error) {
-      officialEventOptionsMessage = "エラーが発生しました";
-    }
-    if (isLoading) {
-      officialEventOptionsMessage = "検索中...";
-    }
-
-    if (data?.length == 0) {
-      officialEventOptionsMessage = "イベントがありません";
-    }
-
-    data?.map((oe: OfficialEventType) => {
-      officialEventOptions.push(convertToOfficialEventOption(oe));
-    });
+  if (officialEventError) {
+    officialEventOptionsMessage = "エラーが発生しました";
+  } else if (officialEventLoading) {
+    officialEventOptionsMessage = "検索中...";
+  } else if (officialEventData?.length === 0) {
+    officialEventOptionsMessage = "イベントがありません";
   }
 
-  const deckOptions: DeckOption[] = [];
+  const {
+    data: deckData,
+    error: deckError,
+    isLoading: deckLoading,
+  } = useSWR<DeckGetAllType, Error>(`/api/decks/all`, fetcherForDeck, {
+    revalidateOnFocus: false,
+  });
+
+  // デッキ一覧の整形もデータ更新時のみ再計算する
+  const deckOptions = useMemo<DeckOption[]>(
+    () => (deckData ?? []).map(convertToDeckOption),
+    [deckData],
+  );
+
   let deckOptionsMessage = "対象のデッキがありません";
-  {
-    const { data, error, isLoading } = useSWR<DeckGetAllType, Error>(
-      `/api/decks/all`,
-      fetcherForDeck,
-    );
-
-    if (error) {
-      deckOptionsMessage = "エラーが発生しました";
-    }
-
-    if (isLoading) {
-      deckOptionsMessage = "検索中...";
-    }
-
-    if (data?.length == 0) {
-      deckOptionsMessage = "デッキがありません";
-    }
-
-    data?.map((deck: DeckData) => {
-      deckOptions.push(convertToDeckOption(deck));
-    });
+  if (deckError) {
+    deckOptionsMessage = "エラーが発生しました";
+  } else if (deckLoading) {
+    deckOptionsMessage = "検索中...";
+  } else if (deckData?.length === 0) {
+    deckOptionsMessage = "デッキがありません";
   }
 
   /*
@@ -574,8 +574,6 @@ export default function TemplateRecordCreate({
    * 選択されたデッキが変更されるたびに実施される
    *
    */
-  const deckcodeOptions: DeckCodeOption[] = [];
-  let deckcodeOptionsMessage = "バージョンがありません";
   const {
     data: deckcodeData,
     error: deckcodeError,
@@ -583,18 +581,20 @@ export default function TemplateRecordCreate({
   } = useSWR<DeckCodeType[], Error>(
     selectedDeckOption ? `/api/decks/${selectedDeckOption.id}/deckcodes` : null,
     fetcherForDeckCode,
+    { revalidateOnFocus: false },
   );
 
+  const deckcodeOptions = useMemo<DeckCodeOption[]>(
+    () => (deckcodeData ?? []).map(convertToDeckCodeOption),
+    [deckcodeData],
+  );
+
+  let deckcodeOptionsMessage = "バージョンがありません";
   if (deckcodeError) {
     deckcodeOptionsMessage = "エラーが発生しました";
-  }
-  if (deckcodeLoading) {
+  } else if (deckcodeLoading) {
     deckcodeOptionsMessage = "検索中...";
-  }
-  deckcodeData?.forEach((deckcode: DeckCodeType) => {
-    deckcodeOptions.push(convertToDeckCodeOption(deckcode));
-  });
-  if (deckcodeData?.length === 0) {
+  } else if (deckcodeData?.length === 0) {
     deckcodeOptionsMessage = "対象のデッキにバージョンがありません";
   }
 
@@ -1182,6 +1182,11 @@ export default function TemplateRecordCreate({
                   }}
                   maxMenuHeight={485}
                   windowThreshold={100}
+                  menuPosition="fixed"
+                  menuPortalTarget={
+                    typeof document !== "undefined" ? document.body : null
+                  }
+                  styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
                   formatOptionLabel={(option, { context }) => {
                     const opt = option as OfficialEventOption;
 
@@ -1479,10 +1484,7 @@ export default function TemplateRecordCreate({
                               </span>
                               <span className="truncate">
                                 バージョン：
-                                {createHash("sha1")
-                                  .update(option.id)
-                                  .digest("hex")
-                                  .slice(0, 8)}
+                                {option.label}
                               </span>
                               <span className="truncate">
                                 デッキコード：{option.code}
@@ -1510,10 +1512,7 @@ export default function TemplateRecordCreate({
                         <div className="text-sm truncate">
                           <span>
                             バージョン：
-                            {createHash("sha1")
-                              .update(option.id)
-                              .digest("hex")
-                              .slice(0, 8)}
+                            {option.label}
                           </span>
                         </div>
                       );
@@ -1787,10 +1786,7 @@ export default function TemplateRecordCreate({
                               </span>
                               <span className="truncate">
                                 バージョン：
-                                {createHash("sha1")
-                                  .update(option.id)
-                                  .digest("hex")
-                                  .slice(0, 8)}
+                                {option.label}
                               </span>
                               <span className="truncate">
                                 デッキコード：{option.code}
@@ -1818,10 +1814,7 @@ export default function TemplateRecordCreate({
                         <div className="text-sm truncate">
                           <span>
                             バージョン：
-                            {createHash("sha1")
-                              .update(option.id)
-                              .digest("hex")
-                              .slice(0, 8)}
+                            {option.label}
                           </span>
                         </div>
                       );
@@ -2066,10 +2059,7 @@ export default function TemplateRecordCreate({
                               </span>
                               <span className="truncate">
                                 バージョン：
-                                {createHash("sha1")
-                                  .update(option.id)
-                                  .digest("hex")
-                                  .slice(0, 8)}
+                                {option.label}
                               </span>
                               <span className="truncate">
                                 デッキコード：{option.code}
@@ -2097,10 +2087,7 @@ export default function TemplateRecordCreate({
                         <div className="text-sm truncate">
                           <span>
                             バージョン：
-                            {createHash("sha1")
-                              .update(option.id)
-                              .digest("hex")
-                              .slice(0, 8)}
+                            {option.label}
                           </span>
                         </div>
                       );

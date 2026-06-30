@@ -15,13 +15,14 @@ export default function Providers({
     <SessionProvider>
       {/* locale="ja-JP": DatePicker等の日付表示順を年/月/日にし、カレンダーを日本語化する */}
       <HeroUIProvider locale="ja-JP">
-        {/* 手動トグル方式: classで.darkを付与、初期値はライト、OS設定には連動しない */}
+        {/* OS連動方式: classで.darkを付与し、既定では端末（OS）のライト/ダーク設定に
+            自動追従する。手動トグルで切り替えた場合はその選択を保存して優先する。 */}
         {/* disableTransitionOnChange: 切替の瞬間だけ全要素のトランジションを止め、
             要素ごとの変化タイミングのズレ（ちらつき）を防いで一斉に切り替える */}
         <NextThemesProvider
           attribute="class"
-          defaultTheme="light"
-          enableSystem={false}
+          defaultTheme="system"
+          enableSystem
           disableTransitionOnChange
         >
           <UserAvatarProvider>

@@ -118,6 +118,7 @@ export default async function Header() {
       <HeaderShell>
         <Logo />
         <div className="flex items-center gap-1">
+          <ThemeSwitcher />
           <SignUp />
           <SignIn />
         </div>

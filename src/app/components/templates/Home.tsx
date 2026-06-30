@@ -1,10 +1,11 @@
 import Image from "next/image";
 
-import { LuFilePen, LuLayers, LuFileText, LuTrophy } from "react-icons/lu";
+import { LuFilePen, LuLayers, LuFileText, LuTrophy, LuMoon } from "react-icons/lu";
 
 import Footer from "@app/components/organisms/Layout/Footer";
 import CityleagueEvents from "@app/components/organisms/Cityleague/CityleagueEvents";
 import StatsCounter from "@app/components/molecules/StatsCounter";
+import PhoneMock from "@app/components/molecules/PhoneMock";
 
 import { CityleagueScheduleType } from "@app/types/cityleague_schedule";
 import { EnvironmentType } from "@app/types/environment";
@@ -143,6 +144,21 @@ const features = [
     ),
     images: [{ src: "/images/cityleague_results.png", rotateClass: "rotate" }],
   },
+  {
+    icon: <LuMoon />,
+    title: "ダークモードに対応",
+    description: (
+      <>
+        端末の設定に合わせて自動で切り替え。
+        <br />
+        暗い場所でも目に優しく快適に使えます。
+      </>
+    ),
+    images: [
+      { src: "/images/records-darkmode.png", rotateClass: "-rotate-1" },
+      { src: "/images/darkmode-decks_history.png", rotateClass: "rotate-1" },
+    ],
+  },
 ];
 
 const steps = [
@@ -162,31 +178,6 @@ const steps = [
     description: "勝率やマッチアップを振り返ります。",
   },
 ];
-
-type PhoneMockProps = {
-  src: string;
-  alt: string;
-  rotateClass?: string;
-  sizeClass?: string;
-};
-
-function PhoneMock({ src, alt, rotateClass = "", sizeClass = "w-44" }: PhoneMockProps) {
-  return (
-    <div
-      className={`${sizeClass} shrink-0 rounded-4xl border-[6px] border-neutral-800 bg-neutral-800 shadow-2xl overflow-hidden dark:border-neutral-700 dark:bg-neutral-700 ${rotateClass}`}
-    >
-      <div className="relative aspect-864/1920 w-full overflow-hidden rounded-3xl bg-white">
-        <Image
-          src={src}
-          alt={alt}
-          fill
-          sizes="176px"
-          className="object-cover object-top"
-        />
-      </div>
-    </div>
-  );
-}
 
 export default async function TemplateHome() {
   const date = new Date(Date.now() + 9 * 60 * 60 * 1000);

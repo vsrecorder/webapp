@@ -9,7 +9,8 @@ import { LuSun, LuMoon } from "react-icons/lu";
 export default function ThemeSwitcher() {
   // SSRとクライアントの不一致を避けるため、マウント後に描画する
   const [mounted, setMounted] = useState(false);
-  const { theme, setTheme } = useTheme();
+  // resolvedTheme: theme が "system" のときに実際に適用されている light/dark を返す
+  const { resolvedTheme, setTheme } = useTheme();
 
   useEffect(() => {
     setMounted(true);
@@ -28,7 +29,7 @@ export default function ThemeSwitcher() {
     );
   }
 
-  const isDark = theme === "dark";
+  const isDark = resolvedTheme === "dark";
 
   return (
     <Button

@@ -511,7 +511,7 @@ export default function CreateMatchModal({
         className="h-[calc(100dvh-108px)] max-h-[calc(100dvh-108px)] my-0 rounded-b-none"
         classNames={{
           base: "sm:max-w-full",
-          closeButton: "text-2xl",
+          closeButton: "text-xl",
         }}
       >
         <ModalContent>

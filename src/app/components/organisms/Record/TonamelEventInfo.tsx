@@ -140,14 +140,14 @@ export default function TonamelEventInfo({ record }: Props) {
   return (
     <>
       <RecordInfoCardBase
-        iconBoxClassName="bg-orange-600"
+        iconBoxClassName="bg-orange-500"
         icon={<span className="text-xl font-black text-white">T</span>}
         chips={
           <>
             <Chip
               size="sm"
               variant="flat"
-              className="h-5 text-[10px] font-bold bg-orange-100 text-orange-600"
+              className="h-5 text-[10px] font-bold bg-orange-100 text-orange-500"
             >
               Tonamel
             </Chip>

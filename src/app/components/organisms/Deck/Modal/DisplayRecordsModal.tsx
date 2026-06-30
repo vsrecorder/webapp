@@ -5,20 +5,30 @@ import { Modal, ModalContent, ModalHeader, ModalBody } from "@heroui/react";
 
 import Records from "@app/components/organisms/Record/Records";
 
+import { DeckGetByIdResponseType } from "@app/types/deck";
+
 type TabKey = "all" | "official" | "tonamel" | "unofficial";
 
-import { DeckGetByIdResponseType } from "@app/types/deck";
+// 記録一覧ページと同様に、選択タブを sessionStorage に保存・復元する。
+// 詳細ページから戻った際、遷移前に選択していたタブを復元するために使う。
+const SELECTED_TAB_STORAGE_KEY = "deckRecordsModalSelectedTab";
+
+function resolveRestoredTab(): TabKey {
+  const savedTab =
+    typeof window !== "undefined"
+      ? sessionStorage.getItem(SELECTED_TAB_STORAGE_KEY)
+      : null;
+  if (savedTab === "official" || savedTab === "tonamel" || savedTab === "unofficial") {
+    return savedTab;
+  }
+  return "all";
+}
 
 type Props = {
   deck: DeckGetByIdResponseType | null;
   isOpen: boolean;
   onOpenChange: () => void;
   onClose: () => void;
-  // 記録詳細ページからの戻り遷移で再開した場合 true。
-  // 開閉アニメーションを無効化して即時表示することで、記録カードのモーダルが
-  // このモーダルのアニメーション中に開いて HeroUI のフォーカス管理と競合し
-  // 表示されなくなる問題を回避する。
-  disableAnimation?: boolean;
 };
 
 export default function DisplayRecordsModal({
@@ -26,7 +36,6 @@ export default function DisplayRecordsModal({
   isOpen,
   onOpenChange,
   onClose,
-  disableAnimation = false,
 }: Props) {
   const startY = useRef<number | null>(null);
 
@@ -45,8 +54,20 @@ export default function DisplayRecordsModal({
       onClose();
     }
   };
+  // SSR と初回クライアントレンダリングを一致させるため初期値は "all"。
+  // 実際の復元はマウント後の useEffect で行う（ハイドレーション不整合の回避）。
   const [selectedKey, setSelectedKey] = useState<TabKey>("all");
   const bodyRef = useRef<HTMLDivElement | null>(null);
+
+  // マウント後に保存済みタブを復元する。
+  // DisplayRecordsModal は ShowDeckModal と共にページ表示時点でマウントされるため、
+  // 記録一覧モーダルが実際に開く（再開時は 350ms 後）より前に復元が完了する。
+  useEffect(() => {
+    const restored = resolveRestoredTab();
+    if (restored !== "all") {
+      setSelectedKey(restored);
+    }
+  }, []);
 
   // タブごとのスクロール位置を保存
   const scrollPositions = useRef<Record<TabKey, number>>({
@@ -61,6 +82,9 @@ export default function DisplayRecordsModal({
     if (bodyRef.current) {
       scrollPositions.current[selectedKey] = bodyRef.current.scrollTop;
     }
+
+    // 詳細ページ遷移→戻り時の復元用に選択タブを保存
+    sessionStorage.setItem(SELECTED_TAB_STORAGE_KEY, key as string);
 
     setSelectedKey(key as TabKey);
   };
@@ -90,20 +114,33 @@ export default function DisplayRecordsModal({
     };
   }, [isOpen, deck]);
 
+  // このモーダルの開閉アニメーション完了を表すフラグ。
+  // 再開時に記録カードのモーダルを開く際、このモーダルがまだアニメーション中だと
+  // HeroUI（react-aria）のフォーカス管理と競合して記録カードのモーダルが
+  // 表示されないため、アニメーション完了後（parentReady=true）まで待ってから開く。
+  const [parentReady, setParentReady] = useState(false);
+  useEffect(() => {
+    if (!isOpen) {
+      setParentReady(false);
+      return;
+    }
+    const timer = setTimeout(() => setParentReady(true), 400);
+    return () => clearTimeout(timer);
+  }, [isOpen]);
+
   return (
     <Modal
       isOpen={isOpen}
       size="md"
       placement="bottom"
       hideCloseButton
-      disableAnimation={disableAnimation}
       onOpenChange={onOpenChange}
       onClose={() => {}}
       isDismissable={false}
       className="h-[calc(100dvh-104px)] max-h-[calc(100dvh-104px)] mt-26 my-0 rounded-b-none"
       classNames={{
         base: "sm:max-w-full",
-        closeButton: "text-2xl",
+        closeButton: "text-xl",
       }}
     >
       <ModalContent>
@@ -150,6 +187,8 @@ export default function DisplayRecordsModal({
                   event_type={"all"}
                   deck_id={deck ? deck.id : ""}
                   isActive={selectedKey === "all"}
+                  parentReady={parentReady}
+                  nestedInModal
                 />
               </div>
 
@@ -158,6 +197,8 @@ export default function DisplayRecordsModal({
                   event_type={"official"}
                   deck_id={deck ? deck.id : ""}
                   isActive={selectedKey === "official"}
+                  parentReady={parentReady}
+                  nestedInModal
                 />
               </div>
 
@@ -166,6 +207,8 @@ export default function DisplayRecordsModal({
                   event_type={"tonamel"}
                   deck_id={deck ? deck.id : ""}
                   isActive={selectedKey === "tonamel"}
+                  parentReady={parentReady}
+                  nestedInModal
                 />
               </div>
 
@@ -174,6 +217,8 @@ export default function DisplayRecordsModal({
                   event_type={"unofficial"}
                   deck_id={deck ? deck.id : ""}
                   isActive={selectedKey === "unofficial"}
+                  parentReady={parentReady}
+                  nestedInModal
                 />
               </div>
             </ModalBody>

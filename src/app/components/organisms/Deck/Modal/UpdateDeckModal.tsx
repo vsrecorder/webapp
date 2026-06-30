@@ -77,9 +77,7 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
   useEffect(() => {
     if (!deck?.pokemon_sprites?.[0] || !pokemonSpritesData) return;
 
-    const matched1 = pokemonSpritesData.find(
-      (s) => s.id === deck.pokemon_sprites[0].id,
-    );
+    const matched1 = pokemonSpritesData.find((s) => s.id === deck.pokemon_sprites[0].id);
     if (matched1) {
       setSprite1(matched1);
     }
@@ -224,7 +222,7 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
         }}
         classNames={{
           base: "sm:max-w-full",
-          closeButton: "text-2xl",
+          closeButton: "text-xl",
         }}
       >
         <ModalContent>

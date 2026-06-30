@@ -84,6 +84,11 @@ type Props = {
   // 記録一覧では「すべて」タブと種別タブで同じ記録が重複マウントされるため、
   // アクティブなタブのインスタンスだけ true にしてキーの奪い合いを防ぐ。
   enableReopen?: boolean;
+  // 親モーダルが落ち着き、記録モーダルを開いてよい状態か。
+  // 親モーダル（デッキの記録一覧モーダル）が無い場合は常に true。
+  reopenReady?: boolean;
+  // デッキの記録一覧モーダル内で表示されているか（記録モーダルのバックドロップ調整用）。
+  nestedInModal?: boolean;
 };
 
 export default function TonamelEventRecord({
@@ -91,6 +96,8 @@ export default function TonamelEventRecord({
   enableDisplayRecordModal,
   onReopenComplete,
   enableReopen = true,
+  reopenReady = true,
+  nestedInModal = false,
 }: Props) {
   const [deck, setDeck] = useState<DeckGetByIdResponseType | null>(null);
   const [loadingDeck, setLoadingDeck] = useState(true);
@@ -127,12 +134,13 @@ export default function TonamelEventRecord({
   }, [enableReopen]);
 
   // データロード完了後にスクロール通知 + モーダルオープン
+  // 親モーダルが落ち着く（reopenReady）まで待ってから開く。
   useEffect(() => {
-    if (!shouldReopen || loadingTonamelEvent) return;
+    if (!shouldReopen || loadingTonamelEvent || !reopenReady) return;
     setShouldReopen(false);
     onReopenCompleteRef.current?.();
     onOpenForDisplayRecordModal();
-  }, [shouldReopen, loadingTonamelEvent]);
+  }, [shouldReopen, loadingTonamelEvent, reopenReady]);
 
   useEffect(() => {
     if (!recordData.data.tonamel_event_id) {
@@ -238,13 +246,14 @@ export default function TonamelEventRecord({
           isOpen={isOpenForDisplayRecordModal}
           onOpenChange={onOpenChangeForDisplayRecordModal}
           onClose={onCloseForDisplayRecordModal}
+          nestedInModal={nestedInModal}
         />
       )}
 
       <RecordCardBase
         cardId={`record-card-${recordData.data.id}`}
         onClick={onOpenForDisplayRecordModal}
-        accentColorClass="bg-orange-600"
+        accentColorClass="bg-orange-500"
         date={date}
         title={tonamelEvent.title}
         loadingTitle={false}
@@ -253,7 +262,7 @@ export default function TonamelEventRecord({
             <Chip
               size="sm"
               variant="flat"
-              className="h-5 text-[10px] font-bold bg-orange-100 text-orange-600"
+              className="h-5 text-[10px] font-bold bg-orange-100 text-orange-500"
             >
               Tonamel
             </Chip>
@@ -270,7 +279,7 @@ export default function TonamelEventRecord({
           </>
         }
         icon={
-          <div className="w-full h-full bg-orange-600 flex items-center justify-center">
+          <div className="w-full h-full bg-orange-500 flex items-center justify-center">
             <span className="text-xs font-black text-white">T</span>
           </div>
         }

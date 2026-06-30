@@ -154,6 +154,10 @@ type Props = {
   isOpen: boolean;
   onOpenChange: () => void;
   onClose: () => void;
+  // 親モーダル（デッキの記録一覧モーダル）の中で開く場合 true。
+  // 親モーダルのバックドロップと重なって暗さが累積するのを防ぐため、
+  // このモーダル側のバックドロップを透明にする。
+  nestedInModal?: boolean;
 };
 
 export default function DisplayRecordModal({
@@ -162,6 +166,7 @@ export default function DisplayRecordModal({
   isOpen,
   onOpenChange,
   onClose,
+  nestedInModal = false,
 }: Props) {
   const router = useRouter();
 
@@ -368,11 +373,12 @@ export default function DisplayRecordModal({
         size="md"
         placement="bottom"
         hideCloseButton
+        backdrop={nestedInModal ? "transparent" : "opaque"}
         isDismissable={false}
         className="z-20 h-[calc(100dvh-104px)] max-h-[calc(100dvh-104px)] mt-26 my-0 rounded-b-none overscroll-contain"
         classNames={{
           base: "sm:max-w-full",
-          closeButton: "text-2xl",
+          closeButton: "text-xl",
         }}
       >
         <ModalContent>

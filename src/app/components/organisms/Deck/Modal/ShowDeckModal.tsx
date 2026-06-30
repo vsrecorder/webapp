@@ -54,9 +54,6 @@ type Props = {
   isOpen: boolean;
   onOpenChange: () => void;
   onRemove: (id: string) => void;
-  // 記録詳細ページからの戻り遷移時に、デッキモーダルと同時に
-  // 記録一覧モーダルも自動で開くかどうか。
-  reopenRecordsModalOnOpen?: boolean;
 };
 
 export default function ShowDeckModal({
@@ -67,7 +64,6 @@ export default function ShowDeckModal({
   isOpen,
   onOpenChange,
   onRemove,
-  reopenRecordsModalOnOpen = false,
 }: Props) {
   const [imageLoaded, setImageLoaded] = useState(false);
 
@@ -125,21 +121,28 @@ export default function ShowDeckModal({
   // 戻り遷移での再開時、デッキモーダルが開いたら記録一覧モーダルも一度だけ開く。
   // デッキモーダルと同時に開くと HeroUI のモーダルスタック/フォーカス管理が競合し
   // 記録一覧モーダルが開かないため、デッキモーダルの開閉アニメーション完了後に開く。
+  // タイマーは ref で保持し、エフェクト再実行のクリーンアップでキャンセルされないよう
+  // アンマウント時のみ解除する（依存変化で自己キャンセルしないため確実に発火する）。
   const reopenRecordsConsumedRef = useRef(false);
+  const reopenRecordsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
-    if (
-      !isOpen ||
-      !reopenRecordsModalOnOpen ||
-      reopenRecordsConsumedRef.current
-    ) {
-      return;
-    }
+    if (!isOpen || !deck || reopenRecordsConsumedRef.current) return;
+    const flag = sessionStorage.getItem("reopenRecordsModalForDeckId");
+    if (flag !== deck.id) return;
     reopenRecordsConsumedRef.current = true;
-    const timer = setTimeout(() => {
+    sessionStorage.removeItem("reopenRecordsModalForDeckId");
+    reopenRecordsTimerRef.current = setTimeout(() => {
       onOpenForDisplayRecordsModal();
     }, 350);
-    return () => clearTimeout(timer);
-  }, [isOpen, reopenRecordsModalOnOpen, onOpenForDisplayRecordsModal]);
+  }, [isOpen, deck, onOpenForDisplayRecordsModal]);
+
+  useEffect(() => {
+    return () => {
+      if (reopenRecordsTimerRef.current) {
+        clearTimeout(reopenRecordsTimerRef.current);
+      }
+    };
+  }, []);
 
   const version =
     deckcode && deckcode.id
@@ -164,13 +167,13 @@ export default function ShowDeckModal({
         isOpen={isOpen}
         size="md"
         placement="center"
-        hideCloseButton
+        //hideCloseButton
         onOpenChange={onOpenChange}
         onClose={() => {}}
         //className="h-[calc(100dvh-256px)] max-h-[calc(100dvh-256px)]"
         classNames={{
           base: "sm:max-w-full",
-          closeButton: "text-2xl",
+          closeButton: "text-xl",
         }}
       >
         <ModalContent>
@@ -430,7 +433,6 @@ export default function ShowDeckModal({
         isOpen={isOpenForDisplayRecordsModal}
         onOpenChange={onOpenChangeForDisplayRecordsModal}
         onClose={onCloseForDisplayRecordsModal}
-        disableAnimation={reopenRecordsModalOnOpen}
       />
 
       <DisplayDeckCodesModal

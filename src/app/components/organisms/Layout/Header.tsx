@@ -96,7 +96,7 @@ export default async function Header() {
       <HeaderShell>
         <Logo />
         {resolvedEnv && (
-          <div className="flex items-center gap-1.5 flex-1 min-w-0 mx-4">
+          <div className="flex flex-1 items-center gap-1.5 min-w-0 mx-3">
             <span
               className={`w-1.5 h-1.5 rounded-full ${getEnvDotColor(resolvedEnv.to_date)} animate-pulse shrink-0`}
             />

@@ -238,9 +238,12 @@ export default function UpdateMatchModal({
       if (isGoFirst !== (match.games?.[0]?.go_first ? "1" : "0")) return true;
       if (isVictory !== (match.victory_flg ? "1" : "0")) return true;
       if (yourPrizeCards !== (match.games?.[0]?.your_prize_cards ?? 0)) return true;
-      if (opponentsPrizeCards !== (match.games?.[0]?.opponents_prize_cards ?? 0)) return true;
-      if ((pokemonSprite1?.id ?? null) !== (match.pokemon_sprites[0]?.id ?? null)) return true;
-      if ((pokemonSprite2?.id ?? null) !== (match.pokemon_sprites[1]?.id ?? null)) return true;
+      if (opponentsPrizeCards !== (match.games?.[0]?.opponents_prize_cards ?? 0))
+        return true;
+      if ((pokemonSprite1?.id ?? null) !== (match.pokemon_sprites[0]?.id ?? null))
+        return true;
+      if ((pokemonSprite2?.id ?? null) !== (match.pokemon_sprites[1]?.id ?? null))
+        return true;
     }
 
     return false;
@@ -580,7 +583,7 @@ export default function UpdateMatchModal({
         className="h-[calc(100dvh-108px)] max-h-[calc(100dvh-108px)] my-0 rounded-b-none"
         classNames={{
           base: "sm:max-w-full",
-          closeButton: "text-2xl",
+          closeButton: "text-xl",
         }}
       >
         <ModalContent>
@@ -975,7 +978,9 @@ export default function UpdateMatchModal({
                 <Button
                   color="success"
                   variant="solid"
-                  isDisabled={!isValidedFlg || (!isDisabled && !couldUpdateFlg) || !hasChanges}
+                  isDisabled={
+                    !isValidedFlg || (!isDisabled && !couldUpdateFlg) || !hasChanges
+                  }
                   onPress={() => {
                     updateBO1Match(onClose);
                   }}

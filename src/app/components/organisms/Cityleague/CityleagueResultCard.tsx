@@ -346,7 +346,7 @@ export default function CityleagueResultCard({ result, date }: Props) {
         onOpenChange={onOpenChange}
         classNames={{
           base: "sm:max-w-full",
-          closeButton: "text-2xl",
+          closeButton: "text-xl",
         }}
       >
         <ModalContent>

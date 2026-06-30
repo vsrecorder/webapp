@@ -35,15 +35,15 @@ export default function DeckCard({
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   // 記録の詳細ページから戻ってきた際、対象デッキならデッキモーダルを再開する。
-  // 併せて記録一覧モーダルも再開するためのフラグを ShowDeckModal へ渡す。
-  const [reopenRecordsModal, setReopenRecordsModal] = useState(false);
-
+  // 記録一覧モーダルも再開する意図は、React state ではなく sessionStorage で
+  // 伝える（StrictMode の二重マウントで state 同期が壊れるのを避けるため）。
   useEffect(() => {
     if (!enableShowDeckModal || !deck) return;
     const pendingDeckId = sessionStorage.getItem("reopenDeckModalDeckId");
     if (pendingDeckId && pendingDeckId === deck.id) {
       sessionStorage.removeItem("reopenDeckModalDeckId");
-      setReopenRecordsModal(true);
+      // ShowDeckModal が開いたときに記録一覧モーダルも開くための意図フラグ
+      sessionStorage.setItem("reopenRecordsModalForDeckId", deck.id);
       onOpen();
     }
     // deck.id を依存に含め、対象デッキのカードでのみ一度だけ実行する。
@@ -96,7 +96,6 @@ export default function DeckCard({
             isOpen={isOpen}
             onOpenChange={onOpenChange}
             onRemove={onRemove}
-            reopenRecordsModalOnOpen={reopenRecordsModal}
           />
         )}
       </>

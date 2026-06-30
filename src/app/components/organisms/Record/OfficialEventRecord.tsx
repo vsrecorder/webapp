@@ -73,6 +73,11 @@ type Props = {
   // 記録一覧では「すべて」タブと種別タブで同じ記録が重複マウントされるため、
   // アクティブなタブのインスタンスだけ true にしてキーの奪い合いを防ぐ。
   enableReopen?: boolean;
+  // 親モーダルが落ち着き、記録モーダルを開いてよい状態か。
+  // 親モーダル（デッキの記録一覧モーダル）が無い場合は常に true。
+  reopenReady?: boolean;
+  // デッキの記録一覧モーダル内で表示されているか（記録モーダルのバックドロップ調整用）。
+  nestedInModal?: boolean;
 };
 
 export default function OfficialEventRecord({
@@ -80,6 +85,8 @@ export default function OfficialEventRecord({
   enableDisplayRecordModal,
   onReopenComplete,
   enableReopen = true,
+  reopenReady = true,
+  nestedInModal = false,
 }: Props) {
   const [officialEvent, setOfficialEvent] =
     useState<OfficialEventGetByIdResponseType | null>(null);
@@ -114,12 +121,13 @@ export default function OfficialEventRecord({
   }, [enableReopen]);
 
   // データロード完了後にスクロール通知 + モーダルオープン
+  // 親モーダルが落ち着く（reopenReady）まで待ってから開く。
   useEffect(() => {
-    if (!shouldReopen || loadingOfficialEvent) return;
+    if (!shouldReopen || loadingOfficialEvent || !reopenReady) return;
     setShouldReopen(false);
     onReopenCompleteRef.current?.();
     onOpenForDisplayRecordModal();
-  }, [shouldReopen, loadingOfficialEvent]);
+  }, [shouldReopen, loadingOfficialEvent, reopenReady]);
 
   useEffect(() => {
     if (!recordData.data.official_event_id) {
@@ -220,6 +228,7 @@ export default function OfficialEventRecord({
           isOpen={isOpenForDisplayRecordModal}
           onOpenChange={onOpenChangeForDisplayRecordModal}
           onClose={onCloseForDisplayRecordModal}
+          nestedInModal={nestedInModal}
         />
       )}
 

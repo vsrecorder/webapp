@@ -74,6 +74,14 @@ type Props = {
   // 同一記録が重複するため、アクティブなインスタンスだけが
   // reopenModalRecordId を消費してモーダル再開を担う。
   isActive?: boolean;
+  // 親モーダル（デッキの記録一覧モーダル）が開閉アニメーション完了済みか。
+  // 再開時、親モーダルがまだアニメーション中だと記録カードのモーダルが
+  // HeroUI のフォーカス管理と競合して表示されないため、true になるまで開かない。
+  // 親モーダルが無い通常の利用（記録一覧ページ等）では常に true。
+  parentReady?: boolean;
+  // デッキの記録一覧モーダル内に表示されているか。
+  // 記録モーダルが親モーダルのバックドロップと重なって暗くなるのを防ぐために使う。
+  nestedInModal?: boolean;
 };
 
 export default function Records({
@@ -82,6 +90,8 @@ export default function Records({
   disable_more_load = false,
   limit = 0,
   isActive = true,
+  parentReady = true,
+  nestedInModal = false,
 }: Props) {
   // "all"(すべて)のときはバックエンドの event_type フィルタを掛けずに全件取得する。
   const apiEventType = event_type === "all" ? "" : event_type;
@@ -329,6 +339,8 @@ export default function Records({
                   enableDisplayRecordModal={true}
                   onReopenComplete={onReopenComplete}
                   enableReopen={isActive}
+                  reopenReady={parentReady}
+                  nestedInModal={nestedInModal}
                 />
               ) : recordType === "tonamel" ? (
                 <TonamelEventRecord
@@ -336,6 +348,8 @@ export default function Records({
                   enableDisplayRecordModal={true}
                   onReopenComplete={onReopenComplete}
                   enableReopen={isActive}
+                  reopenReady={parentReady}
+                  nestedInModal={nestedInModal}
                 />
               ) : recordType === "unofficial" ? (
                 <UnofficialEventRecord
@@ -343,6 +357,8 @@ export default function Records({
                   enableDisplayRecordModal={true}
                   onReopenComplete={onReopenComplete}
                   enableReopen={isActive}
+                  reopenReady={parentReady}
+                  nestedInModal={nestedInModal}
                 />
               ) : null}
             </Fragment>

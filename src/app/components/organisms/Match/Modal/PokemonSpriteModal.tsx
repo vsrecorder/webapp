@@ -150,7 +150,7 @@ export default function PokemonSpriteModal({
       }}
       classNames={{
         base: "sm:max-w-full",
-        closeButton: "text-2xl",
+        closeButton: "text-xl",
       }}
     >
       <ModalContent className="overflow-y-visible">
@@ -189,7 +189,9 @@ export default function PokemonSpriteModal({
                     menuPortal: (base) => ({ ...base, zIndex: 9999 }),
                   }}
                   menuPosition="fixed"
-                  menuPortalTarget={typeof document !== "undefined" ? document.body : null}
+                  menuPortalTarget={
+                    typeof document !== "undefined" ? document.body : null
+                  }
                   onMenuClose={() => {
                     focusSinkRef.current?.focus();
                   }}
@@ -236,7 +238,12 @@ export default function PokemonSpriteModal({
                   }}
                 />
               </div>
-              <div ref={focusSinkRef} tabIndex={-1} className="sr-only" aria-hidden="true" />
+              <div
+                ref={focusSinkRef}
+                tabIndex={-1}
+                className="sr-only"
+                aria-hidden="true"
+              />
             </ModalBody>
             <ModalFooter>
               <Button

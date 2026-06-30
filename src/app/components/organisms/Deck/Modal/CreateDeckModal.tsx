@@ -208,7 +208,7 @@ export default function CreateDeckModal({
         onClose={resetState}
         classNames={{
           base: "sm:max-w-full",
-          closeButton: "text-2xl",
+          closeButton: "text-xl",
         }}
       >
         <ModalContent>

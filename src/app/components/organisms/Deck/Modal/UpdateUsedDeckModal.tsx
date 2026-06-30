@@ -503,7 +503,7 @@ export default function UpdateUsedDeckModal({
       }}
       classNames={{
         base: "sm:max-w-full",
-        closeButton: "text-2xl",
+        closeButton: "text-xl",
       }}
     >
       <ModalContent>

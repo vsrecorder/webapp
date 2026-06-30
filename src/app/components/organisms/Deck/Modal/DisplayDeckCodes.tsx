@@ -249,8 +249,7 @@ export default function DisplayDeckCodesModal({
   };
 
   // バージョンが1件のときは、タイムラインの続きとして次バージョン作成を促す
-  const showNextVersionPrompt =
-    displayDeckCodes?.length === 1 && !!onOpenCreateDeckCode;
+  const showNextVersionPrompt = displayDeckCodes?.length === 1 && !!onOpenCreateDeckCode;
 
   return (
     <>
@@ -326,7 +325,7 @@ export default function DisplayDeckCodesModal({
         className="h-[calc(100dvh-104px)] max-h-[calc(100dvh-104px)] mt-26 my-0 rounded-b-none"
         classNames={{
           base: "sm:max-w-full",
-          closeButton: "text-2xl",
+          closeButton: "text-xl",
         }}
       >
         <ModalContent>

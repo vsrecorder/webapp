@@ -45,7 +45,7 @@ export default function CityleagueEventCard({ event, results }: Props) {
           onOpenChange={onOpenChange}
           classNames={{
             base: "sm:max-w-full",
-            closeButton: "text-2xl",
+            closeButton: "text-xl",
           }}
         >
           <ModalContent>

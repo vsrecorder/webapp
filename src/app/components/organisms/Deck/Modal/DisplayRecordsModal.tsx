@@ -118,10 +118,7 @@ export default function DisplayRecordsModal({
       // アーカイブ済みデッキかどうかも記録する（archived_at がゼロ値=未アーカイブ）。
       // 戻り時にデッキページのタブ（利用中/アーカイブ済み）を切り替えるために使う。
       const archived = new Date(deck.archived_at).getFullYear() !== 1;
-      sessionStorage.setItem(
-        "activeDeckRecordsModalArchived",
-        archived ? "1" : "0",
-      );
+      sessionStorage.setItem("activeDeckRecordsModalArchived", archived ? "1" : "0");
     } else {
       sessionStorage.removeItem("activeDeckRecordsModalDeckId");
       sessionStorage.removeItem("activeDeckRecordsModalArchived");
@@ -199,7 +196,7 @@ export default function DisplayRecordsModal({
             </ModalHeader>
             <ModalBody
               ref={bodyRef}
-              className="px-2 py-2 flex flex-col overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+              className="px-2 py-2 flex flex-col overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none"
             >
               <div hidden={selectedKey !== "all"} className="pt-12">
                 <Records

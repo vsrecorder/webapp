@@ -146,7 +146,7 @@ export default function DisplayDeckCodesModal({
 
       return [deckcode, ...prev];
     });
-  }, [isOpen, deckcode?.id]);
+  }, [isOpen, deckcode]);
 
   if (!deck) {
     return;
@@ -251,7 +251,8 @@ export default function DisplayDeckCodesModal({
   const isArchived = deck ? new Date(deck.archived_at).getFullYear() !== 1 : false;
 
   // バージョンが1件のときは、タイムラインの続きとして次バージョン作成を促す（アーカイブ済みは非表示）
-  const showNextVersionPrompt = displayDeckCodes?.length === 1 && !!onOpenCreateDeckCode && !isArchived;
+  const showNextVersionPrompt =
+    displayDeckCodes?.length === 1 && !!onOpenCreateDeckCode && !isArchived;
 
   return (
     <>
@@ -344,15 +345,15 @@ export default function DisplayDeckCodesModal({
 
                 <div>バージョン一覧</div>
               </ModalHeader>
-              <ModalBody className="px-2 py-3 flex flex-col overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              <ModalBody className="px-2 py-3 flex flex-col overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none">
                 <>
                   {loading ? (
                     <Spinner size="lg" className="pt-32" />
                   ) : !error ? (
                     <ol className="relative">
                       <div className="flex flex-col">
-                        {(!displayDeckCodes || displayDeckCodes.length === 0) && (
-                          isArchived ? (
+                        {(!displayDeckCodes || displayDeckCodes.length === 0) &&
+                          (isArchived ? (
                             <div className="flex flex-col items-center gap-3 py-10 px-3 text-center">
                               <LuLayers className="text-default-300 text-4xl" />
                               <div className="text-default-400 text-sm">
@@ -360,69 +361,70 @@ export default function DisplayDeckCodesModal({
                               </div>
                             </div>
                           ) : (
-                          <div className="flex flex-col items-center gap-5 py-8 px-3">
-                            <div className="w-20 h-20 rounded-full bg-linear-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-lg">
-                              <LuLayers className="text-white text-4xl" />
-                            </div>
-
-                            <div className="text-center">
-                              <div className="font-bold text-lg">
-                                デッキのバージョンを記録しよう
+                            <div className="flex flex-col items-center gap-5 py-8 px-3">
+                              <div className="w-20 h-20 rounded-full bg-linear-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-lg">
+                                <LuLayers className="text-white text-4xl" />
                               </div>
-                              <div className="text-default-400 text-sm mt-1">
-                                デッキの変遷を残して、強化の歴史を振り返ろう
-                              </div>
-                            </div>
 
-                            <div className="w-full flex flex-col gap-2.5">
-                              <div className="flex items-center gap-3 bg-default-100 rounded-xl px-4 py-3">
-                                <LuLayers className="text-blue-500 text-xl shrink-0" />
-                                <div>
-                                  <div className="font-bold text-sm">変更履歴を追跡</div>
-                                  <div className="text-tiny text-default-400">
-                                    どのカードを入れ替えたか一目でわかる
+                              <div className="text-center">
+                                <div className="font-bold text-lg">
+                                  デッキのバージョンを記録しよう
+                                </div>
+                                <div className="text-default-400 text-sm mt-1">
+                                  デッキの変遷を残して、強化の歴史を振り返ろう
+                                </div>
+                              </div>
+
+                              <div className="w-full flex flex-col gap-2.5">
+                                <div className="flex items-center gap-3 bg-default-100 rounded-xl px-4 py-3">
+                                  <LuLayers className="text-blue-500 text-xl shrink-0" />
+                                  <div>
+                                    <div className="font-bold text-sm">
+                                      変更履歴を追跡
+                                    </div>
+                                    <div className="text-tiny text-default-400">
+                                      どのカードを入れ替えたか一目でわかる
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-3 bg-default-100 rounded-xl px-4 py-3">
+                                  <LuFilePen className="text-green-500 text-xl shrink-0" />
+                                  <div>
+                                    <div className="font-bold text-sm">差分を比較</div>
+                                    <div className="text-tiny text-default-400">
+                                      バージョン間のカード増減をひと目で確認
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-3 bg-default-100 rounded-xl px-4 py-3">
+                                  <LuBook className="text-purple-500 text-xl shrink-0" />
+                                  <div>
+                                    <div className="font-bold text-sm">
+                                      過去のデッキコードを保存
+                                    </div>
+                                    <div className="text-tiny text-default-400">
+                                      バージョン変更前後の構成をいつでも見返せる
+                                    </div>
                                   </div>
                                 </div>
                               </div>
-                              <div className="flex items-center gap-3 bg-default-100 rounded-xl px-4 py-3">
-                                <LuFilePen className="text-green-500 text-xl shrink-0" />
-                                <div>
-                                  <div className="font-bold text-sm">差分を比較</div>
-                                  <div className="text-tiny text-default-400">
-                                    バージョン間のカード増減をひと目で確認
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-3 bg-default-100 rounded-xl px-4 py-3">
-                                <LuBook className="text-purple-500 text-xl shrink-0" />
-                                <div>
-                                  <div className="font-bold text-sm">
-                                    過去のデッキコードを保存
-                                  </div>
-                                  <div className="text-tiny text-default-400">
-                                    バージョン変更前後の構成をいつでも見返せる
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
 
-                            {onOpenCreateDeckCode && (
-                              <Button
-                                color="primary"
-                                variant="solid"
-                                size="lg"
-                                startContent={<LuBookPlus className="text-xl" />}
-                                onPress={() => {
-                                  onOpenCreateDeckCode();
-                                }}
-                                className="font-bold w-full"
-                              >
-                                最初のバージョンを作成する
-                              </Button>
-                            )}
-                          </div>
-                          )
-                        )}
+                              {onOpenCreateDeckCode && (
+                                <Button
+                                  color="primary"
+                                  variant="solid"
+                                  size="lg"
+                                  startContent={<LuBookPlus className="text-xl" />}
+                                  onPress={() => {
+                                    onOpenCreateDeckCode();
+                                  }}
+                                  className="font-bold w-full"
+                                >
+                                  最初のバージョンを作成する
+                                </Button>
+                              )}
+                            </div>
+                          ))}
 
                         {displayDeckCodes?.map(
                           (deckcode: DeckCodeType, index: number) => {

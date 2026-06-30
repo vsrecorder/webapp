@@ -117,20 +117,25 @@ function buildTweetHref(
   return `https://twitter.com/intent/tweet?text=${encoded}&via=vsrecorder_mobi&hashtags=${hashtag}`;
 }
 
-// キャプチャ時だけ light クラス＋白背景を一時付与し、書き出し画像を常にライトにする
-async function captureAsLightPng(el: HTMLElement): Promise<string> {
-  el.classList.add("light");
+// キャプチャ時に現在のテーマ（ライト/ダーク）へ追従して書き出す。
+// ダークモード時はダーク表示のまま、ライトモード時は light クラスを補って確実にライト化する。
+async function captureThemedPng(el: HTMLElement): Promise<string> {
+  const isDark = document.documentElement.classList.contains("dark");
+  // ライトは白、ダークはメイン領域と同じ地色（app-dot-bg のダーク背景）
+  const bgColor = isDark ? "#0a0a0a" : "#ffffff";
+
+  if (!isDark) el.classList.add("light");
   const prevBg = el.style.backgroundColor;
-  el.style.backgroundColor = "#ffffff";
+  el.style.backgroundColor = bgColor;
 
   try {
     return await toPng(el, {
       cacheBust: true,
       pixelRatio: 3,
-      backgroundColor: "#ffffff",
+      backgroundColor: bgColor,
     });
   } finally {
-    el.classList.remove("light");
+    if (!isDark) el.classList.remove("light");
     el.style.backgroundColor = prevBg;
   }
 }
@@ -230,7 +235,7 @@ export default function RecordActionsFloating({
     }
 
     try {
-      const dataUrl = await captureAsLightPng(matchCardRef.current);
+      const dataUrl = await captureThemedPng(matchCardRef.current);
       const link = document.createElement("a");
       link.download = `${record.id}_${Date.now()}.png`;
       link.href = dataUrl;
@@ -276,7 +281,7 @@ export default function RecordActionsFloating({
     }
 
     try {
-      const dataUrl = await captureAsLightPng(deckCardRef.current);
+      const dataUrl = await captureThemedPng(deckCardRef.current);
       const link = document.createElement("a");
       link.download = `${record.deck_id}_${record.deck_code_id}_${Date.now()}.png`;
       link.href = dataUrl;

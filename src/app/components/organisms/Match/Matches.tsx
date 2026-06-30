@@ -20,7 +20,7 @@ import { Card, CardBody } from "@heroui/react";
 
 import { useDisclosure } from "@heroui/react";
 
-import { LuStickyNote } from "react-icons/lu";
+import { LuStickyNote, LuSwords } from "react-icons/lu";
 
 import UpdateMatchModal from "@app/components/organisms/Match/Modal/UpdateMatchModal";
 import DisplayMatchMemoModal from "@app/components/organisms/Match/Modal/DisplayMatchMemoModal";
@@ -371,15 +371,33 @@ export default function Matches({
                         </Table>
                       </div>
                     ) : (
-                      <div className="flex flex-col pt-10 items-center justify-center">
-                        対戦結果がありません
+                      <div className="flex flex-col items-center justify-center gap-5 py-8 px-4">
+                        <div className="flex items-center justify-center w-16 h-16 rounded-full bg-default-100">
+                          <LuSwords className="text-3xl text-default-400" />
+                        </div>
+                        <div className="flex flex-col items-center gap-1.5 text-center">
+                          <div className="font-bold text-sm text-default-600">
+                            対戦結果がありません
+                          </div>
+                          <div className="text-tiny text-default-400 max-w-75">
+                            {enableCreateMatchModalButton
+                              ? "対戦を記録して勝率や傾向を把握しましょう！"
+                              : "このイベントの対戦結果は登録されていません"}
+                          </div>
+                        </div>
+                        {enableCreateMatchModalButton && (
+                          <CreateMatchModalButton
+                            record={record}
+                            setMatches={setMatches}
+                          />
+                        )}
                       </div>
                     )}
                   </CardBody>
                 </Card>
               </div>
 
-              {enableCreateMatchModalButton && (
+              {matches && matches.length !== 0 && enableCreateMatchModalButton && (
                 <CreateMatchModalButton record={record} setMatches={setMatches} />
               )}
             </div>

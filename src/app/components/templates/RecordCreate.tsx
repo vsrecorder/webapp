@@ -1145,7 +1145,7 @@ export default function TemplateRecordCreate({
                   aria-label="開催日"
                   radius="none"
                   size="sm"
-                  firstDayOfWeek="mon"
+                  firstDayOfWeek="sun"
                   defaultValue={selectedDate}
                   value={selectedDate}
                   onChange={(value) => {
@@ -1585,7 +1585,7 @@ export default function TemplateRecordCreate({
                   aria-label="開催日"
                   radius="none"
                   size="sm"
-                  firstDayOfWeek="mon"
+                  firstDayOfWeek="sun"
                   defaultValue={tonamelEventDate}
                   value={tonamelEventDate}
                   onChange={(value) => {
@@ -1895,7 +1895,7 @@ export default function TemplateRecordCreate({
                   aria-label="開催日"
                   radius="none"
                   size="sm"
-                  firstDayOfWeek="mon"
+                  firstDayOfWeek="sun"
                   defaultValue={unofficialEventDate}
                   value={unofficialEventDate}
                   onChange={(value) => {

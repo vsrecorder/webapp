@@ -24,7 +24,7 @@
  * （border 系ユーティリティを明示しているカードは既存の枠を優先するため除外）
  */
 .dark .bg-content1:not([class*="border"]) {
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 /*
@@ -38,8 +38,12 @@
 
 /* ヘッダーの環境テキストスクロールアニメーション */
 @keyframes marquee {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
 }
 
 .animate-marquee {

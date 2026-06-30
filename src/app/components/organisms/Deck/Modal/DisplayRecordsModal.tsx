@@ -54,20 +54,33 @@ export default function DisplayRecordsModal({
       onClose();
     }
   };
-  // SSR と初回クライアントレンダリングを一致させるため初期値は "all"。
-  // 実際の復元はマウント後の useEffect で行う（ハイドレーション不整合の回避）。
-  const [selectedKey, setSelectedKey] = useState<TabKey>("all");
+  // 既定は "すべて"。詳細ページからの戻り（再開）時のみ、遷移前のタブを復元する。
+  // 通常のオープンでは常に "すべて" から始まる。
+  // lazy 初期化で復元することで、保存用エフェクトとの競合を避ける。
+  const [selectedKey, setSelectedKey] = useState<TabKey>(() => {
+    if (typeof window === "undefined") return "all";
+    const isReopen = sessionStorage.getItem("reopenModalRecordId") !== null;
+    return isReopen ? resolveRestoredTab() : "all";
+  });
   const bodyRef = useRef<HTMLDivElement | null>(null);
 
-  // マウント後に保存済みタブを復元する。
-  // DisplayRecordsModal は ShowDeckModal と共にページ表示時点でマウントされるため、
-  // 記録一覧モーダルが実際に開く（再開時は 350ms 後）より前に復元が完了する。
+  // 現在の選択タブを保存しておき、次回の再開時に遷移前のタブを復元できるようにする。
+  // 既定の "すべて" のままでも保存されるため、戻り時に誤って別タブへ復元されない。
   useEffect(() => {
-    const restored = resolveRestoredTab();
-    if (restored !== "all") {
-      setSelectedKey(restored);
+    sessionStorage.setItem(SELECTED_TAB_STORAGE_KEY, selectedKey);
+  }, [selectedKey]);
+
+  // モーダルを閉じたとき（開→閉の遷移時）に既定の "すべて" へ戻す。
+  // DisplayRecordsModal は閉じても再マウントされず state が残るため、
+  // これがないと再開で復元したタブが次回の通常オープンにも引き継がれてしまう。
+  // 初期マウント時の isOpen=false で誤ってリセットしないよう、前回値で遷移のみ検知する。
+  const prevIsOpenRef = useRef(isOpen);
+  useEffect(() => {
+    if (prevIsOpenRef.current && !isOpen) {
+      setSelectedKey("all");
     }
-  }, []);
+    prevIsOpenRef.current = isOpen;
+  }, [isOpen]);
 
   // タブごとのスクロール位置を保存
   const scrollPositions = useRef<Record<TabKey, number>>({
@@ -82,9 +95,6 @@ export default function DisplayRecordsModal({
     if (bodyRef.current) {
       scrollPositions.current[selectedKey] = bodyRef.current.scrollTop;
     }
-
-    // 詳細ページ遷移→戻り時の復元用に選択タブを保存
-    sessionStorage.setItem(SELECTED_TAB_STORAGE_KEY, key as string);
 
     setSelectedKey(key as TabKey);
   };
@@ -189,6 +199,7 @@ export default function DisplayRecordsModal({
                   isActive={selectedKey === "all"}
                   parentReady={parentReady}
                   nestedInModal
+                  scrollContainerRef={bodyRef}
                 />
               </div>
 
@@ -199,6 +210,7 @@ export default function DisplayRecordsModal({
                   isActive={selectedKey === "official"}
                   parentReady={parentReady}
                   nestedInModal
+                  scrollContainerRef={bodyRef}
                 />
               </div>
 
@@ -209,6 +221,7 @@ export default function DisplayRecordsModal({
                   isActive={selectedKey === "tonamel"}
                   parentReady={parentReady}
                   nestedInModal
+                  scrollContainerRef={bodyRef}
                 />
               </div>
 
@@ -219,6 +232,7 @@ export default function DisplayRecordsModal({
                   isActive={selectedKey === "unofficial"}
                   parentReady={parentReady}
                   nestedInModal
+                  scrollContainerRef={bodyRef}
                 />
               </div>
             </ModalBody>

@@ -82,6 +82,10 @@ type Props = {
   // デッキの記録一覧モーダル内に表示されているか。
   // 記録モーダルが親モーダルのバックドロップと重なって暗くなるのを防ぐために使う。
   nestedInModal?: boolean;
+  // 再開時に対象カードへスクロールする際のスクロール対象コンテナ。
+  // モーダル内では window ではなくこのコンテナ（ModalBody）をスクロールする。
+  // 未指定（記録一覧ページ等）の場合は window をスクロールする。
+  scrollContainerRef?: React.RefObject<HTMLElement | null>;
 };
 
 export default function Records({
@@ -92,6 +96,7 @@ export default function Records({
   isActive = true,
   parentReady = true,
   nestedInModal = false,
+  scrollContainerRef,
 }: Props) {
   // "all"(すべて)のときはバックエンドの event_type フィルタを掛けずに全件取得する。
   const apiEventType = event_type === "all" ? "" : event_type;
@@ -119,8 +124,20 @@ export default function Records({
     requestAnimationFrame(() => {
       const el = document.getElementById(`record-card-${id}`);
       if (!el) return;
-      const y = el.getBoundingClientRect().top + window.scrollY - 80;
-      window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+      const container = scrollContainerRef?.current;
+      if (container) {
+        // モーダル内：ModalBody（コンテナ）をスクロールする。
+        // 固定タブに隠れないよう少し上に余白(56px)を取る。
+        const elRect = el.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        const y =
+          container.scrollTop + (elRect.top - containerRect.top) - 56;
+        container.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+      } else {
+        // 通常ページ：window をスクロールする。
+        const y = el.getBoundingClientRect().top + window.scrollY - 80;
+        window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+      }
     });
   }, [pendingReopenId]);
 

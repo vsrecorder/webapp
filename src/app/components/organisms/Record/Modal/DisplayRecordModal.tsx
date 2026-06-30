@@ -1,7 +1,5 @@
 "use client";
 
-import { toPng } from "html-to-image";
-
 import { useRef, useState, useEffect } from "react";
 
 import { SetStateAction, Dispatch } from "react";
@@ -40,6 +38,8 @@ import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
 import { TonamelEventGetByIdResponseType } from "@app/types/tonamel_event";
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { MatchGetResponseType } from "@app/types/match";
+
+import { captureThemedPng } from "@app/utils/captureImage";
 
 // ツイートURL生成ヘルパー
 
@@ -234,41 +234,6 @@ export default function DisplayRecordModal({
     if (e.touches[0].clientY - startY.current > 30) {
       startY.current = null;
       onClose();
-    }
-  };
-
-  // キャプチャ時に現在のテーマ（ライト/ダーク）へ追従して書き出す。
-  // 画面外への退避は「外側のラッパー」だけが担い、キャプチャ対象(clone)自身には
-  // 位置スタイルを一切付けない。こうすることで clone は通常フロー(0,0)のまま描画され、
-  // 書き出し画像の最上部に帯が出る／コンテンツがずれる、といった座標起因の不具合を防ぐ。
-  const captureThemedPng = async (el: HTMLElement) => {
-    const isDark = document.documentElement.classList.contains("dark");
-    // ライトは白、ダークはメイン領域と同じ地色（app-dot-bg のダーク背景）
-    const bgColor = isDark ? "#0a0a0a" : "#ffffff";
-
-    // 画面外に逃がすためのラッパー（位置指定はここだけが持つ）
-    const wrapper = document.createElement("div");
-    wrapper.style.position = "fixed";
-    wrapper.style.top = "-10000px";
-    wrapper.style.left = "0";
-    wrapper.style.width = `${el.offsetWidth}px`;
-    wrapper.style.backgroundColor = bgColor;
-
-    const clone = el.cloneNode(true) as HTMLElement;
-    clone.style.width = `${el.offsetWidth}px`;
-    if (!isDark) clone.classList.add("light");
-
-    wrapper.appendChild(clone);
-    document.body.appendChild(wrapper);
-
-    try {
-      return await toPng(clone, {
-        cacheBust: true,
-        pixelRatio: 3,
-        backgroundColor: bgColor,
-      });
-    } finally {
-      document.body.removeChild(wrapper);
     }
   };
 

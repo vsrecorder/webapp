@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 
-// @ts-ignore: CSS module declarations not available in this environment
 import "./globals.css";
 
 import { GoogleAnalytics } from "@next/third-parties/google";

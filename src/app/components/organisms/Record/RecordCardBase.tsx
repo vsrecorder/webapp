@@ -2,7 +2,6 @@ import { Card, CardBody } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
 import { Image } from "@heroui/react";
 
-import { LuLayers } from "react-icons/lu";
 
 import ScrollingText from "@app/components/molecules/ScrollingText";
 import { spriteImageUrl, spriteScaleClass } from "@app/utils/sprite";

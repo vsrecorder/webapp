@@ -6,7 +6,6 @@ import { useEffect, useState } from "react";
 
 import { Card, CardHeader, CardBody, CardFooter } from "@heroui/react";
 import { Image } from "@heroui/react";
-import { Chip } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
 import { Button } from "@heroui/react";
 import { Snippet } from "@heroui/react";
@@ -28,92 +27,15 @@ import CreateDeckModal from "@app/components/organisms/Deck/Modal/CreateDeckModa
 import DeckCardSummaryRow from "@app/components/organisms/Deck/DeckCardSummaryRow";
 
 import { Result } from "@app/types/cityleague_result";
-import { AcespecType } from "@app/types/acespec";
-import { EnvironmentType } from "@app/types/environment";
-import { DeckTypeData } from "@app/types/decktype";
-
-async function fetchAcespec(code: string) {
-  try {
-    const res = await fetch(`/api/deckcards/${code}/acespec`, {
-      cache: "no-store",
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
-    });
-
-    if (res.status === 204) {
-      return null;
-    }
-
-    const ret: AcespecType = await res.json();
-
-    return ret;
-  } catch (error) {
-    throw error;
-  }
-}
-
-async function fetchEnvironment(date: Date) {
-  try {
-    const res = await fetch(`/api/environments?date=${date.toString().split("T")[0]}`, {
-      cache: "no-store",
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
-    });
-
-    const ret: EnvironmentType = await res.json();
-
-    return ret;
-  } catch (error) {
-    throw error;
-  }
-}
-
-async function fetchDeckType(code: string, environment_id: string) {
-  try {
-    const res = await fetch(`/api/decktypes/${code}/environments/${environment_id}`, {
-      cache: "no-store",
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
-    });
-
-    if (res.status === 204) {
-      return null;
-    }
-
-    const ret: DeckTypeData[] = await res.json();
-
-    return ret;
-  } catch (error) {
-    throw error;
-  }
-}
 
 type Props = {
   result: Result;
   date: Date;
 };
 
-export default function CityleagueResultCard({ result, date }: Props) {
+export default function CityleagueResultCard({ result }: Props) {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [imageLoaded, setImageLoaded] = useState(false);
-
-  const [environment, setEnvironment] = useState<EnvironmentType | null>(null);
-  const [loadingEnvrionment, setLoadingEnvironment] = useState(true);
-  const [errorEnvironment, setErrorEnvironment] = useState<string | null>(null);
-
-  const [acespec, setAcespec] = useState<AcespecType | null>(null);
-  const [loadingAcespec, setLoadingAcespec] = useState(true);
-  const [errorAcespec, setErrorAcespec] = useState<string | null>(null);
-
-  const [decktype, setDeckType] = useState<DeckTypeData[] | null>(null);
-  const [loadingDeckType, setLoadingDeckType] = useState(true);
-  const [errorDeckType, setErrorDeckType] = useState<string | null>(null);
 
   const {
     isOpen: isOpenForCreateDeckModal,

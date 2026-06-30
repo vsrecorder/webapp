@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 
 import { SetStateAction, Dispatch } from "react";
 
@@ -10,13 +10,9 @@ import { Card, CardHeader, CardBody, CardFooter } from "@heroui/react";
 import { A11y, Autoplay, Pagination } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
 
-// @ts-ignore: side-effect import without types
 import "swiper/css";
-// @ts-ignore: side-effect import without types
 import "swiper/css/navigation";
-// @ts-ignore: side-effect import without types
 import "swiper/css/pagination";
-// @ts-ignore: side-effect import without types
 import "swiper/css/scrollbar";
 
 import CityleagueEventCard from "@app/components/organisms/Cityleague/CityleagueEventCard";

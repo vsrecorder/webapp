@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { Button } from "@heroui/react";
-import { LuX, LuShare2 } from "react-icons/lu";
+import { LuX } from "react-icons/lu";
 
 import { useInstallPrompt } from "@app/hooks/useInstallPrompt";
 

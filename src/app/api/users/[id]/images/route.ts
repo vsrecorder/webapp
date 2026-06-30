@@ -2,7 +2,11 @@ import { NextResponse, NextRequest } from "next/server";
 
 import { auth } from "@app/auth";
 
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  PutObjectCommand,
+  PutObjectCommandInput,
+} from "@aws-sdk/client-s3";
 
 const accessKeyId = process.env.SAKURA_OBJECTSTORAGE_ACCESS_KEY_ID;
 const secretAccessKey = process.env.SAKURA_OBJECTSTORAGE_SECRET_ACCESS_KEY;
@@ -67,7 +71,7 @@ export async function POST(
       Body: buffer,
       ContentType: "image/png",
       ACL: "public-read",
-    } as any);
+    } satisfies PutObjectCommandInput);
 
     await s3Client.send(command);
 

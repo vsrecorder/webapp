@@ -1,4 +1,4 @@
-import { useState, SetStateAction, Dispatch } from "react";
+import { useState } from "react";
 
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
 import { Alert } from "@heroui/react";
@@ -8,7 +8,6 @@ import { Button } from "@heroui/react";
 import { addToast, closeToast } from "@heroui/react";
 
 import { DeckGetByIdResponseType } from "@app/types/deck";
-import { DeckCodeType } from "@app/types/deck_code";
 
 type Props = {
   deck: DeckGetByIdResponseType | null;

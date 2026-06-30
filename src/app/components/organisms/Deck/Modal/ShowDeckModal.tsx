@@ -39,7 +39,6 @@ import { LuFileText } from "react-icons/lu";
 import { LuBook } from "react-icons/lu";
 import { LuBookPlus } from "react-icons/lu";
 import { LuTrash2 } from "react-icons/lu";
-import { LuFlaskConical } from "react-icons/lu";
 import { LuFilePen } from "react-icons/lu";
 import { LuSquarePen } from "react-icons/lu";
 
@@ -99,7 +98,6 @@ export default function ShowDeckModal({
 
   const {
     isOpen: isOpenForInspectDeckModal,
-    onOpen: onOpenForInspectDeckModal,
     onOpenChange: onOpenChangeForInspectDeckModal,
     onClose: onCloseForInspectDeckModal,
   } = useDisclosure();

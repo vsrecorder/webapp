@@ -381,7 +381,7 @@ export default function CreateMatchModal({
       games = [game];
     }
 
-    let pokemon_sprites: PokemonSpriteType[] = [];
+    const pokemon_sprites: PokemonSpriteType[] = [];
 
     if (pokemonSprite1) {
       pokemon_sprites.push(pokemonSprite1);
@@ -538,9 +538,9 @@ export default function CreateMatchModal({
                 {pokemonSprite1 ? (
                   <Image
                     onClick={() => {
-                      !isDefaultVictory &&
-                        !isDefaultDefeat &&
+                      if (!isDefaultVictory && !isDefaultDefeat) {
                         onOpenForPokemonSprite1Modal();
+                      }
                     }}
                     alt={pokemonSprite1.id}
                     src={pokemonSprite1.image_url}
@@ -550,9 +550,9 @@ export default function CreateMatchModal({
                 ) : (
                   <Image
                     onClick={() => {
-                      !isDefaultVictory &&
-                        !isDefaultDefeat &&
+                      if (!isDefaultVictory && !isDefaultDefeat) {
                         onOpenForPokemonSprite1Modal();
+                      }
                     }}
                     alt="unknown"
                     src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
@@ -567,9 +567,9 @@ export default function CreateMatchModal({
                 {pokemonSprite2 ? (
                   <Image
                     onClick={() => {
-                      !isDefaultVictory &&
-                        !isDefaultDefeat &&
+                      if (!isDefaultVictory && !isDefaultDefeat) {
                         onOpenForPokemonSprite2Modal();
+                      }
                     }}
                     alt={pokemonSprite2.id}
                     src={pokemonSprite2.image_url}
@@ -579,9 +579,9 @@ export default function CreateMatchModal({
                 ) : (
                   <Image
                     onClick={() => {
-                      !isDefaultVictory &&
-                        !isDefaultDefeat &&
+                      if (!isDefaultVictory && !isDefaultDefeat) {
                         onOpenForPokemonSprite2Modal();
+                      }
                     }}
                     alt="unknown"
                     src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"

@@ -17,13 +17,6 @@ type Props = {
   user: UserType;
 };
 
-function isPWA() {
-  return (
-    window.matchMedia("(display-mode: standalone)").matches ||
-    (window.navigator as any).standalone === true
-  );
-}
-
 export default function UserMenu({ user }: Props) {
   const router = useRouter();
   const { avatarUrl } = useUserAvatar();

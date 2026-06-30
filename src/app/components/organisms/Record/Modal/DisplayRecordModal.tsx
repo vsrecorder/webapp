@@ -43,12 +43,6 @@ import { MatchGetResponseType } from "@app/types/match";
 
 // ツイートURL生成ヘルパー
 
-function toFullWidth(str: string) {
-  return str.replace(/[A-Za-z0-9]/g, (s) =>
-    String.fromCharCode(s.charCodeAt(0) + 0xfee0),
-  );
-}
-
 async function fetchOfficialEventForTweet(
   id: number,
 ): Promise<OfficialEventGetByIdResponseType> {
@@ -121,7 +115,7 @@ function buildTweetHref(
 
   let encoded = "";
   if (officialEvent) {
-    let title = officialEvent.title
+    const title = officialEvent.title
       .replace(/【.*?】ポケモンカードジム　/g, "")
       .replace(/【.*?】エクストラバトルの日/g, "エクストラバトルの日")
       .replace(/【.*?】ポケモンカードゲーム　/g, "")

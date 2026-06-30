@@ -1,8 +1,6 @@
 import Image from "next/image";
-import Link from "next/link";
 
-import { Button } from "@heroui/react";
-import { LuFilePen, LuLayers, LuFileText, LuTrophy, LuArrowRight } from "react-icons/lu";
+import { LuFilePen, LuLayers, LuFileText, LuTrophy } from "react-icons/lu";
 
 import Footer from "@app/components/organisms/Layout/Footer";
 import CityleagueEvents from "@app/components/organisms/Cityleague/CityleagueEvents";
@@ -196,14 +194,14 @@ export default async function TemplateHome() {
   let cs: CityleagueScheduleType | undefined;
   try {
     cs = await getCityleagueScheduleByDate(date);
-  } catch (error) {
+  } catch {
     cs = undefined;
   }
 
   let env: EnvironmentType | undefined;
   try {
     env = await getEnvironmentByDate(date);
-  } catch (error) {
+  } catch {
     env = undefined;
   }
 

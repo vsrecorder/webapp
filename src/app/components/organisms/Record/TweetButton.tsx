@@ -8,16 +8,7 @@ import { RecordGetByIdResponseType } from "@app/types/record";
 import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
 import { TonamelEventGetByIdResponseType } from "@app/types/tonamel_event";
 import { DeckGetByIdResponseType } from "@app/types/deck";
-import { DeckCodeType } from "@app/types/deck_code";
 import { MatchGetResponseType } from "@app/types/match";
-
-function toFullWidth(str: string) {
-  str = str.replace(/[A-Za-z0-9]/g, function (s) {
-    return String.fromCharCode(s.charCodeAt(0) + 0xfee0);
-  });
-
-  return str;
-}
 
 async function fetchOfficialEventById(id: number) {
   try {
@@ -78,28 +69,6 @@ async function fetchDeckById(id: string) {
     }
 
     const ret: DeckGetByIdResponseType = await res.json();
-
-    return ret;
-  } catch (error) {
-    throw error;
-  }
-}
-
-async function fetchDeckCodeById(id: string) {
-  try {
-    const res = await fetch(`/api/deckcodes/${id}`, {
-      cache: "no-store",
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
-    });
-
-    if (!res.ok) {
-      throw new Error("Failed to fetch");
-    }
-
-    const ret: DeckCodeType = await res.json();
 
     return ret;
   } catch (error) {
@@ -235,7 +204,7 @@ export default function TweetButton({ record }: Props) {
 
   if (matches && matches.length !== 0) {
     results = "\n" + results + "対戦結果" + "\n";
-    matches?.map((match, index) => {
+    matches?.map((match) => {
       const victory = match.victory_flg ? String("⭕") : String("❌");
       const go_first =
         match.default_victory_flg || match.default_defeat_flg
@@ -243,7 +212,6 @@ export default function TweetButton({ record }: Props) {
           : match.games[0].go_first
             ? String("先")
             : String("後");
-      const number = toFullWidth(Number(index + 1).toString());
       const opponents_deck_info = match.default_victory_flg
         ? String("不戦勝")
         : match.default_defeat_flg
@@ -308,7 +276,7 @@ export default function TweetButton({ record }: Props) {
     encoded = encoded + encodeURIComponent("使用デッキ：" + deck.name + "\n");
   }
 
-  let hashtag = encodeURIComponent("バトレコ");
+  const hashtag = encodeURIComponent("バトレコ");
   const href =
     `https://twitter.com/intent/tweet?text=` +
     encoded +

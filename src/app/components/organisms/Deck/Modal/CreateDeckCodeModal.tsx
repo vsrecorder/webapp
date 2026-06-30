@@ -69,6 +69,11 @@ export default function CreateDeckCodeModal({
     checkDeckCode();
   }, [newdeckcode]);
 
+  const currentDeckCode = useMemo(
+    () => ({ code: newdeckcode }) as DeckCodeType,
+    [newdeckcode],
+  );
+
   if (!deck) {
     return;
   }
@@ -147,11 +152,6 @@ export default function CreateDeckCodeModal({
       onClose();
     }
   };
-
-  const currentDeckCode = useMemo(
-    () => ({ code: newdeckcode }) as DeckCodeType,
-    [newdeckcode],
-  );
 
   return (
     <Modal

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 import { Spinner } from "@heroui/spinner";
 import { Button, Link, useDisclosure } from "@heroui/react";

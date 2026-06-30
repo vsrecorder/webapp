@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Button } from "@heroui/react";
-import { LuFilePen, LuLayers, LuFileText, LuTrophy } from "react-icons/lu";
 
 import Footer from "@app/components/organisms/Layout/Footer";
 import CityleagueEvents from "@app/components/organisms/Cityleague/CityleagueEvents";

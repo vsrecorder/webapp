@@ -453,7 +453,7 @@ export default function UpdateMatchModal({
       games = [game];
     }
 
-    let pokemon_sprites: MatchPokemonSpriteType[] = [];
+    const pokemon_sprites: MatchPokemonSpriteType[] = [];
 
     if (pokemonSprite1) {
       pokemon_sprites.push(pokemonSprite1);
@@ -611,9 +611,9 @@ export default function UpdateMatchModal({
                 {pokemonSprite1 ? (
                   <Image
                     onClick={() => {
-                      !isDefaultVictory &&
-                        !isDefaultDefeat &&
+                      if (!isDefaultVictory && !isDefaultDefeat) {
                         onOpenForPokemonSprite1Modal();
+                      }
                     }}
                     alt={pokemonSprite1.id}
                     src={pokemonSprite1.image_url}
@@ -623,9 +623,9 @@ export default function UpdateMatchModal({
                 ) : (
                   <Image
                     onClick={() => {
-                      !isDefaultVictory &&
-                        !isDefaultDefeat &&
+                      if (!isDefaultVictory && !isDefaultDefeat) {
                         onOpenForPokemonSprite1Modal();
+                      }
                     }}
                     alt="unknown"
                     src={`${SPRITE_BASE_URL}/unknown.png`}
@@ -640,9 +640,9 @@ export default function UpdateMatchModal({
                 {pokemonSprite2 ? (
                   <Image
                     onClick={() => {
-                      !isDefaultVictory &&
-                        !isDefaultDefeat &&
+                      if (!isDefaultVictory && !isDefaultDefeat) {
                         onOpenForPokemonSprite2Modal();
+                      }
                     }}
                     alt={pokemonSprite2.id}
                     src={pokemonSprite2.image_url}
@@ -652,9 +652,9 @@ export default function UpdateMatchModal({
                 ) : (
                   <Image
                     onClick={() => {
-                      !isDefaultVictory &&
-                        !isDefaultDefeat &&
+                      if (!isDefaultVictory && !isDefaultDefeat) {
                         onOpenForPokemonSprite2Modal();
+                      }
                     }}
                     alt="unknown"
                     src={`${SPRITE_BASE_URL}/unknown.png`}

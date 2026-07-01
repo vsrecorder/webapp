@@ -77,12 +77,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           if (ret.status == 404) {
             // firebaseユーザの画像を初期化
             const createUser: UserType = {
-              name: decoded.name,
+              name: decoded.name ?? "名称未設定",
               image_url:
                 "https://xx8nnpgt.user.webaccel.jp/images/users/default_icon.png",
             };
 
-            const jwtSecret: jwt.Secret = process.env.VSRECORDER_JWT_SECRET as string;
+            const jwtSecret = process.env.VSRECORDER_JWT_SECRET;
+            if (!jwtSecret) {
+              throw new Error("VSRECORDER_JWT_SECRET is not set");
+            }
 
             const jwtSignOptions: jwt.SignOptions = {
               algorithm: "HS256",

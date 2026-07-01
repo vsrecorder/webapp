@@ -14,6 +14,8 @@ import { RecordType, RecordGetByIdResponseType } from "@app/types/record";
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { UnofficialEventGetByIdResponseType } from "@app/types/unofficial_event";
 import { EnvironmentType } from "@app/types/environment";
+import { MatchGetResponseType } from "@app/types/match";
+import { countMatchResults } from "@app/utils/match";
 
 async function fetchUnofficialEventById(
   id: string,
@@ -48,6 +50,28 @@ async function fetchDeckById(id: string) {
     }
 
     const ret: DeckGetByIdResponseType = await res.json();
+
+    return ret;
+  } catch (error) {
+    throw error;
+  }
+}
+
+async function fetchMatchesByRecordId(record_id: string) {
+  try {
+    const res = await fetch(`/api/records/${record_id}/matches`, {
+      cache: "no-store",
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    if (!res.ok) {
+      throw new Error("Failed to fetch");
+    }
+
+    const ret: MatchGetResponseType[] = await res.json();
 
     return ret;
   } catch (error) {
@@ -99,6 +123,9 @@ export default function UnofficialEventRecord({
 }: Props) {
   const [deck, setDeck] = useState<DeckGetByIdResponseType | null>(null);
   const [loadingDeck, setLoadingDeck] = useState(true);
+
+  const [matches, setMatches] = useState<MatchGetResponseType[]>([]);
+  const [loadingMatches, setLoadingMatches] = useState(true);
 
   const [environment, setEnvironment] = useState<EnvironmentType | null>(null);
 
@@ -188,6 +215,29 @@ export default function UnofficialEventRecord({
     fetchData();
   }, [record?.deck_id]);
 
+  useEffect(() => {
+    if (!record?.id) {
+      setLoadingMatches(false);
+      return;
+    }
+
+    setLoadingMatches(true);
+
+    const fetchData = async () => {
+      try {
+        setLoadingMatches(true);
+        const data = await fetchMatchesByRecordId(record.id);
+        setMatches(data);
+      } catch (err) {
+        console.log(err);
+      } finally {
+        setLoadingMatches(false);
+      }
+    };
+
+    fetchData();
+  }, [record?.id]);
+
   // 開催日(event_date 優先、ゼロ値なら unofficial_events.date / created_at)を基に
   // 対戦環境を取得する
   useEffect(() => {
@@ -224,6 +274,8 @@ export default function UnofficialEventRecord({
   if (!record) {
     return;
   }
+
+  const { wins, losses } = countMatchResults(matches);
 
   // 開催日は records.event_date(ユーザ入力値)を優先し、
   // 未設定(ゼロ値)の場合は unofficial_events.date または記録の作成日へフォールバックする。
@@ -286,6 +338,9 @@ export default function UnofficialEventRecord({
         deckName={deck ? deck.name : null}
         deckSprites={deck?.pokemon_sprites}
         loadingDeck={loadingDeck}
+        winCount={wins}
+        lossCount={losses}
+        loadingMatches={loadingMatches}
       />
     </>
   );

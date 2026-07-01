@@ -30,6 +30,10 @@ type Props = {
   loadingDeck: boolean;
   // デッキ行の上に差し込む情報行(公式の会場名など)。無いカードは省略
   infoRowAboveDeck?: React.ReactNode;
+  // 対戦の勝敗数(デッキ行の右端に表示)
+  winCount?: number;
+  lossCount?: number;
+  loadingMatches: boolean;
 };
 
 /*
@@ -51,7 +55,18 @@ export default function RecordCardBase({
   deckSprites,
   loadingDeck,
   infoRowAboveDeck,
+  winCount,
+  lossCount,
+  loadingMatches,
 }: Props) {
+  const hasMatchResult = (winCount ?? 0) + (lossCount ?? 0) > 0;
+  const matchResultColorClass =
+    (winCount ?? 0) > (lossCount ?? 0)
+      ? "text-success"
+      : (winCount ?? 0) < (lossCount ?? 0)
+        ? "text-danger"
+        : "text-default-500";
+
   return (
     <div id={cardId} className="cursor-pointer group" onClick={onClick}>
       <Card
@@ -93,36 +108,51 @@ export default function RecordCardBase({
                 <div className="flex flex-col gap-1 min-w-0">
                   {infoRowAboveDeck}
 
-                  {loadingDeck ? (
-                    <Skeleton className="h-3.5 w-24 rounded" />
-                  ) : deckName ? (
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      {/* デッキ先頭2体のスプライト(無い枠はデフォルトを表示) */}
-                      <div className="flex items-center shrink-0">
-                        {[0, 1].map((idx) => {
-                          const spriteId = deckSprites?.[idx]?.id;
-                          return (
-                            <Image
-                              key={idx}
-                              alt={spriteId ?? "unknown"}
-                              src={spriteImageUrl(spriteId)}
-                              radius="none"
-                              className={`w-7 h-7 object-contain ${spriteScaleClass(spriteId)} origin-bottom`}
-                            />
-                          );
-                        })}
-                      </div>
-                      <span className="text-sm text-default-600 truncate">
-                        {deckName}
-                      </span>
+                  <div className="flex items-center justify-between gap-2 min-w-0">
+                    <div className="min-w-0 flex-1">
+                      {loadingDeck ? (
+                        <Skeleton className="h-3.5 w-24 rounded" />
+                      ) : deckName ? (
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          {/* デッキ先頭2体のスプライト(無い枠はデフォルトを表示) */}
+                          <div className="flex items-center shrink-0">
+                            {[0, 1].map((idx) => {
+                              const spriteId = deckSprites?.[idx]?.id;
+                              return (
+                                <Image
+                                  key={idx}
+                                  alt={spriteId ?? "unknown"}
+                                  src={spriteImageUrl(spriteId)}
+                                  radius="none"
+                                  className={`w-7 h-7 object-contain ${spriteScaleClass(spriteId)} origin-bottom`}
+                                />
+                              );
+                            })}
+                          </div>
+                          <span className="text-sm text-default-600 truncate">
+                            {deckName}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 min-w-0">
+                          <span className="text-sm text-default-600 truncate">
+                            使用デッキなし
+                          </span>
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    <div className="flex items-center gap-1 min-w-0">
-                      <span className="text-sm text-default-600 truncate">
-                        使用デッキなし
+
+                    {/* 対戦の勝敗数(データが無ければ非表示) */}
+                    {loadingMatches ? (
+                      <Skeleton className="h-3.5 w-12 rounded shrink-0" />
+                    ) : hasMatchResult ? (
+                      <span
+                        className={`text-xs font-bold shrink-0 ${matchResultColorClass}`}
+                      >
+                        {winCount}勝{lossCount}敗
                       </span>
-                    </div>
-                  )}
+                    ) : null}
+                  </div>
                 </div>
               </div>
             </div>

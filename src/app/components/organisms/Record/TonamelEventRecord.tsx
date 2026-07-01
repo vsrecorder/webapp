@@ -12,6 +12,8 @@ import { RecordType, RecordGetByIdResponseType } from "@app/types/record";
 import { TonamelEventGetByIdResponseType } from "@app/types/tonamel_event";
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { EnvironmentType } from "@app/types/environment";
+import { MatchGetResponseType } from "@app/types/match";
+import { countMatchResults } from "@app/utils/match";
 
 async function fetchTonamelEventById(id: string) {
   try {
@@ -50,6 +52,28 @@ async function fetchDeckById(id: string) {
     }
 
     const ret: DeckGetByIdResponseType = await res.json();
+
+    return ret;
+  } catch (error) {
+    throw error;
+  }
+}
+
+async function fetchMatchesByRecordId(record_id: string) {
+  try {
+    const res = await fetch(`/api/records/${record_id}/matches`, {
+      cache: "no-store",
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    if (!res.ok) {
+      throw new Error("Failed to fetch");
+    }
+
+    const ret: MatchGetResponseType[] = await res.json();
 
     return ret;
   } catch (error) {
@@ -101,6 +125,9 @@ export default function TonamelEventRecord({
 }: Props) {
   const [deck, setDeck] = useState<DeckGetByIdResponseType | null>(null);
   const [loadingDeck, setLoadingDeck] = useState(true);
+
+  const [matches, setMatches] = useState<MatchGetResponseType[]>([]);
+  const [loadingMatches, setLoadingMatches] = useState(true);
 
   const [environment, setEnvironment] = useState<EnvironmentType | null>(null);
 
@@ -192,6 +219,29 @@ export default function TonamelEventRecord({
     fetchData();
   }, [record?.deck_id]);
 
+  useEffect(() => {
+    if (!record?.id) {
+      setLoadingMatches(false);
+      return;
+    }
+
+    setLoadingMatches(true);
+
+    const fetchData = async () => {
+      try {
+        setLoadingMatches(true);
+        const data = await fetchMatchesByRecordId(record.id);
+        setMatches(data);
+      } catch (err) {
+        console.log(err);
+      } finally {
+        setLoadingMatches(false);
+      }
+    };
+
+    fetchData();
+  }, [record?.id]);
+
   // 開催日(event_date 優先、ゼロ値なら created_at)を基に対戦環境を取得する
   useEffect(() => {
     const dateStr =
@@ -225,6 +275,8 @@ export default function TonamelEventRecord({
   if (!record) {
     return;
   }
+
+  const { wins, losses } = countMatchResults(matches);
 
   const dateStr =
     record?.event_date && !record.event_date.startsWith("0001-01-01")
@@ -286,6 +338,9 @@ export default function TonamelEventRecord({
         deckName={deck ? deck.name : null}
         deckSprites={deck?.pokemon_sprites}
         loadingDeck={loadingDeck}
+        winCount={wins}
+        lossCount={losses}
+        loadingMatches={loadingMatches}
       />
     </>
   );

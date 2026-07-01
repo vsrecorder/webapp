@@ -29,10 +29,13 @@ export function RecordCardSkeleton() {
               {/* 区切り線 */}
               <div className="border-t border-divider mt-3 mb-2.5" />
 
-              {/* 情報行(アイコン枠 + デッキ) */}
+              {/* 情報行(アイコン枠 + デッキ + 勝敗) */}
               <div className="flex items-center gap-3">
                 <Skeleton className="w-8 h-8 rounded-lg shrink-0" />
-                <Skeleton className="h-3.5 w-24 rounded-md" />
+                <div className="flex items-center justify-between gap-2 flex-1">
+                  <Skeleton className="h-3.5 w-24 rounded-md" />
+                  <Skeleton className="h-3.5 w-12 rounded-md shrink-0" />
+                </div>
               </div>
             </div>
           </div>

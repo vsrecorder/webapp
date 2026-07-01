@@ -20,6 +20,8 @@ import {
 import { RecordType, RecordGetByIdResponseType } from "@app/types/record";
 import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
 import { DeckGetByIdResponseType } from "@app/types/deck";
+import { MatchGetResponseType } from "@app/types/match";
+import { countMatchResults } from "@app/utils/match";
 
 async function fetchOfficialEventById(id: number) {
   try {
@@ -65,6 +67,28 @@ async function fetchDeckById(id: string) {
   }
 }
 
+async function fetchMatchesByRecordId(record_id: string) {
+  try {
+    const res = await fetch(`/api/records/${record_id}/matches`, {
+      cache: "no-store",
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    if (!res.ok) {
+      throw new Error("Failed to fetch");
+    }
+
+    const ret: MatchGetResponseType[] = await res.json();
+
+    return ret;
+  } catch (error) {
+    throw error;
+  }
+}
+
 type Props = {
   recordData: RecordType;
   enableDisplayRecordModal: boolean;
@@ -94,6 +118,9 @@ export default function OfficialEventRecord({
 
   const [deck, setDeck] = useState<DeckGetByIdResponseType | null>(null);
   const [loadingDeck, setLoadingDeck] = useState(true);
+
+  const [matches, setMatches] = useState<MatchGetResponseType[]>([]);
+  const [loadingMatches, setLoadingMatches] = useState(true);
 
   const [error, setError] = useState<string | null>(null);
 
@@ -196,6 +223,29 @@ export default function OfficialEventRecord({
     fetchData();
   }, [record?.deck_id]);
 
+  useEffect(() => {
+    if (!record?.id) {
+      setLoadingMatches(false);
+      return;
+    }
+
+    setLoadingMatches(true);
+
+    const fetchData = async () => {
+      try {
+        setLoadingMatches(true);
+        const data = await fetchMatchesByRecordId(record.id);
+        setMatches(data);
+      } catch (err) {
+        console.log(err);
+      } finally {
+        setLoadingMatches(false);
+      }
+    };
+
+    fetchData();
+  }, [record?.id]);
+
   if (error) {
     return <div className="text-red-500">{error}</div>;
   }
@@ -207,6 +257,8 @@ export default function OfficialEventRecord({
   if (!record) {
     return;
   }
+
+  const { wins, losses } = countMatchResults(matches);
 
   const dateStr =
     record.event_date && !record.event_date.startsWith("0001-01-01")
@@ -282,6 +334,9 @@ export default function OfficialEventRecord({
         deckName={deck ? deck.name : null}
         deckSprites={deck?.pokemon_sprites}
         loadingDeck={loadingDeck}
+        winCount={wins}
+        lossCount={losses}
+        loadingMatches={loadingMatches}
       />
     </>
   );

@@ -1,6 +1,6 @@
 # syntax=docker.io/docker/dockerfile:1
 
-FROM 24.18.0-alpine3.23 AS base
+FROM node:24.18.0-alpine3.23 AS base
 
 # Install dependencies only when needed
 FROM base AS deps
@@ -65,12 +65,15 @@ ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
+RUN npm install -g pm2
+
 COPY --from=builder /app/public ./public
 
 # Automatically leverage output traces to reduce image size
 # https://nextjs.org/docs/advanced-features/output-file-tracing
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --chown=nextjs:nodejs ecosystem.config.cjs ./
 
 USER nextjs
 
@@ -81,4 +84,4 @@ ENV PORT=3003
 # server.js is created by next build from the standalone output
 # https://nextjs.org/docs/pages/api-reference/config/next-config-js/output
 ENV HOSTNAME="0.0.0.0"
-CMD ["node", "server.js"]
+CMD ["pm2-runtime", "start", "ecosystem.config.cjs"]

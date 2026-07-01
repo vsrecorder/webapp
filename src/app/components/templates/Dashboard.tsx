@@ -123,7 +123,7 @@ export default async function TemplateDashboard({ userId }: Props) {
         )}
 
         {/* 戦績分析 */}
-        <section className="flex flex-col gap-3">
+        <section className="flex flex-col gap-2">
           <h2 className="text-sm font-bold text-default-700">戦績分析</h2>
           <UserStatPanel
             userId={userId}
@@ -138,7 +138,7 @@ export default async function TemplateDashboard({ userId }: Props) {
         </section>
 
         {/* デッキ使用率分析 */}
-        <section className="flex flex-col gap-3">
+        <section className="flex flex-col gap-2">
           <h2 className="text-sm font-bold text-default-700">デッキ使用率分析</h2>
           <DeckUsagePanel
             userId={userId}
@@ -149,7 +149,7 @@ export default async function TemplateDashboard({ userId }: Props) {
         </section>
 
         {/* 対戦相手のデッキ分布 */}
-        <section className="flex flex-col gap-3">
+        <section className="flex flex-col gap-2">
           <h2 className="text-sm font-bold text-default-700">対戦相手のデッキ分布</h2>
           <OpponentDeckUsagePanel
             userId={userId}
@@ -160,7 +160,7 @@ export default async function TemplateDashboard({ userId }: Props) {
         </section>
 
         {/* 最近の記録 */}
-        <section className="flex flex-col gap-3">
+        <section className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold text-default-700">最近の記録</h2>
             <Button

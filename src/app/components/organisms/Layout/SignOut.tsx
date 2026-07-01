@@ -15,7 +15,14 @@ export default function SignOut() {
   return (
     <>
       <Button onPress={onOpen}>ログアウト</Button>
-      <Modal backdrop="blur" placement="center" size="sm" isOpen={isOpen} onOpenChange={onOpenChange}>
+      <Modal
+        backdrop="blur"
+        placement="center"
+        size="sm"
+        hideCloseButton
+        isOpen={isOpen}
+        onOpenChange={onOpenChange}
+      >
         <ModalContent>
           {(onClose) => (
             <>
@@ -32,7 +39,9 @@ export default function SignOut() {
                 </div>
                 <div className="text-center">
                   <p className="text-white font-bold text-lg leading-tight">バトレコ</p>
-                  <p className="text-white/70 text-xs mt-1">バトレコからログアウトしますか？</p>
+                  <p className="text-white/70 text-xs mt-1">
+                    バトレコからログアウトしますか？
+                  </p>
                 </div>
               </div>
 

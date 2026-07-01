@@ -52,7 +52,15 @@ export default function SocialSignIn({ mode = "signin", onLoadingChange }: Props
         fullWidth
         className="gap-2 border-default-200 font-medium"
         isLoading={isLoadingGoogle}
-        onPress={() => handleSignIn(googleProvider, redirectPathname, setIsLoadingGoogle, setErrorStatus)}
+        isDisabled={isLoadingX}
+        onPress={() =>
+          handleSignIn(
+            googleProvider,
+            redirectPathname,
+            setIsLoadingGoogle,
+            setErrorStatus,
+          )
+        }
       >
         <FcGoogle className="text-xl shrink-0" />
         Googleでつづける
@@ -64,7 +72,10 @@ export default function SocialSignIn({ mode = "signin", onLoadingChange }: Props
         fullWidth
         className="gap-2 border-default-200 font-medium"
         isLoading={isLoadingX}
-        onPress={() => handleSignIn(twitterProvider, redirectPathname, setIsLoadingX, setErrorStatus)}
+        isDisabled={isLoadingGoogle}
+        onPress={() =>
+          handleSignIn(twitterProvider, redirectPathname, setIsLoadingX, setErrorStatus)
+        }
       >
         <RiTwitterXLine className="text-xl shrink-0" />
         Xでつづける

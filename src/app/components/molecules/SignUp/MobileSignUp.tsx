@@ -29,6 +29,7 @@ export default function MobileSignUp() {
         backdrop="blur"
         placement="center"
         size="sm"
+        hideCloseButton
         isOpen={isOpen}
         onOpenChange={onOpenChange}
         isDismissable={!isSigningIn}

@@ -29,6 +29,7 @@ export default function DesktopSignUp() {
         backdrop="blur"
         placement="center"
         size="sm"
+        hideCloseButton
         isOpen={isOpen}
         onOpenChange={onOpenChange}
         isDismissable={!isSigningIn}
@@ -50,23 +51,33 @@ export default function DesktopSignUp() {
                 </div>
                 <div className="text-center">
                   <p className="text-white font-bold text-lg leading-tight">バトレコ</p>
-                  <p className="text-white/70 text-xs mt-1">ポケカの対戦を、記録しよう。</p>
+                  <p className="text-white/70 text-xs mt-1">
+                    ポケカの対戦を、記録しよう。
+                  </p>
                 </div>
               </div>
 
               <ModalBody className="px-6 pt-6 pb-2 flex flex-col gap-4">
-                <p className="text-center text-sm text-default-500">アカウントで新規登録</p>
+                <p className="text-center text-sm text-default-500">
+                  アカウントで新規登録
+                </p>
                 <SocialSignIn mode="signup" onLoadingChange={setIsSigningIn} />
                 <p className="text-center text-xs text-default-400 leading-relaxed">
                   登録することで、バトレコの{" "}
-                  <Link href="/terms" className="text-primary hover:underline underline-offset-2">
+                  <Link
+                    href="/terms"
+                    className="text-primary hover:underline underline-offset-2"
+                  >
                     利用規約
-                  </Link>
-                  {" "}および{" "}
-                  <Link href="/privacy" className="text-primary hover:underline underline-offset-2">
+                  </Link>{" "}
+                  および{" "}
+                  <Link
+                    href="/privacy"
+                    className="text-primary hover:underline underline-offset-2"
+                  >
                     プライバシーポリシー
-                  </Link>
-                  {" "}に同意したものとみなされます。
+                  </Link>{" "}
+                  に同意したものとみなされます。
                 </p>
               </ModalBody>
 

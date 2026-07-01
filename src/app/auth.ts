@@ -52,7 +52,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         let decoded: DecodedIdToken;
         try {
-          decoded = await firebaseAdmin.auth().verifyIdToken(String(idToken));
+          decoded = await firebaseAdmin.auth().verifyIdToken(String(idToken), true);
         } catch (error) {
           console.error("Failed to verify ID token:", error);
           return null;

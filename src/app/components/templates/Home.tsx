@@ -211,8 +211,8 @@ export default async function TemplateHome() {
 
   return (
     <>
-      {/* ヒーローセクション：グラデーション背景で全幅に広げる */}
-      <section className="-mx-2 bg-linear-to-br from-blue-600 via-indigo-600 to-violet-700 text-white px-6 pt-8 pb-14 flex flex-col items-center gap-5">
+      {/* ヒーローセクション：グラデーション背景で全幅に広げる（-mt-14でmainのpt-14分も覆い、ヘッダー裏の白背景を隠す） */}
+      <section className="-mx-2 -mt-14 bg-linear-to-br from-blue-600 via-indigo-600 to-violet-700 text-white px-6 pt-22 pb-14 flex flex-col items-center gap-5">
         <div className="w-20 h-20 relative">
           <Image
             src="/images/icon.png"

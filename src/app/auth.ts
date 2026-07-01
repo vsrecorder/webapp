@@ -108,8 +108,22 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               body: JSON.stringify(createUser),
             });
 
-            // ユーザ登録に失敗したらfirebaseユーザを削除
-            if (ret.status !== 201) {
+            if (ret.status === 201) {
+              // 新規登録成功: firebaseユーザの画像を初期化
+              // 失敗してもユーザ登録自体は完了しているためログインは継続する
+              try {
+                await firebaseAdmin.auth().updateUser(user.id, {
+                  photoURL: "https://xx8nnpgt.user.webaccel.jp/images/users/default_icon.png",
+                });
+              } catch (error) {
+                console.error("Failed to update firebase user photoURL:", error);
+              }
+            } else if (ret.status === 409) {
+              // 同時ログインなどの競合により、別リクエストが先に登録済み。
+              // ユーザ自体は正常に存在するためエラー扱いにしない。
+              console.warn("User was already registered by a concurrent request:", user.id);
+            } else {
+              // 本当に登録に失敗した場合のみfirebaseユーザを削除してロールバック
               try {
                 await firebaseAdmin.auth().deleteUser(user.id);
               } catch (error) {
@@ -117,16 +131,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               }
               console.error("Failed to create user");
               return null;
-            }
-
-            // firebaseユーザの画像を初期化
-            // 失敗してもユーザ登録自体は完了しているためログインは継続する
-            try {
-              await firebaseAdmin.auth().updateUser(user.id, {
-                photoURL: "https://xx8nnpgt.user.webaccel.jp/images/users/default_icon.png",
-              });
-            } catch (error) {
-              console.error("Failed to update firebase user photoURL:", error);
             }
           } else if (ret.status != 200) {
             console.error("Unexpected status from user API:", ret.status);

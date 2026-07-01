@@ -15,7 +15,14 @@ import { Card, CardBody } from "@heroui/react";
 
 import { UserStatHistoryType, UserStatMonthlyType } from "@app/types/user_stat_history";
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, ChartTooltip, Filler);
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  ChartTooltip,
+  Filler,
+);
 
 type PeriodMode = "3months" | "6months" | "current_season" | "select_season";
 
@@ -46,7 +53,9 @@ function generateSeasonOptions(createdAt?: Date): { value: string; label: string
 
 function formatXLabel(ym: string, hasMultipleYears: boolean): string {
   const [year, month] = ym.split("-");
-  return hasMultipleYears ? `${year.slice(2)}/${parseInt(month)}` : `${parseInt(month)}月`;
+  return hasMultipleYears
+    ? `${year.slice(2)}/${parseInt(month)}`
+    : `${parseInt(month)}月`;
 }
 
 function formatTooltipMonth(ym: string): string {
@@ -87,9 +96,12 @@ export default function UserStatHistoryChart({ userId, userCreatedAt }: Props) {
           params.set("season", seasonYear);
         }
 
-        const res = await fetch(`/api/users/${userId}/stat/history?${params.toString()}`, {
-          cache: "no-store",
-        });
+        const res = await fetch(
+          `/api/users/${userId}/stat/history?${params.toString()}`,
+          {
+            cache: "no-store",
+          },
+        );
         if (!res.ok) return;
 
         const data: UserStatHistoryType = await res.json();
@@ -128,7 +140,10 @@ export default function UserStatHistoryChart({ userId, userCreatedAt }: Props) {
     const rawIdx = xScale.getValueForPixel(xOnCanvas);
     if (rawIdx == null) return;
 
-    const idx = Math.max(0, Math.min(chartDataRef.current.length - 1, Math.round(rawIdx)));
+    const idx = Math.max(
+      0,
+      Math.min(chartDataRef.current.length - 1, Math.round(rawIdx)),
+    );
     const d = chartDataRef.current[idx];
     if (!d) return;
 
@@ -148,7 +163,10 @@ export default function UserStatHistoryChart({ userId, userCreatedAt }: Props) {
     const containerWidth = containerRect.width;
 
     const rawX = canvasRect.left - containerRect.left + pointX;
-    const clampedX = Math.max(tooltipWidth / 2, Math.min(containerWidth - tooltipWidth / 2, rawX));
+    const clampedX = Math.max(
+      tooltipWidth / 2,
+      Math.min(containerWidth - tooltipWidth / 2, rawX),
+    );
 
     el.style.left = `${clampedX}px`;
     el.style.top = `${canvasRect.top - containerRect.top + pointY}px`;
@@ -219,7 +237,7 @@ export default function UserStatHistoryChart({ userId, userCreatedAt }: Props) {
       <CardBody className="gap-3 p-4">
         {/* ヘッダー */}
         <div className="flex items-center justify-between">
-          <span className="text-xs font-bold text-default-700">勝率の推移</span>
+          <span className="text-xs font-bold text-default-700"></span>
           <div className="flex items-center gap-2">
             {periodMode === "select_season" && (
               <div className="relative">

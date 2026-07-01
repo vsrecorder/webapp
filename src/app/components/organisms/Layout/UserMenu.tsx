@@ -8,12 +8,14 @@ import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/d
 import { useDisclosure } from "@heroui/react";
 import { Modal, ModalContent, ModalBody, ModalFooter } from "@heroui/modal";
 import { useRouter } from "next/navigation";
+import { LuLayoutDashboard } from "react-icons/lu";
 
 import { handleSignOut } from "@app/handlers/handleSignOut";
 
 import { Button } from "@heroui/react";
 import { UserType } from "@app/types/user";
 import { useUserAvatar } from "@app/contexts/UserAvatarContext";
+import { CUSTOMIZE_QUERY_PARAM } from "@app/components/organisms/Dashboard/DashboardSections";
 
 type Props = {
   user: UserType;
@@ -31,6 +33,16 @@ export default function UserMenu({ user }: Props) {
           <Avatar size="md" src={avatarUrl ?? user.image_url} />
         </DropdownTrigger>
         <DropdownMenu>
+          <DropdownItem
+            key="dashboard-customize"
+            color="default"
+            startContent={<LuLayoutDashboard className="w-4 h-4" />}
+            onPress={() => {
+              router.push(`/?${CUSTOMIZE_QUERY_PARAM}=1`);
+            }}
+          >
+            ダッシュボード表示設定
+          </DropdownItem>
           <DropdownItem
             key=""
             color="default"

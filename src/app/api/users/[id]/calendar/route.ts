@@ -382,6 +382,7 @@ export async function GET(
           deck_id: deck.id,
           deck_name: deck.name,
           deck_code_id: deckCode.id,
+          code: deckCode.code,
           pokemon_sprites: deck.pokemon_sprites ?? [],
           created_at: String(deckCode.created_at),
         });

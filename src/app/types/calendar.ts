@@ -42,6 +42,7 @@ export type CalendarDeckCodeEvent = {
   deck_id: string;
   deck_name: string;
   deck_code_id: string;
+  code: string;
   pokemon_sprites: DeckPokemonSpriteType[];
   created_at: string;
 };

@@ -75,7 +75,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
           // ユーザが登録されていない場合は新規登録
           if (ret.status == 404) {
-            // firebaseユーザの画像を初期化
             const createUser: UserType = {
               name: decoded.name ?? "名称未設定",
               image_url:
@@ -100,11 +99,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             const token = jwt.sign(jwtPayload, jwtSecret, jwtSignOptions);
 
             // ユーザを登録
-            //
-            await firebaseAdmin.auth().updateUser(user.id, {
-              photoURL: "https://xx8nnpgt.user.webaccel.jp/images/users/default_icon.png",
-            });
-
             const ret = await fetch(`https://` + domain + `/api/v1beta/users`, {
               method: "POST",
               headers: {
@@ -123,6 +117,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               }
               console.error("Failed to create user");
               return null;
+            }
+
+            // firebaseユーザの画像を初期化
+            // 失敗してもユーザ登録自体は完了しているためログインは継続する
+            try {
+              await firebaseAdmin.auth().updateUser(user.id, {
+                photoURL: "https://xx8nnpgt.user.webaccel.jp/images/users/default_icon.png",
+              });
+            } catch (error) {
+              console.error("Failed to update firebase user photoURL:", error);
             }
           } else if (ret.status != 200) {
             console.error("Unexpected status from user API:", ret.status);

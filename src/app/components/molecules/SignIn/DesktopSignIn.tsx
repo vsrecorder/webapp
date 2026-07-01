@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import Image from "next/image";
 
 import { useDisclosure } from "@heroui/react";
@@ -10,6 +12,7 @@ import SocialSignIn from "./SocialSingIn";
 
 export default function DesktopSignIn() {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const [isSigningIn, setIsSigningIn] = useState(false);
 
   return (
     <div className="hidden lg:block">
@@ -22,7 +25,15 @@ export default function DesktopSignIn() {
         ログイン
       </Button>
 
-      <Modal backdrop="blur" placement="center" size="sm" isOpen={isOpen} onOpenChange={onOpenChange}>
+      <Modal
+        backdrop="blur"
+        placement="center"
+        size="sm"
+        isOpen={isOpen}
+        onOpenChange={onOpenChange}
+        isDismissable={!isSigningIn}
+        isKeyboardDismissDisabled={isSigningIn}
+      >
         <ModalContent>
           {() => (
             <>
@@ -45,7 +56,7 @@ export default function DesktopSignIn() {
 
               <ModalBody className="px-6 pt-6 pb-2 flex flex-col gap-4">
                 <p className="text-center text-sm text-default-500">アカウントでログイン</p>
-                <SocialSignIn />
+                <SocialSignIn onLoadingChange={setIsSigningIn} />
               </ModalBody>
 
               <ModalFooter />

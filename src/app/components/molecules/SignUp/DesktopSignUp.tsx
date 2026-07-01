@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import Image from "next/image";
 import Link from "next/link";
 
@@ -11,6 +13,7 @@ import SocialSignIn from "../SignIn/SocialSingIn";
 
 export default function DesktopSignUp() {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const [isSigningIn, setIsSigningIn] = useState(false);
 
   return (
     <div className="hidden lg:block">
@@ -22,7 +25,15 @@ export default function DesktopSignUp() {
         新規登録
       </Button>
 
-      <Modal backdrop="blur" placement="center" size="sm" isOpen={isOpen} onOpenChange={onOpenChange}>
+      <Modal
+        backdrop="blur"
+        placement="center"
+        size="sm"
+        isOpen={isOpen}
+        onOpenChange={onOpenChange}
+        isDismissable={!isSigningIn}
+        isKeyboardDismissDisabled={isSigningIn}
+      >
         <ModalContent>
           {() => (
             <>
@@ -45,7 +56,7 @@ export default function DesktopSignUp() {
 
               <ModalBody className="px-6 pt-6 pb-2 flex flex-col gap-4">
                 <p className="text-center text-sm text-default-500">アカウントで新規登録</p>
-                <SocialSignIn />
+                <SocialSignIn mode="signup" onLoadingChange={setIsSigningIn} />
                 <p className="text-center text-xs text-default-400 leading-relaxed">
                   登録することで、バトレコの{" "}
                   <Link href="/terms" className="text-primary hover:underline underline-offset-2">

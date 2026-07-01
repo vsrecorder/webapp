@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import Image from "next/image";
 import Link from "next/link";
 
@@ -11,6 +13,7 @@ import SocialSignIn from "../SignIn/SocialSingIn";
 
 export default function MobileSignUp() {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const [isSigningIn, setIsSigningIn] = useState(false);
 
   return (
     <div className="lg:hidden">
@@ -28,6 +31,8 @@ export default function MobileSignUp() {
         size="sm"
         isOpen={isOpen}
         onOpenChange={onOpenChange}
+        isDismissable={!isSigningIn}
+        isKeyboardDismissDisabled={isSigningIn}
       >
         <ModalContent>
           {() => (
@@ -55,7 +60,7 @@ export default function MobileSignUp() {
                 <p className="text-center text-sm text-default-500">
                   アカウントで新規登録
                 </p>
-                <SocialSignIn />
+                <SocialSignIn mode="signup" onLoadingChange={setIsSigningIn} />
                 <p className="text-center text-xs text-default-400 leading-relaxed">
                   登録することで、バトレコの{" "}
                   <Link

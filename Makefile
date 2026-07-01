@@ -30,6 +30,7 @@ image:
 
 .PHONY: deploy
 deploy:
+	git pull
 	docker compose pull
 	docker compose up -d --no-deps --wait webapp
 

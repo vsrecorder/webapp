@@ -160,6 +160,7 @@ export default function UserMenu({ user }: Props) {
         backdrop="blur"
         placement="center"
         size="sm"
+        hideCloseButton
         isOpen={isOpen}
         onOpenChange={onOpenChange}
       >

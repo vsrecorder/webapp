@@ -20,6 +20,9 @@ export type CalendarRecordEvent = {
   record_id: string;
   deck_id: string;
   deck_name: string;
+  // 利用したデッキのスプライトと、実際に使用したデッキコード
+  deck_pokemon_sprites: DeckPokemonSpriteType[];
+  deck_code: string;
   event_kind: "official" | "tonamel" | "unofficial" | "unknown";
   event_title: string;
   chip_label: string;

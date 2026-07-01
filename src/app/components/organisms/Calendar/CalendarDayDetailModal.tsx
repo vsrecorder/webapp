@@ -105,21 +105,36 @@ function DeckCodeThumbnail({ code }: { code: string }) {
 function EventContent({ event }: { event: CalendarEvent }) {
   if (event.type === "record") {
     return (
-      <div className="flex items-center gap-3 rounded-xl bg-default-100 px-4 py-3">
-        <LuClipboardList className="text-xl text-default-500 shrink-0 mr-2" />
-        <div className="text-sm min-w-0">
-          <Chip
-            size="sm"
-            variant="flat"
-            color={event.chip_color}
-            className="h-5 text-[10px] font-bold mb-1"
-          >
-            {event.chip_label}
-          </Chip>
-          <div>
-            <span className="font-bold">{event.event_title}</span>
-            <span className="text-xs text-default-500"> の記録を作成</span>
+      <div className="flex flex-col gap-2.5 rounded-xl bg-default-100 px-4 py-3">
+        <div className="flex items-center gap-3">
+          <LuClipboardList className="text-xl text-default-500 shrink-0 mr-2" />
+          <div className="text-sm min-w-0">
+            <Chip
+              size="sm"
+              variant="flat"
+              color={event.chip_color}
+              className="h-5 text-[10px] font-bold mb-1"
+            >
+              {event.chip_label}
+            </Chip>
+            <div>
+              <span className="font-bold">{event.event_title}</span>
+              <span className="text-xs text-default-500"> の記録を作成</span>
+            </div>
           </div>
+        </div>
+
+        <div className="border-t border-divider" />
+
+        <div className="flex flex-col gap-1.5">
+          <span className="text-tiny font-bold text-default-400">使用デッキ</span>
+          <div className="flex items-center gap-2 pl-3">
+            <DeckSprites sprites={event.deck_pokemon_sprites} />
+            <span className="text-sm font-bold text-default-600">
+              『{event.deck_name}』
+            </span>
+          </div>
+          <DeckCodeThumbnail code={event.deck_code} />
         </div>
       </div>
     );

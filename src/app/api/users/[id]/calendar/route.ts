@@ -311,7 +311,7 @@ export async function GET(
       fetchAllDecks(token),
     ]);
 
-    const deckNameById = new Map(decks.map((deck) => [deck.id, deck.name]));
+    const deckById = new Map(decks.map((deck) => [deck.id, deck]));
 
     const [deckCodesByDeck, eventDisplayMaps] = await Promise.all([
       Promise.all(decks.map((deck) => fetchDeckCodesByDeckId(token, deck.id))),
@@ -319,6 +319,11 @@ export async function GET(
     ]);
     const { officialDisplayById, tonamelDisplayById, unofficialDisplayById } =
       eventDisplayMaps;
+
+    // 記録で使われたデッキコード(バージョン)の中身を引けるようにする
+    const deckCodeById = new Map(
+      deckCodesByDeck.flat().map((deckCode) => [deckCode.id, deckCode.code]),
+    );
 
     const fallbackDisplay: RecordEventDisplay = {
       title: UNKNOWN_TITLE,
@@ -330,7 +335,7 @@ export async function GET(
     const data: CalendarDataType = {};
 
     for (const record of records) {
-      const deckName = deckNameById.get(record.deck_id) ?? "不明なデッキ";
+      const deck = deckById.get(record.deck_id);
       const eventKind = resolveEventKind(record);
       const display =
         eventKind === "official"
@@ -345,7 +350,9 @@ export async function GET(
         type: "record",
         record_id: record.id,
         deck_id: record.deck_id,
-        deck_name: deckName,
+        deck_name: deck?.name ?? "不明なデッキ",
+        deck_pokemon_sprites: deck?.pokemon_sprites ?? [],
+        deck_code: deckCodeById.get(record.deck_code_id) ?? "",
         event_kind: eventKind,
         event_title: display.title,
         chip_label: display.chip_label,

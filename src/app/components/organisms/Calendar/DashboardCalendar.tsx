@@ -84,6 +84,11 @@ export default function DashboardCalendar({ userId }: Props) {
     }
   };
 
+  const goToCurrentMonth = () => {
+    setCurrentYear(todayYear);
+    setCurrentMonth(todayMonth);
+  };
+
   const handleSelectDate = (dateKey: string) => {
     setSelectedDate(dateKey);
     onOpen();
@@ -110,8 +115,19 @@ export default function DashboardCalendar({ userId }: Props) {
           <Button isIconOnly size="sm" variant="light" onPress={goToPrevMonth}>
             <LuChevronLeft className="text-lg" />
           </Button>
-          <div className="font-bold text-sm">
-            {currentYear}年{currentMonth + 1}月
+          <div className="flex flex-col items-center">
+            <div className="font-bold text-sm">
+              {currentYear}年{currentMonth + 1}月
+            </div>
+            {!isCurrentMonth && (
+              <button
+                type="button"
+                onClick={goToCurrentMonth}
+                className="text-tiny font-bold text-primary mt-0.5"
+              >
+                今月へ戻る
+              </button>
+            )}
           </div>
           <Button
             isIconOnly

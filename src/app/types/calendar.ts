@@ -1,4 +1,10 @@
-export type CalendarEventType = "record" | "deck_created" | "deck_code_added";
+import { DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
+
+export type CalendarEventType =
+  | "record"
+  | "deck_created"
+  | "deck_code_added"
+  | "deck_archived";
 
 // HeroUI Chip の color prop に渡せる値
 export type CalendarChipColor =
@@ -27,6 +33,7 @@ export type CalendarDeckEvent = {
   type: "deck_created";
   deck_id: string;
   deck_name: string;
+  pokemon_sprites: DeckPokemonSpriteType[];
   created_at: string;
 };
 
@@ -35,13 +42,23 @@ export type CalendarDeckCodeEvent = {
   deck_id: string;
   deck_name: string;
   deck_code_id: string;
+  pokemon_sprites: DeckPokemonSpriteType[];
+  created_at: string;
+};
+
+export type CalendarDeckArchivedEvent = {
+  type: "deck_archived";
+  deck_id: string;
+  deck_name: string;
+  pokemon_sprites: DeckPokemonSpriteType[];
   created_at: string;
 };
 
 export type CalendarEvent =
   | CalendarRecordEvent
   | CalendarDeckEvent
-  | CalendarDeckCodeEvent;
+  | CalendarDeckCodeEvent
+  | CalendarDeckArchivedEvent;
 
 // キー: "YYYY-MM-DD"（JST基準）
 export type CalendarDataType = Record<string, CalendarEvent[]>;

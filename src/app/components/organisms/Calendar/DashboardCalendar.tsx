@@ -19,6 +19,7 @@ const EVENT_DOT_CLASS: Record<CalendarEventType, string> = {
   record: "bg-primary",
   deck_created: "bg-success",
   deck_code_added: "bg-secondary",
+  deck_archived: "bg-default-400",
 };
 
 async function fetcher(url: string): Promise<CalendarGetResponseType> {
@@ -167,7 +168,7 @@ export default function DashboardCalendar({ userId }: Props) {
             })}
           </div>
 
-          <div className="flex items-center gap-4 justify-center pt-3 text-tiny text-default-500">
+          <div className="flex items-center gap-x-4 gap-y-1.5 flex-wrap justify-center pt-3 text-tiny text-default-500">
             <div className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-primary" />
               記録作成
@@ -179,6 +180,10 @@ export default function DashboardCalendar({ userId }: Props) {
             <div className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-secondary" />
               新しいデッキのバージョンを作成
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-default-400" />
+              デッキをアーカイブ
             </div>
           </div>
         </CardBody>

@@ -2,11 +2,13 @@
 
 import { useRef } from "react";
 
-import { Modal, ModalContent, ModalHeader, ModalBody, Chip } from "@heroui/react";
+import { Modal, ModalContent, ModalHeader, ModalBody, Chip, Image } from "@heroui/react";
 
-import { LuClipboardList, LuLayers, LuBookPlus } from "react-icons/lu";
+import { LuClipboardList, LuLayers, LuBookPlus, LuArchive } from "react-icons/lu";
 
 import { CalendarEvent } from "@app/types/calendar";
+import { DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
+import { spriteImageUrl, spriteScaleClass } from "@app/utils/sprite";
 
 type Props = {
   isOpen: boolean;
@@ -40,13 +42,34 @@ function formatTimeLabel(createdAt: string): string {
 function dotColorClass(event: CalendarEvent): string {
   if (event.type === "record") return event.accent_color_class;
   if (event.type === "deck_created") return "bg-success";
-  return "bg-secondary";
+  if (event.type === "deck_code_added") return "bg-secondary";
+  return "bg-default-400";
 }
 
 function eventKey(event: CalendarEvent): string {
   if (event.type === "record") return `record-${event.record_id}`;
   if (event.type === "deck_created") return `deck_created-${event.deck_id}`;
-  return `deck_code_added-${event.deck_code_id}`;
+  if (event.type === "deck_code_added") return `deck_code_added-${event.deck_code_id}`;
+  return `deck_archived-${event.deck_id}`;
+}
+
+// デッキにスプライトが登録されている場合のみ、先頭2体を表示する
+function DeckSprites({ sprites }: { sprites: DeckPokemonSpriteType[] }) {
+  if (sprites.length === 0) return null;
+
+  return (
+    <div className="flex items-center shrink-0">
+      {sprites.slice(0, 2).map((sprite, index) => (
+        <Image
+          key={sprite.id ?? index}
+          alt={sprite.id ?? "unknown"}
+          src={spriteImageUrl(sprite.id)}
+          radius="none"
+          className={`w-6 h-6 object-contain ${spriteScaleClass(sprite.id)} origin-bottom`}
+        />
+      ))}
+    </div>
+  );
 }
 
 function EventContent({ event }: { event: CalendarEvent }) {
@@ -76,7 +99,8 @@ function EventContent({ event }: { event: CalendarEvent }) {
     return (
       <div className="flex items-center gap-3 rounded-xl bg-default-100 px-4 py-3">
         <LuLayers className="text-xl text-success shrink-0" />
-        <div className="text-sm">
+        <DeckSprites sprites={event.pokemon_sprites} />
+        <div className="text-sm min-w-0">
           <span className="font-bold">『{event.deck_name}』</span>
           <span className="text-default-500">を登録</span>
         </div>
@@ -84,12 +108,26 @@ function EventContent({ event }: { event: CalendarEvent }) {
     );
   }
 
+  if (event.type === "deck_code_added") {
+    return (
+      <div className="flex items-center gap-3 rounded-xl bg-default-100 px-4 py-3">
+        <LuBookPlus className="text-xl text-secondary shrink-0" />
+        <DeckSprites sprites={event.pokemon_sprites} />
+        <div className="text-sm min-w-0">
+          <span className="font-bold">『{event.deck_name}』</span>
+          <span className="text-default-500">の新しいバージョンを作成</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex items-center gap-3 rounded-xl bg-default-100 px-4 py-3">
-      <LuBookPlus className="text-xl text-secondary shrink-0" />
-      <div className="text-sm">
+      <LuArchive className="text-xl text-default-400 shrink-0" />
+      <DeckSprites sprites={event.pokemon_sprites} />
+      <div className="text-sm min-w-0">
         <span className="font-bold">『{event.deck_name}』</span>
-        <span className="text-default-500">の新しいバージョンを作成</span>
+        <span className="text-default-500">をアーカイブ</span>
       </div>
     </div>
   );

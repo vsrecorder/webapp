@@ -113,6 +113,12 @@ export default function DashboardSections({ pinned, sections, trailing }: Props)
     });
   }
 
+  function resetLayout() {
+    localStorage.removeItem(STORAGE_KEY);
+    setOrder(defaultOrder);
+    setHidden(new Set());
+  }
+
   const sectionMap = new Map(sections.map((s) => [s.id, s]));
   const orderedSections = order.map((id) => sectionMap.get(id)).filter((s): s is DashboardSection => !!s);
 
@@ -173,7 +179,10 @@ export default function DashboardSections({ pinned, sections, trailing }: Props)
                   </div>
                 ))}
               </ModalBody>
-              <ModalFooter>
+              <ModalFooter className="justify-between">
+                <Button color="default" variant="light" onPress={resetLayout} className="font-bold">
+                  デフォルトに戻す
+                </Button>
                 <Button color="primary" variant="solid" onPress={onClose} className="font-bold">
                   閉じる
                 </Button>

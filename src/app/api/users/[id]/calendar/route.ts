@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@app/auth";
 
 import { RecordGetResponseType, RecordType } from "@app/types/record";
-import { DeckGetAllType } from "@app/types/deck";
+import { DeckData, DeckGetResponseType } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
 import { CalendarChipColor, CalendarDataType, CalendarEvent } from "@app/types/calendar";
 import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
@@ -208,23 +208,58 @@ async function fetchAllRecords(token: string): Promise<RecordType["data"][]> {
   return results;
 }
 
-async function fetchAllDecks(token: string): Promise<DeckGetAllType> {
+// `/decks/all` はアーカイブ済みデッキを含まないため、archived=true/false を明示的に
+// 指定してページネーション取得し、両方をマージする
+async function fetchDecksByArchived(
+  token: string,
+  archived: boolean,
+): Promise<DeckData[]> {
   const domain = process.env.VSRECORDER_DOMAIN;
+  const results: DeckData[] = [];
+  let cursor = "";
 
-  const res = await fetch(`https://${domain}/api/v1beta/decks/all`, {
-    cache: "no-store",
-    method: "GET",
-    headers: {
-      Authorization: "Bearer " + token,
-      Accept: "application/json",
-    },
-  });
+  while (true) {
+    const res = await fetch(
+      `https://${domain}/api/v1beta/decks?limit=10&archived=${archived}&cursor=${cursor}`,
+      {
+        cache: "no-store",
+        method: "GET",
+        headers: {
+          Authorization: "Bearer " + token,
+          Accept: "application/json",
+        },
+      },
+    );
 
-  if (!res.ok) {
-    throw new Error(`failed to fetch decks: ${res.status}`);
+    if (!res.ok) {
+      throw new Error(`failed to fetch decks(archived=${archived}): ${res.status}`);
+    }
+
+    const ret: DeckGetResponseType = await res.json();
+    if (ret.decks.length === 0) break;
+
+    results.push(...ret.decks.map((d) => d.data));
+
+    const last = ret.decks[ret.decks.length - 1];
+    if (!last.cursor || last.cursor === cursor) break;
+    cursor = last.cursor;
   }
 
-  return res.json();
+  return results;
+}
+
+async function fetchAllDecks(token: string): Promise<DeckData[]> {
+  const [activeDecks, archivedDecks] = await Promise.all([
+    fetchDecksByArchived(token, false),
+    fetchDecksByArchived(token, true),
+  ]);
+
+  return [...activeDecks, ...archivedDecks];
+}
+
+// バックエンドの未設定(ゼロ値)日時はUnixエポック紀元前を表す年1になる規約
+function isArchived(deck: DeckData): boolean {
+  return new Date(deck.archived_at).getFullYear() !== 1;
 }
 
 async function fetchDeckCodesByDeckId(
@@ -325,8 +360,19 @@ export async function GET(
         type: "deck_created",
         deck_id: deck.id,
         deck_name: deck.name,
+        pokemon_sprites: deck.pokemon_sprites ?? [],
         created_at: String(deck.created_at),
       });
+
+      if (isArchived(deck)) {
+        pushEvent(data, toDateKey(deck.archived_at), {
+          type: "deck_archived",
+          deck_id: deck.id,
+          deck_name: deck.name,
+          pokemon_sprites: deck.pokemon_sprites ?? [],
+          created_at: String(deck.archived_at),
+        });
+      }
     }
 
     decks.forEach((deck, index) => {
@@ -336,6 +382,7 @@ export async function GET(
           deck_id: deck.id,
           deck_name: deck.name,
           deck_code_id: deckCode.id,
+          pokemon_sprites: deck.pokemon_sprites ?? [],
           created_at: String(deckCode.created_at),
         });
       }

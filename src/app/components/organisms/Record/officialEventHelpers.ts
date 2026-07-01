@@ -2,6 +2,25 @@ import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
 
 const ICON_BASE = "https://xx8nnpgt.user.webaccel.jp/images/icons/";
 
+// 公式イベントのタイトルから店舗名接頭辞・リーグ種別の注記などの冗長な部分を取り除く。
+// 一覧カード(OfficialEventRecord)とカレンダー機能で共有する。
+export function cleanOfficialEventTitle(title: string): string {
+  return title
+    .replace(/【.*?】ポケモンカードジム　/g, "")
+    .replace(/【.*?】ポケモンカードジム /g, "")
+    .replace(/【.*?】ポケモンカードジム  /g, "")
+    .replace(/【.*?】ポケモンカードジム   /g, "")
+    .replace(/【.*?】エクストラバトルの日/g, "エクストラバトルの日")
+    .replace(/【.*?】ポケモンカードゲーム　/g, "")
+    .replace(/ポケモンカードゲーム /g, "")
+    .replace(/（オープンリーグ）/g, "")
+    .replace(/（マスターリーグ）/g, "")
+    .replace(/（シニアリーグ）/g, "")
+    .replace(/（ジュニアリーグ）/g, "")
+    .replace(/（スタンダード）/g, "")
+    .replace(/（.*?）/g, "");
+}
+
 /*
  * 公式イベントの種別アイコン/アクセント色/チップ表記を判定するヘルパー。
  * 一覧カード(OfficialEventRecord)と詳細カード(OfficialEventInfo)で共有する。

@@ -15,6 +15,7 @@ import {
   getEventAccentColor,
   getChipColor,
   getEventTypeName,
+  cleanOfficialEventTitle,
 } from "@app/components/organisms/Record/officialEventHelpers";
 
 import { RecordType, RecordGetByIdResponseType } from "@app/types/record";
@@ -170,22 +171,7 @@ export default function OfficialEventRecord({
 
         const data = await fetchOfficialEventById(recordData.data.official_event_id);
 
-        data.title = data.title.replace(/【.*?】ポケモンカードジム　/g, "");
-        data.title = data.title.replace(/【.*?】ポケモンカードジム /g, "");
-        data.title = data.title.replace(/【.*?】ポケモンカードジム  /g, "");
-        data.title = data.title.replace(/【.*?】ポケモンカードジム   /g, "");
-        data.title = data.title.replace(
-          /【.*?】エクストラバトルの日/g,
-          "エクストラバトルの日",
-        );
-        data.title = data.title.replace(/【.*?】ポケモンカードゲーム　/g, "");
-        data.title = data.title.replace(/ポケモンカードゲーム /g, "");
-        data.title = data.title.replace(/（オープンリーグ）/g, "");
-        data.title = data.title.replace(/（マスターリーグ）/g, "");
-        data.title = data.title.replace(/（シニアリーグ）/g, "");
-        data.title = data.title.replace(/（ジュニアリーグ）/g, "");
-        data.title = data.title.replace(/（スタンダード）/g, "");
-        data.title = data.title.replace(/（.*?）/g, "");
+        data.title = cleanOfficialEventTitle(data.title);
 
         setOfficialEvent(data);
       } catch (err) {

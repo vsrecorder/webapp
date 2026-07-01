@@ -3,6 +3,7 @@ import { Button } from "@heroui/react";
 
 import Footer from "@app/components/organisms/Layout/Footer";
 import CityleagueEvents from "@app/components/organisms/Cityleague/CityleagueEvents";
+import DashboardCalendar from "@app/components/organisms/Calendar/DashboardCalendar";
 import Records from "@app/components/organisms/Record/Records";
 import UserStatPanel from "@app/components/organisms/UserStat/UserStatPanel";
 import UserStatHistoryChart from "@app/components/organisms/UserStat/UserStatHistoryChart";
@@ -157,6 +158,12 @@ export default async function TemplateDashboard({ userId }: Props) {
             currentEnvironmentId={env?.id}
             userCreatedAt={user?.created_at != null ? String(user.created_at) : undefined}
           />
+        </section>
+
+        {/* 活動カレンダー */}
+        <section className="flex flex-col gap-2">
+          <h2 className="text-sm font-bold text-default-700">活動カレンダー</h2>
+          <DashboardCalendar userId={userId} />
         </section>
 
         {/* 最近の記録 */}

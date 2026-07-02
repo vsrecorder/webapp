@@ -170,7 +170,7 @@ export default function ShowDeckModal({
         onClose={() => {}}
         //className="h-[calc(100dvh-256px)] max-h-[calc(100dvh-256px)]"
         classNames={{
-          base: "sm:max-w-full",
+          base: "sm:max-w-full lg:max-w-2xl",
           closeButton: "text-xl",
         }}
       >

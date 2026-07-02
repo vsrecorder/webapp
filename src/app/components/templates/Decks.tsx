@@ -56,7 +56,7 @@ export default function TemplateDecks() {
           size="md"
           selectedKey={selectedKey}
           onSelectionChange={handleSelectionChange}
-          className="fixed z-50 top-15 left-0 right-0 pl-1 pr-1"
+          className="fixed z-50 top-15 left-0 right-0 lg:left-20 pl-1 pr-1"
           classNames={{
             cursor: selectedKey === "inuse" ? "bg-green-200" : "bg-red-200",
             tab: "h-8",
@@ -67,7 +67,7 @@ export default function TemplateDecks() {
           <Tab key="inuse" title="利用中" />
           <Tab key="archived" title="アーカイブ済み" />
         </Tabs>
-        <div className="pt-2">
+        <div className="pt-2 lg:max-w-4xl lg:mx-auto">
           <Decks
             key={`${selectedKey}-${refreshKey}`}
             isArchived={selectedKey === "archived"}

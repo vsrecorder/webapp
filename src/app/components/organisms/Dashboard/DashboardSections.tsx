@@ -124,15 +124,23 @@ export default function DashboardSections({ pinned, sections, trailing }: Props)
 
   return (
     <>
-      {pinned}
+      {pinned && (
+        <div className="mb-3 lg:mb-6 lg:break-inside-avoid-column">{pinned}</div>
+      )}
 
-      {orderedSections
-        .filter((s) => !hidden.has(s.id))
-        .map((s) => (
-          <div key={s.id}>{s.node}</div>
-        ))}
+      <div className="lg:columns-2 lg:gap-6">
+        {orderedSections
+          .filter((s) => !hidden.has(s.id))
+          .map((s) => (
+            <div key={s.id} className="mb-3 lg:mb-6 lg:break-inside-avoid-column">
+              {s.node}
+            </div>
+          ))}
+      </div>
 
-      {trailing}
+      {trailing && (
+        <div className="mt-3 lg:mt-6 lg:break-inside-avoid-column">{trailing}</div>
+      )}
 
       <Modal isOpen={isOpen} onOpenChange={onOpenChange} placement="center" size="sm">
         <ModalContent>

@@ -326,7 +326,9 @@ export default function Records({
         </div>
       )}
 
-      <div className="flex flex-col w-full gap-3">
+      <div
+        className={`grid grid-cols-1 w-full gap-3 ${nestedInModal ? "" : "lg:grid-cols-2 lg:gap-x-6"}`}
+      >
         {items.map((recordData, index) => {
           const monthKey = getMonthKey(recordData.data);
           const prevMonthKey = index > 0 ? getMonthKey(items[index - 1].data) : null;
@@ -343,7 +345,9 @@ export default function Records({
           return (
             <Fragment key={recordData.data.id}>
               {monthKey !== prevMonthKey && (
-                <div className="flex items-center gap-3 pt-1 pb-0.5">
+                <div
+                  className={`flex items-center gap-3 pt-1 pb-0.5 col-span-1 ${nestedInModal ? "" : "lg:col-span-2"}`}
+                >
                   <span className="text-xs font-bold text-default-400 tracking-wide shrink-0">
                     {monthKey}
                   </span>
@@ -383,16 +387,26 @@ export default function Records({
         })}
         {/* ローディング表示 */}
         {!isInitialLoaded && <RecordCardSkeletons />}
-        {isInitialLoaded && isLoading && <Spinner size="lg" className="pt-0" />}
+        {isInitialLoaded && isLoading && (
+          <div
+            className={`flex justify-center col-span-1 ${nestedInModal ? "" : "lg:col-span-2"}`}
+          >
+            <Spinner size="lg" className="pt-0" />
+          </div>
+        )}
         {!disable_more_load && isInitialLoaded && !isLoading && hasMore && (
-          <Button size="sm" radius="full" onPress={loadMore}>
-            <div className="flex items-center gap-1">
-              <span className="text-xs">
-                <LuCirclePlus />
-              </span>
-              <span className="font-bold text-xs">更に読み込む</span>
-            </div>
-          </Button>
+          <div
+            className={`flex justify-center col-span-1 ${nestedInModal ? "" : "lg:col-span-2"}`}
+          >
+            <Button size="sm" radius="full" onPress={loadMore}>
+              <div className="flex items-center gap-1">
+                <span className="text-xs">
+                  <LuCirclePlus />
+                </span>
+                <span className="font-bold text-xs">更に読み込む</span>
+              </div>
+            </Button>
+          </div>
         )}
       </div>
     </div>

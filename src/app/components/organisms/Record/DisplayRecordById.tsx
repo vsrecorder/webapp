@@ -20,8 +20,8 @@ export default function DisplayRecordById({ recordData }: Props) {
   const deckCardRef = useRef<HTMLDivElement>(null);
 
   return (
-    <div className="px-0.5 pt-3 pb-3 flex flex-col gap-9 overflow-y-auto">
-      <div className="px-0.5 flex flex-col gap-3">
+    <div className="px-0.5 pt-3 pb-3 flex flex-col gap-9 lg:grid lg:grid-cols-3 lg:gap-6 lg:max-w-5xl lg:mx-auto overflow-y-auto">
+      <div className="px-0.5 flex flex-col gap-3 lg:col-span-3">
         <div className="pb-0 flex flex-col items-center justify-center gap-0">
           <div className="font-bold underline">参加したイベント</div>
         </div>
@@ -46,7 +46,7 @@ export default function DisplayRecordById({ recordData }: Props) {
         }
       </div>
 
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3 lg:col-span-2">
         <div className="pb-0 flex flex-col items-center justify-center gap-0">
           <div className="font-bold underline">対戦結果</div>
         </div>
@@ -60,7 +60,7 @@ export default function DisplayRecordById({ recordData }: Props) {
         </div>
       </div>
 
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3 lg:col-span-1">
         <div className="pb-0 flex flex-col items-center justify-center gap-0">
           <div className="font-bold underline">使用したデッキ</div>
         </div>

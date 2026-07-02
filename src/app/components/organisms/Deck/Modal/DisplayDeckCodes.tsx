@@ -327,7 +327,7 @@ export default function DisplayDeckCodesModal({
         isDismissable={false}
         className="h-[calc(100dvh-104px)] max-h-[calc(100dvh-104px)] mt-26 my-0 rounded-b-none"
         classNames={{
-          base: "sm:max-w-full",
+          base: "sm:max-w-full lg:max-w-2xl",
           closeButton: "text-xl",
         }}
       >

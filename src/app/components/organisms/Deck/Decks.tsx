@@ -185,7 +185,7 @@ export default function Decks({ isArchived, onCreated }: Props) {
         </div>
       )}
 
-      <div className="flex flex-col w-full gap-3">
+      <div className="grid grid-cols-1 lg:grid-cols-2 w-full gap-3 lg:gap-x-6">
         {items.map((deck) => (
           <DeckCard
             key={deck.data.id}
@@ -198,17 +198,23 @@ export default function Decks({ isArchived, onCreated }: Props) {
 
         {/* ローディング表示 */}
         {isLoading && <DeckCardSkeletons />}
-        {isInitialLoaded && isLoading && <Spinner size="lg" className="pt-0" />}
+        {isInitialLoaded && isLoading && (
+          <div className="flex justify-center col-span-1 lg:col-span-2">
+            <Spinner size="lg" className="pt-0" />
+          </div>
+        )}
 
         {isInitialLoaded && !isLoading && hasMore && (
-          <Button size="sm" radius="full" onPress={loadMore}>
-            <div className="flex items-center gap-1">
-              <span className="text-xs">
-                <LuCirclePlus />
-              </span>
-              <span className="font-bold text-xs">更に読み込む</span>
-            </div>
-          </Button>
+          <div className="flex justify-center col-span-1 lg:col-span-2">
+            <Button size="sm" radius="full" onPress={loadMore}>
+              <div className="flex items-center gap-1">
+                <span className="text-xs">
+                  <LuCirclePlus />
+                </span>
+                <span className="font-bold text-xs">更に読み込む</span>
+              </div>
+            </Button>
+          </div>
         )}
       </div>
     </div>

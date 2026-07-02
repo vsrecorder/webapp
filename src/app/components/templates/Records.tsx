@@ -82,7 +82,7 @@ export default function TemplateRecords() {
           size="md"
           selectedKey={selectedKey}
           onSelectionChange={handleSelectionChange}
-          className="fixed z-50 top-15 left-0 right-0 pl-1 pr-1"
+          className="fixed z-50 top-15 left-0 right-0 lg:left-20 pl-1 pr-1"
           classNames={{
             cursor: "",
             tab: "h-8",
@@ -97,19 +97,28 @@ export default function TemplateRecords() {
         </Tabs>
       </div>
 
-      <div className="w-full pt-2" hidden={selectedKey !== "all"}>
+      <div className="w-full pt-2 lg:max-w-4xl lg:mx-auto" hidden={selectedKey !== "all"}>
         <Records event_type={"all"} isActive={selectedKey === "all"} />
       </div>
 
-      <div className="w-full pt-2" hidden={selectedKey !== "official"}>
+      <div
+        className="w-full pt-2 lg:max-w-4xl lg:mx-auto"
+        hidden={selectedKey !== "official"}
+      >
         <Records event_type={"official"} isActive={selectedKey === "official"} />
       </div>
 
-      <div className="w-full pt-2" hidden={selectedKey !== "tonamel"}>
+      <div
+        className="w-full pt-2 lg:max-w-4xl lg:mx-auto"
+        hidden={selectedKey !== "tonamel"}
+      >
         <Records event_type={"tonamel"} isActive={selectedKey === "tonamel"} />
       </div>
 
-      <div className="w-full pt-2" hidden={selectedKey !== "unofficial"}>
+      <div
+        className="w-full pt-2 lg:max-w-4xl lg:mx-auto"
+        hidden={selectedKey !== "unofficial"}
+      >
         <Records
           event_type={"unofficial"}
           isActive={selectedKey === "unofficial"}

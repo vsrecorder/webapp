@@ -259,7 +259,7 @@ export default async function TemplateDashboard({ userId }: Props) {
 
   return (
     <>
-      <div className="flex flex-col pt-2 gap-3 max-w-2xl mx-auto w-full">
+      <div className="pt-2 max-w-2xl lg:max-w-5xl mx-auto w-full">
         <DashboardSections
           pinned={user ? <UserProfileCard key="pinned" user={user} /> : undefined}
           sections={sections}

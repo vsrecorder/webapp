@@ -12,8 +12,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "ポケカプレイヤーのための対戦記録サービス",
     start_url: "/",
     display: "standalone",
-    background_color: "#ffffff",
     // ヒーローセクションの blue-600 に合わせる
+    background_color: "#2563EB",
     theme_color: "#2563EB",
     icons:
       env == "dev"

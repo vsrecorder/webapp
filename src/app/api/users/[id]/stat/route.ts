@@ -7,6 +7,7 @@ async function getUserStat(
   yearMonth: string,
   environmentId: string,
   season: string,
+  regulationId: string,
 ): Promise<UserStatType> {
   const domain = process.env.VSRECORDER_DOMAIN;
 
@@ -14,6 +15,7 @@ async function getUserStat(
   if (yearMonth) params.set("year_month", yearMonth);
   if (environmentId) params.set("environment_id", environmentId);
   if (season) params.set("season", season);
+  if (regulationId) params.set("regulation_id", regulationId);
 
   const query = params.toString() ? `?${params.toString()}` : "";
 
@@ -42,7 +44,8 @@ export async function GET(
   const yearMonth = searchParams.get("year_month") ?? "";
   const environmentId = searchParams.get("environment_id") ?? "";
   const season = searchParams.get("season") ?? "";
+  const regulationId = searchParams.get("regulation_id") ?? "";
 
-  const stat = await getUserStat(id, yearMonth, environmentId, season);
+  const stat = await getUserStat(id, yearMonth, environmentId, season, regulationId);
   return NextResponse.json(stat, { status: 200 });
 }

@@ -15,6 +15,7 @@ export type OpponentDeckUsageStatType = {
   year_month: string;
   environment_id: string;
   season: string;
+  regulation_id: string;
   deck_id?: string;
   total_matches: number;
   decks: OpponentDeckUsageItemType[];

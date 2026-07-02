@@ -35,14 +35,15 @@ type Props = {
 
 function getCurrentSeasonYear(): number {
   const now = new Date();
-  return now.getMonth() >= 9 ? now.getFullYear() + 1 : now.getFullYear();
+  // 9月(month=8)以降なら翌年がシーズン開始年、それ以前なら当年
+  return now.getMonth() >= 8 ? now.getFullYear() + 1 : now.getFullYear();
 }
 
 function generateSeasonOptions(createdAt?: Date): { value: string; label: string }[] {
   const now = new Date();
-  const currentSeason = now.getMonth() >= 9 ? now.getFullYear() + 1 : now.getFullYear();
+  const currentSeason = now.getMonth() >= 8 ? now.getFullYear() + 1 : now.getFullYear();
   const firstSeason = createdAt
-    ? createdAt.getMonth() >= 9
+    ? createdAt.getMonth() >= 8
       ? createdAt.getFullYear() + 1
       : createdAt.getFullYear()
     : currentSeason;
@@ -126,7 +127,7 @@ export default function UserStatHistoryChart({ userId, userCreatedAt }: Props) {
   }, [userId, periodMode, seasonYear, deckId]);
 
   // 選択中シーズンで実際に使用したデッキ一覧を取得し、デッキセレクタの選択肢にする
-  // （対戦相手のデッキ分布パネルと同様、「すべてのデッキ」をデフォルトにした単一パネル構成）
+  // （対戦相手のデッキ分布パネルと同様、「使用したすべてのデッキで集計」をデフォルトにした単一パネル構成）
   useEffect(() => {
     let cancelled = false;
 
@@ -159,7 +160,7 @@ export default function UserStatHistoryChart({ userId, userCreatedAt }: Props) {
   }, [userId, seasonYear]);
 
   // デッキセレクタにはアーカイブされていないデッキのみを表示する
-  // （「すべてのデッキ」を選んだ場合の勝率計算はアーカイブ済みデッキも含めるため、
+  // （「使用したすべてのデッキで集計」を選んだ場合の勝率計算はアーカイブ済みデッキも含めるため、
   // ここでの絞り込みは表示上の選択肢のみに影響する）
   useEffect(() => {
     let cancelled = false;
@@ -197,7 +198,7 @@ export default function UserStatHistoryChart({ userId, userCreatedAt }: Props) {
     };
   }, [userId]);
 
-  // 選択中のデッキがアーカイブされた場合は「すべてのデッキ」に戻す
+  // 選択中のデッキがアーカイブされた場合は「使用したすべてのデッキで集計」に戻す
   useEffect(() => {
     if (deckId && activeDeckIds != null && !activeDeckIds.has(deckId)) {
       setDeckId("");
@@ -364,14 +365,14 @@ export default function UserStatHistoryChart({ userId, userCreatedAt }: Props) {
           </div>
         </div>
 
-        {/* デッキセレクタ（対戦相手のデッキ分布パネルと同様、「すべてのデッキ」がデフォルト） */}
+        {/* デッキセレクタ（対戦相手のデッキ分布パネルと同様、「使用したすべてのデッキで集計」がデフォルト） */}
         <div className="relative">
           <select
             value={deckId}
             onChange={(e) => setDeckId(e.target.value)}
             className="w-full appearance-none rounded-lg border border-default-200 bg-default-100 pl-3 pr-7 py-1.5 text-xs font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
           >
-            <option value="">すべてのデッキ</option>
+            <option value="">使用したすべてのデッキで集計</option>
             {selectableDecks.map((deck) => (
               <option key={deck.deck_id} value={deck.deck_id}>
                 {deck.name}

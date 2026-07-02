@@ -13,6 +13,7 @@ export type DeckUsageStatType = {
   year_month: string;
   environment_id: string;
   season: string;
+  regulation_id: string;
   total_records: number;
   decks: DeckUsageItemType[];
 };

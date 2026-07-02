@@ -13,6 +13,7 @@ import { Pie } from "react-chartjs-2";
 import { Card, CardBody, Chip, Image, Tab, Tabs } from "@heroui/react";
 
 import { EnvironmentType } from "@app/types/environment";
+import { StandardRegulationType } from "@app/types/standard_regulation";
 import { spriteScaleClass } from "@app/utils/sprite";
 import {
   OpponentDeckUsageItemType,
@@ -22,12 +23,13 @@ import { DeckUsageItemType, DeckUsageStatType } from "@app/types/deck_usage_stat
 
 ChartJS.register(ArcElement, ChartTooltip);
 
-type FilterMode = "month" | "environment" | "season";
+type FilterMode = "month" | "environment" | "season" | "regulation";
 
 type Props = {
   userId: string;
   environments: EnvironmentType[];
   currentEnvironmentId?: string;
+  standardRegulations: StandardRegulationType[];
   userCreatedAt?: string;
 };
 
@@ -60,15 +62,16 @@ function getCurrentYearMonth(): string {
 
 function getCurrentSeason(): string {
   const now = new Date();
-  const year = now.getMonth() >= 9 ? now.getFullYear() + 1 : now.getFullYear();
+  // 9月(month=8)以降なら翌年がシーズン開始年、それ以前なら当年
+  const year = now.getMonth() >= 8 ? now.getFullYear() + 1 : now.getFullYear();
   return String(year);
 }
 
 function generateSeasonOptions(createdAt?: Date): { value: string; label: string }[] {
   const now = new Date();
-  const currentSeason = now.getMonth() >= 9 ? now.getFullYear() + 1 : now.getFullYear();
+  const currentSeason = now.getMonth() >= 8 ? now.getFullYear() + 1 : now.getFullYear();
   const firstSeason = createdAt
-    ? createdAt.getMonth() >= 9
+    ? createdAt.getMonth() >= 8
       ? createdAt.getFullYear() + 1
       : createdAt.getFullYear()
     : currentSeason;
@@ -174,6 +177,7 @@ export default function OpponentDeckUsagePanel({
   userId,
   environments,
   currentEnvironmentId,
+  standardRegulations,
   userCreatedAt,
 }: Props) {
   const [filterMode, setFilterMode] = useState<FilterMode>("environment");
@@ -182,6 +186,9 @@ export default function OpponentDeckUsagePanel({
     currentEnvironmentId ?? environments[0]?.id ?? "",
   );
   const [season, setSeason] = useState<string>(getCurrentSeason);
+  const [regulationId, setRegulationId] = useState<string>(
+    standardRegulations[0]?.id ?? "",
+  );
   const [stat, setStat] = useState<OpponentDeckUsageStatType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
@@ -209,6 +216,8 @@ export default function OpponentDeckUsagePanel({
           params.set("environment_id", environmentId);
         } else if (filterMode === "season" && season) {
           params.set("season", season);
+        } else if (filterMode === "regulation" && regulationId) {
+          params.set("regulation_id", regulationId);
         }
         if (ownDeckId) params.set("deck_id", ownDeckId);
 
@@ -234,7 +243,7 @@ export default function OpponentDeckUsagePanel({
     return () => {
       cancelled = true;
     };
-  }, [userId, filterMode, yearMonth, environmentId, season, ownDeckId]);
+  }, [userId, filterMode, yearMonth, environmentId, season, regulationId, ownDeckId]);
 
   // 期間フィルタが変わるたびに、その期間で実際に使用したデッキ一覧を取得し
   // 「自分のデッキ」セレクタの選択肢にする（未使用デッキを候補に出さないため）
@@ -250,6 +259,8 @@ export default function OpponentDeckUsagePanel({
           params.set("environment_id", environmentId);
         } else if (filterMode === "season" && season) {
           params.set("season", season);
+        } else if (filterMode === "regulation" && regulationId) {
+          params.set("regulation_id", regulationId);
         }
 
         const res = await fetch(`/api/users/${userId}/deck-usage?${params.toString()}`, {
@@ -274,7 +285,7 @@ export default function OpponentDeckUsagePanel({
     return () => {
       cancelled = true;
     };
-  }, [userId, filterMode, yearMonth, environmentId, season]);
+  }, [userId, filterMode, yearMonth, environmentId, season, regulationId]);
 
   const decks = useMemo(() => stat?.decks ?? [], [stat]);
 
@@ -373,7 +384,9 @@ export default function OpponentDeckUsagePanel({
       ? (yearMonthOptions.find((o) => o.value === yearMonth)?.label ?? yearMonth)
       : filterMode === "environment"
         ? `『${environments.find((e) => e.id === environmentId)?.title ?? ""}』環境`
-        : (seasonOptions.find((o) => o.value === season)?.label ?? season);
+        : filterMode === "season"
+          ? (seasonOptions.find((o) => o.value === season)?.label ?? season)
+          : `『${standardRegulations.find((r) => r.id === regulationId)?.marks ?? ""}』`;
 
   const chartData = {
     labels: displayDecks.map((d) => d.deck_info),
@@ -417,6 +430,7 @@ export default function OpponentDeckUsagePanel({
           <Tab key="month" title="月別" />
           <Tab key="environment" title="環境別" />
           <Tab key="season" title="シーズン別" />
+          <Tab key="regulation" title="レギュレーション別" />
         </Tabs>
 
         {/* セレクタ */}
@@ -427,15 +441,19 @@ export default function OpponentDeckUsagePanel({
                 ? yearMonth
                 : filterMode === "environment"
                   ? environmentId
-                  : season
+                  : filterMode === "season"
+                    ? season
+                    : regulationId
             }
             onChange={(e) => {
               if (filterMode === "month") {
                 setYearMonth(e.target.value);
               } else if (filterMode === "environment") {
                 setEnvironmentId(e.target.value);
-              } else {
+              } else if (filterMode === "season") {
                 setSeason(e.target.value);
+              } else {
+                setRegulationId(e.target.value);
               }
             }}
             className="w-full appearance-none rounded-xl border border-default-200 bg-default-100 px-4 py-2.5 pr-10 text-sm font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
@@ -452,11 +470,17 @@ export default function OpponentDeckUsagePanel({
                       『{env.title}』
                     </option>
                   ))
-                : seasonOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
+                : filterMode === "season"
+                  ? seasonOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))
+                  : standardRegulations.map((reg) => (
+                      <option key={reg.id} value={reg.id}>
+                        『{reg.marks}』
+                      </option>
+                    ))}
           </select>
           <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-default-400 text-xs">
             ▼
@@ -470,7 +494,7 @@ export default function OpponentDeckUsagePanel({
             onChange={(e) => setOwnDeckId(e.target.value)}
             className="w-full appearance-none rounded-xl border border-default-200 bg-default-100 px-4 py-2.5 pr-10 text-sm font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
           >
-            <option value="">すべてのデッキ</option>
+            <option value="">使用したすべてのデッキで集計</option>
             {ownDecks.map((deck) => (
               <option key={deck.deck_id} value={deck.deck_id}>
                 {deck.name}
@@ -485,7 +509,9 @@ export default function OpponentDeckUsagePanel({
         {/* 期間ラベル */}
         <p className="text-center text-xs text-default-400 -mt-2">
           {filterLabel}
-          {ownDeckId ? `『${ownDecks.find((d) => d.deck_id === ownDeckId)?.name ?? ""}』使用時の` : ""}
+          {ownDeckId
+            ? `『${ownDecks.find((d) => d.deck_id === ownDeckId)?.name ?? ""}』使用時の`
+            : ""}
           対戦相手のデッキ分布・勝率
         </p>
 

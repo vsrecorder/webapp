@@ -6,6 +6,7 @@ import SignUp from "./SignUp";
 import SignIn from "./SignIn";
 import UserMenu from "./UserMenu";
 import ThemeSwitcher from "@app/components/molecules/Theme/ThemeSwitcher";
+import ReloadButton from "@app/components/molecules/Header/ReloadButton";
 import ScrollingText from "@app/components/molecules/ScrollingText";
 import { UserType } from "@app/types/user";
 import { EnvironmentType } from "@app/types/environment";
@@ -108,8 +109,14 @@ export default async function Header() {
         )}
 
         <div className="flex items-center gap-3 shrink-0">
+          <ReloadButton />
           <ThemeSwitcher />
-          {resolvedUser && <UserMenu user={resolvedUser} />}
+          {/* アバターはアイコンボタンと違い枠内に余白がないため、見た目の間隔を揃えるためのマージン */}
+          {resolvedUser && (
+            <div className="ml-2.5">
+              <UserMenu user={resolvedUser} />
+            </div>
+          )}
         </div>
       </HeaderShell>
     );
@@ -118,6 +125,7 @@ export default async function Header() {
       <HeaderShell>
         <Logo />
         <div className="flex items-center gap-1">
+          <ReloadButton />
           <ThemeSwitcher />
           <SignUp />
           <SignIn />

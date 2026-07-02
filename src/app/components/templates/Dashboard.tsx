@@ -107,7 +107,7 @@ export default async function TemplateDashboard({ userId }: Props) {
       id: "cityleague",
       label: "本日のシティリーグ",
       node: (
-        <section className="flex flex-col gap-3">
+        <section key="cityleague" className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold text-default-700">{cs.title} 開催中</h2>
             <Button
@@ -133,7 +133,7 @@ export default async function TemplateDashboard({ userId }: Props) {
     id: "stats",
     label: "戦績分析",
     node: (
-      <section className="flex flex-col gap-2">
+      <section key="stats" className="flex flex-col gap-2">
         <h2 className="text-sm font-bold text-default-700">戦績分析</h2>
         <UserStatPanel
           userId={userId}
@@ -150,7 +150,7 @@ export default async function TemplateDashboard({ userId }: Props) {
     id: "stats_history",
     label: "勝率の推移",
     node: (
-      <section className="flex flex-col gap-2">
+      <section key="stats_history" className="flex flex-col gap-2">
         <h2 className="text-sm font-bold text-default-700">勝率の推移</h2>
         <UserStatHistoryChart
           userId={userId}
@@ -165,7 +165,7 @@ export default async function TemplateDashboard({ userId }: Props) {
     id: "deck_usage",
     label: "デッキ使用率分析",
     node: (
-      <section className="flex flex-col gap-2">
+      <section key="deck_usage" className="flex flex-col gap-2">
         <h2 className="text-sm font-bold text-default-700">デッキ使用率分析</h2>
         <DeckUsagePanel
           userId={userId}
@@ -182,7 +182,7 @@ export default async function TemplateDashboard({ userId }: Props) {
     id: "opponent_deck_usage",
     label: "対戦相手のデッキ分布",
     node: (
-      <section className="flex flex-col gap-2">
+      <section key="opponent_deck_usage" className="flex flex-col gap-2">
         <h2 className="text-sm font-bold text-default-700">対戦相手のデッキ分布</h2>
         <OpponentDeckUsagePanel
           userId={userId}
@@ -199,7 +199,7 @@ export default async function TemplateDashboard({ userId }: Props) {
     id: "calendar",
     label: "活動カレンダー",
     node: (
-      <section className="flex flex-col gap-2">
+      <section key="calendar" className="flex flex-col gap-2">
         <h2 className="text-sm font-bold text-default-700">活動カレンダー</h2>
         <DashboardCalendar userId={userId} />
       </section>
@@ -207,7 +207,7 @@ export default async function TemplateDashboard({ userId }: Props) {
   });
 
   const recentRecords = (
-    <section className="flex flex-col gap-2">
+    <section key="recent-records" className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-bold text-default-700">最近の記録</h2>
         <Button
@@ -230,7 +230,7 @@ export default async function TemplateDashboard({ userId }: Props) {
     <>
       <div className="flex flex-col pt-2 gap-3 max-w-2xl mx-auto w-full">
         <DashboardSections
-          pinned={user ? <UserProfileCard user={user} /> : undefined}
+          pinned={user ? <UserProfileCard key="pinned" user={user} /> : undefined}
           sections={sections}
           trailing={recentRecords}
         />

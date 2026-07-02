@@ -15,6 +15,7 @@ import { Card, CardBody } from "@heroui/react";
 
 import { UserStatHistoryType, UserStatMonthlyType } from "@app/types/user_stat_history";
 import { DeckUsageItemType, DeckUsageStatType } from "@app/types/deck_usage_stat";
+import { DeckGetResponseType } from "@app/types/deck";
 
 ChartJS.register(
   CategoryScale,
@@ -69,6 +70,7 @@ export default function UserStatHistoryChart({ userId, userCreatedAt }: Props) {
   const [seasonYear, setSeasonYear] = useState<string>(String(getCurrentSeasonYear()));
   const [deckId, setDeckId] = useState<string>("");
   const [ownDecks, setOwnDecks] = useState<DeckUsageItemType[]>([]);
+  const [activeDeckIds, setActiveDeckIds] = useState<Set<string> | null>(null);
   const [history, setHistory] = useState<UserStatHistoryType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -155,6 +157,56 @@ export default function UserStatHistoryChart({ userId, userCreatedAt }: Props) {
       cancelled = true;
     };
   }, [userId, seasonYear]);
+
+  // デッキセレクタにはアーカイブされていないデッキのみを表示する
+  // （「すべてのデッキ」を選んだ場合の勝率計算はアーカイブ済みデッキも含めるため、
+  // ここでの絞り込みは表示上の選択肢のみに影響する）
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchActiveDeckIds() {
+      try {
+        const ids = new Set<string>();
+        let cursor = "";
+
+        for (;;) {
+          const res = await fetch(`/api/decks?archived=false&cursor=${cursor}`, {
+            cache: "no-store",
+          });
+          if (!res.ok) break;
+
+          const data: DeckGetResponseType = await res.json();
+          if (data.decks.length === 0) break;
+
+          for (const deck of data.decks) ids.add(deck.data.id);
+
+          const lastItem = data.decks[data.decks.length - 1];
+          if (!lastItem.cursor || lastItem.cursor === cursor) break;
+          cursor = lastItem.cursor;
+        }
+
+        if (!cancelled) setActiveDeckIds(ids);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    fetchActiveDeckIds();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
+  // 選択中のデッキがアーカイブされた場合は「すべてのデッキ」に戻す
+  useEffect(() => {
+    if (deckId && activeDeckIds != null && !activeDeckIds.has(deckId)) {
+      setDeckId("");
+    }
+  }, [deckId, activeDeckIds]);
+
+  const selectableDecks = activeDeckIds
+    ? ownDecks.filter((deck) => activeDeckIds.has(deck.deck_id))
+    : ownDecks;
 
   const chartData: UserStatMonthlyType[] = history?.history ?? [];
   chartDataRef.current = chartData;
@@ -320,7 +372,7 @@ export default function UserStatHistoryChart({ userId, userCreatedAt }: Props) {
             className="w-full appearance-none rounded-lg border border-default-200 bg-default-100 pl-3 pr-7 py-1.5 text-xs font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
           >
             <option value="">すべてのデッキ</option>
-            {ownDecks.map((deck) => (
+            {selectableDecks.map((deck) => (
               <option key={deck.deck_id} value={deck.deck_id}>
                 {deck.name}
               </option>

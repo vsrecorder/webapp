@@ -10,7 +10,7 @@ import {
   type ChartEvent,
 } from "chart.js";
 import { Pie } from "react-chartjs-2";
-import { Card, CardBody, Image, Tab, Tabs } from "@heroui/react";
+import { Card, CardBody, Chip, Image, Tab, Tabs } from "@heroui/react";
 
 import { EnvironmentType } from "@app/types/environment";
 import { StandardRegulationType } from "@app/types/standard_regulation";
@@ -60,6 +60,21 @@ function getCurrentSeason(): string {
   // 9月(month=8)以降なら翌年がシーズン開始年、それ以前なら当年
   const year = now.getMonth() >= 8 ? now.getFullYear() + 1 : now.getFullYear();
   return String(year);
+}
+
+// 勝率に応じた色分け（OpponentDeckUsagePanelの勝率表示と同じ閾値に合わせる）
+function winRateChipColor(rate: number): "success" | "default" | "warning" | "danger" {
+  if (rate >= 0.55) return "success";
+  if (rate >= 0.45) return "default";
+  if (rate >= 0.4) return "warning";
+  return "danger";
+}
+
+function winRateTextColor(rate: number): string {
+  if (rate >= 0.55) return "text-success";
+  if (rate >= 0.45) return "text-default-500";
+  if (rate >= 0.4) return "text-warning";
+  return "text-danger";
 }
 
 function generateSeasonOptions(createdAt?: Date): { value: string; label: string }[] {
@@ -434,13 +449,29 @@ export default function DeckUsagePanel({
                   <p className="text-xs font-bold text-default-700 text-center max-w-30 truncate">
                     {tooltip.deck.name}
                   </p>
-                  {/* 使用率・件数 */}
+                  {/* 使用率・件数（主役として大きく表示） */}
                   <div className="flex items-center justify-center gap-1.5 mt-1">
-                    <span className="font-black text-sm" style={{ color: tooltip.color }}>
-                      {(tooltip.deck.usage_rate * 100).toFixed(1)}%
+                    <span
+                      className="text-lg font-black tabular-nums leading-none"
+                      style={{ color: tooltip.color }}
+                    >
+                      {(tooltip.deck.usage_rate * 100).toFixed(1)}
+                      <span className="text-xs font-bold">%</span>
                     </span>
                     <span className="text-[10px] text-default-400">
                       ({tooltip.deck.count}件)
+                    </span>
+                  </div>
+                  {/* 勝率（補足情報として控えめに表示） */}
+                  <div className="flex items-center justify-center gap-1 mt-1.5 pt-1.5 border-t border-default-200">
+                    <span className="text-[10px] font-bold text-default-400">勝率</span>
+                    <span
+                      className={`text-xs font-black tabular-nums ${winRateTextColor(tooltip.deck.win_rate)}`}
+                    >
+                      {(tooltip.deck.win_rate * 100).toFixed(1)}%
+                    </span>
+                    <span className="text-[10px] text-default-400">
+                      ({tooltip.deck.wins}勝{tooltip.deck.losses}敗)
                     </span>
                   </div>
                 </div>
@@ -469,12 +500,27 @@ export default function DeckUsagePanel({
                   <span className="font-bold text-xs text-default-700 truncate flex-1 min-w-0">
                     {deck.name}
                   </span>
-                  <span className="text-xs text-default-400 shrink-0 tabular-nums">
-                    {deck.count}件
-                  </span>
-                  <span className="font-black text-sm text-default-700 shrink-0 tabular-nums w-14 text-right">
-                    {(deck.usage_rate * 100).toFixed(1)}%
-                  </span>
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-default-400 tabular-nums">
+                        {deck.count}件
+                      </span>
+                      <span className="font-black text-sm text-default-700 tabular-nums w-14 text-right">
+                        {(deck.usage_rate * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                    <Chip
+                      size="sm"
+                      variant="flat"
+                      color={winRateChipColor(deck.win_rate)}
+                      classNames={{
+                        base: "h-5 px-0.5",
+                        content: "text-[11px] font-black tabular-nums px-1.5",
+                      }}
+                    >
+                      勝率 {(deck.win_rate * 100).toFixed(0)}%
+                    </Chip>
+                  </div>
                 </div>
               ))}
             </div>

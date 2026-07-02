@@ -5,6 +5,9 @@ export type DeckUsageItemType = {
   name: string;
   count: number;
   usage_rate: number;
+  wins: number;
+  losses: number;
+  win_rate: number;
   pokemon_sprites: DeckPokemonSpriteType[];
 };
 

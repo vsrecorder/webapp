@@ -25,7 +25,7 @@ image:
 		--build-arg NEXT_PUBLIC_FIREBASE_PROJECT_ID="$(PROD_NEXT_PUBLIC_FIREBASE_PROJECT_ID)" \
 		--build-arg NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="$(PROD_NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET)" \
 		--build-arg NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="$(PROD_NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID)" \
-		--build-arg NEXT_PUBLIC_FIREBASE_APP_ID="$(PROD_NEXT_PUBLIC_FIREBASE_APP_ID)" && \
+		--build-arg NEXT_PUBLIC_FIREBASE_APP_ID="$(PROD_NEXT_PUBLIC_FIREBASE_APP_ID)"
 	docker push vsrecorder/webapp:local
 
 .PHONY: deploy
@@ -36,7 +36,8 @@ deploy:
 
 .PHONY: restart
 restart:
-	docker compose down && docker compose up -d
+	docker compose down
+	docker compose up -d
 
 .PHONY: up
 up:

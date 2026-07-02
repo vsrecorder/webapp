@@ -1,7 +1,7 @@
 services:
   webapp:
     image: vsrecorder/webapp:latest
-    restart: always
+    restart: unless-stopped
     ports:
       - 3003:3003
     environment:

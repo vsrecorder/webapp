@@ -2,7 +2,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { LuExternalLink } from "react-icons/lu";
 
+import { auth } from "@app/auth";
+import FooterWithdrawLink from "@app/components/organisms/Layout/FooterWithdrawLink";
+
 export default async function Footer() {
+  const session = await auth();
+
   return (
     <footer className="-mx-2 mt-8 bg-neutral-900 dark:bg-neutral-950 dark:border-t dark:border-neutral-800 text-neutral-400">
       <div className="max-w-2xl mx-auto px-6 pt-10 pb-8">
@@ -74,6 +79,7 @@ export default async function Footer() {
                 お問い合わせ
                 <LuExternalLink className="text-xs shrink-0" />
               </a>
+              {session && <FooterWithdrawLink userId={session.user.id} />}
             </div>
           </div>
         </div>

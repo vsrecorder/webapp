@@ -10,5 +10,6 @@ export type UserStatHistoryType = {
   user_id: string;
   period: string;
   season: string;
+  deck_id?: string;
   history: UserStatMonthlyType[];
 };

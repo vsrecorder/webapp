@@ -4,6 +4,9 @@ export type OpponentDeckUsageItemType = {
   deck_info: string;
   count: number;
   usage_rate: number;
+  wins: number;
+  losses: number;
+  win_rate: number;
   pokemon_sprites: MatchPokemonSpriteType[];
 };
 
@@ -12,6 +15,7 @@ export type OpponentDeckUsageStatType = {
   year_month: string;
   environment_id: string;
   season: string;
+  deck_id?: string;
   total_matches: number;
   decks: OpponentDeckUsageItemType[];
 };

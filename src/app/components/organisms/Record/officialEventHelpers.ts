@@ -113,6 +113,14 @@ export function getChipColor(officialEvent: OfficialEventGetByIdResponseType): C
   return "default";
 }
 
+// 主催店舗名(会場)の表示ラベル。shop_name を優先し、無ければ venue を使う。
+// 記録カード各所(TweetButton等)と同じフォールバック規約。
+export function getEventVenueLabel(
+  officialEvent: OfficialEventGetByIdResponseType,
+): string {
+  return officialEvent.shop_name?.trim() || officialEvent.venue?.trim() || "";
+}
+
 export function getEventTypeName(
   officialEvent: OfficialEventGetByIdResponseType,
 ): string {

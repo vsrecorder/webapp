@@ -7,6 +7,7 @@ import DashboardCalendar from "@app/components/organisms/Calendar/DashboardCalen
 import Records from "@app/components/organisms/Record/Records";
 import UserStatPanel from "@app/components/organisms/UserStat/UserStatPanel";
 import UserStatHistoryChart from "@app/components/organisms/UserStat/UserStatHistoryChart";
+import RecentMatchWinRateChart from "@app/components/organisms/UserStat/RecentMatchWinRateChart";
 import DeckUsagePanel from "@app/components/organisms/DeckUsage/DeckUsagePanel";
 import OpponentDeckUsagePanel from "@app/components/organisms/DeckUsage/OpponentDeckUsagePanel";
 import UserProfileCard from "@app/components/organisms/User/UserProfileCard";
@@ -145,17 +146,29 @@ export default async function TemplateDashboard({ userId }: Props) {
     ),
   });
 
-  // 勝率の推移
+  // 月毎の勝率推移
   sections.push({
     id: "stats_history",
-    label: "勝率の推移",
+    label: "月毎の勝率推移",
     node: (
       <section key="stats_history" className="flex flex-col gap-2">
-        <h2 className="text-sm font-bold text-default-700">勝率の推移</h2>
+        <h2 className="text-sm font-bold text-default-700">月毎の勝率推移</h2>
         <UserStatHistoryChart
           userId={userId}
           userCreatedAt={user?.created_at != null ? String(user.created_at) : undefined}
         />
+      </section>
+    ),
+  });
+
+  // 直近N戦の勝率推移
+  sections.push({
+    id: "stats_recent",
+    label: "直近N戦の勝率推移",
+    node: (
+      <section key="stats_recent" className="flex flex-col gap-2">
+        <h2 className="text-sm font-bold text-default-700">直近N戦の勝率推移</h2>
+        <RecentMatchWinRateChart userId={userId} />
       </section>
     ),
   });
@@ -194,13 +207,13 @@ export default async function TemplateDashboard({ userId }: Props) {
     ),
   });
 
-  // 活動カレンダー
+  // 活動ログのカレンダー
   sections.push({
     id: "calendar",
-    label: "活動カレンダー",
+    label: "活動ログのカレンダー",
     node: (
       <section key="calendar" className="flex flex-col gap-2">
-        <h2 className="text-sm font-bold text-default-700">活動カレンダー</h2>
+        <h2 className="text-sm font-bold text-default-700">活動ログのカレンダー</h2>
         <DashboardCalendar userId={userId} />
       </section>
     ),

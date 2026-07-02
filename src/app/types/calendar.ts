@@ -27,6 +27,8 @@ export type CalendarRecordEvent = {
   event_title: string;
   chip_label: string;
   chip_color: CalendarChipColor;
+  // 公式イベントの主催店舗(会場)名。無ければ空文字
+  venue_label: string;
   // 記録カード(OfficialEventRecord等)のアクセントカラーと同じTailwindクラス
   accent_color_class: string;
   created_at: string;
@@ -37,6 +39,8 @@ export type CalendarDeckEvent = {
   deck_id: string;
   deck_name: string;
   pokemon_sprites: DeckPokemonSpriteType[];
+  // デッキ作成と同時刻に登録された初期バージョンのコード。ある場合のみサムネイルを表示する
+  code?: string;
   created_at: string;
 };
 

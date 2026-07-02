@@ -109,17 +109,29 @@ function EventContent({ event }: { event: CalendarEvent }) {
         <div className="flex items-center gap-3">
           <LuClipboardList className="text-xl text-default-500 shrink-0 mr-2" />
           <div className="text-sm min-w-0">
-            <Chip
-              size="sm"
-              variant="flat"
-              color={event.chip_color}
-              className="h-5 text-[10px] font-bold mb-1"
-            >
-              {event.chip_label}
-            </Chip>
             <div>
               <span className="font-bold">{event.event_title}</span>
-              <span className="text-xs text-default-500"> の記録を作成</span>
+              <span className="text-xs text-default-500 whitespace-nowrap"> の記録を作成</span>
+            </div>
+            <div className="flex items-center gap-1 mt-1 flex-wrap">
+              <Chip
+                size="sm"
+                variant="flat"
+                color={event.chip_color}
+                className="h-5 text-[10px] font-bold"
+              >
+                {event.chip_label}
+              </Chip>
+              {event.venue_label && (
+                <Chip
+                  size="sm"
+                  variant="flat"
+                  color="default"
+                  className="h-5 text-[10px] font-bold max-w-40 truncate"
+                >
+                  {event.venue_label}
+                </Chip>
+              )}
             </div>
           </div>
         </div>
@@ -142,13 +154,16 @@ function EventContent({ event }: { event: CalendarEvent }) {
 
   if (event.type === "deck_created") {
     return (
-      <div className="flex items-center gap-3 rounded-xl bg-default-100 px-4 py-3">
-        <LuLayers className="text-xl text-success shrink-0" />
-        <DeckSprites sprites={event.pokemon_sprites} />
-        <div className="text-sm min-w-0">
-          <span className="font-bold">{event.deck_name}</span>
-          <span className="text-xs text-default-500"> を登録</span>
+      <div className="flex flex-col gap-3 rounded-xl bg-default-100 px-4 py-3">
+        <div className="flex items-center gap-3">
+          <LuLayers className="text-xl text-success shrink-0" />
+          {event.code && <DeckSprites sprites={event.pokemon_sprites} />}
+          <div className="text-sm min-w-0">
+            <span className="font-bold">{event.deck_name}</span>
+            <span className="text-xs text-default-500"> を登録</span>
+          </div>
         </div>
+        {event.code && <DeckCodeThumbnail code={event.code} />}
       </div>
     );
   }

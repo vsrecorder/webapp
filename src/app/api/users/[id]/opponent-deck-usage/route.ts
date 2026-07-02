@@ -32,6 +32,7 @@ export async function GET(
     const yearMonth = searchParams.get("year_month") ?? "";
     const environmentId = searchParams.get("environment_id") ?? "";
     const season = searchParams.get("season") ?? "";
+    const deckId = searchParams.get("deck_id") ?? "";
 
     const domain = process.env.VSRECORDER_DOMAIN;
 
@@ -39,6 +40,7 @@ export async function GET(
     if (yearMonth) queryParams.set("year_month", yearMonth);
     if (environmentId) queryParams.set("environment_id", environmentId);
     if (season) queryParams.set("season", season);
+    if (deckId) queryParams.set("deck_id", deckId);
     const query = queryParams.toString() ? `?${queryParams.toString()}` : "";
 
     const res = await fetch(

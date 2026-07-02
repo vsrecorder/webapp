@@ -10,7 +10,7 @@ import {
   type ChartEvent,
 } from "chart.js";
 import { Pie } from "react-chartjs-2";
-import { Card, CardBody, Image, Tab, Tabs } from "@heroui/react";
+import { Card, CardBody, Chip, Image, Tab, Tabs } from "@heroui/react";
 
 import { EnvironmentType } from "@app/types/environment";
 import { spriteScaleClass } from "@app/utils/sprite";
@@ -18,6 +18,7 @@ import {
   OpponentDeckUsageItemType,
   OpponentDeckUsageStatType,
 } from "@app/types/opponent_deck_usage_stat";
+import { DeckUsageItemType, DeckUsageStatType } from "@app/types/deck_usage_stat";
 
 ChartJS.register(ArcElement, ChartTooltip);
 
@@ -90,6 +91,21 @@ function generateYearMonthOptions(createdAt?: Date) {
     d = new Date(d.getFullYear(), d.getMonth() - 1, 1);
   }
   return options;
+}
+
+// 勝率に応じた色分け（UserStatPanel/UserProfileCardの勝率表示と同じ閾値に合わせる）
+function winRateChipColor(rate: number): "success" | "default" | "warning" | "danger" {
+  if (rate >= 0.55) return "success";
+  if (rate >= 0.45) return "default";
+  if (rate >= 0.4) return "warning";
+  return "danger";
+}
+
+function winRateTextColor(rate: number): string {
+  if (rate >= 0.55) return "text-success";
+  if (rate >= 0.45) return "text-default-500";
+  if (rate >= 0.4) return "text-warning";
+  return "text-danger";
 }
 
 type TooltipState = {
@@ -168,6 +184,8 @@ export default function OpponentDeckUsagePanel({
   const [isLoading, setIsLoading] = useState(true);
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+  const [ownDeckId, setOwnDeckId] = useState<string>("");
+  const [ownDecks, setOwnDecks] = useState<DeckUsageItemType[]>([]);
 
   const chartRef = useRef<ChartJS<"pie">>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -190,6 +208,7 @@ export default function OpponentDeckUsagePanel({
         } else if (filterMode === "season" && season) {
           params.set("season", season);
         }
+        if (ownDeckId) params.set("deck_id", ownDeckId);
 
         const res = await fetch(
           `/api/users/${userId}/opponent-deck-usage?${params.toString()}`,
@@ -210,6 +229,42 @@ export default function OpponentDeckUsagePanel({
     }
 
     fetchStat();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, filterMode, yearMonth, environmentId, season, ownDeckId]);
+
+  // 期間フィルタが変わるたびに、その期間で実際に使用したデッキ一覧を取得し
+  // 「自分のデッキ」セレクタの選択肢にする（未使用デッキを候補に出さないため）
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchOwnDecks() {
+      try {
+        const params = new URLSearchParams();
+        if (filterMode === "month" && yearMonth) {
+          params.set("year_month", yearMonth);
+        } else if (filterMode === "environment" && environmentId) {
+          params.set("environment_id", environmentId);
+        } else if (filterMode === "season" && season) {
+          params.set("season", season);
+        }
+
+        const res = await fetch(`/api/users/${userId}/deck-usage?${params.toString()}`, {
+          cache: "no-store",
+        });
+
+        if (!res.ok) return;
+
+        const data: DeckUsageStatType = await res.json();
+        if (!cancelled) setOwnDecks(data.decks ?? []);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    setOwnDeckId("");
+    fetchOwnDecks();
     return () => {
       cancelled = true;
     };
@@ -363,9 +418,30 @@ export default function OpponentDeckUsagePanel({
           </span>
         </div>
 
+        {/* 自分のデッキセレクタ（対面相性の勝率は使用デッキによって変わるため） */}
+        <div className="relative">
+          <select
+            value={ownDeckId}
+            onChange={(e) => setOwnDeckId(e.target.value)}
+            className="w-full appearance-none rounded-xl border border-default-200 bg-default-100 px-4 py-2.5 pr-10 text-sm font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
+          >
+            <option value="">すべてのデッキ</option>
+            {ownDecks.map((deck) => (
+              <option key={deck.deck_id} value={deck.deck_id}>
+                {deck.name}
+              </option>
+            ))}
+          </select>
+          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-default-400 text-xs">
+            ▼
+          </span>
+        </div>
+
         {/* 期間ラベル */}
         <p className="text-center text-xs text-default-400 -mt-2">
-          {filterLabel} 対戦相手のデッキ分布
+          {filterLabel}
+          {ownDeckId ? `『${ownDecks.find((d) => d.deck_id === ownDeckId)?.name ?? ""}』使用時の` : ""}
+          対戦相手のデッキ分布・勝率
         </p>
 
         {/* グラフ + 凡例 */}
@@ -406,7 +482,7 @@ export default function OpponentDeckUsagePanel({
                   <p className="text-xs font-bold text-default-700 text-center max-w-30 truncate">
                     {tooltip.deck.deck_info}
                   </p>
-                  {/* 出現率・件数 */}
+                  {/* 対面率・件数 */}
                   <div className="flex items-center justify-center gap-1.5 mt-1">
                     <span className="font-black text-sm" style={{ color: tooltip.color }}>
                       {(tooltip.deck.usage_rate * 100).toFixed(1)}%
@@ -415,11 +491,26 @@ export default function OpponentDeckUsagePanel({
                       ({tooltip.deck.count}件)
                     </span>
                   </div>
+                  {/* 対面勝率 */}
+                  <div className="flex flex-col items-center gap-0.5 mt-1.5 pt-1.5 border-t border-default-200">
+                    <span className="text-[9px] font-bold text-default-400 uppercase tracking-wider">
+                      対面勝率
+                    </span>
+                    <span
+                      className={`text-lg font-black tabular-nums leading-none ${winRateTextColor(tooltip.deck.win_rate)}`}
+                    >
+                      {(tooltip.deck.win_rate * 100).toFixed(1)}
+                      <span className="text-xs font-bold">%</span>
+                    </span>
+                    <span className="text-[10px] text-default-400">
+                      {tooltip.deck.wins}勝{tooltip.deck.losses}敗
+                    </span>
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* 凡例リスト（スプライト画像 + デッキ名 + 出現率） */}
+            {/* 凡例リスト（スプライト画像 + デッキ名 + 対面率） */}
             <div className="flex flex-col gap-1.5">
               {decks.map((deck, idx) => (
                 <div
@@ -441,12 +532,22 @@ export default function OpponentDeckUsagePanel({
                   <span className="font-bold text-xs text-default-700 truncate flex-1 min-w-0">
                     {deck.deck_info}
                   </span>
-                  <span className="text-xs text-default-400 shrink-0 tabular-nums">
-                    {deck.count}件
-                  </span>
-                  <span className="font-black text-sm text-default-700 shrink-0 tabular-nums w-14 text-right">
-                    {(deck.usage_rate * 100).toFixed(1)}%
-                  </span>
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <span className="text-[10px] text-default-400 tabular-nums">
+                      対面率 {(deck.usage_rate * 100).toFixed(0)}% ({deck.count}件)
+                    </span>
+                    <Chip
+                      size="sm"
+                      variant="flat"
+                      color={winRateChipColor(deck.win_rate)}
+                      classNames={{
+                        base: "h-5 px-0.5",
+                        content: "text-[11px] font-black tabular-nums px-1.5",
+                      }}
+                    >
+                      勝率 {(deck.win_rate * 100).toFixed(0)}%
+                    </Chip>
+                  </div>
                 </div>
               ))}
             </div>

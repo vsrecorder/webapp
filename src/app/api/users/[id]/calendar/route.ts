@@ -15,6 +15,7 @@ import {
   getEventAccentColor,
   getChipColor,
   getEventTypeName,
+  getEventVenueLabel,
 } from "@app/components/organisms/Record/officialEventHelpers";
 
 import { toDateKey } from "@app/utils/calendar";
@@ -51,6 +52,7 @@ type RecordEventDisplay = {
   chip_label: string;
   chip_color: CalendarChipColor;
   accent_color_class: string;
+  venue_label: string;
 };
 
 async function fetchOfficialEventDisplay(id: number): Promise<RecordEventDisplay> {
@@ -60,6 +62,7 @@ async function fetchOfficialEventDisplay(id: number): Promise<RecordEventDisplay
     chip_label: "公式",
     chip_color: "default",
     accent_color_class: "bg-default-300",
+    venue_label: "",
   };
 
   try {
@@ -79,6 +82,7 @@ async function fetchOfficialEventDisplay(id: number): Promise<RecordEventDisplay
       chip_label: getEventTypeName(event),
       chip_color: getChipColor(event),
       accent_color_class: getEventAccentColor(event),
+      venue_label: getEventVenueLabel(event),
     };
   } catch {
     return fallback;
@@ -92,6 +96,7 @@ async function fetchTonamelEventDisplay(id: string): Promise<RecordEventDisplay>
     chip_label: "Tonamel",
     chip_color: "warning" as CalendarChipColor,
     accent_color_class: "bg-orange-500",
+    venue_label: "",
   };
 
   try {
@@ -117,6 +122,7 @@ async function fetchUnofficialEventDisplay(id: string): Promise<RecordEventDispl
     chip_label: "記入形式",
     chip_color: "default" as CalendarChipColor,
     accent_color_class: "bg-default-400",
+    venue_label: "",
   };
 
   try {
@@ -330,6 +336,7 @@ export async function GET(
       chip_label: "記録",
       chip_color: "default",
       accent_color_class: "bg-default-300",
+      venue_label: "",
     };
 
     const data: CalendarDataType = {};
@@ -358,16 +365,23 @@ export async function GET(
         chip_label: display.chip_label,
         chip_color: display.chip_color,
         accent_color_class: display.accent_color_class,
+        venue_label: display.venue_label,
         created_at: String(record.created_at),
       });
     }
 
-    for (const deck of decks) {
+    decks.forEach((deck, index) => {
+      // デッキ作成と同時刻に登録された初期バージョンは、別イベントにせず登録イベントにまとめる
+      const initialCode = deckCodesByDeck[index].find(
+        (deckCode) => String(deckCode.created_at) === String(deck.created_at),
+      );
+
       pushEvent(data, toDateKey(deck.created_at), {
         type: "deck_created",
         deck_id: deck.id,
         deck_name: deck.name,
         pokemon_sprites: deck.pokemon_sprites ?? [],
+        code: initialCode?.code,
         created_at: String(deck.created_at),
       });
 
@@ -380,10 +394,10 @@ export async function GET(
           created_at: String(deck.archived_at),
         });
       }
-    }
 
-    decks.forEach((deck, index) => {
       for (const deckCode of deckCodesByDeck[index]) {
+        if (deckCode.id === initialCode?.id) continue;
+
         pushEvent(data, toDateKey(deckCode.created_at), {
           type: "deck_code_added",
           deck_id: deck.id,

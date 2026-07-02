@@ -14,6 +14,7 @@ import { Line } from "react-chartjs-2";
 import { Card, CardBody } from "@heroui/react";
 
 import { UserStatHistoryType, UserStatMonthlyType } from "@app/types/user_stat_history";
+import { DeckUsageItemType, DeckUsageStatType } from "@app/types/deck_usage_stat";
 
 ChartJS.register(
   CategoryScale,
@@ -66,6 +67,8 @@ function formatTooltipMonth(ym: string): string {
 export default function UserStatHistoryChart({ userId, userCreatedAt }: Props) {
   const [periodMode, setPeriodMode] = useState<PeriodMode>("3months");
   const [seasonYear, setSeasonYear] = useState<string>(String(getCurrentSeasonYear()));
+  const [deckId, setDeckId] = useState<string>("");
+  const [ownDecks, setOwnDecks] = useState<DeckUsageItemType[]>([]);
   const [history, setHistory] = useState<UserStatHistoryType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -95,6 +98,7 @@ export default function UserStatHistoryChart({ userId, userCreatedAt }: Props) {
           params.set("period", "season");
           params.set("season", seasonYear);
         }
+        if (deckId) params.set("deck_id", deckId);
 
         const res = await fetch(
           `/api/users/${userId}/stat/history?${params.toString()}`,
@@ -117,7 +121,36 @@ export default function UserStatHistoryChart({ userId, userCreatedAt }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [userId, periodMode, seasonYear]);
+  }, [userId, periodMode, seasonYear, deckId]);
+
+  // 選択中シーズンで実際に使用したデッキ一覧を取得し、デッキセレクタの選択肢にする
+  // （対戦相手のデッキ分布パネルと同様、「すべてのデッキ」をデフォルトにした単一パネル構成）
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchOwnDecks() {
+      try {
+        const params = new URLSearchParams();
+        params.set("season", seasonYear);
+
+        const res = await fetch(`/api/users/${userId}/deck-usage?${params.toString()}`, {
+          cache: "no-store",
+        });
+
+        if (!res.ok) return;
+
+        const data: DeckUsageStatType = await res.json();
+        if (!cancelled) setOwnDecks(data.decks ?? []);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    fetchOwnDecks();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, seasonYear]);
 
   const chartData: UserStatMonthlyType[] = history?.history ?? [];
   chartDataRef.current = chartData;
@@ -273,6 +306,25 @@ export default function UserStatHistoryChart({ userId, userCreatedAt }: Props) {
               </span>
             </div>
           </div>
+        </div>
+
+        {/* デッキセレクタ（対戦相手のデッキ分布パネルと同様、「すべてのデッキ」がデフォルト） */}
+        <div className="relative">
+          <select
+            value={deckId}
+            onChange={(e) => setDeckId(e.target.value)}
+            className="w-full appearance-none rounded-lg border border-default-200 bg-default-100 pl-3 pr-7 py-1.5 text-xs font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
+          >
+            <option value="">すべてのデッキ</option>
+            {ownDecks.map((deck) => (
+              <option key={deck.deck_id} value={deck.deck_id}>
+                {deck.name}
+              </option>
+            ))}
+          </select>
+          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-default-400 text-[10px]">
+            ▼
+          </span>
         </div>
 
         {/* グラフ */}

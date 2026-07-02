@@ -450,7 +450,8 @@ export default function DeckUsagePanel({
                     {tooltip.deck.name}
                   </p>
                   {/* 使用率・件数（主役として大きく表示） */}
-                  <div className="flex items-center justify-center gap-1.5 mt-1">
+                  <div className="flex items-center justify-center gap-1 mt-1">
+                    <span className="text-[10px] font-bold text-default-400">使用率</span>
                     <span
                       className="text-lg font-black tabular-nums leading-none"
                       style={{ color: tooltip.color }}
@@ -500,25 +501,20 @@ export default function DeckUsagePanel({
                   <span className="font-bold text-xs text-default-700 truncate flex-1 min-w-0">
                     {deck.name}
                   </span>
-                  <div className="flex flex-col items-end gap-1 shrink-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs text-default-400 tabular-nums">
-                        {deck.count}件
-                      </span>
-                      <span className="font-black text-sm text-default-700 tabular-nums w-14 text-right">
-                        {(deck.usage_rate * 100).toFixed(1)}%
-                      </span>
-                    </div>
+                  <div className="flex flex-col items-end gap-1 shrink-0 pl-2 border-l border-default-200">
+                    <span className="font-black text-xs text-default-700 tabular-nums">
+                      {(deck.usage_rate * 100).toFixed(1)}%({deck.count}件)
+                    </span>
                     <Chip
                       size="sm"
                       variant="flat"
                       color={winRateChipColor(deck.win_rate)}
                       classNames={{
-                        base: "h-5 px-0.5",
-                        content: "text-[11px] font-black tabular-nums px-1.5",
+                        base: "h-4 px-0.5",
+                        content: "text-[9px] font-black tabular-nums px-1",
                       }}
                     >
-                      勝率 {(deck.win_rate * 100).toFixed(0)}%
+                      勝率 {(deck.win_rate * 100).toFixed(1)}%
                     </Chip>
                   </div>
                 </div>

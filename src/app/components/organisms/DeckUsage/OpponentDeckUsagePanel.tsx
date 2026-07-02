@@ -554,7 +554,8 @@ export default function OpponentDeckUsagePanel({
                     {tooltip.deck.deck_info}
                   </p>
                   {/* 対面率・件数 */}
-                  <div className="flex items-center justify-center gap-1.5 mt-1">
+                  <div className="flex items-center justify-center gap-1 mt-1">
+                    <span className="text-[10px] font-bold text-default-400">対面率</span>
                     <span className="font-black text-sm" style={{ color: tooltip.color }}>
                       {(tooltip.deck.usage_rate * 100).toFixed(1)}%
                     </span>
@@ -603,9 +604,9 @@ export default function OpponentDeckUsagePanel({
                   <span className="font-bold text-xs text-default-700 truncate flex-1 min-w-0">
                     {deck.deck_info}
                   </span>
-                  <div className="flex flex-col items-end gap-1 shrink-0">
+                  <div className="flex flex-col items-end gap-1 shrink-0 pl-2 border-l border-default-200">
                     <span className="text-[10px] text-default-400 tabular-nums">
-                      対面率 {(deck.usage_rate * 100).toFixed(0)}% ({deck.count}件)
+                      対面率 {(deck.usage_rate * 100).toFixed(1)}% ({deck.count}件)
                     </span>
                     <Chip
                       size="sm"
@@ -616,7 +617,7 @@ export default function OpponentDeckUsagePanel({
                         content: "text-[11px] font-black tabular-nums px-1.5",
                       }}
                     >
-                      勝率 {(deck.win_rate * 100).toFixed(0)}%
+                      勝率 {(deck.win_rate * 100).toFixed(1)}%
                     </Chip>
                   </div>
                 </div>

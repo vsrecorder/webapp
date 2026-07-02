@@ -44,6 +44,8 @@ const SLICE_COLORS = [
   "#D946EF",
 ];
 const OTHER_COLOR = "#A1A1AA";
+// 対面率がこの値未満のデッキは「その他」にまとめる
+const OTHER_THRESHOLD = 0.05;
 
 const SPRITE_BASE_URL = "https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites";
 
@@ -276,12 +278,51 @@ export default function OpponentDeckUsagePanel({
 
   const decks = useMemo(() => stat?.decks ?? [], [stat]);
 
+  // 対面率が低い（出現頻度が低い）デッキをまとめて「その他」として1件に集約する。
+  // 「上位N件」という位置の決め打ちではなく、各デッキの対面率がOTHER_THRESHOLD未満かどうかで
+  // 個別表示するか否かを判定する。ただし配色数(SLICE_COLORS.length)を超えて個別表示することは
+  // できないため、しきい値を超えて残ったデッキが多すぎる場合は件数上位から色数分だけ個別表示し、
+  // 残りを「その他」に回す。
+  const { displayDecks, hasOther } = useMemo(() => {
+    const sorted = [...decks].sort((a, b) => b.count - a.count);
+    const maxIndividual = SLICE_COLORS.length - 1;
+
+    let cutoff = sorted.findIndex((d) => d.usage_rate < OTHER_THRESHOLD);
+    if (cutoff === -1) cutoff = sorted.length;
+    cutoff = Math.min(cutoff, maxIndividual);
+
+    const rest = sorted.slice(cutoff);
+    // まとめても1件しか無いなら「その他」にする意味が無いのでそのまま表示する
+    if (rest.length <= 1) {
+      return { displayDecks: sorted, hasOther: false };
+    }
+
+    const visible = sorted.slice(0, cutoff);
+    const otherCount = rest.reduce((sum, d) => sum + d.count, 0);
+    const otherUsageRate = rest.reduce((sum, d) => sum + d.usage_rate, 0);
+    const otherWins = rest.reduce((sum, d) => sum + d.wins, 0);
+    const otherLosses = rest.reduce((sum, d) => sum + d.losses, 0);
+    const otherMatches = otherWins + otherLosses;
+
+    const other: OpponentDeckUsageItemType = {
+      deck_info: "その他",
+      count: otherCount,
+      usage_rate: otherUsageRate,
+      wins: otherWins,
+      losses: otherLosses,
+      win_rate: otherMatches > 0 ? otherWins / otherMatches : 0,
+      pokemon_sprites: [],
+    };
+
+    return { displayDecks: [...visible, other], hasOther: true };
+  }, [decks]);
+
   const deckColors = useMemo(
     () =>
-      decks.map((_, idx) =>
-        idx < SLICE_COLORS.length ? SLICE_COLORS[idx] : OTHER_COLOR,
+      displayDecks.map((_, idx) =>
+        hasOther && idx === displayDecks.length - 1 ? OTHER_COLOR : SLICE_COLORS[idx],
       ),
-    [decks],
+    [displayDecks, hasOther],
   );
 
   useEffect(() => {
@@ -321,7 +362,7 @@ export default function OpponentDeckUsagePanel({
 
     const above = Math.sin(midAngle) > 0;
 
-    setTooltip({ deck: decks[idx], color: deckColors[idx], x, y, above });
+    setTooltip({ deck: displayDecks[idx], color: deckColors[idx], x, y, above });
 
     chart.tooltip.setActiveElements([{ datasetIndex: 0, index: idx }], { x: 0, y: 0 });
     chart.update();
@@ -335,10 +376,10 @@ export default function OpponentDeckUsagePanel({
         : (seasonOptions.find((o) => o.value === season)?.label ?? season);
 
   const chartData = {
-    labels: decks.map((d) => d.deck_info),
+    labels: displayDecks.map((d) => d.deck_info),
     datasets: [
       {
-        data: decks.map((d) => d.count),
+        data: displayDecks.map((d) => d.count),
         backgroundColor: deckColors,
         borderColor: "#ffffff",
         borderWidth: 2,
@@ -516,7 +557,7 @@ export default function OpponentDeckUsagePanel({
 
             {/* 凡例リスト（スプライト画像 + デッキ名 + 対面率） */}
             <div className="flex flex-col gap-1.5">
-              {decks.map((deck, idx) => (
+              {displayDecks.map((deck, idx) => (
                 <div
                   key={`${deck.deck_info}-${idx}`}
                   onClick={() => handleLegendClick(idx)}

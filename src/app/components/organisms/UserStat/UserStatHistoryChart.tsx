@@ -140,7 +140,11 @@ export default function UserStatHistoryChart({ userId, userCreatedAt }: Props) {
         if (!res.ok) return;
 
         const data: DeckUsageStatType = await res.json();
-        if (!cancelled) setOwnDecks(data.decks ?? []);
+        // deck_id は ULID のため文字列降順に並べると新しいデッキが先頭にくる
+        const sortedDecks = [...(data.decks ?? [])].sort((a, b) =>
+          a.deck_id < b.deck_id ? 1 : a.deck_id > b.deck_id ? -1 : 0,
+        );
+        if (!cancelled) setOwnDecks(sortedDecks);
       } catch (e) {
         console.error(e);
       }

@@ -14,7 +14,7 @@ export default function ReloadButton() {
       variant="light"
       radius="full"
       aria-label="ページを再読み込み"
-      className="hidden sm:inline-flex lg:hidden text-white/70 hover:text-white"
+      className="hidden sm:inline-flex text-white/70 hover:text-white"
       onPress={() => {
         setIsSpinning(true);
         window.location.reload();

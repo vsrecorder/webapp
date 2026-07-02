@@ -18,10 +18,10 @@ export default async function TemplateLayout({
       <div className="flex">
         <Navigation />
 
-        <div className="flex flex-col flex-1">
+        <div className={`flex flex-col flex-1 ${session ? "lg:pl-20" : ""}`}>
           <Header />
 
-          <main className={`app-dot-bg flex-1 p-2 md:px-32 lg:px-32 pt-14 lg:pt-14 lg:pb-6 min-h-svh min-w-svw max-w-svw ${session ? "pb-14" : "pb-2"}`}>
+          <main className={`app-dot-bg flex-1 p-2 pt-14 lg:pt-14 lg:pb-6 min-h-svh w-full ${session ? "md:px-32 lg:px-32 pb-14" : "pb-2"}`}>
             {children}
           </main>
         </div>

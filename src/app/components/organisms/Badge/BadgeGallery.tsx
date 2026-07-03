@@ -60,7 +60,9 @@ function subgroupByCriteriaType(
   return order.map((key) => ({
     key,
     label: MILESTONE_SUBGROUP_LABELS[key] ?? key,
-    badges: [...(byType.get(key) ?? [])].sort((a, b) => a.criteria_value - b.criteria_value),
+    badges: [...(byType.get(key) ?? [])].sort(
+      (a, b) => a.criteria_value - b.criteria_value,
+    ),
   }));
 }
 
@@ -106,9 +108,9 @@ function iconForKey(iconKey: string) {
 }
 
 // 週次ストリークバッジ(例:「週次記録3週連続」)・マイルストーンバッジ
-// (例:「駆け出しレコーダー」「駆け出しビルダー」「駆け出しバトラー」)はタイル幅が狭く
+// (例:「駆け出しユーザー」「駆け出しビルダー」「駆け出しバトラー」)はタイル幅が狭く
 // 折り返しが不格好になるため、決まった区切り位置で明示的に改行して2行で見せる。
-const BADGE_NAME_SUFFIXES = ["レコーダー", "ビルダー", "バトラー"];
+const BADGE_NAME_SUFFIXES = ["ユーザー", "ビルダー", "バトラー"];
 
 function renderBadgeName(name: string) {
   const prefix = "週次記録";
@@ -176,20 +178,23 @@ function BadgeTile({
       >
         {renderBadgeName(badge.name)}
       </span>
-      {badge.achieved ? (
-        <span className="text-[9px] font-bold text-warning">達成</span>
-      ) : (
-        <>
-          <div className="w-full h-1 rounded-full bg-default-200 overflow-hidden">
-            <div className="h-full bg-primary/60" style={{ width: `${progress}%` }} />
-          </div>
-          {showCount && (
-            <span className="text-[9px] text-default-400 tabular-nums">
-              {badge.current_value}/{badge.criteria_value}
-            </span>
-          )}
-        </>
-      )}
+      <div className="w-full h-1 rounded-full bg-default-200 overflow-hidden">
+        <div
+          className={`h-full rounded-full ${badge.achieved ? "bg-warning" : "bg-primary/60"}`}
+          style={{ width: `${badge.achieved ? 100 : progress}%` }}
+        />
+      </div>
+      <span
+        className={`text-[9px] tabular-nums ${
+          badge.achieved ? "font-bold text-warning" : "text-default-400"
+        }`}
+      >
+        {badge.achieved
+          ? "達成"
+          : showCount
+            ? `${badge.current_value}/${badge.criteria_value}`
+            : " "}
+      </span>
     </button>
   );
 }
@@ -222,19 +227,44 @@ function BadgeFlowRow({
   );
 }
 
-// BadgeTile と同じ構造(アイコン円+2行テキスト+進捗バー+件数)のプレースホルダー。
+// BadgeTile と同じ構造(アイコン円+テキスト+進捗バー+件数)のプレースホルダー。
 // 高さがBadgeTileの実サイズとズレるとロード完了時にガタつくため、内訳を揃えている。
-// 「はじめの一歩」は件数表示を行わないため、showCount=false でその分の行を省く。
-function BadgeTileSkeleton({ showCount = true }: { showCount?: boolean }) {
+// 「はじめの一歩」("初記録"等)は名前が短く1行で収まるため、singleLineName で1行分の高さに揃える。
+function BadgeTileSkeleton({ singleLineName = false }: { singleLineName?: boolean }) {
   return (
     <div className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-default-100">
       <div className="w-11 h-11 rounded-full bg-default-200 animate-pulse" />
-      <div className="flex flex-col items-center gap-1 w-full">
-        <div className="w-3/4 h-2.5 rounded-full bg-default-200 animate-pulse" />
-        <div className="w-1/2 h-2.5 rounded-full bg-default-200 animate-pulse" />
-      </div>
+      {singleLineName ? (
+        <div className="w-3/5 h-2.5 rounded-full bg-default-200 animate-pulse" />
+      ) : (
+        <div className="flex flex-col items-center gap-1 w-full">
+          <div className="w-3/4 h-2.5 rounded-full bg-default-200 animate-pulse" />
+          <div className="w-1/2 h-2.5 rounded-full bg-default-200 animate-pulse" />
+        </div>
+      )}
       <div className="w-full h-1 rounded-full bg-default-200 animate-pulse" />
-      {showCount && <div className="w-8 h-2 rounded-full bg-default-200 animate-pulse" />}
+      <div className="w-8 h-2 rounded-full bg-default-200 animate-pulse" />
+    </div>
+  );
+}
+
+// BadgeFlowRow と同じ構造(タイル+"▶"区切り)のプレースホルダー。
+// マイルストーン・週次ストリークは実際は▶で繋がる横並びのため、区切り分の幅もスケルトンに反映する。
+function BadgeFlowRowSkeleton({ count }: { count: number }) {
+  return (
+    <div className="flex items-stretch gap-1">
+      {Array.from({ length: count }).map((_, i) => (
+        <Fragment key={i}>
+          <div className="flex-1 min-w-0">
+            <BadgeTileSkeleton />
+          </div>
+          {i < count - 1 && (
+            <span className="self-center shrink-0 text-default-300 font-black text-xs">
+              ▶
+            </span>
+          )}
+        </Fragment>
+      ))}
     </div>
   );
 }
@@ -280,37 +310,29 @@ export default function BadgeGallery({ userId, userCreatedAt }: Props) {
             <div className="w-24 h-8 rounded-xl bg-default-100 animate-pulse" />
           </div>
 
-          {[4, 12, 4].map((count, groupIndex) =>
-            CATEGORY_ORDER[groupIndex] === "milestone" ? (
-              <div key={groupIndex} className="flex flex-col gap-2">
-                <div className="w-24 h-2.5 rounded-full bg-default-100 animate-pulse" />
+          {CATEGORY_ORDER.map((category) => (
+            <div key={category} className="flex flex-col gap-2">
+              <div className="w-24 h-2.5 rounded-full bg-default-100 animate-pulse" />
+              {category === "onboarding" ? (
+                <div className="grid grid-cols-4 gap-2">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <BadgeTileSkeleton key={i} singleLineName />
+                  ))}
+                </div>
+              ) : category === "milestone" ? (
                 <div className="flex flex-col gap-3">
                   {Array.from({ length: 3 }).map((_, subIndex) => (
                     <div key={subIndex} className="flex flex-col gap-1.5">
                       <div className="w-14 h-2 rounded-full bg-default-100 animate-pulse" />
-                      <div className="grid grid-cols-4 gap-2">
-                        {Array.from({ length: 4 }).map((_, i) => (
-                          <BadgeTileSkeleton key={i} />
-                        ))}
-                      </div>
+                      <BadgeFlowRowSkeleton count={4} />
                     </div>
                   ))}
                 </div>
-              </div>
-            ) : (
-              <div key={groupIndex} className="flex flex-col gap-2">
-                <div className="w-24 h-2.5 rounded-full bg-default-100 animate-pulse" />
-                <div className="grid grid-cols-4 gap-2">
-                  {Array.from({ length: count }).map((_, i) => (
-                    <BadgeTileSkeleton
-                      key={i}
-                      showCount={CATEGORY_ORDER[groupIndex] !== "onboarding"}
-                    />
-                  ))}
-                </div>
-              </div>
-            ),
-          )}
+              ) : (
+                <BadgeFlowRowSkeleton count={4} />
+              )}
+            </div>
+          ))}
         </CardBody>
       </Card>
     );

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
 
 import { Avatar } from "@heroui/avatar";
@@ -28,8 +29,10 @@ import { handleSignOut } from "@app/handlers/handleSignOut";
 
 import { Button } from "@heroui/react";
 import { UserType } from "@app/types/user";
+import { UserDesignationType } from "@app/types/designation";
 import { useUserAvatar } from "@app/contexts/UserAvatarContext";
 import { CUSTOMIZE_QUERY_PARAM } from "@app/components/organisms/Dashboard/DashboardSections";
+import { rankForTier, getCurrentSeason, NO_RANK_IMAGE } from "@app/utils/designationRank";
 
 const CONTACT_FORM_URL = "https://forms.gle/pN8vUF9sQMPnZWc5A";
 
@@ -40,8 +43,25 @@ type Props = {
 export default function UserMenu({ user }: Props) {
   const router = useRouter();
   const { avatarUrl } = useUserAvatar();
+  const [rankName, setRankName] = useState<string | null>(null);
+  const [rankImage, setRankImage] = useState(NO_RANK_IMAGE);
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
+
+  useEffect(() => {
+    fetch(`/api/users/${user.id}/designation?season=${getCurrentSeason()}`, {
+      cache: "no-store",
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: UserDesignationType | null) => {
+        const tier = d?.current?.tier;
+        const rank = tier != null ? rankForTier(tier) : null;
+        setRankName(rank?.name ?? "ランクなし");
+        setRankImage(rank?.image ?? NO_RANK_IMAGE);
+      })
+      .catch(() => setRankName("ランクなし"));
+  }, [user.id]);
+
   return (
     <>
       <Dropdown
@@ -70,10 +90,19 @@ export default function UserMenu({ user }: Props) {
               <div className="flex items-center gap-3 py-1">
                 <Avatar size="sm" src={avatarUrl ?? user.image_url} />
                 <div className="flex flex-col min-w-0">
+                  <span className="flex items-center gap-1 text-tiny text-default-400">
+                    <Image
+                      src={rankImage}
+                      alt=""
+                      width={14}
+                      height={14}
+                      className="object-contain shrink-0"
+                    />
+                    {rankName ?? "ランク取得中…"}
+                  </span>
                   <span className="font-semibold text-sm truncate max-w-40">
                     {user.name}
                   </span>
-                  <span className="text-tiny text-default-400">アカウント</span>
                 </div>
               </div>
             </DropdownItem>

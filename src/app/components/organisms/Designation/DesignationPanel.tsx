@@ -14,18 +14,12 @@ import {
 import { LuLock } from "react-icons/lu";
 
 import { DesignationLadderItemType, UserDesignationType } from "@app/types/designation";
+import { RANKS, rankForTier, getCurrentSeason, NO_RANK_IMAGE } from "@app/utils/designationRank";
 
 type Props = {
   userId: string;
   userCreatedAt?: string;
 };
-
-function getCurrentSeason(): string {
-  const now = new Date();
-  // 9月(month=8)以降なら翌年がシーズン開始年、それ以前なら当年
-  const year = now.getMonth() >= 8 ? now.getFullYear() + 1 : now.getFullYear();
-  return String(year);
-}
 
 function generateSeasonOptions(createdAt?: Date): { value: string; label: string }[] {
   const now = new Date();
@@ -41,44 +35,6 @@ function generateSeasonOptions(createdAt?: Date): { value: string; label: string
   }
   return options;
 }
-
-type RankInfo = {
-  name: string;
-  image: string;
-};
-
-// 称号のティアを2つずつまとめた「ランク」。称号とは別の永続データを持たず、
-// 現在の称号ティアから都度導出する(ランク単体で判定条件を増やす予定はないため)。
-// 配列の並び順=昇格順(モンスターボール級が最下位、マスターボール級が最上位)。
-const RANKS: { minTier: number; maxTier: number; info: RankInfo }[] = [
-  {
-    minTier: 1,
-    maxTier: 2,
-    info: { name: "モンスターボール級", image: "/images/poke-ball.png" },
-  },
-  {
-    minTier: 3,
-    maxTier: 4,
-    info: { name: "スーパーボール級", image: "/images/great-ball.png" },
-  },
-  {
-    minTier: 5,
-    maxTier: 6,
-    info: { name: "ハイパーボール級", image: "/images/ultra-ball.png" },
-  },
-  {
-    minTier: 7,
-    maxTier: 8,
-    info: { name: "マスターボール級", image: "/images/master-ball.png" },
-  },
-];
-
-function rankForTier(tier: number): RankInfo | null {
-  return RANKS.find((r) => tier >= r.minTier && tier <= r.maxTier)?.info ?? null;
-}
-
-// 称号未到達、またはどのランクにも属さないティア(レジェンド・殿堂入り等)の場合に表示する画像
-const NO_RANK_IMAGE = "/images/hisui-poke-ball.png";
 
 // 称号ロードマップの1行あたりの表示数。この数を境に折り返し、蛇行(スネーク)状に並べる。
 const LADDER_ROW_SIZE = 5;

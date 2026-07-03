@@ -298,13 +298,13 @@ export default async function TemplateDashboard({ userId }: Props) {
           すべて見る
         </Button>
       </div>
-      <Records event_type="all" disable_more_load={true} limit={10} />
+      <Records event_type="all" disable_more_load={true} limit={10} desktopColumns={3} />
     </section>
   );
 
   return (
     <>
-      <div className="pt-2 max-w-2xl lg:max-w-5xl mx-auto w-full">
+      <div className="pt-2 max-w-2xl lg:max-w-6xl xl:max-w-7xl mx-auto w-full">
         <DashboardSections
           pinned={user ? <UserProfileCard key="pinned" user={user} /> : undefined}
           sections={sections}

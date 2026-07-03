@@ -43,10 +43,21 @@ async function fetchCurrentEnvironment(): Promise<EnvironmentType | null> {
   }
 }
 
-function HeaderShell({ children }: { children: React.ReactNode }) {
+// header の背景自体は画面全幅のまま表示し（サイドバー左上に隙間を作らないため）、
+// 中身だけをサイドバー幅ぶん右に寄せることで、中央寄せの基準をメインコンテンツ側
+// （サイドバーを除いた表示領域）と揃える。
+function HeaderShell({
+  children,
+  hasSidebar = false,
+}: {
+  children: React.ReactNode;
+  hasSidebar?: boolean;
+}) {
   return (
     <header className="fixed z-50 top-0 left-0 right-0 h-14 bg-linear-to-br from-blue-600/90 via-indigo-600/90 to-violet-700/90 backdrop-blur-md border-b border-white/15">
-      <div className="max-w-7xl mx-auto flex items-center justify-between px-4 h-full">
+      <div
+        className={`max-w-7xl mx-auto flex items-center justify-between px-4 h-full ${hasSidebar ? "lg:pl-56" : ""}`}
+      >
         {children}
       </div>
     </header>
@@ -94,7 +105,7 @@ export default async function Header() {
     const resolvedEnv = env.status === "fulfilled" ? env.value : null;
 
     return (
-      <HeaderShell>
+      <HeaderShell hasSidebar>
         <Logo />
         {resolvedEnv && (
           <div className="flex flex-1 items-center gap-1.5 min-w-0 mx-3">

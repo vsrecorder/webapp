@@ -5,9 +5,9 @@ import { Skeleton } from "@heroui/react";
  * RecordCardBase と同じ骨格のローディングスケルトン。
  * 公式/Tonamel/記入形式の全カードで共有する。
  */
-export function RecordCardSkeleton() {
+export function RecordCardSkeleton({ className = "" }: { className?: string }) {
   return (
-    <div>
+    <div className={className}>
       <Card shadow="none" className="border border-divider overflow-hidden">
         <CardBody className="p-0">
           <div className="flex">
@@ -45,23 +45,47 @@ export function RecordCardSkeleton() {
   );
 }
 
-function MonthHeaderSkeleton() {
+// display: 常に表示する場合は "flex"、特定ブレークポイント以降だけ表示する場合は
+// "hidden md:flex" のように渡す（"hidden" と "flex" を同時にベースクラスへ
+// 混在させると詳細度の関係で意図通りに切り替わらないため、呼び出し側で出し分ける）。
+function MonthHeaderSkeleton({
+  display = "flex",
+  colSpanClass,
+}: {
+  display?: string;
+  colSpanClass: string;
+}) {
   return (
-    <div className="flex items-center gap-3 pt-1 pb-0.5">
+    <div className={`col-span-1 ${colSpanClass} ${display} items-center gap-3 pt-1 pb-0.5`}>
       <Skeleton className="h-3.5 w-14 rounded-md shrink-0" />
       <div className="flex-1 h-px bg-divider" />
     </div>
   );
 }
 
-export function RecordCardSkeletons() {
+// スマホ: 3枚 / タブレット(md〜): 4枚 / デスクトップ(lg〜): 2列なら8枚・3列なら9枚
+// （デスクトップの列数は Records の desktopColumns に合わせて呼び出し元から渡す）
+export function RecordCardSkeletons({
+  desktopColumns = 2,
+}: {
+  desktopColumns?: 2 | 3;
+}) {
+  const colSpanClass =
+    desktopColumns === 3 ? "lg:col-span-2 xl:col-span-3" : "lg:col-span-2";
+  const extraDesktopCards = desktopColumns === 3 ? 5 : 4;
+
   return (
     <>
-      <MonthHeaderSkeleton />
+      <MonthHeaderSkeleton colSpanClass={colSpanClass} />
       <RecordCardSkeleton />
       <RecordCardSkeleton />
-      <MonthHeaderSkeleton />
       <RecordCardSkeleton />
+      <RecordCardSkeleton className="hidden md:block" />
+
+      <MonthHeaderSkeleton display="hidden lg:flex" colSpanClass={colSpanClass} />
+      {Array.from({ length: extraDesktopCards }).map((_, i) => (
+        <RecordCardSkeleton key={i} className="hidden lg:block" />
+      ))}
     </>
   );
 }

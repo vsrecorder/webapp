@@ -86,6 +86,9 @@ type Props = {
   // モーダル内では window ではなくこのコンテナ（ModalBody）をスクロールする。
   // 未指定（記録一覧ページ等）の場合は window をスクロールする。
   scrollContainerRef?: React.RefObject<HTMLElement | null>;
+  // デスクトップ(lg以上)でのグリッド列数。ダッシュボードの「最近の記録」だけ
+  // 横に3枚並べたいため、呼び出し元から明示的に指定できるようにしている。
+  desktopColumns?: 2 | 3;
 };
 
 export default function Records({
@@ -97,7 +100,20 @@ export default function Records({
   parentReady = true,
   nestedInModal = false,
   scrollContainerRef,
+  desktopColumns = 2,
 }: Props) {
+  // desktopColumns=3 のときは lg(1024px〜)で2列、xl(1280px〜)で3列と段階的に増やす。
+  // 画面幅が狭まった際にカードが窮屈にならないようにするため。
+  const gridColsClass = nestedInModal
+    ? ""
+    : desktopColumns === 3
+      ? "lg:grid-cols-2 xl:grid-cols-3 lg:gap-x-6"
+      : "lg:grid-cols-2 lg:gap-x-6";
+  const colSpanClass = nestedInModal
+    ? ""
+    : desktopColumns === 3
+      ? "lg:col-span-2 xl:col-span-3"
+      : "lg:col-span-2";
   // "all"(すべて)のときはバックエンドの event_type フィルタを掛けずに全件取得する。
   const apiEventType = event_type === "all" ? "" : event_type;
 
@@ -326,9 +342,7 @@ export default function Records({
         </div>
       )}
 
-      <div
-        className={`grid grid-cols-1 w-full gap-3 ${nestedInModal ? "" : "lg:grid-cols-2 lg:gap-x-6"}`}
-      >
+      <div className={`grid grid-cols-1 w-full gap-3 ${gridColsClass}`}>
         {items.map((recordData, index) => {
           const monthKey = getMonthKey(recordData.data);
           const prevMonthKey = index > 0 ? getMonthKey(items[index - 1].data) : null;
@@ -346,7 +360,7 @@ export default function Records({
             <Fragment key={recordData.data.id}>
               {monthKey !== prevMonthKey && (
                 <div
-                  className={`flex items-center gap-3 pt-1 pb-0.5 col-span-1 ${nestedInModal ? "" : "lg:col-span-2"}`}
+                  className={`flex items-center gap-3 pt-1 pb-0.5 col-span-1 ${colSpanClass}`}
                 >
                   <span className="text-xs font-bold text-default-400 tracking-wide shrink-0">
                     {monthKey}
@@ -386,18 +400,14 @@ export default function Records({
           );
         })}
         {/* ローディング表示 */}
-        {!isInitialLoaded && <RecordCardSkeletons />}
+        {!isInitialLoaded && <RecordCardSkeletons desktopColumns={desktopColumns} />}
         {isInitialLoaded && isLoading && (
-          <div
-            className={`flex justify-center col-span-1 ${nestedInModal ? "" : "lg:col-span-2"}`}
-          >
+          <div className={`flex justify-center col-span-1 ${colSpanClass}`}>
             <Spinner size="lg" className="pt-0" />
           </div>
         )}
         {!disable_more_load && isInitialLoaded && !isLoading && hasMore && (
-          <div
-            className={`flex justify-center col-span-1 ${nestedInModal ? "" : "lg:col-span-2"}`}
-          >
+          <div className={`flex justify-center col-span-1 ${colSpanClass}`}>
             <Button size="sm" radius="full" onPress={loadMore}>
               <div className="flex items-center gap-1">
                 <span className="text-xs">

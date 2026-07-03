@@ -56,7 +56,7 @@ export default function TemplateDecks() {
           size="md"
           selectedKey={selectedKey}
           onSelectionChange={handleSelectionChange}
-          className="fixed z-50 top-15 left-0 right-0 lg:left-20 pl-1 pr-1"
+          className="fixed z-50 top-15 left-0 right-0 lg:left-56 pl-1 pr-1"
           classNames={{
             cursor: selectedKey === "inuse" ? "bg-green-200" : "bg-red-200",
             tab: "h-8",

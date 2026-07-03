@@ -23,6 +23,11 @@ type Props = {
 
 export default function WithdrawModal({ userId, isOpen, onOpenChange }: Props) {
   const [isDisabled, setIsDisabled] = useState(false);
+  const [step, setStep] = useState<1 | 2>(1);
+
+  const handleFirstConfirm = () => {
+    setStep(2);
+  };
 
   const handleConfirm = async () => {
     setIsDisabled(true);
@@ -57,48 +62,88 @@ export default function WithdrawModal({ userId, isOpen, onOpenChange }: Props) {
       isDismissable={!isDisabled}
       hideCloseButton
       isOpen={isOpen}
-      onOpenChange={onOpenChange}
+      onOpenChange={(open) => {
+        if (!open) setStep(1);
+        onOpenChange();
+      }}
     >
       <ModalContent>
-        {(onClose) => (
-          <>
-            <ModalHeader className="flex items-center gap-2 text-danger">
-              <LuTriangleAlert className="w-5 h-5 shrink-0" />
-              退会の確認
-            </ModalHeader>
+        {(onClose) =>
+          step === 1 ? (
+            <>
+              <ModalHeader className="flex items-center gap-2 text-danger">
+                <LuTriangleAlert className="w-5 h-5 shrink-0" />
+                退会の確認
+              </ModalHeader>
 
-            <ModalBody className="flex flex-col gap-2 text-sm">
-              <p>退会すると、以下のデータがすべて削除され、元に戻すことはできません。</p>
-              <ul className="list-disc pl-5 text-default-500 flex flex-col gap-1">
-                <li>アカウント情報（名前・アイコン）</li>
-                <li>対戦記録・登録デッキ</li>
-                <li>その他バトレコに保存されているすべてのデータ</li>
-              </ul>
-              <p className="font-semibold">本当に退会しますか？</p>
-            </ModalBody>
+              <ModalBody className="flex flex-col gap-2 text-sm">
+                <p>
+                  退会すると、以下のデータがすべて削除され、元に戻すことはできません。
+                </p>
+                <ul className="list-disc pl-5 text-default-500 flex flex-col gap-1">
+                  <li>アカウント情報（名前・アイコン）</li>
+                  <li>対戦記録・登録デッキ</li>
+                  <li>その他バトレコに保存されているすべてのデータ</li>
+                </ul>
+                <p className="font-semibold">退会しますか？</p>
+              </ModalBody>
 
-            <ModalFooter>
-              <Button
-                color="default"
-                variant="solid"
-                isDisabled={isDisabled}
-                onPress={onClose}
-                className="font-bold"
-              >
-                キャンセル
-              </Button>
-              <Button
-                color="danger"
-                variant="solid"
-                isDisabled={isDisabled}
-                onPress={handleConfirm}
-                className="font-bold"
-              >
-                退会する
-              </Button>
-            </ModalFooter>
-          </>
-        )}
+              <ModalFooter>
+                <Button
+                  color="default"
+                  variant="solid"
+                  isDisabled={isDisabled}
+                  onPress={onClose}
+                  className="font-bold"
+                >
+                  キャンセル
+                </Button>
+                <Button
+                  color="danger"
+                  variant="solid"
+                  isDisabled={isDisabled}
+                  onPress={handleFirstConfirm}
+                  className="font-bold"
+                >
+                  退会する
+                </Button>
+              </ModalFooter>
+            </>
+          ) : (
+            <>
+              <ModalHeader className="flex items-center gap-2 text-danger">
+                <LuTriangleAlert className="w-5 h-5 shrink-0" />
+                最終確認
+              </ModalHeader>
+
+              <ModalBody className="flex flex-col gap-2 text-sm">
+                <p className="font-semibold">本当に退会してもよろしいですか？</p>
+                <p className="font-semibold">この操作は取り消せません。</p>
+              </ModalBody>
+
+              <ModalFooter>
+                <Button
+                  color="default"
+                  variant="solid"
+                  isDisabled={isDisabled}
+                  onPress={() => setStep(1)}
+                  className="font-bold"
+                >
+                  戻る
+                </Button>
+                <Button
+                  color="danger"
+                  variant="solid"
+                  isDisabled={isDisabled}
+                  onPress={handleConfirm}
+                  className="font-bold"
+                >
+                  退会する
+                </Button>
+              </ModalFooter>
+            </>
+          )
+        }
       </ModalContent>
     </Modal>
   );

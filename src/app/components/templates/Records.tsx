@@ -14,7 +14,7 @@ type TabKey = "all" | "official" | "tonamel" | "unofficial";
 // マウント後に復元すべきタブを算出する。
 // 必ずクライアント側（useEffect 内）からのみ呼ぶ。
 //
-// リロード・戻り遷移のいずれの場合も「ユーザーが実際に選択していたタブ」を
+// リロード・戻り遷移のいずれの場合も「ユーザが実際に選択していたタブ」を
 // recordsSelectedTab から復元する。カードの種別（eventType）ではなく
 // 選択タブを基準にすることで、「すべて」タブで個別種別のカードを開いて
 // 戻った際に個別タブへ切り替わってしまう問題を防ぐ。
@@ -22,11 +22,7 @@ type TabKey = "all" | "official" | "tonamel" | "unofficial";
 // 独立して処理するため、親はタブ選択だけを正しく復元すればよい。
 function resolveRestoredTab(): TabKey {
   const savedTab = sessionStorage.getItem("recordsSelectedTab");
-  if (
-    savedTab === "official" ||
-    savedTab === "tonamel" ||
-    savedTab === "unofficial"
-  )
+  if (savedTab === "official" || savedTab === "tonamel" || savedTab === "unofficial")
     return savedTab;
   return "all";
 }
@@ -119,10 +115,7 @@ export default function TemplateRecords() {
         className="w-full pt-2 lg:max-w-4xl lg:mx-auto"
         hidden={selectedKey !== "unofficial"}
       >
-        <Records
-          event_type={"unofficial"}
-          isActive={selectedKey === "unofficial"}
-        />
+        <Records event_type={"unofficial"} isActive={selectedKey === "unofficial"} />
       </div>
     </>
   );

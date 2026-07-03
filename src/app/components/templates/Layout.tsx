@@ -18,7 +18,10 @@ export default async function TemplateLayout({
       <div className="flex">
         <Navigation />
 
-        <div className={`flex flex-col flex-1 ${session ? "lg:pl-20" : ""}`}>
+        {/* min-w-0: 横方向flex内の子はデフォルトで内容量ぶんの最小幅を持つため、
+            ページ内に横方向へはみ出すコンテンツ（横スクロールリストなど）があると
+            この幅がページ全体を押し広げてレイアウトが崩れる。min-w-0で明示的に解除する */}
+        <div className={`flex flex-col flex-1 min-w-0 ${session ? "lg:pl-20" : ""}`}>
           <Header />
 
           {/* デスクトップ(lg以上)はタブレット(md)より左右余白を絞り、コンテンツ側で幅を広く使えるようにする */}

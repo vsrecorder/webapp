@@ -111,7 +111,10 @@ function EventContent({ event }: { event: CalendarEvent }) {
           <div className="text-sm min-w-0">
             <div>
               <span className="font-bold">{event.event_title}</span>
-              <span className="text-xs text-default-500 whitespace-nowrap"> の記録を作成</span>
+              <span className="text-xs text-default-500 whitespace-nowrap">
+                {" "}
+                の記録を作成
+              </span>
             </div>
             <div className="flex items-center gap-1 mt-1 flex-wrap">
               <Chip
@@ -143,7 +146,7 @@ function EventContent({ event }: { event: CalendarEvent }) {
           <div className="flex items-center gap-2 pl-3">
             <DeckSprites sprites={event.deck_pokemon_sprites} />
             <span className="text-sm font-bold text-default-600">
-              『{event.deck_name}』
+              {event.deck_name ? `『${event.deck_name}』` : "なし"}
             </span>
           </div>
           <DeckCodeThumbnail code={event.deck_code} />

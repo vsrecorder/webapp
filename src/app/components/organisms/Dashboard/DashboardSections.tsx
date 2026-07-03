@@ -14,7 +14,7 @@ import {
 } from "@heroui/react";
 import { LuChevronUp, LuChevronDown } from "react-icons/lu";
 
-// ヘッダーのユーザーメニュー「ダッシュボード表示設定」から遷移してきた際に付与されるクエリパラメータ
+// ヘッダーのユーザメニュー「ダッシュボード表示設定」から遷移してきた際に付与されるクエリパラメータ
 export const CUSTOMIZE_QUERY_PARAM = "customize";
 
 export type DashboardSection = {
@@ -78,7 +78,7 @@ export default function DashboardSections({ pinned, sections, trailing }: Props)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ヘッダーのユーザーメニューから ?customize=1 付きで遷移してきたらモーダルを開く
+  // ヘッダーのユーザメニューから ?customize=1 付きで遷移してきたらモーダルを開く
   useEffect(() => {
     if (searchParams.get(CUSTOMIZE_QUERY_PARAM) === "1") {
       onOpen();
@@ -120,7 +120,9 @@ export default function DashboardSections({ pinned, sections, trailing }: Props)
   }
 
   const sectionMap = new Map(sections.map((s) => [s.id, s]));
-  const orderedSections = order.map((id) => sectionMap.get(id)).filter((s): s is DashboardSection => !!s);
+  const orderedSections = order
+    .map((id) => sectionMap.get(id))
+    .filter((s): s is DashboardSection => !!s);
 
   return (
     <>
@@ -188,10 +190,20 @@ export default function DashboardSections({ pinned, sections, trailing }: Props)
                 ))}
               </ModalBody>
               <ModalFooter className="justify-between">
-                <Button color="default" variant="light" onPress={resetLayout} className="font-bold">
+                <Button
+                  color="default"
+                  variant="light"
+                  onPress={resetLayout}
+                  className="font-bold"
+                >
                   デフォルトに戻す
                 </Button>
-                <Button color="primary" variant="solid" onPress={onClose} className="font-bold">
+                <Button
+                  color="primary"
+                  variant="solid"
+                  onPress={onClose}
+                  className="font-bold"
+                >
                   閉じる
                 </Button>
               </ModalFooter>

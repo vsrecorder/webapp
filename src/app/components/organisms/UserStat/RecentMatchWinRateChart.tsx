@@ -88,12 +88,9 @@ export default function RecentMatchWinRateChart({ userId }: Props) {
         const params = new URLSearchParams();
         params.set("count", countMode);
 
-        const res = await fetch(
-          `/api/users/${userId}/stat/recent?${params.toString()}`,
-          {
-            cache: "no-store",
-          },
-        );
+        const res = await fetch(`/api/users/${userId}/stat/recent?${params.toString()}`, {
+          cache: "no-store",
+        });
         if (!res.ok) return;
 
         const data: RecentMatchStatType = await res.json();
@@ -162,7 +159,11 @@ export default function RecentMatchWinRateChart({ userId }: Props) {
         ctx.font = "9px sans-serif";
         ctx.textAlign = nearRightEdge ? "right" : "left";
         ctx.textBaseline = "top";
-        ctx.fillText(`ここから『${title}』`, x + (nearRightEdge ? -4 : 4), chartArea.top + 2);
+        ctx.fillText(
+          `ここから『${title}』`,
+          x + (nearRightEdge ? -4 : 4),
+          chartArea.top + 2,
+        );
       });
       ctx.restore();
     },
@@ -343,7 +344,8 @@ export default function RecentMatchWinRateChart({ userId }: Props) {
         ) : isInsufficientData ? (
           <div className="h-40 flex flex-col items-center justify-center gap-2 text-center px-6">
             <span className="text-xs font-bold text-default-600">
-              直近{countMode}戦の勝率推移は、あと{Math.max(0, requiredCount - totalMatches)}戦の記録で見られます
+              直近{countMode}戦の勝率推移は、あと
+              {Math.max(0, requiredCount - totalMatches)}対戦後に閲覧できます
             </span>
             <div className="w-full max-w-40 h-1.5 bg-default-200 rounded-full overflow-hidden">
               <div
@@ -380,9 +382,15 @@ export default function RecentMatchWinRateChart({ userId }: Props) {
               className="absolute z-40 pointer-events-none bg-content1 border border-default-200 rounded-xl px-3 py-2 shadow-lg text-xs whitespace-nowrap"
               style={{ display: "none", transform: "translateX(-50%)" }}
             >
-              <p ref={tooltipTitleRef} className="font-bold text-default-700 text-center mb-1" />
+              <p
+                ref={tooltipTitleRef}
+                className="font-bold text-default-700 text-center mb-1"
+              />
               {/* 対戦相手デッキのスプライト画像 */}
-              <div ref={tooltipSpriteContainerRef} className="flex justify-center gap-0 mb-1" />
+              <div
+                ref={tooltipSpriteContainerRef}
+                className="flex justify-center gap-0 mb-1"
+              />
               <div className="flex items-center justify-center gap-1 mb-1">
                 <span ref={tooltipResultRef} />
                 <span ref={tooltipOpponentRef} className="text-default-500" />

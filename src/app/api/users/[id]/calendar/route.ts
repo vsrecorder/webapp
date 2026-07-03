@@ -357,7 +357,7 @@ export async function GET(
         type: "record",
         record_id: record.id,
         deck_id: record.deck_id,
-        deck_name: deck?.name ?? "不明なデッキ",
+        deck_name: deck?.name ?? "",
         deck_pokemon_sprites: deck?.pokemon_sprites ?? [],
         deck_code: deckCodeById.get(record.deck_code_id) ?? "",
         event_kind: eventKind,

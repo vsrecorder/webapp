@@ -2,7 +2,6 @@ import { Card, CardBody } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
 import { Image } from "@heroui/react";
 
-
 import ScrollingText from "@app/components/molecules/ScrollingText";
 import { spriteImageUrl, spriteScaleClass } from "@app/utils/sprite";
 import { DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
@@ -135,9 +134,7 @@ export default function RecordCardBase({
                         </div>
                       ) : (
                         <div className="flex items-center gap-1 min-w-0">
-                          <span className="text-sm text-default-600 truncate">
-                            使用デッキなし
-                          </span>
+                          <span className="text-sm text-default-600 truncate"></span>
                         </div>
                       )}
                     </div>

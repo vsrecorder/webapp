@@ -12,7 +12,6 @@ import {
 } from "@heroui/dropdown";
 
 import { useDisclosure } from "@heroui/react";
-import { Chip } from "@heroui/chip";
 import { Modal, ModalContent, ModalBody, ModalFooter } from "@heroui/modal";
 import { useRouter } from "next/navigation";
 import {
@@ -116,18 +115,14 @@ export default function UserMenu({ user }: Props) {
             </DropdownItem>
             <DropdownItem
               key="profile"
-              isReadOnly
               color="default"
               startContent={<LuUser className="w-4 h-4" />}
-              description="公開プロフィールを編集"
-              endContent={
-                <Chip size="sm" radius="full" variant="flat" color="default">
-                  準備中
-                </Chip>
-              }
-              className="cursor-default opacity-60 data-[hover=true]:bg-transparent"
+              description="称号や実績・バッジを確認"
+              onPress={() => {
+                router.push("/users");
+              }}
             >
-              プロフィールの設定
+              プロフィール
             </DropdownItem>
           </DropdownSection>
 

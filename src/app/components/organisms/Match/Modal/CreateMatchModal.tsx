@@ -185,7 +185,7 @@ export default function CreateMatchModal({
       .map((item) => item.history);
   }, [recentMatches]);
 
-  // ユーザー履歴がない場合のみ全体の直近20件を取得してダミー候補を作成
+  // ユーザ履歴がない場合のみ全体の直近20件を取得してダミー候補を作成
   const { data: globalMatches } = useSWR<MatchGetResponseType[]>(
     isOpen && recentMatches !== undefined && deckHistories.length === 0
       ? `/api/matches?limit=20`
@@ -226,10 +226,10 @@ export default function CreateMatchModal({
     return result;
   }, [globalMatches]);
 
-  // 表示に使う候補（ユーザー履歴優先、なければダミー）
+  // 表示に使う候補（ユーザ履歴優先、なければダミー）
   const activeCandidates = deckHistories.length > 0 ? deckHistories : dummyHistories;
 
-  // ユーザー履歴ロード中、またはダミー候補フェッチ中
+  // ユーザ履歴ロード中、またはダミー候補フェッチ中
   const isCandidatesLoading =
     recentMatches === undefined ||
     (deckHistories.length === 0 && globalMatches === undefined);
@@ -600,7 +600,7 @@ export default function CreateMatchModal({
               type="text"
               label=""
               labelPlacement="outside"
-              placeholder={"例）" + (activeCandidates[0]?.deckInfo ?? "メガルカリオ")}
+              placeholder={"例）" + (activeCandidates[0]?.deckInfo ?? "相手のデッキ")}
               value={opponentsDeckInfo}
               onChange={(e) => setOpponentsDeckInfo(e.target.value)}
             />

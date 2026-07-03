@@ -1186,7 +1186,12 @@ export default function TemplateRecordCreate({
                   menuPortalTarget={
                     typeof document !== "undefined" ? document.body : null
                   }
-                  styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
+                  styles={{
+                    menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+                    // メニューがコントロール幅を超えて横に広がりページ全体のレイアウトを
+                    // 崩さないよう、明示的に横方向のはみ出しをクリップする
+                    menu: (base) => ({ ...base, maxWidth: "100%", overflow: "hidden" }),
+                  }}
                   formatOptionLabel={(option, { context }) => {
                     const opt = option as OfficialEventOption;
 
@@ -1374,7 +1379,12 @@ export default function TemplateRecordCreate({
                     menuPortalTarget={
                       typeof document !== "undefined" ? document.body : null
                     }
-                    styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
+                    styles={{
+                      menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+                      // メニューがコントロール幅を超えて横に広がりページ全体のレイアウトを
+                      // 崩さないよう、明示的に横方向のはみ出しをクリップする
+                      menu: (base) => ({ ...base, maxWidth: "100%", overflow: "hidden" }),
+                    }}
                     menuPlacement="bottom"
                     //menuShouldBlockScroll={true}
                     menuShouldScrollIntoView={true}
@@ -1386,7 +1396,7 @@ export default function TemplateRecordCreate({
                       if (context === "menu") {
                         return (
                           <div className="text-sm truncate border-1 p-2">
-                            <div className="grid">
+                            <div className="grid min-w-0">
                               <span className="truncate">
                                 登録日：{option.created_at}
                               </span>
@@ -1402,7 +1412,7 @@ export default function TemplateRecordCreate({
                               </div>
 
                               <span className="pt-1">
-                                <div className="relative w-full aspect-2/1">
+                                <div className="relative w-full aspect-2/1 overflow-hidden">
                                   {!imageLoaded && (
                                     <Skeleton className="absolute inset-0 rounded-lg" />
                                   )}
@@ -1417,7 +1427,7 @@ export default function TemplateRecordCreate({
                                         ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${option.latest_deck_code.code}.jpg`
                                         : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
                                     }
-                                    className=""
+                                    className="w-full h-full object-cover"
                                     onLoad={() => setImageLoaded(true)}
                                   />
                                 </div>
@@ -1470,7 +1480,12 @@ export default function TemplateRecordCreate({
                     menuPortalTarget={
                       typeof document !== "undefined" ? document.body : null
                     }
-                    styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
+                    styles={{
+                      menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+                      // メニューがコントロール幅を超えて横に広がりページ全体のレイアウトを
+                      // 崩さないよう、明示的に横方向のはみ出しをクリップする
+                      menu: (base) => ({ ...base, maxWidth: "100%", overflow: "hidden" }),
+                    }}
                     menuPlacement="bottom"
                     menuShouldScrollIntoView={true}
                     components={{ MenuList: MenuListScrollToSelected }}
@@ -1478,7 +1493,7 @@ export default function TemplateRecordCreate({
                       if (context === "menu") {
                         return (
                           <div className="text-sm truncate border-1 p-2">
-                            <div className="grid">
+                            <div className="grid min-w-0">
                               <span className="truncate">
                                 作成日：{option.created_at}
                               </span>
@@ -1490,7 +1505,7 @@ export default function TemplateRecordCreate({
                                 デッキコード：{option.code}
                               </span>
                               <span className="pt-1">
-                                <div className="relative w-full aspect-2/1">
+                                <div className="relative w-full aspect-2/1 overflow-hidden">
                                   {!imageLoadedForDeckCode && (
                                     <Skeleton className="absolute inset-0 rounded-lg" />
                                   )}
@@ -1499,7 +1514,7 @@ export default function TemplateRecordCreate({
                                     shadow="none"
                                     alt={option.code}
                                     src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${option.code}.jpg`}
-                                    className=""
+                                    className="w-full h-full object-cover"
                                     onLoad={() => setImageLoadedForDeckCode(true)}
                                   />
                                 </div>
@@ -1522,7 +1537,7 @@ export default function TemplateRecordCreate({
               </div>
 
               <div className="flex flex-col items-center gap-2 pb-1.5">
-                <div className="relative w-full aspect-2/1">
+                <div className="relative w-full aspect-2/1 overflow-hidden">
                   {!imageLoadedForDeckCode && (
                     <Skeleton className="absolute inset-0 rounded-lg" />
                   )}
@@ -1535,7 +1550,7 @@ export default function TemplateRecordCreate({
                         ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${selectedDeckCodeOption.code}.jpg`
                         : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
                     }
-                    className="z-0"
+                    className="z-0 w-full h-full object-cover"
                     onLoad={() => setImageLoadedForDeckCode(true)}
                     onError={() => {}}
                   />
@@ -1676,7 +1691,12 @@ export default function TemplateRecordCreate({
                     menuPortalTarget={
                       typeof document !== "undefined" ? document.body : null
                     }
-                    styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
+                    styles={{
+                      menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+                      // メニューがコントロール幅を超えて横に広がりページ全体のレイアウトを
+                      // 崩さないよう、明示的に横方向のはみ出しをクリップする
+                      menu: (base) => ({ ...base, maxWidth: "100%", overflow: "hidden" }),
+                    }}
                     menuPlacement="bottom"
                     //menuShouldBlockScroll={true}
                     menuShouldScrollIntoView={true}
@@ -1688,7 +1708,7 @@ export default function TemplateRecordCreate({
                       if (context === "menu") {
                         return (
                           <div className="text-sm truncate border-1 p-2">
-                            <div className="grid">
+                            <div className="grid min-w-0">
                               <span className="truncate">
                                 登録日：{option.created_at}
                               </span>
@@ -1704,7 +1724,7 @@ export default function TemplateRecordCreate({
                               </div>
 
                               <span className="pt-1">
-                                <div className="relative w-full aspect-2/1">
+                                <div className="relative w-full aspect-2/1 overflow-hidden">
                                   {!imageLoaded && (
                                     <Skeleton className="absolute inset-0 rounded-lg" />
                                   )}
@@ -1719,7 +1739,7 @@ export default function TemplateRecordCreate({
                                         ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${option.latest_deck_code.code}.jpg`
                                         : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
                                     }
-                                    className=""
+                                    className="w-full h-full object-cover"
                                     onLoad={() => setImageLoaded(true)}
                                   />
                                 </div>
@@ -1772,7 +1792,12 @@ export default function TemplateRecordCreate({
                     menuPortalTarget={
                       typeof document !== "undefined" ? document.body : null
                     }
-                    styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
+                    styles={{
+                      menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+                      // メニューがコントロール幅を超えて横に広がりページ全体のレイアウトを
+                      // 崩さないよう、明示的に横方向のはみ出しをクリップする
+                      menu: (base) => ({ ...base, maxWidth: "100%", overflow: "hidden" }),
+                    }}
                     menuPlacement="bottom"
                     menuShouldScrollIntoView={true}
                     components={{ MenuList: MenuListScrollToSelected }}
@@ -1780,7 +1805,7 @@ export default function TemplateRecordCreate({
                       if (context === "menu") {
                         return (
                           <div className="text-sm truncate border-1 p-2">
-                            <div className="grid">
+                            <div className="grid min-w-0">
                               <span className="truncate">
                                 作成日：{option.created_at}
                               </span>
@@ -1792,7 +1817,7 @@ export default function TemplateRecordCreate({
                                 デッキコード：{option.code}
                               </span>
                               <span className="pt-1">
-                                <div className="relative w-full aspect-2/1">
+                                <div className="relative w-full aspect-2/1 overflow-hidden">
                                   {!imageLoadedForDeckCode && (
                                     <Skeleton className="absolute inset-0 rounded-lg" />
                                   )}
@@ -1801,7 +1826,7 @@ export default function TemplateRecordCreate({
                                     shadow="none"
                                     alt={option.code}
                                     src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${option.code}.jpg`}
-                                    className=""
+                                    className="w-full h-full object-cover"
                                     onLoad={() => setImageLoadedForDeckCode(true)}
                                   />
                                 </div>
@@ -1824,7 +1849,7 @@ export default function TemplateRecordCreate({
               </div>
 
               <div className="flex flex-col items-center gap-2 pb-1.5">
-                <div className="relative w-full aspect-2/1">
+                <div className="relative w-full aspect-2/1 overflow-hidden">
                   {!imageLoadedForDeckCode && (
                     <Skeleton className="absolute inset-0 rounded-lg" />
                   )}
@@ -1837,7 +1862,7 @@ export default function TemplateRecordCreate({
                         ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${selectedDeckCodeOption.code}.jpg`
                         : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
                     }
-                    className="z-0"
+                    className="z-0 w-full h-full object-cover"
                     onLoad={() => setImageLoadedForDeckCode(true)}
                     onError={() => {}}
                   />
@@ -1950,7 +1975,12 @@ export default function TemplateRecordCreate({
                     menuPortalTarget={
                       typeof document !== "undefined" ? document.body : null
                     }
-                    styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
+                    styles={{
+                      menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+                      // メニューがコントロール幅を超えて横に広がりページ全体のレイアウトを
+                      // 崩さないよう、明示的に横方向のはみ出しをクリップする
+                      menu: (base) => ({ ...base, maxWidth: "100%", overflow: "hidden" }),
+                    }}
                     menuPlacement="bottom"
                     menuShouldScrollIntoView={true}
                     onMenuClose={() => {
@@ -1961,7 +1991,7 @@ export default function TemplateRecordCreate({
                       if (context === "menu") {
                         return (
                           <div className="text-sm truncate border-1 p-2">
-                            <div className="grid">
+                            <div className="grid min-w-0">
                               <span className="truncate">
                                 登録日：{option.created_at}
                               </span>
@@ -1977,7 +2007,7 @@ export default function TemplateRecordCreate({
                               </div>
 
                               <span className="pt-1">
-                                <div className="relative w-full aspect-2/1">
+                                <div className="relative w-full aspect-2/1 overflow-hidden">
                                   {!imageLoaded && (
                                     <Skeleton className="absolute inset-0 rounded-lg" />
                                   )}
@@ -1992,7 +2022,7 @@ export default function TemplateRecordCreate({
                                         ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${option.latest_deck_code.code}.jpg`
                                         : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
                                     }
-                                    className=""
+                                    className="w-full h-full object-cover"
                                     onLoad={() => setImageLoaded(true)}
                                   />
                                 </div>
@@ -2045,7 +2075,12 @@ export default function TemplateRecordCreate({
                     menuPortalTarget={
                       typeof document !== "undefined" ? document.body : null
                     }
-                    styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
+                    styles={{
+                      menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+                      // メニューがコントロール幅を超えて横に広がりページ全体のレイアウトを
+                      // 崩さないよう、明示的に横方向のはみ出しをクリップする
+                      menu: (base) => ({ ...base, maxWidth: "100%", overflow: "hidden" }),
+                    }}
                     menuPlacement="bottom"
                     menuShouldScrollIntoView={true}
                     components={{ MenuList: MenuListScrollToSelected }}
@@ -2053,7 +2088,7 @@ export default function TemplateRecordCreate({
                       if (context === "menu") {
                         return (
                           <div className="text-sm truncate border-1 p-2">
-                            <div className="grid">
+                            <div className="grid min-w-0">
                               <span className="truncate">
                                 作成日：{option.created_at}
                               </span>
@@ -2065,7 +2100,7 @@ export default function TemplateRecordCreate({
                                 デッキコード：{option.code}
                               </span>
                               <span className="pt-1">
-                                <div className="relative w-full aspect-2/1">
+                                <div className="relative w-full aspect-2/1 overflow-hidden">
                                   {!imageLoadedForDeckCode && (
                                     <Skeleton className="absolute inset-0 rounded-lg" />
                                   )}
@@ -2074,7 +2109,7 @@ export default function TemplateRecordCreate({
                                     shadow="none"
                                     alt={option.code}
                                     src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${option.code}.jpg`}
-                                    className=""
+                                    className="w-full h-full object-cover"
                                     onLoad={() => setImageLoadedForDeckCode(true)}
                                   />
                                 </div>
@@ -2097,7 +2132,7 @@ export default function TemplateRecordCreate({
               </div>
 
               <div className="flex flex-col items-center gap-2 pb-1.5">
-                <div className="relative w-full aspect-2/1">
+                <div className="relative w-full aspect-2/1 overflow-hidden">
                   {!imageLoadedForDeckCode && (
                     <Skeleton className="absolute inset-0 rounded-lg" />
                   )}
@@ -2110,7 +2145,7 @@ export default function TemplateRecordCreate({
                         ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${selectedDeckCodeOption.code}.jpg`
                         : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
                     }
-                    className="z-0"
+                    className="z-0 w-full h-full object-cover"
                     onLoad={() => setImageLoadedForDeckCode(true)}
                     onError={() => {}}
                   />

@@ -10,10 +10,30 @@ import CityleagueResults from "@app/components/organisms/Cityleague/CityleagueRe
 
 type TabKey = "league_type_1" | "league_type_3" | "league_type_2";
 
+// マウント後に復元すべきタブを算出する。必ずクライアント側（useEffect 内）からのみ呼ぶ。
+function resolveRestoredTab(): TabKey {
+  const savedTab = sessionStorage.getItem("cityleagueResultsSelectedTab");
+  if (
+    savedTab === "league_type_1" ||
+    savedTab === "league_type_3" ||
+    savedTab === "league_type_2"
+  )
+    return savedTab;
+  return "league_type_1";
+}
+
 export default function TemplateCityleagueResults() {
-  const [selectedKey, setSelectedKey] = useState<
-    "league_type_1" | "league_type_3" | "league_type_2"
-  >("league_type_1");
+  // SSR と初回クライアントレンダリングを一致させるため、初期値は必ず "league_type_1" にする。
+  // 実際の復元はマウント後の useEffect で行う（ハイドレーション不整合の回避）。
+  const [selectedKey, setSelectedKey] = useState<TabKey>("league_type_1");
+
+  // マウント後に保存済みタブを復元する。
+  useEffect(() => {
+    const restored = resolveRestoredTab();
+    if (restored !== "league_type_1") {
+      setSelectedKey(restored);
+    }
+  }, []);
 
   // タブごとのスクロール位置を保存
   const scrollPositions = useRef<Record<TabKey, number>>({
@@ -25,6 +45,9 @@ export default function TemplateCityleagueResults() {
   const handleSelectionChange = (key: React.Key) => {
     // 切り替え前のスクロール位置を保存
     scrollPositions.current[selectedKey] = window.scrollY;
+
+    // リロード時の復元用に選択タブを保存
+    sessionStorage.setItem("cityleagueResultsSelectedTab", key as string);
 
     setSelectedKey(key as TabKey);
   };

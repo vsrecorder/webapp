@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { createPortal } from "react-dom";
 
 import { Spinner } from "@heroui/spinner";
 import { Button, Skeleton } from "@heroui/react";
@@ -87,6 +88,10 @@ export default function CityleagueResults({ league_type }: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [isInitialLoaded, setIsInitialLoaded] = useState(false);
+
+  // 個別ページから戻ってきたとき、対象カードまで自動スクロールするための状態
+  const [pendingScrollId, setPendingScrollId] = useState<number | null>(null);
+  const scrollToIdRef = useRef<number | null>(null);
 
   // スケジュール情報
   const [schedule, setSchedule] = useState<CityleagueScheduleType | null>(null);
@@ -194,6 +199,51 @@ export default function CityleagueResults({ league_type }: Props) {
     loadMore();
   }, [isScheduleInitialized, isInitialLoaded, loadMore]);
 
+  // 戻り遷移時に保存されたスクロール対象を、リーグ種別が一致する場合だけ受け取る
+  useEffect(() => {
+    const savedId = sessionStorage.getItem("cityleagueResultScrollToId");
+    const savedLeagueType = sessionStorage.getItem("cityleagueResultScrollToLeagueType");
+    if (savedId && savedLeagueType && Number(savedLeagueType) === league_type) {
+      setPendingScrollId(Number(savedId));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 対象カードが描画されるまで自動ロードし、見つかったらスクロール対象として確定する
+  useEffect(() => {
+    if (pendingScrollId === null) return;
+    if (!isInitialLoaded || isLoading) return;
+
+    const found = items.some((item) => item.official_event_id === pendingScrollId);
+    if (found) {
+      scrollToIdRef.current = pendingScrollId;
+      setPendingScrollId(null);
+      sessionStorage.removeItem("cityleagueResultScrollToId");
+      sessionStorage.removeItem("cityleagueResultScrollToLeagueType");
+    } else if (hasMore) {
+      loadMore();
+    } else {
+      // 全件読み込んでも見つからなかった場合は諦める
+      setPendingScrollId(null);
+      sessionStorage.removeItem("cityleagueResultScrollToId");
+      sessionStorage.removeItem("cityleagueResultScrollToLeagueType");
+    }
+  }, [pendingScrollId, isInitialLoaded, isLoading, items, hasMore, loadMore]);
+
+  // 検索が終わった（pendingScrollId が null になった）後にスクロール実行
+  useEffect(() => {
+    if (pendingScrollId !== null) return;
+    const id = scrollToIdRef.current;
+    if (id === null) return;
+    scrollToIdRef.current = null;
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`cityleague-result-${id}`);
+      if (!el) return;
+      const y = el.getBoundingClientRect().top + window.scrollY - 80;
+      window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+    });
+  }, [pendingScrollId]);
+
   const formatDate = (date: Date | string) => {
     const d = toJSTDate(date);
     return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
@@ -208,6 +258,18 @@ export default function CityleagueResults({ league_type }: Props) {
 
   return (
     <div className="flex flex-col items-center space-y-3 pb-3">
+      {/* 対象カードを探している間はオーバーレイでスピナーを表示 */}
+      {pendingScrollId !== null &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            style={{ zIndex: 9999 }}
+            className="fixed inset-0 flex items-center justify-center bg-background/80"
+          >
+            <Spinner size="lg" />
+          </div>,
+          document.body,
+        )}
       {/* スケジュール情報ヘッダー */}
       {!isScheduleInitialized ? (
         <div className="w-full rounded-2xl bg-default-100 px-4 py-4 flex flex-col items-center gap-3">
@@ -254,7 +316,10 @@ export default function CityleagueResults({ league_type }: Props) {
 
       <div className="flex flex-col w-full gap-3">
         {items.map((event_result) => (
-          <div key={event_result.official_event_id}>
+          <div
+            key={event_result.official_event_id}
+            id={`cityleague-result-${event_result.official_event_id}`}
+          >
             <CityleagueResult event_result={event_result} />
           </div>
         ))}

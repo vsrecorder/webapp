@@ -289,7 +289,9 @@ export default function DesignationPanel({ userId, userCreatedAt }: Props) {
                 <span className="text-base font-black">{selected.name}</span>
               </ModalHeader>
               <ModalBody className="pb-6 pt-0 text-center gap-2">
-                <p className="text-sm text-default-600">{selected.description}</p>
+                <p className="text-sm text-default-600 whitespace-pre-line">
+                  {selected.description.replace("を持っており、", "を持っており、\n")}
+                </p>
                 {selected.achieved ? (
                   <span className="text-xs font-bold text-warning">達成済み</span>
                 ) : selected.criteria_type === "unimplemented" ? (

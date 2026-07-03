@@ -189,6 +189,17 @@ export default function CityleagueResult({ event_result }: Props) {
               underline="always"
               href={`/cityleague_results/${event.id}`}
               className="text-xs"
+              onPress={() => {
+                // 個別ページから戻ってきたとき、対象カードまで自動スクロールするための保存
+                sessionStorage.setItem(
+                  "cityleagueResultScrollToId",
+                  String(event_result.official_event_id),
+                );
+                sessionStorage.setItem(
+                  "cityleagueResultScrollToLeagueType",
+                  String(event_result.league_type),
+                );
+              }}
             >
               <span>このイベント結果の詳細ページを見る</span>
             </HeroLink>

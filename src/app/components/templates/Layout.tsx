@@ -5,6 +5,7 @@ import Providers from "@app/components/organisms/Layout/Providers";
 import Header from "@app/components/organisms/Layout/Header";
 import Navigation from "@app/components/organisms/Layout/Navigation";
 import AddToHomeScreenBanner from "@app/components/molecules/PWA/AddToHomeScreenBanner";
+import ServiceWorkerRegister from "@app/components/molecules/PWA/ServiceWorkerRegister";
 
 export default async function TemplateLayout({
   children,
@@ -32,6 +33,7 @@ export default async function TemplateLayout({
       </div>
 
       <AddToHomeScreenBanner />
+      <ServiceWorkerRegister />
     </Providers>
   );
 }

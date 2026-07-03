@@ -13,7 +13,11 @@ import {
 } from "@heroui/react";
 import { LuLock } from "react-icons/lu";
 
-import { DesignationLadderItemType, UserDesignationType } from "@app/types/designation";
+import {
+  DesignationLadderItemType,
+  DesignationRankStatsType,
+  UserDesignationType,
+} from "@app/types/designation";
 import { RANKS, rankForTier, getCurrentSeason, NO_RANK_IMAGE } from "@app/utils/designationRank";
 
 type Props = {
@@ -105,6 +109,7 @@ export default function DesignationPanel({ userId, userCreatedAt }: Props) {
   const [isLoading, setIsLoading] = useState(true);
   const [selected, setSelected] = useState<DesignationLadderItemType | null>(null);
   const [season, setSeason] = useState(getCurrentSeason());
+  const [rankStats, setRankStats] = useState<DesignationRankStatsType | null>(null);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const {
     isOpen: isRankInfoOpen,
@@ -127,9 +132,31 @@ export default function DesignationPanel({ userId, userCreatedAt }: Props) {
       .catch(() => setIsLoading(false));
   }, [userId, season]);
 
+  useEffect(() => {
+    // ランク一覧モーダルを開いたときだけ取得する(通常表示では不要な集計クエリのため)
+    if (!isRankInfoOpen) return;
+
+    fetch(`/api/designations/stats?season=${season}`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setRankStats(d))
+      .catch(() => setRankStats(null));
+  }, [isRankInfoOpen, season]);
+
   function handleSelect(item: DesignationLadderItemType) {
     setSelected(item);
     onOpen();
+  }
+
+  // モンスターボール級以上のユーザー(=いずれかの称号ティアに到達したユーザー)のうち、
+  // 指定ランクに属するユーザーの割合(%)。集計取得前・総数0件の場合は null。
+  function rankPercentage(minTier: number, maxTier: number): number | null {
+    if (!rankStats || rankStats.total_users <= 0) return null;
+
+    const count = rankStats.tiers
+      .filter((t) => t.tier >= minTier && t.tier <= maxTier)
+      .reduce((sum, t) => sum + t.user_count, 0);
+
+    return (count / rankStats.total_users) * 100;
   }
 
   if (isLoading) {
@@ -368,6 +395,12 @@ export default function DesignationPanel({ userId, userCreatedAt }: Props) {
             </div>
 
             {/* ランクの詳細リスト(画像の階段とは別に、名称・対応称号を一覧表示) */}
+            <div className="flex items-baseline justify-between px-1 mb-1.5">
+              <span className="text-[11px] font-black text-default-500">ランク別の在籍割合</span>
+              <span className="text-[9px] text-default-300">
+                モンスターボール級以上のユーザーが対象
+              </span>
+            </div>
             <div className="flex flex-col gap-1.5 w-full">
               {[...RANKS].reverse().map((r) => {
                 const isCurrentRank = rank === r.info;
@@ -375,11 +408,12 @@ export default function DesignationPanel({ userId, userCreatedAt }: Props) {
                   .filter((item) => item.tier >= r.minTier && item.tier <= r.maxTier)
                   .map((item) => `${item.emoji} ${item.name}`)
                   .join("・");
+                const percentage = rankPercentage(r.minTier, r.maxTier);
 
                 return (
                   <div
                     key={r.info.name}
-                    className={`relative flex items-center gap-3 rounded-2xl p-2.5 w-full ${
+                    className={`relative flex flex-col gap-1.5 rounded-2xl p-2.5 w-full ${
                       isCurrentRank ? "bg-warning/15 ring-2 ring-warning" : "bg-default-50"
                     }`}
                   >
@@ -388,22 +422,44 @@ export default function DesignationPanel({ userId, userCreatedAt }: Props) {
                         現在地
                       </span>
                     )}
-                    <div className="relative w-8 h-8 shrink-0 rounded-lg bg-warning/15 p-1">
-                      <Image
-                        src={r.info.image}
-                        alt={r.info.name}
-                        fill
-                        sizes="32px"
-                        className="object-contain"
-                      />
+                    <div className="flex items-center gap-3">
+                      <div className="relative w-8 h-8 shrink-0 rounded-lg bg-warning/15 p-1">
+                        <Image
+                          src={r.info.image}
+                          alt={r.info.name}
+                          fill
+                          sizes="32px"
+                          className="object-contain"
+                        />
+                      </div>
+                      <div className="flex flex-col items-start min-w-0 flex-1">
+                        <span className="text-xs font-black text-default-700">
+                          {r.info.name}
+                        </span>
+                        <span className="text-[10px] text-default-400 truncate">
+                          {tierNames || `Tier ${r.minTier}〜${r.maxTier}`}
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end shrink-0">
+                        <span className="text-[10px] font-bold text-default-400 leading-none">
+                          全体割合
+                        </span>
+                        <span
+                          className={`text-sm font-black tabular-nums ${
+                            isCurrentRank ? "text-warning" : "text-default-600"
+                          }`}
+                        >
+                          {percentage !== null ? `${percentage.toFixed(1)}%` : "—"}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex flex-col items-start min-w-0">
-                      <span className="text-xs font-black text-default-700">
-                        {r.info.name}
-                      </span>
-                      <span className="text-[10px] text-default-400 truncate">
-                        {tierNames || `Tier ${r.minTier}〜${r.maxTier}`}
-                      </span>
+                    <div className="w-full h-1.5 rounded-full bg-default-200 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${
+                          isCurrentRank ? "bg-warning" : "bg-default-300"
+                        }`}
+                        style={{ width: `${percentage !== null ? Math.min(100, percentage) : 0}%` }}
+                      />
                     </div>
                   </div>
                 );

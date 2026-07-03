@@ -20,3 +20,15 @@ export type UserDesignationType = {
   current: DesignationType | null;
   ladder: DesignationLadderItemType[];
 };
+
+export type DesignationTierStatType = {
+  tier: number;
+  user_count: number;
+};
+
+export type DesignationRankStatsType = {
+  season: string;
+  // total_users はいずれかの称号ティアに到達した(=称号なしを除く)ユーザーの合計数
+  total_users: number;
+  tiers: DesignationTierStatType[];
+};

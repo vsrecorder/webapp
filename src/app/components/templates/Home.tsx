@@ -1,6 +1,14 @@
 import Image from "next/image";
 
-import { LuFilePen, LuLayers, LuFileText, LuTrophy, LuMoon } from "react-icons/lu";
+import {
+  LuFilePen,
+  LuLayers,
+  LuFileText,
+  LuTrophy,
+  LuMoon,
+  LuBadgeJapaneseYen,
+  LuMegaphoneOff,
+} from "react-icons/lu";
 
 import Footer from "@app/components/organisms/Layout/Footer";
 import CityleagueEvents from "@app/components/organisms/Cityleague/CityleagueEvents";
@@ -211,43 +219,52 @@ export default async function TemplateHome() {
 
   return (
     <>
-      {/* ヒーローセクション：グラデーション背景で全幅に広げる（-mt-14でmainのpt-14分も覆い、ヘッダー裏の白背景を隠す） */}
-      <section className="-mx-2 -mt-14 bg-linear-to-br from-blue-600 via-indigo-600 to-violet-700 text-white px-6 pt-22 pb-14 flex flex-col items-center gap-5">
-        <div className="w-20 h-20 relative">
+      {/* ヒーローセクション：グラデーション背景で全幅に広げる（-mt-14でmainのpt-14分も覆い、ヘッダー裏の白背景を隠す。lg以上はヘッダーがh-20になる分-mt-20で揃える） */}
+      <section className="-mx-2 -mt-14 lg:-mt-20 bg-linear-to-br from-blue-600 via-indigo-600 to-violet-700 text-white px-6 pt-22 pb-14 lg:px-8 lg:pt-28 lg:pb-20 flex flex-col items-center gap-5 lg:gap-7">
+        <div className="w-20 h-20 lg:w-28 lg:h-28 relative">
           <Image
             src="/images/icon.png"
             alt="バトレコ"
             fill
             priority
-            sizes="80px"
+            sizes="(min-width: 1024px) 112px, 80px"
             className="object-contain rounded-2xl shadow-lg"
           />
         </div>
 
-        <div className="flex flex-col items-center gap-2 text-center">
-          <h1 className="text-3xl font-black tracking-tight leading-snug">
+        <div className="flex flex-col items-center gap-2 lg:gap-4 text-center">
+          <h1 className="text-3xl lg:text-6xl font-black tracking-tight leading-snug lg:leading-tight">
             ポケカの対戦を、
             <br />
             記録しよう。
           </h1>
-          <p className="text-sm text-white/80 max-w-s leading-relaxed pt-1">
+          <p className="text-sm lg:text-lg text-white/80 max-w-s lg:max-w-xl leading-relaxed pt-1">
             対戦記録・デッキ管理・シティリーグの結果閲覧まで。
             <br />
             ポケカプレイヤーのための対戦記録サービス。
           </p>
         </div>
 
+        <div className="flex items-center gap-3 lg:gap-4 flex-wrap justify-center">
+          <span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-5 py-2 lg:px-6 lg:py-2.5 text-sm lg:text-base font-bold">
+            <LuMegaphoneOff className="text-base lg:text-lg shrink-0" />
+            広告なし
+          </span>
+          <span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-5 py-2 lg:px-6 lg:py-2.5 text-sm lg:text-base font-bold">
+            <LuBadgeJapaneseYen className="text-base lg:text-lg shrink-0" />
+            完全無料
+          </span>
+        </div>
+
         {env && (
-          <div className="inline-flex items-center gap-2 rounded-full bg-white/20 backdrop-blur-sm px-4 py-1.5 text-xs font-bold">
-            <span className="w-2 h-2 rounded-full bg-green-300 animate-pulse shrink-0" />
+          <div className="inline-flex items-center gap-2 rounded-full bg-white/20 backdrop-blur-sm px-4 py-1.5 lg:px-5 lg:py-2 text-xs lg:text-sm font-bold">
+            <span className="w-2 h-2 lg:w-2.5 lg:h-2.5 rounded-full bg-green-300 animate-pulse shrink-0" />
             現在の対戦環境：『{env.title}』
           </div>
         )}
-
-        <p className="text-xs text-white/50 pt-1">無料でご利用いただけます。</p>
       </section>
 
-      <div className="flex flex-col gap-16 max-w-2xl mx-auto w-full pt-14">
+      <div className="flex flex-col gap-16 lg:gap-24 max-w-2xl lg:max-w-6xl xl:max-w-7xl mx-auto w-full pt-14 lg:pt-20 lg:px-8">
         {/* 統計カウンター */}
         {statsItems.length > 0 && (
           <section className="flex flex-col gap-3">
@@ -255,13 +272,13 @@ export default async function TemplateHome() {
               {statsItems.map((item) => (
                 <div
                   key={item.label}
-                  className="flex flex-col items-center gap-1 px-4 py-2"
+                  className="flex flex-col items-center gap-1 lg:gap-2 px-4 py-2 lg:px-8 lg:py-4"
                 >
-                  <span className="text-3xl font-black tabular-nums text-foreground">
+                  <span className="text-3xl lg:text-5xl font-black tabular-nums text-foreground">
                     <StatsCounter value={item.value} />
-                    <span className="text-xl text-primary">+</span>
+                    <span className="text-xl lg:text-3xl text-primary">+</span>
                   </span>
-                  <span className="text-xs text-default-500">{item.label}</span>
+                  <span className="text-xs lg:text-sm text-default-500">{item.label}</span>
                 </div>
               ))}
             </div>
@@ -271,42 +288,42 @@ export default async function TemplateHome() {
         {/* できること別の画面イメージ */}
         <section className="flex flex-col gap-4">
           <div className="flex flex-col items-center gap-1 text-center">
-            <span className="text-xs font-bold text-primary uppercase tracking-widest">
+            <span className="text-xs lg:text-sm font-bold text-primary uppercase tracking-widest">
               FEATURES
             </span>
-            <h2 className="text-2xl font-black">バトレコでできること</h2>
+            <h2 className="text-2xl lg:text-4xl font-black">バトレコでできること</h2>
           </div>
 
-          <div className="flex flex-col gap-14 pt-4">
+          <div className="flex flex-col gap-14 lg:gap-24 pt-4 lg:pt-8">
             {features.map((feature, index) => (
               <div
                 key={index}
-                className={`flex flex-col items-center gap-8 lg:gap-12 lg:flex-row ${
+                className={`flex flex-col items-center gap-8 lg:gap-16 lg:flex-row ${
                   index % 2 === 1 ? "lg:flex-row-reverse" : ""
                 }`}
               >
                 {/* 機能の説明 */}
-                <div className="flex flex-1 flex-col items-center gap-3 text-center lg:items-start lg:text-left">
-                  <span className="flex items-center justify-center w-12 h-12 rounded-2xl bg-primary/10 text-2xl text-primary">
+                <div className="flex flex-1 flex-col items-center gap-3 lg:gap-4 text-center lg:items-start lg:text-left">
+                  <span className="flex items-center justify-center w-12 h-12 lg:w-16 lg:h-16 rounded-2xl bg-primary/10 text-2xl lg:text-3xl text-primary">
                     {feature.icon}
                   </span>
-                  <div className="flex flex-col gap-1.5">
-                    <h3 className="text-xl font-black">{feature.title}</h3>
-                    <p className="text-sm text-default-500 leading-relaxed max-w-xs">
+                  <div className="flex flex-col gap-1.5 lg:gap-2">
+                    <h3 className="text-xl lg:text-2xl font-black">{feature.title}</h3>
+                    <p className="text-sm lg:text-base text-default-500 leading-relaxed max-w-xs lg:max-w-sm">
                       {feature.description}
                     </p>
                   </div>
                 </div>
 
                 {/* 画面イメージ */}
-                <div className="flex flex-1 flex-wrap justify-center items-end gap-4">
+                <div className="flex flex-1 flex-wrap justify-center items-end gap-4 lg:gap-6">
                   {feature.images.map((img) => (
                     <PhoneMock
                       key={img.src}
                       src={img.src}
                       alt={feature.title}
                       rotateClass={img.rotateClass}
-                      sizeClass={feature.images.length > 1 ? "w-40" : "w-44"}
+                      sizeClass={feature.images.length > 1 ? "w-40 lg:w-56" : "w-44 lg:w-64"}
                     />
                   ))}
                 </div>
@@ -316,31 +333,31 @@ export default async function TemplateHome() {
         </section>
 
         {/* かんたん3ステップ */}
-        <section className="rounded-3xl bg-linear-to-br from-blue-50 via-indigo-50 to-violet-50 dark:from-blue-950/50 dark:via-indigo-950/40 dark:to-violet-950/50 px-6 py-8 flex flex-col gap-4">
+        <section className="rounded-3xl bg-linear-to-br from-blue-50 via-indigo-50 to-violet-50 dark:from-blue-950/50 dark:via-indigo-950/40 dark:to-violet-950/50 px-6 py-8 lg:px-14 lg:py-14 flex flex-col gap-4">
           <div className="flex flex-col items-center gap-1 text-center">
-            <span className="text-xs font-bold text-indigo-500 dark:text-indigo-400 uppercase tracking-widest">
+            <span className="text-xs lg:text-sm font-bold text-indigo-500 dark:text-indigo-400 uppercase tracking-widest">
               HOW TO USE
             </span>
-            <h2 className="text-2xl font-black">かんたん3ステップ</h2>
+            <h2 className="text-2xl lg:text-4xl font-black">かんたん3ステップ</h2>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-6 sm:gap-2 pt-4">
+          <div className="flex flex-col sm:flex-row gap-6 sm:gap-2 lg:gap-8 pt-4 lg:pt-8">
             {steps.map((step, index) => (
               <div
                 key={step.no}
-                className="flex sm:flex-col sm:items-center gap-4 sm:gap-3 flex-1 sm:text-center"
+                className="flex sm:flex-col sm:items-center gap-4 sm:gap-3 lg:gap-4 flex-1 sm:text-center"
               >
-                <div className="relative flex items-center justify-center shrink-0 w-12 h-12 rounded-full bg-linear-to-br from-blue-500 to-violet-600 text-white font-black text-lg shadow-md">
+                <div className="relative flex items-center justify-center shrink-0 w-12 h-12 lg:w-16 lg:h-16 rounded-full bg-linear-to-br from-blue-500 to-violet-600 text-white font-black text-lg lg:text-2xl shadow-md">
                   {step.no}
                   {index < steps.length - 1 && (
-                    <span className="hidden sm:block absolute -right-4 top-1/2 -translate-y-1/2 text-indigo-300 dark:text-indigo-600 text-lg font-black">
+                    <span className="hidden sm:block absolute -right-4 lg:-right-6 top-1/2 -translate-y-1/2 text-indigo-300 dark:text-indigo-600 text-lg lg:text-2xl font-black">
                       ›
                     </span>
                   )}
                 </div>
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-sm font-bold">{step.title}</span>
-                  <span className="text-xs text-default-500 leading-relaxed">
+                <div className="flex flex-col gap-0.5 lg:gap-1">
+                  <span className="text-sm lg:text-lg font-bold">{step.title}</span>
+                  <span className="text-xs lg:text-sm text-default-500 leading-relaxed">
                     {step.description}
                   </span>
                 </div>
@@ -353,11 +370,11 @@ export default async function TemplateHome() {
         {cs && (
           <section className="flex flex-col gap-4">
             <div className="flex flex-col items-center gap-1 text-center">
-              <span className="text-xs font-bold text-primary uppercase tracking-widest">
+              <span className="text-xs lg:text-sm font-bold text-primary uppercase tracking-widest">
                 TODAY
               </span>
-              <h2 className="text-2xl font-black">{cs.title} 開催中！</h2>
-              <p className="text-sm text-default-500">本日開催のシティリーグ会場</p>
+              <h2 className="text-2xl lg:text-4xl font-black">{cs.title} 開催中！</h2>
+              <p className="text-sm lg:text-base text-default-500">本日開催のシティリーグ会場</p>
             </div>
             <CityleagueEvents />
           </section>

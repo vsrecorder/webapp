@@ -54,7 +54,7 @@ function HeaderShell({
   hasSidebar?: boolean;
 }) {
   return (
-    <header className="fixed z-50 top-0 left-0 right-0 h-14 bg-linear-to-br from-blue-600/90 via-indigo-600/90 to-violet-700/90 backdrop-blur-md border-b border-white/15">
+    <header className="fixed z-50 top-0 left-0 right-0 h-14 lg:h-20 bg-linear-to-br from-blue-600/90 via-indigo-600/90 to-violet-700/90 backdrop-blur-md border-b border-white/15">
       <div
         className={`max-w-7xl mx-auto flex items-center justify-between px-4 h-full ${hasSidebar ? "lg:pl-56" : ""}`}
       >
@@ -79,12 +79,12 @@ function getEnvDotColor(toDate: Date): string {
 function Logo() {
   return (
     <Link href="/" className="flex items-center gap-2.5">
-      <div className="w-8 h-8 relative shrink-0">
+      <div className="w-8 h-8 lg:w-10 lg:h-10 relative shrink-0">
         <Image
           src="/images/icon.png"
           alt="バトレコ"
           fill
-          sizes="32px"
+          sizes="(min-width: 1024px) 40px, 32px"
           className="object-contain rounded-lg"
         />
       </div>

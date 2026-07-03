@@ -26,14 +26,14 @@ export default function PhoneMock({
         type="button"
         onClick={onOpen}
         aria-label={`${alt}の画像を拡大表示`}
-        className={`${sizeClass} shrink-0 cursor-pointer rounded-4xl border-[6px] border-neutral-800 bg-neutral-800 shadow-2xl overflow-hidden dark:border-neutral-700 dark:bg-neutral-700 transition-transform hover:scale-105 ${rotateClass}`}
+        className={`${sizeClass} shrink-0 cursor-pointer rounded-4xl border-[6px] border-neutral-800 bg-neutral-800 shadow-2xl overflow-hidden dark:border-neutral-700 dark:bg-neutral-700 transition-transform hover:scale-105 ${rotateClass} lg:rotate-0`}
       >
         <div className="relative aspect-864/1920 w-full overflow-hidden rounded-3xl bg-white">
           <Image
             src={src}
             alt={alt}
             fill
-            sizes="176px"
+            sizes="(min-width: 1024px) 256px, 176px"
             className="object-cover object-top"
           />
         </div>

@@ -25,7 +25,7 @@ export default async function TemplateLayout({
           <Header />
 
           {/* デスクトップ(lg以上)はタブレット(md)より左右余白を絞り、コンテンツ側で幅を広く使えるようにする */}
-          <main className={`app-dot-bg flex-1 p-2 pt-14 lg:pt-14 lg:pb-6 min-h-svh w-full ${session ? "md:px-32 lg:px-12 xl:px-20 2xl:px-32 pb-14" : "pb-2"}`}>
+          <main className={`app-dot-bg flex-1 p-2 pt-14 lg:pt-20 lg:pb-6 min-h-svh w-full ${session ? "md:px-32 lg:px-12 xl:px-20 2xl:px-32 pb-14" : "pb-2"}`}>
             {children}
           </main>
         </div>

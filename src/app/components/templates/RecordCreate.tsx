@@ -1498,7 +1498,7 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                                   登録日：{option.created_at}
                                 </span>
 
-                                <div className="flex items-center gap-2 min-w-0">
+                                <div className="pl-0.5 flex items-center gap-2 min-w-0">
                                   <DeckSprites
                                     sprites={option.pokemon_sprites}
                                     sizeClass="w-8 h-8"
@@ -1535,7 +1535,7 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                           );
                         }
                         return (
-                          <div className="flex items-center gap-2 text-sm min-w-0">
+                          <div className="pl-1 flex items-center gap-2 text-sm min-w-0">
                             <DeckSprites
                               sprites={option.pokemon_sprites}
                               sizeClass="w-7 h-7"

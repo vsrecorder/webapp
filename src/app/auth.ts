@@ -26,8 +26,12 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
   interface JWT {
     uid: string;
+    userCheckedAt?: number;
   }
 }
+
+// 退会済みユーザーのセッションを検知するためのキャッシュ有効期間（ミリ秒）
+const USER_CHECK_CACHE_MS = 5 * 60 * 1000;
 
 type UserType = {
   name: string;
@@ -149,6 +153,35 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.uid = user.id;
+        token.userCheckedAt = Date.now();
+        return token;
+      }
+
+      // 一定時間ごとにユーザーが退会済みでないかバックエンドに確認する。
+      // 退会済みだった場合はnullを返してセッションを無効化し、
+      // 他端末で退会した際にログイン済み状態が残り続けるのを防ぐ。
+      const isCacheExpired =
+        Date.now() - (token.userCheckedAt ?? 0) > USER_CHECK_CACHE_MS;
+
+      if (isCacheExpired && token.uid) {
+        try {
+          const domain = process.env.VSRECORDER_DOMAIN;
+          const ret = await fetch(`https://` + domain + `/api/v1beta/users/` + token.uid, {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
+
+          if (ret.status === 404) {
+            return null;
+          }
+
+          token.userCheckedAt = Date.now();
+        } catch (error) {
+          // バックエンドへの疎通エラー時はセッションを維持する（フェイルオープン）
+          console.error("Failed to verify user existence:", error);
+        }
       }
 
       return token;

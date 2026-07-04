@@ -65,6 +65,11 @@ export default function DashboardSections({ pinned, sections, trailing }: Props)
 
   const [order, setOrder] = useState<string[]>(defaultOrder);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
+  // 保存済みのカスタムレイアウトは localStorage からしか読めずSSR/初回描画時点では
+  // 分からないため、読み込み前にデフォルト順で描画してしまうとその直後に保存済みの
+  // 順序へ切り替わり一瞬ちらつく。読み込みが終わるまではセクション本体を描画せず、
+  // ちらつきを回避する。
+  const [isLayoutReady, setIsLayoutReady] = useState(false);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   const router = useRouter();
@@ -75,6 +80,7 @@ export default function DashboardSections({ pinned, sections, trailing }: Props)
     const layout = loadLayout(sections.map((s) => s.id));
     setOrder(layout.order);
     setHidden(new Set(layout.hidden));
+    setIsLayoutReady(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -131,13 +137,20 @@ export default function DashboardSections({ pinned, sections, trailing }: Props)
       )}
 
       <div className="lg:columns-2 lg:gap-6">
-        {orderedSections
-          .filter((s) => !hidden.has(s.id))
-          .map((s) => (
-            <div key={s.id} className="mb-3 lg:mb-6 lg:break-inside-avoid-column">
-              {s.node}
-            </div>
-          ))}
+        {isLayoutReady
+          ? orderedSections
+              .filter((s) => !hidden.has(s.id))
+              .map((s) => (
+                <div key={s.id} className="mb-3 lg:mb-6 lg:break-inside-avoid-column">
+                  {s.node}
+                </div>
+              ))
+          : sections.map((s) => (
+              <div
+                key={s.id}
+                className="mb-3 lg:mb-6 lg:break-inside-avoid-column h-24 rounded-2xl bg-default-100 animate-pulse"
+              />
+            ))}
       </div>
 
       {trailing && (

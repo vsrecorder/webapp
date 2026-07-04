@@ -7,31 +7,29 @@ import UserIdentityCard from "@app/components/organisms/User/UserIdentityCard";
 import PlayerLinkCard from "@app/components/organisms/User/PlayerLinkCard";
 import BadgeGallery from "@app/components/organisms/Badge/BadgeGallery";
 import DesignationPanel from "@app/components/organisms/Designation/DesignationPanel";
-import { UserType } from "@app/types/user";
+import { ChampionshipSeriesType } from "@app/types/championship_series";
 
 type Props = {
   id: string;
 };
 
 export default function TemplateUser({ id }: Props) {
-  const [user, setUser] = useState<UserType | null>(null);
+  const [championshipSeries, setChampionshipSeries] = useState<ChampionshipSeriesType[]>([]);
 
   useEffect(() => {
-    fetch(`/api/users/${id}`, { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => setUser(data))
-      .catch(() => setUser(null));
-  }, [id]);
-
-  const userCreatedAt = user?.created_at != null ? String(user.created_at) : undefined;
+    fetch(`/api/championship_series`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => setChampionshipSeries(data))
+      .catch(() => setChampionshipSeries([]));
+  }, []);
 
   return (
     <>
       <div className="pt-2 max-w-2xl mx-auto w-full flex flex-col gap-3">
         <UserIdentityCard userId={id} />
         <PlayerLinkCard />
-        <DesignationPanel userId={id} userCreatedAt={userCreatedAt} />
-        <BadgeGallery userId={id} userCreatedAt={userCreatedAt} />
+        <DesignationPanel userId={id} championshipSeries={championshipSeries} />
+        <BadgeGallery userId={id} championshipSeries={championshipSeries} />
       </div>
 
       <Input

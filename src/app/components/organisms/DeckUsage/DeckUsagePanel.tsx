@@ -14,8 +14,10 @@ import { Card, CardBody, Chip, Image, Tab, Tabs } from "@heroui/react";
 
 import { EnvironmentType } from "@app/types/environment";
 import { StandardRegulationType } from "@app/types/standard_regulation";
+import { ChampionshipSeriesType } from "@app/types/championship_series";
 import { spriteScaleClass } from "@app/utils/sprite";
 import { DeckUsageItemType, DeckUsageStatType } from "@app/types/deck_usage_stat";
+import { seasonOptionsFromChampionshipSeries, currentSeasonValue } from "@app/utils/season";
 
 ChartJS.register(ArcElement, ChartTooltip);
 
@@ -26,6 +28,7 @@ type Props = {
   environments: EnvironmentType[];
   currentEnvironmentId?: string;
   standardRegulations: StandardRegulationType[];
+  championshipSeries: ChampionshipSeriesType[];
   userCreatedAt?: string;
 };
 
@@ -55,13 +58,6 @@ function getCurrentYearMonth(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 }
 
-function getCurrentSeason(): string {
-  const now = new Date();
-  // 9月(month=8)以降なら翌年がシーズン開始年、それ以前なら当年
-  const year = now.getMonth() >= 8 ? now.getFullYear() + 1 : now.getFullYear();
-  return String(year);
-}
-
 // 勝率に応じた色分け（OpponentDeckUsagePanelの勝率表示と同じ閾値に合わせる）
 function winRateChipColor(rate: number): "success" | "default" | "warning" | "danger" {
   if (rate >= 0.55) return "success";
@@ -75,21 +71,6 @@ function winRateTextColor(rate: number): string {
   if (rate >= 0.45) return "text-default-500";
   if (rate >= 0.4) return "text-warning";
   return "text-danger";
-}
-
-function generateSeasonOptions(createdAt?: Date): { value: string; label: string }[] {
-  const now = new Date();
-  const currentSeason = now.getMonth() >= 8 ? now.getFullYear() + 1 : now.getFullYear();
-  const firstSeason = createdAt
-    ? createdAt.getMonth() >= 8
-      ? createdAt.getFullYear() + 1
-      : createdAt.getFullYear()
-    : currentSeason;
-  const options: { value: string; label: string }[] = [];
-  for (let s = currentSeason; s >= firstSeason; s--) {
-    options.push({ value: String(s), label: `${s}シーズン` });
-  }
-  return options;
 }
 
 function generateYearMonthOptions(createdAt?: Date) {
@@ -175,6 +156,7 @@ export default function DeckUsagePanel({
   environments,
   currentEnvironmentId,
   standardRegulations,
+  championshipSeries,
   userCreatedAt,
 }: Props) {
   const [filterMode, setFilterMode] = useState<FilterMode>("environment");
@@ -182,7 +164,7 @@ export default function DeckUsagePanel({
   const [environmentId, setEnvironmentId] = useState<string>(
     currentEnvironmentId ?? environments[0]?.id ?? "",
   );
-  const [season, setSeason] = useState<string>(getCurrentSeason);
+  const [season, setSeason] = useState<string>(() => currentSeasonValue(championshipSeries));
   const [regulationId, setRegulationId] = useState<string>(
     standardRegulations[0]?.id ?? "",
   );
@@ -196,7 +178,7 @@ export default function DeckUsagePanel({
 
   const createdAtDate = userCreatedAt != null ? new Date(userCreatedAt) : undefined;
   const yearMonthOptions = generateYearMonthOptions(createdAtDate);
-  const seasonOptions = generateSeasonOptions(createdAtDate);
+  const seasonOptions = seasonOptionsFromChampionshipSeries(championshipSeries);
 
   useEffect(() => {
     let cancelled = false;

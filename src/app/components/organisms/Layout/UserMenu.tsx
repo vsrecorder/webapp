@@ -32,7 +32,7 @@ import { UserType } from "@app/types/user";
 import { UserDesignationType } from "@app/types/designation";
 import { useUserAvatar } from "@app/contexts/UserAvatarContext";
 import { CUSTOMIZE_QUERY_PARAM } from "@app/components/organisms/Dashboard/DashboardSections";
-import { rankForTier, getCurrentSeason, NO_RANK_IMAGE } from "@app/utils/designationRank";
+import { rankForTier, NO_RANK_IMAGE } from "@app/utils/designationRank";
 
 const CONTACT_FORM_URL = "https://forms.gle/pN8vUF9sQMPnZWc5A";
 
@@ -49,7 +49,7 @@ export default function UserMenu({ user }: Props) {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   useEffect(() => {
-    fetch(`/api/users/${user.id}/designation?season=${getCurrentSeason()}`, {
+    fetch(`/api/users/${user.id}/designation`, {
       cache: "no-store",
     })
       .then((r) => (r.ok ? r.json() : null))

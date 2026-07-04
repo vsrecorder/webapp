@@ -18,32 +18,14 @@ import {
   DesignationRankStatsType,
   UserDesignationType,
 } from "@app/types/designation";
-import {
-  RANKS,
-  rankForTier,
-  getCurrentSeason,
-  NO_RANK_IMAGE,
-} from "@app/utils/designationRank";
+import { ChampionshipSeriesType } from "@app/types/championship_series";
+import { RANKS, rankForTier, NO_RANK_IMAGE } from "@app/utils/designationRank";
+import { seasonOptionsFromChampionshipSeries, currentSeasonValue } from "@app/utils/season";
 
 type Props = {
   userId: string;
-  userCreatedAt?: string;
+  championshipSeries: ChampionshipSeriesType[];
 };
-
-function generateSeasonOptions(createdAt?: Date): { value: string; label: string }[] {
-  const now = new Date();
-  const currentSeason = now.getMonth() >= 8 ? now.getFullYear() + 1 : now.getFullYear();
-  const firstSeason = createdAt
-    ? createdAt.getMonth() >= 8
-      ? createdAt.getFullYear() + 1
-      : createdAt.getFullYear()
-    : currentSeason;
-  const options: { value: string; label: string }[] = [];
-  for (let s = currentSeason; s >= firstSeason; s--) {
-    options.push({ value: String(s), label: `${s}シーズン` });
-  }
-  return options;
-}
 
 // 称号ロードマップの1行あたりの表示数。この数を境に折り返し、蛇行(スネーク)状に並べる。
 const LADDER_ROW_SIZE = 5;
@@ -132,11 +114,11 @@ function DesignationTile({
   );
 }
 
-export default function DesignationPanel({ userId, userCreatedAt }: Props) {
+export default function DesignationPanel({ userId, championshipSeries }: Props) {
   const [data, setData] = useState<UserDesignationType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selected, setSelected] = useState<DesignationLadderItemType | null>(null);
-  const [season, setSeason] = useState(getCurrentSeason());
+  const [season, setSeason] = useState(() => currentSeasonValue(championshipSeries));
   const [rankStats, setRankStats] = useState<DesignationRankStatsType | null>(null);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const {
@@ -145,9 +127,7 @@ export default function DesignationPanel({ userId, userCreatedAt }: Props) {
     onOpenChange: onRankInfoOpenChange,
   } = useDisclosure();
 
-  const seasonOptions = generateSeasonOptions(
-    userCreatedAt ? new Date(userCreatedAt) : undefined,
-  );
+  const seasonOptions = seasonOptionsFromChampionshipSeries(championshipSeries);
 
   useEffect(() => {
     setIsLoading(true);

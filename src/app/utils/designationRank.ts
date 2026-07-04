@@ -40,10 +40,3 @@ export function rankForTier(tier: number): RankInfo | null {
 
 // 称号未到達の場合に表示する画像
 export const NO_RANK_IMAGE = "/images/premier-ball.png";
-
-export function getCurrentSeason(): string {
-  const now = new Date();
-  // 9月(month=8)以降なら翌年がシーズン開始年、それ以前なら当年
-  const year = now.getMonth() >= 8 ? now.getFullYear() + 1 : now.getFullYear();
-  return String(year);
-}

@@ -4,15 +4,17 @@ import { useEffect, useState, Fragment } from "react";
 import { Card, CardBody, useDisclosure } from "@heroui/react";
 
 import { UserBadgeType } from "@app/types/badge";
+import { ChampionshipSeriesType } from "@app/types/championship_series";
 import {
   BadgeDetailModal,
   BadgeTile,
   BadgeTileSkeleton,
 } from "@app/components/organisms/Badge/badgeUi";
+import { seasonOptionsFromChampionshipSeries, currentSeasonValue } from "@app/utils/season";
 
 type Props = {
   userId: string;
-  userCreatedAt?: string;
+  championshipSeries: ChampionshipSeriesType[];
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -50,28 +52,6 @@ function subgroupByCriteriaType(
       (a, b) => a.criteria_value - b.criteria_value,
     ),
   }));
-}
-
-function getCurrentSeason(): string {
-  const now = new Date();
-  // 9月(month=8)以降なら翌年がシーズン開始年、それ以前なら当年
-  const year = now.getMonth() >= 8 ? now.getFullYear() + 1 : now.getFullYear();
-  return String(year);
-}
-
-function generateSeasonOptions(createdAt?: Date): { value: string; label: string }[] {
-  const now = new Date();
-  const currentSeason = now.getMonth() >= 8 ? now.getFullYear() + 1 : now.getFullYear();
-  const firstSeason = createdAt
-    ? createdAt.getMonth() >= 8
-      ? createdAt.getFullYear() + 1
-      : createdAt.getFullYear()
-    : currentSeason;
-  const options: { value: string; label: string }[] = [];
-  for (let s = currentSeason; s >= firstSeason; s--) {
-    options.push({ value: String(s), label: `${s}シーズン` });
-  }
-  return options;
 }
 
 // マイルストーン・週次ストリークのように「易→難」の順で1本道になっているバッジ群を、
@@ -123,16 +103,14 @@ function BadgeFlowRowSkeleton({ count }: { count: number }) {
   );
 }
 
-export default function BadgeGallery({ userId, userCreatedAt }: Props) {
+export default function BadgeGallery({ userId, championshipSeries }: Props) {
   const [badges, setBadges] = useState<UserBadgeType[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedBadge, setSelectedBadge] = useState<UserBadgeType | null>(null);
-  const [season, setSeason] = useState(getCurrentSeason());
+  const [season, setSeason] = useState(() => currentSeasonValue(championshipSeries));
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
-  const seasonOptions = generateSeasonOptions(
-    userCreatedAt ? new Date(userCreatedAt) : undefined,
-  );
+  const seasonOptions = seasonOptionsFromChampionshipSeries(championshipSeries);
 
   function handleSelect(badge: UserBadgeType) {
     setSelectedBadge(badge);

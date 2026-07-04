@@ -8,7 +8,9 @@ import UserStatPanelSkeleton from "@app/components/organisms/UserStat/Skeleton/U
 
 import { EnvironmentType } from "@app/types/environment";
 import { StandardRegulationType } from "@app/types/standard_regulation";
+import { ChampionshipSeriesType } from "@app/types/championship_series";
 import { UserStatType } from "@app/types/user_stat";
+import { seasonOptionsFromChampionshipSeries, currentSeasonValue } from "@app/utils/season";
 
 type FilterMode = "month" | "environment" | "season" | "regulation";
 
@@ -17,34 +19,13 @@ type Props = {
   environments: EnvironmentType[];
   currentEnvironmentId?: string;
   standardRegulations: StandardRegulationType[];
+  championshipSeries: ChampionshipSeriesType[];
   userCreatedAt?: string;
 };
 
 function getCurrentYearMonth(): string {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-}
-
-function getCurrentSeason(): string {
-  const now = new Date();
-  // 9月(month=8)以降なら翌年がシーズン開始年、それ以前なら当年
-  const year = now.getMonth() >= 8 ? now.getFullYear() + 1 : now.getFullYear();
-  return String(year);
-}
-
-function generateSeasonOptions(createdAt?: Date): { value: string; label: string }[] {
-  const now = new Date();
-  const currentSeason = now.getMonth() >= 8 ? now.getFullYear() + 1 : now.getFullYear();
-  const firstSeason = createdAt
-    ? createdAt.getMonth() >= 8
-      ? createdAt.getFullYear() + 1
-      : createdAt.getFullYear()
-    : currentSeason;
-  const options: { value: string; label: string }[] = [];
-  for (let s = currentSeason; s >= firstSeason; s--) {
-    options.push({ value: String(s), label: `${s}シーズン` });
-  }
-  return options;
 }
 
 function generateYearMonthOptions(createdAt?: Date) {
@@ -119,6 +100,7 @@ export default function UserStatPanel({
   environments,
   currentEnvironmentId,
   standardRegulations,
+  championshipSeries,
   userCreatedAt,
 }: Props) {
   const [filterMode, setFilterMode] = useState<FilterMode>("environment");
@@ -126,7 +108,7 @@ export default function UserStatPanel({
   const [environmentId, setEnvironmentId] = useState<string>(
     currentEnvironmentId ?? environments[0]?.id ?? "",
   );
-  const [season, setSeason] = useState<string>(getCurrentSeason);
+  const [season, setSeason] = useState<string>(() => currentSeasonValue(championshipSeries));
   const [regulationId, setRegulationId] = useState<string>(
     standardRegulations[0]?.id ?? "",
   );
@@ -135,7 +117,7 @@ export default function UserStatPanel({
 
   const createdAtDate = userCreatedAt != null ? new Date(userCreatedAt) : undefined;
   const yearMonthOptions = generateYearMonthOptions(createdAtDate);
-  const seasonOptions = generateSeasonOptions(createdAtDate);
+  const seasonOptions = seasonOptionsFromChampionshipSeries(championshipSeries);
 
   useEffect(() => {
     let cancelled = false;

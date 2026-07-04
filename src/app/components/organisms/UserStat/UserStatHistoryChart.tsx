@@ -16,6 +16,8 @@ import { Card, CardBody } from "@heroui/react";
 import { UserStatHistoryType, UserStatMonthlyType } from "@app/types/user_stat_history";
 import { DeckUsageItemType, DeckUsageStatType } from "@app/types/deck_usage_stat";
 import { DeckGetResponseType } from "@app/types/deck";
+import { ChampionshipSeriesType } from "@app/types/championship_series";
+import { seasonOptionsFromChampionshipSeries, currentSeasonValue } from "@app/utils/season";
 
 ChartJS.register(
   CategoryScale,
@@ -30,29 +32,8 @@ type PeriodMode = "3months" | "6months" | "current_season" | "select_season";
 
 type Props = {
   userId: string;
-  userCreatedAt?: string;
+  championshipSeries: ChampionshipSeriesType[];
 };
-
-function getCurrentSeasonYear(): number {
-  const now = new Date();
-  // 9月(month=8)以降なら翌年がシーズン開始年、それ以前なら当年
-  return now.getMonth() >= 8 ? now.getFullYear() + 1 : now.getFullYear();
-}
-
-function generateSeasonOptions(createdAt?: Date): { value: string; label: string }[] {
-  const now = new Date();
-  const currentSeason = now.getMonth() >= 8 ? now.getFullYear() + 1 : now.getFullYear();
-  const firstSeason = createdAt
-    ? createdAt.getMonth() >= 8
-      ? createdAt.getFullYear() + 1
-      : createdAt.getFullYear()
-    : currentSeason;
-  const options: { value: string; label: string }[] = [];
-  for (let s = currentSeason; s >= firstSeason; s--) {
-    options.push({ value: String(s), label: `${s}シーズン` });
-  }
-  return options;
-}
 
 function formatXLabel(ym: string, hasMultipleYears: boolean): string {
   const [year, month] = ym.split("-");
@@ -66,9 +47,11 @@ function formatTooltipMonth(ym: string): string {
   return `${year}年${parseInt(month)}月`;
 }
 
-export default function UserStatHistoryChart({ userId, userCreatedAt }: Props) {
+export default function UserStatHistoryChart({ userId, championshipSeries }: Props) {
   const [periodMode, setPeriodMode] = useState<PeriodMode>("3months");
-  const [seasonYear, setSeasonYear] = useState<string>(String(getCurrentSeasonYear()));
+  const [seasonYear, setSeasonYear] = useState<string>(() =>
+    currentSeasonValue(championshipSeries),
+  );
   const [deckId, setDeckId] = useState<string>("");
   const [ownDecks, setOwnDecks] = useState<DeckUsageItemType[]>([]);
   const [activeDeckIds, setActiveDeckIds] = useState<Set<string> | null>(null);
@@ -83,8 +66,7 @@ export default function UserStatHistoryChart({ userId, userCreatedAt }: Props) {
   const tooltipRateRef = useRef<HTMLParagraphElement>(null);
   const tooltipInfoRef = useRef<HTMLParagraphElement>(null);
 
-  const createdAtDate = userCreatedAt != null ? new Date(userCreatedAt) : undefined;
-  const seasonOptions = generateSeasonOptions(createdAtDate);
+  const seasonOptions = seasonOptionsFromChampionshipSeries(championshipSeries);
 
   useEffect(() => {
     let cancelled = false;

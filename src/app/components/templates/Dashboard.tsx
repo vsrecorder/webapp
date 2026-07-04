@@ -22,6 +22,7 @@ import DashboardSections, {
 import { CityleagueScheduleType } from "@app/types/cityleague_schedule";
 import { EnvironmentType } from "@app/types/environment";
 import { StandardRegulationType } from "@app/types/standard_regulation";
+import { ChampionshipSeriesType } from "@app/types/championship_series";
 import { UserType } from "@app/types/user";
 
 async function getCityleagueScheduleByDate(date: Date): Promise<CityleagueScheduleType> {
@@ -98,6 +99,19 @@ async function getAllStandardRegulations(): Promise<StandardRegulationType[]> {
   return [];
 }
 
+async function getAllChampionshipSeries(): Promise<ChampionshipSeriesType[]> {
+  const domain = process.env.VSRECORDER_DOMAIN;
+
+  const res = await fetch(`https://${domain}/api/v1beta/championship_series`, {
+    cache: "no-store",
+    method: "GET",
+    headers: { Accept: "application/json" },
+  });
+
+  if (res.status === 200) return res.json();
+  return [];
+}
+
 export default async function TemplateDashboard({ userId }: Props) {
   const date = new Date(Date.now() + 9 * 60 * 60 * 1000);
 
@@ -117,6 +131,7 @@ export default async function TemplateDashboard({ userId }: Props) {
 
   const environments = await getAllEnvironments();
   const standardRegulations = await getAllStandardRegulations();
+  const championshipSeries = await getAllChampionshipSeries();
   const user = await getUser(userId);
 
   const sections: DashboardSection[] = [];
@@ -167,10 +182,7 @@ export default async function TemplateDashboard({ userId }: Props) {
     node: (
       <section key="designation" className="flex flex-col gap-2">
         <h2 className="text-sm font-bold text-default-700">称号とランク</h2>
-        <DesignationPanel
-          userId={userId}
-          userCreatedAt={user?.created_at != null ? String(user.created_at) : undefined}
-        />
+        <DesignationPanel userId={userId} championshipSeries={championshipSeries} />
       </section>
     ),
   });
@@ -182,10 +194,7 @@ export default async function TemplateDashboard({ userId }: Props) {
     node: (
       <section key="badges" className="flex flex-col gap-2">
         <h2 className="text-sm font-bold text-default-700">バッジ</h2>
-        <BadgeGallery
-          userId={userId}
-          userCreatedAt={user?.created_at != null ? String(user.created_at) : undefined}
-        />
+        <BadgeGallery userId={userId} championshipSeries={championshipSeries} />
       </section>
     ),
   });
@@ -214,6 +223,7 @@ export default async function TemplateDashboard({ userId }: Props) {
           environments={environments}
           currentEnvironmentId={env?.id}
           standardRegulations={standardRegulations}
+          championshipSeries={championshipSeries}
           userCreatedAt={user?.created_at != null ? String(user.created_at) : undefined}
         />
       </section>
@@ -227,10 +237,7 @@ export default async function TemplateDashboard({ userId }: Props) {
     node: (
       <section key="stats_history" className="flex flex-col gap-2">
         <h2 className="text-sm font-bold text-default-700">月毎の勝率推移</h2>
-        <UserStatHistoryChart
-          userId={userId}
-          userCreatedAt={user?.created_at != null ? String(user.created_at) : undefined}
-        />
+        <UserStatHistoryChart userId={userId} championshipSeries={championshipSeries} />
       </section>
     ),
   });
@@ -259,6 +266,7 @@ export default async function TemplateDashboard({ userId }: Props) {
           environments={environments}
           currentEnvironmentId={env?.id}
           standardRegulations={standardRegulations}
+          championshipSeries={championshipSeries}
           userCreatedAt={user?.created_at != null ? String(user.created_at) : undefined}
         />
       </section>
@@ -277,6 +285,7 @@ export default async function TemplateDashboard({ userId }: Props) {
           environments={environments}
           currentEnvironmentId={env?.id}
           standardRegulations={standardRegulations}
+          championshipSeries={championshipSeries}
           userCreatedAt={user?.created_at != null ? String(user.created_at) : undefined}
         />
       </section>

@@ -113,7 +113,7 @@ export default function DeckCodeCard({ deckcode }: Props) {
         setEnvironment(data);
       } catch (err) {
         console.log(err);
-        setErrorEnvironment("環境名のデータ取得に失敗しました");
+        setErrorEnvironment("対戦環境のデータ取得に失敗しました");
       } finally {
         setLoadingEnvironment(false);
       }
@@ -144,7 +144,7 @@ export default function DeckCodeCard({ deckcode }: Props) {
                 <>作成日：なし</>
               </div>
               <div className="text-tiny">
-                <>環境名：なし</>
+                <>作成日時点の対戦環境：なし</>
               </div>
             </div>
           </div>
@@ -199,11 +199,13 @@ export default function DeckCodeCard({ deckcode }: Props) {
     weekday: "short",
   });
 
-  return (
+  return deckcode?.code ? (
     <Card shadow="sm" className="py-3 relative w-full">
       <CardHeader className="pt-0 pb-1 px-3">
         <div className="flex flex-col gap-1">
-          <div className="font-bold text-base text-default-500">バージョンID：{version}</div>
+          <div className="font-bold text-base text-default-500">
+            バージョンID：{version}
+          </div>
           <div className="pl-1 flex flex-col gap-0.5">
             <div className="text-tiny">
               {deckcode && deckcode.id ? (
@@ -212,19 +214,19 @@ export default function DeckCodeCard({ deckcode }: Props) {
                   {date}
                 </>
               ) : (
-                <>作成日：なし</>
+                <></>
               )}
             </div>
             <div className="text-tiny">
               {loadingEnvrionment ? (
                 <div className="flex items-center">
-                  環境名：
+                  対戦環境：
                   <Skeleton className="h-4 w-32" />
                 </div>
               ) : environment && environment.title ? (
-                <>環境名：『{environment.title}』</>
+                <>対戦環境：『{environment.title}』</>
               ) : (
-                <>環境名：なし</>
+                <></>
               )}
             </div>
           </div>
@@ -234,27 +236,23 @@ export default function DeckCodeCard({ deckcode }: Props) {
         <div className="relative w-full aspect-2/1">
           {!imageLoaded && <Skeleton className="absolute inset-0 rounded-lg" />}
           {deckcode?.code ? (
-            <>
-              <Image
-                radius="sm"
-                shadow="none"
-                alt={deckcode.code}
-                src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
-                className=""
-                onLoad={() => setImageLoaded(true)}
-              />
-            </>
+            <Image
+              radius="sm"
+              shadow="none"
+              alt={deckcode.code}
+              src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
+              className=""
+              onLoad={() => setImageLoaded(true)}
+            />
           ) : (
-            <>
-              <Image
-                radius="sm"
-                shadow="none"
-                alt="デッキコードなし"
-                src={"https://www.pokemon-card.com/deck/deckView.php/deckID/"}
-                className=""
-                onLoad={() => setImageLoaded(true)}
-              />
-            </>
+            <Image
+              radius="sm"
+              shadow="none"
+              alt="デッキコードなし"
+              src={"https://www.pokemon-card.com/deck/deckView.php/deckID/"}
+              className=""
+              onLoad={() => setImageLoaded(true)}
+            />
           )}
         </div>
       </CardBody>
@@ -283,5 +281,7 @@ export default function DeckCodeCard({ deckcode }: Props) {
       </CardFooter>
       */}
     </Card>
+  ) : (
+    <></>
   );
 }

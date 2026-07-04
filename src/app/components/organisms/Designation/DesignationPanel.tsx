@@ -445,7 +445,7 @@ export default function DesignationPanel({ userId, userCreatedAt }: Props) {
                 const isCurrentRank = rank === r.info;
                 const rankTiers = ladder
                   .filter((item) => item.tier >= r.minTier && item.tier <= r.maxTier)
-                  .sort((a, b) => a.tier - b.tier);
+                  .sort((a, b) => b.tier - a.tier);
                 const percentage = rankPercentage(r.minTier, r.maxTier);
 
                 return (
@@ -472,11 +472,11 @@ export default function DesignationPanel({ userId, userCreatedAt }: Props) {
                       />
                     </div>
                     <div className="flex flex-col items-start shrink-0">
-                      <span className="text-[11px] font-black text-default-700 leading-tight whitespace-nowrap">
+                      <span className="text-sm font-black text-default-700 leading-tight whitespace-nowrap">
                         {r.info.name}
                       </span>
                       <span
-                        className={`text-xs font-black tabular-nums leading-tight whitespace-nowrap ${
+                        className={`text-sm font-black tabular-nums leading-tight whitespace-nowrap ${
                           isCurrentRank ? "text-warning" : "text-default-500"
                         }`}
                       >
@@ -484,18 +484,15 @@ export default function DesignationPanel({ userId, userCreatedAt }: Props) {
                       </span>
                     </div>
                     {rankTiers.length > 0 ? (
-                      <div className="flex flex-col gap-0.5 shrink-0 w-36 ml-auto">
+                      <div className="grid grid-cols-[1fr_2.75rem] items-center gap-x-1.5 gap-y-0.5 shrink-0 w-36 ml-auto">
                         {rankTiers.map((item) => {
                           const isCurrentTier = current?.id === item.id;
                           const itemPercentage = tierPercentage(item.tier);
 
                           return (
-                            <div
-                              key={item.id}
-                              className="grid grid-cols-[1fr_auto] items-center gap-1.5"
-                            >
+                            <Fragment key={item.id}>
                               <span
-                                className={`text-[9px] truncate ${
+                                className={`text-[9px] truncate text-left ${
                                   isCurrentTier
                                     ? "font-bold text-warning"
                                     : "text-default-400"
@@ -512,12 +509,12 @@ export default function DesignationPanel({ userId, userCreatedAt }: Props) {
                                   ? `${itemPercentage.toFixed(1)}%`
                                   : "—"}
                               </span>
-                            </div>
+                            </Fragment>
                           );
                         })}
                       </div>
                     ) : (
-                      <span className="text-[10px] text-default-400 truncate ml-auto">
+                      <span className="text-[10px] text-default-400 truncate ml-auto w-36 text-right">
                         {`Tier ${r.minTier}〜${r.maxTier}`}
                       </span>
                     )}

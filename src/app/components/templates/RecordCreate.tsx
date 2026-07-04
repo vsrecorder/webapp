@@ -1472,7 +1472,11 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                       }}
                       onFocus={handleDeckSelectOpen}
                       onMenuOpen={handleDeckSelectOpen}
-                      menuPosition="fixed"
+                      // menuPosition="fixed" は開いた瞬間のビューポート座標でメニュー位置を
+                      // 固定してしまう。handleDeckSelectOpen によるスクロール(iOSキーボード
+                      // 表示時のスクロールを含む)がメニュー表示後に発生すると、fixedな座標は
+                      // それに追従できずズレて表示されてしまう(iOS PWAで顕著)。ページのスクロール
+                      // に追従する既定の位置指定(absolute)にすることでズレを防ぐ。
                       menuPortalTarget={
                         typeof document !== "undefined" ? document.body : null
                       }
@@ -1488,7 +1492,9 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                       }}
                       menuPlacement="bottom"
                       //menuShouldBlockScroll={true}
-                      menuShouldScrollIntoView={true}
+                      // スクロールへの追従は handleDeckSelectOpen 側で行うため、
+                      // react-select 側の自動スクロールとの競合を避けるため無効化する
+                      menuShouldScrollIntoView={false}
                       onMenuClose={() => {
                         (document.activeElement as HTMLElement)?.blur();
                       }}
@@ -1807,7 +1813,11 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                       }}
                       onFocus={handleDeckSelectOpen}
                       onMenuOpen={handleDeckSelectOpen}
-                      menuPosition="fixed"
+                      // menuPosition="fixed" は開いた瞬間のビューポート座標でメニュー位置を
+                      // 固定してしまう。handleDeckSelectOpen によるスクロール(iOSキーボード
+                      // 表示時のスクロールを含む)がメニュー表示後に発生すると、fixedな座標は
+                      // それに追従できずズレて表示されてしまう(iOS PWAで顕著)。ページのスクロール
+                      // に追従する既定の位置指定(absolute)にすることでズレを防ぐ。
                       menuPortalTarget={
                         typeof document !== "undefined" ? document.body : null
                       }
@@ -1823,7 +1833,9 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                       }}
                       menuPlacement="bottom"
                       //menuShouldBlockScroll={true}
-                      menuShouldScrollIntoView={true}
+                      // スクロールへの追従は handleDeckSelectOpen 側で行うため、
+                      // react-select 側の自動スクロールとの競合を避けるため無効化する
+                      menuShouldScrollIntoView={false}
                       onMenuClose={() => {
                         (document.activeElement as HTMLElement)?.blur();
                       }}
@@ -2111,7 +2123,11 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                       }}
                       onFocus={handleDeckSelectOpen}
                       onMenuOpen={handleDeckSelectOpen}
-                      menuPosition="fixed"
+                      // menuPosition="fixed" は開いた瞬間のビューポート座標でメニュー位置を
+                      // 固定してしまう。handleDeckSelectOpen によるスクロール(iOSキーボード
+                      // 表示時のスクロールを含む)がメニュー表示後に発生すると、fixedな座標は
+                      // それに追従できずズレて表示されてしまう(iOS PWAで顕著)。ページのスクロール
+                      // に追従する既定の位置指定(absolute)にすることでズレを防ぐ。
                       menuPortalTarget={
                         typeof document !== "undefined" ? document.body : null
                       }
@@ -2126,7 +2142,9 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                         }),
                       }}
                       menuPlacement="bottom"
-                      menuShouldScrollIntoView={true}
+                      // スクロールへの追従は handleDeckSelectOpen 側で行うため、
+                      // react-select 側の自動スクロールとの競合を避けるため無効化する
+                      menuShouldScrollIntoView={false}
                       onMenuClose={() => {
                         (document.activeElement as HTMLElement)?.blur();
                       }}

@@ -337,7 +337,7 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
                     .replace("を持っており、", "を持っており、\n")
                     .replace(
                       "公式イベント/Tonamel/記入形式、",
-                      "公式イベント/Tonamel/記入形式、\n",
+                      "公式イベント / Tonamel / 記入形式、\n",
                     )}
                 </p>
                 {selected.achieved ? (

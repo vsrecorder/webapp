@@ -18,7 +18,12 @@ import {
   DesignationRankStatsType,
   UserDesignationType,
 } from "@app/types/designation";
-import { RANKS, rankForTier, getCurrentSeason, NO_RANK_IMAGE } from "@app/utils/designationRank";
+import {
+  RANKS,
+  rankForTier,
+  getCurrentSeason,
+  NO_RANK_IMAGE,
+} from "@app/utils/designationRank";
 
 type Props = {
   userId: string;
@@ -52,7 +57,15 @@ function chunkRows<T>(items: T[], size: number): T[][] {
   return rows;
 }
 
-function ProgressBar({ label, value, max }: { label: string; value: number; max: number }) {
+function ProgressBar({
+  label,
+  value,
+  max,
+}: {
+  label: string;
+  value: number;
+  max: number;
+}) {
   const percentage = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
 
   return (
@@ -256,9 +269,6 @@ export default function DesignationPanel({ userId, userCreatedAt }: Props) {
             <span className="text-xs font-bold text-default-400 mt-0.5">
               称号: {current ? `${current.emoji} ${current.name}` : "称号なし"}
             </span>
-            <span className="text-[10px] text-default-300 mt-0.5">
-              タップしてランク一覧を見る
-            </span>
           </div>
         </div>
 
@@ -276,8 +286,7 @@ export default function DesignationPanel({ userId, userCreatedAt }: Props) {
                 <div className="flex items-stretch gap-1">
                   {displayRow.map((item, i) => {
                     const originalIndex =
-                      rowIndex * LADDER_ROW_SIZE +
-                      (reversed ? row.length - 1 - i : i);
+                      rowIndex * LADDER_ROW_SIZE + (reversed ? row.length - 1 - i : i);
                     return (
                       <Fragment key={item.id}>
                         <div className="flex-1 min-w-0">
@@ -321,12 +330,12 @@ export default function DesignationPanel({ userId, userCreatedAt }: Props) {
           {selected && (
             <>
               <ModalHeader className="flex flex-col items-center gap-2 pt-6 pb-2">
-                <div className="flex items-center justify-center w-14 h-14 rounded-full bg-warning/15 text-3xl">
-                  {selected.achieved ? (
-                    selected.emoji
-                  ) : (
-                    <LuLock className="w-7 h-7 text-default-300" />
-                  )}
+                <div
+                  className={`flex items-center justify-center w-14 h-14 rounded-full bg-warning/15 text-3xl ${
+                    selected.achieved ? "" : "grayscale"
+                  }`}
+                >
+                  {selected.emoji}
                 </div>
                 <span className="text-base font-black">{selected.name}</span>
               </ModalHeader>
@@ -360,7 +369,12 @@ export default function DesignationPanel({ userId, userCreatedAt }: Props) {
         </ModalContent>
       </Modal>
 
-      <Modal isOpen={isRankInfoOpen} onOpenChange={onRankInfoOpenChange} placement="center" size="sm">
+      <Modal
+        isOpen={isRankInfoOpen}
+        onOpenChange={onRankInfoOpenChange}
+        placement="center"
+        size="sm"
+      >
         <ModalContent>
           <ModalHeader className="flex flex-col items-center gap-1 pt-6 pb-2">
             <span className="text-base font-black">称号ランク</span>
@@ -379,7 +393,9 @@ export default function DesignationPanel({ userId, userCreatedAt }: Props) {
                   <div key={r.info.name} className="flex flex-col items-center gap-1.5">
                     <div
                       className={`relative w-10 h-10 shrink-0 rounded-xl p-1.5 ${
-                        isCurrentRank ? "bg-warning/25 ring-2 ring-warning" : "bg-warning/10"
+                        isCurrentRank
+                          ? "bg-warning/25 ring-2 ring-warning"
+                          : "bg-warning/10"
                       }`}
                     >
                       <Image
@@ -403,7 +419,9 @@ export default function DesignationPanel({ userId, userCreatedAt }: Props) {
 
             {/* ランクの詳細リスト(画像の階段とは別に、名称・対応称号を一覧表示) */}
             <div className="flex items-baseline justify-between px-1 mb-1.5">
-              <span className="text-[11px] font-black text-default-500">ランク別の在籍割合</span>
+              <span className="text-[11px] font-black text-default-500">
+                ランク別の在籍割合
+              </span>
               <span className="text-[9px] text-default-300">
                 モンスターボール級以上のユーザーが対象
               </span>
@@ -421,7 +439,9 @@ export default function DesignationPanel({ userId, userCreatedAt }: Props) {
                   <div
                     key={r.info.name}
                     className={`relative flex flex-col gap-1.5 rounded-2xl p-2.5 w-full ${
-                      isCurrentRank ? "bg-warning/15 ring-2 ring-warning" : "bg-default-50"
+                      isCurrentRank
+                        ? "bg-warning/15 ring-2 ring-warning"
+                        : "bg-default-50"
                     }`}
                   >
                     {isCurrentRank && (
@@ -465,7 +485,9 @@ export default function DesignationPanel({ userId, userCreatedAt }: Props) {
                         className={`h-full rounded-full ${
                           isCurrentRank ? "bg-warning" : "bg-default-300"
                         }`}
-                        style={{ width: `${percentage !== null ? Math.min(100, percentage) : 0}%` }}
+                        style={{
+                          width: `${percentage !== null ? Math.min(100, percentage) : 0}%`,
+                        }}
                       />
                     </div>
                   </div>

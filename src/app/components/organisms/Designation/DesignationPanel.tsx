@@ -20,7 +20,10 @@ import {
 } from "@app/types/designation";
 import { ChampionshipSeriesType } from "@app/types/championship_series";
 import { RANKS, rankForTier, NO_RANK_IMAGE } from "@app/utils/designationRank";
-import { seasonOptionsFromChampionshipSeries, currentSeasonValue } from "@app/utils/season";
+import {
+  seasonOptionsFromChampionshipSeries,
+  currentSeasonValue,
+} from "@app/utils/season";
 
 type Props = {
   userId: string;
@@ -179,9 +182,9 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
   if (isLoading) {
     return (
       <Card className="shadow-md">
-        <CardBody className="p-4 flex flex-col gap-3">
+        <CardBody className="p-4 flex flex-col gap-6">
           <div className="flex items-center justify-end">
-            <div className="w-24 h-8 rounded-xl bg-default-100 animate-pulse" />
+            <div className="w-52 h-7 rounded-xl bg-default-100 animate-pulse" />
           </div>
 
           <div className="flex flex-col items-center gap-2">
@@ -213,7 +216,7 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
 
   return (
     <Card className="shadow-md">
-      <CardBody className="p-4 flex flex-col gap-3">
+      <CardBody className="p-4 flex flex-col gap-6">
         <div className="flex items-center justify-end">
           <div className="relative inline-block">
             <select

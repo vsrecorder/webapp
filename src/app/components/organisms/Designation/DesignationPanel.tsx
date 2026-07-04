@@ -343,8 +343,13 @@ export default function DesignationPanel({ userId, userCreatedAt }: Props) {
                       />
                     </div>
                     <span className="text-xs text-default-400 tabular-nums">
-                      現在 {selected.current_value} / {selected.criteria_value}
+                      今シーズン {selected.current_value} / {selected.criteria_value}
                     </span>
+                    {selected.criteria_type === "official_city_league_record" && (
+                      <span className="text-[10px] text-default-300">
+                        ※ 前シーズンに引き続き記録があることも必要です
+                      </span>
+                    )}
                   </div>
                 )}
               </ModalBody>

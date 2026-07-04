@@ -27,13 +27,18 @@ export const RANKS: { minTier: number; maxTier: number; info: RankInfo }[] = [
     maxTier: 8,
     info: { name: "マスターボール級", image: "/images/master-ball.png" },
   },
+  {
+    minTier: 9,
+    maxTier: 10,
+    info: { name: "ウルトラボール級", image: "/images/beast-ball.png" },
+  },
 ];
 
 export function rankForTier(tier: number): RankInfo | null {
   return RANKS.find((r) => tier >= r.minTier && tier <= r.maxTier)?.info ?? null;
 }
 
-// 称号未到達、またはどのランクにも属さないティア(レジェンド・殿堂入り等)の場合に表示する画像
+// 称号未到達の場合に表示する画像
 export const NO_RANK_IMAGE = "/images/hisui-poke-ball.png";
 
 export function getCurrentSeason(): string {

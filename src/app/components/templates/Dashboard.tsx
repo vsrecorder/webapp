@@ -160,13 +160,13 @@ export default async function TemplateDashboard({ userId }: Props) {
     });
   }
 
-  // 称号
+  // 称号とランク
   sections.push({
     id: "designation",
-    label: "称号",
+    label: "称号とランク",
     node: (
       <section key="designation" className="flex flex-col gap-2">
-        <h2 className="text-sm font-bold text-default-700">称号</h2>
+        <h2 className="text-sm font-bold text-default-700">称号とランク</h2>
         <DesignationPanel
           userId={userId}
           userCreatedAt={user?.created_at != null ? String(user.created_at) : undefined}

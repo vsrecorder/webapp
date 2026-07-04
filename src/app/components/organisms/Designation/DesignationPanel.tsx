@@ -187,6 +187,15 @@ export default function DesignationPanel({ userId, userCreatedAt }: Props) {
     return (count / rankStats.total_users) * 100;
   }
 
+  // 指定ティア(=称号)単体に属するユーザーの割合(%)。集計取得前・総数0件の場合は null。
+  function tierPercentage(tier: number): number | null {
+    if (!rankStats || rankStats.total_users <= 0) return null;
+
+    const count = rankStats.tiers.find((t) => t.tier === tier)?.user_count ?? 0;
+
+    return (count / rankStats.total_users) * 100;
+  }
+
   if (isLoading) {
     return (
       <Card className="shadow-md">
@@ -381,23 +390,23 @@ export default function DesignationPanel({ userId, userCreatedAt }: Props) {
         size="sm"
       >
         <ModalContent>
-          <ModalHeader className="flex flex-col items-center gap-1 pt-6 pb-2">
-            <span className="text-base font-black">称号ランク</span>
+          <ModalHeader className="flex flex-col items-center gap-0.5 pt-5 pb-1">
+            <span className="text-base font-black">称号とランクの関係</span>
             <span className="text-xs text-default-400">
               称号のティアが進むごとにランクアップします
             </span>
           </ModalHeader>
-          <ModalBody className="pb-6 pt-0">
+          <ModalBody className="pb-4 pt-0 max-h-[75vh] overflow-y-auto">
             {/* ボール画像だけを取り出した独立の階段オブジェクト(昇順=右にいくほど段が高くなる) */}
-            <div className="flex items-end justify-center gap-3 w-full pt-2 pb-4">
+            <div className="flex items-end justify-center gap-2 w-full pt-1 pb-2">
               {RANKS.map((r, i) => {
                 const isCurrentRank = rank === r.info;
-                const stepHeight = 28 + i * 14;
+                const stepHeight = 16 + i * 8;
 
                 return (
-                  <div key={r.info.name} className="flex flex-col items-center gap-1.5">
+                  <div key={r.info.name} className="flex flex-col items-center gap-1">
                     <div
-                      className={`relative w-10 h-10 shrink-0 rounded-xl p-1.5 ${
+                      className={`relative w-8 h-8 shrink-0 rounded-lg p-1 ${
                         isCurrentRank
                           ? "bg-warning/25 ring-2 ring-warning"
                           : "bg-warning/10"
@@ -407,13 +416,13 @@ export default function DesignationPanel({ userId, userCreatedAt }: Props) {
                         src={r.info.image}
                         alt={r.info.name}
                         fill
-                        sizes="40px"
+                        sizes="32px"
                         className="object-contain"
                       />
                     </div>
                     <div
                       style={{ height: `${stepHeight}px` }}
-                      className={`w-12 rounded-t-md ${
+                      className={`w-9 rounded-t-md ${
                         isCurrentRank ? "bg-warning/40" : "bg-default-100"
                       }`}
                     />
@@ -423,7 +432,7 @@ export default function DesignationPanel({ userId, userCreatedAt }: Props) {
             </div>
 
             {/* ランクの詳細リスト(画像の階段とは別に、名称・対応称号を一覧表示) */}
-            <div className="flex items-baseline justify-between px-1 mb-1.5">
+            <div className="flex items-baseline justify-between px-1 mb-1">
               <span className="text-[11px] font-black text-default-500">
                 ランク別の在籍割合
               </span>
@@ -431,70 +440,87 @@ export default function DesignationPanel({ userId, userCreatedAt }: Props) {
                 モンスターボール級以上のユーザーが対象
               </span>
             </div>
-            <div className="flex flex-col gap-1.5 w-full">
+            <div className="flex flex-col gap-1 w-full">
               {[...RANKS].reverse().map((r) => {
                 const isCurrentRank = rank === r.info;
-                const tierNames = ladder
+                const rankTiers = ladder
                   .filter((item) => item.tier >= r.minTier && item.tier <= r.maxTier)
-                  .map((item) => `${item.emoji} ${item.name}`)
-                  .join("・");
+                  .sort((a, b) => a.tier - b.tier);
                 const percentage = rankPercentage(r.minTier, r.maxTier);
 
                 return (
                   <div
                     key={r.info.name}
-                    className={`relative flex flex-col gap-1.5 rounded-2xl p-2.5 w-full ${
+                    className={`relative flex items-center gap-2 rounded-xl p-2 w-full ${
                       isCurrentRank
                         ? "bg-warning/15 ring-2 ring-warning"
                         : "bg-default-50"
                     }`}
                   >
                     {isCurrentRank && (
-                      <span className="absolute -top-2 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded-full bg-warning text-white text-[7px] font-bold whitespace-nowrap shadow-sm">
+                      <span className="absolute -top-1.5 left-7 px-1.5 py-0.5 rounded-full bg-warning text-white text-[7px] font-bold whitespace-nowrap shadow-sm">
                         現在地
                       </span>
                     )}
-                    <div className="flex items-center gap-3">
-                      <div className="relative w-8 h-8 shrink-0 rounded-lg bg-warning/15 p-1">
-                        <Image
-                          src={r.info.image}
-                          alt={r.info.name}
-                          fill
-                          sizes="32px"
-                          className="object-contain"
-                        />
-                      </div>
-                      <div className="flex flex-col items-start min-w-0 flex-1">
-                        <span className="text-xs font-black text-default-700">
-                          {r.info.name}
-                        </span>
-                        <span className="text-[10px] text-default-400 truncate">
-                          {tierNames || `Tier ${r.minTier}〜${r.maxTier}`}
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-end shrink-0">
-                        <span className="text-[10px] font-bold text-default-400 leading-none">
-                          全体割合
-                        </span>
-                        <span
-                          className={`text-sm font-black tabular-nums ${
-                            isCurrentRank ? "text-warning" : "text-default-600"
-                          }`}
-                        >
-                          {percentage !== null ? `${percentage.toFixed(1)}%` : "—"}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="w-full h-1.5 rounded-full bg-default-200 overflow-hidden">
-                      <div
-                        className={`h-full rounded-full ${
-                          isCurrentRank ? "bg-warning" : "bg-default-300"
-                        }`}
-                        style={{
-                          width: `${percentage !== null ? Math.min(100, percentage) : 0}%`,
-                        }}
+                    <div className="relative w-7 h-7 shrink-0 rounded-lg bg-warning/15 p-1">
+                      <Image
+                        src={r.info.image}
+                        alt={r.info.name}
+                        fill
+                        sizes="28px"
+                        className="object-contain"
                       />
                     </div>
+                    <div className="flex flex-col items-start shrink-0">
+                      <span className="text-[11px] font-black text-default-700 leading-tight whitespace-nowrap">
+                        {r.info.name}
+                      </span>
+                      <span
+                        className={`text-xs font-black tabular-nums leading-tight whitespace-nowrap ${
+                          isCurrentRank ? "text-warning" : "text-default-500"
+                        }`}
+                      >
+                        {percentage !== null ? `${percentage.toFixed(1)}%` : "—"}
+                      </span>
+                    </div>
+                    {rankTiers.length > 0 ? (
+                      <div className="flex flex-col gap-0.5 shrink-0 w-36 ml-auto">
+                        {rankTiers.map((item) => {
+                          const isCurrentTier = current?.id === item.id;
+                          const itemPercentage = tierPercentage(item.tier);
+
+                          return (
+                            <div
+                              key={item.id}
+                              className="grid grid-cols-[1fr_auto] items-center gap-1.5"
+                            >
+                              <span
+                                className={`text-[9px] truncate ${
+                                  isCurrentTier
+                                    ? "font-bold text-warning"
+                                    : "text-default-400"
+                                }`}
+                              >
+                                {item.emoji} {item.name}
+                              </span>
+                              <span
+                                className={`text-[9px] font-bold tabular-nums text-right ${
+                                  isCurrentTier ? "text-warning" : "text-default-400"
+                                }`}
+                              >
+                                {itemPercentage !== null
+                                  ? `${itemPercentage.toFixed(1)}%`
+                                  : "—"}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <span className="text-[10px] text-default-400 truncate ml-auto">
+                        {`Tier ${r.minTier}〜${r.maxTier}`}
+                      </span>
+                    )}
                   </div>
                 );
               })}

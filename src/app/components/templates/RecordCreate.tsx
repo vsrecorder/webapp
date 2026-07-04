@@ -1454,6 +1454,10 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                         </div>
                       }
                       //isLoading={}
+                      // menuPosition="fixed" 時、react-selectは menuPlacement="bottom" を
+                      // 指定していても下方向のスペースが minMenuHeight 未満だと上に反転してしまう。
+                      // 選択バーの下に必ず表示させるため、既定値(140px)ではなく0にして反転を防ぐ。
+                      minMenuHeight={0}
                       isClearable={true}
                       isSearchable={true}
                       noOptionsMessage={() => deckOptionsMessage}
@@ -1556,7 +1560,10 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                   <div>
                     <Select
                       theme={reactSelectTheme}
-                      minMenuHeight={270}
+                      // menuPosition="fixed" 時、react-selectは menuPlacement="bottom" を
+                      // 指定していても下方向のスペースが minMenuHeight 未満だと上に反転してしまう。
+                      // 選択バーの下に必ず表示させるため、大きな値ではなく0にして反転を防ぐ。
+                      minMenuHeight={0}
                       maxMenuHeight={270}
                       placeholder={
                         <div className="flex items-center gap-2">
@@ -1782,6 +1789,10 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                         </div>
                       }
                       //isLoading={}
+                      // menuPosition="fixed" 時、react-selectは menuPlacement="bottom" を
+                      // 指定していても下方向のスペースが minMenuHeight 未満だと上に反転してしまう。
+                      // 選択バーの下に必ず表示させるため、既定値(140px)ではなく0にして反転を防ぐ。
+                      minMenuHeight={0}
                       isClearable={true}
                       isSearchable={true}
                       noOptionsMessage={() => deckOptionsMessage}
@@ -1884,7 +1895,10 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                   <div>
                     <Select
                       theme={reactSelectTheme}
-                      minMenuHeight={270}
+                      // menuPosition="fixed" 時、react-selectは menuPlacement="bottom" を
+                      // 指定していても下方向のスペースが minMenuHeight 未満だと上に反転してしまう。
+                      // 選択バーの下に必ず表示させるため、大きな値ではなく0にして反転を防ぐ。
+                      minMenuHeight={0}
                       maxMenuHeight={270}
                       placeholder={
                         <div className="flex items-center gap-2">
@@ -2079,6 +2093,10 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                           <span className="text-sm">デッキ名で検索</span>
                         </div>
                       }
+                      // menuPosition="fixed" 時、react-selectは menuPlacement="bottom" を
+                      // 指定していても下方向のスペースが minMenuHeight 未満だと上に反転してしまう。
+                      // 選択バーの下に必ず表示させるため、既定値(140px)ではなく0にして反転を防ぐ。
+                      minMenuHeight={0}
                       isClearable={true}
                       isSearchable={true}
                       noOptionsMessage={() => deckOptionsMessage}
@@ -2180,7 +2198,10 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                   <div>
                     <Select
                       theme={reactSelectTheme}
-                      minMenuHeight={270}
+                      // menuPosition="fixed" 時、react-selectは menuPlacement="bottom" を
+                      // 指定していても下方向のスペースが minMenuHeight 未満だと上に反転してしまう。
+                      // 選択バーの下に必ず表示させるため、大きな値ではなく0にして反転を防ぐ。
+                      minMenuHeight={0}
                       maxMenuHeight={270}
                       placeholder={
                         <div className="flex items-center gap-2">

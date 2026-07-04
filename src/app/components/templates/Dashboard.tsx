@@ -12,6 +12,7 @@ import DeckUsagePanel from "@app/components/organisms/DeckUsage/DeckUsagePanel";
 import OpponentDeckUsagePanel from "@app/components/organisms/DeckUsage/OpponentDeckUsagePanel";
 import UserProfileCard from "@app/components/organisms/User/UserProfileCard";
 import StreakPanel from "@app/components/organisms/Badge/StreakPanel";
+import OnboardingBadgePanel from "@app/components/organisms/Badge/OnboardingBadgePanel";
 import BadgeGallery from "@app/components/organisms/Badge/BadgeGallery";
 import DesignationPanel from "@app/components/organisms/Designation/DesignationPanel";
 import DashboardSections, {
@@ -120,6 +121,18 @@ export default async function TemplateDashboard({ userId }: Props) {
 
   const sections: DashboardSection[] = [];
 
+  // はじめの一歩
+  sections.push({
+    id: "onboarding_badges",
+    label: "はじめの一歩",
+    node: (
+      <section key="onboarding_badges" className="flex flex-col gap-2">
+        <h2 className="text-sm font-bold text-default-700">はじめの一歩</h2>
+        <OnboardingBadgePanel userId={userId} />
+      </section>
+    ),
+  });
+
   // 本日のシティリーグ
   if (cs) {
     sections.push({
@@ -147,18 +160,6 @@ export default async function TemplateDashboard({ userId }: Props) {
     });
   }
 
-  // ストリーク
-  sections.push({
-    id: "streak",
-    label: "ストリーク",
-    node: (
-      <section key="streak" className="flex flex-col gap-2">
-        <h2 className="text-sm font-bold text-default-700">ストリーク</h2>
-        <StreakPanel userId={userId} />
-      </section>
-    ),
-  });
-
   // 称号
   sections.push({
     id: "designation",
@@ -174,17 +175,29 @@ export default async function TemplateDashboard({ userId }: Props) {
     ),
   });
 
-  // 実績・バッジ
+  // バッジ
   sections.push({
     id: "badges",
-    label: "実績・バッジ",
+    label: "バッジ",
     node: (
       <section key="badges" className="flex flex-col gap-2">
-        <h2 className="text-sm font-bold text-default-700">実績・バッジ</h2>
+        <h2 className="text-sm font-bold text-default-700">バッジ</h2>
         <BadgeGallery
           userId={userId}
           userCreatedAt={user?.created_at != null ? String(user.created_at) : undefined}
         />
+      </section>
+    ),
+  });
+
+  // ストリーク
+  sections.push({
+    id: "streak",
+    label: "ストリーク",
+    node: (
+      <section key="streak" className="flex flex-col gap-2">
+        <h2 className="text-sm font-bold text-default-700">ストリーク</h2>
+        <StreakPanel userId={userId} />
       </section>
     ),
   });

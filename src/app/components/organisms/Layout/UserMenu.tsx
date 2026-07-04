@@ -146,7 +146,7 @@ export default function UserMenu({ user }: Props) {
               key="profile"
               color="default"
               startContent={<LuUser className="w-4 h-4" />}
-              description="称号や実績・バッジを確認"
+              description="称号やバッジを確認"
               onPress={() => {
                 router.push("/users");
               }}

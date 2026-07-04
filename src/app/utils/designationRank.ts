@@ -39,7 +39,7 @@ export function rankForTier(tier: number): RankInfo | null {
 }
 
 // 称号未到達の場合に表示する画像
-export const NO_RANK_IMAGE = "/images/hisui-poke-ball.png";
+export const NO_RANK_IMAGE = "/images/premier-ball.png";
 
 export function getCurrentSeason(): string {
   const now = new Date();

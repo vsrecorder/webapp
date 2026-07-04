@@ -2,7 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Avatar, Card, CardBody, useDisclosure } from "@heroui/react";
-import { LuSwords, LuTrophy, LuShield, LuCalendar, LuPencil, LuEye, LuEyeOff } from "react-icons/lu";
+import {
+  LuSwords,
+  LuTrophy,
+  LuShield,
+  LuCalendar,
+  LuPencil,
+  LuEye,
+  LuEyeOff,
+} from "react-icons/lu";
 
 import UpdateNameModal from "@app/components/organisms/User/Modal/UpdateNameModal";
 
@@ -75,7 +83,13 @@ type WinRateBadgeProps = {
   onToggle: () => void;
 };
 
-function WinRateBadge({ winRate, isLoading, monthLabel, hidden, onToggle }: WinRateBadgeProps) {
+function WinRateBadge({
+  winRate,
+  isLoading,
+  monthLabel,
+  hidden,
+  onToggle,
+}: WinRateBadgeProps) {
   // winRate は 0〜1 なので ×1000 して小数1桁精度でカウントアップ
   const animated = useCountUp(isLoading ? 0 : winRate * 1000, 900);
   const pct = (animated / 10).toFixed(1);
@@ -199,49 +213,49 @@ export default function UserProfileCard({ user }: Props) {
         onUpdated={setProfile}
       />
       <Card className="overflow-hidden shadow-md">
-      {/* グラデーションヘッダー */}
-      <div className="bg-linear-to-br from-primary via-primary to-secondary px-4 pt-4 pb-5 flex items-center gap-3.5">
-        <button onClick={onOpen} className="shrink-0" aria-label="プロフィールを編集">
-          <Avatar
-            src={profile.imageUrl}
-            size="lg"
-            isBordered
-            color="default"
-            classNames={{ base: "ring-2 ring-white/40" }}
-          />
-        </button>
-        <button
-          onClick={onOpen}
-          className="min-w-0 overflow-hidden text-white/60 hover:text-white/90 transition-colors"
-          aria-label="プロフィールを編集"
-        >
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <span className="text-white font-black text-base leading-tight truncate min-w-0">
-                {profile.name}
-              </span>
-              <LuPencil className="w-3.5 h-3.5 shrink-0" />
-            </div>
+        {/* グラデーションヘッダー */}
+        <div className="bg-linear-to-br from-primary via-primary to-secondary px-4 pt-4 pb-5 flex items-center gap-3.5">
+          <button onClick={onOpen} className="shrink-0" aria-label="プロフィールを編集">
+            <Avatar
+              src={profile.imageUrl}
+              size="lg"
+              isBordered
+              color="default"
+              classNames={{ base: "ring-2 ring-white/40" }}
+            />
+          </button>
+          <div className="min-w-0 overflow-hidden flex flex-col gap-1">
+            <button
+              onClick={onOpen}
+              className="min-w-0 overflow-hidden text-white/60 hover:text-white/90 transition-colors"
+              aria-label="プロフィールを編集"
+            >
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="text-white font-black text-base leading-tight truncate min-w-0">
+                  {profile.name}
+                </span>
+                <LuPencil className="w-3.5 h-3.5 shrink-0" />
+              </div>
+            </button>
             <span className="flex items-center gap-1 text-white/80 text-[10px] font-medium">
               <LuCalendar className="w-3 h-3 shrink-0" />
               {formatJoinDate(String(user.created_at))}
             </span>
           </div>
-        </button>
-        <div className="ml-auto shrink-0">
-          <WinRateBadge
-            winRate={stat?.win_rate ?? 0}
-            isLoading={isLoading}
-            monthLabel={monthLabel}
-            hidden={!statsVisible}
-            onToggle={toggleStatsVisible}
-          />
+          <div className="ml-auto shrink-0">
+            <WinRateBadge
+              winRate={stat?.win_rate ?? 0}
+              isLoading={isLoading}
+              monthLabel={monthLabel}
+              hidden={!statsVisible}
+              onToggle={toggleStatsVisible}
+            />
+          </div>
         </div>
-      </div>
 
-      {/* 統計グリッド */}
-      <CardBody className="p-3 -mt-2 bg-content1 rounded-t-2xl relative z-10">
-        <div className="grid grid-cols-3 gap-5">
+        {/* 統計グリッド */}
+        <CardBody className="p-3 -mt-2 bg-content1 rounded-t-2xl relative z-10">
+          <div className="grid grid-cols-3 gap-5">
             <StatChip
               icon={<LuSwords className="w-3.5 h-3.5" />}
               label="試合数"
@@ -265,9 +279,9 @@ export default function UserProfileCard({ user }: Props) {
               hidden={!statsVisible}
               colorClass="text-danger"
             />
-        </div>
-      </CardBody>
-    </Card>
+          </div>
+        </CardBody>
+      </Card>
     </>
   );
 }

@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { Input } from "@heroui/react";
 
 import UserIdentityCard from "@app/components/organisms/User/UserIdentityCard";
+import PlayerLinkCard from "@app/components/organisms/User/PlayerLinkCard";
 import BadgeGallery from "@app/components/organisms/Badge/BadgeGallery";
-import OnboardingBadgePanel from "@app/components/organisms/Badge/OnboardingBadgePanel";
 import DesignationPanel from "@app/components/organisms/Designation/DesignationPanel";
 import { UserType } from "@app/types/user";
 
@@ -29,8 +29,8 @@ export default function TemplateUser({ id }: Props) {
     <>
       <div className="pt-2 max-w-2xl mx-auto w-full flex flex-col gap-3">
         <UserIdentityCard userId={id} />
+        <PlayerLinkCard />
         <DesignationPanel userId={id} userCreatedAt={userCreatedAt} />
-        <OnboardingBadgePanel userId={id} />
         <BadgeGallery userId={id} userCreatedAt={userCreatedAt} />
       </div>
 

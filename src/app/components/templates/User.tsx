@@ -14,7 +14,9 @@ type Props = {
 };
 
 export default function TemplateUser({ id }: Props) {
-  const [championshipSeries, setChampionshipSeries] = useState<ChampionshipSeriesType[]>([]);
+  const [championshipSeries, setChampionshipSeries] = useState<ChampionshipSeriesType[]>(
+    [],
+  );
 
   useEffect(() => {
     fetch(`/api/championship_series`, { cache: "no-store" })
@@ -25,7 +27,7 @@ export default function TemplateUser({ id }: Props) {
 
   return (
     <>
-      <div className="pt-2 max-w-2xl mx-auto w-full flex flex-col gap-3">
+      <div className="pt-3 pb-5 max-w-2xl mx-auto w-full flex flex-col gap-3">
         <UserIdentityCard userId={id} />
         <PlayerLinkCard />
         <DesignationPanel userId={id} championshipSeries={championshipSeries} />

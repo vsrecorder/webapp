@@ -52,6 +52,21 @@ function chunkRows<T>(items: T[], size: number): T[][] {
   return rows;
 }
 
+function ProgressBar({ label, value, max }: { label: string; value: number; max: number }) {
+  const percentage = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
+
+  return (
+    <div className="flex flex-col items-center gap-1 w-full">
+      <div className="w-full h-2 rounded-full bg-default-200 overflow-hidden">
+        <div className="h-full bg-primary/70" style={{ width: `${percentage}%` }} />
+      </div>
+      <span className="text-xs text-default-400 tabular-nums">
+        {label} {value} / {max}
+      </span>
+    </div>
+  );
+}
+
 function DesignationTile({
   item,
   index,
@@ -324,32 +339,19 @@ export default function DesignationPanel({ userId, userCreatedAt }: Props) {
                 ) : selected.criteria_type === "unimplemented" ? (
                   <p className="text-xs text-default-400 mt-1">準備中</p>
                 ) : (
-                  <div className="flex flex-col items-center gap-1 w-full mt-1">
-                    <div className="w-full h-2 rounded-full bg-default-200 overflow-hidden">
-                      <div
-                        className="h-full bg-primary/70"
-                        style={{
-                          width: `${
-                            selected.criteria_value > 0
-                              ? Math.min(
-                                  100,
-                                  Math.round(
-                                    (selected.current_value / selected.criteria_value) * 100,
-                                  ),
-                                )
-                              : 0
-                          }%`,
-                        }}
-                      />
-                    </div>
-                    <span className="text-xs text-default-400 tabular-nums">
-                      今シーズン {selected.current_value} / {selected.criteria_value}
-                    </span>
+                  <div className="flex flex-col items-center gap-2 w-full mt-1">
                     {selected.criteria_type === "official_city_league_record" && (
-                      <span className="text-[10px] text-default-300">
-                        ※ 前シーズンに引き続き記録があることも必要です
-                      </span>
+                      <ProgressBar
+                        label="前シーズン"
+                        value={selected.previous_value}
+                        max={selected.criteria_value}
+                      />
                     )}
+                    <ProgressBar
+                      label="今シーズン"
+                      value={selected.current_value}
+                      max={selected.criteria_value}
+                    />
                   </div>
                 )}
               </ModalBody>

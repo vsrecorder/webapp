@@ -41,6 +41,22 @@ function requiresPlayerLink(criteriaType: string): boolean {
   );
 }
 
+// description は「称号:【🔰 見習い】を持っており、(本来の達成条件)」という
+// 前提称号込みの一文でバックエンドから届く。前提部分を分離して表示するためのパース。
+const PREREQUISITE_DESCRIPTION_PATTERN = /^称号[:：]【(\S+)\s+(.+?)】を持っており、\s*([\s\S]*)$/;
+
+function parseDescription(description: string): {
+  prerequisiteEmoji: string;
+  prerequisiteName: string;
+  criteriaText: string;
+} | null {
+  const match = description.match(PREREQUISITE_DESCRIPTION_PATTERN);
+  if (!match) return null;
+
+  const [, prerequisiteEmoji, prerequisiteName, criteriaText] = match;
+  return { prerequisiteEmoji, prerequisiteName, criteriaText };
+}
+
 type Props = {
   userId: string;
   championshipSeries: ChampionshipSeriesType[];
@@ -357,14 +373,30 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
                 <span className="text-base font-black">{selected.name}</span>
               </ModalHeader>
               <ModalBody className="pb-6 pt-0 text-center gap-2">
-                <p className="text-sm text-default-600 whitespace-pre-line">
-                  {selected.description
-                    .replace("を持っており、", "を持っており、\n")
-                    .replace(
-                      "公式イベント/Tonamel/記入形式、",
-                      "公式イベント / Tonamel / 記入形式、\n",
-                    )}
-                </p>
+                {(() => {
+                  const parsed = parseDescription(selected.description);
+                  const criteriaText = (parsed ? parsed.criteriaText : selected.description).replace(
+                    /\//g,
+                    " / ",
+                  );
+
+                  return (
+                    <div className="flex flex-col items-stretch gap-1.5 w-full">
+                      {parsed && (
+                        <div className="flex items-center justify-center gap-1.5 self-center rounded-full bg-default-100 px-3 py-1 text-[11px] font-bold text-default-500">
+                          <span>前提条件</span>
+                          <span className="text-warning">
+                            {parsed.prerequisiteEmoji} {parsed.prerequisiteName}
+                          </span>
+                          <span>達成済み</span>
+                        </div>
+                      )}
+                      <p className="text-sm text-default-600 leading-relaxed text-left rounded-xl bg-default-50 p-3">
+                        {criteriaText}
+                      </p>
+                    </div>
+                  );
+                })()}
                 {selected.achieved ? (
                   <span className="text-xs font-bold text-warning">達成済み</span>
                 ) : selected.criteria_type === "unimplemented" ? (

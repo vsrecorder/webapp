@@ -65,6 +65,20 @@ export default function RecordCardBase({
       : (winCount ?? 0) < (lossCount ?? 0)
         ? "text-danger"
         : "text-default-500";
+  // バッジの枠線色(勝敗に応じて文字色と揃える)
+  const matchResultBorderColorClass =
+    (winCount ?? 0) > (lossCount ?? 0)
+      ? "border-success/40"
+      : (winCount ?? 0) < (lossCount ?? 0)
+        ? "border-danger/40"
+        : "border-default-300";
+  // バッジの背景色(勝敗に応じて薄く色付け)
+  const matchResultBgColorClass =
+    (winCount ?? 0) > (lossCount ?? 0)
+      ? "bg-success/10"
+      : (winCount ?? 0) < (lossCount ?? 0)
+        ? "bg-danger/10"
+        : "bg-default-100";
 
   return (
     <div id={cardId} className="cursor-pointer group" onClick={onClick}>
@@ -104,7 +118,7 @@ export default function RecordCardBase({
                   {icon}
                 </div>
 
-                <div className="flex flex-col gap-1 min-w-0">
+                <div className="flex flex-col gap-1 min-w-0 flex-1">
                   {infoRowAboveDeck}
 
                   <div className="flex items-center justify-between gap-2 min-w-0">
@@ -144,7 +158,7 @@ export default function RecordCardBase({
                       <Skeleton className="h-3.5 w-12 rounded shrink-0" />
                     ) : hasMatchResult ? (
                       <span
-                        className={`text-xs font-bold shrink-0 ${matchResultColorClass}`}
+                        className={`text-sm font-bold shrink-0 rounded-md border px-2 py-0.5 ${matchResultColorClass} ${matchResultBorderColorClass} ${matchResultBgColorClass}`}
                       >
                         {winCount}勝{lossCount}敗
                       </span>

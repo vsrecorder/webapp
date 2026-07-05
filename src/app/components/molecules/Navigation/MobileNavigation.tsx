@@ -13,7 +13,10 @@ export default function MobileNavigation() {
       className="fixed z-50 lg:hidden bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md dark:bg-neutral-900/80 border-t border-default-200/50 dark:border-neutral-800/80"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      <div className="grid grid-cols-5 h-16">
+      <div
+        className="grid h-16"
+        style={{ gridTemplateColumns: `repeat(${navItems.length}, minmax(0, 1fr))` }}
+      >
         {navItems.map(({ href, label, icon: Icon }) => {
           const active = isActiveRoute(pathname, href);
           return (

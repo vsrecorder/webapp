@@ -10,6 +10,7 @@ import UserStatHistoryChart from "@app/components/organisms/UserStat/UserStatHis
 import RecentMatchWinRateChart from "@app/components/organisms/UserStat/RecentMatchWinRateChart";
 import DeckUsagePanel from "@app/components/organisms/DeckUsage/DeckUsagePanel";
 import OpponentDeckUsagePanel from "@app/components/organisms/DeckUsage/OpponentDeckUsagePanel";
+import WeeklyDeckUsagePanel from "@app/components/organisms/DeckMeta/WeeklyDeckUsagePanel";
 import UserProfileCard from "@app/components/organisms/User/UserProfileCard";
 import StreakPanel from "@app/components/organisms/Badge/StreakPanel";
 import OnboardingBadgePanel from "@app/components/organisms/Badge/OnboardingBadgePanel";
@@ -288,6 +289,31 @@ export default async function TemplateDashboard({ userId }: Props) {
           championshipSeries={championshipSeries}
           userCreatedAt={user?.created_at != null ? String(user.created_at) : undefined}
         />
+      </section>
+    ),
+  });
+
+  // 対戦環境（プラットフォーム全体の週次デッキ使用率・アルファ版）
+  sections.push({
+    id: "environment_meta",
+    label: "対戦環境",
+    node: (
+      <section key="environment_meta" className="flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-bold text-default-700">対戦環境</h2>
+          <Button
+            as={Link}
+            href="/deck_meta"
+            size="sm"
+            variant="light"
+            color="primary"
+            radius="full"
+            className="text-xs font-bold h-7 px-3"
+          >
+            詳しく見る
+          </Button>
+        </div>
+        <WeeklyDeckUsagePanel />
       </section>
     ),
   });

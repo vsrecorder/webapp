@@ -23,6 +23,7 @@ import {
   LuMessageCircle,
   LuExternalLink,
   LuLogOut,
+  LuChartColumn,
 } from "react-icons/lu";
 
 import { handleSignOut } from "@app/handlers/handleSignOut";
@@ -152,6 +153,17 @@ export default function UserMenu({ user }: Props) {
               }}
             >
               対戦記録一覧
+            </DropdownItem>
+            <DropdownItem
+              key="deck_meta"
+              color="default"
+              startContent={<LuChartColumn className="w-4 h-4" />}
+              description="週次のデッキ使用率・勝率"
+              onPress={() => {
+                router.push("/deck_meta");
+              }}
+            >
+              対戦環境分析（試作中）
             </DropdownItem>
           </DropdownSection>
 

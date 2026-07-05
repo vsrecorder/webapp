@@ -10,6 +10,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "always",
     },
     {
+      url: url + "/deck_meta",
+      changeFrequency: "weekly",
+    },
+    {
       url: url + "/terms",
       changeFrequency: "monthly",
     },

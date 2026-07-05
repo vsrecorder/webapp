@@ -36,6 +36,15 @@
   border: none;
 }
 
+/*
+ * デフォルト(unknown)スプライトはほぼ黒い線画のため、ダークモードだと
+ * 背景に潰れて見えづらい。ダークモード時のみ色を反転して視認性を確保する。
+ * （画像書き出し用の .light 領域は常にライト表示のため除外する）
+ */
+.dark img[src$="unknown.png"]:not(.light *) {
+  filter: invert(1);
+}
+
 /* ヘッダーの環境テキストスクロールアニメーション */
 @keyframes marquee {
   from {

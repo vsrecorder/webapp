@@ -109,10 +109,17 @@ export default function WeeklyDeckUsagePanel() {
         {/* アルファ版バッジ + 注記 */}
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center gap-2">
-            <Chip size="sm" color="warning" variant="flat" classNames={{ content: "font-black" }}>
-             試作中
+            <Chip
+              size="sm"
+              color="warning"
+              variant="flat"
+              classNames={{ content: "font-black" }}
+            >
+              試作中
             </Chip>
-            <span className="text-sm font-bold text-default-700">対戦環境（週次デッキ使用率）</span>
+            <span className="text-sm font-bold text-default-700">
+              対戦環境（週次デッキ使用率）
+            </span>
           </div>
           <p className="text-[11px] text-default-400 leading-relaxed">
             プラットフォーム全体の対戦記録から集計した、週ごとのデッキ使用率です。アルファ版のため、
@@ -141,7 +148,8 @@ export default function WeeklyDeckUsagePanel() {
         {/* 母集団の明示 */}
         {stat != null && (
           <p className="text-center text-xs text-default-400 -mt-1">
-            {periodLabel} ／ バトレコ利用者 {stat.contributor_count} 人・{stat.total_votes} 票に基づく
+            {periodLabel} ／ バトレコ利用者 {stat.contributor_count} 人・
+            {stat.total_votes} 票に基づく
           </p>
         )}
 
@@ -177,13 +185,23 @@ export default function WeeklyDeckUsagePanel() {
                   <div className="w-16 flex justify-center shrink-0">
                     <DeckSprites deck={deck} />
                   </div>
+                  {/*
                   <span className="font-bold text-xs text-default-700 truncate flex-1 min-w-0">
                     {deck.label || (isOther ? "その他" : "（名称未設定）")}
                   </span>
+                  */}
                   <div className="flex flex-col items-end gap-1 shrink-0 pl-2 border-l border-default-200">
-                    <span className="text-[10px] text-default-400 tabular-nums">
+                    <Chip
+                      size="sm"
+                      variant="flat"
+                      color={"default"}
+                      classNames={{
+                        base: "h-5 px-0.5",
+                        content: "text-[11px] font-black tabular-nums px-1.5",
+                      }}
+                    >
                       使用率 {(deck.usage_rate * 100).toFixed(1)}% ({deck.count}件)
-                    </span>
+                    </Chip>
                     {/* その他は勝率が意味を持たないためグレー表示にする */}
                     <Chip
                       size="sm"

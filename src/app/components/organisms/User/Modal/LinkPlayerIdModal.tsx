@@ -14,7 +14,7 @@ import {
   addToast,
   closeToast,
 } from "@heroui/react";
-import { LuTriangleAlert, LuMapPin, LuSwords } from "react-icons/lu";
+import { LuTriangleAlert, LuMapPin, LuSwords, LuArrowRight } from "react-icons/lu";
 
 import {
   UserPlayerCreateRequestType,
@@ -72,6 +72,10 @@ export default function LinkPlayerIdModal({ isOpen, onOpenChange, onLinked }: Pr
       const resBody = await res.json().catch(() => ({}));
 
       if (!res.ok) {
+        if (res.status === 429) {
+          throw new Error("試行回数の上限に達しました。しばらく時間をおいてから再度お試しください。");
+        }
+
         throw new Error(
           typeof resBody?.message === "string"
             ? resBody.message
@@ -102,14 +106,17 @@ export default function LinkPlayerIdModal({ isOpen, onOpenChange, onLinked }: Pr
     setIsDisabled(true);
 
     const toastId = addToast({
-      title: "連携中",
+      title: "アバターの変更を確認中",
       description: "しばらくお待ちください",
       color: "default",
       promise: new Promise(() => {}),
     });
 
     try {
-      const body: UserPlayerCreateRequestType = { player_id: verifiedAccount.player_id };
+      const body: UserPlayerCreateRequestType = {
+        player_id: verifiedAccount.player_id,
+        challenge_token: verifiedAccount.challenge.token,
+      };
 
       const res = await fetch("/api/userplayers", {
         method: "POST",
@@ -124,6 +131,23 @@ export default function LinkPlayerIdModal({ isOpen, onOpenChange, onLinked }: Pr
           typeof resBody?.message === "string"
             ? resBody.message
             : `連携に失敗しました: ${res.status}`;
+
+        if (res.status === 429) {
+          throw new Error("試行回数の上限に達しました。しばらく時間をおいてから再度お試しください。");
+        }
+
+        if (res.status === 403) {
+          // アバター画像がまだ変更後の内容と一致していない。同じチャレンジのまま再試行できる。
+          throw new Error(
+            `${baseMessage}(反映まで時間がかかる場合があります。変更後、もう一度お試しください)`,
+          );
+        }
+
+        if (res.status === 400) {
+          // チャレンジの期限切れ・不正。最初からやり直してもらう。
+          setModalState("input");
+          throw new Error(baseMessage);
+        }
 
         // 409は「他アカウントで使用中」の可能性があるため、なりすましだった場合の
         // 問い合わせ導線を案内する。
@@ -151,7 +175,7 @@ export default function LinkPlayerIdModal({ isOpen, onOpenChange, onLinked }: Pr
         title: "連携に失敗しました",
         description: error instanceof Error ? error.message : "不明なエラー",
         color: "danger",
-        timeout: 5000,
+        timeout: 8000,
       });
     } finally {
       setIsDisabled(false);
@@ -212,6 +236,13 @@ export default function LinkPlayerIdModal({ isOpen, onOpenChange, onLinked }: Pr
                     <br />
                     <span className="font-bold">「公開」</span>
                     になっていること確認してください。
+                    <br />
+                    <br />
+                    さらに、
+                    <span className="font-bold">
+                      本人確認のためアバター画像の変更をお願いする場合があります
+                    </span>
+                    。
                   </span>
                 </div>
               </ModalBody>
@@ -239,8 +270,8 @@ export default function LinkPlayerIdModal({ isOpen, onOpenChange, onLinked }: Pr
             </>
           ) : (
             <>
-              <ModalHeader className="flex flex-col gap-1 px-3">
-                この情報で連携しますか？
+              <ModalHeader className="flex flex-col gap-1 px-3 text-md">
+                本人確認のためアバターを変更してください
               </ModalHeader>
 
               <ModalBody className="px-3 py-1 flex flex-col gap-3">
@@ -279,6 +310,42 @@ export default function LinkPlayerIdModal({ isOpen, onOpenChange, onLinked }: Pr
                             {verifiedAccount.prefecture}
                           </Chip>
                         )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {verifiedAccount && (
+                  <div className="flex flex-col gap-2">
+                    <p className="text-xs text-default-600">
+                      なりすまし防止のため、あなたがこのプレイヤーIDの持ち主であることを
+                      確認します。プレイヤーズクラブの
+                      <span className="font-bold">ユーザー情報</span>から、
+                      アバター画像を下記の画像に
+                      <span className="font-bold">一時的に変更</span>
+                      してから「連携」を押してください。
+                    </p>
+                    <div className="flex items-center justify-center gap-3 p-3 rounded-xl bg-primary-50">
+                      <div className="flex flex-col items-center gap-1">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={verifiedAccount.avatar_image}
+                          alt="現在のアバター"
+                          className="w-14 h-14"
+                        />
+                        <span className="text-[10px] text-default-500">現在</span>
+                      </div>
+                      <LuArrowRight className="w-4 h-4 text-default-400 shrink-0" />
+                      <div className="flex flex-col items-center gap-1">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={verifiedAccount.challenge.avatar_image_url}
+                          alt={verifiedAccount.challenge.avatar_title}
+                          className="w-14 h-14"
+                        />
+                        <span className="text-[10px] font-bold text-primary-600 truncate max-w-20">
+                          {verifiedAccount.challenge.avatar_title}
+                        </span>
                       </div>
                     </div>
                   </div>

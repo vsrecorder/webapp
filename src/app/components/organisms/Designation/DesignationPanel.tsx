@@ -2,6 +2,7 @@
 
 import { useEffect, useState, Fragment } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   Card,
   CardBody,
@@ -11,19 +12,34 @@ import {
   ModalBody,
   useDisclosure,
 } from "@heroui/react";
-import { LuLock } from "react-icons/lu";
+import { LuLock, LuTriangleAlert } from "react-icons/lu";
 
 import {
   DesignationLadderItemType,
   DesignationRankStatsType,
   UserDesignationType,
 } from "@app/types/designation";
+import { UserPlayerType } from "@app/types/user_player";
 import { ChampionshipSeriesType } from "@app/types/championship_series";
 import { RANKS, rankForTier, NO_RANK_IMAGE } from "@app/utils/designationRank";
 import {
   seasonOptionsFromChampionshipSeries,
   currentSeasonValue,
 } from "@app/utils/season";
+
+// バックエンド(internal/usecase/designation.go)の criteria_type 定数と一致させる値。
+// いずれもプレイヤーズクラブ連携済みのプレイヤーIDで、公式サイトの結果(cityleague_results)を
+// 参照して判定する(ベテラン・熟練者)。
+const CITY_LEAGUE_PLACEMENT_CRITERIA_TYPE = "official_city_league_placement";
+const CITY_LEAGUE_FINAL_TOURNAMENT_CRITERIA_TYPE = "official_city_league_playoff";
+
+// プレイヤーズクラブ連携が達成判定の前提となる criteria_type かどうか。
+function requiresPlayerLink(criteriaType: string): boolean {
+  return (
+    criteriaType === CITY_LEAGUE_PLACEMENT_CRITERIA_TYPE ||
+    criteriaType === CITY_LEAGUE_FINAL_TOURNAMENT_CRITERIA_TYPE
+  );
+}
 
 type Props = {
   userId: string;
@@ -123,6 +139,8 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
   const [selected, setSelected] = useState<DesignationLadderItemType | null>(null);
   const [season, setSeason] = useState(() => currentSeasonValue(championshipSeries));
   const [rankStats, setRankStats] = useState<DesignationRankStatsType | null>(null);
+  // プレイヤーズクラブ連携状態(称号詳細モーダルでの案内表示に使う)。null は読み込み中。
+  const [isPlayerLinked, setIsPlayerLinked] = useState<boolean | null>(null);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const {
     isOpen: isRankInfoOpen,
@@ -142,6 +160,13 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
       })
       .catch(() => setIsLoading(false));
   }, [userId, season]);
+
+  useEffect(() => {
+    fetch("/api/userplayers", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: UserPlayerType | null) => setIsPlayerLinked(data != null))
+      .catch(() => setIsPlayerLinked(false));
+  }, []);
 
   useEffect(() => {
     // ランク一覧モーダルを開いたときだけ取得する(通常表示では不要な集計クエリのため)
@@ -344,15 +369,51 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
                   <span className="text-xs font-bold text-warning">達成済み</span>
                 ) : selected.criteria_type === "unimplemented" ? (
                   <p className="text-xs text-default-400 mt-1">準備中</p>
-                ) : (
-                  <div className="flex flex-col items-center gap-2 w-full mt-1">
-                    {selected.criteria_type === "official_city_league_record" && (
+                ) : selected.criteria_type === "official_city_league_record" ? (
+                  <div className="flex flex-col items-center gap-1.5 w-full mt-1">
+                    <div className="flex flex-col items-center gap-1.5 w-full rounded-xl bg-default-50 p-2">
+                      <span className="text-[10px] font-bold text-default-400">
+                        前シーズンに引き続き記録した場合
+                      </span>
                       <ProgressBar
                         label="前シーズン"
                         value={selected.previous_value}
                         max={selected.criteria_value}
                       />
-                    )}
+                      <ProgressBar
+                        label="今シーズン"
+                        value={selected.current_value}
+                        max={selected.criteria_value}
+                      />
+                    </div>
+                    <span className="text-[10px] font-bold text-default-300">または</span>
+                    <div className="flex flex-col items-center gap-1.5 w-full rounded-xl bg-default-50 p-2">
+                      <span className="text-[10px] font-bold text-default-400">
+                        今シーズン単独で{selected.standalone_threshold}件以上記録した場合
+                      </span>
+                      <ProgressBar
+                        label="今シーズン"
+                        value={selected.current_value}
+                        max={selected.standalone_threshold}
+                      />
+                    </div>
+                  </div>
+                ) : requiresPlayerLink(selected.criteria_type) && isPlayerLinked === false ? (
+                  <div className="flex items-start justify-center gap-2 text-xs text-warning-600 bg-warning-50 rounded-xl p-3 mt-1 text-left">
+                    <LuTriangleAlert className="w-4 h-4 shrink-0 mt-0.5" />
+                    <span>
+                      この称号の達成判定には、プレイヤーズクラブとの連携が完了している必要があります。
+                      <Link
+                        href="/users"
+                        className="font-bold underline underline-offset-2"
+                      >
+                        ユーザ情報
+                      </Link>
+                      から連携してください。
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-2 w-full mt-1">
                     <ProgressBar
                       label="今シーズン"
                       value={selected.current_value}

@@ -110,26 +110,15 @@ export default function UserMenu({ user }: Props) {
 
           <DropdownSection aria-label="ナビゲーション" showDivider>
             <DropdownItem
-              key="records"
+              key="profile"
               color="default"
-              startContent={<LuFileText className="w-4 h-4" />}
-              description="これまでの対戦を確認"
+              startContent={<LuUser className="w-4 h-4" />}
+              description="称号やバッジを確認"
               onPress={() => {
-                router.push("/records");
+                router.push("/users");
               }}
             >
-              対戦記録一覧
-            </DropdownItem>
-            <DropdownItem
-              key="decks"
-              color="default"
-              startContent={<LuLayers className="w-4 h-4" />}
-              description="登録デッキを管理"
-              onPress={() => {
-                router.push("/decks");
-              }}
-            >
-              マイデッキ一覧
+              ユーザ情報
             </DropdownItem>
             <DropdownItem
               key="dashboard-customize"
@@ -143,15 +132,26 @@ export default function UserMenu({ user }: Props) {
               ホームの表示設定
             </DropdownItem>
             <DropdownItem
-              key="profile"
+              key="decks"
               color="default"
-              startContent={<LuUser className="w-4 h-4" />}
-              description="称号やバッジを確認"
+              startContent={<LuLayers className="w-4 h-4" />}
+              description="登録デッキを管理"
               onPress={() => {
-                router.push("/users");
+                router.push("/decks");
               }}
             >
-              プロフィール
+              登録デッキ一覧
+            </DropdownItem>
+            <DropdownItem
+              key="records"
+              color="default"
+              startContent={<LuFileText className="w-4 h-4" />}
+              description="これまでの対戦を確認"
+              onPress={() => {
+                router.push("/records");
+              }}
+            >
+              対戦記録一覧
             </DropdownItem>
           </DropdownSection>
 

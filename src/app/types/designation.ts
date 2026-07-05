@@ -7,12 +7,15 @@ export type DesignationType = {
   description: string;
   criteria_type: string;
   criteria_value: number;
+  // criteria_type が "official_city_league_record"(レギュラーの継続条件)の場合のみ、
+  // 前シーズンの実績を問わず今シーズン単独で達成とみなす閾値。それ以外は常に0。
+  standalone_threshold: number;
 };
 
 export type DesignationLadderItemType = DesignationType & {
   achieved: boolean;
   current_value: number;
-  // criteria_type が "official_city_league_record"(常連の継続条件)の場合のみ、
+  // criteria_type が "official_city_league_record"(レギュラーの継続条件)の場合のみ、
   // 前シーズンの集計値。それ以外は常に0。
   previous_value: number;
 };

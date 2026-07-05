@@ -3,7 +3,7 @@ export type RankInfo = {
   image: string;
 };
 
-// 称号のティアを2つずつまとめた「ランク」。称号とは別の永続データを持たず、
+// 称号のティアをまとめた「ランク」。称号とは別の永続データを持たず、
 // 現在の称号ティアから都度導出する(ランク単体で判定条件を増やす予定はないため)。
 // 配列の並び順=昇格順(モンスターボール級が最下位、マスターボール級が最上位)。
 export const RANKS: { minTier: number; maxTier: number; info: RankInfo }[] = [
@@ -19,11 +19,11 @@ export const RANKS: { minTier: number; maxTier: number; info: RankInfo }[] = [
   },
   {
     minTier: 5,
-    maxTier: 6,
+    maxTier: 5,
     info: { name: "ハイパーボール級", image: "/images/ultra-ball.png" },
   },
   {
-    minTier: 7,
+    minTier: 6,
     maxTier: 8,
     info: { name: "マスターボール級", image: "/images/master-ball.png" },
   },

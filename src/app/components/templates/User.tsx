@@ -25,7 +25,7 @@ export default function TemplateUser({ id }: Props) {
   }, []);
 
   return (
-    <div className="pt-3 pb-5 max-w-2xl mx-auto w-full flex flex-col gap-3">
+    <div className="pt-3 pb-6 max-w-2xl mx-auto w-full flex flex-col gap-3">
       <UserIdentityCard userId={id} />
       <PlayerLinkCard />
       <DesignationPanel userId={id} championshipSeries={championshipSeries} />

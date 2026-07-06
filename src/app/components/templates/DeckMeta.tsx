@@ -10,7 +10,7 @@ export default function TemplateDeckMeta() {
   return (
     <>
       <ScrollUpFloating />
-      <div className="pt-12 w-full">
+      <div className="pt-9 pb-6 w-full">
         <div className="mx-auto w-full max-w-2xl px-3 flex flex-col gap-5">
           {/* ページヘッダー */}
           <div className="flex items-start gap-3">
@@ -26,7 +26,10 @@ export default function TemplateDeckMeta() {
                   size="sm"
                   color="warning"
                   variant="flat"
-                  classNames={{ base: "h-5 px-0.5", content: "text-[10px] font-black px-1.5" }}
+                  classNames={{
+                    base: "h-5 px-0.5",
+                    content: "text-[10px] font-black px-1.5",
+                  }}
                 >
                   試作中
                 </Chip>

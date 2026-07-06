@@ -293,14 +293,14 @@ export default async function TemplateDashboard({ userId }: Props) {
     ),
   });
 
-  // 対戦環境（プラットフォーム全体の週次デッキ使用率・アルファ版）
+  // 対戦環境分析（プラットフォーム全体の週次デッキ使用率・アルファ版）
   sections.push({
     id: "environment_meta",
-    label: "対戦環境",
+    label: "対戦環境分析",
     node: (
       <section key="environment_meta" className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold text-default-700">対戦環境</h2>
+          <h2 className="text-sm font-bold text-default-700">対戦環境分析</h2>
           <Button
             as={Link}
             href="/deck_meta"

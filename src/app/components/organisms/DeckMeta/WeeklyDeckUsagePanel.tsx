@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import { Card, CardBody, Chip, Image } from "@heroui/react";
+import { Button, Card, CardBody, Chip, Image } from "@heroui/react";
+import { LuChevronLeft, LuChevronRight, LuSwords, LuUsers } from "react-icons/lu";
 
 import { spriteImageUrl, spriteScaleClass } from "@app/utils/sprite";
 import { generateWeekOptions, lastWeekValue } from "@app/utils/week";
@@ -19,6 +20,34 @@ function winRateChipColor(rate: number): "success" | "default" | "warning" | "da
   return "danger";
 }
 
+// 上位3件をメダル配色で強調する（4位以降・その他は通常のニュートラル配色）
+function RankBadge({ rank, isOther }: { rank: number; isOther: boolean }) {
+  if (isOther) {
+    return (
+      <span className="flex items-center justify-center w-6 h-6 rounded-full bg-default-100 text-default-400 text-[10px] font-black shrink-0">
+        ―
+      </span>
+    );
+  }
+
+  const style =
+    rank === 1
+      ? "bg-amber-400/20 text-amber-600 ring-1 ring-amber-400/40"
+      : rank === 2
+        ? "bg-default-300/30 text-default-500 ring-1 ring-default-300/60"
+        : rank === 3
+          ? "bg-orange-400/20 text-orange-700 ring-1 ring-orange-400/40"
+          : "bg-default-100 text-default-400";
+
+  return (
+    <span
+      className={`flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-black shrink-0 ${style}`}
+    >
+      {rank}
+    </span>
+  );
+}
+
 // デッキ変種のスプライトを最大2体まで横並び表示する。不足分は unknown で埋める。
 function DeckSprites({ deck }: { deck: WeeklyDeckUsageItemType }) {
   const sprites = deck.pokemon_sprites ?? [];
@@ -32,7 +61,7 @@ function DeckSprites({ deck }: { deck: WeeklyDeckUsageItemType }) {
           key={`${sprite.id}-${idx}`}
           alt={sprite.id}
           src={spriteImageUrl(sprite.id)}
-          className={`w-8 h-8 object-contain ${spriteScaleClass(sprite.id)} origin-bottom`}
+          className={`w-9 h-9 object-contain ${spriteScaleClass(sprite.id)} origin-bottom`}
         />
       ))}
       {Array.from({ length: fillers }).map((_, idx) => (
@@ -40,9 +69,25 @@ function DeckSprites({ deck }: { deck: WeeklyDeckUsageItemType }) {
           key={`filler-${idx}`}
           alt="unknown"
           src={spriteImageUrl(null)}
-          className="w-8 h-8 object-contain scale-150 origin-bottom"
+          className="w-9 h-9 object-contain scale-150 origin-bottom"
         />
       ))}
+    </div>
+  );
+}
+
+function SkeletonRow() {
+  return (
+    <div className="flex flex-col gap-1.5 rounded-xl bg-default-100 px-3 py-2 animate-pulse">
+      <div className="flex items-center gap-2">
+        <div className="w-6 h-6 rounded-full bg-default-200 shrink-0" />
+        <div className="w-20 h-9 rounded-lg bg-default-200 shrink-0" />
+        <div className="ml-auto w-12 h-6 rounded-lg bg-default-200 shrink-0" />
+      </div>
+      <div className="flex items-center gap-2">
+        <div className="flex-1 h-1.5 rounded-full bg-default-200" />
+        <div className="w-14 h-5 rounded-full bg-default-200 shrink-0" />
+      </div>
     </div>
   );
 }
@@ -99,65 +144,130 @@ export default function WeeklyDeckUsagePanel() {
     [decks],
   );
 
+  // 使用率バーは最上位デッキを基準に相対表示する（絶対値だと差が視認しづらいため）
+  const maxUsageRate = useMemo(
+    () => Math.max(...displayDecks.map((d) => d.usage_rate), 0.0001),
+    [displayDecks],
+  );
+
   const periodLabel =
     stat != null && stat.week_start
       ? `${stat.week_start} 〜 ${stat.week_end} の週`
       : (weekOptions.find((o) => o.value === week)?.label ?? week);
 
+  // 週セレクタの前後移動（weekOptions は新しい週が先頭 = index 0）
+  const currentIndex = weekOptions.findIndex((o) => o.value === week);
+  const canGoOlder = currentIndex !== -1 && currentIndex < weekOptions.length - 1;
+  const canGoNewer = currentIndex > 0;
+
+  function stepWeek(delta: number) {
+    if (currentIndex === -1) return;
+    const idx = currentIndex + delta;
+    if (idx < 0 || idx >= weekOptions.length) return;
+    setWeek(weekOptions[idx].value);
+  }
+
   return (
-    <Card>
+    <Card className="shadow-md">
       <CardBody className="gap-4 p-4">
-        {/* アルファ版バッジ + 注記 */}
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-center gap-2">
-            <Chip
-              size="sm"
-              color="warning"
-              variant="flat"
-              classNames={{ content: "font-black" }}
-            >
-              試作中
-            </Chip>
-            <span className="text-sm font-bold text-default-700">
-              対戦環境（週次デッキ使用率）
-            </span>
-          </div>
-          <p className="text-[11px] text-default-400 leading-relaxed">
-            プラットフォーム全体の対戦記録から集計した、週ごとのデッキ使用率です。アルファ版のため、
-            集計ロジックや表示仕様は今後変わる可能性があります。数値はあくまで参考値としてご覧ください。
-          </p>
+        {/* アルファ版の注記 */}
+        <div className="flex items-center gap-2">
+          <Chip
+            size="sm"
+            color="warning"
+            variant="flat"
+            classNames={{ base: "h-5 px-0.5", content: "text-[10px] font-black px-1.5" }}
+          >
+            試作中
+          </Chip>
+          <span className="text-[11px] text-default-400 leading-snug">
+            集計ロジック・表示仕様は今後変わる可能性があります
+          </span>
         </div>
 
-        {/* 週セレクタ */}
-        <div className="relative">
-          <select
-            value={week}
-            onChange={(e) => setWeek(e.target.value)}
-            className="w-full appearance-none rounded-xl border border-default-200 bg-default-100 px-4 py-2.5 pr-10 text-sm font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
+        {/* 週セレクタ（前後移動ボタン付き） */}
+        <div className="flex items-center gap-2">
+          <Button
+            isIconOnly
+            size="sm"
+            variant="flat"
+            isDisabled={!canGoOlder}
+            onPress={() => stepWeek(1)}
+            aria-label="前の週"
           >
-            {weekOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-default-400 text-xs">
-            ▼
-          </span>
+            <LuChevronLeft className="w-4 h-4" />
+          </Button>
+
+          <div className="relative flex-1">
+            <select
+              value={week}
+              onChange={(e) => setWeek(e.target.value)}
+              className="w-full appearance-none rounded-xl border border-default-200 bg-default-100 px-4 py-2.5 pr-10 text-sm font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
+            >
+              {weekOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-default-400 text-xs">
+              ▼
+            </span>
+          </div>
+
+          <Button
+            isIconOnly
+            size="sm"
+            variant="flat"
+            isDisabled={!canGoNewer}
+            onPress={() => stepWeek(-1)}
+            aria-label="次の週"
+          >
+            <LuChevronRight className="w-4 h-4" />
+          </Button>
         </div>
 
         {/* 母集団の明示 */}
         {stat != null && (
-          <p className="text-center text-xs text-default-400 -mt-1">
-            {periodLabel} ／ バトレコ利用者 {stat.contributor_count} 人・
-            {stat.total_votes} 票に基づく
-          </p>
+          <div className="flex flex-col items-center gap-1.5">
+            <span className="text-xs text-default-400">{periodLabel}</span>
+            <div className="flex items-center justify-center gap-4 rounded-xl bg-default-50 px-4 py-2 w-full">
+              <div className="flex items-center gap-1.5">
+                <LuUsers className="w-3.5 h-3.5 text-default-400 shrink-0" />
+                <span className="text-xs font-black text-default-600 tabular-nums">
+                  {stat.contributor_count}
+                  <span className="text-[10px] font-medium text-default-400 ml-0.5">人</span>
+                </span>
+              </div>
+              <div className="w-px h-3.5 bg-default-200" />
+              <div className="flex items-center gap-1.5">
+                <LuSwords className="w-3.5 h-3.5 text-default-400 shrink-0" />
+                <span className="text-xs font-black text-default-600 tabular-nums">
+                  のべ{stat.total_votes}
+                  <span className="text-[10px] font-medium text-default-400 ml-0.5">件</span>
+                </span>
+              </div>
+            </div>
+            <span className="text-[10px] text-default-300 leading-snug text-center">
+              ※自分・相手それぞれのデッキを1件として<br/>集計するため、対戦数より多くなっています
+            </span>
+          </div>
+        )}
+
+        {/* ランキングの並び順を明示（読み込み中もレイアウトが動かないよう表示しておく） */}
+        {(isLoading || displayDecks.length > 0) && (
+          <div className="flex items-center justify-between px-1 -mb-2">
+            <span className="text-[11px] font-black text-default-500">使用率ランキング</span>
+            <span className="text-[10px] text-default-400">使用率が高い順（同率は勝率順）</span>
+          </div>
         )}
 
         {/* ランキング */}
         {isLoading && !stat ? (
-          <div className="h-48 flex items-center justify-center">
-            <span className="text-xs text-default-400">読み込み中...</span>
+          <div className="flex flex-col gap-1.5">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <SkeletonRow key={i} />
+            ))}
           </div>
         ) : displayDecks.length === 0 ? (
           <div className="h-48 flex items-center justify-center">
@@ -175,42 +285,51 @@ export default function WeeklyDeckUsagePanel() {
           >
             {displayDecks.map((deck, idx) => {
               const isOther = deck.fingerprint === "";
+              const barWidth = Math.max(
+                4,
+                Math.round((deck.usage_rate / maxUsageRate) * 100),
+              );
+
               return (
                 <div
                   key={`${deck.fingerprint || "other"}-${idx}`}
-                  className="flex items-center gap-2 rounded-xl px-3 py-1.5 bg-default-100"
+                  className="flex flex-col gap-1.5 rounded-xl bg-default-100 px-3 py-2"
                 >
-                  <span className="w-5 text-center text-xs font-black text-default-400 shrink-0">
-                    {isOther ? "―" : idx + 1}
-                  </span>
-                  <div className="w-16 flex justify-center shrink-0">
+                  <div className="flex items-center gap-2">
+                    <RankBadge rank={idx + 1} isOther={isOther} />
                     <DeckSprites deck={deck} />
+                    {isOther && (
+                      <span className="font-bold text-xs text-default-500 truncate">
+                        その他
+                      </span>
+                    )}
+                    {/* 使用率を主指標として大きく強調表示する */}
+                    <div className="ml-auto flex flex-col items-end shrink-0 leading-none">
+                      <span className="text-lg font-black tabular-nums text-default-700">
+                        {(deck.usage_rate * 100).toFixed(1)}
+                        <span className="text-xs font-bold text-default-400">%</span>
+                      </span>
+                      <span className="text-[9px] text-default-400 tabular-nums mt-0.5">
+                        {deck.count}件
+                      </span>
+                    </div>
                   </div>
-                  {isOther && (
-                    <span className="font-bold text-xs text-default-700 truncate flex-1 min-w-0">
-                      その他
-                    </span>
-                  )}
-                  <div className="flex flex-col items-end gap-1 shrink-0 pl-2 border-l border-default-200 ml-auto">
-                    <Chip
-                      size="sm"
-                      variant="flat"
-                      color={"default"}
-                      classNames={{
-                        base: "h-5 px-0.5",
-                        content: "text-[11px] font-black tabular-nums px-1.5",
-                      }}
-                    >
-                      使用率 {(deck.usage_rate * 100).toFixed(1)}% ({deck.count}件)
-                    </Chip>
-                    {/* その他は勝率が意味を持たないためグレー表示にする */}
+
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-1.5 rounded-full bg-default-200 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${isOther ? "bg-default-400/60" : "bg-primary/70"}`}
+                        style={{ width: `${barWidth}%` }}
+                      />
+                    </div>
+                    {/* 勝率は補助情報として控えめに表示する */}
                     <Chip
                       size="sm"
                       variant="flat"
                       color={isOther ? "default" : winRateChipColor(deck.win_rate)}
                       classNames={{
-                        base: "h-5 px-0.5",
-                        content: "text-[11px] font-black tabular-nums px-1.5",
+                        base: "h-5 px-0.5 shrink-0",
+                        content: "text-[10px] font-bold tabular-nums px-1.5",
                       }}
                     >
                       勝率 {(deck.win_rate * 100).toFixed(1)}%

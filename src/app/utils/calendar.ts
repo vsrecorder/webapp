@@ -14,6 +14,12 @@ export function getJstNow(): Date {
   return new Date(Date.now() + JST_OFFSET_MS);
 }
 
+// 「YYYY年M月からバトレコを利用」形式の利用開始表示文字列を返す。
+export function formatJoinDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  return `${d.getFullYear()}年${d.getMonth() + 1}月からバトレコを利用`;
+}
+
 export type CalendarGridCell = {
   date: Date;
   dateKey: string;

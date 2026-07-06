@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Input } from "@heroui/react";
 
 import UserIdentityCard from "@app/components/organisms/User/UserIdentityCard";
 import PlayerLinkCard from "@app/components/organisms/User/PlayerLinkCard";
@@ -26,39 +25,11 @@ export default function TemplateUser({ id }: Props) {
   }, []);
 
   return (
-    <>
-      <div className="pt-3 pb-5 max-w-2xl mx-auto w-full flex flex-col gap-3">
-        <UserIdentityCard userId={id} />
-        <PlayerLinkCard />
-        <DesignationPanel userId={id} championshipSeries={championshipSeries} />
-        <BadgeGallery userId={id} championshipSeries={championshipSeries} />
-      </div>
-
-      <Input
-        type="file"
-        //variant="unstyled"
-        accept="image/png, image/jpeg, image/gif"
-        className="hidden"
-        onChange={(e) => {
-          if (e.target.files && e.target.files.length > 0) {
-            const reader = new FileReader();
-
-            reader.onload = (e) => {
-              if (!e.target || !e.target.result) {
-                //setCropImage("");
-                return;
-              }
-
-              //setCropImage(e.target.result.toString());
-            };
-
-            reader.readAsDataURL(e.target.files[0]);
-            e.target.value = "";
-
-            //onOpenCropper();
-          }
-        }}
-      />
-    </>
+    <div className="pt-3 pb-5 max-w-2xl mx-auto w-full flex flex-col gap-3">
+      <UserIdentityCard userId={id} />
+      <PlayerLinkCard />
+      <DesignationPanel userId={id} championshipSeries={championshipSeries} />
+      <BadgeGallery userId={id} championshipSeries={championshipSeries} />
+    </div>
   );
 }

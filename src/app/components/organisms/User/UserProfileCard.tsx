@@ -16,6 +16,7 @@ import UpdateNameModal from "@app/components/organisms/User/Modal/UpdateNameModa
 
 import { UserType } from "@app/types/user";
 import { UserStatType } from "@app/types/user_stat";
+import { formatJoinDate } from "@app/utils/calendar";
 
 type Props = {
   user: UserType;
@@ -61,11 +62,6 @@ function useCountUp(target: number, duration = 700): number {
   }, [target, duration]);
 
   return display;
-}
-
-function formatJoinDate(dateStr: string): string {
-  const d = new Date(dateStr);
-  return `${d.getFullYear()}年${d.getMonth() + 1}月からバトレコを利用`;
 }
 
 function winRateColor(rate: number): string {

@@ -34,7 +34,11 @@ export function RecordCardSkeleton({ className = "" }: { className?: string }) {
                 <Skeleton className="w-8 h-8 rounded-lg shrink-0" />
                 <div className="flex items-center justify-between gap-2 flex-1">
                   <Skeleton className="h-3.5 w-24 rounded-md" />
-                  <Skeleton className="h-3.5 w-12 rounded-md shrink-0" />
+                  {/* チーム戦バッジ・勝敗バッジ(ともに text-xs px-1.5 py-0.5)と高さ・幅を揃える */}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <Skeleton className="h-5 w-10 rounded-md" />
+                    <Skeleton className="h-5 w-12 rounded-md" />
+                  </div>
                 </div>
               </div>
             </div>

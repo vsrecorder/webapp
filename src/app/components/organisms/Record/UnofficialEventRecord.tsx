@@ -15,7 +15,7 @@ import { DeckGetByIdResponseType } from "@app/types/deck";
 import { UnofficialEventGetByIdResponseType } from "@app/types/unofficial_event";
 import { EnvironmentType } from "@app/types/environment";
 import { MatchGetResponseType } from "@app/types/match";
-import { countMatchResults } from "@app/utils/match";
+import { countMatchResults, isGroupMatchMajority } from "@app/utils/match";
 
 async function fetchUnofficialEventById(
   id: string,
@@ -340,6 +340,7 @@ export default function UnofficialEventRecord({
         loadingDeck={loadingDeck}
         winCount={wins}
         lossCount={losses}
+        isGroupMatchMajority={isGroupMatchMajority(matches)}
         loadingMatches={loadingMatches}
       />
     </>

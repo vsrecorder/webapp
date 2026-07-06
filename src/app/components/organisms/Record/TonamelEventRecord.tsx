@@ -13,7 +13,7 @@ import { TonamelEventGetByIdResponseType } from "@app/types/tonamel_event";
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { EnvironmentType } from "@app/types/environment";
 import { MatchGetResponseType } from "@app/types/match";
-import { countMatchResults } from "@app/utils/match";
+import { countMatchResults, isGroupMatchMajority } from "@app/utils/match";
 
 async function fetchTonamelEventById(id: string) {
   try {
@@ -340,6 +340,7 @@ export default function TonamelEventRecord({
         loadingDeck={loadingDeck}
         winCount={wins}
         lossCount={losses}
+        isGroupMatchMajority={isGroupMatchMajority(matches)}
         loadingMatches={loadingMatches}
       />
     </>

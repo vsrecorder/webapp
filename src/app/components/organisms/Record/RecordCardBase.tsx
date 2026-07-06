@@ -32,6 +32,8 @@ type Props = {
   // 対戦の勝敗数(デッキ行の右端に表示)
   winCount?: number;
   lossCount?: number;
+  // 対戦結果の過半数がチーム戦かどうか(勝敗の左横にバッジ表示)
+  isGroupMatchMajority?: boolean;
   loadingMatches: boolean;
 };
 
@@ -56,6 +58,7 @@ export default function RecordCardBase({
   infoRowAboveDeck,
   winCount,
   lossCount,
+  isGroupMatchMajority,
   loadingMatches,
 }: Props) {
   const hasMatchResult = (winCount ?? 0) + (lossCount ?? 0) > 0;
@@ -155,13 +158,24 @@ export default function RecordCardBase({
 
                     {/* 対戦の勝敗数(データが無ければ非表示) */}
                     {loadingMatches ? (
-                      <Skeleton className="h-3.5 w-12 rounded shrink-0" />
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <Skeleton className="h-5 w-10 rounded-md" />
+                        <Skeleton className="h-5 w-12 rounded-md" />
+                      </div>
                     ) : hasMatchResult ? (
-                      <span
-                        className={`text-sm font-bold shrink-0 rounded-md border px-2 py-0.5 ${matchResultColorClass} ${matchResultBorderColorClass} ${matchResultBgColorClass}`}
-                      >
-                        {winCount}勝{lossCount}敗
-                      </span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {/* チーム戦が過半数を占める場合のみ勝敗の左横に表示(文字色は対戦結果一覧のチーム戦タグと統一) */}
+                        {isGroupMatchMajority && (
+                          <span className="text-xs font-bold shrink-0 rounded-md border px-1.5 py-0.5 text-secondary border-secondary/40 bg-secondary/10">
+                            チーム戦
+                          </span>
+                        )}
+                        <span
+                          className={`text-xs font-bold shrink-0 rounded-md border px-1.5 py-0.5 ${matchResultColorClass} ${matchResultBorderColorClass} ${matchResultBgColorClass}`}
+                        >
+                          {winCount}勝{lossCount}敗
+                        </span>
+                      </div>
                     ) : null}
                   </div>
                 </div>

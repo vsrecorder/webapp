@@ -22,7 +22,7 @@ import { RecordType, RecordGetByIdResponseType } from "@app/types/record";
 import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { MatchGetResponseType } from "@app/types/match";
-import { countMatchResults } from "@app/utils/match";
+import { countMatchResults, isGroupMatchMajority } from "@app/utils/match";
 
 async function fetchOfficialEventById(id: number) {
   try {
@@ -322,6 +322,7 @@ export default function OfficialEventRecord({
         loadingDeck={loadingDeck}
         winCount={wins}
         lossCount={losses}
+        isGroupMatchMajority={isGroupMatchMajority(matches)}
         loadingMatches={loadingMatches}
       />
     </>

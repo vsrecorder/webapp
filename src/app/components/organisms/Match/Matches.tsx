@@ -14,13 +14,14 @@ import {
 import { Button } from "@heroui/react";
 import { Image } from "@heroui/react";
 import { Chip } from "@heroui/react";
+import { addToast } from "@heroui/react";
 
 import { spriteScaleClass } from "@app/utils/sprite";
 import { Card, CardBody } from "@heroui/react";
 
 import { useDisclosure } from "@heroui/react";
 
-import { LuStickyNote, LuSwords } from "react-icons/lu";
+import { LuStickyNote, LuSwords, LuChevronUp, LuChevronDown } from "react-icons/lu";
 
 import UpdateMatchModal from "@app/components/organisms/Match/Modal/UpdateMatchModal";
 import DisplayMatchMemoModal from "@app/components/organisms/Match/Modal/DisplayMatchMemoModal";
@@ -28,7 +29,127 @@ import CreateMatchModalButton from "@app/components/organisms/Match/CreateMatchM
 import MatchSkeleton from "@app/components/organisms/Match/Skeleton/MatchSkeleton";
 
 import { RecordGetByIdResponseType } from "@app/types/record";
-import { MatchGetResponseType } from "@app/types/match";
+import { MatchGetResponseType, MatchOrderItemType } from "@app/types/match";
+
+type SectionKey = "qualifying" | "final" | "other";
+
+const SECTION_LABELS: Record<SectionKey, string> = {
+  qualifying: "🎯 予選",
+  final: "🏆 本戦",
+  other: "📝 その他",
+};
+
+const SECTION_FLAGS: Record<
+  SectionKey,
+  { qualifying_round_flg: boolean; final_tournament_flg: boolean }
+> = {
+  qualifying: { qualifying_round_flg: true, final_tournament_flg: false },
+  final: { qualifying_round_flg: false, final_tournament_flg: true },
+  other: { qualifying_round_flg: false, final_tournament_flg: false },
+};
+
+function sectionKeyOf(match: MatchGetResponseType): SectionKey {
+  if (match.qualifying_round_flg) return "qualifying";
+  if (match.final_tournament_flg) return "final";
+  return "other";
+}
+
+type Section = {
+  key: SectionKey | "all";
+  label: string | null;
+  items: MatchGetResponseType[];
+};
+
+// 予選/本戦/その他のセクションに分ける。いずれのフラグも立っていない場合は
+// セクション分けせず単一グループとして扱う(見出しは表示しない)。
+function buildSections(matches: MatchGetResponseType[]): Section[] {
+  const hasAnyPhaseFlag = matches.some(
+    (m) => m.qualifying_round_flg || m.final_tournament_flg,
+  );
+
+  if (!hasAnyPhaseFlag) {
+    return [{ key: "all", label: null, items: matches }];
+  }
+
+  return (["qualifying", "final", "other"] as SectionKey[])
+    .map((key) => ({
+      key,
+      label: SECTION_LABELS[key],
+      items: matches.filter((m) => sectionKeyOf(m) === key),
+    }))
+    .filter((section) => section.items.length > 0);
+}
+
+// 指定した対戦を1つ上/下に移動する。セクションの境界を跨ぐ場合は、
+// 移動先セクションに応じて qualifying_round_flg / final_tournament_flg を付け替える。
+// 移動できない(先頭/末尾)場合は null を返す。
+function moveMatch(
+  matches: MatchGetResponseType[],
+  matchId: string,
+  direction: "up" | "down",
+): MatchGetResponseType[] | null {
+  const sections = buildSections(matches);
+  const sectionIndex = sections.findIndex((s) =>
+    s.items.some((m) => m.id === matchId),
+  );
+  if (sectionIndex === -1) return null;
+
+  const section = sections[sectionIndex];
+  const itemIndex = section.items.findIndex((m) => m.id === matchId);
+
+  if (direction === "up") {
+    if (itemIndex > 0) {
+      const items = [...section.items];
+      [items[itemIndex - 1], items[itemIndex]] = [
+        items[itemIndex],
+        items[itemIndex - 1],
+      ];
+      sections[sectionIndex] = { ...section, items };
+    } else {
+      if (sectionIndex === 0) return null;
+
+      const prevSection = sections[sectionIndex - 1];
+      const moving =
+        prevSection.key === "all"
+          ? section.items[0]
+          : { ...section.items[0], ...SECTION_FLAGS[prevSection.key] };
+
+      sections[sectionIndex - 1] = {
+        ...prevSection,
+        items: [...prevSection.items, moving],
+      };
+      sections[sectionIndex] = { ...section, items: section.items.slice(1) };
+    }
+  } else {
+    if (itemIndex < section.items.length - 1) {
+      const items = [...section.items];
+      [items[itemIndex], items[itemIndex + 1]] = [
+        items[itemIndex + 1],
+        items[itemIndex],
+      ];
+      sections[sectionIndex] = { ...section, items };
+    } else {
+      if (sectionIndex === sections.length - 1) return null;
+
+      const nextSection = sections[sectionIndex + 1];
+      const moving =
+        nextSection.key === "all"
+          ? section.items[itemIndex]
+          : { ...section.items[itemIndex], ...SECTION_FLAGS[nextSection.key] };
+
+      sections[sectionIndex + 1] = {
+        ...nextSection,
+        items: [moving, ...nextSection.items],
+      };
+      sections[sectionIndex] = {
+        ...section,
+        items: section.items.slice(0, itemIndex),
+      };
+    }
+  }
+
+  return sections.filter((s) => s.items.length > 0).flatMap((s) => s.items);
+}
 
 async function fetchMatches(record_id: string) {
   try {
@@ -119,40 +240,85 @@ export default function Matches({
   const orderedItems = (() => {
     if (!matches || matches.length === 0) return [];
 
-    const hasAnyPhaseFlag = matches.some(
-      (m) => m.qualifying_round_flg || m.final_tournament_flg,
-    );
-
-    if (!hasAnyPhaseFlag) {
-      return matches.map((m) => ({ kind: "match" as const, match: m }));
-    }
-
-    const qualifying = matches.filter((m) => m.qualifying_round_flg);
-    const finalTournament = matches.filter((m) => m.final_tournament_flg);
-    const other = matches.filter(
-      (m) => !m.qualifying_round_flg && !m.final_tournament_flg,
-    );
+    const sections = buildSections(matches);
 
     const items: Array<
       | { kind: "header"; label: string; id: string }
-      | { kind: "match"; match: MatchGetResponseType }
+      | {
+          kind: "match";
+          match: MatchGetResponseType;
+          canMoveUp: boolean;
+          canMoveDown: boolean;
+        }
     > = [];
 
-    if (qualifying.length > 0) {
-      items.push({ kind: "header", label: "🎯 予選", id: "section-qualifying" });
-      qualifying.forEach((m) => items.push({ kind: "match", match: m }));
-    }
-    if (finalTournament.length > 0) {
-      items.push({ kind: "header", label: "🏆 本戦", id: "section-final" });
-      finalTournament.forEach((m) => items.push({ kind: "match", match: m }));
-    }
-    if (other.length > 0) {
-      items.push({ kind: "header", label: "📝 その他", id: "section-other" });
-      other.forEach((m) => items.push({ kind: "match", match: m }));
-    }
+    sections.forEach((section, sectionIdx) => {
+      if (section.label) {
+        items.push({
+          kind: "header",
+          label: section.label,
+          id: `section-${section.key}`,
+        });
+      }
+
+      section.items.forEach((match, itemIdx) => {
+        items.push({
+          kind: "match",
+          match,
+          canMoveUp: !(sectionIdx === 0 && itemIdx === 0),
+          canMoveDown: !(
+            sectionIdx === sections.length - 1 &&
+            itemIdx === section.items.length - 1
+          ),
+        });
+      });
+    });
 
     return items;
   })();
+
+  // 並び替え結果をAPIへ反映する。失敗時は直前の状態に戻す。
+  const handleMove = async (matchId: string, direction: "up" | "down") => {
+    if (!matches || !record) return;
+
+    const reordered = moveMatch(matches, matchId, direction);
+    if (!reordered) return;
+
+    const previous = matches;
+    setMatches(reordered);
+
+    try {
+      const body: { matches: MatchOrderItemType[] } = {
+        matches: reordered.map((m) => ({
+          id: m.id,
+          qualifying_round_flg: m.qualifying_round_flg,
+          final_tournament_flg: m.final_tournament_flg,
+        })),
+      };
+
+      const res = await fetch(`/api/records/${record.id}/matches/order`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        throw new Error(`HTTP error: ${res.status}`);
+      }
+    } catch (err) {
+      console.error(err);
+      setMatches(previous);
+
+      addToast({
+        title: "並び替えに失敗",
+        description: "対戦結果の並び替えに失敗しました",
+        color: "danger",
+        timeout: 5000,
+      });
+    }
+  };
 
   return (
     <>
@@ -217,14 +383,51 @@ export default function Matches({
                                 );
                               }
 
-                              const { match } = item;
+                              const { match, canMoveUp, canMoveDown } = item;
                               return (
                                 <TableRow key={match.id}>
                                   <TableCell>
+                                  <div className="flex items-center gap-1 w-full">
+                                    {/*
+                                      並び替えボタンが表示される場合のみガターを描画する。
+                                      BO1/チーム戦に関わらず同じ位置にボタンを表示する。
+                                      data-capture-hide は画像保存時にこの要素ごと除去する対象の目印。
+                                    */}
+                                    {enableUpdateMatchModalButton && (
+                                      <div
+                                        className="flex flex-col gap-1.5 shrink-0 pt-1 pb-1 items-start pl-1.5 w-8"
+                                        data-capture-hide="true"
+                                      >
+                                        <Button
+                                          isIconOnly
+                                          size="sm"
+                                          variant="flat"
+                                          radius="md"
+                                          className="min-w-6 w-6 h-6"
+                                          isDisabled={!canMoveUp}
+                                          aria-label="上に移動"
+                                          onPress={() => handleMove(match.id, "up")}
+                                        >
+                                          <LuChevronUp className="text-lg" />
+                                        </Button>
+                                        <Button
+                                          isIconOnly
+                                          size="sm"
+                                          variant="flat"
+                                          radius="md"
+                                          className="min-w-6 w-6 h-6"
+                                          isDisabled={!canMoveDown}
+                                          aria-label="下に移動"
+                                          onPress={() => handleMove(match.id, "down")}
+                                        >
+                                          <LuChevronDown className="text-lg" />
+                                        </Button>
+                                      </div>
+                                    )}
                                     <Button
                                       radius="md"
                                       variant="light"
-                                      className="pl-3 pr-2 py-6 w-full"
+                                      className="pl-3 pr-1 py-8 w-full"
                                       onPress={() => {
                                         setSelectedMatch(match);
                                         // 編集可能な場合は編集モーダル、
@@ -236,10 +439,10 @@ export default function Matches({
                                         }
                                       }}
                                     >
-                                      <div className="flex items-center gap-3 w-full">
+                                      <div className="flex flex-wrap items-center gap-1.5 w-full">
                                         {/* チーム戦は個人とチームの勝敗を並べて表示、BO1は個人の勝敗のみ */}
                                         {match.group_match_flg ? (
-                                          <div className="flex shrink-0 items-stretch gap-2">
+                                          <div className="flex shrink-0 items-stretch gap-1.5">
                                             <div className="flex flex-col items-center gap-1">
                                               <span className="text-[9px] leading-none text-default-400">
                                                 個人
@@ -260,8 +463,25 @@ export default function Matches({
                                             </div>
                                           </div>
                                         ) : (
-                                          <div className="shrink-0">
-                                            {match.victory_flg === true ? "⭕" : "❌"}
+                                          // チーム戦の「チーム」列と同じ位置に勝敗が来るよう、
+                                          // 「個人」列と同じ構造を invisible で幅だけ確保して揃える
+                                          <div className="flex shrink-0 items-stretch gap-1.5">
+                                            <div className="flex flex-col items-center gap-1 invisible">
+                                              <span className="text-[9px] leading-none">
+                                                個人
+                                              </span>
+                                              <span className="text-base leading-none">
+                                                ⭕
+                                              </span>
+                                            </div>
+                                            <div className="flex flex-col items-center gap-1">
+                                              <span className="text-[9px] leading-none text-default-400 invisible">
+                                                チーム
+                                              </span>
+                                              <span className="text-base leading-none">
+                                                {match.victory_flg === true ? "⭕" : "❌"}
+                                              </span>
+                                            </div>
                                           </div>
                                         )}
 
@@ -293,25 +513,21 @@ export default function Matches({
                                                       : "不戦敗"}
                                                   </div>
                                                   <div className="mt-0.5 flex flex-wrap items-center gap-1">
-                                                    <Chip
-                                                      size="sm"
-                                                      variant="flat"
-                                                      radius="sm"
-                                                      color={
-                                                        match.group_match_flg
-                                                          ? "secondary"
-                                                          : "default"
-                                                      }
-                                                      classNames={{
-                                                        base: "h-4 px-1",
-                                                        content:
-                                                          "px-1 text-[8px] font-bold",
-                                                      }}
-                                                    >
-                                                      {match.group_match_flg
-                                                        ? "チーム戦"
-                                                        : "BO1"}
-                                                    </Chip>
+                                                    {match.group_match_flg && (
+                                                      <Chip
+                                                        size="sm"
+                                                        variant="flat"
+                                                        radius="sm"
+                                                        color="secondary"
+                                                        classNames={{
+                                                          base: "h-4 px-1",
+                                                          content:
+                                                            "px-1 text-[8px] font-bold",
+                                                        }}
+                                                      >
+                                                        チーム戦
+                                                      </Chip>
+                                                    )}
                                                   </div>
                                                 </div>
                                               </div>
@@ -363,26 +579,22 @@ export default function Matches({
                                                   </div>
 
                                                   {/* 種別・先後・サイド数を chip で表示（種別を先頭に配置） */}
-                                                  <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-                                                    <Chip
-                                                      size="sm"
-                                                      variant="flat"
-                                                      radius="sm"
-                                                      color={
-                                                        match.group_match_flg
-                                                          ? "secondary"
-                                                          : "default"
-                                                      }
-                                                      classNames={{
-                                                        base: "h-4 px-1",
-                                                        content:
-                                                          "px-1 text-[8px] font-bold",
-                                                      }}
-                                                    >
-                                                      {match.group_match_flg
-                                                        ? "チーム戦"
-                                                        : "BO1"}
-                                                    </Chip>
+                                                  <div className="mt-1 flex flex-wrap items-center gap-1">
+                                                    {match.group_match_flg && (
+                                                      <Chip
+                                                        size="sm"
+                                                        variant="flat"
+                                                        radius="sm"
+                                                        color="secondary"
+                                                        classNames={{
+                                                          base: "h-4 px-1",
+                                                          content:
+                                                            "px-1 text-[8px] font-bold",
+                                                        }}
+                                                      >
+                                                        チーム戦
+                                                      </Chip>
+                                                    )}
                                                     <Chip
                                                       size="sm"
                                                       variant="flat"
@@ -420,10 +632,11 @@ export default function Matches({
 
                                         {/* メモがある場合は右端にアイコンを表示 */}
                                         {match.memo && match.memo !== "" && (
-                                          <LuStickyNote className="ml-auto shrink-0 text-lg text-default-400" />
+                                          <LuStickyNote className="ml-auto mr-0.5 shrink-0 text-lg text-default-400" />
                                         )}
                                       </div>
                                     </Button>
+                                  </div>
                                   </TableCell>
                                 </TableRow>
                               );

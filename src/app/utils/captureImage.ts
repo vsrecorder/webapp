@@ -85,6 +85,11 @@ export async function captureThemedPng(el: HTMLElement): Promise<string> {
   clone.style.width = `${contentWidth}px`;
   if (!isDark) clone.classList.add("light");
 
+  // 並び替えボタンなど、操作用UIで書き出し画像には含めたくない要素を除去する
+  clone
+    .querySelectorAll<HTMLElement>('[data-capture-hide="true"]')
+    .forEach((node) => node.remove());
+
   const { footer, iconLoaded } = buildServiceFooter(isDark);
 
   container.appendChild(clone);

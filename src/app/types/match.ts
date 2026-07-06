@@ -66,3 +66,13 @@ export type MatchCreateResponseType = MatchType;
 export type MatchUpdateResponseType = MatchType;
 
 export type MatchGetResponseType = MatchType;
+
+export type MatchOrderItemType = {
+  id: string;
+  qualifying_round_flg: boolean;
+  final_tournament_flg: boolean;
+};
+
+export type MatchReorderRequestType = {
+  matches: MatchOrderItemType[];
+};

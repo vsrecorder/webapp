@@ -85,15 +85,16 @@ export default function WeeklyDeckUsagePanel() {
 
   const decks = useMemo(() => stat?.decks ?? [], [stat]);
 
-  // 集計は count 降順で返るが、UI 側でも念のため安定ソートする。「その他」は fingerprint が空。
+  // 集計はサーバー側で使用率(count)降順・同数は勝率降順に整列済みだが、
+  // UI 側でも念のため同じ規則で安定ソートする。「その他」は fingerprint が空で常に末尾へ。
   const displayDecks = useMemo(
     () =>
       [...decks].sort((a, b) => {
-        // その他（fingerprint 空）は常に末尾へ
         const aOther = a.fingerprint === "" ? 1 : 0;
         const bOther = b.fingerprint === "" ? 1 : 0;
         if (aOther !== bOther) return aOther - bOther;
-        return b.count - a.count;
+        if (a.count !== b.count) return b.count - a.count;
+        return b.win_rate - a.win_rate;
       }),
     [decks],
   );
@@ -185,12 +186,12 @@ export default function WeeklyDeckUsagePanel() {
                   <div className="w-16 flex justify-center shrink-0">
                     <DeckSprites deck={deck} />
                   </div>
-                  {/*
-                  <span className="font-bold text-xs text-default-700 truncate flex-1 min-w-0">
-                    {deck.label || (isOther ? "その他" : "（名称未設定）")}
-                  </span>
-                  */}
-                  <div className="flex flex-col items-end gap-1 shrink-0 pl-2 border-l border-default-200">
+                  {isOther && (
+                    <span className="font-bold text-xs text-default-700 truncate flex-1 min-w-0">
+                      その他
+                    </span>
+                  )}
+                  <div className="flex flex-col items-end gap-1 shrink-0 pl-2 border-l border-default-200 ml-auto">
                     <Chip
                       size="sm"
                       variant="flat"

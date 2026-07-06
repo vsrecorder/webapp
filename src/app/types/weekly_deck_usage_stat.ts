@@ -1,10 +1,9 @@
 import { MatchPokemonSpriteType } from "@app/types/pokemon_sprite";
 
-// プラットフォーム全体の週次デッキ使用率における単一のデッキ変種（正規化済みスプライト指紋）
+// プラットフォーム全体の週次デッキ使用率における単一のデッキ変種
+// （スプライトの集合のみで正規化した指紋。デッキ名等のテキストは使わず、並び順も無視する）
 export type WeeklyDeckUsageItemType = {
   fingerprint: string;
-  label: string;
-  primary_sprite_id: string;
   count: number;
   usage_rate: number;
   wins: number;

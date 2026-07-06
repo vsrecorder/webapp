@@ -43,7 +43,8 @@ function requiresPlayerLink(criteriaType: string): boolean {
 
 // description は「称号:【🔰 見習い】を持っており、(本来の達成条件)」という
 // 前提称号込みの一文でバックエンドから届く。前提部分を分離して表示するためのパース。
-const PREREQUISITE_DESCRIPTION_PATTERN = /^称号[:：]【(\S+)\s+(.+?)】を持っており、\s*([\s\S]*)$/;
+const PREREQUISITE_DESCRIPTION_PATTERN =
+  /^称号[:：]【(\S+)\s+(.+?)】を持っており、\s*([\s\S]*)$/;
 
 function parseDescription(description: string): {
   prerequisiteEmoji: string;
@@ -375,20 +376,19 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
               <ModalBody className="pb-6 pt-0 text-center gap-2">
                 {(() => {
                   const parsed = parseDescription(selected.description);
-                  const criteriaText = (parsed ? parsed.criteriaText : selected.description).replace(
-                    /\//g,
-                    " / ",
-                  );
+                  const criteriaText = (
+                    parsed ? parsed.criteriaText : selected.description
+                  ).replace(/\//g, " / ");
 
                   return (
                     <div className="flex flex-col items-stretch gap-1.5 w-full">
                       {parsed && (
                         <div className="flex items-center justify-center gap-1.5 self-center rounded-full bg-default-100 px-3 py-1 text-[11px] font-bold text-default-500">
-                          <span>前提条件</span>
+                          <span>前提条件：</span>
                           <span className="text-warning">
                             {parsed.prerequisiteEmoji} {parsed.prerequisiteName}
                           </span>
-                          <span>達成済み</span>
+                          <span>が達成済みである</span>
                         </div>
                       )}
                       <p className="text-sm text-default-600 leading-relaxed text-left rounded-xl bg-default-50 p-3">
@@ -430,7 +430,8 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
                       />
                     </div>
                   </div>
-                ) : requiresPlayerLink(selected.criteria_type) && isPlayerLinked === false ? (
+                ) : requiresPlayerLink(selected.criteria_type) &&
+                  isPlayerLinked === false ? (
                   <div className="flex items-start justify-center gap-2 text-xs text-warning-600 bg-warning-50 rounded-xl p-3 mt-1 text-left">
                     <LuTriangleAlert className="w-4 h-4 shrink-0 mt-0.5" />
                     <span>

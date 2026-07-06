@@ -289,7 +289,7 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
               src={rankImage}
               alt={rankImageAlt}
               fill
-              sizes="80px"
+              unoptimized
               className="object-contain p-2"
             />
           </button>
@@ -515,7 +515,7 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
                         src={r.info.image}
                         alt={r.info.name}
                         fill
-                        sizes="32px"
+                        unoptimized
                         className="object-contain"
                       />
                     </div>
@@ -566,7 +566,7 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
                         src={r.info.image}
                         alt={r.info.name}
                         fill
-                        sizes="28px"
+                        unoptimized
                         className="object-contain"
                       />
                     </div>

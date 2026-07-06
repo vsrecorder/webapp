@@ -97,6 +97,7 @@ export default function UserMenu({ user }: Props) {
                       alt=""
                       width={14}
                       height={14}
+                      unoptimized
                       className="object-contain shrink-0"
                     />
                     {rankName ?? "ランク取得中…"}

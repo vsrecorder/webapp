@@ -434,14 +434,36 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
                   <div className="flex items-start justify-center gap-2 text-xs text-warning-600 bg-warning-50 rounded-xl p-3 mt-1 text-left">
                     <LuTriangleAlert className="w-4 h-4 shrink-0 mt-0.5" />
                     <span>
-                      この称号の達成判定には、プレイヤーズクラブとの連携が完了している必要があります。
-                      <Link
-                        href="/users"
-                        className="font-bold underline underline-offset-2"
-                      >
-                        ユーザ情報
-                      </Link>
-                      から連携してください。
+                      {selected.city_league_record_without_player_link ? (
+                        <>
+                          シティリーグの記録は既にありますが、プレイヤーズクラブとの連携が完了していないため達成として判定されません。
+                          <Link
+                            href="/users"
+                            className="font-bold underline underline-offset-2"
+                          >
+                            ユーザ情報
+                          </Link>
+                          から連携すると、この称号を達成できる可能性があります。
+                        </>
+                      ) : (
+                        <>
+                          この称号の達成判定には、プレイヤーズクラブとの連携が完了している必要があります。
+                          <Link
+                            href="/users"
+                            className="font-bold underline underline-offset-2"
+                          >
+                            ユーザ情報
+                          </Link>
+                          から連携してください。
+                        </>
+                      )}
+                    </span>
+                  </div>
+                ) : selected.missing_official_event_record ? (
+                  <div className="flex items-start justify-center gap-2 text-xs text-warning-600 bg-warning-50 rounded-xl p-3 mt-1 text-left">
+                    <LuTriangleAlert className="w-4 h-4 shrink-0 mt-0.5" />
+                    <span>
+                      公式サイトの結果は確認できましたが、対応する大会の記録がバトレコに見つかりません。該当する大会の記録を作成すると達成できます。
                     </span>
                   </div>
                 ) : (

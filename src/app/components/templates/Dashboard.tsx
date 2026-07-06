@@ -313,7 +313,7 @@ export default async function TemplateDashboard({ userId }: Props) {
             詳しく見る
           </Button>
         </div>
-        <WeeklyDeckUsagePanel />
+        <WeeklyDeckUsagePanel limit={5} />
       </section>
     ),
   });

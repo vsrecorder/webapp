@@ -1,9 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 
 import { Button, Card, CardBody, Chip, Image } from "@heroui/react";
-import { LuChevronLeft, LuChevronRight, LuSwords, LuUsers } from "react-icons/lu";
+import {
+  LuChevronLeft,
+  LuChevronRight,
+  LuChevronsDown,
+  LuSwords,
+  LuUsers,
+} from "react-icons/lu";
 
 import { spriteImageUrl, spriteScaleClass } from "@app/utils/sprite";
 import { generateWeekOptions, lastWeekValue } from "@app/utils/week";
@@ -92,7 +99,12 @@ function SkeletonRow() {
   );
 }
 
-export default function WeeklyDeckUsagePanel() {
+type Props = {
+  // 指定時は上位N件のみ表示し、以降は個別ページへの誘導に置き換える（ダッシュボード埋め込み用）
+  limit?: number;
+};
+
+export default function WeeklyDeckUsagePanel({ limit }: Props) {
   const weekOptions = useMemo(() => generateWeekOptions(12), []);
   const [week, setWeek] = useState<string>(lastWeekValue);
   const [stat, setStat] = useState<WeeklyDeckUsageStatType | null>(null);
@@ -143,6 +155,13 @@ export default function WeeklyDeckUsagePanel() {
       }),
     [decks],
   );
+
+  // limit指定時は上位N件のみ表示し、残りは個別ページへの誘導に置き換える
+  const visibleDecks = useMemo(
+    () => (limit != null ? displayDecks.slice(0, limit) : displayDecks),
+    [displayDecks, limit],
+  );
+  const hiddenCount = displayDecks.length - visibleDecks.length;
 
   // 使用率バーは最上位デッキを基準に相対表示する（絶対値だと差が視認しづらいため）
   const maxUsageRate = useMemo(
@@ -283,7 +302,7 @@ export default function WeeklyDeckUsagePanel() {
               isLoading ? "opacity-30" : "opacity-100"
             }`}
           >
-            {displayDecks.map((deck, idx) => {
+            {visibleDecks.map((deck, idx) => {
               const isOther = deck.fingerprint === "";
               const barWidth = Math.max(
                 4,
@@ -338,6 +357,21 @@ export default function WeeklyDeckUsagePanel() {
                 </div>
               );
             })}
+
+            {/* limit指定時、6位以下がある場合は個別ページへ誘導する */}
+            {hiddenCount > 0 && (
+              <Button
+                as={Link}
+                href="/deck_meta"
+                variant="flat"
+                color="default"
+                radius="lg"
+                className="h-10 text-xs font-bold text-default-500"
+                startContent={<LuChevronsDown className="w-3.5 h-3.5" />}
+              >
+                {visibleDecks.length + 1}位以下を見る（あと{hiddenCount}件）
+              </Button>
+            )}
           </div>
         )}
       </CardBody>

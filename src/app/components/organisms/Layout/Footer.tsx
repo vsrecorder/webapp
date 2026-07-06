@@ -18,7 +18,7 @@ export default async function Footer() {
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 relative shrink-0">
                 <Image
-                  src="/images/icon.png"
+                  src="https://xx8nnpgt.user.webaccel.jp/images/icons/icon.png"
                   alt="バトレコ"
                   fill
                   sizes="32px"

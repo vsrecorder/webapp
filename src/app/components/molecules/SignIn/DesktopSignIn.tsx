@@ -41,7 +41,7 @@ export default function DesktopSignIn() {
               <div className="bg-linear-to-br from-blue-600 via-indigo-600 to-violet-700 px-6 pt-8 pb-7 flex flex-col items-center gap-3 rounded-t-xl">
                 <div className="w-14 h-14 relative">
                   <Image
-                    src="/images/icon.png"
+                    src="https://xx8nnpgt.user.webaccel.jp/images/icons/icon.png"
                     alt="バトレコ"
                     fill
                     priority

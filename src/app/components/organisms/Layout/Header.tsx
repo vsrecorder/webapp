@@ -81,7 +81,7 @@ function Logo() {
     <Link href="/" className="flex items-center gap-2.5">
       <div className="w-8 h-8 lg:w-10 lg:h-10 relative shrink-0">
         <Image
-          src="/images/icon.png"
+          src="https://xx8nnpgt.user.webaccel.jp/images/icons/icon.png"
           alt="バトレコ"
           fill
           sizes="(min-width: 1024px) 40px, 32px"

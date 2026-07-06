@@ -28,7 +28,7 @@ export default function GlobalError({
         <div className="flex flex-col items-center justify-center min-h-svh gap-4 px-4 text-center">
           <div className="flex flex-col items-center gap-3 max-w-md rounded-2xl border border-neutral-200 shadow-sm px-6 py-8">
             {/* eslint-disable-next-line @next/next/no-img-element -- Providers非依存の最終防衛ラインのため next/image を使わない */}
-            <img src="/images/icon.png" alt="バトレコ" width={48} height={48} className="rounded-lg" />
+            <img src="https://xx8nnpgt.user.webaccel.jp/images/icons/icon.png" alt="バトレコ" width={48} height={48} className="rounded-lg" />
 
             <h1 className="text-lg font-black">問題が発生しました</h1>
 

@@ -108,7 +108,7 @@ const features = [
         どのデッキを使ったかすぐわかります。
       </>
     ),
-    images: [{ src: "/images/decks.png", rotateClass: "rotate" }],
+    images: [{ src: "https://xx8nnpgt.user.webaccel.jp/images/icons/decks.png", rotateClass: "rotate" }],
   },
   {
     icon: <LuFilePen />,
@@ -121,8 +121,8 @@ const features = [
       </>
     ),
     images: [
-      { src: "/images/records-create.png", rotateClass: "-rotate-1" },
-      { src: "/images/records-id.png", rotateClass: "rotate-1" },
+      { src: "https://xx8nnpgt.user.webaccel.jp/images/icons/records-create.png", rotateClass: "-rotate-1" },
+      { src: "https://xx8nnpgt.user.webaccel.jp/images/icons/records-id.png", rotateClass: "rotate-1" },
     ],
   },
   {
@@ -136,8 +136,8 @@ const features = [
       </>
     ),
     images: [
-      { src: "/images/user_stats.png", rotateClass: "-rotate-1" },
-      { src: "/images/opponents_deck_info_stats.png", rotateClass: "rotate-1" },
+      { src: "https://xx8nnpgt.user.webaccel.jp/images/icons/user_stats.png", rotateClass: "-rotate-1" },
+      { src: "https://xx8nnpgt.user.webaccel.jp/images/icons/opponents_deck_info_stats.png", rotateClass: "rotate-1" },
     ],
   },
   {
@@ -150,7 +150,7 @@ const features = [
         環境の最前線をいつでも把握できます。
       </>
     ),
-    images: [{ src: "/images/cityleague_results.png", rotateClass: "rotate" }],
+    images: [{ src: "https://xx8nnpgt.user.webaccel.jp/images/icons/cityleague_results.png", rotateClass: "rotate" }],
   },
   {
     icon: <LuMoon />,
@@ -163,8 +163,8 @@ const features = [
       </>
     ),
     images: [
-      { src: "/images/records-darkmode.png", rotateClass: "-rotate-1" },
-      { src: "/images/darkmode-decks_history.png", rotateClass: "rotate-1" },
+      { src: "https://xx8nnpgt.user.webaccel.jp/images/icons/records-darkmode.png", rotateClass: "-rotate-1" },
+      { src: "https://xx8nnpgt.user.webaccel.jp/images/icons/darkmode-decks_history.png", rotateClass: "rotate-1" },
     ],
   },
 ];
@@ -223,7 +223,7 @@ export default async function TemplateHome() {
       <section className="-mx-2 -mt-14 lg:-mt-20 bg-linear-to-br from-blue-600 via-indigo-600 to-violet-700 text-white px-6 pt-22 pb-14 lg:px-8 lg:pt-28 lg:pb-20 flex flex-col items-center gap-5 lg:gap-7">
         <div className="w-20 h-20 lg:w-28 lg:h-28 relative">
           <Image
-            src="/images/icon.png"
+            src="https://xx8nnpgt.user.webaccel.jp/images/icons/icon.png"
             alt="バトレコ"
             fill
             priority

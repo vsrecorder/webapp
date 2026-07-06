@@ -10,27 +10,27 @@ export const RANKS: { minTier: number; maxTier: number; info: RankInfo }[] = [
   {
     minTier: 1,
     maxTier: 2,
-    info: { name: "モンスターボール級", image: "/images/poke-ball.png" },
+    info: { name: "モンスターボール級", image: "https://xx8nnpgt.user.webaccel.jp/images/icons/poke-ball.png" },
   },
   {
     minTier: 3,
     maxTier: 4,
-    info: { name: "スーパーボール級", image: "/images/great-ball.png" },
+    info: { name: "スーパーボール級", image: "https://xx8nnpgt.user.webaccel.jp/images/icons/great-ball.png" },
   },
   {
     minTier: 5,
     maxTier: 5,
-    info: { name: "ハイパーボール級", image: "/images/ultra-ball.png" },
+    info: { name: "ハイパーボール級", image: "https://xx8nnpgt.user.webaccel.jp/images/icons/ultra-ball.png" },
   },
   {
     minTier: 6,
     maxTier: 8,
-    info: { name: "マスターボール級", image: "/images/master-ball.png" },
+    info: { name: "マスターボール級", image: "https://xx8nnpgt.user.webaccel.jp/images/icons/master-ball.png" },
   },
   {
     minTier: 9,
     maxTier: 10,
-    info: { name: "ウルトラボール級", image: "/images/beast-ball.png" },
+    info: { name: "ウルトラボール級", image: "https://xx8nnpgt.user.webaccel.jp/images/icons/beast-ball.png" },
   },
 ];
 
@@ -39,4 +39,4 @@ export function rankForTier(tier: number): RankInfo | null {
 }
 
 // 称号未到達の場合に表示する画像
-export const NO_RANK_IMAGE = "/images/premier-ball.png";
+export const NO_RANK_IMAGE = "https://xx8nnpgt.user.webaccel.jp/images/icons/premier-ball.png";

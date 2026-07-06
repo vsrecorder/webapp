@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     url: "/",
     type: "website",
     title: "バトレコ - ポケカプレイヤーのための対戦記録サービス",
-    images: `/images/icon.png`,
+    images: `https://xx8nnpgt.user.webaccel.jp/images/icons/icon.png`,
     description: "ポケカプレイヤーのための対戦記録サービス",
     locale: "ja_JP",
   },

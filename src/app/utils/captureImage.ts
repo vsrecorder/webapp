@@ -2,7 +2,7 @@ import { toPng } from "html-to-image";
 
 // 書き出し画像に表示するサービス情報
 const APP_NAME = "バトレコ";
-const APP_ICON_SRC = "/images/icon.png";
+const APP_ICON_SRC = "https://xx8nnpgt.user.webaccel.jp/images/icons/icon.png";
 
 // サービスのアイコンとサービス名を並べたフッター要素を生成する。
 // 画像の下部に差し込み、どのサービスで作成した画像かが分かるようにする。

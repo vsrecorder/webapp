@@ -33,7 +33,7 @@ export default function PhoneMock({
             src={src}
             alt={alt}
             fill
-            sizes="(min-width: 1024px) 256px, 176px"
+            unoptimized
             className="object-cover object-top"
           />
         </div>
@@ -58,7 +58,7 @@ export default function PhoneMock({
                 src={src}
                 alt={alt}
                 fill
-                sizes="(max-width: 768px) 60vw, 240px"
+                unoptimized
                 className="object-contain"
               />
             </div>

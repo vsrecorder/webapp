@@ -20,6 +20,14 @@ export function formatJoinDate(dateStr: string): string {
   return `${d.getFullYear()}年${d.getMonth() + 1}月からバトレコを利用`;
 }
 
+// 「YYYY年MM月DD日」形式の日付文字列を返す。
+export function formatDateJa(dateStr: string): string {
+  const d = new Date(dateStr);
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}年${month}月${day}日`;
+}
+
 export type CalendarGridCell = {
   date: Date;
   dateKey: string;

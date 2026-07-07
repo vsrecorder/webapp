@@ -29,7 +29,7 @@ import {
 
 // バックエンド(internal/usecase/designation.go)の criteria_type 定数と一致させる値。
 // いずれもプレイヤーズクラブ連携済みのプレイヤーIDで、公式サイトの結果(cityleague_results)を
-// 参照して判定する(ベテラン・熟練者)。
+// 参照して判定する(ベテラン・熟練)。
 const CITY_LEAGUE_PLACEMENT_CRITERIA_TYPE = "official_city_league_placement";
 const CITY_LEAGUE_FINAL_TOURNAMENT_CRITERIA_TYPE = "official_city_league_playoff";
 

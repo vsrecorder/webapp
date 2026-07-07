@@ -2,12 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Avatar, Card, CardBody, useDisclosure } from "@heroui/react";
 import {
   LuSwords,
   LuTrophy,
   LuShield,
-  LuCalendar,
   LuPencil,
   LuEye,
   LuEyeOff,
@@ -20,7 +20,9 @@ import UpdateNameModal from "@app/components/organisms/User/Modal/UpdateNameModa
 import { UserType } from "@app/types/user";
 import { UserStatType } from "@app/types/user_stat";
 import { UserPlayerType } from "@app/types/user_player";
-import { formatJoinDate } from "@app/utils/calendar";
+import { formatDateJa } from "@app/utils/calendar";
+
+const CHAMPION_SHIP_POINT_ICON_URL = "https://xx8nnpgt.user.webaccel.jp/images/icons/csp_icon.png";
 
 type Props = {
   user: UserType;
@@ -174,16 +176,46 @@ type PlayersClubBadgeProps = {
 };
 
 function PlayersClubBadge({ isLoading, userPlayer }: PlayersClubBadgeProps) {
+  const animatedPoint = useCountUp(
+    isLoading || userPlayer?.champion_ship_point == null ? 0 : userPlayer.champion_ship_point,
+  );
+
   if (isLoading) {
-    return <span className="w-32 h-4 rounded-full bg-white/20 animate-pulse" />;
+    return (
+      <div className="flex flex-col gap-1">
+        <span className="w-28 h-3 rounded-full bg-white/20 animate-pulse" />
+        <span className="ml-2 w-44 h-8 rounded-full bg-white/20 animate-pulse" />
+      </div>
+    );
   }
 
   if (userPlayer) {
     return (
-      <span className="flex items-center gap-1 text-white/80 text-[10px] font-medium">
-        <LuCircleCheck className="w-3 h-3 shrink-0" />
-        プレイヤーズクラブ連携済み
-      </span>
+      <div className="flex flex-col gap-1">
+        <span className="flex items-center gap-1 text-white/80 text-[10px] font-medium">
+          <LuCircleCheck className="w-3 h-3 shrink-0" />
+          プレイヤーズクラブ連携済み
+        </span>
+        {userPlayer.champion_ship_point !== null && userPlayer.ranking_date !== null && (
+          <div className="inline-flex items-center w-fit ml-2 gap-1.5 rounded-full bg-white/15 pl-1.5 pr-3 py-1">
+            <Image
+              src={CHAMPION_SHIP_POINT_ICON_URL}
+              alt=""
+              width={22}
+              height={22}
+              unoptimized
+              className="shrink-0"
+            />
+            <span className="text-white text-xl font-black leading-none tabular-nums">
+              {Math.round(animatedPoint).toLocaleString()}
+              <span className="text-xs font-bold ml-0.5">pt</span>
+            </span>
+            <span className="text-white/60 text-[9px] font-medium ml-1.5">
+              {formatDateJa(userPlayer.ranking_date)}現在
+            </span>
+          </div>
+        )}
+      </div>
     );
   }
 
@@ -287,10 +319,6 @@ export default function UserProfileCard({ user }: Props) {
                 <LuPencil className="w-3.5 h-3.5 shrink-0" />
               </div>
             </button>
-            <span className="flex items-center gap-1 text-white/80 text-[10px] font-medium">
-              <LuCalendar className="w-3 h-3 shrink-0" />
-              {formatJoinDate(String(user.created_at))}
-            </span>
             {!isPlayersClubFeatureDisabled && (
               <PlayersClubBadge isLoading={isUserPlayerLoading} userPlayer={userPlayer} />
             )}

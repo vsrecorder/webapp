@@ -19,12 +19,12 @@ export type DesignationLadderItemType = DesignationType & {
   // 前シーズンの集計値。それ以外は常に0。
   previous_value: number;
   // criteria_type が "official_city_league_placement"(ベテラン)または
-  // "official_city_league_playoff"(熟練者)かつ achieved が false の場合のみ、
+  // "official_city_league_playoff"(熟練)かつ achieved が false の場合のみ、
   // 未達成の原因が「公式サイトの結果はあるが、対応する大会の記録をまだ作成していないこと」
   // であるかを表す。それ以外は常にfalse。
   missing_official_event_record: boolean;
   // criteria_type が "official_city_league_placement"(ベテラン)または
-  // "official_city_league_playoff"(熟練者)の場合のみ、プレイヤーズクラブ未連携で
+  // "official_city_league_playoff"(熟練)の場合のみ、プレイヤーズクラブ未連携で
   // あるにもかかわらず、対象シーズン内にシティリーグの記録を既に作成済みであるかを表す。
   // それ以外、またはプレイヤーズクラブ連携済みの場合は常にfalse。
   city_league_record_without_player_link: boolean;

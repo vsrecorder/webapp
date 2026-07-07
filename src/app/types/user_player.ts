@@ -4,6 +4,9 @@ export type UserPlayerType = {
   user_id: string;
   player_id: string;
   locked_until: string;
+  // ランキング履歴が未登録(連携直後等)の場合は null
+  champion_ship_point: number | null;
+  ranking_date: string | null;
 };
 
 export type UserPlayerGetResponseType = UserPlayerType;

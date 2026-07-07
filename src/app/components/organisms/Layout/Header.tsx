@@ -62,7 +62,10 @@ function HeaderShell({
 
   return (
     <header
-      className={`fixed z-50 top-0 left-0 right-0 h-14 lg:h-20 ${gradientClass} backdrop-blur-md border-b border-white/15`}
+      // iOS の standalone PWA では fixed + backdrop-blur な要素が独立した合成レイヤーに
+      // 昇格されず、中の transform アニメーション（マーキー）が再描画されないことがあるため、
+      // transform-gpu / will-change-transform で明示的に GPU レイヤーへ昇格させる
+      className={`fixed z-50 top-0 left-0 right-0 h-14 lg:h-20 ${gradientClass} backdrop-blur-md border-b border-white/15 transform-gpu will-change-transform`}
     >
       <div
         className={`max-w-7xl mx-auto flex items-center justify-between px-4 h-full ${hasSidebar ? "lg:pl-56" : ""}`}

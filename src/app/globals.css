@@ -48,11 +48,24 @@
 /* ヘッダーの環境テキストスクロールアニメーション */
 @keyframes marquee {
   from {
-    transform: translateX(0);
+    transform: translate3d(0, 0, 0);
   }
   to {
-    transform: translateX(-50%);
+    transform: translate3d(-50%, 0, 0);
   }
+}
+
+/*
+ * iOS の PWA (standalone) では、position:fixed な祖先の中で transform
+ * アニメーションを動かすと GPU レイヤーに昇格されずアニメーションが
+ * 再生されないことがあるため、will-change で明示的に専用レイヤーへ乗せる。
+ */
+.animate-marquee,
+.animate-marquee-card,
+.animate-marquee-card-slow {
+  will-change: transform;
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
 }
 
 .animate-marquee {

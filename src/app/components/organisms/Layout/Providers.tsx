@@ -15,7 +15,10 @@ export default function Providers({
   return (
     // refetchInterval: 他端末での退会等によるセッション失効を
     // 画面を開いたままでも検知できるよう、定期的にセッションを再検証する
-    <SessionProvider refetchInterval={60}>
+    // TODO: 不具合ありなので後で調査 勝手にログアウトされる
+    //<SessionProvider refetchInterval={60}>
+
+    <SessionProvider>
       <SessionWatcher />
       {/* locale="ja-JP": DatePicker等の日付表示順を年/月/日にし、カレンダーを日本語化する */}
       <HeroUIProvider locale="ja-JP">

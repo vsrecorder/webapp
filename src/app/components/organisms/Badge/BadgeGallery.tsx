@@ -164,7 +164,9 @@ export default function BadgeGallery({ userId, championshipSeries }: Props) {
   const grouped = CATEGORY_ORDER.map((category) => ({
     category,
     label: CATEGORY_LABELS[category] ?? category,
-    badges: (badges ?? []).filter((b) => b.category === category),
+    badges: (badges ?? [])
+      .filter((b) => b.category === category)
+      .sort((a, b) => a.criteria_value - b.criteria_value),
   })).filter((g) => g.badges.length > 0);
 
   return (

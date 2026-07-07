@@ -194,7 +194,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             },
           });
 
-          if (ret.status === 404) {
+          // プロキシ層の障害時などにバックエンドを経由しない404(HTMLのエラーページ等)が
+          // 返ることがあるため、実際にcore-apiserverが返すJSON形式の404であることも
+          // 確認した上でのみ退会済みと判定する。
+          const isBackendNotFound =
+            ret.status === 404 &&
+            (ret.headers.get("content-type") ?? "").includes("application/json");
+
+          if (isBackendNotFound) {
             return null;
           }
 

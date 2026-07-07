@@ -61,14 +61,16 @@ function HeaderShell({
     : "bg-linear-to-br from-blue-600/90 via-indigo-600/90 to-violet-700/90";
 
   return (
-    <header
-      // iOS の standalone PWA では fixed + backdrop-blur な要素が独立した合成レイヤーに
-      // 昇格されず、中の transform アニメーション（マーキー）が再描画されないことがあるため、
-      // transform-gpu / will-change-transform で明示的に GPU レイヤーへ昇格させる
-      className={`fixed z-50 top-0 left-0 right-0 h-14 lg:h-20 ${gradientClass} backdrop-blur-md border-b border-white/15 transform-gpu will-change-transform`}
-    >
+    <header className="fixed z-50 top-0 left-0 right-0 h-14 lg:h-20 border-b border-white/15">
+      {/*
+        iOS の standalone PWA では、position:fixed な要素に直接 backdrop-blur を
+        かけると、その中の transform アニメーション（マーキー）が再描画されなく
+        なることがあるため、ぼかし背景だけを別レイヤー（absolute）に分離し、
+        コンテンツ側は backdrop-filter の直接の対象にならないようにする。
+      */}
+      <div className={`absolute inset-0 ${gradientClass} backdrop-blur-md`} />
       <div
-        className={`max-w-7xl mx-auto flex items-center justify-between px-4 h-full ${hasSidebar ? "lg:pl-56" : ""}`}
+        className={`relative max-w-7xl mx-auto flex items-center justify-between px-4 h-full ${hasSidebar ? "lg:pl-56" : ""}`}
       >
         {children}
       </div>

@@ -14,7 +14,7 @@ export default function MobileNavigation() {
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <div
-        className="grid h-16"
+        className="grid h-15"
         style={{ gridTemplateColumns: `repeat(${navItems.length}, minmax(0, 1fr))` }}
       >
         {navItems.map(({ href, label, icon: Icon }) => {
@@ -34,7 +34,7 @@ export default function MobileNavigation() {
               <div className="flex items-center justify-center w-10 h-6">
                 <Icon className="w-5 h-5" />
               </div>
-              <span className="text-[10px] leading-none font-medium">{label}</span>
+              <span className="text-[10px] leading-none font-medium -translate-y-0.5">{label}</span>
             </Link>
           );
         })}

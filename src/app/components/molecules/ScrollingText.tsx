@@ -14,16 +14,22 @@ export default function ScrollingText({ text, className, animationClass = "anima
   const [shouldScroll, setShouldScroll] = useState(false);
 
   useEffect(() => {
+    const container = containerRef.current;
+    const textEl = measureRef.current;
+    if (!container || !textEl) return;
+
     const check = () => {
-      const container = containerRef.current;
-      const textEl = measureRef.current;
-      if (container && textEl) {
-        setShouldScroll(textEl.scrollWidth > container.clientWidth);
-      }
+      setShouldScroll(textEl.scrollWidth > container.clientWidth);
     };
     check();
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
+
+    // window の resize だけでは、リロードボタンのように後から表示状態が変わる
+    // 兄弟要素によってコンテナ幅が変化するケースを検知できないため、
+    // コンテナ・テキスト双方のサイズ変化を直接監視する
+    const observer = new ResizeObserver(check);
+    observer.observe(container);
+    observer.observe(textEl);
+    return () => observer.disconnect();
   }, [text]);
 
   return (

@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 
 import {
   Badge,
@@ -62,7 +61,6 @@ function formatRelativeTime(iso: string): string {
 }
 
 export default function NotificationBell() {
-  const router = useRouter();
   const [notifications, setNotifications] = useState<NotificationType[]>([]);
 
   const unreadCount = useMemo(
@@ -113,7 +111,6 @@ export default function NotificationBell() {
 
   const handleSelect = (notification: NotificationType) => {
     if (!notification.is_read) markAsRead(notification.id);
-    if (notification.link_url) router.push(notification.link_url);
   };
 
   return (

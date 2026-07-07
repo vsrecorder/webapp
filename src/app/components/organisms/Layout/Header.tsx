@@ -125,7 +125,7 @@ export default async function Header() {
             />
             <ScrollingText
               text={`現在の対戦環境：『${resolvedEnv.title}』`}
-              className="text-white/80 text-xs font-medium min-w-0"
+              className="flex-1 text-white/80 text-xs font-medium min-w-0"
             />
           </div>
         )}

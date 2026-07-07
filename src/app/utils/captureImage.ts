@@ -2,7 +2,14 @@ import { toPng } from "html-to-image";
 
 // 書き出し画像に表示するサービス情報
 const APP_NAME = "バトレコ";
-const APP_ICON_SRC = "https://xx8nnpgt.user.webaccel.jp/images/icons/icon.png";
+
+// 実行環境(ENV)はサーバー側でしか参照できないため、layout.tsxが<html>に埋め込んだ
+// data-env属性から取得する（クライアント側でNEXT_PUBLIC_*を使わない理由はappIcon.ts参照）
+function getAppIconSrc(): string {
+  return document.documentElement.dataset.env === "dev"
+    ? "/icon_dev-512x512.png"
+    : "https://xx8nnpgt.user.webaccel.jp/images/icons/icon.png";
+}
 
 // サービスのアイコンとサービス名を並べたフッター要素を生成する。
 // 画像の下部に差し込み、どのサービスで作成した画像かが分かるようにする。
@@ -24,7 +31,7 @@ function buildServiceFooter(isDark: boolean): {
   footer.style.borderTop = `1px solid ${dividerColor}`;
 
   const icon = document.createElement("img");
-  icon.src = APP_ICON_SRC;
+  icon.src = getAppIconSrc();
   icon.width = 30;
   icon.height = 30;
   icon.style.width = "30px";

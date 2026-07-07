@@ -4,9 +4,11 @@ import { LuExternalLink } from "react-icons/lu";
 
 import { auth } from "@app/auth";
 import FooterWithdrawLink from "@app/components/organisms/Layout/FooterWithdrawLink";
+import { getAppIconUrl } from "@app/utils/appIcon";
 
 export default async function Footer() {
   const session = await auth();
+  const iconUrl = getAppIconUrl();
 
   return (
     <footer className="-mx-2 mt-8 bg-neutral-900 dark:bg-neutral-950 dark:border-t dark:border-neutral-800 text-neutral-400">
@@ -18,7 +20,7 @@ export default async function Footer() {
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 relative shrink-0">
                 <Image
-                  src="https://xx8nnpgt.user.webaccel.jp/images/icons/icon.png"
+                  src={iconUrl}
                   alt="バトレコ"
                   fill
                   sizes="32px"

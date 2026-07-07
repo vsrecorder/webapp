@@ -6,6 +6,7 @@ import Header from "@app/components/organisms/Layout/Header";
 import Navigation from "@app/components/organisms/Layout/Navigation";
 import AddToHomeScreenBanner from "@app/components/molecules/PWA/AddToHomeScreenBanner";
 import ServiceWorkerRegister from "@app/components/molecules/PWA/ServiceWorkerRegister";
+import { isDevEnv } from "@app/utils/appIcon";
 
 export default async function TemplateLayout({
   children,
@@ -13,6 +14,8 @@ export default async function TemplateLayout({
   children: React.ReactNode;
 }>) {
   const session = await auth();
+  // ホーム画面追加バナーはmanifest.tsのPWAアイコンと同じローカルファイルを使う
+  const homeScreenIconUrl = isDevEnv() ? "/icon_dev-192x192.png" : "/icon-192x192.png";
 
   return (
     <Providers>
@@ -32,7 +35,7 @@ export default async function TemplateLayout({
         </div>
       </div>
 
-      <AddToHomeScreenBanner />
+      <AddToHomeScreenBanner iconUrl={homeScreenIconUrl} />
       <ServiceWorkerRegister />
     </Providers>
   );

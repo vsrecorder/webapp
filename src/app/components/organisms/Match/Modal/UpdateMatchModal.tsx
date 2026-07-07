@@ -139,13 +139,13 @@ export default function UpdateMatchModal({
   const [pokemonSprite1, setPokemonSprite1] = useState<PokemonSpriteType | null>(null);
   const [pokemonSprite2, setPokemonSprite2] = useState<PokemonSpriteType | null>(null);
 
-  // モーダルが開いているときだけ直近マッチを取得（limit=50 で十分な候補数を確保）
+  // モーダルが開いているときだけ直近マッチを取得（limit=100 で十分な候補数を確保）
   const { data: recentMatches } = useSWR<MatchGetResponseType[]>(
-    isOpen && match ? `/api/users/${match.user_id}/matches?limit=50` : null,
+    isOpen && match ? `/api/users/${match.user_id}/matches?limit=100` : null,
     fetchMatches,
   );
 
-  // 出現回数の多い順に並んだデッキ履歴（上位10件、不戦勝/不戦敗を除外）
+  // 出現回数の多い順に並んだデッキ履歴（上位30件、不戦勝/不戦敗を除外）
   const deckHistories = useMemo<DeckHistory[]>(() => {
     if (!recentMatches) return [];
     const countMap = new Map<string, { history: DeckHistory; count: number }>();
@@ -183,14 +183,14 @@ export default function UpdateMatchModal({
     }
     return Array.from(countMap.values())
       .sort((a, b) => b.count - a.count)
-      .slice(0, 10)
+      .slice(0, 50)
       .map((item) => item.history);
   }, [recentMatches]);
 
-  // ユーザ履歴がない場合のみ全体の直近20件を取得してダミー候補を作成
+  // ユーザ履歴がない場合のみ全体の直近100件を取得してダミー候補を作成
   const { data: globalMatches } = useSWR<MatchGetResponseType[]>(
     isOpen && recentMatches !== undefined && deckHistories.length === 0
-      ? `/api/matches?limit=20`
+      ? `/api/matches?limit=100`
       : null,
     fetchMatches,
   );

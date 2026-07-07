@@ -25,6 +25,7 @@ import { EnvironmentType } from "@app/types/environment";
 import { StandardRegulationType } from "@app/types/standard_regulation";
 import { ChampionshipSeriesType } from "@app/types/championship_series";
 import { UserType } from "@app/types/user";
+import { isDevEnv } from "@app/utils/appIcon";
 
 async function getCityleagueScheduleByDate(date: Date): Promise<CityleagueScheduleType> {
   const domain = process.env.VSRECORDER_DOMAIN;
@@ -354,7 +355,9 @@ export default async function TemplateDashboard({ userId }: Props) {
     <>
       <div className="pt-3 lg:pt-9 xl:pt-9 max-w-2xl lg:max-w-6xl xl:max-w-7xl mx-auto w-full">
         <DashboardSections
-          pinned={user ? <UserProfileCard key="pinned" user={user} /> : undefined}
+          pinned={
+            user ? <UserProfileCard key="pinned" user={user} isDevEnv={isDevEnv()} /> : undefined
+          }
           sections={sections}
           trailing={recentRecords}
         />

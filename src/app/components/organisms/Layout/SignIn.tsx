@@ -3,11 +3,16 @@
 import DesktopSignIn from "@app/components/molecules/SignIn/DesktopSignIn";
 import MobileSignIn from "@app/components/molecules/SignIn/MobileSignIn";
 
-export default function SignIn() {
+type Props = {
+  iconUrl: string;
+  isDevEnv: boolean;
+};
+
+export default function SignIn({ iconUrl, isDevEnv }: Props) {
   return (
     <>
-      <DesktopSignIn />
-      <MobileSignIn />
+      <DesktopSignIn iconUrl={iconUrl} isDevEnv={isDevEnv} />
+      <MobileSignIn iconUrl={iconUrl} isDevEnv={isDevEnv} />
     </>
   );
 }

@@ -9,7 +9,12 @@ import { Modal, ModalContent, ModalBody, ModalFooter } from "@heroui/modal";
 
 import { handleSignOut } from "@app/handlers/handleSignOut";
 
-export default function SignOut() {
+type Props = {
+  iconUrl: string;
+  isDevEnv: boolean;
+};
+
+export default function SignOut({ iconUrl, isDevEnv }: Props) {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   return (
@@ -26,10 +31,16 @@ export default function SignOut() {
         <ModalContent>
           {(onClose) => (
             <>
-              <div className="bg-linear-to-br from-blue-600 via-indigo-600 to-violet-700 px-6 pt-8 pb-7 flex flex-col items-center gap-3 rounded-t-xl">
+              <div
+                className={`px-6 pt-8 pb-7 flex flex-col items-center gap-3 rounded-t-xl ${
+                  isDevEnv
+                    ? "bg-linear-to-br from-orange-500 via-orange-600 to-amber-700"
+                    : "bg-linear-to-br from-blue-600 via-indigo-600 to-violet-700"
+                }`}
+              >
                 <div className="w-14 h-14 relative">
                   <Image
-                    src="https://xx8nnpgt.user.webaccel.jp/images/icons/icon.png"
+                    src={iconUrl}
                     alt="バトレコ"
                     fill
                     priority

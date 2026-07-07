@@ -12,9 +12,9 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "ポケカプレイヤーのための対戦記録サービス",
     start_url: "/",
     display: "standalone",
-    // ヒーローセクションの blue-600 に合わせる
-    background_color: "#2563EB",
-    theme_color: "#2563EB",
+    // 本番はヒーローセクションの blue-600 に合わせる。dev環境は一目で区別できるようオレンジにする
+    background_color: env == "dev" ? "#EA580C" : "#2563EB",
+    theme_color: env == "dev" ? "#EA580C" : "#2563EB",
     icons:
       env == "dev"
         ? [

@@ -17,6 +17,7 @@ import PhoneMock from "@app/components/molecules/PhoneMock";
 
 import { CityleagueScheduleType } from "@app/types/cityleague_schedule";
 import { EnvironmentType } from "@app/types/environment";
+import { getAppIconUrl, isDevEnv } from "@app/utils/appIcon";
 
 const GRAFANA_DASHBOARD_UID = "636db44742fb4dca801d0b1c9343642a";
 
@@ -220,10 +221,16 @@ export default async function TemplateHome() {
   return (
     <>
       {/* ヒーローセクション：グラデーション背景で全幅に広げる（-mt-14でmainのpt-14分も覆い、ヘッダー裏の白背景を隠す。lg以上はヘッダーがh-20になる分-mt-20で揃える） */}
-      <section className="-mx-2 -mt-14 lg:-mt-20 bg-linear-to-br from-blue-600 via-indigo-600 to-violet-700 text-white px-6 pt-22 pb-14 lg:px-8 lg:pt-28 lg:pb-20 flex flex-col items-center gap-5 lg:gap-7">
+      <section
+        className={`-mx-2 -mt-14 lg:-mt-20 text-white px-6 pt-22 pb-14 lg:px-8 lg:pt-28 lg:pb-20 flex flex-col items-center gap-5 lg:gap-7 ${
+          isDevEnv()
+            ? "bg-linear-to-br from-orange-500 via-orange-600 to-amber-700"
+            : "bg-linear-to-br from-blue-600 via-indigo-600 to-violet-700"
+        }`}
+      >
         <div className="w-20 h-20 lg:w-28 lg:h-28 relative">
           <Image
-            src="https://xx8nnpgt.user.webaccel.jp/images/icons/icon.png"
+            src={getAppIconUrl()}
             alt="バトレコ"
             fill
             priority

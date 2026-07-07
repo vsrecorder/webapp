@@ -21,7 +21,7 @@ export default function MatchSkeleton({ enableCreateMatchModalButton }: Props) {
   return (
     <div>
       <Card>
-        <CardBody className="px-2 py-2 w-full">
+        <CardBody className="px-1 py-1 w-full">
           <div className="flex flex-col gap-1.5 w-full">
             <Card>
               <CardBody className="px-0 py-0.5 min-h-28 w-full">

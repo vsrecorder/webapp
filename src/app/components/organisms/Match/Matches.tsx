@@ -89,9 +89,7 @@ function moveMatch(
   direction: "up" | "down",
 ): MatchGetResponseType[] | null {
   const sections = buildSections(matches);
-  const sectionIndex = sections.findIndex((s) =>
-    s.items.some((m) => m.id === matchId),
-  );
+  const sectionIndex = sections.findIndex((s) => s.items.some((m) => m.id === matchId));
   if (sectionIndex === -1) return null;
 
   const section = sections[sectionIndex];
@@ -100,10 +98,7 @@ function moveMatch(
   if (direction === "up") {
     if (itemIndex > 0) {
       const items = [...section.items];
-      [items[itemIndex - 1], items[itemIndex]] = [
-        items[itemIndex],
-        items[itemIndex - 1],
-      ];
+      [items[itemIndex - 1], items[itemIndex]] = [items[itemIndex], items[itemIndex - 1]];
       sections[sectionIndex] = { ...section, items };
     } else {
       if (sectionIndex === 0) return null;
@@ -123,10 +118,7 @@ function moveMatch(
   } else {
     if (itemIndex < section.items.length - 1) {
       const items = [...section.items];
-      [items[itemIndex], items[itemIndex + 1]] = [
-        items[itemIndex + 1],
-        items[itemIndex],
-      ];
+      [items[itemIndex], items[itemIndex + 1]] = [items[itemIndex + 1], items[itemIndex]];
       sections[sectionIndex] = { ...section, items };
     } else {
       if (sectionIndex === sections.length - 1) return null;
@@ -267,8 +259,7 @@ export default function Matches({
           match,
           canMoveUp: !(sectionIdx === 0 && itemIdx === 0),
           canMoveDown: !(
-            sectionIdx === sections.length - 1 &&
-            itemIdx === section.items.length - 1
+            sectionIdx === sections.length - 1 && itemIdx === section.items.length - 1
           ),
         });
       });
@@ -338,7 +329,7 @@ export default function Matches({
 
       <div>
         <Card>
-          <CardBody className="px-2 py-2 w-full">
+          <CardBody className="px-1 py-1 w-full">
             <div className="flex flex-col gap-1.5 w-full">
               <div ref={matchCardRef} className="p-1">
                 <Card>
@@ -370,7 +361,9 @@ export default function Matches({
                                     key={item.id}
                                     className="bg-content1! hover:bg-content1! cursor-default"
                                   >
-                                    <TableCell className={`px-2 pb-1.5 ${index === 0 ? "pt-1.5" : "pt-6"}`}>
+                                    <TableCell
+                                      className={`px-2 pb-1.5 ${index === 0 ? "pt-1.5" : "pt-6"}`}
+                                    >
                                       <div className="flex items-center gap-2">
                                         <div className="flex-1 h-px bg-default-200" />
                                         <span className="text-[10px] font-bold text-default-400">
@@ -387,256 +380,263 @@ export default function Matches({
                               return (
                                 <TableRow key={match.id}>
                                   <TableCell>
-                                  <div className="flex items-center gap-1 w-full">
-                                    {/*
+                                    <div className="flex items-center gap-1 w-full">
+                                      {/*
                                       並び替えボタンが表示される場合のみガターを描画する。
                                       BO1/チーム戦に関わらず同じ位置にボタンを表示する。
                                       data-capture-hide は画像保存時にこの要素ごと除去する対象の目印。
                                     */}
-                                    {enableUpdateMatchModalButton && (
-                                      <div
-                                        className="flex flex-col gap-1.5 shrink-0 pt-1 pb-1 items-start pl-1.5 w-8"
-                                        data-capture-hide="true"
+                                      {enableUpdateMatchModalButton && (
+                                        <div
+                                          className="flex flex-col gap-1.5 shrink-0 pt-1 pb-1 items-start pl-1.5 w-8"
+                                          data-capture-hide="true"
+                                        >
+                                          <Button
+                                            isIconOnly
+                                            size="sm"
+                                            variant="flat"
+                                            radius="md"
+                                            className="min-w-6 w-6 h-6"
+                                            isDisabled={!canMoveUp}
+                                            aria-label="上に移動"
+                                            onPress={() => handleMove(match.id, "up")}
+                                          >
+                                            <LuChevronUp className="text-lg" />
+                                          </Button>
+                                          <Button
+                                            isIconOnly
+                                            size="sm"
+                                            variant="flat"
+                                            radius="md"
+                                            className="min-w-6 w-6 h-6"
+                                            isDisabled={!canMoveDown}
+                                            aria-label="下に移動"
+                                            onPress={() => handleMove(match.id, "down")}
+                                          >
+                                            <LuChevronDown className="text-lg" />
+                                          </Button>
+                                        </div>
+                                      )}
+                                      <Button
+                                        radius="md"
+                                        variant="light"
+                                        className="pl-1.5 pr-1 py-8 w-full"
+                                        onPress={() => {
+                                          setSelectedMatch(match);
+                                          // 編集可能な場合は編集モーダル、
+                                          // それ以外でメモがある場合はメモ表示モーダルを開く
+                                          if (enableUpdateMatchModalButton) {
+                                            onOpenForUpdateMatchModal();
+                                          } else if (match.memo && match.memo !== "") {
+                                            onOpenForDisplayMatchMemoModal();
+                                          }
+                                        }}
                                       >
-                                        <Button
-                                          isIconOnly
-                                          size="sm"
-                                          variant="flat"
-                                          radius="md"
-                                          className="min-w-6 w-6 h-6"
-                                          isDisabled={!canMoveUp}
-                                          aria-label="上に移動"
-                                          onPress={() => handleMove(match.id, "up")}
-                                        >
-                                          <LuChevronUp className="text-lg" />
-                                        </Button>
-                                        <Button
-                                          isIconOnly
-                                          size="sm"
-                                          variant="flat"
-                                          radius="md"
-                                          className="min-w-6 w-6 h-6"
-                                          isDisabled={!canMoveDown}
-                                          aria-label="下に移動"
-                                          onPress={() => handleMove(match.id, "down")}
-                                        >
-                                          <LuChevronDown className="text-lg" />
-                                        </Button>
-                                      </div>
-                                    )}
-                                    <Button
-                                      radius="md"
-                                      variant="light"
-                                      className="pl-3 pr-1 py-8 w-full"
-                                      onPress={() => {
-                                        setSelectedMatch(match);
-                                        // 編集可能な場合は編集モーダル、
-                                        // それ以外でメモがある場合はメモ表示モーダルを開く
-                                        if (enableUpdateMatchModalButton) {
-                                          onOpenForUpdateMatchModal();
-                                        } else if (match.memo && match.memo !== "") {
-                                          onOpenForDisplayMatchMemoModal();
-                                        }
-                                      }}
-                                    >
-                                      <div className="flex flex-wrap items-center gap-1.5 w-full">
-                                        {/* チーム戦は個人とチームの勝敗を並べて表示、BO1は個人の勝敗のみ */}
-                                        {match.group_match_flg ? (
-                                          <div className="flex shrink-0 items-stretch gap-1.5">
-                                            <div className="flex flex-col items-center gap-1">
-                                              <span className="text-[9px] leading-none text-default-400">
-                                                個人
-                                              </span>
-                                              <span className="text-base leading-none">
-                                                {match.victory_flg === true ? "⭕" : "❌"}
-                                              </span>
-                                            </div>
-                                            <div className="flex flex-col items-center gap-1">
-                                              <span className="text-[9px] leading-none text-default-400">
-                                                チーム
-                                              </span>
-                                              <span className="text-base leading-none">
-                                                {match.group_match_victory_flg
-                                                  ? "⭕"
-                                                  : "❌"}
-                                              </span>
-                                            </div>
-                                          </div>
-                                        ) : (
-                                          // チーム戦の「チーム」列と同じ位置に勝敗が来るよう、
-                                          // 「個人」列と同じ構造を invisible で幅だけ確保して揃える
-                                          <div className="flex shrink-0 items-stretch gap-1.5">
-                                            <div className="flex flex-col items-center gap-1 invisible">
-                                              <span className="text-[9px] leading-none">
-                                                個人
-                                              </span>
-                                              <span className="text-base leading-none">
-                                                ⭕
-                                              </span>
-                                            </div>
-                                            <div className="flex flex-col items-center gap-1">
-                                              <span className="text-[9px] leading-none text-default-400 invisible">
-                                                チーム
-                                              </span>
-                                              <span className="text-base leading-none">
-                                                {match.victory_flg === true ? "⭕" : "❌"}
-                                              </span>
-                                            </div>
-                                          </div>
-                                        )}
-
-                                        <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                                          {match.default_victory_flg ||
-                                          match.default_defeat_flg ? (
-                                            <>
-                                              <>
-                                                <div className="flex items-center gap-0 shrink-0">
-                                                  <Image
-                                                    alt="unknown"
-                                                    src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
-                                                    className="w-11 h-11 object-contain scale-150 origin-bottom"
-                                                  />
-
-                                                  <Image
-                                                    alt="unknown"
-                                                    src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
-                                                    className="w-11 h-11 object-contain scale-150 origin-bottom"
-                                                  />
-                                                </div>
-                                              </>
-
-                                              <div className="flex flex-col justify-center gap-1 min-w-0 flex-1">
-                                                <div className="min-w-0">
-                                                  <div className="font-bold truncate text-left">
-                                                    {match.default_victory_flg
-                                                      ? "不戦勝"
-                                                      : "不戦敗"}
-                                                  </div>
-                                                  <div className="mt-0.5 flex flex-wrap items-center gap-1">
-                                                    {match.group_match_flg && (
-                                                      <Chip
-                                                        size="sm"
-                                                        variant="flat"
-                                                        radius="sm"
-                                                        color="secondary"
-                                                        classNames={{
-                                                          base: "h-4 px-1",
-                                                          content:
-                                                            "px-1 text-[8px] font-bold",
-                                                        }}
-                                                      >
-                                                        チーム戦
-                                                      </Chip>
-                                                    )}
-                                                  </div>
-                                                </div>
+                                        <div className="flex flex-wrap items-center gap-1.5 w-full">
+                                          {/* チーム戦は個人とチームの勝敗を並べて表示、BO1は個人の勝敗のみ */}
+                                          {match.group_match_flg ? (
+                                            <div className="flex shrink-0 items-stretch gap-1.5">
+                                              <div className="flex flex-col items-center gap-1">
+                                                <span className="text-[9px] leading-none text-default-400">
+                                                  個人
+                                                </span>
+                                                <span className="text-base leading-none">
+                                                  {match.victory_flg === true
+                                                    ? "⭕"
+                                                    : "❌"}
+                                                </span>
                                               </div>
-                                            </>
+                                              <div className="flex flex-col items-center gap-1">
+                                                <span className="text-[9px] leading-none text-default-400">
+                                                  チーム
+                                                </span>
+                                                <span className="text-base leading-none">
+                                                  {match.group_match_victory_flg
+                                                    ? "⭕"
+                                                    : "❌"}
+                                                </span>
+                                              </div>
+                                            </div>
                                           ) : (
-                                            <>
+                                            // チーム戦の「チーム」列と同じ位置に勝敗が来るよう、
+                                            // 「個人」列と同じ構造を invisible で幅だけ確保して揃える
+                                            <div className="flex shrink-0 items-stretch gap-1.5">
+                                              <div className="flex flex-col items-center gap-1 invisible">
+                                                <span className="text-[9px] leading-none">
+                                                  個人
+                                                </span>
+                                                <span className="text-base leading-none">
+                                                  ⭕
+                                                </span>
+                                              </div>
+                                              <div className="flex flex-col items-center gap-1">
+                                                <span className="text-[9px] leading-none text-default-400 invisible">
+                                                  チーム
+                                                </span>
+                                                <span className="text-base leading-none">
+                                                  {match.victory_flg === true
+                                                    ? "⭕"
+                                                    : "❌"}
+                                                </span>
+                                              </div>
+                                            </div>
+                                          )}
+
+                                          <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                            {match.default_victory_flg ||
+                                            match.default_defeat_flg ? (
                                               <>
-                                                <div className="flex items-center gap-0 shrink-0">
-                                                  {match.pokemon_sprites[0] ? (
-                                                    <Image
-                                                      alt={match.pokemon_sprites[0].id.replace(
-                                                        /^0+(?!$)/,
-                                                        "",
-                                                      )}
-                                                      src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${match.pokemon_sprites[0].id.replace(/^0+(?!$)/, "")}.png`}
-                                                      className={`w-11 h-11 object-contain ${spriteScaleClass(match.pokemon_sprites[0].id)} origin-bottom`}
-                                                    />
-                                                  ) : (
+                                                <>
+                                                  <div className="flex items-center gap-0 shrink-0">
                                                     <Image
                                                       alt="unknown"
                                                       src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
                                                       className="w-11 h-11 object-contain scale-150 origin-bottom"
                                                     />
-                                                  )}
 
-                                                  {match.pokemon_sprites[1] ? (
-                                                    <Image
-                                                      alt={match.pokemon_sprites[1].id.replace(
-                                                        /^0+(?!$)/,
-                                                        "",
-                                                      )}
-                                                      src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${match.pokemon_sprites[1].id.replace(/^0+(?!$)/, "")}.png`}
-                                                      className={`w-11 h-11 object-contain ${spriteScaleClass(match.pokemon_sprites[1].id)} origin-bottom`}
-                                                    />
-                                                  ) : (
                                                     <Image
                                                       alt="unknown"
                                                       src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
-                                                      className="w-11 h-11 object-contain scale-150 origin-bottom "
+                                                      className="w-11 h-11 object-contain scale-150 origin-bottom"
                                                     />
-                                                  )}
+                                                  </div>
+                                                </>
+
+                                                <div className="flex flex-col justify-center gap-1 min-w-0 flex-1">
+                                                  <div className="min-w-0">
+                                                    <div className="font-bold truncate text-left">
+                                                      {match.default_victory_flg
+                                                        ? "不戦勝"
+                                                        : "不戦敗"}
+                                                    </div>
+                                                    <div className="mt-0.5 flex flex-wrap items-center gap-1">
+                                                      {match.group_match_flg && (
+                                                        <Chip
+                                                          size="sm"
+                                                          variant="flat"
+                                                          radius="sm"
+                                                          color="secondary"
+                                                          classNames={{
+                                                            base: "h-4 px-1",
+                                                            content:
+                                                              "px-1 text-[8px] font-bold",
+                                                          }}
+                                                        >
+                                                          チーム戦
+                                                        </Chip>
+                                                      )}
+                                                    </div>
+                                                  </div>
                                                 </div>
                                               </>
+                                            ) : (
+                                              <>
+                                                <>
+                                                  <div className="flex items-center gap-0 shrink-0">
+                                                    {match.pokemon_sprites[0] ? (
+                                                      <Image
+                                                        alt={match.pokemon_sprites[0].id.replace(
+                                                          /^0+(?!$)/,
+                                                          "",
+                                                        )}
+                                                        src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${match.pokemon_sprites[0].id.replace(/^0+(?!$)/, "")}.png`}
+                                                        className={`w-11 h-11 object-contain ${spriteScaleClass(match.pokemon_sprites[0].id)} origin-bottom`}
+                                                      />
+                                                    ) : (
+                                                      <Image
+                                                        alt="unknown"
+                                                        src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
+                                                        className="w-11 h-11 object-contain scale-150 origin-bottom"
+                                                      />
+                                                    )}
 
-                                              <div className="flex flex-col justify-center gap-1 min-w-0 flex-1">
-                                                <div className="min-w-0">
-                                                  <div className="font-bold truncate text-left">
-                                                    {match.opponents_deck_info}
+                                                    {match.pokemon_sprites[1] ? (
+                                                      <Image
+                                                        alt={match.pokemon_sprites[1].id.replace(
+                                                          /^0+(?!$)/,
+                                                          "",
+                                                        )}
+                                                        src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${match.pokemon_sprites[1].id.replace(/^0+(?!$)/, "")}.png`}
+                                                        className={`w-11 h-11 object-contain ${spriteScaleClass(match.pokemon_sprites[1].id)} origin-bottom`}
+                                                      />
+                                                    ) : (
+                                                      <Image
+                                                        alt="unknown"
+                                                        src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
+                                                        className="w-11 h-11 object-contain scale-150 origin-bottom "
+                                                      />
+                                                    )}
                                                   </div>
+                                                </>
 
-                                                  {/* 種別・先後・サイド数を chip で表示（種別を先頭に配置） */}
-                                                  <div className="mt-1 flex flex-wrap items-center gap-1">
-                                                    {match.group_match_flg && (
+                                                <div className="flex flex-col justify-center gap-1 min-w-0 flex-1">
+                                                  <div className="min-w-0">
+                                                    <div className="font-bold truncate text-left">
+                                                      {match.opponents_deck_info}
+                                                    </div>
+
+                                                    {/* 種別・先後・サイド数を chip で表示（種別を先頭に配置） */}
+                                                    <div className="mt-1 flex flex-wrap items-center gap-1">
+                                                      {match.group_match_flg && (
+                                                        <Chip
+                                                          size="sm"
+                                                          variant="flat"
+                                                          radius="sm"
+                                                          color="secondary"
+                                                          classNames={{
+                                                            base: "h-4 px-1",
+                                                            content:
+                                                              "px-1 text-[8px] font-bold",
+                                                          }}
+                                                        >
+                                                          チーム戦
+                                                        </Chip>
+                                                      )}
                                                       <Chip
                                                         size="sm"
                                                         variant="flat"
                                                         radius="sm"
-                                                        color="secondary"
                                                         classNames={{
                                                           base: "h-4 px-1",
                                                           content:
                                                             "px-1 text-[8px] font-bold",
                                                         }}
                                                       >
-                                                        チーム戦
+                                                        {match.games[0].go_first
+                                                          ? "先攻"
+                                                          : "後攻"}
                                                       </Chip>
-                                                    )}
-                                                    <Chip
-                                                      size="sm"
-                                                      variant="flat"
-                                                      radius="sm"
-                                                      classNames={{
-                                                        base: "h-4 px-1",
-                                                        content:
-                                                          "px-1 text-[8px] font-bold",
-                                                      }}
-                                                    >
-                                                      {match.games[0].go_first
-                                                        ? "先攻"
-                                                        : "後攻"}
-                                                    </Chip>
-                                                    <Chip
-                                                      size="sm"
-                                                      variant="flat"
-                                                      radius="sm"
-                                                      classNames={{
-                                                        base: "h-4 px-1",
-                                                        content:
-                                                          "px-1 text-[8px] font-bold",
-                                                      }}
-                                                    >
-                                                      {match.games[0].your_prize_cards}
-                                                      {" - "}
-                                                      {match.games[0].opponents_prize_cards}
-                                                    </Chip>
+                                                      <Chip
+                                                        size="sm"
+                                                        variant="flat"
+                                                        radius="sm"
+                                                        classNames={{
+                                                          base: "h-4 px-1",
+                                                          content:
+                                                            "px-1 text-[8px] font-bold",
+                                                        }}
+                                                      >
+                                                        {match.games[0].your_prize_cards}
+                                                        {" - "}
+                                                        {
+                                                          match.games[0]
+                                                            .opponents_prize_cards
+                                                        }
+                                                      </Chip>
+                                                    </div>
                                                   </div>
                                                 </div>
-                                              </div>
-                                            </>
+                                              </>
+                                            )}
+                                          </div>
+
+                                          {/* メモがある場合は右端にアイコンを表示 */}
+                                          {match.memo && match.memo !== "" && (
+                                            <LuStickyNote className="ml-auto mr-0.5 shrink-0 text-lg text-default-400" />
                                           )}
                                         </div>
-
-                                        {/* メモがある場合は右端にアイコンを表示 */}
-                                        {match.memo && match.memo !== "" && (
-                                          <LuStickyNote className="ml-auto mr-0.5 shrink-0 text-lg text-default-400" />
-                                        )}
-                                      </div>
-                                    </Button>
-                                  </div>
+                                      </Button>
+                                    </div>
                                   </TableCell>
                                 </TableRow>
                               );

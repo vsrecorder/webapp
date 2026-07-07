@@ -16,6 +16,7 @@ import PokemonSpriteModal from "@app/components/organisms/Match/Modal/PokemonSpr
 import { PokemonSpriteType, DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
 import { DeckCreateRequestType } from "@app/types/deck";
 import { spriteScaleClass } from "@app/utils/sprite";
+import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 
 const UNKNOWN_SPRITE_URL =
   "https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png";
@@ -167,6 +168,8 @@ export default function CreateDeckModal({
         color: "success",
         timeout: 3000,
       });
+
+      triggerNotificationsRefresh();
 
       onCreated();
       onClose();

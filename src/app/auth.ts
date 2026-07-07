@@ -1,4 +1,4 @@
-import NextAuth from "next-auth";
+import NextAuth, { CredentialsSignin } from "next-auth";
 import "next-auth/jwt";
 
 import * as jwt from "jsonwebtoken";
@@ -8,6 +8,13 @@ import Credentials from "next-auth/providers/credentials";
 import { getFirebaseAdmin } from "@firebase/admin";
 
 import type { DecodedIdToken } from "firebase-admin/auth";
+
+// バックエンド(core-apiserver)に疎通できない場合に投げるエラー。
+// CredentialsSigninを継承することで /auth/error?code=backend_unavailable にリダイレクトされ、
+// 専用の案内画面を表示できる。
+class BackendUnavailableError extends CredentialsSignin {
+  code = "backend_unavailable";
+}
 
 type Credential = Partial<Record<"callbackUrl" | "idToken" | "csrfToken", unknown>>;
 
@@ -37,6 +44,17 @@ type UserType = {
   name: string;
   image_url: string;
 };
+
+// core-apiserverへの疎通確認用fetch。
+// 接続自体に失敗した場合（サーバー未起動など）はBackendUnavailableErrorに変換する。
+async function fetchBackend(url: string, init?: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, init);
+  } catch (error) {
+    console.error("Failed to reach backend:", error);
+    throw new BackendUnavailableError();
+  }
+}
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
@@ -70,7 +88,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         try {
           // ユーザが既に登録されているか確認
           const domain = process.env.VSRECORDER_DOMAIN;
-          const ret = await fetch(`https://` + domain + `/api/v1beta/users/` + user.id, {
+          const ret = await fetchBackend(`https://` + domain + `/api/v1beta/users/` + user.id, {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
@@ -103,7 +121,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             const token = jwt.sign(jwtPayload, jwtSecret, jwtSignOptions);
 
             // ユーザを登録
-            const ret = await fetch(`https://` + domain + `/api/v1beta/users`, {
+            const ret = await fetchBackend(`https://` + domain + `/api/v1beta/users`, {
               method: "POST",
               headers: {
                 Authorization: "Bearer " + token,
@@ -143,6 +161,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
           return user;
         } catch (error) {
+          if (error instanceof BackendUnavailableError) {
+            throw error;
+          }
           console.error("Failed to authorize:", error);
           return null;
         }
@@ -198,6 +219,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   session: {
     strategy: "jwt",
     maxAge: 14 * 24 * 60 * 60,
+  },
+  pages: {
+    error: "/auth/error",
   },
   useSecureCookies: true,
 });

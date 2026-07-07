@@ -7,7 +7,7 @@ import { useSession } from "next-auth/react";
 
 import { useInstallPrompt } from "@app/hooks/useInstallPrompt";
 
-export default function AddToHomeScreenBanner() {
+export default function AddToHomeScreenBanner({ iconUrl }: { iconUrl: string }) {
   const { status } = useSession();
   const { installState, install, dismiss } = useInstallPrompt();
 
@@ -18,7 +18,7 @@ export default function AddToHomeScreenBanner() {
     <div className="lg:hidden fixed z-40 bottom-16 left-2 right-2 rounded-2xl bg-white/95 dark:bg-neutral-900/95 backdrop-blur-md shadow-xl border border-default-200/60 dark:border-neutral-700/60">
       <div className="flex items-center gap-3 px-4 py-3">
         <Image
-          src="/icon-192x192.png"
+          src={iconUrl}
           alt="バトレコ アイコン"
           width={44}
           height={44}

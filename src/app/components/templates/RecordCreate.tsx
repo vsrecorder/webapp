@@ -49,6 +49,7 @@ import { useRouter } from "next/navigation";
 import ScrollingText from "@app/components/molecules/ScrollingText";
 
 import { spriteImageUrl, spriteScaleClass } from "@app/utils/sprite";
+import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 
 import { OfficialEventResponseType, OfficialEventType } from "@app/types/official_event";
 import { DeckGetAllType, DeckData } from "@app/types/deck";
@@ -928,6 +929,8 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
         timeout: 3000,
       });
 
+      triggerNotificationsRefresh();
+
       router.push("/records/" + ret.id);
     } catch (error) {
       console.error(error);
@@ -1024,6 +1027,8 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
         color: "success",
         timeout: 3000,
       });
+
+      triggerNotificationsRefresh();
 
       router.push("/records/" + ret.id);
     } catch (error) {
@@ -1148,6 +1153,8 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
         color: "success",
         timeout: 3000,
       });
+
+      triggerNotificationsRefresh();
 
       router.push("/records/" + ret.id);
     } catch (error) {

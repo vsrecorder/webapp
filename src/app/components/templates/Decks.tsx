@@ -67,7 +67,7 @@ export default function TemplateDecks() {
           <Tab key="inuse" title="利用中" />
           <Tab key="archived" title="アーカイブ済み" />
         </Tabs>
-        <div className="pt-2 lg:max-w-4xl lg:mx-auto">
+        <div className="pt-2 pb-6 lg:max-w-4xl lg:mx-auto">
           <Decks
             key={`${selectedKey}-${refreshKey}`}
             isArchived={selectedKey === "archived"}

@@ -45,7 +45,7 @@ export default function UserIdentityCard({ userId }: Props) {
   if (isLoading) {
     return (
       <Card className="overflow-hidden shadow-md">
-        <div className="bg-linear-to-br from-primary via-primary to-secondary px-4 pt-4 pb-5 flex items-center gap-3.5">
+        <div className="bg-linear-to-br from-primary via-primary to-secondary px-3 pt-4 pb-5 flex items-center gap-3.5">
           <div className="w-14 h-14 rounded-full bg-white/20 animate-pulse shrink-0" />
           <div className="flex flex-col gap-1.5">
             <div className="w-28 h-3.5 rounded-full bg-white/20 animate-pulse" />
@@ -72,7 +72,7 @@ export default function UserIdentityCard({ userId }: Props) {
 
       <Card className="overflow-hidden shadow-md">
         {/* グラデーションヘッダー */}
-        <div className="bg-linear-to-br from-primary via-primary to-secondary px-4 pt-4 pb-5 flex items-center gap-3.5">
+        <div className="bg-linear-to-br from-primary via-primary to-secondary px-3 pt-4 pb-5 flex items-center gap-3.5">
           <button onClick={onOpen} className="shrink-0" aria-label="プロフィールを編集">
             <Avatar
               src={profile.imageUrl}

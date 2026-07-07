@@ -1,0 +1,235 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+
+import {
+  Badge,
+  Button,
+  Dropdown,
+  DropdownTrigger,
+  DropdownMenu,
+  DropdownItem,
+  DropdownSection,
+} from "@heroui/react";
+import {
+  LuBell,
+  LuAward,
+  LuFlame,
+  LuCrown,
+  LuTrendingUp,
+  LuCalendarDays,
+  LuMegaphone,
+} from "react-icons/lu";
+
+import { NotificationType, NotificationCategory } from "@app/types/notification";
+import { onNotificationsRefreshRequested } from "@app/utils/notificationEvents";
+
+const NOTIFICATIONS_LIMIT = 30;
+const POLL_INTERVAL_MS = 30 * 1000;
+
+const CATEGORY_ICON: Record<
+  NotificationCategory,
+  React.ComponentType<{ className?: string }>
+> = {
+  badge: LuAward,
+  streak: LuFlame,
+  designation: LuCrown,
+  rank: LuTrendingUp,
+  official_event: LuCalendarDays,
+  announcement: LuMegaphone,
+};
+
+function formatRelativeTime(iso: string): string {
+  const date = new Date(iso);
+  const diffMin = Math.round((Date.now() - date.getTime()) / 60000);
+  const rtf = new Intl.RelativeTimeFormat("ja", { numeric: "auto" });
+
+  if (diffMin < 60) return rtf.format(-diffMin, "minute");
+
+  const diffHour = Math.round(diffMin / 60);
+  if (diffHour < 24) return rtf.format(-diffHour, "hour");
+
+  const diffDay = Math.round(diffHour / 24);
+  if (diffDay < 7) return rtf.format(-diffDay, "day");
+
+  // 7日以上前は相対表示ではなく日付そのものを表示する
+  return date.toLocaleDateString("ja-JP", {
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+  });
+}
+
+export default function NotificationBell() {
+  const router = useRouter();
+  const [notifications, setNotifications] = useState<NotificationType[]>([]);
+
+  const unreadCount = useMemo(
+    () => notifications.filter((n) => !n.is_read).length,
+    [notifications],
+  );
+
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/notifications?limit=${NOTIFICATIONS_LIMIT}`, {
+        cache: "no-store",
+      });
+      if (!res.ok) return;
+
+      const data: { notifications: NotificationType[] } = await res.json();
+      setNotifications(data.notifications ?? []);
+    } catch {
+      // ポーリング中の一時的な失敗は無視し、次回のポーリングに任せる
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchNotifications();
+
+    const timer = setInterval(fetchNotifications, POLL_INTERVAL_MS);
+    // 記録/対戦/デッキ登録の直後はポーリングを待たずその場で再取得する
+    const unsubscribe = onNotificationsRefreshRequested(fetchNotifications);
+
+    return () => {
+      clearInterval(timer);
+      unsubscribe();
+    };
+  }, [fetchNotifications]);
+
+  const markAsRead = (id: string) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)),
+    );
+
+    fetch(`/api/notifications/${id}/read`, { method: "PATCH" }).catch(() => {});
+  };
+
+  const markAllAsRead = () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+
+    fetch("/api/notifications/read_all", { method: "POST" }).catch(() => {});
+  };
+
+  const handleSelect = (notification: NotificationType) => {
+    if (!notification.is_read) markAsRead(notification.id);
+    if (notification.link_url) router.push(notification.link_url);
+  };
+
+  return (
+    <Dropdown
+      backdrop="opaque"
+      classNames={{
+        content:
+          "min-w-80 max-w-80 p-1.5 rounded-2xl shadow-xl border border-default-100 dark:border-default-50",
+      }}
+    >
+      <DropdownTrigger>
+        <Button
+          isIconOnly
+          variant="light"
+          radius="full"
+          aria-label="通知"
+          className="text-white/70 hover:text-white"
+        >
+          <Badge
+            content={unreadCount}
+            color="danger"
+            shape="circle"
+            size="sm"
+            showOutline={false}
+            isInvisible={unreadCount === 0}
+          >
+            <LuBell className="text-xl" />
+          </Badge>
+        </Button>
+      </DropdownTrigger>
+
+      <DropdownMenu
+        aria-label="通知一覧"
+        variant="flat"
+        disallowEmptySelection={false}
+        classNames={{ list: "gap-1.5" }}
+      >
+        <DropdownSection aria-label="ヘッダー" showDivider={notifications.length > 0}>
+          <DropdownItem
+            key="notifications-header"
+            isReadOnly
+            textValue="通知"
+            className="cursor-default data-[hover=true]:bg-transparent"
+          >
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-sm">通知</span>
+              {unreadCount > 0 && (
+                <button
+                  type="button"
+                  onClick={markAllAsRead}
+                  className="text-tiny text-primary hover:underline"
+                >
+                  すべて既読にする
+                </button>
+              )}
+            </div>
+          </DropdownItem>
+        </DropdownSection>
+
+        <DropdownSection
+          aria-label="通知リスト"
+          classNames={{ group: "max-h-[430px] overflow-y-auto" }}
+        >
+          {notifications.length === 0 ? (
+            <DropdownItem
+              key="empty"
+              isReadOnly
+              textValue="通知はありません"
+              className="cursor-default data-[hover=true]:bg-transparent"
+            >
+              <p className="text-center text-tiny text-default-400 py-4">
+                通知はありません
+              </p>
+            </DropdownItem>
+          ) : (
+            notifications.map((notification, index) => {
+              const Icon = CATEGORY_ICON[notification.category];
+              const isLast = index === notifications.length - 1;
+
+              return (
+                <DropdownItem
+                  key={notification.id}
+                  textValue={notification.title}
+                  startContent={<Icon className="w-4 h-4 shrink-0 text-default-500" />}
+                  className={[
+                    !isLast && "border-b border-default-200 dark:border-default-200",
+                    notification.is_read
+                      ? ""
+                      : "mt-1.5 mb-1.5 bg-primary-50 dark:bg-primary-950/30",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                  onPress={() => handleSelect(notification)}
+                >
+                  <div className="flex flex-col gap-1 py-1">
+                    <div className="flex items-center gap-1.5">
+                      {!notification.is_read && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary-500 shrink-0" />
+                      )}
+                      <span className="text-sm font-medium truncate">
+                        {notification.title}
+                      </span>
+                    </div>
+                    <span className="text-tiny text-default-400 line-clamp-2">
+                      {notification.body}
+                    </span>
+                    <span className="text-tiny text-default-300">
+                      {formatRelativeTime(notification.created_at)}
+                    </span>
+                  </div>
+                </DropdownItem>
+              );
+            })
+          )}
+        </DropdownSection>
+      </DropdownMenu>
+    </Dropdown>
+  );
+}

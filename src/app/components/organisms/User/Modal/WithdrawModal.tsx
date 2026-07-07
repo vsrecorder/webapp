@@ -8,6 +8,7 @@ import {
   ModalBody,
   ModalFooter,
   Button,
+  Checkbox,
   addToast,
   closeToast,
 } from "@heroui/react";
@@ -24,6 +25,7 @@ type Props = {
 export default function WithdrawModal({ userId, isOpen, onOpenChange }: Props) {
   const [isDisabled, setIsDisabled] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
+  const [isChecked, setIsChecked] = useState(false);
 
   const handleFirstConfirm = () => {
     setStep(2);
@@ -63,7 +65,10 @@ export default function WithdrawModal({ userId, isOpen, onOpenChange }: Props) {
       hideCloseButton
       isOpen={isOpen}
       onOpenChange={(open) => {
-        if (!open) setStep(1);
+        if (!open) {
+          setStep(1);
+          setIsChecked(false);
+        }
         onOpenChange();
       }}
     >
@@ -119,6 +124,14 @@ export default function WithdrawModal({ userId, isOpen, onOpenChange }: Props) {
               <ModalBody className="flex flex-col gap-2 text-sm">
                 <p className="font-semibold">本当に退会してもよろしいですか？</p>
                 <p className="font-semibold">この操作は取り消せません。</p>
+                <Checkbox
+                  isSelected={isChecked}
+                  onValueChange={setIsChecked}
+                  isDisabled={isDisabled}
+                  size="sm"
+                >
+                  上記の内容を理解した上で、退会します
+                </Checkbox>
               </ModalBody>
 
               <ModalFooter>
@@ -126,15 +139,15 @@ export default function WithdrawModal({ userId, isOpen, onOpenChange }: Props) {
                   color="default"
                   variant="solid"
                   isDisabled={isDisabled}
-                  onPress={() => setStep(1)}
+                  onPress={onClose}
                   className="font-bold"
                 >
-                  戻る
+                  キャンセル
                 </Button>
                 <Button
                   color="danger"
                   variant="solid"
-                  isDisabled={isDisabled}
+                  isDisabled={isDisabled || !isChecked}
                   onPress={handleConfirm}
                   className="font-bold"
                 >

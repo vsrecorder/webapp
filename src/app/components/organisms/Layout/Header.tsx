@@ -5,11 +5,13 @@ import Image from "next/image";
 import SignUp from "./SignUp";
 import SignIn from "./SignIn";
 import UserMenu from "./UserMenu";
+import NotificationBell from "./NotificationBell";
 import ThemeSwitcher from "@app/components/molecules/Theme/ThemeSwitcher";
 import ReloadButton from "@app/components/molecules/Header/ReloadButton";
 import ScrollingText from "@app/components/molecules/ScrollingText";
 import { UserType } from "@app/types/user";
 import { EnvironmentType } from "@app/types/environment";
+import { getAppIconUrl, isDevEnv } from "@app/utils/appIcon";
 
 import Link from "next/link";
 
@@ -53,8 +55,15 @@ function HeaderShell({
   children: React.ReactNode;
   hasSidebar?: boolean;
 }) {
+  // dev環境は本番の青系グラデーションと一目で区別できるようオレンジ系にする
+  const gradientClass = isDevEnv()
+    ? "bg-linear-to-br from-orange-500/90 via-orange-600/90 to-amber-700/90"
+    : "bg-linear-to-br from-blue-600/90 via-indigo-600/90 to-violet-700/90";
+
   return (
-    <header className="fixed z-50 top-0 left-0 right-0 h-14 lg:h-20 bg-linear-to-br from-blue-600/90 via-indigo-600/90 to-violet-700/90 backdrop-blur-md border-b border-white/15">
+    <header
+      className={`fixed z-50 top-0 left-0 right-0 h-14 lg:h-20 ${gradientClass} backdrop-blur-md border-b border-white/15`}
+    >
       <div
         className={`max-w-7xl mx-auto flex items-center justify-between px-4 h-full ${hasSidebar ? "lg:pl-56" : ""}`}
       >
@@ -76,12 +85,12 @@ function getEnvDotColor(toDate: Date): string {
   return "bg-green-400";
 }
 
-function Logo() {
+function Logo({ iconUrl }: { iconUrl: string }) {
   return (
     <Link href="/" className="flex items-center gap-2.5">
       <div className="w-8 h-8 lg:w-10 lg:h-10 relative shrink-0">
         <Image
-          src="https://xx8nnpgt.user.webaccel.jp/images/icons/icon.png"
+          src={iconUrl}
           alt="バトレコ"
           fill
           sizes="(min-width: 1024px) 40px, 32px"
@@ -94,6 +103,8 @@ function Logo() {
 
 export default async function Header() {
   const session = await auth();
+  const iconUrl = getAppIconUrl();
+  const isDev = isDevEnv();
 
   if (session) {
     const [user, env] = await Promise.allSettled([
@@ -106,7 +117,7 @@ export default async function Header() {
 
     return (
       <HeaderShell hasSidebar>
-        <Logo />
+        <Logo iconUrl={iconUrl} />
         {resolvedEnv && (
           <div className="flex flex-1 items-center gap-1.5 min-w-0 mx-3">
             <span
@@ -119,13 +130,18 @@ export default async function Header() {
           </div>
         )}
 
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-1 shrink-0">
           <ReloadButton />
           <ThemeSwitcher />
+          {resolvedUser && (
+            <div className="-ml-1.5">
+              <NotificationBell />
+            </div>
+          )}
           {/* アバターはアイコンボタンと違い枠内に余白がないため、見た目の間隔を揃えるためのマージン */}
           {resolvedUser && (
-            <div className="ml-2.5">
-              <UserMenu user={resolvedUser} />
+            <div className="ml-2">
+              <UserMenu user={resolvedUser} iconUrl={iconUrl} isDevEnv={isDev} />
             </div>
           )}
         </div>
@@ -134,12 +150,12 @@ export default async function Header() {
   } else {
     return (
       <HeaderShell>
-        <Logo />
+        <Logo iconUrl={iconUrl} />
         <div className="flex items-center gap-1">
           <ReloadButton />
           <ThemeSwitcher />
-          <SignUp />
-          <SignIn />
+          <SignUp iconUrl={iconUrl} isDevEnv={isDev} />
+          <SignIn iconUrl={iconUrl} isDevEnv={isDev} />
         </div>
       </HeaderShell>
     );

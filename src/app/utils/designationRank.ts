@@ -38,5 +38,11 @@ export function rankForTier(tier: number): RankInfo | null {
   return RANKS.find((r) => tier >= r.minTier && tier <= r.maxTier)?.info ?? null;
 }
 
+// ランク名(例: "モンスターボール級")から対応するランク情報を引く。
+// 通知本文に埋め込まれたランク名から画像を逆引きする用途などで使う。
+export function rankInfoForName(name: string): RankInfo | null {
+  return RANKS.find((r) => r.info.name === name)?.info ?? null;
+}
+
 // 称号未到達の場合に表示する画像
 export const NO_RANK_IMAGE = "https://xx8nnpgt.user.webaccel.jp/images/icons/premier-ball.png";

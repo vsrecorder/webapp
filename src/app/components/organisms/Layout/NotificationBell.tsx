@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import Image from "next/image";
 import {
   Badge,
   Button,
@@ -23,6 +24,7 @@ import {
 
 import { NotificationType, NotificationCategory } from "@app/types/notification";
 import { onNotificationsRefreshRequested } from "@app/utils/notificationEvents";
+import { rankInfoForName } from "@app/utils/designationRank";
 
 const NOTIFICATIONS_LIMIT = 30;
 const POLL_INTERVAL_MS = 30 * 1000;
@@ -38,6 +40,16 @@ const CATEGORY_ICON: Record<
   official_event: LuCalendarDays,
   announcement: LuMegaphone,
 };
+
+// 通知本文の「モンスターボール級」のような「」内のランク名を抜き出す
+function extractRankName(body: string): string | null {
+  return body.match(/「(.+?)」/)?.[1] ?? null;
+}
+
+// 通知本文の「🏆 竜王」のような「」内の"絵文字 称号名"から絵文字部分だけを抜き出す
+function extractDesignationEmoji(body: string): string | null {
+  return body.match(/「(\S+)\s/)?.[1] ?? null;
+}
 
 function formatRelativeTime(iso: string): string {
   const date = new Date(iso);
@@ -189,12 +201,37 @@ export default function NotificationBell() {
             notifications.map((notification, index) => {
               const Icon = CATEGORY_ICON[notification.category];
               const isLast = index === notifications.length - 1;
+              const rankImage =
+                notification.category === "rank"
+                  ? rankInfoForName(extractRankName(notification.body) ?? "")?.image
+                  : null;
+              const designationEmoji =
+                notification.category === "designation"
+                  ? extractDesignationEmoji(notification.body)
+                  : null;
 
               return (
                 <DropdownItem
                   key={notification.id}
                   textValue={notification.title}
-                  startContent={<Icon className="w-4 h-4 shrink-0 text-default-500" />}
+                  startContent={
+                    rankImage ? (
+                      <Image
+                        src={rankImage}
+                        alt=""
+                        width={26}
+                        height={26}
+                        unoptimized
+                        className="w-6.5 h-6.5 shrink-0 object-contain -ml-1"
+                      />
+                    ) : designationEmoji ? (
+                      <span className="w-5 h-5 shrink-0 flex items-center justify-center text-base leading-none">
+                        {designationEmoji}
+                      </span>
+                    ) : (
+                      <Icon className="w-4 h-4 shrink-0 text-default-500" />
+                    )
+                  }
                   className={[
                     !isLast && "border-b border-default-200 dark:border-default-200",
                     notification.is_read

@@ -10,7 +10,7 @@ export default function TemplateDeckMeta() {
   return (
     <>
       <ScrollUpFloating />
-      <div className="pt-9 pb-6 w-full">
+      <div className="pt-6 pb-6 w-full">
         <div className="mx-auto w-full max-w-2xl px-3 flex flex-col gap-5">
           {/* ページヘッダー */}
           <div className="flex items-start gap-3">
@@ -31,7 +31,7 @@ export default function TemplateDeckMeta() {
                     content: "text-[10px] font-black px-1.5",
                   }}
                 >
-                  試作中
+                  ベータ版
                 </Chip>
               </div>
               <p className="text-xs text-default-400 leading-relaxed">

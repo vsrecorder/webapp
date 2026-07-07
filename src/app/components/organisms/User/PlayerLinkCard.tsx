@@ -30,6 +30,21 @@ export default function PlayerLinkCard() {
       .catch(() => setIsLoading(false));
   }, []);
 
+  // ダッシュボードの「連携する」リンク(?link_player=1)から遷移してきた場合はモーダルを自動で開く
+  useEffect(() => {
+    if (isLoading || isFeatureDisabled) return;
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("link_player") !== "1") return;
+
+    const locked = userPlayer != null && new Date(userPlayer.locked_until) > new Date();
+    if (!locked) onOpen();
+
+    params.delete("link_player");
+    const query = params.toString();
+    window.history.replaceState(null, "", query ? `?${query}` : window.location.pathname);
+  }, [isLoading, isFeatureDisabled, userPlayer, onOpen]);
+
   if (isLoading) {
     return (
       <Card className="shadow-md">

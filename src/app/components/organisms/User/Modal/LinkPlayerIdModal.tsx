@@ -73,7 +73,9 @@ export default function LinkPlayerIdModal({ isOpen, onOpenChange, onLinked }: Pr
 
       if (!res.ok) {
         if (res.status === 429) {
-          throw new Error("試行回数の上限に達しました。しばらく時間をおいてから再度お試しください。");
+          throw new Error(
+            "試行回数の上限に達しました。しばらく時間をおいてから再度お試しください。",
+          );
         }
 
         throw new Error(
@@ -133,7 +135,9 @@ export default function LinkPlayerIdModal({ isOpen, onOpenChange, onLinked }: Pr
             : `連携に失敗しました: ${res.status}`;
 
         if (res.status === 429) {
-          throw new Error("試行回数の上限に達しました。しばらく時間をおいてから再度お試しください。");
+          throw new Error(
+            "試行回数の上限に達しました。しばらく時間をおいてから再度お試しください。",
+          );
         }
 
         if (res.status === 403) {
@@ -212,7 +216,7 @@ export default function LinkPlayerIdModal({ isOpen, onOpenChange, onLinked }: Pr
                   className="w-full"
                 />
 
-                <div className="flex items-center justify-center gap-5 text-xs text-warning-600 bg-warning-50 rounded-xl pt-3 pb-3">
+                <div className="flex items-center justify-center gap-5 text-xs text-warning-600 bg-warning-50 rounded-xl p-3">
                   <LuTriangleAlert className="w-5 h-5 shrink-0" />
                   <span>
                     一度連携すると、

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { Avatar, Card, CardBody, useDisclosure } from "@heroui/react";
 import {
   LuSwords,
@@ -10,12 +11,15 @@ import {
   LuPencil,
   LuEye,
   LuEyeOff,
+  LuIdCard,
+  LuCircleCheck,
 } from "react-icons/lu";
 
 import UpdateNameModal from "@app/components/organisms/User/Modal/UpdateNameModal";
 
 import { UserType } from "@app/types/user";
 import { UserStatType } from "@app/types/user_stat";
+import { UserPlayerType } from "@app/types/user_player";
 import { formatJoinDate } from "@app/utils/calendar";
 
 type Props = {
@@ -164,11 +168,44 @@ function StatChip({
   );
 }
 
+type PlayersClubBadgeProps = {
+  isLoading: boolean;
+  userPlayer: UserPlayerType | null;
+};
+
+function PlayersClubBadge({ isLoading, userPlayer }: PlayersClubBadgeProps) {
+  if (isLoading) {
+    return <span className="w-32 h-4 rounded-full bg-white/20 animate-pulse" />;
+  }
+
+  if (userPlayer) {
+    return (
+      <span className="flex items-center gap-1 text-white/80 text-[10px] font-medium">
+        <LuCircleCheck className="w-3 h-3 shrink-0" />
+        プレイヤーズクラブ連携済み
+      </span>
+    );
+  }
+
+  return (
+    <Link
+      href="/users?link_player=1"
+      className="flex items-center gap-1 text-white/80 hover:text-white text-[10px] font-medium underline underline-offset-2"
+    >
+      <LuIdCard className="w-3 h-3 shrink-0" />
+      プレイヤーズクラブと連携する
+    </Link>
+  );
+}
+
 const STATS_VISIBLE_KEY = "profile_stats_visible";
 
 export default function UserProfileCard({ user }: Props) {
   const [stat, setStat] = useState<UserStatType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [userPlayer, setUserPlayer] = useState<UserPlayerType | null>(null);
+  const [isUserPlayerLoading, setIsUserPlayerLoading] = useState(true);
+  const [isPlayersClubFeatureDisabled, setIsPlayersClubFeatureDisabled] = useState(false);
   const [profile, setProfile] = useState({ name: user.name, imageUrl: user.image_url });
   const [statsVisible, setStatsVisible] = useState(true);
   const { yearMonth, label: monthLabel } = getCurrentYearMonth();
@@ -197,6 +234,23 @@ export default function UserProfileCard({ user }: Props) {
       })
       .catch(() => setIsLoading(false));
   }, [user.id, yearMonth]);
+
+  useEffect(() => {
+    setIsUserPlayerLoading(true);
+    fetch("/api/userplayers", { cache: "no-store" })
+      .then((r) => {
+        if (r.status === 503) {
+          setIsPlayersClubFeatureDisabled(true);
+          return null;
+        }
+        return r.ok ? r.json() : null;
+      })
+      .then((data) => {
+        setUserPlayer(data);
+        setIsUserPlayerLoading(false);
+      })
+      .catch(() => setIsUserPlayerLoading(false));
+  }, []);
 
   return (
     <>
@@ -237,6 +291,9 @@ export default function UserProfileCard({ user }: Props) {
               <LuCalendar className="w-3 h-3 shrink-0" />
               {formatJoinDate(String(user.created_at))}
             </span>
+            {!isPlayersClubFeatureDisabled && (
+              <PlayersClubBadge isLoading={isUserPlayerLoading} userPlayer={userPlayer} />
+            )}
           </div>
           <div className="ml-auto shrink-0">
             <WinRateBadge

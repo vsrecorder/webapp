@@ -164,7 +164,7 @@ export default function UserMenu({ user }: Props) {
                 router.push("/deck_meta");
               }}
             >
-              対戦環境分析（試作中）
+              対戦環境分析（ベータ版）
             </DropdownItem>
           </DropdownSection>
 

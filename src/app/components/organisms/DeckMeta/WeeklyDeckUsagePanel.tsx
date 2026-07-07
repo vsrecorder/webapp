@@ -189,7 +189,7 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
   return (
     <Card className="shadow-md">
       <CardBody className="gap-4 p-4">
-        {/* アルファ版の注記 */}
+        {/* ベータ版の注記 */}
         <div className="flex items-center gap-2">
           <Chip
             size="sm"
@@ -197,10 +197,12 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
             variant="flat"
             classNames={{ base: "h-5 px-0.5", content: "text-[10px] font-black px-1.5" }}
           >
-            試作中
+            ベータ版
           </Chip>
           <span className="text-[11px] text-default-400 leading-snug">
-            集計ロジック・表示仕様は今後変わる可能性があります
+            プラットフォーム全体の週次デッキ使用率
+            <br />
+            (集計方法や表示仕様は今後変わる可能性があります)
           </span>
         </div>
 
@@ -255,7 +257,9 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
                 <LuUsers className="w-3.5 h-3.5 text-default-400 shrink-0" />
                 <span className="text-xs font-black text-default-600 tabular-nums">
                   {stat.contributor_count}
-                  <span className="text-[10px] font-medium text-default-400 ml-0.5">人</span>
+                  <span className="text-[10px] font-medium text-default-400 ml-0.5">
+                    人
+                  </span>
                 </span>
               </div>
               <div className="w-px h-3.5 bg-default-200" />
@@ -263,12 +267,16 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
                 <LuSwords className="w-3.5 h-3.5 text-default-400 shrink-0" />
                 <span className="text-xs font-black text-default-600 tabular-nums">
                   のべ{stat.total_votes}
-                  <span className="text-[10px] font-medium text-default-400 ml-0.5">件</span>
+                  <span className="text-[10px] font-medium text-default-400 ml-0.5">
+                    件
+                  </span>
                 </span>
               </div>
             </div>
             <span className="text-[10px] text-default-300 leading-snug text-center">
-              ※自分・相手それぞれのデッキを1件として<br/>集計するため、対戦数より多くなっています
+              ※自分・相手それぞれのデッキを1件として
+              <br />
+              集計するため、対戦数より多くなっています
             </span>
           </div>
         )}
@@ -276,8 +284,12 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
         {/* ランキングの並び順を明示（読み込み中もレイアウトが動かないよう表示しておく） */}
         {(isLoading || displayDecks.length > 0) && (
           <div className="flex items-center justify-between px-1 -mb-2">
-            <span className="text-[11px] font-black text-default-500">使用率ランキング</span>
-            <span className="text-[10px] text-default-400">使用率が高い順（同率は勝率順）</span>
+            <span className="text-[11px] font-black text-default-500">
+              使用率ランキング
+            </span>
+            <span className="text-[10px] text-default-400">
+              使用率が高い順（同率は勝率順）
+            </span>
           </div>
         )}
 

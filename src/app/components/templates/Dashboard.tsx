@@ -293,7 +293,7 @@ export default async function TemplateDashboard({ userId }: Props) {
     ),
   });
 
-  // 対戦環境分析（プラットフォーム全体の週次デッキ使用率・アルファ版）
+  // 対戦環境分析（プラットフォーム全体の週次デッキ使用率・ベータ版）
   sections.push({
     id: "environment_meta",
     label: "対戦環境分析",

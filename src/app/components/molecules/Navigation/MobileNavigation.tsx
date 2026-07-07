@@ -25,7 +25,7 @@ export default function MobileNavigation() {
               href={href}
               aria-label={label}
               aria-current={active ? "page" : undefined}
-              className={`flex flex-col items-center justify-center gap-1 transition-all duration-150 active:scale-90 ${
+              className={`flex flex-col items-center justify-start pt-1 gap-1 transition-all duration-150 active:scale-90 ${
                 active
                   ? "text-primary bg-primary/10"
                   : "text-default-400 hover:text-default-600 dark:hover:text-default-300"
@@ -34,7 +34,7 @@ export default function MobileNavigation() {
               <div className="flex items-center justify-center w-10 h-6">
                 <Icon className="w-5 h-5" />
               </div>
-              <span className="text-[10px] leading-none font-medium -translate-y-0.5">{label}</span>
+              <span className="text-[10px] leading-none font-medium">{label}</span>
             </Link>
           );
         })}

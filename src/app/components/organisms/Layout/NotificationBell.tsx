@@ -6,6 +6,7 @@ import Image from "next/image";
 import {
   Badge,
   Button,
+  Chip,
   Dropdown,
   DropdownTrigger,
   DropdownMenu,
@@ -196,7 +197,20 @@ export default function NotificationBell({ userId }: Props) {
             className="cursor-default data-[hover=true]:bg-transparent"
           >
             <div className="flex items-center justify-between">
-              <span className="font-semibold text-sm">通知</span>
+              <div className="flex items-center gap-1.5">
+                <span className="font-semibold text-sm">通知</span>
+                <Chip
+                  size="sm"
+                  color="warning"
+                  variant="flat"
+                  classNames={{
+                    base: "h-5 px-0.5",
+                    content: "text-[10px] font-black px-1.5",
+                  }}
+                >
+                  ベータ版
+                </Chip>
+              </div>
               {unreadCount > 0 && (
                 <button
                   type="button"

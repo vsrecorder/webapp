@@ -420,7 +420,7 @@ export default function Matches({
                                       <Button
                                         radius="md"
                                         variant="light"
-                                        className="pl-1.5 pr-1 py-8 w-full"
+                                        className="pl-3 pr-1 py-8 w-full"
                                         onPress={() => {
                                           setSelectedMatch(match);
                                           // 編集可能な場合は編集モーダル、
@@ -435,50 +435,46 @@ export default function Matches({
                                         <div className="flex flex-wrap items-center gap-1.5 w-full">
                                           {/* チーム戦は個人とチームの勝敗を並べて表示、BO1は個人の勝敗のみ */}
                                           {match.group_match_flg ? (
-                                            <div className="flex shrink-0 items-stretch gap-1.5">
-                                              <div className="flex flex-col items-center gap-1">
-                                                <span className="text-[9px] leading-none text-default-400">
-                                                  個人
+                                            <div className="flex shrink-0 items-stretch gap-2">
+                                              <div className="relative h-11">
+                                                <span className="block -translate-x-1 -translate-y-px text-[9px] leading-none text-default-400 whitespace-nowrap">
+                                                  チーム
                                                 </span>
-                                                <span className="text-base leading-none">
-                                                  {match.victory_flg === true
+                                                {/* ラベルの高さに関わらず行の高さ(h-11)を基準に中央揃えする */}
+                                                <span className="absolute inset-0 flex items-center justify-center -translate-x-1 pt-1 text-xl leading-none">
+                                                  {match.group_match_victory_flg
                                                     ? "⭕"
                                                     : "❌"}
                                                 </span>
                                               </div>
-                                              <div className="flex flex-col items-center gap-1">
-                                                <span className="text-[9px] leading-none text-default-400">
-                                                  チーム
+                                              <div className="relative h-11">
+                                                <span className="block -translate-x-1 -translate-y-px text-[9px] leading-none text-default-400 whitespace-nowrap">
+                                                  個人
                                                 </span>
-                                                <span className="text-base leading-none">
-                                                  {match.group_match_victory_flg
+                                                <span className="absolute inset-0 flex items-center justify-center -translate-x-1 pt-1 text-xl leading-none">
+                                                  {match.victory_flg === true
                                                     ? "⭕"
                                                     : "❌"}
                                                 </span>
                                               </div>
                                             </div>
                                           ) : (
-                                            // チーム戦の「チーム」列と同じ位置に勝敗が来るよう、
-                                            // 「個人」列と同じ構造を invisible で幅だけ確保して揃える
-                                            <div className="flex shrink-0 items-stretch gap-1.5">
-                                              <div className="flex flex-col items-center gap-1 invisible">
-                                                <span className="text-[9px] leading-none">
-                                                  個人
-                                                </span>
-                                                <span className="text-base leading-none">
-                                                  ⭕
-                                                </span>
-                                              </div>
-                                              <div className="flex flex-col items-center gap-1">
-                                                <span className="text-[9px] leading-none text-default-400 invisible">
+                                            // チーム戦の「チーム」「個人」2列分の幅を invisible で確保しつつ、
+                                            // 勝敗アイコンはその2列全体（gap含む）のちょうど真ん中に絶対配置する
+                                            <div className="relative flex shrink-0 items-stretch gap-2 h-11">
+                                              <div className="relative h-11 invisible">
+                                                <span className="text-[9px] leading-none whitespace-nowrap">
                                                   チーム
                                                 </span>
-                                                <span className="text-base leading-none">
-                                                  {match.victory_flg === true
-                                                    ? "⭕"
-                                                    : "❌"}
+                                              </div>
+                                              <div className="relative h-11 invisible">
+                                                <span className="text-[9px] leading-none whitespace-nowrap">
+                                                  個人
                                                 </span>
                                               </div>
+                                              <span className="absolute inset-0 flex items-center justify-center -translate-x-1 pt-1 text-xl leading-none">
+                                                {match.victory_flg === true ? "⭕" : "❌"}
+                                              </span>
                                             </div>
                                           )}
 
@@ -487,7 +483,7 @@ export default function Matches({
                                             match.default_defeat_flg ? (
                                               <>
                                                 <>
-                                                  <div className="flex items-center gap-0 shrink-0">
+                                                  <div className="flex items-center gap-0 shrink-0 ml-1.5">
                                                     <Image
                                                       alt="unknown"
                                                       src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
@@ -532,7 +528,7 @@ export default function Matches({
                                             ) : (
                                               <>
                                                 <>
-                                                  <div className="flex items-center gap-0 shrink-0">
+                                                  <div className="flex items-center gap-0 shrink-0 ml-1.5">
                                                     {match.pokemon_sprites[0] ? (
                                                       <Image
                                                         alt={match.pokemon_sprites[0].id.replace(

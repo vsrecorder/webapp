@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import UserIdentityCard from "@app/components/organisms/User/UserIdentityCard";
 import PlayerLinkCard from "@app/components/organisms/User/PlayerLinkCard";
 import BadgeGallery from "@app/components/organisms/Badge/BadgeGallery";
+import EnvironmentBadgeGallery from "@app/components/organisms/Badge/EnvironmentBadgeGallery";
 import DesignationPanel from "@app/components/organisms/Designation/DesignationPanel";
 import { ChampionshipSeriesType } from "@app/types/championship_series";
 
@@ -30,6 +31,7 @@ export default function TemplateUser({ id }: Props) {
       <PlayerLinkCard />
       <DesignationPanel userId={id} championshipSeries={championshipSeries} />
       <BadgeGallery userId={id} championshipSeries={championshipSeries} />
+      <EnvironmentBadgeGallery userId={id} />
     </div>
   );
 }

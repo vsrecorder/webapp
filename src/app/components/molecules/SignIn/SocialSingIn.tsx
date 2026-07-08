@@ -50,7 +50,7 @@ export default function SocialSignIn({ mode = "signin", onLoadingChange }: Props
         size="md"
         variant="bordered"
         fullWidth
-        className="gap-2 border-default-200 font-medium"
+        className="gap-0.5 border-default-200 font-medium"
         isLoading={isLoadingGoogle}
         isDisabled={isLoadingX}
         onPress={() =>
@@ -63,14 +63,14 @@ export default function SocialSignIn({ mode = "signin", onLoadingChange }: Props
         }
       >
         <FcGoogle className="text-xl shrink-0" />
-        Googleでつづける
+        でつづける
       </Button>
 
       <Button
         size="md"
         variant="bordered"
         fullWidth
-        className="gap-2 border-default-200 font-medium"
+        className="gap-0.5 border-default-200 font-medium"
         isLoading={isLoadingX}
         isDisabled={isLoadingGoogle}
         onPress={() =>
@@ -78,7 +78,7 @@ export default function SocialSignIn({ mode = "signin", onLoadingChange }: Props
         }
       >
         <RiTwitterXLine className="text-xl shrink-0" />
-        Xでつづける
+        でつづける
       </Button>
 
       {errorMessage && (

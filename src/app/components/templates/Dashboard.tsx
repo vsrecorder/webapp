@@ -15,6 +15,7 @@ import UserProfileCard from "@app/components/organisms/User/UserProfileCard";
 import StreakPanel from "@app/components/organisms/Badge/StreakPanel";
 import OnboardingBadgePanel from "@app/components/organisms/Badge/OnboardingBadgePanel";
 import BadgeGallery from "@app/components/organisms/Badge/BadgeGallery";
+import EnvironmentBadgeGallery from "@app/components/organisms/Badge/EnvironmentBadgeGallery";
 import DesignationPanel from "@app/components/organisms/Designation/DesignationPanel";
 import DashboardSections, {
   DashboardSection,
@@ -201,6 +202,18 @@ export default async function TemplateDashboard({ userId }: Props) {
     ),
   });
 
+  // 対戦環境バッジ
+  sections.push({
+    id: "environment_badges",
+    label: "対戦環境バッジ",
+    node: (
+      <section key="environment_badges" className="flex flex-col gap-2">
+        <h2 className="text-sm font-bold text-default-700">対戦環境バッジ</h2>
+        <EnvironmentBadgeGallery userId={userId} />
+      </section>
+    ),
+  });
+
   // ストリーク
   sections.push({
     id: "streak",
@@ -356,7 +369,9 @@ export default async function TemplateDashboard({ userId }: Props) {
       <div className="pt-3 lg:pt-9 xl:pt-9 max-w-2xl lg:max-w-6xl xl:max-w-7xl mx-auto w-full">
         <DashboardSections
           pinned={
-            user ? <UserProfileCard key="pinned" user={user} isDevEnv={isDevEnv()} /> : undefined
+            user ? (
+              <UserProfileCard key="pinned" user={user} isDevEnv={isDevEnv()} />
+            ) : undefined
           }
           sections={sections}
           trailing={recentRecords}

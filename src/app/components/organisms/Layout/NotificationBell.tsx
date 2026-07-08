@@ -23,8 +23,10 @@ import {
 } from "react-icons/lu";
 
 import { NotificationType, NotificationCategory } from "@app/types/notification";
+import { UserEnvironmentBadgeType } from "@app/types/environment_badge";
 import { onNotificationsRefreshRequested } from "@app/utils/notificationEvents";
 import { rankInfoForName } from "@app/utils/designationRank";
+import { environmentBadgeImageUrl } from "@app/utils/badgeImage";
 
 const NOTIFICATIONS_LIMIT = 30;
 const POLL_INTERVAL_MS = 30 * 1000;
@@ -44,6 +46,12 @@ const CATEGORY_ICON: Record<
 // 通知本文の「モンスターボール級」のような「」内のランク名を抜き出す
 function extractRankName(body: string): string | null {
   return body.match(/「(.+?)」/)?.[1] ?? null;
+}
+
+// 通知本文の「『スタン環境』環境で対戦をしました！」のような『』内の対戦環境名を抜き出す
+// (environmentBadgeNotificationContent の本文フォーマットに対応)
+function extractEnvironmentBadgeTitle(body: string): string | null {
+  return body.match(/『(.+?)』環境で対戦をしました/)?.[1] ?? null;
 }
 
 // 通知本文の「🏆 竜王」のような「」内の"絵文字 称号名"から絵文字部分だけを抜き出す
@@ -72,13 +80,33 @@ function formatRelativeTime(iso: string): string {
   });
 }
 
-export default function NotificationBell() {
+type Props = {
+  userId: string;
+};
+
+export default function NotificationBell({ userId }: Props) {
   const [notifications, setNotifications] = useState<NotificationType[]>([]);
+  const [environmentBadges, setEnvironmentBadges] = useState<UserEnvironmentBadgeType[]>(
+    [],
+  );
 
   const unreadCount = useMemo(
     () => notifications.filter((n) => !n.is_read).length,
     [notifications],
   );
+
+  // 環境バッジ通知(body内の対戦環境名)に対応する画像を引くためのタイトル→environment_idマップ
+  const environmentIdByTitle = useMemo(
+    () => new Map(environmentBadges.map((b) => [b.title, b.environment_id])),
+    [environmentBadges],
+  );
+
+  useEffect(() => {
+    fetch(`/api/users/${userId}/environment_badges`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => setEnvironmentBadges(data?.badges ?? []))
+      .catch(() => {});
+  }, [userId]);
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -209,13 +237,34 @@ export default function NotificationBell() {
                 notification.category === "designation"
                   ? extractDesignationEmoji(notification.body)
                   : null;
+              const environmentBadgeTitle =
+                notification.category === "badge"
+                  ? extractEnvironmentBadgeTitle(notification.body)
+                  : null;
+              const environmentBadgeId = environmentBadgeTitle
+                ? environmentIdByTitle.get(environmentBadgeTitle)
+                : undefined;
 
               return (
                 <DropdownItem
                   key={notification.id}
                   textValue={notification.title}
                   startContent={
-                    rankImage ? (
+                    environmentBadgeId ? (
+                      // 他のバッジ通知(w-4のアイコン)とテキストの開始位置が揃うよう、
+                      // 占有幅はアイコンと同じ w-4 に固定し、画像自体は絶対配置で
+                      // はみ出させて大きく見せる。
+                      <div className="relative w-4 h-4 shrink-0">
+                        <Image
+                          src={environmentBadgeImageUrl(environmentBadgeId)}
+                          alt=""
+                          width={36}
+                          height={36}
+                          unoptimized
+                          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-9 h-9 object-contain"
+                        />
+                      </div>
+                    ) : rankImage ? (
                       <Image
                         src={rankImage}
                         alt=""

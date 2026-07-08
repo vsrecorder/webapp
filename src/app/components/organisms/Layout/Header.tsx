@@ -139,13 +139,9 @@ export default async function Header() {
           <ReloadButton />
           <ThemeSwitcher />
           {resolvedUser && (
-            <>
-              {/* バグ修正のため一時的に無効化
-              <div className="-ml-1.5">
-                <NotificationBell />
-              </div>
-               */}
-            </>
+            <div className="-ml-1.5">
+              <NotificationBell userId={resolvedUser.id} />
+            </div>
           )}
           {/* アバターはアイコンボタンと違い枠内に余白がないため、見た目の間隔を揃えるためのマージン */}
           {resolvedUser && (

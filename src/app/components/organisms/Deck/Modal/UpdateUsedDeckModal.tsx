@@ -24,6 +24,8 @@ import { RecordUpdateRequestType, RecordUpdateResponseType } from "@app/types/re
 import { DeckGetAllType, DeckData } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
 
+import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
+
 async function fetcherForDeck(url: string) {
   const res = await fetch(url, {
     method: "GET",
@@ -306,52 +308,35 @@ export default function UpdateUsedDeckModal({
    *
    */
   useEffect(() => {
-    // 記録に設定されている使用されたデッキがない場合
-    if (!record?.deck_id) {
-      // 選択されたデッキとデッキコードがある場合
-      if (selectedDeckOption && selectedDeckCodeOption) {
-        setIsDisabled(false);
-      } else {
-        setIsDisabled(true);
-      }
-
-      // 記録に設定されている使用されたデッキコードがない場合
-    } else if (!record.deck_code_id) {
-      // 記録に設定されている使用されたデッキと選択したデッキが異なる場合
-      if (record.deck_id !== selectedDeckOption?.id) {
-        setIsDisabled(false);
-      } else {
-        // 選択されたデッキコードがある場合
-        if (selectedDeckCodeOption?.id) {
-          setIsDisabled(false);
-        } else {
-          setIsDisabled(true);
-        }
-      }
-
-      // 選択されたデッキがない場合
-      if (!selectedDeckOption) {
-        setIsDisabled(true);
-      }
-
-      // 記録に設定されている使用されたデッキとデッキコードが
-      // 選択されたデッキとデッキコードと同じ場合
-    } else if (
-      record.deck_id === selectedDeckOption?.id &&
-      record.deck_code_id === selectedDeckCodeOption?.id
-    ) {
+    // デッキが未選択、またはバージョンの取得中は変更不可
+    if (!selectedDeckOption || deckcodeLoading) {
       setIsDisabled(true);
-
-      // 選択されたデッキがない場合
-    } else if (!selectedDeckOption) {
-      setIsDisabled(true);
-      // 選択されたデッキコードがない場合
-    } else if (!selectedDeckCodeOption) {
-      setIsDisabled(true);
-    } else {
-      setIsDisabled(false);
+      return;
     }
-  }, [record?.deck_id, record?.deck_code_id, selectedDeckOption, selectedDeckCodeOption]);
+
+    // 選択されたデッキにバージョンが存在するにも関わらず、
+    // バージョンが選択されていない場合は変更不可
+    // (バージョンが存在しないデッキの場合は未選択のままでよい)
+    if (deckcodeOptions.length > 0 && !selectedDeckCodeOption) {
+      setIsDisabled(true);
+      return;
+    }
+
+    // 記録に設定されている使用デッキ/バージョンと選択内容が
+    // 同じ場合は変更不可
+    const isSameDeck = record?.deck_id === selectedDeckOption.id;
+    const isSameDeckCode =
+      (record?.deck_code_id ?? null) === (selectedDeckCodeOption?.id ?? null);
+
+    setIsDisabled(isSameDeck && isSameDeckCode);
+  }, [
+    record?.deck_id,
+    record?.deck_code_id,
+    selectedDeckOption,
+    selectedDeckCodeOption,
+    deckcodeLoading,
+    deckcodeOptions.length,
+  ]);
 
   /*
    *
@@ -447,6 +432,8 @@ export default function UpdateUsedDeckModal({
           deck_code_id: ret.deck_code_id,
         };
       });
+
+      triggerNotificationsRefresh();
 
       onClose();
     } catch (error) {

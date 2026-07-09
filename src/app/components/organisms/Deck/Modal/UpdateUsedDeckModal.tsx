@@ -391,7 +391,9 @@ export default function UpdateUsedDeckModal({
     // ユーザによるデッキ選択の操作が行われる前は実行されないようにする
     if (isDeckChangedByUser) {
       // 最新のデッキコードのデータを選択されたバージョンとして設定する
-      setSelectedDeckCodeOption(convertToDeckCodeOption(deckcodeData[0], deckcodeData.length));
+      setSelectedDeckCodeOption(
+        convertToDeckCodeOption(deckcodeData[0], deckcodeData.length),
+      );
       // 初期化
       setIsDeckChangedByUser(false);
     }
@@ -504,8 +506,8 @@ export default function UpdateUsedDeckModal({
       isOpen={isOpen}
       size={"md"}
       placement="center"
-      onOpenChange={onOpenChange}
       isDismissable={false}
+      onOpenChange={onOpenChange}
       onClose={() => {
         setSelectedDeckOption(null);
         setSelectedDeckCodeOption(null);

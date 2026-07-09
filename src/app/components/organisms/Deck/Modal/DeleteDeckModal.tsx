@@ -102,8 +102,8 @@ export default function DeleteDeckModal({ deck, isOpen, onOpenChange, onRemove }
       size={"sm"}
       placement="center"
       hideCloseButton
-      onOpenChange={onOpenChange}
       isDismissable={!isDisabled}
+      onOpenChange={onOpenChange}
     >
       <ModalContent>
         {(onClose) => (

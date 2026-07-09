@@ -208,8 +208,8 @@ export default function CreateDeckModal({
         isOpen={isOpen}
         size="sm"
         placement="center"
-        onOpenChange={onOpenChange}
         isDismissable={false}
+        onOpenChange={onOpenChange}
         onClose={resetState}
         classNames={{
           base: "sm:max-w-full",

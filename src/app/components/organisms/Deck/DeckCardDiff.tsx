@@ -164,28 +164,28 @@ export default function DeckCardDiff({ current_deckcode, previous_deckcode }: Pr
       <div className="flex flex-col gap-3">
         <div className="pb-0.5 pr-0">
           <div className="font-bold text-tiny pb-1">追加されたカード</div>
-          <div className="pl-1 pb-1 flex flex-wrap gap-1">
-            <div>
+          <div className="pl-1 pb-1 flex flex-nowrap gap-1 overflow-x-auto">
+            <div className="shrink-0">
               <Skeleton className="h-5.5 w-20 rounded-2xl" />
             </div>
-            <div>
+            <div className="shrink-0">
               <Skeleton className="h-5.5 w-26 rounded-2xl" />
             </div>
-            <div>
+            <div className="shrink-0">
               <Skeleton className="h-5.5 w-18 rounded-2xl" />
             </div>
           </div>
         </div>
         <div className="pb-0.5 pr-0">
           <div className="font-bold text-tiny pb-1">削除されたカード</div>
-          <div className="pl-1 pb-1 flex flex-wrap gap-1">
-            <div>
+          <div className="pl-1 pb-1 flex flex-nowrap gap-1 overflow-x-auto">
+            <div className="shrink-0">
               <Skeleton className="h-5.5 w-16 rounded-2xl" />
             </div>
-            <div>
+            <div className="shrink-0">
               <Skeleton className="h-5.5 w-22 rounded-2xl" />
             </div>
-            <div>
+            <div className="shrink-0">
               <Skeleton className="h-5.5 w-28 rounded-2xl" />
             </div>
           </div>
@@ -205,11 +205,12 @@ export default function DeckCardDiff({ current_deckcode, previous_deckcode }: Pr
       <div className="flex flex-col gap-3">
         <div className="pb-0.5 pr-0">
           <div className="font-bold text-tiny pb-1">追加されたカード</div>
-          <div className="pl-1 flex flex-wrap gap-1">
+          <div className="pl-1 flex flex-nowrap gap-1 overflow-x-auto">
             {diffByContentWithCount(currentDeckCardList, previousDeckCardList).map(
               (deckcard, index) => (
                 <div
                   key={index}
+                  className="shrink-0"
                   onClick={() => {
                     setCard(deckcard);
                     onOpenForShowCardModal();
@@ -233,11 +234,12 @@ export default function DeckCardDiff({ current_deckcode, previous_deckcode }: Pr
         </div>
         <div className="pb-0.5 pr-0">
           <div className="font-bold text-tiny pb-1">削除されたカード</div>
-          <div className="pl-1 flex flex-wrap gap-1">
+          <div className="pl-1 flex flex-nowrap gap-1 overflow-x-auto">
             {diffByContentWithCount(previousDeckCardList, currentDeckCardList).map(
               (deckcard, index) => (
                 <div
                   key={index}
+                  className="shrink-0"
                   onClick={() => {
                     setCard(deckcard);
                     onOpenForShowCardModal();

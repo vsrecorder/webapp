@@ -68,6 +68,42 @@ function drawSprites(
 
 const OVERLAP_RATIO = 0.28;
 const EXTERNAL_GAP = 6;
+// 外側表示同士の最低間隔（隣り合うスプライトが接触しすぎないための余白）
+const OUTSIDE_MARGIN = 6;
+
+type OutsideCandidate = {
+  images: HTMLImageElement[];
+  edgeX: number;
+  edgeY: number;
+  arcX: number;
+  arcY: number;
+  angle: number;
+  radius: number;
+  size: number;
+  // 衝突判定に使う、このスプライト（組み合わせ含む）のおおよその半径
+  boundRadius: number;
+};
+
+// 外側表示になったスプライト同士が重ならないよう、角度が近いものを引き離す。
+// 角度順に並べ、前の項目との間隔（半径上の弧長換算）が互いのboundRadius+余白より
+// 狭い場合は後ろ側の項目を角度方向に押し出す（前から順に1回なめるだけで済む）。
+function resolveOutsideCollisions(candidates: OutsideCandidate[]) {
+  if (candidates.length < 2) return;
+
+  candidates.sort((a, b) => a.angle - b.angle);
+
+  for (let i = 1; i < candidates.length; i++) {
+    const prev = candidates[i - 1];
+    const cur = candidates[i];
+    const gap = cur.angle - prev.angle;
+    const avgRadius = (prev.radius + cur.radius) / 2;
+    // 弧長 = 角度 × 半径 なので、必要な弧長を角度に変換する
+    const minGap = (prev.boundRadius + cur.boundRadius + OUTSIDE_MARGIN) / avgRadius;
+    if (gap < minGap) {
+      cur.angle = prev.angle + minGap;
+    }
+  }
+}
 
 // スライスの境界線(startAngle/endAngle、原点を通る直線)と、原点からの相対y座標がpyの
 // 水平線との交点のx座標を求める。表示軸を常に水平固定にしたため、
@@ -87,7 +123,8 @@ function xAtHorizontal(theta: number, py: number): number {
  *
  * どんな状況でも大きく表示するため、サイズは「内側にidealSizeでそのまま収まるか」の二択判定にし、
  * 中途半端に縮小することはしない。収まらない場合は円の外側・該当スライス付近に
- * 固定サイズ(outsideSize)で引き出し線付きに表示する。
+ * 固定サイズ(outsideSize)で引き出し線付きに表示する。外側表示になったスプライト同士が
+ * 隣接して重ならないよう、描画前に角度方向の衝突解消を行う（resolveOutsideCollisions）。
  * 外側表示分だけ円グラフ自体が縮小しないよう、呼び出し側では
  * chart.jsの`layout.padding`とキャンバスを囲むコンテナの高さの両方に、
  * 同じ余白分を確保しておくこと。
@@ -100,6 +137,7 @@ export function createPieSlicesSpritePlugin(
     afterDatasetsDraw(chart: Chart<"pie">) {
       const meta = chart.getDatasetMeta(0);
       const { ctx } = chart;
+      const outsideCandidates: OutsideCandidate[] = [];
 
       meta.data.forEach((el, index) => {
         const urls = (getSpriteUrls(index) ?? []).filter((u): u is string => !!u);
@@ -143,27 +181,52 @@ export function createPieSlicesSpritePlugin(
           return;
         }
 
-        // 収まらない場合は円の外側・スライス付近に固定サイズで表示する
+        // 収まらない場合は円の外側・スライス付近に固定サイズで表示する候補として記録しておく
+        // (この時点では描画せず、他スライスの外側表示と重ならないよう後でまとめて位置調整する)
         const outsideSize = Math.min(60, Math.max(40, arc.outerRadius * 0.62));
-        const outsideRadius = arc.outerRadius + EXTERNAL_GAP + outsideSize / 2;
-        const edgeX = arc.x + dirX * arc.outerRadius;
-        const edgeY = arc.y + dirY * arc.outerRadius;
-        const cx = arc.x + dirX * outsideRadius;
-        const cy = arc.y + dirY * outsideRadius;
+        const overlap = outsideSize * OVERLAP_RATIO;
+        const totalWidth = n === 1 ? outsideSize : outsideSize * n - overlap * (n - 1);
+
+        outsideCandidates.push({
+          images: loadedImages,
+          edgeX: arc.x + dirX * arc.outerRadius,
+          edgeY: arc.y + dirY * arc.outerRadius,
+          arcX: arc.x,
+          arcY: arc.y,
+          angle: midAngle,
+          radius: arc.outerRadius + EXTERNAL_GAP + outsideSize / 2,
+          size: outsideSize,
+          boundRadius: totalWidth / 2,
+        });
+      });
+
+      resolveOutsideCollisions(outsideCandidates);
+
+      outsideCandidates.forEach((c) => {
+        const cx = c.arcX + Math.cos(c.angle) * c.radius;
+        const cy = c.arcY + Math.sin(c.angle) * c.radius;
+
+        // 引き出し線はアイコンの少し手前で止める（衝突解消で角度がずれてもアイコン中心に
+        // めり込まないよう、スライス外周からアイコンへ向かう向きを毎回計算し直す）
+        const lineDX = cx - c.edgeX;
+        const lineDY = cy - c.edgeY;
+        const lineLen = Math.hypot(lineDX, lineDY) || 1;
+        const stopX = cx - (lineDX / lineLen) * (c.size / 2);
+        const stopY = cy - (lineDY / lineLen) * (c.size / 2);
 
         ctx.save();
         ctx.strokeStyle = "rgba(63, 63, 70, 0.35)";
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(edgeX, edgeY);
-        ctx.lineTo(cx - dirX * (outsideSize / 2), cy - dirY * (outsideSize / 2));
+        ctx.moveTo(c.edgeX, c.edgeY);
+        ctx.lineTo(stopX, stopY);
         ctx.stroke();
         ctx.restore();
 
         ctx.save();
         ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
         ctx.shadowBlur = 4;
-        drawSprites(ctx, loadedImages, cx, cy, outsideSize);
+        drawSprites(ctx, c.images, cx, cy, c.size);
         ctx.restore();
       });
     },

@@ -254,9 +254,9 @@ export default function CreateDeckCodeModal({
                 )}
               </div>
 
-              <div className="h-30 overflow-y-auto">
-                {deckcode?.code ? (
-                  newdeckcode && isValidedDeckCode ? (
+              {deckcode?.code ? (
+                <div className="h-30 overflow-y-auto">
+                  {newdeckcode && isValidedDeckCode ? (
                     <DeckCardDiff
                       current_deckcode={currentDeckCode}
                       previous_deckcode={deckcode}
@@ -276,9 +276,11 @@ export default function CreateDeckCodeModal({
                         </div>
                       </div>
                     </div>
-                  )
-                ) : null}
-              </div>
+                  )}
+                </div>
+              ) : (
+                <></>
+              )}
             </ModalBody>
             <ModalFooter>
               <Button

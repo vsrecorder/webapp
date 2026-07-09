@@ -189,13 +189,13 @@ export default function ShowDeckModal({
         isOpen={isOpen}
         size="md"
         placement="center"
-        //hideCloseButton
+        isDismissable={false}
         onOpenChange={onOpenChange}
         onClose={() => {}}
         //className="h-[calc(100dvh-256px)] max-h-[calc(100dvh-256px)]"
         classNames={{
           base: "sm:max-w-full lg:max-w-2xl",
-          closeButton: "text-xl",
+          closeButton: "text-2xl",
         }}
       >
         <ModalContent>
@@ -276,7 +276,7 @@ export default function ShowDeckModal({
                   </div>
                 )}
               </ModalBody>
-              <ModalFooter className="px-3 pt-1 pb-3 flex flex-col gap-2">
+              <ModalFooter className="px-3 pt-0 pb-3 flex flex-col gap-3">
                 {/* バージョン履歴（主要アクション）。デッキコード未登録＝バージョンが存在しないため非表示 */}
                 {deckcode?.code && (
                   <button
@@ -347,9 +347,7 @@ export default function ShowDeckModal({
                     <DropdownMenu aria-label="デッキの操作">
                       <DropdownItem
                         key="archive-toggle"
-                        startContent={
-                          isArchived ? <LuFolderInput /> : <LuFolderOutput />
-                        }
+                        startContent={isArchived ? <LuFolderInput /> : <LuFolderOutput />}
                         onPress={
                           isArchived
                             ? onOpenForArchiveDeckModal

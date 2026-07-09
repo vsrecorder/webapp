@@ -147,7 +147,7 @@ export default function DeckCardSummaryRow({ code }: Props) {
 
   if (loading) {
     return (
-      <div className="h-44 w-full">
+      <div className="h-38 w-full">
         <Tabs fullWidth size="sm" classNames={{ tabList: "bg-content1 shadow-sm" }}>
           <Tab key="card_pke" title={`ポケモン：??`}>
             <CardSkelton />
@@ -185,7 +185,7 @@ export default function DeckCardSummaryRow({ code }: Props) {
 
   return (
     <>
-      <div className="h-44 w-full flex flex-col">
+      <div className="h-38 w-full flex flex-col">
         <Tabs
           fullWidth
           size="sm"

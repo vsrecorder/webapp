@@ -258,12 +258,12 @@ export default function DisplayDeckCodesModal({
         size={"sm"}
         placement="center"
         hideCloseButton
+        isDismissable={!isDisabled}
         onOpenChange={onOpenChangeForDeleteDeckCodeModal}
         onClose={() => {
           setIsSelected(false);
           setIsDisabled(false);
         }}
-        isDismissable={!isDisabled}
       >
         <ModalContent>
           {(onClose) => (
@@ -319,9 +319,9 @@ export default function DisplayDeckCodesModal({
         size="md"
         placement="bottom"
         hideCloseButton
+        isDismissable={false}
         onOpenChange={onOpenChange}
         onClose={() => {}}
-        isDismissable={false}
         className="h-[calc(100dvh-104px)] max-h-[calc(100dvh-104px)] mt-26 my-0 rounded-b-none"
         classNames={{
           base: "sm:max-w-full lg:max-w-2xl",

@@ -863,7 +863,9 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
     if (deckcodeData.length === 0) {
       setSelectedDeckCodeOption(null);
     } else {
-      setSelectedDeckCodeOption(convertToDeckCodeOption(deckcodeData[0], deckcodeData.length));
+      setSelectedDeckCodeOption(
+        convertToDeckCodeOption(deckcodeData[0], deckcodeData.length),
+      );
     }
     setImageLoadedForDeckCode(false);
     setIsDeckChangedByUser(false);
@@ -1549,9 +1551,7 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                                     sprites={option.pokemon_sprites}
                                     sizeClass="w-8 h-8"
                                   />
-                                  <span className="truncate">
-                                    デッキ名：{option.name}
-                                  </span>
+                                  <span className="truncate">{option.name}</span>
                                 </div>
 
                                 <span className="pt-1">
@@ -1890,9 +1890,7 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                                     sprites={option.pokemon_sprites}
                                     sizeClass="w-8 h-8"
                                   />
-                                  <span className="truncate">
-                                    デッキ名：{option.name}
-                                  </span>
+                                  <span className="truncate">{option.name}</span>
                                 </div>
 
                                 <span className="pt-1">
@@ -2199,9 +2197,7 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                                     sprites={option.pokemon_sprites}
                                     sizeClass="w-8 h-8"
                                   />
-                                  <span className="truncate">
-                                    デッキ名：{option.name}
-                                  </span>
+                                  <span className="truncate">{option.name}</span>
                                 </div>
 
                                 <span className="pt-1">

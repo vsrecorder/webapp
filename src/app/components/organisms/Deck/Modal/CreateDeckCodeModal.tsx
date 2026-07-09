@@ -255,27 +255,29 @@ export default function CreateDeckCodeModal({
               </div>
 
               <div className="h-30 overflow-y-auto">
-                {deckcode?.code && newdeckcode && isValidedDeckCode ? (
-                  <DeckCardDiff
-                    current_deckcode={currentDeckCode}
-                    previous_deckcode={deckcode}
-                  />
-                ) : (
-                  <div className="flex flex-col gap-3">
-                    <div className="pb-0.5 pr-0">
-                      <div className="font-bold text-tiny pb-1">追加されたカード</div>
-                      <div className="pl-1 pb-1 flex flex-wrap gap-1">
-                        <div className="h-5.5" />
+                {deckcode?.code ? (
+                  newdeckcode && isValidedDeckCode ? (
+                    <DeckCardDiff
+                      current_deckcode={currentDeckCode}
+                      previous_deckcode={deckcode}
+                    />
+                  ) : (
+                    <div className="flex flex-col gap-3">
+                      <div className="pb-0.5 pr-0">
+                        <div className="font-bold text-tiny pb-1">追加されたカード</div>
+                        <div className="pl-1 pb-1 flex flex-wrap gap-1">
+                          <div className="h-5.5" />
+                        </div>
+                      </div>
+                      <div className="pb-0.5 pr-0">
+                        <div className="font-bold text-tiny pb-1">削除されたカード</div>
+                        <div className="pl-1 pb-1 flex flex-wrap gap-1">
+                          <div className="h-5.5" />
+                        </div>
                       </div>
                     </div>
-                    <div className="pb-0.5 pr-0">
-                      <div className="font-bold text-tiny pb-1">削除されたカード</div>
-                      <div className="pl-1 pb-1 flex flex-wrap gap-1">
-                        <div className="h-5.5" />
-                      </div>
-                    </div>
-                  </div>
-                )}
+                  )
+                ) : null}
               </div>
             </ModalBody>
             <ModalFooter>

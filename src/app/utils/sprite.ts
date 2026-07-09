@@ -12,3 +12,4 @@ export function spriteImageUrl(id: string | undefined | null): string {
   if (!id) return `${SPRITE_BASE}/unknown.png`;
   return `${SPRITE_BASE}/${id.replace(/^0+(?!$)/, "")}.png`;
 }
+

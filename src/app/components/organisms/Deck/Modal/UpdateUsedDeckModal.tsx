@@ -1,5 +1,3 @@
-import { createHash } from "crypto";
-
 import useSWR from "swr";
 
 import WindowedSelect from "react-windowed-select";
@@ -98,7 +96,12 @@ type DeckCodeOption = {
   private_code_flg: boolean;
 };
 
-function convertToDeckCodeOption(data: DeckCodeType): DeckCodeOption {
+// versionNumber: 作成日時の昇順で数えた通し番号（1が初回）。
+// 一覧取得前で不明な場合は null を渡すと、後続の補正処理で更新される。
+function convertToDeckCodeOption(
+  data: DeckCodeType,
+  versionNumber: number | null,
+): DeckCodeOption {
   const created_at = new Date(data.created_at).toLocaleString("ja-JP", {
     year: "numeric",
     month: "long",
@@ -107,7 +110,7 @@ function convertToDeckCodeOption(data: DeckCodeType): DeckCodeOption {
   });
 
   return {
-    label: createHash("sha1").update(data.id).digest("hex").slice(0, 8),
+    label: versionNumber !== null ? String(versionNumber) : "",
     value: data.id,
     id: data.id,
     deck_id: data.deck_id,
@@ -212,7 +215,17 @@ export default function UpdateUsedDeckModal({
 
         const ret: DeckCodeType = await res.json();
 
-        setSelectedDeckCodeOption(convertToDeckCodeOption(ret));
+        // 通し番号(バージョン)を求めるため、同じデッキの全バージョンを取得する
+        let versionNumber: number | null = null;
+        try {
+          const list = await fetcherForDeckCode(`/api/decks/${ret.deck_id}/deckcodes`);
+          const index = list.findIndex((dc) => dc.id === ret.id);
+          if (index !== -1) versionNumber = list.length - index;
+        } catch (error) {
+          console.error(error);
+        }
+
+        setSelectedDeckCodeOption(convertToDeckCodeOption(ret, versionNumber));
 
         setImageLoadedForDeckCode(false);
         return ret;
@@ -293,13 +306,32 @@ export default function UpdateUsedDeckModal({
     deckcodeOptionsMessage = "検索中...";
   }
 
-  deckcodeData?.forEach((deckcode: DeckCodeType) => {
-    deckcodeOptions.push(convertToDeckCodeOption(deckcode));
+  deckcodeData?.forEach((deckcode: DeckCodeType, index: number) => {
+    deckcodeOptions.push(convertToDeckCodeOption(deckcode, deckcodeData.length - index));
   });
 
   if (deckcodeData?.length === 0) {
     deckcodeOptionsMessage = "対象のデッキにバージョンがありません";
   }
+
+  /*
+   *
+   * deck_code_idから単体取得した直後は通し番号が不明(label: "")のため、
+   * 一覧(deckcodeData)が揃い次第、正しいバージョン番号に補正する
+   *
+   */
+  useEffect(() => {
+    if (!deckcodeData) return;
+
+    setSelectedDeckCodeOption((prev) => {
+      if (!prev || prev.label !== "") return prev;
+
+      const index = deckcodeData.findIndex((dc) => dc.id === prev.id);
+      if (index === -1) return prev;
+
+      return { ...prev, label: String(deckcodeData.length - index) };
+    });
+  }, [deckcodeData]);
 
   /*
    *
@@ -359,7 +391,7 @@ export default function UpdateUsedDeckModal({
     // ユーザによるデッキ選択の操作が行われる前は実行されないようにする
     if (isDeckChangedByUser) {
       // 最新のデッキコードのデータを選択されたバージョンとして設定する
-      setSelectedDeckCodeOption(convertToDeckCodeOption(deckcodeData[0]));
+      setSelectedDeckCodeOption(convertToDeckCodeOption(deckcodeData[0], deckcodeData.length));
       // 初期化
       setIsDeckChangedByUser(false);
     }
@@ -623,10 +655,7 @@ export default function UpdateUsedDeckModal({
                                 </span>
                                 <span className="truncate">
                                   バージョン：
-                                  {createHash("sha1")
-                                    .update(option.id)
-                                    .digest("hex")
-                                    .slice(0, 8)}
+                                  {option.label}
                                 </span>
                                 <span className="truncate">
                                   デッキコード：{option.code}
@@ -654,10 +683,7 @@ export default function UpdateUsedDeckModal({
                           <div className="text-sm truncate">
                             <span>
                               バージョン：
-                              {createHash("sha1")
-                                .update(option.id)
-                                .digest("hex")
-                                .slice(0, 8)}
+                              {option.label}
                             </span>
                           </div>
                         );

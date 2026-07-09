@@ -1,13 +1,13 @@
 "use client";
 
-import { createHash } from "crypto";
-
 import { useEffect, useState } from "react";
 
-import { Card, CardHeader, CardBody } from "@heroui/react";
 //import { Chip } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
 import { Image } from "@heroui/react";
+import { Snippet } from "@heroui/react";
+
+import { LuLayers } from "react-icons/lu";
 
 import { DeckCodeType } from "@app/types/deck_code";
 //import { AcespecType } from "@app/types/acespec";
@@ -57,9 +57,26 @@ async function fetchEnvironment(date: Date) {
 
 type Props = {
   deckcode: DeckCodeType | null;
+  // 表示中のdeckcode自体の通し番号（登録が古い順で1, 2, 3...。取得中はnull）
+  // 総バージョン数ではなく、あくまで「このdeckcodeが何番目か」を渡すこと
+  versionNumber: number | null;
+  // deckcodeが紐づくデッキに登録済みの総バージョン数（取得中はnull）
+  // deckcodeがnullのとき、「デッキに既存バージョンがあるか」の判定に使う
+  totalVersionCount?: number | null;
+  // デッキにバージョンが1件も無いとき、「デッキのバージョンを作成」CTAから呼ばれる
+  onCreateVersion?: () => void;
+  // デッキに既存バージョンはあるが、このdeckcodeが未選択のとき、
+  // 「既存バージョンを使用したバージョンとして登録」CTAから呼ばれる
+  onSelectExistingVersion?: () => void;
 };
 
-export default function DeckCodeCard({ deckcode }: Props) {
+export default function DeckCodeCard({
+  deckcode,
+  versionNumber,
+  totalVersionCount = null,
+  onCreateVersion,
+  onSelectExistingVersion,
+}: Props) {
   const [imageLoaded, setImageLoaded] = useState(false);
   //const [acespec, setAcespec] = useState<AcespecType | null>(null);
   //const [loadingAcespec, setLoadingAcespec] = useState(true);
@@ -68,10 +85,12 @@ export default function DeckCodeCard({ deckcode }: Props) {
   const [loadingEnvrionment, setLoadingEnvironment] = useState(true);
   const [errorEnvironment, setErrorEnvironment] = useState<string | null>(null);
 
-  const version =
+  const versionLabel =
     deckcode && deckcode.id
-      ? createHash("sha1").update(deckcode.id).digest("hex").slice(0, 8)
-      : "なし";
+      ? versionNumber
+        ? `バージョン${versionNumber}`
+        : "バージョン：取得中..."
+      : "バージョン：なし";
 
   useEffect(() => {
     if (!deckcode?.code) return;
@@ -131,157 +150,102 @@ export default function DeckCodeCard({ deckcode }: Props) {
   if (errorEnvironment) {
   }
 
-  if (!deckcode) {
+  if (!deckcode || !deckcode.code) {
+    // デッキ自体には既にバージョンが存在する（＝このdeckcode欄が未選択なだけ）場合は、
+    // 新規作成ではなく既存バージョンの登録を促す
+    if (totalVersionCount !== null && totalVersionCount > 0) {
+      return (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelectExistingVersion?.();
+          }}
+          className="group w-full flex flex-col items-center gap-2 rounded-xl border-2 border-dashed border-success/40 bg-success/5 px-4 py-6 transition-colors hover:border-success/70 hover:bg-success/10 active:opacity-80"
+        >
+          <div className="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center transition-colors group-hover:bg-success/20">
+            <LuLayers className="text-xl text-success" />
+          </div>
+          <div className="font-bold text-tiny text-success">
+            バージョンがあります。
+            <br />
+            使用したバージョンとして登録しよう。
+          </div>
+          <div className="text-tiny text-default-400 text-center">
+            登録済みのバージョンをこの記録に紐づけると
+            <br />
+            使用したカード構成まで記録できます
+          </div>
+        </button>
+      );
+    }
+
     return (
-      <Card shadow="sm" className="py-3 relative w-full">
-        <CardHeader className="pt-0 pb-1 px-3">
-          <div className="flex flex-col gap-1">
-            <div className="font-bold text-base text-default-500">
-              バージョンID：{version}
-            </div>
-            <div className="pl-1 flex flex-col gap-0.5">
-              <div className="text-tiny">
-                <>作成日：なし</>
-              </div>
-              <div className="text-tiny">
-                <>作成日時点の対戦環境：なし</>
-              </div>
-            </div>
-          </div>
-        </CardHeader>
-        <CardBody className="px-2 py-1">
-          <div className="relative w-full aspect-2/1">
-            {!imageLoaded && <Skeleton className="absolute inset-0 rounded-lg" />}
-            <>
-              <Image
-                radius="sm"
-                shadow="none"
-                alt="デッキコードなし"
-                src={"https://www.pokemon-card.com/deck/deckView.php/deckID/"}
-                className=""
-                onLoad={() => setImageLoaded(true)}
-              />
-            </>
-          </div>
-        </CardBody>
-        {/*
-      <CardFooter>
-        <div className="flex flex-col gap-1">
-          <div className="flex gap-1">
-            {loadingAcespec ? (
-              <Skeleton className="bg-[#ee0077] h-6 w-32 rounded-2xl" />
-            ) : (
-              acespec && (
-                <Chip
-                  size="sm"
-                  radius="md"
-                  classNames={{
-                    base: "bg-[#ee0077]",
-                    content: "text-white font-bold",
-                  }}
-                >
-                  {acespec.card_name}
-                </Chip>
-              )
-            )}
-          </div>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onCreateVersion?.();
+        }}
+        className="group w-full flex flex-col items-center gap-2 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 px-4 py-6 transition-colors hover:border-primary/60 hover:bg-primary/10 active:opacity-80"
+      >
+        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center transition-colors group-hover:bg-primary/20">
+          <LuLayers className="text-xl text-primary" />
         </div>
-      </CardFooter>
-      */}
-      </Card>
+        <div className="font-bold text-tiny text-primary">
+          デッキのバージョンを作成しよう
+        </div>
+        <div className="text-tiny text-default-400 text-center">
+          デッキコードを登録すると
+          <br />
+          対戦記録やカード構成を記録できます
+        </div>
+      </button>
     );
   }
 
-  const date = new Date(deckcode.created_at).toLocaleString("ja-JP", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    weekday: "short",
-  });
-
-  return deckcode?.code ? (
-    <Card shadow="sm" className="py-3 relative w-full">
-      <CardHeader className="pt-0 pb-1 px-3">
-        <div className="flex flex-col gap-1">
-          <div className="font-bold text-base text-default-500">
-            バージョンID：{version}
-          </div>
-          <div className="pl-1 flex flex-col gap-0.5">
-            <div className="text-tiny">
-              {deckcode && deckcode.id ? (
-                <>
-                  作成日：
-                  {date}
-                </>
-              ) : (
-                <></>
-              )}
+  return (
+    <div className="flex flex-col gap-2 w-full">
+      <div className="rounded-xl bg-default-100 px-3 py-2.5 flex flex-col gap-1.5">
+        <div className="font-bold text-small">{versionLabel}</div>
+        <div className="text-tiny text-default-500">
+          {loadingEnvrionment ? (
+            <div className="flex items-center">
+              対戦環境：
+              <Skeleton className="h-4 w-32" />
             </div>
-            <div className="text-tiny">
-              {loadingEnvrionment ? (
-                <div className="flex items-center">
-                  対戦環境：
-                  <Skeleton className="h-4 w-32" />
-                </div>
-              ) : environment && environment.title ? (
-                <>対戦環境：『{environment.title}』</>
-              ) : (
-                <></>
-              )}
-            </div>
-          </div>
-        </div>
-      </CardHeader>
-      <CardBody className="px-2 py-1">
-        <div className="relative w-full aspect-2/1">
-          {!imageLoaded && <Skeleton className="absolute inset-0 rounded-lg" />}
-          {deckcode?.code ? (
-            <Image
-              radius="sm"
-              shadow="none"
-              alt={deckcode.code}
-              src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
-              className=""
-              onLoad={() => setImageLoaded(true)}
-            />
+          ) : environment && environment.title ? (
+            <>対戦環境：『{environment.title}』</>
           ) : (
-            <Image
-              radius="sm"
-              shadow="none"
-              alt="デッキコードなし"
-              src={"https://www.pokemon-card.com/deck/deckView.php/deckID/"}
-              className=""
-              onLoad={() => setImageLoaded(true)}
-            />
+            <></>
           )}
         </div>
-      </CardBody>
-      {/*
-      <CardFooter>
-        <div className="flex flex-col gap-1">
-          <div className="flex gap-1">
-            {loadingAcespec ? (
-              <Skeleton className="bg-[#ee0077] h-6 w-32 rounded-2xl" />
-            ) : (
-              acespec && (
-                <Chip
-                  size="sm"
-                  radius="md"
-                  classNames={{
-                    base: "bg-[#ee0077]",
-                    content: "text-white font-bold",
-                  }}
-                >
-                  {acespec.card_name}
-                </Chip>
-              )
-            )}
-          </div>
+        <div className="text-tiny text-default-500 flex items-center gap-1">
+          <>デッキコード：</>
+          <Snippet
+            size="sm"
+            radius="none"
+            timeout={3000}
+            disableTooltip={true}
+            hideSymbol={true}
+            classNames={{ base: "bg-transparent p-0" }}
+          >
+            {deckcode.code}
+          </Snippet>
         </div>
-      </CardFooter>
-      */}
-    </Card>
-  ) : (
-    <></>
+      </div>
+
+      <div className="relative w-full aspect-2/1">
+        {!imageLoaded && <Skeleton className="absolute inset-0 rounded-lg" />}
+        <Image
+          radius="sm"
+          shadow="none"
+          alt={deckcode.code}
+          src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
+          className=""
+          onLoad={() => setImageLoaded(true)}
+        />
+      </div>
+    </div>
   );
 }

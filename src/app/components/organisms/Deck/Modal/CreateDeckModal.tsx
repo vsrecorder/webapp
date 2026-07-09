@@ -11,6 +11,8 @@ import { addToast, closeToast } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
 import { useDisclosure } from "@heroui/react";
 
+import { LuLayers } from "react-icons/lu";
+
 import PokemonSpriteModal from "@app/components/organisms/Match/Modal/PokemonSpriteModal";
 
 import { PokemonSpriteType, DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
@@ -279,22 +281,38 @@ export default function CreateDeckModal({
                 </Checkbox>
                 */}
 
-                <div className="relative w-full aspect-2/1">
-                  {!imageLoaded && <Skeleton className="absolute inset-0 rounded-lg" />}
-                  <Image
-                    radius="sm"
-                    shadow="none"
-                    alt={deckcode ? deckcode : "デッキコードなし"}
-                    src={
-                      isValidatedDeckCode && deckcode
-                        ? `https://www.pokemon-card.com/deck/deckView.php/deckID/${deckcode}.png`
-                        : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
-                    }
-                    className=""
-                    onLoad={() => setImageLoaded(true)}
-                    onError={() => {}}
-                  />
-                </div>
+                {deckcode ? (
+                  <div className="relative w-full aspect-2/1">
+                    {!imageLoaded && <Skeleton className="absolute inset-0 rounded-lg" />}
+                    <Image
+                      radius="sm"
+                      shadow="none"
+                      alt={deckcode}
+                      src={
+                        isValidatedDeckCode
+                          ? `https://www.pokemon-card.com/deck/deckView.php/deckID/${deckcode}.png`
+                          : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
+                      }
+                      className=""
+                      onLoad={() => setImageLoaded(true)}
+                      onError={() => {}}
+                    />
+                  </div>
+                ) : (
+                  <div className="w-full flex flex-col items-center gap-2 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 px-4 py-6">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <LuLayers className="text-xl text-primary" />
+                    </div>
+                    <div className="font-bold text-tiny text-primary">
+                      デッキコードは後からでも登録できます
+                    </div>
+                    <div className="text-tiny text-default-400 text-center">
+                      デッキコードを入力すると、
+                      <br />
+                      最初のバージョンとして登録されます。
+                    </div>
+                  </div>
+                )}
 
                 <div className="-translate-y-2">
                   <Link

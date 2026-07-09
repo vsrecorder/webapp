@@ -1,14 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 
-import {
-  ArcElement,
-  Chart as ChartJS,
-  Tooltip as ChartTooltip,
-  type ActiveElement,
-  type ChartEvent,
-} from "chart.js";
+import { ArcElement, Chart as ChartJS, Tooltip as ChartTooltip, type ActiveElement } from "chart.js";
 import { Pie } from "react-chartjs-2";
 import { Card, CardBody, Chip, Image, Tab, Tabs } from "@heroui/react";
 
@@ -22,6 +16,12 @@ import {
 } from "@app/types/opponent_deck_usage_stat";
 import { DeckUsageItemType, DeckUsageStatType } from "@app/types/deck_usage_stat";
 import { seasonOptionsFromChampionshipSeries, currentSeasonValue } from "@app/utils/season";
+import { lighten } from "@app/utils/color";
+import { groupIntoOther } from "@app/utils/deckUsageOther";
+import {
+  createPieSlicesSpritePlugin,
+  createPieCenterSpritePlugin,
+} from "@app/utils/pieSlicesSpritePlugin";
 
 ChartJS.register(ArcElement, ChartTooltip);
 
@@ -51,6 +51,19 @@ const SLICE_COLORS = [
 const OTHER_COLOR = "#A1A1AA";
 // 対面率がこの値未満のデッキは「その他」にまとめる
 const OTHER_THRESHOLD = 0.05;
+
+// 円グラフ本体はスプライト画像を主役にしたいため、塗りは薄いパステル調にする
+const SLICE_COLORS_SOFT = SLICE_COLORS.map((c) => lighten(c, 0.55));
+const OTHER_COLOR_SOFT = lighten(OTHER_COLOR, 0.55);
+
+// 円グラフ本体の高さ。外側スプライト分の余白はこれとは別にコンテナ側で確保し、
+// 円自体の大きさはこの値のまま変えない。
+const CHART_SIZE = 192;
+// 円の外側にスプライトを表示するための余白（chart.jsのlayout.paddingと合わせる）
+const EXTERNAL_SPRITE_PADDING = 72;
+// 詳細カード表示中はグラフの横幅が狭くなり、幅が余白の制約になってしまうため、
+// このときだけ余白を小さくして円のサイズを優先する
+const EXTERNAL_SPRITE_PADDING_NARROW = 30;
 
 const SPRITE_BASE_URL = "https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites";
 
@@ -97,9 +110,6 @@ function winRateTextColor(rate: number): string {
 type TooltipState = {
   deck: OpponentDeckUsageItemType;
   color: string;
-  x: number;
-  y: number;
-  above: boolean;
 };
 
 function DeckSprites({ deck }: { deck: OpponentDeckUsageItemType }) {
@@ -179,7 +189,6 @@ export default function OpponentDeckUsagePanel({
   const [ownDecks, setOwnDecks] = useState<DeckUsageItemType[]>([]);
 
   const chartRef = useRef<ChartJS<"pie">>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   const createdAtDate = userCreatedAt != null ? new Date(userCreatedAt) : undefined;
   const yearMonthOptions = generateYearMonthOptions(createdAtDate);
@@ -272,43 +281,19 @@ export default function OpponentDeckUsagePanel({
   const decks = useMemo(() => stat?.decks ?? [], [stat]);
 
   // 対面率が低い（出現頻度が低い）デッキをまとめて「その他」として1件に集約する。
-  // 「上位N件」という位置の決め打ちではなく、各デッキの対面率がOTHER_THRESHOLD未満かどうかで
-  // 個別表示するか否かを判定する。ただし配色数(SLICE_COLORS.length)を超えて個別表示することは
-  // できないため、しきい値を超えて残ったデッキが多すぎる場合は件数上位から色数分だけ個別表示し、
-  // 残りを「その他」に回す。
-  const { displayDecks, hasOther } = useMemo(() => {
-    const sorted = [...decks].sort((a, b) => b.count - a.count);
-    const maxIndividual = SLICE_COLORS.length - 1;
-
-    let cutoff = sorted.findIndex((d) => d.usage_rate < OTHER_THRESHOLD);
-    if (cutoff === -1) cutoff = sorted.length;
-    cutoff = Math.min(cutoff, maxIndividual);
-
-    const rest = sorted.slice(cutoff);
-    // まとめても1件しか無いなら「その他」にする意味が無いのでそのまま表示する
-    if (rest.length <= 1) {
-      return { displayDecks: sorted, hasOther: false };
-    }
-
-    const visible = sorted.slice(0, cutoff);
-    const otherCount = rest.reduce((sum, d) => sum + d.count, 0);
-    const otherUsageRate = rest.reduce((sum, d) => sum + d.usage_rate, 0);
-    const otherWins = rest.reduce((sum, d) => sum + d.wins, 0);
-    const otherLosses = rest.reduce((sum, d) => sum + d.losses, 0);
-    const otherMatches = otherWins + otherLosses;
-
-    const other: OpponentDeckUsageItemType = {
-      deck_info: "その他",
-      count: otherCount,
-      usage_rate: otherUsageRate,
-      wins: otherWins,
-      losses: otherLosses,
-      win_rate: otherMatches > 0 ? otherWins / otherMatches : 0,
-      pokemon_sprites: [],
-    };
-
-    return { displayDecks: [...visible, other], hasOther: true };
-  }, [decks]);
+  const { displayItems: displayDecks, hasOther } = useMemo(
+    () =>
+      groupIntoOther(decks, {
+        threshold: OTHER_THRESHOLD,
+        maxIndividual: SLICE_COLORS.length - 1,
+        createOther: (aggregate): OpponentDeckUsageItemType => ({
+          deck_info: "その他",
+          pokemon_sprites: [],
+          ...aggregate,
+        }),
+      }),
+    [decks],
+  );
 
   const deckColors = useMemo(
     () =>
@@ -317,48 +302,91 @@ export default function OpponentDeckUsagePanel({
       ),
     [displayDecks, hasOther],
   );
+  // 円グラフ本体に使う薄色（凡例・ツールチップの文字色は従来通り濃色を使う）
+  const deckColorsSoft = useMemo(
+    () =>
+      displayDecks.map((_, idx) =>
+        hasOther && idx === displayDecks.length - 1 ? OTHER_COLOR_SOFT : SLICE_COLORS_SOFT[idx],
+      ),
+    [displayDecks, hasOther],
+  );
+
+  // react-chartjs-2はマウント後にplugins prop自体の変更を反映しないため、
+  // プラグインの中身は常に最新のstateを見るようrefを介して参照する
+  // (useMemoで作り直しても、react-chartjs-2側が古いプラグインインスタンスを使い続けてしまう)
+  const displayDecksRef = useRef(displayDecks);
+  displayDecksRef.current = displayDecks;
+  const tooltipRef = useRef(tooltip);
+  tooltipRef.current = tooltip;
+
+  // スライス上に重ねるスプライト画像（実際に登録されている分のみ。最大2体）
+  // 「その他」など情報を持たないデッキは何も描画しない
+  // 詳細カード表示中は選択デッキを円の中心に表示するため、スライス上の個別表示は消す
+  const spritePlugin = useMemo(
+    () =>
+      createPieSlicesSpritePlugin((idx) =>
+        tooltipRef.current
+          ? []
+          : (displayDecksRef.current[idx]?.pokemon_sprites ?? [])
+              .slice(0, 2)
+              .map((s) => spriteUrl(s.id)),
+      ),
+    [],
+  );
+
+  // 詳細カード表示中、選択中のデッキのスプライトを円の中心に表示する
+  const centerSpritePlugin = useMemo(
+    () =>
+      createPieCenterSpritePlugin(() =>
+        tooltipRef.current
+          ? (tooltipRef.current.deck.pokemon_sprites ?? []).slice(0, 2).map((s) => spriteUrl(s.id))
+          : null,
+      ),
+    [],
+  );
 
   useEffect(() => {
     setSelectedIdx(null);
     setTooltip(null);
-    const chart = chartRef.current;
-    if (!chart?.tooltip) return;
-    chart.tooltip.setActiveElements([], { x: 0, y: 0 });
-    chart.update();
+    tooltipRef.current = null;
   }, [stat]);
 
-  function handleLegendClick(idx: number) {
-    const chart = chartRef.current;
-    const container = containerRef.current;
-    if (!chart?.tooltip || !container) return;
+  // 詳細表示を閉じて円グラフのみの表示に戻す
+  function closeDetail() {
+    setSelectedIdx(null);
+    setTooltip(null);
+    tooltipRef.current = null;
+  }
 
+  function handleLegendClick(idx: number) {
     if (selectedIdx === idx) {
-      setSelectedIdx(null);
-      setTooltip(null);
-      chart.tooltip.setActiveElements([], { x: 0, y: 0 });
-      chart.update();
+      closeDetail();
       return;
     }
 
+    const nextTooltip = { deck: displayDecks[idx], color: deckColors[idx] };
     setSelectedIdx(idx);
+    setTooltip(nextTooltip);
+    tooltipRef.current = nextTooltip;
+  }
 
-    const arcEl = chart.getDatasetMeta(0).data[idx] as ArcElement;
-    const midAngle = (arcEl.startAngle + arcEl.endAngle) / 2;
-    const r = arcEl.outerRadius + 10;
-    const canvasTipX = arcEl.x + Math.cos(midAngle) * r;
-    const canvasTipY = arcEl.y + Math.sin(midAngle) * r;
-
-    const canvasRect = chart.canvas.getBoundingClientRect();
-    const containerRect = container.getBoundingClientRect();
-    const x = canvasRect.left - containerRect.left + canvasTipX;
-    const y = canvasRect.top - containerRect.top + canvasTipY;
-
-    const above = Math.sin(midAngle) > 0;
-
-    setTooltip({ deck: displayDecks[idx], color: deckColors[idx], x, y, above });
-
-    chart.tooltip.setActiveElements([{ datasetIndex: 0, index: idx }], { x: 0, y: 0 });
-    chart.update();
+  // 円グラフのコンテナ（スライス部分＋外側の余白）のクリックを自前でヒットテストする。
+  // chart.jsのoptions.onClickは「chartArea」の外側（＝スプライトを描く余白部分）をタップした場合
+  // 一切呼ばれない仕様のため、その領域のタップも拾うためにコンテナ側でハンドリングする。
+  function handleChartAreaClick(e: ReactMouseEvent<HTMLDivElement>) {
+    const chart = chartRef.current;
+    if (!chart) return;
+    const elements = chart.getElementsAtEventForMode(
+      e.nativeEvent,
+      "nearest",
+      { intersect: true },
+      false,
+    ) as ActiveElement[];
+    if (elements.length === 0) {
+      closeDetail();
+      return;
+    }
+    handleLegendClick(elements[0].index);
   }
 
   const filterLabel =
@@ -375,20 +403,30 @@ export default function OpponentDeckUsagePanel({
     datasets: [
       {
         data: displayDecks.map((d) => d.count),
-        backgroundColor: deckColors,
+        // 通常時は薄色にして無機質さを抑え、選択中のスライスだけ元の鮮やかな色にして目立たせる。
+        // chart.jsのhover/active機構(setActiveElements・hoverBackgroundColor)は、
+        // 選択時にグラフの横幅が変わって発生するresize処理の途中でリセットされてしまうため使わず、
+        // 通常のデータ(backgroundColor・offset)として選択状態を表現する
+        backgroundColor: displayDecks.map((_, i) => (i === selectedIdx ? deckColors[i] : deckColorsSoft[i])),
         borderColor: "#ffffff",
         borderWidth: 2,
+        // 選択中のスライスを少し外側に押し出してさらに目立たせる
+        offset: displayDecks.map((_, i) => (i === selectedIdx ? 10 : 0)),
       },
     ],
   };
 
+  // 詳細カード表示中はグラフの横幅が狭くなり、大きな余白だと横幅の制約で円自体が縮んでしまうため、
+  // その場合だけ余白を小さくして円のサイズを優先する
+  const spritePadding = tooltip ? EXTERNAL_SPRITE_PADDING_NARROW : EXTERNAL_SPRITE_PADDING;
+
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
-    onClick: (_event: ChartEvent, elements: ActiveElement[]) => {
-      if (elements.length === 0) return;
-      handleLegendClick(elements[0].index);
-    },
+    // 狭いスライスのスプライトを円の外側に描画するための余白（円自体は縮小しない。下記コンテナの高さ側で吸収する）
+    layout: { padding: spritePadding },
+    // クリック判定は下のコンテナdiv側(handleChartAreaClick)で行うため、ここでは何もしない
+    // (chart.jsのoptions.onClickはchartArea外側=余白部分のタップを検知できないため)
     plugins: {
       legend: { display: false },
       tooltip: { enabled: false },
@@ -499,64 +537,68 @@ export default function OpponentDeckUsagePanel({
 
         {/* グラフ + 凡例 */}
         {isLoading && !stat ? (
-          <div className="h-48 flex items-center justify-center">
+          <div
+            className="flex items-center justify-center"
+            style={{ height: CHART_SIZE + EXTERNAL_SPRITE_PADDING * 2 }}
+          >
             <span className="text-xs text-default-400">読み込み中...</span>
           </div>
         ) : decks.length === 0 ? (
-          <div className="h-48 flex items-center justify-center">
+          <div
+            className="flex items-center justify-center"
+            style={{ height: CHART_SIZE + EXTERNAL_SPRITE_PADDING * 2 }}
+          >
             <span className="text-xs text-default-400">データがありません</span>
           </div>
         ) : (
           <>
-            {/* グラフ領域（カスタム吹き出しの基準位置） */}
-            <div
-              ref={containerRef}
-              className={`h-48 relative transition-opacity duration-300 ${isLoading ? "opacity-30" : "opacity-100"}`}
-            >
-              <Pie ref={chartRef} data={chartData} options={chartOptions} />
+            {/* グラフ領域＋詳細カード。選択時はグラフを左に寄せ、右側に詳細カードを表示する（グラフには重ねない） */}
+            <div className="flex items-stretch gap-3">
+              <div
+                onClick={handleChartAreaClick}
+                className={`relative shrink-0 transition-all duration-300 ${isLoading ? "opacity-30" : "opacity-100"} ${tooltip ? "w-[56%]" : "w-full"}`}
+                style={{ height: CHART_SIZE + spritePadding * 2 }}
+              >
+                <Pie
+                  ref={chartRef}
+                  data={chartData}
+                  options={chartOptions}
+                  plugins={[spritePlugin, centerSpritePlugin]}
+                />
+              </div>
 
-              {/* カスタム吹き出し（スプライト画像付き） */}
+              {/* タップしたデッキの詳細（再タップで閉じて円グラフのみの表示に戻す） */}
               {tooltip && (
                 <div
-                  className="absolute z-40 pointer-events-none bg-content1 border border-default-200 rounded-xl px-3 py-2 shadow-lg whitespace-nowrap"
-                  style={{
-                    left: tooltip.x,
-                    top: tooltip.y,
-                    transform: tooltip.above
-                      ? "translate(-50%, calc(-100% - 8px))"
-                      : "translate(-50%, 8px)",
-                  }}
+                  onClick={closeDetail}
+                  className="flex-1 min-w-0 flex flex-col items-center justify-center gap-1.5 rounded-xl border border-default-200 bg-content1 px-2 py-3 shadow-sm cursor-pointer"
+                  style={{ borderLeftColor: tooltip.color, borderLeftWidth: 4 }}
                 >
-                  {/* スプライト画像 */}
-                  <div className="flex justify-center mb-1.5">
-                    <DeckSprites deck={tooltip.deck} />
-                  </div>
-                  {/* デッキ名 */}
-                  <p className="text-xs font-bold text-default-700 text-center max-w-30 truncate">
+                  <DeckSprites deck={tooltip.deck} />
+                  <p className="text-xs font-bold text-default-700 text-center truncate w-full">
                     {tooltip.deck.deck_info}
                   </p>
-                  {/* 対面率・件数 */}
-                  <div className="flex items-center justify-center gap-1 mt-1">
+                  <div className="flex flex-col items-center gap-0.5">
                     <span className="text-[10px] font-bold text-default-400">対面率</span>
-                    <span className="font-black text-sm" style={{ color: tooltip.color }}>
-                      {(tooltip.deck.usage_rate * 100).toFixed(1)}%
+                    <span
+                      className="text-lg font-black tabular-nums leading-none"
+                      style={{ color: tooltip.color }}
+                    >
+                      {(tooltip.deck.usage_rate * 100).toFixed(1)}
+                      <span className="text-xs font-bold">%</span>
                     </span>
                     <span className="text-[10px] text-default-400">
                       ({tooltip.deck.count}件)
                     </span>
                   </div>
-                  {/* 対面勝率 */}
-                  <div className="flex flex-col items-center gap-0.5 mt-1.5 pt-1.5 border-t border-default-200">
-                    <span className="text-[9px] font-bold text-default-400 uppercase tracking-wider">
-                      対面勝率
-                    </span>
+                  <div className="flex flex-col items-center gap-0.5 pt-1.5 border-t border-default-200 w-full">
+                    <span className="text-[10px] font-bold text-default-400">対面勝率</span>
                     <span
-                      className={`text-lg font-black tabular-nums leading-none ${winRateTextColor(tooltip.deck.win_rate)}`}
+                      className={`text-base font-black tabular-nums ${winRateTextColor(tooltip.deck.win_rate)}`}
                     >
-                      {(tooltip.deck.win_rate * 100).toFixed(1)}
-                      <span className="text-xs font-bold">%</span>
+                      {(tooltip.deck.win_rate * 100).toFixed(1)}%
                     </span>
-                    <span className="text-[10px] text-default-400">
+                    <span className="text-[9px] text-default-400">
                       {tooltip.deck.wins}勝{tooltip.deck.losses}敗
                     </span>
                   </div>

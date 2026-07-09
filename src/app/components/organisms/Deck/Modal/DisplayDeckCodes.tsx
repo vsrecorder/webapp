@@ -1,5 +1,3 @@
-import { createHash } from "crypto";
-
 import { useRef } from "react";
 
 import { SetStateAction, Dispatch } from "react";
@@ -17,7 +15,6 @@ import {
 
 import { Skeleton } from "@heroui/react";
 //import { Chip } from "@heroui/react";
-import { Card, CardHeader, CardBody, CardFooter } from "@heroui/react";
 import { Image } from "@heroui/react";
 import { Snippet } from "@heroui/react";
 import { Spinner } from "@heroui/spinner";
@@ -362,13 +359,13 @@ export default function DisplayDeckCodesModal({
                             </div>
                           ) : (
                             <div className="flex flex-col items-center gap-5 py-8 px-3">
-                              <div className="w-20 h-20 rounded-full bg-linear-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-lg">
+                              <div className="w-20 h-20 rounded-full bg-linear-to-br from-primary to-primary/70 flex items-center justify-center shadow-lg">
                                 <LuLayers className="text-white text-4xl" />
                               </div>
 
                               <div className="text-center">
                                 <div className="font-bold text-lg">
-                                  デッキのバージョンを記録しよう
+                                  デッキのバージョンを作成しよう
                                 </div>
                                 <div className="text-default-400 text-sm mt-1">
                                   デッキの変遷を残して、強化の歴史を振り返ろう
@@ -447,16 +444,16 @@ export default function DisplayDeckCodesModal({
                                 className={`border-s-2  ${
                                   index === displayDeckCodes.length - 1
                                     ? showNextVersionPrompt
-                                      ? "border-blue-300 border-dashed"
+                                      ? "border-primary/30 border-dashed"
                                       : "border-transparent"
-                                    : "border-blue-300"
+                                    : "border-primary/30"
                                 }`}
                               >
                                 <div className="pb-5">
                                   <div className="flex items-center ">
                                     <div className="flex pb-3">
-                                      <div className="-translate-x-1/2 w-3 h-3 rounded-full bg-blue-400" />
-                                      <div className="text-tiny">
+                                      <div className="-translate-x-1/2 w-3 h-3 rounded-full bg-primary" />
+                                      <div className="text-tiny text-default-500">
                                         作成日時：
                                         {date}
                                       </div>
@@ -465,51 +462,54 @@ export default function DisplayDeckCodesModal({
 
                                   <div className="pl-2">
                                     {deckcode.code ? (
-                                      <Card shadow="sm" className="py-3">
-                                        <CardHeader className="pb-0 pt-0 flex-col items-start gap-2 w-full">
-                                          {/* 両端配置 */}
-                                          <div className="flex items-center justify-between w-full">
-                                            {/* 左側 */}
-                                            <div className="flex flex-col items-start">
-                                              <div className="font-bold text-medium">
-                                                バージョン：
-                                                {createHash("sha1")
-                                                  .update(deckcode.id)
-                                                  .digest("hex")
-                                                  .slice(0, 8)}
-                                              </div>
+                                      <div className="rounded-xl bg-default-100 p-3 flex flex-col gap-2.5">
+                                        {/* 両端配置 */}
+                                        <div className="flex items-center justify-between gap-2">
+                                          {/* 左側 */}
+                                          <div className="flex items-center gap-2">
+                                            <div className="font-bold text-small">
+                                              バージョン{displayDeckCodes.length - index}
                                             </div>
-
-                                            {/* 右側 */}
-                                            <div>
-                                              <LuTrash2
-                                                className="text-xl cursor-pointer text-red-500"
-                                                onClick={() => {
-                                                  setDisplayDeckCode(deckcode);
-                                                  onOpenForDeleteDeckCodeModal();
-                                                }}
-                                              />
-                                            </div>
+                                            {index === 0 && (
+                                              <span className="text-tiny font-bold text-white bg-primary rounded-full px-2 py-0.5">
+                                                最新
+                                              </span>
+                                            )}
+                                            {displayDeckCodes.length > 1 &&
+                                              index === displayDeckCodes.length - 1 && (
+                                                <span className="text-tiny font-bold text-default-500 bg-content1 rounded-full px-2 py-0.5">
+                                                  初回
+                                                </span>
+                                              )}
                                           </div>
 
-                                          <div className="flex flex-col justify-center gap-0.5">
-                                            <div className="flex items-center gap-3">
-                                              <div className="text-tiny">
-                                                <>デッキコード：</>
-                                                <Snippet
-                                                  size="sm"
-                                                  radius="none"
-                                                  timeout={3000}
-                                                  disableTooltip={true}
-                                                  hideSymbol={true}
-                                                >
-                                                  {deckcode?.code
-                                                    ? deckcode.code
-                                                    : "なし"}
-                                                </Snippet>
-                                              </div>
+                                          {/* 右側 */}
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setDisplayDeckCode(deckcode);
+                                              onOpenForDeleteDeckCodeModal();
+                                            }}
+                                            className="flex items-center justify-center w-7 h-7 rounded-full bg-content1 text-red-500 active:opacity-70 shrink-0"
+                                          >
+                                            <LuTrash2 className="text-sm" />
+                                          </button>
+                                        </div>
 
-                                              {/*
+                                        <div className="text-tiny text-default-500 flex items-center gap-1">
+                                          <>デッキコード：</>
+                                          <Snippet
+                                            size="sm"
+                                            radius="none"
+                                            timeout={3000}
+                                            disableTooltip={true}
+                                            hideSymbol={true}
+                                            classNames={{ base: "bg-transparent p-0" }}
+                                          >
+                                            {deckcode?.code ? deckcode.code : "なし"}
+                                          </Snippet>
+
+                                          {/*
                                           {deckcode?.code && (
                                             <>
                                               <Chip
@@ -526,62 +526,41 @@ export default function DisplayDeckCodesModal({
                                             </>
                                           )}
                                           */}
-                                            </div>
-                                          </div>
-                                        </CardHeader>
-                                        <CardBody className="px-1 py-2">
-                                          <div className="relative w-full aspect-2/1">
-                                            {!imageLoaded && (
-                                              <Skeleton className="absolute inset-0 rounded-lg" />
+                                        </div>
+
+                                        <div className="relative w-full aspect-2/1">
+                                          {!imageLoaded && (
+                                            <Skeleton className="absolute inset-0 rounded-lg" />
+                                          )}
+                                          <Image
+                                            radius="sm"
+                                            shadow="none"
+                                            alt={deckcode.code}
+                                            src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
+                                            className=""
+                                            onLoad={() => setImageLoaded(true)}
+                                          />
+                                        </div>
+
+                                        {(index !== displayDeckCodes.length - 1 ||
+                                          deckcode.memo) && (
+                                          <div className="flex flex-col gap-2 pt-2 border-t border-default-200">
+                                            {index !== displayDeckCodes.length - 1 && (
+                                              <DeckCardDiff
+                                                current_deckcode={displayDeckCodes[index]}
+                                                previous_deckcode={
+                                                  displayDeckCodes[index + 1]
+                                                }
+                                              />
                                             )}
-                                            <Image
-                                              radius="sm"
-                                              shadow="none"
-                                              alt={deckcode.code}
-                                              src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
-                                              className=""
-                                              onLoad={() => setImageLoaded(true)}
-                                            />
-                                          </div>
-                                        </CardBody>
-                                        {index === displayDeckCodes.length - 1 ? (
-                                          deckcode.memo ? (
-                                            <CardFooter>
-                                              <div className="flex flex-col gap-3">
-                                                <div className="font-bold text-tiny">
-                                                  メモ
-                                                </div>
+                                            {deckcode.memo && (
+                                              <div className="font-bold text-tiny">
+                                                メモ
                                               </div>
-                                            </CardFooter>
-                                          ) : (
-                                            <></>
-                                          )
-                                        ) : (
-                                          <CardFooter>
-                                            <div className="flex flex-col gap-3">
-                                              {index !== displayDeckCodes.length - 1 ? (
-                                                <DeckCardDiff
-                                                  current_deckcode={
-                                                    displayDeckCodes[index]
-                                                  }
-                                                  previous_deckcode={
-                                                    displayDeckCodes[index + 1]
-                                                  }
-                                                />
-                                              ) : (
-                                                <></>
-                                              )}
-                                              {deckcode.memo ? (
-                                                <div className="font-bold text-tiny">
-                                                  メモ
-                                                </div>
-                                              ) : (
-                                                <></>
-                                              )}
-                                            </div>
-                                          </CardFooter>
+                                            )}
+                                          </div>
                                         )}
-                                      </Card>
+                                      </div>
                                     ) : (
                                       <></>
                                     )}
@@ -598,7 +577,7 @@ export default function DisplayDeckCodesModal({
                               <div className="flex items-center">
                                 <div className="flex pb-3 items-center">
                                   {/* 未作成を示す中空ノード */}
-                                  <div className="-translate-x-1/2 w-3 h-3 rounded-full border-2 border-blue-400 bg-content1" />
+                                  <div className="-translate-x-1/2 w-3 h-3 rounded-full border-2 border-primary bg-content1" />
                                   <div className="text-tiny text-default-400">
                                     次のバージョン
                                   </div>
@@ -611,7 +590,7 @@ export default function DisplayDeckCodesModal({
                                   onClick={() => {
                                     onOpenCreateDeckCode?.();
                                   }}
-                                  className="group w-full flex flex-col items-center gap-2 rounded-xl border-2 border-dashed border-blue-300 bg-primary-50/50 px-4 py-5 transition-colors hover:border-blue-400 hover:bg-primary-50 active:opacity-80"
+                                  className="group w-full flex flex-col items-center gap-2 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 px-4 py-5 transition-colors hover:border-primary/60 hover:bg-primary/10 active:opacity-80"
                                 >
                                   <div className="w-11 h-11 rounded-full bg-primary-100 flex items-center justify-center transition-colors group-hover:bg-primary-200">
                                     <LuBookPlus className="text-2xl text-primary" />

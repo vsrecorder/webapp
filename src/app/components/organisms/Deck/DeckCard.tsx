@@ -10,8 +10,13 @@ import { spriteScaleClass } from "@app/utils/sprite";
 
 import { useDisclosure } from "@heroui/react";
 
+import { LuLayers } from "react-icons/lu";
+import { LuCalendar } from "react-icons/lu";
+
 import DeckCodeCard from "@app/components/organisms/Deck/DeckCodeCard";
 import ShowDeckModal from "@app/components/organisms/Deck/Modal/ShowDeckModal";
+
+import { useDeckCodes, getDeckCodeVersionNumber } from "@app/hooks/useDeckCodes";
 
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
@@ -33,6 +38,14 @@ export default function DeckCard({
   const [deckcode, setDeckCode] = useState<DeckCodeType | null>(deckcodeData);
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
+
+  // このデッキの全バージョン（デッキコード）。件数バッジと通し番号の算出に使う。
+  const { deckcodes } = useDeckCodes(deck?.id, deckcode?.id);
+  const versionCount = deckcodes?.length ?? null;
+  const versionNumber = getDeckCodeVersionNumber(deckcodes, deckcode?.id);
+
+  // バッジタップ時、デッキ詳細を開くと同時にバージョン履歴も自動で開く
+  const [openHistoryOnShow, setOpenHistoryOnShow] = useState(false);
 
   // 記録の詳細ページから戻ってきた際、対象デッキならデッキモーダルを再開する。
   // 記録一覧モーダルも再開する意図は、React state ではなく sessionStorage で
@@ -64,25 +77,16 @@ export default function DeckCard({
                     <>なし</>
                   </div>
 
-                  {/* 右側 */}
-                  {/*
-                  <Chip size="sm" radius="md" variant="bordered">
-                    <small className="font-bold">
-                      {deck.private_flg ? "非公開" : "公開"}
-                    </small>
-                  </Chip>
-                  */}
-                </div>
-
-                <div className="pl-1">
-                  <div className="text-tiny">
-                    <>登録日：なし</>
+                  {/* 右側：登録日 */}
+                  <div className="flex items-center gap-1 text-tiny text-default-400 shrink-0">
+                    <LuCalendar className="text-xs" />
+                    なし
                   </div>
                 </div>
               </div>
             </CardHeader>
-            <CardBody className="px-2 py-2">
-              <DeckCodeCard deckcode={deckcode} />
+            <CardBody className="px-3 py-2">
+              <DeckCodeCard deckcode={deckcode} versionNumber={null} />
             </CardBody>
           </Card>
         </div>
@@ -96,6 +100,8 @@ export default function DeckCard({
             isOpen={isOpen}
             onOpenChange={onOpenChange}
             onRemove={onRemove}
+            autoOpenHistory={false}
+            onAutoOpenHistoryHandled={() => {}}
           />
         )}
       </>
@@ -116,7 +122,7 @@ export default function DeckCard({
           <CardHeader className="pt-0 pb-0 px-3">
             <div className="flex flex-col gap-1 w-full">
               {/* 両端配置 */}
-              <div className="flex items-center justify-between w-full">
+              <div className="flex items-start justify-between w-full">
                 {/* 左側 */}
                 <div className="flex items-center gap-0 shrink-0">
                   {deck.pokemon_sprites[0] ? (
@@ -148,30 +154,42 @@ export default function DeckCard({
                   )}
                 </div>
 
-                {/* 右側 */}
-                {/*
-                <Chip size="sm" radius="md" variant="bordered">
-                  <small className="font-bold">
-                    {deck.private_flg ? "非公開" : "公開"}
-                  </small>
-                </Chip>
-                */}
+                {/* 右側：登録日＋バージョン件数バッジをひとかたまりに */}
+                <div className="flex flex-col items-end gap-2 shrink-0">
+                  <div className="flex items-center gap-1 text-tiny text-default-400">
+                    <LuCalendar className="text-xs" />
+                    {date}
+                  </div>
+
+                  {versionCount !== null && versionCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenHistoryOnShow(true);
+                        onOpen();
+                      }}
+                      className="flex items-center gap-1 bg-primary/10 text-primary px-2.5 py-1 rounded-full text-tiny font-bold active:opacity-70"
+                    >
+                      <LuLayers className="text-sm" />
+                      バージョンの数： {versionCount}
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="font-bold text-large truncate w-full min-w-0">
                 {deck.name}
               </div>
-
-              <div className="pl-1">
-                <div className="text-tiny">
-                  登録日：
-                  {date}
-                </div>
-              </div>
             </div>
           </CardHeader>
-          <CardBody className="px-2 py-2">
-            <DeckCodeCard deckcode={deckcode} />
+          <CardBody className="px-3 py-2">
+            <DeckCodeCard
+              deckcode={deckcode}
+              versionNumber={versionNumber}
+              totalVersionCount={versionCount}
+              onCreateVersion={onOpen}
+            />
           </CardBody>
         </Card>
       </div>
@@ -185,6 +203,8 @@ export default function DeckCard({
           isOpen={isOpen}
           onOpenChange={onOpenChange}
           onRemove={onRemove}
+          autoOpenHistory={openHistoryOnShow}
+          onAutoOpenHistoryHandled={() => setOpenHistoryOnShow(false)}
         />
       )}
     </>

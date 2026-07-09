@@ -4,13 +4,20 @@ import { SetStateAction, Dispatch } from "react";
 
 import { useEffect, useState } from "react";
 
-import { useDisclosure } from "@heroui/react";
+import { addToast, useDisclosure } from "@heroui/react";
 
 import UpdateUsedDeckModal from "@app/components/organisms/Deck/Modal/UpdateUsedDeckModal";
+import CreateDeckCodeModal from "@app/components/organisms/Deck/Modal/CreateDeckCodeModal";
 import UsedDeckCard from "@app/components/organisms/Deck/UsedDeckCard";
 import { DeckCardSkeleton } from "@app/components/organisms/Deck/Skeleton/DeckCardSkeleton";
 
-import { RecordGetByIdResponseType } from "@app/types/record";
+import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
+
+import {
+  RecordGetByIdResponseType,
+  RecordUpdateRequestType,
+  RecordUpdateResponseType,
+} from "@app/types/record";
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
 
@@ -84,6 +91,76 @@ export default function UsedDeckById({
     onOpenChange: onOpenChangeForUpdateUsedDeckModal,
   } = useDisclosure();
 
+  const {
+    isOpen: isOpenForCreateDeckCodeModal,
+    onOpen: onOpenForCreateDeckCodeModal,
+    onOpenChange: onOpenChangeForCreateDeckCodeModal,
+  } = useDisclosure();
+
+  // CreateDeckCodeModalはsetDeckCode(ret)という形（更新関数ではなく値）でしか
+  // 呼び出さないため、Dispatch<SetStateAction<...>>互換のシグネチャで受けつつ
+  // 実質的にはDeckCodeTypeの値のみを扱う
+  const attachNewDeckCodeToRecord: Dispatch<SetStateAction<DeckCodeType | null>> = (
+    value,
+  ) => {
+    const newDeckCode = typeof value === "function" ? value(deckcode) : value;
+
+    setDeckCode(newDeckCode);
+
+    if (!record || !newDeckCode) return;
+
+    void updateRecordDeckCode(record, newDeckCode);
+  };
+
+  const updateRecordDeckCode = async (
+    targetRecord: RecordGetByIdResponseType,
+    newDeckCode: DeckCodeType,
+  ) => {
+    const data: RecordUpdateRequestType = {
+      official_event_id: targetRecord.official_event_id,
+      tonamel_event_id: targetRecord.tonamel_event_id,
+      friend_id: targetRecord.friend_id,
+      deck_id: targetRecord.deck_id,
+      deck_code_id: newDeckCode.id,
+      private_flg: targetRecord.private_flg,
+      tcg_meister_url: targetRecord.tcg_meister_url,
+      memo: targetRecord.memo,
+      event_date: targetRecord.event_date,
+      unofficial_event_id: targetRecord.unofficial_event_id,
+    };
+
+    try {
+      const res = await fetch(`/api/records/${targetRecord.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to update record");
+      }
+
+      const ret: RecordUpdateResponseType = await res.json();
+
+      setRecord((prev) =>
+        prev ? { ...prev, deck_id: ret.deck_id, deck_code_id: ret.deck_code_id } : prev,
+      );
+
+      triggerNotificationsRefresh();
+    } catch (error) {
+      console.error(error);
+
+      addToast({
+        title: "記録の更新に失敗",
+        description: "作成したバージョンを使用したデッキとして登録できませんでした",
+        color: "danger",
+        timeout: 5000,
+      });
+    }
+  };
+
   useEffect(() => {
     if (!record?.deck_id) {
       setLoading1(false);
@@ -151,8 +228,24 @@ export default function UsedDeckById({
       <UpdateUsedDeckModal
         record={record}
         setRecord={setRecord}
-        isOpen={isOpenForUpdateUsedDeckModal && enableUpdateUsedDeckModal}
+        // 使用デッキ・バージョンが両方とも登録済みの場合の編集は
+        // enableUpdateUsedDeckModalに従うが、
+        // どちらか未登録（＝これから登録する）場合は
+        // 呼び出し元の設定に関わらず常に許可する
+        isOpen={
+          isOpenForUpdateUsedDeckModal &&
+          (enableUpdateUsedDeckModal || !record?.deck_id || !record?.deck_code_id)
+        }
         onOpenChange={onOpenChangeForUpdateUsedDeckModal}
+      />
+
+      <CreateDeckCodeModal
+        deck={deck}
+        setDeck={setDeck}
+        deckcode={deckcode}
+        setDeckCode={attachNewDeckCodeToRecord}
+        isOpen={isOpenForCreateDeckCodeModal}
+        onOpenChange={onOpenChangeForCreateDeckCodeModal}
       />
 
       <div onClick={onOpenForUpdateUsedDeckModal}>
@@ -162,6 +255,8 @@ export default function UsedDeckById({
           deckcode={deckcode}
           setDeckCode={setDeckCode}
           enableShowDeckModal={enableShowDeckModal}
+          onSelectExistingVersion={onOpenForUpdateUsedDeckModal}
+          onCreateVersion={onOpenForCreateDeckCodeModal}
         />
       </div>
     </>

@@ -49,10 +49,10 @@ function extractRankName(body: string): string | null {
   return body.match(/「(.+?)」/)?.[1] ?? null;
 }
 
-// 通知本文の「『スタン環境』環境で対戦をしました！」のような『』内の対戦環境名を抜き出す
+// 通知本文の「『スタン環境』環境で初対戦をしました！」のような『』内の対戦環境名を抜き出す
 // (environmentBadgeNotificationContent の本文フォーマットに対応)
 function extractEnvironmentBadgeTitle(body: string): string | null {
-  return body.match(/『(.+?)』環境で対戦をしました/)?.[1] ?? null;
+  return body.match(/『(.+?)』環境で初対戦をしました/)?.[1] ?? null;
 }
 
 // 通知本文の「🏆 竜王」のような「」内の"絵文字 称号名"から絵文字部分だけを抜き出す

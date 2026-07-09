@@ -148,7 +148,7 @@ export default function DeckCardSummaryRow({ code }: Props) {
   if (loading) {
     return (
       <div className="h-44 w-full">
-        <Tabs fullWidth size="sm" className="">
+        <Tabs fullWidth size="sm" classNames={{ tabList: "bg-content1 shadow-sm" }}>
           <Tab key="card_pke" title={`ポケモン：??`}>
             <CardSkelton />
           </Tab>
@@ -192,7 +192,7 @@ export default function DeckCardSummaryRow({ code }: Props) {
           className="flex flex-col"
           classNames={{
             base: "flex flex-col",
-            tabList: "shrink-0",
+            tabList: "shrink-0 bg-content1 shadow-sm",
             panel: "flex-1 overflow-y-auto",
           }}
         >
@@ -211,7 +211,7 @@ export default function DeckCardSummaryRow({ code }: Props) {
                     radius="md"
                     color="default"
                     variant="bordered"
-                    className="border-1.5 text-foreground"
+                    className="border-1.5 border-default-400 text-foreground"
                   >
                     <small className="font-bold">
                       {deckcard.card_name}: {deckcard.card_count}
@@ -236,7 +236,7 @@ export default function DeckCardSummaryRow({ code }: Props) {
                     radius="md"
                     color="default"
                     variant="bordered"
-                    className="border-1.5 text-foreground"
+                    className="border-1.5 border-default-400 text-foreground"
                   >
                     <small className="font-bold">
                       {deckcard.card_name}: {deckcard.card_count}
@@ -264,7 +264,7 @@ export default function DeckCardSummaryRow({ code }: Props) {
                     radius="md"
                     color="default"
                     variant="bordered"
-                    className="border-1.5 text-foreground"
+                    className="border-1.5 border-default-400 text-foreground"
                   >
                     <small className="font-bold">
                       {deckcard.card_name}: {deckcard.card_count}
@@ -289,7 +289,7 @@ export default function DeckCardSummaryRow({ code }: Props) {
                     radius="md"
                     color="default"
                     variant="bordered"
-                    className="border-1.5 text-foreground"
+                    className="border-1.5 border-default-400 text-foreground"
                   >
                     <small className="font-bold">
                       {deckcard.card_name}: {deckcard.card_count}
@@ -314,7 +314,7 @@ export default function DeckCardSummaryRow({ code }: Props) {
                     radius="md"
                     color="default"
                     variant="bordered"
-                    className="border-1.5 text-foreground"
+                    className="border-1.5 border-default-400 text-foreground"
                   >
                     <small className="font-bold">
                       {deckcard.card_name}: {deckcard.card_count}
@@ -339,7 +339,7 @@ export default function DeckCardSummaryRow({ code }: Props) {
                     radius="md"
                     color="default"
                     variant="bordered"
-                    className="border-1.5 text-foreground"
+                    className="border-1.5 border-default-400 text-foreground"
                   >
                     <small className="font-bold">
                       {deckcard.card_name}: {deckcard.card_count}

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
-import { Button, Card, CardBody, Chip, Image } from "@heroui/react";
+import { Button, Card, CardBody, Chip, Image, Tab, Tabs } from "@heroui/react";
 import {
   LuChevronLeft,
   LuChevronRight,
@@ -99,6 +99,9 @@ function SkeletonRow() {
   );
 }
 
+// 使用率の算出基準（全体件数を分母にするか、「その他」を除いた件数を分母にするか）
+type RateMode = "all" | "excl_other";
+
 type Props = {
   // 指定時は上位N件のみ表示し、以降は個別ページへの誘導に置き換える（ダッシュボード埋め込み用）
   limit?: number;
@@ -109,6 +112,7 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
   const [week, setWeek] = useState<string>(lastWeekValue);
   const [stat, setStat] = useState<WeeklyDeckUsageStatType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [rateMode, setRateMode] = useState<RateMode>("all");
 
   useEffect(() => {
     let cancelled = false;
@@ -142,6 +146,13 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
 
   const decks = useMemo(() => stat?.decks ?? [], [stat]);
 
+  // 「その他」の件数と、それを除いた場合の母数（分母）を算出する
+  const otherCount = useMemo(
+    () => decks.find((d) => d.fingerprint === "")?.count ?? 0,
+    [decks],
+  );
+  const exclOtherTotal = (stat?.total_votes ?? 0) - otherCount;
+
   // 集計はサーバー側で使用率(count)降順・同数は勝率降順に整列済みだが、
   // UI 側でも念のため同じ規則で安定ソートする。「その他」は fingerprint が空で常に末尾へ。
   const displayDecks = useMemo(
@@ -164,10 +175,15 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
   const hiddenCount = displayDecks.length - visibleDecks.length;
 
   // 使用率バーは最上位デッキを基準に相対表示する（絶対値だと差が視認しづらいため）
-  const maxUsageRate = useMemo(
-    () => Math.max(...displayDecks.map((d) => d.usage_rate), 0.0001),
-    [displayDecks],
-  );
+  // 「その他を除く」表示では、その他自身はバー比較の対象から外す
+  const maxUsageRate = useMemo(() => {
+    const rates = displayDecks
+      .filter((d) => !(rateMode === "excl_other" && d.fingerprint === ""))
+      .map((d) =>
+        rateMode === "all" ? d.usage_rate : d.count / (exclOtherTotal || 1),
+      );
+    return Math.max(...rates, 0.0001);
+  }, [displayDecks, rateMode, exclOtherTotal]);
 
   const periodLabel =
     stat != null && stat.week_start
@@ -281,6 +297,27 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
           </div>
         )}
 
+        {/* 使用率の算出基準切り替え（全体件数基準 / その他を除いた件数基準） */}
+        {stat != null && (
+          <div className="flex flex-col gap-1.5">
+            <Tabs
+              fullWidth
+              size="sm"
+              selectedKey={rateMode}
+              onSelectionChange={(key) => setRateMode(key as RateMode)}
+              classNames={{ tab: "h-7", tabContent: "font-bold text-xs" }}
+            >
+              <Tab key="all" title="全体の中の割合" />
+              <Tab key="excl_other" title="その他を除いた割合" />
+            </Tabs>
+            <span className="text-[10px] text-default-400 leading-snug text-center">
+              {rateMode === "all"
+                ? "「その他」を含む全体件数を分母に算出しています"
+                : `「その他」(${otherCount}件)を除いた${exclOtherTotal}件を分母に算出しています`}
+            </span>
+          </div>
+        )}
+
         {/* ランキングの並び順を明示（読み込み中もレイアウトが動かないよう表示しておく） */}
         {(isLoading || displayDecks.length > 0) && (
           <div className="flex items-center justify-between px-1 -mb-2">
@@ -316,10 +353,16 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
           >
             {visibleDecks.map((deck, idx) => {
               const isOther = deck.fingerprint === "";
-              const barWidth = Math.max(
-                4,
-                Math.round((deck.usage_rate / maxUsageRate) * 100),
-              );
+              // 「その他を除く」表示では、その他自身は分母から外れており%が定義できない
+              const isExcluded = isOther && rateMode === "excl_other";
+              const displayRate = isExcluded
+                ? null
+                : rateMode === "all"
+                  ? deck.usage_rate
+                  : deck.count / (exclOtherTotal || 1);
+              const barWidth = isExcluded
+                ? 0
+                : Math.max(4, Math.round(((displayRate ?? 0) / maxUsageRate) * 100));
 
               return (
                 <div
@@ -336,12 +379,23 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
                     )}
                     {/* 使用率を主指標として大きく強調表示する */}
                     <div className="ml-auto flex flex-col items-end shrink-0 leading-none">
-                      <span className="text-lg font-black tabular-nums text-default-700">
-                        {(deck.usage_rate * 100).toFixed(1)}
-                        <span className="text-xs font-bold text-default-400">%</span>
-                      </span>
+                      {isExcluded ? (
+                        <span className="text-xs font-bold text-default-400">
+                          集計対象外
+                        </span>
+                      ) : (
+                        <span className="text-lg font-black tabular-nums text-default-700">
+                          {(displayRate! * 100).toFixed(1)}
+                          <span className="text-xs font-bold text-default-400">%</span>
+                        </span>
+                      )}
+                      {/* 「その他を除く」表示中は、基準の違いを見失わないよう全体比も併記する */}
                       <span className="text-[9px] text-default-400 tabular-nums mt-0.5">
-                        {deck.count}件
+                        {isExcluded
+                          ? `${deck.count}件・全体の${(deck.usage_rate * 100).toFixed(1)}%`
+                          : rateMode === "excl_other"
+                            ? `${deck.count}件・全体比${(deck.usage_rate * 100).toFixed(1)}%`
+                            : `${deck.count}件`}
                       </span>
                     </div>
                   </div>

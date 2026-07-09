@@ -1,7 +1,5 @@
 "use client";
 
-import { createHash } from "crypto";
-
 import WindowedSelect from "react-windowed-select";
 
 import { useState } from "react";
@@ -317,7 +315,12 @@ function convertToDeckOption(data: DeckData): DeckOption {
   };
 }
 
-function convertToDeckCodeOption(data: DeckCodeType): DeckCodeOption {
+// versionNumber: 作成日時の昇順で数えた通し番号（1が初回）。
+// 一覧取得前で不明な場合は null を渡すと、後続の補正処理で更新される。
+function convertToDeckCodeOption(
+  data: DeckCodeType,
+  versionNumber: number | null,
+): DeckCodeOption {
   const created_at = new Date(data.created_at).toLocaleString("ja-JP", {
     year: "numeric",
     month: "long",
@@ -326,7 +329,7 @@ function convertToDeckCodeOption(data: DeckCodeType): DeckCodeOption {
   });
 
   return {
-    label: createHash("sha1").update(data.id).digest("hex").slice(0, 8),
+    label: versionNumber !== null ? String(versionNumber) : "",
     value: data.id,
     id: data.id,
     deck_id: data.deck_id,
@@ -675,9 +678,22 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
   );
 
   const deckcodeOptions = useMemo<DeckCodeOption[]>(
-    () => (deckcodeData ?? []).map(convertToDeckCodeOption),
+    () =>
+      (deckcodeData ?? []).map((dc, index, arr) =>
+        convertToDeckCodeOption(dc, arr.length - index),
+      ),
     [deckcodeData],
   );
+
+  // deck_code_id から単体取得した直後は通し番号が不明(label: "")のため、
+  // 一覧(deckcodeOptions)が揃い次第、正しいバージョン番号に補正する
+  useEffect(() => {
+    setSelectedDeckCodeOption((prev) => {
+      if (!prev || prev.label !== "") return prev;
+      const match = deckcodeOptions.find((o) => o.id === prev.id);
+      return match ?? prev;
+    });
+  }, [deckcodeOptions]);
 
   let deckcodeOptionsMessage = "バージョンがありません";
   if (deckcodeError) {
@@ -774,7 +790,20 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
             if (!codeRes.ok) throw new Error("Failed to fetch deck code");
 
             const codeData: DeckCodeType = await codeRes.json();
-            setSelectedDeckCodeOption(convertToDeckCodeOption(codeData));
+
+            // 通し番号(バージョン)を求めるため、同じデッキの全バージョンを取得する
+            let versionNumber: number | null = null;
+            try {
+              const list = await fetcherForDeckCode(
+                `/api/decks/${codeData.deck_id}/deckcodes`,
+              );
+              const index = list.findIndex((dc) => dc.id === codeData.id);
+              if (index !== -1) versionNumber = list.length - index;
+            } catch (error) {
+              console.error(error);
+            }
+
+            setSelectedDeckCodeOption(convertToDeckCodeOption(codeData, versionNumber));
             setImageLoadedForDeckCode(false);
           } catch (error) {
             // deck_code_id の取得に失敗した場合はSWRに任せる
@@ -834,7 +863,7 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
     if (deckcodeData.length === 0) {
       setSelectedDeckCodeOption(null);
     } else {
-      setSelectedDeckCodeOption(convertToDeckCodeOption(deckcodeData[0]));
+      setSelectedDeckCodeOption(convertToDeckCodeOption(deckcodeData[0], deckcodeData.length));
     }
     setImageLoadedForDeckCode(false);
     setIsDeckChangedByUser(false);

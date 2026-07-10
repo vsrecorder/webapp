@@ -181,6 +181,7 @@ export default function DisplayRecordModal({
     null,
   );
 
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [tweetHref, setTweetHref] = useState<string>("");
 
   useEffect(() => {
@@ -330,6 +331,17 @@ export default function DisplayRecordModal({
         <ModalContent>
           {() => (
             <>
+              {/* ドロップダウン表示中の背景オーバーレイ（記録ページの3点メニューと同様のぼかし）
+                  ※ HeroUI の Modal は wrapper/backdrop が z-50 固定のため、Modal の外側に
+                  置くと常にモーダル本体の裏に隠れてしまう。ここでは position:relative な
+                  ダイアログ本体（base）の直下に absolute で重ね、本体内でのみ完結させる。 */}
+              {isDropdownOpen && (
+                <div
+                  className="absolute inset-0 z-40 bg-black/40 backdrop-blur-[1px] transition-opacity duration-200"
+                  onClick={() => setIsDropdownOpen(false)}
+                />
+              )}
+
               {/* スワイプ検知 */}
               <ModalHeader
                 onTouchStart={handleTouchStart}
@@ -344,7 +356,15 @@ export default function DisplayRecordModal({
                   <div>記録情報</div>
 
                   {/* 3点メニュー */}
-                  <Dropdown>
+                  <Dropdown
+                    isOpen={isDropdownOpen}
+                    onOpenChange={setIsDropdownOpen}
+                    // HeroUI 側の「メニュー外押下で閉じる」を無効化する。
+                    // これを有効にしたままだと、押下時にオーバーレイが先に消えてしまい、
+                    // 直後のクリックが背後の要素に着弾してしまう。
+                    // クローズはオーバーレイの onClick に一本化し、クリックをオーバーレイに消費させる。
+                    shouldCloseOnInteractOutside={() => false}
+                  >
                     <DropdownTrigger>
                       <Button
                         isIconOnly

@@ -70,6 +70,10 @@ const OVERLAP_RATIO = 0.28;
 const EXTERNAL_GAP = 6;
 // 外側表示同士の最低間隔（隣り合うスプライトが接触しすぎないための余白）
 const OUTSIDE_MARGIN = 6;
+// 衝突解消のために動かせる最大距離（自身のサイズの何倍まで元の位置から離れてよいか）。
+// これを超えてまで引き離すと、そのスライスから遠い場所に表示されてしまうため、
+// 上限を超える場合は多少重なることを許容する。
+const MAX_DRIFT_FACTOR = 1.2;
 
 type OutsideCandidate = {
   images: HTMLImageElement[];
@@ -78,6 +82,7 @@ type OutsideCandidate = {
   arcX: number;
   arcY: number;
   angle: number;
+  originalAngle: number;
   radius: number;
   size: number;
   // 衝突判定に使う、このスプライト（組み合わせ含む）のおおよその半径
@@ -87,6 +92,7 @@ type OutsideCandidate = {
 // 外側表示になったスプライト同士が重ならないよう、角度が近いものを引き離す。
 // 角度順に並べ、前の項目との間隔（半径上の弧長換算）が互いのboundRadius+余白より
 // 狭い場合は後ろ側の項目を角度方向に押し出す（前から順に1回なめるだけで済む）。
+// ただし、自身のスライスから離れすぎないよう押し出せる距離には上限を設ける。
 function resolveOutsideCollisions(candidates: OutsideCandidate[]) {
   if (candidates.length < 2) return;
 
@@ -100,7 +106,8 @@ function resolveOutsideCollisions(candidates: OutsideCandidate[]) {
     // 弧長 = 角度 × 半径 なので、必要な弧長を角度に変換する
     const minGap = (prev.boundRadius + cur.boundRadius + OUTSIDE_MARGIN) / avgRadius;
     if (gap < minGap) {
-      cur.angle = prev.angle + minGap;
+      const maxAngle = cur.originalAngle + (cur.size * MAX_DRIFT_FACTOR) / cur.radius;
+      cur.angle = Math.min(prev.angle + minGap, maxAngle);
     }
   }
 }
@@ -194,6 +201,7 @@ export function createPieSlicesSpritePlugin(
           arcX: arc.x,
           arcY: arc.y,
           angle: midAngle,
+          originalAngle: midAngle,
           radius: arc.outerRadius + EXTERNAL_GAP + outsideSize / 2,
           size: outsideSize,
           boundRadius: totalWidth / 2,

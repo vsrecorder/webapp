@@ -1,9 +1,10 @@
 import useSWR from "swr";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { SetStateAction, Dispatch } from "react";
+import { Children, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { SetStateAction, Dispatch, ReactElement } from "react";
 
-import WindowedSelect from "react-windowed-select";
+import Select, { MenuListProps } from "react-select";
+import { FixedSizeList, ListChildComponentProps } from "react-window";
 import { useReactSelectTheme } from "@app/components/molecules/Select/useReactSelectTheme";
 
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
@@ -22,6 +23,93 @@ type PokemonSpriteOption = {
   name: string;
   image_url: string;
 };
+
+// 候補1件あたりの横幅(px)。formatOptionLabelのmenu用レイアウトと合わせる
+const SPRITE_OPTION_WIDTH = 96;
+
+// react-select は「該当候補なし」の場合も MenuList にその案内文を1件のchildとして渡してくる。
+// 実際の候補(Option要素)は data プロップにスプライト情報を持つので、それを目印に区別する
+function isSpriteOptionElement(
+  item: ReactElement,
+): item is ReactElement<{ data: PokemonSpriteOption }> {
+  const data = (item.props as { data?: unknown }).data;
+  return !!data && typeof data === "object" && "value" in (data as object);
+}
+
+// 候補一覧を縦スクロールではなく横スクロールで表示するためのMenuList
+// (react-window で仮想化しているため、1000件超の候補でも描画負荷を抑えられる)
+function HorizontalMenuList(props: MenuListProps<PokemonSpriteOption, false>) {
+  const { children, maxHeight, focusedOption } = props;
+  const listRef = useRef<FixedSizeList>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  useLayoutEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const observer = new ResizeObserver(([entry]) => {
+      setContainerWidth(entry.contentRect.width);
+    });
+    observer.observe(el);
+
+    return () => observer.disconnect();
+  }, []);
+
+  const items = useMemo(() => Children.toArray(children) as ReactElement[], [children]);
+  const isOptionList = items.length > 0 && items.every(isSpriteOptionElement);
+
+  const focusedIndex = useMemo(() => {
+    if (!isOptionList || !focusedOption) return -1;
+    return items.findIndex(
+      (item) =>
+        isSpriteOptionElement(item) && item.props.data.value === focusedOption.value,
+    );
+  }, [isOptionList, items, focusedOption]);
+
+  useEffect(() => {
+    if (focusedIndex >= 0) {
+      listRef.current?.scrollToItem(focusedIndex, "smart");
+    }
+  }, [focusedIndex]);
+
+  // 該当候補がない場合は、小さな1ブロックに収めず一覧領域いっぱいに案内文を表示する
+  if (!isOptionList) {
+    return (
+      <div
+        className="flex items-center justify-center w-full text-default-500 text-sm"
+        style={{ height: maxHeight }}
+      >
+        {children}
+      </div>
+    );
+  }
+
+  return (
+    <div ref={containerRef} className="w-full">
+      {containerWidth > 0 && (
+        <FixedSizeList
+          ref={listRef}
+          layout="horizontal"
+          height={maxHeight}
+          width={containerWidth}
+          itemCount={items.length}
+          itemSize={SPRITE_OPTION_WIDTH}
+          style={{ overflowY: "hidden" }}
+        >
+          {({ index, style }: ListChildComponentProps) => (
+            <div
+              style={style}
+              className={index < items.length - 1 ? "border-r border-divider" : undefined}
+            >
+              {items[index]}
+            </div>
+          )}
+        </FixedSizeList>
+      )}
+    </div>
+  );
+}
 
 async function fetcherForPokemonSprites(url: string) {
   const res = await fetch(url, {
@@ -159,8 +247,9 @@ export default function PokemonSpriteModal({
             <ModalHeader className="px-3">ポケモンのアイコンを選択</ModalHeader>
             <ModalBody className="px-5">
               <div>
-                <WindowedSelect
+                <Select
                   theme={reactSelectTheme}
+                  components={{ MenuList: HorizontalMenuList }}
                   placeholder={
                     <div className="flex items-center gap-2">
                       <div className="text-xl">
@@ -187,6 +276,10 @@ export default function PokemonSpriteModal({
                       },
                     }),
                     menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+                    option: (base) => ({
+                      ...base,
+                      padding: 0,
+                    }),
                   }}
                   menuPosition="fixed"
                   menuPortalTarget={
@@ -203,21 +296,20 @@ export default function PokemonSpriteModal({
                   onChange={(option) => {
                     setSelectedPokemonSpriteOption(option as PokemonSpriteOption);
                   }}
-                  maxMenuHeight={175}
-                  windowThreshold={100}
+                  maxMenuHeight={100}
                   formatOptionLabel={(option, { context }) => {
                     const opt = option as PokemonSpriteOption;
 
                     if (context === "menu") {
                       return (
-                        <div className="flex flex-col items-center justify-center h-23.5">
+                        <div className="flex flex-col items-center justify-start gap-3 h-23.5">
                           <Image
                             alt={opt.name}
                             src={opt.image_url}
                             radius="none"
                             className="w-16 h-16 object-contain"
                           />
-                          <div className="truncate w-full text-center text-tiny">
+                          <div className="truncate w-full text-center text-tiny pb-0.5 px-1.5">
                             {opt.name}
                           </div>
                         </div>

@@ -51,6 +51,9 @@ const SLICE_COLORS = [
 const OTHER_COLOR = "#A1A1AA";
 // 対面率がこの値未満のデッキは「その他」にまとめる
 const OTHER_THRESHOLD = 0.05;
+// 個別に表示するデッキの最大数（これを超える分は「その他」1件にまとめ、
+// 合計の最大表示件数は7件になる）
+const MAX_INDIVIDUAL_DECKS = 6;
 
 // 円グラフ本体はスプライト画像を主役にしたいため、塗りは薄いパステル調にする
 const SLICE_COLORS_SOFT = SLICE_COLORS.map((c) => lighten(c, 0.55));
@@ -285,7 +288,7 @@ export default function OpponentDeckUsagePanel({
     () =>
       groupIntoOther(decks, {
         threshold: OTHER_THRESHOLD,
-        maxIndividual: SLICE_COLORS.length - 1,
+        maxIndividual: MAX_INDIVIDUAL_DECKS,
         createOther: (aggregate): OpponentDeckUsageItemType => ({
           deck_info: "その他",
           pokemon_sprites: [],

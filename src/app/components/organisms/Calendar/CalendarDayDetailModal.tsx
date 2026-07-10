@@ -283,11 +283,16 @@ function EventContent({ event }: { event: CalendarEvent }) {
             )}
           </div>
           {event.memo && (
-            <div className="flex items-start gap-1.5 pl-3 pt-1">
-              <LuStickyNote className="text-sm text-default-400 shrink-0 mt-0.5" />
-              <span className="text-xs text-default-500 whitespace-pre-wrap wrap-break-word">
-                {event.memo}
-              </span>
+            <div className="flex flex-col gap-1 pl-3 pt-1.5">
+              <div className="flex items-center gap-1">
+                <LuStickyNote className="text-xs text-default-400 shrink-0" />
+                <span className="text-tiny font-bold text-default-400">メモ</span>
+              </div>
+              <div className="rounded-lg bg-warning-50 border border-warning-100 px-2.5 py-1.5">
+                <span className="text-xs text-default-600 whitespace-pre-wrap wrap-break-word">
+                  {event.memo}
+                </span>
+              </div>
             </div>
           )}
         </div>

@@ -2109,7 +2109,7 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                 <div className="flex flex-col gap-1 pt-1">
                   <div className="flex flex-col gap-2">
                     <StepLabel num={2} required>
-                      イベント名
+                      イベント名など
                     </StepLabel>
                   </div>
 

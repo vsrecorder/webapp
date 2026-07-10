@@ -471,10 +471,10 @@ export default function DeckUsagePanel({
             tabContent: "font-bold text-xs",
           }}
         >
-          <Tab key="month" title="月別" />
-          <Tab key="environment" title="環境別" />
-          <Tab key="season" title="シーズン別" />
-          <Tab key="regulation" title="レギュレーション別" />
+          <Tab key="month" title="月次" />
+          <Tab key="environment" title="環境" />
+          <Tab key="season" title="シーズン" />
+          <Tab key="regulation" title="レギュレーション" />
         </Tabs>
 
         {/* セレクタ */}
@@ -594,7 +594,7 @@ export default function DeckUsagePanel({
                         ({tooltip.deck.count}件)
                       </span>
                     </div>
-                    <div className="flex flex-col items-center gap-0.5 pt-1.5 border-t border-default-200 w-full">
+                    <div className="flex flex-col items-center gap-0.5 mt-1.5 pt-3 border-t border-default-200 w-full">
                       <span className="text-[10px] font-bold text-default-400">勝率</span>
                       <span
                         className={`text-base font-black tabular-nums ${winRateTextColor(tooltip.deck.win_rate)}`}

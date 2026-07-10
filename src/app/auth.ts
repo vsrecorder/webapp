@@ -40,6 +40,51 @@ declare module "next-auth/jwt" {
 // 退会済みユーザーのセッションを検知するためのキャッシュ有効期間（ミリ秒）
 const USER_CHECK_CACHE_MS = 5 * 60 * 1000;
 
+// バックエンドのデプロイ中や一時的な障害などで偶発的に404が返るケースがあるため、
+// 1回の404だけで退会済みと断定せず、連続して404が返り続けた場合のみ退会済みと判定する
+const NOT_FOUND_RETRY_COUNT = 3;
+const NOT_FOUND_RETRY_INTERVAL_MS = 1000;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// core-apiserver上にユーザーが存在するか確認する。
+// プロキシ層の障害時などにバックエンドを経由しない404(HTMLのエラーページ等)が
+// 返ることがあるため、実際にcore-apiserverが返すJSON形式の404であることも
+// 確認した上で判定する。
+// 一時的な404が返っただけで退会済みと誤判定しないよう、404を検知した場合は
+// 間隔を空けて最大NOT_FOUND_RETRY_COUNT回まで再確認し、
+// 全て404だった場合にのみ退会済みと判定する。
+async function isUserDeletedOnBackend(domain: string, uid: string): Promise<boolean> {
+  for (let attempt = 1; attempt <= NOT_FOUND_RETRY_COUNT; attempt++) {
+    const ret = await fetch(`https://` + domain + `/api/v1beta/users/` + uid, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    const isBackendNotFound =
+      ret.status === 404 &&
+      (ret.headers.get("content-type") ?? "").includes("application/json");
+
+    if (!isBackendNotFound) {
+      return false;
+    }
+
+    if (attempt < NOT_FOUND_RETRY_COUNT) {
+      console.warn(
+        `User check returned 404 (attempt ${attempt}/${NOT_FOUND_RETRY_COUNT}), retrying:`,
+        uid,
+      );
+      await sleep(NOT_FOUND_RETRY_INTERVAL_MS);
+    }
+  }
+
+  return true;
+}
+
 type UserType = {
   name: string;
   image_url: string;
@@ -187,21 +232,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (isCacheExpired && token.uid) {
         try {
           const domain = process.env.VSRECORDER_DOMAIN;
-          const ret = await fetch(`https://` + domain + `/api/v1beta/users/` + token.uid, {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-            },
-          });
-
-          // プロキシ層の障害時などにバックエンドを経由しない404(HTMLのエラーページ等)が
-          // 返ることがあるため、実際にcore-apiserverが返すJSON形式の404であることも
-          // 確認した上でのみ退会済みと判定する。
-          const isBackendNotFound =
-            ret.status === 404 &&
-            (ret.headers.get("content-type") ?? "").includes("application/json");
-
-          if (isBackendNotFound) {
+          if (await isUserDeletedOnBackend(domain!, token.uid)) {
             return null;
           }
 

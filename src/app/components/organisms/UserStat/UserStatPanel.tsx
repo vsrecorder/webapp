@@ -184,10 +184,10 @@ export default function UserStatPanel({
             tabContent: "font-bold text-xs",
           }}
         >
-          <Tab key="month" title="月別" />
-          <Tab key="environment" title="環境別" />
-          <Tab key="season" title="シーズン別" />
-          <Tab key="regulation" title="レギュレーション別" />
+          <Tab key="month" title="月次" />
+          <Tab key="environment" title="環境" />
+          <Tab key="season" title="シーズン" />
+          <Tab key="regulation" title="レギュレーション" />
         </Tabs>
 
         {/* セレクタ */}

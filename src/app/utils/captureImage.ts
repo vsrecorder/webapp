@@ -11,6 +11,37 @@ function getAppIconSrc(): string {
     : "https://xx8nnpgt.user.webaccel.jp/images/icons/icon.png";
 }
 
+// html-to-image は<img>のsrcがネットワークURLのままだと、キャプチャの度に
+// 外部CDNへ取得しにいく。この取得は内部でURL単位にキャッシュされており、
+// 一度でも失敗すると空データが永続的にキャッシュされ、以後そのページを
+// 開き直すまでロゴが二度と表示されなくなってしまう（「表示されたりされな
+// かったりする」不具合の原因）。
+// そのため事前にdata URL化しておき、html-to-image側の再取得を発生させない。
+// 失敗時はキャッシュせず、次回呼び出し時に再取得を試みる。
+let iconDataUrlPromise: Promise<string> | null = null;
+
+async function getIconDataUrl(): Promise<string> {
+  if (!iconDataUrlPromise) {
+    iconDataUrlPromise = fetch(getAppIconSrc())
+      .then((res) => res.blob())
+      .then(
+        (blob) =>
+          new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = () => reject(reader.error);
+            reader.readAsDataURL(blob);
+          }),
+      )
+      .catch((e) => {
+        // 失敗を持ち越さないよう、次回呼び出しで再取得できるようにする
+        iconDataUrlPromise = null;
+        throw e;
+      });
+  }
+  return iconDataUrlPromise;
+}
+
 // サービスのアイコンとサービス名を並べたフッター要素を生成する。
 // 画像の下部に差し込み、どのサービスで作成した画像かが分かるようにする。
 function buildServiceFooter(isDark: boolean): {
@@ -31,7 +62,6 @@ function buildServiceFooter(isDark: boolean): {
   footer.style.borderTop = `1px solid ${dividerColor}`;
 
   const icon = document.createElement("img");
-  icon.src = getAppIconSrc();
   icon.width = 30;
   icon.height = 30;
   icon.style.width = "30px";
@@ -52,8 +82,17 @@ function buildServiceFooter(isDark: boolean): {
   footer.appendChild(icon);
   footer.appendChild(name);
 
-  // キャプチャ前にアイコンの読み込み完了を待てるよう Promise を返す
-  const iconLoaded = icon.decode().catch(() => {});
+  // data URL化してから src にセットすることで、html-to-image側の
+  // ネットワーク再取得（と、失敗時の永続キャッシュ汚染）を避ける。
+  // 取得に失敗した場合はアイコンなしで書き出す（アプリ名のテキストは表示される）。
+  const iconLoaded = getIconDataUrl()
+    .then((dataUrl) => {
+      icon.src = dataUrl;
+      return icon.decode().catch(() => {});
+    })
+    .catch(() => {
+      icon.remove();
+    });
 
   return { footer, iconLoaded };
 }

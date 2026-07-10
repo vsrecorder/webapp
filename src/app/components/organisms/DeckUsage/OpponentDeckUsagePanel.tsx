@@ -56,7 +56,7 @@ export default function OpponentDeckUsagePanel({
   const [ownDecks, setOwnDecks] = useState<DeckUsageItemType[]>([]);
   const [oldestEventDate, setOldestEventDate] = useState<string | null>(null);
 
-  // 「月別」の選択肢は、実際に記録されている最も古い対戦のevent_dateを起点にする。
+  // 「月次」の選択肢は、実際に記録されている最も古い対戦のevent_dateを起点にする。
   // 取得前・取得失敗時はユーザー登録日、それも無ければ直近12ヶ月にフォールバックする。
   const createdAtDate =
     oldestEventDate != null
@@ -186,29 +186,27 @@ export default function OpponentDeckUsagePanel({
           : `『${standardRegulations.find((r) => r.id === regulationId)?.marks ?? ""}』`;
 
   return (
-    // Card既定のoverflow-hiddenだとsticky配下の子がCardの矩形内でしか固定されず、
-    // ページスクロール時に画面上部へ固定する挙動にならないため上書きする
-    <Card className="overflow-visible">
+    <Card>
       <CardBody className="gap-4 p-4">
-        {/* フィルタータブ。ページをスクロールしてもヘッダーの下に固定表示する
-            (top-14 lg:top-28 はLayout.tsxのヘッダー分のオフセットpt-14 lg:pt-28と合わせている) */}
-        <div className="sticky top-14 lg:top-28 z-30 -mx-4 -mt-4 bg-content1 px-4 pt-4 pb-1">
-          <Tabs
-            fullWidth
-            size="sm"
-            selectedKey={filterMode}
-            onSelectionChange={(key) => setFilterMode(key as FilterMode)}
-            classNames={{
-              tab: "h-7",
-              tabContent: "font-bold text-xs",
-            }}
-          >
-            <Tab key="month" title="月別" />
-            <Tab key="environment" title="環境別" />
-            <Tab key="season" title="シーズン別" />
-            <Tab key="regulation" title="レギュレーション別" />
-          </Tabs>
-        </div>
+        {/* フィルタータブ */}
+        {/* 親のダッシュボード側がlg:columns-2のCSS多段組みレイアウトを使っており、
+            position: stickyは多段組みコンテナ内で正しく機能しない(見た目の位置と
+            クリック判定がズレてタップに反応しなくなる)ため、ここではstickyにしない */}
+        <Tabs
+          fullWidth
+          size="sm"
+          selectedKey={filterMode}
+          onSelectionChange={(key) => setFilterMode(key as FilterMode)}
+          classNames={{
+            tab: "h-7",
+            tabContent: "font-bold text-xs",
+          }}
+        >
+          <Tab key="month" title="月次" />
+          <Tab key="environment" title="環境" />
+          <Tab key="season" title="シーズン" />
+          <Tab key="regulation" title="レギュレーション" />
+        </Tabs>
 
         {/* セレクタ */}
         <div className="relative">

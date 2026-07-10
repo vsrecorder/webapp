@@ -22,7 +22,7 @@ async function getEnvironment(date: string): Promise<EnvironmentType> {
   }
 }
 
-// date未指定時は環境一覧をまとめて返す（環境別フィルタのセレクタ選択肢取得用）
+// date未指定時は環境一覧をまとめて返す（環境フィルタのセレクタ選択肢取得用）
 async function getAllEnvironments(): Promise<EnvironmentType[]> {
   try {
     const domain = process.env.VSRECORDER_DOMAIN;

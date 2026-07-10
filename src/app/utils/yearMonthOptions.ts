@@ -1,4 +1,4 @@
-// 「月別」フィルタで使う年月選択肢を生成する共通ユーティリティ。
+// 「月次」フィルタで使う年月選択肢を生成する共通ユーティリティ。
 // OpponentDeckUsagePanel/DeckUsagePanel等、複数のパネルで同じ生成ロジックを使うため切り出している。
 
 export function getCurrentYearMonth(): string {

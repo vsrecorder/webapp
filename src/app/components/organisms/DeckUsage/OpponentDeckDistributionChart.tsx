@@ -400,7 +400,7 @@ export default function OpponentDeckDistributionChart({
                 </span>
                 <span className="text-[10px] text-default-400">({tooltip.deck.count}件)</span>
               </div>
-              <div className="flex flex-col items-center gap-0.5 pt-1.5 border-t border-default-200 w-full">
+              <div className="flex flex-col items-center gap-0.5 mt-1.5 pt-3 border-t border-default-200 w-full">
                 <span className="text-[10px] font-bold text-default-400">勝率</span>
                 <span
                   className={`text-base font-black tabular-nums ${winRateTextColor(tooltip.deck.win_rate)}`}

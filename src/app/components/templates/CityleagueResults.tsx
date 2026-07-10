@@ -69,7 +69,7 @@ export default function TemplateCityleagueResults() {
           size="md"
           selectedKey={selectedKey}
           onSelectionChange={handleSelectionChange}
-          className="fixed z-50 top-15 left-0 right-0 lg:top-20 pl-1 pr-1"
+          className="fixed z-50 top-15 left-0 right-0 lg:top-28 pl-1 pr-1"
           classNames={{
             cursor: "",
             tab: "h-8",

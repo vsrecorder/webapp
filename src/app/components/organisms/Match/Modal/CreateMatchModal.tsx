@@ -244,16 +244,12 @@ export default function CreateMatchModal({
     );
   }, [opponentsDeckInfo, activeCandidates]);
 
-  const {
-    isOpen: isOpenForPokemonSprite1Modal,
-    onOpen: onOpenForPokemonSprite1Modal,
-    onOpenChange: onOpenChangeForPokemonSprite1Modal,
-  } = useDisclosure();
+  const [activePokemonSpriteSlot, setActivePokemonSpriteSlot] = useState<1 | 2>(1);
 
   const {
-    isOpen: isOpenForPokemonSprite2Modal,
-    onOpen: onOpenForPokemonSprite2Modal,
-    onOpenChange: onOpenChangeForPokemonSprite2Modal,
+    isOpen: isOpenForPokemonSpriteModal,
+    onOpen: onOpenForPokemonSpriteModal,
+    onOpenChange: onOpenChangeForPokemonSpriteModal,
   } = useDisclosure();
 
   const resetForm = () => {
@@ -542,7 +538,8 @@ export default function CreateMatchModal({
                   <Image
                     onClick={() => {
                       if (!isDefaultVictory && !isDefaultDefeat) {
-                        onOpenForPokemonSprite1Modal();
+                        setActivePokemonSpriteSlot(1);
+                        onOpenForPokemonSpriteModal();
                       }
                     }}
                     alt={pokemonSprite1.id}
@@ -554,7 +551,8 @@ export default function CreateMatchModal({
                   <Image
                     onClick={() => {
                       if (!isDefaultVictory && !isDefaultDefeat) {
-                        onOpenForPokemonSprite1Modal();
+                        setActivePokemonSpriteSlot(1);
+                        onOpenForPokemonSpriteModal();
                       }
                     }}
                     alt="unknown"
@@ -571,7 +569,8 @@ export default function CreateMatchModal({
                   <Image
                     onClick={() => {
                       if (!isDefaultVictory && !isDefaultDefeat) {
-                        onOpenForPokemonSprite2Modal();
+                        setActivePokemonSpriteSlot(2);
+                        onOpenForPokemonSpriteModal();
                       }
                     }}
                     alt={pokemonSprite2.id}
@@ -583,7 +582,8 @@ export default function CreateMatchModal({
                   <Image
                     onClick={() => {
                       if (!isDefaultVictory && !isDefaultDefeat) {
-                        onOpenForPokemonSprite2Modal();
+                        setActivePokemonSpriteSlot(2);
+                        onOpenForPokemonSpriteModal();
                       }
                     }}
                     alt="unknown"
@@ -842,17 +842,13 @@ export default function CreateMatchModal({
   return (
     <>
       <PokemonSpriteModal
-        pokemonSprite={pokemonSprite1}
-        setPokemonSprite={setPokemonSprite1}
-        isOpen={isOpenForPokemonSprite1Modal}
-        onOpenChange={onOpenChangeForPokemonSprite1Modal}
-      />
-
-      <PokemonSpriteModal
-        pokemonSprite={pokemonSprite2}
-        setPokemonSprite={setPokemonSprite2}
-        isOpen={isOpenForPokemonSprite2Modal}
-        onOpenChange={onOpenChangeForPokemonSprite2Modal}
+        pokemonSprite1={pokemonSprite1}
+        setPokemonSprite1={setPokemonSprite1}
+        pokemonSprite2={pokemonSprite2}
+        setPokemonSprite2={setPokemonSprite2}
+        isOpen={isOpenForPokemonSpriteModal}
+        onOpenChange={onOpenChangeForPokemonSpriteModal}
+        initialActiveSlot={activePokemonSpriteSlot}
       />
 
       <Modal

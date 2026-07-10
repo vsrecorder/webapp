@@ -61,7 +61,7 @@ function HeaderShell({
     : "bg-linear-to-br from-blue-600/90 via-indigo-600/90 to-violet-700/90";
 
   return (
-    <header className="fixed z-50 top-0 left-0 right-0 h-14 lg:h-20 border-b border-white/15">
+    <header className="fixed z-50 top-0 left-0 right-0 h-14 lg:h-28 border-b border-white/15">
       {/*
         iOS の standalone PWA では、position:fixed な要素に直接 backdrop-blur を
         かけると、その中の transform アニメーション（マーキー）が再描画されなく
@@ -69,8 +69,14 @@ function HeaderShell({
         コンテンツ側は backdrop-filter の直接の対象にならないようにする。
       */}
       <div className={`absolute inset-0 ${gradientClass} backdrop-blur-md`} />
+      {/* 本サービスはモバイル専用のため、デスクトップ幅（lg以上）でのみ非対応の旨を表示する */}
       <div
-        className={`relative max-w-7xl mx-auto flex items-center justify-between px-4 h-full ${hasSidebar ? "lg:pl-56" : ""}`}
+        className={`relative hidden lg:flex items-center justify-center h-8 bg-amber-400 text-amber-950 text-xs font-semibold ${hasSidebar ? "lg:pl-56" : ""}`}
+      >
+        本サービスはモバイル専用です。デスクトップでの動作は保証されません。
+      </div>
+      <div
+        className={`relative max-w-7xl mx-auto flex items-center justify-between px-4 h-14 lg:h-20 ${hasSidebar ? "lg:pl-56" : ""}`}
       >
         {children}
       </div>

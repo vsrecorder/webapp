@@ -1,8 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+} from "react";
 
-import { ArcElement, Chart as ChartJS, Tooltip as ChartTooltip, type ActiveElement } from "chart.js";
+import {
+  ArcElement,
+  Chart as ChartJS,
+  Tooltip as ChartTooltip,
+  type ActiveElement,
+} from "chart.js";
 import { Pie } from "react-chartjs-2";
 import { Card, CardBody, Chip, Image, Tab, Tabs } from "@heroui/react";
 
@@ -15,13 +26,18 @@ import {
   OpponentDeckUsageStatType,
 } from "@app/types/opponent_deck_usage_stat";
 import { DeckUsageItemType, DeckUsageStatType } from "@app/types/deck_usage_stat";
-import { seasonOptionsFromChampionshipSeries, currentSeasonValue } from "@app/utils/season";
+import {
+  seasonOptionsFromChampionshipSeries,
+  currentSeasonValue,
+} from "@app/utils/season";
 import { lighten } from "@app/utils/color";
 import { groupIntoOther } from "@app/utils/deckUsageOther";
 import {
   createPieSlicesSpritePlugin,
   createPieCenterSpritePlugin,
+  getSpriteBadgeIndexAt,
 } from "@app/utils/pieSlicesSpritePlugin";
+import DeckUsageEmptyState from "@app/components/organisms/DeckUsage/DeckUsageEmptyState";
 
 ChartJS.register(ArcElement, ChartTooltip);
 
@@ -62,8 +78,10 @@ const OTHER_COLOR_SOFT = lighten(OTHER_COLOR, 0.55);
 // 円グラフ本体の高さ。外側スプライト分の余白はこれとは別にコンテナ側で確保し、
 // 円自体の大きさはこの値のまま変えない。
 const CHART_SIZE = 192;
-// 円の外側にスプライトを表示するための余白（chart.jsのlayout.paddingと合わせる）
-const EXTERNAL_SPRITE_PADDING = 72;
+// 円の外側にスプライトバッジを表示するための余白（chart.jsのlayout.paddingと合わせる。
+// ギャップ4px + バッジ高さの半分(28px弱)を基準にした値。カード幅は限られているため、
+// これ以上大きくすると横幅の制約で円グラフ自体が縮んでしまう。
+const EXTERNAL_SPRITE_PADDING = 60;
 // 詳細カード表示中はグラフの横幅が狭くなり、幅が余白の制約になってしまうため、
 // このときだけ余白を小さくして円のサイズを優先する
 const EXTERNAL_SPRITE_PADDING_NARROW = 30;
@@ -180,7 +198,9 @@ export default function OpponentDeckUsagePanel({
   const [environmentId, setEnvironmentId] = useState<string>(
     currentEnvironmentId ?? environments[0]?.id ?? "",
   );
-  const [season, setSeason] = useState<string>(() => currentSeasonValue(championshipSeries));
+  const [season, setSeason] = useState<string>(() =>
+    currentSeasonValue(championshipSeries),
+  );
   const [regulationId, setRegulationId] = useState<string>(
     standardRegulations[0]?.id ?? "",
   );
@@ -309,7 +329,9 @@ export default function OpponentDeckUsagePanel({
   const deckColorsSoft = useMemo(
     () =>
       displayDecks.map((_, idx) =>
-        hasOther && idx === displayDecks.length - 1 ? OTHER_COLOR_SOFT : SLICE_COLORS_SOFT[idx],
+        hasOther && idx === displayDecks.length - 1
+          ? OTHER_COLOR_SOFT
+          : SLICE_COLORS_SOFT[idx],
       ),
     [displayDecks, hasOther],
   );
@@ -319,20 +341,24 @@ export default function OpponentDeckUsagePanel({
   // (useMemoで作り直しても、react-chartjs-2側が古いプラグインインスタンスを使い続けてしまう)
   const displayDecksRef = useRef(displayDecks);
   displayDecksRef.current = displayDecks;
+  const deckColorsRef = useRef(deckColors);
+  deckColorsRef.current = deckColors;
   const tooltipRef = useRef(tooltip);
   tooltipRef.current = tooltip;
 
-  // スライス上に重ねるスプライト画像（実際に登録されている分のみ。最大2体）
+  // 外周に色バッジ付きで表示するスプライト画像（実際に登録されている分のみ。最大2体）
   // 「その他」など情報を持たないデッキは何も描画しない
-  // 詳細カード表示中は選択デッキを円の中心に表示するため、スライス上の個別表示は消す
+  // 詳細カード表示中は選択デッキを円の中心に表示するため、外周のバッジは全て消す
   const spritePlugin = useMemo(
     () =>
-      createPieSlicesSpritePlugin((idx) =>
-        tooltipRef.current
-          ? []
-          : (displayDecksRef.current[idx]?.pokemon_sprites ?? [])
-              .slice(0, 2)
-              .map((s) => spriteUrl(s.id)),
+      createPieSlicesSpritePlugin(
+        (idx) =>
+          tooltipRef.current
+            ? []
+            : (displayDecksRef.current[idx]?.pokemon_sprites ?? [])
+                .slice(0, 2)
+                .map((s) => spriteUrl(s.id)),
+        (idx) => deckColorsRef.current[idx] ?? OTHER_COLOR,
       ),
     [],
   );
@@ -342,7 +368,9 @@ export default function OpponentDeckUsagePanel({
     () =>
       createPieCenterSpritePlugin(() =>
         tooltipRef.current
-          ? (tooltipRef.current.deck.pokemon_sprites ?? []).slice(0, 2).map((s) => spriteUrl(s.id))
+          ? (tooltipRef.current.deck.pokemon_sprites ?? [])
+              .slice(0, 2)
+              .map((s) => spriteUrl(s.id))
           : null,
       ),
     [],
@@ -374,8 +402,8 @@ export default function OpponentDeckUsagePanel({
   }
 
   // 円グラフのコンテナ（スライス部分＋外側の余白）のクリックを自前でヒットテストする。
-  // chart.jsのoptions.onClickは「chartArea」の外側（＝スプライトを描く余白部分）をタップした場合
-  // 一切呼ばれない仕様のため、その領域のタップも拾うためにコンテナ側でハンドリングする。
+  // chart.jsのoptions.onClickは「chartArea」の外側（＝スプライトバッジを描く余白部分）を
+  // タップした場合一切呼ばれない仕様のため、その領域のタップも拾うためにコンテナ側でハンドリングする。
   function handleChartAreaClick(e: ReactMouseEvent<HTMLDivElement>) {
     const chart = chartRef.current;
     if (!chart) return;
@@ -385,11 +413,19 @@ export default function OpponentDeckUsagePanel({
       { intersect: true },
       false,
     ) as ActiveElement[];
-    if (elements.length === 0) {
-      closeDetail();
+    if (elements.length > 0) {
+      handleLegendClick(elements[0].index);
       return;
     }
-    handleLegendClick(elements[0].index);
+
+    // スライス本体に当たらなかった場合、外周のスプライトバッジをタップしていないか確認する
+    const badgeIndex = getSpriteBadgeIndexAt(chart, e.nativeEvent);
+    if (badgeIndex !== null) {
+      handleLegendClick(badgeIndex);
+      return;
+    }
+
+    closeDetail();
   }
 
   const filterLabel =
@@ -410,7 +446,9 @@ export default function OpponentDeckUsagePanel({
         // chart.jsのhover/active機構(setActiveElements・hoverBackgroundColor)は、
         // 選択時にグラフの横幅が変わって発生するresize処理の途中でリセットされてしまうため使わず、
         // 通常のデータ(backgroundColor・offset)として選択状態を表現する
-        backgroundColor: displayDecks.map((_, i) => (i === selectedIdx ? deckColors[i] : deckColorsSoft[i])),
+        backgroundColor: displayDecks.map((_, i) =>
+          i === selectedIdx ? deckColors[i] : deckColorsSoft[i],
+        ),
         borderColor: "#ffffff",
         borderWidth: 2,
         // 選択中のスライスを少し外側に押し出してさらに目立たせる
@@ -421,7 +459,9 @@ export default function OpponentDeckUsagePanel({
 
   // 詳細カード表示中はグラフの横幅が狭くなり、大きな余白だと横幅の制約で円自体が縮んでしまうため、
   // その場合だけ余白を小さくして円のサイズを優先する
-  const spritePadding = tooltip ? EXTERNAL_SPRITE_PADDING_NARROW : EXTERNAL_SPRITE_PADDING;
+  const spritePadding = tooltip
+    ? EXTERNAL_SPRITE_PADDING_NARROW
+    : EXTERNAL_SPRITE_PADDING;
 
   const chartOptions = {
     responsive: true,
@@ -547,12 +587,11 @@ export default function OpponentDeckUsagePanel({
             <span className="text-xs text-default-400">読み込み中...</span>
           </div>
         ) : decks.length === 0 ? (
-          <div
-            className="flex items-center justify-center"
-            style={{ height: CHART_SIZE + EXTERNAL_SPRITE_PADDING * 2 }}
-          >
-            <span className="text-xs text-default-400">データがありません</span>
-          </div>
+          <DeckUsageEmptyState
+            message={
+              "この期間の対戦記録がまだありません。\n記録を作成すると対戦相手のデッキ分布が表示されます。"
+            }
+          />
         ) : (
           <>
             {/* グラフ領域＋詳細カード。選択時はグラフを左に寄せ、右側に詳細カードを表示する（グラフには重ねない） */}
@@ -595,7 +634,9 @@ export default function OpponentDeckUsagePanel({
                     </span>
                   </div>
                   <div className="flex flex-col items-center gap-0.5 pt-1.5 border-t border-default-200 w-full">
-                    <span className="text-[10px] font-bold text-default-400">対面勝率</span>
+                    <span className="text-[10px] font-bold text-default-400">
+                      対面勝率
+                    </span>
                     <span
                       className={`text-base font-black tabular-nums ${winRateTextColor(tooltip.deck.win_rate)}`}
                     >

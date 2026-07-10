@@ -124,10 +124,10 @@ async function fetcherForPokemonSprites(url: string) {
 }
 
 function katakanaToHiragana(str: string): string {
-  return str.replace(/[\u30A1-\u30F6]/g, (match) => {
+  return str.replace(/[ァ-ヶ]/g, (match) => {
     const charCode = match.charCodeAt(0);
 
-    // 「ヴ」はひらがなの「ゔ」（\u3094）へ、それ以外は一律 -0x60
+    // 「ヴ」はひらがなの「ゔ」（ゔ）へ、それ以外は一律 -0x60
     return String.fromCharCode(charCode === 0x30f4 ? 0x3094 : charCode - 0x60);
   });
 }
@@ -144,28 +144,36 @@ function convertToPokemonSpriteOption(
   };
 }
 
+type SpriteSlot = 1 | 2;
+
 type Props = {
-  pokemonSprite: PokemonSpriteType | null;
-  setPokemonSprite: Dispatch<SetStateAction<PokemonSpriteType | null>>;
+  pokemonSprite1: PokemonSpriteType | null;
+  setPokemonSprite1: Dispatch<SetStateAction<PokemonSpriteType | null>>;
+  pokemonSprite2: PokemonSpriteType | null;
+  setPokemonSprite2: Dispatch<SetStateAction<PokemonSpriteType | null>>;
   isOpen: boolean;
   onOpenChange: () => void;
+  // モーダルを開いた直後にどちらの枠を選択対象にするか(クリックしたアイコン側)
+  initialActiveSlot?: SpriteSlot;
 };
 
 export default function PokemonSpriteModal({
-  pokemonSprite,
-  setPokemonSprite,
+  pokemonSprite1,
+  setPokemonSprite1,
+  pokemonSprite2,
+  setPokemonSprite2,
   isOpen,
   onOpenChange,
+  initialActiveSlot = 1,
 }: Props) {
   // react-select をダークモードに追従させるテーマ
   const reactSelectTheme = useReactSelectTheme();
 
   const focusSinkRef = useRef<HTMLDivElement>(null);
 
-  const [selectedPokemonSpriteOption, setSelectedPokemonSpriteOption] =
-    useState<PokemonSpriteOption | null>(null);
-
-  const [isDisabled, setIsDisabled] = useState<boolean>(false);
+  const [selectedOption1, setSelectedOption1] = useState<PokemonSpriteOption | null>(null);
+  const [selectedOption2, setSelectedOption2] = useState<PokemonSpriteOption | null>(null);
+  const [activeSlot, setActiveSlot] = useState<SpriteSlot>(1);
 
   let pokemonSpritesOptions: PokemonSpriteOption[] = [];
   let pokemonSpritesOptionsMessage = "対象のポケモンはいません";
@@ -191,40 +199,41 @@ export default function PokemonSpriteModal({
       if (!data) return [];
       return data.map(convertToPokemonSpriteOption);
     }, [data]);
-
-    /*
-    data?.forEach((s: PokemonSpriteType) => {
-      pokemonSpritesOptions.push(convertToPokemonSpriteOption(s));
-    });
-    */
   }
 
+  // モーダルを開いた瞬間に、外部の選択状態(1枚目/2枚目)とアクティブな枠を同期する
   useEffect(() => {
-    if (isOpen) {
-      if (pokemonSprite) {
-        const targetId = pokemonSprite.id;
+    if (!isOpen) return;
 
-        const matchedOption = pokemonSpritesOptions.find(
-          (option) => option.id === targetId,
-        );
+    const matchOption = (sprite: PokemonSpriteType | null) => {
+      if (!sprite) return null;
+      return pokemonSpritesOptions.find((option) => option.id === sprite.id) ?? null;
+    };
 
-        if (matchedOption) {
-          setSelectedPokemonSpriteOption(matchedOption);
-        }
-      } else {
-        setSelectedPokemonSpriteOption(null);
-      }
-    }
-  }, [isOpen, pokemonSprite]);
-
-  useEffect(() => {
-    if (pokemonSprite?.id === selectedPokemonSpriteOption?.id) {
-      setIsDisabled(true);
-      return;
+    if (pokemonSprite1) {
+      const matched = matchOption(pokemonSprite1);
+      if (matched) setSelectedOption1(matched);
+    } else {
+      setSelectedOption1(null);
     }
 
-    setIsDisabled(false);
-  }, [pokemonSprite, selectedPokemonSpriteOption]);
+    if (pokemonSprite2) {
+      const matched = matchOption(pokemonSprite2);
+      if (matched) setSelectedOption2(matched);
+    } else {
+      setSelectedOption2(null);
+    }
+
+    setActiveSlot(initialActiveSlot);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, pokemonSprite1, pokemonSprite2, initialActiveSlot]);
+
+  const activeOption = activeSlot === 1 ? selectedOption1 : selectedOption2;
+
+  // どちらの枠も変更がなければ決定ボタンを押させない(誤って無操作のまま確定させない)
+  const isUnchanged =
+    (selectedOption1?.id ?? null) === (pokemonSprite1?.id ?? null) &&
+    (selectedOption2?.id ?? null) === (pokemonSprite2?.id ?? null);
 
   return (
     <Modal
@@ -234,7 +243,8 @@ export default function PokemonSpriteModal({
       isDismissable={false}
       onOpenChange={onOpenChange}
       onClose={() => {
-        setSelectedPokemonSpriteOption(null);
+        setSelectedOption1(null);
+        setSelectedOption2(null);
       }}
       classNames={{
         base: "sm:max-w-full",
@@ -244,92 +254,139 @@ export default function PokemonSpriteModal({
       <ModalContent className="overflow-y-visible">
         {(onClose) => (
           <>
-            <ModalHeader className="px-3">ポケモンのアイコンを選択</ModalHeader>
+            <ModalHeader className="px-3 flex-col items-start gap-0.5">
+              <span>ポケモンのアイコンを選択</span>
+              <span className="text-tiny font-normal text-default-400">
+                下の2枠をタップで切り替えて、それぞれのアイコンを選べます
+              </span>
+            </ModalHeader>
             <ModalBody className="px-5">
-              <div>
-                <Select
-                  theme={reactSelectTheme}
-                  components={{ MenuList: HorizontalMenuList }}
-                  placeholder={
-                    <div className="flex items-center gap-2">
-                      <div className="text-xl">
-                        <CgSearch />
-                      </div>
-                      <span className="text-sm">ポケモンの名前を入力</span>
+              <div className="flex items-center justify-center gap-4">
+                {([1, 2] as const).map((slot) => {
+                  const option = slot === 1 ? selectedOption1 : selectedOption2;
+                  const isActive = activeSlot === slot;
+
+                  return (
+                    <button
+                      key={slot}
+                      type="button"
+                      onClick={() => setActiveSlot(slot)}
+                      aria-pressed={isActive}
+                      className={`relative w-16 h-16 shrink-0 rounded-xl border-2 flex items-center justify-center transition-colors ${
+                        isActive
+                          ? "border-primary bg-primary/10"
+                          : "border-divider bg-default-100"
+                      }`}
+                    >
+                      <span className="absolute -top-2 -left-2 flex items-center justify-center w-5 h-5 rounded-full bg-default-200 text-tiny font-bold">
+                        {slot}
+                      </span>
+                      {option ? (
+                        <Image
+                          alt={option.name}
+                          src={option.image_url}
+                          radius="none"
+                          disableAnimation
+                          className="w-12 h-12 object-contain"
+                        />
+                      ) : (
+                        <span className="text-tiny text-default-400">未選択</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <Select
+                theme={reactSelectTheme}
+                components={{ MenuList: HorizontalMenuList }}
+                placeholder={
+                  <div className="flex items-center gap-2">
+                    <div className="text-xl">
+                      <CgSearch />
                     </div>
-                  }
-                  styles={{
-                    control: (base) => ({
-                      ...base,
-                      height: 81,
-                      minHeight: 81,
-                    }),
-                    clearIndicator: (base) => ({
-                      ...base,
-                      marginRight: 12,
-                      padding: 5,
-                      transform: "scale(1.2)",
-                      "& svg": {
-                        width: 15,
-                        height: 15,
-                        strokeWidth: 0.75,
-                      },
-                    }),
-                    menuPortal: (base) => ({ ...base, zIndex: 9999 }),
-                    option: (base) => ({
-                      ...base,
-                      padding: 0,
-                    }),
-                  }}
-                  menuPosition="fixed"
-                  menuPortalTarget={
-                    typeof document !== "undefined" ? document.body : null
-                  }
-                  onMenuClose={() => {
-                    focusSinkRef.current?.focus();
-                  }}
-                  isClearable={true}
-                  isSearchable={true}
-                  noOptionsMessage={() => pokemonSpritesOptionsMessage}
-                  options={pokemonSpritesOptions}
-                  value={selectedPokemonSpriteOption}
-                  onChange={(option) => {
-                    setSelectedPokemonSpriteOption(option as PokemonSpriteOption);
-                  }}
-                  maxMenuHeight={100}
-                  formatOptionLabel={(option, { context }) => {
-                    const opt = option as PokemonSpriteOption;
+                    <span className="text-sm">ポケモンの名前を入力</span>
+                  </div>
+                }
+                styles={{
+                  control: (base) => ({
+                    ...base,
+                    height: 81,
+                    minHeight: 81,
+                  }),
+                  clearIndicator: (base) => ({
+                    ...base,
+                    marginRight: 12,
+                    padding: 5,
+                    transform: "scale(1.2)",
+                    "& svg": {
+                      width: 15,
+                      height: 15,
+                      strokeWidth: 0.75,
+                    },
+                  }),
+                  menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+                  option: (base) => ({
+                    ...base,
+                    padding: 0,
+                  }),
+                }}
+                menuPosition="fixed"
+                menuPortalTarget={typeof document !== "undefined" ? document.body : null}
+                onMenuClose={() => {
+                  focusSinkRef.current?.focus();
+                }}
+                isClearable={true}
+                isSearchable={true}
+                noOptionsMessage={() => pokemonSpritesOptionsMessage}
+                options={pokemonSpritesOptions}
+                value={activeOption}
+                onChange={(option) => {
+                  const nextOption = option as PokemonSpriteOption | null;
 
-                    if (context === "menu") {
-                      return (
-                        <div className="flex flex-col items-center justify-start gap-3 h-23.5">
-                          <Image
-                            alt={opt.name}
-                            src={opt.image_url}
-                            radius="none"
-                            className="w-16 h-16 object-contain"
-                          />
-                          <div className="truncate w-full text-center text-tiny pb-0.5 px-1.5">
-                            {opt.name}
-                          </div>
-                        </div>
-                      );
-                    }
+                  if (activeSlot === 1) {
+                    setSelectedOption1(nextOption);
+                    // 1枚目を選んだら、2枚目が未選択ならそのまま続けて選べるようにする
+                    if (nextOption && !selectedOption2) setActiveSlot(2);
+                  } else {
+                    setSelectedOption2(nextOption);
+                    if (nextOption && !selectedOption1) setActiveSlot(1);
+                  }
+                }}
+                maxMenuHeight={100}
+                formatOptionLabel={(option, { context }) => {
+                  const opt = option as PokemonSpriteOption;
 
+                  if (context === "menu") {
                     return (
-                      <div className="w-full h-full flex items-center gap-3">
+                      <div className="flex flex-col items-center justify-start gap-3 h-23.5">
                         <Image
                           alt={opt.name}
                           src={opt.image_url}
                           radius="none"
-                          className="object-contain pb-3"
+                          disableAnimation
+                          className="w-16 h-16 object-contain"
                         />
-                        <div className="text-sm truncate">{opt.name}</div>
+                        <div className="truncate w-full text-center text-tiny pb-0.5 px-1.5">
+                          {opt.name}
+                        </div>
                       </div>
                     );
-                  }}
-                />
-              </div>
+                  }
+
+                  return (
+                    <div className="w-full h-full flex items-center gap-3">
+                      <Image
+                        alt={opt.name}
+                        src={opt.image_url}
+                        radius="none"
+                        className="object-contain pb-3"
+                      />
+                      <div className="text-sm truncate">{opt.name}</div>
+                    </div>
+                  );
+                }}
+              />
               <div
                 ref={focusSinkRef}
                 tabIndex={-1}
@@ -351,19 +408,27 @@ export default function PokemonSpriteModal({
               <Button
                 color="primary"
                 variant="solid"
-                isDisabled={isDisabled}
+                isDisabled={isUnchanged}
                 onPress={() => {
-                  if (selectedPokemonSpriteOption) {
-                    setPokemonSprite({
-                      id: selectedPokemonSpriteOption.id,
-                      name: selectedPokemonSpriteOption.name,
-                      image_url: selectedPokemonSpriteOption.image_url,
-                    });
-                    onClose();
-                  } else {
-                    setPokemonSprite(null);
-                    onClose();
-                  }
+                  setPokemonSprite1(
+                    selectedOption1
+                      ? {
+                          id: selectedOption1.id,
+                          name: selectedOption1.name,
+                          image_url: selectedOption1.image_url,
+                        }
+                      : null,
+                  );
+                  setPokemonSprite2(
+                    selectedOption2
+                      ? {
+                          id: selectedOption2.id,
+                          name: selectedOption2.name,
+                          image_url: selectedOption2.image_url,
+                        }
+                      : null,
+                  );
+                  onClose();
                 }}
                 className="font-bold"
               >

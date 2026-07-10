@@ -220,9 +220,9 @@ export default async function TemplateHome() {
 
   return (
     <>
-      {/* ヒーローセクション：グラデーション背景で全幅に広げる（-mt-14でmainのpt-14分も覆い、ヘッダー裏の白背景を隠す。lg以上はヘッダーがh-20になる分-mt-20で揃える） */}
+      {/* ヒーローセクション：グラデーション背景で全幅に広げる（-mt-14でmainのpt-14分も覆い、ヘッダー裏の白背景を隠す。lg以上はヘッダーがh-28になる分-mt-28で揃える） */}
       <section
-        className={`-mx-2 -mt-14 lg:-mt-20 text-white px-6 pt-22 pb-14 lg:px-8 lg:pt-28 lg:pb-20 flex flex-col items-center gap-5 lg:gap-7 ${
+        className={`-mx-2 -mt-14 lg:-mt-28 text-white px-6 pt-22 pb-14 lg:px-8 lg:pt-36 lg:pb-20 flex flex-col items-center gap-5 lg:gap-7 ${
           isDevEnv()
             ? "bg-linear-to-br from-orange-500 via-orange-600 to-amber-700"
             : "bg-linear-to-br from-blue-600 via-indigo-600 to-violet-700"

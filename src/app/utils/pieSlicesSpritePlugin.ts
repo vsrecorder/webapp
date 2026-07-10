@@ -1,6 +1,7 @@
 "use client";
 
 import type { Chart, Plugin } from "chart.js";
+import { getRelativePosition } from "chart.js/helpers";
 
 // スライスごとの角度・半径情報を取り出すための最小限の型
 // (chart.jsのArcElementインスタンスは実行時にこれらのプロパティを直接持つ)
@@ -27,6 +28,24 @@ function loadImage(url: string, onLoad: () => void): HTMLImageElement | null {
   return null;
 }
 
+// next-themesが<html>に付与する"dark"クラスを見て、現在ダークモードかどうかを判定する
+// (globals.cssの `@custom-variant dark (&:is(.dark *):not(.light *))` と同じ考え方)
+function isDarkMode(): boolean {
+  if (typeof document === "undefined") return false;
+  const root = document.documentElement;
+  return root.classList.contains("dark") && !root.classList.contains("light");
+}
+
+// 「不明」スプライト（デッキ未登録時のプレースホルダー）かどうかをURLから判定する
+function isUnknownSprite(img: HTMLImageElement): boolean {
+  return img.src.endsWith("/unknown.png");
+}
+
+// バッジ内でスプライトがやや下寄りに見えるため、全スプライト共通で少し上にずらして描画する
+const SPRITE_LIFT = 5;
+// 「不明」スプライトは画像内でさらに下寄りに描かれているため、共通のずらし分に加えて追加でずらす
+const UNKNOWN_SPRITE_EXTRA_LIFT = 3;
+
 // 画像本来の縦横比を保ったまま、box(boxSize四方)の中央に収めて描画する
 // (widthとheightを両方sizeに指定すると画像が歪んで引き伸ばされてしまうため)
 function drawContain(
@@ -39,7 +58,21 @@ function drawContain(
   const scale = Math.min(boxSize / img.naturalWidth, boxSize / img.naturalHeight);
   const w = img.naturalWidth * scale;
   const h = img.naturalHeight * scale;
-  ctx.drawImage(img, boxX + (boxSize - w) / 2, boxY + (boxSize - h) / 2, w, h);
+  const unknown = isUnknownSprite(img);
+  const lift = SPRITE_LIFT + (unknown ? UNKNOWN_SPRITE_EXTRA_LIFT : 0);
+  const x = boxX + (boxSize - w) / 2;
+  const y = boxY + (boxSize - h) / 2 - lift;
+
+  if (unknown && isDarkMode()) {
+    // 「不明」スプライトは黒系のアイコンのため、ダークモードのバッジ(濃色背景)の上では
+    // ほぼ見えなくなってしまう。色を反転させて明るいアイコンにすることで視認性を保つ。
+    ctx.save();
+    ctx.filter = "invert(1)";
+    ctx.drawImage(img, x, y, w, h);
+    ctx.restore();
+  } else {
+    ctx.drawImage(img, x, y, w, h);
+  }
 }
 
 // 中心(cx, cy)を基準に、常に左→右の順で画像を並べて描画する（複数体は少し重ねる）。
@@ -67,40 +100,61 @@ function drawSprites(
 }
 
 const OVERLAP_RATIO = 0.28;
-const EXTERNAL_GAP = 6;
-// 外側表示同士の最低間隔（隣り合うスプライトが接触しすぎないための余白）
+// スプライト1体の表示サイズ（全スライス統一）
+const SPRITE_SIZE = 45;
+// バッジ内側の余白
+const BADGE_PAD = 5;
+// 円の外周とバッジの間隔
+const BADGE_GAP = 4;
+// バッジ同士の最低間隔（隣り合うバッジが接触しすぎないための余白）
 const OUTSIDE_MARGIN = 6;
-// 衝突解消のために動かせる最大距離（自身のサイズの何倍まで元の位置から離れてよいか）。
+// 衝突解消のために動かせる最大距離（自身のバッジ高さの何倍まで元の位置から離れてよいか）。
 // これを超えてまで引き離すと、そのスライスから遠い場所に表示されてしまうため、
 // 上限を超える場合は多少重なることを許容する。
 const MAX_DRIFT_FACTOR = 1.2;
 
-type OutsideCandidate = {
+// ダークモード時のバッジの塗り・枠線色。白のままだと暗い画面の中で浮いて見えるため、
+// アプリのダーク配色（globals.cssのドット背景などで使っている#27272a系）に合わせた
+// 濃色の塗りに、境界が分かるよう薄い枠を追加する。
+const BADGE_FILL_LIGHT = "#ffffff";
+const BADGE_FILL_DARK = "#27272a";
+const BADGE_OUTLINE_DARK = "rgba(255, 255, 255, 0.25)";
+
+type BadgeItem = {
+  index: number;
   images: HTMLImageElement[];
-  edgeX: number;
-  edgeY: number;
   arcX: number;
   arcY: number;
   angle: number;
   originalAngle: number;
   radius: number;
   size: number;
-  // 衝突判定に使う、このスプライト（組み合わせ含む）のおおよその半径
+  badgeW: number;
+  badgeH: number;
+  // 衝突判定に使う、このバッジのおおよその半径（横幅ベース）
   boundRadius: number;
+  color: string;
 };
 
-// 外側表示になったスプライト同士が重ならないよう、角度が近いものを引き離す。
+// タップ判定用に、直近の描画で確定したバッジの位置・サイズをチャートインスタンスに保持しておく
+type BadgeHitArea = { index: number; cx: number; cy: number; w: number; h: number };
+const badgeHitAreas = new WeakMap<Chart, BadgeHitArea[]>();
+
+// テーマ(ライト/ダーク)切り替え時に再描画するためのMutationObserverをチャートごとに保持する
+const themeObservers = new WeakMap<Chart, MutationObserver>();
+
+// バッジ同士が重ならないよう、角度が近いものを引き離す。
 // 角度順に並べ、前の項目との間隔（半径上の弧長換算）が互いのboundRadius+余白より
 // 狭い場合は後ろ側の項目を角度方向に押し出す（前から順に1回なめるだけで済む）。
 // ただし、自身のスライスから離れすぎないよう押し出せる距離には上限を設ける。
-function resolveOutsideCollisions(candidates: OutsideCandidate[]) {
-  if (candidates.length < 2) return;
+function resolveOutsideCollisions(items: BadgeItem[]) {
+  if (items.length < 2) return;
 
-  candidates.sort((a, b) => a.angle - b.angle);
+  items.sort((a, b) => a.angle - b.angle);
 
-  for (let i = 1; i < candidates.length; i++) {
-    const prev = candidates[i - 1];
-    const cur = candidates[i];
+  for (let i = 1; i < items.length; i++) {
+    const prev = items[i - 1];
+    const cur = items[i];
     const gap = cur.angle - prev.angle;
     const avgRadius = (prev.radius + cur.radius) / 2;
     // 弧長 = 角度 × 半径 なので、必要な弧長を角度に変換する
@@ -112,39 +166,87 @@ function resolveOutsideCollisions(candidates: OutsideCandidate[]) {
   }
 }
 
-// スライスの境界線(startAngle/endAngle、原点を通る直線)と、原点からの相対y座標がpyの
-// 水平線との交点のx座標を求める。表示軸を常に水平固定にしたため、
-// 「その半径での弦の長さ」ではなく、この交点から実際の水平方向の余白を計算する。
-function xAtHorizontal(theta: number, py: number): number {
-  const s = Math.sin(theta);
-  if (Math.abs(s) < 1e-6) {
-    // 境界線がほぼ水平＝この水平線とは交わらない（その方向には実質制約がない）
-    return Math.cos(theta) >= 0 ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
+// スライス色の縁取り付きバッジ（スタジアム形）を描画する。
+// バッジの縁色がスライスの色・凡例の色ドットと一致することで、
+// 引き出し線に頼らずどのスライスのスプライトかが分かる。
+// ライト/ダークモードで塗り色を切り替え、ダークモードでも埋もれないようにする。
+function drawBadge(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  w: number,
+  h: number,
+  color: string,
+) {
+  const dark = isDarkMode();
+  const r = h / 2;
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(cx - w / 2 + r, cy - h / 2);
+  ctx.lineTo(cx + w / 2 - r, cy - h / 2);
+  ctx.arc(cx + w / 2 - r, cy, r, -Math.PI / 2, Math.PI / 2);
+  ctx.lineTo(cx - w / 2 + r, cy + h / 2);
+  ctx.arc(cx - w / 2 + r, cy, r, Math.PI / 2, Math.PI * 1.5);
+  ctx.closePath();
+  ctx.fillStyle = dark ? BADGE_FILL_DARK : BADGE_FILL_LIGHT;
+  ctx.shadowColor = dark ? "rgba(0, 0, 0, 0.5)" : "rgba(0, 0, 0, 0.18)";
+  ctx.shadowBlur = 6;
+  ctx.shadowOffsetY = 1;
+  ctx.fill();
+  ctx.shadowColor = "transparent";
+  if (dark) {
+    // 濃色の塗りだけだと背景との境界が分かりにくいため、薄い縁をもう一段追加する
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = BADGE_OUTLINE_DARK;
+    ctx.stroke();
   }
-  return (py * Math.cos(theta)) / s;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+  ctx.restore();
 }
 
 /**
- * 円グラフの各スライス上にスプライト画像（デッキの組み合わせ最大2体）を重ねて描画するchart.jsプラグイン。
- * 表示順序（左→右）が入れ替わらないよう、並べる軸は常に画面上の水平固定にしている。
+ * 円グラフの各スライスのスプライト画像（デッキの組み合わせ最大2体）を、
+ * 外周に沿った同心円上に統一サイズの色バッジ付きで描画するchart.jsプラグイン。
  *
- * どんな状況でも大きく表示するため、サイズは「内側にidealSizeでそのまま収まるか」の二択判定にし、
- * 中途半端に縮小することはしない。収まらない場合は円の外側・該当スライス付近に
- * 固定サイズ(outsideSize)で引き出し線付きに表示する。外側表示になったスプライト同士が
- * 隣接して重ならないよう、描画前に角度方向の衝突解消を行う（resolveOutsideCollisions）。
- * 外側表示分だけ円グラフ自体が縮小しないよう、呼び出し側では
- * chart.jsの`layout.padding`とキャンバスを囲むコンテナの高さの両方に、
- * 同じ余白分を確保しておくこと。
+ * 見やすさのための設計:
+ * - 内側/外側の混在をやめ、全アイコンを外周の同じ半径上に配置して規則性を持たせる
+ * - スライス色の縁取り付きバッジで「どのスライスのアイコンか」を色で明示する
+ *   （凡例の色ドットとも対応し、引き出し線が不要になる）
+ * - サイズを統一し円グラフ本体を主役に保つ
+ * - 表示順序（左→右）が入れ替わらないよう、並べる軸は常に画面上の水平固定
+ * - バッジ同士は角度方向の衝突解消で重なりを防ぐ（自スライスから離れすぎない上限付き）
+ *
+ * バッジの位置はチャートインスタンスに記録され、getSpriteBadgeIndexAtでタップ判定に使える。
+ * 呼び出し側では、バッジの分だけchart.jsの`layout.padding`と
+ * キャンバスを囲むコンテナの高さの両方に同じ余白分を確保しておくこと。
  */
 export function createPieSlicesSpritePlugin(
   getSpriteUrls: (index: number) => (string | null | undefined)[] | null | undefined,
+  getSliceColor: (index: number) => string,
 ): Plugin<"pie"> {
   return {
     id: "pieSlicesSprite",
+    // ライト/ダークの切り替えはユーザー操作やOS設定変更によっていつでも起こりうるが、
+    // chart.js自身はDOMの他の場所のクラス変更を検知できないため、バッジの色が
+    // 切り替え前の状態のまま描画され続けてしまう（例: ライトモードなのに前回描画した
+    // ダーク用の塗りが残る）。<html>のclass属性をMutationObserverで監視し、
+    // 変化したら再描画してバッジの色を最新のテーマに追従させる。
+    afterInit(chart: Chart<"pie">) {
+      if (typeof document === "undefined" || typeof MutationObserver === "undefined") return;
+      const observer = new MutationObserver(() => chart.draw());
+      observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+      themeObservers.set(chart, observer);
+    },
+    beforeDestroy(chart: Chart<"pie">) {
+      themeObservers.get(chart)?.disconnect();
+      themeObservers.delete(chart);
+    },
     afterDatasetsDraw(chart: Chart<"pie">) {
       const meta = chart.getDatasetMeta(0);
       const { ctx } = chart;
-      const outsideCandidates: OutsideCandidate[] = [];
+      const items: BadgeItem[] = [];
 
       meta.data.forEach((el, index) => {
         const urls = (getSpriteUrls(index) ?? []).filter((u): u is string => !!u);
@@ -159,86 +261,66 @@ export function createPieSlicesSpritePlugin(
         const n = loadedImages.length;
 
         const midAngle = (arc.startAngle + arc.endAngle) / 2;
-        const dirX = Math.cos(midAngle);
-        const dirY = Math.sin(midAngle);
+        const overlap = SPRITE_SIZE * OVERLAP_RATIO;
+        const totalWidth = n === 1 ? SPRITE_SIZE : SPRITE_SIZE * n - overlap * (n - 1);
+        const badgeW = totalWidth + BADGE_PAD * 2;
+        const badgeH = SPRITE_SIZE + BADGE_PAD * 2;
 
-        const idealSize = Math.min(80, Math.max(40, arc.outerRadius * 0.86));
-        const denom = n - OVERLAP_RATIO * (n - 1);
-
-        // 表示軸を水平固定にしたため、スライスの2辺(startAngle/endAngle)と
-        // 配置点を通る水平線との交点から、実際に使える水平方向の余白を計算する
-        const insideRadius = arc.outerRadius * 0.62;
-        const px = dirX * insideRadius;
-        const py = dirY * insideRadius;
-        const xStart = xAtHorizontal(arc.startAngle, py);
-        const xEnd = xAtHorizontal(arc.endAngle, py);
-        const leftBound = Math.min(xStart, xEnd);
-        const rightBound = Math.max(xStart, xEnd);
-        const availWidthInside = 2 * Math.max(0, Math.min(px - leftBound, rightBound - px));
-
-        // idealSizeがそのまま収まる場合だけ内側に描画する（縮小して収める、はしない）
-        if (availWidthInside / denom >= idealSize) {
-          const cx = arc.x + px;
-          const cy = arc.y + py;
-          ctx.save();
-          ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
-          ctx.shadowBlur = 4;
-          drawSprites(ctx, loadedImages, cx, cy, idealSize);
-          ctx.restore();
-          return;
-        }
-
-        // 収まらない場合は円の外側・スライス付近に固定サイズで表示する候補として記録しておく
-        // (この時点では描画せず、他スライスの外側表示と重ならないよう後でまとめて位置調整する)
-        const outsideSize = Math.min(60, Math.max(40, arc.outerRadius * 0.62));
-        const overlap = outsideSize * OVERLAP_RATIO;
-        const totalWidth = n === 1 ? outsideSize : outsideSize * n - overlap * (n - 1);
-
-        outsideCandidates.push({
+        // バッジ中心の半径はbadgeHの半分を基準にする。バッジは画面上で常に横長固定のため、
+        // スライスがほぼ真横を向く場合は横幅(badgeW)の方が半径方向に大きく張り出すが、
+        // それに合わせて余白を確保するとカード幅の制約で円グラフ自体が縮んでしまうため、
+        // ここでは高さ基準に留め、真横向きのごく稀なケースでの多少のはみ出しは許容する。
+        items.push({
+          index,
           images: loadedImages,
-          edgeX: arc.x + dirX * arc.outerRadius,
-          edgeY: arc.y + dirY * arc.outerRadius,
           arcX: arc.x,
           arcY: arc.y,
           angle: midAngle,
           originalAngle: midAngle,
-          radius: arc.outerRadius + EXTERNAL_GAP + outsideSize / 2,
-          size: outsideSize,
-          boundRadius: totalWidth / 2,
+          radius: arc.outerRadius + BADGE_GAP + badgeH / 2,
+          size: badgeH,
+          badgeW,
+          badgeH,
+          boundRadius: badgeW / 2,
+          color: getSliceColor(index),
         });
       });
 
-      resolveOutsideCollisions(outsideCandidates);
+      resolveOutsideCollisions(items);
 
-      outsideCandidates.forEach((c) => {
-        const cx = c.arcX + Math.cos(c.angle) * c.radius;
-        const cy = c.arcY + Math.sin(c.angle) * c.radius;
-
-        // 引き出し線はアイコンの少し手前で止める（衝突解消で角度がずれてもアイコン中心に
-        // めり込まないよう、スライス外周からアイコンへ向かう向きを毎回計算し直す）
-        const lineDX = cx - c.edgeX;
-        const lineDY = cy - c.edgeY;
-        const lineLen = Math.hypot(lineDX, lineDY) || 1;
-        const stopX = cx - (lineDX / lineLen) * (c.size / 2);
-        const stopY = cy - (lineDY / lineLen) * (c.size / 2);
-
-        ctx.save();
-        ctx.strokeStyle = "rgba(63, 63, 70, 0.35)";
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(c.edgeX, c.edgeY);
-        ctx.lineTo(stopX, stopY);
-        ctx.stroke();
-        ctx.restore();
-
-        ctx.save();
-        ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
-        ctx.shadowBlur = 4;
-        drawSprites(ctx, c.images, cx, cy, c.size);
-        ctx.restore();
+      const hitAreas: BadgeHitArea[] = [];
+      items.forEach((item) => {
+        const cx = item.arcX + Math.cos(item.angle) * item.radius;
+        const cy = item.arcY + Math.sin(item.angle) * item.radius;
+        drawBadge(ctx, cx, cy, item.badgeW, item.badgeH, item.color);
+        drawSprites(ctx, item.images, cx, cy, SPRITE_SIZE);
+        hitAreas.push({ index: item.index, cx, cy, w: item.badgeW, h: item.badgeH });
       });
+      badgeHitAreas.set(chart, hitAreas);
     },
   };
+}
+
+/**
+ * 円グラフの外周バッジ（createPieSlicesSpritePluginが描画したもの）を
+ * タップした場合に、対応するデータのindexを返す。バッジ上でなければnull。
+ * chart.getElementsAtEventForMode ではスライスの外側にあるバッジを検知できないため、
+ * こちらを別途呼び出して組み合わせて使う。
+ */
+export function getSpriteBadgeIndexAt(
+  chart: Chart<"pie">,
+  nativeEvent: Parameters<typeof getRelativePosition>[0],
+): number | null {
+  const areas = badgeHitAreas.get(chart);
+  if (!areas || areas.length === 0) return null;
+
+  const { x, y } = getRelativePosition(nativeEvent, chart);
+  for (const area of areas) {
+    if (Math.abs(x - area.cx) <= area.w / 2 && Math.abs(y - area.cy) <= area.h / 2) {
+      return area.index;
+    }
+  }
+  return null;
 }
 
 /**
@@ -273,15 +355,22 @@ export function createPieCenterSpritePlugin(
           ? size
           : size * loadedImages.length - overlap * (loadedImages.length - 1);
       const badgeRadius = totalWidth / 2 + 10;
+      const dark = isDarkMode();
 
-      // 複数色のスライスが集まる中心でも見やすいよう、白い円のバッジを敷いてから描画する
+      // 複数色のスライスが集まる中心でも見やすいよう、円形バッジを敷いてから描画する
       ctx.save();
       ctx.beginPath();
       ctx.arc(cx, cy, badgeRadius, 0, Math.PI * 2);
-      ctx.fillStyle = "#ffffff";
-      ctx.shadowColor = "rgba(0, 0, 0, 0.25)";
+      ctx.fillStyle = dark ? BADGE_FILL_DARK : BADGE_FILL_LIGHT;
+      ctx.shadowColor = dark ? "rgba(0, 0, 0, 0.5)" : "rgba(0, 0, 0, 0.25)";
       ctx.shadowBlur = 8;
       ctx.fill();
+      if (dark) {
+        ctx.shadowColor = "transparent";
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = BADGE_OUTLINE_DARK;
+        ctx.stroke();
+      }
       ctx.restore();
 
       ctx.save();

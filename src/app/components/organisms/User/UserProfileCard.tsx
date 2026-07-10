@@ -28,17 +28,34 @@ const CHAMPION_SHIP_POINT_ICON_URL =
 type Props = {
   user: UserType;
   isDevEnv?: boolean;
+  userCreatedAt?: string;
 };
 
-// JST で現在の年月を返す
-function getCurrentYearMonth(): { yearMonth: string; label: string } {
+// JST で現在の年月("YYYY-MM")を返す
+function getCurrentYearMonthValue(): string {
   const now = new Date(Date.now() + 9 * 60 * 60 * 1000);
-  const year = now.getUTCFullYear();
-  const month = now.getUTCMonth() + 1;
-  return {
-    yearMonth: `${year}-${String(month).padStart(2, "0")}`,
-    label: `${year}年${month}月`,
-  };
+  return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+function yearMonthLabel(yearMonth: string): string {
+  const [year, month] = yearMonth.split("-");
+  return `${year}年${Number(month)}月`;
+}
+
+// 登録月(なければ直近12ヶ月)〜当月までの年月選択肢を新しい順で生成する
+function generateYearMonthOptions(createdAt?: Date) {
+  const options: { value: string; label: string }[] = [];
+  const now = new Date();
+  const start = createdAt
+    ? new Date(createdAt.getFullYear(), createdAt.getMonth(), 1)
+    : new Date(now.getFullYear(), now.getMonth() - 11, 1);
+  let d = new Date(now.getFullYear(), now.getMonth(), 1);
+  while (d >= start) {
+    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    options.push({ value, label: yearMonthLabel(value) });
+    d = new Date(d.getFullYear(), d.getMonth() - 1, 1);
+  }
+  return options;
 }
 
 // target が変わったとき from → target へアニメーション
@@ -82,7 +99,9 @@ function winRateColor(rate: number): string {
 type WinRateBadgeProps = {
   winRate: number;
   isLoading: boolean;
-  monthLabel: string;
+  yearMonth: string;
+  yearMonthOptions: { value: string; label: string }[];
+  onYearMonthChange: (value: string) => void;
   hidden: boolean;
   onToggle: () => void;
 };
@@ -90,7 +109,9 @@ type WinRateBadgeProps = {
 function WinRateBadge({
   winRate,
   isLoading,
-  monthLabel,
+  yearMonth,
+  yearMonthOptions,
+  onYearMonthChange,
   hidden,
   onToggle,
 }: WinRateBadgeProps) {
@@ -101,7 +122,21 @@ function WinRateBadge({
 
   return (
     <div className="flex flex-col justify-center items-end gap-0.5">
-      <span className="text-white/90 text-[12px] font-semibold">{monthLabel}</span>
+      <div className="relative flex items-center">
+        <select
+          value={yearMonth}
+          onChange={(e) => onYearMonthChange(e.target.value)}
+          aria-label="表示する年月を選択"
+          className="appearance-none bg-transparent text-white/90 text-[12px] font-semibold text-right pr-3.5 focus:outline-none [&>option]:text-default-700"
+        >
+          {yearMonthOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+        <span className="pointer-events-none absolute right-0 text-white/70 text-[8px]">▼</span>
+      </div>
       <button
         onClick={onToggle}
         className="flex items-center gap-1 text-white/70 hover:text-white/90 transition-colors pb-1"
@@ -114,18 +149,24 @@ function WinRateBadge({
           <LuEye className="w-3 h-3 shrink-0" />
         )}
       </button>
-      {hidden ? (
-        <span className="pb-0.5 text-3xl font-black text-white/30 leading-none">——</span>
-      ) : isLoading ? (
-        <span className="pb-0.5 text-3xl font-black text-white/30 animate-pulse leading-none">
-          —
-        </span>
-      ) : (
-        <span className={`text-3xl font-black leading-none tabular-nums ${color}`}>
-          {pct}
-          <span className="text-base font-bold">%</span>
-        </span>
-      )}
+      <button
+        onClick={onToggle}
+        className="pb-0.5"
+        aria-label={hidden ? "戦績を表示する" : "戦績を非表示にする"}
+      >
+        {hidden ? (
+          <span className="text-3xl font-black text-white/30 leading-none">——</span>
+        ) : isLoading ? (
+          <span className="text-3xl font-black text-white/30 animate-pulse leading-none">
+            —
+          </span>
+        ) : (
+          <span className={`text-3xl font-black leading-none tabular-nums ${color}`}>
+            {pct}
+            <span className="text-base font-bold">%</span>
+          </span>
+        )}
+      </button>
     </div>
   );
 }
@@ -236,7 +277,7 @@ function PlayersClubBadge({ isLoading, userPlayer }: PlayersClubBadgeProps) {
 
 const STATS_VISIBLE_KEY = "profile_stats_visible";
 
-export default function UserProfileCard({ user, isDevEnv = false }: Props) {
+export default function UserProfileCard({ user, isDevEnv = false, userCreatedAt }: Props) {
   const [stat, setStat] = useState<UserStatType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [userPlayer, setUserPlayer] = useState<UserPlayerType | null>(null);
@@ -244,8 +285,11 @@ export default function UserProfileCard({ user, isDevEnv = false }: Props) {
   const [isPlayersClubFeatureDisabled, setIsPlayersClubFeatureDisabled] = useState(false);
   const [profile, setProfile] = useState({ name: user.name, imageUrl: user.image_url });
   const [statsVisible, setStatsVisible] = useState(true);
-  const { yearMonth, label: monthLabel } = getCurrentYearMonth();
+  const [yearMonth, setYearMonth] = useState<string>(getCurrentYearMonthValue);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
+
+  const createdAtDate = userCreatedAt != null ? new Date(userCreatedAt) : undefined;
+  const yearMonthOptions = generateYearMonthOptions(createdAtDate);
 
   useEffect(() => {
     const stored = localStorage.getItem(STATS_VISIBLE_KEY);
@@ -337,7 +381,9 @@ export default function UserProfileCard({ user, isDevEnv = false }: Props) {
             <WinRateBadge
               winRate={stat?.win_rate ?? 0}
               isLoading={isLoading}
-              monthLabel={monthLabel}
+              yearMonth={yearMonth}
+              yearMonthOptions={yearMonthOptions}
+              onYearMonthChange={setYearMonth}
               hidden={!statsVisible}
               onToggle={toggleStatsVisible}
             />

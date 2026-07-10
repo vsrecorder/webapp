@@ -370,7 +370,12 @@ export default async function TemplateDashboard({ userId }: Props) {
         <DashboardSections
           pinned={
             user ? (
-              <UserProfileCard key="pinned" user={user} isDevEnv={isDevEnv()} />
+              <UserProfileCard
+                key="pinned"
+                user={user}
+                isDevEnv={isDevEnv()}
+                userCreatedAt={user.created_at != null ? String(user.created_at) : undefined}
+              />
             ) : undefined
           }
           sections={sections}

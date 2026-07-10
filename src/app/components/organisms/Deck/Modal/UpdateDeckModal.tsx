@@ -54,17 +54,12 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
 
   const [sprite1, setSprite1] = useState<PokemonSpriteType | null>(null);
   const [sprite2, setSprite2] = useState<PokemonSpriteType | null>(null);
+  const [activeSpriteSlot, setActiveSpriteSlot] = useState<1 | 2>(1);
 
   const {
-    isOpen: isSprite1Open,
-    onOpen: onSprite1Open,
-    onOpenChange: onSprite1OpenChange,
-  } = useDisclosure();
-
-  const {
-    isOpen: isSprite2Open,
-    onOpen: onSprite2Open,
-    onOpenChange: onSprite2OpenChange,
+    isOpen: isSpriteOpen,
+    onOpen: onSpriteOpen,
+    onOpenChange: onSpriteOpenChange,
   } = useDisclosure();
 
   // ポケモンのアイコン一覧を取得（初期スプライトの解決に使用）
@@ -234,7 +229,11 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
                 <div className="flex items-center gap-0">
                   <div className="w-11 h-11 p-0 shrink-0">
                     <Image
-                      onClick={() => !isDisabled && onSprite1Open()}
+                      onClick={() => {
+                        if (isDisabled) return;
+                        setActiveSpriteSlot(1);
+                        onSpriteOpen();
+                      }}
                       alt={sprite1 ? sprite1.name : "アイコン1"}
                       src={sprite1 ? sprite1.image_url : UNKNOWN_SPRITE_URL}
                       radius="none"
@@ -244,7 +243,11 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
                   </div>
                   <div className="w-11 h-11 p-0 shrink-0">
                     <Image
-                      onClick={() => !isDisabled && onSprite2Open()}
+                      onClick={() => {
+                        if (isDisabled) return;
+                        setActiveSpriteSlot(2);
+                        onSpriteOpen();
+                      }}
                       alt={sprite2 ? sprite2.name : "アイコン2"}
                       src={sprite2 ? sprite2.image_url : UNKNOWN_SPRITE_URL}
                       radius="none"
@@ -310,17 +313,13 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
       </Modal>
 
       <PokemonSpriteModal
-        pokemonSprite={sprite1}
-        setPokemonSprite={setSprite1}
-        isOpen={isSprite1Open}
-        onOpenChange={onSprite1OpenChange}
-      />
-
-      <PokemonSpriteModal
-        pokemonSprite={sprite2}
-        setPokemonSprite={setSprite2}
-        isOpen={isSprite2Open}
-        onOpenChange={onSprite2OpenChange}
+        pokemonSprite1={sprite1}
+        setPokemonSprite1={setSprite1}
+        pokemonSprite2={sprite2}
+        setPokemonSprite2={setSprite2}
+        isOpen={isSpriteOpen}
+        onOpenChange={onSpriteOpenChange}
+        initialActiveSlot={activeSpriteSlot}
       />
     </>
   );

@@ -3,7 +3,7 @@ import useSWR from "swr";
 import { Children, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { SetStateAction, Dispatch, ReactElement } from "react";
 
-import Select, { MenuListProps } from "react-select";
+import Select, { MenuListProps, SelectInstance } from "react-select";
 import { FixedSizeList, ListChildComponentProps } from "react-window";
 import { useReactSelectTheme } from "@app/components/molecules/Select/useReactSelectTheme";
 
@@ -170,10 +170,12 @@ export default function PokemonSpriteModal({
   const reactSelectTheme = useReactSelectTheme();
 
   const focusSinkRef = useRef<HTMLDivElement>(null);
+  const selectRef = useRef<SelectInstance<PokemonSpriteOption, false>>(null);
 
   const [selectedOption1, setSelectedOption1] = useState<PokemonSpriteOption | null>(null);
   const [selectedOption2, setSelectedOption2] = useState<PokemonSpriteOption | null>(null);
   const [activeSlot, setActiveSlot] = useState<SpriteSlot>(1);
+  const [menuIsOpen, setMenuIsOpen] = useState(false);
 
   let pokemonSpritesOptions: PokemonSpriteOption[] = [];
   let pokemonSpritesOptionsMessage = "対象のポケモンはいません";
@@ -225,6 +227,7 @@ export default function PokemonSpriteModal({
     }
 
     setActiveSlot(initialActiveSlot);
+    setMenuIsOpen(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, pokemonSprite1, pokemonSprite2, initialActiveSlot]);
 
@@ -245,6 +248,7 @@ export default function PokemonSpriteModal({
       onClose={() => {
         setSelectedOption1(null);
         setSelectedOption2(null);
+        setMenuIsOpen(false);
       }}
       classNames={{
         base: "sm:max-w-full",
@@ -270,7 +274,11 @@ export default function PokemonSpriteModal({
                     <button
                       key={slot}
                       type="button"
-                      onClick={() => setActiveSlot(slot)}
+                      onClick={() => {
+                        setActiveSlot(slot);
+                        setMenuIsOpen(true);
+                        selectRef.current?.focus();
+                      }}
                       aria-pressed={isActive}
                       className={`relative w-16 h-16 shrink-0 rounded-xl border-2 flex items-center justify-center transition-colors ${
                         isActive
@@ -298,6 +306,7 @@ export default function PokemonSpriteModal({
               </div>
 
               <Select
+                ref={selectRef}
                 theme={reactSelectTheme}
                 components={{ MenuList: HorizontalMenuList }}
                 placeholder={
@@ -333,7 +342,10 @@ export default function PokemonSpriteModal({
                 }}
                 menuPosition="fixed"
                 menuPortalTarget={typeof document !== "undefined" ? document.body : null}
+                menuIsOpen={menuIsOpen}
+                onMenuOpen={() => setMenuIsOpen(true)}
                 onMenuClose={() => {
+                  setMenuIsOpen(false);
                   focusSinkRef.current?.focus();
                 }}
                 isClearable={true}

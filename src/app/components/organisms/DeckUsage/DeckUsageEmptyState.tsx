@@ -65,9 +65,13 @@ export default function DeckUsageEmptyState({ message }: Props) {
         className="relative w-full opacity-40"
         style={{ height: CHART_SIZE + EXTERNAL_SPRITE_PADDING * 2 }}
       >
-        <Pie data={DUMMY_CHART_DATA} options={DUMMY_CHART_OPTIONS} plugins={[spritePlugin]} />
+        <Pie
+          data={DUMMY_CHART_DATA}
+          options={DUMMY_CHART_OPTIONS}
+          plugins={[spritePlugin]}
+        />
       </div>
-      <p className="text-center text-xs text-default-400 -mt-4 px-4 whitespace-pre-line">
+      <p className="text-center text-xs text-default-400 pt-3 pb-3 px-4 whitespace-pre-line">
         {message}
       </p>
       <Button

@@ -104,6 +104,15 @@ const OVERLAP_RATIO = 0.28;
 const SPRITE_SIZE = 45;
 // バッジ内側の余白
 const BADGE_PAD = 5;
+// パーセンテージ表示部分のフォントサイズ・スプライトとの間隔
+// (バッジ高さの増加分がそのまま外周への張り出しに直結し、余白からの見切れにつながるため
+// 視認性を保てる範囲でできるだけ小さくしている)
+const PERCENT_FONT_SIZE = 9;
+const PERCENT_GAP = 1;
+const PERCENT_BLOCK_HEIGHT = PERCENT_GAP + PERCENT_FONT_SIZE;
+// パーセンテージ文字の色（ライト/ダークモードそれぞれで視認性を確保する）
+const PERCENT_COLOR_LIGHT = "#3f3f46";
+const PERCENT_COLOR_DARK = "#e4e4e7";
 // 円の外周とバッジの間隔
 const BADGE_GAP = 4;
 // バッジ同士の最低間隔（隣り合うバッジが接触しすぎないための余白）
@@ -134,6 +143,8 @@ type BadgeItem = {
   // 衝突判定に使う、このバッジのおおよその半径（横幅ベース）
   boundRadius: number;
   color: string;
+  // バッジ内・スプライト下に表示する割合文字列（例: "23%"）。nullなら表示しない
+  percentText: string | null;
 };
 
 // タップ判定用に、直近の描画で確定したバッジの位置・サイズをチャートインスタンスに保持しておく
@@ -206,6 +217,23 @@ function drawBadge(
   ctx.restore();
 }
 
+// バッジ内、スプライトの下にパーセンテージ文字列（例: "23%"）を描画する
+function drawBadgePercent(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  cx: number,
+  cy: number,
+  fontSize: number,
+) {
+  ctx.save();
+  ctx.font = `700 ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = isDarkMode() ? PERCENT_COLOR_DARK : PERCENT_COLOR_LIGHT;
+  ctx.fillText(text, cx, cy);
+  ctx.restore();
+}
+
 /**
  * 円グラフの各スライスのスプライト画像（デッキの組み合わせ最大2体）を、
  * 外周に沿った同心円上に統一サイズの色バッジ付きで描画するchart.jsプラグイン。
@@ -225,6 +253,7 @@ function drawBadge(
 export function createPieSlicesSpritePlugin(
   getSpriteUrls: (index: number) => (string | null | undefined)[] | null | undefined,
   getSliceColor: (index: number) => string,
+  getPercentText?: (index: number) => string | null | undefined,
 ): Plugin<"pie"> {
   return {
     id: "pieSlicesSprite",
@@ -263,8 +292,10 @@ export function createPieSlicesSpritePlugin(
         const midAngle = (arc.startAngle + arc.endAngle) / 2;
         const overlap = SPRITE_SIZE * OVERLAP_RATIO;
         const totalWidth = n === 1 ? SPRITE_SIZE : SPRITE_SIZE * n - overlap * (n - 1);
+        const percentText = getPercentText?.(index) ?? null;
         const badgeW = totalWidth + BADGE_PAD * 2;
-        const badgeH = SPRITE_SIZE + BADGE_PAD * 2;
+        const badgeH =
+          SPRITE_SIZE + BADGE_PAD * 2 + (percentText ? PERCENT_BLOCK_HEIGHT : 0);
 
         // バッジ中心の半径はbadgeHの半分を基準にする。バッジは画面上で常に横長固定のため、
         // スライスがほぼ真横を向く場合は横幅(badgeW)の方が半径方向に大きく張り出すが、
@@ -283,6 +314,7 @@ export function createPieSlicesSpritePlugin(
           badgeH,
           boundRadius: badgeW / 2,
           color: getSliceColor(index),
+          percentText,
         });
       });
 
@@ -293,7 +325,15 @@ export function createPieSlicesSpritePlugin(
         const cx = item.arcX + Math.cos(item.angle) * item.radius;
         const cy = item.arcY + Math.sin(item.angle) * item.radius;
         drawBadge(ctx, cx, cy, item.badgeW, item.badgeH, item.color);
-        drawSprites(ctx, item.images, cx, cy, SPRITE_SIZE);
+        // パーセンテージ表示分だけスプライトを上にずらし、その下の空きに文字を描画する
+        const spriteCy = item.percentText
+          ? cy - PERCENT_BLOCK_HEIGHT / 2
+          : cy;
+        drawSprites(ctx, item.images, cx, spriteCy, SPRITE_SIZE);
+        if (item.percentText) {
+          const percentCy = spriteCy + SPRITE_SIZE / 2 + PERCENT_GAP + PERCENT_FONT_SIZE / 2;
+          drawBadgePercent(ctx, item.percentText, cx, percentCy, PERCENT_FONT_SIZE);
+        }
         hitAreas.push({ index: item.index, cx, cy, w: item.badgeW, h: item.badgeH });
       });
       badgeHitAreas.set(chart, hitAreas);
@@ -323,13 +363,19 @@ export function getSpriteBadgeIndexAt(
   return null;
 }
 
+// 円の中心に表示するパーセンテージ文字のフォントサイズ・スプライトとの間隔
+// (外周バッジより中心の表示領域は大きいため、視認性重視でやや大きめにする)
+const CENTER_PERCENT_FONT_SIZE = 16;
+const CENTER_PERCENT_GAP = 4;
+
 /**
- * 円グラフの中心にスプライト画像を描画するchart.jsプラグイン。
+ * 円グラフの中心にスプライト画像（と任意でパーセンテージ文字列）を描画するchart.jsプラグイン。
  * 詳細カード表示中など、選択中のデッキを円の中心に大きく表示したい場合に使う。
  * getSpriteUrlsがnull/空配列を返す間は何も描画しない。
  */
 export function createPieCenterSpritePlugin(
   getSpriteUrls: () => (string | null | undefined)[] | null | undefined,
+  getPercentText?: () => string | null | undefined,
 ): Plugin<"pie"> {
   return {
     id: "pieCenterSprite",
@@ -354,7 +400,14 @@ export function createPieCenterSpritePlugin(
         loadedImages.length === 1
           ? size
           : size * loadedImages.length - overlap * (loadedImages.length - 1);
-      const badgeRadius = totalWidth / 2 + 10;
+      const percentText = getPercentText?.() ?? null;
+      // パーセンテージ表示分だけスプライトを上にずらし、その下の空きに文字を描画する
+      const centerShift = percentText ? (CENTER_PERCENT_GAP + CENTER_PERCENT_FONT_SIZE) / 2 : 0;
+      const spriteCy = cy - centerShift;
+      // 背景円はスプライト・文字の両方を覆えるよう、縦横それぞれの必要半径のうち大きい方を採用する
+      const verticalHalf = size / 2 + centerShift;
+      const horizontalHalf = totalWidth / 2;
+      const badgeRadius = Math.max(horizontalHalf, verticalHalf) + 10;
       const dark = isDarkMode();
 
       // 複数色のスライスが集まる中心でも見やすいよう、円形バッジを敷いてから描画する
@@ -374,8 +427,13 @@ export function createPieCenterSpritePlugin(
       ctx.restore();
 
       ctx.save();
-      drawSprites(ctx, loadedImages, cx, cy, size);
+      drawSprites(ctx, loadedImages, cx, spriteCy, size);
       ctx.restore();
+
+      if (percentText) {
+        const percentCy = spriteCy + size / 2 + CENTER_PERCENT_GAP + CENTER_PERCENT_FONT_SIZE / 2;
+        drawBadgePercent(ctx, percentText, cx, percentCy, CENTER_PERCENT_FONT_SIZE);
+      }
     },
   };
 }

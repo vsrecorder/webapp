@@ -24,6 +24,7 @@ import UnarchiveDeckModal from "@app/components/organisms/Deck/Modal/UnarchiveDe
 import InspectDeckModal from "@app/components/organisms/Deck/Modal/InspectDeckModal";
 import DisplayRecordsModal from "@app/components/organisms/Deck/Modal/DisplayRecordsModal";
 import DisplayDeckCodesModal from "@app/components/organisms/Deck/Modal/DisplayDeckCodes";
+import DisplayDeckOpponentAnalysisModal from "@app/components/organisms/Deck/Modal/DisplayDeckOpponentAnalysisModal";
 
 import DeckCodeCard from "@app/components/organisms/Deck/DeckCodeCard";
 import DeckCardSummaryRow from "@app/components/organisms/Deck/DeckCardSummaryRow";
@@ -40,6 +41,7 @@ import { LuTrash2 } from "react-icons/lu";
 import { LuFilePen } from "react-icons/lu";
 import { LuSquarePen } from "react-icons/lu";
 import { LuEllipsis } from "react-icons/lu";
+import { LuChartPie } from "react-icons/lu";
 
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
@@ -109,6 +111,13 @@ export default function ShowDeckModal({
     onOpen: onOpenForDisplayRecordsModal,
     onOpenChange: onOpenChangeForDisplayRecordsModal,
     onClose: onCloseForDisplayRecordsModal,
+  } = useDisclosure();
+
+  const {
+    isOpen: isOpenForDisplayDeckOpponentAnalysisModal,
+    onOpen: onOpenForDisplayDeckOpponentAnalysisModal,
+    onOpenChange: onOpenChangeForDisplayDeckOpponentAnalysisModal,
+    onClose: onCloseForDisplayDeckOpponentAnalysisModal,
   } = useDisclosure();
 
   const {
@@ -276,24 +285,47 @@ export default function ShowDeckModal({
                   </div>
                 )}
               </ModalBody>
-              <ModalFooter className="px-3 pt-0 pb-3 flex flex-col gap-3">
-                {/* バージョン履歴（主要アクション）。デッキコード未登録＝バージョンが存在しないため非表示 */}
-                {deckcode?.code && (
-                  <button
-                    type="button"
-                    onClick={onOpenForDisplayDeckCodesModal}
-                    className="flex items-center gap-2 w-full bg-primary text-white rounded-xl px-4 py-2.5 active:opacity-85 transition-opacity"
-                  >
-                    <LuLayers className="text-base shrink-0" />
-                    <span className="font-bold text-small">バージョン履歴</span>
-                    <span className="ml-auto bg-white/15 rounded-full px-2 py-0.5 text-tiny font-bold shrink-0">
-                      {versionCount ?? "…"}件
-                    </span>
-                  </button>
-                )}
-
-                {/* その他の操作 */}
+              <ModalFooter className="px-3 pt-0 pb-3 flex flex-col">
+                {/* ModalFooterは既定でflex flex-row justify-endのため、明示的にflex-colへ
+                    上書きしないと直下のgrid要素が中身の幅に縮んで右寄せされてしまう。
+                    4列グリッドに統一し、バージョン履歴(3列分)+新バージョン(1列)を1行目、
+                    残りの操作を2行目に配置する。新バージョンとその他を同じ4列目に置くことで
+                    縦に一直線に揃え、バージョン管理系の操作としてのまとまりを出す。
+                    デッキコード未登録の場合、バージョン履歴・新バージョンはいずれも表示しない
+                    （新バージョン作成の導線はDeckCodeCard側の案内に譲る） */}
                 <div className="grid grid-cols-4 gap-1.5">
+                  {deckcode?.code && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={onOpenForDisplayDeckCodesModal}
+                        className="col-span-3 flex items-center gap-2 bg-primary text-white rounded-xl px-4 py-1.5 active:opacity-85 transition-opacity"
+                      >
+                        <LuLayers className="text-base shrink-0" />
+                        <span className="font-bold text-small">バージョン履歴</span>
+                        <span className="ml-auto bg-white/15 rounded-full px-2 py-0.5 text-tiny font-bold shrink-0">
+                          {versionCount ?? "…"}件
+                        </span>
+                      </button>
+
+                      {isArchived ? (
+                        <button
+                          type="button"
+                          onClick={onOpenForCreateDeckCodeModal}
+                          className="flex flex-col items-center justify-center gap-1 rounded-xl bg-default-100 py-1.5 active:opacity-70"
+                        >
+                          <LuBookPlus className="text-base" />
+                          <span className="text-tiny font-medium">新バージョン</span>
+                        </button>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center gap-1 rounded-xl bg-default-50 py-1.5 text-default-300">
+                          <LuBookPlus className="text-base" />
+                          <span className="text-tiny font-medium">新バージョン</span>
+                        </div>
+                      )}
+                    </>
+                  )}
+
                   {isArchived ? (
                     <Link
                       href={`/records/create?deck_id=${deck.id}${deckcode?.id ? `&deck_code_id=${deckcode.id}` : ""}`}
@@ -315,24 +347,17 @@ export default function ShowDeckModal({
                     className="flex flex-col items-center justify-center gap-1 rounded-lg bg-default-100 py-2 active:opacity-70"
                   >
                     <LuFileText className="text-base" />
-                    <span className="text-tiny font-medium">対戦記録</span>
+                    <span className="text-tiny font-medium">記録一覧</span>
                   </button>
 
-                  {isArchived ? (
-                    <button
-                      type="button"
-                      onClick={onOpenForCreateDeckCodeModal}
-                      className="flex flex-col items-center justify-center gap-1 rounded-lg bg-default-100 py-2 active:opacity-70"
-                    >
-                      <LuBookPlus className="text-base" />
-                      <span className="text-tiny font-medium">新バージョン</span>
-                    </button>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center gap-1 rounded-lg bg-default-50 py-2 text-default-300">
-                      <LuBookPlus className="text-base" />
-                      <span className="text-tiny font-medium">新バージョン</span>
-                    </div>
-                  )}
+                  <button
+                    type="button"
+                    onClick={onOpenForDisplayDeckOpponentAnalysisModal}
+                    className="flex flex-col items-center justify-center gap-1 rounded-lg bg-default-100 py-2 active:opacity-70"
+                  >
+                    <LuChartPie className="text-base" />
+                    <span className="text-tiny font-medium">対戦分析</span>
+                  </button>
 
                   <Dropdown placement="top">
                     <DropdownTrigger>
@@ -423,6 +448,13 @@ export default function ShowDeckModal({
         isOpen={isOpenForDisplayRecordsModal}
         onOpenChange={onOpenChangeForDisplayRecordsModal}
         onClose={onCloseForDisplayRecordsModal}
+      />
+
+      <DisplayDeckOpponentAnalysisModal
+        deck={deck}
+        isOpen={isOpenForDisplayDeckOpponentAnalysisModal}
+        onOpenChange={onOpenChangeForDisplayDeckOpponentAnalysisModal}
+        onClose={onCloseForDisplayDeckOpponentAnalysisModal}
       />
 
       <DisplayDeckCodesModal

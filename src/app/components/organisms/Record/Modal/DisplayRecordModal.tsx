@@ -32,6 +32,7 @@ import Matches from "@app/components/organisms/Match/Matches";
 import UsedDeckById from "@app/components/organisms/Deck/UsedDeckById";
 
 import DeleteRecordModal from "@app/components/organisms/Record/Modal/DeleteRecordModal";
+import ImageSaveGuideModal from "@app/components/molecules/Image/ImageSaveGuideModal";
 
 import { RecordGetByIdResponseType } from "@app/types/record";
 import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
@@ -40,6 +41,8 @@ import { DeckGetByIdResponseType } from "@app/types/deck";
 import { MatchGetResponseType } from "@app/types/match";
 
 import { captureThemedPng } from "@app/utils/captureImage";
+import { saveGeneratedImage } from "@app/utils/saveImage";
+import { isIOS } from "@app/utils/platform";
 
 // ツイートURL生成ヘルパー
 
@@ -170,6 +173,15 @@ export default function DisplayRecordModal({
     onOpenChange: onOpenChangeForDeleteRecordModal,
   } = useDisclosure();
 
+  const {
+    isOpen: isOpenForImageSaveGuideModal,
+    onOpen: onOpenForImageSaveGuideModal,
+    onOpenChange: onOpenChangeForImageSaveGuideModal,
+  } = useDisclosure();
+  const [imageDataUrlForSaveGuide, setImageDataUrlForSaveGuide] = useState<string | null>(
+    null,
+  );
+
   const [tweetHref, setTweetHref] = useState<string>("");
 
   useEffect(() => {
@@ -258,12 +270,10 @@ export default function DisplayRecordModal({
       return;
     }
 
+    let dataUrl: string;
     try {
-      const dataUrl = await captureThemedPng(matchCardRef.current);
-      const link = document.createElement("a");
-      link.download = `${record.id}_${Date.now()}.png`;
-      link.href = dataUrl;
-      link.click();
+      dataUrl = await captureThemedPng(matchCardRef.current);
+      if (!isIOS()) await saveGeneratedImage(dataUrl, `${record.id}_${Date.now()}.png`);
     } catch (e) {
       console.log(e);
       if (toastId) closeToast(toastId);
@@ -277,6 +287,15 @@ export default function DisplayRecordModal({
     }
 
     if (toastId) closeToast(toastId);
+
+    // iOSはWeb Share APIでも「画像を保存」が出ないことがあるため、
+    // 長押し保存できるプレビューモーダルを表示する
+    if (isIOS()) {
+      setImageDataUrlForSaveGuide(dataUrl);
+      onOpenForImageSaveGuideModal();
+      return;
+    }
+
     addToast({
       title: "画像のダウンロードが完了",
       description: "画像をダウンロードしました",
@@ -306,12 +325,14 @@ export default function DisplayRecordModal({
       return;
     }
 
+    let dataUrl: string;
     try {
-      const dataUrl = await captureThemedPng(deckCardRef.current);
-      const link = document.createElement("a");
-      link.download = `${record.deck_id}_${record.deck_code_id}_${Date.now()}.png`;
-      link.href = dataUrl;
-      link.click();
+      dataUrl = await captureThemedPng(deckCardRef.current);
+      if (!isIOS())
+        await saveGeneratedImage(
+          dataUrl,
+          `${record.deck_id}_${record.deck_code_id}_${Date.now()}.png`,
+        );
     } catch {
       if (toastId) closeToast(toastId);
       addToast({
@@ -324,6 +345,13 @@ export default function DisplayRecordModal({
     }
 
     if (toastId) closeToast(toastId);
+
+    if (isIOS()) {
+      setImageDataUrlForSaveGuide(dataUrl);
+      onOpenForImageSaveGuideModal();
+      return;
+    }
+
     addToast({
       title: "画像のダウンロードが完了",
       description: "画像をダウンロードしました",
@@ -339,6 +367,12 @@ export default function DisplayRecordModal({
         setRecord={setRecord}
         isOpen={isOpenForDeleteRecordModal}
         onOpenChange={onOpenChangeForDeleteRecordModal}
+      />
+
+      <ImageSaveGuideModal
+        isOpen={isOpenForImageSaveGuideModal}
+        onOpenChange={onOpenChangeForImageSaveGuideModal}
+        imageDataUrl={imageDataUrlForSaveGuide}
       />
 
       <Modal

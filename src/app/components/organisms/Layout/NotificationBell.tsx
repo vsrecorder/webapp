@@ -49,10 +49,10 @@ function extractRankName(body: string): string | null {
   return body.match(/「(.+?)」/)?.[1] ?? null;
 }
 
-// 通知本文の「『スタン環境』環境で初対戦をしました！」のような『』内の対戦環境名を抜き出す
+// 通知本文の「『スタン環境』環境で対戦をしました！」のような『』内の対戦環境名を抜き出す
 // (environmentBadgeNotificationContent の本文フォーマットに対応)
 function extractEnvironmentBadgeTitle(body: string): string | null {
-  return body.match(/『(.+?)』環境で初対戦をしました/)?.[1] ?? null;
+  return body.match(/『(.+?)』環境で対戦をしました/)?.[1] ?? null;
 }
 
 // 通知本文の「🏆 竜王」のような「」内の"絵文字 称号名"から絵文字部分だけを抜き出す
@@ -102,12 +102,23 @@ export default function NotificationBell({ userId }: Props) {
     [environmentBadges],
   );
 
-  useEffect(() => {
-    fetch(`/api/users/${userId}/environment_badges`, { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => setEnvironmentBadges(data?.badges ?? []))
-      .catch(() => {});
+  const fetchEnvironmentBadges = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/users/${userId}/environment_badges`, {
+        cache: "no-store",
+      });
+      if (!res.ok) return;
+
+      const data: { badges: UserEnvironmentBadgeType[] } = await res.json();
+      setEnvironmentBadges(data.badges ?? []);
+    } catch {
+      // ポーリング中の一時的な失敗は無視し、次回の再取得に任せる
+    }
   }, [userId]);
+
+  useEffect(() => {
+    fetchEnvironmentBadges();
+  }, [fetchEnvironmentBadges]);
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -128,13 +139,18 @@ export default function NotificationBell({ userId }: Props) {
 
     const timer = setInterval(fetchNotifications, POLL_INTERVAL_MS);
     // 記録/対戦/デッキ登録の直後はポーリングを待たずその場で再取得する
-    const unsubscribe = onNotificationsRefreshRequested(fetchNotifications);
+    // (対戦環境バッジを新規獲得した直後でも画像アイコンが出せるよう、
+    // バッジ一覧も通知と合わせて再取得する)
+    const unsubscribe = onNotificationsRefreshRequested(() => {
+      fetchNotifications();
+      fetchEnvironmentBadges();
+    });
 
     return () => {
       clearInterval(timer);
       unsubscribe();
     };
-  }, [fetchNotifications]);
+  }, [fetchNotifications, fetchEnvironmentBadges]);
 
   const markAsRead = (id: string) => {
     setNotifications((prev) =>

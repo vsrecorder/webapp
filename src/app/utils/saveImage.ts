@@ -1,34 +1,40 @@
+// Web Share API で画像の共有(ファイル共有)を試みる。
+// 共有シートを開けた場合、あるいはユーザーが共有シートを閉じた場合(AbortError)は
+// 「処理は完了した」とみなし true を返す。API非対応やそれ以外のエラーは false を返す。
+export async function tryShareImage(dataUrl: string, filename: string): Promise<boolean> {
+  if (
+    typeof navigator === "undefined" ||
+    typeof navigator.share !== "function" ||
+    typeof navigator.canShare !== "function"
+  ) {
+    return false;
+  }
+
+  try {
+    const blob = await (await fetch(dataUrl)).blob();
+    const file = new File([blob], filename, { type: blob.type });
+
+    if (!navigator.canShare({ files: [file] })) return false;
+
+    await navigator.share({ files: [file] });
+    return true;
+  } catch (e) {
+    if (e instanceof DOMException && e.name === "AbortError") return true;
+    return false;
+  }
+}
+
 // captureThemedPng 等で生成した data URL 形式の画像を端末に保存する。
 //
 // iOS Safari（特にホーム画面に追加したPWAのstandalone表示）では、
 // data: URL に対する <a download> のプログラム的クリックが無視され、
 // 画像が保存されないことがある。Web Share API が使える環境ではそちらを
-// 優先し、共有シートの「画像を保存」から確実に写真アプリへ保存できるようにする。
+// 優先し、使えない場合のみ従来の <a download> 方式にフォールバックする。
 export async function saveGeneratedImage(
   dataUrl: string,
   filename: string,
 ): Promise<void> {
-  if (
-    typeof navigator !== "undefined" &&
-    typeof navigator.share === "function" &&
-    typeof navigator.canShare === "function"
-  ) {
-    try {
-      const blob = await (await fetch(dataUrl)).blob();
-      const file = new File([blob], filename, { type: blob.type });
-
-      if (navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file] });
-        return;
-      }
-    } catch (e) {
-      // ユーザーが共有シートを閉じた場合は失敗ではないため、
-      // フォールバックせずに正常終了として扱う
-      if (e instanceof DOMException && e.name === "AbortError") return;
-      // それ以外のエラー（Web Share API非対応環境の実行時エラー等）は
-      // 従来の <a download> 方式へフォールバックする
-    }
-  }
+  if (await tryShareImage(dataUrl, filename)) return;
 
   const link = document.createElement("a");
   link.download = filename;

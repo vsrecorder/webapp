@@ -20,7 +20,7 @@ import { DeckGetByIdResponseType } from "@app/types/deck";
 import { MatchGetResponseType } from "@app/types/match";
 
 import { captureThemedPng } from "@app/utils/captureImage";
-import { saveGeneratedImage, openImageInNewTab } from "@app/utils/saveImage";
+import { saveGeneratedImage, openImageInNewTab, tryShareImage } from "@app/utils/saveImage";
 import { isIOS } from "@app/utils/platform";
 
 async function fetchOfficialEventForTweet(
@@ -210,16 +210,26 @@ export default function RecordActionsFloating({
     let dataUrl: string;
     try {
       dataUrl = await captureThemedPng(matchCardRef.current);
-      if (!isIOS()) await saveGeneratedImage(dataUrl, `${record.id}_${Date.now()}.png`);
     } catch (e) {
       console.error(e);
       return;
     }
 
-    if (isIOS() && !openImageInNewTab(dataUrl)) {
-      setImageDataUrlForSaveGuide(dataUrl);
-      onOpenForImageSaveGuideModal();
+    const filename = `${record.id}_${Date.now()}.png`;
+
+    // iOSのホーム画面PWA(standalone)では<img>埋め込みの長押しメニューが
+    // 「コピー」のみに縮小されるため、まずWeb Share APIでの共有を試みる。
+    // 使えない/失敗した場合は画像を新しいタブで開く方式、それも失敗した場合のみ
+    // 長押し保存用のプレビューモーダルにフォールバックする。
+    if (isIOS()) {
+      if (!(await tryShareImage(dataUrl, filename)) && !openImageInNewTab(dataUrl)) {
+        setImageDataUrlForSaveGuide(dataUrl);
+        onOpenForImageSaveGuideModal();
+      }
+      return;
     }
+
+    await saveGeneratedImage(dataUrl, filename);
   };
 
   const handleSavingDeckCardImage = async () => {
@@ -228,20 +238,22 @@ export default function RecordActionsFloating({
     let dataUrl: string;
     try {
       dataUrl = await captureThemedPng(deckCardRef.current);
-      if (!isIOS())
-        await saveGeneratedImage(
-          dataUrl,
-          `${record.deck_id}_${record.deck_code_id}_${Date.now()}.png`,
-        );
     } catch (e) {
       console.error(e);
       return;
     }
 
-    if (isIOS() && !openImageInNewTab(dataUrl)) {
-      setImageDataUrlForSaveGuide(dataUrl);
-      onOpenForImageSaveGuideModal();
+    const filename = `${record.deck_id}_${record.deck_code_id}_${Date.now()}.png`;
+
+    if (isIOS()) {
+      if (!(await tryShareImage(dataUrl, filename)) && !openImageInNewTab(dataUrl)) {
+        setImageDataUrlForSaveGuide(dataUrl);
+        onOpenForImageSaveGuideModal();
+      }
+      return;
     }
+
+    await saveGeneratedImage(dataUrl, filename);
   };
 
   return (

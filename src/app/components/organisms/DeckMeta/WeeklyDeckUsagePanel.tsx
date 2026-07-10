@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 import { Button, Card, CardBody, Chip, Image, Tab, Tabs } from "@heroui/react";
 import {
@@ -109,7 +110,14 @@ type Props = {
 
 export default function WeeklyDeckUsagePanel({ limit }: Props) {
   const weekOptions = useMemo(() => generateWeekOptions(12), []);
-  const [week, setWeek] = useState<string>(lastWeekValue);
+  const searchParams = useSearchParams();
+  // URLの week パラメータがあれば初期表示週として引き継ぐ（「N位以下を見る」からの遷移時など）
+  const [week, setWeek] = useState<string>(() => {
+    const weekParam = searchParams.get("week");
+    return weekParam && weekOptions.some((o) => o.value === weekParam)
+      ? weekParam
+      : lastWeekValue();
+  });
   const [stat, setStat] = useState<WeeklyDeckUsageStatType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [rateMode, setRateMode] = useState<RateMode>("all");
@@ -173,17 +181,6 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
     [displayDecks, limit],
   );
   const hiddenCount = displayDecks.length - visibleDecks.length;
-
-  // 使用率バーは最上位デッキを基準に相対表示する（絶対値だと差が視認しづらいため）
-  // 「その他を除く」表示では、その他自身はバー比較の対象から外す
-  const maxUsageRate = useMemo(() => {
-    const rates = displayDecks
-      .filter((d) => !(rateMode === "excl_other" && d.fingerprint === ""))
-      .map((d) =>
-        rateMode === "all" ? d.usage_rate : d.count / (exclOtherTotal || 1),
-      );
-    return Math.max(...rates, 0.0001);
-  }, [displayDecks, rateMode, exclOtherTotal]);
 
   const periodLabel =
     stat != null && stat.week_start
@@ -360,9 +357,11 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
                 : rateMode === "all"
                   ? deck.usage_rate
                   : deck.count / (exclOtherTotal || 1);
+              // バーの幅は表示中の割合(%)をそのまま反映する（最上位デッキ基準の相対値だと
+              // 実際の割合より過大な幅になり、表示中の%表記と食い違うため）
               const barWidth = isExcluded
                 ? 0
-                : Math.max(4, Math.round(((displayRate ?? 0) / maxUsageRate) * 100));
+                : Math.min(100, Math.max(2, Math.round((displayRate ?? 0) * 100)));
 
               return (
                 <div
@@ -428,7 +427,7 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
             {hiddenCount > 0 && (
               <Button
                 as={Link}
-                href="/deck_meta"
+                href={`/deck_meta?week=${week}`}
                 variant="flat"
                 color="default"
                 radius="lg"

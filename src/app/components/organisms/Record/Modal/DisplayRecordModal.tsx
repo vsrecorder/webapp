@@ -14,7 +14,6 @@ import {
   useDisclosure,
   Button,
 } from "@heroui/react";
-import { addToast, closeToast } from "@heroui/react";
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/dropdown";
 
 import {
@@ -41,7 +40,7 @@ import { DeckGetByIdResponseType } from "@app/types/deck";
 import { MatchGetResponseType } from "@app/types/match";
 
 import { captureThemedPng } from "@app/utils/captureImage";
-import { saveGeneratedImage } from "@app/utils/saveImage";
+import { saveGeneratedImage, openImageInNewTab } from "@app/utils/saveImage";
 import { isIOS } from "@app/utils/platform";
 
 // ツイートURL生成ヘルパー
@@ -252,78 +251,32 @@ export default function DisplayRecordModal({
   const matchCardRef = useRef<HTMLDivElement>(null);
 
   const handleSavingEventCardImage = async () => {
-    const toastId = addToast({
-      title: "画像をダウンロード中",
-      description: "しばらくお待ちください",
-      color: "default",
-      promise: new Promise(() => {}),
-    });
-
-    if (!matchCardRef.current) {
-      if (toastId) closeToast(toastId);
-      addToast({
-        title: "画像のダウンロードに失敗",
-        description: "画像のダウンロードに失敗しました",
-        color: "danger",
-        timeout: 5000,
-      });
-      return;
-    }
+    if (!matchCardRef.current) return;
 
     let dataUrl: string;
     try {
       dataUrl = await captureThemedPng(matchCardRef.current);
       if (!isIOS()) await saveGeneratedImage(dataUrl, `${record.id}_${Date.now()}.png`);
     } catch (e) {
-      console.log(e);
-      if (toastId) closeToast(toastId);
-      addToast({
-        title: "画像のダウンロードに失敗",
-        description: "画像のダウンロードに失敗しました",
-        color: "danger",
-        timeout: 5000,
-      });
+      console.error(e);
       return;
     }
 
-    if (toastId) closeToast(toastId);
-
-    // iOSはWeb Share APIでも「画像を保存」が出ないことがあるため、
-    // 長押し保存できるプレビューモーダルを表示する
-    if (isIOS()) {
+    // iOSのホーム画面PWA(standalone)では<img>埋め込みの長押しメニューが
+    // 「コピー」のみに縮小され、Web Share APIでも「画像を保存」が出ないことがある。
+    // 画像を新しいタブでドキュメントとして開くとSafari標準の保存UIが有効になりやすいため、
+    // まずそちらを試し、ポップアップブロック等で開けなかった場合のみ
+    // 長押し保存用のプレビューモーダルにフォールバックする。
+    if (isIOS() && !openImageInNewTab(dataUrl)) {
       setImageDataUrlForSaveGuide(dataUrl);
       onOpenForImageSaveGuideModal();
-      return;
     }
-
-    addToast({
-      title: "画像のダウンロードが完了",
-      description: "画像をダウンロードしました",
-      color: "success",
-      timeout: 3000,
-    });
   };
 
   const deckCardRef = useRef<HTMLDivElement>(null);
 
   const handleSavingDeckCardImage = async () => {
-    const toastId = addToast({
-      title: "画像をダウンロード中",
-      description: "しばらくお待ちください",
-      color: "default",
-      promise: new Promise(() => {}),
-    });
-
-    if (!deckCardRef.current) {
-      if (toastId) closeToast(toastId);
-      addToast({
-        title: "画像のダウンロードに失敗",
-        description: "画像のダウンロードに失敗しました",
-        color: "danger",
-        timeout: 5000,
-      });
-      return;
-    }
+    if (!deckCardRef.current) return;
 
     let dataUrl: string;
     try {
@@ -333,31 +286,15 @@ export default function DisplayRecordModal({
           dataUrl,
           `${record.deck_id}_${record.deck_code_id}_${Date.now()}.png`,
         );
-    } catch {
-      if (toastId) closeToast(toastId);
-      addToast({
-        title: "画像のダウンロードに失敗",
-        description: "画像のダウンロードに失敗しました",
-        color: "danger",
-        timeout: 5000,
-      });
+    } catch (e) {
+      console.error(e);
       return;
     }
 
-    if (toastId) closeToast(toastId);
-
-    if (isIOS()) {
+    if (isIOS() && !openImageInNewTab(dataUrl)) {
       setImageDataUrlForSaveGuide(dataUrl);
       onOpenForImageSaveGuideModal();
-      return;
     }
-
-    addToast({
-      title: "画像のダウンロードが完了",
-      description: "画像をダウンロードしました",
-      color: "success",
-      timeout: 3000,
-    });
   };
 
   return (

@@ -35,3 +35,15 @@ export async function saveGeneratedImage(
   link.href = dataUrl;
   link.click();
 }
+
+// data URL を新しいタブでそのまま開く。
+// iOSホーム画面PWA(standalone表示)では、ページに埋め込んだ<img>の長押しメニューが
+// 「コピー」のみに縮小され「"写真"に追加」が出せないことがある。
+// 画像そのものをドキュメントとして開いた場合はSafari標準の画像表示になり、
+// 保存UIが有効になりやすいため、iOSではこちらを優先して使う。
+// window.open がポップアップブロックされた場合は呼び出し側でフォールバックできるよう
+// 成否を真偽値で返す。
+export function openImageInNewTab(dataUrl: string): boolean {
+  const win = window.open(dataUrl, "_blank");
+  return win !== null;
+}

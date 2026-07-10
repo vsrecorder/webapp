@@ -17,6 +17,7 @@ const WEEKDAY_LABELS = ["日", "月", "火", "水", "木", "金", "土"];
 
 const EVENT_DOT_CLASS: Record<CalendarEventType, string> = {
   record: "bg-primary",
+  match_added: "bg-warning",
   deck_created: "bg-success",
   deck_code_added: "bg-secondary",
   deck_archived: "bg-default-400",
@@ -119,15 +120,18 @@ export default function DashboardCalendar({ userId }: Props) {
             <div className="font-bold text-sm">
               {currentYear}年{currentMonth + 1}月
             </div>
-            {!isCurrentMonth && (
-              <button
-                type="button"
-                onClick={goToCurrentMonth}
-                className="text-tiny font-bold text-primary mt-0.5"
-              >
-                今月へ戻る
-              </button>
-            )}
+            {/* 表示/非表示の切り替えで高さが変わりチラつくため、常に領域を確保しておく */}
+            <button
+              type="button"
+              onClick={goToCurrentMonth}
+              tabIndex={isCurrentMonth ? -1 : 0}
+              aria-hidden={isCurrentMonth}
+              className={`text-tiny font-bold text-primary mt-0.5 ${
+                isCurrentMonth ? "invisible pointer-events-none" : ""
+              }`}
+            >
+              今月へ戻る
+            </button>
           </div>
           <Button
             isIconOnly
@@ -188,6 +192,10 @@ export default function DashboardCalendar({ userId }: Props) {
             <div className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-primary" />
               記録作成
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-warning" />
+              対戦結果の追加
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-success" />

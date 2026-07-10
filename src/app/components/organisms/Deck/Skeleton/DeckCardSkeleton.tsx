@@ -12,7 +12,7 @@ export function DeckCardSkeleton() {
             {/* 両端配置 */}
             <div className="flex items-start justify-between w-full">
               {/* 左側 */}
-              <div className="flex items-center gap-0 shrink-0">
+              <div className="flex items-center gap-1.5 shrink-0">
                 <Skeleton className="h-11 w-11 rounded-2xl" />
                 <Skeleton className="h-11 w-11 rounded-2xl" />
               </div>

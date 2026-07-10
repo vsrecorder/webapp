@@ -12,11 +12,22 @@ import {
   Skeleton,
 } from "@heroui/react";
 
-import { LuClipboardList, LuLayers, LuBookPlus, LuArchive } from "react-icons/lu";
+import {
+  LuClipboardList,
+  LuSwords,
+  LuLayers,
+  LuBookPlus,
+  LuArchive,
+  LuStickyNote,
+  LuClock,
+} from "react-icons/lu";
 
 import { CalendarEvent } from "@app/types/calendar";
-import { DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
+import { DeckPokemonSpriteType, MatchPokemonSpriteType } from "@app/types/pokemon_sprite";
 import { spriteImageUrl, spriteScaleClass } from "@app/utils/sprite";
+
+const UNKNOWN_SPRITE_URL =
+  "https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png";
 
 type Props = {
   isOpen: boolean;
@@ -50,6 +61,7 @@ function formatTimeLabel(createdAt: string): string {
 // タイムラインの丸ノードの色。記録は種別ごとのアクセントカラー(記録カードと同じ)を使う
 function dotColorClass(event: CalendarEvent): string {
   if (event.type === "record") return event.accent_color_class;
+  if (event.type === "match_added") return "bg-warning";
   if (event.type === "deck_created") return "bg-success";
   if (event.type === "deck_code_added") return "bg-secondary";
   return "bg-default-400";
@@ -57,6 +69,7 @@ function dotColorClass(event: CalendarEvent): string {
 
 function eventKey(event: CalendarEvent): string {
   if (event.type === "record") return `record-${event.record_id}`;
+  if (event.type === "match_added") return `match_added-${event.match_id}`;
   if (event.type === "deck_created") return `deck_created-${event.deck_id}`;
   if (event.type === "deck_code_added") return `deck_code_added-${event.deck_code_id}`;
   return `deck_archived-${event.deck_id}`;
@@ -77,6 +90,34 @@ function DeckSprites({ sprites }: { sprites: DeckPokemonSpriteType[] }) {
           className={`w-6 h-6 object-contain ${spriteScaleClass(sprite.id)} origin-bottom`}
         />
       ))}
+    </div>
+  );
+}
+
+// 対戦相手のデッキスプライト。未登録の枠は unknown.png で埋め、常に2体分のスペースを確保する
+function OpponentSprites({ sprites }: { sprites: MatchPokemonSpriteType[] }) {
+  return (
+    <div className="flex items-center shrink-0">
+      {[0, 1].map((index) => {
+        const sprite = sprites[index];
+        return sprite ? (
+          <Image
+            key={sprite.id}
+            alt={sprite.id}
+            src={spriteImageUrl(sprite.id)}
+            radius="none"
+            className={`w-6 h-6 object-contain ${spriteScaleClass(sprite.id)} origin-bottom`}
+          />
+        ) : (
+          <Image
+            key={index}
+            alt="unknown"
+            src={UNKNOWN_SPRITE_URL}
+            radius="none"
+            className="w-6 h-6 object-contain scale-150 origin-bottom"
+          />
+        );
+      })}
     </div>
   );
 }
@@ -150,6 +191,105 @@ function EventContent({ event }: { event: CalendarEvent }) {
             </span>
           </div>
           <DeckCodeThumbnail code={event.deck_code} />
+        </div>
+      </div>
+    );
+  }
+
+  if (event.type === "match_added") {
+    const resultLabel = event.default_victory_flg
+      ? "不戦勝"
+      : event.default_defeat_flg
+        ? "不戦敗"
+        : event.victory_flg
+          ? "勝ち"
+          : "負け";
+    const resultColor = event.victory_flg ? "success" : "danger";
+
+    return (
+      <div className="flex flex-col gap-2.5 rounded-xl bg-default-100 px-4 py-3">
+        <div className="flex items-center gap-3">
+          <LuSwords className="text-xl text-default-500 shrink-0 mr-2" />
+          <div className="text-sm min-w-0">
+            <div>
+              <span className="font-bold">{event.event_title}</span>
+              <span className="text-xs text-default-500 whitespace-nowrap">
+                {" "}
+                の対戦結果を追加
+              </span>
+            </div>
+            <div className="flex items-center gap-1 mt-1 flex-wrap">
+              <Chip
+                size="sm"
+                variant="flat"
+                color={event.chip_color}
+                className="h-5 text-[10px] font-bold"
+              >
+                {event.chip_label}
+              </Chip>
+              {event.venue_label && (
+                <Chip
+                  size="sm"
+                  variant="flat"
+                  color="default"
+                  className="h-5 text-[10px] font-bold max-w-40 truncate"
+                >
+                  {event.venue_label}
+                </Chip>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="border-t border-divider" />
+
+        <div className="flex flex-col gap-1.5">
+          <span className="text-tiny font-bold text-default-400">対戦相手</span>
+          <div className="flex items-center gap-2 pl-3">
+            <OpponentSprites sprites={event.opponents_pokemon_sprites} />
+            <span className="text-sm font-bold text-default-600 truncate">
+              {event.opponents_deck_info ? `『${event.opponents_deck_info}』` : "デッキ情報なし"}
+            </span>
+          </div>
+          <div className="flex items-center gap-1 pl-3 flex-wrap">
+            <Chip
+              size="sm"
+              variant="flat"
+              radius="sm"
+              color={resultColor}
+              className="h-5 text-[10px] font-bold"
+            >
+              {resultLabel}
+            </Chip>
+            {event.go_first !== null && (
+              <Chip
+                size="sm"
+                variant="flat"
+                radius="sm"
+                className="h-5 text-[10px] font-bold"
+              >
+                {event.go_first ? "先攻" : "後攻"}
+              </Chip>
+            )}
+            {event.your_prize_cards !== null && event.opponents_prize_cards !== null && (
+              <Chip
+                size="sm"
+                variant="flat"
+                radius="sm"
+                className="h-5 text-[10px] font-bold"
+              >
+                {event.your_prize_cards} - {event.opponents_prize_cards}
+              </Chip>
+            )}
+          </div>
+          {event.memo && (
+            <div className="flex items-start gap-1.5 pl-3 pt-1">
+              <LuStickyNote className="text-sm text-default-400 shrink-0 mt-0.5" />
+              <span className="text-xs text-default-500 whitespace-pre-wrap wrap-break-word">
+                {event.memo}
+              </span>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -257,30 +397,38 @@ export default function CalendarDayDetailModal({
                 </div>
               ) : (
                 <ol className="relative">
-                  {events.map((event, index) => (
-                    <li
-                      key={eventKey(event)}
-                      className={`border-s-2 ${
-                        index === events.length - 1
-                          ? "border-transparent"
-                          : "border-divider"
-                      }`}
-                    >
-                      <div className="pb-4">
-                        <div className="flex items-center gap-2 pb-2">
-                          <div
-                            className={`-translate-x-1/2 w-3 h-3 rounded-full shrink-0 ${dotColorClass(event)}`}
-                          />
-                          <span className="text-tiny font-bold text-default-400">
-                            {formatTimeLabel(event.created_at)}
-                          </span>
+                  {events.map((event, index) => {
+                    const isLast = index === events.length - 1;
+
+                    return (
+                      <li key={eventKey(event)} className="flex gap-2.5">
+                        {/* タイムラインのガター。ドットと時刻ラベルを同じ高さ(h-4)のボックスで
+                            揃えることで水平方向に一列に並べ、リング(bg-content1)でラインとの
+                            重なりを切り抜いて見せる */}
+                        <div className="flex flex-col items-center w-2.5 shrink-0">
+                          <div className="flex items-center justify-center h-4 shrink-0">
+                            <span
+                              className={`w-2.5 h-2.5 rounded-full ring-4 ring-content1 shrink-0 ${dotColorClass(event)}`}
+                            />
+                          </div>
+                          {!isLast && (
+                            <span className="w-px flex-1 mt-1.5 bg-divider" />
+                          )}
                         </div>
-                        <div className="pl-2">
-                          <EventContent event={event} />
+                        <div className={`min-w-0 flex-1 ${isLast ? "pb-1" : "pb-5"}`}>
+                          <div className="flex items-center gap-1 h-4">
+                            <LuClock className="text-[11px] text-default-300 shrink-0" />
+                            <span className="text-tiny font-bold text-default-400">
+                              {formatTimeLabel(event.created_at)}
+                            </span>
+                          </div>
+                          <div className="mt-1.5">
+                            <EventContent event={event} />
+                          </div>
                         </div>
-                      </div>
-                    </li>
-                  ))}
+                      </li>
+                    );
+                  })}
                 </ol>
               )}
             </ModalBody>

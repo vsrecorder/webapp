@@ -1,7 +1,8 @@
-import { DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
+import { DeckPokemonSpriteType, MatchPokemonSpriteType } from "@app/types/pokemon_sprite";
 
 export type CalendarEventType =
   | "record"
+  | "match_added"
   | "deck_created"
   | "deck_code_added"
   | "deck_archived";
@@ -31,6 +32,31 @@ export type CalendarRecordEvent = {
   venue_label: string;
   // 記録カード(OfficialEventRecord等)のアクセントカラーと同じTailwindクラス
   accent_color_class: string;
+  created_at: string;
+};
+
+// 記録に紐づく対戦結果の追加。記録カードと同じイベント表示情報(chip等)を持つことで、
+// どの記録に紐づく対戦かをカード上で明示する
+export type CalendarMatchEvent = {
+  type: "match_added";
+  match_id: string;
+  record_id: string;
+  event_kind: "official" | "tonamel" | "unofficial" | "unknown";
+  event_title: string;
+  chip_label: string;
+  chip_color: CalendarChipColor;
+  venue_label: string;
+  accent_color_class: string;
+  opponents_deck_info: string;
+  opponents_pokemon_sprites: MatchPokemonSpriteType[];
+  default_victory_flg: boolean;
+  default_defeat_flg: boolean;
+  victory_flg: boolean;
+  // 不戦勝/不戦敗の場合は対局データが無いため null
+  go_first: boolean | null;
+  your_prize_cards: number | null;
+  opponents_prize_cards: number | null;
+  memo: string;
   created_at: string;
 };
 
@@ -64,6 +90,7 @@ export type CalendarDeckArchivedEvent = {
 
 export type CalendarEvent =
   | CalendarRecordEvent
+  | CalendarMatchEvent
   | CalendarDeckEvent
   | CalendarDeckCodeEvent
   | CalendarDeckArchivedEvent;

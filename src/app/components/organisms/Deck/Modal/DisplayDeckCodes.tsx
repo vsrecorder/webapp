@@ -25,7 +25,14 @@ import { Button } from "@heroui/react";
 
 import { addToast, closeToast } from "@heroui/react";
 
-import { LuTrash2, LuLayers, LuFilePen, LuBook, LuBookPlus } from "react-icons/lu";
+import {
+  LuTrash2,
+  LuLayers,
+  LuFilePen,
+  LuBook,
+  LuBookPlus,
+  LuClock,
+} from "react-icons/lu";
 
 import DeckCardDiff from "@app/components/organisms/Deck/DeckCardDiff";
 
@@ -438,29 +445,42 @@ export default function DisplayDeckCodesModal({
                               },
                             );
 
+                            const isLastCodeItem =
+                              index === displayDeckCodes.length - 1;
+                            const lineVisible = !isLastCodeItem || showNextVersionPrompt;
+                            const lineDashed = isLastCodeItem && showNextVersionPrompt;
+
                             return (
-                              <li
-                                key={deckcode.id}
-                                className={`border-s-2  ${
-                                  index === displayDeckCodes.length - 1
-                                    ? showNextVersionPrompt
-                                      ? "border-primary/30 border-dashed"
-                                      : "border-transparent"
-                                    : "border-primary/30"
-                                }`}
-                              >
-                                <div className="pb-5">
-                                  <div className="flex items-center ">
-                                    <div className="flex pb-3">
-                                      <div className="-translate-x-1/2 w-3 h-3 rounded-full bg-primary" />
-                                      <div className="text-tiny text-default-500">
-                                        作成日時：
-                                        {date}
-                                      </div>
-                                    </div>
+                              <li key={deckcode.id} className="flex gap-2.5">
+                                {/* タイムラインのガター。ドットと時刻ラベルを同じ高さ(h-4)の
+                                    ボックスで揃えることで水平方向に一列に並べ、リング
+                                    (bg-content1)でラインとの重なりを切り抜いて見せる */}
+                                <div className="flex flex-col items-center w-2.5 shrink-0">
+                                  <div className="flex items-center justify-center h-4 shrink-0">
+                                    <span className="w-2.5 h-2.5 rounded-full bg-primary ring-4 ring-content1 shrink-0" />
+                                  </div>
+                                  {lineVisible && (
+                                    <span
+                                      className={`w-0 flex-1 mt-1.5 border-l border-primary/30 ${
+                                        lineDashed ? "border-dashed" : ""
+                                      }`}
+                                    />
+                                  )}
+                                </div>
+                                <div
+                                  className={`min-w-0 flex-1 ${
+                                    lineVisible ? "pb-5" : "pb-1"
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-1 h-4">
+                                    <LuClock className="text-[11px] text-default-300 shrink-0" />
+                                    <span className="text-tiny text-default-500">
+                                      作成日時：
+                                      {date}
+                                    </span>
                                   </div>
 
-                                  <div className="pl-2">
+                                  <div className="mt-1.5">
                                     {deckcode.code ? (
                                       <div className="rounded-xl bg-default-100 p-3 flex flex-col gap-2.5">
                                         {/* 両端配置 */}
@@ -572,19 +592,21 @@ export default function DisplayDeckCodesModal({
                         )}
 
                         {showNextVersionPrompt && (
-                          <li className="border-s-2 border-transparent">
-                            <div className="pb-2">
-                              <div className="flex items-center">
-                                <div className="flex pb-3 items-center">
-                                  {/* 未作成を示す中空ノード */}
-                                  <div className="-translate-x-1/2 w-3 h-3 rounded-full border-2 border-primary bg-content1" />
-                                  <div className="text-tiny text-default-400">
-                                    次のバージョン
-                                  </div>
-                                </div>
+                          <li className="flex gap-2.5">
+                            <div className="flex flex-col items-center w-2.5 shrink-0">
+                              {/* 未作成を示す中空ノード */}
+                              <div className="flex items-center justify-center h-4 shrink-0">
+                                <span className="w-2.5 h-2.5 rounded-full border-2 border-primary bg-content1 shrink-0" />
+                              </div>
+                            </div>
+                            <div className="min-w-0 flex-1 pb-1">
+                              <div className="flex items-center gap-1 h-4">
+                                <span className="text-tiny text-default-400">
+                                  次のバージョン
+                                </span>
                               </div>
 
-                              <div className="pl-2">
+                              <div className="mt-1.5">
                                 <button
                                   type="button"
                                   onClick={() => {

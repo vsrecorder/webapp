@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@app/auth";
 
 import { RecordGetResponseType, RecordType } from "@app/types/record";
+import { MatchType } from "@app/types/match";
 import { DeckData, DeckGetResponseType } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
 import { CalendarChipColor, CalendarDataType, CalendarEvent } from "@app/types/calendar";
@@ -214,6 +215,28 @@ async function fetchAllRecords(token: string): Promise<RecordType["data"][]> {
   return results;
 }
 
+async function fetchMatchesByRecordId(
+  token: string,
+  recordId: string,
+): Promise<MatchType[]> {
+  const domain = process.env.VSRECORDER_DOMAIN;
+
+  const res = await fetch(`https://${domain}/api/v1beta/records/${recordId}/matches`, {
+    cache: "no-store",
+    method: "GET",
+    headers: {
+      Authorization: "Bearer " + token,
+      Accept: "application/json",
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error(`failed to fetch matches for record ${recordId}: ${res.status}`);
+  }
+
+  return res.json();
+}
+
 // `/decks/all` はアーカイブ済みデッキを含まないため、archived=true/false を明示的に
 // 指定してページネーション取得し、両方をマージする
 async function fetchDecksByArchived(
@@ -319,9 +342,10 @@ export async function GET(
 
     const deckById = new Map(decks.map((deck) => [deck.id, deck]));
 
-    const [deckCodesByDeck, eventDisplayMaps] = await Promise.all([
+    const [deckCodesByDeck, eventDisplayMaps, matchesByRecord] = await Promise.all([
       Promise.all(decks.map((deck) => fetchDeckCodesByDeckId(token, deck.id))),
       buildEventDisplayMaps(records),
+      Promise.all(records.map((record) => fetchMatchesByRecordId(token, record.id))),
     ]);
     const { officialDisplayById, tonamelDisplayById, unofficialDisplayById } =
       eventDisplayMaps;
@@ -341,7 +365,7 @@ export async function GET(
 
     const data: CalendarDataType = {};
 
-    for (const record of records) {
+    records.forEach((record, index) => {
       const deck = deckById.get(record.deck_id);
       const eventKind = resolveEventKind(record);
       const display =
@@ -368,7 +392,35 @@ export async function GET(
         venue_label: display.venue_label,
         created_at: String(record.created_at),
       });
-    }
+
+      // 対戦結果は、紐づく記録と同じ表示情報(chip等)を持たせることで、
+      // どの記録に紐づく対戦かをカード上で明示する
+      for (const match of matchesByRecord[index]) {
+        const firstGame = match.games?.[0];
+
+        pushEvent(data, toDateKey(match.created_at), {
+          type: "match_added",
+          match_id: match.id,
+          record_id: record.id,
+          event_kind: eventKind,
+          event_title: display.title,
+          chip_label: display.chip_label,
+          chip_color: display.chip_color,
+          accent_color_class: display.accent_color_class,
+          venue_label: display.venue_label,
+          opponents_deck_info: match.opponents_deck_info,
+          opponents_pokemon_sprites: match.pokemon_sprites ?? [],
+          default_victory_flg: match.default_victory_flg,
+          default_defeat_flg: match.default_defeat_flg,
+          victory_flg: match.victory_flg,
+          go_first: firstGame ? firstGame.go_first : null,
+          your_prize_cards: firstGame ? firstGame.your_prize_cards : null,
+          opponents_prize_cards: firstGame ? firstGame.opponents_prize_cards : null,
+          memo: match.memo,
+          created_at: String(match.created_at),
+        });
+      }
+    });
 
     decks.forEach((deck, index) => {
       // デッキ作成と同時刻に登録された初期バージョンは、別イベントにせず登録イベントにまとめる

@@ -20,11 +20,9 @@ import { LuShare2, LuImageDown, LuSwords } from "react-icons/lu";
 
 import RecordHero from "@app/components/organisms/Record/Hero/RecordHero";
 import Matches from "@app/components/organisms/Match/Matches";
-import ImageSaveGuideModal from "@app/components/molecules/Image/ImageSaveGuideModal";
 
 import { captureThemedPng } from "@app/utils/captureImage";
 import { shareRecord, saveGeneratedImage, saveImages } from "@app/utils/saveImage";
-import { isIOS, isIOSPWA } from "@app/utils/platform";
 
 import { buildRecordPostText, formatEventDateLabel } from "@app/utils/recordPostText";
 
@@ -74,18 +72,6 @@ export default function ShareRecordModal({
 }: Props) {
   const shareContentRef = useRef<HTMLDivElement>(null);
   const [includeDeck, setIncludeDeck] = useState(false);
-  // iOS(Safari本体)では、共有シートの「写真に保存」や<a download>が効かない一方、
-  // <img>の長押し→「"写真"に保存」は使えるため、そちらへ誘導する。
-  // ただしPWA(standalone)では長押しメニューが「コピー」のみに縮小され保存できないため、
-  // その場合は Web Share API(共有シート)経由で保存する。
-  const [ios, setIos] = useState(false);
-  const [iosPWA, setIosPWA] = useState(false);
-  // 長押し保存モーダルに表示する画像(複数対応)。空配列のときは非表示。
-  const [saveGuideUrls, setSaveGuideUrls] = useState<string[]>([]);
-  useEffect(() => {
-    setIos(isIOS());
-    setIosPWA(isIOSPWA());
-  }, []);
   // ポスト文に含める要素(対戦結果・使用デッキ)
   const [includePostMatches, setIncludePostMatches] = useState(true);
   const [includePostDeck, setIncludePostDeck] = useState(true);
@@ -114,13 +100,15 @@ export default function ShareRecordModal({
     includePostDeck,
   ]);
 
-  // 上部バーのフリックでモーダルを閉じる(記録情報モーダルと同じ挙動)
+  // 上部バーのフリックでモーダルを閉じる(記録情報モーダルと同じ挙動)。
+  // ただしシェア/保存の処理中(busy)は閉じさせない。
   const startY = useRef<number | null>(null);
   const handleTouchStart = (e: React.TouchEvent) => {
+    if (busy !== null) return;
     startY.current = e.touches[0].clientY;
   };
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (startY.current === null) return;
+    if (busy !== null || startY.current === null) return;
     if (e.touches[0].clientY - startY.current > 30) {
       startY.current = null;
       onClose();
@@ -172,14 +160,9 @@ export default function ShareRecordModal({
     try {
       const images = await captureImages();
       if (images.length === 0) return;
-      if (ios && !iosPWA) {
-        // iOS Safari本体は、画像を表示して長押しで「"写真"に保存」してもらう
-        // (デッキ含む複数枚に対応)。
-        setSaveGuideUrls(images.map((img) => img.dataUrl));
-      } else {
-        // iOS PWA(長押し保存不可)・Android・PC は Web Share API / ダウンロードで保存する。
-        await saveImages(images);
-      }
+      // iOSは Web Share API(共有シート→「写真に保存」)、Android・PCも Web Share API /
+      // ダウンロードで保存する(saveImages が内部で Web Share API を優先する)。
+      await saveImages(images);
     } catch (e) {
       console.error(e);
       addToast({ title: "画像の保存に失敗しました", color: "danger", timeout: 5000 });
@@ -192,7 +175,11 @@ export default function ShareRecordModal({
     <>
       <Modal
         isOpen={isOpen}
-        onOpenChange={onOpenChange}
+        // シェア/保存の処理中(busy)は閉じさせない
+        onOpenChange={() => {
+          if (busy !== null) return;
+          onOpenChange();
+        }}
         placement="bottom"
         hideCloseButton
         isDismissable={false}
@@ -301,13 +288,6 @@ export default function ShareRecordModal({
           )}
         </ModalContent>
       </Modal>
-
-      {/* iOS向け: 生成した画像を表示し、長押しで「"写真"に保存」してもらう案内 */}
-      <ImageSaveGuideModal
-        isOpen={saveGuideUrls.length > 0}
-        onOpenChange={() => setSaveGuideUrls([])}
-        imageDataUrls={saveGuideUrls}
-      />
 
       {/* キャプチャ用の画面外DOM(戦績サマリー＋対戦結果)。1枚目の画像として使う */}
       {isOpen && (

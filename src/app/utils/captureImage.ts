@@ -16,8 +16,8 @@ const MAX_CANVAS_DIMENSION = 8192;
 const MAX_CANVAS_AREA = 16_777_216;
 
 // 対象サイズ(CSSピクセル)に対し、canvas 制限を超えない範囲で最大の pixelRatio を返す。
-// 通常サイズでは desired(=3) をそのまま使い、極端に縦長のときだけ下げる。
-function computeSafePixelRatio(width: number, height: number, desired = 3): number {
+// 通常サイズでは desired(=4) をそのまま使い、極端に縦長のときだけ下げる。
+function computeSafePixelRatio(width: number, height: number, desired = 4): number {
   if (width <= 0 || height <= 0) return desired;
   const byWidth = MAX_CANVAS_DIMENSION / width;
   const byHeight = MAX_CANVAS_DIMENSION / height;
@@ -204,7 +204,7 @@ export async function captureThemedPng(el: HTMLElement): Promise<string> {
     await waitForImagesDecoded(container);
 
     // 実レイアウト後のサイズから、canvas 制限を超えない pixelRatio を決める。
-    // 縦長の記録(対戦数が多い)で pixelRatio=3 のまま描画すると、iOS では
+    // 縦長の記録(対戦数が多い)で高い pixelRatio のまま描画すると、iOS では
     // canvas 上限を超えて真っ白になることがあるため。
     const width = container.offsetWidth;
     const height = container.offsetHeight;

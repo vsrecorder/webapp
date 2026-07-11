@@ -27,11 +27,11 @@
  */
 .record-hero-bg {
   background:
-    radial-gradient(135% 130% at 100% 0%, rgba(18, 161, 80, 0.2), transparent 52%),
+    radial-gradient(135% 130% at 100% 0%, rgba(18, 161, 80, 0.2), rgba(18, 161, 80, 0) 52%),
     radial-gradient(
       120% 130% at 0% 100%,
       rgba(var(--hero-accent-rgb, 15, 111, 255), 0.18),
-      transparent 55%
+      rgba(var(--hero-accent-rgb, 15, 111, 255), 0) 55%
     ),
     #ffffff;
 }
@@ -39,11 +39,11 @@
 /* 画像書き出し用の .light 領域は常にライト表示にするため除外する */
 .dark .record-hero-bg:not(.light *) {
   background:
-    radial-gradient(135% 130% at 100% 0%, rgba(62, 207, 127, 0.15), transparent 52%),
+    radial-gradient(135% 130% at 100% 0%, rgba(62, 207, 127, 0.15), rgba(62, 207, 127, 0) 52%),
     radial-gradient(
       120% 130% at 0% 100%,
       rgba(var(--hero-accent-rgb, 77, 155, 255), 0.16),
-      transparent 55%
+      rgba(var(--hero-accent-rgb, 77, 155, 255), 0) 55%
     ),
     #1d1d21;
 }
@@ -54,22 +54,22 @@
  */
 .record-hero-bg-loss {
   background:
-    radial-gradient(135% 130% at 100% 0%, rgba(229, 72, 77, 0.2), transparent 52%),
+    radial-gradient(135% 130% at 100% 0%, rgba(229, 72, 77, 0.2), rgba(229, 72, 77, 0) 52%),
     radial-gradient(
       120% 130% at 0% 100%,
       rgba(var(--hero-accent-rgb, 15, 111, 255), 0.18),
-      transparent 55%
+      rgba(var(--hero-accent-rgb, 15, 111, 255), 0) 55%
     ),
     #ffffff;
 }
 
 .dark .record-hero-bg-loss:not(.light *) {
   background:
-    radial-gradient(135% 130% at 100% 0%, rgba(255, 97, 105, 0.15), transparent 52%),
+    radial-gradient(135% 130% at 100% 0%, rgba(255, 97, 105, 0.15), rgba(255, 97, 105, 0) 52%),
     radial-gradient(
       120% 130% at 0% 100%,
       rgba(var(--hero-accent-rgb, 77, 155, 255), 0.16),
-      transparent 55%
+      rgba(var(--hero-accent-rgb, 77, 155, 255), 0) 55%
     ),
     #1d1d21;
 }

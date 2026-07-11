@@ -1,7 +1,48 @@
 import { toPng } from "html-to-image";
 
+import { isIOS } from "@app/utils/platform";
+
 // 書き出し画像に表示するサービス情報
 const APP_NAME = "バトレコ";
+
+// iOS Safari の canvas 制限に合わせた安全値。
+// 1辺・総面積のいずれかを超えると描画結果が空(真っ白)になることがあるため、
+// これを超えないように pixelRatio を動的に下げる。
+const MAX_CANVAS_DIMENSION = 4096;
+const MAX_CANVAS_AREA = 16_777_216; // 4096 * 4096
+
+// 対象サイズ(CSSピクセル)に対し、canvas 制限を超えない範囲で最大の pixelRatio を返す。
+function computeSafePixelRatio(width: number, height: number, desired = 3): number {
+  if (width <= 0 || height <= 0) return desired;
+  const byWidth = MAX_CANVAS_DIMENSION / width;
+  const byHeight = MAX_CANVAS_DIMENSION / height;
+  const byArea = Math.sqrt(MAX_CANVAS_AREA / (width * height));
+  return Math.max(1, Math.min(desired, byWidth, byHeight, byArea));
+}
+
+// 指定要素配下の全<img>の読み込み・デコード完了を待つ。
+// オフスクリーン退避や遅延読み込みで load が発火しないケースに備えてタイムアウトを設ける
+// (個別の画像が失敗・遅延しても、欠けたまま全体の描画は進める)。
+async function waitForImagesDecoded(root: HTMLElement, timeoutMs = 4000): Promise<void> {
+  const imgs = Array.from(root.querySelectorAll("img"));
+  await Promise.all(
+    imgs.map((img) => {
+      // オフスクリーン(-10000px)だと遅延読み込み画像が読み込まれないため即時読み込みにする
+      img.loading = "eager";
+      const loaded = (async () => {
+        if (!(img.complete && img.naturalWidth > 0)) {
+          await new Promise<void>((resolve) => {
+            img.addEventListener("load", () => resolve(), { once: true });
+            img.addEventListener("error", () => resolve(), { once: true });
+          });
+        }
+        await img.decode().catch(() => {});
+      })();
+      const timeout = new Promise<void>((resolve) => setTimeout(resolve, timeoutMs));
+      return Promise.race([loaded, timeout]);
+    }),
+  );
+}
 
 // 実行環境(ENV)はサーバー側でしか参照できないため、layout.tsxが<html>に埋め込んだ
 // data-env属性から取得する（クライアント側でNEXT_PUBLIC_*を使わない理由はappIcon.ts参照）
@@ -130,6 +171,10 @@ export async function captureThemedPng(el: HTMLElement): Promise<string> {
   const clone = el.cloneNode(true) as HTMLElement;
   clone.style.width = `${contentWidth}px`;
   if (!isDark) clone.classList.add("light");
+  // 遅延読み込みのままオフスクリーンに置くと画像が読み込まれないため即時読み込みにする
+  clone
+    .querySelectorAll<HTMLImageElement>("img")
+    .forEach((img) => (img.loading = "eager"));
 
   // 並び替えボタンなど、操作用UIで書き出し画像には含めたくない要素を除去する
   clone
@@ -146,11 +191,34 @@ export async function captureThemedPng(el: HTMLElement): Promise<string> {
   try {
     // アイコン未読み込みのまま書き出すと欠けるため、読み込み完了を待つ
     await iconLoaded;
-    return await toPng(container, {
+    // フォント・画像の読み込み(デコード)完了を待ってから描画する。
+    // 未完了のまま描画すると、文字化けや画像欠けの原因になる。
+    if (document.fonts?.ready) {
+      await document.fonts.ready.catch(() => {});
+    }
+    await waitForImagesDecoded(container);
+
+    // 実レイアウト後のサイズから、canvas 制限を超えない pixelRatio を決める。
+    // 縦長の記録(対戦数が多い)で pixelRatio=3 のまま描画すると、iOS では
+    // canvas 上限を超えて真っ白になることがあるため。
+    const width = container.offsetWidth;
+    const height = container.offsetHeight;
+    const pixelRatio = computeSafePixelRatio(width, height);
+
+    const options = {
       cacheBust: true,
-      pixelRatio: 3,
+      pixelRatio,
       backgroundColor: bgColor,
-    });
+    };
+
+    // iOS/Safari は初回の描画で foreignObject 内の画像が欠けることがあるため、
+    // 複数回描画して最後の結果を採用する(2回目以降は正しく描画されやすい)。
+    const passes = isIOS() ? 3 : 1;
+    let dataUrl = "";
+    for (let i = 0; i < passes; i++) {
+      dataUrl = await toPng(container, options);
+    }
+    return dataUrl;
   } finally {
     document.body.removeChild(wrapper);
   }

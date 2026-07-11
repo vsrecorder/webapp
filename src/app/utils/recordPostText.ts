@@ -46,26 +46,33 @@ export function buildRecordPostText(
   let results = "";
   if (includeMatches && matches && matches.length !== 0) {
     results = "\n対戦結果\n";
+    // チーム戦を含む場合は「チ(チーム)/個(個人)」の勝敗を並べて表示するためのヘッダーを付ける
+    const hasGroupMatch = matches.some((match) => match.group_match_flg);
+    if (hasGroupMatch) {
+      results += " チ個\n";
+    }
     matches.forEach((match) => {
-      const won = match.group_match_flg
-        ? match.group_match_victory_flg
-        : match.victory_flg;
-      const victory = won ? "⭕" : "❌";
+      // 勝敗マーク。チーム戦はチーム・個人の2つ、それ以外は個人のみを表示する
+      const victory = match.group_match_flg
+        ? `${match.group_match_victory_flg ? "⭕" : "❌"}${
+            match.victory_flg ? "⭕" : "❌"
+          }`
+        : match.victory_flg
+          ? "⭕"
+          : "❌";
       const go_first =
         match.default_victory_flg || match.default_defeat_flg
           ? "　"
           : match.games[0].go_first
             ? "先"
             : "後";
-      // チーム戦は相手個人のデッキではなく「チーム戦」と表記する
+      // チーム戦でも相手のデッキ情報を表示する
       const opponents_deck_info = match.default_victory_flg
         ? "不戦勝"
         : match.default_defeat_flg
           ? "不戦敗"
-          : match.group_match_flg
-            ? "チーム戦"
-            : match.opponents_deck_info;
-      results += ` ${victory} ${go_first} ${opponents_deck_info}\n`;
+          : match.opponents_deck_info;
+      results += `${victory} ${go_first} ${opponents_deck_info}\n`;
     });
   }
 

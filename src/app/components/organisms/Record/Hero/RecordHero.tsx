@@ -32,9 +32,7 @@ import { UnofficialEventGetByIdResponseType } from "@app/types/unofficial_event"
 import { EnvironmentType } from "@app/types/environment";
 import { DeckGetByIdResponseType } from "@app/types/deck";
 
-async function fetchOfficialEvent(
-  id: number,
-): Promise<OfficialEventGetByIdResponseType> {
+async function fetchOfficialEvent(id: number): Promise<OfficialEventGetByIdResponseType> {
   const res = await fetch(`/api/official_events/${id}`, {
     cache: "no-store",
     method: "GET",
@@ -148,7 +146,7 @@ function HeroShell({
         </div>
       )}
 
-      <div className="px-[18px] py-[18px]">
+      <div className="px-4.5 py-4.5">
         <div className="flex items-start gap-3">
           {/* 左：イベント情報 */}
           <div className="min-w-0 flex-1">
@@ -162,7 +160,7 @@ function HeroShell({
               const iconTitle = (
                 <>
                   <div
-                    className={`flex h-[45px] w-[45px] shrink-0 items-center justify-center overflow-hidden rounded-xl ring-1 ring-inset ring-black/5 ${iconBoxClassName}`}
+                    className={`flex h-11.25 w-11.25 shrink-0 items-center justify-center overflow-hidden rounded-xl ring-1 ring-inset ring-black/5 ${iconBoxClassName}`}
                   >
                     {iconNode}
                   </div>
@@ -374,12 +372,7 @@ export default function RecordHero({
     return () => {
       ignore = true;
     };
-  }, [
-    isOfficial,
-    record.event_date,
-    record.created_at,
-    unofficialEvent?.date,
-  ]);
+  }, [isOfficial, record.event_date, record.created_at, unofficialEvent?.date]);
 
   if (error) {
     return <div className="text-red-500">{error}</div>;
@@ -428,8 +421,7 @@ export default function RecordHero({
 
   // 取得中、または保持しているデッキが record の現在の deck_id と一致しない
   // (＝変更直後でまだ新しいデッキを取得できていない)場合はローディング表示にする。
-  const isDeckLoading =
-    !!record.deck_id && (loadingDeck || deck?.id !== record.deck_id);
+  const isDeckLoading = !!record.deck_id && (loadingDeck || deck?.id !== record.deck_id);
 
   // 使用デッキ取得中のローディング行(実表示と同じ骨格でガタつきを抑える)
   const deckLoadingRow = (

@@ -70,6 +70,8 @@ type Props = {
   setRecord: Dispatch<SetStateAction<RecordGetByIdResponseType | null>>;
   enableShowDeckModal: boolean;
   enableUpdateUsedDeckModal: boolean;
+  // デッキ名ヘッダーを省いてデッキコードに特化する(ヒーローに使用デッキ名がある場合)
+  compact?: boolean;
 };
 
 export default function UsedDeckById({
@@ -77,6 +79,7 @@ export default function UsedDeckById({
   setRecord,
   enableShowDeckModal,
   enableUpdateUsedDeckModal,
+  compact = false,
 }: Props) {
   const [deck, setDeck] = useState<DeckGetByIdResponseType | null>(null);
   const [deckcode, setDeckCode] = useState<DeckCodeType | null>(null);
@@ -211,7 +214,7 @@ export default function UsedDeckById({
   }, [record]);
 
   if (loading1 || loading2) {
-    return <DeckCardSkeleton />;
+    return <DeckCardSkeleton compact={compact} />;
   }
 
   if (error1 || error2) {
@@ -258,6 +261,7 @@ export default function UsedDeckById({
           enableShowDeckModal={enableShowDeckModal}
           onSelectExistingVersion={onOpenForUpdateUsedDeckModal}
           onCreateVersion={onOpenForCreateDeckCodeModal}
+          compact={compact}
         />
       </div>
     </>

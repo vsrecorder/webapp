@@ -1,6 +1,11 @@
 "use client";
 
-import { useEffect, useState, type RefObject } from "react";
+import {
+  useState,
+  type RefObject,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 
 import {
   Table,
@@ -34,9 +39,9 @@ import { MatchGetResponseType, MatchOrderItemType } from "@app/types/match";
 type SectionKey = "qualifying" | "final" | "other";
 
 const SECTION_LABELS: Record<SectionKey, string> = {
-  qualifying: "🎯 予選",
-  final: "🏆 本戦",
-  other: "📝 その他",
+  qualifying: "予選",
+  final: "本戦",
+  other: "その他",
 };
 
 const SECTION_FLAGS: Record<
@@ -143,45 +148,31 @@ function moveMatch(
   return sections.filter((s) => s.items.length > 0).flatMap((s) => s.items);
 }
 
-async function fetchMatches(record_id: string) {
-  try {
-    const res = await fetch(`/api/records/${record_id}/matches`, {
-      cache: "no-store",
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
-    });
-
-    if (!res.ok) {
-      throw new Error("Failed to fetch");
-    }
-
-    const ret: MatchGetResponseType[] = await res.json();
-
-    return ret;
-  } catch (error) {
-    throw error;
-  }
-}
-
 type Props = {
   record: RecordGetByIdResponseType | null;
+  // 対戦一覧は親で一元管理する(ヒーローの戦績と同じデータソースを共有し、
+  // 追加・更新・削除・並び替えを即座に戦績へ反映させるため)
+  matches: MatchGetResponseType[] | null;
+  setMatches: Dispatch<SetStateAction<MatchGetResponseType[] | null>>;
+  loading: boolean;
   enableCreateMatchModalButton: boolean;
   enableUpdateMatchModalButton: boolean;
   matchCardRef?: RefObject<HTMLDivElement | null>;
+  // ボードのパネル内に置く場合は true。外側のカード枠(border/bg/影)を外す。
+  flat?: boolean;
 };
 
 export default function Matches({
   record,
+  matches,
+  setMatches,
+  loading,
   enableCreateMatchModalButton,
   enableUpdateMatchModalButton,
   matchCardRef,
+  flat = false,
 }: Props) {
   const [selectedMatch, setSelectedMatch] = useState<MatchGetResponseType | null>(null);
-  const [matches, setMatches] = useState<MatchGetResponseType[] | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   const {
     isOpen: isOpenForUpdateMatchModal,
@@ -196,36 +187,13 @@ export default function Matches({
     onOpenChange: onOpenChangeForDisplayMatchMemoModal,
   } = useDisclosure();
 
-  useEffect(() => {
-    if (!record) {
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const data = await fetchMatches(record.id);
-        setMatches(data);
-      } catch (err) {
-        console.log(err);
-        setError("データの取得に失敗しました");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [record]);
-
   if (loading) {
-    return <MatchSkeleton enableCreateMatchModalButton={enableCreateMatchModalButton} />;
-  }
-
-  if (error) {
-    return <div className="text-red-500">{error}</div>;
+    return (
+      <MatchSkeleton
+        enableCreateMatchModalButton={enableCreateMatchModalButton}
+        flat={flat}
+      />
+    );
   }
 
   // フェーズフラグの有無でセクション分けするかを決定
@@ -328,18 +296,17 @@ export default function Matches({
       />
 
       <div>
-        <Card>
-          <CardBody className="px-1 py-1 w-full">
+        <Card className={flat ? "bg-transparent shadow-none" : ""}>
+          <CardBody className={`${flat ? "p-0" : "px-1 py-1"} w-full`}>
             <div className="flex flex-col gap-1.5 w-full">
-              <div ref={matchCardRef} className="p-1">
-                <Card>
+              <div ref={matchCardRef} className={flat ? "" : "p-1"}>
+                <Card className={flat ? "bg-transparent shadow-none" : ""}>
                   <CardBody
                     className={`px-0 py-0.5 ${matches && matches.length === 0 ? "min-h-28" : ""} w-full`}
                   >
                     {matches && matches.length !== 0 ? (
                       <div className="px-0 py-0 w-full">
                         <Table
-                          isStriped
                           hideHeader
                           aria-label="対戦結果"
                           className=""
@@ -377,10 +344,29 @@ export default function Matches({
                               }
 
                               const { match, canMoveUp, canMoveDown } = item;
+                              // 連続する対戦行の間だけ区切り線を引く(先頭・見出し直後は引かない)
+                              const showDivider =
+                                index > 0 && orderedItems[index - 1].kind === "match";
                               return (
                                 <TableRow key={match.id}>
-                                  <TableCell>
-                                    <div className="flex items-center gap-1 w-full">
+                                  <TableCell
+                                    className={
+                                      showDivider ? "border-t border-divider" : ""
+                                    }
+                                  >
+                                    {/* 勝敗でグラデ：勝ち=緑・負け=赤を左からやわらかく敷く。
+                                        チーム戦はチームの勝敗に合わせる。 */}
+                                    <div
+                                      className={`flex w-full items-center gap-1 rounded-lg ${
+                                        (
+                                          match.group_match_flg
+                                            ? match.group_match_victory_flg
+                                            : match.victory_flg
+                                        )
+                                          ? "bg-gradient-to-r from-success/10 to-transparent dark:from-success/15"
+                                          : "bg-gradient-to-r from-danger/10 to-transparent dark:from-danger/15"
+                                      }`}
+                                    >
                                       {/*
                                       並び替えボタンが表示される場合のみガターを描画する。
                                       BO1/チーム戦に関わらず同じ位置にボタンを表示する。
@@ -435,47 +421,49 @@ export default function Matches({
                                         <div className="flex flex-wrap items-center gap-1.5 w-full">
                                           {/* チーム戦は個人とチームの勝敗を並べて表示、BO1は個人の勝敗のみ */}
                                           {match.group_match_flg ? (
-                                            <div className="flex shrink-0 items-stretch gap-2">
-                                              <div className="relative h-11">
-                                                <span className="block -translate-x-1 -translate-y-px text-[9px] leading-none text-default-400 whitespace-nowrap">
+                                            // チーム戦はチーム/個人の2勝敗をラベル付きバッジで並べる
+                                            <div className="flex shrink-0 items-end gap-1.5">
+                                              <div className="flex flex-col items-center gap-0.5">
+                                                <span className="text-[9px] leading-none text-default-400">
                                                   チーム
                                                 </span>
-                                                {/* ラベルの高さに関わらず行の高さ(h-11)を基準に中央揃えする */}
-                                                <span className="absolute inset-0 flex items-center justify-center -translate-x-1 pt-1 text-xl leading-none">
+                                                <span
+                                                  className={`flex h-7 w-7 items-center justify-center rounded-lg text-sm font-bold ${
+                                                    match.group_match_victory_flg
+                                                      ? "bg-success/15 text-success"
+                                                      : "bg-danger/15 text-danger"
+                                                  }`}
+                                                >
                                                   {match.group_match_victory_flg
-                                                    ? "⭕"
-                                                    : "❌"}
+                                                    ? "W"
+                                                    : "L"}
                                                 </span>
                                               </div>
-                                              <div className="relative h-11">
-                                                <span className="block -translate-x-1 -translate-y-px text-[9px] leading-none text-default-400 whitespace-nowrap">
+                                              <div className="flex flex-col items-center gap-0.5">
+                                                <span className="text-[9px] leading-none text-default-400">
                                                   個人
                                                 </span>
-                                                <span className="absolute inset-0 flex items-center justify-center -translate-x-1 pt-1 text-xl leading-none">
-                                                  {match.victory_flg === true
-                                                    ? "⭕"
-                                                    : "❌"}
+                                                <span
+                                                  className={`flex h-7 w-7 items-center justify-center rounded-lg text-sm font-bold ${
+                                                    match.victory_flg
+                                                      ? "bg-success/15 text-success"
+                                                      : "bg-danger/15 text-danger"
+                                                  }`}
+                                                >
+                                                  {match.victory_flg ? "W" : "L"}
                                                 </span>
                                               </div>
                                             </div>
                                           ) : (
-                                            // チーム戦の「チーム」「個人」2列分の幅を invisible で確保しつつ、
-                                            // 勝敗アイコンはその2列全体（gap含む）のちょうど真ん中に絶対配置する
-                                            <div className="relative flex shrink-0 items-stretch gap-2 h-11">
-                                              <div className="relative h-11 invisible">
-                                                <span className="text-[9px] leading-none whitespace-nowrap">
-                                                  チーム
-                                                </span>
-                                              </div>
-                                              <div className="relative h-11 invisible">
-                                                <span className="text-[9px] leading-none whitespace-nowrap">
-                                                  個人
-                                                </span>
-                                              </div>
-                                              <span className="absolute inset-0 flex items-center justify-center -translate-x-1 pt-1 text-xl leading-none">
-                                                {match.victory_flg === true ? "⭕" : "❌"}
-                                              </span>
-                                            </div>
+                                            <span
+                                              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-base font-bold ${
+                                                match.victory_flg
+                                                  ? "bg-success/15 text-success"
+                                                  : "bg-danger/15 text-danger"
+                                              }`}
+                                            >
+                                              {match.victory_flg ? "W" : "L"}
+                                            </span>
                                           )}
 
                                           <div className="flex items-center gap-1.5 flex-1 min-w-0">

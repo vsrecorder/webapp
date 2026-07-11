@@ -5,14 +5,27 @@ import { useEffect, useState, useCallback } from "react";
 import { Spinner } from "@heroui/spinner";
 import { Button, Link, useDisclosure } from "@heroui/react";
 
-import DeckCard from "@app/components/organisms/Deck/DeckCard";
-import { DeckCardSkeletons } from "@app/components/organisms/Deck/Skeleton/DeckCardSkeleton";
+import DeckCard, { DeckCardView } from "@app/components/organisms/Deck/DeckCard";
+import {
+  DeckCardSkeletons,
+  DeckViewToggleSkeleton,
+} from "@app/components/organisms/Deck/Skeleton/DeckCardSkeleton";
 import CreateDeckModal from "@app/components/organisms/Deck/Modal/CreateDeckModal";
 
-import { LuCirclePlus, LuPlus, LuLayoutGrid, LuArchive } from "react-icons/lu";
+import {
+  LuCirclePlus,
+  LuPlus,
+  LuLayoutGrid,
+  LuArchive,
+  LuList,
+} from "react-icons/lu";
 
 import { DeckType, DeckGetResponseType } from "@app/types/deck";
 import { DeckUsageItemType, DeckUsageStatType } from "@app/types/deck_usage_stat";
+
+// デッキ一覧の表示モードを localStorage に保存するキー。
+// 表示密度の好みはユーザーごとの習慣なので、次回アクセス時も同じ状態で開く。
+const DECK_VIEW_STORAGE_KEY = "deckListView";
 
 async function fetchDecks(isArchived: boolean, cursor: string) {
   try {
@@ -69,11 +82,26 @@ export default function Decks({ userId, isArchived, onCreated }: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [isInitialLoaded, setIsInitialLoaded] = useState(false);
+  // 表示モード。SSR とのハイドレーション不一致を避けるため初期値は固定（ギャラリー）にし、
+  // マウント後に localStorage から復元する。
+  const [view, setView] = useState<DeckCardView>("gallery");
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   useEffect(() => {
     fetchDeckUsageStats(userId).then(setDeckUsageStats);
   }, [userId]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem(DECK_VIEW_STORAGE_KEY);
+    if (saved === "list" || saved === "gallery") {
+      setView(saved);
+    }
+  }, []);
+
+  const handleChangeView = (next: DeckCardView) => {
+    setView(next);
+    localStorage.setItem(DECK_VIEW_STORAGE_KEY, next);
+  };
 
   const handleRemove = (id: string) => {
     setItems((prev) => prev.filter((d) => d.data.id !== id));
@@ -216,7 +244,58 @@ export default function Decks({ userId, isArchived, onCreated }: Props) {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 w-full gap-3 lg:gap-x-6">
+      {/* 表示モード切り替え：一覧ヘッダー右上にセグメントコントロールを配置。
+          リスト＝素早く探す、ギャラリー＝画像で見て探す、を用途で使い分ける。
+          固定タブ（top-15＋タブ高さ≒100px）の直下にスクロール追従で固定する。
+          初回ロード中はトグルのスケルトンを表示する。 */}
+      {(!isInitialLoaded || items.length > 0) && (
+        <div className="sticky top-25 z-40 w-full bg-background/85 backdrop-blur-sm py-2">
+          {!isInitialLoaded ? (
+            <DeckViewToggleSkeleton />
+          ) : (
+          <div
+            role="group"
+            aria-label="表示モード"
+            className="flex w-full items-center gap-0.5 rounded-lg bg-default-100 p-0.5"
+          >
+            <button
+              type="button"
+              aria-pressed={view === "list"}
+              onClick={() => handleChangeView("list")}
+              className={`flex flex-1 items-center justify-center gap-1 rounded-md px-2.5 py-1.5 text-tiny font-bold transition-colors ${
+                view === "list"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-default-500"
+              }`}
+            >
+              <LuList className="text-sm" />
+              リスト
+            </button>
+            <button
+              type="button"
+              aria-pressed={view === "gallery"}
+              onClick={() => handleChangeView("gallery")}
+              className={`flex flex-1 items-center justify-center gap-1 rounded-md px-2.5 py-1.5 text-tiny font-bold transition-colors ${
+                view === "gallery"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-default-500"
+              }`}
+            >
+              <LuLayoutGrid className="text-sm" />
+              ギャラリー
+            </button>
+          </div>
+          )}
+        </div>
+      )}
+
+      <div
+        className={`grid w-full ${
+          view === "gallery"
+            ? "gap-4 grid-cols-1 lg:grid-cols-2 lg:gap-x-6"
+            : "gap-3 grid-cols-1"
+        }`}
+      >
         {items.map((deck) => (
           <DeckCard
             key={deck.data.id}
@@ -225,11 +304,12 @@ export default function Decks({ userId, isArchived, onCreated }: Props) {
             deckUsageStat={deckUsageStats.get(deck.data.id) ?? null}
             onRemove={handleRemove}
             enableShowDeckModal={true}
+            view={view}
           />
         ))}
 
         {/* ローディング表示 */}
-        {isLoading && <DeckCardSkeletons />}
+        {isLoading && <DeckCardSkeletons view={view} />}
         {isInitialLoaded && isLoading && (
           <div className="flex justify-center col-span-1 lg:col-span-2">
             <Spinner size="lg" className="pt-0" />

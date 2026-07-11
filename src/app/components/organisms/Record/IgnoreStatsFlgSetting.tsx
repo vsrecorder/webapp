@@ -3,7 +3,7 @@
 import { SetStateAction, Dispatch } from "react";
 import { useState } from "react";
 
-import { addToast } from "@heroui/react";
+import { addToast, closeToast } from "@heroui/react";
 
 import { LuChartNoAxesColumn, LuCheck, LuTriangleAlert } from "react-icons/lu";
 
@@ -13,6 +13,8 @@ import { updateIgnoreStatsFlg } from "@app/components/organisms/Record/updateIgn
 type Props = {
   record: RecordGetByIdResponseType;
   setRecord: Dispatch<SetStateAction<RecordGetByIdResponseType | null>>;
+  // ボードのパネル内に置く場合は true。外側のカード枠(border/bg/影/余白)を外す。
+  flat?: boolean;
 };
 
 /*
@@ -21,7 +23,11 @@ type Props = {
  * セグメントコントロールで「含める / 除外」を明示的に選択させる。
  * 選択と同時にAPIへ即時反映する。
  */
-export default function IgnoreStatsFlgSetting({ record, setRecord }: Props) {
+export default function IgnoreStatsFlgSetting({
+  record,
+  setRecord,
+  flat = false,
+}: Props) {
   const [isUpdating, setIsUpdating] = useState(false);
   const excluded = record.ignore_stats_flg;
 
@@ -30,6 +36,17 @@ export default function IgnoreStatsFlgSetting({ record, setRecord }: Props) {
     if (isUpdating || nextIgnore === record.ignore_stats_flg) return;
 
     setIsUpdating(true);
+
+    // 切り替え中であることを示すトースト(完了/失敗時に閉じる)
+    const loadingToastKey = addToast({
+      title: "変更中",
+      description: nextIgnore
+        ? "この記録を戦績集計から除外しています…"
+        : "この記録を戦績集計の対象に戻しています…",
+      color: "primary",
+      promise: new Promise(() => {}),
+    });
+
     try {
       const ret = await updateIgnoreStatsFlg(record, nextIgnore);
 
@@ -37,6 +54,7 @@ export default function IgnoreStatsFlgSetting({ record, setRecord }: Props) {
         prev ? { ...prev, ignore_stats_flg: ret.ignore_stats_flg } : prev,
       );
 
+      if (loadingToastKey) closeToast(loadingToastKey);
       addToast({
         title: "変更完了",
         description: ret.ignore_stats_flg
@@ -47,6 +65,7 @@ export default function IgnoreStatsFlgSetting({ record, setRecord }: Props) {
       });
     } catch (error) {
       console.error(error);
+      if (loadingToastKey) closeToast(loadingToastKey);
       addToast({
         title: "変更失敗",
         description: "変更に失敗しました",
@@ -59,16 +78,18 @@ export default function IgnoreStatsFlgSetting({ record, setRecord }: Props) {
   }
 
   return (
-    <div className="rounded-2xl border border-divider bg-content1 p-3 shadow-sm">
-      {/* 見出し */}
-      <div className="flex items-center gap-2">
-        <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-primary/10 text-primary">
-          <LuChartNoAxesColumn className="h-3.5 w-3.5" />
-        </span>
-        <span className="text-sm font-bold">この記録の集計設定</span>
-      </div>
+    <div className={flat ? "" : "rounded-2xl border border-divider bg-content1 p-3 shadow-sm"}>
+      {/* 見出し(ボードのパネル内ではパネル側の見出しを使うため省略) */}
+      {!flat && (
+        <div className="flex items-center gap-2">
+          <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <LuChartNoAxesColumn className="h-3.5 w-3.5" />
+          </span>
+          <span className="text-sm font-bold">この記録の集計設定</span>
+        </div>
+      )}
 
-      <p className="mt-1 mb-2.5 text-tiny text-default-500">
+      <p className={`mb-2.5 text-tiny text-default-500 ${flat ? "" : "mt-1"}`}>
         除外すると、勝率・使用デッキ分析・相手デッキ分布・週次レポートの対象外になります。
       </p>
 

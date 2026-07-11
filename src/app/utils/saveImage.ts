@@ -24,6 +24,49 @@ export async function tryShareImage(dataUrl: string, filename: string): Promise<
   }
 }
 
+export type ShareResult = "shared" | "text-only" | "unsupported" | "failed";
+
+// Web Share API で「テキスト＋複数画像」をまとめて共有する。
+// 画像ファイルの共有に対応していれば text と files を一緒に、
+// 非対応(canShareがfalse)ならテキストのみで共有シートを開く。
+// 共有できた/ユーザーが閉じた(AbortError)場合は成功扱い。
+// API自体が無い場合は "unsupported"、失敗時は "failed" を返す。
+export async function shareRecord(
+  images: { dataUrl: string; filename: string }[],
+  text: string,
+): Promise<ShareResult> {
+  if (
+    typeof navigator === "undefined" ||
+    typeof navigator.share !== "function" ||
+    typeof navigator.canShare !== "function"
+  ) {
+    return "unsupported";
+  }
+
+  try {
+    const files = await Promise.all(
+      images.map(async (img) => {
+        const blob = await (await fetch(img.dataUrl)).blob();
+        return new File([blob], img.filename, { type: blob.type });
+      }),
+    );
+
+    const canShareFiles = files.length > 0 && navigator.canShare({ files });
+
+    if (canShareFiles) {
+      await navigator.share({ text, files });
+      return "shared";
+    }
+
+    // 画像共有に非対応の環境ではテキストのみ共有する
+    await navigator.share({ text });
+    return "text-only";
+  } catch (e) {
+    if (e instanceof DOMException && e.name === "AbortError") return "shared";
+    return "failed";
+  }
+}
+
 // captureThemedPng 等で生成した data URL 形式の画像を端末に保存する。
 //
 // iOS Safari（特にホーム画面に追加したPWAのstandalone表示）では、
@@ -40,6 +83,50 @@ export async function saveGeneratedImage(
   link.download = filename;
   link.href = dataUrl;
   link.click();
+}
+
+// 複数枚の画像をまとめて保存する。
+// Web Share API が使える環境では1回の共有シートで一括保存(写真アプリ等)を試み、
+// 使えない/失敗した場合は間隔を空けて順次ダウンロードする(連続クリックのブロック回避)。
+export async function saveImages(
+  images: { dataUrl: string; filename: string }[],
+): Promise<void> {
+  if (images.length === 0) return;
+  if (images.length === 1) {
+    await saveGeneratedImage(images[0].dataUrl, images[0].filename);
+    return;
+  }
+
+  if (
+    typeof navigator !== "undefined" &&
+    typeof navigator.share === "function" &&
+    typeof navigator.canShare === "function"
+  ) {
+    try {
+      const files = await Promise.all(
+        images.map(async (img) => {
+          const blob = await (await fetch(img.dataUrl)).blob();
+          return new File([blob], img.filename, { type: blob.type });
+        }),
+      );
+      if (navigator.canShare({ files })) {
+        await navigator.share({ files });
+        return;
+      }
+    } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") return;
+      // 失敗時は順次ダウンロードにフォールバック
+    }
+  }
+
+  for (const img of images) {
+    const link = document.createElement("a");
+    link.download = img.filename;
+    link.href = img.dataUrl;
+    link.click();
+    // 連続ダウンロードのブロックを避けるため少し待つ
+    await new Promise((resolve) => setTimeout(resolve, 400));
+  }
 }
 
 // data URL を新しいタブでそのまま開く。

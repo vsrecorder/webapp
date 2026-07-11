@@ -7,11 +7,10 @@ import { useRouter } from "next/navigation";
 import { Button, useDisclosure } from "@heroui/react";
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/dropdown";
 
-import { LuEllipsisVertical, LuImageDown, LuTrash2 } from "react-icons/lu";
-import { RiTwitterXLine } from "react-icons/ri";
+import { LuEllipsisVertical, LuTrash2, LuShare2 } from "react-icons/lu";
 
 import DeleteRecordModal from "@app/components/organisms/Record/Modal/DeleteRecordModal";
-import ImageSaveGuideModal from "@app/components/molecules/Image/ImageSaveGuideModal";
+import ShareRecordModal from "@app/components/organisms/Record/Modal/ShareRecordModal";
 
 import { RecordGetByIdResponseType } from "@app/types/record";
 import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
@@ -19,11 +18,11 @@ import { TonamelEventGetByIdResponseType } from "@app/types/tonamel_event";
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { MatchGetResponseType } from "@app/types/match";
 
-import { captureThemedPng } from "@app/utils/captureImage";
-import { saveGeneratedImage, openImageInNewTab, tryShareImage } from "@app/utils/saveImage";
-import { isIOS } from "@app/utils/platform";
+import { MatchStats } from "@app/utils/matchStats";
 
-async function fetchOfficialEventForTweet(
+// シェアのポスト文組み立てに必要なイベント・デッキ情報の取得
+
+async function fetchOfficialEventForShare(
   id: number,
 ): Promise<OfficialEventGetByIdResponseType> {
   const res = await fetch(`/api/official_events/${id}`, {
@@ -35,7 +34,7 @@ async function fetchOfficialEventForTweet(
   return res.json();
 }
 
-async function fetchTonamelEventForTweet(
+async function fetchTonamelEventForShare(
   id: string,
 ): Promise<TonamelEventGetByIdResponseType> {
   const res = await fetch(`/api/tonamel_events/${id}`, {
@@ -47,7 +46,7 @@ async function fetchTonamelEventForTweet(
   return res.json();
 }
 
-async function fetchDeckForTweet(id: string): Promise<DeckGetByIdResponseType> {
+async function fetchDeckForShare(id: string): Promise<DeckGetByIdResponseType> {
   const res = await fetch(`/api/decks/${id}`, {
     cache: "no-store",
     method: "GET",
@@ -57,80 +56,20 @@ async function fetchDeckForTweet(id: string): Promise<DeckGetByIdResponseType> {
   return res.json();
 }
 
-async function fetchMatchesForTweet(record_id: string): Promise<MatchGetResponseType[]> {
-  const res = await fetch(`/api/records/${record_id}/matches`, {
-    cache: "no-store",
-    method: "GET",
-    headers: { Accept: "application/json" },
-  });
-  if (!res.ok) throw new Error("Failed to fetch");
-  return res.json();
-}
-
-function buildTweetHref(
-  officialEvent: OfficialEventGetByIdResponseType | null,
-  tonamelEvent: TonamelEventGetByIdResponseType | null,
-  deck: DeckGetByIdResponseType | null,
-  matches: MatchGetResponseType[] | null,
-): string {
-  let results = "";
-  if (matches && matches.length !== 0) {
-    results = "\n対戦結果\n";
-    matches.forEach((match) => {
-      const victory = match.victory_flg ? "⭕" : "❌";
-      const go_first =
-        match.default_victory_flg || match.default_defeat_flg
-          ? "　"
-          : match.games[0].go_first
-            ? "先"
-            : "後";
-      const opponents_deck_info = match.default_victory_flg
-        ? "不戦勝"
-        : match.default_defeat_flg
-          ? "不戦敗"
-          : match.opponents_deck_info;
-      results += ` ${victory} ${go_first} ${opponents_deck_info}\n`;
-    });
-  }
-
-  let encoded = "";
-  if (officialEvent) {
-    const title = officialEvent.title
-      .replace(/【.*?】ポケモンカードジム　/g, "")
-      .replace(/【.*?】エクストラバトルの日/g, "エクストラバトルの日")
-      .replace(/【.*?】ポケモンカードゲーム　/g, "")
-      .replace(/ポケモンカードゲーム /g, "")
-      .replace(/（オープンリーグ）/g, "")
-      .replace(/（マスターリーグ）/g, "")
-      .replace(/（シニアリーグ）/g, "")
-      .replace(/（ジュニアリーグ）/g, "")
-      .replace(/（スタンダード）/g, "")
-      .replace(/（.*?）/g, "");
-    const shopName = officialEvent.shop_name || officialEvent.venue;
-    encoded = encodeURIComponent(`${title}\n${shopName}\n${results}\n`);
-  } else if (tonamelEvent) {
-    encoded = encodeURIComponent(`${tonamelEvent.title}\n${results}\n`);
-  }
-
-  if (deck && deck.name !== "") {
-    encoded += encodeURIComponent(`使用デッキ：${deck.name}\n`);
-  }
-
-  const hashtag = encodeURIComponent("バトレコ");
-  return `https://twitter.com/intent/tweet?text=${encoded}&via=vsrecorder_mobi&hashtags=${hashtag}`;
-}
-
 type Props = {
   record: RecordGetByIdResponseType;
   setRecord: Dispatch<SetStateAction<RecordGetByIdResponseType | null>>;
-  matchCardRef: RefObject<HTMLDivElement | null>;
+  // ヒーローの戦績と共有する対戦一覧・戦績サマリー(親で一元管理)
+  matches: MatchGetResponseType[] | null;
+  stats: MatchStats;
   deckCardRef: RefObject<HTMLDivElement | null>;
 };
 
 export default function RecordActionsFloating({
   record,
   setRecord,
-  matchCardRef,
+  matches,
+  stats,
   deckCardRef,
 }: Props) {
   const router = useRouter();
@@ -142,16 +81,19 @@ export default function RecordActionsFloating({
   } = useDisclosure();
 
   const {
-    isOpen: isOpenForImageSaveGuideModal,
-    onOpen: onOpenForImageSaveGuideModal,
-    onOpenChange: onOpenChangeForImageSaveGuideModal,
+    isOpen: isOpenForShareModal,
+    onOpen: onOpenForShareModal,
+    onOpenChange: onOpenChangeForShareModal,
+    onClose: onCloseForShareModal,
   } = useDisclosure();
-  const [imageDataUrlForSaveGuide, setImageDataUrlForSaveGuide] = useState<string | null>(
-    null,
-  );
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [tweetHref, setTweetHref] = useState<string>("");
+  // シェアモーダルでポスト文を組み立てるための取得済みデータ
+  const [shareOfficialEvent, setShareOfficialEvent] =
+    useState<OfficialEventGetByIdResponseType | null>(null);
+  const [shareTonamelEvent, setShareTonamelEvent] =
+    useState<TonamelEventGetByIdResponseType | null>(null);
+  const [shareDeck, setShareDeck] = useState<DeckGetByIdResponseType | null>(null);
 
   useEffect(() => {
     if (!record) return;
@@ -159,13 +101,12 @@ export default function RecordActionsFloating({
     let officialEvent: OfficialEventGetByIdResponseType | null = null;
     let tonamelEvent: TonamelEventGetByIdResponseType | null = null;
     let deck: DeckGetByIdResponseType | null = null;
-    let matches: MatchGetResponseType[] | null = null;
 
     const tasks: Promise<void>[] = [];
 
     if (record.official_event_id !== 0) {
       tasks.push(
-        fetchOfficialEventForTweet(record.official_event_id)
+        fetchOfficialEventForShare(record.official_event_id)
           .then((d) => {
             officialEvent = d;
           })
@@ -173,7 +114,7 @@ export default function RecordActionsFloating({
       );
     } else if (record.tonamel_event_id !== "") {
       tasks.push(
-        fetchTonamelEventForTweet(record.tonamel_event_id)
+        fetchTonamelEventForShare(record.tonamel_event_id)
           .then((d) => {
             tonamelEvent = d;
           })
@@ -183,7 +124,7 @@ export default function RecordActionsFloating({
 
     if (record.deck_id) {
       tasks.push(
-        fetchDeckForTweet(record.deck_id)
+        fetchDeckForShare(record.deck_id)
           .then((d) => {
             deck = d;
           })
@@ -191,85 +132,35 @@ export default function RecordActionsFloating({
       );
     }
 
-    tasks.push(
-      fetchMatchesForTweet(record.id)
-        .then((d) => {
-          matches = d;
-        })
-        .catch(() => {}),
-    );
-
     Promise.all(tasks).then(() => {
-      setTweetHref(buildTweetHref(officialEvent, tonamelEvent, deck, matches));
+      setShareOfficialEvent(officialEvent);
+      setShareTonamelEvent(tonamelEvent);
+      setShareDeck(deck);
     });
   }, [record]);
 
-  const handleSavingEventCardImage = async () => {
-    if (!matchCardRef.current) return;
-
-    let dataUrl: string;
-    try {
-      dataUrl = await captureThemedPng(matchCardRef.current);
-    } catch (e) {
-      console.error(e);
-      return;
-    }
-
-    const filename = `${record.id}_${Date.now()}.png`;
-
-    // iOSのホーム画面PWA(standalone)では<img>埋め込みの長押しメニューが
-    // 「コピー」のみに縮小されるため、まずWeb Share APIでの共有を試みる。
-    // 使えない/失敗した場合は画像を新しいタブで開く方式、それも失敗した場合のみ
-    // 長押し保存用のプレビューモーダルにフォールバックする。
-    if (isIOS()) {
-      if (!(await tryShareImage(dataUrl, filename)) && !openImageInNewTab(dataUrl)) {
-        setImageDataUrlForSaveGuide(dataUrl);
-        onOpenForImageSaveGuideModal();
-      }
-      return;
-    }
-
-    await saveGeneratedImage(dataUrl, filename);
-  };
-
-  const handleSavingDeckCardImage = async () => {
-    if (!deckCardRef.current) return;
-
-    let dataUrl: string;
-    try {
-      dataUrl = await captureThemedPng(deckCardRef.current);
-    } catch (e) {
-      console.error(e);
-      return;
-    }
-
-    const filename = `${record.deck_id}_${record.deck_code_id}_${Date.now()}.png`;
-
-    if (isIOS()) {
-      if (!(await tryShareImage(dataUrl, filename)) && !openImageInNewTab(dataUrl)) {
-        setImageDataUrlForSaveGuide(dataUrl);
-        onOpenForImageSaveGuideModal();
-      }
-      return;
-    }
-
-    await saveGeneratedImage(dataUrl, filename);
-  };
-
   return (
     <>
+      <ShareRecordModal
+        record={record}
+        setRecord={setRecord}
+        stats={stats}
+        matches={matches}
+        officialEvent={shareOfficialEvent}
+        tonamelEvent={shareTonamelEvent}
+        deck={shareDeck}
+        deckCardRef={deckCardRef}
+        isOpen={isOpenForShareModal}
+        onOpenChange={onOpenChangeForShareModal}
+        onClose={onCloseForShareModal}
+      />
+
       <DeleteRecordModal
         record={record}
         setRecord={setRecord}
         isOpen={isOpenForDeleteRecordModal}
         onOpenChange={onOpenChangeForDeleteRecordModal}
         onDeleted={() => router.push("/records")}
-      />
-
-      <ImageSaveGuideModal
-        isOpen={isOpenForImageSaveGuideModal}
-        onOpenChange={onOpenChangeForImageSaveGuideModal}
-        imageDataUrl={imageDataUrlForSaveGuide}
       />
 
       {/* ドロップダウン表示中の背景オーバーレイ */}
@@ -304,26 +195,11 @@ export default function RecordActionsFloating({
         </DropdownTrigger>
         <DropdownMenu aria-label="記録の操作">
           <DropdownItem
-            key="save-event-image"
-            startContent={<LuImageDown />}
-            onPress={handleSavingEventCardImage}
+            key="share"
+            startContent={<LuShare2 />}
+            onPress={onOpenForShareModal}
           >
-            対戦結果の画像を保存
-          </DropdownItem>
-          <DropdownItem
-            key="save-deck-image"
-            startContent={<LuImageDown />}
-            onPress={handleSavingDeckCardImage}
-          >
-            使用したデッキの画像を保存
-          </DropdownItem>
-          <DropdownItem
-            key="tweet"
-            startContent={<RiTwitterXLine />}
-            isDisabled={!tweetHref}
-            onPress={() => window.open(tweetHref, "_blank")}
-          >
-            この対戦結果をポストする
+            この記録をシェアする
           </DropdownItem>
           <DropdownItem
             key="delete"

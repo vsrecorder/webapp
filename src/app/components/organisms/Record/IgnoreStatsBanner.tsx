@@ -1,5 +1,11 @@
 import { LuTriangleAlert } from "react-icons/lu";
 
+type Props = {
+  // ヒーローカードなど別のカード内に段差なく差し込む場合は true。
+  // 角丸・影・左右上の枠線を外し、下線区切りのみの帯にする。
+  flush?: boolean;
+};
+
 /*
  * 集計対象外(ignore_stats_flg)の記録で、詳細ページ・記録情報モーダルの
  * 最上部に表示するステータスバナー。
@@ -7,9 +13,15 @@ import { LuTriangleAlert } from "react-icons/lu";
  * 記録全体の状態として一目で分かる位置へ昇格させる。
  * 表示条件(ignore_stats_flg)の判定は呼び出し側で行う。
  */
-export default function IgnoreStatsBanner() {
+export default function IgnoreStatsBanner({ flush = false }: Props) {
   return (
-    <div className="flex items-center gap-2.5 rounded-2xl border border-warning-200 bg-warning-100 px-3.5 py-2.5 shadow-sm">
+    <div
+      className={`flex items-center gap-2.5 bg-warning-100 px-3.5 py-2.5 ${
+        flush
+          ? "border-b border-warning-200"
+          : "rounded-2xl border border-warning-200 shadow-sm"
+      }`}
+    >
       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-warning/20 text-warning-600">
         <LuTriangleAlert className="h-4 w-4" />
       </span>

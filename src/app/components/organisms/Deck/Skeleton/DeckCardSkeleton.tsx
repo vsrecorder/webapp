@@ -2,56 +2,120 @@ import { Card, CardHeader, CardBody } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
 
 import DeckCodeCardSkeleton from "@app/components/organisms/Deck/Skeleton/DeckCodeCardSkeleton";
+import type { DeckCardView } from "@app/components/organisms/Deck/DeckCard";
 
-export function DeckCardSkeleton() {
+// リスト表示（コンパクト行）用スケルトン。実際のリストカードの構造に合わせて、
+// 右上に登録日、コンテンツ行にスプライト2体・勝率リング・デッキ名/戦績・
+// シェブロンの骨格を並べる。
+export function DeckListRowSkeleton() {
   return (
-    <div className="">
-      <Card className="pt-3 w-full">
-        <CardHeader className="pt-0 pb-0 px-3">
-          <div className="flex flex-col gap-1 w-full">
-            {/* 両端配置 */}
-            <div className="flex items-start justify-between w-full">
-              {/* 左側 */}
-              <div className="flex items-center gap-0 shrink-0">
-                <Skeleton className="h-11 w-11 rounded-2xl" />
-                <Skeleton className="h-11 w-11 rounded-2xl" />
-              </div>
+    <Card className="w-full">
+      <div className="flex flex-col gap-1.5 px-3 py-3">
+        {/* 右上：登録日 */}
+        <div className="flex justify-end">
+          <Skeleton className="h-3.5 w-28 rounded-lg" />
+        </div>
 
-              {/* 右側：登録日＋バージョン件数バッジ */}
-              <div className="flex flex-col items-end gap-2 shrink-0">
-                <Skeleton className="h-3.5 w-20 rounded-lg" />
-                <Skeleton className="h-6 w-28 rounded-full" />
-              </div>
-            </div>
-
-            <div className="font-bold text-large w-full">
-              <Skeleton className="h-7 w-44 rounded-lg" />
-            </div>
-
-            {/* 対戦成績・先攻後攻パネル（左：勝率、右：先攻後攻グリッドの2分割構造に合わせる） */}
-            <div className="flex items-stretch rounded-xl bg-default-100 overflow-hidden">
-              <div className="flex-1 flex flex-col items-center justify-center gap-1.5 px-5 py-3 min-w-0">
-                <Skeleton className="h-2.5 w-6 rounded" />
-                <Skeleton className="h-4 w-10 rounded" />
-                <Skeleton className="h-2.5 w-14 rounded" />
-              </div>
-              <div className="flex-[1.7] flex flex-col justify-center gap-1.5 px-3 py-3 border-l border-default-200 min-w-0">
-                <Skeleton className="h-2.5 w-full rounded" />
-                <Skeleton className="h-2.5 w-full rounded" />
-                <Skeleton className="h-2.5 w-full rounded" />
-              </div>
-            </div>
+        {/* コンテンツ行 */}
+        <div className="flex items-center gap-3">
+          {/* スプライト2体（骨格は塊に見えないよう間隔を空ける） */}
+          <div className="flex gap-1.5 shrink-0">
+            <Skeleton className="h-12 w-12 rounded-2xl" />
+            <Skeleton className="h-12 w-12 rounded-2xl" />
           </div>
-        </CardHeader>
-        <CardBody className="px-3 py-2">
-          <DeckCodeCardSkeleton />
-        </CardBody>
-      </Card>
-    </div>
+          {/* 勝率リング */}
+          <Skeleton className="h-11 w-11 rounded-full shrink-0" />
+          {/* デッキ名＋戦績 */}
+          <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+            <Skeleton className="h-4 w-40 rounded-lg" />
+            <Skeleton className="h-3 w-24 rounded" />
+          </div>
+          {/* シェブロン */}
+          <Skeleton className="h-5 w-5 rounded shrink-0" />
+        </div>
+      </div>
+    </Card>
   );
 }
 
-export function DeckCardSkeletons() {
+// リスト/ギャラリー切り替えトグル用スケルトン（横幅いっぱい、実際のトグル高さに合わせる）。
+export function DeckViewToggleSkeleton() {
+  return <Skeleton className="h-8 w-full rounded-lg" />;
+}
+
+export function DeckCardSkeleton({ compact = false }: { compact?: boolean } = {}) {
+  // ボード(記録詳細/モーダル)向けの案1レイアウト用スケルトン。
+  // デッキ画像(2:1)を主役に、その下にコード・チップの骨格を並べる。
+  if (compact) {
+    return (
+      <div className="flex w-full flex-col gap-2.5">
+        <Skeleton className="aspect-2/1 w-full rounded-lg" />
+        <Skeleton className="h-9 w-full rounded-lg" />
+        <div className="flex gap-1.5">
+          <Skeleton className="h-5 w-20 rounded-md" />
+          <Skeleton className="h-5 w-28 rounded-md" />
+        </div>
+      </div>
+    );
+  }
+
+  // ギャラリー表示用スケルトン。実際のギャラリーカードの構造に合わせて、
+  // ヘッダー(スプライト＋名前＋日付)・ヒーロー画像・戦績・先攻/後攻チップを並べる。
+  return (
+    <Card className="w-full overflow-hidden border border-default-200 shadow-sm">
+      <CardHeader className="flex flex-col gap-1.5 px-3 pt-3 pb-2">
+        {/* 右上：登録日 */}
+        <div className="flex justify-end">
+          <Skeleton className="h-3.5 w-28 rounded-lg" />
+        </div>
+        {/* スプライト＋デッキ名 */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 shrink-0">
+            <Skeleton className="h-11 w-11 rounded-2xl" />
+            <Skeleton className="h-11 w-11 rounded-2xl" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <Skeleton className="h-6 w-40 rounded-lg" />
+          </div>
+        </div>
+      </CardHeader>
+
+      {/* ヒーロー画像 */}
+      <Skeleton className="aspect-2/1 w-full" />
+
+      <CardBody className="flex flex-col gap-3 px-3 py-3">
+        {/* 戦績 */}
+        <Skeleton className="h-3.5 w-28 rounded" />
+        {/* 先攻/後攻チップ */}
+        <div className="grid grid-cols-[auto_1fr_1fr] items-center gap-x-2 gap-y-1.5">
+          <Skeleton className="h-3.5 w-8 rounded" />
+          <Skeleton className="h-8 rounded-lg" />
+          <Skeleton className="h-8 rounded-lg" />
+          <Skeleton className="h-3.5 w-8 rounded" />
+          <Skeleton className="h-8 rounded-lg" />
+          <Skeleton className="h-8 rounded-lg" />
+        </div>
+        {/* バージョン/環境/コードのメタ */}
+        <DeckCodeCardSkeleton hideImage />
+      </CardBody>
+    </Card>
+  );
+}
+
+export function DeckCardSkeletons({
+  view = "gallery",
+}: { view?: DeckCardView } = {}) {
+  if (view === "list") {
+    // リストは1行が低く一覧性が高いので、多めに5件分の骨格を表示する。
+    return (
+      <>
+        {Array.from({ length: 5 }).map((_, i) => (
+          <DeckListRowSkeleton key={i} />
+        ))}
+      </>
+    );
+  }
+
   return (
     <>
       <DeckCardSkeleton />

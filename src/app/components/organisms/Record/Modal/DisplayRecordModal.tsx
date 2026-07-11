@@ -13,28 +13,29 @@ import {
   ModalBody,
   useDisclosure,
   Button,
+  Card,
+  CardBody,
 } from "@heroui/react";
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/dropdown";
 
 import {
-  LuImageDown,
   LuEllipsisVertical,
   LuExternalLink,
   LuTrash2,
+  LuSwords,
+  LuLayers,
+  LuChartNoAxesColumn,
+  LuShare2,
 } from "react-icons/lu";
-import { RiTwitterXLine } from "react-icons/ri";
 
-import OfficialEventInfo from "@app/components/organisms/Record/OfficialEventInfo";
-import TonamelEventInfo from "@app/components/organisms/Record/TonamelEventInfo";
-import UnofficialEventInfo from "@app/components/organisms/Record/UnofficialEventInfo";
-import RecordSectionLabel from "@app/components/organisms/Record/RecordSectionLabel";
-import IgnoreStatsBanner from "@app/components/organisms/Record/IgnoreStatsBanner";
+import RecordHero from "@app/components/organisms/Record/Hero/RecordHero";
+import BoardPanel from "@app/components/organisms/Record/BoardPanel";
 import IgnoreStatsFlgSetting from "@app/components/organisms/Record/IgnoreStatsFlgSetting";
 import Matches from "@app/components/organisms/Match/Matches";
 import UsedDeckById from "@app/components/organisms/Deck/UsedDeckById";
 
 import DeleteRecordModal from "@app/components/organisms/Record/Modal/DeleteRecordModal";
-import ImageSaveGuideModal from "@app/components/molecules/Image/ImageSaveGuideModal";
+import ShareRecordModal from "@app/components/organisms/Record/Modal/ShareRecordModal";
 
 import { RecordGetByIdResponseType } from "@app/types/record";
 import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
@@ -42,13 +43,11 @@ import { TonamelEventGetByIdResponseType } from "@app/types/tonamel_event";
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { MatchGetResponseType } from "@app/types/match";
 
-import { captureThemedPng } from "@app/utils/captureImage";
-import { saveGeneratedImage, openImageInNewTab, tryShareImage } from "@app/utils/saveImage";
-import { isIOS } from "@app/utils/platform";
+import { fetchMatchesByRecordId, summarizeMatches } from "@app/utils/matchStats";
 
-// ツイートURL生成ヘルパー
+// シェアのポスト文組み立てに必要なイベント・デッキ情報の取得
 
-async function fetchOfficialEventForTweet(
+async function fetchOfficialEventForShare(
   id: number,
 ): Promise<OfficialEventGetByIdResponseType> {
   const res = await fetch(`/api/official_events/${id}`, {
@@ -60,7 +59,7 @@ async function fetchOfficialEventForTweet(
   return res.json();
 }
 
-async function fetchTonamelEventForTweet(
+async function fetchTonamelEventForShare(
   id: string,
 ): Promise<TonamelEventGetByIdResponseType> {
   const res = await fetch(`/api/tonamel_events/${id}`, {
@@ -72,7 +71,7 @@ async function fetchTonamelEventForTweet(
   return res.json();
 }
 
-async function fetchDeckForTweet(id: string): Promise<DeckGetByIdResponseType> {
+async function fetchDeckForShare(id: string): Promise<DeckGetByIdResponseType> {
   const res = await fetch(`/api/decks/${id}`, {
     cache: "no-store",
     method: "GET",
@@ -80,69 +79,6 @@ async function fetchDeckForTweet(id: string): Promise<DeckGetByIdResponseType> {
   });
   if (!res.ok) throw new Error("Failed to fetch");
   return res.json();
-}
-
-async function fetchMatchesForTweet(record_id: string): Promise<MatchGetResponseType[]> {
-  const res = await fetch(`/api/records/${record_id}/matches`, {
-    cache: "no-store",
-    method: "GET",
-    headers: { Accept: "application/json" },
-  });
-  if (!res.ok) throw new Error("Failed to fetch");
-  return res.json();
-}
-
-function buildTweetHref(
-  officialEvent: OfficialEventGetByIdResponseType | null,
-  tonamelEvent: TonamelEventGetByIdResponseType | null,
-  deck: DeckGetByIdResponseType | null,
-  matches: MatchGetResponseType[] | null,
-): string {
-  let results = "";
-  if (matches && matches.length !== 0) {
-    results = "\n対戦結果\n";
-    matches.forEach((match) => {
-      const victory = match.victory_flg ? "⭕" : "❌";
-      const go_first =
-        match.default_victory_flg || match.default_defeat_flg
-          ? "　"
-          : match.games[0].go_first
-            ? "先"
-            : "後";
-      const opponents_deck_info = match.default_victory_flg
-        ? "不戦勝"
-        : match.default_defeat_flg
-          ? "不戦敗"
-          : match.opponents_deck_info;
-      results += ` ${victory} ${go_first} ${opponents_deck_info}\n`;
-    });
-  }
-
-  let encoded = "";
-  if (officialEvent) {
-    const title = officialEvent.title
-      .replace(/【.*?】ポケモンカードジム　/g, "")
-      .replace(/【.*?】エクストラバトルの日/g, "エクストラバトルの日")
-      .replace(/【.*?】ポケモンカードゲーム　/g, "")
-      .replace(/ポケモンカードゲーム /g, "")
-      .replace(/（オープンリーグ）/g, "")
-      .replace(/（マスターリーグ）/g, "")
-      .replace(/（シニアリーグ）/g, "")
-      .replace(/（ジュニアリーグ）/g, "")
-      .replace(/（スタンダード）/g, "")
-      .replace(/（.*?）/g, "");
-    const shopName = officialEvent.shop_name || officialEvent.venue;
-    encoded = encodeURIComponent(`${title}\n${shopName}\n${results}\n`);
-  } else if (tonamelEvent) {
-    encoded = encodeURIComponent(`${tonamelEvent.title}\n${results}\n`);
-  }
-
-  if (deck && deck.name !== "") {
-    encoded += encodeURIComponent(`使用デッキ：${deck.name}\n`);
-  }
-
-  const hashtag = encodeURIComponent("バトレコ");
-  return `https://twitter.com/intent/tweet?text=${encoded}&via=vsrecorder_mobi&hashtags=${hashtag}`;
 }
 
 // コンポーネント
@@ -176,16 +112,43 @@ export default function DisplayRecordModal({
   } = useDisclosure();
 
   const {
-    isOpen: isOpenForImageSaveGuideModal,
-    onOpen: onOpenForImageSaveGuideModal,
-    onOpenChange: onOpenChangeForImageSaveGuideModal,
+    isOpen: isOpenForShareModal,
+    onOpen: onOpenForShareModal,
+    onOpenChange: onOpenChangeForShareModal,
+    onClose: onCloseForShareModal,
   } = useDisclosure();
-  const [imageDataUrlForSaveGuide, setImageDataUrlForSaveGuide] = useState<string | null>(
-    null,
-  );
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [tweetHref, setTweetHref] = useState<string>("");
+  // シェアモーダルでポスト文を組み立てるための取得済みデータ
+  const [shareOfficialEvent, setShareOfficialEvent] =
+    useState<OfficialEventGetByIdResponseType | null>(null);
+  const [shareTonamelEvent, setShareTonamelEvent] =
+    useState<TonamelEventGetByIdResponseType | null>(null);
+  const [shareDeck, setShareDeck] = useState<DeckGetByIdResponseType | null>(null);
+
+  // 対戦一覧を親で一元管理し、ヒーローの戦績と対戦結果表示で共有する
+  const [matches, setMatches] = useState<MatchGetResponseType[] | null>(null);
+  const [loadingMatches, setLoadingMatches] = useState(true);
+  const stats = summarizeMatches(matches ?? []);
+
+  useEffect(() => {
+    let ignore = false;
+    setLoadingMatches(true);
+    fetchMatchesByRecordId(record.id)
+      .then((data) => {
+        if (!ignore) setMatches(data);
+      })
+      .catch((err) => {
+        console.log(err);
+        if (!ignore) setMatches([]);
+      })
+      .finally(() => {
+        if (!ignore) setLoadingMatches(false);
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [record.id]);
 
   useEffect(() => {
     if (!record) return;
@@ -193,13 +156,12 @@ export default function DisplayRecordModal({
     let officialEvent: OfficialEventGetByIdResponseType | null = null;
     let tonamelEvent: TonamelEventGetByIdResponseType | null = null;
     let deck: DeckGetByIdResponseType | null = null;
-    let matches: MatchGetResponseType[] | null = null;
 
     const tasks: Promise<void>[] = [];
 
     if (record.official_event_id !== 0) {
       tasks.push(
-        fetchOfficialEventForTweet(record.official_event_id)
+        fetchOfficialEventForShare(record.official_event_id)
           .then((d) => {
             officialEvent = d;
           })
@@ -207,7 +169,7 @@ export default function DisplayRecordModal({
       );
     } else if (record.tonamel_event_id !== "") {
       tasks.push(
-        fetchTonamelEventForTweet(record.tonamel_event_id)
+        fetchTonamelEventForShare(record.tonamel_event_id)
           .then((d) => {
             tonamelEvent = d;
           })
@@ -217,7 +179,7 @@ export default function DisplayRecordModal({
 
     if (record.deck_id) {
       tasks.push(
-        fetchDeckForTweet(record.deck_id)
+        fetchDeckForShare(record.deck_id)
           .then((d) => {
             deck = d;
           })
@@ -225,16 +187,10 @@ export default function DisplayRecordModal({
       );
     }
 
-    tasks.push(
-      fetchMatchesForTweet(record.id)
-        .then((d) => {
-          matches = d;
-        })
-        .catch(() => {}),
-    );
-
     Promise.all(tasks).then(() => {
-      setTweetHref(buildTweetHref(officialEvent, tonamelEvent, deck, matches));
+      setShareOfficialEvent(officialEvent);
+      setShareTonamelEvent(tonamelEvent);
+      setShareDeck(deck);
     });
   }, [record]);
 
@@ -252,75 +208,30 @@ export default function DisplayRecordModal({
     }
   };
 
-  const matchCardRef = useRef<HTMLDivElement>(null);
-
-  const handleSavingEventCardImage = async () => {
-    if (!matchCardRef.current) return;
-
-    let dataUrl: string;
-    try {
-      dataUrl = await captureThemedPng(matchCardRef.current);
-    } catch (e) {
-      console.error(e);
-      return;
-    }
-
-    const filename = `${record.id}_${Date.now()}.png`;
-
-    // iOSのホーム画面PWA(standalone)では<img>埋め込みの長押しメニューが
-    // 「コピー」のみに縮小されるため、まずWeb Share APIでの共有を試みる。
-    // 使えない/失敗した場合は画像を新しいタブで開く方式、それも失敗した場合のみ
-    // 長押し保存用のプレビューモーダルにフォールバックする。
-    if (isIOS()) {
-      if (!(await tryShareImage(dataUrl, filename)) && !openImageInNewTab(dataUrl)) {
-        setImageDataUrlForSaveGuide(dataUrl);
-        onOpenForImageSaveGuideModal();
-      }
-      return;
-    }
-
-    await saveGeneratedImage(dataUrl, filename);
-  };
-
+  // シェアのデッキ画像(2枚目)をキャプチャするための実DOM参照
   const deckCardRef = useRef<HTMLDivElement>(null);
-
-  const handleSavingDeckCardImage = async () => {
-    if (!deckCardRef.current) return;
-
-    let dataUrl: string;
-    try {
-      dataUrl = await captureThemedPng(deckCardRef.current);
-    } catch (e) {
-      console.error(e);
-      return;
-    }
-
-    const filename = `${record.deck_id}_${record.deck_code_id}_${Date.now()}.png`;
-
-    if (isIOS()) {
-      if (!(await tryShareImage(dataUrl, filename)) && !openImageInNewTab(dataUrl)) {
-        setImageDataUrlForSaveGuide(dataUrl);
-        onOpenForImageSaveGuideModal();
-      }
-      return;
-    }
-
-    await saveGeneratedImage(dataUrl, filename);
-  };
 
   return (
     <>
+      <ShareRecordModal
+        record={record}
+        setRecord={setRecord}
+        stats={stats}
+        matches={matches}
+        officialEvent={shareOfficialEvent}
+        tonamelEvent={shareTonamelEvent}
+        deck={shareDeck}
+        deckCardRef={deckCardRef}
+        isOpen={isOpenForShareModal}
+        onOpenChange={onOpenChangeForShareModal}
+        onClose={onCloseForShareModal}
+      />
+
       <DeleteRecordModal
         record={record}
         setRecord={setRecord}
         isOpen={isOpenForDeleteRecordModal}
         onOpenChange={onOpenChangeForDeleteRecordModal}
-      />
-
-      <ImageSaveGuideModal
-        isOpen={isOpenForImageSaveGuideModal}
-        onOpenChange={onOpenChangeForImageSaveGuideModal}
-        imageDataUrl={imageDataUrlForSaveGuide}
       />
 
       <Modal
@@ -388,6 +299,13 @@ export default function DisplayRecordModal({
                     </DropdownTrigger>
                     <DropdownMenu aria-label="記録の操作">
                       <DropdownItem
+                        key="share"
+                        startContent={<LuShare2 />}
+                        onPress={onOpenForShareModal}
+                      >
+                        この記録をシェアする
+                      </DropdownItem>
+                      <DropdownItem
                         key="detail"
                         startContent={<LuExternalLink />}
                         onPress={() => {
@@ -423,28 +341,6 @@ export default function DisplayRecordModal({
                         詳細・編集ページを開く
                       </DropdownItem>
                       <DropdownItem
-                        key="save-event-image"
-                        startContent={<LuImageDown />}
-                        onPress={handleSavingEventCardImage}
-                      >
-                        対戦結果の画像を保存
-                      </DropdownItem>
-                      <DropdownItem
-                        key="save-deck-image"
-                        startContent={<LuImageDown />}
-                        onPress={handleSavingDeckCardImage}
-                      >
-                        使用したデッキの画像を保存
-                      </DropdownItem>
-                      <DropdownItem
-                        key="tweet"
-                        startContent={<RiTwitterXLine />}
-                        isDisabled={!tweetHref}
-                        onPress={() => window.open(tweetHref, "_blank")}
-                      >
-                        この対戦結果をポストする
-                      </DropdownItem>
-                      <DropdownItem
                         key="delete"
                         startContent={<LuTrash2 />}
                         color="danger"
@@ -458,60 +354,49 @@ export default function DisplayRecordModal({
                 </div>
               </ModalHeader>
 
-              <ModalBody className="px-1 pb-6 gap-9 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none">
-                {/* 集計対象外の記録のみ、最上部にステータスバナーを表示 */}
-                {record.ignore_stats_flg && (
-                  <div className="px-1">
-                    <IgnoreStatsBanner />
-                  </div>
-                )}
-
-                <div className="px-1 flex flex-col gap-3">
-                  <RecordSectionLabel>参加したイベント</RecordSectionLabel>
-
-                  {record.official_event_id !== 0 ? (
-                    <OfficialEventInfo
-                      record={record}
-                      setRecord={setRecord}
-                      enableEditTCGMeisterURL={false}
-                    />
-                  ) : record.tonamel_event_id !== "" ? (
-                    <TonamelEventInfo record={record} />
-                  ) : record.unofficial_event_id !== "" ? (
-                    <UnofficialEventInfo record={record} />
-                  ) : (
-                    <></>
-                  )}
+              <ModalBody className="px-1 pb-6 gap-4 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none">
+                {/* ヒーロー：イベント情報＋戦績(勝率リング・勝敗・推移)＋集計対象外バナー */}
+                <div className="px-1">
+                  <RecordHero record={record} setRecord={setRecord} stats={stats} />
                 </div>
 
-                <div className="flex flex-col gap-3">
-                  <RecordSectionLabel>対戦結果</RecordSectionLabel>
-                  <div className="px-0.5 flex flex-col gap-3">
-                    <Matches
-                      record={record}
-                      enableCreateMatchModalButton={false}
-                      enableUpdateMatchModalButton={false}
-                      matchCardRef={matchCardRef}
-                    />
-                  </div>
-                </div>
+                {/* ボード：対戦結果・デッキコード・戦績集計を1枚のカードにまとめる */}
+                <div className="px-1">
+                  <Card shadow="sm" className="w-full overflow-hidden">
+                    <CardBody className="p-0">
+                      <BoardPanel icon={<LuSwords />} label="対戦結果">
+                        <Matches
+                          record={record}
+                          matches={matches}
+                          setMatches={setMatches}
+                          loading={loadingMatches}
+                          enableCreateMatchModalButton={false}
+                          enableUpdateMatchModalButton={false}
+                          flat={true}
+                        />
+                      </BoardPanel>
 
-                <div className="flex flex-col gap-3">
-                  <RecordSectionLabel>使用したデッキ</RecordSectionLabel>
+                      <BoardPanel icon={<LuLayers />} label="デッキコード">
+                        <div ref={deckCardRef}>
+                          <UsedDeckById
+                            record={record}
+                            setRecord={setRecord}
+                            enableShowDeckModal={false}
+                            enableUpdateUsedDeckModal={false}
+                            compact={true}
+                          />
+                        </div>
+                      </BoardPanel>
 
-                  <div ref={deckCardRef} className="p-1">
-                    <UsedDeckById
-                      record={record}
-                      setRecord={setRecord}
-                      enableShowDeckModal={false}
-                      enableUpdateUsedDeckModal={false}
-                    />
-                  </div>
-                </div>
-
-                <div className="px-1 flex flex-col gap-3">
-                  <RecordSectionLabel>戦績集計</RecordSectionLabel>
-                  <IgnoreStatsFlgSetting record={record} setRecord={setRecord} />
+                      <BoardPanel icon={<LuChartNoAxesColumn />} label="戦績集計">
+                        <IgnoreStatsFlgSetting
+                          record={record}
+                          setRecord={setRecord}
+                          flat={true}
+                        />
+                      </BoardPanel>
+                    </CardBody>
+                  </Card>
                 </div>
               </ModalBody>
             </>

@@ -29,13 +29,10 @@ export function useInstallPrompt() {
     const dismissedAt = localStorage.getItem(DISMISS_KEY);
     if (dismissedAt && Date.now() - Number(dismissedAt) < DISMISS_DURATION_MS) return;
 
-    // iOS Safari 判定（beforeinstallprompt が発火しない環境）
+    // iOS ではバナーを表示しない（beforeinstallprompt が発火しない環境のため、
+    // ここで抜けて Android / Chrome のみバナー対象とする）
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !("MSStream" in window);
-    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-    if (isIOS && isSafari) {
-      setInstallState("ios");
-      return;
-    }
+    if (isIOS) return;
 
     // Android / Chrome: beforeinstallprompt を待つ
     const handler = (e: Event) => {

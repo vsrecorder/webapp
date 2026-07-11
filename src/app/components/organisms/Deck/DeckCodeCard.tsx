@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-//import { Chip } from "@heroui/react";
+import { Chip } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
 import { Image } from "@heroui/react";
 import { Snippet } from "@heroui/react";
@@ -68,6 +68,16 @@ type Props = {
   // デッキに既存バージョンはあるが、このdeckcodeが未選択のとき、
   // 「既存バージョンを使用したバージョンとして登録」CTAから呼ばれる
   onSelectExistingVersion?: () => void;
+  // ボード(記録詳細/モーダル)向けの案1レイアウト。
+  // デッキ画像を主役に上へ置き、その下にコード・バージョン/環境チップを並べる。
+  board?: boolean;
+  // デッキ画像を別所（ギャラリー表示のヒーロー画像）で表示する場合に true。
+  // このときデフォルトレイアウトは画像を省き、バージョン/環境/コードのみ描画する。
+  hideImage?: boolean;
+  // バージョン情報の見出し横に表示する「バージョンの数」バッジ。
+  // 値が1以上のとき、onOpenHistory と併せてタップでバージョン履歴を開くボタンになる。
+  versionCountBadge?: number | null;
+  onOpenHistory?: () => void;
 };
 
 export default function DeckCodeCard({
@@ -76,6 +86,10 @@ export default function DeckCodeCard({
   totalVersionCount = null,
   onCreateVersion,
   onSelectExistingVersion,
+  board = false,
+  hideImage = false,
+  versionCountBadge = null,
+  onOpenHistory,
 }: Props) {
   const [imageLoaded, setImageLoaded] = useState(false);
   //const [acespec, setAcespec] = useState<AcespecType | null>(null);
@@ -204,10 +218,94 @@ export default function DeckCodeCard({
     );
   }
 
+  const deckImage = (
+    <div className="relative w-full aspect-2/1">
+      {!imageLoaded && <Skeleton className="absolute inset-0 rounded-lg" />}
+      <Image
+        radius="sm"
+        shadow="none"
+        alt={deckcode.code}
+        src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
+        className=""
+        onLoad={() => setImageLoaded(true)}
+      />
+    </div>
+  );
+
+  // ボード(記録詳細/モーダル)は案1レイアウト：
+  // デッキ画像を主役に上へ置き、その下にコード、バージョン・環境チップを並べる。
+  if (board) {
+    return (
+      <div className="flex w-full flex-col gap-2.5">
+        {deckImage}
+
+        <div className="flex min-w-0 items-center gap-2 rounded-lg bg-default-100 px-3 py-2">
+          <span className="shrink-0 text-tiny text-default-500">デッキコード</span>
+          <Snippet
+            size="sm"
+            radius="none"
+            timeout={3000}
+            disableTooltip={true}
+            hideSymbol={true}
+            classNames={{ base: "min-w-0 bg-transparent p-0", pre: "truncate" }}
+          >
+            {deckcode.code}
+          </Snippet>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1.5">
+          {deckcode.id && (
+            <Chip
+              size="sm"
+              variant="flat"
+              color="primary"
+              className="h-5 text-[10px] font-bold"
+            >
+              {versionLabel}
+            </Chip>
+          )}
+          {environment?.title && (
+            <Chip
+              size="sm"
+              variant="flat"
+              color="default"
+              className="h-5"
+              classNames={{ content: "text-[10px]" }}
+            >
+              {`『${environment.title}』`}
+            </Chip>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-2 w-full">
       <div className="rounded-xl bg-default-100 px-3 py-2.5 flex flex-col gap-1.5">
-        <div className="font-bold text-small">{versionLabel}</div>
+        <div className="flex items-center justify-between gap-2">
+          <div className="font-bold text-small">{versionLabel}</div>
+          {versionCountBadge !== null &&
+            versionCountBadge > 0 &&
+            (onOpenHistory ? (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenHistory();
+                }}
+                className="flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-tiny font-bold text-primary active:opacity-70"
+              >
+                <LuLayers className="text-sm" />
+                バージョンの数： {versionCountBadge}
+              </button>
+            ) : (
+              <span className="flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-tiny font-bold text-primary">
+                <LuLayers className="text-sm" />
+                バージョンの数： {versionCountBadge}
+              </span>
+            ))}
+        </div>
         <div className="text-tiny text-default-500">
           {loadingEnvrionment ? (
             <div className="flex items-center">
@@ -235,17 +333,7 @@ export default function DeckCodeCard({
         </div>
       </div>
 
-      <div className="relative w-full aspect-2/1">
-        {!imageLoaded && <Skeleton className="absolute inset-0 rounded-lg" />}
-        <Image
-          radius="sm"
-          shadow="none"
-          alt={deckcode.code}
-          src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
-          className=""
-          onLoad={() => setImageLoaded(true)}
-        />
-      </div>
+      {!hideImage && deckImage}
     </div>
   );
 }

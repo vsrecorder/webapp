@@ -36,6 +36,9 @@ type Props = {
   // デッキにバージョンが1件も無いとき、「デッキのバージョンを作成」CTAから呼ばれる
   // （＝新しいバージョンを作成モーダルを開く）
   onCreateVersion?: () => void;
+  // デッキ名・スプライト等のヘッダーを省き、デッキコード(画像・コード・環境)に特化する。
+  // ヒーローに使用デッキ名を表示している記録詳細/モーダルで使う。
+  compact?: boolean;
 };
 
 export default function UsedDeckCard({
@@ -46,6 +49,7 @@ export default function UsedDeckCard({
   enableShowDeckModal,
   onSelectExistingVersion,
   onCreateVersion,
+  compact = false,
 }: Props) {
   //const [deck, setDeck] = useState<DeckGetByIdResponseType | null>(deckData);
   //const [deckcode, setDeckCode] = useState<DeckCodeType | null>(deckcodeData);
@@ -111,7 +115,10 @@ export default function UsedDeckCard({
   return (
     <>
       <div className="" onClick={onOpen}>
-        <Card className="pt-3 w-full">
+        <Card
+          className={`w-full ${compact ? "border-none bg-transparent shadow-none" : "pt-3"}`}
+        >
+          {!compact && (
           <CardHeader className="pt-0 pb-0 px-3">
             <div className="flex flex-col gap-1 w-full">
               {/* 両端配置 */}
@@ -177,13 +184,15 @@ export default function UsedDeckCard({
               </div>
             </div>
           </CardHeader>
-          <CardBody className="px-3 py-2">
+          )}
+          <CardBody className={compact ? "px-0 py-0" : "px-3 py-2"}>
             <DeckCodeCard
               deckcode={deckcode}
               versionNumber={versionNumber}
               totalVersionCount={versionCount}
               onCreateVersion={onCreateVersion}
               onSelectExistingVersion={onSelectExistingVersion}
+              board={compact}
             />
           </CardBody>
         </Card>

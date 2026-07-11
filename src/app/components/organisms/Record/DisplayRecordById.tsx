@@ -1,16 +1,19 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 
-import OfficialEventInfo from "@app/components/organisms/Record/OfficialEventInfo";
-import TonamelEventInfo from "@app/components/organisms/Record/TonamelEventInfo";
-import UnofficialEventInfo from "@app/components/organisms/Record/UnofficialEventInfo";
-import RecordSectionLabel from "@app/components/organisms/Record/RecordSectionLabel";
-import IgnoreStatsBanner from "@app/components/organisms/Record/IgnoreStatsBanner";
+import { Card, CardBody } from "@heroui/react";
+import { LuSwords, LuLayers, LuChartNoAxesColumn } from "react-icons/lu";
+
+import RecordHero from "@app/components/organisms/Record/Hero/RecordHero";
+import BoardPanel from "@app/components/organisms/Record/BoardPanel";
 import IgnoreStatsFlgSetting from "@app/components/organisms/Record/IgnoreStatsFlgSetting";
 import Matches from "@app/components/organisms/Match/Matches";
 import UsedDeckById from "@app/components/organisms/Deck/UsedDeckById";
 import RecordActionsFloating from "@app/components/molecules/Floating/RecordActionsFloating";
 
+import { fetchMatchesByRecordId, summarizeMatches } from "@app/utils/matchStats";
+
 import { RecordGetByIdResponseType } from "@app/types/record";
+import { MatchGetResponseType } from "@app/types/match";
 
 type Props = {
   recordData: RecordGetByIdResponseType;
@@ -19,75 +22,86 @@ type Props = {
 export default function DisplayRecordById({ recordData }: Props) {
   const [record, setRecord] = useState<RecordGetByIdResponseType | null>(recordData);
 
-  const matchCardRef = useRef<HTMLDivElement>(null);
+  // 対戦一覧を親で一元管理し、ヒーローの戦績と対戦結果表示で共有する
+  const [matches, setMatches] = useState<MatchGetResponseType[] | null>(null);
+  const [loadingMatches, setLoadingMatches] = useState(true);
+
   const deckCardRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    let ignore = false;
+    setLoadingMatches(true);
+    fetchMatchesByRecordId(recordData.id)
+      .then((data) => {
+        if (!ignore) setMatches(data);
+      })
+      .catch((err) => {
+        console.log(err);
+        if (!ignore) setMatches([]);
+      })
+      .finally(() => {
+        if (!ignore) setLoadingMatches(false);
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [recordData.id]);
+
+  const stats = summarizeMatches(matches ?? []);
+
   return (
-    <div className="px-0.5 pt-6 pb-6 flex flex-col gap-9 lg:grid lg:grid-cols-3 lg:gap-6 lg:max-w-5xl lg:mx-auto overflow-y-auto">
-      {/* 集計対象外の記録のみ、最上部にステータスバナーを表示 */}
-      {record?.ignore_stats_flg && (
-        <div className="px-0.5 lg:col-span-3">
-          <IgnoreStatsBanner />
-        </div>
+    <div className="px-0.5 pt-6 pb-6 flex flex-col gap-4 lg:max-w-2xl lg:mx-auto overflow-y-auto">
+      {/* ヒーロー：イベント情報＋戦績(勝率リング・勝敗・推移)＋集計対象外バナー */}
+      {record && (
+        <RecordHero
+          record={record}
+          setRecord={setRecord}
+          stats={stats}
+          enableEditTCGMeisterURL={true}
+        />
       )}
 
-      <div className="px-0.5 flex flex-col gap-3 lg:col-span-3">
-        <RecordSectionLabel>参加したイベント</RecordSectionLabel>
-
-        {
-          // 公式イベントの場合
-          record?.official_event_id !== 0 ? (
-            <OfficialEventInfo
+      {/* ボード：対戦結果・デッキコード・戦績集計を1枚のカードにまとめる */}
+      <Card shadow="sm" className="w-full overflow-hidden">
+        <CardBody className="p-0">
+          <BoardPanel icon={<LuSwords />} label="対戦結果">
+            <Matches
               record={record}
-              setRecord={setRecord}
-              enableEditTCGMeisterURL={true}
+              matches={matches}
+              setMatches={setMatches}
+              loading={loadingMatches}
+              enableCreateMatchModalButton={true}
+              enableUpdateMatchModalButton={true}
+              flat={true}
             />
-          ) : // Tonamelの場合
-          record?.tonamel_event_id !== "" ? (
-            <TonamelEventInfo record={record} />
-          ) : // 自由形式の場合
-          record?.unofficial_event_id !== "" ? (
-            <UnofficialEventInfo record={record} />
-          ) : (
-            <></>
-          )
-        }
-      </div>
+          </BoardPanel>
 
-      <div className="flex flex-col gap-3 lg:col-span-2">
-        <RecordSectionLabel>対戦結果</RecordSectionLabel>
-        <div className="px-0.5 py-1 flex flex-col gap-3">
-          <Matches
-            record={record}
-            enableCreateMatchModalButton={true}
-            enableUpdateMatchModalButton={true}
-            matchCardRef={matchCardRef}
-          />
-        </div>
-      </div>
+          <BoardPanel icon={<LuLayers />} label="デッキコード">
+            <div ref={deckCardRef}>
+              <UsedDeckById
+                record={record}
+                setRecord={setRecord}
+                enableShowDeckModal={false}
+                enableUpdateUsedDeckModal={true}
+                compact={true}
+              />
+            </div>
+          </BoardPanel>
 
-      <div className="flex flex-col gap-3 lg:col-span-1">
-        <RecordSectionLabel>使用したデッキ</RecordSectionLabel>
-        <div ref={deckCardRef} className="px-0.5 py-1">
-          <UsedDeckById
-            record={record}
-            setRecord={setRecord}
-            enableShowDeckModal={false}
-            enableUpdateUsedDeckModal={true}
-          />
-        </div>
-      </div>
-
-      <div className="px-0.5 flex flex-col gap-3 lg:col-span-3">
-        <RecordSectionLabel>戦績集計</RecordSectionLabel>
-        {record && <IgnoreStatsFlgSetting record={record} setRecord={setRecord} />}
-      </div>
+          <BoardPanel icon={<LuChartNoAxesColumn />} label="戦績集計">
+            {record && (
+              <IgnoreStatsFlgSetting record={record} setRecord={setRecord} flat={true} />
+            )}
+          </BoardPanel>
+        </CardBody>
+      </Card>
 
       {record && (
         <RecordActionsFloating
           record={record}
           setRecord={setRecord}
-          matchCardRef={matchCardRef}
+          matches={matches}
+          stats={stats}
           deckCardRef={deckCardRef}
         />
       )}

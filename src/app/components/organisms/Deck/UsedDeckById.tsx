@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
 
 import { addToast, useDisclosure } from "@heroui/react";
 
+import { LuPencil } from "react-icons/lu";
+
 import UpdateUsedDeckModal from "@app/components/organisms/Deck/Modal/UpdateUsedDeckModal";
 import CreateDeckCodeModal from "@app/components/organisms/Deck/Modal/CreateDeckCodeModal";
 import UsedDeckCard from "@app/components/organisms/Deck/UsedDeckCard";
@@ -251,6 +253,25 @@ export default function UsedDeckById({
         isOpen={isOpenForCreateDeckCodeModal}
         onOpenChange={onOpenChangeForCreateDeckCodeModal}
       />
+
+      {/* デッキ登録済みかつ編集可能なとき、明示的な「編集」ボタンを出す。
+          ボードUIではデッキ画像やコピー用コードが主役でカードのタップが編集導線と
+          気づきにくいため、確実に編集モーダルを開けるボタンを用意する。 */}
+      {enableUpdateUsedDeckModal && record?.deck_id && (
+        <div className="mb-2 flex justify-end">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenForUpdateUsedDeckModal();
+            }}
+            className="flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-tiny font-bold text-primary active:opacity-70"
+          >
+            <LuPencil className="text-sm" />
+            使用したデッキを編集
+          </button>
+        </div>
+      )}
 
       <div onClick={onOpenForUpdateUsedDeckModal}>
         <UsedDeckCard

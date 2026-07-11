@@ -16,6 +16,10 @@ export type DeckUsageItemType = {
   go_first_win_rate: number;
   go_second_wins: number;
   go_second_win_rate: number;
+  // 集計対象外(ignore_stats_flg=true)の記録の件数。
+  // 勝率などの集計には含まれないが、その旨をデッキ一覧に表示するために使う。
+  // バックエンド未対応時は undefined になり得るため任意。
+  ignored_count?: number;
   pokemon_sprites: DeckPokemonSpriteType[];
 };
 

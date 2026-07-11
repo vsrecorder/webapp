@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { Card, CardHeader, CardBody } from "@heroui/react";
-import { Image, Skeleton } from "@heroui/react";
+import { Image, Skeleton, Chip } from "@heroui/react";
 
 import { spriteScaleClass, spriteImageUrl } from "@app/utils/sprite";
 //import { Chip } from "@heroui/react";
@@ -201,6 +201,25 @@ export default function DeckCard({
   const ringRadius = 18;
   const ringCircumference = 2 * Math.PI * ringRadius;
 
+  // 集計対象外(ignore_stats_flg=true)の記録件数。1件以上あればその旨を表示する。
+  const ignoredCount = deckUsageStat?.ignored_count ?? 0;
+
+  // 「集計対象外の記録がある」旨を示す注記。リスト/ギャラリー双方で使い回す。
+  const ignoredNote =
+    ignoredCount > 0 ? (
+      <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+        <Chip
+          size="sm"
+          variant="flat"
+          color="warning"
+          className="h-5 text-[10px] font-bold"
+        >
+          ⚠ 集計対象外 {ignoredCount}件
+        </Chip>
+        <span className="text-[10px] text-default-400">勝率などの集計に未反映</span>
+      </div>
+    ) : null;
+
   // 案A：1行に畳んだコンパクト表示。スプライト＋勝率リングで識別し、
   // 先攻/後攻の内訳やデッキコード画像はタップで段階的に開示する。
   const listCard = (
@@ -292,6 +311,11 @@ export default function DeckCard({
                 {hasStats ? (
                   <span className="text-default-400">
                     {`${deckUsageStat!.count}戦${deckUsageStat!.wins}勝${deckUsageStat!.losses}敗`}
+                  </span>
+                ) : ignoredCount > 0 ? (
+                  <span className="flex items-center gap-1 font-semibold text-warning">
+                    <span aria-hidden>⚠</span>
+                    集計対象外の記録 {ignoredCount}件
                   </span>
                 ) : (
                   <span className="flex items-center gap-1 text-primary/70">
@@ -396,6 +420,8 @@ export default function DeckCard({
               </div>
             )}
 
+            {ignoredNote}
+
             <DeckCodeCard
               deckcode={deckcode}
               versionNumber={versionNumber}
@@ -482,6 +508,23 @@ export default function DeckCard({
                   <span className={`font-bold tabular-nums ${winRateTextColor(winRate)}`}>
                     勝率 {formatPercent(winRate)}
                   </span>
+                </div>
+              ) : ignoredCount > 0 ? (
+                /* 集計対象外の記録だけがあるデッキ（勝率などは集計されない） */
+                <div className="flex items-center gap-2.5 rounded-lg bg-warning/10 px-3 py-2.5">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-warning/20 text-warning">
+                    <span aria-hidden className="text-base">
+                      ⚠
+                    </span>
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-tiny font-bold text-warning">
+                      集計対象外の記録が{ignoredCount}件あります
+                    </div>
+                    <div className="text-[10px] text-default-400">
+                      勝率・先攻/後攻などの集計には含まれていません
+                    </div>
+                  </div>
                 </div>
               ) : (
                 /* 対戦記録がまだ無いデッキ向けの案内（味気ない「なし」表示を避ける） */
@@ -571,6 +614,9 @@ export default function DeckCard({
                   </span>
                 </div>
               )}
+
+              {/* 集計対象外の記録がある場合の注記（勝率などには未反映） */}
+              {hasStats && ignoredNote}
 
               {/* バージョン/対戦環境/デッキコード（画像はヒーローで表示済み）。
                 バージョン数バッジもこのバージョン情報内に表示する。 */}

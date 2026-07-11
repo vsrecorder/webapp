@@ -3,15 +3,16 @@
 import { useEffect, useState } from "react";
 import { SetStateAction, Dispatch } from "react";
 
-import { Card, Image, Link, Chip, useDisclosure } from "@heroui/react";
+import { Card, Image, Link, Chip, Skeleton, useDisclosure } from "@heroui/react";
 
-import { LuLink, LuPencilLine } from "react-icons/lu";
+import { LuPencilLine } from "react-icons/lu";
 
 import WinRateRing from "@app/components/organisms/Record/Hero/WinRateRing";
 import MatchStreak from "@app/components/organisms/Record/Hero/MatchStreak";
 import IgnoreStatsBanner from "@app/components/organisms/Record/IgnoreStatsBanner";
 import RecordHeroSkeleton from "@app/components/organisms/Record/Hero/RecordHeroSkeleton";
 import EditTCGMeisterURLModal from "@app/components/organisms/Record/Modal/EditTCGMeisterURLModal";
+import UpdateUsedDeckModal from "@app/components/organisms/Deck/Modal/UpdateUsedDeckModal";
 import {
   getEventIconUrl,
   getChipColor,
@@ -100,6 +101,11 @@ type ShellProps = {
   iconNode: React.ReactNode;
   iconBoxClassName: string;
   title: string;
+  // 指定した場合、アイコンとイベント名を外部リンクにする(Tonamel記録などで使用)
+  titleHref?: string;
+  // 指定した場合、アイコンとイベント名タップでこのハンドラを呼ぶ(TCGマイスターURL編集など)。
+  // titleHref と同時指定時は titleHref を優先する。
+  onTitleClick?: () => void;
   date: string;
   chips: React.ReactNode;
   action?: React.ReactNode;
@@ -115,6 +121,8 @@ function HeroShell({
   iconNode,
   iconBoxClassName,
   title,
+  titleHref,
+  onTitleClick,
   date,
   chips,
   action,
@@ -149,16 +157,48 @@ function HeroShell({
               {action}
             </div>
 
-            <div className="mt-1 flex items-center gap-2.5">
-              <div
-                className={`flex h-[45px] w-[45px] shrink-0 items-center justify-center overflow-hidden rounded-xl ring-1 ring-inset ring-black/5 ${iconBoxClassName}`}
-              >
-                {iconNode}
-              </div>
-              <h3 className="min-w-0 text-base font-bold leading-tight wrap-break-word">
-                {title}
-              </h3>
-            </div>
+            {(() => {
+              // アイコン＋イベント名の中身は共通。リンク/タップ/静的で外側だけ切り替える
+              const iconTitle = (
+                <>
+                  <div
+                    className={`flex h-[45px] w-[45px] shrink-0 items-center justify-center overflow-hidden rounded-xl ring-1 ring-inset ring-black/5 ${iconBoxClassName}`}
+                  >
+                    {iconNode}
+                  </div>
+                  <h3 className="min-w-0 text-base font-bold leading-tight wrap-break-word">
+                    {title}
+                  </h3>
+                </>
+              );
+              const rowClass =
+                "mt-1 flex items-center gap-2.5 transition-opacity hover:opacity-80";
+
+              if (titleHref) {
+                return (
+                  <Link
+                    isExternal
+                    href={titleHref}
+                    color="foreground"
+                    className={rowClass}
+                  >
+                    {iconTitle}
+                  </Link>
+                );
+              }
+              if (onTitleClick) {
+                return (
+                  <button
+                    type="button"
+                    onClick={onTitleClick}
+                    className={`${rowClass} w-full text-left`}
+                  >
+                    {iconTitle}
+                  </button>
+                );
+              }
+              return <div className="mt-1 flex items-center gap-2.5">{iconTitle}</div>;
+            })()}
 
             <div className="mt-2 flex flex-wrap items-center gap-1.5">{chips}</div>
           </div>
@@ -204,6 +244,8 @@ type Props = {
   stats: MatchStats;
   // 公式イベントで TCGマイスターURL の編集ボタンを表示するか(詳細ページのみ true)
   enableEditTCGMeisterURL?: boolean;
+  // 使用デッキ行のタップで使用デッキ編集モーダルを開けるようにするか(詳細ページのみ true)
+  enableEditUsedDeck?: boolean;
 };
 
 /*
@@ -217,6 +259,7 @@ export default function RecordHero({
   setRecord,
   stats,
   enableEditTCGMeisterURL = false,
+  enableEditUsedDeck = false,
 }: Props) {
   const [officialEvent, setOfficialEvent] =
     useState<OfficialEventGetByIdResponseType | null>(null);
@@ -226,6 +269,9 @@ export default function RecordHero({
     useState<UnofficialEventGetByIdResponseType | null>(null);
   const [environment, setEnvironment] = useState<EnvironmentType | null>(null);
   const [deck, setDeck] = useState<DeckGetByIdResponseType | null>(null);
+  // 使用デッキの取得中フラグ。デッキ変更時に古いデッキが一瞬残らないよう、
+  // 取得完了までデッキ行をローディング表示にするために使う。
+  const [loadingDeck, setLoadingDeck] = useState(false);
 
   const [loadingEvent, setLoadingEvent] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -234,6 +280,12 @@ export default function RecordHero({
     isOpen: isOpenForTCGMeisterURLModal,
     onOpen: onOpenForTCGMeisterURLModal,
     onOpenChange: onOpenChangeForTCGMeisterURLModal,
+  } = useDisclosure();
+
+  const {
+    isOpen: isOpenForUsedDeckModal,
+    onOpen: onOpenForUsedDeckModal,
+    onOpenChange: onOpenChangeForUsedDeckModal,
   } = useDisclosure();
 
   const isOfficial = record.official_event_id !== 0;
@@ -283,14 +335,19 @@ export default function RecordHero({
   useEffect(() => {
     if (!record.deck_id) {
       setDeck(null);
+      setLoadingDeck(false);
       return;
     }
     let ignore = false;
+    setLoadingDeck(true);
     fetchDeck(record.deck_id)
       .then((data) => {
         if (!ignore) setDeck(data);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (!ignore) setLoadingDeck(false);
+      });
     return () => {
       ignore = true;
     };
@@ -334,8 +391,9 @@ export default function RecordHero({
 
   // 使用デッキ行(各イベント種別で共通)。スプライトは既存(UsedDeckCard/Matches)と
   // 同じ w-11 h-11 + spriteScaleClass で描画し、2枚のサイズを揃える。
-  const deckNode = deck ? (
-    <div className="mt-3.5 flex items-center gap-2.5 border-t border-divider pt-3">
+  // 使用デッキ行の中身(スプライト2枚＋デッキ名)。タップ可/不可で外側だけ切り替える
+  const deckRowInner = deck ? (
+    <>
       <span className="mr-2 shrink-0 text-[9px] font-bold tracking-wide text-default-400">
         デッキ
       </span>
@@ -358,7 +416,61 @@ export default function RecordHero({
         />
       </div>
       <div className="min-w-0 flex-1 truncate text-sm font-bold">{deck.name}</div>
+      {/* タップで編集できることを示すヒント */}
+      {enableEditUsedDeck && (
+        <LuPencilLine className="ml-1 h-4 w-4 shrink-0 text-default-400" />
+      )}
+    </>
+  ) : null;
+
+  const deckRowClass =
+    "mt-3.5 flex w-full items-center gap-2.5 border-t border-divider pt-3";
+
+  // 取得中、または保持しているデッキが record の現在の deck_id と一致しない
+  // (＝変更直後でまだ新しいデッキを取得できていない)場合はローディング表示にする。
+  const isDeckLoading =
+    !!record.deck_id && (loadingDeck || deck?.id !== record.deck_id);
+
+  // 使用デッキ取得中のローディング行(実表示と同じ骨格でガタつきを抑える)
+  const deckLoadingRow = (
+    <div className={deckRowClass}>
+      <span className="mr-2 shrink-0 text-[9px] font-bold tracking-wide text-default-400">
+        デッキ
+      </span>
+      <div className="flex shrink-0 items-center gap-1">
+        <Skeleton className="h-11 w-11 rounded-lg" />
+        <Skeleton className="h-11 w-11 rounded-lg" />
+      </div>
+      <Skeleton className="h-4 flex-1 rounded-md" />
     </div>
+  );
+
+  const deckNode = record.deck_id ? (
+    <>
+      {enableEditUsedDeck && (
+        <UpdateUsedDeckModal
+          record={record}
+          setRecord={setRecord}
+          isOpen={isOpenForUsedDeckModal}
+          onOpenChange={onOpenChangeForUsedDeckModal}
+        />
+      )}
+      {isDeckLoading ? (
+        deckLoadingRow
+      ) : deck ? (
+        enableEditUsedDeck ? (
+          <button
+            type="button"
+            onClick={onOpenForUsedDeckModal}
+            className={`${deckRowClass} text-left transition-opacity hover:opacity-80`}
+          >
+            {deckRowInner}
+          </button>
+        ) : (
+          <div className={deckRowClass}>{deckRowInner}</div>
+        )
+      ) : null}
+    </>
   ) : null;
 
   // ---- 公式イベント ----
@@ -368,26 +480,6 @@ export default function RecordHero({
         ? record.event_date
         : record.created_at.toString();
     const venue = getEventVenueLabel(officialEvent);
-
-    const action = enableEditTCGMeisterURL ? (
-      <button
-        type="button"
-        aria-label="TCGマイスターURLを編集"
-        onClick={onOpenForTCGMeisterURLModal}
-        className="-mr-1 rounded-lg p-1.5 text-default-400 transition-colors hover:bg-default-100 hover:text-default-600"
-      >
-        <LuLink className="h-4 w-4" />
-      </button>
-    ) : record.tcg_meister_url ? (
-      <Link
-        isExternal
-        href={record.tcg_meister_url}
-        aria-label="TCGマイスターURLを開く"
-        className="-mr-1 rounded-lg p-1.5 text-default-400 transition-colors hover:bg-default-100 hover:text-default-600"
-      >
-        <LuLink className="h-4 w-4" />
-      </Link>
-    ) : null;
 
     return (
       <>
@@ -409,6 +501,14 @@ export default function RecordHero({
             />
           }
           title={officialEvent.title}
+          // 編集可能な詳細ページ: アイコン＋イベント名タップでTCGマイスターURL編集モーダルを開く。
+          // それ以外(情報モーダル等)でURL登録済みなら、タップで外部リンクを開く。
+          onTitleClick={enableEditTCGMeisterURL ? onOpenForTCGMeisterURLModal : undefined}
+          titleHref={
+            !enableEditTCGMeisterURL && record.tcg_meister_url
+              ? record.tcg_meister_url
+              : undefined
+          }
           date={formatEventDate(dateStr)}
           chips={
             <>
@@ -444,7 +544,6 @@ export default function RecordHero({
               )}
             </>
           }
-          action={action}
           stats={stats}
           ignoreStatsFlg={record.ignore_stats_flg}
           deckSlot={deckNode}
@@ -466,6 +565,7 @@ export default function RecordHero({
         iconBoxClassName="bg-orange-500"
         iconNode={<span className="text-xl font-black text-white">T</span>}
         title={tonamelEvent.title}
+        titleHref={`https://tonamel.com/competition/${record.tonamel_event_id}`}
         date={formatEventDate(dateStr)}
         chips={
           <>
@@ -488,16 +588,6 @@ export default function RecordHero({
               </Chip>
             )}
           </>
-        }
-        action={
-          <Link
-            isExternal
-            href={`https://tonamel.com/competition/${record.tonamel_event_id}`}
-            aria-label="Tonamelで開く"
-            className="-mr-1 rounded-lg p-1.5 text-default-400 transition-colors hover:bg-default-100 hover:text-default-600"
-          >
-            <LuLink className="h-4 w-4" />
-          </Link>
         }
         stats={stats}
         ignoreStatsFlg={record.ignore_stats_flg}

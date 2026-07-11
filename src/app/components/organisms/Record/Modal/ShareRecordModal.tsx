@@ -20,9 +20,11 @@ import { LuShare2, LuImageDown, LuSwords } from "react-icons/lu";
 
 import RecordHero from "@app/components/organisms/Record/Hero/RecordHero";
 import Matches from "@app/components/organisms/Match/Matches";
+import ImageSaveGuideModal from "@app/components/molecules/Image/ImageSaveGuideModal";
 
 import { captureThemedPng } from "@app/utils/captureImage";
 import { shareRecord, saveGeneratedImage, saveImages } from "@app/utils/saveImage";
+import { isIOS } from "@app/utils/platform";
 
 import { buildRecordPostText, formatEventDateLabel } from "@app/utils/recordPostText";
 
@@ -72,6 +74,14 @@ export default function ShareRecordModal({
 }: Props) {
   const shareContentRef = useRef<HTMLDivElement>(null);
   const [includeDeck, setIncludeDeck] = useState(false);
+  // iOSは「テキスト＋複数画像」の共有だとXが共有シートに出ず、複数画像の写真保存も
+  // 不安定なため、iOSではデッキ画像(2枚目)の追加を無効化し、保存は長押し保存に誘導する。
+  const [ios, setIos] = useState(false);
+  // 長押し保存モーダルに表示する画像。null のときは非表示。
+  const [saveGuideUrl, setSaveGuideUrl] = useState<string | null>(null);
+  useEffect(() => {
+    setIos(isIOS());
+  }, []);
   // ポスト文に含める要素(対戦結果・使用デッキ)
   const [includePostMatches, setIncludePostMatches] = useState(true);
   const [includePostDeck, setIncludePostDeck] = useState(true);
@@ -119,7 +129,7 @@ export default function ShareRecordModal({
       const img = await captureThemedPng(shareContentRef.current);
       images.push({ dataUrl: img, filename: `${record.id}_result_${Date.now()}.png` });
     }
-    if (includeDeck && deckCardRef.current) {
+    if (includeDeck && !ios && deckCardRef.current) {
       const img = await captureThemedPng(deckCardRef.current);
       images.push({ dataUrl: img, filename: `${record.id}_deck_${Date.now()}.png` });
     }
@@ -157,7 +167,15 @@ export default function ShareRecordModal({
     setBusy("save");
     try {
       const images = await captureImages();
-      await saveImages(images);
+      if (images.length === 0) return;
+      if (ios) {
+        // iOSは共有シートの「写真に保存」や<a download>が効かないことがあるため、
+        // 画像を表示して長押しで「"写真"に保存」してもらう。
+        // iOSではデッキ画像を含めないため、対象は常に1枚。
+        setSaveGuideUrl(images[0].dataUrl);
+      } else {
+        await saveImages(images);
+      }
     } catch (e) {
       console.error(e);
       addToast({ title: "画像の保存に失敗しました", color: "danger", timeout: 5000 });
@@ -196,8 +214,9 @@ export default function ShareRecordModal({
                   この記録の戦績と対戦結果を画像にして、下のポスト文と一緒にシェアします。
                 </p>
 
-                {/* 使用デッキがある場合のみ、2枚目追加のトグルを出す */}
-                {record.deck_id && (
+                {/* 使用デッキがある場合のみ、2枚目追加のトグルを出す。
+                    iOSは複数画像だとXが共有シートに出ない/保存が不安定なため出さない。 */}
+                {record.deck_id && !ios && (
                   <div className="flex items-center gap-3 rounded-xl border border-divider bg-content2 px-3 py-2.5">
                     <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-lg">
                       🎴
@@ -279,6 +298,13 @@ export default function ShareRecordModal({
           )}
         </ModalContent>
       </Modal>
+
+      {/* iOS向け: 生成した画像を表示し、長押しで「"写真"に保存」してもらう案内 */}
+      <ImageSaveGuideModal
+        isOpen={saveGuideUrl !== null}
+        onOpenChange={() => setSaveGuideUrl(null)}
+        imageDataUrl={saveGuideUrl}
+      />
 
       {/* キャプチャ用の画面外DOM(戦績サマリー＋対戦結果)。1枚目の画像として使う */}
       {isOpen && (

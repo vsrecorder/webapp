@@ -58,6 +58,7 @@ export default function DisplayRecordById({ recordData }: Props) {
           setRecord={setRecord}
           stats={stats}
           enableEditTCGMeisterURL={true}
+          enableEditUsedDeck={true}
         />
       )}
 

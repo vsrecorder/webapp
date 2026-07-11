@@ -2,6 +2,13 @@ import { toPng } from "html-to-image";
 
 import { isIOS } from "@app/utils/platform";
 
+// 描画ライブラリは端末で出し分ける:
+//   - iOS(Safari/WebKit): modern-screenshot の方が描画がきれいなため使用。
+//     ただしブラウザ専用(内部にWebWorker用コードを含む)で、静的importすると
+//     Next.jsのサーバーバンドルでチャンク分割が壊れビルドが失敗するため、
+//     キャプチャ実行時(クライアント)に動的importする。
+//   - iOS以外(Android/PC): 従来どおり html-to-image(toPng) を使用。
+
 // 書き出し画像に表示するサービス情報
 const APP_NAME = "バトレコ";
 
@@ -57,12 +64,10 @@ function getAppIconSrc(): string {
     : "https://xx8nnpgt.user.webaccel.jp/images/icons/icon.png";
 }
 
-// html-to-image は<img>のsrcがネットワークURLのままだと、キャプチャの度に
-// 外部CDNへ取得しにいく。この取得は内部でURL単位にキャッシュされており、
-// 一度でも失敗すると空データが永続的にキャッシュされ、以後そのページを
-// 開き直すまでロゴが二度と表示されなくなってしまう（「表示されたりされな
-// かったりする」不具合の原因）。
-// そのため事前にdata URL化しておき、html-to-image側の再取得を発生させない。
+// 描画ライブラリは<img>のsrcがネットワークURLのままだと、キャプチャの度に
+// 外部CDNへ取得しにいく。この取得結果によっては空データがキャッシュされ、
+// ロゴが表示されたりされなかったりする不具合につながる。
+// そのため事前にdata URL化しておき、ライブラリ側の再取得を発生させない。
 // 失敗時はキャッシュせず、次回呼び出し時に再取得を試みる。
 let iconDataUrlPromise: Promise<string> | null = null;
 
@@ -128,8 +133,8 @@ function buildServiceFooter(isDark: boolean): {
   footer.appendChild(icon);
   footer.appendChild(name);
 
-  // data URL化してから src にセットすることで、html-to-image側の
-  // ネットワーク再取得（と、失敗時の永続キャッシュ汚染）を避ける。
+  // data URL化してから src にセットすることで、描画ライブラリ側の
+  // ネットワーク再取得（と、失敗時のキャッシュ汚染）を避ける。
   // 取得に失敗した場合はアイコンなしで書き出す（アプリ名のテキストは表示される）。
   const iconLoaded = getIconDataUrl()
     .then((dataUrl) => {
@@ -210,20 +215,30 @@ export async function captureThemedPng(el: HTMLElement): Promise<string> {
     const height = container.offsetHeight;
     const pixelRatio = computeSafePixelRatio(width, height);
 
-    const options = {
+    if (isIOS()) {
+      // iOS は modern-screenshot(動的importでサーバーバンドル回避)。
+      // scale が pixelRatio 相当、fetch.bypassingCache が cacheBust 相当。
+      const { domToPng } = await import("modern-screenshot");
+      const options = {
+        scale: pixelRatio,
+        backgroundColor: bgColor,
+        fetch: { bypassingCache: true },
+      };
+      // iOS/Safari は初回の描画で foreignObject 内の画像が欠けることがあるため、
+      // 複数回描画して最後の結果を採用する(2回目以降は正しく描画されやすい)。
+      let dataUrl = "";
+      for (let i = 0; i < 3; i++) {
+        dataUrl = await domToPng(container, options);
+      }
+      return dataUrl;
+    }
+
+    // iOS以外は html-to-image。
+    return await toPng(container, {
       cacheBust: true,
       pixelRatio,
       backgroundColor: bgColor,
-    };
-
-    // iOS/Safari は初回の描画で foreignObject 内の画像が欠けることがあるため、
-    // 複数回描画して最後の結果を採用する(2回目以降は正しく描画されやすい)。
-    const passes = isIOS() ? 3 : 1;
-    let dataUrl = "";
-    for (let i = 0; i < passes; i++) {
-      dataUrl = await toPng(container, options);
-    }
-    return dataUrl;
+    });
   } finally {
     document.body.removeChild(wrapper);
   }

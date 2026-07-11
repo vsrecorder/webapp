@@ -68,15 +68,13 @@ export function DeckCardSkeleton({ compact = false }: { compact?: boolean } = {}
         <div className="flex justify-end">
           <Skeleton className="h-3.5 w-28 rounded-lg" />
         </div>
-        {/* スプライト＋デッキ名 */}
-        <div className="flex items-center gap-2">
+        {/* スプライトを上、デッキ名を下に配置（中央揃え） */}
+        <div className="flex flex-col items-center gap-1">
           <div className="flex items-center gap-1.5 shrink-0">
             <Skeleton className="h-11 w-11 rounded-2xl" />
             <Skeleton className="h-11 w-11 rounded-2xl" />
           </div>
-          <div className="flex-1 min-w-0">
-            <Skeleton className="h-6 w-40 rounded-lg" />
-          </div>
+          <Skeleton className="h-6 w-40 rounded-lg" />
         </div>
       </CardHeader>
 
@@ -84,8 +82,12 @@ export function DeckCardSkeleton({ compact = false }: { compact?: boolean } = {}
       <Skeleton className="aspect-2/1 w-full" />
 
       <CardBody className="flex flex-col gap-3 px-3 py-3">
-        {/* 戦績 */}
-        <Skeleton className="h-3.5 w-28 rounded" />
+        {/* 戦績：勝率ラベル・大きな勝率数値・対戦成績を中央配置 */}
+        <div className="flex flex-col items-center gap-1">
+          <Skeleton className="h-3 w-8 rounded" />
+          <Skeleton className="h-8 w-24 rounded-lg" />
+          <Skeleton className="h-3 w-28 rounded" />
+        </div>
         {/* 先攻/後攻チップ */}
         <div className="grid grid-cols-[auto_1fr_1fr] items-center gap-x-2 gap-y-1.5">
           <Skeleton className="h-3.5 w-8 rounded" />

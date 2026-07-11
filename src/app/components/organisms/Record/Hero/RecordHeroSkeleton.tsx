@@ -44,9 +44,9 @@ export default function RecordHeroSkeleton() {
         {/* 使用デッキ */}
         <div className="mt-3.5 flex items-center gap-2.5 border-t border-divider pt-3">
           <Skeleton className="mr-2 h-2.5 w-8 rounded" />
-          <div className="flex shrink-0 items-center gap-0.5">
-            <Skeleton className="h-11 w-11 rounded-full" />
-            <Skeleton className="h-11 w-11 rounded-full" />
+          <div className="flex shrink-0 items-center gap-1.5">
+            <Skeleton className="h-11 w-11 rounded-lg" />
+            <Skeleton className="h-11 w-11 rounded-lg" />
           </div>
           <Skeleton className="h-4 w-32 rounded-md" />
         </div>

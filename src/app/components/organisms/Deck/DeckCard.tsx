@@ -75,7 +75,7 @@ export default function DeckCard({
   deckUsageStat,
   onRemove,
   enableShowDeckModal,
-  view = "gallery",
+  view = "list",
 }: Props) {
   const [deck, setDeck] = useState<DeckGetByIdResponseType | null>(deckData);
   const [deckcode, setDeckCode] = useState<DeckCodeType | null>(deckcodeData);
@@ -452,8 +452,8 @@ export default function DeckCard({
                   {date}
                 </span>
               </div>
-              {/* スプライト＋デッキ名（フル幅で見切れを防ぐ） */}
-              <div className="flex items-center gap-2">
+              {/* スプライトを上、デッキ名を下に配置（中央揃え・フル幅で見切れを防ぐ） */}
+              <div className="flex flex-col items-center gap-1">
                 <div className="flex items-center gap-0 shrink-0">
                   {[0, 1].map((i) => (
                     <Image
@@ -468,7 +468,7 @@ export default function DeckCard({
                     />
                   ))}
                 </div>
-                <div className="min-w-0 flex-1 font-bold text-large truncate">
+                <div className="max-w-full font-bold text-large truncate text-center">
                   {deck.name}
                 </div>
               </div>
@@ -500,13 +500,17 @@ export default function DeckCard({
 
             <CardBody className="flex flex-col gap-3 px-3 py-3">
               {hasStats ? (
-                /* 戦績＋勝率（登録日はヘッダーに表示） */
-                <div className="flex items-center gap-2 text-tiny">
-                  <span className="tabular-nums text-default-500">
-                    {`${deckUsageStat!.count}戦${deckUsageStat!.wins}勝${deckUsageStat!.losses}敗`}
+                /* 戦績：勝率を中央で大きく目立たせ、対戦成績はその下に添える
+                   （登録日はヘッダーに表示） */
+                <div className="flex flex-col items-center gap-0.5">
+                  <span className="text-tiny font-bold text-default-400">勝率</span>
+                  <span
+                    className={`text-3xl font-black leading-none tabular-nums ${winRateTextColor(winRate)}`}
+                  >
+                    {formatPercent(winRate)}
                   </span>
-                  <span className={`font-bold tabular-nums ${winRateTextColor(winRate)}`}>
-                    勝率 {formatPercent(winRate)}
+                  <span className="text-tiny tabular-nums text-default-500">
+                    {`${deckUsageStat!.count}戦${deckUsageStat!.wins}勝${deckUsageStat!.losses}敗`}
                   </span>
                 </div>
               ) : ignoredCount > 0 ? (

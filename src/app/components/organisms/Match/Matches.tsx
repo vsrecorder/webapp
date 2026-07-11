@@ -191,6 +191,7 @@ export default function Matches({
     return (
       <MatchSkeleton
         enableCreateMatchModalButton={enableCreateMatchModalButton}
+        enableUpdateMatchModalButton={enableUpdateMatchModalButton}
         flat={flat}
       />
     );

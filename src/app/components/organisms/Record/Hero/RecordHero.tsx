@@ -410,37 +410,39 @@ export default function RecordHero({
   // 使用デッキ行の中身(スプライト2枚＋デッキ名)。タップ可/不可で外側だけ切り替える
   const deckRowInner = deck ? (
     <>
-      <span className="mr-2 shrink-0 text-[9px] font-bold tracking-wide text-default-400">
-        デッキ
+      <span className="text-[9px] font-bold tracking-wide text-default-400">
+        使用デッキ
       </span>
-      <div className="flex shrink-0 items-center">
-        <Image
-          alt={deck.pokemon_sprites[0]?.id ?? "unknown"}
-          src={spriteImageUrl(deck.pokemon_sprites[0]?.id)}
-          radius="none"
-          className={`h-11 w-11 origin-bottom object-contain ${spriteScaleClass(
-            deck.pokemon_sprites[0]?.id,
-          )}`}
-        />
-        <Image
-          alt={deck.pokemon_sprites[1]?.id ?? "unknown"}
-          src={spriteImageUrl(deck.pokemon_sprites[1]?.id)}
-          radius="none"
-          className={`h-11 w-11 origin-bottom object-contain ${spriteScaleClass(
-            deck.pokemon_sprites[1]?.id,
-          )}`}
-        />
+      <div className="flex w-full items-center gap-2.5">
+        <div className="flex shrink-0 items-center">
+          <Image
+            alt={deck.pokemon_sprites[0]?.id ?? "unknown"}
+            src={spriteImageUrl(deck.pokemon_sprites[0]?.id)}
+            radius="none"
+            className={`h-11 w-11 origin-bottom object-contain ${spriteScaleClass(
+              deck.pokemon_sprites[0]?.id,
+            )}`}
+          />
+          <Image
+            alt={deck.pokemon_sprites[1]?.id ?? "unknown"}
+            src={spriteImageUrl(deck.pokemon_sprites[1]?.id)}
+            radius="none"
+            className={`h-11 w-11 origin-bottom object-contain ${spriteScaleClass(
+              deck.pokemon_sprites[1]?.id,
+            )}`}
+          />
+        </div>
+        <div className="min-w-0 flex-1 truncate text-sm font-bold">{deck.name}</div>
+        {/* タップで編集できることを示すヒント */}
+        {enableEditUsedDeck && (
+          <LuPencilLine className="ml-1 h-4 w-4 shrink-0 text-default-400" />
+        )}
       </div>
-      <div className="min-w-0 flex-1 truncate text-sm font-bold">{deck.name}</div>
-      {/* タップで編集できることを示すヒント */}
-      {enableEditUsedDeck && (
-        <LuPencilLine className="ml-1 h-4 w-4 shrink-0 text-default-400" />
-      )}
     </>
   ) : null;
 
   const deckRowClass =
-    "mt-3.5 flex w-full items-center gap-2.5 border-t border-divider pt-3";
+    "mt-3.5 flex w-full flex-col gap-1.5 border-t border-divider pt-3";
 
   // 取得中、または保持しているデッキが record の現在の deck_id と一致しない
   // (＝変更直後でまだ新しいデッキを取得できていない)場合はローディング表示にする。
@@ -449,14 +451,16 @@ export default function RecordHero({
   // 使用デッキ取得中のローディング行(実表示と同じ骨格でガタつきを抑える)
   const deckLoadingRow = (
     <div className={deckRowClass}>
-      <span className="mr-2 shrink-0 text-[9px] font-bold tracking-wide text-default-400">
-        デッキ
+      <span className="text-[9px] font-bold tracking-wide text-default-400">
+        使用デッキ
       </span>
-      <div className="flex shrink-0 items-center gap-1">
-        <Skeleton className="h-11 w-11 rounded-lg" />
-        <Skeleton className="h-11 w-11 rounded-lg" />
+      <div className="flex w-full items-center gap-2.5">
+        <div className="flex shrink-0 items-center gap-1.5">
+          <Skeleton className="h-11 w-11 rounded-lg" />
+          <Skeleton className="h-11 w-11 rounded-lg" />
+        </div>
+        <Skeleton className="h-4 flex-1 rounded-md" />
       </div>
-      <Skeleton className="h-4 flex-1 rounded-md" />
     </div>
   );
 

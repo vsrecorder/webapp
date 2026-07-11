@@ -103,6 +103,21 @@
   filter: invert(1);
 }
 
+/*
+ * 下部ナビ(MobileNavigation)の項目の上パディング。
+ * iOS の standalone PWA では下端に safe-area-inset-bottom の余白が入り、
+ * 項目が自然に上寄りになるため現状のレイアウト(pt-1 相当)を維持する。
+ * それ以外(iOS Safari ブラウザ / Android / PC 等、data-ios-pwa 未設定)では
+ * 下端の余白がなく項目が上に張り付いて見えるため、少し下げて見た目を揃える。
+ */
+.mobile-nav-item {
+  padding-top: 0.75rem;
+}
+
+:root[data-ios-pwa="true"] .mobile-nav-item {
+  padding-top: 0.25rem;
+}
+
 /* ヘッダーの環境テキストスクロールアニメーション */
 @keyframes marquee {
   from {

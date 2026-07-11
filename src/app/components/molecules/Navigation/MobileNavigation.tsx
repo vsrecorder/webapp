@@ -25,7 +25,7 @@ export default function MobileNavigation() {
               href={href}
               aria-label={label}
               aria-current={active ? "page" : undefined}
-              className={`flex flex-col items-center justify-start pt-1 gap-1 transition-all duration-150 active:scale-90 ${
+              className={`mobile-nav-item flex flex-col items-center justify-start gap-1 transition-all duration-150 active:scale-90 ${
                 active
                   ? "text-primary bg-primary/10"
                   : "text-default-400 hover:text-default-600 dark:hover:text-default-300"

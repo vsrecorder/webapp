@@ -30,7 +30,7 @@ import { rankInfoForName } from "@app/utils/designationRank";
 import { environmentBadgeImageUrl } from "@app/utils/badgeImage";
 
 const NOTIFICATIONS_LIMIT = 30;
-const POLL_INTERVAL_MS = 30 * 1000;
+const POLL_INTERVAL_MS = 60 * 1000;
 
 const CATEGORY_ICON: Record<
   NotificationCategory,

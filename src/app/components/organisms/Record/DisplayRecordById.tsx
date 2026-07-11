@@ -23,7 +23,7 @@ export default function DisplayRecordById({ recordData }: Props) {
   const deckCardRef = useRef<HTMLDivElement>(null);
 
   return (
-    <div className="px-0.5 pt-3 pb-3 flex flex-col gap-9 lg:grid lg:grid-cols-3 lg:gap-6 lg:max-w-5xl lg:mx-auto overflow-y-auto">
+    <div className="px-0.5 pt-6 pb-6 flex flex-col gap-9 lg:grid lg:grid-cols-3 lg:gap-6 lg:max-w-5xl lg:mx-auto overflow-y-auto">
       {/* 集計対象外の記録のみ、最上部にステータスバナーを表示 */}
       {record?.ignore_stats_flg && (
         <div className="px-0.5 lg:col-span-3">

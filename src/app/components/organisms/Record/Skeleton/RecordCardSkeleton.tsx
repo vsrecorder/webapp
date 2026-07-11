@@ -19,11 +19,12 @@ export function RecordCardSkeleton({ className = "" }: { className?: string }) {
               <Skeleton className="h-3.5 w-28 rounded-md" />
 
               {/* イベント名 */}
-              <Skeleton className="h-5 w-48 rounded-md mt-1" />
+              <Skeleton className="h-5 w-48 rounded-md mt-0.5" />
 
-              {/* チップ */}
+              {/* チップ（種別＋対戦環境の2個が最も一般的な構成） */}
               <div className="flex items-center gap-2 mt-1.5">
-                <Skeleton className="h-4 w-16 rounded-full" />
+                <Skeleton className="h-5 w-14 rounded-full" />
+                <Skeleton className="h-5 w-20 rounded-full" />
               </div>
 
               {/* 区切り線 */}
@@ -33,7 +34,14 @@ export function RecordCardSkeleton({ className = "" }: { className?: string }) {
               <div className="flex items-center gap-3">
                 <Skeleton className="w-8 h-8 rounded-lg shrink-0" />
                 <div className="flex items-center justify-between gap-2 flex-1">
-                  <Skeleton className="h-3.5 w-24 rounded-md" />
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    {/* デッキ先頭2体のスプライト分 */}
+                    <div className="flex items-center shrink-0">
+                      <Skeleton className="w-7 h-7 rounded-full" />
+                      <Skeleton className="w-7 h-7 rounded-full" />
+                    </div>
+                    <Skeleton className="h-3.5 w-24 rounded-md" />
+                  </div>
                   {/* チーム戦バッジ・勝敗バッジ(ともに text-xs px-1.5 py-0.5)と高さ・幅を揃える */}
                   <div className="flex items-center gap-1.5 shrink-0">
                     <Skeleton className="h-5 w-10 rounded-md" />

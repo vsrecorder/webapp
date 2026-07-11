@@ -8,10 +8,15 @@ const APP_NAME = "バトレコ";
 // iOS Safari の canvas 制限に合わせた安全値。
 // 1辺・総面積のいずれかを超えると描画結果が空(真っ白)になることがあるため、
 // これを超えないように pixelRatio を動的に下げる。
-const MAX_CANVAS_DIMENSION = 4096;
-const MAX_CANVAS_AREA = 16_777_216; // 4096 * 4096
+//
+// 1辺の上限は、ごく古い端末の 4096 に合わせると縦長の記録で pixelRatio が
+// 早々に下がって画質が落ちるため、近年の端末で実用的な 8192 を採用する
+// (幅の狭い書き出し画像では、実質的に効いてくる制限は総面積の方)。
+const MAX_CANVAS_DIMENSION = 8192;
+const MAX_CANVAS_AREA = 16_777_216;
 
 // 対象サイズ(CSSピクセル)に対し、canvas 制限を超えない範囲で最大の pixelRatio を返す。
+// 通常サイズでは desired(=3) をそのまま使い、極端に縦長のときだけ下げる。
 function computeSafePixelRatio(width: number, height: number, desired = 3): number {
   if (width <= 0 || height <= 0) return desired;
   const byWidth = MAX_CANVAS_DIMENSION / width;

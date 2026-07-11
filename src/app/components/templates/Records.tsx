@@ -89,7 +89,7 @@ export default function TemplateRecords() {
           <Tab key="all" title="すべて" />
           <Tab key="official" title="公式イベント" />
           <Tab key="tonamel" title="Tonamel" />
-          <Tab key="unofficial" title="記入形式" />
+          <Tab key="unofficial" title="自由形式" />
         </Tabs>
       </div>
 

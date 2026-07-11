@@ -86,6 +86,7 @@ export default function UpdateUsedDeckModal({
       deck_id: record.deck_id,
       deck_code_id: record.deck_code_id,
       private_flg: record.private_flg,
+      ignore_stats_flg: record.ignore_stats_flg,
       tcg_meister_url: tcgMeisterURL,
       memo: record.memo,
       event_date: record.event_date,

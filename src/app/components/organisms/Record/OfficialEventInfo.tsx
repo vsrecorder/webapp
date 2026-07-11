@@ -184,6 +184,16 @@ export default function OfficialEventInfo({
                 {officialEvent.shop_name?.trim() || officialEvent.venue?.trim()}
               </Chip>
             )}
+            {record.ignore_stats_flg && (
+              <Chip
+                size="sm"
+                variant="flat"
+                color="warning"
+                className="h-5 text-[10px] font-bold"
+              >
+                ⚠ 集計対象外
+              </Chip>
+            )}
           </>
         }
         title={officialEvent.title}

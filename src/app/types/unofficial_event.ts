@@ -1,4 +1,4 @@
-// 記入形式イベント(公式イベントやTonamel以外でユーザが任意に管理するイベント)
+// 自由形式イベント(公式イベントやTonamel以外でユーザが任意に管理するイベント)
 export type UnofficialEventType = {
   id: string;
   user_id: string;

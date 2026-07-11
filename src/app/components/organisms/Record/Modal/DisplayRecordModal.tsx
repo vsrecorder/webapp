@@ -27,6 +27,9 @@ import { RiTwitterXLine } from "react-icons/ri";
 import OfficialEventInfo from "@app/components/organisms/Record/OfficialEventInfo";
 import TonamelEventInfo from "@app/components/organisms/Record/TonamelEventInfo";
 import UnofficialEventInfo from "@app/components/organisms/Record/UnofficialEventInfo";
+import RecordSectionLabel from "@app/components/organisms/Record/RecordSectionLabel";
+import IgnoreStatsBanner from "@app/components/organisms/Record/IgnoreStatsBanner";
+import IgnoreStatsFlgSetting from "@app/components/organisms/Record/IgnoreStatsFlgSetting";
 import Matches from "@app/components/organisms/Match/Matches";
 import UsedDeckById from "@app/components/organisms/Deck/UsedDeckById";
 
@@ -456,10 +459,15 @@ export default function DisplayRecordModal({
               </ModalHeader>
 
               <ModalBody className="px-1 pb-6 gap-9 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none">
-                <div className="px-1 flex flex-col gap-3">
-                  <div className="pb-0 flex items-center justify-center">
-                    <div className="font-bold underline">参加したイベント</div>
+                {/* 集計対象外の記録のみ、最上部にステータスバナーを表示 */}
+                {record.ignore_stats_flg && (
+                  <div className="px-1">
+                    <IgnoreStatsBanner />
                   </div>
+                )}
+
+                <div className="px-1 flex flex-col gap-3">
+                  <RecordSectionLabel>参加したイベント</RecordSectionLabel>
 
                   {record.official_event_id !== 0 ? (
                     <OfficialEventInfo
@@ -477,9 +485,7 @@ export default function DisplayRecordModal({
                 </div>
 
                 <div className="flex flex-col gap-3">
-                  <div className="pb-0 flex items-center justify-center">
-                    <div className="font-bold underline">対戦結果</div>
-                  </div>
+                  <RecordSectionLabel>対戦結果</RecordSectionLabel>
                   <div className="px-0.5 flex flex-col gap-3">
                     <Matches
                       record={record}
@@ -491,9 +497,7 @@ export default function DisplayRecordModal({
                 </div>
 
                 <div className="flex flex-col gap-3">
-                  <div className="pb-0 flex items-center justify-center">
-                    <div className="font-bold underline">使用したデッキ</div>
-                  </div>
+                  <RecordSectionLabel>使用したデッキ</RecordSectionLabel>
 
                   <div ref={deckCardRef} className="p-1">
                     <UsedDeckById
@@ -503,6 +507,11 @@ export default function DisplayRecordModal({
                       enableUpdateUsedDeckModal={false}
                     />
                   </div>
+                </div>
+
+                <div className="px-1 flex flex-col gap-3">
+                  <RecordSectionLabel>戦績集計</RecordSectionLabel>
+                  <IgnoreStatsFlgSetting record={record} setRecord={setRecord} />
                 </div>
               </ModalBody>
             </>

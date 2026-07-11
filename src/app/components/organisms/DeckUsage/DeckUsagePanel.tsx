@@ -266,12 +266,28 @@ export default function DeckUsagePanel({
       groupIntoOther(decks, {
         threshold: OTHER_THRESHOLD,
         maxIndividual: MAX_INDIVIDUAL_DECKS,
-        createOther: (aggregate): DeckUsageItemType => ({
-          deck_id: "",
-          name: "その他",
-          pokemon_sprites: [],
-          ...aggregate,
-        }),
+        createOther: (aggregate, rest): DeckUsageItemType => {
+          const gameCount = rest.reduce((sum, item) => sum + item.game_count, 0);
+          const goFirstCount = rest.reduce((sum, item) => sum + item.go_first_count, 0);
+          const goSecondCount = gameCount - goFirstCount;
+          const goFirstWins = rest.reduce((sum, item) => sum + item.go_first_wins, 0);
+          const goSecondWins = rest.reduce((sum, item) => sum + item.go_second_wins, 0);
+
+          return {
+            deck_id: "",
+            name: "その他",
+            pokemon_sprites: [],
+            game_count: gameCount,
+            go_first_count: goFirstCount,
+            go_second_count: goSecondCount,
+            go_first_rate: gameCount > 0 ? goFirstCount / gameCount : 0,
+            go_first_wins: goFirstWins,
+            go_first_win_rate: goFirstCount > 0 ? goFirstWins / goFirstCount : 0,
+            go_second_wins: goSecondWins,
+            go_second_win_rate: goSecondCount > 0 ? goSecondWins / goSecondCount : 0,
+            ...aggregate,
+          };
+        },
       }),
     [decks],
   );

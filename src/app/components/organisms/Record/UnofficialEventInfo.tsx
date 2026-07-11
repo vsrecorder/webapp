@@ -149,7 +149,7 @@ export default function UnofficialEventInfo({ record }: Props) {
               variant="flat"
               className="h-5 text-[10px] font-bold gap-0.5 pl-1.5 bg-default-200 text-default-600"
             >
-              記入形式
+              自由形式
             </Chip>
             {environment?.title && (
               <Chip
@@ -160,6 +160,16 @@ export default function UnofficialEventInfo({ record }: Props) {
                 classNames={{ content: "text-[10px] truncate" }}
               >
                 {`『${environment.title}』`}
+              </Chip>
+            )}
+            {record.ignore_stats_flg && (
+              <Chip
+                size="sm"
+                variant="flat"
+                color="warning"
+                className="h-5 text-[10px] font-bold"
+              >
+                ⚠ 集計対象外
               </Chip>
             )}
           </>

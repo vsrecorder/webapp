@@ -3,6 +3,9 @@ import { useState, useRef } from "react";
 import OfficialEventInfo from "@app/components/organisms/Record/OfficialEventInfo";
 import TonamelEventInfo from "@app/components/organisms/Record/TonamelEventInfo";
 import UnofficialEventInfo from "@app/components/organisms/Record/UnofficialEventInfo";
+import RecordSectionLabel from "@app/components/organisms/Record/RecordSectionLabel";
+import IgnoreStatsBanner from "@app/components/organisms/Record/IgnoreStatsBanner";
+import IgnoreStatsFlgSetting from "@app/components/organisms/Record/IgnoreStatsFlgSetting";
 import Matches from "@app/components/organisms/Match/Matches";
 import UsedDeckById from "@app/components/organisms/Deck/UsedDeckById";
 import RecordActionsFloating from "@app/components/molecules/Floating/RecordActionsFloating";
@@ -21,10 +24,15 @@ export default function DisplayRecordById({ recordData }: Props) {
 
   return (
     <div className="px-0.5 pt-3 pb-3 flex flex-col gap-9 lg:grid lg:grid-cols-3 lg:gap-6 lg:max-w-5xl lg:mx-auto overflow-y-auto">
-      <div className="px-0.5 flex flex-col gap-3 lg:col-span-3">
-        <div className="pb-0 flex flex-col items-center justify-center gap-0">
-          <div className="font-bold underline">参加したイベント</div>
+      {/* 集計対象外の記録のみ、最上部にステータスバナーを表示 */}
+      {record?.ignore_stats_flg && (
+        <div className="px-0.5 lg:col-span-3">
+          <IgnoreStatsBanner />
         </div>
+      )}
+
+      <div className="px-0.5 flex flex-col gap-3 lg:col-span-3">
+        <RecordSectionLabel>参加したイベント</RecordSectionLabel>
 
         {
           // 公式イベントの場合
@@ -37,7 +45,7 @@ export default function DisplayRecordById({ recordData }: Props) {
           ) : // Tonamelの場合
           record?.tonamel_event_id !== "" ? (
             <TonamelEventInfo record={record} />
-          ) : // 記入形式の場合
+          ) : // 自由形式の場合
           record?.unofficial_event_id !== "" ? (
             <UnofficialEventInfo record={record} />
           ) : (
@@ -47,9 +55,7 @@ export default function DisplayRecordById({ recordData }: Props) {
       </div>
 
       <div className="flex flex-col gap-3 lg:col-span-2">
-        <div className="pb-0 flex flex-col items-center justify-center gap-0">
-          <div className="font-bold underline">対戦結果</div>
-        </div>
+        <RecordSectionLabel>対戦結果</RecordSectionLabel>
         <div className="px-0.5 py-1 flex flex-col gap-3">
           <Matches
             record={record}
@@ -61,9 +67,7 @@ export default function DisplayRecordById({ recordData }: Props) {
       </div>
 
       <div className="flex flex-col gap-3 lg:col-span-1">
-        <div className="pb-0 flex flex-col items-center justify-center gap-0">
-          <div className="font-bold underline">使用したデッキ</div>
-        </div>
+        <RecordSectionLabel>使用したデッキ</RecordSectionLabel>
         <div ref={deckCardRef} className="px-0.5 py-1">
           <UsedDeckById
             record={record}
@@ -72,6 +76,11 @@ export default function DisplayRecordById({ recordData }: Props) {
             enableUpdateUsedDeckModal={true}
           />
         </div>
+      </div>
+
+      <div className="px-0.5 flex flex-col gap-3 lg:col-span-3">
+        <RecordSectionLabel>戦績集計</RecordSectionLabel>
+        {record && <IgnoreStatsFlgSetting record={record} setRecord={setRecord} />}
       </div>
 
       {record && (

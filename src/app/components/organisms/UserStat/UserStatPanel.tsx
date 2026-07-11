@@ -10,7 +10,10 @@ import { EnvironmentType } from "@app/types/environment";
 import { StandardRegulationType } from "@app/types/standard_regulation";
 import { ChampionshipSeriesType } from "@app/types/championship_series";
 import { UserStatType } from "@app/types/user_stat";
-import { seasonOptionsFromChampionshipSeries, currentSeasonValue } from "@app/utils/season";
+import {
+  seasonOptionsFromChampionshipSeries,
+  currentSeasonValue,
+} from "@app/utils/season";
 
 type FilterMode = "month" | "environment" | "season" | "regulation";
 
@@ -108,7 +111,9 @@ export default function UserStatPanel({
   const [environmentId, setEnvironmentId] = useState<string>(
     currentEnvironmentId ?? environments[0]?.id ?? "",
   );
-  const [season, setSeason] = useState<string>(() => currentSeasonValue(championshipSeries));
+  const [season, setSeason] = useState<string>(() =>
+    currentSeasonValue(championshipSeries),
+  );
   const [regulationId, setRegulationId] = useState<string>(
     standardRegulations[0]?.id ?? "",
   );
@@ -265,7 +270,7 @@ export default function UserStatPanel({
             isLoading={isLoading}
           />
           <StatCell
-            label="記入形式"
+            label="自由形式"
             value={stat?.unofficial_event_count ?? 0}
             isLoading={isLoading}
           />

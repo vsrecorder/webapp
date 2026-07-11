@@ -9,5 +9,5 @@ export default async function Page() {
     redirect("/");
   }
 
-  return <TemplateDecks />;
+  return <TemplateDecks userId={session.user.id} />;
 }

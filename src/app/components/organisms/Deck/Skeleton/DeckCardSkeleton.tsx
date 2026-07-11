@@ -27,6 +27,9 @@ export function DeckCardSkeleton() {
             <div className="font-bold text-large w-full">
               <Skeleton className="h-7 w-44 rounded-lg" />
             </div>
+
+            {/* 対戦成績・先攻後攻パネル */}
+            <Skeleton className="h-11 w-full rounded-xl" />
           </div>
         </CardHeader>
         <CardBody className="px-3 py-2">

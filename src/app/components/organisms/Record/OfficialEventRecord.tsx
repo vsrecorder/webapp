@@ -309,6 +309,7 @@ export default function OfficialEventRecord({
             )}
           </>
         }
+        ignoreStatsFlg={record.ignore_stats_flg}
         icon={
           <Image
             alt={officialEvent.title}

@@ -1,6 +1,8 @@
 import { Card, CardBody } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
 import { Image } from "@heroui/react";
+import { Chip } from "@heroui/react";
+import { Popover, PopoverTrigger, PopoverContent } from "@heroui/react";
 
 import ScrollingText from "@app/components/molecules/ScrollingText";
 import { spriteImageUrl, spriteScaleClass } from "@app/utils/sprite";
@@ -35,10 +37,12 @@ type Props = {
   // 対戦結果の過半数がチーム戦かどうか(勝敗の左横にバッジ表示)
   isGroupMatchMajority?: boolean;
   loadingMatches: boolean;
+  // 戦績集計から除外されているか。true の場合カード右上にバッジを表示する
+  ignoreStatsFlg?: boolean;
 };
 
 /*
- * 公式/Tonamel/記入形式の記録カードで共有する共通レイアウト。
+ * 公式/Tonamel/自由形式の記録カードで共有する共通レイアウト。
  * 「枠線 + 左アクセントバー → 開催日 → イベント名 → チップ → 区切り線 → アイコン枠 + 情報行」
  * という骨格を一元管理し、差分(色・チップ・アイコン・情報行)のみを props で受け取る。
  */
@@ -60,6 +64,7 @@ export default function RecordCardBase({
   lossCount,
   isGroupMatchMajority,
   loadingMatches,
+  ignoreStatsFlg,
 }: Props) {
   const hasMatchResult = (winCount ?? 0) + (lossCount ?? 0) > 0;
   const matchResultColorClass =
@@ -87,8 +92,40 @@ export default function RecordCardBase({
     <div id={cardId} className="cursor-pointer group" onClick={onClick}>
       <Card
         shadow="none"
-        className="border border-divider overflow-hidden hover:border-primary/50 transition-colors duration-200"
+        className="relative border border-divider overflow-hidden hover:border-primary/50 transition-colors duration-200"
       >
+        {ignoreStatsFlg && (
+          <Popover placement="bottom-end">
+            <PopoverTrigger>
+              <button
+                type="button"
+                onClick={(e) => e.stopPropagation()}
+                className="absolute right-2 top-2 z-10"
+                aria-label="集計対象外の詳細を表示"
+              >
+                <Chip
+                  size="sm"
+                  variant="flat"
+                  color="warning"
+                  className="h-5 text-[10px] font-bold"
+                >
+                  ⚠ 集計対象外
+                </Chip>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent onClick={(e) => e.stopPropagation()}>
+              <div className="px-1 py-2 max-w-64 flex flex-col gap-1">
+                <span className="text-sm font-bold text-warning">
+                  ⚠ この記録は分析・集計の対象外です
+                </span>
+                <span className="text-xs text-default-500">
+                  勝率・使用デッキ分析・相手デッキ分布・週次レポートから除外されています
+                </span>
+              </div>
+            </PopoverContent>
+          </Popover>
+        )}
+
         <CardBody className="p-0">
           <div className="flex">
             {/* イベント種別/ブランドごとの左アクセントバー */}

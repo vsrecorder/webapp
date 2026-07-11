@@ -12,6 +12,7 @@ import CreateDeckModal from "@app/components/organisms/Deck/Modal/CreateDeckModa
 import { LuCirclePlus, LuPlus, LuLayoutGrid, LuArchive } from "react-icons/lu";
 
 import { DeckType, DeckGetResponseType } from "@app/types/deck";
+import { DeckUsageItemType, DeckUsageStatType } from "@app/types/deck_usage_stat";
 
 async function fetchDecks(isArchived: boolean, cursor: string) {
   try {
@@ -31,18 +32,48 @@ async function fetchDecks(isArchived: boolean, cursor: string) {
   }
 }
 
+// デッキ一覧カードに表示する、デッキごとの全期間の対戦数・勝率・先攻/後攻情報を取得する。
+// 対戦記録が無いデッキは結果に含まれない。
+async function fetchDeckUsageStats(userId: string): Promise<Map<string, DeckUsageItemType>> {
+  try {
+    const res = await fetch(`/api/users/${userId}/deck-usage?all_time=true`, {
+      cache: "no-store",
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    if (!res.ok) return new Map();
+
+    const stat: DeckUsageStatType = await res.json();
+
+    return new Map(stat.decks.map((deck) => [deck.deck_id, deck]));
+  } catch {
+    return new Map();
+  }
+}
+
 type Props = {
+  userId: string;
   isArchived: boolean;
   onCreated?: () => void;
 };
 
-export default function Decks({ isArchived, onCreated }: Props) {
+export default function Decks({ userId, isArchived, onCreated }: Props) {
   const [items, setItems] = useState<DeckType[]>([]);
+  const [deckUsageStats, setDeckUsageStats] = useState<Map<string, DeckUsageItemType>>(
+    new Map(),
+  );
   const [nextCursor, setNextCursor] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [isInitialLoaded, setIsInitialLoaded] = useState(false);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
+
+  useEffect(() => {
+    fetchDeckUsageStats(userId).then(setDeckUsageStats);
+  }, [userId]);
 
   const handleRemove = (id: string) => {
     setItems((prev) => prev.filter((d) => d.data.id !== id));
@@ -191,6 +222,7 @@ export default function Decks({ isArchived, onCreated }: Props) {
             key={deck.data.id}
             deckData={deck.data}
             deckcodeData={deck.data.latest_deck_code}
+            deckUsageStat={deckUsageStats.get(deck.data.id) ?? null}
             onRemove={handleRemove}
             enableShowDeckModal={true}
           />

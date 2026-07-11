@@ -33,6 +33,7 @@ export async function GET(
     const environmentId = searchParams.get("environment_id") ?? "";
     const season = searchParams.get("season") ?? "";
     const regulationId = searchParams.get("regulation_id") ?? "";
+    const allTime = searchParams.get("all_time") ?? "";
 
     const domain = process.env.VSRECORDER_DOMAIN;
 
@@ -41,6 +42,7 @@ export async function GET(
     if (environmentId) queryParams.set("environment_id", environmentId);
     if (season) queryParams.set("season", season);
     if (regulationId) queryParams.set("regulation_id", regulationId);
+    if (allTime) queryParams.set("all_time", allTime);
     const query = queryParams.toString() ? `?${queryParams.toString()}` : "";
 
     const res = await fetch(

@@ -3,7 +3,7 @@ import { Skeleton } from "@heroui/react";
 
 /*
  * RecordInfoCardBase と同じ骨格のローディングスケルトン。
- * 公式/Tonamel/記入形式の全詳細カードで共有する。
+ * 公式/Tonamel/自由形式の全詳細カードで共有する。
  */
 export default function RecordInfoCardSkeleton() {
   return (

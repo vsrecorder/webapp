@@ -13,7 +13,11 @@ type TabKey = "inuse" | "archived";
 
 const SELECTED_TAB_STORAGE_KEY = "decksSelectedTab";
 
-export default function TemplateDecks() {
+type Props = {
+  userId: string;
+};
+
+export default function TemplateDecks({ userId }: Props) {
   const [refreshKey, setRefreshKey] = useState(0);
   // SSR と一致させるため初期値は "inuse" で固定し、クライアント側でのみ復元する。
   const [selectedKey, setSelectedKey] = useState<"inuse" | "archived">("inuse");
@@ -70,6 +74,7 @@ export default function TemplateDecks() {
         <div className="pt-2 pb-6 lg:max-w-4xl lg:mx-auto">
           <Decks
             key={`${selectedKey}-${refreshKey}`}
+            userId={userId}
             isArchived={selectedKey === "archived"}
             onCreated={handleCreatedDeck}
           />

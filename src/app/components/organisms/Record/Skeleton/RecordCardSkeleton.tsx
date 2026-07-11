@@ -3,7 +3,7 @@ import { Skeleton } from "@heroui/react";
 
 /*
  * RecordCardBase と同じ骨格のローディングスケルトン。
- * 公式/Tonamel/記入形式の全カードで共有する。
+ * 公式/Tonamel/自由形式の全カードで共有する。
  */
 export function RecordCardSkeleton({ className = "" }: { className?: string }) {
   return (
@@ -60,7 +60,9 @@ function MonthHeaderSkeleton({
   colSpanClass: string;
 }) {
   return (
-    <div className={`col-span-1 ${colSpanClass} ${display} items-center gap-3 pt-1 pb-0.5`}>
+    <div
+      className={`col-span-1 ${colSpanClass} ${display} items-center gap-3 pt-1 pb-0.5`}
+    >
       <Skeleton className="h-3.5 w-14 rounded-md shrink-0" />
       <div className="flex-1 h-px bg-divider" />
     </div>
@@ -69,11 +71,7 @@ function MonthHeaderSkeleton({
 
 // スマホ: 3枚 / タブレット(md〜): 4枚 / デスクトップ(lg〜): 2列なら8枚・3列なら9枚
 // （デスクトップの列数は Records の desktopColumns に合わせて呼び出し元から渡す）
-export function RecordCardSkeletons({
-  desktopColumns = 2,
-}: {
-  desktopColumns?: 2 | 3;
-}) {
+export function RecordCardSkeletons({ desktopColumns = 2 }: { desktopColumns?: 2 | 3 }) {
   const colSpanClass =
     desktopColumns === 3 ? "lg:col-span-2 xl:col-span-3" : "lg:col-span-2";
   const extraDesktopCards = desktopColumns === 3 ? 5 : 4;

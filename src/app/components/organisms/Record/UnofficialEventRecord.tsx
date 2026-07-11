@@ -320,7 +320,7 @@ export default function UnofficialEventRecord({
               variant="flat"
               className="h-5 text-[10px] font-bold gap-0.5 pl-1.5 bg-default-200 text-default-600"
             >
-              記入形式
+              自由形式
             </Chip>
             {environment?.title && (
               <Chip
@@ -334,6 +334,7 @@ export default function UnofficialEventRecord({
             )}
           </>
         }
+        ignoreStatsFlg={record.ignore_stats_flg}
         icon={<LuPencilLine className="w-4 h-4 text-default-500" />}
         deckName={deck ? deck.name : null}
         deckSprites={deck?.pokemon_sprites}

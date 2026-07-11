@@ -330,6 +330,7 @@ export default function TonamelEventRecord({
             )}
           </>
         }
+        ignoreStatsFlg={record.ignore_stats_flg}
         icon={
           <div className="w-full h-full bg-orange-500 flex items-center justify-center">
             <span className="text-xs font-black text-white">T</span>

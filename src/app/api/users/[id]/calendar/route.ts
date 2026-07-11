@@ -116,11 +116,11 @@ async function fetchTonamelEventDisplay(id: string): Promise<RecordEventDisplay>
   }
 }
 
-// 記入形式イベントは一覧カード(UnofficialEventRecord)と同じ固定の見た目(グレー系)にする
+// 自由形式イベントは一覧カード(UnofficialEventRecord)と同じ固定の見た目(グレー系)にする
 async function fetchUnofficialEventDisplay(id: string): Promise<RecordEventDisplay> {
   const domain = process.env.VSRECORDER_DOMAIN;
   const base = {
-    chip_label: "記入形式",
+    chip_label: "自由形式",
     chip_color: "default" as CalendarChipColor,
     accent_color_class: "bg-default-400",
     venue_label: "",

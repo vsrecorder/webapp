@@ -15,7 +15,7 @@ import { LuCirclePlus, LuFilePen, LuClipboardList } from "react-icons/lu";
 
 import { RecordType, RecordGetResponseType } from "@app/types/record";
 
-// レコードのデータから種別（公式 / Tonamel / 記入形式）を判定する。
+// レコードのデータから種別（公式 / Tonamel / 自由形式）を判定する。
 // すべて表示("all")のとき、各カードをどのコンポーネントで描画するか決めるために使う。
 function resolveEventType(
   data: RecordType["data"],
@@ -146,8 +146,7 @@ export default function Records({
         // 固定タブに隠れないよう少し上に余白(56px)を取る。
         const elRect = el.getBoundingClientRect();
         const containerRect = container.getBoundingClientRect();
-        const y =
-          container.scrollTop + (elRect.top - containerRect.top) - 56;
+        const y = container.scrollTop + (elRect.top - containerRect.top) - 56;
         container.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
       } else {
         // 通常ページ：window をスクロールする。
@@ -253,7 +252,8 @@ export default function Records({
     <div className="flex flex-col items-center space-y-3 pb-3">
       {/* 対象 record を探している間はオーバーレイでスピナーを表示 */}
       {/* createPortal で body 直下に置くことで、祖先要素の包含ブロック問題を回避しビューポート全体を覆う */}
-      {pendingReopenId && typeof document !== "undefined" &&
+      {pendingReopenId &&
+        typeof document !== "undefined" &&
         createPortal(
           <div
             style={{ zIndex: 9999 }}
@@ -274,12 +274,12 @@ export default function Records({
               <p className="font-bold text-lg">記録を作成しましょう</p>
               <p className="text-sm text-default-500">
                 {event_type === "all"
-                  ? "公式・Tonamel・記入形式の対戦記録を管理できます"
+                  ? "公式・Tonamel・自由形式の対戦記録を管理できます"
                   : event_type === "official"
                     ? "公式イベントの対戦記録を管理できます"
                     : event_type === "tonamel"
                       ? "Tonamelイベントの対戦記録を管理できます"
-                      : "記入形式でイベントの対戦記録を管理できます"}
+                      : "自由形式でイベントの対戦記録を管理できます"}
               </p>
             </div>
           </div>

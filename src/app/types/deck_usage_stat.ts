@@ -8,6 +8,14 @@ export type DeckUsageItemType = {
   wins: number;
   losses: number;
   win_rate: number;
+  game_count: number;
+  go_first_count: number;
+  go_second_count: number;
+  go_first_rate: number;
+  go_first_wins: number;
+  go_first_win_rate: number;
+  go_second_wins: number;
+  go_second_win_rate: number;
   pokemon_sprites: DeckPokemonSpriteType[];
 };
 

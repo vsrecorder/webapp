@@ -17,6 +17,7 @@ import { CalendarDate } from "@internationalized/date";
 import { Tabs, Tab } from "@heroui/react";
 import { DatePicker } from "@heroui/react";
 import { Input } from "@heroui/react";
+import { Switch } from "@heroui/react";
 import {
   Modal,
   ModalContent,
@@ -397,7 +398,7 @@ function StepLabel({
 }
 
 /*
- * 公式/Tonamel/記入形式でフォームの構成はバラバラだが、タブ確定前
+ * 公式/Tonamel/自由形式でフォームの構成はバラバラだが、タブ確定前
  * （セッション復元中）に一瞬だけ表示する共通スケルトン。
  * どうせ3タブ共通で1つ表示するなら、と最も要素数の多い「公式イベント」
  * タブの実レイアウト（日付→イベント選択→プレビューカード→デッキ選択→
@@ -591,13 +592,17 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
     today(getLocalTimeZone()),
   );
 
-  // 記入形式イベント用の状態。ユーザが任意に開催日とイベント名を入力する
+  // 自由形式イベント用の状態。ユーザが任意に開催日とイベント名を入力する
   const [unofficialEventDate, setUnofficialEventDate] = useState<CalendarDate>(
     today(getLocalTimeZone()),
   );
   const [unofficialEventTitle, setUnofficialEventTitle] = useState<string>("");
   const [isDisabledCreateUnofficialRecord, setIsDisabledCreateUnofficialRecord] =
     useState(true);
+
+  // この記録を戦績集計(勝率・デッキ使用率・週次レポートなど)から除外するかどうか。
+  // タブ(公式/Tonamel/自由形式)を切り替えても保持される共通の設定として扱う。
+  const [ignoreStatsFlg, setIgnoreStatsFlg] = useState<boolean>(false);
 
   const [selectedDeckOption, setSelectedDeckOption] = useState<DeckOption | null>(null);
   const [selectedDeckCodeOption, setSelectedDeckCodeOption] =
@@ -842,7 +847,7 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
     }
   }, [tonamelEventId, isValidatedTonamelEventId]);
 
-  // 記入形式はイベント名が入力されていれば作成可能（デッキは任意）
+  // 自由形式はイベント名が入力されていれば作成可能（デッキは任意）
   useEffect(() => {
     if (unofficialEventTitle.trim() !== "") {
       setIsDisabledCreateUnofficialRecord(false);
@@ -914,7 +919,7 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
 
     // eventDate は JST オフセット付き(例: 2026-06-29T00:00:00+09:00)で渡される。
     // toISOString() を使うと UTC に変換され日付が一日前へずれるため、
-    // Tonamel/記入形式と同様にローカル(壁時計)の年月日から組み立てる。
+    // Tonamel/自由形式と同様にローカル(壁時計)の年月日から組み立てる。
     const yyyy = eventDate.getFullYear();
     const mm = String(eventDate.getMonth() + 1).padStart(2, "0");
     const dd = String(eventDate.getDate()).padStart(2, "0");
@@ -927,6 +932,7 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
       deck_id: deckId,
       deck_code_id: deckCodeId,
       private_flg: true,
+      ignore_stats_flg: ignoreStatsFlg,
       tcg_meister_url: "",
       memo: "",
       event_date: eventDateISO,
@@ -1026,6 +1032,7 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
       deck_id: deckId,
       deck_code_id: deckCodeId,
       private_flg: true,
+      ignore_stats_flg: ignoreStatsFlg,
       tcg_meister_url: "",
       memo: "",
       event_date: eventDateISO,
@@ -1094,7 +1101,7 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
   /*
    *
    *
-   * 記入形式イベント用の記録を作成する関数
+   * 自由形式イベント用の記録を作成する関数
    *
    * 非公式イベントやTonamel以外で運営される大会など、
    * ユーザが任意に開催日とイベント名を入力して記録を作成する
@@ -1122,7 +1129,7 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
     const eventDateISO = `${yyyy}-${mm}-${dd}T00:00:00Z`;
 
     try {
-      // 1. 先に記入形式イベント(unofficial_events)を作成し、そのIDを取得する。
+      // 1. 先に自由形式イベント(unofficial_events)を作成し、そのIDを取得する。
       //    records とは疎結合とし、records は unofficial_event_id で参照する。
       const unofficialEventReq: UnofficialEventCreateRequestType = {
         title: eventTitle.trim(),
@@ -1153,6 +1160,7 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
         deck_id: deckId,
         deck_code_id: deckCodeId,
         private_flg: true,
+        ignore_stats_flg: ignoreStatsFlg,
         tcg_meister_url: "",
         memo: "",
         event_date: eventDateISO,
@@ -1264,7 +1272,7 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
             {!isTabResolved ? (
               <RecordCreateTabSkeleton />
             ) : (
-              <div className="pt-9 flex flex-col gap-2">
+              <div className="pt-9 pb-3 flex flex-col gap-2">
                 <div className="flex flex-col gap-1 pt-1">
                   <div className="flex flex-col gap-2">
                     <StepLabel num={1} required>
@@ -1708,6 +1716,42 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                   </div>
                 </div>
 
+                <div className="flex flex-col gap-2">
+                  <StepLabel num={4}>集計オプション</StepLabel>
+                </div>
+
+                <div
+                  className={`flex flex-col gap-2 rounded-lg border px-3 py-2.5 transition-colors ${
+                    ignoreStatsFlg
+                      ? "border-warning/40 bg-warning/10"
+                      : "border-divider bg-default-50"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-sm font-bold">
+                        この記録を戦績集計に含めない
+                      </span>
+                      <span className="text-tiny text-default-500">
+                        勝率・デッキ使用率・週次レポートなどの集計から
+                        <br />
+                        除外されます
+                      </span>
+                    </div>
+                    <Switch
+                      size="sm"
+                      isSelected={ignoreStatsFlg}
+                      onValueChange={setIgnoreStatsFlg}
+                      aria-label="戦績集計から除外する"
+                    />
+                  </div>
+                  {ignoreStatsFlg && (
+                    <span className="text-tiny font-bold text-warning">
+                      ⚠ この記録は分析・集計の対象外になります
+                    </span>
+                  )}
+                </div>
+
                 <Button
                   color="primary"
                   isDisabled={isDisabledCreateOfficialEventRecord || isDeckVersionInvalid}
@@ -1742,7 +1786,7 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
             {!isTabResolved ? (
               <RecordCreateTabSkeleton />
             ) : (
-              <div className="pt-9 flex flex-col gap-1.5">
+              <div className="pt-9 pb-3 flex flex-col gap-2">
                 <div className="flex flex-col gap-1 pt-1">
                   <div className="flex flex-col gap-2">
                     <StepLabel num={1} required>
@@ -2047,6 +2091,42 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                   </div>
                 </div>
 
+                <div className="flex flex-col gap-2">
+                  <StepLabel num={4}>集計オプション</StepLabel>
+                </div>
+
+                <div
+                  className={`flex flex-col gap-2 rounded-lg border px-3 py-2.5 transition-colors ${
+                    ignoreStatsFlg
+                      ? "border-warning/40 bg-warning/10"
+                      : "border-divider bg-default-50"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-sm font-bold">
+                        この記録を戦績集計に含めない
+                      </span>
+                      <span className="text-tiny text-default-500">
+                        勝率・デッキ使用率・週次レポートなどの集計から
+                        <br />
+                        除外されます
+                      </span>
+                    </div>
+                    <Switch
+                      size="sm"
+                      isSelected={ignoreStatsFlg}
+                      onValueChange={setIgnoreStatsFlg}
+                      aria-label="戦績集計から除外する"
+                    />
+                  </div>
+                  {ignoreStatsFlg && (
+                    <span className="text-tiny font-bold text-warning">
+                      ⚠ この記録は分析・集計の対象外になります
+                    </span>
+                  )}
+                </div>
+
                 <Button
                   color="primary"
                   isDisabled={
@@ -2074,16 +2154,16 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
           {/*
            *
            *
-           * 記入形式
+           * 自由形式
            *
            *
            */}
 
-          <Tab key="unofficial" title="記入形式" isDisabled={false}>
+          <Tab key="unofficial" title="自由形式" isDisabled={false}>
             {!isTabResolved ? (
               <RecordCreateTabSkeleton />
             ) : (
-              <div className="pt-9 flex flex-col gap-2">
+              <div className="pt-9 pb-3 flex flex-col gap-2">
                 <div className="flex flex-col gap-1 pt-1">
                   <div className="flex flex-col gap-2">
                     <StepLabel num={1} required>
@@ -2352,6 +2432,42 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                       onError={() => {}}
                     />
                   </div>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <StepLabel num={4}>集計オプション</StepLabel>
+                </div>
+
+                <div
+                  className={`flex flex-col gap-2 rounded-lg border px-3 py-2.5 transition-colors ${
+                    ignoreStatsFlg
+                      ? "border-warning/40 bg-warning/10"
+                      : "border-divider bg-default-50"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-sm font-bold">
+                        この記録を戦績集計に含めない
+                      </span>
+                      <span className="text-tiny text-default-500">
+                        勝率・デッキ使用率・週次レポートなどの集計から
+                        <br />
+                        除外されます
+                      </span>
+                    </div>
+                    <Switch
+                      size="sm"
+                      isSelected={ignoreStatsFlg}
+                      onValueChange={setIgnoreStatsFlg}
+                      aria-label="戦績集計から除外する"
+                    />
+                  </div>
+                  {ignoreStatsFlg && (
+                    <span className="text-tiny font-bold text-warning">
+                      ⚠ この記録は分析・集計の対象外になります
+                    </span>
+                  )}
                 </div>
 
                 <Button

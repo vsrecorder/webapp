@@ -19,14 +19,20 @@
 
 /*
  * 記録ヒーロー(戦績カード)の背景グラデ。
- * 右上に勝率色(勝ち越し=緑)、左下にアクセント(青)のやわらかい放射を重ねる。
+ * 右上に勝率色(勝ち越し=緑)、左下にアクセントのやわらかい放射を重ねる。
  * 右上を勝率リング(右側)と同色にして統一感を出す。ベースはカード面(content1)。
+ * 左下のアクセントは左サイドバーと同色にするため --hero-accent-rgb で受け取り、
+ * 未指定時のみ従来の青にフォールバックする。
  * ライト/ダークで glow と地色を切り替え、どちらでも主張しすぎない低不透明度に抑える。
  */
 .record-hero-bg {
   background:
     radial-gradient(135% 130% at 100% 0%, rgba(18, 161, 80, 0.2), transparent 52%),
-    radial-gradient(120% 130% at 0% 100%, rgba(15, 111, 255, 0.18), transparent 55%),
+    radial-gradient(
+      120% 130% at 0% 100%,
+      rgba(var(--hero-accent-rgb, 15, 111, 255), 0.18),
+      transparent 55%
+    ),
     #ffffff;
 }
 
@@ -34,25 +40,37 @@
 .dark .record-hero-bg:not(.light *) {
   background:
     radial-gradient(135% 130% at 100% 0%, rgba(62, 207, 127, 0.15), transparent 52%),
-    radial-gradient(120% 130% at 0% 100%, rgba(77, 155, 255, 0.16), transparent 55%),
+    radial-gradient(
+      120% 130% at 0% 100%,
+      rgba(var(--hero-accent-rgb, 77, 155, 255), 0.16),
+      transparent 55%
+    ),
     #1d1d21;
 }
 
 /*
  * 負け越し(勝率50%未満)の記録では、右上の glow を負け色(赤)に切り替える。
- * 左下のアクセント(青)と地色は勝ち越し時と共通。
+ * 左下のアクセント(左サイドバーと同色)と地色は勝ち越し時と共通。
  */
 .record-hero-bg-loss {
   background:
     radial-gradient(135% 130% at 100% 0%, rgba(229, 72, 77, 0.2), transparent 52%),
-    radial-gradient(120% 130% at 0% 100%, rgba(15, 111, 255, 0.18), transparent 55%),
+    radial-gradient(
+      120% 130% at 0% 100%,
+      rgba(var(--hero-accent-rgb, 15, 111, 255), 0.18),
+      transparent 55%
+    ),
     #ffffff;
 }
 
 .dark .record-hero-bg-loss:not(.light *) {
   background:
     radial-gradient(135% 130% at 100% 0%, rgba(255, 97, 105, 0.15), transparent 52%),
-    radial-gradient(120% 130% at 0% 100%, rgba(77, 155, 255, 0.16), transparent 55%),
+    radial-gradient(
+      120% 130% at 0% 100%,
+      rgba(var(--hero-accent-rgb, 77, 155, 255), 0.16),
+      transparent 55%
+    ),
     #1d1d21;
 }
 

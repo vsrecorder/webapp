@@ -94,6 +94,21 @@ function formatEventDate(dateStr: string): string {
   });
 }
 
+// 左サイドバーのアクセントクラス → 背景グラデ左下グロー用のRGB。
+// 左バーの色(bg-*)と戦績カードのグラデーションを同色にするための対応表。
+const ACCENT_RGB: Record<string, string> = {
+  "bg-yellow-400": "250, 204, 21",
+  "bg-purple-500": "168, 85, 247",
+  "bg-blue-300": "147, 197, 253",
+  "bg-green-500": "34, 197, 94",
+  "bg-teal-500": "20, 184, 166",
+  "bg-slate-400": "148, 163, 184",
+  "bg-pink-400": "244, 114, 182",
+  "bg-orange-500": "249, 115, 22",
+  "bg-default-400": "161, 161, 170",
+  "bg-default-300": "212, 212, 216",
+};
+
 // ヒーロー内で共有する見た目の骨格。差分のみ props で受け取る。
 type ShellProps = {
   iconNode: React.ReactNode;
@@ -134,8 +149,19 @@ function HeroShell({
   const bgClass =
     hasStats && stats.winRate < 50 ? "record-hero-bg-loss" : "record-hero-bg";
 
+  // 背景グラデ左下のグローを左サイドバーと同色にする。対応表に無い場合は
+  // CSS側の従来色(青)へフォールバックさせるため変数を指定しない。
+  const accentRgb = ACCENT_RGB[accentColorClass];
+  const heroStyle = accentRgb
+    ? ({ "--hero-accent-rgb": accentRgb } as React.CSSProperties)
+    : undefined;
+
   return (
-    <Card shadow="sm" className={`${bgClass} relative w-full overflow-hidden`}>
+    <Card
+      shadow="sm"
+      style={heroStyle}
+      className={`${bgClass} relative w-full overflow-hidden`}
+    >
       {/* 種別ごとのアクセント(記録一覧カードの左サイドバーと同じ配色) */}
       <span className={`absolute inset-y-0 left-0 z-10 w-1 ${accentColorClass}`} />
       {/* 集計対象外の記録はヒーロー最上部にバナーを段差なく差し込む。
@@ -215,12 +241,9 @@ function HeroShell({
           )}
         </div>
 
-        {/* 勝敗の推移(対戦がある場合のみ)。シェア画像1枚目では除外する */}
+        {/* 勝敗の推移(対戦がある場合のみ)。シェア/保存画像にも含める */}
         {hasStats && (
-          <div
-            data-capture-hide="true"
-            className="mt-3.5 flex flex-col gap-1.5 border-t border-divider pt-3"
-          >
+          <div className="mt-3.5 flex flex-col gap-1.5 border-t border-divider pt-3">
             <span className="text-[9px] font-bold tracking-wide text-default-400">
               勝敗の推移
             </span>

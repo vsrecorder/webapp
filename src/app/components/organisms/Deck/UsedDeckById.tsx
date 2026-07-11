@@ -258,7 +258,7 @@ export default function UsedDeckById({
           ボードUIではデッキ画像やコピー用コードが主役でカードのタップが編集導線と
           気づきにくいため、確実に編集モーダルを開けるボタンを用意する。 */}
       {enableUpdateUsedDeckModal && record?.deck_id && (
-        <div className="mb-2 flex justify-end">
+        <div className="mb-2 flex justify-end" data-capture-hide="true">
           <button
             type="button"
             onClick={(e) => {

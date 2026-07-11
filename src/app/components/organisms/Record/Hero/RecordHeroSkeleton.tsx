@@ -7,7 +7,7 @@ import { Card, Skeleton } from "@heroui/react";
  */
 export default function RecordHeroSkeleton() {
   return (
-    <Card shadow="sm" className="record-hero-bg relative w-full overflow-hidden">
+    <Card shadow="sm" className="relative w-full overflow-hidden bg-content1">
       {/* 左アクセントバー(種別色は取得後に決まるためスケルトンではニュートラル) */}
       <span className="absolute inset-y-0 left-0 z-10 w-1 bg-default-300" />
 

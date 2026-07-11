@@ -21,7 +21,9 @@ import { RecordUpdateRequestType, RecordUpdateResponseType } from "@app/types/re
 
 import { DeckGetAllType, DeckData } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
+import { DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
 
+import { spriteImageUrl, spriteScaleClass } from "@app/utils/sprite";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 
 async function fetcherForDeck(url: string) {
@@ -44,6 +46,7 @@ type DeckOption = {
   name: string;
   private_flg: boolean;
   latest_deck_code: DeckCodeType;
+  pokemon_sprites: DeckPokemonSpriteType[];
 };
 
 function katakanaToHiragana(str: string): string {
@@ -71,7 +74,36 @@ function convertToDeckOption(data: DeckData): DeckOption {
     name: data.name,
     private_flg: data.private_flg,
     latest_deck_code: data.latest_deck_code,
+    pokemon_sprites: data.pokemon_sprites ?? [],
   };
+}
+
+// デッキの先頭2匹のポケモンスプライトを表示する。
+// スプライトが未設定のスロットは unknown 画像で補完し、記録作成画面と同じ見た目を踏襲する。
+function DeckSprites({
+  sprites,
+  sizeClass = "w-9 h-9",
+}: {
+  sprites: DeckPokemonSpriteType[];
+  sizeClass?: string;
+}) {
+  const slots = [sprites?.[0], sprites?.[1]];
+
+  return (
+    <div className="flex items-center gap-0 shrink-0">
+      {slots.map((sprite, i) => (
+        <Image
+          key={i}
+          alt={sprite?.id || "unknown"}
+          src={spriteImageUrl(sprite?.id)}
+          radius="none"
+          className={`${sizeClass} object-contain ${
+            sprite ? spriteScaleClass(sprite.id) : "scale-150"
+          } origin-bottom`}
+        />
+      ))}
+    </div>
+  );
 }
 
 async function fetcherForDeckCode(url: string) {
@@ -535,7 +567,7 @@ export default function UpdateUsedDeckModal({
             <ModalBody className="px-3 py-1 gap-3">
               <>
                 <div className="flex flex-col gap-1">
-                  <label className="text-sm font-medium">デッキ名</label>
+                  <label className="text-sm font-medium">デッキ</label>
                   <div>
                     <WindowedSelect
                       theme={reactSelectTheme}
@@ -547,7 +579,7 @@ export default function UpdateUsedDeckModal({
                           <div className="text-xl">
                             <CgSearch />
                           </div>
-                          <span className="text-sm">デッキ名</span>
+                          <span className="text-sm">デッキ</span>
                         </div>
                       }
                       isLoading={isLoadingDeckOptions}
@@ -579,26 +611,36 @@ export default function UpdateUsedDeckModal({
                         if (context === "menu") {
                           return (
                             <div className="text-sm truncate border-1 p-2">
-                              <div className="grid">
-                                <span className="truncate">登録日：{opt.created_at}</span>
+                              <div className="grid min-w-0">
+                                <span className="truncate">
+                                  登録日：{opt.created_at}
+                                </span>
 
-                                <span className="truncate">デッキ名：{opt.name}</span>
+                                <div className="pl-0.5 flex items-center gap-2 min-w-0">
+                                  <DeckSprites
+                                    sprites={opt.pokemon_sprites}
+                                    sizeClass="w-8 h-8"
+                                  />
+                                  <span className="truncate">{opt.name}</span>
+                                </div>
 
                                 <span className="pt-1">
-                                  <div className="relative w-full aspect-2/1">
+                                  <div className="relative w-full aspect-2/1 overflow-hidden">
                                     {!imageLoadedForDeck && (
                                       <Skeleton className="absolute inset-0 rounded-lg" />
                                     )}
                                     <Image
                                       radius="none"
                                       shadow="none"
-                                      alt={opt.latest_deck_code.code}
+                                      alt={
+                                        opt.latest_deck_code?.code || "デッキコードなし"
+                                      }
                                       src={
                                         opt.latest_deck_code?.code
                                           ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${opt.latest_deck_code.code}.jpg`
                                           : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
                                       }
-                                      className=""
+                                      className="w-full h-full object-cover"
                                       onLoad={() => setImageLoadedForDeck(true)}
                                     />
                                   </div>
@@ -608,8 +650,12 @@ export default function UpdateUsedDeckModal({
                           );
                         }
                         return (
-                          <div className="text-sm truncate">
-                            <span>{opt.name}</span>
+                          <div className="pl-1 flex items-center gap-2 text-sm min-w-0">
+                            <DeckSprites
+                              sprites={opt.pokemon_sprites}
+                              sizeClass="w-7 h-7"
+                            />
+                            <span className="truncate">{opt.name}</span>
                           </div>
                         );
                       }}

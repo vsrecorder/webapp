@@ -320,7 +320,7 @@ export default function DeckCard({
                 ) : (
                   <span className="flex items-center gap-1 text-primary/70">
                     <LuSwords className="text-[11px] shrink-0" />
-                    対戦を記録しよう
+                    このデッキで対戦をしよう
                   </span>
                 )}
               </div>

@@ -3,8 +3,10 @@ import { Card, Skeleton } from "@heroui/react";
 import MatchSkeleton from "@app/components/organisms/Match/Skeleton/MatchSkeleton";
 import {
   HERO_INFO_COL_CLASS,
-  STAT_PANEL_COL_CLASS,
-} from "@app/components/organisms/Record/Hero/RecordStatPanel";
+  HERO_STAT_COL_CLASS,
+  heroColRowStyle,
+  heroStatColStyle,
+} from "@app/components/organisms/Record/Hero/heroColumns";
 
 /*
  * RecordHero のローディングスケルトン。実態に合わせて
@@ -19,9 +21,10 @@ export default function RecordHeroSkeleton() {
       <span className="pointer-events-none absolute inset-0 z-10 rounded-[inherit] border-[3px] border-default-300" />
 
       <div className="px-4.5 py-4.5">
-        {/* 上段：左カラム(イベント情報＋使用デッキ)／右カラム(戦績パネル)。幅比 7:3 */}
-        <div className="flex items-stretch gap-3">
-          <div className={`${HERO_INFO_COL_CLASS} flex min-w-0 flex-col`}>
+        {/* 上段：左カラム(イベント情報＋使用デッキ)／右カラム(戦績パネル)。
+            幅比・間隔は実表示と同じく heroColumns.ts から取る */}
+        <div className="flex items-stretch" style={heroColRowStyle}>
+          <div className={`${HERO_INFO_COL_CLASS} flex flex-col`}>
             <Skeleton className="h-3 w-24 rounded-md" />
             <div className="mt-1.5 flex items-center gap-2.5">
               <Skeleton className="h-11.25 w-11.25 shrink-0 rounded-xl" />
@@ -49,7 +52,8 @@ export default function RecordHeroSkeleton() {
 
           {/* 戦績パネル(勝率リング＋勝敗の内訳)。実態と同じ幅比・枠線で骨格を出す */}
           <div
-            className={`${STAT_PANEL_COL_CLASS} flex min-w-0 flex-col items-center justify-center rounded-2xl border border-divider px-2 py-2.5`}
+            style={heroStatColStyle}
+            className={`${HERO_STAT_COL_CLASS} flex flex-col items-center justify-center rounded-2xl border border-divider px-2 py-2.5`}
           >
             {/* リングは実態と同じくパネル幅に追従(正方形) */}
             <Skeleton className="aspect-square w-full rounded-full" />

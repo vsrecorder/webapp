@@ -8,9 +8,11 @@ import { Card, Image, Link, Chip, Skeleton, useDisclosure } from "@heroui/react"
 import { LuPencilLine } from "react-icons/lu";
 
 import FetchError from "@app/components/molecules/FetchError";
-import RecordStatPanel, {
+import RecordStatPanel from "@app/components/organisms/Record/Hero/RecordStatPanel";
+import {
   HERO_INFO_COL_CLASS,
-} from "@app/components/organisms/Record/Hero/RecordStatPanel";
+  heroColRowStyle,
+} from "@app/components/organisms/Record/Hero/heroColumns";
 import IgnoreStatsBanner from "@app/components/organisms/Record/IgnoreStatsBanner";
 import RecordHeroSkeleton from "@app/components/organisms/Record/Hero/RecordHeroSkeleton";
 import EditTCGMeisterURLModal from "@app/components/organisms/Record/Modal/EditTCGMeisterURLModal";
@@ -198,12 +200,13 @@ function HeroShell({
       )}
 
       <div className="px-4.5 py-4.5">
-        {/* 上段は左右2カラム(幅比 7:3)。左カラムは「上：イベント情報／下：使用デッキ」の
-            縦積み、右カラムは戦績パネル。items-stretch で両カラムの高さを揃え、
-            低い方が引き伸ばされることで左右のバランスが取れる。 */}
-        <div className="flex items-stretch gap-3">
+        {/* 上段は左右2カラム。左カラムは「上：イベント情報／下：使用デッキ」の縦積み、
+            右カラムは戦績パネル。items-stretch で両カラムの高さを揃え、低い方が
+            引き伸ばされることで左右のバランスが取れる。
+            幅比と間隔は heroColumns.ts で一元管理する(比率の変更もそこだけでよい)。 */}
+        <div className="flex items-stretch" style={heroColRowStyle}>
           {/* 左：イベント情報(上)＋使用デッキ(下) */}
-          <div className={`${HERO_INFO_COL_CLASS} flex min-w-0 flex-col`}>
+          <div className={`${HERO_INFO_COL_CLASS} flex flex-col`}>
             <div className="flex items-center justify-between gap-2">
               <span className="text-[11px] font-medium text-default-400">{date}</span>
               {action}

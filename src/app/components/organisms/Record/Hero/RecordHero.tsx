@@ -20,6 +20,7 @@ import {
   getEventVenueLabel,
   getEventAccentColor,
   cleanOfficialEventTitle,
+  isExtraBattleDay,
 } from "@app/components/organisms/Record/officialEventHelpers";
 
 import { MatchStats } from "@app/utils/matchStats";
@@ -591,17 +592,18 @@ export default function RecordHero({
               >
                 {getEventTypeName(officialEvent)}
               </Chip>
-              {officialEvent.environment_title && (
-                <Chip
-                  size="sm"
-                  variant="flat"
-                  color="default"
-                  className="h-5 max-w-30"
-                  classNames={{ content: "text-[10px] truncate min-w-0" }}
-                >
-                  {`『${officialEvent.environment_title}』`}
-                </Chip>
-              )}
+              {officialEvent.environment_title &&
+                !isExtraBattleDay(officialEvent) && (
+                  <Chip
+                    size="sm"
+                    variant="flat"
+                    color="default"
+                    className="h-5 max-w-30"
+                    classNames={{ content: "text-[10px] truncate min-w-0" }}
+                  >
+                    {`『${officialEvent.environment_title}』`}
+                  </Chip>
+                )}
               {venue && (
                 <Chip
                   size="sm"

@@ -37,8 +37,8 @@ export default function RecordHeroSkeleton() {
         {/* 使用デッキ(見出しは左上／大きめスプライト＋デッキ名＋編集ボタンのバンド) */}
         <div className="mt-3.5 flex w-full flex-col gap-1.5">
           <Skeleton className="h-2.5 w-12 rounded" />
-          <div className="pl-6 flex w-full items-center gap-3">
-            <div className="flex shrink-0 items-center gap-1.5">
+          <div className="pl-3 flex w-full items-center gap-3">
+            <div className="flex shrink-0 items-center gap-3">
               <Skeleton className="h-12 w-12 rounded-lg" />
               <Skeleton className="h-12 w-12 rounded-lg" />
             </div>

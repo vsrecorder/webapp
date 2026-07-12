@@ -18,6 +18,7 @@ import {
   getEventIconUrl,
   getChipColor,
   getEventTypeName,
+  isExtraBattleDay,
 } from "@app/components/organisms/Record/officialEventHelpers";
 import EditTCGMeisterURLModal from "@app/components/organisms/Record/Modal//EditTCGMeisterURLModal";
 
@@ -163,17 +164,18 @@ export default function OfficialEventInfo({
             >
               {getEventTypeName(officialEvent)}
             </Chip>
-            {officialEvent.environment_title && (
-              <Chip
-                size="sm"
-                variant="flat"
-                color="default"
-                className="h-5 max-w-30"
-                classNames={{ content: "text-[10px] truncate min-w-0" }}
-              >
-                {`『${officialEvent.environment_title}』`}
-              </Chip>
-            )}
+            {officialEvent.environment_title &&
+              !isExtraBattleDay(officialEvent) && (
+                <Chip
+                  size="sm"
+                  variant="flat"
+                  color="default"
+                  className="h-5 max-w-30"
+                  classNames={{ content: "text-[10px] truncate min-w-0" }}
+                >
+                  {`『${officialEvent.environment_title}』`}
+                </Chip>
+              )}
             {(officialEvent.shop_name?.trim() || officialEvent.venue?.trim()) && (
               <Chip
                 size="sm"

@@ -21,6 +21,14 @@ export function cleanOfficialEventTitle(title: string): string {
     .replace(/（.*?）/g, "");
 }
 
+// 公式イベントが「エクストラバトルの日」かどうかを判定する。
+// エクストラバトルの日は対戦環境の情報チップを表示しない用途で利用する。
+export function isExtraBattleDay(
+  officialEvent: OfficialEventGetByIdResponseType,
+): boolean {
+  return officialEvent.title.includes("エクストラバトルの日");
+}
+
 /*
  * 公式イベントの種別アイコン/アクセント色/チップ表記を判定するヘルパー。
  * 一覧カード(OfficialEventRecord)と詳細カード(OfficialEventInfo)で共有する。

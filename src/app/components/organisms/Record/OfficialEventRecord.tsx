@@ -16,6 +16,7 @@ import {
   getChipColor,
   getEventTypeName,
   cleanOfficialEventTitle,
+  isExtraBattleDay,
 } from "@app/components/organisms/Record/officialEventHelpers";
 
 import { RecordType, RecordGetByIdResponseType } from "@app/types/record";
@@ -291,16 +292,17 @@ export default function OfficialEventRecord({
             >
               {getEventTypeName(officialEvent)}
             </Chip>
-            {officialEvent.environment_title && (
-              <Chip
-                size="sm"
-                variant="flat"
-                color="default"
-                className="h-5 text-[10px] font-bold"
-              >
-                {`『${officialEvent.environment_title}』`}
-              </Chip>
-            )}
+            {officialEvent.environment_title &&
+              !isExtraBattleDay(officialEvent) && (
+                <Chip
+                  size="sm"
+                  variant="flat"
+                  color="default"
+                  className="h-5 text-[10px] font-bold"
+                >
+                  {`『${officialEvent.environment_title}』`}
+                </Chip>
+              )}
             {officialEvent.shop_name && (
               <Chip
                 size="sm"

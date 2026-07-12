@@ -158,9 +158,11 @@ export async function captureThemedPng(el: HTMLElement): Promise<string> {
   // ライトは白、ダークはメイン領域と同じ地色（app-dot-bg のダーク背景）
   const bgColor = isDark ? "#0a0a0a" : "#ffffff";
 
-  // 内容が端に張り付かないよう、全体に均等な余白を持たせる
+  // 内容が端に張り付かないよう、周囲に余白を持たせる。
+  // 左右はやや詰めて、書き出し画像内で戦績カードを大きく見せる。
   const contentWidth = el.offsetWidth;
-  const sidePadding = 20;
+  const sidePadding = 12; // 左右の余白
+  const topPadding = 20; // 上の余白(従来どおり)
   const outerWidth = contentWidth + sidePadding * 2;
 
   // 画面外に逃がすためのラッパー（位置指定はここだけが持つ）
@@ -175,7 +177,7 @@ export async function captureThemedPng(el: HTMLElement): Promise<string> {
   const container = document.createElement("div");
   container.style.boxSizing = "border-box";
   container.style.width = `${outerWidth}px`;
-  container.style.padding = `${sidePadding}px ${sidePadding}px 12px`;
+  container.style.padding = `${topPadding}px ${sidePadding}px 12px`;
   container.style.backgroundColor = bgColor;
 
   const clone = el.cloneNode(true) as HTMLElement;

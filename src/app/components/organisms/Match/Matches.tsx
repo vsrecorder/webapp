@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  useState,
-  type RefObject,
-  type Dispatch,
-  type SetStateAction,
-} from "react";
+import { useState, type RefObject, type Dispatch, type SetStateAction } from "react";
 
 import {
   Table,
@@ -672,7 +667,16 @@ export default function Matches({
               </div>
 
               {matches && matches.length !== 0 && enableCreateMatchModalButton && (
-                <CreateMatchModalButton record={record} setMatches={setMatches} />
+                // flat(戦績カード内のパネル)ではパネル端に接しないよう、
+                // 左右はテーブルの p-1.5 インセットに合わせ、下は少し広めに余白を持たせる。
+                // ボタンは横幅いっぱい＋縦を高めにして押しやすくする。
+                <div className={flat ? "px-1.5 pb-3" : ""}>
+                  <CreateMatchModalButton
+                    record={record}
+                    setMatches={setMatches}
+                    fullWidth={flat}
+                  />
+                </div>
               )}
             </div>
           </CardBody>

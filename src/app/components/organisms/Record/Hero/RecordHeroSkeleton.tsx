@@ -1,5 +1,7 @@
 import { Card, Skeleton } from "@heroui/react";
 
+import MatchSkeleton from "@app/components/organisms/Match/Skeleton/MatchSkeleton";
+
 /*
  * RecordHero のローディングスケルトン。実態に合わせて
  * 左アクセントバー／「左：日付・画像＋タイトル・チップ、右：勝率リング＋勝敗数」／
@@ -31,32 +33,29 @@ export default function RecordHeroSkeleton() {
           </div>
         </div>
 
-        {/* 使用デッキ */}
-        <div className="mt-3.5 flex items-center gap-2.5 border-t border-divider pt-3">
-          <Skeleton className="mr-2 h-2.5 w-8 rounded" />
-          <div className="flex shrink-0 items-center gap-1.5">
-            <Skeleton className="h-9 w-9 rounded-lg" />
-            <Skeleton className="h-9 w-9 rounded-lg" />
+        {/* 使用デッキ(見出しは左上／大きめスプライト＋デッキ名＋編集ボタンのバンド) */}
+        <div className="mt-3.5 flex flex-col gap-1.5 border-t border-divider pt-3">
+          <Skeleton className="h-2.5 w-12 rounded" />
+          <div className="flex w-full items-center gap-3">
+            <div className="flex shrink-0 items-center gap-1.5">
+              <Skeleton className="h-12 w-12 rounded-lg" />
+              <Skeleton className="h-12 w-12 rounded-lg" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <Skeleton className="h-4 w-40 max-w-full rounded-md" />
+            </div>
+            <div className="flex w-21.5 shrink-0 justify-center">
+              <Skeleton className="h-9 w-9 rounded-full" />
+            </div>
           </div>
-          <Skeleton className="h-4 w-32 rounded-md" />
         </div>
 
-        {/* 対戦結果 */}
-        <div className="mt-3.5 flex flex-col gap-2 border-t border-divider pt-3">
+        {/* 対戦結果(実態と同じく不透明パネル内に対戦行スケルトンを表示する) */}
+        <div className="mt-3.5 flex w-full flex-col gap-1.5 border-t border-divider pt-3">
           <Skeleton className="h-2.5 w-12 rounded" />
-          {[0, 1].map((i) => (
-            <div key={i} className="flex items-center gap-2">
-              <Skeleton className="h-9 w-9 rounded-lg" />
-              <div className="flex shrink-0 items-center gap-1.5">
-                <Skeleton className="h-11 w-11 rounded-lg" />
-                <Skeleton className="h-11 w-11 rounded-lg" />
-              </div>
-              <div className="flex flex-1 flex-col gap-1.5">
-                <Skeleton className="h-3.5 w-28 rounded-md" />
-                <Skeleton className="h-3 w-20 rounded" />
-              </div>
-            </div>
-          ))}
+          <div className="overflow-hidden rounded-xl border border-divider bg-content1">
+            <MatchSkeleton enableCreateMatchModalButton={false} flat />
+          </div>
         </div>
       </div>
     </Card>

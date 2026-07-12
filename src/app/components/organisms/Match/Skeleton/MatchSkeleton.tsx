@@ -23,7 +23,7 @@ function Rows({
       {[0, 1, 2].map((i) => (
         <div
           key={i}
-          className={`flex w-full items-center gap-1 px-1 py-4 ${
+          className={`flex w-full items-center gap-1 px-1 py-3 ${
             i > 0 ? "border-t border-divider" : ""
           }`}
         >
@@ -62,8 +62,17 @@ export default function MatchSkeleton({
 }: Props) {
   const content = (
     <div className="flex w-full flex-col gap-1.5">
-      <Rows enableUpdateMatchModalButton={enableUpdateMatchModalButton} />
-      {enableCreateMatchModalButton && <Skeleton className="h-8 w-full rounded-2xl" />}
+      {/* 対戦行。実態は Table の wrapper(p-1.5) で内側に余白があるため合わせる */}
+      <div className="p-1.5">
+        <Rows enableUpdateMatchModalButton={enableUpdateMatchModalButton} />
+      </div>
+      {/* 「対戦結果を追加する」ボタン。実態は横幅いっぱい・h-10・pill 型で
+          px-1.5 pb-3 の余白を持つ(CreateMatchModalButton + Matches のラッパー) */}
+      {enableCreateMatchModalButton && (
+        <div className="px-1.5 pb-3">
+          <Skeleton className="h-10 w-full rounded-full" />
+        </div>
+      )}
     </div>
   );
 

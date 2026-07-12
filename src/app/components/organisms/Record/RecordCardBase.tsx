@@ -5,6 +5,7 @@ import { Chip } from "@heroui/react";
 import { Popover, PopoverTrigger, PopoverContent } from "@heroui/react";
 
 import ScrollingText from "@app/components/molecules/ScrollingText";
+import { RecordDeckRowSkeleton } from "@app/components/organisms/Record/Skeleton/RecordCardSkeleton";
 import { spriteImageUrl, spriteScaleClass } from "@app/utils/sprite";
 import { DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
 
@@ -164,7 +165,7 @@ export default function RecordCardBase({
                   <div className="flex items-center justify-between gap-2 min-w-0">
                     <div className="min-w-0 flex-1">
                       {loadingDeck ? (
-                        <Skeleton className="h-3.5 w-24 rounded" />
+                        <RecordDeckRowSkeleton />
                       ) : deckName ? (
                         <div className="flex items-center gap-1.5 min-w-0">
                           {/* デッキ先頭2体のスプライト(無い枠はデフォルトを表示) */}

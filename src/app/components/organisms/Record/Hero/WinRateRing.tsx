@@ -1,19 +1,24 @@
+// リングを描く座標系。実サイズは親の幅に追従させ、SVG が viewBox ごと拡縮する。
+const VIEWBOX = 100;
+
 type Props = {
   // 勝率(0〜100)
   winRate: number;
-  // リングの直径(px)
-  size?: number;
-  // リングの太さ(px)
+  // リングの太さ(VIEWBOX=100 に対する比率。10 なら直径の10%)
   strokeWidth?: number;
 };
 
 /*
  * 勝率を表す円形リング。SVGの円弧で勝率ぶんを success 色で描き、
- * 残りを danger の薄いトラックで示す(currentColor + Tailwind で
- * ライト/ダーク両テーマに追従)。中央に勝率%を表示する。
+ * 残りを danger の薄いトラックで示す。中央に勝率%を表示する。
+ *
+ * 直径は固定せず、親要素の幅いっぱいに広がる(常に正方形)。カード幅が
+ * 端末・シェア画像・モーダルで変わるため、リング側は比率だけを持ち、
+ * 実寸の決定は親(RecordStatPanel)に委ねる。
+ * 中央のテキストもリング径に対する比率で決めたいので、コンテナクエリ単位(cqw)を使う。
  */
-export default function WinRateRing({ winRate, size = 92, strokeWidth = 10 }: Props) {
-  const radius = (size - strokeWidth) / 2;
+export default function WinRateRing({ winRate, strokeWidth = 10 }: Props) {
+  const radius = (VIEWBOX - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   // 勝率ぶんだけ円弧を見せる(dashoffset は残りの長さ)
   const dashOffset = circumference * (1 - Math.min(Math.max(winRate, 0), 100) / 100);
@@ -32,16 +37,18 @@ export default function WinRateRing({ winRate, size = 92, strokeWidth = 10 }: Pr
 
   return (
     <div
-      className="relative shrink-0"
-      style={{ width: size, height: size }}
+      // container-type: inline-size でこの要素自身をコンテナにし、
+      // 中央テキストの font-size を自身の幅の割合(cqw)で指定できるようにする
+      style={{ containerType: "inline-size" }}
+      className="relative aspect-square w-full shrink-0"
       role="img"
       aria-label={`勝率 ${winRate}パーセント`}
     >
-      <svg width={size} height={size} className="-rotate-90">
+      <svg viewBox={`0 0 ${VIEWBOX} ${VIEWBOX}`} className="h-full w-full -rotate-90">
         {/* トラック(残りぶん) */}
         <circle
-          cx={size / 2}
-          cy={size / 2}
+          cx={VIEWBOX / 2}
+          cy={VIEWBOX / 2}
           r={radius}
           fill="none"
           stroke={trackStroke}
@@ -49,8 +56,8 @@ export default function WinRateRing({ winRate, size = 92, strokeWidth = 10 }: Pr
         />
         {/* 勝率ぶんの円弧 */}
         <circle
-          cx={size / 2}
-          cy={size / 2}
+          cx={VIEWBOX / 2}
+          cy={VIEWBOX / 2}
           r={radius}
           fill="none"
           stroke={gaugeStroke}
@@ -61,10 +68,14 @@ export default function WinRateRing({ winRate, size = 92, strokeWidth = 10 }: Pr
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center leading-none">
-        <span className="font-bold tabular-nums" style={{ fontSize: size * 0.27 }}>
+        {/* 従来の size * 0.27 / 8px 相当を、リング径に対する比率で表現する */}
+        <span className="font-bold tabular-nums" style={{ fontSize: "27cqw" }}>
           {winRate}%
         </span>
-        <span className="mt-0.5 text-[8px] font-bold tracking-wide text-default-400">
+        <span
+          className="mt-0.5 font-bold tracking-wide text-default-400"
+          style={{ fontSize: "8.5cqw" }}
+        >
           勝率
         </span>
       </div>

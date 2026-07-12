@@ -42,7 +42,6 @@ import { spriteScaleClass } from "@app/utils/sprite";
 import {
   GameInput,
   newGameInputs,
-  needsThirdGame,
   submittedGames,
   bo3VictoryFlg,
   isBO3GamesFilled,
@@ -71,7 +70,7 @@ function CardDeckName({ text }: { text: string }) {
     if (el) {
       setShouldMarquee(el.scrollWidth > el.clientWidth);
     }
-  });
+  }, [shouldMarquee]);
 
   return (
     <div className="w-full overflow-hidden flex items-center">

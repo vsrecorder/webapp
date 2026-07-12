@@ -355,13 +355,19 @@ export default function ShareRecordModal({
                   )}
                 </div>
 
+                {/* iOSでは<textarea>の既定のoverflowがautoのため、モーダルのスクロール抑止
+                    (react-ariaのpreventScrollMobileSafari)が「テキストエリア自身がスクロール
+                    可能」と誤判定し、内容が収まっていてもtouchmoveをpreventDefaultしてしまう。
+                    結果、テキストエリアの上で指を動かしてもモーダルがスクロールしなくなる。
+                    overflowを持たせず内容の高さまで伸ばし、スクロールはモーダル本体に任せる。 */}
                 <Textarea
                   label="ポスト文"
                   value={text}
                   onValueChange={setText}
                   minRows={5}
-                  maxRows={12}
-                  classNames={{ input: "text-sm" }}
+                  // 内容を隠さない(＝テキストエリア内スクロールを発生させない)ための上限
+                  maxRows={999}
+                  classNames={{ input: "text-sm overflow-hidden" }}
                 />
 
                 <div className="flex flex-col gap-2">

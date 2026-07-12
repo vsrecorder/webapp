@@ -8,7 +8,7 @@ import { Card, Image, Link, Chip, Skeleton, useDisclosure } from "@heroui/react"
 import { LuPencilLine } from "react-icons/lu";
 
 import FetchError from "@app/components/molecules/FetchError";
-import WinRateRing from "@app/components/organisms/Record/Hero/WinRateRing";
+import RecordStatPanel from "@app/components/organisms/Record/Hero/RecordStatPanel";
 import IgnoreStatsBanner from "@app/components/organisms/Record/IgnoreStatsBanner";
 import RecordHeroSkeleton from "@app/components/organisms/Record/Hero/RecordHeroSkeleton";
 import EditTCGMeisterURLModal from "@app/components/organisms/Record/Modal/EditTCGMeisterURLModal";
@@ -196,9 +196,12 @@ function HeroShell({
       )}
 
       <div className="px-4.5 py-4.5">
-        <div className="flex items-start gap-3">
-          {/* 左：イベント情報 */}
-          <div className="min-w-0 flex-1">
+        {/* 上段は左右2カラム。左カラムは「上：イベント情報／下：使用デッキ」の縦積み、
+            右カラムは戦績パネル。items-stretch で両カラムの高さを揃え、
+            低い方が引き伸ばされることで左右のバランスが取れる。 */}
+        <div className="flex items-stretch gap-3">
+          {/* 左：イベント情報(上)＋使用デッキ(下) */}
+          <div className="flex min-w-0 flex-1 flex-col">
             <div className="flex items-center justify-between gap-2">
               <span className="text-[11px] font-medium text-default-400">{date}</span>
               {action}
@@ -248,24 +251,15 @@ function HeroShell({
             })()}
 
             <div className="mt-2 flex flex-wrap items-center gap-1.5">{chips}</div>
+
+            {/* 使用デッキ(登録済みの場合のみ)。mt-auto で左カラムの最下部へ寄せ、
+                右の戦績パネルと下端を揃える */}
+            {deckSlot && <div className="mt-auto pt-3.5">{deckSlot}</div>}
           </div>
 
-          {/* 右：戦績(対戦がある場合のみ) */}
-          {hasStats && (
-            <div className="flex shrink-0 flex-col items-center gap-2">
-              <WinRateRing winRate={stats.winRate} size={86} />
-              <div className="text-[15px] font-bold tabular-nums">
-                <span className="text-success">{stats.wins}</span>
-                <span className="text-[0.62em] font-bold text-default-500">勝</span>{" "}
-                <span className="text-danger">{stats.losses}</span>
-                <span className="text-[0.62em] font-bold text-default-500">敗</span>
-              </div>
-            </div>
-          )}
+          {/* 右：戦績パネル(対戦がある場合のみ) */}
+          {hasStats && <RecordStatPanel stats={stats} />}
         </div>
-
-        {/* 使用デッキ(登録済みの場合のみ) */}
-        {deckSlot}
 
         {/* 対戦結果(親から受け取る)。かつて「勝敗の推移」があった位置に配置する */}
         {matchesSlot && (
@@ -451,24 +445,27 @@ export default function RecordHero({
     return <RecordHeroSkeleton />;
   }
 
-  // 使用デッキ行(各イベント種別で共通)。使用デッキを主役として、大きめスプライト
-  // (w-12 h-12)＋大きめのデッキ名で独立バンドとして見せる。
-  // 編集ボタンは勝率リング(size=86)と同じ幅の枠へ中央寄せし、リング中心の真下
-  // (縦のライン)に並べる。行全体もタップで編集モーダルを開ける。
+  // 使用デッキ行(各イベント種別で共通)。左カラムの最下部に置き、右の戦績パネルと
+  // 左右で釣り合わせる。左カラムの幅は戦績パネルのぶん狭いため、スプライトは h-10 w-10、
+  // 編集の鉛筆は見出し横の小アイコンに寄せて、デッキ名の横幅を最優先で確保する。
+  // 行全体がタップで編集モーダルを開ける(鉛筆はその見た目上の手がかり)。
   const deckRowInner = deck ? (
     <>
       {/* 見出しは日付・対戦結果と統一感を出すため左上に配置する */}
-      <span className="text-[9px] font-bold tracking-wide text-default-400">
-        使用デッキ
-      </span>
-      <div className="pl-6 flex w-full items-center gap-3">
-        {/* 大きめスプライト(2枚は隣接) */}
+      <div className="flex items-center gap-1">
+        <span className="text-[9px] font-bold tracking-wide text-default-400">
+          使用デッキ
+        </span>
+        {enableEditUsedDeck && <LuPencilLine className="h-2.5 w-2.5 text-default-400" />}
+      </div>
+      <div className="flex w-full items-center gap-2">
+        {/* スプライト(2枚は隣接) */}
         <div className="flex shrink-0 items-center">
           <Image
             alt={deck.pokemon_sprites[0]?.id ?? "unknown"}
             src={spriteImageUrl(deck.pokemon_sprites[0]?.id)}
             radius="none"
-            className={`h-12 w-12 origin-bottom object-contain ${spriteScaleClass(
+            className={`h-10 w-10 origin-bottom object-contain ${spriteScaleClass(
               deck.pokemon_sprites[0]?.id,
             )}`}
           />
@@ -476,26 +473,18 @@ export default function RecordHero({
             alt={deck.pokemon_sprites[1]?.id ?? "unknown"}
             src={spriteImageUrl(deck.pokemon_sprites[1]?.id)}
             radius="none"
-            className={`h-12 w-12 origin-bottom object-contain ${spriteScaleClass(
+            className={`h-10 w-10 origin-bottom object-contain ${spriteScaleClass(
               deck.pokemon_sprites[1]?.id,
             )}`}
           />
         </div>
-        {/* デッキ名(主役サイズ) */}
-        <div className="min-w-0 flex-1 truncate text-base font-bold">{deck.name}</div>
-        {/* 編集ボタン(大きめ)。勝率リングと同じ幅の枠へ中央寄せして縦ラインを揃える */}
-        {enableEditUsedDeck && (
-          <div className="flex w-21.5 shrink-0 justify-center">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-default-100 text-default-500">
-              <LuPencilLine className="h-5 w-5" />
-            </span>
-          </div>
-        )}
+        {/* デッキ名 */}
+        <div className="min-w-0 flex-1 truncate text-sm font-bold">{deck.name}</div>
       </div>
     </>
   ) : null;
 
-  const deckRowClass = "mt-3.5 flex w-full flex-col gap-1.5";
+  const deckRowClass = "flex w-full flex-col gap-1";
 
   // 取得中、または保持しているデッキが record の現在の deck_id と一致しない
   // (＝変更直後でまだ新しいデッキを取得できていない)場合はローディング表示にする。
@@ -505,19 +494,14 @@ export default function RecordHero({
   const deckLoadingRow = (
     <div className={deckRowClass}>
       <Skeleton className="h-2.5 w-12 rounded" />
-      <div className="pl-6 flex w-full items-center gap-3">
+      <div className="flex w-full items-center gap-2">
         <div className="flex shrink-0 items-center">
-          <Skeleton className="h-12 w-12 rounded-lg" />
-          <Skeleton className="h-12 w-12 rounded-lg" />
+          <Skeleton className="h-10 w-10 rounded-lg" />
+          <Skeleton className="h-10 w-10 rounded-lg" />
         </div>
         <div className="min-w-0 flex-1">
-          <Skeleton className="h-4 w-40 max-w-full rounded-md" />
+          <Skeleton className="h-4 w-24 max-w-full rounded-md" />
         </div>
-        {enableEditUsedDeck && (
-          <div className="flex w-21.5 shrink-0 justify-center">
-            <Skeleton className="h-9 w-9 rounded-full" />
-          </div>
-        )}
       </div>
     </div>
   );

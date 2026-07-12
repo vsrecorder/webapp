@@ -103,6 +103,8 @@ export default function DeleteDeckModal({ deck, isOpen, onOpenChange, onRemove }
       placement="center"
       hideCloseButton
       isDismissable={!isDisabled}
+      // 処理中はESCキーでも閉じられないようにする
+      isKeyboardDismissDisabled={isDisabled}
       onOpenChange={onOpenChange}
     >
       <ModalContent>

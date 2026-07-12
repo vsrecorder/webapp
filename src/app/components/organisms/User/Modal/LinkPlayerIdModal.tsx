@@ -192,7 +192,13 @@ export default function LinkPlayerIdModal({ isOpen, onOpenChange, onLinked }: Pr
       placement="center"
       isOpen={isOpen}
       isDismissable={!isDisabled}
-      onOpenChange={onOpenChange}
+      // 処理中(isDisabled)はESC・閉じるボタン・onOpenChange経由のクローズを無効化する
+      isKeyboardDismissDisabled={isDisabled}
+      hideCloseButton={isDisabled}
+      onOpenChange={() => {
+        if (isDisabled) return;
+        onOpenChange();
+      }}
     >
       <ModalContent>
         {(onClose) =>

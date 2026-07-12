@@ -933,6 +933,8 @@ export default function UpdateMatchModal({
         size="md"
         placement="bottom"
         isDismissable={false}
+        // 処理中はESCキーでも閉じられないようにする
+        isKeyboardDismissDisabled={isDisabled}
         isOpen={isOpen}
         onOpenChange={onOpenChange}
         onClose={() => {

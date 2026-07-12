@@ -540,7 +540,13 @@ export default function UpdateUsedDeckModal({
       size={"md"}
       placement="center"
       isDismissable={false}
-      onOpenChange={onOpenChange}
+      // 更新処理中(isUpdating)はESC・閉じるボタン・onOpenChange経由のクローズを無効化する
+      isKeyboardDismissDisabled={isUpdating}
+      hideCloseButton={isUpdating}
+      onOpenChange={() => {
+        if (isUpdating) return;
+        onOpenChange();
+      }}
       onClose={() => {
         setSelectedDeckOption(null);
         setSelectedDeckCodeOption(null);

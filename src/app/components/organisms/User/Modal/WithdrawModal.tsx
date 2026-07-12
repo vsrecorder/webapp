@@ -62,6 +62,8 @@ export default function WithdrawModal({ userId, isOpen, onOpenChange }: Props) {
       placement="center"
       size="sm"
       isDismissable={!isDisabled}
+      // 処理中はESCキーでも閉じられないようにする
+      isKeyboardDismissDisabled={isDisabled}
       hideCloseButton
       isOpen={isOpen}
       onOpenChange={(open) => {

@@ -14,13 +14,13 @@ import {
   addToast,
 } from "@heroui/react";
 
-import { LuShare2, LuImageDown } from "react-icons/lu";
+import { LuShare2 } from "react-icons/lu";
 
 import RecordHero from "@app/components/organisms/Record/Hero/RecordHero";
 import Matches from "@app/components/organisms/Match/Matches";
 
 import { captureThemedPng, SIDE_PADDING } from "@app/utils/captureImage";
-import { shareRecord, saveGeneratedImage, saveImages } from "@app/utils/saveImage";
+import { shareRecord, saveGeneratedImage } from "@app/utils/saveImage";
 
 import { buildRecordPostText, formatEventDateLabel } from "@app/utils/recordPostText";
 
@@ -82,8 +82,8 @@ export default function ShareRecordModal({
   // ポスト文に含める要素(対戦結果・使用デッキ)
   const [includePostMatches, setIncludePostMatches] = useState(true);
   const [includePostDeck, setIncludePostDeck] = useState(true);
-  // 実行中の処理種別。ボタンごとに正しくローディング表示を出し分ける
-  const [busy, setBusy] = useState<null | "share" | "save">(null);
+  // 実行中の処理種別。処理中はローディング表示とモーダルのクローズ抑止に使う
+  const [busy, setBusy] = useState<null | "share">(null);
   const [text, setText] = useState("");
 
   // キャプチャ用の RecordHero がイベント・使用デッキを描画し終えたか。
@@ -145,11 +145,16 @@ export default function ShareRecordModal({
   const captureImages = async () => {
     const images: { dataUrl: string; filename: string }[] = [];
     if (shareContentRef.current) {
-      const img = await captureThemedPng(shareContentRef.current);
+      const img = await captureThemedPng(shareContentRef.current, {
+        targetWidth: captureWidth,
+      });
       images.push({ dataUrl: img, filename: `${record.id}_result_${Date.now()}.png` });
     }
     if (includeDeck && deckCardRef.current) {
-      const img = await captureThemedPng(deckCardRef.current);
+      // 2枚目(デッキ画像)も端末幅に合わせて、1枚目と同じ横幅で書き出す
+      const img = await captureThemedPng(deckCardRef.current, {
+        targetWidth: captureWidth,
+      });
       images.push({ dataUrl: img, filename: `${record.id}_deck_${Date.now()}.png` });
     }
     return images;
@@ -183,23 +188,6 @@ export default function ShareRecordModal({
     }
   };
 
-  const handleSaveOnly = async () => {
-    if (!canShare) return;
-    setBusy("save");
-    try {
-      const images = await captureImages();
-      if (images.length === 0) return;
-      // iOSは Web Share API(共有シート→「写真に保存」)、Android・PCも Web Share API /
-      // ダウンロードで保存する(saveImages が内部で Web Share API を優先する)。
-      await saveImages(images);
-    } catch (e) {
-      console.error(e);
-      addToast({ title: "画像の保存に失敗しました", color: "danger", timeout: 5000 });
-    } finally {
-      setBusy(null);
-    }
-  };
-
   return (
     <>
       <Modal
@@ -221,7 +209,7 @@ export default function ShareRecordModal({
               <ModalHeader
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
-                className="flex cursor-grab touch-none flex-col gap-1 px-4 pb-1.5 pt-3"
+                className="flex cursor-grab touch-none flex-col gap-1 px-4 pb-3 pt-3"
               >
                 <div className="mx-auto mb-1 h-1 w-32 rounded-full bg-default-300" />
                 <div className="flex items-center gap-2">
@@ -229,7 +217,7 @@ export default function ShareRecordModal({
                   シェア
                 </div>
               </ModalHeader>
-              <ModalBody className="gap-3 px-4 pb-3">
+              <ModalBody className="gap-5 px-4 pb-3">
                 <p className="text-tiny text-default-500">
                   記録の戦績を画像にして、ポスト文と一緒にシェアできます。
                 </p>
@@ -327,15 +315,6 @@ export default function ShareRecordModal({
                     onPress={handleShare}
                   >
                     {canShare ? "シェアする" : "画像を準備しています"}
-                  </Button>
-                  <Button
-                    variant="flat"
-                    startContent={busy !== "save" && <LuImageDown />}
-                    isLoading={busy === "save"}
-                    isDisabled={busy !== null || !canShare}
-                    onPress={handleSaveOnly}
-                  >
-                    画像だけ保存
                   </Button>
                 </div>
               </ModalBody>

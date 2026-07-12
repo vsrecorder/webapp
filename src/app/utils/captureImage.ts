@@ -159,14 +159,20 @@ function buildServiceFooter(isDark: boolean): {
 // 位置スタイルを一切付けない。こうすることで通常フロー(0,0)のまま描画され、
 // 書き出し画像の最上部に帯が出る／コンテンツがずれる、といった座標起因の不具合を防ぐ。
 // あわせて画像下部にサービスのアイコンとサービス名のフッターを差し込む。
-export async function captureThemedPng(el: HTMLElement): Promise<string> {
+export async function captureThemedPng(
+  el: HTMLElement,
+  // targetWidth を指定すると、対象要素の実寸(offsetWidth)ではなくこの幅で
+  // クローンを描画する。端末の画面幅に合わせて書き出したいとき(シェア画像)に使う。
+  options?: { targetWidth?: number },
+): Promise<string> {
   const isDark = document.documentElement.classList.contains("dark");
   // ライトは白、ダークはメイン領域と同じ地色（app-dot-bg のダーク背景）
   const bgColor = isDark ? "#0a0a0a" : "#ffffff";
 
   // 内容が端に張り付かないよう、周囲に余白を持たせる。
   // 左右はやや詰めて、書き出し画像内で戦績カードを大きく見せる。
-  const contentWidth = el.offsetWidth;
+  // targetWidth 指定時は端末幅に合わせるためその幅を採用する。
+  const contentWidth = options?.targetWidth ?? el.offsetWidth;
   const sidePadding = SIDE_PADDING; // 左右の余白
   const topPadding = 20; // 上の余白(従来どおり)
   const outerWidth = contentWidth + sidePadding * 2;

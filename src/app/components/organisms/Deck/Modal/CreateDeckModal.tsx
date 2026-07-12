@@ -204,7 +204,14 @@ export default function CreateDeckModal({
         size="sm"
         placement="center"
         isDismissable={false}
-        onOpenChange={onOpenChange}
+        // 登録処理中(isDisabled)はESC・閉じるボタン・onOpenChange経由での
+        // クローズをすべて無効化し、処理中にモーダルが閉じないようにする
+        isKeyboardDismissDisabled={isDisabled}
+        hideCloseButton={isDisabled}
+        onOpenChange={() => {
+          if (isDisabled) return;
+          onOpenChange();
+        }}
         onClose={resetState}
         classNames={{
           base: "sm:max-w-full",

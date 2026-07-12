@@ -170,6 +170,8 @@ export default function UpdateUsedDeckModal({
         setIsInvalidTCGMeisterURL(false);
       }}
       isDismissable={!isDisabled}
+      // 処理中はESCキーでも閉じられないようにする
+      isKeyboardDismissDisabled={isDisabled}
     >
       <ModalContent>
         {(onClose) => (

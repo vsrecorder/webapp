@@ -158,7 +158,13 @@ export default function CreateDeckCodeModal({
       isOpen={isOpen}
       size={"sm"}
       placement="center"
-      onOpenChange={onOpenChange}
+      // 処理中(isDisabled)はESC・閉じるボタン・onOpenChange経由のクローズを無効化する
+      isKeyboardDismissDisabled={isDisabled}
+      hideCloseButton={isDisabled}
+      onOpenChange={() => {
+        if (isDisabled) return;
+        onOpenChange();
+      }}
       isDismissable={false}
       onClose={() => {
         setIsDisabled(false);

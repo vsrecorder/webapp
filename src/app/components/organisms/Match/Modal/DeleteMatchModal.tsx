@@ -108,6 +108,8 @@ export default function DeleteMatchModal({
       hideCloseButton
       onOpenChange={onOpenChange}
       isDismissable={!isDisabled}
+      // 処理中はESCキーでも閉じられないようにする
+      isKeyboardDismissDisabled={isDisabled}
     >
       <ModalContent>
         {(onClose) => (

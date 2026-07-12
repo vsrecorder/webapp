@@ -208,7 +208,13 @@ export default function UpdateNameModal({
       placement="center"
       isOpen={isOpen}
       isDismissable={false}
-      onOpenChange={onOpenChange}
+      // 処理中(isDisabled)はESC・閉じるボタン・onOpenChange経由のクローズを無効化する
+      isKeyboardDismissDisabled={isDisabled}
+      hideCloseButton={isDisabled}
+      onOpenChange={() => {
+        if (isDisabled) return;
+        onOpenChange();
+      }}
       onClose={() => setIsDisabled(false)}
     >
       <ModalContent>

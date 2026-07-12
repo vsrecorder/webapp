@@ -976,7 +976,7 @@ export default function CreateMatchModal({
                     {renderMatchForm("bo1")}
                   </Tab>
                   {/* BO3は一旦提供を停止しているため無効化する */}
-                  <Tab key="bo3" title="BO3" isDisabled>
+                  <Tab key="bo3" title="BO3(準備中)" isDisabled>
                     {renderMatchForm("bo3")}
                   </Tab>
                   <Tab key="team" title="チーム戦">

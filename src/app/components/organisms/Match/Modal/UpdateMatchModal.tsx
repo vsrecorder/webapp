@@ -1128,7 +1128,11 @@ export default function UpdateMatchModal({
                     {renderMatchForm("bo1")}
                   </Tab>
                   {/* bo3_flg が true の場合のみ BO3 を有効化 */}
-                  <Tab key="bo3" title="BO3" isDisabled={!(match?.bo3_flg ?? false)}>
+                  <Tab
+                    key="bo3"
+                    title={(match?.bo3_flg ?? false) ? "BO3" : "BO3(準備中)"}
+                    isDisabled={!(match?.bo3_flg ?? false)}
+                  >
                     {renderMatchForm("bo3")}
                   </Tab>
                   {/* group_match_flg が true の場合のみ チーム戦 を有効化 */}

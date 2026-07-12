@@ -44,9 +44,7 @@ export const bo3VictoryFlg = (games: GameInput[]) =>
 // 登録に必要なゲームがすべて入力されているか
 export const isBO3GamesFilled = (games: GameInput[]) => {
   if (games[0].victory === "-1" || games[1].victory === "-1") return false;
-  return submittedGames(games).every(
-    (g) => g.goFirst !== "-1" && g.victory !== "-1",
-  );
+  return submittedGames(games).every((g) => g.goFirst !== "-1" && g.victory !== "-1");
 };
 
 // 登録済みのゲーム(APIレスポンス)を編集用の入力値に変換する。
@@ -64,4 +62,12 @@ export const toGameInputs = (games: GameType[] | null | undefined): GameInput[] 
   });
 
   return inputs;
+};
+
+// 登録済みのゲームからゲームスコア(勝ち数 - 負け数)を求める。一覧/詳細の表示に使う
+export const gameScore = (games: GameType[] | null | undefined) => {
+  const list = games ?? [];
+  const wins = list.filter((g) => g.winnging_flg).length;
+
+  return { wins, losses: list.length - wins };
 };

@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { Chip } from "@heroui/react";
 
 import { LuPencilLine } from "react-icons/lu";
 
+import FetchError from "@app/components/molecules/FetchError";
 import RecordInfoCardBase from "@app/components/organisms/Record/RecordInfoCardBase";
 import RecordInfoCardSkeleton from "@app/components/organisms/Record/Skeleton/RecordInfoCardSkeleton";
 
@@ -59,31 +60,32 @@ export default function UnofficialEventInfo({ record }: Props) {
 
   const [environment, setEnvironment] = useState<EnvironmentType | null>(null);
 
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(false);
 
-  useEffect(() => {
+  // 自由形式イベント情報だけを取得（失敗時のリロードから再利用）
+  const loadUnofficialEvent = useCallback(async () => {
     if (!record?.unofficial_event_id) {
       setLoadingUnofficialEvent(false);
       return;
     }
 
+    setError(false);
     setLoadingUnofficialEvent(true);
 
-    const fetchData = async () => {
-      try {
-        setLoadingUnofficialEvent(true);
-        const data = await fetchUnofficialEventById(record.unofficial_event_id);
-        setUnofficialEvent(data);
-      } catch (err) {
-        console.log(err);
-        setError("データの取得に失敗しました");
-      } finally {
-        setLoadingUnofficialEvent(false);
-      }
-    };
-
-    fetchData();
+    try {
+      const data = await fetchUnofficialEventById(record.unofficial_event_id);
+      setUnofficialEvent(data);
+    } catch (err) {
+      console.log(err);
+      setError(true);
+    } finally {
+      setLoadingUnofficialEvent(false);
+    }
   }, [record?.unofficial_event_id]);
+
+  useEffect(() => {
+    loadUnofficialEvent();
+  }, [loadUnofficialEvent]);
 
   // 開催日(event_date 優先、ゼロ値なら unofficial_events.date / created_at)を基に
   // 対戦環境を取得する
@@ -111,7 +113,7 @@ export default function UnofficialEventInfo({ record }: Props) {
   }, [record?.event_date, record?.created_at, unofficialEvent?.date]);
 
   if (error) {
-    return <div className="text-red-500">{error}</div>;
+    return <FetchError onRetry={loadUnofficialEvent} compact />;
   }
 
   if (loadingUnofficialEvent) {

@@ -2,11 +2,12 @@
 
 import { useSession } from "next-auth/react";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { Spinner } from "@heroui/spinner";
 
 import DisplayRecordById from "@app/components/organisms/Record//DisplayRecordById";
+import FetchError from "@app/components/molecules/FetchError";
 
 import { RecordGetByIdResponseType } from "@app/types/record";
 
@@ -40,9 +41,27 @@ export default function RecordById({ id }: Props) {
   const [record, setRecord] = useState<RecordGetByIdResponseType>();
 
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(false);
 
   const { data: session, status } = useSession();
+
+  // 記録データだけを取得（失敗時のリロードから再利用）
+  const loadRecord = useCallback(async () => {
+    if (!id) return;
+
+    setError(false);
+    setLoading(true);
+
+    try {
+      const record = await fetchRecordById(id);
+      setRecord(record);
+    } catch (err) {
+      console.log(err);
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
 
   // モーダルから遷移してきた場合のフラグ管理。
   // マウント時に reopenModalRecordId を詳細ページ専用キーへ移動しておき、
@@ -113,27 +132,8 @@ export default function RecordById({ id }: Props) {
   }, [id]);
 
   useEffect(() => {
-    if (!id) {
-      return;
-    }
-
-    setLoading(true);
-
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const record = await fetchRecordById(id);
-        setRecord(record);
-      } catch (err) {
-        console.log(err);
-        setError("データの取得に失敗しました");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [id]);
+    loadRecord();
+  }, [loadRecord]);
 
   if (status === "loading") {
     return (
@@ -155,8 +155,8 @@ export default function RecordById({ id }: Props) {
 
   if (error) {
     return (
-      <div className="pt-15 flex items-center justify-center">
-        <div className="text-red-500">{error}</div>
+      <div className="pt-15 px-4 flex items-center justify-center">
+        <FetchError onRetry={loadRecord} />
       </div>
     );
   }

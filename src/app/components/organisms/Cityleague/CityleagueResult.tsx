@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { Card, CardHeader, CardBody, CardFooter } from "@heroui/react";
 import { Chip } from "@heroui/react";
@@ -17,6 +17,7 @@ import "swiper/css/scrollbar";
 
 import CityleagueResultCard from "@app/components/organisms/Cityleague/CityleagueResultCard";
 import { CityleagueResultSkeleton } from "@app/components/organisms/Cityleague/Skeleton/CityleagueResultSkeleton";
+import FetchError from "@app/components/molecules/FetchError";
 
 import { CityleagueResultType } from "@app/types/cityleague_result";
 import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
@@ -50,31 +51,32 @@ type Props = {
 export default function CityleagueResult({ event_result }: Props) {
   const [event, setEvent] = useState<OfficialEventGetByIdResponseType | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(false);
 
-  useEffect(() => {
+  // 公式イベント情報だけを取得（失敗時のリロードから再利用）
+  const loadEvent = useCallback(async () => {
     if (!event_result.official_event_id) {
       setLoading(false);
       return;
     }
 
+    setError(false);
     setLoading(true);
 
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const data = await fetchOfficialEventById(event_result.official_event_id);
-        setEvent(data);
-      } catch (err) {
-        console.log(err);
-        setError("データの取得に失敗しました");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
+    try {
+      const data = await fetchOfficialEventById(event_result.official_event_id);
+      setEvent(data);
+    } catch (err) {
+      console.log(err);
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
   }, [event_result.official_event_id]);
+
+  useEffect(() => {
+    loadEvent();
+  }, [loadEvent]);
 
   const isNew = (date: Date) => {
     const now = new Date();
@@ -90,7 +92,7 @@ export default function CityleagueResult({ event_result }: Props) {
   }
 
   if (error) {
-    return;
+    return <FetchError onRetry={loadEvent} compact />;
   }
 
   if (!event) {

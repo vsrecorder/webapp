@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { Card, CardHeader, CardBody } from "@heroui/react";
 import { Chip } from "@heroui/react";
@@ -9,6 +9,7 @@ import { Image } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
 
 import ScrollUpFloating from "@app/components/atoms/Floating/ScrollUpFloating";
+import FetchError from "@app/components/molecules/FetchError";
 
 import CityleagueResultCard from "@app/components/organisms/Cityleague/CityleagueResultCard";
 import CityleagueResultCardSkeleton from "@app/components/organisms/Cityleague/Skeleton/CityleagueResultCardSkeleton";
@@ -71,47 +72,55 @@ export default function CityleagueResultByOfficialEventId({ id }: Props) {
   const [event, setEvent] = useState<OfficialEventGetByIdResponseType | null>(null);
   const [loading1, setLoading1] = useState(true);
   const [loading2, setLoading2] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [resultError, setResultError] = useState(false);
+  const [eventError, setEventError] = useState(false);
 
-  useEffect(() => {
+  // シティリーグ結果だけを取得（失敗時のリロードから再利用）
+  const loadCityleagueResult = useCallback(async () => {
     if (!id) {
       setLoading1(false);
+      return;
+    }
+
+    setResultError(false);
+    setLoading1(true);
+
+    try {
+      const data = await fetchCityleagueResultByOfficialEventById(id);
+      setCityleagueResult(data);
+    } catch (err) {
+      console.log(err);
+      setResultError(true);
+    } finally {
+      setLoading1(false);
+    }
+  }, [id]);
+
+  // 公式イベント情報だけを取得
+  const loadOfficialEvent = useCallback(async () => {
+    if (!id) {
       setLoading2(false);
       return;
     }
 
-    setLoading1(true);
+    setEventError(false);
     setLoading2(true);
 
-    const fetchCityleagueResultByOfficialEventByIdData = async () => {
-      try {
-        setLoading1(true);
-        const data = await fetchCityleagueResultByOfficialEventById(id);
-        setCityleagueResult(data);
-      } catch (err) {
-        console.log(err);
-        setError("データの取得に失敗しました");
-      } finally {
-        setLoading1(false);
-      }
-    };
-
-    const fetchOfficialEventByIdData = async () => {
-      try {
-        setLoading2(true);
-        const data = await fetchOfficialEventById(id);
-        setEvent(data);
-      } catch (err) {
-        console.log(err);
-        setError("データの取得に失敗しました");
-      } finally {
-        setLoading2(false);
-      }
-    };
-
-    fetchCityleagueResultByOfficialEventByIdData();
-    fetchOfficialEventByIdData();
+    try {
+      const data = await fetchOfficialEventById(id);
+      setEvent(data);
+    } catch (err) {
+      console.log(err);
+      setEventError(true);
+    } finally {
+      setLoading2(false);
+    }
   }, [id]);
+
+  useEffect(() => {
+    loadCityleagueResult();
+    loadOfficialEvent();
+  }, [loadCityleagueResult, loadOfficialEvent]);
 
   if (loading1 || loading2) {
     return (
@@ -150,8 +159,12 @@ export default function CityleagueResultByOfficialEventId({ id }: Props) {
     );
   }
 
-  if (error) {
-    return <div className="text-red-500">{error}</div>;
+  if (resultError) {
+    return <FetchError onRetry={loadCityleagueResult} />;
+  }
+
+  if (eventError) {
+    return <FetchError onRetry={loadOfficialEvent} />;
   }
 
   if (!cityleagueResult || cityleagueResult.results.length === 0 || !event) {

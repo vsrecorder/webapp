@@ -2,7 +2,7 @@
 
 import { createHash } from "crypto";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { Skeleton } from "@heroui/react";
 //import { Chip } from "@heroui/react";
@@ -16,6 +16,8 @@ import { LuTrash2 } from "react-icons/lu";
 
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
+
+import FetchError from "@app/components/molecules/FetchError";
 
 async function fetchDeckById(id: string) {
   try {
@@ -70,7 +72,44 @@ export default function DeckById({ id }: Props) {
   const [deck, setDeck] = useState<DeckGetByIdResponseType | null>(null);
   const [deckcodes, setDeckCodes] = useState<DeckCodeType[] | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [deckError, setDeckError] = useState(false);
+  const [codesError, setCodesError] = useState(false);
+
+  // デッキ本体だけを取得（失敗時のリロードから再利用）
+  const loadDeck = useCallback(async () => {
+    if (!id) return;
+
+    setDeckError(false);
+    setLoading(true);
+
+    try {
+      const data = await fetchDeckById(id);
+      setDeck(data);
+    } catch (err) {
+      console.log(err);
+      setDeckError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  // デッキコードだけを取得
+  const loadDeckCodes = useCallback(async () => {
+    if (!id) return;
+
+    setCodesError(false);
+    setLoading(true);
+
+    try {
+      const data = await fetchDeckCodesByDeckId(id);
+      setDeckCodes(data);
+    } catch (err) {
+      console.log(err);
+      setCodesError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
 
   useEffect(() => {
     if (!id) {
@@ -78,44 +117,22 @@ export default function DeckById({ id }: Props) {
       return;
     }
 
-    setLoading(true);
-
-    const fetchDeckData = async () => {
-      try {
-        setLoading(true);
-        const data = await fetchDeckById(id);
-        setDeck(data);
-      } catch (err) {
-        console.log(err);
-        setError("データの取得に失敗しました");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    const fetchDeckCodesData = async () => {
-      try {
-        setLoading(true);
-        const data = await fetchDeckCodesByDeckId(id);
-        setDeckCodes(data);
-      } catch (err) {
-        console.log(err);
-        setError("データの取得に失敗しました");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDeckData();
-    fetchDeckCodesData();
-  }, [id]);
+    loadDeck();
+    loadDeckCodes();
+  }, [id, loadDeck, loadDeckCodes]);
 
   if (loading) {
     return <div>読み込み中...</div>;
   }
 
-  if (error) {
-    return <div className="text-red-500">{error}</div>;
+  // デッキ本体が失敗 → デッキ分だけ再取得
+  if (deckError) {
+    return <FetchError onRetry={loadDeck} />;
+  }
+
+  // デッキコードが失敗 → デッキコード分だけ再取得
+  if (codesError) {
+    return <FetchError onRetry={loadDeckCodes} />;
   }
 
   if (!deck || !deckcodes) {

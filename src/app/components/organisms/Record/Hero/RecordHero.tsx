@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { SetStateAction, Dispatch } from "react";
 
 import { Card, Image, Link, Chip, Skeleton, useDisclosure } from "@heroui/react";
 
 import { LuPencilLine } from "react-icons/lu";
 
+import FetchError from "@app/components/molecules/FetchError";
 import WinRateRing from "@app/components/organisms/Record/Hero/WinRateRing";
 import MatchStreak from "@app/components/organisms/Record/Hero/MatchStreak";
 import IgnoreStatsBanner from "@app/components/organisms/Record/IgnoreStatsBanner";
@@ -295,7 +296,7 @@ export default function RecordHero({
   const [loadingDeck, setLoadingDeck] = useState(false);
 
   const [loadingEvent, setLoadingEvent] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(false);
 
   const {
     isOpen: isOpenForTCGMeisterURLModal,
@@ -313,36 +314,29 @@ export default function RecordHero({
   const isTonamel = record.tonamel_event_id !== "";
   const isUnofficial = record.unofficial_event_id !== "";
 
-  // イベント情報を種別に応じて取得する
-  useEffect(() => {
-    let ignore = false;
+  // イベント情報を種別に応じて取得する（失敗時のリロードから再利用）
+  const loadEvent = useCallback(async () => {
+    setError(false);
     setLoadingEvent(true);
 
-    const run = async () => {
-      try {
-        if (isOfficial) {
-          const data = await fetchOfficialEvent(record.official_event_id);
-          data.title = cleanOfficialEventTitle(data.title);
-          if (!ignore) setOfficialEvent(data);
-        } else if (isTonamel) {
-          const data = await fetchTonamelEvent(record.tonamel_event_id);
-          if (!ignore) setTonamelEvent(data);
-        } else if (isUnofficial) {
-          const data = await fetchUnofficialEvent(record.unofficial_event_id);
-          if (!ignore) setUnofficialEvent(data);
-        }
-      } catch (err) {
-        console.log(err);
-        if (!ignore) setError("データの取得に失敗しました");
-      } finally {
-        if (!ignore) setLoadingEvent(false);
+    try {
+      if (isOfficial) {
+        const data = await fetchOfficialEvent(record.official_event_id);
+        data.title = cleanOfficialEventTitle(data.title);
+        setOfficialEvent(data);
+      } else if (isTonamel) {
+        const data = await fetchTonamelEvent(record.tonamel_event_id);
+        setTonamelEvent(data);
+      } else if (isUnofficial) {
+        const data = await fetchUnofficialEvent(record.unofficial_event_id);
+        setUnofficialEvent(data);
       }
-    };
-
-    run();
-    return () => {
-      ignore = true;
-    };
+    } catch (err) {
+      console.log(err);
+      setError(true);
+    } finally {
+      setLoadingEvent(false);
+    }
   }, [
     isOfficial,
     isTonamel,
@@ -351,6 +345,10 @@ export default function RecordHero({
     record.tonamel_event_id,
     record.unofficial_event_id,
   ]);
+
+  useEffect(() => {
+    loadEvent();
+  }, [loadEvent]);
 
   // 使用デッキを取得する(登録済みの記録のみ。ヒーロー下段に名前とスプライトを表示)
   useEffect(() => {
@@ -398,7 +396,7 @@ export default function RecordHero({
   }, [isOfficial, record.event_date, record.created_at, unofficialEvent?.date]);
 
   if (error) {
-    return <div className="text-red-500">{error}</div>;
+    return <FetchError onRetry={loadEvent} />;
   }
 
   if (loadingEvent) {

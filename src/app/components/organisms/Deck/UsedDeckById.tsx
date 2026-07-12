@@ -2,7 +2,7 @@
 
 import { SetStateAction, Dispatch } from "react";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { addToast, useDisclosure } from "@heroui/react";
 
@@ -12,6 +12,7 @@ import UpdateUsedDeckModal from "@app/components/organisms/Deck/Modal/UpdateUsed
 import CreateDeckCodeModal from "@app/components/organisms/Deck/Modal/CreateDeckCodeModal";
 import UsedDeckCard from "@app/components/organisms/Deck/UsedDeckCard";
 import { DeckCardSkeleton } from "@app/components/organisms/Deck/Skeleton/DeckCardSkeleton";
+import FetchError from "@app/components/molecules/FetchError";
 
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 
@@ -87,8 +88,8 @@ export default function UsedDeckById({
   const [deckcode, setDeckCode] = useState<DeckCodeType | null>(null);
   const [loading1, setLoading1] = useState(true);
   const [loading2, setLoading2] = useState(true);
-  const [error1, setError1] = useState<string | null>(null);
-  const [error2, setError2] = useState<string | null>(null);
+  const [deckError, setDeckError] = useState(false);
+  const [codeError, setCodeError] = useState(false);
 
   const {
     isOpen: isOpenForUpdateUsedDeckModal,
@@ -167,66 +168,65 @@ export default function UsedDeckById({
     }
   };
 
-  useEffect(() => {
+  // デッキ本体だけを取得（失敗時のリロードから再利用）
+  const loadDeck = useCallback(async () => {
     if (!record?.deck_id) {
       setLoading1(false);
+      return;
+    }
+
+    setDeckError(false);
+    setLoading1(true);
+
+    try {
+      const data = await fetchDeckById(record.deck_id);
+      setDeck(data);
+    } catch (err) {
+      console.log(err);
+      setDeckError(true);
+    } finally {
+      setLoading1(false);
+    }
+  }, [record?.deck_id]);
+
+  // デッキコードだけを取得
+  const loadDeckCode = useCallback(async () => {
+    if (!record?.deck_code_id) {
       setLoading2(false);
       return;
     }
 
-    const fetchDeckData = async () => {
-      setLoading1(true);
+    setCodeError(false);
+    setLoading2(true);
 
-      try {
-        const data = await fetchDeckById(record.deck_id);
-        setDeck(data);
-      } catch (err) {
-        console.log(err);
-        setError1("デッキデータの取得に失敗しました");
-      } finally {
-        setLoading1(false);
-      }
-    };
-
-    const fetchDeckCodesData = async () => {
-      setLoading2(true);
-
-      try {
-        const data = await fetchDeckCodeById(record.deck_code_id);
-        setDeckCode(data);
-      } catch (err) {
-        console.log(err);
-        setError2("デッキコードデータの取得に失敗しました");
-      } finally {
-        setLoading2(false);
-      }
-    };
-
-    if (record.deck_id) {
-      fetchDeckData();
-    } else {
-      setLoading1(false);
-    }
-
-    if (record.deck_code_id) {
-      fetchDeckCodesData();
-    } else {
+    try {
+      const data = await fetchDeckCodeById(record.deck_code_id);
+      setDeckCode(data);
+    } catch (err) {
+      console.log(err);
+      setCodeError(true);
+    } finally {
       setLoading2(false);
     }
-  }, [record]);
+  }, [record?.deck_code_id]);
+
+  useEffect(() => {
+    loadDeck();
+    loadDeckCode();
+  }, [loadDeck, loadDeckCode]);
 
   if (loading1 || loading2) {
     return <DeckCardSkeleton compact={compact} />;
   }
 
-  if (error1 || error2) {
-    return (
-      <div className="text-red-500">
-        {error1}
-        <br />
-        {error2}
-      </div>
-    );
+  // デッキ本体が失敗 → デッキ分だけ再取得
+  if (deckError) {
+    return <FetchError onRetry={loadDeck} compact={compact} />;
+  }
+
+  // デッキコードが失敗 → デッキコード分だけ再取得
+  if (codeError) {
+    return <FetchError onRetry={loadDeckCode} compact={compact} />;
   }
 
   return (

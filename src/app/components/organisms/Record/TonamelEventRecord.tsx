@@ -1,9 +1,10 @@
-import { useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 
 import { Chip } from "@heroui/react";
 
 import { useDisclosure } from "@heroui/react";
 
+import FetchError from "@app/components/molecules/FetchError";
 import RecordCardBase from "@app/components/organisms/Record/RecordCardBase";
 import DisplayRecordModal from "@app/components/organisms/Record/Modal/DisplayRecordModal";
 import { RecordCardSkeleton } from "@app/components/organisms/Record/Skeleton/RecordCardSkeleton";
@@ -135,7 +136,8 @@ export default function TonamelEventRecord({
     useState<TonamelEventGetByIdResponseType | null>(null);
   const [loadingTonamelEvent, setLoadingTonamelEvent] = useState(true);
 
-  const [error, setError] = useState<string | null>(null);
+  const [eventError, setEventError] = useState(false);
+  const [deckError, setDeckError] = useState(false);
 
   const [record, setRecord] = useState<RecordGetByIdResponseType | null>(recordData.data);
 
@@ -169,55 +171,55 @@ export default function TonamelEventRecord({
     onOpenForDisplayRecordModal();
   }, [shouldReopen, loadingTonamelEvent, reopenReady]);
 
-  useEffect(() => {
+  // Tonamelイベント情報だけを取得（失敗時のリロードから再利用）
+  const loadTonamelEvent = useCallback(async () => {
     if (!recordData.data.tonamel_event_id) {
       setLoadingTonamelEvent(false);
       return;
     }
 
+    setEventError(false);
     setLoadingTonamelEvent(true);
 
-    const fetchData = async () => {
-      try {
-        setLoadingTonamelEvent(true);
-
-        const data = await fetchTonamelEventById(recordData.data.tonamel_event_id);
-
-        setTonamelEvent(data);
-      } catch (err) {
-        console.log(err);
-        setError("データの取得に失敗しました");
-      } finally {
-        setLoadingTonamelEvent(false);
-      }
-    };
-
-    fetchData();
+    try {
+      const data = await fetchTonamelEventById(recordData.data.tonamel_event_id);
+      setTonamelEvent(data);
+    } catch (err) {
+      console.log(err);
+      setEventError(true);
+    } finally {
+      setLoadingTonamelEvent(false);
+    }
   }, [recordData.data.tonamel_event_id]);
 
   useEffect(() => {
+    loadTonamelEvent();
+  }, [loadTonamelEvent]);
+
+  // 使用デッキだけを取得
+  const loadDeck = useCallback(async () => {
     if (!record?.deck_id) {
       setLoadingDeck(false);
       return;
     }
 
+    setDeckError(false);
     setLoadingDeck(true);
 
-    const fetchData = async () => {
-      try {
-        setLoadingDeck(true);
-        const data = await fetchDeckById(record.deck_id);
-        setDeck(data);
-      } catch (err) {
-        console.log(err);
-        setError("データの取得に失敗しました");
-      } finally {
-        setLoadingDeck(false);
-      }
-    };
-
-    fetchData();
+    try {
+      const data = await fetchDeckById(record.deck_id);
+      setDeck(data);
+    } catch (err) {
+      console.log(err);
+      setDeckError(true);
+    } finally {
+      setLoadingDeck(false);
+    }
   }, [record?.deck_id]);
+
+  useEffect(() => {
+    loadDeck();
+  }, [loadDeck]);
 
   useEffect(() => {
     if (!record?.id) {
@@ -264,8 +266,12 @@ export default function TonamelEventRecord({
     fetchData();
   }, [record?.event_date, record?.created_at]);
 
-  if (error) {
-    return <div className="text-red-500">{error}</div>;
+  if (eventError) {
+    return <FetchError onRetry={loadTonamelEvent} compact />;
+  }
+
+  if (deckError) {
+    return <FetchError onRetry={loadDeck} compact />;
   }
 
   if (loadingTonamelEvent || !tonamelEvent) {

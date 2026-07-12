@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { Chip } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
+
+import FetchError from "@app/components/molecules/FetchError";
 
 import { DeckCodeType } from "@app/types/deck_code";
 import { DeckCardSummaryType } from "@app/types/deckcard";
@@ -70,31 +72,32 @@ export default function DeckCardSummary({ deckcode }: Props) {
     null,
   );
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(false);
 
-  useEffect(() => {
+  // デッキカード内訳だけを取得（失敗時のリロードから再利用）
+  const loadDeckCardSummary = useCallback(async () => {
     if (!deckcode) {
       setLoading(false);
       return;
     }
 
+    setError(false);
     setLoading(true);
 
-    const fetchCurrentDeckCardSummaryData = async () => {
-      try {
-        setLoading(true);
-        const data = await fetchDeckCardSummary(deckcode.code);
-        setDeckCardSummary(data);
-      } catch (err) {
-        console.log(err);
-        setError("データの取得に失敗しました");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCurrentDeckCardSummaryData();
+    try {
+      const data = await fetchDeckCardSummary(deckcode.code);
+      setDeckCardSummary(data);
+    } catch (err) {
+      console.log(err);
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
   }, [deckcode]);
+
+  useEffect(() => {
+    loadDeckCardSummary();
+  }, [loadDeckCardSummary]);
 
   if (!deckcode) return;
 
@@ -135,7 +138,7 @@ export default function DeckCardSummary({ deckcode }: Props) {
   }
 
   if (error) {
-    return;
+    return <FetchError onRetry={loadDeckCardSummary} compact />;
   }
 
   if (!deckcardSummary) return;

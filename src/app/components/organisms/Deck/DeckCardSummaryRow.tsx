@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { Chip } from "@heroui/react";
 import { Image } from "@heroui/react";
@@ -8,6 +8,8 @@ import { Skeleton } from "@heroui/react";
 import { Tabs, Tab } from "@heroui/tabs";
 
 import { Modal, ModalContent, ModalBody, useDisclosure } from "@heroui/react";
+
+import FetchError from "@app/components/molecules/FetchError";
 
 import { DeckCardSummaryType } from "@app/types/deckcard";
 import { PkeCardType } from "@app/types/deckcard";
@@ -81,7 +83,7 @@ export default function DeckCardSummaryRow({ code }: Props) {
     null,
   );
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(false);
 
   const [pkecard, setPkeCard] = useState<PkeCardType>();
   const {
@@ -119,29 +121,30 @@ export default function DeckCardSummaryRow({ code }: Props) {
     });
   }, [deckcardSummary]);
 
-  useEffect(() => {
+  // デッキカード内訳だけを取得（失敗時のリロードから再利用）
+  const loadDeckCardSummary = useCallback(async () => {
     if (!code) {
       setLoading(false);
       return;
     }
 
+    setError(false);
     setLoading(true);
 
-    const fetchCurrentDeckCardSummaryData = async () => {
-      try {
-        setLoading(true);
-        const data = await fetchDeckCardSummary(code);
-        setDeckCardSummary(data);
-      } catch (err) {
-        console.log(err);
-        setError("データの取得に失敗しました");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCurrentDeckCardSummaryData();
+    try {
+      const data = await fetchDeckCardSummary(code);
+      setDeckCardSummary(data);
+    } catch (err) {
+      console.log(err);
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
   }, [code]);
+
+  useEffect(() => {
+    loadDeckCardSummary();
+  }, [loadDeckCardSummary]);
 
   if (!code) return;
 
@@ -178,7 +181,7 @@ export default function DeckCardSummaryRow({ code }: Props) {
   }
 
   if (error) {
-    return;
+    return <FetchError onRetry={loadDeckCardSummary} compact />;
   }
 
   if (!deckcardSummary) return;

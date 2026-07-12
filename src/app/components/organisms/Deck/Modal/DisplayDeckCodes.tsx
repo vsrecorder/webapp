@@ -2,7 +2,7 @@ import { useRef } from "react";
 
 import { SetStateAction, Dispatch } from "react";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import {
   Modal,
@@ -35,6 +35,7 @@ import {
 } from "react-icons/lu";
 
 import DeckCardDiff from "@app/components/organisms/Deck/DeckCardDiff";
+import FetchError from "@app/components/molecules/FetchError";
 
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
@@ -84,7 +85,7 @@ export default function DisplayDeckCodesModal({
   const [displayDeckCode, setDisplayDeckCode] = useState<DeckCodeType | null>(null);
   const [displayDeckCodes, setDisplayDeckCodes] = useState<DeckCodeType[] | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(false);
 
   const {
     isOpen: isOpenForDeleteDeckCodeModal,
@@ -113,29 +114,30 @@ export default function DisplayDeckCodesModal({
     }
   };
 
-  useEffect(() => {
+  // バージョン一覧だけを取得（失敗時のリロードから再利用）
+  const loadDeckCodes = useCallback(async () => {
     if (!isOpen || !deck || !deck.id || !deck.latest_deck_code.id) {
       setLoading(false);
       return;
     }
 
+    setError(false);
     setLoading(true);
 
-    const fetchDeckCodesData = async () => {
-      try {
-        setLoading(true);
-        const data = await fetchDeckCodesByDeckId(deck.id);
-        setDisplayDeckCodes(data);
-      } catch (err) {
-        console.log(err);
-        setError("データの取得に失敗しました");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDeckCodesData();
+    try {
+      const data = await fetchDeckCodesByDeckId(deck.id);
+      setDisplayDeckCodes(data);
+    } catch (err) {
+      console.log(err);
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
   }, [isOpen, deck]);
+
+  useEffect(() => {
+    loadDeckCodes();
+  }, [loadDeckCodes]);
 
   // 新しいバージョンが作成されたら、一覧の先頭に動的に追加する
   useEffect(() => {
@@ -633,7 +635,7 @@ export default function DisplayDeckCodesModal({
                       </div>
                     </ol>
                   ) : (
-                    <>{error}</>
+                    <FetchError onRetry={loadDeckCodes} compact />
                   )}
                 </>
               </ModalBody>

@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { Link } from "@heroui/react";
 import { Chip } from "@heroui/react";
 
 import { LuLink } from "react-icons/lu";
 
+import FetchError from "@app/components/molecules/FetchError";
 import RecordInfoCardBase from "@app/components/organisms/Record/RecordInfoCardBase";
 import RecordInfoCardSkeleton from "@app/components/organisms/Record/Skeleton/RecordInfoCardSkeleton";
 
@@ -64,33 +65,32 @@ export default function TonamelEventInfo({ record }: Props) {
 
   const [environment, setEnvironment] = useState<EnvironmentType | null>(null);
 
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(false);
 
-  useEffect(() => {
+  // Tonamelイベント情報だけを取得（失敗時のリロードから再利用）
+  const loadTonamelEvent = useCallback(async () => {
     if (!record?.tonamel_event_id) {
       setLoadingTonamelEvent(false);
       return;
     }
 
+    setError(false);
     setLoadingTonamelEvent(true);
 
-    const fetchData = async () => {
-      try {
-        setLoadingTonamelEvent(true);
-
-        const data = await fetchTonamelEventById(record.tonamel_event_id);
-
-        setTonamelEvent(data);
-      } catch (err) {
-        console.log(err);
-        setError("データの取得に失敗しました");
-      } finally {
-        setLoadingTonamelEvent(false);
-      }
-    };
-
-    fetchData();
+    try {
+      const data = await fetchTonamelEventById(record.tonamel_event_id);
+      setTonamelEvent(data);
+    } catch (err) {
+      console.log(err);
+      setError(true);
+    } finally {
+      setLoadingTonamelEvent(false);
+    }
   }, [record?.tonamel_event_id]);
+
+  useEffect(() => {
+    loadTonamelEvent();
+  }, [loadTonamelEvent]);
 
   // 開催日(event_date 優先、ゼロ値なら created_at)を基に対戦環境を取得する
   useEffect(() => {
@@ -115,7 +115,7 @@ export default function TonamelEventInfo({ record }: Props) {
   }, [record?.event_date, record?.created_at]);
 
   if (error) {
-    return <div className="text-red-500">{error}</div>;
+    return <FetchError onRetry={loadTonamelEvent} compact />;
   }
 
   if (loadingTonamelEvent || !tonamelEvent) {

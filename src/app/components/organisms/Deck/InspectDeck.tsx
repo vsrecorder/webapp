@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 //import { Skeleton } from "@heroui/react";
 import { Image } from "@heroui/react";
@@ -11,6 +11,8 @@ import { Button } from "@heroui/react";
 import { Modal, ModalContent, ModalBody, useDisclosure } from "@heroui/react";
 
 import { LuRepeat } from "react-icons/lu";
+
+import FetchError from "@app/components/molecules/FetchError";
 
 import { DeckCodeType } from "@app/types/deck_code";
 import { DeckCardListType } from "@app/types/deckcard";
@@ -66,7 +68,7 @@ export default function InspectDeck({ deckcode }: Props) {
   const [prizecardList, setPrizeCardList] = useState<DeckCardListType>([]);
   const [deckcardList, setDeckCardList] = useState<DeckCardListType>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(false);
 
   const [prizecardsReversedState, setPrizeCardsReversedState] = useState<boolean>(false);
 
@@ -88,45 +90,46 @@ export default function InspectDeck({ deckcode }: Props) {
     });
   }, [handcardList]);
 
-  useEffect(() => {
+  // デッキのカード一覧だけを取得（失敗時のリロードから再利用）
+  const loadDeckCardList = useCallback(async () => {
     if (!deckcode) {
       setLoading(false);
       return;
     }
 
+    setError(false);
     setLoading(true);
 
-    const fetchCurrentDeckCardListData = async () => {
-      try {
-        setLoading(true);
-        const data = await fetchDeckCardList(deckcode.code);
+    try {
+      const data = await fetchDeckCardList(deckcode.code);
 
-        const shuffledData = shuffleArray(data); // カードをシャッフル
+      const shuffledData = shuffleArray(data); // カードをシャッフル
 
-        setCardList(shuffledData);
-        setHandCardList(shuffledData.slice(0, 7)); // デッキの上から7枚を取得
-        setPrizeCardList(shuffledData.slice(7, 13)); // サイドカードを取得
-        setDeckCardList(shuffledData.slice(13)); // デッキのトップカードを取得
+      setCardList(shuffledData);
+      setHandCardList(shuffledData.slice(0, 7)); // デッキの上から7枚を取得
+      setPrizeCardList(shuffledData.slice(7, 13)); // サイドカードを取得
+      setDeckCardList(shuffledData.slice(13)); // デッキのトップカードを取得
 
+      const img = new window.Image();
+      img.src = "https://www.pokemon-card.com/assets/images/noimage/poke_ura.jpg";
+
+      const urls = [...shuffledData].map((c) => c.image_url);
+      const uniqueUrls = [...new Set(urls)];
+      uniqueUrls.forEach((url) => {
         const img = new window.Image();
-        img.src = "https://www.pokemon-card.com/assets/images/noimage/poke_ura.jpg";
-
-        const urls = [...shuffledData].map((c) => c.image_url);
-        const uniqueUrls = [...new Set(urls)];
-        uniqueUrls.forEach((url) => {
-          const img = new window.Image();
-          img.src = url;
-        });
-      } catch (err) {
-        console.log(err);
-        setError("データの取得に失敗しました");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCurrentDeckCardListData();
+        img.src = url;
+      });
+    } catch (err) {
+      console.log(err);
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
   }, [deckcode]);
+
+  useEffect(() => {
+    loadDeckCardList();
+  }, [loadDeckCardList]);
 
   const handleShuffle = () => {
     if (!cardList) return;
@@ -241,7 +244,7 @@ export default function InspectDeck({ deckcode }: Props) {
   }
 
   if (error) {
-    return <></>;
+    return <FetchError onRetry={loadDeckCardList} compact />;
   }
 
   if (!cardList) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { SetStateAction, Dispatch } from "react";
 
 import { Image } from "@heroui/react";
@@ -11,6 +11,7 @@ import { useDisclosure } from "@heroui/react";
 
 import { LuLink } from "react-icons/lu";
 
+import FetchError from "@app/components/molecules/FetchError";
 import RecordInfoCardBase from "@app/components/organisms/Record/RecordInfoCardBase";
 import RecordInfoCardSkeleton from "@app/components/organisms/Record/Skeleton/RecordInfoCardSkeleton";
 import {
@@ -59,7 +60,7 @@ export default function OfficialEventInfo({
   const [officialEvent, setOfficialEvent] =
     useState<OfficialEventGetByIdResponseType | null>(null);
   const [loadingOfficialEvent, setLoadingOfficialEvent] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(false);
 
   const {
     isOpen: isOpenForTCGMeisterURLModal,
@@ -67,51 +68,51 @@ export default function OfficialEventInfo({
     onOpenChange: onOpenChangeForTCGMeisterURLModal,
   } = useDisclosure();
 
-  useEffect(() => {
+  // 公式イベント情報だけを取得（失敗時のリロードから再利用）
+  const loadOfficialEvent = useCallback(async () => {
     if (!record?.official_event_id) {
       setLoadingOfficialEvent(false);
       return;
     }
 
+    setError(false);
     setLoadingOfficialEvent(true);
 
-    const fetchData = async () => {
-      try {
-        setLoadingOfficialEvent(true);
+    try {
+      const data = await fetchOfficialEventById(record.official_event_id);
 
-        const data = await fetchOfficialEventById(record.official_event_id);
+      data.title = data.title.replace(/【.*?】ポケモンカードジム　/g, "");
+      data.title = data.title.replace(/【.*?】ポケモンカードジム /g, "");
+      data.title = data.title.replace(/【.*?】ポケモンカードジム  /g, "");
+      data.title = data.title.replace(/【.*?】ポケモンカードジム   /g, "");
+      data.title = data.title.replace(
+        /【.*?】エクストラバトルの日/g,
+        "エクストラバトルの日",
+      );
+      data.title = data.title.replace(/【.*?】ポケモンカードゲーム　/g, "");
+      data.title = data.title.replace(/ポケモンカードゲーム /g, "");
+      data.title = data.title.replace(/（オープンリーグ）/g, "");
+      data.title = data.title.replace(/（マスターリーグ）/g, "");
+      data.title = data.title.replace(/（シニアリーグ）/g, "");
+      data.title = data.title.replace(/（ジュニアリーグ）/g, "");
+      data.title = data.title.replace(/（スタンダード）/g, "");
+      data.title = data.title.replace(/（.*?）/g, "");
 
-        data.title = data.title.replace(/【.*?】ポケモンカードジム　/g, "");
-        data.title = data.title.replace(/【.*?】ポケモンカードジム /g, "");
-        data.title = data.title.replace(/【.*?】ポケモンカードジム  /g, "");
-        data.title = data.title.replace(/【.*?】ポケモンカードジム   /g, "");
-        data.title = data.title.replace(
-          /【.*?】エクストラバトルの日/g,
-          "エクストラバトルの日",
-        );
-        data.title = data.title.replace(/【.*?】ポケモンカードゲーム　/g, "");
-        data.title = data.title.replace(/ポケモンカードゲーム /g, "");
-        data.title = data.title.replace(/（オープンリーグ）/g, "");
-        data.title = data.title.replace(/（マスターリーグ）/g, "");
-        data.title = data.title.replace(/（シニアリーグ）/g, "");
-        data.title = data.title.replace(/（ジュニアリーグ）/g, "");
-        data.title = data.title.replace(/（スタンダード）/g, "");
-        data.title = data.title.replace(/（.*?）/g, "");
-
-        setOfficialEvent(data);
-      } catch (err) {
-        console.log(err);
-        setError("データの取得に失敗しました");
-      } finally {
-        setLoadingOfficialEvent(false);
-      }
-    };
-
-    fetchData();
+      setOfficialEvent(data);
+    } catch (err) {
+      console.log(err);
+      setError(true);
+    } finally {
+      setLoadingOfficialEvent(false);
+    }
   }, [record?.official_event_id]);
 
+  useEffect(() => {
+    loadOfficialEvent();
+  }, [loadOfficialEvent]);
+
   if (error) {
-    return <div className="text-red-500">{error}</div>;
+    return <FetchError onRetry={loadOfficialEvent} compact />;
   }
 
   if (loadingOfficialEvent || !officialEvent) {

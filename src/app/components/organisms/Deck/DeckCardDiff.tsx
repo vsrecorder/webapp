@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { Chip } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
 import { Image } from "@heroui/react";
 
 import { Modal, ModalContent, ModalBody, useDisclosure } from "@heroui/react";
+
+import FetchError from "@app/components/molecules/FetchError";
 
 import { DeckCodeType } from "@app/types/deck_code";
 import { DeckCardType, CardType } from "@app/types/deckcard";
@@ -94,7 +96,8 @@ export default function DeckCardDiff({ current_deckcode, previous_deckcode }: Pr
   const [previousDeckCardList, setPreviousDeckCardList] = useState<DeckCardType[]>();
   const [loading1, setLoading1] = useState(true);
   const [loading2, setLoading2] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [currentError, setCurrentError] = useState(false);
+  const [previousError, setPreviousError] = useState(false);
 
   const [card, setCard] = useState<CardType>();
   const {
@@ -103,59 +106,66 @@ export default function DeckCardDiff({ current_deckcode, previous_deckcode }: Pr
     onOpenChange: onOpenChangeForShowCardModal,
   } = useDisclosure();
 
-  useEffect(() => {
-    if (!current_deckcode || !previous_deckcode) {
+  // 現在バージョンのカード一覧だけを取得（失敗時のリロードから再利用）
+  const loadCurrent = useCallback(async () => {
+    if (!current_deckcode) {
       setLoading1(false);
+      return;
+    }
+
+    setCurrentError(false);
+    setLoading1(true);
+
+    try {
+      const data = await fetchDeckCardListByDeckCodeId(current_deckcode.code);
+      setCurrentDeckCardList(data);
+
+      const urls = [...data].map((c) => c.image_url);
+      const uniqueUrls = [...new Set(urls)];
+      uniqueUrls.forEach((url) => {
+        const img = new window.Image();
+        img.src = url;
+      });
+    } catch (err) {
+      console.log(err);
+      setCurrentError(true);
+    } finally {
+      setLoading1(false);
+    }
+  }, [current_deckcode]);
+
+  // 直前バージョンのカード一覧だけを取得
+  const loadPrevious = useCallback(async () => {
+    if (!previous_deckcode) {
       setLoading2(false);
       return;
     }
 
-    setLoading1(true);
+    setPreviousError(false);
     setLoading2(true);
 
-    const fetchCurrentDeckCardListData = async () => {
-      try {
-        setLoading1(true);
-        const data = await fetchDeckCardListByDeckCodeId(current_deckcode.code);
-        setCurrentDeckCardList(data);
+    try {
+      const data = await fetchDeckCardListByDeckCodeId(previous_deckcode.code);
+      setPreviousDeckCardList(data);
 
-        const urls = [...data].map((c) => c.image_url);
-        const uniqueUrls = [...new Set(urls)];
-        uniqueUrls.forEach((url) => {
-          const img = new window.Image();
-          img.src = url;
-        });
-      } catch (err) {
-        console.log(err);
-        setError("データの取得に失敗しました");
-      } finally {
-        setLoading1(false);
-      }
-    };
+      const urls = [...data].map((c) => c.image_url);
+      const uniqueUrls = [...new Set(urls)];
+      uniqueUrls.forEach((url) => {
+        const img = new window.Image();
+        img.src = url;
+      });
+    } catch (err) {
+      console.log(err);
+      setPreviousError(true);
+    } finally {
+      setLoading2(false);
+    }
+  }, [previous_deckcode]);
 
-    const fetchPreviousDeckCardListData = async () => {
-      try {
-        setLoading2(true);
-        const data = await fetchDeckCardListByDeckCodeId(previous_deckcode.code);
-        setPreviousDeckCardList(data);
-
-        const urls = [...data].map((c) => c.image_url);
-        const uniqueUrls = [...new Set(urls)];
-        uniqueUrls.forEach((url) => {
-          const img = new window.Image();
-          img.src = url;
-        });
-      } catch (err) {
-        console.log(err);
-        setError("データの取得に失敗しました");
-      } finally {
-        setLoading2(false);
-      }
-    };
-
-    fetchCurrentDeckCardListData();
-    fetchPreviousDeckCardListData();
-  }, [current_deckcode, previous_deckcode]);
+  useEffect(() => {
+    loadCurrent();
+    loadPrevious();
+  }, [loadCurrent, loadPrevious]);
 
   if (!current_deckcode || !previous_deckcode) return;
 
@@ -194,8 +204,12 @@ export default function DeckCardDiff({ current_deckcode, previous_deckcode }: Pr
     );
   }
 
-  if (error) {
-    return;
+  if (currentError) {
+    return <FetchError onRetry={loadCurrent} compact />;
+  }
+
+  if (previousError) {
+    return <FetchError onRetry={loadPrevious} compact />;
   }
 
   if (!currentDeckCardList || !previousDeckCardList) return;

@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 
 import { Chip } from "@heroui/react";
 import { Image } from "@heroui/react";
 import { useDisclosure } from "@heroui/react";
 
-
+import FetchError from "@app/components/molecules/FetchError";
 import RecordCardBase from "@app/components/organisms/Record/RecordCardBase";
 import DisplayRecordModal from "@app/components/organisms/Record/Modal/DisplayRecordModal";
 import { RecordCardSkeleton } from "@app/components/organisms/Record/Skeleton/RecordCardSkeleton";
@@ -123,7 +123,8 @@ export default function OfficialEventRecord({
   const [matches, setMatches] = useState<MatchGetResponseType[]>([]);
   const [loadingMatches, setLoadingMatches] = useState(true);
 
-  const [error, setError] = useState<string | null>(null);
+  const [eventError, setEventError] = useState(false);
+  const [deckError, setDeckError] = useState(false);
 
   const [record, setRecord] = useState<RecordGetByIdResponseType | null>(recordData.data);
 
@@ -157,57 +158,56 @@ export default function OfficialEventRecord({
     onOpenForDisplayRecordModal();
   }, [shouldReopen, loadingOfficialEvent, reopenReady]);
 
-  useEffect(() => {
+  // 公式イベント情報だけを取得（失敗時のリロードから再利用）
+  const loadOfficialEvent = useCallback(async () => {
     if (!recordData.data.official_event_id) {
       setLoadingOfficialEvent(false);
       return;
     }
 
+    setEventError(false);
     setLoadingOfficialEvent(true);
 
-    const fetchData = async () => {
-      try {
-        setLoadingOfficialEvent(true);
-
-        const data = await fetchOfficialEventById(recordData.data.official_event_id);
-
-        data.title = cleanOfficialEventTitle(data.title);
-
-        setOfficialEvent(data);
-      } catch (err) {
-        console.log(err);
-        setError("データの取得に失敗しました");
-      } finally {
-        setLoadingOfficialEvent(false);
-      }
-    };
-
-    fetchData();
+    try {
+      const data = await fetchOfficialEventById(recordData.data.official_event_id);
+      data.title = cleanOfficialEventTitle(data.title);
+      setOfficialEvent(data);
+    } catch (err) {
+      console.log(err);
+      setEventError(true);
+    } finally {
+      setLoadingOfficialEvent(false);
+    }
   }, [recordData.data.official_event_id]);
 
   useEffect(() => {
+    loadOfficialEvent();
+  }, [loadOfficialEvent]);
+
+  // 使用デッキだけを取得
+  const loadDeck = useCallback(async () => {
     if (!record?.deck_id) {
       setLoadingDeck(false);
       return;
     }
 
+    setDeckError(false);
     setLoadingDeck(true);
 
-    const fetchData = async () => {
-      try {
-        setLoadingDeck(true);
-        const data = await fetchDeckById(record.deck_id);
-        setDeck(data);
-      } catch (err) {
-        console.log(err);
-        setError("データの取得に失敗しました");
-      } finally {
-        setLoadingDeck(false);
-      }
-    };
-
-    fetchData();
+    try {
+      const data = await fetchDeckById(record.deck_id);
+      setDeck(data);
+    } catch (err) {
+      console.log(err);
+      setDeckError(true);
+    } finally {
+      setLoadingDeck(false);
+    }
   }, [record?.deck_id]);
+
+  useEffect(() => {
+    loadDeck();
+  }, [loadDeck]);
 
   useEffect(() => {
     if (!record?.id) {
@@ -232,8 +232,12 @@ export default function OfficialEventRecord({
     fetchData();
   }, [record?.id]);
 
-  if (error) {
-    return <div className="text-red-500">{error}</div>;
+  if (eventError) {
+    return <FetchError onRetry={loadOfficialEvent} compact />;
+  }
+
+  if (deckError) {
+    return <FetchError onRetry={loadDeck} compact />;
   }
 
   if (loadingOfficialEvent || !officialEvent) {

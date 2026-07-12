@@ -52,7 +52,8 @@ const noopSetMatches: Dispatch<SetStateAction<MatchGetResponseType[] | null>> = 
 /*
  * 記録のシェア用モーダル。
  * 画面外に「戦績サマリー＋対戦結果」をレンダリングして1枚目の画像を生成し、
- * 「使用デッキも一緒にシェア」ONのときはデッキコードパネルを2枚目として追加する。
+ * 「使用デッキを表示しない」ONのときは1枚目から使用デッキの描画を省く。
+ * 「使用デッキの画像も一緒にシェア」ONのときはデッキコードパネルを2枚目として追加する。
  * 生成した画像をポスト文とともに Web Share API で共有する。
  */
 export default function ShareRecordModal({
@@ -76,6 +77,8 @@ export default function ShareRecordModal({
   // クライアント側で実際の画面幅から算出する。極端な幅を避けるためクランプする。
   const [captureWidth, setCaptureWidth] = useState(360);
   const [includeDeck, setIncludeDeck] = useState(false);
+  // 1枚目の戦績画像に使用デッキを描画しない(使用デッキを表示しない)
+  const [hideDeck, setHideDeck] = useState(false);
   // ポスト文に含める要素(対戦結果・使用デッキ)
   const [includePostMatches, setIncludePostMatches] = useState(true);
   const [includePostDeck, setIncludePostDeck] = useState(true);
@@ -210,7 +213,7 @@ export default function ShareRecordModal({
         hideCloseButton
         isDismissable={false}
         scrollBehavior="inside"
-        className="rounded-b-none sm:max-w-full lg:max-w-lg"
+        className="h-[calc(100dvh-104px)] max-h-[calc(100dvh-104px)] mt-26 my-0 rounded-b-none sm:max-w-full lg:max-w-lg"
       >
         <ModalContent>
           {() => (
@@ -231,24 +234,48 @@ export default function ShareRecordModal({
                   この記録の戦績と対戦結果を画像にして、下のポスト文と一緒にシェアします。
                 </p>
 
-                {/* 使用デッキがある場合のみ、2枚目追加のトグルを出す。 */}
+                {/* 使用デッキがある場合のみ、使用デッキ関連のトグルを出す。 */}
                 {record.deck_id && (
-                  <div className="flex items-center gap-3 rounded-xl border border-divider bg-content2 px-3 py-2.5">
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-lg">
-                      🎴
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-sm font-bold">使用デッキも一緒にシェア</div>
-                      <div className="text-[11px] text-default-400">
-                        デッキ画像を2枚目として追加します
+                  <div className="flex flex-col gap-2.5">
+                    {/* 1枚目の戦績画像に使用デッキを描画しない */}
+                    <div className="flex items-center gap-3 rounded-xl border border-divider bg-content2 px-3 py-2.5">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-default-200 text-lg">
+                        🙈
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-bold">使用デッキを表示しない</div>
+                        <div className="text-[11px] text-default-400">
+                          戦績画像に使用デッキを描画しません
+                        </div>
                       </div>
+                      <Switch
+                        size="sm"
+                        isSelected={hideDeck}
+                        onValueChange={setHideDeck}
+                        aria-label="使用デッキを表示しない"
+                      />
                     </div>
-                    <Switch
-                      size="sm"
-                      isSelected={includeDeck}
-                      onValueChange={setIncludeDeck}
-                      aria-label="使用デッキも一緒にシェア"
-                    />
+
+                    {/* 2枚目としてデッキ画像を追加する */}
+                    <div className="flex items-center gap-3 rounded-xl border border-divider bg-content2 px-3 py-2.5">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-lg">
+                        🎴
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-bold">
+                          使用デッキの画像も一緒にシェア
+                        </div>
+                        <div className="text-[11px] text-default-400">
+                          デッキ画像を2枚目として追加します
+                        </div>
+                      </div>
+                      <Switch
+                        size="sm"
+                        isSelected={includeDeck}
+                        onValueChange={setIncludeDeck}
+                        aria-label="使用デッキの画像も一緒にシェア"
+                      />
+                    </div>
                   </div>
                 )}
 
@@ -328,6 +355,7 @@ export default function ShareRecordModal({
               record={record}
               setRecord={setRecord}
               stats={stats}
+              hideDeck={hideDeck}
               onReadyChange={setHeroReady}
               matchesSlot={
                 <Matches

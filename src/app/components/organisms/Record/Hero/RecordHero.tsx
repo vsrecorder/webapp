@@ -301,6 +301,8 @@ type Props = {
   // イベント・使用デッキの取得が完了して実データを描画できる状態かを通知する。
   // シェア画像のキャプチャで、スケルトン状態のまま撮影されるのを防ぐために使う。
   onReadyChange?: (ready: boolean) => void;
+  // 使用デッキ行を描画しない(シェア画像で「使用デッキを表示しない」オプションON時に使う)。
+  hideDeck?: boolean;
 };
 
 /*
@@ -317,6 +319,7 @@ export default function RecordHero({
   enableEditUsedDeck = false,
   matchesSlot,
   onReadyChange,
+  hideDeck = false,
 }: Props) {
   const [officialEvent, setOfficialEvent] =
     useState<OfficialEventGetByIdResponseType | null>(null);
@@ -434,9 +437,11 @@ export default function RecordHero({
   // 使用デッキは未登録なら取得不要。登録済みは現在の deck_id と一致するまで待つ。
   useEffect(() => {
     if (!onReadyChange) return;
-    const deckReady = !record.deck_id || (!loadingDeck && deck?.id === record.deck_id);
+    // 使用デッキを描画しない場合はデッキの取得完了を待つ必要はない
+    const deckReady =
+      hideDeck || !record.deck_id || (!loadingDeck && deck?.id === record.deck_id);
     onReadyChange(!loadingEvent && !error && deckReady);
-  }, [onReadyChange, loadingEvent, error, loadingDeck, deck, record.deck_id]);
+  }, [onReadyChange, loadingEvent, error, loadingDeck, deck, record.deck_id, hideDeck]);
 
   if (error) {
     return <FetchError onRetry={loadEvent} />;
@@ -517,7 +522,7 @@ export default function RecordHero({
     </div>
   );
 
-  const deckNode = record.deck_id ? (
+  const deckNode = hideDeck ? null : record.deck_id ? (
     <>
       {enableEditUsedDeck && (
         <UpdateUsedDeckModal

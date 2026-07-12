@@ -60,7 +60,9 @@ export default function TemplateDecks({ userId }: Props) {
           size="md"
           selectedKey={selectedKey}
           onSelectionChange={handleSelectionChange}
-          className="fixed z-50 top-15 left-0 right-0 lg:left-56 pl-1 pr-1"
+          // 背景が固定のパステル色のため、ダークモードでも文字色などを
+          // ライトモードの見た目に固定する（light クラスでテーマをライトに再スコープ）
+          className="light fixed z-50 top-15 left-0 right-0 lg:left-56 pl-1 pr-1"
           classNames={{
             cursor: selectedKey === "inuse" ? "bg-green-200" : "bg-red-200",
             tab: "h-8",

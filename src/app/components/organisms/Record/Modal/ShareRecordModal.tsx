@@ -11,7 +11,6 @@ import {
   Button,
   Switch,
   Textarea,
-  Spinner,
   addToast,
 } from "@heroui/react";
 
@@ -20,7 +19,7 @@ import { LuShare2, LuImageDown } from "react-icons/lu";
 import RecordHero from "@app/components/organisms/Record/Hero/RecordHero";
 import Matches from "@app/components/organisms/Match/Matches";
 
-import { captureThemedPng } from "@app/utils/captureImage";
+import { captureThemedPng, SIDE_PADDING } from "@app/utils/captureImage";
 import { shareRecord, saveGeneratedImage, saveImages } from "@app/utils/saveImage";
 
 import { buildRecordPostText, formatEventDateLabel } from "@app/utils/recordPostText";
@@ -70,6 +69,12 @@ export default function ShareRecordModal({
   onClose,
 }: Props) {
   const shareContentRef = useRef<HTMLDivElement>(null);
+  // キャプチャ対象(戦績カード)の幅。書き出し画像の横幅が端末の画面幅いっぱいに
+  // なるよう、端末の画面幅から左右余白(SIDE_PADDING * 2)を引いた値を使う。
+  //   最終画像の横幅 = captureWidth + SIDE_PADDING * 2 = 端末の画面幅
+  // SSR時はwindowを参照できないため従来の360で初期化し、モーダルを開いたときに
+  // クライアント側で実際の画面幅から算出する。極端な幅を避けるためクランプする。
+  const [captureWidth, setCaptureWidth] = useState(360);
   const [includeDeck, setIncludeDeck] = useState(false);
   // ポスト文に含める要素(対戦結果・使用デッキ)
   const [includePostMatches, setIncludePostMatches] = useState(true);
@@ -88,6 +93,14 @@ export default function ShareRecordModal({
   // 再度描画完了を待つよう準備状態をリセットする。
   useEffect(() => {
     if (!isOpen) setHeroReady(false);
+  }, [isOpen]);
+
+  // モーダルを開いたら、書き出し画像の横幅が端末の画面幅いっぱいになるよう
+  // キャプチャ対象の幅を算出する。画面が狭すぎ/PCなどで広すぎる場合に備えクランプする。
+  useEffect(() => {
+    if (!isOpen) return;
+    const target = Math.round(window.innerWidth) - SIDE_PADDING * 2;
+    setCaptureWidth(Math.max(320, Math.min(target, 480)));
   }, [isOpen]);
 
   // 取得済みデータ・オプションが変わったらポスト文を組み立て直す
@@ -276,22 +289,17 @@ export default function ShareRecordModal({
                 />
 
                 <div className="flex flex-col gap-2">
-                  {/* 描画完了までは無効化。準備中であることを明示する */}
-                  {!canShare && (
-                    <div className="flex items-center justify-center gap-2 text-tiny text-default-400">
-                      <Spinner size="sm" color="current" />
-                      画像を準備しています…
-                    </div>
-                  )}
+                  {/* 画像の準備が終わるまでは「シェアする」ボタン上に準備中を表示し、
+                      スピナー付きで無効化する(準備完了までシェアさせない)。 */}
                   <Button
                     color="primary"
                     size="lg"
-                    startContent={busy !== "share" && <LuShare2 />}
-                    isLoading={busy === "share"}
+                    startContent={busy !== "share" && canShare && <LuShare2 />}
+                    isLoading={busy === "share" || !canShare}
                     isDisabled={busy !== null || !canShare}
                     onPress={handleShare}
                   >
-                    シェアする
+                    {canShare ? "シェアする" : "画像を準備しています"}
                   </Button>
                   <Button
                     variant="flat"
@@ -315,7 +323,7 @@ export default function ShareRecordModal({
           className="pointer-events-none fixed left-[-10000px] top-0"
           aria-hidden="true"
         >
-          <div ref={shareContentRef} style={{ width: 360 }}>
+          <div ref={shareContentRef} style={{ width: captureWidth }}>
             <RecordHero
               record={record}
               setRecord={setRecord}

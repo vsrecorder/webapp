@@ -12,6 +12,12 @@ import { isIOS } from "@app/utils/platform";
 // 書き出し画像に表示するサービス情報
 const APP_NAME = "バトレコ";
 
+// 書き出し画像の左右に付ける余白(CSSピクセル)。
+// 最終画像の横幅は「キャプチャ対象の幅 + SIDE_PADDING * 2」になる。
+// 呼び出し側(ShareRecordModal)が端末幅に合わせて対象幅を決める際、この値を
+// 差し引いて計算するため export している(定数の二重管理を避ける)。
+export const SIDE_PADDING = 12;
+
 // iOS Safari の canvas 制限に合わせた安全値。
 // 1辺・総面積のいずれかを超えると描画結果が空(真っ白)になることがあるため、
 // これを超えないように pixelRatio を動的に下げる。
@@ -108,8 +114,8 @@ function buildServiceFooter(isDark: boolean): {
   footer.style.alignItems = "center";
   footer.style.justifyContent = "center";
   footer.style.gap = "7px";
-  footer.style.padding = "18px 0 6px";
-  footer.style.marginTop = "16px";
+  footer.style.padding = "8px 0 2px";
+  footer.style.marginTop = "8px";
   footer.style.borderTop = `1px solid ${dividerColor}`;
 
   const icon = document.createElement("img");
@@ -161,7 +167,7 @@ export async function captureThemedPng(el: HTMLElement): Promise<string> {
   // 内容が端に張り付かないよう、周囲に余白を持たせる。
   // 左右はやや詰めて、書き出し画像内で戦績カードを大きく見せる。
   const contentWidth = el.offsetWidth;
-  const sidePadding = 12; // 左右の余白
+  const sidePadding = SIDE_PADDING; // 左右の余白
   const topPadding = 20; // 上の余白(従来どおり)
   const outerWidth = contentWidth + sidePadding * 2;
 

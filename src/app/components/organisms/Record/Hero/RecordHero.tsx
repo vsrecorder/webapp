@@ -178,8 +178,14 @@ function HeroShell({
       style={heroStyle}
       className={`${bgClass} relative w-full overflow-hidden`}
     >
-      {/* 種別ごとのアクセント(記録一覧カードの左サイドバーと同じ配色) */}
-      <span className={`absolute inset-y-0 left-0 z-10 w-1 ${accentColorClass}`} />
+      {/* 種別ごとのアクセント(記録一覧カードと同じ配色)をカード外周全体の枠線として表示。
+          色は heroStyle で設定済みの --hero-accent-rgb を使い、対応表に無い場合は
+          従来色(青)へフォールバックする。カードの角丸に合わせるため rounded-[inherit] を指定。 */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-0 z-10 rounded-[inherit] border-[3px]"
+        style={{ borderColor: `rgb(${accentRgb ?? "59, 130, 246"})` }}
+      />
       {/* 集計対象外の記録はヒーロー最上部にバナーを段差なく差し込む。
           シェア画像には含めない(data-capture-hide で除外) */}
       {ignoreStatsFlg && (
@@ -427,8 +433,7 @@ export default function RecordHero({
   // 使用デッキは未登録なら取得不要。登録済みは現在の deck_id と一致するまで待つ。
   useEffect(() => {
     if (!onReadyChange) return;
-    const deckReady =
-      !record.deck_id || (!loadingDeck && deck?.id === record.deck_id);
+    const deckReady = !record.deck_id || (!loadingDeck && deck?.id === record.deck_id);
     onReadyChange(!loadingEvent && !error && deckReady);
   }, [onReadyChange, loadingEvent, error, loadingDeck, deck, record.deck_id]);
 
@@ -450,7 +455,7 @@ export default function RecordHero({
       <span className="text-[9px] font-bold tracking-wide text-default-400">
         使用デッキ
       </span>
-      <div className="flex w-full items-center gap-3">
+      <div className="pl-6 flex w-full items-center gap-3">
         {/* 大きめスプライト(2枚は隣接) */}
         <div className="flex shrink-0 items-center">
           <Image
@@ -484,8 +489,7 @@ export default function RecordHero({
     </>
   ) : null;
 
-  const deckRowClass =
-    "mt-3.5 flex w-full flex-col gap-1.5 border-t border-divider pt-3";
+  const deckRowClass = "mt-3.5 flex w-full flex-col gap-1.5";
 
   // 取得中、または保持しているデッキが record の現在の deck_id と一致しない
   // (＝変更直後でまだ新しいデッキを取得できていない)場合はローディング表示にする。
@@ -495,8 +499,8 @@ export default function RecordHero({
   const deckLoadingRow = (
     <div className={deckRowClass}>
       <Skeleton className="h-2.5 w-12 rounded" />
-      <div className="flex w-full items-center gap-3">
-        <div className="flex shrink-0 items-center gap-1.5">
+      <div className="pl-6 flex w-full items-center gap-3">
+        <div className="flex shrink-0 items-center">
           <Skeleton className="h-12 w-12 rounded-lg" />
           <Skeleton className="h-12 w-12 rounded-lg" />
         </div>

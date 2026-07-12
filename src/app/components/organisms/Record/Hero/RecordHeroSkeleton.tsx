@@ -10,16 +10,17 @@ import MatchSkeleton from "@app/components/organisms/Match/Skeleton/MatchSkeleto
 export default function RecordHeroSkeleton() {
   return (
     <Card shadow="sm" className="relative w-full overflow-hidden bg-content1">
-      {/* 左アクセントバー(種別色は取得後に決まるためスケルトンではニュートラル) */}
-      <span className="absolute inset-y-0 left-0 z-10 w-1 bg-default-300" />
+      {/* アクセント枠線(実態はカード外周全体の枠線。種別色は取得後に決まるため
+          スケルトンではニュートラル色で表示する) */}
+      <span className="pointer-events-none absolute inset-0 z-10 rounded-[inherit] border-[3px] border-default-300" />
 
-      <div className="px-[18px] py-[18px]">
+      <div className="px-4.5 py-4.5">
         {/* 上段：イベント情報＋勝率リング＋勝敗数 */}
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
             <Skeleton className="h-3 w-24 rounded-md" />
             <div className="mt-1.5 flex items-center gap-2.5">
-              <Skeleton className="h-[45px] w-[45px] shrink-0 rounded-xl" />
+              <Skeleton className="h-11.25 w-11.25 shrink-0 rounded-xl" />
               <Skeleton className="h-5 w-40 rounded-md" />
             </div>
             <div className="mt-2.5 flex gap-1.5">
@@ -28,15 +29,15 @@ export default function RecordHeroSkeleton() {
             </div>
           </div>
           <div className="flex shrink-0 flex-col items-center gap-2">
-            <Skeleton className="h-[86px] w-[86px] rounded-full" />
+            <Skeleton className="h-21.5 w-21.5 rounded-full" />
             <Skeleton className="h-4 w-14 rounded-md" />
           </div>
         </div>
 
         {/* 使用デッキ(見出しは左上／大きめスプライト＋デッキ名＋編集ボタンのバンド) */}
-        <div className="mt-3.5 flex flex-col gap-1.5 border-t border-divider pt-3">
+        <div className="mt-3.5 flex w-full flex-col gap-1.5">
           <Skeleton className="h-2.5 w-12 rounded" />
-          <div className="flex w-full items-center gap-3">
+          <div className="pl-6 flex w-full items-center gap-3">
             <div className="flex shrink-0 items-center gap-1.5">
               <Skeleton className="h-12 w-12 rounded-lg" />
               <Skeleton className="h-12 w-12 rounded-lg" />

@@ -178,110 +178,113 @@ function HeroShell({
     : undefined;
 
   return (
-    <Card
-      shadow="sm"
-      style={heroStyle}
-      className={`${bgClass} relative w-full overflow-hidden`}
-    >
-      {/* 種別ごとのアクセント(記録一覧カードと同じ配色)をカード外周全体の枠線として表示。
-          色は heroStyle で設定済みの --hero-accent-rgb を使い、対応表に無い場合は
-          従来色(青)へフォールバックする。カードの角丸に合わせるため rounded-[inherit] を指定。 */}
-      <span
-        aria-hidden
-        className="pointer-events-none absolute inset-0 z-10 rounded-[inherit] border-[3px]"
-        style={{ borderColor: `rgb(${accentRgb ?? "59, 130, 246"})` }}
-      />
-      {/* 集計対象外の記録はヒーロー最上部にバナーを段差なく差し込む。
+    <div className="flex w-full flex-col gap-3">
+      {/* 集計対象外の記録は、戦績カードとは切り離した独立カードとしてその上部に表示する。
           シェア画像には含めない(data-capture-hide で除外) */}
       {ignoreStatsFlg && (
         <div data-capture-hide="true">
-          <IgnoreStatsBanner flush />
+          <IgnoreStatsBanner />
         </div>
       )}
 
-      <div className="px-4.5 py-4.5">
-        {/* 上段は左右2カラム。左カラムは「上：イベント情報／下：使用デッキ」の縦積み、
+      <Card
+        shadow="sm"
+        style={heroStyle}
+        className={`${bgClass} relative w-full overflow-hidden`}
+      >
+        {/* 種別ごとのアクセント(記録一覧カードと同じ配色)をカード外周全体の枠線として表示。
+            色は heroStyle で設定済みの --hero-accent-rgb を使い、対応表に無い場合は
+            従来色(青)へフォールバックする。カードの角丸に合わせるため rounded-[inherit] を指定。 */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-0 z-10 rounded-[inherit] border-[3px]"
+          style={{ borderColor: `rgb(${accentRgb ?? "59, 130, 246"})` }}
+        />
+
+        <div className="px-4.5 py-4.5">
+          {/* 上段は左右2カラム。左カラムは「上：イベント情報／下：使用デッキ」の縦積み、
             右カラムは戦績パネル。items-stretch で両カラムの高さを揃え、低い方が
             引き伸ばされることで左右のバランスが取れる。
             幅比と間隔は heroColumns.ts で一元管理する(比率の変更もそこだけでよい)。 */}
-        <div className="flex items-stretch" style={heroColRowStyle}>
-          {/* 左：イベント情報(上)＋使用デッキ(下) */}
-          <div className={`${HERO_INFO_COL_CLASS} flex flex-col`}>
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] font-medium text-default-400">{date}</span>
-              {action}
+          <div className="flex items-stretch" style={heroColRowStyle}>
+            {/* 左：イベント情報(上)＋使用デッキ(下) */}
+            <div className={`${HERO_INFO_COL_CLASS} flex flex-col`}>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[11px] font-medium text-default-400">{date}</span>
+                {action}
+              </div>
+
+              {(() => {
+                // アイコン＋イベント名の中身は共通。リンク/タップ/静的で外側だけ切り替える
+                const iconTitle = (
+                  <>
+                    <div
+                      className={`flex h-11.25 w-11.25 shrink-0 items-center justify-center overflow-hidden rounded-xl ring-1 ring-inset ring-black/5 ${iconBoxClassName}`}
+                    >
+                      {iconNode}
+                    </div>
+                    <h3 className="min-w-0 text-base font-bold leading-tight wrap-break-word">
+                      {renderEventTitle(title)}
+                    </h3>
+                  </>
+                );
+                const rowClass =
+                  "mt-1 flex items-center gap-2.5 transition-opacity hover:opacity-80";
+
+                if (titleHref) {
+                  return (
+                    <Link
+                      isExternal
+                      href={titleHref}
+                      color="foreground"
+                      className={rowClass}
+                    >
+                      {iconTitle}
+                    </Link>
+                  );
+                }
+                if (onTitleClick) {
+                  return (
+                    <button
+                      type="button"
+                      onClick={onTitleClick}
+                      className={`${rowClass} w-full text-left`}
+                    >
+                      {iconTitle}
+                    </button>
+                  );
+                }
+                return <div className="mt-1 flex items-center gap-2.5">{iconTitle}</div>;
+              })()}
+
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">{chips}</div>
+
+              {/* 使用デッキ(登録済みの場合のみ)。mt-auto で左カラムの最下部へ寄せ、
+                右の戦績パネルと下端を揃える */}
+              {deckSlot && <div className="mt-auto pt-3.5">{deckSlot}</div>}
             </div>
 
-            {(() => {
-              // アイコン＋イベント名の中身は共通。リンク/タップ/静的で外側だけ切り替える
-              const iconTitle = (
-                <>
-                  <div
-                    className={`flex h-11.25 w-11.25 shrink-0 items-center justify-center overflow-hidden rounded-xl ring-1 ring-inset ring-black/5 ${iconBoxClassName}`}
-                  >
-                    {iconNode}
-                  </div>
-                  <h3 className="min-w-0 text-base font-bold leading-tight wrap-break-word">
-                    {renderEventTitle(title)}
-                  </h3>
-                </>
-              );
-              const rowClass =
-                "mt-1 flex items-center gap-2.5 transition-opacity hover:opacity-80";
-
-              if (titleHref) {
-                return (
-                  <Link
-                    isExternal
-                    href={titleHref}
-                    color="foreground"
-                    className={rowClass}
-                  >
-                    {iconTitle}
-                  </Link>
-                );
-              }
-              if (onTitleClick) {
-                return (
-                  <button
-                    type="button"
-                    onClick={onTitleClick}
-                    className={`${rowClass} w-full text-left`}
-                  >
-                    {iconTitle}
-                  </button>
-                );
-              }
-              return <div className="mt-1 flex items-center gap-2.5">{iconTitle}</div>;
-            })()}
-
-            <div className="mt-2 flex flex-wrap items-center gap-1.5">{chips}</div>
-
-            {/* 使用デッキ(登録済みの場合のみ)。mt-auto で左カラムの最下部へ寄せ、
-                右の戦績パネルと下端を揃える */}
-            {deckSlot && <div className="mt-auto pt-3.5">{deckSlot}</div>}
+            {/* 右：戦績パネル(対戦がある場合のみ) */}
+            {hasStats && <RecordStatPanel stats={stats} />}
           </div>
 
-          {/* 右：戦績パネル(対戦がある場合のみ) */}
-          {hasStats && <RecordStatPanel stats={stats} />}
-        </div>
-
-        {/* 対戦結果(親から受け取る)。かつて「勝敗の推移」があった位置に配置する */}
-        {matchesSlot && (
-          <div className="mt-3.5 flex w-full flex-col gap-1.5 border-t border-divider pt-3">
-            <span className="text-[9px] font-bold tracking-wide text-default-400">
-              対戦結果
-            </span>
-            {/* 戦績カードのグラデーションと各行の勝敗グラデーションが干渉して
+          {/* 対戦結果(親から受け取る)。かつて「勝敗の推移」があった位置に配置する */}
+          {matchesSlot && (
+            <div className="mt-3.5 flex w-full flex-col gap-1.5 border-t border-divider pt-3">
+              <span className="text-[9px] font-bold tracking-wide text-default-400">
+                対戦結果
+              </span>
+              {/* 戦績カードのグラデーションと各行の勝敗グラデーションが干渉して
                 見づらくなるのを防ぐため、対戦結果は不透明なサーフェスの
                 パネルに収めて視覚的に分離する */}
-            <div className="overflow-hidden rounded-xl border border-divider bg-content1">
-              {matchesSlot}
+              <div className="overflow-hidden rounded-xl border border-divider bg-content1">
+                {matchesSlot}
+              </div>
             </div>
-          </div>
-        )}
-      </div>
-    </Card>
+          )}
+        </div>
+      </Card>
+    </div>
   );
 }
 
@@ -586,18 +589,17 @@ export default function RecordHero({
               >
                 {getEventTypeName(officialEvent)}
               </Chip>
-              {officialEvent.environment_title &&
-                !isExtraBattleDay(officialEvent) && (
-                  <Chip
-                    size="sm"
-                    variant="flat"
-                    color="default"
-                    className="h-5 max-w-30"
-                    classNames={{ content: "text-[10px] truncate min-w-0" }}
-                  >
-                    {`『${officialEvent.environment_title}』`}
-                  </Chip>
-                )}
+              {officialEvent.environment_title && !isExtraBattleDay(officialEvent) && (
+                <Chip
+                  size="sm"
+                  variant="flat"
+                  color="default"
+                  className="h-5 max-w-30"
+                  classNames={{ content: "text-[10px] truncate min-w-0" }}
+                >
+                  {`『${officialEvent.environment_title}』`}
+                </Chip>
+              )}
               {venue && (
                 <Chip
                   size="sm"

@@ -17,6 +17,7 @@ import { Chip } from "@heroui/react";
 import { addToast } from "@heroui/react";
 
 import { spriteScaleClass } from "@app/utils/sprite";
+import GameStreak from "@app/components/organisms/Match/GameStreak";
 import { Card, CardBody } from "@heroui/react";
 
 import { useDisclosure } from "@heroui/react";
@@ -587,37 +588,91 @@ export default function Matches({
                                                           チーム戦
                                                         </Chip>
                                                       )}
-                                                      <Chip
-                                                        size="sm"
-                                                        variant="flat"
-                                                        radius="sm"
-                                                        classNames={{
-                                                          base: "h-4 px-1",
-                                                          content:
-                                                            "px-1 text-[8px] font-bold",
-                                                        }}
-                                                      >
-                                                        {match.games[0].go_first
-                                                          ? "先攻"
-                                                          : "後攻"}
-                                                      </Chip>
-                                                      <Chip
-                                                        size="sm"
-                                                        variant="flat"
-                                                        radius="sm"
-                                                        classNames={{
-                                                          base: "h-4 px-1",
-                                                          content:
-                                                            "px-1 text-[8px] font-bold",
-                                                        }}
-                                                      >
-                                                        {match.games[0].your_prize_cards}
-                                                        {" - "}
-                                                        {
-                                                          match.games[0]
-                                                            .opponents_prize_cards
-                                                        }
-                                                      </Chip>
+                                                      {match.bo3_flg ? (
+                                                        // BO3は複数ゲームあるため、勝敗の推移(W/L)と各ゲームの先後をまとめて表示する
+                                                        <>
+                                                          <Chip
+                                                            size="sm"
+                                                            variant="flat"
+                                                            radius="sm"
+                                                            color="primary"
+                                                            classNames={{
+                                                              base: "h-4 px-1",
+                                                              content:
+                                                                "px-1 text-[8px] font-bold",
+                                                            }}
+                                                          >
+                                                            BO3
+                                                          </Chip>
+                                                          {/* 勝敗の推移（1本目→3本目の順にW/Lを並べる） */}
+                                                          <Chip
+                                                            size="sm"
+                                                            variant="flat"
+                                                            radius="sm"
+                                                            classNames={{
+                                                              base: "h-4 px-1",
+                                                              content: "px-1",
+                                                            }}
+                                                          >
+                                                            <GameStreak
+                                                              games={match.games}
+                                                              size={11}
+                                                            />
+                                                          </Chip>
+                                                          <Chip
+                                                            size="sm"
+                                                            variant="flat"
+                                                            radius="sm"
+                                                            classNames={{
+                                                              base: "h-4 px-1",
+                                                              content:
+                                                                "px-1 text-[8px] font-bold",
+                                                            }}
+                                                          >
+                                                            {match.games
+                                                              .map((game) =>
+                                                                game.go_first
+                                                                  ? "先攻"
+                                                                  : "後攻",
+                                                              )
+                                                              .join(" / ")}
+                                                          </Chip>
+                                                        </>
+                                                      ) : (
+                                                        <>
+                                                          <Chip
+                                                            size="sm"
+                                                            variant="flat"
+                                                            radius="sm"
+                                                            classNames={{
+                                                              base: "h-4 px-1",
+                                                              content:
+                                                                "px-1 text-[8px] font-bold",
+                                                            }}
+                                                          >
+                                                            {match.games[0]?.go_first
+                                                              ? "先攻"
+                                                              : "後攻"}
+                                                          </Chip>
+                                                          <Chip
+                                                            size="sm"
+                                                            variant="flat"
+                                                            radius="sm"
+                                                            classNames={{
+                                                              base: "h-4 px-1",
+                                                              content:
+                                                                "px-1 text-[8px] font-bold",
+                                                            }}
+                                                          >
+                                                            {match.games[0]
+                                                              ?.your_prize_cards ?? 0}
+                                                            {" - "}
+                                                            {match.games[0]
+                                                              ?.opponents_prize_cards ??
+                                                              0}
+                                                          </Chip>
+                                                        </>
+                                                      )}
                                                     </div>
                                                   </div>
                                                 </div>

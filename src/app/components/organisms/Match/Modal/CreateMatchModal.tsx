@@ -29,6 +29,7 @@ import { Image } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
 
 import PokemonSpriteModal from "@app/components/organisms/Match/Modal/PokemonSpriteModal";
+import BO3GamesInput from "@app/components/organisms/Match/BO3GamesInput";
 
 import { RecordGetByIdResponseType } from "@app/types/record";
 import { MatchGetResponseType } from "@app/types/match";
@@ -37,6 +38,13 @@ import { GameRequestType } from "@app/types/game";
 import { PokemonSpriteType } from "@app/types/pokemon_sprite";
 import { spriteScaleClass } from "@app/utils/sprite";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
+import {
+  GameInput,
+  newGameInputs,
+  submittedGames,
+  bo3VictoryFlg,
+  isBO3GamesFilled,
+} from "@app/utils/bo3";
 
 const SPRITE_BASE_URL = "https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites";
 
@@ -86,6 +94,7 @@ type DeckHistory = {
   sprite2: PokemonSpriteType | null;
 };
 
+
 async function fetchMatches(url: string): Promise<MatchGetResponseType[]> {
   const res = await fetch(url, {
     method: "GET",
@@ -110,8 +119,19 @@ export default function CreateMatchModal({
   onOpenChange,
   onClose,
 }: Props) {
-  // 選択中のタブ（"bo1" or "team"）。"team" の場合はチーム戦として登録する
+  // 選択中のタブ（"bo1" / "bo3" / "team"）。
+  // "bo3" はBO3(2本先取)、"team" はチーム戦として登録する（BO3とチーム戦は排他）
   const [selectedTab, setSelectedTab] = useState("bo1");
+
+  // BO3の各ゲームの入力値（最大3ゲーム）
+  const [bo3Games, setBo3Games] = useState<GameInput[]>(newGameInputs());
+
+  // BO3の指定インデックスのゲームを部分更新する
+  const updateBO3Game = (index: number, patch: Partial<GameInput>) => {
+    setBo3Games((prev) =>
+      prev.map((game, i) => (i === index ? { ...game, ...patch } : game)),
+    );
+  };
 
   const [qualifyingRoundFlg, setQualifyingRoundFlg] = useState(false);
   const [finalTournamentFlg, setFinalTournamentFlg] = useState(false);
@@ -264,6 +284,8 @@ export default function CreateMatchModal({
     setIsVictory("-1");
     setIsGroupMatchVictory("-1");
 
+    setBo3Games(newGameInputs());
+
     setIsDefaultVictory(false);
     setIsDefaultDefeat(false);
 
@@ -307,7 +329,24 @@ export default function CreateMatchModal({
   }, [qualifyingRoundFlg, finalTournamentFlg]);
 
   useEffect(() => {
-    if (opponentsDeckInfo === "" || isGoFirst === "-1" || isVictory === "-1") {
+    // 不戦勝/不戦敗の場合は相手のデッキも勝敗も入力しないため、常に登録可能
+    if (isDefaultVictory || isDefaultDefeat) {
+      setCouldCreateFlg(true);
+      return;
+    }
+
+    if (opponentsDeckInfo === "") {
+      setCouldCreateFlg(false);
+      return;
+    }
+
+    // BO3タブは各ゲームの先攻/後攻と勝敗がすべて入力されている必要がある
+    if (selectedTab === "bo3") {
+      setCouldCreateFlg(isBO3GamesFilled(bo3Games));
+      return;
+    }
+
+    if (isGoFirst === "-1" || isVictory === "-1") {
       setCouldCreateFlg(false);
       // チーム戦タブの場合はチームの勝敗（group_match_victory_flg）も必須
     } else if (selectedTab === "team" && isGroupMatchVictory === "-1") {
@@ -315,7 +354,16 @@ export default function CreateMatchModal({
     } else {
       setCouldCreateFlg(true);
     }
-  }, [opponentsDeckInfo, isGoFirst, isVictory, isGroupMatchVictory, selectedTab]);
+  }, [
+    opponentsDeckInfo,
+    isGoFirst,
+    isVictory,
+    isGroupMatchVictory,
+    selectedTab,
+    bo3Games,
+    isDefaultVictory,
+    isDefaultDefeat,
+  ]);
 
   useEffect(() => {
     // 不戦勝/不戦敗が選択された場合
@@ -328,6 +376,9 @@ export default function CreateMatchModal({
 
       setYourPrizeCards(0);
       setOpponentsPrizeCards(0);
+
+      // 不戦勝/不戦敗は対戦が行われていないためゲームを登録しない
+      setBo3Games(newGameInputs());
 
       if (isDefaultVictory) {
         setIsVictory("1");
@@ -346,13 +397,23 @@ export default function CreateMatchModal({
     }
   }, [isDefaultVictory, isDefaultDefeat]);
 
-  const createBO1Match = async (onClose: () => void) => {
+  const createMatch = async (onClose: () => void) => {
     setCouldCreateFlg(false);
+
+    // BO3タブが選択されている場合はBO3(2本先取)として登録する
+    const isBO3 = selectedTab === "bo3";
+    // チーム戦タブが選択されている場合はチーム戦として登録する（BO3とは排他）
+    const isGroupMatch = selectedTab === "team";
+    const isDefault = isDefaultVictory || isDefaultDefeat;
 
     let games: GameRequestType[] = [];
 
-    if (isGoFirst === "-1" || isVictory === "-1") {
-      if (!(isDefaultVictory || isDefaultDefeat)) {
+    if (!isDefault) {
+      const isInvalid = isBO3
+        ? !isBO3GamesFilled(bo3Games)
+        : isGoFirst === "-1" || isVictory === "-1";
+
+      if (isInvalid) {
         addToast({
           title: "エラーが発生しました",
           description: <>エラーが発生しました</>,
@@ -364,18 +425,27 @@ export default function CreateMatchModal({
 
         return;
       }
-    }
 
-    if (!isDefaultVictory && !isDefaultDefeat) {
-      const game: GameRequestType = {
-        go_first: isGoFirst === "1",
-        winnging_flg: isVictory === "1",
-        your_prize_cards: yourPrizeCards,
-        opponents_prize_cards: opponentsPrizeCards,
-        memo: "",
-      };
-
-      games = [game];
+      if (isBO3) {
+        // 2本先取で決着した時点までのゲームを登録する（2-0なら2件、2-1なら3件）
+        games = submittedGames(bo3Games).map((game) => ({
+          go_first: game.goFirst === "1",
+          winnging_flg: game.victory === "1",
+          your_prize_cards: game.yourPrizeCards,
+          opponents_prize_cards: game.opponentsPrizeCards,
+          memo: "",
+        }));
+      } else {
+        games = [
+          {
+            go_first: isGoFirst === "1",
+            winnging_flg: isVictory === "1",
+            your_prize_cards: yourPrizeCards,
+            opponents_prize_cards: opponentsPrizeCards,
+            memo: "",
+          },
+        ];
+      }
     }
 
     const pokemon_sprites: PokemonSpriteType[] = [];
@@ -388,21 +458,22 @@ export default function CreateMatchModal({
       pokemon_sprites.push(pokemonSprite2);
     }
 
-    // チーム戦タブが選択されている場合はチーム戦として登録する
-    const isGroupMatch = selectedTab === "team";
+    // BO3の対戦全体の勝敗はゲームの勝敗から導出する（不戦勝/不戦敗はトグルの値を使う）
+    const victoryFlg =
+      isBO3 && !isDefault ? bo3VictoryFlg(bo3Games) : isVictory === "1";
 
     const match: MatchCreateRequestType = {
       record_id: record ? record.id : "",
       deck_id: record ? record.deck_id : "",
       deck_code_id: record ? record.deck_code_id : "",
       opponents_user_id: "",
-      bo3_flg: false,
+      bo3_flg: isBO3,
       group_match_flg: isGroupMatch,
       qualifying_round_flg: qualifyingRoundFlg,
       final_tournament_flg: finalTournamentFlg,
       default_victory_flg: isDefaultVictory,
       default_defeat_flg: isDefaultDefeat,
-      victory_flg: isVictory === "1",
+      victory_flg: victoryFlg,
       // チーム戦のときのみチームの勝敗を設定（個人戦では常に false）
       // 不戦勝の場合はチームも勝ちとして扱う
       group_match_victory_flg:
@@ -482,9 +553,13 @@ export default function CreateMatchModal({
     }
   };
 
-  // BO1 / チーム戦タブで共通の入力フォーム
-  // showGroupMatch が true の場合はチームの勝敗（group_match_victory_flg）の入力欄も表示する
-  const renderMatchForm = (showGroupMatch: boolean) => (
+  // BO1 / BO3 / チーム戦タブで共通の入力フォーム
+  // mode に応じてゲームの入力欄（1ゲーム or BO3の複数ゲーム）とチームの勝敗欄を切り替える
+  const renderMatchForm = (mode: "bo1" | "bo3" | "team") => {
+    const showGroupMatch = mode === "team";
+    const isBO3 = mode === "bo3";
+
+    return (
     <div className="flex flex-col gap-2 pt-0">
       <Card shadow="md" className="w-full">
         <CardHeader className="pb-0 text-tiny">予選/本戦</CardHeader>
@@ -712,89 +787,99 @@ export default function CreateMatchModal({
         </CardBody>
       </Card>
 
-      <div className="flex items-center gap-6">
-        <Card shadow="md" className="w-full">
-          <CardHeader className="pb-0 text-tiny">
-            <label className="flex items-center gap-1">
-              先攻/後攻
-              <span className="text-red-500 text-sm">*</span>
-            </label>
-          </CardHeader>
-          <CardBody className="">
-            <RadioGroup
-              isRequired
-              isDisabled={isDisabled}
-              size="md"
-              label=""
-              orientation="horizontal"
-              value={isGoFirst}
-              onValueChange={setIsGoFirst}
-              classNames={{
-                base: "items-center",
-                wrapper: "flex items-center gap-6",
-              }}
-            >
-              <Radio value="1">先攻</Radio>
-              <Radio value="0">後攻</Radio>
-            </RadioGroup>
-          </CardBody>
-        </Card>
-
-        <Card shadow="md" className="w-full">
-          <CardHeader className="pb-0 text-tiny">
-            <label className="flex items-center gap-1">
-              {showGroupMatch ? "自分の勝敗" : "勝ち/負け"}
-              <span className="text-red-500 text-sm">*</span>
-            </label>
-          </CardHeader>
-          <CardBody className="">
-            <RadioGroup
-              isRequired
-              isDisabled={isDisabled}
-              size="md"
-              label=""
-              orientation="horizontal"
-              value={isVictory}
-              onValueChange={setIsVictory}
-              classNames={{
-                base: "items-center",
-                wrapper: "flex items-center gap-6",
-              }}
-            >
-              <Radio value="1">勝ち</Radio>
-              <Radio value="0">負け</Radio>
-            </RadioGroup>
-          </CardBody>
-        </Card>
-      </div>
-
-      <div className="flex items-center gap-5">
-        <NumberInput
-          label="自分"
-          placeholder=""
+      {isBO3 ? (
+        <BO3GamesInput
+          games={bo3Games}
+          onChange={updateBO3Game}
           isDisabled={isDisabled}
-          minValue={0}
-          maxValue={6}
-          defaultValue={0}
-          value={yourPrizeCards}
-          onValueChange={setYourPrizeCards}
-          className=""
         />
+      ) : (
+        <>
+          <div className="flex items-center gap-6">
+            <Card shadow="md" className="w-full">
+              <CardHeader className="pb-0 text-tiny">
+                <label className="flex items-center gap-1">
+                  先攻/後攻
+                  <span className="text-red-500 text-sm">*</span>
+                </label>
+              </CardHeader>
+              <CardBody className="">
+                <RadioGroup
+                  isRequired
+                  isDisabled={isDisabled}
+                  size="md"
+                  label=""
+                  orientation="horizontal"
+                  value={isGoFirst}
+                  onValueChange={setIsGoFirst}
+                  classNames={{
+                    base: "items-center",
+                    wrapper: "flex items-center gap-6",
+                  }}
+                >
+                  <Radio value="1">先攻</Radio>
+                  <Radio value="0">後攻</Radio>
+                </RadioGroup>
+              </CardBody>
+            </Card>
 
-        <span className="font-bold text-2xl">-</span>
+            <Card shadow="md" className="w-full">
+              <CardHeader className="pb-0 text-tiny">
+                <label className="flex items-center gap-1">
+                  {showGroupMatch ? "自分の勝敗" : "勝ち/負け"}
+                  <span className="text-red-500 text-sm">*</span>
+                </label>
+              </CardHeader>
+              <CardBody className="">
+                <RadioGroup
+                  isRequired
+                  isDisabled={isDisabled}
+                  size="md"
+                  label=""
+                  orientation="horizontal"
+                  value={isVictory}
+                  onValueChange={setIsVictory}
+                  classNames={{
+                    base: "items-center",
+                    wrapper: "flex items-center gap-6",
+                  }}
+                >
+                  <Radio value="1">勝ち</Radio>
+                  <Radio value="0">負け</Radio>
+                </RadioGroup>
+              </CardBody>
+            </Card>
+          </div>
 
-        <NumberInput
-          label="相手"
-          placeholder=""
-          isDisabled={isDisabled}
-          minValue={0}
-          maxValue={6}
-          defaultValue={0}
-          value={opponentsPrizeCards}
-          onValueChange={setOpponentsPrizeCards}
-          className=""
-        />
-      </div>
+          <div className="flex items-center gap-5">
+            <NumberInput
+              label="自分"
+              placeholder=""
+              isDisabled={isDisabled}
+              minValue={0}
+              maxValue={6}
+              defaultValue={0}
+              value={yourPrizeCards}
+              onValueChange={setYourPrizeCards}
+              className=""
+            />
+
+            <span className="font-bold text-2xl">-</span>
+
+            <NumberInput
+              label="相手"
+              placeholder=""
+              isDisabled={isDisabled}
+              minValue={0}
+              maxValue={6}
+              defaultValue={0}
+              value={opponentsPrizeCards}
+              onValueChange={setOpponentsPrizeCards}
+              className=""
+            />
+          </div>
+        </>
+      )}
 
       {showGroupMatch && (
         <Card shadow="md" className="w-full">
@@ -837,7 +922,8 @@ export default function CreateMatchModal({
         }}
       />
     </div>
-  );
+    );
+  };
 
   return (
     <>
@@ -859,32 +945,7 @@ export default function CreateMatchModal({
         isKeyboardDismissDisabled={isDisabled}
         isOpen={isOpen}
         onOpenChange={onOpenChange}
-        onClose={() => {
-          setSelectedTab("bo1");
-
-          setQualifyingRoundFlg(false);
-          setFinalTournamentFlg(false);
-
-          setOpponentsDeckInfo("");
-
-          setIsGoFirst("-1");
-          setIsVictory("-1");
-          setIsGroupMatchVictory("-1");
-
-          setIsDefaultVictory(false);
-          setIsDefaultDefeat(false);
-
-          setYourPrizeCards(0);
-          setOpponentsPrizeCards(0);
-
-          setMemo("");
-
-          setPokemonSprite1(null);
-          setPokemonSprite2(null);
-
-          setIsDisabled(false);
-          setCouldCreateFlg(false);
-        }}
+        onClose={resetForm}
         hideCloseButton
         className="h-[calc(100dvh-108px)] max-h-[calc(100dvh-108px)] my-0 rounded-b-none"
         classNames={{
@@ -914,10 +975,14 @@ export default function CreateMatchModal({
                   onSelectionChange={(key) => setSelectedTab(key as string)}
                 >
                   <Tab key="bo1" title="BO1">
-                    {renderMatchForm(false)}
+                    {renderMatchForm("bo1")}
+                  </Tab>
+                  {/* BO3は一旦提供を停止しているため無効化する */}
+                  <Tab key="bo3" title="BO3" isDisabled>
+                    {renderMatchForm("bo3")}
                   </Tab>
                   <Tab key="team" title="チーム戦">
-                    {renderMatchForm(true)}
+                    {renderMatchForm("team")}
                   </Tab>
                 </Tabs>
               </ModalBody>
@@ -955,7 +1020,7 @@ export default function CreateMatchModal({
                   variant="solid"
                   isDisabled={!isValidedFlg || (!isDisabled && !couldCreateFlg)}
                   onPress={() => {
-                    createBO1Match(onClose);
+                    createMatch(onClose);
                   }}
                   className="font-bold"
                 >

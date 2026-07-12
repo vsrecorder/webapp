@@ -221,7 +221,7 @@ export default function ShareRecordModal({
               <ModalHeader
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
-                className="flex cursor-grab touch-none flex-col gap-1 px-4 pb-2 pt-3"
+                className="flex cursor-grab touch-none flex-col gap-1 px-4 pb-1.5 pt-3"
               >
                 <div className="mx-auto mb-1 h-1 w-32 rounded-full bg-default-300" />
                 <div className="flex items-center gap-2">
@@ -229,9 +229,9 @@ export default function ShareRecordModal({
                   シェア
                 </div>
               </ModalHeader>
-              <ModalBody className="gap-4 px-4 pb-6">
+              <ModalBody className="gap-3 px-4 pb-3">
                 <p className="text-tiny text-default-500">
-                  この記録の戦績と対戦結果を画像にして、下のポスト文と一緒にシェアします。
+                  記録の戦績を画像にして、ポスト文と一緒にシェアできます。
                 </p>
 
                 {/* 使用デッキがある場合のみ、使用デッキ関連のトグルを出す。 */}

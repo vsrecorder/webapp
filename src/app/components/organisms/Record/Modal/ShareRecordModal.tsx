@@ -11,12 +11,11 @@ import {
   Button,
   Switch,
   Textarea,
-  Card,
-  CardBody,
+  Spinner,
   addToast,
 } from "@heroui/react";
 
-import { LuShare2, LuImageDown, LuSwords } from "react-icons/lu";
+import { LuShare2, LuImageDown } from "react-icons/lu";
 
 import RecordHero from "@app/components/organisms/Record/Hero/RecordHero";
 import Matches from "@app/components/organisms/Match/Matches";
@@ -53,7 +52,7 @@ const noopSetMatches: Dispatch<SetStateAction<MatchGetResponseType[] | null>> = 
 
 /*
  * 記録のシェア用モーダル。
- * 画面外に「戦績サマリー(勝敗の推移を含む)＋対戦結果」をレンダリングして1枚目の画像を生成し、
+ * 画面外に「戦績サマリー＋対戦結果」をレンダリングして1枚目の画像を生成し、
  * 「使用デッキも一緒にシェア」ONのときはデッキコードパネルを2枚目として追加する。
  * 生成した画像をポスト文とともに Web Share API で共有する。
  */
@@ -78,6 +77,18 @@ export default function ShareRecordModal({
   // 実行中の処理種別。ボタンごとに正しくローディング表示を出し分ける
   const [busy, setBusy] = useState<null | "share" | "save">(null);
   const [text, setText] = useState("");
+
+  // キャプチャ用の RecordHero がイベント・使用デッキを描画し終えたか。
+  // 描画完了(＋対戦一覧の取得完了)までシェア/保存を無効化し、
+  // スケルトン状態のまま画像が生成されるのを防ぐ。
+  const [heroReady, setHeroReady] = useState(false);
+  const canShare = heroReady && matches !== null;
+
+  // モーダルを閉じるとキャプチャ用 DOM は破棄されるため、次に開いたときは
+  // 再度描画完了を待つよう準備状態をリセットする。
+  useEffect(() => {
+    if (!isOpen) setHeroReady(false);
+  }, [isOpen]);
 
   // 取得済みデータ・オプションが変わったらポスト文を組み立て直す
   // (この時点でユーザーの手編集は上書きされる)
@@ -129,6 +140,7 @@ export default function ShareRecordModal({
   };
 
   const handleShare = async () => {
+    if (!canShare) return;
     setBusy("share");
     try {
       const images = await captureImages();
@@ -156,6 +168,7 @@ export default function ShareRecordModal({
   };
 
   const handleSaveOnly = async () => {
+    if (!canShare) return;
     setBusy("save");
     try {
       const images = await captureImages();
@@ -263,12 +276,19 @@ export default function ShareRecordModal({
                 />
 
                 <div className="flex flex-col gap-2">
+                  {/* 描画完了までは無効化。準備中であることを明示する */}
+                  {!canShare && (
+                    <div className="flex items-center justify-center gap-2 text-tiny text-default-400">
+                      <Spinner size="sm" color="current" />
+                      画像を準備しています…
+                    </div>
+                  )}
                   <Button
                     color="primary"
                     size="lg"
                     startContent={busy !== "share" && <LuShare2 />}
                     isLoading={busy === "share"}
-                    isDisabled={busy !== null}
+                    isDisabled={busy !== null || !canShare}
                     onPress={handleShare}
                   >
                     シェアする
@@ -277,7 +297,7 @@ export default function ShareRecordModal({
                     variant="flat"
                     startContent={busy !== "save" && <LuImageDown />}
                     isLoading={busy === "save"}
-                    isDisabled={busy !== null}
+                    isDisabled={busy !== null || !canShare}
                     onPress={handleSaveOnly}
                   >
                     画像だけ保存
@@ -289,23 +309,19 @@ export default function ShareRecordModal({
         </ModalContent>
       </Modal>
 
-      {/* キャプチャ用の画面外DOM(戦績サマリー＋対戦結果)。1枚目の画像として使う */}
+      {/* キャプチャ用の画面外DOM。戦績サマリー＋使用デッキ＋対戦結果を1枚のカードに統合して画像にする */}
       {isOpen && (
         <div
           className="pointer-events-none fixed left-[-10000px] top-0"
           aria-hidden="true"
         >
-          <div
-            ref={shareContentRef}
-            style={{ width: 360 }}
-            className="flex flex-col gap-3"
-          >
-            <RecordHero record={record} setRecord={setRecord} stats={stats} />
-            <Card shadow="sm" className="border border-divider">
-              <CardBody className="p-3">
-                <div className="mb-2 flex items-center gap-2 text-xs font-bold text-default-500">
-                  <LuSwords className="text-primary" /> 対戦結果
-                </div>
+          <div ref={shareContentRef} style={{ width: 360 }}>
+            <RecordHero
+              record={record}
+              setRecord={setRecord}
+              stats={stats}
+              onReadyChange={setHeroReady}
+              matchesSlot={
                 <Matches
                   record={record}
                   matches={matches}
@@ -315,8 +331,8 @@ export default function ShareRecordModal({
                   enableUpdateMatchModalButton={false}
                   flat
                 />
-              </CardBody>
-            </Card>
+              }
+            />
           </div>
         </div>
       )}

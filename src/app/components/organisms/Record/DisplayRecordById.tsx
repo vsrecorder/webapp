@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 
 import { Card, CardBody } from "@heroui/react";
-import { LuSwords, LuLayers, LuChartNoAxesColumn } from "react-icons/lu";
+import { LuLayers, LuChartNoAxesColumn } from "react-icons/lu";
 
 import RecordHero from "@app/components/organisms/Record/Hero/RecordHero";
 import BoardPanel from "@app/components/organisms/Record/BoardPanel";
@@ -51,7 +51,7 @@ export default function DisplayRecordById({ recordData }: Props) {
 
   return (
     <div className="px-0.5 pt-6 pb-6 flex flex-col gap-4 lg:max-w-2xl lg:mx-auto overflow-y-auto">
-      {/* ヒーロー：イベント情報＋戦績(勝率リング・勝敗・推移)＋集計対象外バナー */}
+      {/* ヒーロー：イベント情報＋戦績(勝率リング・勝敗)＋使用デッキ＋対戦結果＋集計対象外バナー */}
       {record && (
         <RecordHero
           record={record}
@@ -59,13 +59,7 @@ export default function DisplayRecordById({ recordData }: Props) {
           stats={stats}
           enableEditTCGMeisterURL={true}
           enableEditUsedDeck={true}
-        />
-      )}
-
-      {/* ボード：対戦結果・デッキコード・戦績集計を1枚のカードにまとめる */}
-      <Card shadow="sm" className="w-full overflow-hidden">
-        <CardBody className="p-0">
-          <BoardPanel icon={<LuSwords />} label="対戦結果">
+          matchesSlot={
             <Matches
               record={record}
               matches={matches}
@@ -75,8 +69,13 @@ export default function DisplayRecordById({ recordData }: Props) {
               enableUpdateMatchModalButton={true}
               flat={true}
             />
-          </BoardPanel>
+          }
+        />
+      )}
 
+      {/* ボード：デッキコード・戦績集計を1枚のカードにまとめる */}
+      <Card shadow="sm" className="w-full overflow-hidden">
+        <CardBody className="p-0">
           <BoardPanel icon={<LuLayers />} label="デッキコード">
             <div ref={deckCardRef}>
               <UsedDeckById

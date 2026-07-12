@@ -22,7 +22,6 @@ import {
   LuEllipsisVertical,
   LuExternalLink,
   LuTrash2,
-  LuSwords,
   LuLayers,
   LuChartNoAxesColumn,
   LuShare2,
@@ -273,109 +272,123 @@ export default function DisplayRecordModal({
                 <div className="mx-auto h-1 w-32 mb-1.5 rounded-full bg-default-300" />
 
                 {/* 両端配置 */}
-                <div className="flex items-center justiry-center justify-between w-full">
+                <div className="flex items-center justify-between w-full">
                   <div>記録情報</div>
 
-                  {/* 3点メニュー */}
-                  <Dropdown
-                    isOpen={isDropdownOpen}
-                    onOpenChange={setIsDropdownOpen}
-                    // HeroUI 側の「メニュー外押下で閉じる」を無効化する。
-                    // これを有効にしたままだと、押下時にオーバーレイが先に消えてしまい、
-                    // 直後のクリックが背後の要素に着弾してしまう。
-                    // クローズはオーバーレイの onClick に一本化し、クリックをオーバーレイに消費させる。
-                    shouldCloseOnInteractOutside={() => false}
-                  >
-                    <DropdownTrigger>
-                      <Button
-                        isIconOnly
-                        variant="light"
-                        size="sm"
-                        className="text-default-500 -translate-y-3"
-                        aria-label="メニューを開く"
-                      >
-                        <LuEllipsisVertical className="text-xl" />
-                      </Button>
-                    </DropdownTrigger>
-                    <DropdownMenu aria-label="記録の操作">
-                      <DropdownItem
-                        key="share"
-                        startContent={<LuShare2 />}
-                        onPress={onOpenForShareModal}
-                      >
-                        この記録をシェアする
-                      </DropdownItem>
-                      <DropdownItem
-                        key="detail"
-                        startContent={<LuExternalLink />}
-                        onPress={() => {
-                          const eventType =
-                            record.official_event_id !== 0
-                              ? "official"
-                              : record.tonamel_event_id !== ""
-                                ? "tonamel"
-                                : "unofficial";
-                          sessionStorage.setItem("reopenModalRecordId", record.id);
-                          sessionStorage.setItem("reopenModalEventType", eventType);
-                          // デッキの記録一覧モーダル内から開いた場合は、戻り遷移で
-                          // デッキモーダル＋記録一覧モーダルを再開するため deck.id も保存する。
-                          const activeDeckId = sessionStorage.getItem(
-                            "activeDeckRecordsModalDeckId",
-                          );
-                          if (activeDeckId) {
-                            sessionStorage.setItem("reopenDeckModalDeckId", activeDeckId);
-                            // アーカイブ状態も引き継ぐ（戻り時のタブ切り替え用）
-                            const activeArchived = sessionStorage.getItem(
-                              "activeDeckRecordsModalArchived",
+                  {/* 右側の操作: シェア(独立アイコン) + 3点メニュー */}
+                  <div className="flex items-center gap-1 -translate-y-3">
+                    {/* シェア: プライマリ色で強調した独立アイコン(3点メニューから分離) */}
+                    <Button
+                      isIconOnly
+                      size="sm"
+                      radius="full"
+                      className="bg-primary/10 text-primary"
+                      aria-label="この記録をシェアする"
+                      onPress={onOpenForShareModal}
+                    >
+                      <LuShare2 className="text-lg" />
+                    </Button>
+
+                    {/* 3点メニュー(詳細・編集ページ / 削除) */}
+                    <Dropdown
+                      isOpen={isDropdownOpen}
+                      onOpenChange={setIsDropdownOpen}
+                      // HeroUI 側の「メニュー外押下で閉じる」を無効化する。
+                      // これを有効にしたままだと、押下時にオーバーレイが先に消えてしまい、
+                      // 直後のクリックが背後の要素に着弾してしまう。
+                      // クローズはオーバーレイの onClick に一本化し、クリックをオーバーレイに消費させる。
+                      shouldCloseOnInteractOutside={() => false}
+                    >
+                      <DropdownTrigger>
+                        <Button
+                          isIconOnly
+                          variant="light"
+                          size="sm"
+                          className="text-default-500"
+                          aria-label="メニューを開く"
+                        >
+                          <LuEllipsisVertical className="text-xl" />
+                        </Button>
+                      </DropdownTrigger>
+                      <DropdownMenu aria-label="記録の操作">
+                        <DropdownItem
+                          key="detail"
+                          startContent={<LuExternalLink />}
+                          onPress={() => {
+                            const eventType =
+                              record.official_event_id !== 0
+                                ? "official"
+                                : record.tonamel_event_id !== ""
+                                  ? "tonamel"
+                                  : "unofficial";
+                            sessionStorage.setItem("reopenModalRecordId", record.id);
+                            sessionStorage.setItem("reopenModalEventType", eventType);
+                            // デッキの記録一覧モーダル内から開いた場合は、戻り遷移で
+                            // デッキモーダル＋記録一覧モーダルを再開するため deck.id も保存する。
+                            const activeDeckId = sessionStorage.getItem(
+                              "activeDeckRecordsModalDeckId",
                             );
-                            if (activeArchived) {
+                            if (activeDeckId) {
                               sessionStorage.setItem(
-                                "reopenDeckModalArchived",
-                                activeArchived,
+                                "reopenDeckModalDeckId",
+                                activeDeckId,
                               );
+                              // アーカイブ状態も引き継ぐ（戻り時のタブ切り替え用）
+                              const activeArchived = sessionStorage.getItem(
+                                "activeDeckRecordsModalArchived",
+                              );
+                              if (activeArchived) {
+                                sessionStorage.setItem(
+                                  "reopenDeckModalArchived",
+                                  activeArchived,
+                                );
+                              }
                             }
-                          }
-                          router.push(`/records/${record.id}`);
-                        }}
-                      >
-                        詳細・編集ページを開く
-                      </DropdownItem>
-                      <DropdownItem
-                        key="delete"
-                        startContent={<LuTrash2 />}
-                        color="danger"
-                        className="text-danger"
-                        onPress={() => onOpenForDeleteRecordModal()}
-                      >
-                        この記録を削除する
-                      </DropdownItem>
-                    </DropdownMenu>
-                  </Dropdown>
+                            router.push(`/records/${record.id}`);
+                          }}
+                        >
+                          詳細・編集ページを開く
+                        </DropdownItem>
+                        <DropdownItem
+                          key="delete"
+                          startContent={<LuTrash2 />}
+                          color="danger"
+                          className="text-danger"
+                          onPress={() => onOpenForDeleteRecordModal()}
+                        >
+                          この記録を削除する
+                        </DropdownItem>
+                      </DropdownMenu>
+                    </Dropdown>
+                  </div>
                 </div>
               </ModalHeader>
 
               <ModalBody className="px-1 pb-6 gap-4 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none">
-                {/* ヒーロー：イベント情報＋戦績(勝率リング・勝敗・推移)＋集計対象外バナー */}
+                {/* ヒーロー：イベント情報＋戦績(勝率リング・勝敗)＋使用デッキ＋対戦結果＋集計対象外バナー */}
                 <div className="px-1">
-                  <RecordHero record={record} setRecord={setRecord} stats={stats} />
+                  <RecordHero
+                    record={record}
+                    setRecord={setRecord}
+                    stats={stats}
+                    matchesSlot={
+                      <Matches
+                        record={record}
+                        matches={matches}
+                        setMatches={setMatches}
+                        loading={loadingMatches}
+                        enableCreateMatchModalButton={false}
+                        enableUpdateMatchModalButton={false}
+                        flat={true}
+                      />
+                    }
+                  />
                 </div>
 
-                {/* ボード：対戦結果・デッキコード・戦績集計を1枚のカードにまとめる */}
+                {/* ボード：デッキコード・戦績集計を1枚のカードにまとめる */}
                 <div className="px-1">
                   <Card shadow="sm" className="w-full overflow-hidden">
                     <CardBody className="p-0">
-                      <BoardPanel icon={<LuSwords />} label="対戦結果">
-                        <Matches
-                          record={record}
-                          matches={matches}
-                          setMatches={setMatches}
-                          loading={loadingMatches}
-                          enableCreateMatchModalButton={false}
-                          enableUpdateMatchModalButton={false}
-                          flat={true}
-                        />
-                      </BoardPanel>
-
                       <BoardPanel icon={<LuLayers />} label="デッキコード">
                         <div ref={deckCardRef}>
                           <UsedDeckById

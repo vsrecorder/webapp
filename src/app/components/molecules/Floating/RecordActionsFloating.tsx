@@ -171,47 +171,60 @@ export default function RecordActionsFloating({
         />
       )}
 
-      <Dropdown
-        placement="top-end"
-        isOpen={isDropdownOpen}
-        onOpenChange={setIsDropdownOpen}
-        // HeroUI 側の「メニュー外押下で閉じる」を無効化する。
-        // これを有効にしたままだと、押下時にオーバーレイが先に消えてしまい、
-        // 直後のクリックが背後のデッキカードに着弾してモーダルが開いてしまう。
-        // クローズはオーバーレイの onClick に一本化し、クリックをオーバーレイに消費させる。
-        shouldCloseOnInteractOutside={() => false}
-      >
-        <DropdownTrigger>
+      {/* 右下のフローティング操作群。シェアは独立したフローティングに分離し、
+          3点メニューには削除など低頻度の操作を残す。 */}
+      <div className="fixed z-30 bottom-20 right-3 flex flex-col items-center gap-3">
+        {/* シェア用フローティング。メニューは上向きに開くため、展開中は
+            重なりを避けてシェアボタンを隠す。 */}
+        {!isDropdownOpen && (
           <Button
             isIconOnly
-            aria-label="操作メニューを開く"
+            aria-label="この記録をシェアする"
             radius="full"
             size="lg"
             color="primary"
-            className="fixed z-30 bottom-20 right-3 shadow-lg active:scale-95 transition-all duration-200"
-          >
-            <LuEllipsisVertical className="text-xl" />
-          </Button>
-        </DropdownTrigger>
-        <DropdownMenu aria-label="記録の操作">
-          <DropdownItem
-            key="share"
-            startContent={<LuShare2 />}
+            className="shadow-lg active:scale-95 transition-all duration-200"
             onPress={onOpenForShareModal}
           >
-            この記録をシェアする
-          </DropdownItem>
-          <DropdownItem
-            key="delete"
-            startContent={<LuTrash2 />}
-            color="danger"
-            className="text-danger"
-            onPress={() => onOpenForDeleteRecordModal()}
-          >
-            この記録を削除する
-          </DropdownItem>
-        </DropdownMenu>
-      </Dropdown>
+            <LuShare2 className="text-xl" />
+          </Button>
+        )}
+
+        <Dropdown
+          placement="top-end"
+          isOpen={isDropdownOpen}
+          onOpenChange={setIsDropdownOpen}
+          // HeroUI 側の「メニュー外押下で閉じる」を無効化する。
+          // これを有効にしたままだと、押下時にオーバーレイが先に消えてしまい、
+          // 直後のクリックが背後のデッキカードに着弾してモーダルが開いてしまう。
+          // クローズはオーバーレイの onClick に一本化し、クリックをオーバーレイに消費させる。
+          shouldCloseOnInteractOutside={() => false}
+        >
+          <DropdownTrigger>
+            <Button
+              isIconOnly
+              aria-label="操作メニューを開く"
+              radius="full"
+              size="lg"
+              color="default"
+              className="shadow-lg active:scale-95 transition-all duration-200"
+            >
+              <LuEllipsisVertical className="text-xl" />
+            </Button>
+          </DropdownTrigger>
+          <DropdownMenu aria-label="記録の操作">
+            <DropdownItem
+              key="delete"
+              startContent={<LuTrash2 />}
+              color="danger"
+              className="text-danger"
+              onPress={() => onOpenForDeleteRecordModal()}
+            >
+              この記録を削除する
+            </DropdownItem>
+          </DropdownMenu>
+        </Dropdown>
+      </div>
     </>
   );
 }

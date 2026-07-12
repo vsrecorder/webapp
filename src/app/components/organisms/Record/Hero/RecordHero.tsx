@@ -9,7 +9,6 @@ import { LuPencilLine } from "react-icons/lu";
 
 import FetchError from "@app/components/molecules/FetchError";
 import WinRateRing from "@app/components/organisms/Record/Hero/WinRateRing";
-import MatchStreak from "@app/components/organisms/Record/Hero/MatchStreak";
 import IgnoreStatsBanner from "@app/components/organisms/Record/IgnoreStatsBanner";
 import RecordHeroSkeleton from "@app/components/organisms/Record/Hero/RecordHeroSkeleton";
 import EditTCGMeisterURLModal from "@app/components/organisms/Record/Modal/EditTCGMeisterURLModal";
@@ -95,6 +94,18 @@ function formatEventDate(dateStr: string): string {
   });
 }
 
+// イベント名にスペースや空白(半角/全角スペース・タブ等)が含まれる場合、
+// その位置で改行して表示する。空白の連なりは1つの区切りとして扱う。
+function renderEventTitle(title: string): React.ReactNode {
+  const segments = title.split(/\s+/).filter((s) => s.length > 0);
+  if (segments.length <= 1) return title;
+  return segments.map((seg, i) => (
+    <span key={i} className="block">
+      {seg}
+    </span>
+  ));
+}
+
 // 左サイドバーのアクセントクラス → 背景グラデ左下グロー用のRGB。
 // 左バーの色(bg-*)と戦績カードのグラデーションを同色にするための対応表。
 const ACCENT_RGB: Record<string, string> = {
@@ -125,8 +136,11 @@ type ShellProps = {
   action?: React.ReactNode;
   stats: MatchStats;
   ignoreStatsFlg: boolean;
-  // 使用デッキ行(登録済みの場合のみ)。ヒーロー最下段に表示する
+  // 使用デッキ行(登録済みの場合のみ)。ヒーロー下段(対戦結果の上)に表示する
   deckSlot?: React.ReactNode;
+  // 対戦結果(対戦一覧)。ヒーロー最下段に表示する。
+  // かつての「勝敗の推移」の位置を、より情報量のある対戦結果へ置き換える。
+  matchesSlot?: React.ReactNode;
   // 記録一覧カードの左サイドバーと同じ、種別ごとのアクセント色(bg-*)
   accentColorClass: string;
 };
@@ -143,6 +157,7 @@ function HeroShell({
   stats,
   ignoreStatsFlg,
   deckSlot,
+  matchesSlot,
   accentColorClass,
 }: ShellProps) {
   const hasStats = stats.total > 0;
@@ -192,7 +207,7 @@ function HeroShell({
                     {iconNode}
                   </div>
                   <h3 className="min-w-0 text-base font-bold leading-tight wrap-break-word">
-                    {title}
+                    {renderEventTitle(title)}
                   </h3>
                 </>
               );
@@ -230,7 +245,7 @@ function HeroShell({
 
           {/* 右：戦績(対戦がある場合のみ) */}
           {hasStats && (
-            <div className="-mr-3 flex shrink-0 flex-col items-center gap-2">
+            <div className="flex shrink-0 flex-col items-center gap-2">
               <WinRateRing winRate={stats.winRate} size={86} />
               <div className="text-[15px] font-bold tabular-nums">
                 <span className="text-success">{stats.wins}</span>
@@ -242,18 +257,18 @@ function HeroShell({
           )}
         </div>
 
-        {/* 勝敗の推移(対戦がある場合のみ)。シェア/保存画像にも含める */}
-        {hasStats && (
-          <div className="mt-3.5 flex flex-col gap-1.5 border-t border-divider pt-3">
-            <span className="text-[9px] font-bold tracking-wide text-default-400">
-              勝敗の推移
-            </span>
-            <MatchStreak results={stats.results} />
-          </div>
-        )}
-
         {/* 使用デッキ(登録済みの場合のみ) */}
         {deckSlot}
+
+        {/* 対戦結果(親から受け取る)。かつて「勝敗の推移」があった位置に配置する */}
+        {matchesSlot && (
+          <div className="mt-3.5 flex w-full flex-col gap-1.5 border-t border-divider pt-3">
+            <span className="text-[9px] font-bold tracking-wide text-default-400">
+              対戦結果
+            </span>
+            {matchesSlot}
+          </div>
+        )}
       </div>
     </Card>
   );
@@ -268,6 +283,12 @@ type Props = {
   enableEditTCGMeisterURL?: boolean;
   // 使用デッキ行のタップで使用デッキ編集モーダルを開けるようにするか(詳細ページのみ true)
   enableEditUsedDeck?: boolean;
+  // 対戦結果(対戦一覧)。ヒーロー最下段に融合して表示する。
+  // 記録詳細ページ・記録情報モーダルから <Matches> を渡す。
+  matchesSlot?: React.ReactNode;
+  // イベント・使用デッキの取得が完了して実データを描画できる状態かを通知する。
+  // シェア画像のキャプチャで、スケルトン状態のまま撮影されるのを防ぐために使う。
+  onReadyChange?: (ready: boolean) => void;
 };
 
 /*
@@ -282,6 +303,8 @@ export default function RecordHero({
   stats,
   enableEditTCGMeisterURL = false,
   enableEditUsedDeck = false,
+  matchesSlot,
+  onReadyChange,
 }: Props) {
   const [officialEvent, setOfficialEvent] =
     useState<OfficialEventGetByIdResponseType | null>(null);
@@ -395,6 +418,15 @@ export default function RecordHero({
     };
   }, [isOfficial, record.event_date, record.created_at, unofficialEvent?.date]);
 
+  // イベント・使用デッキの取得が完了したら親へ通知する(シェア画像のスケルトン撮影防止)。
+  // 使用デッキは未登録なら取得不要。登録済みは現在の deck_id と一致するまで待つ。
+  useEffect(() => {
+    if (!onReadyChange) return;
+    const deckReady =
+      !record.deck_id || (!loadingDeck && deck?.id === record.deck_id);
+    onReadyChange(!loadingEvent && !error && deckReady);
+  }, [onReadyChange, loadingEvent, error, loadingDeck, deck, record.deck_id]);
+
   if (error) {
     return <FetchError onRetry={loadEvent} />;
   }
@@ -403,8 +435,9 @@ export default function RecordHero({
     return <RecordHeroSkeleton />;
   }
 
-  // 使用デッキ行(各イベント種別で共通)。スプライトは既存(UsedDeckCard/Matches)と
-  // 同じ w-11 h-11 + spriteScaleClass で描画し、2枚のサイズを揃える。
+  // 使用デッキ行(各イベント種別で共通)。使用デッキは要約行のため、対戦結果の
+  // スプライト(w-11 h-11)より一回り小さい w-9 h-9 + spriteScaleClass で描画し、
+  // 行の表示幅を抑える。2枚のサイズは揃える。
   // 使用デッキ行の中身(スプライト2枚＋デッキ名)。タップ可/不可で外側だけ切り替える
   const deckRowInner = deck ? (
     <>
@@ -417,7 +450,7 @@ export default function RecordHero({
             alt={deck.pokemon_sprites[0]?.id ?? "unknown"}
             src={spriteImageUrl(deck.pokemon_sprites[0]?.id)}
             radius="none"
-            className={`h-11 w-11 origin-bottom object-contain ${spriteScaleClass(
+            className={`h-9 w-9 origin-bottom object-contain ${spriteScaleClass(
               deck.pokemon_sprites[0]?.id,
             )}`}
           />
@@ -425,7 +458,7 @@ export default function RecordHero({
             alt={deck.pokemon_sprites[1]?.id ?? "unknown"}
             src={spriteImageUrl(deck.pokemon_sprites[1]?.id)}
             radius="none"
-            className={`h-11 w-11 origin-bottom object-contain ${spriteScaleClass(
+            className={`h-9 w-9 origin-bottom object-contain ${spriteScaleClass(
               deck.pokemon_sprites[1]?.id,
             )}`}
           />
@@ -454,8 +487,8 @@ export default function RecordHero({
       </span>
       <div className="flex w-full items-center gap-2.5">
         <div className="flex shrink-0 items-center gap-1.5">
-          <Skeleton className="h-11 w-11 rounded-lg" />
-          <Skeleton className="h-11 w-11 rounded-lg" />
+          <Skeleton className="h-9 w-9 rounded-lg" />
+          <Skeleton className="h-9 w-9 rounded-lg" />
         </div>
         <Skeleton className="h-4 flex-1 rounded-md" />
       </div>
@@ -564,6 +597,7 @@ export default function RecordHero({
           stats={stats}
           ignoreStatsFlg={record.ignore_stats_flg}
           deckSlot={deckNode}
+          matchesSlot={matchesSlot}
         />
       </>
     );
@@ -609,6 +643,7 @@ export default function RecordHero({
         stats={stats}
         ignoreStatsFlg={record.ignore_stats_flg}
         deckSlot={deckNode}
+        matchesSlot={matchesSlot}
       />
     );
   }
@@ -654,6 +689,7 @@ export default function RecordHero({
         stats={stats}
         ignoreStatsFlg={record.ignore_stats_flg}
         deckSlot={deckNode}
+        matchesSlot={matchesSlot}
       />
     );
   }

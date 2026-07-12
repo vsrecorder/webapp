@@ -148,6 +148,27 @@ function moveMatch(
   return sections.filter((s) => s.items.length > 0).flatMap((s) => s.items);
 }
 
+// 対戦結果1行の背景グラデーション(勝ち=緑・負け=赤)。
+// 通常戦: 勝敗色を左からやわらかく敷き、右へフェードする。
+// チーム戦: 左をチーム勝敗、右を個人勝敗の色とし、中央で両色が混ざり合うようにする。
+// ※ Tailwind は動的なクラス名を検出できないため、全パターンをリテラルで列挙する。
+function matchRowGradientClass(match: MatchGetResponseType): string {
+  if (match.group_match_flg) {
+    const team = match.group_match_victory_flg;
+    const indiv = match.victory_flg;
+    if (team && indiv)
+      return "bg-linear-to-r from-success/10 to-success/10 dark:from-success/15 dark:to-success/15";
+    if (team && !indiv)
+      return "bg-linear-to-r from-success/15 to-danger/15 dark:from-success/20 dark:to-danger/20";
+    if (!team && indiv)
+      return "bg-linear-to-r from-danger/15 to-success/15 dark:from-danger/20 dark:to-success/20";
+    return "bg-linear-to-r from-danger/10 to-danger/10 dark:from-danger/15 dark:to-danger/15";
+  }
+  return match.victory_flg
+    ? "bg-linear-to-r from-success/10 to-transparent dark:from-success/15"
+    : "bg-linear-to-r from-danger/10 to-transparent dark:from-danger/15";
+}
+
 type Props = {
   record: RecordGetByIdResponseType | null;
   // 対戦一覧は親で一元管理する(ヒーローの戦績と同じデータソースを共有し、
@@ -355,18 +376,12 @@ export default function Matches({
                                       showDivider ? "border-t border-divider" : ""
                                     }
                                   >
-                                    {/* 勝敗でグラデ：勝ち=緑・負け=赤を左からやわらかく敷く。
-                                        チーム戦はチームの勝敗に合わせる。 */}
+                                    {/* 勝敗でグラデ(勝ち=緑・負け=赤)。通常戦は左から敷いて右へフェード、
+                                        チーム戦は左=チーム勝敗・右=個人勝敗の2色で表す。 */}
                                     <div
-                                      className={`flex w-full items-center gap-1 rounded-lg ${
-                                        (
-                                          match.group_match_flg
-                                            ? match.group_match_victory_flg
-                                            : match.victory_flg
-                                        )
-                                          ? "bg-gradient-to-r from-success/10 to-transparent dark:from-success/15"
-                                          : "bg-gradient-to-r from-danger/10 to-transparent dark:from-danger/15"
-                                      }`}
+                                      className={`flex w-full items-center gap-1 rounded-lg ${matchRowGradientClass(
+                                        match,
+                                      )}`}
                                     >
                                       {/*
                                       並び替えボタンが表示される場合のみガターを描画する。

@@ -94,28 +94,28 @@ export default function TemplateRecords() {
       </div>
 
       <div
-        className="w-full pt-2 pb-6 lg:max-w-4xl lg:mx-auto"
+        className="w-full pt-2 pb-35 lg:pb-6 lg:max-w-4xl lg:mx-auto"
         hidden={selectedKey !== "all"}
       >
         <Records event_type={"all"} isActive={selectedKey === "all"} />
       </div>
 
       <div
-        className="w-full pt-2 pb-6 lg:max-w-4xl lg:mx-auto"
+        className="w-full pt-2 pb-35 lg:pb-6 lg:max-w-4xl lg:mx-auto"
         hidden={selectedKey !== "official"}
       >
         <Records event_type={"official"} isActive={selectedKey === "official"} />
       </div>
 
       <div
-        className="w-full pt-2 pb-6 lg:max-w-4xl lg:mx-auto"
+        className="w-full pt-2 pb-35 lg:pb-6 lg:max-w-4xl lg:mx-auto"
         hidden={selectedKey !== "tonamel"}
       >
         <Records event_type={"tonamel"} isActive={selectedKey === "tonamel"} />
       </div>
 
       <div
-        className="w-full pt-2 pb-6 lg:max-w-4xl lg:mx-auto"
+        className="w-full pt-2 pb-35 lg:pb-6 lg:max-w-4xl lg:mx-auto"
         hidden={selectedKey !== "unofficial"}
       >
         <Records event_type={"unofficial"} isActive={selectedKey === "unofficial"} />

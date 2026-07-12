@@ -26,13 +26,29 @@ export async function tryShareImage(dataUrl: string, filename: string): Promise<
 
 export type ShareResult = "shared" | "text-only" | "unsupported" | "failed";
 
+// 共有する画像。data URL は保存フォールバック用、File は共有用に事前生成しておく。
+export type ShareImage = { dataUrl: string; filename: string; file: File };
+
+// data URL を共有用の File に変換する。
+// navigator.share() の呼び出し前に await を挟むとユーザーアクティベーションを
+// 使い切ってしまうため、この変換はシェアボタンのタップより前に済ませておく。
+export async function dataUrlToFile(dataUrl: string, filename: string): Promise<File> {
+  const blob = await (await fetch(dataUrl)).blob();
+  return new File([blob], filename, { type: blob.type });
+}
+
 // Web Share API で「テキスト＋複数画像」をまとめて共有する。
 // 画像ファイルの共有に対応していれば text と files を一緒に、
 // 非対応(canShareがfalse)ならテキストのみで共有シートを開く。
 // 共有できた/ユーザーが閉じた(AbortError)場合は成功扱い。
 // API自体が無い場合は "unsupported"、失敗時は "failed" を返す。
+//
+// 重要: iOS(WebKit)の navigator.share() は「タップ直後の数秒(transient activation)」に
+// 呼ばないと NotAllowedError で失敗する。そのため この関数は navigator.share() を
+// 呼ぶまでに await を一切挟まない(画像は File 化済みのものを受け取る)。
+// 呼び出し側も、タップハンドラ内で await してから呼ばないこと。
 export async function shareRecord(
-  images: { dataUrl: string; filename: string }[],
+  images: ShareImage[],
   text: string,
 ): Promise<ShareResult> {
   if (
@@ -44,14 +60,11 @@ export async function shareRecord(
   }
 
   try {
-    const files = await Promise.all(
-      images.map(async (img) => {
-        const blob = await (await fetch(img.dataUrl)).blob();
-        return new File([blob], img.filename, { type: blob.type });
-      }),
-    );
-
-    const canShareFiles = files.length > 0 && navigator.canShare({ files });
+    const files = images.map((img) => img.file);
+    // 実際に share() へ渡すデータそのもの(text込み)で判定する。
+    // files だけで判定すると、テキストとの同時共有に対応しない環境で
+    // canShare が true なのに share() が失敗する。
+    const canShareFiles = files.length > 0 && navigator.canShare({ text, files });
 
     if (canShareFiles) {
       await navigator.share({ text, files });

@@ -20,7 +20,12 @@ import RecordHero from "@app/components/organisms/Record/Hero/RecordHero";
 import Matches from "@app/components/organisms/Match/Matches";
 
 import { captureThemedPng, SIDE_PADDING } from "@app/utils/captureImage";
-import { shareRecord, saveGeneratedImage } from "@app/utils/saveImage";
+import {
+  shareRecord,
+  saveGeneratedImage,
+  dataUrlToFile,
+  type ShareImage,
+} from "@app/utils/saveImage";
 
 import { buildRecordPostText, formatEventDateLabel } from "@app/utils/recordPostText";
 
@@ -90,12 +95,18 @@ export default function ShareRecordModal({
   // 描画完了(＋対戦一覧の取得完了)までシェア/保存を無効化し、
   // スケルトン状態のまま画像が生成されるのを防ぐ。
   const [heroReady, setHeroReady] = useState(false);
-  const canShare = heroReady && matches !== null;
+  // シェア用に生成済みの画像。タップ前に用意しておく(理由は生成用の useEffect を参照)。
+  const [images, setImages] = useState<ShareImage[] | null>(null);
+  const canShare = heroReady && matches !== null && images !== null;
 
   // モーダルを閉じるとキャプチャ用 DOM は破棄されるため、次に開いたときは
   // 再度描画完了を待つよう準備状態をリセットする。
+  // あわせて生成済み画像も捨てる(次に開いたとき古い画像を共有してしまわないよう)。
   useEffect(() => {
-    if (!isOpen) setHeroReady(false);
+    if (!isOpen) {
+      setHeroReady(false);
+      setImages(null);
+    }
   }, [isOpen]);
 
   // モーダルを開いたら、書き出し画像の横幅が端末の画面幅いっぱいになるよう
@@ -142,31 +153,81 @@ export default function ShareRecordModal({
     }
   };
 
-  const captureImages = async () => {
-    const images: { dataUrl: string; filename: string }[] = [];
-    if (shareContentRef.current) {
-      const img = await captureThemedPng(shareContentRef.current, {
-        targetWidth: captureWidth,
-      });
-      images.push({ dataUrl: img, filename: `${record.id}_result_${Date.now()}.png` });
-    }
-    if (includeDeck && deckCardRef.current) {
-      // 2枚目(デッキ画像)も端末幅に合わせて、1枚目と同じ横幅で書き出す
-      const img = await captureThemedPng(deckCardRef.current, {
-        targetWidth: captureWidth,
-      });
-      images.push({ dataUrl: img, filename: `${record.id}_deck_${Date.now()}.png` });
-    }
-    return images;
-  };
+  // シェア画像は「シェアする」をタップする前に生成しておく。
+  //
+  // iOS(WebKit)の navigator.share() は、タップから数秒(transient activation)の間に
+  // 呼ばないと NotAllowedError で失敗する。タップハンドラ内で画像を生成すると、
+  // とくに2枚目(デッキ画像)を追加したときに生成が猶予を超え、共有が必ず失敗していた。
+  // そこでモーダルを開いた時点・オプション変更時に生成しておき、タップ時は
+  // 生成済みの File を渡して即座に navigator.share() を呼ぶ。
+  //
+  // 生成中に条件が変わった場合、後から終わった古い生成結果で上書きしないよう
+  // 世代番号(seq)で自分が最新かを確認してから反映する。
+  const captureSeq = useRef(0);
+  useEffect(() => {
+    if (!isOpen || !heroReady || matches === null) return;
 
+    const seq = ++captureSeq.current;
+    setImages(null);
+
+    (async () => {
+      try {
+        const captured: ShareImage[] = [];
+
+        if (shareContentRef.current) {
+          const dataUrl = await captureThemedPng(shareContentRef.current, {
+            targetWidth: captureWidth,
+          });
+          const filename = `${record.id}_result_${Date.now()}.png`;
+          captured.push({
+            dataUrl,
+            filename,
+            file: await dataUrlToFile(dataUrl, filename),
+          });
+        }
+
+        if (includeDeck && deckCardRef.current) {
+          // 2枚目(デッキ画像)も端末幅に合わせて、1枚目と同じ横幅で書き出す
+          const dataUrl = await captureThemedPng(deckCardRef.current, {
+            targetWidth: captureWidth,
+          });
+          const filename = `${record.id}_deck_${Date.now()}.png`;
+          captured.push({
+            dataUrl,
+            filename,
+            file: await dataUrlToFile(dataUrl, filename),
+          });
+        }
+
+        if (seq !== captureSeq.current) return;
+        setImages(captured);
+      } catch (e) {
+        console.error(e);
+        if (seq !== captureSeq.current) return;
+        addToast({
+          title: "画像の生成に失敗しました",
+          color: "danger",
+          timeout: 5000,
+        });
+      }
+    })();
+  }, [
+    isOpen,
+    heroReady,
+    matches,
+    includeDeck,
+    hideDeck,
+    captureWidth,
+    record.id,
+    deckCardRef,
+  ]);
+
+  // 注意: navigator.share() の呼び出し前に await を挟むとユーザーアクティベーションが
+  // 切れるため、この関数内では shareRecord() の前で await しないこと。
   const handleShare = async () => {
-    if (!canShare) return;
+    if (!canShare || images === null || images.length === 0) return;
     setBusy("share");
     try {
-      const images = await captureImages();
-      if (images.length === 0) return;
-
       const result = await shareRecord(images, text);
       if (result === "unsupported") {
         // 共有非対応の環境では画像を保存にフォールバック

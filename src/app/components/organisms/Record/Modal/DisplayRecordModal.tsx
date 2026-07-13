@@ -39,6 +39,7 @@ import ShareRecordModal from "@app/components/organisms/Record/Modal/ShareRecord
 import { RecordGetByIdResponseType } from "@app/types/record";
 import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
 import { TonamelEventGetByIdResponseType } from "@app/types/tonamel_event";
+import { UnofficialEventGetByIdResponseType } from "@app/types/unofficial_event";
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { MatchGetResponseType } from "@app/types/match";
 
@@ -62,6 +63,18 @@ async function fetchTonamelEventForShare(
   id: string,
 ): Promise<TonamelEventGetByIdResponseType> {
   const res = await fetch(`/api/tonamel_events/${id}`, {
+    cache: "no-store",
+    method: "GET",
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok) throw new Error("Failed to fetch");
+  return res.json();
+}
+
+async function fetchUnofficialEventForShare(
+  id: string,
+): Promise<UnofficialEventGetByIdResponseType> {
+  const res = await fetch(`/api/unofficial_events/${id}`, {
     cache: "no-store",
     method: "GET",
     headers: { Accept: "application/json" },
@@ -118,11 +131,17 @@ export default function DisplayRecordModal({
   } = useDisclosure();
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  // 戦績パネルの裏面(貢献度)の表示状態。シェア画像は画面外に別の RecordHero を
+  // 描画して撮るため、画面と同じ面を撮れるよう状態はここで持ちシェア側にも渡す。
+  const [showSynergy, setShowSynergy] = useState(false);
   // シェアモーダルでポスト文を組み立てるための取得済みデータ
   const [shareOfficialEvent, setShareOfficialEvent] =
     useState<OfficialEventGetByIdResponseType | null>(null);
   const [shareTonamelEvent, setShareTonamelEvent] =
     useState<TonamelEventGetByIdResponseType | null>(null);
+  const [shareUnofficialEvent, setShareUnofficialEvent] =
+    useState<UnofficialEventGetByIdResponseType | null>(null);
   const [shareDeck, setShareDeck] = useState<DeckGetByIdResponseType | null>(null);
 
   // 対戦一覧を親で一元管理し、ヒーローの戦績と対戦結果表示で共有する
@@ -154,6 +173,7 @@ export default function DisplayRecordModal({
 
     let officialEvent: OfficialEventGetByIdResponseType | null = null;
     let tonamelEvent: TonamelEventGetByIdResponseType | null = null;
+    let unofficialEvent: UnofficialEventGetByIdResponseType | null = null;
     let deck: DeckGetByIdResponseType | null = null;
 
     const tasks: Promise<void>[] = [];
@@ -174,6 +194,14 @@ export default function DisplayRecordModal({
           })
           .catch(() => {}),
       );
+    } else if (record.unofficial_event_id !== "") {
+      tasks.push(
+        fetchUnofficialEventForShare(record.unofficial_event_id)
+          .then((d) => {
+            unofficialEvent = d;
+          })
+          .catch(() => {}),
+      );
     }
 
     if (record.deck_id) {
@@ -189,6 +217,7 @@ export default function DisplayRecordModal({
     Promise.all(tasks).then(() => {
       setShareOfficialEvent(officialEvent);
       setShareTonamelEvent(tonamelEvent);
+      setShareUnofficialEvent(unofficialEvent);
       setShareDeck(deck);
     });
   }, [record]);
@@ -216,9 +245,11 @@ export default function DisplayRecordModal({
         record={record}
         setRecord={setRecord}
         stats={stats}
+        showSynergy={showSynergy}
         matches={matches}
         officialEvent={shareOfficialEvent}
         tonamelEvent={shareTonamelEvent}
+        unofficialEvent={shareUnofficialEvent}
         deck={shareDeck}
         deckCardRef={deckCardRef}
         isOpen={isOpenForShareModal}
@@ -371,6 +402,8 @@ export default function DisplayRecordModal({
                     record={record}
                     setRecord={setRecord}
                     stats={stats}
+                    showSynergy={showSynergy}
+                    onToggleSynergy={() => setShowSynergy((prev) => !prev)}
                     matchesSlot={
                       <Matches
                         record={record}

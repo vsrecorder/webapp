@@ -15,6 +15,7 @@ import ShareRecordModal from "@app/components/organisms/Record/Modal/ShareRecord
 import { RecordGetByIdResponseType } from "@app/types/record";
 import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
 import { TonamelEventGetByIdResponseType } from "@app/types/tonamel_event";
+import { UnofficialEventGetByIdResponseType } from "@app/types/unofficial_event";
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { MatchGetResponseType } from "@app/types/match";
 
@@ -46,6 +47,18 @@ async function fetchTonamelEventForShare(
   return res.json();
 }
 
+async function fetchUnofficialEventForShare(
+  id: string,
+): Promise<UnofficialEventGetByIdResponseType> {
+  const res = await fetch(`/api/unofficial_events/${id}`, {
+    cache: "no-store",
+    method: "GET",
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok) throw new Error("Failed to fetch");
+  return res.json();
+}
+
 async function fetchDeckForShare(id: string): Promise<DeckGetByIdResponseType> {
   const res = await fetch(`/api/decks/${id}`, {
     cache: "no-store",
@@ -62,6 +75,8 @@ type Props = {
   // ヒーローの戦績と共有する対戦一覧・戦績サマリー(親で一元管理)
   matches: MatchGetResponseType[] | null;
   stats: MatchStats;
+  // 戦績パネルで貢献度(裏面)を表示中か。シェア画像に同じ面を写すため、そのまま中継する
+  showSynergy?: boolean;
   deckCardRef: RefObject<HTMLDivElement | null>;
 };
 
@@ -70,6 +85,7 @@ export default function RecordActionsFloating({
   setRecord,
   matches,
   stats,
+  showSynergy,
   deckCardRef,
 }: Props) {
   const router = useRouter();
@@ -93,6 +109,8 @@ export default function RecordActionsFloating({
     useState<OfficialEventGetByIdResponseType | null>(null);
   const [shareTonamelEvent, setShareTonamelEvent] =
     useState<TonamelEventGetByIdResponseType | null>(null);
+  const [shareUnofficialEvent, setShareUnofficialEvent] =
+    useState<UnofficialEventGetByIdResponseType | null>(null);
   const [shareDeck, setShareDeck] = useState<DeckGetByIdResponseType | null>(null);
 
   useEffect(() => {
@@ -100,6 +118,7 @@ export default function RecordActionsFloating({
 
     let officialEvent: OfficialEventGetByIdResponseType | null = null;
     let tonamelEvent: TonamelEventGetByIdResponseType | null = null;
+    let unofficialEvent: UnofficialEventGetByIdResponseType | null = null;
     let deck: DeckGetByIdResponseType | null = null;
 
     const tasks: Promise<void>[] = [];
@@ -120,6 +139,14 @@ export default function RecordActionsFloating({
           })
           .catch(() => {}),
       );
+    } else if (record.unofficial_event_id !== "") {
+      tasks.push(
+        fetchUnofficialEventForShare(record.unofficial_event_id)
+          .then((d) => {
+            unofficialEvent = d;
+          })
+          .catch(() => {}),
+      );
     }
 
     if (record.deck_id) {
@@ -135,6 +162,7 @@ export default function RecordActionsFloating({
     Promise.all(tasks).then(() => {
       setShareOfficialEvent(officialEvent);
       setShareTonamelEvent(tonamelEvent);
+      setShareUnofficialEvent(unofficialEvent);
       setShareDeck(deck);
     });
   }, [record]);
@@ -145,9 +173,11 @@ export default function RecordActionsFloating({
         record={record}
         setRecord={setRecord}
         stats={stats}
+        showSynergy={showSynergy}
         matches={matches}
         officialEvent={shareOfficialEvent}
         tonamelEvent={shareTonamelEvent}
+        unofficialEvent={shareUnofficialEvent}
         deck={shareDeck}
         deckCardRef={deckCardRef}
         isOpen={isOpenForShareModal}

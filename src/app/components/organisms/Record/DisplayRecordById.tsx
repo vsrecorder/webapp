@@ -26,6 +26,10 @@ export default function DisplayRecordById({ recordData }: Props) {
   const [matches, setMatches] = useState<MatchGetResponseType[] | null>(null);
   const [loadingMatches, setLoadingMatches] = useState(true);
 
+  // 戦績パネルの裏面(貢献度)の表示状態。シェア画像は画面外に別の RecordHero を
+  // 描画して撮るため、画面と同じ面を撮れるよう状態はここで持ちシェア側にも渡す。
+  const [showSynergy, setShowSynergy] = useState(false);
+
   const deckCardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -57,6 +61,8 @@ export default function DisplayRecordById({ recordData }: Props) {
           record={record}
           setRecord={setRecord}
           stats={stats}
+          showSynergy={showSynergy}
+          onToggleSynergy={() => setShowSynergy((prev) => !prev)}
           enableEditTCGMeisterURL={true}
           enableEditUsedDeck={true}
           matchesSlot={
@@ -102,6 +108,7 @@ export default function DisplayRecordById({ recordData }: Props) {
           setRecord={setRecord}
           matches={matches}
           stats={stats}
+          showSynergy={showSynergy}
           deckCardRef={deckCardRef}
         />
       )}

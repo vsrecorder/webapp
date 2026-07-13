@@ -224,7 +224,7 @@ export default function NotificationBell({ userId }: Props) {
                     content: "text-[10px] font-black px-1.5",
                   }}
                 >
-                  ベータ版
+                  β機能
                 </Chip>
               </div>
               {unreadCount > 0 && (

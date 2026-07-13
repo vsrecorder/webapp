@@ -19,15 +19,14 @@
 
 /*
  * 記録ヒーロー(戦績カード)の背景グラデ。
- * 右上に勝率色(勝ち越し=緑)、左下にアクセントのやわらかい放射を重ねる。
- * 右上を勝率リング(右側)と同色にして統一感を出す。ベースはカード面(content1)。
- * 左下のアクセントは左サイドバーと同色にするため --hero-accent-rgb で受け取り、
+ * 左下にアクセントのやわらかい放射を重ねる。ベースはカード面(content1)。
+ * アクセントは左サイドバーと同色にするため --hero-accent-rgb で受け取り、
  * 未指定時のみ従来の青にフォールバックする。
+ * 勝敗に応じた glow はカード背景ではなく勝率パネル内(.record-stat-glow)に描画する。
  * ライト/ダークで glow と地色を切り替え、どちらでも主張しすぎない低不透明度に抑える。
  */
 .record-hero-bg {
   background:
-    radial-gradient(135% 130% at 100% 0%, rgba(18, 161, 80, 0.2), rgba(18, 161, 80, 0) 52%),
     radial-gradient(
       120% 130% at 0% 100%,
       rgba(var(--hero-accent-rgb, 15, 111, 255), 0.18),
@@ -39,7 +38,6 @@
 /* 画像書き出し用の .light 領域は常にライト表示にするため除外する */
 .dark .record-hero-bg:not(.light *) {
   background:
-    radial-gradient(135% 130% at 100% 0%, rgba(62, 207, 127, 0.15), rgba(62, 207, 127, 0) 52%),
     radial-gradient(
       120% 130% at 0% 100%,
       rgba(var(--hero-accent-rgb, 77, 155, 255), 0.16),
@@ -49,29 +47,62 @@
 }
 
 /*
- * 負け越し(勝率50%未満)の記録では、右上の glow を負け色(赤)に切り替える。
- * 左下のアクセント(左サイドバーと同色)と地色は勝ち越し時と共通。
+ * 勝率パネル内の glow。パネル右上から勝率色(勝ち越し=緑 / 負け越し=赤)を放射させ、
+ * 勝率リングと同色にして戦績の良し悪しをパネル単位で読ませる。
+ * ライト/ダークで色を切り替え、リング・数値の可読性を損なわない低不透明度に抑える。
  */
-.record-hero-bg-loss {
-  background:
-    radial-gradient(135% 130% at 100% 0%, rgba(229, 72, 77, 0.2), rgba(229, 72, 77, 0) 52%),
-    radial-gradient(
-      120% 130% at 0% 100%,
-      rgba(var(--hero-accent-rgb, 15, 111, 255), 0.18),
-      rgba(var(--hero-accent-rgb, 15, 111, 255), 0) 55%
-    ),
-    #ffffff;
+.record-stat-glow {
+  background: radial-gradient(
+    135% 130% at 100% 0%,
+    rgba(18, 161, 80, 0.2),
+    rgba(18, 161, 80, 0) 50%
+  );
 }
 
-.dark .record-hero-bg-loss:not(.light *) {
-  background:
-    radial-gradient(135% 130% at 100% 0%, rgba(255, 97, 105, 0.15), rgba(255, 97, 105, 0) 52%),
-    radial-gradient(
-      120% 130% at 0% 100%,
-      rgba(var(--hero-accent-rgb, 77, 155, 255), 0.16),
-      rgba(var(--hero-accent-rgb, 77, 155, 255), 0) 55%
-    ),
-    #1d1d21;
+.dark .record-stat-glow:not(.light *) {
+  background: radial-gradient(
+    135% 130% at 100% 0%,
+    rgba(62, 207, 127, 0.15),
+    rgba(62, 207, 127, 0) 50%
+  );
+}
+
+/* 負け越し(勝率50%未満)の記録では glow を負け色(赤)に切り替える */
+.record-stat-glow-loss {
+  background: radial-gradient(
+    135% 130% at 100% 0%,
+    rgba(229, 72, 77, 0.2),
+    rgba(229, 72, 77, 0) 50%
+  );
+}
+
+.dark .record-stat-glow-loss:not(.light *) {
+  background: radial-gradient(
+    135% 130% at 100% 0%,
+    rgba(255, 97, 105, 0.15),
+    rgba(255, 97, 105, 0) 50%
+  );
+}
+
+/*
+ * 貢献度(φ係数)パネルで、値が0付近(個人とチームの勝敗が連動していない)、
+ * または算出できないときの glow。良し悪しを断言しないグレーにする。
+ * 正/負のときは勝率と同じ .record-stat-glow / .record-stat-glow-loss を使う。
+ */
+.record-stat-glow-neutral {
+  background: radial-gradient(
+    135% 130% at 100% 0%,
+    rgba(113, 113, 122, 0.18),
+    rgba(113, 113, 122, 0) 50%
+  );
+}
+
+.dark .record-stat-glow-neutral:not(.light *) {
+  background: radial-gradient(
+    135% 130% at 100% 0%,
+    rgba(161, 161, 170, 0.14),
+    rgba(161, 161, 170, 0) 50%
+  );
 }
 
 /*

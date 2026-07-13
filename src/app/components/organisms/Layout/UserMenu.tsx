@@ -166,7 +166,7 @@ export default function UserMenu({ user, iconUrl, isDevEnv }: Props) {
                 router.push("/deck_meta");
               }}
             >
-              対戦環境分析（ベータ版）
+              対戦環境分析（β機能）
             </DropdownItem>
           </DropdownSection>
 

@@ -307,7 +307,7 @@ export default async function TemplateDashboard({ userId }: Props) {
     ),
   });
 
-  // 対戦環境分析（プラットフォーム全体の週次デッキ使用率・ベータ版）
+  // 対戦環境分析（プラットフォーム全体の週次デッキ使用率・β機能）
   sections.push({
     id: "environment_meta",
     label: "対戦環境分析",
@@ -374,7 +374,9 @@ export default async function TemplateDashboard({ userId }: Props) {
                 key="pinned"
                 user={user}
                 isDevEnv={isDevEnv()}
-                userCreatedAt={user.created_at != null ? String(user.created_at) : undefined}
+                userCreatedAt={
+                  user.created_at != null ? String(user.created_at) : undefined
+                }
               />
             ) : undefined
           }

@@ -31,7 +31,7 @@ export default function TemplateDeckMeta() {
                     content: "text-[10px] font-black px-1.5",
                   }}
                 >
-                  ベータ版
+                  β機能
                 </Chip>
               </div>
               <p className="text-xs text-default-400 leading-relaxed">

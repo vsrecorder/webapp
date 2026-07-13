@@ -33,6 +33,7 @@ import { RecordGetByIdResponseType } from "@app/types/record";
 import { MatchGetResponseType } from "@app/types/match";
 import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
 import { TonamelEventGetByIdResponseType } from "@app/types/tonamel_event";
+import { UnofficialEventGetByIdResponseType } from "@app/types/unofficial_event";
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { MatchStats } from "@app/utils/matchStats";
 
@@ -40,9 +41,12 @@ type Props = {
   record: RecordGetByIdResponseType;
   setRecord: Dispatch<SetStateAction<RecordGetByIdResponseType | null>>;
   stats: MatchStats;
+  // 戦績パネルで貢献度(裏面)を表示中か。画面と同じ面をシェア画像にも写すために受け取る
+  showSynergy?: boolean;
   matches: MatchGetResponseType[] | null;
   officialEvent: OfficialEventGetByIdResponseType | null;
   tonamelEvent: TonamelEventGetByIdResponseType | null;
+  unofficialEvent: UnofficialEventGetByIdResponseType | null;
   deck: DeckGetByIdResponseType | null;
   // ボードの「デッキコード」パネルの実DOM。デッキ画像(2枚目)のキャプチャに使う。
   deckCardRef: RefObject<HTMLDivElement | null>;
@@ -65,9 +69,11 @@ export default function ShareRecordModal({
   record,
   setRecord,
   stats,
+  showSynergy = false,
   matches,
   officialEvent,
   tonamelEvent,
+  unofficialEvent,
   deck,
   deckCardRef,
   isOpen,
@@ -102,10 +108,17 @@ export default function ShareRecordModal({
   // モーダルを閉じるとキャプチャ用 DOM は破棄されるため、次に開いたときは
   // 再度描画完了を待つよう準備状態をリセットする。
   // あわせて生成済み画像も捨てる(次に開いたとき古い画像を共有してしまわないよう)。
+  // オプション(トグル)も既定値に戻し、次に開いたときは前回の操作を引きずらず
+  // 既定の生成内容から始まるようにする。ポスト文は下の組み立て用 useEffect が
+  // isOpen の変化で再生成するため、ここでは触らない(手編集も破棄される)。
   useEffect(() => {
     if (!isOpen) {
       setHeroReady(false);
       setImages(null);
+      setIncludeDeck(false);
+      setHideDeck(false);
+      setIncludePostMatches(true);
+      setIncludePostDeck(true);
     }
   }, [isOpen]);
 
@@ -119,19 +132,33 @@ export default function ShareRecordModal({
 
   // 取得済みデータ・オプションが変わったらポスト文を組み立て直す
   // (この時点でユーザーの手編集は上書きされる)
+  // モーダルを開いたときも必ず組み立て直すため isOpen も依存に含める。これにより
+  // 前回開いたときの手編集を引きずらず、常に既定のポスト文から始められる。
   useEffect(() => {
+    if (!isOpen) return;
+
     const dateLabel = formatEventDateLabel(record.event_date, record.created_at);
     setText(
-      buildRecordPostText(dateLabel, officialEvent, tonamelEvent, deck, matches, {
-        includeMatches: includePostMatches,
-        includeDeck: includePostDeck,
-      }) + "\n#バトレコ",
+      buildRecordPostText(
+        dateLabel,
+        officialEvent,
+        tonamelEvent,
+        unofficialEvent,
+        deck,
+        matches,
+        {
+          includeMatches: includePostMatches,
+          includeDeck: includePostDeck,
+        },
+      ) + "\n#バトレコ",
     );
   }, [
+    isOpen,
     record.event_date,
     record.created_at,
     officialEvent,
     tonamelEvent,
+    unofficialEvent,
     deck,
     matches,
     includePostMatches,
@@ -217,6 +244,7 @@ export default function ShareRecordModal({
     matches,
     includeDeck,
     hideDeck,
+    showSynergy,
     captureWidth,
     record.id,
     deckCardRef,
@@ -401,6 +429,9 @@ export default function ShareRecordModal({
               record={record}
               setRecord={setRecord}
               stats={stats}
+              // 画面の戦績パネルと同じ面(勝率 / 貢献度)を撮る。
+              // onToggleSynergy は渡さない(キャプチャ用のパネルはタップさせない)
+              showSynergy={showSynergy}
               hideDeck={hideDeck}
               onReadyChange={setHeroReady}
               matchesSlot={

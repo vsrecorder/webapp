@@ -1,5 +1,6 @@
 import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
 import { TonamelEventGetByIdResponseType } from "@app/types/tonamel_event";
+import { UnofficialEventGetByIdResponseType } from "@app/types/unofficial_event";
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { MatchGetResponseType } from "@app/types/match";
 
@@ -31,11 +32,13 @@ export function formatEventDateLabel(
  * 共有・ツイートで使うポスト文本文を組み立てる(ハッシュタグ・via は含めない)。
  * 先頭に開催日を置き、対戦結果・使用デッキの有無は opts で切り替えられる。
  * 勝敗はチーム戦のときチームの勝敗、それ以外は個人の勝敗を採用する。
+ * イベントは公式 / Tonamel / 自由形式のいずれか。自由形式でも対戦結果は含める。
  */
 export function buildRecordPostText(
   eventDateLabel: string,
   officialEvent: OfficialEventGetByIdResponseType | null,
   tonamelEvent: TonamelEventGetByIdResponseType | null,
+  unofficialEvent: UnofficialEventGetByIdResponseType | null,
   deck: DeckGetByIdResponseType | null,
   matches: MatchGetResponseType[] | null,
   opts?: PostTextOptions,
@@ -77,6 +80,9 @@ export function buildRecordPostText(
   }
 
   let text = eventDateLabel ? `${eventDateLabel}\n` : "";
+
+  // イベント名。自由形式イベントはタイトルのみを持つ。
+  let hasEventLine = true;
   if (officialEvent) {
     const title = officialEvent.title
       .replace(/【.*?】ポケモンカードジム　/g, "")
@@ -90,9 +96,20 @@ export function buildRecordPostText(
       .replace(/（スタンダード）/g, "")
       .replace(/（.*?）/g, "");
     const shopName = officialEvent.shop_name || officialEvent.venue;
-    text += `${title}\n${shopName}\n${results}\n`;
+    text += `${title}\n${shopName}\n`;
   } else if (tonamelEvent) {
-    text += `${tonamelEvent.title}\n${results}\n`;
+    text += `${tonamelEvent.title}\n`;
+  } else if (unofficialEvent && unofficialEvent.title !== "") {
+    text += `${unofficialEvent.title}\n`;
+  } else {
+    hasEventLine = false;
+  }
+
+  // 対戦結果はイベントの有無・種別によらず常に連結する。
+  // (以前はイベント名の分岐の中でしか連結しておらず、イベントが取得できない記録
+  //  ＝自由形式イベントの記録では対戦結果がポスト文から丸ごと抜け落ちていた)
+  if (results !== "" || hasEventLine) {
+    text += `${results}\n`;
   }
 
   if (includeDeck && deck && deck.name !== "") {

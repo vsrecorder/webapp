@@ -140,6 +140,9 @@ type ShellProps = {
   chips: React.ReactNode;
   action?: React.ReactNode;
   stats: MatchStats;
+  // 戦績パネルの裏面(貢献度)を表示するか / その切り替え
+  showSynergy?: boolean;
+  onToggleSynergy?: () => void;
   ignoreStatsFlg: boolean;
   // 使用デッキ行(登録済みの場合のみ)。ヒーロー下段(対戦結果の上)に表示する
   deckSlot?: React.ReactNode;
@@ -160,15 +163,14 @@ function HeroShell({
   chips,
   action,
   stats,
+  showSynergy,
+  onToggleSynergy,
   ignoreStatsFlg,
   deckSlot,
   matchesSlot,
   accentColorClass,
 }: ShellProps) {
   const hasStats = stats.total > 0;
-  // 背景グラデ：負け越し(勝率50%未満)のときは負け色、それ以外は勝ち色
-  const bgClass =
-    hasStats && stats.winRate < 50 ? "record-hero-bg-loss" : "record-hero-bg";
 
   // 背景グラデ左下のグローを左サイドバーと同色にする。対応表に無い場合は
   // CSS側の従来色(青)へフォールバックさせるため変数を指定しない。
@@ -190,15 +192,15 @@ function HeroShell({
       <Card
         shadow="sm"
         style={heroStyle}
-        className={`${bgClass} relative w-full overflow-hidden`}
+        className="record-hero-bg relative w-full overflow-hidden"
       >
-        {/* 種別ごとのアクセント(記録一覧カードと同じ配色)をカード外周全体の枠線として表示。
+        {/* 種別ごとのアクセント(記録一覧カードと同じ配色)をカード上部の枠線としてのみ表示。
             色は heroStyle で設定済みの --hero-accent-rgb を使い、対応表に無い場合は
             従来色(青)へフォールバックする。カードの角丸に合わせるため rounded-[inherit] を指定。 */}
         <span
           aria-hidden
-          className="pointer-events-none absolute inset-0 z-10 rounded-[inherit] border-[3px]"
-          style={{ borderColor: `rgb(${accentRgb ?? "59, 130, 246"})` }}
+          className="pointer-events-none absolute inset-0 z-10 rounded-[inherit] border-t-[3px]"
+          style={{ borderTopColor: `rgb(${accentRgb ?? "59, 130, 246"})` }}
         />
 
         <div className="px-4.5 py-4.5">
@@ -265,7 +267,13 @@ function HeroShell({
             </div>
 
             {/* 右：戦績パネル(対戦がある場合のみ) */}
-            {hasStats && <RecordStatPanel stats={stats} />}
+            {hasStats && (
+              <RecordStatPanel
+                stats={stats}
+                showSynergy={showSynergy}
+                onToggleSynergy={onToggleSynergy}
+              />
+            )}
           </div>
 
           {/* 対戦結果(親から受け取る)。かつて「勝敗の推移」があった位置に配置する */}
@@ -293,6 +301,13 @@ type Props = {
   setRecord: Dispatch<SetStateAction<RecordGetByIdResponseType | null>>;
   // 対戦一覧から集計した戦績(親で管理し、対戦の追加・更新・削除に即追従させる)
   stats: MatchStats;
+  // 戦績パネルの裏面(貢献度)を表示するか。表示状態は親で管理する。
+  // シェア画像は別インスタンスの RecordHero を画面外に描画して撮るため、
+  // 状態を親で持たないと画面と同じ面を撮れない。
+  showSynergy?: boolean;
+  // 戦績パネルのタップで裏表を切り替える。未指定ならパネルはタップできない
+  // (シェア画像のキャプチャ用インスタンスでは渡さない)。
+  onToggleSynergy?: () => void;
   // 公式イベントで TCGマイスターURL の編集ボタンを表示するか(詳細ページのみ true)
   enableEditTCGMeisterURL?: boolean;
   // 使用デッキ行のタップで使用デッキ編集モーダルを開けるようにするか(詳細ページのみ true)
@@ -317,6 +332,8 @@ export default function RecordHero({
   record,
   setRecord,
   stats,
+  showSynergy = false,
+  onToggleSynergy,
   enableEditTCGMeisterURL = false,
   enableEditUsedDeck = false,
   matchesSlot,
@@ -614,6 +631,8 @@ export default function RecordHero({
             </>
           }
           stats={stats}
+          showSynergy={showSynergy}
+          onToggleSynergy={onToggleSynergy}
           ignoreStatsFlg={record.ignore_stats_flg}
           deckSlot={deckNode}
           matchesSlot={matchesSlot}
@@ -660,6 +679,8 @@ export default function RecordHero({
           </>
         }
         stats={stats}
+        showSynergy={showSynergy}
+        onToggleSynergy={onToggleSynergy}
         ignoreStatsFlg={record.ignore_stats_flg}
         deckSlot={deckNode}
         matchesSlot={matchesSlot}
@@ -706,6 +727,8 @@ export default function RecordHero({
           </>
         }
         stats={stats}
+        showSynergy={showSynergy}
+        onToggleSynergy={onToggleSynergy}
         ignoreStatsFlg={record.ignore_stats_flg}
         deckSlot={deckNode}
         matchesSlot={matchesSlot}

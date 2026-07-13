@@ -202,7 +202,7 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
   return (
     <Card className="shadow-md">
       <CardBody className="gap-4 p-4">
-        {/* ベータ版の注記 */}
+        {/* β機能の注記 */}
         <div className="flex items-center gap-2">
           <Chip
             size="sm"
@@ -210,7 +210,7 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
             variant="flat"
             classNames={{ base: "h-5 px-0.5", content: "text-[10px] font-black px-1.5" }}
           >
-            ベータ版
+            β機能
           </Chip>
           <span className="text-[11px] text-default-400 leading-snug">
             プラットフォーム全体の週次デッキ使用率

@@ -35,8 +35,8 @@ import { MatchGetResponseType, MatchOrderItemType } from "@app/types/match";
 type SectionKey = "qualifying" | "final" | "other";
 
 const SECTION_LABELS: Record<SectionKey, string> = {
-  qualifying: "予選",
-  final: "本戦",
+  qualifying: "🎯 予選",
+  final: "🏆 本戦",
   other: "その他",
 };
 

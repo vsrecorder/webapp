@@ -3,9 +3,12 @@ SHELL := /bin/bash
 include .env.production
 export
 
+# .next を消すときは tsconfig.tsbuildinfo も一緒に消す。
+# tsbuildinfo が .next/types/** を参照したまま残ると、次のビルドが
+# 「File '.next/types/...' not found」で失敗する。
 .PHONY: run
 run:
-	rm -rf .next
+	rm -rf .next tsconfig.tsbuildinfo
 	npm run dev
 
 .PHONY: build
@@ -14,8 +17,12 @@ build:
 
 .PHONY: install
 install:
-	rm -rf node_modules .next
+	rm -rf node_modules .next tsconfig.tsbuildinfo
 	npm install --force
+
+.PHONY: clean
+clean:
+	rm -rf .next tsconfig.tsbuildinfo
 
 .PHONY: image
 image:

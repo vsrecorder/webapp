@@ -1,8 +1,12 @@
 import type { MetadataRoute } from "next";
 
-const env = process.env.ENV;
+// manifest.ts もビルド時に静的生成されるため、実行時にしか渡らない ENV が undefined のまま
+// 焼き込まれ、dev環境でも本番の名前・アイコンが配信されてしまう。リクエスト時に評価させる。
+export const dynamic = "force-dynamic";
 
 export default function manifest(): MetadataRoute.Manifest {
+  const env = process.env.ENV;
+
   return {
     name:
       env == "dev"

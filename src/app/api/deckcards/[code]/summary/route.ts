@@ -1,7 +1,5 @@
 import { NextResponse, NextRequest } from "next/server";
 
-import { auth } from "@app/auth";
-
 import { DeckCardSummaryType } from "@app/types/deckcard";
 
 async function getDeckCardSummary(code: string): Promise<DeckCardSummaryType> {
@@ -28,11 +26,6 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ code: string }> },
 ) {
-  const session = await auth();
-  if (!session) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
-
   try {
     const { code } = await params;
 

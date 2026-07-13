@@ -1,3 +1,13 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "クレジット",
+  description: "バトレコで使用している素材の権利表記とクレジットを掲載しています。",
+  alternates: {
+    canonical: "/credits",
+  },
+};
+
 export default function Page() {
   return (
     <div className="flex flex-col">

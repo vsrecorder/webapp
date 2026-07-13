@@ -1,3 +1,14 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "本サービスにつきまして",
+  description:
+    "バトレコはポケモンカードゲームのファンサービスです。商標および著作権の取り扱いについてご案内します。",
+  alternates: {
+    canonical: "/policy",
+  },
+};
+
 export default function Page() {
   return (
     <div className="flex flex-col">

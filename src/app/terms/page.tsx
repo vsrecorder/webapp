@@ -1,3 +1,14 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "利用規約",
+  description:
+    "バトレコの利用規約です。本サービスをご利用いただくにあたっての利用条件を定めています。",
+  alternates: {
+    canonical: "/terms",
+  },
+};
+
 export default function Page() {
   return (
     <div className="flex flex-col">

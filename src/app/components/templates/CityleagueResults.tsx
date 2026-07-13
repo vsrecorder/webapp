@@ -22,7 +22,13 @@ function resolveRestoredTab(): TabKey {
   return "league_type_1";
 }
 
-export default function TemplateCityleagueResults() {
+type Props = {
+  // 過去の結果を探す導線。サーバコンポーネントのまま受け取るため、props で差し込む。
+  // タブが fixed で画面上部に固定されているため、タブの下（スクロール領域の先頭）に置く。
+  browseSection?: React.ReactNode;
+};
+
+export default function TemplateCityleagueResults({ browseSection }: Props) {
   // SSR と初回クライアントレンダリングを一致させるため、初期値は必ず "league_type_1" にする。
   // 実際の復元はマウント後の useEffect で行う（ハイドレーション不整合の回避）。
   const [selectedKey, setSelectedKey] = useState<TabKey>("league_type_1");
@@ -82,6 +88,8 @@ export default function TemplateCityleagueResults() {
           <Tab key="league_type_2" title="ジュニアリーグ" />
         </Tabs>
       </div>
+
+      {browseSection}
 
       <div className="w-full" hidden={selectedKey !== "league_type_1"}>
         <CityleagueResults league_type={1} />

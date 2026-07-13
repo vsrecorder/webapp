@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import Image from "next/image";
 import Link from "next/link";
 
@@ -5,6 +7,15 @@ import { Button } from "@heroui/react";
 import { LuServerCrash, LuTriangleAlert } from "react-icons/lu";
 
 import { getAppIconUrl, isDevEnv } from "@app/utils/appIcon";
+
+// 認証エラーの表示用ページなので、検索結果に出さない。
+export const metadata: Metadata = {
+  title: "エラー",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 type Props = {
   searchParams: Promise<{

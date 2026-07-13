@@ -31,9 +31,11 @@ import { Result } from "@app/types/cityleague_result";
 type Props = {
   result: Result;
   date: Date;
+  // 個別ページのように順位ごとの見出しがある場所では、カード側のラベルが冗長になるため隠す。
+  showRankLabel?: boolean;
 };
 
-export default function CityleagueResultCard({ result }: Props) {
+export default function CityleagueResultCard({ result, showRankLabel = true }: Props) {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [imageLoaded, setImageLoaded] = useState(false);
 
@@ -130,6 +132,23 @@ export default function CityleagueResultCard({ result }: Props) {
   */
   }
 
+  const getRankLabel = (rank: number, withMedal: boolean) => {
+    switch (rank) {
+      case 1:
+        return withMedal ? "🥇 優勝" : "優勝";
+      case 2:
+        return withMedal ? "🥈 準優勝" : "準優勝";
+      case 3:
+        return withMedal ? "🥉 ベスト4" : "ベスト4";
+      case 5:
+        return "ベスト8";
+      case 9:
+        return "ベスト16";
+      default:
+        return "";
+    }
+  };
+
   const getBorderColor = (rank: number) => {
     switch (rank) {
       case 1:
@@ -165,21 +184,11 @@ export default function CityleagueResultCard({ result }: Props) {
           shadow="sm"
           className={`py-3 w-full border-3 border-default-100 ${getBorderColor(result.rank)}`}
         >
-          <CardHeader className="pb-0 pt-0 px-3">
-            <div className="font-bold">
-              {result.rank === 1
-                ? "🥇 優勝"
-                : result.rank === 2
-                  ? "🥈 準優勝"
-                  : result.rank === 3
-                    ? "🥉 ベスト4"
-                    : result.rank === 5
-                      ? "ベスト8"
-                      : result.rank === 9
-                        ? "ベスト16"
-                        : ""}
-            </div>
-          </CardHeader>
+          {showRankLabel && (
+            <CardHeader className="pb-0 pt-0 px-3">
+              <div className="font-bold">{getRankLabel(result.rank, true)}</div>
+            </CardHeader>
+          )}
           <CardBody className="p-3 gap-3">
             <div className="flex flex-col items-start gap-1.5">
               <div className="text-tiny">プレイヤー名: {result.player_name}</div>
@@ -279,19 +288,7 @@ export default function CityleagueResultCard({ result }: Props) {
                 {/* 両端配置 */}
                 <div className="flex items-center justify-between w-full">
                   {/* 左側 */}
-                  <div className="font-bold">
-                    {result.rank === 1
-                      ? "優勝"
-                      : result.rank === 2
-                        ? "準優勝"
-                        : result.rank === 3
-                          ? "ベスト4"
-                          : result.rank === 5
-                            ? "ベスト8"
-                            : result.rank === 9
-                              ? "ベスト16"
-                              : ""}
-                  </div>
+                  <div className="font-bold">{getRankLabel(result.rank, false)}</div>
 
                   {/* 右側 */}
                   {status === "authenticated" && (

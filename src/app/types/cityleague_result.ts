@@ -22,3 +22,15 @@ export type CityleagueResultGetResponseType = {
   count: number;
   event_results: CityleagueResultType[];
 };
+
+// 入賞者を含まない、イベント単位の軽量な応答（/cityleague_results/events）
+export type CityleagueResultEventType = {
+  official_event_id: number;
+  league_type: number;
+  date: Date;
+};
+
+export type CityleagueResultGetEventsResponseType = {
+  count: number;
+  events: CityleagueResultEventType[];
+};

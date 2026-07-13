@@ -14,12 +14,6 @@ async function getAcespec(code: string) {
       },
     });
 
-    /*
-    if (res.status !== 200) {
-      return NextResponse.json({ error: "" }, { status: res.status });
-    }
-    */
-
     const ret: AcespecType = await res.json();
 
     return ret;

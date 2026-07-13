@@ -43,6 +43,13 @@ const nextConfig: NextConfig = {
   },
   reactStrictMode: false,
   output: "standalone",
+  // OGP画像の生成に使う日本語フォント（計11.5MB）は、サーバ側で readFile するだけで
+  // HTTP配信する必要がない。public/ に置くと誰でもダウンロードできてしまうため assets/ に置き、
+  // standalone の出力に含めるようここで明示する（.next/standalone/assets/fonts/ にコピーされ、
+  // Dockerfile が standalone ごと実行時イメージへ持っていく）。
+  outputFileTracingIncludes: {
+    "/**": ["./assets/fonts/**"],
+  },
 };
 
 export default nextConfig;

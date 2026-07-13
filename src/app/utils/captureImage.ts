@@ -163,9 +163,13 @@ export async function captureThemedPng(
   el: HTMLElement,
   // targetWidth を指定すると、対象要素の実寸(offsetWidth)ではなくこの幅で
   // クローンを描画する。端末の画面幅に合わせて書き出したいとき(シェア画像)に使う。
-  options?: { targetWidth?: number },
+  // theme を指定すると、端末のテーマ設定を無視してその配色で書き出す。
+  // 配色をダークに固定しているページ（/kizuna）から使う。
+  options?: { targetWidth?: number; theme?: "light" | "dark" },
 ): Promise<string> {
-  const isDark = document.documentElement.classList.contains("dark");
+  const isDark = options?.theme
+    ? options.theme === "dark"
+    : document.documentElement.classList.contains("dark");
   // ライトは白、ダークはメイン領域と同じ地色（app-dot-bg のダーク背景）
   const bgColor = isDark ? "#0a0a0a" : "#ffffff";
 

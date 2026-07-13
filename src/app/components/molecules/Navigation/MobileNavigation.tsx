@@ -5,8 +5,15 @@ import { usePathname } from "next/navigation";
 
 import { navItems, isActiveRoute } from "./navItems";
 
+// 下部ナビを出さないページ。
+// /kizuna は新機能のプロモーションページで、1枚の縦長LPとして最後まで読ませたいため、
+// アプリ内のナビゲーションを被せない。
+const HIDDEN_PATHNAMES = ["/kizuna"];
+
 export default function MobileNavigation() {
   const pathname = usePathname();
+
+  if (HIDDEN_PATHNAMES.includes(pathname)) return null;
 
   return (
     <nav

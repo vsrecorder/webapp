@@ -1,3 +1,14 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "プライバシーポリシー",
+  description:
+    "バトレコにおけるユーザの個人情報の取扱いについて定めたプライバシーポリシーです。",
+  alternates: {
+    canonical: "/privacy",
+  },
+};
+
 export default function Page() {
   return (
     <div className="flex flex-col">

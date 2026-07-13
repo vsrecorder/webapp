@@ -1,8 +1,12 @@
 import { MetadataRoute } from "next";
 
-const domain = process.env.VSRECORDER_DOMAIN;
+// robots.ts も sitemap.ts と同様にビルド時に静的生成されるため、実行時にしか渡らない
+// VSRECORDER_DOMAIN が undefined のまま焼き込まれる。リクエスト時に評価させる。
+export const dynamic = "force-dynamic";
 
 export default function robots(): MetadataRoute.Robots {
+  const domain = process.env.VSRECORDER_DOMAIN;
+
   return {
     rules: [
       {

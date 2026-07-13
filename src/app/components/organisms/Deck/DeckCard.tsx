@@ -439,7 +439,7 @@ export default function DeckCard({
       {view === "list" ? (
         listCard
       ) : (
-        <div onClick={onOpen} className="cursor-pointer">
+        <div onClick={onOpen} className="min-w-0 cursor-pointer">
           <Card className="w-full overflow-hidden border border-default-200 shadow-sm">
             {/* ヘッダー：登録日を右上に独立表示し、その下にスプライト＋デッキ名。
               デッキ画像は明るい場合が多く重ね文字が読みづらいため、名前とスプライトは
@@ -452,8 +452,10 @@ export default function DeckCard({
                   {date}
                 </span>
               </div>
-              {/* スプライトを上、デッキ名を下に配置（中央揃え・フル幅で見切れを防ぐ） */}
-              <div className="flex flex-col items-center gap-1">
+              {/* スプライトを上、デッキ名を下に配置（中央揃え・フル幅で見切れを防ぐ）。
+                デッキ名は折り返さない（truncate）ため、min-w-0 を挟まないと最小コンテンツ幅が
+                名前の全長まで広がり、カードごと横に伸びてしまう。 */}
+              <div className="flex w-full min-w-0 flex-col items-center gap-1">
                 <div className="flex items-center gap-0 shrink-0">
                   {[0, 1].map((i) => (
                     <Image
@@ -468,7 +470,7 @@ export default function DeckCard({
                     />
                   ))}
                 </div>
-                <div className="max-w-full font-bold text-large truncate text-center">
+                <div className="w-full min-w-0 truncate text-center font-bold text-large">
                   {deck.name}
                 </div>
               </div>
@@ -515,7 +517,7 @@ export default function DeckCard({
                 </div>
               ) : ignoredCount > 0 ? (
                 /* 集計対象外の記録だけがあるデッキ（勝率などは集計されない） */
-                <div className="flex items-center gap-2.5 rounded-lg bg-warning/10 px-3 py-2.5">
+                <div className="flex flex-col items-center gap-2 rounded-lg bg-warning/10 px-3 py-3 text-center">
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-warning/20 text-warning">
                     <span aria-hidden className="text-base">
                       ⚠
@@ -532,7 +534,7 @@ export default function DeckCard({
                 </div>
               ) : (
                 /* 対戦記録がまだ無いデッキ向けの案内（味気ない「なし」表示を避ける） */
-                <div className="flex items-center gap-2.5 rounded-lg bg-default-100 px-3 py-2.5">
+                <div className="flex flex-col items-center gap-2 rounded-lg bg-default-100 px-3 py-3 text-center">
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
                     <LuSwords className="text-base text-primary" />
                   </div>

@@ -78,8 +78,6 @@ type Props = {
   // 値が1以上のとき、onOpenHistory と併せてタップでバージョン履歴を開くボタンになる。
   versionCountBadge?: number | null;
   onOpenHistory?: () => void;
-  // デフォルトレイアウトで、デッキ画像をバージョン情報より先（上）に表示する。
-  imageFirst?: boolean;
 };
 
 export default function DeckCodeCard({
@@ -92,7 +90,6 @@ export default function DeckCodeCard({
   hideImage = false,
   versionCountBadge = null,
   onOpenHistory,
-  imageFirst = false,
 }: Props) {
   const [imageLoaded, setImageLoaded] = useState(false);
   //const [acespec, setAcespec] = useState<AcespecType | null>(null);
@@ -235,14 +232,15 @@ export default function DeckCodeCard({
     </div>
   );
 
-  // ボード(記録詳細/モーダル)は案1レイアウト：
+  // ボード(記録詳細/モーダル/デッキ一覧)は案1レイアウト：
   // デッキ画像を主役に上へ置き、その下にコード、バージョン・環境チップを並べる。
+  // 画像を別所（ギャラリー表示のヒーロー画像）で見せている場合は hideImage で省く。
   if (board) {
     return (
       <div className="flex w-full flex-col gap-2.5">
-        {deckImage}
+        {!hideImage && deckImage}
 
-        <div className="flex min-w-0 items-center gap-2 rounded-lg bg-default-100 px-3 py-2">
+        <div className="flex min-w-0 items-center justify-center gap-2 rounded-lg bg-default-100 px-3 py-2">
           <span className="shrink-0 text-tiny text-default-500">デッキコード</span>
           <Snippet
             size="sm"
@@ -278,6 +276,27 @@ export default function DeckCodeCard({
               {`『${environment.title}』`}
             </Chip>
           )}
+          {/* バージョン数バッジはチップ群の右端に寄せ、タップでバージョン履歴を開く */}
+          {versionCountBadge !== null &&
+            versionCountBadge > 0 &&
+            (onOpenHistory ? (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenHistory();
+                }}
+                className="ml-auto flex h-5 shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2 text-[10px] font-bold text-primary active:opacity-70"
+              >
+                <LuLayers className="text-xs" />
+                バージョンの数： {versionCountBadge}
+              </button>
+            ) : (
+              <span className="ml-auto flex h-5 shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2 text-[10px] font-bold text-primary">
+                <LuLayers className="text-xs" />
+                バージョンの数： {versionCountBadge}
+              </span>
+            ))}
         </div>
       </div>
     );
@@ -338,17 +357,8 @@ export default function DeckCodeCard({
 
   return (
     <div className="flex flex-col gap-2 w-full">
-      {imageFirst ? (
-        <>
-          {!hideImage && deckImage}
-          {versionInfo}
-        </>
-      ) : (
-        <>
-          {versionInfo}
-          {!hideImage && deckImage}
-        </>
-      )}
+      {versionInfo}
+      {!hideImage && deckImage}
     </div>
   );
 }

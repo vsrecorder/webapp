@@ -82,6 +82,9 @@ export function DeckCardSkeleton({ compact = false }: { compact?: boolean } = {}
       <Skeleton className="aspect-2/1 w-full" />
 
       <CardBody className="flex flex-col gap-3 px-3 py-3">
+        {/* バージョン/環境/コードのメタ（ヒーロー画像の直下） */}
+        <DeckCodeCardSkeleton hideImage />
+
         {/* 戦績：勝率ラベル・大きな勝率数値・対戦成績を中央配置 */}
         <div className="flex flex-col items-center gap-1">
           <Skeleton className="h-3 w-8 rounded" />
@@ -97,8 +100,6 @@ export function DeckCardSkeleton({ compact = false }: { compact?: boolean } = {}
           <Skeleton className="h-8 rounded-lg" />
           <Skeleton className="h-8 rounded-lg" />
         </div>
-        {/* バージョン/環境/コードのメタ */}
-        <DeckCodeCardSkeleton hideImage />
       </CardBody>
     </Card>
   );

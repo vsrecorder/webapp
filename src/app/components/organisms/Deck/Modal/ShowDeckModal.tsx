@@ -271,12 +271,15 @@ export default function ShowDeckModal({
                 </>
               </ModalHeader>
               <ModalBody className="px-3 py-2 pb-3 flex flex-col gap-3 overflow-y-auto">
-                {/* 一覧カードと同じ情報パネル+画像を共有し、表示内容のズレを防ぐ */}
+                {/* 記録情報モーダル（DisplayRecordModal）の使用デッキと同じboardレイアウトを
+                    共有する。デッキ画像を上に置き、その下にデッキコード、バージョン・対戦環境の
+                    チップを並べることで、モーダル間で表示のズレを防ぐ */}
                 <DeckCodeCard
                   deckcode={deckcode}
                   versionNumber={versionNumber}
                   totalVersionCount={versionCount}
                   onCreateVersion={onOpenForCreateDeckCodeModal}
+                  board
                 />
 
                 {deckcode?.code && (

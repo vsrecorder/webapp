@@ -12,6 +12,7 @@ import { useDisclosure } from "@heroui/react";
 
 import { LuCalendar } from "react-icons/lu";
 import { LuChevronDown } from "react-icons/lu";
+import { LuChevronRight } from "react-icons/lu";
 import { LuSwords } from "react-icons/lu";
 
 import DeckCodeCard from "@app/components/organisms/Deck/DeckCodeCard";
@@ -80,7 +81,8 @@ export default function DeckCard({
   const [deck, setDeck] = useState<DeckGetByIdResponseType | null>(deckData);
   const [deckcode, setDeckCode] = useState<DeckCodeType | null>(deckcodeData);
 
-  // リスト表示での段階的開示（先攻/後攻の内訳・デッキコード画像）の開閉状態
+  // 段階的開示の開閉状態。リスト表示では先攻/後攻の内訳・デッキコード画像、
+  // ギャラリー表示ではヒーロー画像より下の情報（デッキコード・戦績・先攻/後攻）に使う。
   const [expanded, setExpanded] = useState(false);
 
   // ギャラリー表示のヒーロー画像の読み込み状態
@@ -238,25 +240,14 @@ export default function DeckCard({
       </div>
     ) : null;
 
-  // 案A：1行に畳んだコンパクト表示。スプライト＋勝率リングで識別し、
-  // 先攻/後攻の内訳やデッキコード画像はタップで段階的に開示する。
+  // 1行に畳んだコンパクト表示。スプライト＋勝率リングで識別する。
+  // タップ＝デッキ詳細を開く（ギャラリー表示と同じルール）。先攻/後攻の内訳や
+  // デッキコード画像の段階的開示は、右端のシェブロンボタンだけが担う。
   const listCard = (
     <div className="w-full">
-      <Card className="w-full">
-        {/* ヘッダー：タップでアコーディオン（段階的開示）を開閉する */}
-        <div
-          className="flex flex-col gap-1.5 px-3 py-3 cursor-pointer"
-          role="button"
-          tabIndex={0}
-          aria-expanded={expanded}
-          onClick={() => setExpanded((v) => !v)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              setExpanded((v) => !v);
-            }
-          }}
-        >
+      <Card className="w-full transition-transform active:scale-[0.985]">
+        {/* ヘッダー：タップでデッキ詳細（ShowDeckModal）を開く */}
+        <div className="flex flex-col gap-1.5 px-3 py-3 cursor-pointer" onClick={onOpen}>
           {/* 右上：登録日を独立した行として右寄せで表示（見切れ防止） */}
           <div className="flex justify-end">
             <span className="flex items-center gap-1 text-tiny text-default-400 whitespace-nowrap">
@@ -345,11 +336,25 @@ export default function DeckCard({
               </div>
             </div>
 
-            {/* 開閉シェブロン（開閉操作は行全体のタップで行う） */}
-            <LuChevronDown
-              aria-hidden
-              className={`shrink-0 text-lg text-default-400 transition-transform ${expanded ? "rotate-180" : ""}`}
-            />
+            {/* 内訳の開閉ボタン。行タップ（＝詳細を開く）と役割が衝突しないよう、
+              独立した当たり判定（44px相当）を持つボタンにして伝播を止める。 */}
+            <button
+              type="button"
+              aria-label={
+                expanded ? "先攻・後攻の内訳を閉じる" : "先攻・後攻の内訳を開く"
+              }
+              aria-expanded={expanded}
+              onClick={(e) => {
+                e.stopPropagation();
+                setExpanded((v) => !v);
+              }}
+              className="shrink-0 flex h-9 w-9 items-center justify-center rounded-full text-default-400 bg-default-100 active:opacity-70"
+            >
+              <LuChevronDown
+                aria-hidden
+                className={`text-lg transition-transform ${expanded ? "rotate-180" : ""}`}
+              />
+            </button>
           </div>
         </div>
 
@@ -444,13 +449,14 @@ export default function DeckCard({
 
             {ignoredNote}
 
-            {/* アコーディオン内はデッキ画像を先に見せ、その下にバージョン情報を置く */}
+            {/* デッキ詳細/記録情報モーダルと同じboardレイアウト
+              （デッキ画像→デッキコード→バージョン・対戦環境チップ） */}
             <DeckCodeCard
               deckcode={deckcode}
               versionNumber={versionNumber}
               totalVersionCount={versionCount}
               onCreateVersion={onOpen}
-              imageFirst
+              board
             />
           </div>
         )}
@@ -464,7 +470,7 @@ export default function DeckCard({
         listCard
       ) : (
         <div onClick={onOpen} className="min-w-0 cursor-pointer">
-          <Card className="w-full overflow-hidden border border-default-200 shadow-sm">
+          <Card className="w-full overflow-hidden border border-default-200 shadow-sm transition-transform active:scale-[0.985]">
             {/* ヘッダー：登録日を右上に独立表示し、その下にスプライト＋デッキ名。
               デッキ画像は明るい場合が多く重ね文字が読みづらいため、名前とスプライトは
               画像上ではなくここに置く。日付を別行にしてデッキ名の幅を確保する。 */}
@@ -513,6 +519,13 @@ export default function DeckCard({
                   onLoad={() => setHeroImageLoaded(true)}
                   className="absolute inset-0 h-full w-full object-cover"
                 />
+                {/* 画像上に「タップで詳細」を重ねる。デッキ画像は一覧で最も目を引く
+                  要素なので、押せることの手がかりをここに置くのが最も届きやすい。
+                  暗い半透明の下地で、明るいデッキ画像の上でも読めるようにする。 */}
+                <span className="absolute bottom-2 left-2 flex items-center gap-0.5 rounded-full bg-black/60 pl-2 pr-1.5 py-1 text-[10px] font-bold text-white backdrop-blur-sm">
+                  タップで詳細
+                  <LuChevronRight aria-hidden className="text-xs" />
+                </span>
                 {hasStats && (
                   <span className="absolute bottom-2 right-2 flex items-baseline gap-1 rounded-full bg-black/65 px-2.5 py-1 text-white backdrop-blur-sm">
                     <span className="text-medium font-black tabular-nums">
@@ -524,132 +537,161 @@ export default function DeckCard({
               </div>
             )}
 
-            <CardBody className="flex flex-col gap-3 px-3 py-3">
-              {hasStats ? (
-                /* 戦績：勝率を中央で大きく目立たせ、対戦成績はその下に添える
-                   （登録日はヘッダーに表示） */
-                <div className="flex flex-col items-center gap-0.5">
-                  <span className="text-tiny font-bold text-default-400">勝率</span>
-                  <span
-                    className={`text-3xl font-black leading-none tabular-nums ${winRateTextColor(winRate)}`}
-                  >
-                    {formatPercent(winRate)}
-                  </span>
-                  <span className="text-tiny tabular-nums text-default-500">
-                    {`${deckUsageStat!.count}戦${deckUsageStat!.wins}勝${deckUsageStat!.losses}敗`}
-                  </span>
-                </div>
-              ) : ignoredCount > 0 ? (
-                /* 集計対象外の記録だけがあるデッキ（勝率などは集計されない） */
-                <div className="flex flex-col items-center gap-2 rounded-lg bg-warning/10 px-3 py-3 text-center">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-warning/20 text-warning">
-                    <span aria-hidden className="text-base">
-                      ⚠
-                    </span>
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-tiny font-bold text-warning">
-                      集計対象外の記録が{ignoredCount}件あります
-                    </div>
-                    <div className="text-[10px] text-default-400">
-                      勝率・先攻/後攻などの集計には含まれていません
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                noRecordsNote
-              )}
-
-              {/* 先攻/後攻：割合(件数)・勝率(全体差)をチップで表示 */}
-              {hasStats && deckUsageStat!.game_count > 0 && (
-                <div className="grid grid-cols-[auto_1fr_1fr] items-stretch gap-x-2 gap-y-1.5 text-[11px] tabular-nums">
-                  {/* 先攻 */}
-                  <span className="flex items-center font-bold text-default-600">
-                    先攻
-                  </span>
-                  <span className="flex items-baseline justify-center gap-1 rounded-lg bg-default-100 px-2 py-1.5">
-                    <span className="text-[9px] font-semibold text-default-400">
-                      割合
-                    </span>
-                    {deckUsageStat!.go_first_count > 0
-                      ? `${formatPercent(deckUsageStat!.go_first_rate)}（${deckUsageStat!.go_first_count}件）`
-                      : "-"}
-                  </span>
-                  <span
-                    className={`flex items-baseline justify-center gap-1 rounded-lg bg-default-100 px-2 py-1.5 font-bold ${
-                      goFirstHasStats
-                        ? winRateTextColor(deckUsageStat!.go_first_win_rate)
-                        : "text-default-500"
-                    }`}
-                  >
-                    <span className="text-[9px] font-semibold text-default-400">
-                      勝率
-                    </span>
-                    {goFirstHasStats
-                      ? formatPercent(deckUsageStat!.go_first_win_rate)
-                      : "-"}
-                    {goFirstDeviation && (
-                      <span
-                        className={`text-[9px] font-semibold ${goFirstDeviation.colorClass}`}
-                      >
-                        （{goFirstDeviation.label}）
-                      </span>
-                    )}
-                  </span>
-                  {/* 後攻 */}
-                  <span className="flex items-center font-bold text-default-600">
-                    後攻
-                  </span>
-                  <span className="flex items-baseline justify-center gap-1 rounded-lg bg-default-100 px-2 py-1.5">
-                    <span className="text-[9px] font-semibold text-default-400">
-                      割合
-                    </span>
-                    {deckUsageStat!.go_second_count > 0
-                      ? `${formatPercent(1 - deckUsageStat!.go_first_rate)}（${deckUsageStat!.go_second_count}件）`
-                      : "-"}
-                  </span>
-                  <span
-                    className={`flex items-baseline justify-center gap-1 rounded-lg bg-default-100 px-2 py-1.5 font-bold ${
-                      goSecondHasStats
-                        ? winRateTextColor(deckUsageStat!.go_second_win_rate)
-                        : "text-default-500"
-                    }`}
-                  >
-                    <span className="text-[9px] font-semibold text-default-400">
-                      勝率
-                    </span>
-                    {goSecondHasStats
-                      ? formatPercent(deckUsageStat!.go_second_win_rate)
-                      : "-"}
-                    {goSecondDeviation && (
-                      <span
-                        className={`text-[9px] font-semibold ${goSecondDeviation.colorClass}`}
-                      >
-                        （{goSecondDeviation.label}）
-                      </span>
-                    )}
-                  </span>
-                </div>
-              )}
-
-              {/* 集計対象外の記録がある場合の注記（勝率などには未反映） */}
-              {hasStats && ignoredNote}
-
-              {/* バージョン/対戦環境/デッキコード（画像はヒーローで表示済み）。
-                バージョン数バッジもこのバージョン情報内に表示する。 */}
-              <DeckCodeCard
-                deckcode={deckcode}
-                versionNumber={versionNumber}
-                totalVersionCount={versionCount}
-                onCreateVersion={onOpen}
-                hideImage
-                versionCountBadge={versionCount}
-                onOpenHistory={() => {
-                  setOpenHistoryOnShow(true);
-                  onOpen();
+            {/* ヒーロー画像より下の情報（デッキコード・戦績・先攻/後攻）はアコーディオンに畳む。
+              一覧をスクロールする段階ではスプライト・デッキ名・画像・勝率バッジで足りるため、
+              既定は閉じておき、必要なときだけ開く。カード自体のタップ（＝デッキ詳細を開く）と
+              役割が衝突しないよう、開閉ボタンは伝播を止める。 */}
+            <div className="px-3 pt-2 pb-3">
+              <button
+                type="button"
+                aria-label={
+                  expanded ? "デッキコード・戦績を閉じる" : "デッキコード・戦績を開く"
+                }
+                aria-expanded={expanded}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setExpanded((v) => !v);
                 }}
-              />
-            </CardBody>
+                className="flex w-full items-center justify-center gap-1 rounded-lg bg-default-100 px-3 py-2 text-tiny font-bold text-default-600 active:opacity-70"
+              >
+                {expanded ? "閉じる" : "デッキコード・戦績を見る"}
+                <LuChevronDown
+                  aria-hidden
+                  className={`text-base transition-transform ${expanded ? "rotate-180" : ""}`}
+                />
+              </button>
+            </div>
+
+            {expanded && (
+              <CardBody className="flex flex-col gap-3 px-3 pt-0 pb-3">
+                {/* デッキ詳細/記録情報モーダルと同じboardレイアウト（デッキコード→バージョン・
+                対戦環境チップ）。デッキ画像はヒーローで表示済みのためhideImageで省き、
+                ヒーロー画像の直下に続けて置く。バージョン数バッジはチップ群の右端。 */}
+                <DeckCodeCard
+                  deckcode={deckcode}
+                  versionNumber={versionNumber}
+                  totalVersionCount={versionCount}
+                  onCreateVersion={onOpen}
+                  board
+                  hideImage
+                  versionCountBadge={versionCount}
+                  onOpenHistory={() => {
+                    setOpenHistoryOnShow(true);
+                    onOpen();
+                  }}
+                />
+
+                {hasStats ? (
+                  /* 戦績：勝率を中央で大きく目立たせ、対戦成績はその下に添える
+                   （登録日はヘッダーに表示） */
+                  <div className="flex flex-col items-center gap-0.5">
+                    <span className="text-tiny font-bold text-default-400">勝率</span>
+                    <span
+                      className={`text-3xl font-black leading-none tabular-nums ${winRateTextColor(winRate)}`}
+                    >
+                      {formatPercent(winRate)}
+                    </span>
+                    <span className="text-tiny tabular-nums text-default-500">
+                      {`${deckUsageStat!.count}戦${deckUsageStat!.wins}勝${deckUsageStat!.losses}敗`}
+                    </span>
+                  </div>
+                ) : ignoredCount > 0 ? (
+                  /* 集計対象外の記録だけがあるデッキ（勝率などは集計されない） */
+                  <div className="flex flex-col items-center gap-2 rounded-lg bg-warning/10 px-3 py-3 text-center">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-warning/20 text-warning">
+                      <span aria-hidden className="text-base">
+                        ⚠
+                      </span>
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-tiny font-bold text-warning">
+                        集計対象外の記録が{ignoredCount}件あります
+                      </div>
+                      <div className="text-[10px] text-default-400">
+                        勝率・先攻/後攻などの集計には含まれていません
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  noRecordsNote
+                )}
+
+                {/* 先攻/後攻：割合(件数)・勝率(全体差)をチップで表示 */}
+                {hasStats && deckUsageStat!.game_count > 0 && (
+                  <div className="grid grid-cols-[auto_1fr_1fr] items-stretch gap-x-2 gap-y-1.5 text-[11px] tabular-nums">
+                    {/* 先攻 */}
+                    <span className="flex items-center font-bold text-default-600">
+                      先攻
+                    </span>
+                    <span className="flex items-baseline justify-center gap-1 rounded-lg bg-default-100 px-2 py-1.5">
+                      <span className="text-[9px] font-semibold text-default-400">
+                        割合
+                      </span>
+                      {deckUsageStat!.go_first_count > 0
+                        ? `${formatPercent(deckUsageStat!.go_first_rate)}（${deckUsageStat!.go_first_count}件）`
+                        : "-"}
+                    </span>
+                    <span
+                      className={`flex items-baseline justify-center gap-1 rounded-lg bg-default-100 px-2 py-1.5 font-bold ${
+                        goFirstHasStats
+                          ? winRateTextColor(deckUsageStat!.go_first_win_rate)
+                          : "text-default-500"
+                      }`}
+                    >
+                      <span className="text-[9px] font-semibold text-default-400">
+                        勝率
+                      </span>
+                      {goFirstHasStats
+                        ? formatPercent(deckUsageStat!.go_first_win_rate)
+                        : "-"}
+                      {goFirstDeviation && (
+                        <span
+                          className={`text-[9px] font-semibold ${goFirstDeviation.colorClass}`}
+                        >
+                          （{goFirstDeviation.label}）
+                        </span>
+                      )}
+                    </span>
+                    {/* 後攻 */}
+                    <span className="flex items-center font-bold text-default-600">
+                      後攻
+                    </span>
+                    <span className="flex items-baseline justify-center gap-1 rounded-lg bg-default-100 px-2 py-1.5">
+                      <span className="text-[9px] font-semibold text-default-400">
+                        割合
+                      </span>
+                      {deckUsageStat!.go_second_count > 0
+                        ? `${formatPercent(1 - deckUsageStat!.go_first_rate)}（${deckUsageStat!.go_second_count}件）`
+                        : "-"}
+                    </span>
+                    <span
+                      className={`flex items-baseline justify-center gap-1 rounded-lg bg-default-100 px-2 py-1.5 font-bold ${
+                        goSecondHasStats
+                          ? winRateTextColor(deckUsageStat!.go_second_win_rate)
+                          : "text-default-500"
+                      }`}
+                    >
+                      <span className="text-[9px] font-semibold text-default-400">
+                        勝率
+                      </span>
+                      {goSecondHasStats
+                        ? formatPercent(deckUsageStat!.go_second_win_rate)
+                        : "-"}
+                      {goSecondDeviation && (
+                        <span
+                          className={`text-[9px] font-semibold ${goSecondDeviation.colorClass}`}
+                        >
+                          （{goSecondDeviation.label}）
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                )}
+
+                {/* 集計対象外の記録がある場合の注記（勝率などには未反映） */}
+                {hasStats && ignoredNote}
+              </CardBody>
+            )}
           </Card>
         </div>
       )}

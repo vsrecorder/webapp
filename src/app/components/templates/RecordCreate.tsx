@@ -398,6 +398,77 @@ function StepLabel({
 }
 
 /*
+ * 「この記録を戦績集計に含めない」トグル。公式/Tonamel/自由形式の3タブで同じUIを使う。
+ *
+ * ON のときに警告文を「追加」すると、その分ブロックが伸びて直下の「記録を作成」ボタンが
+ * 押し下げられてしまう（押そうとした瞬間にボタンが逃げる）。かといって OFF のときに
+ * 空の場所を確保しておくと、今度は無駄な余白が残る。
+ *
+ * そこで警告文は行を増やさず、説明文と同じ場所を差し替える形で見せる。どちらの文言も
+ * <br /> で明示的に2行へ揃えてあるため、ON/OFF でブロックの高さは変わらず余白も生じない。
+ * 文言を変えるときは2行に収まる長さを保つこと（min-h-8 は折り返しが減った場合の保険）。
+ */
+function IgnoreStatsOption({
+  ignoreStatsFlg,
+  setIgnoreStatsFlg,
+}: {
+  ignoreStatsFlg: boolean;
+  setIgnoreStatsFlg: (value: boolean) => void;
+}) {
+  return (
+    <>
+      <div className="flex flex-col gap-2">
+        <StepLabel num={4}>集計オプション</StepLabel>
+      </div>
+
+      <div
+        className={`flex items-center justify-between gap-4 rounded-lg border px-3 py-2.5 transition-colors ${
+          ignoreStatsFlg
+            ? "border-warning/40 bg-warning/10"
+            : "border-divider bg-default-50"
+        }`}
+      >
+        <div className="flex flex-col gap-0.5">
+          <span
+            className={`text-sm font-bold transition-colors ${
+              ignoreStatsFlg ? "text-warning" : ""
+            }`}
+          >
+            この記録を戦績集計に含めない
+          </span>
+
+          <span
+            className={`min-h-8 text-tiny transition-colors ${
+              ignoreStatsFlg ? "font-bold text-warning" : "text-default-500"
+            }`}
+          >
+            {ignoreStatsFlg ? (
+              <>
+                ⚠ この記録は分析・集計の対象外です。
+                <br />
+                勝率・デッキ使用率などに反映されません。
+              </>
+            ) : (
+              <>
+                勝率・デッキ使用率・週次レポートなどの集計から
+                <br />
+                除外されます。
+              </>
+            )}
+          </span>
+        </div>
+        <Switch
+          size="sm"
+          isSelected={ignoreStatsFlg}
+          onValueChange={setIgnoreStatsFlg}
+          aria-label="戦績集計から除外する"
+        />
+      </div>
+    </>
+  );
+}
+
+/*
  * 公式/Tonamel/自由形式でフォームの構成はバラバラだが、タブ確定前
  * （セッション復元中）に一瞬だけ表示する共通スケルトン。
  * どうせ3タブ共通で1つ表示するなら、と最も要素数の多い「公式イベント」
@@ -1716,41 +1787,10 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-2">
-                  <StepLabel num={4}>集計オプション</StepLabel>
-                </div>
-
-                <div
-                  className={`flex flex-col gap-2 rounded-lg border px-3 py-2.5 transition-colors ${
-                    ignoreStatsFlg
-                      ? "border-warning/40 bg-warning/10"
-                      : "border-divider bg-default-50"
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-sm font-bold">
-                        この記録を戦績集計に含めない
-                      </span>
-                      <span className="text-tiny text-default-500">
-                        勝率・デッキ使用率・週次レポートなどの集計から
-                        <br />
-                        除外されます
-                      </span>
-                    </div>
-                    <Switch
-                      size="sm"
-                      isSelected={ignoreStatsFlg}
-                      onValueChange={setIgnoreStatsFlg}
-                      aria-label="戦績集計から除外する"
-                    />
-                  </div>
-                  {ignoreStatsFlg && (
-                    <span className="text-tiny font-bold text-warning">
-                      ⚠ この記録は分析・集計の対象外になります
-                    </span>
-                  )}
-                </div>
+                <IgnoreStatsOption
+                  ignoreStatsFlg={ignoreStatsFlg}
+                  setIgnoreStatsFlg={setIgnoreStatsFlg}
+                />
 
                 <Button
                   color="primary"
@@ -2091,41 +2131,10 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-2">
-                  <StepLabel num={4}>集計オプション</StepLabel>
-                </div>
-
-                <div
-                  className={`flex flex-col gap-2 rounded-lg border px-3 py-2.5 transition-colors ${
-                    ignoreStatsFlg
-                      ? "border-warning/40 bg-warning/10"
-                      : "border-divider bg-default-50"
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-sm font-bold">
-                        この記録を戦績集計に含めない
-                      </span>
-                      <span className="text-tiny text-default-500">
-                        勝率・デッキ使用率・週次レポートなどの集計から
-                        <br />
-                        除外されます
-                      </span>
-                    </div>
-                    <Switch
-                      size="sm"
-                      isSelected={ignoreStatsFlg}
-                      onValueChange={setIgnoreStatsFlg}
-                      aria-label="戦績集計から除外する"
-                    />
-                  </div>
-                  {ignoreStatsFlg && (
-                    <span className="text-tiny font-bold text-warning">
-                      ⚠ この記録は分析・集計の対象外になります
-                    </span>
-                  )}
-                </div>
+                <IgnoreStatsOption
+                  ignoreStatsFlg={ignoreStatsFlg}
+                  setIgnoreStatsFlg={setIgnoreStatsFlg}
+                />
 
                 <Button
                   color="primary"
@@ -2434,41 +2443,10 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-2">
-                  <StepLabel num={4}>集計オプション</StepLabel>
-                </div>
-
-                <div
-                  className={`flex flex-col gap-2 rounded-lg border px-3 py-2.5 transition-colors ${
-                    ignoreStatsFlg
-                      ? "border-warning/40 bg-warning/10"
-                      : "border-divider bg-default-50"
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-sm font-bold">
-                        この記録を戦績集計に含めない
-                      </span>
-                      <span className="text-tiny text-default-500">
-                        勝率・デッキ使用率・週次レポートなどの集計から
-                        <br />
-                        除外されます
-                      </span>
-                    </div>
-                    <Switch
-                      size="sm"
-                      isSelected={ignoreStatsFlg}
-                      onValueChange={setIgnoreStatsFlg}
-                      aria-label="戦績集計から除外する"
-                    />
-                  </div>
-                  {ignoreStatsFlg && (
-                    <span className="text-tiny font-bold text-warning">
-                      ⚠ この記録は分析・集計の対象外になります
-                    </span>
-                  )}
-                </div>
+                <IgnoreStatsOption
+                  ignoreStatsFlg={ignoreStatsFlg}
+                  setIgnoreStatsFlg={setIgnoreStatsFlg}
+                />
 
                 <Button
                   color="primary"

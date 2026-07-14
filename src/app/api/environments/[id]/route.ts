@@ -1,25 +1,21 @@
 import { NextResponse, NextRequest } from "next/server";
 
+import { fetchUpstream, upstreamErrorResponse } from "@app/utils/upstream";
+
 import { EnvironmentType } from "@app/types/environment";
 
 async function getEnvironmentById(id: string): Promise<EnvironmentType> {
-  try {
-    const domain = process.env.VSRECORDER_DOMAIN;
+  const domain = process.env.VSRECORDER_DOMAIN;
 
-    const res = await fetch(`https://${domain}/api/v1beta/environments/${id}`, {
-      cache: "no-store",
+  return await fetchUpstream<EnvironmentType>(
+    `https://${domain}/api/v1beta/environments/${id}`,
+    {
       method: "GET",
       headers: {
         Accept: "application/json",
       },
-    });
-
-    const ret: EnvironmentType = await res.json();
-
-    return ret;
-  } catch (error) {
-    throw error;
-  }
+    },
+  );
 }
 
 export async function GET(
@@ -29,10 +25,10 @@ export async function GET(
   try {
     const { id } = await params;
 
-    const ret = await getEnvironmentById(id);
+    const environment = await getEnvironmentById(id);
 
-    return NextResponse.json(ret, { status: 200 });
+    return NextResponse.json(environment, { status: 200 });
   } catch (error) {
-    throw error;
+    return upstreamErrorResponse(error);
   }
 }

@@ -1,33 +1,29 @@
 import { NextResponse } from "next/server";
 
+import { fetchUpstream, upstreamErrorResponse } from "@app/utils/upstream";
+
 import { PokemonSpriteType } from "@app/types/pokemon_sprite";
 
 async function getPokemonSprites(): Promise<PokemonSpriteType[]> {
-  try {
-    const domain = process.env.VSRECORDER_DOMAIN;
+  const domain = process.env.VSRECORDER_DOMAIN;
 
-    const res = await fetch(`https://${domain}/api/v1beta/pokemon-sprites`, {
-      cache: "no-store",
+  return await fetchUpstream<PokemonSpriteType[]>(
+    `https://${domain}/api/v1beta/pokemon-sprites`,
+    {
       method: "GET",
       headers: {
         Accept: "application/json",
       },
-    });
-
-    const ret: PokemonSpriteType[] = await res.json();
-
-    return ret;
-  } catch (error) {
-    throw error;
-  }
+    },
+  );
 }
 
 export async function GET() {
   try {
-    const ret = await getPokemonSprites();
+    const sprites = await getPokemonSprites();
 
-    return NextResponse.json(ret, { status: 200 });
+    return NextResponse.json(sprites, { status: 200 });
   } catch (error) {
-    throw error;
+    return upstreamErrorResponse(error);
   }
 }

@@ -203,7 +203,7 @@ function HeroShell({
           style={{ borderTopColor: `rgb(${accentRgb ?? "59, 130, 246"})` }}
         />
 
-        <div className="px-4.5 py-4.5">
+        <div className="px-3 py-4.5">
           {/* 上段は左右2カラム。左カラムは「上：イベント情報／下：使用デッキ」の縦積み、
             右カラムは戦績パネル。items-stretch で両カラムの高さを揃え、低い方が
             引き伸ばされることで左右のバランスが取れる。

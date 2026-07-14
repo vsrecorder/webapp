@@ -2,29 +2,25 @@ import { NextResponse } from "next/server";
 
 import { auth } from "@app/auth";
 
+import { fetchUpstream, upstreamErrorResponse } from "@app/utils/upstream";
+
 import { UnreadCountResponseType } from "@app/types/notification";
 
 import * as jwt from "jsonwebtoken";
 
 async function getUnreadCount(token: string): Promise<UnreadCountResponseType> {
-  try {
-    const domain = process.env.VSRECORDER_DOMAIN;
+  const domain = process.env.VSRECORDER_DOMAIN;
 
-    const res = await fetch(`https://${domain}/api/v1beta/notifications/unread_count`, {
-      cache: "no-store",
+  return await fetchUpstream<UnreadCountResponseType>(
+    `https://${domain}/api/v1beta/notifications/unread_count`,
+    {
       method: "GET",
       headers: {
         Authorization: "Bearer " + token,
         Accept: "application/json",
       },
-    });
-
-    const ret: UnreadCountResponseType = await res.json();
-
-    return ret;
-  } catch (error) {
-    throw error;
-  }
+    },
+  );
 }
 
 export async function GET() {
@@ -45,10 +41,10 @@ export async function GET() {
   const token = jwt.sign(jwtPayload, jwtSecret, jwtSignOptions);
 
   try {
-    const ret = await getUnreadCount(token);
+    const unreadCount = await getUnreadCount(token);
 
-    return NextResponse.json(ret, { status: 200 });
+    return NextResponse.json(unreadCount, { status: 200 });
   } catch (error) {
-    throw error;
+    return upstreamErrorResponse(error);
   }
 }

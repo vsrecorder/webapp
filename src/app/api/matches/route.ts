@@ -2,6 +2,8 @@ import { NextResponse, NextRequest } from "next/server";
 
 import { auth } from "@app/auth";
 
+import { fetchUpstream, upstreamErrorResponse } from "@app/utils/upstream";
+
 import {
   MatchCreateRequestType,
   MatchCreateResponseType,
@@ -33,25 +35,20 @@ export async function GET(request: NextRequest) {
 
     const domain = process.env.VSRECORDER_DOMAIN;
 
-    const res = await fetch(`https://${domain}/api/v1beta/matches?limit=${limit}`, {
-      cache: "no-store",
-      method: "GET",
-      headers: {
-        Authorization: "Bearer " + token,
-        "Content-Type": "application/json",
+    const matches = await fetchUpstream<MatchGetResponseType[]>(
+      `https://${domain}/api/v1beta/matches?limit=${limit}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: "Bearer " + token,
+          "Content-Type": "application/json",
+        },
       },
-    });
+    );
 
-    if (!res.ok) {
-      const body = await res.json();
-      return NextResponse.json(body, { status: res.status });
-    }
-
-    const ret: MatchGetResponseType[] = await res.json();
-
-    return NextResponse.json(ret, { status: 200 });
+    return NextResponse.json(matches, { status: 200 });
   } catch (error) {
-    throw error;
+    return upstreamErrorResponse(error);
   }
 }
 
@@ -77,23 +74,20 @@ export async function POST(request: NextRequest) {
 
     const match: MatchCreateRequestType = await request.json();
 
-    const res = await fetch(`https://${domain}/api/v1beta/matches`, {
-      method: "POST",
-      headers: {
-        Authorization: "Bearer " + token,
-        "Content-Type": "application/json",
+    const created = await fetchUpstream<MatchCreateResponseType>(
+      `https://${domain}/api/v1beta/matches`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: "Bearer " + token,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(match),
       },
-      body: JSON.stringify(match),
-    });
+    );
 
-    if (res.status == 201) {
-      const ret: MatchCreateResponseType = await res.json();
-
-      return NextResponse.json(ret, { status: 201 });
-    } else {
-      return res;
-    }
+    return NextResponse.json(created, { status: 201 });
   } catch (error) {
-    throw error;
+    return upstreamErrorResponse(error);
   }
 }

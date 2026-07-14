@@ -2,6 +2,8 @@ import { NextResponse, NextRequest } from "next/server";
 
 import { auth } from "@app/auth";
 
+import { fetchUpstream, upstreamErrorResponse } from "@app/utils/upstream";
+
 import {
   DeckGetResponseType,
   DeckCreateRequestType,
@@ -15,27 +17,18 @@ async function getDecks(
   archived: boolean,
   cursor: string,
 ): Promise<DeckGetResponseType> {
-  try {
-    const domain = process.env.VSRECORDER_DOMAIN;
+  const domain = process.env.VSRECORDER_DOMAIN;
 
-    const res = await fetch(
-      `https://${domain}/api/v1beta/decks?limit=10&archived=${archived}&cursor=${cursor}`,
-      {
-        cache: "no-store",
-        method: "GET",
-        headers: {
-          Authorization: "Bearer " + token,
-          Accept: "application/json",
-        },
+  return await fetchUpstream<DeckGetResponseType>(
+    `https://${domain}/api/v1beta/decks?limit=10&archived=${archived}&cursor=${cursor}`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: "Bearer " + token,
+        Accept: "application/json",
       },
-    );
-
-    const ret: DeckGetResponseType = await res.json();
-
-    return ret;
-  } catch (error) {
-    throw error;
-  }
+    },
+  );
 }
 
 export async function GET(request: NextRequest) {
@@ -64,11 +57,11 @@ export async function GET(request: NextRequest) {
     const archived = archivedParam === "true";
     const cursor = searchParams.get("cursor") ?? "";
 
-    const ret = await getDecks(token, archived, cursor);
+    const decks = await getDecks(token, archived, cursor);
 
-    return NextResponse.json(ret, { status: 200 });
+    return NextResponse.json(decks, { status: 200 });
   } catch (error) {
-    throw error;
+    return upstreamErrorResponse(error);
   }
 }
 
@@ -94,23 +87,20 @@ export async function POST(request: NextRequest) {
 
     const deck: DeckCreateRequestType = await request.json();
 
-    const res = await fetch(`https://${domain}/api/v1beta/decks`, {
-      method: "POST",
-      headers: {
-        Authorization: "Bearer " + token,
-        "Content-Type": "application/json",
+    const created = await fetchUpstream<DeckCreateResponseType>(
+      `https://${domain}/api/v1beta/decks`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: "Bearer " + token,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(deck),
       },
-      body: JSON.stringify(deck),
-    });
+    );
 
-    if (res.status == 201) {
-      const ret: DeckCreateResponseType = await res.json();
-
-      return NextResponse.json(ret, { status: 201 });
-    } else {
-      return res;
-    }
+    return NextResponse.json(created, { status: 201 });
   } catch (error) {
-    throw error;
+    return upstreamErrorResponse(error);
   }
 }

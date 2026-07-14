@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Avatar, Card, CardBody, useDisclosure } from "@heroui/react";
@@ -16,6 +16,7 @@ import {
 } from "react-icons/lu";
 
 import UpdateNameModal from "@app/components/organisms/User/Modal/UpdateNameModal";
+import FetchError from "@app/components/molecules/FetchError";
 
 import { UserType } from "@app/types/user";
 import { UserStatType } from "@app/types/user_stat";
@@ -99,6 +100,8 @@ function winRateColor(rate: number): string {
 type WinRateBadgeProps = {
   winRate: number;
   isLoading: boolean;
+  // 戦績の取得に失敗したか。0.0%と表示すると「勝率0%」と読めてしまうため、値は伏せる
+  hasError: boolean;
   yearMonth: string;
   yearMonthOptions: { value: string; label: string }[];
   onYearMonthChange: (value: string) => void;
@@ -109,6 +112,7 @@ type WinRateBadgeProps = {
 function WinRateBadge({
   winRate,
   isLoading,
+  hasError,
   yearMonth,
   yearMonthOptions,
   onYearMonthChange,
@@ -135,7 +139,9 @@ function WinRateBadge({
             </option>
           ))}
         </select>
-        <span className="pointer-events-none absolute right-0 text-white/70 text-[8px]">▼</span>
+        <span className="pointer-events-none absolute right-0 text-white/70 text-[8px]">
+          ▼
+        </span>
       </div>
       <button
         onClick={onToggle}
@@ -156,6 +162,8 @@ function WinRateBadge({
       >
         {hidden ? (
           <span className="text-3xl font-black text-white/30 leading-none">——</span>
+        ) : hasError ? (
+          <span className="text-3xl font-black text-white/30 leading-none">—</span>
         ) : isLoading ? (
           <span className="text-3xl font-black text-white/30 animate-pulse leading-none">
             —
@@ -277,9 +285,14 @@ function PlayersClubBadge({ isLoading, userPlayer }: PlayersClubBadgeProps) {
 
 const STATS_VISIBLE_KEY = "profile_stats_visible";
 
-export default function UserProfileCard({ user, isDevEnv = false, userCreatedAt }: Props) {
+export default function UserProfileCard({
+  user,
+  isDevEnv = false,
+  userCreatedAt,
+}: Props) {
   const [stat, setStat] = useState<UserStatType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [statError, setStatError] = useState(false);
   const [userPlayer, setUserPlayer] = useState<UserPlayerType | null>(null);
   const [isUserPlayerLoading, setIsUserPlayerLoading] = useState(true);
   const [isPlayersClubFeatureDisabled, setIsPlayersClubFeatureDisabled] = useState(false);
@@ -304,16 +317,35 @@ export default function UserProfileCard({ user, isDevEnv = false, userCreatedAt 
     });
   }
 
-  useEffect(() => {
+  // 取得に失敗したことを「勝率0.0% / 0戦0勝0敗」の表示で覆い隠さないよう、
+  // 失敗はエラーとして扱い、戦績の部分だけで取り直せるようにする。
+  const loadStat = useCallback(async () => {
+    setStatError(false);
     setIsLoading(true);
-    fetch(`/api/users/${user.id}/stat?year_month=${yearMonth}`, { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        setStat(data);
-        setIsLoading(false);
-      })
-      .catch(() => setIsLoading(false));
+
+    try {
+      const res = await fetch(`/api/users/${user.id}/stat?year_month=${yearMonth}`, {
+        cache: "no-store",
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to fetch");
+      }
+
+      const data: UserStatType = await res.json();
+
+      setStat(data);
+    } catch (err) {
+      console.log(err);
+      setStatError(true);
+    } finally {
+      setIsLoading(false);
+    }
   }, [user.id, yearMonth]);
+
+  useEffect(() => {
+    loadStat();
+  }, [loadStat]);
 
   useEffect(() => {
     setIsUserPlayerLoading(true);
@@ -381,6 +413,7 @@ export default function UserProfileCard({ user, isDevEnv = false, userCreatedAt 
             <WinRateBadge
               winRate={stat?.win_rate ?? 0}
               isLoading={isLoading}
+              hasError={statError}
               yearMonth={yearMonth}
               yearMonthOptions={yearMonthOptions}
               onYearMonthChange={setYearMonth}
@@ -390,33 +423,38 @@ export default function UserProfileCard({ user, isDevEnv = false, userCreatedAt 
           </div>
         </div>
 
-        {/* 統計グリッド */}
+        {/* 統計グリッド。取得に失敗したときは0件の戦績を装わず、ここだけをエラー表示に置き換える
+            （プロフィール部分は表示したままにする） */}
         <CardBody className="p-3 -mt-2 bg-content1 rounded-t-2xl relative z-10">
-          <div className="grid grid-cols-3 gap-5">
-            <StatChip
-              icon={<LuSwords className="w-3.5 h-3.5" />}
-              label="試合数"
-              value={stat?.total_matches ?? 0}
-              isLoading={isLoading}
-              hidden={!statsVisible}
-            />
-            <StatChip
-              icon={<LuTrophy className="w-3.5 h-3.5" />}
-              label="勝利"
-              value={stat?.wins ?? 0}
-              isLoading={isLoading}
-              hidden={!statsVisible}
-              colorClass="text-success"
-            />
-            <StatChip
-              icon={<LuShield className="w-3.5 h-3.5" />}
-              label="敗北"
-              value={stat?.losses ?? 0}
-              isLoading={isLoading}
-              hidden={!statsVisible}
-              colorClass="text-danger"
-            />
-          </div>
+          {statError ? (
+            <FetchError message="戦績の取得に失敗しました" onRetry={loadStat} compact />
+          ) : (
+            <div className="grid grid-cols-3 gap-5">
+              <StatChip
+                icon={<LuSwords className="w-3.5 h-3.5" />}
+                label="試合数"
+                value={stat?.total_matches ?? 0}
+                isLoading={isLoading}
+                hidden={!statsVisible}
+              />
+              <StatChip
+                icon={<LuTrophy className="w-3.5 h-3.5" />}
+                label="勝利"
+                value={stat?.wins ?? 0}
+                isLoading={isLoading}
+                hidden={!statsVisible}
+                colorClass="text-success"
+              />
+              <StatChip
+                icon={<LuShield className="w-3.5 h-3.5" />}
+                label="敗北"
+                value={stat?.losses ?? 0}
+                isLoading={isLoading}
+                hidden={!statsVisible}
+                colorClass="text-danger"
+              />
+            </div>
+          )}
         </CardBody>
       </Card>
     </>

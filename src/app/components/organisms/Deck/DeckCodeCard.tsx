@@ -78,6 +78,9 @@ type Props = {
   // 値が1以上のとき、onOpenHistory と併せてタップでバージョン履歴を開くボタンになる。
   versionCountBadge?: number | null;
   onOpenHistory?: () => void;
+  // アーカイブしたデッキでは新しいバージョンを作成できないため、
+  // バージョン作成CTAはグレーアウトした非活性表示に差し替える
+  isArchived?: boolean;
 };
 
 export default function DeckCodeCard({
@@ -90,6 +93,7 @@ export default function DeckCodeCard({
   hideImage = false,
   versionCountBadge = null,
   onOpenHistory,
+  isArchived = false,
 }: Props) {
   const [imageLoaded, setImageLoaded] = useState(false);
   //const [acespec, setAcespec] = useState<AcespecType | null>(null);
@@ -191,6 +195,24 @@ export default function DeckCodeCard({
             使用したカード構成まで記録できます
           </div>
         </button>
+      );
+    }
+
+    // アーカイブしたデッキは新しいバージョンを作成できないため、
+    // CTAではなくグレーアウトした非活性の案内を出す
+    if (isArchived) {
+      return (
+        <div className="w-full flex flex-col items-center gap-2 rounded-xl border-2 border-dashed border-default-200 bg-default-50 px-4 py-6 text-default-300">
+          <div className="w-10 h-10 rounded-full bg-default-100 flex items-center justify-center">
+            <LuLayers className="text-xl" />
+          </div>
+          <div className="font-bold text-tiny">バージョンがありません</div>
+          <div className="text-tiny text-center">
+            アーカイブしたデッキでは
+            <br />
+            新しいバージョンを作成できません
+          </div>
+        </div>
       );
     }
 

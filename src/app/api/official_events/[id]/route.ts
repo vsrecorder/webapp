@@ -1,27 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { fetchUpstream, upstreamErrorResponse } from "@app/utils/upstream";
+
 import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
 
 async function getOfficialEventById(
   id: string,
 ): Promise<OfficialEventGetByIdResponseType> {
-  try {
-    const domain = process.env.VSRECORDER_DOMAIN;
+  const domain = process.env.VSRECORDER_DOMAIN;
 
-    const res = await fetch(`https://${domain}/api/v1beta/official_events/${id}`, {
-      cache: "no-store",
+  return await fetchUpstream<OfficialEventGetByIdResponseType>(
+    `https://${domain}/api/v1beta/official_events/${id}`,
+    {
       method: "GET",
       headers: {
         Accept: "application/json",
       },
-    });
-
-    const ret: OfficialEventGetByIdResponseType = await res.json();
-
-    return ret;
-  } catch (error) {
-    throw error;
-  }
+    },
+  );
 }
 
 export async function GET(
@@ -31,10 +27,10 @@ export async function GET(
   try {
     const { id } = await params;
 
-    const ret = await getOfficialEventById(id);
+    const officialEvent = await getOfficialEventById(id);
 
-    return NextResponse.json(ret, { status: 200 });
+    return NextResponse.json(officialEvent, { status: 200 });
   } catch (error) {
-    throw error;
+    return upstreamErrorResponse(error);
   }
 }

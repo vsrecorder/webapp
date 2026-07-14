@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { fetchUpstream, upstreamErrorResponse } from "@app/utils/upstream";
+
 import { OfficialEventResponseType } from "@app/types/official_event";
 
 async function getOfficialEventByDate(
@@ -7,26 +9,17 @@ async function getOfficialEventByDate(
   league_type: string,
   date: string,
 ): Promise<OfficialEventResponseType> {
-  try {
-    const domain = process.env.VSRECORDER_DOMAIN;
+  const domain = process.env.VSRECORDER_DOMAIN;
 
-    const res = await fetch(
-      `https://${domain}/api/v1beta/official_events?type_id=${type_id}&league_type=${league_type}&date=${date}`,
-      {
-        cache: "no-store",
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-        },
+  return await fetchUpstream<OfficialEventResponseType>(
+    `https://${domain}/api/v1beta/official_events?type_id=${type_id}&league_type=${league_type}&date=${date}`,
+    {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
       },
-    );
-
-    const ret: OfficialEventResponseType = await res.json();
-
-    return ret;
-  } catch (error) {
-    throw error;
-  }
+    },
+  );
 }
 
 export async function GET(request: NextRequest) {
@@ -36,10 +29,10 @@ export async function GET(request: NextRequest) {
     const league_type = searchParams.get("league_type") ?? "";
     const date = searchParams.get("date") ?? "";
 
-    const ret = await getOfficialEventByDate(type_id, league_type, date);
+    const officialEvents = await getOfficialEventByDate(type_id, league_type, date);
 
-    return NextResponse.json(ret, { status: 200 });
+    return NextResponse.json(officialEvents, { status: 200 });
   } catch (error) {
-    throw error;
+    return upstreamErrorResponse(error);
   }
 }

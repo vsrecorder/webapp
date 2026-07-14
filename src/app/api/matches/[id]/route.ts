@@ -2,6 +2,8 @@ import { NextResponse, NextRequest } from "next/server";
 
 import { auth } from "@app/auth";
 
+import { fetchUpstream, upstreamErrorResponse } from "@app/utils/upstream";
+
 import { MatchUpdateRequestType, MatchUpdateResponseType } from "@app/types/match";
 
 import * as jwt from "jsonwebtoken";
@@ -31,26 +33,23 @@ export async function PUT(
 
     const domain = process.env.VSRECORDER_DOMAIN;
 
-    const deck: MatchUpdateRequestType = await request.json();
+    const match: MatchUpdateRequestType = await request.json();
 
-    const res = await fetch(`https://${domain}/api/v1beta/matches/${id}`, {
-      method: "PUT",
-      headers: {
-        Authorization: "Bearer " + token,
-        "Content-Type": "application/json",
+    const updated = await fetchUpstream<MatchUpdateResponseType>(
+      `https://${domain}/api/v1beta/matches/${id}`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: "Bearer " + token,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(match),
       },
-      body: JSON.stringify(deck),
-    });
+    );
 
-    if (res.status == 200) {
-      const ret: MatchUpdateResponseType = await res.json();
-
-      return NextResponse.json(ret, { status: 200 });
-    } else {
-      return res;
-    }
+    return NextResponse.json(updated, { status: 200 });
   } catch (error) {
-    throw error;
+    return upstreamErrorResponse(error);
   }
 }
 
@@ -79,7 +78,7 @@ export async function DELETE(
 
     const domain = process.env.VSRECORDER_DOMAIN;
 
-    const res = await fetch(`https://${domain}/api/v1beta/matches/${id}`, {
+    await fetchUpstream<null>(`https://${domain}/api/v1beta/matches/${id}`, {
       method: "DELETE",
       headers: {
         Authorization: "Bearer " + token,
@@ -87,12 +86,8 @@ export async function DELETE(
       },
     });
 
-    if (res.status == 204) {
-      return res;
-    } else {
-      return res;
-    }
+    return new NextResponse(null, { status: 204 });
   } catch (error) {
-    throw error;
+    return upstreamErrorResponse(error);
   }
 }

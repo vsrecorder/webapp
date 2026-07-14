@@ -59,12 +59,12 @@ const metrics = [
   },
 ];
 
-// 新規獲得の核。きずなレベルは過去の記録から算出されるため、
+// 新規獲得の核。きずなLv.は過去の記録から算出されるため、
 // 「早く記録を始めた人ほど深くなる」という構造そのものが、今日はじめる理由になる。
 const reasons = [
   {
     no: "1",
-    title: "きずなレベルは、過去の記録から算出される",
+    title: "きずなLv.は、過去の記録から算出される",
     description:
       "公開日にゼロから始まるのではありません。あなたがこれまでに積み重ねた対戦記録が、そのまま初期値になります。",
   },
@@ -78,12 +78,12 @@ const reasons = [
     no: "3",
     title: "だから、1日でも早く始めた人ほど深い",
     description:
-      "公開を待ってから記録を始めた人と、今日から始めた人。公開日に表示されるきずなレベルは、同じにはなりません。",
+      "公開を待ってから記録を始めた人と、今日から始めた人。公開日に表示されるきずなLv.は、同じにはなりません。",
   },
 ];
 
 type Props = {
-  // 未ログインなら null。CTAの出し分けと、きずなレベルの算出方法の切り替えに使う。
+  // 未ログインなら null。CTAの出し分けと、きずなLv.の算出方法の切り替えに使う。
   userId: string | null;
 };
 
@@ -154,13 +154,13 @@ export default function TemplateKizuna({ userId }: Props) {
             対戦環境が変わっても連れて行ったポケモン。
             <br />
             <br className="hidden lg:block" />
-            バトレコはいま、対戦記録から「きずなレベル」を算出する機能をつくっています。
+            バトレコはいま、対戦記録から「きずなLv.」を算出する機能をつくっています。
           </p>
 
           {/* 開発中であることを、試算を試す前に伝える。
               数値が後から変わったときに「勝手に下がった」と受け取られないための予防線。 */}
           <p className="max-w-xl rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-xs lg:text-sm leading-relaxed text-white/50">
-            きずなレベルの算出方法は
+            きずなLv.の算出方法は
             <span className="font-bold text-white/70">開発中</span>
             です。指標の内容や重み付けは正式公開までに変更される可能性があり、同じ対戦記録でも数値が変わることがあります。
           </p>
@@ -170,7 +170,7 @@ export default function TemplateKizuna({ userId }: Props) {
               targetId="simulator"
               className="inline-flex items-center justify-center rounded-full bg-amber-400 px-8 py-3.5 text-base font-bold text-neutral-900 transition-opacity hover:opacity-90"
             >
-              きずなレベルを試算してみる
+              きずなLv.を試算してみる
             </KizunaScrollLink>
           </div>
         </div>
@@ -184,7 +184,7 @@ export default function TemplateKizuna({ userId }: Props) {
               Why today
             </span>
             <h2 className="text-2xl lg:text-4xl font-black">
-              きずなレベルは記録した
+              きずなLv.は記録した
               <br />
               その日から貯まりはじめる
             </h2>
@@ -220,19 +220,17 @@ export default function TemplateKizuna({ userId }: Props) {
         {/* 試算セクションで選んだデッキ・試算した数値を、下のプレビューカードに映すための入れ物。
             Provider はDOMを生成しないため、配下のセクションは親の flex の直接の子のまま。 */}
         <KizunaPreviewProvider>
-          {/* きずなレベルの試算。ログイン済みなら登録デッキの実データから算出し、
+          {/* きずなLv.の試算。ログイン済みなら登録デッキの実データから算出し、
             未ログインなら質問に答えてもらう（KizunaEstimatorSection が出し分ける）。 */}
           <section id="simulator" className="flex scroll-mt-20 flex-col gap-4">
             <div className="flex flex-col items-center gap-1 text-center">
               <span className="text-xs lg:text-sm font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400">
                 Simulator
               </span>
-              <h2 className="text-2xl lg:text-4xl font-black">
-                あなたのきずなレベルを試算する
-              </h2>
+              <h2 className="text-2xl lg:text-4xl font-black">きずなLv.を試算する</h2>
               <p className="max-w-xl pt-2 text-sm lg:text-base leading-relaxed text-default-500">
                 {userId
-                  ? "登録済みのデッキを選ぶだけです。あなたの対戦記録・デッキの組み直し履歴・メモから、きずなレベルを自動で算出します。質問には答えなくて構いません。"
+                  ? "登録済みのデッキを選ぶだけです。あなたの対戦記録・デッキの組み直し履歴・メモから、きずなLv.を自動で算出します。質問には答えなくて構いません。"
                   : "いちばん長く使っているデッキを1つ思い浮かべて、その主役のポケモンを選び、5つの質問に答えてください。登録は不要です。結果は、そのポケモンが写ったカード画像にしてシェアできます。"}
               </p>
             </div>
@@ -256,7 +254,7 @@ export default function TemplateKizuna({ userId }: Props) {
                 こう見えます
               </h2>
               <p className="max-w-xl pt-2 text-sm lg:text-base leading-relaxed text-default-500">
-                いま使っているデッキ一覧に、きずなレベルが加わります。ポケモンの背後に灯がともり、勝率の隣にもうひとつの軸が並びます。
+                いま使っているデッキ一覧に、きずなLv.が加わります。ポケモンの背後に灯がともり、勝率の隣にもうひとつの軸が並びます。
                 上で試算していれば、そのデッキで表示します。
               </p>
             </div>
@@ -274,11 +272,9 @@ export default function TemplateKizuna({ userId }: Props) {
               <span className="text-xs lg:text-sm font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400">
                 Metrics
               </span>
-              <h2 className="text-2xl lg:text-4xl font-black">
-                きずなレベルが見ているもの
-              </h2>
+              <h2 className="text-2xl lg:text-4xl font-black">きずなLv.が見ているもの</h2>
               <p className="max-w-xl pt-2 text-sm lg:text-base leading-relaxed text-default-500">
-                きずなレベルに勝率は一切含まれません。
+                きずなLv.に勝率は一切含まれません。
                 <br />
                 強いデッキを持っている人ほど「きずな」が深い、
                 <br />
@@ -306,7 +302,7 @@ export default function TemplateKizuna({ userId }: Props) {
             {/* 指標を見せた直後に、これが確定仕様ではないことを断る。
               数値が後から変わったときに「勝手に下がった」と受け取られないための予防線。 */}
             <p className="pt-2 text-center text-xs lg:text-sm leading-relaxed text-default-400">
-              ❈きずなレベルの算出方法は開発中です。
+              ❈きずなLv.の算出方法は開発中です。
               <br />
               指標の内容や重み付けは正式公開までに変更される可能性があり、同じ対戦記録でも数値が変わることがあります。
             </p>
@@ -322,12 +318,12 @@ export default function TemplateKizuna({ userId }: Props) {
             <h2 className="text-2xl lg:text-4xl font-black leading-snug">
               公開日までに、
               <br className="sm:hidden" />
-              きずなレベルを高めよう。
+              きずなLv.を高めよう。
             </h2>
             <p className="max-w-lg text-sm lg:text-base leading-relaxed text-white/60">
               {isLoggedIn
-                ? "今日つけた1件の記録が、公開日に表示されるきずなレベルの初期値になります。これまでの記録もすべて対象です。"
-                : "今日つけた1件の記録が、公開日に表示されるきずなレベルの初期値になります。登録は無料、広告はありません。"}
+                ? "今日つけた1件の記録が、公開日に表示されるきずなLv.の初期値になります。これまでの記録もすべて対象です。"
+                : "今日つけた1件の記録が、公開日に表示されるきずなLv.の初期値になります。登録は無料、広告はありません。"}
             </p>
           </div>
 

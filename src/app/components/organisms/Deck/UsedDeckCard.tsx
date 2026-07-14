@@ -112,6 +112,9 @@ export default function UsedDeckCard({
     weekday: "short",
   });
 
+  // archived_atがゼロ値(年が1)なら未アーカイブ
+  const isArchived = new Date(deck.archived_at).getFullYear() !== 1;
+
   return (
     <>
       <div className="" onClick={onOpen}>
@@ -190,8 +193,9 @@ export default function UsedDeckCard({
               deckcode={deckcode}
               versionNumber={versionNumber}
               totalVersionCount={versionCount}
-              onCreateVersion={onCreateVersion}
+              onCreateVersion={isArchived ? undefined : onCreateVersion}
               onSelectExistingVersion={onSelectExistingVersion}
+              isArchived={isArchived}
               board={compact}
             />
           </CardBody>

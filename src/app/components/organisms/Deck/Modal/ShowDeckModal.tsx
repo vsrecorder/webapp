@@ -190,7 +190,8 @@ export default function ShowDeckModal({
     return;
   }
 
-  const isArchived = new Date(deck.archived_at).getFullYear() === 1;
+  // archived_atがゼロ値(年が1)なら未アーカイブ
+  const isArchived = new Date(deck.archived_at).getFullYear() !== 1;
 
   return (
     <>
@@ -278,7 +279,8 @@ export default function ShowDeckModal({
                   deckcode={deckcode}
                   versionNumber={versionNumber}
                   totalVersionCount={versionCount}
-                  onCreateVersion={onOpenForCreateDeckCodeModal}
+                  onCreateVersion={isArchived ? undefined : onOpenForCreateDeckCodeModal}
+                  isArchived={isArchived}
                   board
                 />
 
@@ -312,6 +314,11 @@ export default function ShowDeckModal({
                       </button>
 
                       {isArchived ? (
+                        <div className="flex flex-col items-center justify-center gap-1 rounded-xl bg-default-50 py-1.5 text-default-300">
+                          <LuBookPlus className="text-base" />
+                          <span className="text-tiny font-medium">新バージョン</span>
+                        </div>
+                      ) : (
                         <button
                           type="button"
                           onClick={onOpenForCreateDeckCodeModal}
@@ -320,16 +327,16 @@ export default function ShowDeckModal({
                           <LuBookPlus className="text-base" />
                           <span className="text-tiny font-medium">新バージョン</span>
                         </button>
-                      ) : (
-                        <div className="flex flex-col items-center justify-center gap-1 rounded-xl bg-default-50 py-1.5 text-default-300">
-                          <LuBookPlus className="text-base" />
-                          <span className="text-tiny font-medium">新バージョン</span>
-                        </div>
                       )}
                     </>
                   )}
 
                   {isArchived ? (
+                    <div className="flex flex-col items-center justify-center gap-1 rounded-lg bg-default-50 py-2 text-default-300">
+                      <LuFilePen className="text-base" />
+                      <span className="text-tiny font-medium">記録する</span>
+                    </div>
+                  ) : (
                     <Link
                       href={`/records/create?deck_id=${deck.id}${deckcode?.id ? `&deck_code_id=${deckcode.id}` : ""}`}
                       className="flex flex-col items-center justify-center gap-1 rounded-lg bg-default-100 py-2 text-foreground active:opacity-70"
@@ -337,11 +344,6 @@ export default function ShowDeckModal({
                       <LuFilePen className="text-base" />
                       <span className="text-tiny font-medium">記録する</span>
                     </Link>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center gap-1 rounded-lg bg-default-50 py-2 text-default-300">
-                      <LuFilePen className="text-base" />
-                      <span className="text-tiny font-medium">記録する</span>
-                    </div>
                   )}
 
                   <button
@@ -375,14 +377,14 @@ export default function ShowDeckModal({
                     <DropdownMenu aria-label="デッキの操作">
                       <DropdownItem
                         key="archive-toggle"
-                        startContent={isArchived ? <LuFolderInput /> : <LuFolderOutput />}
+                        startContent={isArchived ? <LuFolderOutput /> : <LuFolderInput />}
                         onPress={
                           isArchived
-                            ? onOpenForArchiveDeckModal
-                            : onOpenForUnarchiveDeckModal
+                            ? onOpenForUnarchiveDeckModal
+                            : onOpenForArchiveDeckModal
                         }
                       >
-                        {isArchived ? "整理する" : "整理を解除する"}
+                        {isArchived ? "整理を解除する" : "整理する"}
                       </DropdownItem>
                       <DropdownItem
                         key="delete"

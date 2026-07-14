@@ -2,28 +2,25 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { auth } from "@app/auth";
 
+import { fetchUpstream, upstreamErrorResponse } from "@app/utils/upstream";
+
 import { DeckArchiveResponse } from "@app/types/deck";
 
 import * as jwt from "jsonwebtoken";
 
 async function archiveDeckById(token: string, id: string): Promise<DeckArchiveResponse> {
-  try {
-    const domain = process.env.VSRECORDER_DOMAIN;
+  const domain = process.env.VSRECORDER_DOMAIN;
 
-    const res = await fetch(`https://${domain}/api/v1beta/decks/${id}/archive`, {
+  return await fetchUpstream<DeckArchiveResponse>(
+    `https://${domain}/api/v1beta/decks/${id}/archive`,
+    {
       method: "PATCH",
       headers: {
         Authorization: "Bearer " + token,
         Accept: "application/json",
       },
-    });
-
-    const ret: DeckArchiveResponse = await res.json();
-
-    return ret;
-  } catch (error) {
-    throw error;
-  }
+    },
+  );
 }
 
 export async function PATCH(
@@ -49,10 +46,10 @@ export async function PATCH(
   try {
     const { id } = await params;
 
-    const ret = await archiveDeckById(token, id);
+    const archived = await archiveDeckById(token, id);
 
-    return NextResponse.json(ret, { status: 200 });
+    return NextResponse.json(archived, { status: 200 });
   } catch (error) {
-    throw error;
+    return upstreamErrorResponse(error);
   }
 }

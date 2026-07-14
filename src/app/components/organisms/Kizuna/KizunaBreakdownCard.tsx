@@ -12,7 +12,7 @@ type Props = {
 };
 
 /*
- * きずなレベルの内訳カード。
+ * きずなLv.の内訳カード。
  * 結果カードと同じく、画面に表示するものとシェア画像として書き出すものを
  * 同じコンポーネントで描く（見えているものがそのまま画像になる）。
  *
@@ -31,14 +31,14 @@ export default function KizunaBreakdownCard({
       <div className="flex items-baseline justify-between gap-3">
         <div className="flex min-w-0 flex-col">
           <span className="text-[10px] font-bold tracking-[0.28em] text-white/50">
-            きずなレベルの内訳
+            きずなLv.の内訳
           </span>
           <span className="truncate text-base font-bold">{deckName}</span>
         </div>
         {/* 何の数値かを明示する。内訳だけを見た人に「255満点の何か」と読ませない */}
         <div className="flex shrink-0 flex-col items-end">
           <span className="text-[9px] font-bold tracking-[0.22em] text-white/45">
-            きずなレベル
+            きずなLv.
           </span>
           <div className="flex items-baseline gap-1">
             <span className="text-2xl font-black tabular-nums text-amber-400">
@@ -54,7 +54,7 @@ export default function KizunaBreakdownCard({
 
       <div className="flex flex-col gap-2.5">
         {/* 数字の意味を先に言う。ここが「獲得点」だと分かれば、
-            6行の合計がきずなレベルになることが読める。 */}
+            6行の合計がきずなLv.になることが読める。 */}
         <div className="flex items-baseline gap-2.5 text-[9px] text-white/35">
           <span className="w-[5.75rem] shrink-0" />
           <span className="w-11 shrink-0 text-right">獲得点</span>

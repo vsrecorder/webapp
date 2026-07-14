@@ -118,6 +118,11 @@ async function fetcherForPokemonSprites(url: string) {
       Accept: "application/json",
     },
   });
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch");
+  }
+
   const ret: PokemonSpriteType[] = await res.json();
 
   return ret;

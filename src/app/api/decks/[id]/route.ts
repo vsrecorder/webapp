@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { auth } from "@app/auth";
 
+import { fetchUpstream, upstreamErrorResponse } from "@app/utils/upstream";
+
 import {
   DeckUpdateRequestType,
   DeckGetByIdResponseType,
@@ -11,28 +13,18 @@ import {
 import * as jwt from "jsonwebtoken";
 
 async function getDeckById(token: string, id: string): Promise<DeckGetByIdResponseType> {
-  try {
-    const domain = process.env.VSRECORDER_DOMAIN;
+  const domain = process.env.VSRECORDER_DOMAIN;
 
-    const res = await fetch(`https://${domain}/api/v1beta/decks/${id}`, {
-      cache: "no-store",
+  return await fetchUpstream<DeckGetByIdResponseType>(
+    `https://${domain}/api/v1beta/decks/${id}`,
+    {
       method: "GET",
       headers: {
         Authorization: "Bearer " + token,
         Accept: "application/json",
       },
-    });
-
-    if (!res.ok) {
-      throw Error("");
-    }
-
-    const ret: DeckGetByIdResponseType = await res.json();
-
-    return ret;
-  } catch (error) {
-    throw error;
-  }
+    },
+  );
 }
 
 export async function GET(
@@ -58,11 +50,11 @@ export async function GET(
   try {
     const { id } = await params;
 
-    const ret = await getDeckById(token, id);
+    const deck = await getDeckById(token, id);
 
-    return NextResponse.json(ret, { status: 200 });
+    return NextResponse.json(deck, { status: 200 });
   } catch (error) {
-    throw error;
+    return upstreamErrorResponse(error);
   }
 }
 
@@ -93,24 +85,21 @@ export async function PUT(
 
     const deck: DeckUpdateRequestType = await request.json();
 
-    const res = await fetch(`https://${domain}/api/v1beta/decks/${id}`, {
-      method: "PUT",
-      headers: {
-        Authorization: "Bearer " + token,
-        "Content-Type": "application/json",
+    const updated = await fetchUpstream<DeckUpdateResponseType>(
+      `https://${domain}/api/v1beta/decks/${id}`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: "Bearer " + token,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(deck),
       },
-      body: JSON.stringify(deck),
-    });
+    );
 
-    if (res.status == 200) {
-      const ret: DeckUpdateResponseType = await res.json();
-
-      return NextResponse.json(ret, { status: 200 });
-    } else {
-      return res;
-    }
+    return NextResponse.json(updated, { status: 200 });
   } catch (error) {
-    throw error;
+    return upstreamErrorResponse(error);
   }
 }
 
@@ -139,7 +128,7 @@ export async function DELETE(
 
     const domain = process.env.VSRECORDER_DOMAIN;
 
-    const res = await fetch(`https://${domain}/api/v1beta/decks/${id}`, {
+    await fetchUpstream<null>(`https://${domain}/api/v1beta/decks/${id}`, {
       method: "DELETE",
       headers: {
         Authorization: "Bearer " + token,
@@ -147,12 +136,8 @@ export async function DELETE(
       },
     });
 
-    if (res.status == 204) {
-      return res;
-    } else {
-      return res;
-    }
+    return new NextResponse(null, { status: 204 });
   } catch (error) {
-    throw error;
+    return upstreamErrorResponse(error);
   }
 }

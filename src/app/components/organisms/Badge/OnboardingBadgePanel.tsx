@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Card, CardBody, useDisclosure } from "@heroui/react";
+
+import FetchError from "@app/components/molecules/FetchError";
 
 import { UserBadgeType } from "@app/types/badge";
 import {
@@ -20,6 +22,7 @@ type Props = {
 export default function OnboardingBadgePanel({ userId }: Props) {
   const [badges, setBadges] = useState<UserBadgeType[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [selectedBadge, setSelectedBadge] = useState<UserBadgeType | null>(null);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
@@ -28,17 +31,34 @@ export default function OnboardingBadgePanel({ userId }: Props) {
     onOpen();
   }
 
-  useEffect(() => {
+  // 取得に失敗したことを空のバッジ一覧で覆い隠さないよう、
+  // 失敗はエラーとして扱い、この場だけで取り直せるようにする。
+  const loadBadges = useCallback(async () => {
+    setError(false);
     setIsLoading(true);
-    fetch(`/api/users/${userId}/badges`, { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        const allBadges: UserBadgeType[] = data?.badges ?? [];
-        setBadges(allBadges.filter((b) => b.category === "onboarding"));
-        setIsLoading(false);
-      })
-      .catch(() => setIsLoading(false));
+
+    try {
+      const res = await fetch(`/api/users/${userId}/badges`, { cache: "no-store" });
+
+      if (!res.ok) {
+        throw new Error("Failed to fetch");
+      }
+
+      const data = await res.json();
+      const allBadges: UserBadgeType[] = data?.badges ?? [];
+
+      setBadges(allBadges.filter((b) => b.category === "onboarding"));
+    } catch (err) {
+      console.log(err);
+      setError(true);
+    } finally {
+      setIsLoading(false);
+    }
   }, [userId]);
+
+  useEffect(() => {
+    loadBadges();
+  }, [loadBadges]);
 
   if (isLoading) {
     return (
@@ -52,6 +72,12 @@ export default function OnboardingBadgePanel({ userId }: Props) {
           </div>
         </CardBody>
       </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <FetchError message="「はじめの一歩」の取得に失敗しました" onRetry={loadBadges} />
     );
   }
 

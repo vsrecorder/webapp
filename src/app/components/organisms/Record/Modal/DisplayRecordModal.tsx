@@ -132,6 +132,11 @@ export default function DisplayRecordModal({
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
+  // 戦績集計の有効/無効を切り替えるAPIの実行中かどうか。
+  // 実行中に閉じられると、更新結果(集計対象外バナーの出現/消失)や失敗トーストを
+  // 確認できないまま画面から消えてしまうため、この間は閉じる操作を受け付けない。
+  const [isStatsUpdating, setIsStatsUpdating] = useState(false);
+
   // 戦績パネルの裏面(貢献度)の表示状態。シェア画像は画面外に別の RecordHero を
   // 描画して撮るため、画面と同じ面を撮れるよう状態はここで持ちシェア側にも渡す。
   const [showSynergy, setShowSynergy] = useState(false);
@@ -225,15 +230,23 @@ export default function DisplayRecordModal({
   const startY = useRef<number | null>(null);
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    if (isStatsUpdating) return;
     startY.current = e.touches[0].clientY;
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
+    if (isStatsUpdating) return;
     if (startY.current === null) return;
     if (e.touches[0].clientY - startY.current > 30) {
       startY.current = null;
       onClose();
     }
+  };
+
+  // Escキーなど HeroUI 側からの閉じる要求も、集計切り替え中は無視する。
+  const handleOpenChange = () => {
+    if (isStatsUpdating) return;
+    onOpenChange();
   };
 
   // シェアのデッキ画像(2枚目)をキャプチャするための実DOM参照
@@ -267,12 +280,13 @@ export default function DisplayRecordModal({
       <Modal
         isOpen={isOpen}
         onClose={() => {}}
-        onOpenChange={onOpenChange}
+        onOpenChange={handleOpenChange}
         size="md"
         placement="bottom"
         hideCloseButton
         backdrop={nestedInModal ? "transparent" : "opaque"}
         isDismissable={false}
+        isKeyboardDismissDisabled={isStatsUpdating}
         className="z-20 h-[calc(100dvh-104px)] max-h-[calc(100dvh-104px)] mt-26 my-0 rounded-b-none overscroll-contain"
         classNames={{
           base: "sm:max-w-full lg:max-w-2xl",
@@ -297,7 +311,9 @@ export default function DisplayRecordModal({
               <ModalHeader
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
-                className="px-3 py-3 flex flex-col gap-1 cursor-grab touch-none"
+                className={`px-3 py-3 flex flex-col gap-1 touch-none ${
+                  isStatsUpdating ? "cursor-not-allowed" : "cursor-grab"
+                }`}
               >
                 {/* スワイプバー */}
                 <div className="mx-auto h-1 w-32 mb-1.5 rounded-full bg-default-300" />
@@ -439,6 +455,7 @@ export default function DisplayRecordModal({
                           record={record}
                           setRecord={setRecord}
                           flat={true}
+                          onUpdatingChange={setIsStatsUpdating}
                         />
                       </BoardPanel>
                     </CardBody>

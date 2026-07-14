@@ -2,6 +2,8 @@ import { NextResponse, NextRequest } from "next/server";
 
 import { auth } from "@app/auth";
 
+import { fetchUpstream, upstreamErrorResponse } from "@app/utils/upstream";
+
 import {
   DeckCodeCreateRequestType,
   DeckCodeCreateResponseType,
@@ -31,23 +33,20 @@ export async function POST(request: NextRequest) {
 
     const deckcode: DeckCodeCreateRequestType = await request.json();
 
-    const res = await fetch(`https://${domain}/api/v1beta/deckcodes`, {
-      method: "POST",
-      headers: {
-        Authorization: "Bearer " + token,
-        "Content-Type": "application/json",
+    const created = await fetchUpstream<DeckCodeCreateResponseType>(
+      `https://${domain}/api/v1beta/deckcodes`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: "Bearer " + token,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(deckcode),
       },
-      body: JSON.stringify(deckcode),
-    });
+    );
 
-    if (res.status == 201) {
-      const ret: DeckCodeCreateResponseType = await res.json();
-
-      return NextResponse.json(ret, { status: 201 });
-    } else {
-      return res;
-    }
+    return NextResponse.json(created, { status: 201 });
   } catch (error) {
-    throw error;
+    return upstreamErrorResponse(error);
   }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Fragment } from "react";
+import { useCallback, useEffect, useState, Fragment } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -13,6 +13,8 @@ import {
   useDisclosure,
 } from "@heroui/react";
 import { LuLock, LuTriangleAlert } from "react-icons/lu";
+
+import FetchError from "@app/components/molecules/FetchError";
 
 import {
   DesignationLadderItemType,
@@ -153,6 +155,7 @@ function DesignationTile({
 export default function DesignationPanel({ userId, championshipSeries }: Props) {
   const [data, setData] = useState<UserDesignationType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [selected, setSelected] = useState<DesignationLadderItemType | null>(null);
   const [season, setSeason] = useState(() => currentSeasonValue(championshipSeries));
   const [rankStats, setRankStats] = useState<DesignationRankStatsType | null>(null);
@@ -167,16 +170,35 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
 
   const seasonOptions = seasonOptionsFromChampionshipSeries(championshipSeries);
 
-  useEffect(() => {
+  // 取得に失敗したことを「称号なし」の表示で覆い隠さないよう、
+  // 失敗はエラーとして扱い、この場だけで取り直せるようにする。
+  const loadDesignation = useCallback(async () => {
+    setError(false);
     setIsLoading(true);
-    fetch(`/api/users/${userId}/designation?season=${season}`, { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        setData(d);
-        setIsLoading(false);
-      })
-      .catch(() => setIsLoading(false));
+
+    try {
+      const res = await fetch(`/api/users/${userId}/designation?season=${season}`, {
+        cache: "no-store",
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to fetch");
+      }
+
+      const designation: UserDesignationType = await res.json();
+
+      setData(designation);
+    } catch (err) {
+      console.log(err);
+      setError(true);
+    } finally {
+      setIsLoading(false);
+    }
   }, [userId, season]);
+
+  useEffect(() => {
+    loadDesignation();
+  }, [loadDesignation]);
 
   useEffect(() => {
     fetch("/api/userplayers", { cache: "no-store" })
@@ -246,6 +268,10 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
         </CardBody>
       </Card>
     );
+  }
+
+  if (error) {
+    return <FetchError message="称号の取得に失敗しました" onRetry={loadDesignation} />;
   }
 
   const current = data?.current ?? null;

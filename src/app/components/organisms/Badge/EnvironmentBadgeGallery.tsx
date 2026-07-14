@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import {
   Button,
   Card,
@@ -13,6 +13,8 @@ import {
   useDisclosure,
 } from "@heroui/react";
 import { LuLock, LuChevronDown, LuChevronUp } from "react-icons/lu";
+
+import FetchError from "@app/components/molecules/FetchError";
 
 import { UserEnvironmentBadgeType } from "@app/types/environment_badge";
 import { environmentBadgeImageUrl } from "@app/utils/badgeImage";
@@ -101,6 +103,7 @@ function EnvironmentBadgeTileSkeleton() {
 export default function EnvironmentBadgeGallery({ userId }: Props) {
   const [badges, setBadges] = useState<UserEnvironmentBadgeType[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [selectedBadge, setSelectedBadge] = useState<UserEnvironmentBadgeType | null>(
     null,
   );
@@ -112,16 +115,35 @@ export default function EnvironmentBadgeGallery({ userId }: Props) {
     onOpen();
   }
 
-  useEffect(() => {
+  // 取得に失敗したことを「獲得数 0 / 0」の空表示で覆い隠さないよう、
+  // 失敗はエラーとして扱い、この場だけで取り直せるようにする。
+  const loadBadges = useCallback(async () => {
+    setError(false);
     setIsLoading(true);
-    fetch(`/api/users/${userId}/environment_badges`, { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        setBadges(data?.badges ?? []);
-        setIsLoading(false);
-      })
-      .catch(() => setIsLoading(false));
+
+    try {
+      const res = await fetch(`/api/users/${userId}/environment_badges`, {
+        cache: "no-store",
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to fetch");
+      }
+
+      const data = await res.json();
+
+      setBadges(data?.badges ?? []);
+    } catch (err) {
+      console.log(err);
+      setError(true);
+    } finally {
+      setIsLoading(false);
+    }
   }, [userId]);
+
+  useEffect(() => {
+    loadBadges();
+  }, [loadBadges]);
 
   if (isLoading) {
     return (
@@ -136,6 +158,10 @@ export default function EnvironmentBadgeGallery({ userId }: Props) {
         </CardBody>
       </Card>
     );
+  }
+
+  if (error) {
+    return <FetchError message="環境バッジの取得に失敗しました" onRetry={loadBadges} />;
   }
 
   const achievedCount = badges?.filter((b) => b.achieved).length ?? 0;

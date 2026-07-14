@@ -65,7 +65,7 @@ type ViewModel = {
   hasRealStats: boolean;
 };
 
-// スプライトの背後にともる灯。きずなレベルが高いほど濃くなる（結果カードと同じ思想）。
+// スプライトの背後にともる灯。きずなLv.が高いほど濃くなる（結果カードと同じ思想）。
 // 結果カードの glow はスプライト96pxを前提とした大きさなので、一覧のサイズに合わせて別に持つ。
 // 濃さは Tailwind の静的クラスでは刻めない（`bg-amber-400/${n}` はビルドから消える）ため、
 // 不透明度だけインラインで与える。
@@ -104,7 +104,7 @@ function Sprites({
   );
 }
 
-// きずなレベルの数値。戦績（勝敗）と同じ行に並べ、勝率ときずなの対比をその場で見せる。
+// きずなLv.の数値。戦績（勝敗）と同じ行に並べ、勝率ときずなの対比をその場で見せる。
 function KizunaLevel({ vm }: { vm: ViewModel }) {
   return (
     <span className="flex shrink-0 items-baseline gap-1">
@@ -116,7 +116,7 @@ function KizunaLevel({ vm }: { vm: ViewModel }) {
   );
 }
 
-// きずなレベルの線（4px）と、その下の段階名。勝率は「円」、きずなは「線」。
+// きずなLv.の線（4px）と、その下の段階名。勝率は「円」、きずなは「線」。
 function KizunaBar({ vm }: { vm: ViewModel }) {
   return (
     <div className="flex flex-col gap-1">
@@ -134,7 +134,7 @@ function KizunaBar({ vm }: { vm: ViewModel }) {
 }
 
 // ── リスト形式 ───────────────────────────────────────────────
-// スプライトに灯を宿し（案C）、デッキ名ブロックの下にきずなレベルの線を1本足す（案A）。
+// スプライトに灯を宿し（案C）、デッキ名ブロックの下にきずなLv.の線を1本足す（案A）。
 // 勝率リングと行の構成には手を触れない。
 function ListPreview({ vm }: { vm: ViewModel }) {
   const { stats } = vm;
@@ -184,7 +184,7 @@ function ListPreview({ vm }: { vm: ViewModel }) {
 
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <div className="truncate font-bold text-medium">{vm.deckName}</div>
-            {/* 勝敗ときずなレベルを同じ行に置く。「強かったか」と「どう歩んできたか」が
+            {/* 勝敗ときずなLv.を同じ行に置く。「強かったか」と「どう歩んできたか」が
                 左右に並ぶことで、カードの中でも対比がそのまま読める。 */}
             <div className="flex items-baseline justify-between gap-2">
               <span className="truncate text-tiny text-default-400">
@@ -208,7 +208,7 @@ function ListPreview({ vm }: { vm: ViewModel }) {
 }
 
 // ── ギャラリー形式 ───────────────────────────────────────────
-// 中央の勝率の大きな数字を、勝率ときずなレベルの二枚看板に組み替える（案B）。
+// 中央の勝率の大きな数字を、勝率ときずなLv.の二枚看板に組み替える（案B）。
 // スプライトには灯を宿す。
 function GalleryPreview({ vm }: { vm: ViewModel }) {
   // 本物のカードでは戦績はアコーディオンの中にある。二枚看板を見せるのが目的なので開いた状態で出す。
@@ -274,7 +274,7 @@ function GalleryPreview({ vm }: { vm: ViewModel }) {
             <div className="h-12 w-px bg-default-200" />
             <div className="flex flex-col items-center gap-0.5">
               <span className="font-bold text-tiny text-amber-500 dark:text-amber-400">
-                きずなレベル
+                きずなLv.
               </span>
               <span className="font-black text-3xl leading-none tabular-nums text-amber-500 dark:text-amber-400">
                 {vm.kizunaLevel}
@@ -352,7 +352,7 @@ export default function KizunaDeckCardPreview() {
               リスト形式
             </span>
             <span className="text-xs leading-relaxed text-default-500">
-              スプライトの背後に灯がともり、デッキ名の下にきずなレベルの線が1本増えます。勝率リングはそのままです。
+              スプライトの背後に灯がともり、デッキ名の下にきずなLv.の線が1本増えます。勝率リングはそのままです。
             </span>
           </div>
           <ListPreview vm={vm} />
@@ -364,7 +364,7 @@ export default function KizunaDeckCardPreview() {
               ギャラリー形式
             </span>
             <span className="text-xs leading-relaxed text-default-500">
-              中央の勝率を、勝率ときずなレベルの二枚看板に組み替えます。カードの真ん中に対比が置かれます。
+              中央の勝率を、勝率ときずなLv.の二枚看板に組み替えます。カードの真ん中に対比が置かれます。
             </span>
           </div>
           <GalleryPreview vm={vm} />
@@ -377,7 +377,7 @@ export default function KizunaDeckCardPreview() {
           ? "❈これは実装イメージです。デッキの内容・数値はすべて架空のもので、実際の画面とは異なる場合があります。"
           : vm.hasRealStats
             ? "❈これは実装イメージです。上で試算したデッキと、その対戦記録から算出した数値で表示しています。実際の画面とは異なる場合があります。"
-            : "❈これは実装イメージです。上で選んだポケモンと試算したきずなレベルで表示しています。勝率・戦績・登録日はサンプルの数値です。"}
+            : "❈これは実装イメージです。上で選んだポケモンと試算したきずなLv.で表示しています。勝率・戦績・登録日はサンプルの数値です。"}
       </p>
     </div>
   );

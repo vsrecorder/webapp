@@ -21,6 +21,13 @@ export type SpriteSlot = 1 | 2;
 
 async function fetcher(url: string): Promise<PokemonSpriteType[]> {
   const res = await fetch(url, { method: "GET", headers: { Accept: "application/json" } });
+
+  // 失敗レスポンスのボディをそのまま返すと、配列前提の絞り込み（filter）がレンダー中に
+  // 例外になりページ全体が落ちる。取得できなかったことはSWRのerrorとして扱う。
+  if (!res.ok) {
+    throw new Error("Failed to fetch");
+  }
+
   return res.json();
 }
 

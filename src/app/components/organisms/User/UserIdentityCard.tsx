@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Avatar, Card, CardBody, addToast, useDisclosure } from "@heroui/react";
 import { LuCopy, LuCheck, LuPencil, LuCalendar } from "react-icons/lu";
 
 import UpdateNameModal from "@app/components/organisms/User/Modal/UpdateNameModal";
+import FetchError from "@app/components/molecules/FetchError";
 import { UserType } from "@app/types/user";
 import { formatJoinDate } from "@app/utils/calendar";
 
@@ -15,21 +16,39 @@ type Props = {
 export default function UserIdentityCard({ userId }: Props) {
   const [user, setUser] = useState<UserType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [copied, setCopied] = useState(false);
   const [profile, setProfile] = useState({ name: "", imageUrl: "" });
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
-  useEffect(() => {
+  // 取得に失敗したことを名前空欄のカードで覆い隠さないよう、
+  // 失敗はエラーとして扱い、この場だけで取り直せるようにする。
+  const loadUser = useCallback(async () => {
+    setError(false);
     setIsLoading(true);
-    fetch(`/api/users/${userId}`, { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        setUser(data);
-        if (data) setProfile({ name: data.name, imageUrl: data.image_url });
-        setIsLoading(false);
-      })
-      .catch(() => setIsLoading(false));
+
+    try {
+      const res = await fetch(`/api/users/${userId}`, { cache: "no-store" });
+
+      if (!res.ok) {
+        throw new Error("Failed to fetch");
+      }
+
+      const data: UserType = await res.json();
+
+      setUser(data);
+      if (data) setProfile({ name: data.name, imageUrl: data.image_url });
+    } catch (err) {
+      console.log(err);
+      setError(true);
+    } finally {
+      setIsLoading(false);
+    }
   }, [userId]);
+
+  useEffect(() => {
+    loadUser();
+  }, [loadUser]);
 
   async function handleCopy() {
     try {
@@ -57,6 +76,10 @@ export default function UserIdentityCard({ userId }: Props) {
         </CardBody>
       </Card>
     );
+  }
+
+  if (error) {
+    return <FetchError message="ユーザー情報の取得に失敗しました" onRetry={loadUser} />;
   }
 
   return (

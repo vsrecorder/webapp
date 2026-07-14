@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { auth } from "@app/auth";
 
+import { fetchUpstream, upstreamErrorResponse } from "@app/utils/upstream";
+
 import { DeckUnarchiveResponse } from "@app/types/deck";
 
 import * as jwt from "jsonwebtoken";
@@ -10,23 +12,18 @@ async function unarchiveDeckById(
   token: string,
   id: string,
 ): Promise<DeckUnarchiveResponse> {
-  try {
-    const domain = process.env.VSRECORDER_DOMAIN;
+  const domain = process.env.VSRECORDER_DOMAIN;
 
-    const res = await fetch(`https://${domain}/api/v1beta/decks/${id}/unarchive`, {
+  return await fetchUpstream<DeckUnarchiveResponse>(
+    `https://${domain}/api/v1beta/decks/${id}/unarchive`,
+    {
       method: "PATCH",
       headers: {
         Authorization: "Bearer " + token,
         Accept: "application/json",
       },
-    });
-
-    const ret: DeckUnarchiveResponse = await res.json();
-
-    return ret;
-  } catch (error) {
-    throw error;
-  }
+    },
+  );
 }
 
 export async function PATCH(
@@ -52,10 +49,10 @@ export async function PATCH(
   try {
     const { id } = await params;
 
-    const ret = await unarchiveDeckById(token, id);
+    const unarchived = await unarchiveDeckById(token, id);
 
-    return NextResponse.json(ret, { status: 200 });
+    return NextResponse.json(unarchived, { status: 200 });
   } catch (error) {
-    throw error;
+    return upstreamErrorResponse(error);
   }
 }

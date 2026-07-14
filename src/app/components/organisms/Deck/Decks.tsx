@@ -11,14 +11,9 @@ import {
   DeckViewToggleSkeleton,
 } from "@app/components/organisms/Deck/Skeleton/DeckCardSkeleton";
 import CreateDeckModal from "@app/components/organisms/Deck/Modal/CreateDeckModal";
+import FetchError from "@app/components/molecules/FetchError";
 
-import {
-  LuCirclePlus,
-  LuPlus,
-  LuLayoutGrid,
-  LuArchive,
-  LuList,
-} from "react-icons/lu";
+import { LuCirclePlus, LuPlus, LuLayoutGrid, LuArchive, LuList } from "react-icons/lu";
 
 import { DeckType, DeckGetResponseType } from "@app/types/deck";
 import { DeckUsageItemType, DeckUsageStatType } from "@app/types/deck_usage_stat";
@@ -28,26 +23,33 @@ import { DeckUsageItemType, DeckUsageStatType } from "@app/types/deck_usage_stat
 const DECK_VIEW_STORAGE_KEY = "deckListView";
 
 async function fetchDecks(isArchived: boolean, cursor: string) {
-  try {
-    const res = await fetch(`/api/decks?archived=${isArchived}&cursor=${cursor}`, {
-      cache: "no-store",
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
-    });
+  const res = await fetch(`/api/decks?archived=${isArchived}&cursor=${cursor}`, {
+    cache: "no-store",
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+    },
+  });
 
-    const ret: DeckGetResponseType = await res.json();
-
-    return ret;
-  } catch (error) {
-    throw error;
+  if (!res.ok) {
+    throw new Error("Failed to fetch");
   }
+
+  const ret: DeckGetResponseType = await res.json();
+
+  // 想定外の形（decksが配列でない）で返ってきた場合も「取得失敗」として扱う
+  if (!Array.isArray(ret?.decks)) {
+    throw new Error("Unexpected decks response");
+  }
+
+  return ret;
 }
 
 // デッキ一覧カードに表示する、デッキごとの全期間の対戦数・勝率・先攻/後攻情報を取得する。
 // 対戦記録が無いデッキは結果に含まれない。
-async function fetchDeckUsageStats(userId: string): Promise<Map<string, DeckUsageItemType>> {
+async function fetchDeckUsageStats(
+  userId: string,
+): Promise<Map<string, DeckUsageItemType>> {
   try {
     const res = await fetch(`/api/users/${userId}/deck-usage?all_time=true`, {
       cache: "no-store",
@@ -82,6 +84,9 @@ export default function Decks({ userId, isArchived, onCreated }: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [isInitialLoaded, setIsInitialLoaded] = useState(false);
+  // デッキ一覧の取得に失敗したか。失敗した位置（初回か追加読み込みか）に関わらず、
+  // 一覧の末尾にエラーと再読み込みボタンを出す。
+  const [error, setError] = useState(false);
   // 表示モード。SSR とのハイドレーション不一致を避けるため初期値は固定（ギャラリー）にし、
   // マウント後に localStorage から復元する。
   const [view, setView] = useState<DeckCardView>("gallery");
@@ -110,6 +115,7 @@ export default function Decks({ userId, isArchived, onCreated }: Props) {
   const loadMore = useCallback(async () => {
     if (isLoading || !hasMore) return;
 
+    setError(false);
     setIsLoading(true);
 
     try {
@@ -120,7 +126,13 @@ export default function Decks({ userId, isArchived, onCreated }: Props) {
         return;
       }
 
-      setItems((prev) => [...prev, ...newItems.decks]);
+      // 失敗後の再読み込みでは同じページを取り直すことがあるため、
+      // 既に一覧にあるデッキは足さない（重複表示を防ぐ）
+      setItems((prev) => {
+        const loaded = new Set(prev.map((d) => d.data.id));
+
+        return [...prev, ...newItems.decks.filter((d) => !loaded.has(d.data.id))];
+      });
 
       const lastItem = newItems.decks[newItems.decks.length - 1];
       if (lastItem && lastItem.cursor) {
@@ -139,9 +151,10 @@ export default function Decks({ userId, isArchived, onCreated }: Props) {
       } else {
         setHasMore(false);
       }
-    } catch (error) {
-      console.error("Error loading items:", error);
-      setHasMore(false);
+    } catch (err) {
+      console.error("Error loading items:", err);
+      // hasMoreはtrueのまま残す。再読み込みボタンから同じcursorで取り直せるようにするため。
+      setError(true);
     } finally {
       setIsLoading(false);
       if (!isInitialLoaded) {
@@ -253,38 +266,38 @@ export default function Decks({ userId, isArchived, onCreated }: Props) {
           {!isInitialLoaded ? (
             <DeckViewToggleSkeleton />
           ) : (
-          <div
-            role="group"
-            aria-label="表示モード"
-            className="flex w-full items-center gap-0.5 rounded-lg bg-default-100 p-0.5"
-          >
-            <button
-              type="button"
-              aria-pressed={view === "list"}
-              onClick={() => handleChangeView("list")}
-              className={`flex flex-1 items-center justify-center gap-1 rounded-md px-2.5 py-1.5 text-tiny font-bold transition-colors ${
-                view === "list"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-default-500"
-              }`}
+            <div
+              role="group"
+              aria-label="表示モード"
+              className="flex w-full items-center gap-0.5 rounded-lg bg-default-100 p-0.5"
             >
-              <LuList className="text-sm" />
-              リスト
-            </button>
-            <button
-              type="button"
-              aria-pressed={view === "gallery"}
-              onClick={() => handleChangeView("gallery")}
-              className={`flex flex-1 items-center justify-center gap-1 rounded-md px-2.5 py-1.5 text-tiny font-bold transition-colors ${
-                view === "gallery"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-default-500"
-              }`}
-            >
-              <LuLayoutGrid className="text-sm" />
-              ギャラリー
-            </button>
-          </div>
+              <button
+                type="button"
+                aria-pressed={view === "list"}
+                onClick={() => handleChangeView("list")}
+                className={`flex flex-1 items-center justify-center gap-1 rounded-md px-2.5 py-1.5 text-tiny font-bold transition-colors ${
+                  view === "list"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-default-500"
+                }`}
+              >
+                <LuList className="text-sm" />
+                リスト
+              </button>
+              <button
+                type="button"
+                aria-pressed={view === "gallery"}
+                onClick={() => handleChangeView("gallery")}
+                className={`flex flex-1 items-center justify-center gap-1 rounded-md px-2.5 py-1.5 text-tiny font-bold transition-colors ${
+                  view === "gallery"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-default-500"
+                }`}
+              >
+                <LuLayoutGrid className="text-sm" />
+                ギャラリー
+              </button>
+            </div>
           )}
         </div>
       )}
@@ -316,7 +329,22 @@ export default function Decks({ userId, isArchived, onCreated }: Props) {
           </div>
         )}
 
-        {isInitialLoaded && !isLoading && hasMore && (
+        {/* 取得に失敗したときは、空の一覧を装わずに理由を出し、その場で取り直せるようにする。
+            既に読み込めているデッキはそのまま残し、続きの取得だけをやり直す。 */}
+        {error && !isLoading && (
+          <div className="col-span-1 lg:col-span-2">
+            <FetchError
+              message={
+                items.length === 0
+                  ? "デッキ一覧の取得に失敗しました"
+                  : "続きのデッキの取得に失敗しました"
+              }
+              onRetry={loadMore}
+            />
+          </div>
+        )}
+
+        {isInitialLoaded && !isLoading && !error && hasMore && (
           <div className="flex justify-center col-span-1 lg:col-span-2">
             <Button size="sm" radius="full" onPress={loadMore}>
               <div className="flex items-center gap-1">

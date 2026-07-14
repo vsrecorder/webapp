@@ -2,6 +2,8 @@ import { NextResponse, NextRequest } from "next/server";
 
 import { auth } from "@app/auth";
 
+import { fetchUpstream, upstreamErrorResponse } from "@app/utils/upstream";
+
 import { NotificationsGetResponseType } from "@app/types/notification";
 
 import * as jwt from "jsonwebtoken";
@@ -10,24 +12,18 @@ async function getNotifications(
   token: string,
   limit: string,
 ): Promise<NotificationsGetResponseType> {
-  try {
-    const domain = process.env.VSRECORDER_DOMAIN;
+  const domain = process.env.VSRECORDER_DOMAIN;
 
-    const res = await fetch(`https://${domain}/api/v1beta/notifications?limit=${limit}`, {
-      cache: "no-store",
+  return await fetchUpstream<NotificationsGetResponseType>(
+    `https://${domain}/api/v1beta/notifications?limit=${limit}`,
+    {
       method: "GET",
       headers: {
         Authorization: "Bearer " + token,
         Accept: "application/json",
       },
-    });
-
-    const ret: NotificationsGetResponseType = await res.json();
-
-    return ret;
-  } catch (error) {
-    throw error;
-  }
+    },
+  );
 }
 
 export async function GET(request: NextRequest) {
@@ -51,10 +47,10 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const limit = searchParams.get("limit") ?? "";
 
-    const ret = await getNotifications(token, limit);
+    const notifications = await getNotifications(token, limit);
 
-    return NextResponse.json(ret, { status: 200 });
+    return NextResponse.json(notifications, { status: 200 });
   } catch (error) {
-    throw error;
+    return upstreamErrorResponse(error);
   }
 }

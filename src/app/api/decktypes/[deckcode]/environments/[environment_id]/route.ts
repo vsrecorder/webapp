@@ -1,31 +1,24 @@
 import { NextResponse, NextRequest } from "next/server";
 
+import { fetchUpstream, upstreamErrorResponse } from "@app/utils/upstream";
+
 import { DeckTypeData } from "@app/types/decktype";
 
 async function getDeckType(
   deckcode: string,
   environment_id: string,
 ): Promise<DeckTypeData[]> {
-  try {
-    //const domain = process.env.VSRECORDER_DOMAIN;
+  //const domain = process.env.VSRECORDER_DOMAIN;
 
-    const res = await fetch(
-      `https://vsrecorder.mobi/api/v1/decktypes/${deckcode}/environments/${environment_id}`,
-      {
-        cache: "no-store",
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-        },
+  return await fetchUpstream<DeckTypeData[]>(
+    `https://vsrecorder.mobi/api/v1/decktypes/${deckcode}/environments/${environment_id}`,
+    {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
       },
-    );
-
-    const ret: DeckTypeData[] = await res.json();
-
-    return ret;
-  } catch (error) {
-    throw error;
-  }
+    },
+  );
 }
 
 export async function GET(
@@ -34,10 +27,11 @@ export async function GET(
 ) {
   try {
     const { deckcode, environment_id } = await params;
-    const ret = await getDeckType(deckcode, environment_id);
 
-    return NextResponse.json(ret, { status: 200 });
+    const decktypes = await getDeckType(deckcode, environment_id);
+
+    return NextResponse.json(decktypes, { status: 200 });
   } catch (error) {
-    throw error;
+    return upstreamErrorResponse(error);
   }
 }

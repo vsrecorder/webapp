@@ -2,29 +2,25 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { auth } from "@app/auth";
 
+import { fetchUpstream, upstreamErrorResponse } from "@app/utils/upstream";
+
 import { DeckCodeType } from "@app/types/deck_code";
 
 import * as jwt from "jsonwebtoken";
 
 async function getDeckCodeById(token: string, id: string): Promise<DeckCodeType> {
-  try {
-    const domain = process.env.VSRECORDER_DOMAIN;
+  const domain = process.env.VSRECORDER_DOMAIN;
 
-    const res = await fetch(`https://${domain}/api/v1beta/deckcodes/${id}`, {
-      cache: "no-store",
+  return await fetchUpstream<DeckCodeType>(
+    `https://${domain}/api/v1beta/deckcodes/${id}`,
+    {
       method: "GET",
       headers: {
         Authorization: "Bearer " + token,
         Accept: "application/json",
       },
-    });
-
-    const ret: DeckCodeType = await res.json();
-
-    return ret;
-  } catch (error) {
-    throw error;
-  }
+    },
+  );
 }
 
 export async function GET(
@@ -50,11 +46,11 @@ export async function GET(
   try {
     const { id } = await params;
 
-    const ret = await getDeckCodeById(token, id);
+    const deckcode = await getDeckCodeById(token, id);
 
-    return NextResponse.json(ret, { status: 200 });
+    return NextResponse.json(deckcode, { status: 200 });
   } catch (error) {
-    throw error;
+    return upstreamErrorResponse(error);
   }
 }
 
@@ -83,7 +79,7 @@ export async function DELETE(
 
     const domain = process.env.VSRECORDER_DOMAIN;
 
-    const res = await fetch(`https://${domain}/api/v1beta/deckcodes/${id}`, {
+    await fetchUpstream<null>(`https://${domain}/api/v1beta/deckcodes/${id}`, {
       method: "DELETE",
       headers: {
         Authorization: "Bearer " + token,
@@ -91,12 +87,8 @@ export async function DELETE(
       },
     });
 
-    if (res.status == 204) {
-      return res;
-    } else {
-      return res;
-    }
+    return new NextResponse(null, { status: 204 });
   } catch (error) {
-    throw error;
+    return upstreamErrorResponse(error);
   }
 }

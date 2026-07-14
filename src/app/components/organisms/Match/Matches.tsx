@@ -329,7 +329,7 @@ export default function Matches({
                           aria-label="対戦結果"
                           className=""
                           classNames={{
-                            wrapper: "p-1.5 shadow-none overflow-x-hidden",
+                            wrapper: "px-1 py-1.5 shadow-none overflow-x-hidden",
                             table: "",
                             th: "px-0 py-0",
                             td: "px-0 py-0",
@@ -418,7 +418,7 @@ export default function Matches({
                                       <Button
                                         radius="md"
                                         variant="light"
-                                        className="pl-3 pr-1 py-8 w-full"
+                                        className="pl-1.5 pr-0.5 py-8 w-full"
                                         onPress={() => {
                                           setSelectedMatch(match);
                                           // 編集可能な場合は編集モーダル、
@@ -723,9 +723,9 @@ export default function Matches({
 
               {matches && matches.length !== 0 && enableCreateMatchModalButton && (
                 // flat(戦績カード内のパネル)ではパネル端に接しないよう、
-                // 左右はテーブルの p-1.5 インセットに合わせ、下は少し広めに余白を持たせる。
+                // 左右はテーブルの px-1 インセットに合わせ、下は少し広めに余白を持たせる。
                 // ボタンは横幅いっぱい＋縦を高めにして押しやすくする。
-                <div className={flat ? "px-1.5 pb-3" : ""}>
+                <div className={flat ? "px-1 pb-3" : ""}>
                   <CreateMatchModalButton
                     record={record}
                     setMatches={setMatches}

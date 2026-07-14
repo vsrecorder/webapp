@@ -1,25 +1,21 @@
 import { NextResponse, NextRequest } from "next/server";
 
+import { fetchUpstream, upstreamErrorResponse } from "@app/utils/upstream";
+
 import { AcespecType } from "@app/types/acespec";
 
-async function getAcespec(code: string) {
-  try {
-    const domain = process.env.VSRECORDER_DOMAIN;
+async function getAcespec(code: string): Promise<AcespecType | null> {
+  const domain = process.env.VSRECORDER_DOMAIN;
 
-    const res = await fetch(`https://${domain}/api/v1beta/deckcards/${code}/acespec`, {
-      cache: "no-store",
+  return await fetchUpstream<AcespecType | null>(
+    `https://${domain}/api/v1beta/deckcards/${code}/acespec`,
+    {
       method: "GET",
       headers: {
         Accept: "application/json",
       },
-    });
-
-    const ret: AcespecType = await res.json();
-
-    return ret;
-  } catch (error) {
-    throw error;
-  }
+    },
+  );
 }
 
 export async function GET(
@@ -29,10 +25,15 @@ export async function GET(
   try {
     const { code } = await params;
 
-    const ret = await getAcespec(code);
+    const acespec = await getAcespec(code);
 
-    return NextResponse.json(ret, { status: 200 });
+    // 上流が204（該当カードなし）を返した場合は、そのまま「中身なし」として返す
+    if (acespec === null) {
+      return new NextResponse(null, { status: 204 });
+    }
+
+    return NextResponse.json(acespec, { status: 200 });
   } catch (error) {
-    throw error;
+    return upstreamErrorResponse(error);
   }
 }

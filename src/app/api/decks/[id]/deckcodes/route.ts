@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { auth } from "@app/auth";
 
+import { fetchUpstream, upstreamErrorResponse } from "@app/utils/upstream";
+
 import { DeckCodeType } from "@app/types/deck_code";
 
 import * as jwt from "jsonwebtoken";
@@ -10,24 +12,18 @@ async function getDeckCodesByDeckId(
   token: string,
   deck_id: string,
 ): Promise<DeckCodeType[]> {
-  try {
-    const domain = process.env.VSRECORDER_DOMAIN;
+  const domain = process.env.VSRECORDER_DOMAIN;
 
-    const res = await fetch(`https://${domain}/api/v1beta/decks/${deck_id}/deckcodes`, {
-      cache: "no-store",
+  return await fetchUpstream<DeckCodeType[]>(
+    `https://${domain}/api/v1beta/decks/${deck_id}/deckcodes`,
+    {
       method: "GET",
       headers: {
         Authorization: "Bearer " + token,
         Accept: "application/json",
       },
-    });
-
-    const ret: DeckCodeType[] = await res.json();
-
-    return ret;
-  } catch (error) {
-    throw error;
-  }
+    },
+  );
 }
 
 export async function GET(
@@ -54,10 +50,10 @@ export async function GET(
     const { id } = await params;
     const deck_id = id;
 
-    const ret = await getDeckCodesByDeckId(token, deck_id);
+    const deckcodes = await getDeckCodesByDeckId(token, deck_id);
 
-    return NextResponse.json(ret, { status: 200 });
+    return NextResponse.json(deckcodes, { status: 200 });
   } catch (error) {
-    throw error;
+    return upstreamErrorResponse(error);
   }
 }

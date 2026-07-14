@@ -60,7 +60,9 @@ export function getDeckCodeVersionNumber(
   deckcodes: DeckCodeType[] | undefined,
   deckCodeId: string | null | undefined,
 ): number | null {
-  if (!deckcodes || !deckCodeId) return null;
+  // 配列でないもの（想定外のレスポンス）が渡ってもfindIndexで落ちないようにする。
+  // ここはデッキ一覧・デッキ詳細のレンダー中に呼ばれるため、例外はページ全体を落とす。
+  if (!Array.isArray(deckcodes) || !deckCodeId) return null;
 
   const index = deckcodes.findIndex((dc) => dc.id === deckCodeId);
 

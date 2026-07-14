@@ -2,7 +2,12 @@ import { NextResponse, NextRequest } from "next/server";
 
 import { auth } from "@app/auth";
 
-import { UnofficialEventCreateRequestType } from "@app/types/unofficial_event";
+import { fetchUpstream, upstreamErrorResponse } from "@app/utils/upstream";
+
+import {
+  UnofficialEventCreateRequestType,
+  UnofficialEventCreateResponseType,
+} from "@app/types/unofficial_event";
 
 import * as jwt from "jsonwebtoken";
 
@@ -28,23 +33,20 @@ export async function POST(request: NextRequest) {
 
     const unofficialEvent: UnofficialEventCreateRequestType = await request.json();
 
-    const res = await fetch(`https://${domain}/api/v1beta/unofficial_events`, {
-      method: "POST",
-      headers: {
-        Authorization: "Bearer " + token,
-        "Content-Type": "application/json",
+    const created = await fetchUpstream<UnofficialEventCreateResponseType>(
+      `https://${domain}/api/v1beta/unofficial_events`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: "Bearer " + token,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(unofficialEvent),
       },
-      body: JSON.stringify(unofficialEvent),
-    });
+    );
 
-    if (res.status == 201) {
-      const ret = await res.json();
-
-      return NextResponse.json(ret, { status: 201 });
-    } else {
-      return res;
-    }
+    return NextResponse.json(created, { status: 201 });
   } catch (error) {
-    throw error;
+    return upstreamErrorResponse(error);
   }
 }

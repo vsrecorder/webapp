@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Card, CardBody } from "@heroui/react";
 import { LuFlame, LuSnowflake } from "react-icons/lu";
+
+import FetchError from "@app/components/molecules/FetchError";
 
 import { UserStreakType } from "@app/types/streak";
 
@@ -13,17 +15,41 @@ type Props = {
 export default function StreakPanel({ userId }: Props) {
   const [streak, setStreak] = useState<UserStreakType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  // 取得に失敗したことを「0週連続記録中」の表示で覆い隠さないよう、
+  // 失敗はエラーとして扱い、この場だけで取り直せるようにする。
+  const loadStreak = useCallback(async () => {
+    setError(false);
+    setIsLoading(true);
+
+    try {
+      const res = await fetch(`/api/users/${userId}/streak`, { cache: "no-store" });
+
+      if (!res.ok) {
+        throw new Error("Failed to fetch");
+      }
+
+      const data: UserStreakType = await res.json();
+
+      setStreak(data);
+    } catch (err) {
+      console.log(err);
+      setError(true);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [userId]);
 
   useEffect(() => {
-    setIsLoading(true);
-    fetch(`/api/users/${userId}/streak`, { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        setStreak(data);
-        setIsLoading(false);
-      })
-      .catch(() => setIsLoading(false));
-  }, [userId]);
+    loadStreak();
+  }, [loadStreak]);
+
+  if (error) {
+    return (
+      <FetchError message="連続記録の取得に失敗しました" onRetry={loadStreak} compact />
+    );
+  }
 
   const currentWeeks = streak?.current_weeks ?? 0;
   const longestWeeks = streak?.longest_weeks ?? 0;
@@ -45,11 +71,15 @@ export default function StreakPanel({ userId }: Props) {
 
         <div className="flex flex-col gap-0.5 min-w-0">
           {isLoading ? (
-            <span className="text-2xl font-black text-default-300 animate-pulse leading-none">—</span>
+            <span className="text-2xl font-black text-default-300 animate-pulse leading-none">
+              —
+            </span>
           ) : (
             <span className="text-2xl font-black leading-none tabular-nums">
               {currentWeeks}
-              <span className="text-sm font-bold text-default-500 ml-1">週連続記録中</span>
+              <span className="text-sm font-bold text-default-500 ml-1">
+                週連続記録中
+              </span>
             </span>
           )}
           <div className="flex items-center justify-center gap-2 w-full text-[11px] text-default-400 font-medium">

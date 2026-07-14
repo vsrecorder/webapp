@@ -41,7 +41,7 @@ function labelAnchor(index: number, total: number) {
 }
 
 /*
- * きずなレベルの内訳をあらわす六角形のレーダー。
+ * きずなLv.の内訳をあらわす六角形のレーダー。
  *
  * canvas（chart.js）ではなく、素の SVG で描くこと。
  * captureThemedPng は cloneNode で DOM の静的スナップショットを取るため、
@@ -66,7 +66,7 @@ export default function KizunaRadarChart({ metrics }: Props) {
       viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
       className="w-full"
       role="img"
-      aria-label={`きずなレベルの内訳: ${metrics
+      aria-label={`きずなLv.の内訳: ${metrics
         .map((m) => `${m.label} ${Math.round(m.value * 100)}`)
         .join("、")}`}
     >

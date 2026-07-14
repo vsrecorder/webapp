@@ -34,7 +34,7 @@ export default function KizunaShareCard({
   const spriteNames = sprites.map((sprite) => sprite.name).join("・");
   const title = deckName.trim() || spriteNames;
 
-  // 灯の強さはきずなレベルで決まる。数字を読まなくても、絵の明るさで深さが伝わる。
+  // 灯の強さはきずなLv.で決まる。数字を読まなくても、絵の明るさで深さが伝わる。
   const { glow } = kizunaTierOf(score);
 
   return (
@@ -47,7 +47,7 @@ export default function KizunaShareCard({
       {sprites.length > 0 && (
         <div className="flex flex-col items-center gap-1.5">
           {/* 焚き火の灯を背負わせる。相棒が光を受けて立っている、という絵にする。
-              灯の大きさと濃さはきずなレベルの段階で変わる（KIZUNA_TIERS の glow）。 */}
+              灯の大きさと濃さはきずなLv.の段階で変わる（KIZUNA_TIERS の glow）。 */}
           <div className="relative flex h-28 items-center justify-center gap-1">
             <span aria-hidden="true" className={`absolute rounded-full ${glow}`} />
             {sprites.map((sprite) => (
@@ -71,7 +71,7 @@ export default function KizunaShareCard({
       <div className="flex w-full flex-col gap-3">
         <div className="flex flex-col items-center gap-1">
           <span className="text-[11px] font-bold tracking-[0.28em] text-white/50">
-            きずなレベル
+            きずなLv.
           </span>
           <div className="flex items-baseline justify-center gap-2">
             <span className="text-6xl font-black tabular-nums text-amber-400">

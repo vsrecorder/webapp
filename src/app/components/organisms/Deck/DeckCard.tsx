@@ -179,6 +179,9 @@ export default function DeckCard({
     weekday: "short",
   });
 
+  // archived_atがゼロ値(年が1)なら未アーカイブ
+  const isArchived = new Date(deck.archived_at).getFullYear() !== 1;
+
   // 先攻/後攻それぞれで試行回数があるか（勝率列の表示可否に使う）
   const goFirstHasStats = !!deckUsageStat && deckUsageStat.go_first_count > 0;
   const goSecondHasStats = !!deckUsageStat && deckUsageStat.go_second_count > 0;
@@ -455,7 +458,8 @@ export default function DeckCard({
               deckcode={deckcode}
               versionNumber={versionNumber}
               totalVersionCount={versionCount}
-              onCreateVersion={onOpen}
+              onCreateVersion={isArchived ? undefined : onOpen}
+              isArchived={isArchived}
               board
             />
           </div>
@@ -571,7 +575,8 @@ export default function DeckCard({
                   deckcode={deckcode}
                   versionNumber={versionNumber}
                   totalVersionCount={versionCount}
-                  onCreateVersion={onOpen}
+                  onCreateVersion={isArchived ? undefined : onOpen}
+                  isArchived={isArchived}
                   board
                   hideImage
                   versionCountBadge={versionCount}

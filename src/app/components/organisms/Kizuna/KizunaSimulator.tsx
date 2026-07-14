@@ -207,16 +207,21 @@ export default function KizunaSimulator() {
   }, [isComplete, partnerLabel, sprite1Id, sprite2Id, score, setPreviewDeck]);
 
   const shareText = [
-    `${partnerLabel}とのきずなレベルは【${score} / 255】でした。`,
+    // デッキ名（ポケモン名）が長いと1行に収まらないため、数値の前で改行する。
+    // 数値だけを1行に立たせたいので、「でした。」もさらに次の行へ送る。
+    `${partnerLabel}とのきずなLv.は`,
+    `【${score} / 255】`,
+    "でした。",
     "",
     `「${tier.name}」`,
+    "\n",
     tier.message,
     "",
     "勝率では測れない、デッキとのきずなを数値化する",
     "バトレコの新機能「きずな」を試算しました👇",
     "https://vsrecorder.mobi/kizuna",
     "",
-    "#バトレコ #ポケカ #きずなレベル",
+    "#バトレコ #きずなLv.",
   ].join("\n");
 
   // ── シェア画像の生成 ────────────────────────────────────────────
@@ -481,7 +486,7 @@ export default function KizunaSimulator() {
             />
 
             <p className="px-1 text-xs leading-relaxed text-default-500 lg:text-sm">
-              これはあくまで試算です。本物のきずなレベルは、あなたが積み重ねた対戦記録から自動で算出されます。
+              これはあくまで試算です。本物のきずなLv.は、あなたが積み重ねた対戦記録から自動で算出されます。
               <br />
               算出方法は開発中のため、指標や重み付けは今後変更される可能性があります。
             </p>
@@ -550,7 +555,7 @@ export default function KizunaSimulator() {
         ) : (
           <div className="rounded-2xl border border-dashed border-default-200 px-6 py-8 text-center">
             <p className="text-sm text-default-500">
-              あと{remaining}問に答えると、きずなレベルが表示されます。
+              あと{remaining}問に答えると、きずなLv.が表示されます。
             </p>
           </div>
         )}

@@ -1,5 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 
+import { fetchUpstream, upstreamErrorResponse } from "@app/utils/upstream";
+
 import { WeeklyDeckUsageStatType } from "@app/types/weekly_deck_usage_stat";
 
 // プラットフォーム全体の週次デッキ使用率を取得する公開 proxy。
@@ -9,17 +11,15 @@ async function getWeeklyDeckUsage(week: string): Promise<WeeklyDeckUsageStatType
 
   const query = week ? `?week=${encodeURIComponent(week)}` : "";
 
-  const res = await fetch(`https://${domain}/api/v1beta/deck_meta/weekly_usage${query}`, {
-    cache: "no-store",
-    method: "GET",
-    headers: {
-      Accept: "application/json",
+  return await fetchUpstream<WeeklyDeckUsageStatType>(
+    `https://${domain}/api/v1beta/deck_meta/weekly_usage${query}`,
+    {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
     },
-  });
-
-  const ret: WeeklyDeckUsageStatType = await res.json();
-
-  return ret;
+  );
 }
 
 export async function GET(request: NextRequest) {
@@ -27,10 +27,10 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const week = searchParams.get("week") ?? "";
 
-    const ret = await getWeeklyDeckUsage(week);
+    const usage = await getWeeklyDeckUsage(week);
 
-    return NextResponse.json(ret, { status: 200 });
+    return NextResponse.json(usage, { status: 200 });
   } catch (error) {
-    throw error;
+    return upstreamErrorResponse(error);
   }
 }

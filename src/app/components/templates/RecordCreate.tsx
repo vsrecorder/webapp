@@ -98,6 +98,9 @@ type DeckCodeOption = {
   private_code_flg: boolean;
 };
 
+// 失敗レスポンスのボディをそのまま返すと、選択肢を組み立てるmapがレンダー中に例外になり
+// ページ全体が落ちる。取得できなかったことはSWRのerrorとして扱い、
+// 「エラーが発生しました」を選択肢の代わりに出す。
 async function fetcherForOfficialEvent(url: string) {
   const res = await fetch(url, {
     method: "GET",
@@ -105,6 +108,11 @@ async function fetcherForOfficialEvent(url: string) {
       Accept: "application/json",
     },
   });
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch");
+  }
+
   const ret: OfficialEventResponseType = await res.json();
 
   return ret.official_events;
@@ -117,6 +125,11 @@ async function fetcherForDeck(url: string) {
       Accept: "application/json",
     },
   });
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch");
+  }
+
   const ret: DeckGetAllType = await res.json();
 
   return ret;
@@ -129,6 +142,11 @@ async function fetcherForDeckCode(url: string) {
       Accept: "application/json",
     },
   });
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch");
+  }
+
   const ret: DeckCodeType[] = await res.json();
 
   return ret;

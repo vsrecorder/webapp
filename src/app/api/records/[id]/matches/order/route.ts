@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { auth } from "@app/auth";
 
+import { fetchUpstream, upstreamErrorResponse } from "@app/utils/upstream";
+
 import { MatchReorderRequestType } from "@app/types/match";
 
 import * as jwt from "jsonwebtoken";
@@ -33,7 +35,7 @@ export async function PUT(
 
     const body: MatchReorderRequestType = await request.json();
 
-    const res = await fetch(
+    await fetchUpstream<null>(
       `https://${domain}/api/v1beta/records/${id}/matches/order`,
       {
         method: "PUT",
@@ -45,12 +47,8 @@ export async function PUT(
       },
     );
 
-    if (res.status == 204) {
-      return new NextResponse(null, { status: 204 });
-    } else {
-      return res;
-    }
+    return new NextResponse(null, { status: 204 });
   } catch (error) {
-    throw error;
+    return upstreamErrorResponse(error);
   }
 }

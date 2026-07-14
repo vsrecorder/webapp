@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useState, Fragment } from "react";
+import { useCallback, useEffect, useState, Fragment } from "react";
 import { Card, CardBody, useDisclosure } from "@heroui/react";
+
+import FetchError from "@app/components/molecules/FetchError";
 
 import { UserBadgeType } from "@app/types/badge";
 import { ChampionshipSeriesType } from "@app/types/championship_series";
@@ -10,7 +12,10 @@ import {
   BadgeTile,
   BadgeTileSkeleton,
 } from "@app/components/organisms/Badge/badgeUi";
-import { seasonOptionsFromChampionshipSeries, currentSeasonValue } from "@app/utils/season";
+import {
+  seasonOptionsFromChampionshipSeries,
+  currentSeasonValue,
+} from "@app/utils/season";
 
 type Props = {
   userId: string;
@@ -106,6 +111,7 @@ function BadgeFlowRowSkeleton({ count }: { count: number }) {
 export default function BadgeGallery({ userId, championshipSeries }: Props) {
   const [badges, setBadges] = useState<UserBadgeType[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [selectedBadge, setSelectedBadge] = useState<UserBadgeType | null>(null);
   const [season, setSeason] = useState(() => currentSeasonValue(championshipSeries));
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
@@ -117,16 +123,35 @@ export default function BadgeGallery({ userId, championshipSeries }: Props) {
     onOpen();
   }
 
-  useEffect(() => {
+  // 取得に失敗したことを空のバッジ一覧で覆い隠さないよう、
+  // 失敗はエラーとして扱い、この場だけで取り直せるようにする。
+  const loadBadges = useCallback(async () => {
+    setError(false);
     setIsLoading(true);
-    fetch(`/api/users/${userId}/badges?season=${season}`, { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        setBadges(data?.badges ?? []);
-        setIsLoading(false);
-      })
-      .catch(() => setIsLoading(false));
+
+    try {
+      const res = await fetch(`/api/users/${userId}/badges?season=${season}`, {
+        cache: "no-store",
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to fetch");
+      }
+
+      const data = await res.json();
+
+      setBadges(data?.badges ?? []);
+    } catch (err) {
+      console.log(err);
+      setError(true);
+    } finally {
+      setIsLoading(false);
+    }
   }, [userId, season]);
+
+  useEffect(() => {
+    loadBadges();
+  }, [loadBadges]);
 
   if (isLoading) {
     return (
@@ -157,6 +182,10 @@ export default function BadgeGallery({ userId, championshipSeries }: Props) {
         </CardBody>
       </Card>
     );
+  }
+
+  if (error) {
+    return <FetchError message="バッジの取得に失敗しました" onRetry={loadBadges} />;
   }
 
   const achievedCount = badges?.filter((b) => b.achieved).length ?? 0;

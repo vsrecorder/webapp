@@ -29,8 +29,10 @@ export function groupIntoOther<T extends OtherAggregate>(
   cutoff = Math.min(cutoff, maxIndividual);
 
   const rest = sorted.slice(cutoff);
-  // まとめても1件しか無いなら「その他」にする意味が無いのでそのまま表示する
-  if (rest.length <= 1) {
+  // まとめても1件しか無いなら「その他」にする意味が無いのでそのまま表示する。
+  // ただし個別表示の上限(maxIndividual)を超えてしまう場合は、たとえ1件でも
+  // 「その他」にまとめる（上限を超えた数のスプライトを円グラフに並べないため）
+  if (rest.length <= 1 && sorted.length <= maxIndividual) {
     return { displayItems: sorted, hasOther: false };
   }
 

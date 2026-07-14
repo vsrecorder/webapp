@@ -114,10 +114,10 @@ type Props = {
 };
 
 /*
- * ログイン済みユーザー向けのきずなレベル試算。
+ * ログイン済みユーザー向けのきずなLv.試算。
  *
  * 質問には答えさせない。登録済みのデッキを選ぶだけで、実際の対戦記録・
- * デッキコードの組み直し履歴・メモから、きずなレベルを算出する。
+ * デッキコードの組み直し履歴・メモから、きずなLv.を算出する。
  * （算出ロジックは utils/kizuna.ts。既存APIだけで求まる6指標を使う簡易版）
  */
 export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
@@ -252,8 +252,9 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
   const [images, setImages] = useState<ShareImage[] | null>(null);
   const [captureFailed, setCaptureFailed] = useState(false);
   const [busy, setBusy] = useState<null | "share" | "save">(null);
-  // 内訳カードを2枚目の画像として一緒にシェアするか
-  const [includeBreakdown, setIncludeBreakdown] = useState(true);
+  // 内訳カードを2枚目の画像として一緒にシェアするか。
+  // 既定はOFF。シェアしたいのはまず結果であり、内訳まで出すかは本人が選ぶこと。
+  const [includeBreakdown, setIncludeBreakdown] = useState(false);
 
   const [captureWidth, setCaptureWidth] = useState(360);
   useEffect(() => {
@@ -353,7 +354,11 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
   const shareText =
     selectedDeck && estimate && tier
       ? [
-          `${selectedDeck.data.name}とのきずなレベルは【${estimate.score} / 255】でした。`,
+          // デッキ名が長いと1行に収まらないため、数値の前で改行する。
+          // 数値だけを1行に立たせたいので、「でした。」もさらに次の行へ送る。
+          `${selectedDeck.data.name}とのきずなLv.は`,
+          `【${estimate.score} / 255】`,
+          "でした。",
           "",
           `「${tier.name}」`,
           tier.message,
@@ -362,7 +367,7 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
           "バトレコの新機能「きずな」で試算しました👇",
           "https://vsrecorder.mobi/kizuna",
           "",
-          "#バトレコ #ポケカ #きずなレベル",
+          "#バトレコ #きずなLv.",
         ].join("\n")
       : "";
 
@@ -436,7 +441,7 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
             登録済みのデッキから
           </span>
           <span className="text-base font-bold text-foreground lg:text-lg">
-            きずなレベルを見たいデッキを選んでください
+            きずなLv.を見たいデッキを選んでください
           </span>
           <span className="text-xs text-default-500">
             あなたの対戦記録・デッキの組み直し履歴・メモから自動で算出します。入力は不要です。
@@ -557,7 +562,7 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
           <div className="flex items-center justify-center gap-3 rounded-2xl border border-dashed border-default-200 py-8">
             <Spinner size="sm" />
             <span className="text-sm text-default-500">
-              対戦記録からきずなレベルを算出しています...
+              対戦記録からきずなLv.を算出しています...
             </span>
           </div>
         )}
@@ -573,7 +578,7 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
                 このデッキとは、まだ一緒に戦っていません
               </span>
               <span className="text-xs leading-relaxed text-default-500">
-                きずなレベルは対戦記録から算出されます。1戦記録すると、ここに表示されます。
+                きずなLv.は対戦記録から算出されます。1戦記録すると、ここに表示されます。
               </span>
             </div>
           </div>
@@ -610,7 +615,7 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-bold">内訳カードも一緒にシェア</div>
                 <div className="text-[11px] text-default-400">
-                  きずなレベルの内訳を2枚目の画像として追加します
+                  きずなLv.の内訳を2枚目の画像として追加します
                 </div>
               </div>
               <Switch

@@ -16,6 +16,9 @@ type Props = {
   setRecord: Dispatch<SetStateAction<RecordGetByIdResponseType | null>>;
   // ボードのパネル内に置く場合は true。外側のカード枠(border/bg/影/余白)を外す。
   flat?: boolean;
+  // 切り替えAPIの実行中かどうかを親へ通知する。
+  // モーダル内で使う場合、更新中に閉じられて結果が見えなくなるのを防ぐために使う。
+  onUpdatingChange?: (isUpdating: boolean) => void;
 };
 
 /*
@@ -28,15 +31,22 @@ export default function IgnoreStatsFlgSetting({
   record,
   setRecord,
   flat = false,
+  onUpdatingChange,
 }: Props) {
   const [isUpdating, setIsUpdating] = useState(false);
   const excluded = record.ignore_stats_flg;
+
+  // 更新中フラグは親(モーダル)にも伝える。親は実行中の閉じる操作を無効化する。
+  function updateIsUpdating(next: boolean) {
+    setIsUpdating(next);
+    onUpdatingChange?.(next);
+  }
 
   async function select(nextIgnore: boolean) {
     // 既に選択中の状態、または更新中は何もしない
     if (isUpdating || nextIgnore === record.ignore_stats_flg) return;
 
-    setIsUpdating(true);
+    updateIsUpdating(true);
 
     // 切り替え中であることを示すトースト(完了/失敗時に閉じる)
     const loadingToastKey = addToast({
@@ -79,7 +89,7 @@ export default function IgnoreStatsFlgSetting({
         timeout: 5000,
       });
     } finally {
-      setIsUpdating(false);
+      updateIsUpdating(false);
     }
   }
 

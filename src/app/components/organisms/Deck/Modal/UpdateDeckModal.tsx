@@ -31,6 +31,12 @@ async function fetcherForPokemonSprites(url: string) {
       Accept: "application/json",
     },
   });
+
+  // 失敗レスポンスのボディをそのまま返すと、配列前提のfind/mapが例外になりページ全体が落ちる
+  if (!res.ok) {
+    throw new Error("Failed to fetch");
+  }
+
   const ret: PokemonSpriteType[] = await res.json();
 
   return ret;

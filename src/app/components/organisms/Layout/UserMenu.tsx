@@ -12,18 +12,18 @@ import {
   DropdownSection,
 } from "@heroui/dropdown";
 
-import { useDisclosure } from "@heroui/react";
+import { addToast, useDisclosure } from "@heroui/react";
 import { Modal, ModalContent, ModalBody, ModalFooter } from "@heroui/modal";
 import { useRouter } from "next/navigation";
 import {
   LuLayoutDashboard,
-  LuFileText,
-  LuLayers,
   LuUser,
   LuMessageCircle,
   LuExternalLink,
   LuLogOut,
   LuChartColumn,
+  LuCopy,
+  LuCheck,
 } from "react-icons/lu";
 
 import { handleSignOut } from "@app/handlers/handleSignOut";
@@ -48,8 +48,20 @@ export default function UserMenu({ user, iconUrl, isDevEnv }: Props) {
   const { avatarUrl } = useUserAvatar();
   const [rankName, setRankName] = useState<string | null>(null);
   const [rankImage, setRankImage] = useState(NO_RANK_IMAGE);
+  const [copied, setCopied] = useState(false);
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
+
+  async function handleCopyUserId() {
+    try {
+      await navigator.clipboard.writeText(user.id);
+      setCopied(true);
+      addToast({ title: "ユーザIDをコピーしました", color: "success", timeout: 2000 });
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      addToast({ title: "コピーに失敗しました", color: "danger", timeout: 3000 });
+    }
+  }
 
   useEffect(() => {
     fetch(`/api/users/${user.id}/designation`, {
@@ -90,24 +102,47 @@ export default function UserMenu({ user, iconUrl, isDevEnv }: Props) {
               textValue={user.name}
               className="cursor-default data-[hover=true]:bg-transparent"
             >
-              <div className="flex items-center gap-3 py-1">
-                <Avatar size="sm" src={avatarUrl ?? user.image_url} />
-                <div className="flex flex-col min-w-0">
-                  <span className="flex items-center gap-1 text-tiny text-default-400">
-                    <Image
-                      src={rankImage}
-                      alt=""
-                      width={14}
-                      height={14}
-                      unoptimized
-                      className="object-contain shrink-0"
-                    />
-                    {rankName ?? "ランク取得中…"}
-                  </span>
-                  <span className="font-semibold text-sm truncate max-w-40">
-                    {user.name}
-                  </span>
+              <div className="flex flex-col gap-2 py-1">
+                <div className="flex items-center gap-3">
+                  <Avatar size="sm" src={avatarUrl ?? user.image_url} />
+                  <div className="flex flex-col min-w-0">
+                    <span className="flex items-center gap-1 text-tiny text-default-400">
+                      <Image
+                        src={rankImage}
+                        alt=""
+                        width={14}
+                        height={14}
+                        unoptimized
+                        className="object-contain shrink-0"
+                      />
+                      {rankName ?? "ランク取得中…"}
+                    </span>
+                    <span className="font-semibold text-sm truncate max-w-40">
+                      {user.name}
+                    </span>
+                  </div>
                 </div>
+                <button
+                  onClick={(e) => {
+                    // ドロップダウンを閉じずにコピーする
+                    e.stopPropagation();
+                    handleCopyUserId();
+                  }}
+                  className="-mx-2 flex w-[calc(100%+1rem)] items-center gap-2 rounded-lg bg-default-100 px-4 py-2 cursor-pointer text-default-400 hover:bg-default-200 hover:text-default-600 transition-colors"
+                  aria-label="ユーザIDをコピー"
+                >
+                  <span className="text-[9px] font-bold text-default-400 uppercase tracking-widest shrink-0">
+                    ユーザID
+                  </span>
+                  <span className="flex-1 text-left text-xs font-mono text-default-600 break-all whitespace-normal">
+                    {user.id}
+                  </span>
+                  {copied ? (
+                    <LuCheck className="w-3 h-3 shrink-0 text-success" />
+                  ) : (
+                    <LuCopy className="w-3 h-3 shrink-0" />
+                  )}
+                </button>
               </div>
             </DropdownItem>
           </DropdownSection>
@@ -136,28 +171,6 @@ export default function UserMenu({ user, iconUrl, isDevEnv }: Props) {
               ホームの表示設定
             </DropdownItem>
             <DropdownItem
-              key="decks"
-              color="default"
-              startContent={<LuLayers className="w-4 h-4" />}
-              description="登録デッキを管理"
-              onPress={() => {
-                router.push("/decks");
-              }}
-            >
-              登録デッキ一覧
-            </DropdownItem>
-            <DropdownItem
-              key="records"
-              color="default"
-              startContent={<LuFileText className="w-4 h-4" />}
-              description="これまでの対戦を確認"
-              onPress={() => {
-                router.push("/records");
-              }}
-            >
-              対戦記録一覧
-            </DropdownItem>
-            <DropdownItem
               key="deck_meta"
               color="default"
               startContent={<LuChartColumn className="w-4 h-4" />}
@@ -175,7 +188,7 @@ export default function UserMenu({ user, iconUrl, isDevEnv }: Props) {
               key="contact"
               color="default"
               startContent={<LuMessageCircle className="w-4 h-4" />}
-              endContent={<LuExternalLink className="w-3 h-3 text-default-300" />}
+              endContent={<LuExternalLink className="w-4 h-4 text-default-300" />}
               onPress={() => {
                 window.open(CONTACT_FORM_URL, "_blank", "noopener,noreferrer");
               }}

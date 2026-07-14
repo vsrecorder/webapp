@@ -26,6 +26,8 @@ import { DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
 import { spriteImageUrl, spriteScaleClass } from "@app/utils/sprite";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 
+// 失敗レスポンスのボディをそのまま返すと、選択肢を組み立てるmap/forEachがレンダー中に
+// 例外になりページ全体が落ちる。取得できなかったことはSWRのerrorとして扱う。
 async function fetcherForDeck(url: string) {
   const res = await fetch(url, {
     method: "GET",
@@ -33,6 +35,11 @@ async function fetcherForDeck(url: string) {
       Accept: "application/json",
     },
   });
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch");
+  }
+
   const ret: DeckGetAllType = await res.json();
 
   return ret;
@@ -113,6 +120,11 @@ async function fetcherForDeckCode(url: string) {
       Accept: "application/json",
     },
   });
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch");
+  }
+
   const ret: DeckCodeType[] = await res.json();
 
   return ret;

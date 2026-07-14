@@ -367,7 +367,7 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
           "バトレコの新機能「きずな」で試算しました👇",
           "https://vsrecorder.mobi/kizuna",
           "",
-          "#バトレコ #きずなLv.",
+          "#バトレコ #きずなLv",
         ].join("\n")
       : "";
 

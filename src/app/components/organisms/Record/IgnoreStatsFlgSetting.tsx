@@ -9,6 +9,7 @@ import { LuChartNoAxesColumn, LuCheck, LuTriangleAlert } from "react-icons/lu";
 
 import { RecordGetByIdResponseType } from "@app/types/record";
 import { updateIgnoreStatsFlg } from "@app/components/organisms/Record/updateIgnoreStatsFlg";
+import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 
 type Props = {
   record: RecordGetByIdResponseType;
@@ -63,6 +64,11 @@ export default function IgnoreStatsFlgSetting({
         color: "success",
         timeout: 3000,
       });
+
+      // 集計対象の切り替えは称号のtierを増減させうる(称号は永続化せず都度ライブ判定するため)。
+      // サーバはこのPUTの中で称号獲得・喪失やランクアップ/ランクダウンの通知を作るので、
+      // ポーリング(60秒)を待たずその場で通知ベルを再取得させる。
+      triggerNotificationsRefresh();
     } catch (error) {
       console.error(error);
       if (loadingToastKey) closeToast(loadingToastKey);

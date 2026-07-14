@@ -60,6 +60,18 @@ function extractDesignationEmoji(body: string): string | null {
   return body.match(/「(\S+)\s/)?.[1] ?? null;
 }
 
+// 称号を失った/ランクが下がった通知のタイトル。core-apiserverの notifyDesignationLost /
+// notifyRankDown が付けるタイトルと一致させる。
+const DEMOTION_TITLES = new Set(["称号を失いました", "ランクが下がりました"]);
+
+// 称号喪失・ランクダウンの通知か。獲得系と一目で区別できるよう、アイコンをグレーで表示する。
+function isDemotionNotification(notification: NotificationType): boolean {
+  return (
+    (notification.category === "designation" || notification.category === "rank") &&
+    DEMOTION_TITLES.has(notification.title)
+  );
+}
+
 function formatRelativeTime(iso: string): string {
   const date = new Date(iso);
   const diffMin = Math.round((Date.now() - date.getTime()) / 60000);
@@ -274,6 +286,11 @@ export default function NotificationBell({ userId }: Props) {
               const environmentBadgeId = environmentBadgeTitle
                 ? environmentIdByTitle.get(environmentBadgeTitle)
                 : undefined;
+              // 称号喪失・ランクダウンは、獲得系と同じ絵文字/ランク画像を使いつつ
+              // グレースケールで表示して区別する
+              const demotionClass = isDemotionNotification(notification)
+                ? " grayscale opacity-60"
+                : "";
 
               return (
                 <DropdownItem
@@ -301,14 +318,22 @@ export default function NotificationBell({ userId }: Props) {
                         width={26}
                         height={26}
                         unoptimized
-                        className="w-6.5 h-6.5 shrink-0 object-contain -ml-1"
+                        className={`w-6.5 h-6.5 shrink-0 object-contain -ml-1${demotionClass}`}
                       />
                     ) : designationEmoji ? (
-                      <span className="w-5 h-5 shrink-0 flex items-center justify-center text-base leading-none">
+                      <span
+                        className={`w-5 h-5 shrink-0 flex items-center justify-center text-base leading-none${demotionClass}`}
+                      >
                         {designationEmoji}
                       </span>
                     ) : (
-                      <Icon className="w-4 h-4 shrink-0 text-default-500" />
+                      <Icon
+                        className={`w-4 h-4 shrink-0 ${
+                          isDemotionNotification(notification)
+                            ? "text-default-300"
+                            : "text-default-500"
+                        }`}
+                      />
                     )
                   }
                   className={[

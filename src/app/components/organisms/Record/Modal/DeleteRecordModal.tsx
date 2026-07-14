@@ -8,6 +8,7 @@ import { Button } from "@heroui/react";
 import { addToast, closeToast } from "@heroui/react";
 
 import { RecordGetByIdResponseType } from "@app/types/record";
+import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 
 type Props = {
   record: RecordGetByIdResponseType;
@@ -60,6 +61,11 @@ export default function DeleteRecordModal({
         color: "success",
         timeout: 3000,
       });
+
+      // 記録の削除は称号のtierを下げうる(称号は永続化せず都度ライブ判定するため)。
+      // サーバはこのDELETEの中で称号喪失・ランクダウンの通知を作るので、ポーリング(60秒)を
+      // 待たずその場で通知ベルを再取得させる。
+      triggerNotificationsRefresh();
 
       onDeleted?.();
 

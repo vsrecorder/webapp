@@ -4,19 +4,16 @@ import { auth } from "@app/auth";
 
 import TemplateKizuna from "@app/components/templates/Kizuna";
 
-import { OG_SIZE, OG_SQUARE_SIZE } from "@app/utils/ogImage";
+import { OG_SIZE } from "@app/utils/ogImage";
 
 /*
  * きずなページのOGP画像はデザイン済みのPNGなので、実行時に生成せずCDNの現物を指す。
  * （satori生成やオブジェクトストレージへの自動アップロードは経由しない）
  *
- * 原本はリポジトリの public/ogp-kizuna.png / public/ogp-kizuna-square.png。
- * 生成元は assets/promo-ogp.html / assets/promo-square.html。
+ * 原本はリポジトリの public/ogp-kizuna.png。生成元は assets/promo-ogp.html。
  * 差し替えるときは原本を書き出し直し、同じ名前でCDNへ上げること。
  */
-const CDN = "https://xx8nnpgt.user.webaccel.jp/images/ogp";
-const OG_IMAGE_URL = `${CDN}/ogp-kizuna.png`;
-const OG_SQUARE_IMAGE_URL = `${CDN}/ogp-kizuna-square.png`;
+const OG_IMAGE_URL = "https://xx8nnpgt.user.webaccel.jp/images/ogp/ogp-kizuna.png";
 
 const title = "きずな - 勝率では測れない、デッキとのきずなを数値化する";
 const description =
@@ -35,15 +32,9 @@ export const metadata: Metadata = {
     type: "website",
     title,
     description,
-    /*
-     * 横長（1200×630）を先頭に置く。主要なクライアントは先頭の画像を使うため、
-     * カードは全幅バナーになる。正方形（1200×1200）は候補として後ろに並べ、
-     * 正方形を好むクライアント（summary 表示）に拾わせる。
-     */
-    images: [
-      { url: OG_IMAGE_URL, ...OG_SIZE, alt },
-      { url: OG_SQUARE_IMAGE_URL, ...OG_SQUARE_SIZE, alt },
-    ],
+    // 横長（1200×630）の1枚だけを出す。候補を複数並べると、
+    // クライアントによっては正方形が選ばれて全幅バナーにならない。
+    images: [{ url: OG_IMAGE_URL, ...OG_SIZE, alt }],
     locale: "ja_JP",
     siteName: "バトレコ",
   },

@@ -9,9 +9,6 @@ import { formatEventDate } from "@app/utils/cityleague";
 // OGP画像の規定サイズ。X(Twitter)の summary_large_image と Facebook の推奨に合わせる。
 export const OG_SIZE = { width: 1200, height: 630 };
 
-// X(Twitter)の summary カードは正方形の画像を切り出して使うため、別に持つ。
-export const OG_SQUARE_SIZE = { width: 1200, height: 1200 };
-
 // 配色。背景は単色にしている。グラデーションにすると PNG の圧縮が効かず、
 // 同じ絵柄でも 50KB → 344KB まで肥大するため。
 const COLORS = {
@@ -124,7 +121,7 @@ const canvasStyle = {
 /*
  * きずなページのOGP画像は satori 生成でもストレージ自動アップロードでもなく、
  * デザイン済みPNGをCDNに置いた現物を直接指している（kizuna/page.tsx）。
- * 原本は public/ogp-kizuna.png / public/ogp-kizuna-square.png。
+ * 原本は public/ogp-kizuna.png。
  */
 
 // サイト共通のOGP画像。個別の画像を持たない全ページで使う。

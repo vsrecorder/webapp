@@ -7,30 +7,10 @@ import { Skeleton } from "@heroui/react";
 
 import FetchError from "@app/components/molecules/FetchError";
 
+import { fetchDeckCardSummary } from "@app/utils/deckcard";
+
 import { DeckCodeType } from "@app/types/deck_code";
 import { DeckCardSummaryType } from "@app/types/deckcard";
-
-async function fetchDeckCardSummary(code: string) {
-  try {
-    const res = await fetch(`/api/deckcards/${code}/summary`, {
-      cache: "no-store",
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
-    });
-
-    if (!res.ok) {
-      throw new Error("Failed to fetch");
-    }
-
-    const ret: DeckCardSummaryType = await res.json();
-
-    return ret;
-  } catch (error) {
-    throw error;
-  }
-}
 
 type Props = {
   deckcode: DeckCodeType | null;

@@ -2,8 +2,13 @@ import { NextResponse, NextRequest } from "next/server";
 
 import { DeckCardType } from "@app/types/deckcard";
 
-async function getDeckCardList(code: string): Promise<DeckCardType[]> {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ code: string }> },
+) {
   try {
+    const { code } = await params;
+
     const domain = process.env.VSRECORDER_DOMAIN;
 
     const res = await fetch(`https://${domain}/api/v1beta/deckcards/${code}/list`, {
@@ -14,24 +19,19 @@ async function getDeckCardList(code: string): Promise<DeckCardType[]> {
       },
     });
 
-    const ret: DeckCardType[] = await res.json();
+    // 上流の失敗ボディを200で返してしまうと、呼び出し側は成功と誤認し、
+    // 配列ではないJSONをそのままレンダリングして例外になる。
+    // 失敗は失敗として、上流のステータスのまま返す。
+    if (!res.ok) {
+      return NextResponse.json(
+        { error: "failed to fetch deck card list" },
+        { status: res.status },
+      );
+    }
 
-    return ret;
-  } catch (error) {
-    throw error;
-  }
-}
+    const cards: DeckCardType[] = await res.json();
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ code: string }> },
-) {
-  try {
-    const { code } = await params;
-
-    const ret = await getDeckCardList(code);
-
-    return NextResponse.json(ret, { status: 200 });
+    return NextResponse.json(cards, { status: 200 });
   } catch (error) {
     throw error;
   }

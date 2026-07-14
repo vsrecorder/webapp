@@ -53,17 +53,24 @@ export default function KizunaBreakdownCard({
       <KizunaRadarChart metrics={metrics} />
 
       <div className="flex flex-col gap-2.5">
+        {/* 数字の意味を先に言う。ここが「獲得点」だと分かれば、
+            6行の合計がきずなレベルになることが読める。 */}
+        <div className="flex items-baseline gap-2.5 text-[9px] text-white/35">
+          <span className="w-[5.75rem] shrink-0" />
+          <span className="w-11 shrink-0 text-right">獲得点</span>
+          <span className="min-w-0 flex-1">この点になった理由</span>
+        </div>
+
         {metrics.map((metric) => (
           <div key={metric.key} className="flex items-baseline gap-2.5">
             {/* ラベル列は「逆境ロイヤルティ」(8文字)が折り返さない幅にする */}
             <span className="w-[5.75rem] shrink-0 whitespace-nowrap text-right text-[10px] font-bold text-white/85">
               {metric.label}
             </span>
-            <span className="flex w-11 shrink-0 items-baseline justify-end gap-0.5">
+            <span className="flex w-11 shrink-0 items-baseline justify-end">
               <span className="text-sm font-bold tabular-nums text-amber-400">
-                {Math.round(metric.value * 100)}
+                {metric.points}
               </span>
-              <span className="text-[9px] text-white/30">/{metric.weight}%</span>
             </span>
             {/* 評価文は必ず1行。折り返すと6行の並びが崩れ、内訳が読みにくくなる */}
             <span className="min-w-0 flex-1 truncate text-[11px] text-white/55">
@@ -74,7 +81,9 @@ export default function KizunaBreakdownCard({
       </div>
 
       <div className="flex flex-col gap-1 border-t border-white/10 pt-3">
-        <span className="text-xs font-bold text-white/80">「{tierName}」</span>
+        <span className="text-xs font-bold text-white/80">
+          「{tierName}」<span className="text-white/40"> ｜ 6指標の合計 = {score}</span>
+        </span>
         <span className="text-[10px] leading-relaxed text-white/40">
           対戦記録・デッキの組み直し履歴・メモから算出（勝率は含みません）
         </span>

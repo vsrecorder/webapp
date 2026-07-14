@@ -15,6 +15,7 @@ import {
 
 import KizunaShareCard from "@app/components/organisms/Kizuna/KizunaShareCard";
 import KizunaBreakdownCard from "@app/components/organisms/Kizuna/KizunaBreakdownCard";
+import { useSetKizunaPreviewDeck } from "@app/components/organisms/Kizuna/KizunaPreviewContext";
 
 import { captureThemedPng, SIDE_PADDING } from "@app/utils/captureImage";
 import {
@@ -122,7 +123,6 @@ type Props = {
 export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
   const [decks, setDecks] = useState<DeckType[] | null>(null);
   const [usages, setUsages] = useState<DeckUsageItemType[]>([]);
-  const [userWinRate, setUserWinRate] = useState(0);
   const [spriteMaster, setSpriteMaster] = useState<Map<string, PokemonSpriteType>>(
     new Map(),
   );
@@ -160,12 +160,9 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
 
     (async () => {
       try {
-        const [deckRes, usageRes, statRes, sprites] = await Promise.all([
+        const [deckRes, usageRes, sprites] = await Promise.all([
           fetchJson<DeckGetResponseType>("/api/decks?archived=false&cursor="),
           fetchJson<DeckUsageStatType>(`/api/users/${userId}/deck-usage?all_time=true`),
-          fetchJson<{ win_rate: number }>(`/api/users/${userId}/stat`).catch(() => ({
-            win_rate: 0,
-          })),
           fetchJson<PokemonSpriteType[]>("/api/pokemon-sprites").catch(() => []),
         ]);
 
@@ -174,7 +171,6 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
         const deckList = deckRes.decks ?? [];
         setDecks(deckList);
         setUsages(usageRes.decks ?? []);
-        setUserWinRate(statRes.win_rate ?? 0);
         setSpriteMaster(new Map(sprites.map((s) => [s.id, s])));
 
         if (deckList.length === 0) onNoDecks();
@@ -238,7 +234,6 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
           officialEventTypes,
           usage: usages.find((u) => u.deck_id === deckId),
           allUsages: usages,
-          userWinRate,
         }),
       );
     } catch {
@@ -268,6 +263,47 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
 
   const tier = estimate ? kizunaTierOf(estimate.score) : null;
   const hasResult = !!selectedDeck && !!estimate && estimate.recordCount > 0;
+
+  /*
+   * 下の「デッキ一覧では、こう見えます」プレビューに、選んだデッキと試算結果を映す。
+   * 戦績（勝率・先攻率）は本人の記録から出せるため、カードの数値はすべて実データになる。
+   */
+  const setPreviewDeck = useSetKizunaPreviewDeck();
+  useEffect(() => {
+    if (!hasResult) {
+      setPreviewDeck(null);
+      return;
+    }
+
+    const deck = selectedDeck!.data;
+    const usage = usages.find((u) => u.deck_id === deck.id);
+
+    setPreviewDeck({
+      deckName: deck.name,
+      spriteIds: deck.pokemon_sprites.slice(0, 2).map((s) => s.id),
+      kizunaLevel: estimate!.score,
+      registeredAt: new Date(deck.created_at).toLocaleDateString("ja-JP", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        weekday: "short",
+      }),
+      // 戦績の集計が無いデッキ（記録が集計対象外のみ等）はサンプルの数字に任せる
+      stats: usage
+        ? {
+            winRate: usage.win_rate,
+            wins: usage.wins,
+            losses: usage.losses,
+            matchCount: usage.game_count,
+            goFirstCount: usage.go_first_count,
+            goFirstRate: usage.go_first_rate,
+            goFirstWinRate: usage.go_first_win_rate,
+            goSecondCount: usage.go_second_count,
+            goSecondWinRate: usage.go_second_win_rate,
+          }
+        : null,
+    });
+  }, [hasResult, selectedDeck, estimate, usages, setPreviewDeck]);
 
   const captureSeq = useRef(0);
   useEffect(() => {

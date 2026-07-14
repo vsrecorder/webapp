@@ -22,6 +22,8 @@ import {
 import { kizunaTierOf } from "@app/utils/kizuna";
 import { smoothScrollTo } from "@app/utils/scroll";
 
+import { useSetKizunaPreviewDeck } from "@app/components/organisms/Kizuna/KizunaPreviewContext";
+
 import { PokemonSpriteType } from "@app/types/pokemon_sprite";
 
 // 設問の重みは指標設計の重み付けをそのまま縮約したもの。
@@ -179,6 +181,30 @@ export default function KizunaSimulator() {
   }, [answers, answeredCount]);
 
   const tier = kizunaTierOf(score);
+
+  /*
+   * 下の「デッキ一覧では、こう見えます」プレビューに、選んだポケモンと試算結果を映す。
+   * 質問式なので戦績（勝率・先攻率）は持てない。stats は null にして、
+   * プレビュー側にサンプルの数字を借りさせる。
+   * 全問答え終わるまでは null のまま（途中のスコアは試算結果ではない）。
+   */
+  const setPreviewDeck = useSetKizunaPreviewDeck();
+  const sprite1Id = sprite1?.id;
+  const sprite2Id = sprite2?.id;
+  useEffect(() => {
+    if (!isComplete) {
+      setPreviewDeck(null);
+      return;
+    }
+
+    setPreviewDeck({
+      deckName: partnerLabel,
+      spriteIds: [sprite1Id, sprite2Id].filter((id): id is string => !!id),
+      kizunaLevel: score,
+      registeredAt: null,
+      stats: null,
+    });
+  }, [isComplete, partnerLabel, sprite1Id, sprite2Id, score, setPreviewDeck]);
 
   const shareText = [
     `${partnerLabel}とのきずなレベルは【${score} / 255】でした。`,

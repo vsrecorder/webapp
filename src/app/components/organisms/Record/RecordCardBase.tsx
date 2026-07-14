@@ -194,7 +194,7 @@ export default function RecordCardBase({
                       )}
                     </div>
 
-                    {/* 対戦の勝敗数(データが無ければ非表示) */}
+                    {/* 対戦の勝敗数(対戦結果が無い場合は「対戦なし」を同じ位置に表示) */}
                     {loadingMatches ? (
                       <div className="flex items-center gap-1.5 shrink-0">
                         <Skeleton className="h-5 w-10 rounded-md" />
@@ -214,7 +214,13 @@ export default function RecordCardBase({
                           {winCount}勝{lossCount}敗
                         </span>
                       </div>
-                    ) : null}
+                    ) : (
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-xs font-bold shrink-0 rounded-md border px-1.5 py-0.5 text-default-400 border-default-200 bg-default-50">
+                          対戦なし
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

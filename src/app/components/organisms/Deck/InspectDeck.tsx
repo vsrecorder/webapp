@@ -14,32 +14,13 @@ import { LuRepeat } from "react-icons/lu";
 
 import FetchError from "@app/components/molecules/FetchError";
 
+import { fetchDeckCardList } from "@app/utils/deckcard";
+
 import { DeckCodeType } from "@app/types/deck_code";
 import { DeckCardListType } from "@app/types/deckcard";
 
 import { CardType } from "@app/types/deckcard";
 
-async function fetchDeckCardList(code: string) {
-  try {
-    const res = await fetch(`/api/deckcards/${code}/list`, {
-      cache: "no-store",
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
-    });
-
-    if (!res.ok) {
-      throw new Error("Failed to fetch");
-    }
-
-    const ret: DeckCardListType = await res.json();
-
-    return ret;
-  } catch (error) {
-    throw error;
-  }
-}
 function unbiasedRandom(max: number): number {
   const limit = Math.floor(2 ** 32 / max) * max;
   let value: number;

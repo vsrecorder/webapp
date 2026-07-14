@@ -106,10 +106,15 @@ const features = [
       <>
         デッキコードからデッキを登録して一覧で確認。
         <br />
-        どのデッキを使ったかすぐわかります。
+        どのデッキを使っているかすぐわかります。
       </>
     ),
-    images: [{ src: "https://xx8nnpgt.user.webaccel.jp/images/icons/decks.png", rotateClass: "rotate" }],
+    images: [
+      {
+        src: "https://xx8nnpgt.user.webaccel.jp/images/icons/decks.png",
+        rotateClass: "rotate",
+      },
+    ],
   },
   {
     icon: <LuFilePen />,
@@ -122,8 +127,14 @@ const features = [
       </>
     ),
     images: [
-      { src: "https://xx8nnpgt.user.webaccel.jp/images/icons/records-create.png", rotateClass: "-rotate-1" },
-      { src: "https://xx8nnpgt.user.webaccel.jp/images/icons/records-id.png", rotateClass: "rotate-1" },
+      {
+        src: "https://xx8nnpgt.user.webaccel.jp/images/icons/records-create.png",
+        rotateClass: "-rotate-1",
+      },
+      {
+        src: "https://xx8nnpgt.user.webaccel.jp/images/icons/records-id.png",
+        rotateClass: "rotate-1",
+      },
     ],
   },
   {
@@ -131,14 +142,20 @@ const features = [
     title: "戦績を振り返る",
     description: (
       <>
-        作成した対戦記録を一覧で確認。
+        対戦した相手のデッキ分布を円グラフで確認。
         <br />
         積み重ねた戦績が次の対戦へのヒントに。
       </>
     ),
     images: [
-      { src: "https://xx8nnpgt.user.webaccel.jp/images/icons/user_stats.png", rotateClass: "-rotate-1" },
-      { src: "https://xx8nnpgt.user.webaccel.jp/images/icons/opponents_deck_info_stats.png", rotateClass: "rotate-1" },
+      {
+        src: "https://xx8nnpgt.user.webaccel.jp/images/icons/user_stats.png",
+        rotateClass: "-rotate-1",
+      },
+      {
+        src: "https://xx8nnpgt.user.webaccel.jp/images/icons/opponents_deck_info_stats.png",
+        rotateClass: "rotate-1",
+      },
     ],
   },
   {
@@ -151,7 +168,12 @@ const features = [
         環境の最前線をいつでも把握できます。
       </>
     ),
-    images: [{ src: "https://xx8nnpgt.user.webaccel.jp/images/icons/cityleague_results.png", rotateClass: "rotate" }],
+    images: [
+      {
+        src: "https://xx8nnpgt.user.webaccel.jp/images/icons/cityleague_results.png",
+        rotateClass: "rotate",
+      },
+    ],
   },
   {
     icon: <LuMoon />,
@@ -164,8 +186,14 @@ const features = [
       </>
     ),
     images: [
-      { src: "https://xx8nnpgt.user.webaccel.jp/images/icons/records-darkmode.png", rotateClass: "-rotate-1" },
-      { src: "https://xx8nnpgt.user.webaccel.jp/images/icons/darkmode-decks_history.png", rotateClass: "rotate-1" },
+      {
+        src: "https://xx8nnpgt.user.webaccel.jp/images/icons/records-darkmode.png",
+        rotateClass: "-rotate-1",
+      },
+      {
+        src: "https://xx8nnpgt.user.webaccel.jp/images/icons/darkmode-decks_history.png",
+        rotateClass: "rotate-1",
+      },
     ],
   },
 ];
@@ -285,7 +313,9 @@ export default async function TemplateHome() {
                     <StatsCounter value={item.value} />
                     <span className="text-xl lg:text-3xl text-primary">+</span>
                   </span>
-                  <span className="text-xs lg:text-sm text-default-500">{item.label}</span>
+                  <span className="text-xs lg:text-sm text-default-500">
+                    {item.label}
+                  </span>
                 </div>
               ))}
             </div>
@@ -330,7 +360,9 @@ export default async function TemplateHome() {
                       src={img.src}
                       alt={feature.title}
                       rotateClass={img.rotateClass}
-                      sizeClass={feature.images.length > 1 ? "w-40 lg:w-56" : "w-44 lg:w-64"}
+                      sizeClass={
+                        feature.images.length > 1 ? "w-40 lg:w-56" : "w-44 lg:w-64"
+                      }
                     />
                   ))}
                 </div>
@@ -381,7 +413,9 @@ export default async function TemplateHome() {
                 TODAY
               </span>
               <h2 className="text-2xl lg:text-4xl font-black">{cs.title} 開催中！</h2>
-              <p className="text-sm lg:text-base text-default-500">本日開催のシティリーグ会場</p>
+              <p className="text-sm lg:text-base text-default-500">
+                本日開催のシティリーグ会場
+              </p>
             </div>
             <CityleagueEvents />
           </section>

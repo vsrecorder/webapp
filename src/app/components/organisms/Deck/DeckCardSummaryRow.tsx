@@ -11,31 +11,11 @@ import { Modal, ModalContent, ModalBody, useDisclosure } from "@heroui/react";
 
 import FetchError from "@app/components/molecules/FetchError";
 
+import { fetchDeckCardSummary } from "@app/utils/deckcard";
+
 import { DeckCardSummaryType } from "@app/types/deckcard";
 import { PkeCardType } from "@app/types/deckcard";
 import { CardType } from "@app/types/deckcard";
-
-async function fetchDeckCardSummary(code: string) {
-  try {
-    const res = await fetch(`/api/deckcards/${code}/summary`, {
-      cache: "no-store",
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
-    });
-
-    if (!res.ok) {
-      throw new Error("Failed to fetch");
-    }
-
-    const ret: DeckCardSummaryType = await res.json();
-
-    return ret;
-  } catch (error) {
-    throw error;
-  }
-}
 
 type Props = {
   code: string | null;

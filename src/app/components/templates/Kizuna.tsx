@@ -12,7 +12,9 @@ import {
 } from "react-icons/lu";
 
 import Footer from "@app/components/organisms/Layout/Footer";
+import KizunaDeckCardPreview from "@app/components/organisms/Kizuna/KizunaDeckCardPreview";
 import KizunaEstimatorSection from "@app/components/organisms/Kizuna/KizunaEstimatorSection";
+import { KizunaPreviewProvider } from "@app/components/organisms/Kizuna/KizunaPreviewContext";
 import KizunaScrollLink from "@app/components/molecules/Kizuna/KizunaScrollLink";
 import SocialSignIn from "@app/components/molecules/SignIn/SocialSingIn";
 
@@ -215,71 +217,101 @@ export default function TemplateKizuna({ userId }: Props) {
           </div>
         </section>
 
-        {/* きずなレベルの試算。ログイン済みなら登録デッキの実データから算出し、
+        {/* 試算セクションで選んだデッキ・試算した数値を、下のプレビューカードに映すための入れ物。
+            Provider はDOMを生成しないため、配下のセクションは親の flex の直接の子のまま。 */}
+        <KizunaPreviewProvider>
+          {/* きずなレベルの試算。ログイン済みなら登録デッキの実データから算出し、
             未ログインなら質問に答えてもらう（KizunaEstimatorSection が出し分ける）。 */}
-        <section id="simulator" className="flex scroll-mt-20 flex-col gap-4">
-          <div className="flex flex-col items-center gap-1 text-center">
-            <span className="text-xs lg:text-sm font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400">
-              Simulator
-            </span>
-            <h2 className="text-2xl lg:text-4xl font-black">
-              あなたのきずなレベルを試算する
-            </h2>
-            <p className="max-w-xl pt-2 text-sm lg:text-base leading-relaxed text-default-500">
-              {userId
-                ? "登録済みのデッキを選ぶだけです。あなたの対戦記録・デッキの組み直し履歴・メモから、きずなレベルを自動で算出します。質問には答えなくて構いません。"
-                : "いちばん長く使っているデッキを1つ思い浮かべて、その主役のポケモンを選び、5つの質問に答えてください。登録は不要です。結果は、そのポケモンが写ったカード画像にしてシェアできます。"}
-            </p>
-          </div>
+          <section id="simulator" className="flex scroll-mt-20 flex-col gap-4">
+            <div className="flex flex-col items-center gap-1 text-center">
+              <span className="text-xs lg:text-sm font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400">
+                Simulator
+              </span>
+              <h2 className="text-2xl lg:text-4xl font-black">
+                あなたのきずなレベルを試算する
+              </h2>
+              <p className="max-w-xl pt-2 text-sm lg:text-base leading-relaxed text-default-500">
+                {userId
+                  ? "登録済みのデッキを選ぶだけです。あなたの対戦記録・デッキの組み直し履歴・メモから、きずなレベルを自動で算出します。質問には答えなくて構いません。"
+                  : "いちばん長く使っているデッキを1つ思い浮かべて、その主役のポケモンを選び、5つの質問に答えてください。登録は不要です。結果は、そのポケモンが写ったカード画像にしてシェアできます。"}
+              </p>
+            </div>
 
-          <div className="pt-4 lg:pt-8">
-            <KizunaEstimatorSection userId={userId} />
-          </div>
-        </section>
+            <div className="pt-4 lg:pt-8">
+              <KizunaEstimatorSection userId={userId} />
+            </div>
+          </section>
 
-        {/* 指標の紹介 */}
-        <section className="flex flex-col gap-4">
-          <div className="flex flex-col items-center gap-1 text-center">
-            <span className="text-xs lg:text-sm font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400">
-              Metrics
-            </span>
-            <h2 className="text-2xl lg:text-4xl font-black">
-              きずなレベルが見ているもの
-            </h2>
-            <p className="max-w-xl pt-2 text-sm lg:text-base leading-relaxed text-default-500">
-              きずなレベルに勝率は一切含まれません。
-              <br />
-              強いデッキを持っている人ほど「きずな」が深い、
-              <br />
-              という設計は破綻しているからです。
-            </p>
-          </div>
+          {/* 実装イメージ：公開されたらデッキ一覧がどう見えるか。
+              試算の直後に置く。試算した値がそのままカードに載るため、
+              「何を見て決まった数字か（指標）」より先に「どこに出るか」を見せる。 */}
+          <section className="flex flex-col gap-4">
+            <div className="flex flex-col items-center gap-1 text-center">
+              <span className="text-xs lg:text-sm font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400">
+                Preview
+              </span>
+              <h2 className="text-2xl lg:text-4xl font-black">
+                デッキ一覧では、
+                <br className="sm:hidden" />
+                こう見えます
+              </h2>
+              <p className="max-w-xl pt-2 text-sm lg:text-base leading-relaxed text-default-500">
+                いま使っているデッキ一覧に、きずなレベルが加わります。ポケモンの背後に灯がともり、勝率の隣にもうひとつの軸が並びます。
+                上で試算していれば、そのデッキで表示します。
+              </p>
+            </div>
 
-          <div className="grid gap-4 pt-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6 lg:pt-8">
-            {metrics.map((metric) => (
-              <div
-                key={metric.title}
-                className="flex flex-col gap-3 rounded-2xl border border-default-200 px-6 py-6"
-              >
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-xl text-amber-600 dark:text-amber-400">
-                  {metric.icon}
-                </span>
-                <h3 className="text-base lg:text-lg font-bold">{metric.title}</h3>
-                <p className="text-sm leading-relaxed text-default-500">
-                  {metric.description}
-                </p>
-              </div>
-            ))}
-          </div>
+            {/* 断り書き（架空の値か、試算した値か）はカードの状態で変わるため、
+              KizunaDeckCardPreview 側が持つ。 */}
+            <div className="pt-4 lg:pt-8">
+              <KizunaDeckCardPreview />
+            </div>
+          </section>
 
-          {/* 指標を見せた直後に、これが確定仕様ではないことを断る。
+          {/* 指標の紹介 */}
+          <section className="flex flex-col gap-4">
+            <div className="flex flex-col items-center gap-1 text-center">
+              <span className="text-xs lg:text-sm font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400">
+                Metrics
+              </span>
+              <h2 className="text-2xl lg:text-4xl font-black">
+                きずなレベルが見ているもの
+              </h2>
+              <p className="max-w-xl pt-2 text-sm lg:text-base leading-relaxed text-default-500">
+                きずなレベルに勝率は一切含まれません。
+                <br />
+                強いデッキを持っている人ほど「きずな」が深い、
+                <br />
+                という設計は破綻しているからです。
+              </p>
+            </div>
+
+            <div className="grid gap-4 pt-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6 lg:pt-8">
+              {metrics.map((metric) => (
+                <div
+                  key={metric.title}
+                  className="flex flex-col gap-3 rounded-2xl border border-default-200 px-6 py-6"
+                >
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-xl text-amber-600 dark:text-amber-400">
+                    {metric.icon}
+                  </span>
+                  <h3 className="text-base lg:text-lg font-bold">{metric.title}</h3>
+                  <p className="text-sm leading-relaxed text-default-500">
+                    {metric.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            {/* 指標を見せた直後に、これが確定仕様ではないことを断る。
               数値が後から変わったときに「勝手に下がった」と受け取られないための予防線。 */}
-          <p className="pt-2 text-center text-xs lg:text-sm leading-relaxed text-default-400">
-            ❈きずなレベルの算出方法は開発中です。
-            <br />
-            指標の内容や重み付けは正式公開までに変更される可能性があり、同じ対戦記録でも数値が変わることがあります。
-          </p>
-        </section>
+            <p className="pt-2 text-center text-xs lg:text-sm leading-relaxed text-default-400">
+              ❈きずなレベルの算出方法は開発中です。
+              <br />
+              指標の内容や重み付けは正式公開までに変更される可能性があり、同じ対戦記録でも数値が変わることがあります。
+            </p>
+          </section>
+        </KizunaPreviewProvider>
 
         {/* 最終CTA */}
         <section

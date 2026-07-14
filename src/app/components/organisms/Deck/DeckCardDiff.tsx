@@ -10,30 +10,10 @@ import { Modal, ModalContent, ModalBody, useDisclosure } from "@heroui/react";
 
 import FetchError from "@app/components/molecules/FetchError";
 
+import { fetchDeckCardList } from "@app/utils/deckcard";
+
 import { DeckCodeType } from "@app/types/deck_code";
 import { DeckCardType, CardType } from "@app/types/deckcard";
-
-async function fetchDeckCardListByDeckCodeId(code: string) {
-  try {
-    const res = await fetch(`/api/deckcards/${code}/list`, {
-      cache: "no-store",
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
-    });
-
-    if (!res.ok) {
-      throw new Error("Failed to fetch");
-    }
-
-    const ret: DeckCardType[] = await res.json();
-
-    return ret;
-  } catch (error) {
-    throw error;
-  }
-}
 
 function makeCardKey(card: DeckCardType): string {
   const attacks = Array.isArray(card.attacks) ? card.attacks : [];
@@ -117,7 +97,7 @@ export default function DeckCardDiff({ current_deckcode, previous_deckcode }: Pr
     setLoading1(true);
 
     try {
-      const data = await fetchDeckCardListByDeckCodeId(current_deckcode.code);
+      const data = await fetchDeckCardList(current_deckcode.code);
       setCurrentDeckCardList(data);
 
       const urls = [...data].map((c) => c.image_url);
@@ -145,7 +125,7 @@ export default function DeckCardDiff({ current_deckcode, previous_deckcode }: Pr
     setLoading2(true);
 
     try {
-      const data = await fetchDeckCardListByDeckCodeId(previous_deckcode.code);
+      const data = await fetchDeckCardList(previous_deckcode.code);
       setPreviousDeckCardList(data);
 
       const urls = [...data].map((c) => c.image_url);

@@ -13,6 +13,9 @@ import { RiTwitterXLine } from "react-icons/ri";
 
 import { handleSignIn } from "@app/handlers/handleSignIn";
 import type { SignInErrorStatus } from "@app/handlers/handleSignIn";
+import { isInAppBrowser } from "@app/utils/platform";
+
+import InAppBrowserNotice from "./InAppBrowserNotice";
 
 type Props = {
   mode?: "signin" | "signup";
@@ -24,6 +27,12 @@ export default function SocialSignIn({ mode = "signin", onLoadingChange }: Props
   const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
   const [isLoadingX, setIsLoadingX] = useState(false);
   const [errorStatus, setErrorStatus] = useState<SignInErrorStatus | null>(null);
+  // UserAgentはサーバ側では参照できないため、マウント後に判定する
+  const [isInApp, setIsInApp] = useState(false);
+
+  useEffect(() => {
+    setIsInApp(isInAppBrowser());
+  }, []);
 
   useEffect(() => {
     onLoadingChange?.(isLoadingGoogle || isLoadingX);
@@ -35,6 +44,13 @@ export default function SocialSignIn({ mode = "signin", onLoadingChange }: Props
   const twitterProvider = new TwitterAuthProvider();
 
   const actionLabel = mode === "signup" ? "登録" : "ログイン";
+
+  // アプリ内ブラウザ(WebView)ではGoogleがOAuthを拒否するため、
+  // ソーシャルログインは提示せず外部ブラウザへの導線のみを表示する
+  if (isInApp) {
+    return <InAppBrowserNotice actionLabel={actionLabel} />;
+  }
+
   const errorMessage =
     errorStatus === "cancelled"
       ? `${actionLabel}がキャンセルされました`

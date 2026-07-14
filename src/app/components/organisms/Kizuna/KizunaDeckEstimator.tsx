@@ -361,6 +361,7 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
           "でした。",
           "",
           `「${tier.name}」`,
+          "",
           tier.message,
           "",
           "勝率では測れない、デッキとのきずなを数値化する",

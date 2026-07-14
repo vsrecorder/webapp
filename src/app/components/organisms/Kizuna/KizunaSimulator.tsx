@@ -214,14 +214,14 @@ export default function KizunaSimulator() {
     "でした。",
     "",
     `「${tier.name}」`,
-    "\n",
+    "",
     tier.message,
     "",
     "勝率では測れない、デッキとのきずなを数値化する",
     "バトレコの新機能「きずな」を試算しました👇",
     "https://vsrecorder.mobi/kizuna",
     "",
-    "#バトレコ #きずなLv.",
+    "#バトレコ #きずなLv",
   ].join("\n");
 
   // ── シェア画像の生成 ────────────────────────────────────────────

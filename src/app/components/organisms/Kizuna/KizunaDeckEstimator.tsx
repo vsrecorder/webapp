@@ -473,7 +473,7 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
                     }`}
                   />
 
-                  <span className="relative flex h-12 w-[4.75rem] shrink-0 items-center justify-center">
+                  <span className="relative flex h-12 w-19 shrink-0 items-center justify-center">
                     {/* 焚き火の残光。選ばれたポケモンだけが光を受ける */}
                     <span
                       aria-hidden="true"

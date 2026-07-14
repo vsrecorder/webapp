@@ -154,7 +154,7 @@ export default function Records({
         window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
       }
     });
-  }, [pendingReopenId]);
+  }, [pendingReopenId, scrollContainerRef]);
 
   const loadMore = useCallback(async () => {
     if (isLoading || !hasMore) return;
@@ -208,7 +208,7 @@ export default function Records({
         setIsInitialLoaded(true);
       }
     }
-  }, [apiEventType, deck_id, nextCursor, isLoading, hasMore, isInitialLoaded]);
+  }, [apiEventType, deck_id, nextCursor, isLoading, hasMore, isInitialLoaded, items.length, limit]);
 
   useEffect(() => {
     if (isInitialLoaded) return;

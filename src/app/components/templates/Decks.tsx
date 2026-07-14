@@ -73,7 +73,9 @@ export default function TemplateDecks({ userId }: Props) {
           <Tab key="inuse" title="利用中" />
           <Tab key="archived" title="アーカイブ済み" />
         </Tabs>
-        <div className="pt-2 pb-6 lg:max-w-4xl lg:mx-auto">
+        {/* モバイルは最下部のカードがフローティングボタン（＋/トップへ戻る）と重ならないよう、
+            ボタンの上端（bottom-35＋ボタン高さ）を超える余白を確保する。 */}
+        <div className="pt-2 pb-35 lg:pb-6 lg:max-w-4xl lg:mx-auto">
           <Decks
             key={`${selectedKey}-${refreshKey}`}
             userId={userId}

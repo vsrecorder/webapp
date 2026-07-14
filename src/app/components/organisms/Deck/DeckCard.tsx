@@ -204,6 +204,24 @@ export default function DeckCard({
   // 集計対象外(ignore_stats_flg=true)の記録件数。1件以上あればその旨を表示する。
   const ignoredCount = deckUsageStat?.ignored_count ?? 0;
 
+  // 対戦記録がまだ無いデッキ向けの案内（味気ない「なし」表示を避ける）。
+  // リスト/ギャラリー双方で同じ表示にする。
+  const noRecordsNote = (
+    <div className="flex flex-col items-center gap-2 rounded-lg bg-default-100 px-3 py-3 text-center">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
+        <LuSwords className="text-base text-primary" />
+      </div>
+      <div className="min-w-0">
+        <div className="text-tiny font-bold text-default-600">
+          まだ対戦記録がありません
+        </div>
+        <div className="text-[10px] text-default-400">
+          対戦を記録すると勝率や先攻・後攻の成績が見られます
+        </div>
+      </div>
+    </div>
+  );
+
   // 「集計対象外の記録がある」旨を示す注記。リスト/ギャラリー双方で使い回す。
   const ignoredNote =
     ignoredCount > 0 ? (
@@ -304,7 +322,8 @@ export default function DeckCard({
               </div>
             </div>
 
-            {/* デッキ名＋戦績・登録日 */}
+            {/* デッキ名＋戦績。対戦記録が無い場合は行内では一言に留め、
+              詳しい案内は展開時にギャラリー表示と同じパネルで見せる。 */}
             <div className="flex-1 min-w-0">
               <div className="font-bold text-medium truncate">{deck.name}</div>
               <div className="text-tiny truncate">
@@ -318,9 +337,9 @@ export default function DeckCard({
                     集計対象外の記録 {ignoredCount}件
                   </span>
                 ) : (
-                  <span className="flex items-center gap-1 text-primary/70">
+                  <span className="flex items-center gap-1 text-default-400">
                     <LuSwords className="text-[11px] shrink-0" />
-                    このデッキで対戦をしよう
+                    まだ対戦記録がありません
                   </span>
                 )}
               </div>
@@ -338,6 +357,9 @@ export default function DeckCard({
             内部の CTA ボタン等は自身で stopPropagation して個別動作する。 */}
         {expanded && (
           <div className="px-3 pb-3 flex flex-col gap-2 cursor-pointer" onClick={onOpen}>
+            {/* 対戦記録が無いデッキ：ギャラリー表示と同じ案内パネルを出す */}
+            {!hasStats && ignoredCount === 0 && noRecordsNote}
+
             {hasStats && deckUsageStat!.game_count > 0 && (
               <div className="grid grid-cols-2 gap-2">
                 {/* 先攻：各数値が何を表すか分かるよう「割合／勝率」のラベルを付け、
@@ -422,11 +444,13 @@ export default function DeckCard({
 
             {ignoredNote}
 
+            {/* アコーディオン内はデッキ画像を先に見せ、その下にバージョン情報を置く */}
             <DeckCodeCard
               deckcode={deckcode}
               versionNumber={versionNumber}
               totalVersionCount={versionCount}
               onCreateVersion={onOpen}
+              imageFirst
             />
           </div>
         )}
@@ -533,20 +557,7 @@ export default function DeckCard({
                   </div>
                 </div>
               ) : (
-                /* 対戦記録がまだ無いデッキ向けの案内（味気ない「なし」表示を避ける） */
-                <div className="flex flex-col items-center gap-2 rounded-lg bg-default-100 px-3 py-3 text-center">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                    <LuSwords className="text-base text-primary" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-tiny font-bold text-default-600">
-                      まだ対戦記録がありません
-                    </div>
-                    <div className="text-[10px] text-default-400">
-                      対戦を記録すると勝率や先攻・後攻の成績が見られます
-                    </div>
-                  </div>
-                </div>
+                noRecordsNote
               )}
 
               {/* 先攻/後攻：割合(件数)・勝率(全体差)をチップで表示 */}

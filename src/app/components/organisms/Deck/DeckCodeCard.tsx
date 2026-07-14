@@ -78,6 +78,8 @@ type Props = {
   // 値が1以上のとき、onOpenHistory と併せてタップでバージョン履歴を開くボタンになる。
   versionCountBadge?: number | null;
   onOpenHistory?: () => void;
+  // デフォルトレイアウトで、デッキ画像をバージョン情報より先（上）に表示する。
+  imageFirst?: boolean;
 };
 
 export default function DeckCodeCard({
@@ -90,6 +92,7 @@ export default function DeckCodeCard({
   hideImage = false,
   versionCountBadge = null,
   onOpenHistory,
+  imageFirst = false,
 }: Props) {
   const [imageLoaded, setImageLoaded] = useState(false);
   //const [acespec, setAcespec] = useState<AcespecType | null>(null);
@@ -280,60 +283,72 @@ export default function DeckCodeCard({
     );
   }
 
+  const versionInfo = (
+    <div className="rounded-xl bg-default-100 px-3 py-2.5 flex flex-col gap-1.5">
+      <div className="flex items-center justify-between gap-2">
+        <div className="font-bold text-small">{versionLabel}</div>
+        {versionCountBadge !== null &&
+          versionCountBadge > 0 &&
+          (onOpenHistory ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenHistory();
+              }}
+              className="flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-tiny font-bold text-primary active:opacity-70"
+            >
+              <LuLayers className="text-sm" />
+              バージョンの数： {versionCountBadge}
+            </button>
+          ) : (
+            <span className="flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-tiny font-bold text-primary">
+              <LuLayers className="text-sm" />
+              バージョンの数： {versionCountBadge}
+            </span>
+          ))}
+      </div>
+      <div className="text-tiny text-default-500">
+        {loadingEnvrionment ? (
+          <div className="flex items-center">
+            対戦環境：
+            <Skeleton className="h-4 w-32" />
+          </div>
+        ) : environment && environment.title ? (
+          <>対戦環境：『{environment.title}』</>
+        ) : (
+          <></>
+        )}
+      </div>
+      <div className="text-tiny text-default-500 flex items-center gap-1">
+        <>デッキコード：</>
+        <Snippet
+          size="sm"
+          radius="none"
+          timeout={3000}
+          disableTooltip={true}
+          hideSymbol={true}
+          classNames={{ base: "bg-transparent p-0" }}
+        >
+          {deckcode.code}
+        </Snippet>
+      </div>
+    </div>
+  );
+
   return (
     <div className="flex flex-col gap-2 w-full">
-      <div className="rounded-xl bg-default-100 px-3 py-2.5 flex flex-col gap-1.5">
-        <div className="flex items-center justify-between gap-2">
-          <div className="font-bold text-small">{versionLabel}</div>
-          {versionCountBadge !== null &&
-            versionCountBadge > 0 &&
-            (onOpenHistory ? (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onOpenHistory();
-                }}
-                className="flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-tiny font-bold text-primary active:opacity-70"
-              >
-                <LuLayers className="text-sm" />
-                バージョンの数： {versionCountBadge}
-              </button>
-            ) : (
-              <span className="flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-tiny font-bold text-primary">
-                <LuLayers className="text-sm" />
-                バージョンの数： {versionCountBadge}
-              </span>
-            ))}
-        </div>
-        <div className="text-tiny text-default-500">
-          {loadingEnvrionment ? (
-            <div className="flex items-center">
-              対戦環境：
-              <Skeleton className="h-4 w-32" />
-            </div>
-          ) : environment && environment.title ? (
-            <>対戦環境：『{environment.title}』</>
-          ) : (
-            <></>
-          )}
-        </div>
-        <div className="text-tiny text-default-500 flex items-center gap-1">
-          <>デッキコード：</>
-          <Snippet
-            size="sm"
-            radius="none"
-            timeout={3000}
-            disableTooltip={true}
-            hideSymbol={true}
-            classNames={{ base: "bg-transparent p-0" }}
-          >
-            {deckcode.code}
-          </Snippet>
-        </div>
-      </div>
-
-      {!hideImage && deckImage}
+      {imageFirst ? (
+        <>
+          {!hideImage && deckImage}
+          {versionInfo}
+        </>
+      ) : (
+        <>
+          {versionInfo}
+          {!hideImage && deckImage}
+        </>
+      )}
     </div>
   );
 }

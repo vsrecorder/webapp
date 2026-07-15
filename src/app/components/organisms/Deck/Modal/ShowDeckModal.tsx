@@ -30,7 +30,7 @@ import DeckCardSummaryRow from "@app/components/organisms/Deck/DeckCardSummaryRo
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import { useDeckCodes } from "@app/hooks/useDeckCodes";
 
-//import { LuExternalLink } from "react-icons/lu";
+import { LuExternalLink } from "react-icons/lu";
 import { LuFolderInput } from "react-icons/lu";
 import { LuFolderOutput } from "react-icons/lu";
 import { LuFileText } from "react-icons/lu";
@@ -209,10 +209,22 @@ export default function ShowDeckModal({
         <ModalContent>
           {() => (
             <>
-              <ModalHeader className="px-3 pt-8 pb-3 flex items-center gap-3">
+              <ModalHeader className="relative px-3 pt-8 pb-3 flex items-center gap-3">
                 <>
-                  <div className="flex items-center justify-between w-full">
-                    <div className="flex flex-col items-center gap-1 w-full">
+                  {/* 詳細ページへの遷移導線。右上はHeroUIの閉じるボタンが占めるため左上に置く。
+                      閉じるボタン（top-1 end-1・40px角）と同じラインに揃うよう、高さ40px(h-10)・
+                      top-1・start-1で左右対称に配置し、中央のスプライト・デッキ名レイアウトを
+                      崩さないよう絶対配置にする。 */}
+                  <Link
+                    href={`/decks/${deck.id}`}
+                    aria-label="デッキ詳細ページを開く"
+                    className="absolute inset-s-1 top-1 flex h-10 items-center gap-1 rounded-full px-2.5 text-tiny font-bold text-foreground-500 hover:bg-default-100 active:bg-default-200"
+                  >
+                    <LuExternalLink className="text-base" />
+                    詳細
+                  </Link>
+                  <div className="flex items-center justify-center w-full">
+                    <div className="flex flex-col items-center gap-1 w-full min-w-0">
                       <div className="flex items-center gap-0 shrink-0">
                         <PokemonSprite id={deck.pokemon_sprites[0]?.id} size={44} />
                         <PokemonSprite id={deck.pokemon_sprites[1]?.id} size={44} />
@@ -222,15 +234,6 @@ export default function ShowDeckModal({
                         {deck.name}
                       </div>
                     </div>
-                    {/*
-                    <div className="pb-1">
-                      <Link href={`/decks/${deck.id}`} className="text-default-400">
-                        <div className="text-xl">
-                          <LuExternalLink />
-                        </div>
-                      </Link>
-                    </div>
-                    */}
                   </div>
                 </>
               </ModalHeader>

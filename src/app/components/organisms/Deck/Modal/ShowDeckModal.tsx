@@ -209,7 +209,7 @@ export default function ShowDeckModal({
         <ModalContent>
           {() => (
             <>
-              <ModalHeader className="px-3 py-3 flex items-center gap-3">
+              <ModalHeader className="px-3 pt-8 pb-3 flex items-center gap-3">
                 <>
                   <div className="flex items-center justify-between w-full">
                     <div className="flex flex-col items-center gap-1 w-full">

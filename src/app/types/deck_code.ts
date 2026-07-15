@@ -16,3 +16,10 @@ export type DeckCodeCreateRequestType = {
 };
 
 export type DeckCodeCreateResponseType = DeckCodeType;
+
+export type DeckCodeUpdateRequestType = {
+  private_code_flg: boolean;
+  memo: string;
+};
+
+export type DeckCodeUpdateResponseType = DeckCodeType;

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState, SetStateAction, Dispatch } from "react";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
 import { Button } from "@heroui/react";
 import { Input } from "@heroui/react";
+import { Textarea } from "@heroui/react";
 //import { Checkbox } from "@heroui/react";
 import { Image } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
@@ -34,6 +35,7 @@ export default function CreateDeckCodeModal({
 }: Props) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [newdeckcode, setNewDeckCode] = useState<string>("");
+  const [memo, setMemo] = useState<string>("");
   //const [isSelected, setIsSelected] = useState<boolean>(false);
   const [isValidedDeckCode, setIsValidedDeckCode] = useState<boolean>(true);
   const [isDisabled, setIsDisabled] = useState<boolean>(false);
@@ -84,7 +86,7 @@ export default function CreateDeckCodeModal({
       code: newdeckcode,
       private_code_flg: true,
       //private_code_flg: isSelected,
-      memo: "",
+      memo: memo,
     };
 
     setIsDisabled(true);
@@ -171,6 +173,7 @@ export default function CreateDeckCodeModal({
         setIsValidedDeckCode(true);
 
         setNewDeckCode("");
+        setMemo("");
         //setIsSelected(false);
       }}
       classNames={{
@@ -287,6 +290,15 @@ export default function CreateDeckCodeModal({
               ) : (
                 <></>
               )}
+
+              <Textarea
+                size="md"
+                isDisabled={isDisabled}
+                label="メモ"
+                placeholder="このバージョンのメモを残そう"
+                value={memo}
+                onChange={(e) => setMemo(e.target.value)}
+              />
             </ModalBody>
             <ModalFooter>
               <Button

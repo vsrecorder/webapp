@@ -22,6 +22,7 @@ import { Spinner } from "@heroui/spinner";
 import { Alert } from "@heroui/react";
 import { Checkbox } from "@heroui/react";
 import { Button } from "@heroui/react";
+import { Textarea } from "@heroui/react";
 
 import { addToast, closeToast } from "@heroui/react";
 
@@ -32,13 +33,15 @@ import {
   LuBook,
   LuBookPlus,
   LuClock,
+  LuSquarePen,
+  LuPlus,
 } from "react-icons/lu";
 
 import DeckCardDiff from "@app/components/organisms/Deck/DeckCardDiff";
 import FetchError from "@app/components/molecules/FetchError";
 
 import { DeckGetByIdResponseType } from "@app/types/deck";
-import { DeckCodeType } from "@app/types/deck_code";
+import { DeckCodeType, DeckCodeUpdateRequestType } from "@app/types/deck_code";
 
 async function fetchDeckCodesByDeckId(deck_id: string) {
   try {
@@ -93,8 +96,19 @@ export default function DisplayDeckCodesModal({
     onOpenChange: onOpenChangeForDeleteDeckCodeModal,
   } = useDisclosure();
 
+  const {
+    isOpen: isOpenForEditMemoModal,
+    onOpen: onOpenForEditMemoModal,
+    onOpenChange: onOpenChangeForEditMemoModal,
+  } = useDisclosure();
+
   const [isSelected, setIsSelected] = useState<boolean>(false);
   const [isDisabled, setIsDisabled] = useState<boolean>(false);
+
+  // メモ編集用。編集対象のバージョンと入力中のメモ本文を保持する
+  const [editMemoDeckCode, setEditMemoDeckCode] = useState<DeckCodeType | null>(null);
+  const [memoInput, setMemoInput] = useState<string>("");
+  const [isMemoSaving, setIsMemoSaving] = useState<boolean>(false);
 
   const startY = useRef<number | null>(null);
 
@@ -254,6 +268,96 @@ export default function DisplayDeckCodesModal({
     }
   };
 
+  // メモ編集モーダルを開く。対象バージョンと現在のメモを入力欄へ反映する
+  const openEditMemo = (target: DeckCodeType) => {
+    setEditMemoDeckCode(target);
+    setMemoInput(target.memo ?? "");
+    onOpenForEditMemoModal();
+  };
+
+  const updateMemo = async (onClose: () => void) => {
+    if (!editMemoDeckCode) return;
+
+    setIsMemoSaving(true);
+
+    const toastId = addToast({
+      title: "メモを保存中",
+      description: "しばらくお待ちください",
+      color: "default",
+      promise: new Promise(() => {}),
+    });
+
+    try {
+      const data: DeckCodeUpdateRequestType = {
+        private_code_flg: editMemoDeckCode.private_code_flg,
+        memo: memoInput,
+      };
+
+      const res = await fetch(`/api/deckcodes/${editMemoDeckCode.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!res.ok) {
+        const t = await res.json();
+        throw new Error(`HTTP error: ${res.status} Message: ${t.message}`);
+      }
+
+      const updated: DeckCodeType = await res.json();
+
+      if (toastId) {
+        closeToast(toastId);
+      }
+
+      addToast({
+        title: "メモを保存しました",
+        color: "success",
+        timeout: 3000,
+      });
+
+      // 一覧の該当バージョンを更新
+      setDisplayDeckCodes((prev) =>
+        prev
+          ? prev.map((dc) => (dc.id === updated.id ? { ...dc, memo: updated.memo } : dc))
+          : prev,
+      );
+
+      // 表示中のデッキコードが編集対象なら同期する
+      setDeckCode((prev) =>
+        prev && prev.id === updated.id ? { ...prev, memo: updated.memo } : prev,
+      );
+
+      onClose();
+    } catch (error) {
+      console.error(error);
+
+      const errorMessage =
+        error instanceof Error ? error.message : "不明なエラーが発生しました";
+
+      if (toastId) {
+        closeToast(toastId);
+      }
+
+      addToast({
+        title: "メモの保存に失敗",
+        description: (
+          <>
+            メモの保存に失敗しました
+            <br />
+            {errorMessage}
+          </>
+        ),
+        color: "danger",
+        timeout: 5000,
+      });
+
+      onClose();
+    }
+  };
+
   const isArchived = deck ? new Date(deck.archived_at).getFullYear() !== 1 : false;
 
   // バージョンが1件のときは、タイムラインの続きとして次バージョン作成を促す（アーカイブ済みは非表示）
@@ -316,6 +420,72 @@ export default function DisplayDeckCodesModal({
                   className="text-white font-bold"
                 >
                   削除
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
+
+      <Modal
+        isOpen={isOpenForEditMemoModal}
+        size={"sm"}
+        placement="center"
+        // 保存中(isMemoSaving)はESC・onOpenChange経由のクローズを無効化する
+        isKeyboardDismissDisabled={isMemoSaving}
+        hideCloseButton={isMemoSaving}
+        isDismissable={false}
+        onOpenChange={() => {
+          if (isMemoSaving) return;
+          onOpenChangeForEditMemoModal();
+        }}
+        onClose={() => {
+          setIsMemoSaving(false);
+          setEditMemoDeckCode(null);
+          setMemoInput("");
+        }}
+        classNames={{
+          base: "sm:max-w-full",
+        }}
+      >
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader className="px-3 flex flex-col gap-1">
+                {editMemoDeckCode?.memo ? "メモを編集" : "メモを追加"}
+              </ModalHeader>
+              <ModalBody className="px-3 py-1">
+                <Textarea
+                  size="md"
+                  isDisabled={isMemoSaving}
+                  label="メモ"
+                  placeholder="このバージョンのメモを残そう"
+                  value={memoInput}
+                  onChange={(e) => setMemoInput(e.target.value)}
+                />
+              </ModalBody>
+              <ModalFooter>
+                <Button
+                  color="default"
+                  variant="solid"
+                  isDisabled={isMemoSaving}
+                  onPress={() => {
+                    onClose();
+                  }}
+                  className="font-bold"
+                >
+                  閉じる
+                </Button>
+                <Button
+                  color="primary"
+                  variant="solid"
+                  isDisabled={isMemoSaving}
+                  onPress={() => {
+                    updateMemo(onClose);
+                  }}
+                  className="font-bold"
+                >
+                  保存
                 </Button>
               </ModalFooter>
             </>
@@ -565,7 +735,8 @@ export default function DisplayDeckCodesModal({
                                         </div>
 
                                         {(index !== displayDeckCodes.length - 1 ||
-                                          deckcode.memo) && (
+                                          deckcode.memo ||
+                                          !isArchived) && (
                                           <div className="flex flex-col gap-2 pt-2 border-t border-default-200">
                                             {index !== displayDeckCodes.length - 1 && (
                                               <DeckCardDiff
@@ -575,10 +746,40 @@ export default function DisplayDeckCodesModal({
                                                 }
                                               />
                                             )}
-                                            {deckcode.memo && (
-                                              <div className="font-bold text-tiny">
-                                                メモ
+                                            {deckcode.memo ? (
+                                              <div className="flex flex-col gap-1">
+                                                <div className="flex items-center justify-between gap-2">
+                                                  <div className="font-bold text-tiny">
+                                                    メモ
+                                                  </div>
+                                                  {!isArchived && (
+                                                    <button
+                                                      type="button"
+                                                      onClick={() =>
+                                                        openEditMemo(deckcode)
+                                                      }
+                                                      className="flex items-center gap-1 text-tiny text-default-500 active:opacity-70"
+                                                    >
+                                                      <LuSquarePen className="text-xs" />
+                                                      編集
+                                                    </button>
+                                                  )}
+                                                </div>
+                                                <div className="text-tiny text-default-600 whitespace-pre-wrap wrap-break-word">
+                                                  {deckcode.memo}
+                                                </div>
                                               </div>
+                                            ) : (
+                                              !isArchived && (
+                                                <button
+                                                  type="button"
+                                                  onClick={() => openEditMemo(deckcode)}
+                                                  className="flex items-center justify-center gap-1 rounded-lg border border-dashed border-default-300 py-1.5 text-tiny text-default-500 active:opacity-70"
+                                                >
+                                                  <LuPlus className="text-xs" />
+                                                  メモを追加
+                                                </button>
+                                              )
                                             )}
                                           </div>
                                         )}

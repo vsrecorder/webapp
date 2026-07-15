@@ -3,6 +3,12 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* config options here */
   allowedDevOrigins: ["local.vsrecorder.mobi"],
+  experimental: {
+    // CSSを外部<link>ではなくHTMLの<head>へ<style>としてインライン化する。
+    // これによりレンダリングをブロックするCSSのネットワークリクエストが消え、
+    // クリティカルパスが短くなってFCP/LCPが改善する（PageSpeedのレンダリングブロッキング指摘への対応）。
+    inlineCss: true,
+  },
   images: {
     // 最適化画像のキャッシュ最小保持時間（秒）
     // 画像の更新を早く反映したいので短めに設定。長くすると再最適化の負荷は減る。

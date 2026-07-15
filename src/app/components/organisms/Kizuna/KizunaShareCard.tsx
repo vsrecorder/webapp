@@ -2,6 +2,7 @@
 
 import { kizunaTierOf } from "@app/utils/kizuna";
 
+import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import { PokemonSpriteType } from "@app/types/pokemon_sprite";
 
 type Props = {
@@ -51,13 +52,7 @@ export default function KizunaShareCard({
           <div className="relative flex h-28 items-center justify-center gap-1">
             <span aria-hidden="true" className={`absolute rounded-full ${glow}`} />
             {sprites.map((sprite) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                key={sprite.id}
-                alt={sprite.name}
-                src={sprite.image_url}
-                className="relative h-24 w-24 object-contain"
-              />
+              <PokemonSprite key={sprite.id} id={sprite.id} size={96} raw />
             ))}
           </div>
 

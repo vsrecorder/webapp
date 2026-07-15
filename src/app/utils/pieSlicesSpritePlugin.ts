@@ -3,6 +3,8 @@
 import type { Chart, Plugin } from "chart.js";
 import { getRelativePosition } from "chart.js/helpers";
 
+import { spriteDrawRect } from "@app/utils/spriteFit";
+
 // スライスごとの角度・半径情報を取り出すための最小限の型
 // (chart.jsのArcElementインスタンスは実行時にこれらのプロパティを直接持つ)
 type ArcGeometry = {
@@ -41,13 +43,9 @@ function isUnknownSprite(img: HTMLImageElement): boolean {
   return img.src.endsWith("/unknown.png");
 }
 
-// バッジ内でスプライトがやや下寄りに見えるため、全スプライト共通で少し上にずらして描画する
-const SPRITE_LIFT = 5;
-// 「不明」スプライトは画像内でさらに下寄りに描かれているため、共通のずらし分に加えて追加でずらす
-const UNKNOWN_SPRITE_EXTRA_LIFT = 3;
-
-// 画像本来の縦横比を保ったまま、box(boxSize四方)の中央に収めて描画する
-// (widthとheightを両方sizeに指定すると画像が歪んで引き伸ばされてしまうため)
+// 各スプライトのアルファ境界(bbox)を基準に、キャラを box(boxSize四方)内で最適サイズ・
+// 位置(水平中央・下端接地)に正規化して描画する。DOM の PokemonSprite と同じ考え方を
+// canvas の drawImage(ソース矩形=キャラ範囲)で再現する。
 function drawContain(
   ctx: CanvasRenderingContext2D,
   img: HTMLImageElement,
@@ -55,23 +53,22 @@ function drawContain(
   boxY: number,
   boxSize: number,
 ) {
-  const scale = Math.min(boxSize / img.naturalWidth, boxSize / img.naturalHeight);
-  const w = img.naturalWidth * scale;
-  const h = img.naturalHeight * scale;
-  const unknown = isUnknownSprite(img);
-  const lift = SPRITE_LIFT + (unknown ? UNKNOWN_SPRITE_EXTRA_LIFT : 0);
-  const x = boxX + (boxSize - w) / 2;
-  const y = boxY + (boxSize - h) / 2 - lift;
+  const { sx, sy, sw, sh, dx, dy, dw, dh } = spriteDrawRect(
+    img.src,
+    boxX,
+    boxY,
+    boxSize,
+  );
 
-  if (unknown && isDarkMode()) {
+  if (isUnknownSprite(img) && isDarkMode()) {
     // 「不明」スプライトは黒系のアイコンのため、ダークモードのバッジ(濃色背景)の上では
     // ほぼ見えなくなってしまう。色を反転させて明るいアイコンにすることで視認性を保つ。
     ctx.save();
     ctx.filter = "invert(1)";
-    ctx.drawImage(img, x, y, w, h);
+    ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
     ctx.restore();
   } else {
-    ctx.drawImage(img, x, y, w, h);
+    ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
   }
 }
 
@@ -99,7 +96,10 @@ function drawSprites(
   });
 }
 
-const OVERLAP_RATIO = 0.28;
+// DOM 側(リスト・詳細カードの PokemonSprite)は2体を隣接ボックスで重なりなく並べるため、
+// canvas 側も重なりを 0 にして表示方法を揃える。各キャラは bbox 正規化でボックス内に
+// 収まる(左右に余白)ため、隣接でも軽い隙間ができ、DOM と同じ見た目になる。
+const OVERLAP_RATIO = 0;
 // スプライト1体の表示サイズ（全スライス統一）
 const SPRITE_SIZE = 45;
 // バッジ内側の余白

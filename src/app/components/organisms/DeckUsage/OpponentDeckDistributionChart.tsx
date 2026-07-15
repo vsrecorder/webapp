@@ -10,10 +10,10 @@ import {
 } from "chart.js";
 import { Pie } from "react-chartjs-2";
 import { AnimatePresence, motion } from "framer-motion";
-import { Chip, Image } from "@heroui/react";
+import { Chip } from "@heroui/react";
 
 import { OpponentDeckUsageItemType } from "@app/types/opponent_deck_usage_stat";
-import { spriteScaleClass } from "@app/utils/sprite";
+import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import { lighten } from "@app/utils/color";
 import { roundToSignificantDigits } from "@app/utils/number";
 import { groupIntoOther } from "@app/utils/deckUsageOther";
@@ -80,6 +80,17 @@ function spriteUrl(id: string): string {
   return `${SPRITE_BASE_URL}/${id.replace(/^0+(?!$)/, "")}.png`;
 }
 
+// 円グラフのバッジ/中心に渡すスプライトURL。DOM の DeckSprites と表示を揃えるため、
+// 実スプライトが1体でも常に2枠分返し、足りない枠は unknown で補完する。
+// スプライトが0体のときは空配列を返してバッジを描画させない。
+function deckSpriteUrls(sprites: { id: string }[] | undefined): string[] {
+  const real = (sprites ?? []).slice(0, 2);
+  if (real.length === 0) return [];
+  const urls = real.map((s) => spriteUrl(s.id));
+  while (urls.length < 2) urls.push(`${SPRITE_BASE_URL}/unknown.png`);
+  return urls;
+}
+
 // 勝率に応じた色分け（UserStatPanel/UserProfileCardの勝率表示と同じ閾値に合わせる）
 export function winRateChipColor(rate: number): "success" | "default" | "warning" | "danger" {
   if (rate >= 0.55) return "success";
@@ -103,51 +114,11 @@ type TooltipState = {
 function DeckSprites({ deck }: { deck: OpponentDeckUsageItemType }) {
   const sprites = deck.pokemon_sprites ?? [];
 
-  if (sprites.length === 0) {
-    return (
-      <div className="flex items-center gap-0 shrink-0">
-        <Image
-          alt="unknown"
-          src={`${SPRITE_BASE_URL}/unknown.png`}
-          className="w-8 h-8 object-contain scale-150 origin-bottom"
-        />
-        <Image
-          alt="unknown"
-          src={`${SPRITE_BASE_URL}/unknown.png`}
-          className="w-8 h-8 object-contain scale-150 origin-bottom"
-        />
-      </div>
-    );
-  } else if (sprites.length === 1) {
-    return (
-      <div className="flex items-center gap-0 shrink-0">
-        {sprites.slice(0, 1).map((sprite, idx) => (
-          <Image
-            key={`${sprite.id}-${idx}`}
-            alt={sprite.id}
-            src={spriteUrl(sprite.id)}
-            className={`w-8 h-8 object-contain ${spriteScaleClass(sprite.id)} origin-bottom`}
-          />
-        ))}
-        <Image
-          alt="unknown"
-          src={`${SPRITE_BASE_URL}/unknown.png`}
-          className="w-8 h-8 object-contain scale-150 origin-bottom"
-        />
-      </div>
-    );
-  }
-
+  // 凡例の先頭2体を枠内で最適表示(PokemonSprite)。無い枠は unknown。
   return (
     <div className="flex items-center gap-0 shrink-0">
-      {sprites.slice(0, 2).map((sprite, idx) => (
-        <Image
-          key={`${sprite.id}-${idx}`}
-          alt={sprite.id}
-          src={spriteUrl(sprite.id)}
-          className={`w-8 h-8 object-contain ${spriteScaleClass(sprite.id)} origin-bottom`}
-        />
-      ))}
+      <PokemonSprite id={sprites[0]?.id} size={32} />
+      <PokemonSprite id={sprites[1]?.id} size={32} />
     </div>
   );
 }
@@ -217,9 +188,7 @@ export default function OpponentDeckDistributionChart({
         (idx) =>
           tooltipRef.current
             ? []
-            : (displayDecksRef.current[idx]?.pokemon_sprites ?? [])
-                .slice(0, 2)
-                .map((s) => spriteUrl(s.id)),
+            : deckSpriteUrls(displayDecksRef.current[idx]?.pokemon_sprites),
         (idx) => deckColorsRef.current[idx] ?? OTHER_COLOR,
         (idx) => {
           const rate = displayDecksRef.current[idx]?.usage_rate;
@@ -235,9 +204,7 @@ export default function OpponentDeckDistributionChart({
       createPieCenterSpritePlugin(
         () =>
           tooltipRef.current
-            ? (tooltipRef.current.deck.pokemon_sprites ?? [])
-                .slice(0, 2)
-                .map((s) => spriteUrl(s.id))
+            ? deckSpriteUrls(tooltipRef.current.deck.pokemon_sprites)
             : null,
         () =>
           tooltipRef.current

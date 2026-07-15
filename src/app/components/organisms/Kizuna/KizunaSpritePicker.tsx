@@ -4,7 +4,7 @@ import { useMemo, useRef, useState } from "react";
 
 import useSWR from "swr";
 
-import { Image, Input } from "@heroui/react";
+import { Input } from "@heroui/react";
 
 import { CgSearch } from "react-icons/cg";
 import { LuX } from "react-icons/lu";
@@ -12,6 +12,7 @@ import { LuX } from "react-icons/lu";
 import { katakanaToHiragana } from "@app/utils/kana";
 
 import { PokemonSpriteType } from "@app/types/pokemon_sprite";
+import PokemonSprite from "@app/components/atoms/PokemonSprite";
 
 // 一度に描画する候補数の上限。全件（1000体超）を並べると描画が重く、
 // 目的のポケモンも見つけにくいため、この件数を超える分は検索で辿らせる。
@@ -96,13 +97,7 @@ export default function KizunaSpritePicker({ sprite1, sprite2, onSelect }: Props
 
   const spriteButtonContent = (sprite: PokemonSpriteType) => (
     <>
-      <Image
-        alt={sprite.name}
-        src={sprite.image_url}
-        radius="none"
-        disableAnimation
-        className="h-10 w-10 object-contain"
-      />
+      <PokemonSprite id={sprite.id} size={40} />
       <span className="w-full truncate px-0.5 text-center text-[10px] leading-tight text-default-500">
         {sprite.name}
       </span>
@@ -133,13 +128,7 @@ export default function KizunaSpritePicker({ sprite1, sprite2, onSelect }: Props
               >
                 <span className="flex h-14 w-14 items-center justify-center">
                   {sprite ? (
-                    <Image
-                      alt={sprite.name}
-                      src={sprite.image_url}
-                      radius="none"
-                      disableAnimation
-                      className="h-14 w-14 object-contain"
-                    />
+                    <PokemonSprite id={sprite.id} size={56} />
                   ) : (
                     <span className="text-tiny text-default-400">未選択</span>
                   )}

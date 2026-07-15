@@ -25,11 +25,11 @@ import { NumberInput } from "@heroui/react";
 import { Textarea } from "@heroui/react";
 
 import { Card, CardHeader, CardBody } from "@heroui/react";
-import { Image } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
 
 import { LuTrash2 } from "react-icons/lu";
 
+import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import PokemonSpriteModal from "@app/components/organisms/Match/Modal/PokemonSpriteModal";
 import DeleteMatchModal from "@app/components/organisms/Match/Modal/DeleteMatchModal";
 import BO3GamesInput from "@app/components/organisms/Match/BO3GamesInput";
@@ -38,7 +38,6 @@ import { MatchGetResponseType } from "@app/types/match";
 import { MatchUpdateRequestType, MatchUpdateResponseType } from "@app/types/match";
 import { GameRequestType } from "@app/types/game";
 import { PokemonSpriteType, MatchPokemonSpriteType } from "@app/types/pokemon_sprite";
-import { spriteScaleClass } from "@app/utils/sprite";
 import {
   GameInput,
   newGameInputs,
@@ -700,67 +699,28 @@ export default function UpdateMatchModal({
             {/* スプライト + デッキ名入力 */}
             <div className="flex items-center gap-1.5 w-full">
               <div className="flex items-center gap-0 shrink-0">
-                <div className="w-11 h-11 p-0 shrink-0">
-                  {pokemonSprite1 ? (
-                    <Image
+                {([1, 2] as const).map((slot) => {
+                  const sprite = slot === 1 ? pokemonSprite1 : pokemonSprite2;
+                  const disabled = isDefaultVictory || isDefaultDefeat;
+                  return (
+                    <div
+                      key={slot}
+                      className={`shrink-0 ${disabled ? "" : "cursor-pointer"}`}
                       onClick={() => {
-                        if (!isDefaultVictory && !isDefaultDefeat) {
-                          setActivePokemonSpriteSlot(1);
+                        if (!disabled) {
+                          setActivePokemonSpriteSlot(slot);
                           onOpenForPokemonSpriteModal();
                         }
                       }}
-                      alt={pokemonSprite1.id}
-                      src={pokemonSprite1.image_url}
-                      radius="none"
-                      className={`w-full h-full object-contain ${spriteScaleClass(pokemonSprite1.id)} origin-bottom`}
-                    />
-                  ) : (
-                    <Image
-                      onClick={() => {
-                        if (!isDefaultVictory && !isDefaultDefeat) {
-                          setActivePokemonSpriteSlot(1);
-                          onOpenForPokemonSpriteModal();
-                        }
-                      }}
-                      alt="unknown"
-                      src={`${SPRITE_BASE_URL}/unknown.png`}
-                      radius="none"
-                      loading="eager"
-                      className={`w-full h-full object-contain scale-150 origin-bottom ${isDefaultVictory || isDefaultDefeat ? "contrast-0" : ""}`}
-                    />
-                  )}
-                </div>
-
-                <div className="w-11 h-11 p-0 shrink-0">
-                  {pokemonSprite2 ? (
-                    <Image
-                      onClick={() => {
-                        if (!isDefaultVictory && !isDefaultDefeat) {
-                          setActivePokemonSpriteSlot(2);
-                          onOpenForPokemonSpriteModal();
-                        }
-                      }}
-                      alt={pokemonSprite2.id}
-                      src={pokemonSprite2.image_url}
-                      radius="none"
-                      className={`w-full h-full object-contain ${spriteScaleClass(pokemonSprite2.id)} origin-bottom`}
-                    />
-                  ) : (
-                    <Image
-                      onClick={() => {
-                        if (!isDefaultVictory && !isDefaultDefeat) {
-                          setActivePokemonSpriteSlot(2);
-                          onOpenForPokemonSpriteModal();
-                        }
-                      }}
-                      alt="unknown"
-                      src={`${SPRITE_BASE_URL}/unknown.png`}
-                      radius="none"
-                      loading="eager"
-                      className={`w-full h-full object-contain scale-150 origin-bottom ${isDefaultVictory || isDefaultDefeat ? "contrast-0" : ""}`}
-                    />
-                  )}
-                </div>
+                    >
+                      <PokemonSprite
+                        id={sprite?.id}
+                        size={44}
+                        className={disabled ? "contrast-0" : ""}
+                      />
+                    </div>
+                  );
+                })}
               </div>
 
               <Input
@@ -822,28 +782,8 @@ export default function UpdateMatchModal({
                         }}
                       >
                         <div className="flex items-end justify-center w-full h-9">
-                          <div className="w-9 h-9 shrink-0">
-                            <Image
-                              alt={history.sprite1?.id ?? "unknown"}
-                              src={
-                                history.sprite1?.image_url ??
-                                `${SPRITE_BASE_URL}/unknown.png`
-                              }
-                              radius="none"
-                              className={`w-full h-full object-contain ${spriteScaleClass(history.sprite1?.id)} origin-bottom`}
-                            />
-                          </div>
-                          <div className="w-9 h-9 shrink-0">
-                            <Image
-                              alt={history.sprite2?.id ?? "unknown"}
-                              src={
-                                history.sprite2?.image_url ??
-                                `${SPRITE_BASE_URL}/unknown.png`
-                              }
-                              radius="none"
-                              className={`w-full h-full object-contain ${spriteScaleClass(history.sprite2?.id)} origin-bottom`}
-                            />
-                          </div>
+                          <PokemonSprite id={history.sprite1?.id} size={36} />
+                          <PokemonSprite id={history.sprite2?.id} size={36} />
                         </div>
                         <CardDeckName text={history.deckInfo} />
                       </button>
@@ -852,22 +792,8 @@ export default function UpdateMatchModal({
                 ) : (
                   <div className="shrink-0 flex flex-col items-center gap-1 py-2 px-2 rounded-xl border-2 w-24 border-default-200 bg-default-50 opacity-40">
                     <div className="flex items-end justify-center w-full h-9">
-                      <div className="w-9 h-9 shrink-0">
-                        <Image
-                          alt="unknown"
-                          src={`${SPRITE_BASE_URL}/unknown.png`}
-                          radius="none"
-                          className="w-full h-full object-contain scale-150 origin-bottom"
-                        />
-                      </div>
-                      <div className="w-9 h-9 shrink-0">
-                        <Image
-                          alt="unknown"
-                          src={`${SPRITE_BASE_URL}/unknown.png`}
-                          radius="none"
-                          className="w-full h-full object-contain scale-150 origin-bottom"
-                        />
-                      </div>
+                      <PokemonSprite size={36} />
+                      <PokemonSprite size={36} />
                     </div>
                     <span className="text-[10px] leading-snug w-full text-center whitespace-nowrap">
                       候補なし

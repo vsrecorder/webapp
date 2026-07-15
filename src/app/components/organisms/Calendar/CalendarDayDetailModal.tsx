@@ -24,10 +24,7 @@ import {
 
 import { CalendarEvent } from "@app/types/calendar";
 import { DeckPokemonSpriteType, MatchPokemonSpriteType } from "@app/types/pokemon_sprite";
-import { spriteImageUrl, spriteScaleClass } from "@app/utils/sprite";
-
-const UNKNOWN_SPRITE_URL =
-  "https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png";
+import PokemonSprite from "@app/components/atoms/PokemonSprite";
 
 type Props = {
   isOpen: boolean;
@@ -82,13 +79,7 @@ function DeckSprites({ sprites }: { sprites: DeckPokemonSpriteType[] }) {
   return (
     <div className="flex items-center shrink-0">
       {sprites.slice(0, 2).map((sprite, index) => (
-        <Image
-          key={sprite.id ?? index}
-          alt={sprite.id ?? "unknown"}
-          src={spriteImageUrl(sprite.id)}
-          radius="none"
-          className={`w-6 h-6 object-contain ${spriteScaleClass(sprite.id)} origin-bottom`}
-        />
+        <PokemonSprite key={sprite.id ?? index} id={sprite.id} size={24} />
       ))}
     </div>
   );
@@ -98,26 +89,9 @@ function DeckSprites({ sprites }: { sprites: DeckPokemonSpriteType[] }) {
 function OpponentSprites({ sprites }: { sprites: MatchPokemonSpriteType[] }) {
   return (
     <div className="flex items-center shrink-0">
-      {[0, 1].map((index) => {
-        const sprite = sprites[index];
-        return sprite ? (
-          <Image
-            key={sprite.id}
-            alt={sprite.id}
-            src={spriteImageUrl(sprite.id)}
-            radius="none"
-            className={`w-6 h-6 object-contain ${spriteScaleClass(sprite.id)} origin-bottom`}
-          />
-        ) : (
-          <Image
-            key={index}
-            alt="unknown"
-            src={UNKNOWN_SPRITE_URL}
-            radius="none"
-            className="w-6 h-6 object-contain scale-150 origin-bottom"
-          />
-        );
-      })}
+      {[0, 1].map((index) => (
+        <PokemonSprite key={index} id={sprites[index]?.id} size={24} />
+      ))}
     </div>
   );
 }

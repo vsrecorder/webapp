@@ -9,11 +9,11 @@ import { useReactSelectTheme } from "@app/components/molecules/Select/useReactSe
 
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
 
-import { Image } from "@heroui/react";
 import { Button } from "@heroui/react";
 
 import { CgSearch } from "react-icons/cg";
 
+import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import { PokemonSpriteType } from "@app/types/pokemon_sprite";
 
 type PokemonSpriteOption = {
@@ -295,13 +295,7 @@ export default function PokemonSpriteModal({
                         {slot}
                       </span>
                       {option ? (
-                        <Image
-                          alt={option.name}
-                          src={option.image_url}
-                          radius="none"
-                          disableAnimation
-                          className="w-12 h-12 object-contain"
-                        />
+                        <PokemonSprite id={option.id} size={48} />
                       ) : (
                         <span className="text-tiny text-default-400">未選択</span>
                       )}
@@ -377,13 +371,7 @@ export default function PokemonSpriteModal({
                   if (context === "menu") {
                     return (
                       <div className="flex flex-col items-center justify-start gap-3 h-23.5">
-                        <Image
-                          alt={opt.name}
-                          src={opt.image_url}
-                          radius="none"
-                          disableAnimation
-                          className="w-16 h-16 object-contain"
-                        />
+                        <PokemonSprite id={opt.id} size={64} />
                         <div className="truncate w-full text-center text-tiny pb-0.5 px-1.5">
                           {opt.name}
                         </div>
@@ -393,12 +381,7 @@ export default function PokemonSpriteModal({
 
                   return (
                     <div className="w-full h-full flex items-center gap-3">
-                      <Image
-                        alt={opt.name}
-                        src={opt.image_url}
-                        radius="none"
-                        className="object-contain pb-3"
-                      />
+                      <PokemonSprite id={opt.id} size={40} />
                       <div className="text-sm truncate">{opt.name}</div>
                     </div>
                   );

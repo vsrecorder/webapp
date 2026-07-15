@@ -17,11 +17,8 @@ import PokemonSpriteModal from "@app/components/organisms/Match/Modal/PokemonSpr
 
 import { PokemonSpriteType, DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
 import { DeckCreateRequestType } from "@app/types/deck";
-import { spriteScaleClass } from "@app/utils/sprite";
+import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
-
-const UNKNOWN_SPRITE_URL =
-  "https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png";
 
 type Props = {
   deck_code: string;
@@ -225,34 +222,26 @@ export default function CreateDeckModal({
               <ModalBody className="px-3 py-1 gap-3">
                 {/* スプライト2枚 */}
                 <div className="flex items-center gap-0">
-                  <div className="w-11 h-11 p-0 shrink-0">
-                    <Image
-                      onClick={() => {
-                        if (isDisabled) return;
-                        setActiveSpriteSlot(1);
-                        onSpriteOpen();
-                      }}
-                      alt={sprite1 ? sprite1.name : "アイコン1"}
-                      src={sprite1 ? sprite1.image_url : UNKNOWN_SPRITE_URL}
-                      radius="none"
-                      loading="eager"
-                      className={`w-full h-full object-contain ${spriteScaleClass(sprite1?.id)} origin-bottom ${isDisabled ? "contrast-0" : "cursor-pointer"}`}
-                    />
-                  </div>
-                  <div className="w-11 h-11 p-0 shrink-0">
-                    <Image
-                      onClick={() => {
-                        if (isDisabled) return;
-                        setActiveSpriteSlot(2);
-                        onSpriteOpen();
-                      }}
-                      alt={sprite2 ? sprite2.name : "アイコン2"}
-                      src={sprite2 ? sprite2.image_url : UNKNOWN_SPRITE_URL}
-                      radius="none"
-                      loading="eager"
-                      className={`w-full h-full object-contain ${spriteScaleClass(sprite2?.id)} origin-bottom ${isDisabled ? "contrast-0" : "cursor-pointer"}`}
-                    />
-                  </div>
+                  {([1, 2] as const).map((slot) => {
+                    const sprite = slot === 1 ? sprite1 : sprite2;
+                    return (
+                      <div
+                        key={slot}
+                        className={`shrink-0 ${isDisabled ? "" : "cursor-pointer"}`}
+                        onClick={() => {
+                          if (isDisabled) return;
+                          setActiveSpriteSlot(slot);
+                          onSpriteOpen();
+                        }}
+                      >
+                        <PokemonSprite
+                          id={sprite?.id}
+                          size={44}
+                          className={isDisabled ? "contrast-0" : ""}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
 
                 <Input

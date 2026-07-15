@@ -15,7 +15,8 @@ import { Line } from "react-chartjs-2";
 import { Card, CardBody } from "@heroui/react";
 
 import { RecentMatchItemType, RecentMatchStatType } from "@app/types/user_stat_recent";
-import { spriteImageUrl, spriteScaleClass } from "@app/utils/sprite";
+import { spriteImageUrl } from "@app/utils/sprite";
+import { spriteFitStyle } from "@app/utils/spriteFit";
 
 ChartJS.register(
   CategoryScale,
@@ -56,11 +57,31 @@ function renderTooltipSprites(container: HTMLDivElement, sprites: { id: string }
         : ["", ""];
 
   slots.forEach((id) => {
+    // 枠(28px)内に bbox 基準で最適配置。PokemonSprite と同じ算出を DOM 直操作で再現。
+    const frame = document.createElement("div");
+    Object.assign(frame.style, {
+      position: "relative",
+      overflow: "hidden",
+      flexShrink: "0",
+      width: "28px",
+      height: "28px",
+    });
     const img = document.createElement("img");
-    img.src = spriteImageUrl(id);
+    img.src = spriteImageUrl(id || null);
     img.alt = id || "unknown";
-    img.className = `w-7 h-7 object-contain ${spriteScaleClass(id)} origin-bottom`;
-    container.appendChild(img);
+    const s = spriteFitStyle(id || null, 28);
+    Object.assign(img.style, {
+      position: "absolute",
+      left: "0",
+      top: "0",
+      width: `${s.width}px`,
+      height: `${s.height}px`,
+      maxWidth: "none",
+      transformOrigin: "0 0",
+      transform: String(s.transform),
+    });
+    frame.appendChild(img);
+    container.appendChild(frame);
   });
 }
 

@@ -1,12 +1,11 @@
 import { Card, CardBody } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
-import { Image } from "@heroui/react";
 import { Chip } from "@heroui/react";
 import { Popover, PopoverTrigger, PopoverContent } from "@heroui/react";
 
 import ScrollingText from "@app/components/molecules/ScrollingText";
+import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import { RecordDeckRowSkeleton } from "@app/components/organisms/Record/Skeleton/RecordCardSkeleton";
-import { spriteImageUrl, spriteScaleClass } from "@app/utils/sprite";
 import { DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
 
 type Props = {
@@ -173,18 +172,13 @@ export default function RecordCardBase({
                         <div className="flex items-center gap-1.5 min-w-0">
                           {/* デッキ先頭2体のスプライト(無い枠はデフォルトを表示) */}
                           <div className="flex items-center shrink-0">
-                            {[0, 1].map((idx) => {
-                              const spriteId = deckSprites?.[idx]?.id;
-                              return (
-                                <Image
-                                  key={idx}
-                                  alt={spriteId ?? "unknown"}
-                                  src={spriteImageUrl(spriteId)}
-                                  radius="none"
-                                  className={`w-7 h-7 object-contain ${spriteScaleClass(spriteId)} origin-bottom`}
-                                />
-                              );
-                            })}
+                            {[0, 1].map((idx) => (
+                              <PokemonSprite
+                                key={idx}
+                                id={deckSprites?.[idx]?.id}
+                                size={28}
+                              />
+                            ))}
                           </div>
                           <span className="text-sm text-default-600 truncate">
                             {deckName}

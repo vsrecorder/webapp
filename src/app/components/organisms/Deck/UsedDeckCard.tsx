@@ -5,9 +5,8 @@
 import { SetStateAction, Dispatch, useState } from "react";
 
 import { Card, CardHeader, CardBody } from "@heroui/react";
-import { Image } from "@heroui/react";
 
-import { spriteScaleClass } from "@app/utils/sprite";
+import PokemonSprite from "@app/components/atoms/PokemonSprite";
 //import { Chip } from "@heroui/react";
 
 import { useDisclosure } from "@heroui/react";
@@ -127,33 +126,8 @@ export default function UsedDeckCard({
                 {/* 左側 */}
 
                 <div className="flex items-center gap-0 shrink-0">
-                  {deck.pokemon_sprites[0] ? (
-                    <Image
-                      alt={deck.pokemon_sprites[0].id}
-                      src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${deck.pokemon_sprites[0].id.replace(/^0+(?!$)/, "")}.png`}
-                      className={`w-11 h-11 object-contain ${spriteScaleClass(deck.pokemon_sprites[0].id)} origin-bottom`}
-                    />
-                  ) : (
-                    <Image
-                      alt="unknown"
-                      src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
-                      className="w-11 h-11 object-contain scale-150 origin-bottom"
-                    />
-                  )}
-
-                  {deck.pokemon_sprites[1] ? (
-                    <Image
-                      alt={deck.pokemon_sprites[1].id}
-                      src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${deck.pokemon_sprites[1].id.replace(/^0+(?!$)/, "")}.png`}
-                      className={`w-11 h-11 object-contain ${spriteScaleClass(deck.pokemon_sprites[1].id)} origin-bottom`}
-                    />
-                  ) : (
-                    <Image
-                      alt="unknown"
-                      src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
-                      className="w-11 h-11 object-contain scale-150 origin-bottom"
-                    />
-                  )}
+                  <PokemonSprite id={deck.pokemon_sprites[0]?.id} size={44} />
+                  <PokemonSprite id={deck.pokemon_sprites[1]?.id} size={44} />
                 </div>
 
                 {/* 右側：登録日＋バージョン件数バッジをひとかたまりに */}

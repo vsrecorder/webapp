@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { Card, CardHeader, CardBody } from "@heroui/react";
 import { Image, Skeleton, Chip } from "@heroui/react";
 
-import { spriteScaleClass, spriteImageUrl } from "@app/utils/sprite";
+import PokemonSprite from "@app/components/atoms/PokemonSprite";
 //import { Chip } from "@heroui/react";
 
 import { useDisclosure } from "@heroui/react";
@@ -269,21 +269,10 @@ export default function DeckCard({
 
           {/* コンテンツ行：スプライト・勝率リング・デッキ名/戦績・シェブロン */}
           <div className="flex items-center gap-3">
-            {/* スプライト2体（識別用）。ギャラリー表示と同じ w/h・scale で揃え、
-              2体が同一サイズで表示されるようにする（負マージンは画像がずれて
-              サイズが不揃いに見えるため使わない）。 */}
+            {/* スプライト2体（識別用）。各スプライトを枠内で最適表示(PokemonSprite) */}
             <div className="flex items-center gap-0 shrink-0">
               {[0, 1].map((i) => (
-                <Image
-                  key={i}
-                  alt={deck.pokemon_sprites[i]?.id ?? "unknown"}
-                  src={spriteImageUrl(deck.pokemon_sprites[i]?.id)}
-                  className={`w-12 h-12 object-contain origin-bottom ${
-                    deck.pokemon_sprites[i]
-                      ? spriteScaleClass(deck.pokemon_sprites[i].id)
-                      : "scale-150"
-                  }`}
-                />
+                <PokemonSprite key={i} id={deck.pokemon_sprites[i]?.id} size={48} />
               ))}
             </div>
 
@@ -497,16 +486,7 @@ export default function DeckCard({
               <div className="flex w-full min-w-0 flex-col items-center gap-1">
                 <div className="flex items-center gap-0 shrink-0">
                   {[0, 1].map((i) => (
-                    <Image
-                      key={i}
-                      alt={deck.pokemon_sprites[i]?.id ?? "unknown"}
-                      src={spriteImageUrl(deck.pokemon_sprites[i]?.id)}
-                      className={`w-11 h-11 object-contain origin-bottom ${
-                        deck.pokemon_sprites[i]
-                          ? spriteScaleClass(deck.pokemon_sprites[i].id)
-                          : "scale-150"
-                      }`}
-                    />
+                    <PokemonSprite key={i} id={deck.pokemon_sprites[i]?.id} size={44} />
                   ))}
                 </div>
                 <div className="w-full min-w-0 truncate text-center font-bold text-large">

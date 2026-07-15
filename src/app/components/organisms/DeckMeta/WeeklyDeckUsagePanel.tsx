@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
-import { Button, Card, CardBody, Chip, Image, Tab, Tabs } from "@heroui/react";
+import { Button, Card, CardBody, Chip, Tab, Tabs } from "@heroui/react";
 import {
   LuChevronLeft,
   LuChevronRight,
@@ -13,7 +13,7 @@ import {
   LuUsers,
 } from "react-icons/lu";
 
-import { spriteImageUrl, spriteScaleClass } from "@app/utils/sprite";
+import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import { generateWeekOptions, lastWeekValue } from "@app/utils/week";
 import {
   WeeklyDeckUsageItemType,
@@ -62,23 +62,14 @@ function DeckSprites({ deck }: { deck: WeeklyDeckUsageItemType }) {
   const shown = sprites.slice(0, 2);
   const fillers = Math.max(0, 2 - shown.length);
 
+  // サイズはデッキ使用率分析・相手デッキ分布のリスト(size=32)と揃える
   return (
     <div className="flex items-center gap-0 shrink-0">
       {shown.map((sprite, idx) => (
-        <Image
-          key={`${sprite.id}-${idx}`}
-          alt={sprite.id}
-          src={spriteImageUrl(sprite.id)}
-          className={`w-9 h-9 object-contain ${spriteScaleClass(sprite.id)} origin-bottom`}
-        />
+        <PokemonSprite key={`${sprite.id}-${idx}`} id={sprite.id} size={32} />
       ))}
       {Array.from({ length: fillers }).map((_, idx) => (
-        <Image
-          key={`filler-${idx}`}
-          alt="unknown"
-          src={spriteImageUrl(null)}
-          className="w-9 h-9 object-contain scale-150 origin-bottom"
-        />
+        <PokemonSprite key={`filler-${idx}`} size={32} />
       ))}
     </div>
   );

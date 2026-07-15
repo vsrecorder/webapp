@@ -28,7 +28,7 @@ import {
 } from "@app/components/organisms/Record/officialEventHelpers";
 
 import { MatchStats } from "@app/utils/matchStats";
-import { spriteImageUrl, spriteScaleClass } from "@app/utils/sprite";
+import PokemonSprite from "@app/components/atoms/PokemonSprite";
 
 import { RecordGetByIdResponseType } from "@app/types/record";
 import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
@@ -486,22 +486,8 @@ export default function RecordHero({
       <div className="flex w-full items-center gap-2">
         {/* スプライト(2枚は隣接) */}
         <div className="flex shrink-0 items-center">
-          <Image
-            alt={deck.pokemon_sprites[0]?.id ?? "unknown"}
-            src={spriteImageUrl(deck.pokemon_sprites[0]?.id)}
-            radius="none"
-            className={`h-10 w-10 origin-bottom object-contain ${spriteScaleClass(
-              deck.pokemon_sprites[0]?.id,
-            )}`}
-          />
-          <Image
-            alt={deck.pokemon_sprites[1]?.id ?? "unknown"}
-            src={spriteImageUrl(deck.pokemon_sprites[1]?.id)}
-            radius="none"
-            className={`h-10 w-10 origin-bottom object-contain ${spriteScaleClass(
-              deck.pokemon_sprites[1]?.id,
-            )}`}
-          />
+          <PokemonSprite id={deck.pokemon_sprites[0]?.id} size={40} />
+          <PokemonSprite id={deck.pokemon_sprites[1]?.id} size={40} />
         </div>
         {/* デッキ名 */}
         <div className="min-w-0 flex-1 truncate text-sm font-bold">{deck.name}</div>

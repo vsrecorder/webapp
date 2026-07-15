@@ -12,11 +12,9 @@ import {
 } from "@heroui/react";
 
 import { Button } from "@heroui/react";
-import { Image } from "@heroui/react";
 import { Chip } from "@heroui/react";
 import { addToast } from "@heroui/react";
 
-import { spriteScaleClass } from "@app/utils/sprite";
 import GameStreak from "@app/components/organisms/Match/GameStreak";
 import { Card, CardBody } from "@heroui/react";
 
@@ -31,6 +29,8 @@ import MatchSkeleton from "@app/components/organisms/Match/Skeleton/MatchSkeleto
 
 import { RecordGetByIdResponseType } from "@app/types/record";
 import { MatchGetResponseType, MatchOrderItemType } from "@app/types/match";
+
+import PokemonSprite from "@app/components/atoms/PokemonSprite";
 
 type SectionKey = "qualifying" | "final" | "other";
 
@@ -485,18 +485,10 @@ export default function Matches({
                                             match.default_defeat_flg ? (
                                               <>
                                                 <>
-                                                  <div className="flex items-center gap-0 shrink-0 ml-1.5">
-                                                    <Image
-                                                      alt="unknown"
-                                                      src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
-                                                      className="w-11 h-11 object-contain scale-150 origin-bottom"
-                                                    />
-
-                                                    <Image
-                                                      alt="unknown"
-                                                      src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
-                                                      className="w-11 h-11 object-contain scale-150 origin-bottom"
-                                                    />
+                                                  <div className="flex items-center gap-1 shrink-0 ml-1.5">
+                                                    {/* 不戦勝/不戦敗: 相手不明のためデフォルト(unknown)スプライトを表示 */}
+                                                    <PokemonSprite size={48} />
+                                                    <PokemonSprite size={48} />
                                                   </div>
                                                 </>
 
@@ -546,46 +538,22 @@ export default function Matches({
                                             ) : (
                                               <>
                                                 <>
-                                                  <div className="flex items-center gap-0 shrink-0 ml-1.5">
-                                                    {match.pokemon_sprites[0] ? (
-                                                      <Image
-                                                        alt={match.pokemon_sprites[0].id.replace(
-                                                          /^0+(?!$)/,
-                                                          "",
-                                                        )}
-                                                        src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${match.pokemon_sprites[0].id.replace(/^0+(?!$)/, "")}.png`}
-                                                        className={`w-11 h-11 object-contain ${spriteScaleClass(match.pokemon_sprites[0].id)} origin-bottom`}
-                                                      />
-                                                    ) : (
-                                                      <Image
-                                                        alt="unknown"
-                                                        src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
-                                                        className="w-11 h-11 object-contain scale-150 origin-bottom"
-                                                      />
-                                                    )}
-
-                                                    {match.pokemon_sprites[1] ? (
-                                                      <Image
-                                                        alt={match.pokemon_sprites[1].id.replace(
-                                                          /^0+(?!$)/,
-                                                          "",
-                                                        )}
-                                                        src={`https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/${match.pokemon_sprites[1].id.replace(/^0+(?!$)/, "")}.png`}
-                                                        className={`w-11 h-11 object-contain ${spriteScaleClass(match.pokemon_sprites[1].id)} origin-bottom`}
-                                                      />
-                                                    ) : (
-                                                      <Image
-                                                        alt="unknown"
-                                                        src="https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites/unknown.png"
-                                                        className="w-11 h-11 object-contain scale-150 origin-bottom "
-                                                      />
-                                                    )}
+                                                  <div className="flex items-center gap-1 shrink-0 ml-1.5">
+                                                    {/* 対戦相手のポケモン2体。各スプライトを枠内で最適表示(PokemonSprite) */}
+                                                    <PokemonSprite
+                                                      id={match.pokemon_sprites[0]?.id}
+                                                      size={48}
+                                                    />
+                                                    <PokemonSprite
+                                                      id={match.pokemon_sprites[1]?.id}
+                                                      size={48}
+                                                    />
                                                   </div>
                                                 </>
 
                                                 <div className="flex flex-col justify-center gap-1 min-w-0 flex-1">
                                                   <div className="min-w-0">
-                                                    <div className="font-bold truncate text-left">
+                                                    <div className="font-bold truncate text-left text-xs">
                                                       {match.opponents_deck_info}
                                                     </div>
 

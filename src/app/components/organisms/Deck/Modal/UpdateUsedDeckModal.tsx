@@ -23,7 +23,7 @@ import { DeckGetAllType, DeckData } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
 import { DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
 
-import { spriteImageUrl, spriteScaleClass } from "@app/utils/sprite";
+import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 
 // 失敗レスポンスのボディをそのまま返すと、選択肢を組み立てるmap/forEachがレンダー中に
@@ -89,25 +89,17 @@ function convertToDeckOption(data: DeckData): DeckOption {
 // スプライトが未設定のスロットは unknown 画像で補完し、記録作成画面と同じ見た目を踏襲する。
 function DeckSprites({
   sprites,
-  sizeClass = "w-9 h-9",
+  size = 36,
 }: {
   sprites: DeckPokemonSpriteType[];
-  sizeClass?: string;
+  size?: number;
 }) {
   const slots = [sprites?.[0], sprites?.[1]];
 
   return (
     <div className="flex items-center gap-0 shrink-0">
       {slots.map((sprite, i) => (
-        <Image
-          key={i}
-          alt={sprite?.id || "unknown"}
-          src={spriteImageUrl(sprite?.id)}
-          radius="none"
-          className={`${sizeClass} object-contain ${
-            sprite ? spriteScaleClass(sprite.id) : "scale-150"
-          } origin-bottom`}
-        />
+        <PokemonSprite key={i} id={sprite?.id} size={size} />
       ))}
     </div>
   );
@@ -637,7 +629,7 @@ export default function UpdateUsedDeckModal({
                                 <div className="pl-0.5 flex items-center gap-2 min-w-0">
                                   <DeckSprites
                                     sprites={opt.pokemon_sprites}
-                                    sizeClass="w-8 h-8"
+                                    size={32}
                                   />
                                   <span className="truncate">{opt.name}</span>
                                 </div>
@@ -671,7 +663,7 @@ export default function UpdateUsedDeckModal({
                           <div className="pl-1 flex items-center gap-2 text-sm min-w-0">
                             <DeckSprites
                               sprites={opt.pokemon_sprites}
-                              sizeClass="w-7 h-7"
+                              size={28}
                             />
                             <span className="truncate">{opt.name}</span>
                           </div>

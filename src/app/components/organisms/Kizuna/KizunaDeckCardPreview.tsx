@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { Card, CardHeader, Image } from "@heroui/react";
+import { Card, CardHeader } from "@heroui/react";
 
 import { LuCalendar, LuChevronDown, LuImage } from "react-icons/lu";
 
@@ -11,7 +11,7 @@ import {
   type KizunaPreviewStats,
 } from "@app/components/organisms/Kizuna/KizunaPreviewContext";
 import { kizunaTierOf } from "@app/utils/kizuna";
-import { spriteImageUrl, spriteScaleClass } from "@app/utils/sprite";
+import PokemonSprite from "@app/components/atoms/PokemonSprite";
 
 /*
  * 「きずな」が実装されたら、デッキ一覧のカードがどう見えるかのモック。
@@ -78,7 +78,7 @@ function Sprites({
   kizunaRatio: number;
   size: "list" | "gallery";
 }) {
-  const sizeClass = size === "list" ? "w-12 h-12" : "w-11 h-11";
+  const spx = size === "list" ? 48 : 44;
 
   // 2枠を必ず埋める（本物の DeckCard も2体ぶんの枠を持つ）
   const slots = [spriteIds[0], spriteIds[1]];
@@ -92,13 +92,7 @@ function Sprites({
         style={{ opacity: 0.12 + kizunaRatio * 0.4 }}
       />
       {slots.map((id, i) => (
-        <Image
-          key={`${id ?? "unknown"}-${i}`}
-          alt={id ?? "unknown"}
-          src={spriteImageUrl(id)}
-          disableAnimation
-          className={`relative ${sizeClass} origin-bottom object-contain ${spriteScaleClass(id)}`}
-        />
+        <PokemonSprite key={`${id ?? "unknown"}-${i}`} id={id} size={spx} />
       ))}
     </div>
   );

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { Button, Image, Spinner, Switch, addToast } from "@heroui/react";
+import { Button, Spinner, Switch, addToast } from "@heroui/react";
 
 import {
   LuShare2,
@@ -27,6 +27,7 @@ import {
 } from "@app/utils/saveImage";
 import { estimateKizuna, kizunaTierOf, type KizunaEstimate } from "@app/utils/kizuna";
 import { spriteImageUrl } from "@app/utils/sprite";
+import PokemonSprite from "@app/components/atoms/PokemonSprite";
 
 import { DeckGetResponseType, DeckType } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
@@ -482,15 +483,12 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
                         isSelected ? "opacity-100" : "opacity-0"
                       }`}
                     />
-                    <span className="relative flex items-end -space-x-2">
+                    <span className="relative flex items-end">
                       {[0, 1].map((i) => (
-                        <Image
+                        <PokemonSprite
                           key={i}
-                          alt={deck.data.pokemon_sprites[i]?.id ?? "unknown"}
-                          src={spriteImageUrl(deck.data.pokemon_sprites[i]?.id)}
-                          radius="none"
-                          disableAnimation
-                          className="h-11 w-11 object-contain"
+                          id={deck.data.pokemon_sprites[i]?.id}
+                          size={44}
                         />
                       ))}
                     </span>

@@ -55,6 +55,12 @@ function formatPercent(rate: number): string {
   return `${trimTrailingZeroDecimal((rate * 100).toFixed(1))}%`;
 }
 
+// 割合(0〜1)を整数のパーセント表記にする（リスト表示の勝率リングなど、
+// 省スペースで概数を示せば十分な箇所で使う）
+function formatPercentInt(rate: number): string {
+  return `${Math.round(rate * 100)}%`;
+}
+
 // 先攻時/後攻時の勝率が、デッキ全体の勝率からどれだけ乖離しているかを
 // 小数点第1位までのポイント差（引き算）で表すラベルと色を算出する。
 // 「全体比」は比率（割り算）を連想させ実態と合わないため、列見出しは
@@ -309,7 +315,7 @@ export default function DeckCard({
               <div
                 className={`absolute inset-0 flex items-center justify-center text-tiny font-black tabular-nums ${hasStats ? winRateTextColor(winRate) : "text-default-300"}`}
               >
-                {hasStats ? formatPercent(winRate) : "-"}
+                {hasStats ? formatPercentInt(winRate) : "-"}
               </div>
             </div>
 

@@ -688,36 +688,26 @@ export default function DisplayDeckCodesModal({
                                           </button>
                                         </div>
 
-                                        <div className="text-tiny text-default-500 flex items-center gap-1">
-                                          <>デッキコード：</>
+                                        {/* デッキコード表示は他画面（DeckCodeCard）と統一。
+                                            バージョン履歴のカードは bg-default-100 のため、
+                                            背景のみ bg-content1 にしてコントラストを確保する。 */}
+                                        <div className="flex min-w-0 items-center justify-center gap-2 rounded-lg bg-content1 px-3 py-2">
+                                          <span className="shrink-0 text-tiny text-default-500">
+                                            デッキコード
+                                          </span>
                                           <Snippet
                                             size="sm"
                                             radius="none"
                                             timeout={3000}
                                             disableTooltip={true}
                                             hideSymbol={true}
-                                            classNames={{ base: "bg-transparent p-0" }}
+                                            classNames={{
+                                              base: "min-w-0 bg-transparent p-0",
+                                              pre: "truncate",
+                                            }}
                                           >
                                             {deckcode?.code ? deckcode.code : "なし"}
                                           </Snippet>
-
-                                          {/*
-                                          {deckcode?.code && (
-                                            <>
-                                              <Chip
-                                                size="sm"
-                                                radius="md"
-                                                variant="bordered"
-                                              >
-                                                <small className="font-bold">
-                                                  {deckcode.private_code_flg
-                                                    ? "非公開"
-                                                    : "公開"}
-                                                </small>
-                                              </Chip>
-                                            </>
-                                          )}
-                                          */}
                                         </div>
 
                                         <div className="relative w-full aspect-2/1">

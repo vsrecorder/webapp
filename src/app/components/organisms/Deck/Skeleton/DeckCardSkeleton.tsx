@@ -17,10 +17,16 @@ export function DeckListRowSkeleton() {
 
         {/* コンテンツ行 */}
         <div className="flex items-center gap-3">
-          {/* スプライト2体（骨格は塊に見えないよう間隔を空ける） */}
-          <div className="flex gap-1.5 shrink-0">
-            <Skeleton className="h-12 w-12 rounded-2xl" />
-            <Skeleton className="h-12 w-12 rounded-2xl" />
+          {/* スプライト2体。実データ描画時のレイアウトシフトを避けるため、実物の
+              PokemonSprite と同じ 48px スロットを隙間なく2つ並べる。中の丸は
+              PokemonSprite が実際に見せるキャラ位置（枠いっぱいではなく、やや小さめ・
+              下端中央寄り）に合わせてスロット内の下端中央へ配置する。 */}
+          <div className="flex items-center shrink-0">
+            {[0, 1].map((i) => (
+              <div key={i} className="relative h-12 w-12">
+                <Skeleton className="absolute bottom-0 left-1/2 h-10 w-10 -translate-x-1/2 rounded-full" />
+              </div>
+            ))}
           </div>
           {/* 勝率リング */}
           <Skeleton className="h-11 w-11 rounded-full shrink-0" />
@@ -64,11 +70,16 @@ export function DeckCardSkeleton({ compact = false }: { compact?: boolean } = {}
         <div className="flex justify-end">
           <Skeleton className="h-3.5 w-28 rounded-lg" />
         </div>
-        {/* スプライトを上、デッキ名を下に配置（中央揃え） */}
+        {/* スプライトを上、デッキ名を下に配置（中央揃え）。
+            スプライト骨格は実物の PokemonSprite（44px スロットを隙間なく2つ）に合わせ、
+            中の丸はキャラ位置（やや小さめ・下端中央寄り）に合わせて下端中央へ配置する。 */}
         <div className="flex flex-col items-center gap-1">
-          <div className="flex items-center gap-1.5 shrink-0">
-            <Skeleton className="h-11 w-11 rounded-2xl" />
-            <Skeleton className="h-11 w-11 rounded-2xl" />
+          <div className="flex items-center shrink-0">
+            {[0, 1].map((i) => (
+              <div key={i} className="relative h-11 w-11">
+                <Skeleton className="absolute bottom-0 left-1/2 h-9 w-9 -translate-x-1/2 rounded-full" />
+              </div>
+            ))}
           </div>
           <Skeleton className="h-6 w-40 rounded-lg" />
         </div>

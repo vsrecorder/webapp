@@ -42,7 +42,8 @@ export type TeamStats = {
 
   // φ係数(-1〜+1)。個人の勝敗とチームの勝敗の相関で、チーム結果への貢献度の代理指標。
   // +1に近い = 自分が勝った試合ほどチームも勝っている、-1に近い = 逆に噛み合っていない。
-  // 全勝・全敗などで周辺度数が偏り分母が0になる場合は算出できないので null。
+  // 全勝・全敗などで素のφが算出不能になるケースは Haldane–Anscombe 補正で近似値を出す。
+  // null になるのはチーム戦の対戦が1件も無い(貢献度が存在しない)ときだけ。
   phi: number | null;
 };
 
@@ -126,11 +127,25 @@ export function summarizeMatches(matches: MatchGetResponseType[]): MatchStats {
  *
  * a=自分◯チーム◯ / b=自分◯チーム✕ / c=自分✕チーム◯ / d=自分✕チーム✕
  *
- * 個人が全勝(または全敗)、チームが全勝(または全敗)のときは分母が0になり、
- * 相関そのものが定義できない(片方が動いていないので連動を測れない)ため null を返す。
+ * 素のφは、個人が全勝(または全敗)・チームが全勝(または全敗)のとき、
+ * 周辺度数(自分の勝ち数=a+b / 負け数=c+d、チームの勝ち数=a+c / 負け数=b+d)の
+ * どれかが0になって分母が0になり、算出できない。ポケカ1記録ぶんの数戦では
+ * この偏りが頻繁に起きるため、各セルに0.5を足す Haldane–Anscombe 補正を入れて
+ * 常に算出できるようにする。補正はサンプルが少ないほど値を0(中立)側へ寄せるので、
+ * 少数戦での過大評価も抑えられる。
+ *
+ * チーム戦の対戦が1件も無い(a=b=c=d=0)ときだけは、貢献度そのものが
+ * 存在しないので補正せず null を返す。
  */
 function calcPhi(a: number, b: number, c: number, d: number): number | null {
-  const denominator = Math.sqrt((a + b) * (c + d) * (a + c) * (b + d));
-  if (denominator === 0) return null;
-  return (a * d - b * c) / denominator;
+  if (a + b + c + d === 0) return null;
+
+  // Haldane–Anscombe 補正: 各セルに0.5を足してから相関を計算する。
+  // これで周辺度数が0にならず、分母が0になることが無くなる。
+  const a2 = a + 0.5;
+  const b2 = b + 0.5;
+  const c2 = c + 0.5;
+  const d2 = d + 0.5;
+  const denominator = Math.sqrt((a2 + b2) * (c2 + d2) * (a2 + c2) * (b2 + d2));
+  return (a2 * d2 - b2 * c2) / denominator;
 }

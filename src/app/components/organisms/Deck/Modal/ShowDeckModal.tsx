@@ -235,20 +235,25 @@ export default function ShowDeckModal({
                 </>
               </ModalHeader>
               <ModalBody className="px-3 py-2 pb-3 flex flex-col gap-3 overflow-y-auto">
-                {/* 記録情報モーダル（DisplayRecordModal）の使用デッキと同じboardレイアウトを
-                    共有する。デッキ画像を上に置き、その下にデッキコード、バージョン・対戦環境の
-                    チップを並べることで、モーダル間で表示のズレを防ぐ */}
+                {/* デッキ画像を上に置き、その下にカードリスト、さらにその下にデッキコードを
+                    並べる。デッキコード欄は hideCode で画像側から切り離し、カードリストの
+                    下へ配置している（コード表示自体は DeckCodeCard の hideImage 版に委譲）。 */}
                 <DeckCodeCard
                   deckcode={deckcode}
                   totalVersionCount={versionCount}
                   onCreateVersion={isArchived ? undefined : onOpenForCreateDeckCodeModal}
                   isArchived={isArchived}
+                  hideCode
                 />
 
                 {deckcode?.code && (
-                  <div className="rounded-xl bg-default-100 p-2">
-                    <DeckCardSummaryRow code={deckcode.code} />
-                  </div>
+                  <>
+                    <div className="rounded-xl bg-default-100 p-2">
+                      <DeckCardSummaryRow code={deckcode.code} />
+                    </div>
+
+                    <DeckCodeCard deckcode={deckcode} hideImage />
+                  </>
                 )}
               </ModalBody>
               <ModalFooter className="px-3 pt-0 pb-3 flex flex-col">

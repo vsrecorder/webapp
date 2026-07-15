@@ -408,7 +408,7 @@ export default function Records({
         )}
         {!disable_more_load && isInitialLoaded && !isLoading && hasMore && (
           <div className={`flex justify-center col-span-1 ${colSpanClass}`}>
-            <Button size="sm" radius="full" onPress={loadMore}>
+            <Button size="sm" radius="full" onPress={loadMore} className="w-48 max-w-full">
               <div className="flex items-center gap-1">
                 <span className="text-xs">
                   <LuCirclePlus />

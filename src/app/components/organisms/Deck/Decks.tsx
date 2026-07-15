@@ -346,7 +346,7 @@ export default function Decks({ userId, isArchived, onCreated }: Props) {
 
         {isInitialLoaded && !isLoading && !error && hasMore && (
           <div className="flex justify-center col-span-1 lg:col-span-2">
-            <Button size="sm" radius="full" onPress={loadMore}>
+            <Button size="sm" radius="full" onPress={loadMore} className="w-48 max-w-full">
               <div className="flex items-center gap-1">
                 <span className="text-xs">
                   <LuCirclePlus />

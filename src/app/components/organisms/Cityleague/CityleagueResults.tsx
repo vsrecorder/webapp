@@ -329,7 +329,7 @@ export default function CityleagueResults({ league_type }: Props) {
         {isInitialLoaded && isLoading && <Spinner size="lg" className="pt-0" />}
 
         {isInitialLoaded && !isLoading && hasMore && (
-          <Button size="sm" radius="full" onPress={loadMore}>
+          <Button size="sm" radius="full" onPress={loadMore} className="w-48 max-w-full">
             <div className="flex items-center gap-1">
               <span className="text-xs">
                 <LuCirclePlus />

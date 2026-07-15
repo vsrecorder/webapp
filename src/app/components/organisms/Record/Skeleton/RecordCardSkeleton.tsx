@@ -4,15 +4,19 @@ import { Skeleton } from "@heroui/react";
 /*
  * 使用デッキ行(スプライト2体 + デッキ名)のスケルトン。
  * RecordCardBase のデッキ読み込み中表示と共有する。実データ描画時にレイアウトシフトが
- * 起きないよう、スプライトは実物と同じ w-7 h-7 を隙間なく2体並べた寸法にしている
- * (塊に見えないよう rounded-full で個々の輪郭を出す)。
+ * 起きないよう、スプライトは実物と同じ 28px(w-7 h-7) スロットを隙間なく2つ並べる。
+ * 中の丸は PokemonSprite が実際に見せるキャラ位置(枠いっぱいではなく、やや小さめ・
+ * 下端中央寄り)に合わせて、スロット内で下端中央へ配置する。
  */
 export function RecordDeckRowSkeleton() {
   return (
     <div className="flex items-center gap-1.5 min-w-0">
       <div className="flex items-center shrink-0">
-        <Skeleton className="w-7 h-7 rounded-full" />
-        <Skeleton className="w-7 h-7 rounded-full" />
+        {[0, 1].map((i) => (
+          <div key={i} className="relative w-7 h-7">
+            <Skeleton className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full" />
+          </div>
+        ))}
       </div>
       <Skeleton className="h-3.5 w-24 rounded-md" />
     </div>

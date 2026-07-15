@@ -56,7 +56,7 @@ export default function KizunaBreakdownCard({
         {/* 数字の意味を先に言う。ここが「獲得点」だと分かれば、
             6行の合計がきずなLv.になることが読める。 */}
         <div className="flex items-baseline gap-2.5 text-[9px] text-white/35">
-          <span className="w-[5.75rem] shrink-0" />
+          <span className="w-23 shrink-0" />
           <span className="w-11 shrink-0 text-right">獲得点</span>
           <span className="min-w-0 flex-1">この点になった理由</span>
         </div>
@@ -64,7 +64,7 @@ export default function KizunaBreakdownCard({
         {metrics.map((metric) => (
           <div key={metric.key} className="flex items-baseline gap-2.5">
             {/* ラベル列は「逆境ロイヤルティ」(8文字)が折り返さない幅にする */}
-            <span className="w-[5.75rem] shrink-0 whitespace-nowrap text-right text-[10px] font-bold text-white/85">
+            <span className="w-23 shrink-0 whitespace-nowrap text-right text-[10px] font-bold text-white/85">
               {metric.label}
             </span>
             <span className="flex w-11 shrink-0 items-baseline justify-end">

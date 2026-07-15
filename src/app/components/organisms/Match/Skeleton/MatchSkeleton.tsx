@@ -44,7 +44,7 @@ function Rows({
           <Skeleton className="h-9 w-9 shrink-0 rounded-lg" />
           {/* 相手のスプライト2枚(実態は gap-0 で隣接)＋デッキ名/チップを1つのフレックスに収める */}
           <div className="flex flex-1 items-center gap-1.5 min-w-0">
-            <div className="ml-1.5 flex shrink-0 items-center gap-0">
+            <div className="ml-1.5 flex shrink-0 items-center gap-1.5">
               <Skeleton className="h-11 w-11 rounded-lg" />
               <Skeleton className="h-11 w-11 rounded-lg" />
             </div>

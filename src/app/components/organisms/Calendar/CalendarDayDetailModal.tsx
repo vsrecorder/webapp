@@ -222,7 +222,9 @@ function EventContent({ event }: { event: CalendarEvent }) {
           <div className="flex items-center gap-2 pl-3">
             <OpponentSprites sprites={event.opponents_pokemon_sprites} />
             <span className="text-sm font-bold text-default-600 truncate">
-              {event.opponents_deck_info ? `『${event.opponents_deck_info}』` : "デッキ情報なし"}
+              {event.opponents_deck_info
+                ? `『${event.opponents_deck_info}』`
+                : "デッキ情報なし"}
             </span>
           </div>
           <div className="flex items-center gap-1 pl-3 flex-wrap">
@@ -298,7 +300,8 @@ function EventContent({ event }: { event: CalendarEvent }) {
           <DeckSprites sprites={event.pokemon_sprites} />
           <div className="text-sm min-w-0">
             <span className="font-bold">{event.deck_name}</span>
-            <span className="text-xs text-default-500"> の新しいバージョンを作成</span>
+            <br />
+            <span className="text-xs text-default-500">の新しいバージョンを作成</span>
           </div>
         </div>
         <DeckCodeThumbnail code={event.code} />
@@ -390,9 +393,7 @@ export default function CalendarDayDetailModal({
                               className={`w-2.5 h-2.5 rounded-full ring-4 ring-content1 shrink-0 ${dotColorClass(event)}`}
                             />
                           </div>
-                          {!isLast && (
-                            <span className="w-px flex-1 mt-1.5 bg-divider" />
-                          )}
+                          {!isLast && <span className="w-px flex-1 mt-1.5 bg-divider" />}
                         </div>
                         <div className={`min-w-0 flex-1 ${isLast ? "pb-1" : "pb-5"}`}>
                           <div className="flex items-center gap-1 h-4">

@@ -15,9 +15,7 @@ type Props = {
  */
 export default function BoardPanel({ icon, label, right, children }: Props) {
   return (
-    <div className="relative px-4 py-3.5 not-first:border-t not-first:border-divider">
-      {/* 左アクセントレール */}
-      <span className="absolute left-0 top-3.5 bottom-3.5 w-0.75 rounded-r bg-primary/30" />
+    <div className="px-4 py-3.5 not-first:border-t not-first:border-divider">
       <div className="mb-2.5 flex items-center gap-2">
         <span className="flex text-sm text-primary">{icon}</span>
         <span className="text-xs font-bold tracking-wide text-default-500">{label}</span>

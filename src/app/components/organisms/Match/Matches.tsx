@@ -656,7 +656,7 @@ export default function Matches({
 
                                           {/* メモがある場合は右端にアイコンを表示 */}
                                           {match.memo && match.memo !== "" && (
-                                            <LuStickyNote className="ml-auto mr-0.5 shrink-0 text-lg text-default-400" />
+                                            <LuStickyNote className="ml-auto mr-2 shrink-0 text-lg text-default-400" />
                                           )}
                                         </div>
                                       </Button>

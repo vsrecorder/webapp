@@ -17,7 +17,7 @@ import PhoneMock from "@app/components/molecules/PhoneMock";
 
 import { CityleagueScheduleType } from "@app/types/cityleague_schedule";
 import { EnvironmentType } from "@app/types/environment";
-import { getAppIconUrl, isDevEnv } from "@app/utils/appIcon";
+import { isDevEnv } from "@app/utils/appIcon";
 
 const GRAFANA_DASHBOARD_UID = "636db44742fb4dca801d0b1c9343642a";
 
@@ -50,7 +50,9 @@ async function getCityleagueScheduleByDate(date: Date): Promise<CityleagueSchedu
     const res = await fetch(
       `https://${domain}/api/v1beta/cityleague_schedules?date=${today}`,
       {
-        cache: "no-store",
+        // シティリーグの開催情報は最大でも日次更新のため、毎回取得(no-store)は不要。
+        // 5分キャッシュ(stale-while-revalidate)にしてサーバ応答(TTFB)を短縮し、FCP/LCPを改善する。
+        next: { revalidate: 300 },
         method: "GET",
         headers: {
           Accept: "application/json",
@@ -78,7 +80,8 @@ async function getEnvironmentByDate(date: Date): Promise<EnvironmentType> {
     const today = date.toISOString().split("T")[0];
 
     const res = await fetch(`https://${domain}/api/v1beta/environments?date=${today}`, {
-      cache: "no-store",
+      // 対戦環境情報も日次更新のため、5分キャッシュにしてTTFBを短縮する。
+      next: { revalidate: 300 },
       method: "GET",
       headers: {
         Accept: "application/json",
@@ -219,22 +222,12 @@ const steps = [
 export default async function TemplateHome() {
   const date = new Date(Date.now() + 9 * 60 * 60 * 1000);
 
-  let cs: CityleagueScheduleType | undefined;
-  try {
-    cs = await getCityleagueScheduleByDate(date);
-  } catch {
-    cs = undefined;
-  }
-
-  let env: EnvironmentType | undefined;
-  try {
-    env = await getEnvironmentByDate(date);
-  } catch {
-    env = undefined;
-  }
-
-  // Grafanaから統計データを並列取得（パネルID: 8=デッキコード数, 2=対戦数, 7=ユーザ数,）
-  const [deckCodeCount, recordCount, userCount] = await Promise.all([
+  // シティリーグ・対戦環境・Grafana統計(パネルID: 8=デッキコード数, 2=対戦数, 7=ユーザ数)を
+  // すべて並列取得する。直列にawaitするとfetch分だけTTFBが積み上がり、FCP/LCPが悪化するため。
+  // 失敗しても描画を止めないよう、cs/envはcatchでundefinedにフォールバックする。
+  const [cs, env, deckCodeCount, recordCount, userCount] = await Promise.all([
+    getCityleagueScheduleByDate(date).catch(() => undefined),
+    getEnvironmentByDate(date).catch(() => undefined),
     getGrafanaStat(8),
     getGrafanaStat(2),
     getGrafanaStat(7),
@@ -258,7 +251,9 @@ export default async function TemplateHome() {
       >
         <div className="w-20 h-20 lg:w-28 lg:h-28 relative">
           <Image
-            src={getAppIconUrl()}
+            // LCP要素。本番でも外部CDNではなくローカル静的ファイルを使い、
+            // クロスオリジンの往復を排してLCPを短縮する（表示は最大112pxなのでsizesで小さく最適化される）。
+            src={isDevEnv() ? "/icon_dev-512x512.png" : "/icon-512x512.png"}
             alt="バトレコ"
             fill
             priority

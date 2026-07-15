@@ -11,6 +11,7 @@ import {
   Button,
   Switch,
   Textarea,
+  Spinner,
   addToast,
 } from "@heroui/react";
 
@@ -397,6 +398,46 @@ export default function ShareRecordModal({
                   maxRows={999}
                   classNames={{ input: "text-sm overflow-hidden" }}
                 />
+
+                {/* シェアされる画像のプレビュー。
+                    実際に共有される生成済み画像(images)をそのまま表示する。
+                    オプション(使用デッキの表示/追加)を変えると再生成され、ここも追従する。
+                    生成が終わるまで(images===null)はスピナーを出す。 */}
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold">プレビュー</span>
+                    {images && images.length > 1 && (
+                      <span className="rounded-full bg-default-200 px-2 py-0.5 text-[11px] text-default-500">
+                        {images.length}枚
+                      </span>
+                    )}
+                  </div>
+
+                  {images === null || images.length === 0 ? (
+                    // 生成中は枠内にスピナーを表示(画像の縦横比は不定なので固定高さの枠にする)
+                    <div className="flex h-56 flex-col items-center justify-center gap-2 rounded-xl border border-divider bg-content2">
+                      <Spinner size="sm" />
+                      <span className="text-[11px] text-default-400">
+                        画像を生成しています
+                      </span>
+                    </div>
+                  ) : (
+                    // 複数枚(戦績＋デッキ)のときは縦に並べて表示する。
+                    <div className="flex flex-col gap-3">
+                      {images.map((img) => (
+                        // 実際の書き出し画像。プレビューなので枠幅に収めて縮小表示する。
+                        // h-auto で本来の縦横比を保ち、引き伸ばしを防ぐ。
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          key={img.filename}
+                          src={img.dataUrl}
+                          alt="シェア画像のプレビュー"
+                          className="h-auto w-full rounded-xl border border-divider bg-content2"
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
 
                 <div className="flex flex-col gap-2">
                   {/* 画像の準備が終わるまでは「シェアする」ボタン上に準備中を表示し、

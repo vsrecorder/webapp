@@ -17,6 +17,7 @@ export default function DisplayMatchMemoModal({ match, isOpen, onOpenChange }: P
       isOpen={isOpen}
       size={"sm"}
       placement="center"
+      scrollBehavior="inside"
       hideCloseButton
       onOpenChange={onOpenChange}
     >

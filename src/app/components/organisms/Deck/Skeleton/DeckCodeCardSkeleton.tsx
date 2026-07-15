@@ -1,6 +1,7 @@
 import { Skeleton } from "@heroui/react";
 
-// boardレイアウト（デッキ画像→デッキコード→バージョン・対戦環境チップ）用スケルトン。
+// boardレイアウト（デッキ画像→デッキコード）用スケルトン。実態のDeckCodeCardに合わせ、
+// 画像とデッキコード行だけを並べる（チップ行は無い）。
 // hideImage: デッキ画像を別所（ギャラリーのヒーロー画像）で表示する場合に true。
 export default function DeckCodeCardSkeleton({
   hideImage = false,
@@ -11,12 +12,6 @@ export default function DeckCodeCardSkeleton({
 
       {/* デッキコード行 */}
       <Skeleton className="h-9 w-full rounded-lg" />
-
-      {/* バージョン・対戦環境チップ */}
-      <div className="flex gap-1.5">
-        <Skeleton className="h-5 w-20 rounded-md" />
-        <Skeleton className="h-5 w-28 rounded-md" />
-      </div>
     </div>
   );
 }

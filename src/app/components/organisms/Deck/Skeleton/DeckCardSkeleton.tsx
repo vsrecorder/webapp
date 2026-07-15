@@ -43,17 +43,13 @@ export function DeckViewToggleSkeleton() {
 }
 
 export function DeckCardSkeleton({ compact = false }: { compact?: boolean } = {}) {
-  // ボード(記録詳細/モーダル)向けの案1レイアウト用スケルトン。
-  // デッキ画像(2:1)を主役に、その下にコード・チップの骨格を並べる。
+  // ボード(記録詳細/モーダル)向けのスケルトン。実態のDeckCodeCardに合わせて、
+  // デッキ画像(2:1)を主役に、その下にデッキコード行だけを並べる（チップ行は無い）。
   if (compact) {
     return (
       <div className="flex w-full flex-col gap-2.5">
         <Skeleton className="aspect-2/1 w-full rounded-lg" />
         <Skeleton className="h-9 w-full rounded-lg" />
-        <div className="flex gap-1.5">
-          <Skeleton className="h-5 w-20 rounded-md" />
-          <Skeleton className="h-5 w-28 rounded-md" />
-        </div>
       </div>
     );
   }

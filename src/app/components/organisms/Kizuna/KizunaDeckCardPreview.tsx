@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-
 import { Card, CardHeader } from "@heroui/react";
 
 import { LuCalendar, LuChevronDown, LuImage } from "react-icons/lu";
@@ -205,9 +203,8 @@ function ListPreview({ vm }: { vm: ViewModel }) {
 // 中央の勝率の大きな数字を、勝率ときずなLv.の二枚看板に組み替える（案B）。
 // スプライトには灯を宿す。
 function GalleryPreview({ vm }: { vm: ViewModel }) {
-  // 本物のカードでは戦績はアコーディオンの中にある。二枚看板を見せるのが目的なので開いた状態で出す。
-  const [expanded, setExpanded] = useState(true);
-
+  // 本物のカードでは戦績はアコーディオンの中にある。二枚看板を見せるのが目的なので、
+  // このプレビューでは常に開いた状態で固定し、閉じられないようにする。
   const { stats } = vm;
 
   return (
@@ -238,75 +235,68 @@ function GalleryPreview({ vm }: { vm: ViewModel }) {
       </div>
 
       <div className="px-3 pt-2 pb-3">
-        <button
-          type="button"
-          aria-expanded={expanded}
-          onClick={() => setExpanded((v) => !v)}
-          className="flex w-full items-center justify-center gap-1 rounded-lg bg-default-100 px-3 py-2 font-bold text-tiny text-default-600 active:opacity-70"
+        <div
+          aria-hidden
+          className="flex w-full cursor-default items-center justify-center gap-1 rounded-lg bg-default-100 px-3 py-2 font-bold text-tiny text-default-600"
         >
-          {expanded ? "閉じる" : "デッキコード・戦績を見る"}
-          <LuChevronDown
-            aria-hidden
-            className={`text-base transition-transform ${expanded ? "rotate-180" : ""}`}
-          />
-        </button>
+          デッキコード・戦績を見る
+          <LuChevronDown aria-hidden className="text-base" />
+        </div>
       </div>
 
-      {expanded && (
-        <div className="flex flex-col gap-3 px-3 pt-0 pb-3">
-          {/* 二枚看板：カードの中心に「強かったか／どう歩んできたか」を並べる */}
-          <div className="grid grid-cols-[1fr_1px_1fr] items-center gap-2">
-            <div className="flex flex-col items-center gap-0.5">
-              <span className="font-bold text-tiny text-default-400">勝率</span>
-              <span className="font-black text-3xl leading-none tabular-nums text-success">
-                {percent(stats.winRate)}
-              </span>
-              <span className="text-tiny tabular-nums text-default-500">
-                {stats.matchCount}戦{stats.wins}勝{stats.losses}敗
-              </span>
-            </div>
-            <div className="h-12 w-px bg-default-200" />
-            <div className="flex flex-col items-center gap-0.5">
-              <span className="font-bold text-tiny text-amber-500 dark:text-amber-400">
-                きずなLv.
-              </span>
-              <span className="font-black text-3xl leading-none tabular-nums text-amber-500 dark:text-amber-400">
-                {vm.kizunaLevel}
-              </span>
-              <span className="text-tiny text-default-500">{vm.tierName}</span>
-            </div>
+      <div className="flex flex-col gap-3 px-3 pt-0 pb-3">
+        {/* 二枚看板：カードの中心に「強かったか／どう歩んできたか」を並べる */}
+        <div className="grid grid-cols-[1fr_1px_1fr] items-center gap-2">
+          <div className="flex flex-col items-center gap-0.5">
+            <span className="font-bold text-tiny text-default-400">勝率</span>
+            <span className="font-black text-3xl leading-none tabular-nums text-success">
+              {percent(stats.winRate)}
+            </span>
+            <span className="text-tiny tabular-nums text-default-500">
+              {stats.matchCount}戦{stats.wins}勝{stats.losses}敗
+            </span>
           </div>
-
-          <div className="h-1 w-full overflow-hidden rounded-full bg-default-200">
-            <div
-              className="h-full rounded-full bg-linear-to-r from-rose-500 to-amber-400"
-              style={{ width: `${vm.kizunaRatio * 100}%` }}
-            />
-          </div>
-
-          {/* 先攻・後攻（現状のまま） */}
-          <div className="grid grid-cols-[auto_1fr_1fr] items-stretch gap-x-2 gap-y-1.5 text-[11px] tabular-nums">
-            <span className="flex items-center font-bold text-default-600">先攻</span>
-            <span className="flex items-baseline justify-center gap-1 rounded-lg bg-default-100 px-2 py-1.5">
-              <span className="text-[9px] font-semibold text-default-400">割合</span>
-              {percent(stats.goFirstRate)}（{stats.goFirstCount}件）
+          <div className="h-12 w-px bg-default-200" />
+          <div className="flex flex-col items-center gap-0.5">
+            <span className="font-bold text-tiny text-amber-500 dark:text-amber-400">
+              きずなLv.
             </span>
-            <span className="flex items-baseline justify-center gap-1 rounded-lg bg-default-100 px-2 py-1.5 font-bold text-success">
-              <span className="text-[9px] font-semibold text-default-400">勝率</span>
-              {percent(stats.goFirstWinRate)}
+            <span className="font-black text-3xl leading-none tabular-nums text-amber-500 dark:text-amber-400">
+              {vm.kizunaLevel}
             </span>
-            <span className="flex items-center font-bold text-default-600">後攻</span>
-            <span className="flex items-baseline justify-center gap-1 rounded-lg bg-default-100 px-2 py-1.5">
-              <span className="text-[9px] font-semibold text-default-400">割合</span>
-              {percent(1 - stats.goFirstRate)}（{stats.goSecondCount}件）
-            </span>
-            <span className="flex items-baseline justify-center gap-1 rounded-lg bg-default-100 px-2 py-1.5 font-bold text-success">
-              <span className="text-[9px] font-semibold text-default-400">勝率</span>
-              {percent(stats.goSecondWinRate)}
-            </span>
+            <span className="text-tiny text-default-500">{vm.tierName}</span>
           </div>
         </div>
-      )}
+
+        <div className="h-1 w-full overflow-hidden rounded-full bg-default-200">
+          <div
+            className="h-full rounded-full bg-linear-to-r from-rose-500 to-amber-400"
+            style={{ width: `${vm.kizunaRatio * 100}%` }}
+          />
+        </div>
+
+        {/* 先攻・後攻（現状のまま） */}
+        <div className="grid grid-cols-[auto_1fr_1fr] items-stretch gap-x-2 gap-y-1.5 text-[11px] tabular-nums">
+          <span className="flex items-center font-bold text-default-600">先攻</span>
+          <span className="flex items-baseline justify-center gap-1 rounded-lg bg-default-100 px-2 py-1.5">
+            <span className="text-[9px] font-semibold text-default-400">割合</span>
+            {percent(stats.goFirstRate)}（{stats.goFirstCount}件）
+          </span>
+          <span className="flex items-baseline justify-center gap-1 rounded-lg bg-default-100 px-2 py-1.5 font-bold text-success">
+            <span className="text-[9px] font-semibold text-default-400">勝率</span>
+            {percent(stats.goFirstWinRate)}
+          </span>
+          <span className="flex items-center font-bold text-default-600">後攻</span>
+          <span className="flex items-baseline justify-center gap-1 rounded-lg bg-default-100 px-2 py-1.5">
+            <span className="text-[9px] font-semibold text-default-400">割合</span>
+            {percent(1 - stats.goFirstRate)}（{stats.goSecondCount}件）
+          </span>
+          <span className="flex items-baseline justify-center gap-1 rounded-lg bg-default-100 px-2 py-1.5 font-bold text-success">
+            <span className="text-[9px] font-semibold text-default-400">勝率</span>
+            {percent(stats.goSecondWinRate)}
+          </span>
+        </div>
+      </div>
     </Card>
   );
 }

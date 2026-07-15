@@ -39,7 +39,7 @@ export default async function Footer() {
           {/* リンクグループ */}
           <div className="flex gap-10 sm:gap-12">
             <div className="flex flex-col gap-2.5">
-              <span className="text-xs text-neutral-500 uppercase tracking-widest font-bold">
+              <span className="text-xs text-neutral-400 uppercase tracking-widest font-bold">
                 サービス
               </span>
               <Link
@@ -69,7 +69,7 @@ export default async function Footer() {
             </div>
 
             <div className="flex flex-col gap-2.5">
-              <span className="text-xs text-neutral-500 uppercase tracking-widest font-bold">
+              <span className="text-xs text-neutral-400 uppercase tracking-widest font-bold">
                 サポート
               </span>
               <a
@@ -87,7 +87,7 @@ export default async function Footer() {
         </div>
 
         {/* コピーライト */}
-        <div className="flex justify-center pt-5 text-xs text-neutral-600">
+        <div className="flex justify-center pt-5 text-xs text-neutral-400">
           © {new Date().getFullYear()} バトレコ
         </div>
       </div>

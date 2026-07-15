@@ -14,9 +14,8 @@ import { RecordCardSkeleton } from "@app/components/organisms/Record/Skeleton/Re
 import { RecordType, RecordGetByIdResponseType } from "@app/types/record";
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { UnofficialEventGetByIdResponseType } from "@app/types/unofficial_event";
-import { EnvironmentType } from "@app/types/environment";
 import { MatchGetResponseType } from "@app/types/match";
-import { countMatchResults, isGroupMatchMajority } from "@app/utils/match";
+import { countMatchResults, hasGroupMatch, hasBo3Match } from "@app/utils/match";
 
 async function fetchUnofficialEventById(
   id: string,
@@ -80,25 +79,6 @@ async function fetchMatchesByRecordId(record_id: string) {
   }
 }
 
-// 開催日(YYYY-MM-DD)時点の対戦環境を取得する
-async function fetchEnvironment(date: string | Date) {
-  const res = await fetch(`/api/environments?date=${date.toString().split("T")[0]}`, {
-    cache: "no-store",
-    method: "GET",
-    headers: {
-      Accept: "application/json",
-    },
-  });
-
-  if (!res.ok) {
-    throw new Error("Failed to fetch");
-  }
-
-  const ret: EnvironmentType = await res.json();
-
-  return ret;
-}
-
 type Props = {
   recordData: RecordType;
   enableDisplayRecordModal: boolean;
@@ -127,8 +107,6 @@ export default function UnofficialEventRecord({
 
   const [matches, setMatches] = useState<MatchGetResponseType[]>([]);
   const [loadingMatches, setLoadingMatches] = useState(true);
-
-  const [environment, setEnvironment] = useState<EnvironmentType | null>(null);
 
   const [unofficialEvent, setUnofficialEvent] =
     useState<UnofficialEventGetByIdResponseType | null>(null);
@@ -242,31 +220,6 @@ export default function UnofficialEventRecord({
     fetchData();
   }, [record?.id]);
 
-  // 開催日(event_date 優先、ゼロ値なら unofficial_events.date / created_at)を基に
-  // 対戦環境を取得する
-  useEffect(() => {
-    const dateStr =
-      record?.event_date && !record.event_date.startsWith("0001-01-01")
-        ? record.event_date
-        : unofficialEvent?.date && !unofficialEvent.date.startsWith("0001-01-01")
-          ? unofficialEvent.date
-          : record?.created_at;
-    if (!dateStr) {
-      return;
-    }
-
-    const fetchData = async () => {
-      try {
-        const data = await fetchEnvironment(dateStr);
-        setEnvironment(data);
-      } catch (err) {
-        console.log(err);
-      }
-    };
-
-    fetchData();
-  }, [record?.event_date, record?.created_at, unofficialEvent?.date]);
-
   if (eventError) {
     return <FetchError onRetry={loadUnofficialEvent} compact />;
   }
@@ -330,16 +283,6 @@ export default function UnofficialEventRecord({
             >
               自由形式
             </Chip>
-            {environment?.title && (
-              <Chip
-                size="sm"
-                variant="flat"
-                color="default"
-                className="h-5 text-[10px] font-bold"
-              >
-                {`『${environment.title}』`}
-              </Chip>
-            )}
           </>
         }
         ignoreStatsFlg={record.ignore_stats_flg}
@@ -349,7 +292,8 @@ export default function UnofficialEventRecord({
         loadingDeck={loadingDeck}
         winCount={wins}
         lossCount={losses}
-        isGroupMatchMajority={isGroupMatchMajority(matches)}
+        hasGroupMatch={hasGroupMatch(matches)}
+        hasBo3={hasBo3Match(matches)}
         loadingMatches={loadingMatches}
       />
     </>

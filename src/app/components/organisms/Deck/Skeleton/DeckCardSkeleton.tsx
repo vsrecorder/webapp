@@ -1,7 +1,6 @@
-import { Card, CardHeader, CardBody } from "@heroui/react";
+import { Card, CardHeader } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
 
-import DeckCodeCardSkeleton from "@app/components/organisms/Deck/Skeleton/DeckCodeCardSkeleton";
 import type { DeckCardView } from "@app/components/organisms/Deck/DeckCard";
 
 // リスト表示（コンパクト行）用スケルトン。実際のリストカードの構造に合わせて、
@@ -59,8 +58,9 @@ export function DeckCardSkeleton({ compact = false }: { compact?: boolean } = {}
     );
   }
 
-  // ギャラリー表示用スケルトン。実際のギャラリーカードの構造に合わせて、
-  // ヘッダー(スプライト＋名前＋日付)・ヒーロー画像・戦績・先攻/後攻チップを並べる。
+  // ギャラリー表示用スケルトン。実際のギャラリーカードの「既定（畳んだ）状態」に合わせて、
+  // ヘッダー(登録日＋スプライト＋名前)・ヒーロー画像・「デッキコード・戦績を見る」開閉ボタン
+  // の骨格を並べる。デッキコード・戦績・先攻/後攻は開いたときだけ出るためここには含めない。
   return (
     <Card className="w-full overflow-hidden border border-default-200 shadow-sm">
       <CardHeader className="flex flex-col gap-1.5 px-3 pt-3 pb-2">
@@ -81,26 +81,10 @@ export function DeckCardSkeleton({ compact = false }: { compact?: boolean } = {}
       {/* ヒーロー画像 */}
       <Skeleton className="aspect-2/1 w-full" />
 
-      <CardBody className="flex flex-col gap-3 px-3 py-3">
-        {/* バージョン/環境/コードのメタ（ヒーロー画像の直下） */}
-        <DeckCodeCardSkeleton hideImage />
-
-        {/* 戦績：勝率ラベル・大きな勝率数値・対戦成績を中央配置 */}
-        <div className="flex flex-col items-center gap-1">
-          <Skeleton className="h-3 w-8 rounded" />
-          <Skeleton className="h-8 w-24 rounded-lg" />
-          <Skeleton className="h-3 w-28 rounded" />
-        </div>
-        {/* 先攻/後攻チップ */}
-        <div className="grid grid-cols-[auto_1fr_1fr] items-center gap-x-2 gap-y-1.5">
-          <Skeleton className="h-3.5 w-8 rounded" />
-          <Skeleton className="h-8 rounded-lg" />
-          <Skeleton className="h-8 rounded-lg" />
-          <Skeleton className="h-3.5 w-8 rounded" />
-          <Skeleton className="h-8 rounded-lg" />
-          <Skeleton className="h-8 rounded-lg" />
-        </div>
-      </CardBody>
+      {/* 「デッキコード・戦績を見る」開閉ボタン */}
+      <div className="px-3 pt-2 pb-3">
+        <Skeleton className="h-9 w-full rounded-lg" />
+      </div>
     </Card>
   );
 }

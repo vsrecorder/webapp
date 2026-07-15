@@ -16,14 +16,14 @@ import {
   getChipColor,
   getEventTypeName,
   cleanOfficialEventTitle,
-  isExtraBattleDay,
+  shouldShowEnvironmentChip,
 } from "@app/components/organisms/Record/officialEventHelpers";
 
 import { RecordType, RecordGetByIdResponseType } from "@app/types/record";
 import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { MatchGetResponseType } from "@app/types/match";
-import { countMatchResults, isGroupMatchMajority } from "@app/utils/match";
+import { countMatchResults, hasGroupMatch, hasBo3Match } from "@app/utils/match";
 
 async function fetchOfficialEventById(id: number) {
   try {
@@ -293,7 +293,7 @@ export default function OfficialEventRecord({
               {getEventTypeName(officialEvent)}
             </Chip>
             {officialEvent.environment_title &&
-              !isExtraBattleDay(officialEvent) && (
+              shouldShowEnvironmentChip(officialEvent) && (
                 <Chip
                   size="sm"
                   variant="flat"
@@ -329,7 +329,8 @@ export default function OfficialEventRecord({
         loadingDeck={loadingDeck}
         winCount={wins}
         lossCount={losses}
-        isGroupMatchMajority={isGroupMatchMajority(matches)}
+        hasGroupMatch={hasGroupMatch(matches)}
+        hasBo3={hasBo3Match(matches)}
         loadingMatches={loadingMatches}
       />
     </>

@@ -468,7 +468,7 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
                             href="/users"
                             className="font-bold underline underline-offset-2"
                           >
-                            ユーザ情報
+                            トレーナー情報
                           </Link>
                           から連携すると、この称号を達成できる可能性があります。
                         </>
@@ -479,7 +479,7 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
                             href="/users"
                             className="font-bold underline underline-offset-2"
                           >
-                            ユーザ情報
+                            トレーナー情報
                           </Link>
                           から連携してください。
                         </>

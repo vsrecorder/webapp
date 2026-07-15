@@ -157,7 +157,7 @@ export default function UserMenu({ user, iconUrl, isDevEnv }: Props) {
                 router.push("/users");
               }}
             >
-              ユーザ情報
+              トレーナー情報
             </DropdownItem>
             <DropdownItem
               key="dashboard-customize"

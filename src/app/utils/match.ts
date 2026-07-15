@@ -7,9 +7,12 @@ export function countMatchResults(matches: MatchGetResponseType[]) {
   return { wins, losses, total: matches.length };
 }
 
-// 対戦一覧のうちチーム戦(group_match_flg)が過半数を占めるか判定する
-export function isGroupMatchMajority(matches: MatchGetResponseType[]) {
-  if (matches.length === 0) return false;
-  const groupMatchCount = matches.filter((m) => m.group_match_flg).length;
-  return groupMatchCount > matches.length / 2;
+// 対戦一覧にチーム戦(group_match_flg)が1つでも含まれるか判定する
+export function hasGroupMatch(matches: MatchGetResponseType[]) {
+  return matches.some((m) => m.group_match_flg);
+}
+
+// 対戦一覧にBO3(bo3_flg)が1つでも含まれるか判定する
+export function hasBo3Match(matches: MatchGetResponseType[]) {
+  return matches.some((m) => m.bo3_flg);
 }

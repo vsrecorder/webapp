@@ -13,20 +13,54 @@ export function cleanOfficialEventTitle(title: string): string {
     .replace(/【.*?】エクストラバトルの日/g, "エクストラバトルの日")
     .replace(/【.*?】ポケモンカードゲーム　/g, "")
     .replace(/ポケモンカードゲーム /g, "")
+    .replace(/ポケモンジャパンチャンピオンシップス/g, "PJCS")
+    .replace(/カードゲーム部門/g, "")
     .replace(/（オープンリーグ）/g, "")
     .replace(/（マスターリーグ）/g, "")
     .replace(/（シニアリーグ）/g, "")
     .replace(/（ジュニアリーグ）/g, "")
     .replace(/（スタンダード）/g, "")
-    .replace(/（.*?）/g, "");
+    .replace(/（.*?）/g, "")
+    .trim();
 }
 
-// 公式イベントが「エクストラバトルの日」かどうかを判定する。
-// エクストラバトルの日は対戦環境の情報チップを表示しない用途で利用する。
-export function isExtraBattleDay(
+// PJCS(ポケモンジャパンチャンピオンシップス)かどうかを判定する。
+// 表示用に cleanOfficialEventTitle でタイトルを「PJCS」へ置換しているため、
+// 整形前(元の名称)・整形後(PJCS)のどちらのタイトルでも判定できるようにする。
+export function isPJCS(officialEvent: OfficialEventGetByIdResponseType): boolean {
+  return (
+    officialEvent.title.includes("ポケモンジャパンチャンピオンシップス") ||
+    officialEvent.title.includes("PJCS")
+  );
+}
+
+// 対戦環境チップを表示する公式イベントかどうかを判定する。
+// ジムバトル・トレーナーズリーグ・シティリーグ・チャンピオンズリーグ・PJCS のみ表示する。
+export function shouldShowEnvironmentChip(
   officialEvent: OfficialEventGetByIdResponseType,
 ): boolean {
-  return officialEvent.title.includes("エクストラバトルの日");
+  // 大型大会のうちチャンピオンズリーグ・PJCS・スクランブルバトル
+  if (officialEvent.type_id === 1) {
+    return (
+      officialEvent.title.includes("チャンピオンズリーグ") ||
+      isPJCS(officialEvent) ||
+      officialEvent.title.includes("スクランブルバトル")
+    );
+  }
+  // シティリーグ
+  if (officialEvent.type_id === 2) return true;
+  // トレーナーズリーグ
+  if (officialEvent.type_id === 3) return true;
+
+  // ジムバトル・MEGAウインターリーグ・マイジムNo.1決定戦
+  if (officialEvent.type_id === 4) {
+    return (
+      officialEvent.title.includes("ジムバトル") ||
+      officialEvent.title.includes("MEGAウインターリーグ") ||
+      officialEvent.title.includes("マイジムNo.1決定戦")
+    );
+  }
+  return false;
 }
 
 /*
@@ -35,7 +69,7 @@ export function isExtraBattleDay(
  */
 export function getEventIconUrl(officialEvent: OfficialEventGetByIdResponseType): string {
   if (officialEvent.type_id === 1) {
-    if (officialEvent.title.includes("ポケモンジャパンチャンピオンシップス")) {
+    if (isPJCS(officialEvent)) {
       return `${ICON_BASE}jcs.png`;
     }
     if (officialEvent.title.includes("チャンピオンズリーグ")) {
@@ -108,7 +142,12 @@ export function getEventAccentColor(
 }
 
 export type ChipColor =
-  "default" | "primary" | "secondary" | "success" | "warning" | "danger";
+  | "default"
+  | "primary"
+  | "secondary"
+  | "success"
+  | "warning"
+  | "danger";
 
 export function getChipColor(officialEvent: OfficialEventGetByIdResponseType): ChipColor {
   if (officialEvent.type_id === 1) return "warning";
@@ -133,8 +172,7 @@ export function getEventTypeName(
   officialEvent: OfficialEventGetByIdResponseType,
 ): string {
   if (officialEvent.type_id === 1) {
-    if (officialEvent.title.includes("ポケモンジャパンチャンピオンシップス"))
-      return "PJCS";
+    if (isPJCS(officialEvent)) return "PJCS";
     if (officialEvent.title.includes("チャンピオンズリーグ"))
       return "チャンピオンズリーグ";
     if (officialEvent.title.includes("スクランブルバトル")) return "スクランブルバトル";

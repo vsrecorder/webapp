@@ -24,7 +24,7 @@ import {
   getEventVenueLabel,
   getEventAccentColor,
   cleanOfficialEventTitle,
-  isExtraBattleDay,
+  shouldShowEnvironmentChip,
 } from "@app/components/organisms/Record/officialEventHelpers";
 
 import { MatchStats } from "@app/utils/matchStats";
@@ -203,7 +203,7 @@ function HeroShell({
           style={{ borderTopColor: `rgb(${accentRgb ?? "59, 130, 246"})` }}
         />
 
-        <div className="px-3 py-4.5">
+        <div className="px-3 py-3">
           {/* 上段は左右2カラム。左カラムは「上：イベント情報／下：使用デッキ」の縦積み、
             右カラムは戦績パネル。items-stretch で両カラムの高さを揃え、低い方が
             引き伸ばされることで左右のバランスが取れる。
@@ -606,7 +606,7 @@ export default function RecordHero({
               >
                 {getEventTypeName(officialEvent)}
               </Chip>
-              {officialEvent.environment_title && !isExtraBattleDay(officialEvent) && (
+              {officialEvent.environment_title && shouldShowEnvironmentChip(officialEvent) && (
                 <Chip
                   size="sm"
                   variant="flat"

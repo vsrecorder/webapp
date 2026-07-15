@@ -19,7 +19,7 @@ import { LuLayoutGrid } from "react-icons/lu";
 import DeckCodeCard from "@app/components/organisms/Deck/DeckCodeCard";
 import ShowDeckModal from "@app/components/organisms/Deck/Modal/ShowDeckModal";
 
-import { useDeckCodes, getDeckCodeVersionNumber } from "@app/hooks/useDeckCodes";
+import { useDeckCodes } from "@app/hooks/useDeckCodes";
 
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
@@ -56,11 +56,9 @@ export default function UsedDeckCard({
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
-  // このデッキの全バージョン（デッキコード）。件数バッジと通し番号の算出に使う。
+  // このデッキの全バージョン（デッキコード）。件数バッジの算出に使う。
   const { deckcodes } = useDeckCodes(deck?.id, deckcode?.id);
   const versionCount = deckcodes?.length ?? null;
-  // 実際に使用したdeckcode自体の通し番号（総バージョン数とは異なる）
-  const versionNumber = getDeckCodeVersionNumber(deckcodes, deckcode?.id);
 
   // バッジタップ時、デッキ詳細を開くと同時にバージョン履歴も自動で開く
   const [openHistoryOnShow, setOpenHistoryOnShow] = useState(false);
@@ -191,12 +189,10 @@ export default function UsedDeckCard({
           <CardBody className={compact ? "px-0 py-0" : "px-3 py-2"}>
             <DeckCodeCard
               deckcode={deckcode}
-              versionNumber={versionNumber}
               totalVersionCount={versionCount}
               onCreateVersion={isArchived ? undefined : onCreateVersion}
               onSelectExistingVersion={onSelectExistingVersion}
               isArchived={isArchived}
-              board={compact}
             />
           </CardBody>
         </Card>

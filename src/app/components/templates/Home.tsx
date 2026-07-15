@@ -233,15 +233,15 @@ export default async function TemplateHome() {
     env = undefined;
   }
 
-  // Grafanaから統計データを並列取得（パネルID: 3=デッキ数, 2=対戦数, 7=ユーザ数,）
-  const [deckCount, recordCount, userCount] = await Promise.all([
-    getGrafanaStat(3),
+  // Grafanaから統計データを並列取得（パネルID: 8=デッキコード数, 2=対戦数, 7=ユーザ数,）
+  const [deckCodeCount, recordCount, userCount] = await Promise.all([
+    getGrafanaStat(8),
     getGrafanaStat(2),
     getGrafanaStat(7),
   ]);
 
   const statsItems = [
-    { value: deckCount, label: "デッキ数" },
+    { value: deckCodeCount, label: "デッキコード数" },
     { value: recordCount, label: "対戦数" },
     { value: userCount, label: "ユーザ数" },
   ].filter((item) => item.value !== undefined) as { value: number; label: string }[];

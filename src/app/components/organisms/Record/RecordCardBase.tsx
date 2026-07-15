@@ -35,8 +35,10 @@ type Props = {
   // 対戦の勝敗数(デッキ行の右端に表示)
   winCount?: number;
   lossCount?: number;
-  // 対戦結果の過半数がチーム戦かどうか(勝敗の左横にバッジ表示)
-  isGroupMatchMajority?: boolean;
+  // 対戦結果にチーム戦が1つでも含まれるか(勝敗の左横にバッジ表示)
+  hasGroupMatch?: boolean;
+  // 対戦結果にBO3が1つでも含まれるか(勝敗の左横にバッジ表示)
+  hasBo3?: boolean;
   loadingMatches: boolean;
   // 戦績集計から除外されているか。true の場合カード右上にバッジを表示する
   ignoreStatsFlg?: boolean;
@@ -63,7 +65,8 @@ export default function RecordCardBase({
   infoRowAboveDeck,
   winCount,
   lossCount,
-  isGroupMatchMajority,
+  hasGroupMatch,
+  hasBo3,
   loadingMatches,
   ignoreStatsFlg,
 }: Props) {
@@ -202,10 +205,16 @@ export default function RecordCardBase({
                       </div>
                     ) : hasMatchResult ? (
                       <div className="flex items-center gap-1.5 shrink-0">
-                        {/* チーム戦が過半数を占める場合のみ勝敗の左横に表示(文字色は対戦結果一覧のチーム戦タグと統一) */}
-                        {isGroupMatchMajority && (
+                        {/* チーム戦が1つでも含まれる場合に勝敗の左横に表示(文字色は対戦結果一覧のチーム戦タグと統一) */}
+                        {hasGroupMatch && (
                           <span className="text-xs font-bold shrink-0 rounded-md border px-1.5 py-0.5 text-secondary border-secondary/40 bg-secondary/10">
                             チーム戦
+                          </span>
+                        )}
+                        {/* BO3が1つでも含まれる場合に表示(色は対戦結果一覧のBO3チップと統一) */}
+                        {hasBo3 && (
+                          <span className="text-xs font-bold shrink-0 rounded-md border px-1.5 py-0.5 text-primary border-primary/40 bg-primary/10">
+                            BO3
                           </span>
                         )}
                         <span

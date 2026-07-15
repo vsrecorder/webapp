@@ -79,7 +79,7 @@ export default function UserIdentityCard({ userId }: Props) {
   }
 
   if (error) {
-    return <FetchError message="ユーザー情報の取得に失敗しました" onRetry={loadUser} />;
+    return <FetchError message="トレーナー情報の取得に失敗しました" onRetry={loadUser} />;
   }
 
   return (

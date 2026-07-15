@@ -29,7 +29,7 @@ import DisplayDeckOpponentAnalysisModal from "@app/components/organisms/Deck/Mod
 import DeckCodeCard from "@app/components/organisms/Deck/DeckCodeCard";
 import DeckCardSummaryRow from "@app/components/organisms/Deck/DeckCardSummaryRow";
 import { spriteScaleClass } from "@app/utils/sprite";
-import { useDeckCodes, getDeckCodeVersionNumber } from "@app/hooks/useDeckCodes";
+import { useDeckCodes } from "@app/hooks/useDeckCodes";
 
 //import { LuExternalLink } from "react-icons/lu";
 import { LuFolderInput } from "react-icons/lu";
@@ -184,7 +184,6 @@ export default function ShowDeckModal({
   // 通し番号やデッキコード等の表示自体は DeckCodeCard に委譲する。
   const { deckcodes } = useDeckCodes(deck?.id, deckcode?.id);
   const versionCount = deckcodes?.length ?? null;
-  const versionNumber = getDeckCodeVersionNumber(deckcodes, deckcode?.id);
 
   if (!deck) {
     return;
@@ -214,11 +213,8 @@ export default function ShowDeckModal({
               <ModalHeader className="px-3 py-3 flex items-center gap-3">
                 <>
                   <div className="flex items-center justify-between w-full">
-                    <div className="flex flex-col gap-1 w-full">
-                      <div
-                        onClick={onOpenForUpdateDeckModal}
-                        className="flex items-center gap-0 shrink-0"
-                      >
+                    <div className="flex flex-col items-center gap-1 w-full">
+                      <div className="flex items-center gap-0 shrink-0">
                         {deck.pokemon_sprites[0] ? (
                           <Image
                             alt={deck.pokemon_sprites[0].id}
@@ -248,15 +244,8 @@ export default function ShowDeckModal({
                         )}
                       </div>
 
-                      <div className="flex items-center gap-2 w-full">
-                        <div className="font-bold text-large truncate">{deck.name}</div>
-                        <button
-                          type="button"
-                          onClick={onOpenForUpdateDeckModal}
-                          className="flex items-center justify-center w-7 h-7 rounded-full bg-default-100 text-default-500 active:opacity-70 shrink-0"
-                        >
-                          <LuSquarePen className="text-sm" />
-                        </button>
+                      <div className="w-full min-w-0 text-center font-bold text-large truncate">
+                        {deck.name}
                       </div>
                     </div>
                     {/*
@@ -277,11 +266,9 @@ export default function ShowDeckModal({
                     チップを並べることで、モーダル間で表示のズレを防ぐ */}
                 <DeckCodeCard
                   deckcode={deckcode}
-                  versionNumber={versionNumber}
                   totalVersionCount={versionCount}
                   onCreateVersion={isArchived ? undefined : onOpenForCreateDeckCodeModal}
                   isArchived={isArchived}
-                  board
                 />
 
                 {deckcode?.code && (
@@ -375,6 +362,13 @@ export default function ShowDeckModal({
                       </button>
                     </DropdownTrigger>
                     <DropdownMenu aria-label="デッキの操作">
+                      <DropdownItem
+                        key="edit"
+                        startContent={<LuSquarePen />}
+                        onPress={onOpenForUpdateDeckModal}
+                      >
+                        デッキ情報を編集する
+                      </DropdownItem>
                       <DropdownItem
                         key="archive-toggle"
                         startContent={isArchived ? <LuFolderOutput /> : <LuFolderInput />}

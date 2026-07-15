@@ -329,7 +329,7 @@ export default function Matches({
                           aria-label="対戦結果"
                           className=""
                           classNames={{
-                            wrapper: "px-1 py-1.5 shadow-none overflow-x-hidden",
+                            wrapper: "px-1 py-1 shadow-none overflow-x-hidden",
                             table: "",
                             th: "px-0 py-0",
                             td: "px-0 py-0",
@@ -418,7 +418,9 @@ export default function Matches({
                                       <Button
                                         radius="md"
                                         variant="light"
-                                        className="pl-1.5 pr-0.5 py-8 w-full"
+                                        className={`pl-1.5 pr-0.5 w-full ${
+                                          match.group_match_flg ? "py-7" : "py-6"
+                                        }`}
                                         onPress={() => {
                                           setSelectedMatch(match);
                                           // 編集可能な場合は編集モーダル、
@@ -521,6 +523,22 @@ export default function Matches({
                                                           チーム戦
                                                         </Chip>
                                                       )}
+                                                      {/* BO3はチーム戦チップと同様に独立したチップで示す */}
+                                                      {match.bo3_flg && (
+                                                        <Chip
+                                                          size="sm"
+                                                          variant="flat"
+                                                          radius="sm"
+                                                          color="primary"
+                                                          classNames={{
+                                                            base: "h-4 px-1",
+                                                            content:
+                                                              "px-1 text-[8px] font-bold",
+                                                          }}
+                                                        >
+                                                          BO3
+                                                        </Chip>
+                                                      )}
                                                     </div>
                                                   </div>
                                                 </div>
@@ -588,22 +606,25 @@ export default function Matches({
                                                           チーム戦
                                                         </Chip>
                                                       )}
+                                                      {/* BO3はチーム戦チップと同様に独立したチップで示す */}
+                                                      {match.bo3_flg && (
+                                                        <Chip
+                                                          size="sm"
+                                                          variant="flat"
+                                                          radius="sm"
+                                                          color="primary"
+                                                          classNames={{
+                                                            base: "h-4 px-1",
+                                                            content:
+                                                              "px-1 text-[8px] font-bold",
+                                                          }}
+                                                        >
+                                                          BO3
+                                                        </Chip>
+                                                      )}
                                                       {match.bo3_flg ? (
-                                                        // BO3は複数ゲームあるため、勝敗の推移(W/L)と各ゲームの先後をまとめて表示する
+                                                        // BO3は複数ゲームあるため、勝敗の推移(W/L)をまとめて表示する
                                                         <>
-                                                          <Chip
-                                                            size="sm"
-                                                            variant="flat"
-                                                            radius="sm"
-                                                            color="primary"
-                                                            classNames={{
-                                                              base: "h-4 px-1",
-                                                              content:
-                                                                "px-1 text-[8px] font-bold",
-                                                            }}
-                                                          >
-                                                            BO3
-                                                          </Chip>
                                                           {/* 勝敗の推移（1本目→3本目の順にW/Lを並べる） */}
                                                           <Chip
                                                             size="sm"
@@ -618,24 +639,6 @@ export default function Matches({
                                                               games={match.games}
                                                               size={11}
                                                             />
-                                                          </Chip>
-                                                          <Chip
-                                                            size="sm"
-                                                            variant="flat"
-                                                            radius="sm"
-                                                            classNames={{
-                                                              base: "h-4 px-1",
-                                                              content:
-                                                                "px-1 text-[8px] font-bold",
-                                                            }}
-                                                          >
-                                                            {match.games
-                                                              .map((game) =>
-                                                                game.go_first
-                                                                  ? "先攻"
-                                                                  : "後攻",
-                                                              )
-                                                              .join(" / ")}
                                                           </Chip>
                                                         </>
                                                       ) : (
@@ -654,23 +657,26 @@ export default function Matches({
                                                               ? "先攻"
                                                               : "後攻"}
                                                           </Chip>
-                                                          <Chip
-                                                            size="sm"
-                                                            variant="flat"
-                                                            radius="sm"
-                                                            classNames={{
-                                                              base: "h-4 px-1",
-                                                              content:
-                                                                "px-1 text-[8px] font-bold",
-                                                            }}
-                                                          >
-                                                            {match.games[0]
-                                                              ?.your_prize_cards ?? 0}
-                                                            {" - "}
-                                                            {match.games[0]
-                                                              ?.opponents_prize_cards ??
-                                                              0}
-                                                          </Chip>
+                                                          {/* チーム戦はサイド枚数を扱わないためチップを非表示にする */}
+                                                          {!match.group_match_flg && (
+                                                            <Chip
+                                                              size="sm"
+                                                              variant="flat"
+                                                              radius="sm"
+                                                              classNames={{
+                                                                base: "h-4 px-1",
+                                                                content:
+                                                                  "px-1 text-[8px] font-bold",
+                                                              }}
+                                                            >
+                                                              {match.games[0]
+                                                                ?.your_prize_cards ?? 0}
+                                                              {" - "}
+                                                              {match.games[0]
+                                                                ?.opponents_prize_cards ??
+                                                                0}
+                                                            </Chip>
+                                                          )}
                                                         </>
                                                       )}
                                                     </div>

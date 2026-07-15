@@ -20,7 +20,7 @@ export default function RecordHeroSkeleton() {
           スケルトンではニュートラル色で表示する) */}
       <span className="pointer-events-none absolute inset-0 z-10 rounded-[inherit] border-[3px] border-default-300" />
 
-      <div className="px-4.5 py-4.5">
+      <div className="px-3 py-3">
         {/* 上段：左カラム(イベント情報＋使用デッキ)／右カラム(戦績パネル)。
             幅比・間隔は実表示と同じく heroColumns.ts から取る */}
         <div className="flex items-stretch" style={heroColRowStyle}>

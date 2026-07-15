@@ -21,7 +21,7 @@ export type KizunaTier = {
 export const KIZUNA_TIERS: KizunaTier[] = [
   {
     min: 255,
-    name: "相棒",
+    name: "最高の相棒",
     message: "もう、言葉はいらないようです。",
     glow: "h-32 w-48 bg-amber-200/85 blur-2xl",
   },

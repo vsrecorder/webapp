@@ -18,7 +18,7 @@ import { LuSwords } from "react-icons/lu";
 import DeckCodeCard from "@app/components/organisms/Deck/DeckCodeCard";
 import ShowDeckModal from "@app/components/organisms/Deck/Modal/ShowDeckModal";
 
-import { useDeckCodes, getDeckCodeVersionNumber } from "@app/hooks/useDeckCodes";
+import { useDeckCodes } from "@app/hooks/useDeckCodes";
 
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
@@ -81,9 +81,18 @@ export default function DeckCard({
   const [deck, setDeck] = useState<DeckGetByIdResponseType | null>(deckData);
   const [deckcode, setDeckCode] = useState<DeckCodeType | null>(deckcodeData);
 
-  // 段階的開示の開閉状態。リスト表示では先攻/後攻の内訳・デッキコード画像、
-  // ギャラリー表示ではヒーロー画像より下の情報（デッキコード・戦績・先攻/後攻）に使う。
-  const [expanded, setExpanded] = useState(false);
+  // 段階的開示の開閉状態はリスト表示とギャラリー表示で独立させる。
+  // リスト表示は先攻/後攻の内訳・デッキコード画像、ギャラリー表示はヒーロー画像より
+  // 下の情報（デッキコード・戦績・先攻/後攻）を畳む。表示モードごとに畳む対象も
+  // レイアウトも異なるため、片方の開閉状態がもう片方に引き継がれないようにする。
+  const [listExpanded, setListExpanded] = useState(false);
+  const [galleryExpanded, setGalleryExpanded] = useState(false);
+
+  // 表示モードを切り替えたら、両方の開閉状態を初期化（閉じた状態）に戻す。
+  useEffect(() => {
+    setListExpanded(false);
+    setGalleryExpanded(false);
+  }, [view]);
 
   // ギャラリー表示のヒーロー画像の読み込み状態
   const [heroImageLoaded, setHeroImageLoaded] = useState(false);
@@ -93,7 +102,6 @@ export default function DeckCard({
   // このデッキの全バージョン（デッキコード）。件数バッジと通し番号の算出に使う。
   const { deckcodes } = useDeckCodes(deck?.id, deckcode?.id);
   const versionCount = deckcodes?.length ?? null;
-  const versionNumber = getDeckCodeVersionNumber(deckcodes, deckcode?.id);
 
   // バッジタップ時、デッキ詳細を開くと同時にバージョン履歴も自動で開く
   const [openHistoryOnShow, setOpenHistoryOnShow] = useState(false);
@@ -142,7 +150,7 @@ export default function DeckCard({
               </div>
             </CardHeader>
             <CardBody className="px-3 py-2">
-              <DeckCodeCard deckcode={deckcode} versionNumber={null} />
+              <DeckCodeCard deckcode={deckcode} />
             </CardBody>
           </Card>
         </div>
@@ -344,18 +352,18 @@ export default function DeckCard({
             <button
               type="button"
               aria-label={
-                expanded ? "先攻・後攻の内訳を閉じる" : "先攻・後攻の内訳を開く"
+                listExpanded ? "先攻・後攻の内訳を閉じる" : "先攻・後攻の内訳を開く"
               }
-              aria-expanded={expanded}
+              aria-expanded={listExpanded}
               onClick={(e) => {
                 e.stopPropagation();
-                setExpanded((v) => !v);
+                setListExpanded((v) => !v);
               }}
               className="shrink-0 flex h-9 w-9 items-center justify-center rounded-full text-default-400 bg-default-100 active:opacity-70"
             >
               <LuChevronDown
                 aria-hidden
-                className={`text-lg transition-transform ${expanded ? "rotate-180" : ""}`}
+                className={`text-lg transition-transform ${listExpanded ? "rotate-180" : ""}`}
               />
             </button>
           </div>
@@ -363,7 +371,7 @@ export default function DeckCard({
 
         {/* 展開部：タップでデッキ情報モーダルを開く。
             内部の CTA ボタン等は自身で stopPropagation して個別動作する。 */}
-        {expanded && (
+        {listExpanded && (
           <div className="px-3 pb-3 flex flex-col gap-2 cursor-pointer" onClick={onOpen}>
             {/* 対戦記録が無いデッキ：ギャラリー表示と同じ案内パネルを出す */}
             {!hasStats && ignoredCount === 0 && noRecordsNote}
@@ -452,15 +460,12 @@ export default function DeckCard({
 
             {ignoredNote}
 
-            {/* デッキ詳細/記録情報モーダルと同じboardレイアウト
-              （デッキ画像→デッキコード→バージョン・対戦環境チップ） */}
+            {/* デッキ詳細/記録情報モーダルと同じレイアウト（デッキ画像→デッキコード） */}
             <DeckCodeCard
               deckcode={deckcode}
-              versionNumber={versionNumber}
               totalVersionCount={versionCount}
               onCreateVersion={isArchived ? undefined : onOpen}
               isArchived={isArchived}
-              board
             />
           </div>
         )}
@@ -549,41 +554,36 @@ export default function DeckCard({
               <button
                 type="button"
                 aria-label={
-                  expanded ? "デッキコード・戦績を閉じる" : "デッキコード・戦績を開く"
+                  galleryExpanded
+                    ? "デッキコード・戦績を閉じる"
+                    : "デッキコード・戦績を開く"
                 }
-                aria-expanded={expanded}
+                aria-expanded={galleryExpanded}
                 onClick={(e) => {
                   e.stopPropagation();
-                  setExpanded((v) => !v);
+                  setGalleryExpanded((v) => !v);
                 }}
                 className="flex w-full items-center justify-center gap-1 rounded-lg bg-default-100 px-3 py-2 text-tiny font-bold text-default-600 active:opacity-70"
               >
-                {expanded ? "閉じる" : "デッキコード・戦績を見る"}
+                {galleryExpanded ? "閉じる" : "デッキコード・戦績を見る"}
                 <LuChevronDown
                   aria-hidden
-                  className={`text-base transition-transform ${expanded ? "rotate-180" : ""}`}
+                  className={`text-base transition-transform ${galleryExpanded ? "rotate-180" : ""}`}
                 />
               </button>
             </div>
 
-            {expanded && (
+            {galleryExpanded && (
               <CardBody className="flex flex-col gap-3 px-3 pt-0 pb-3">
-                {/* デッキ詳細/記録情報モーダルと同じboardレイアウト（デッキコード→バージョン・
-                対戦環境チップ）。デッキ画像はヒーローで表示済みのためhideImageで省き、
-                ヒーロー画像の直下に続けて置く。バージョン数バッジはチップ群の右端。 */}
+                {/* デッキ詳細/記録情報モーダルと同じレイアウト（デッキコードのみ）。
+                デッキ画像はヒーローで表示済みのためhideImageで省き、
+                ヒーロー画像の直下に続けて置く。 */}
                 <DeckCodeCard
                   deckcode={deckcode}
-                  versionNumber={versionNumber}
                   totalVersionCount={versionCount}
                   onCreateVersion={isArchived ? undefined : onOpen}
                   isArchived={isArchived}
-                  board
                   hideImage
-                  versionCountBadge={versionCount}
-                  onOpenHistory={() => {
-                    setOpenHistoryOnShow(true);
-                    onOpen();
-                  }}
                 />
 
                 {hasStats ? (

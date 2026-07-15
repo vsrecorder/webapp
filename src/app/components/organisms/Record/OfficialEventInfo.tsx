@@ -18,7 +18,7 @@ import {
   getEventIconUrl,
   getChipColor,
   getEventTypeName,
-  isExtraBattleDay,
+  shouldShowEnvironmentChip,
 } from "@app/components/organisms/Record/officialEventHelpers";
 import EditTCGMeisterURLModal from "@app/components/organisms/Record/Modal//EditTCGMeisterURLModal";
 
@@ -165,7 +165,7 @@ export default function OfficialEventInfo({
               {getEventTypeName(officialEvent)}
             </Chip>
             {officialEvent.environment_title &&
-              !isExtraBattleDay(officialEvent) && (
+              shouldShowEnvironmentChip(officialEvent) && (
                 <Chip
                   size="sm"
                   variant="flat"

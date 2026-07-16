@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { auth } from "@app/auth";
-import { getFirebaseAdmin } from "@firebase/admin";
+import { deleteFirebaseUserWithRetry, getFirebaseAdmin } from "@firebase/admin";
 
 import { UserGetByIdResponseType, UserUpdateRequestType, UserUpdateResponseType } from "@app/types/user";
 
@@ -107,11 +107,26 @@ export async function DELETE(
     return NextResponse.json({ error: "delete failed" }, { status: res.status });
   }
 
-  // バックエンドの退会処理が完了した後にFirebaseの認証ユーザを削除する
+  // バックエンドの退会処理が完了した後にFirebaseの認証ユーザを削除する。
+  //
+  // ここで失敗しても退会自体は完了しているため、204を返してログアウトまで進める。
+  // エラーを返すと、DB上は退会済みなのに画面上はログインしたままになり、
+  // 再試行してもバックエンドが404を返すだけで「退会処理に失敗しました」が出続けてしまう。
+  //
+  // 消し残した認証ユーザは cmd/check-firebase-users で [A:退会済み] として検出できるため、
+  // 本人の退会を妨げるより、残骸を検知して後から回収する方針を採る。
+  //
+  // getFirebaseAdmin()は初期化に失敗すると例外を投げるため、これもtryの内側に含める。
   try {
-    await getFirebaseAdmin().auth().deleteUser(id);
+    if (!(await deleteFirebaseUserWithRetry(getFirebaseAdmin(), id))) {
+      console.error("Firebase user remains after withdrawal (needs manual cleanup):", id);
+    }
   } catch (error) {
-    console.error("Failed to delete firebase user:", error);
+    console.error(
+      "Firebase user remains after withdrawal (needs manual cleanup):",
+      id,
+      error,
+    );
   }
 
   return new NextResponse(null, { status: 204 });

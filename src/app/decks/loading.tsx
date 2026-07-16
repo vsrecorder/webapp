@@ -1,8 +1,6 @@
 import FixedTabBarSkeleton from "@app/components/molecules/Skeleton/FixedTabBarSkeleton";
-import {
-  DeckCardSkeletons,
-  DeckViewToggleSkeleton,
-} from "@app/components/organisms/Deck/Skeleton/DeckCardSkeleton";
+import { DeckViewToggleSkeleton } from "@app/components/organisms/Deck/Skeleton/DeckCardSkeleton";
+import DeckListSkeleton from "@app/components/organisms/Deck/Skeleton/DeckListSkeleton";
 
 // /decks の Suspense 境界。実ページ(TemplateDecks)と同じ「上部固定タブ＋表示切替＋デッキ一覧」の
 // 枠を即座に見せ、サーバレンダリング待ちの間に画面が固まって見えるのを防ぐ。
@@ -21,10 +19,8 @@ export default function Loading() {
           <DeckViewToggleSkeleton />
         </div>
 
-        {/* デッキカード一覧（ギャラリー表示） */}
-        <div className="grid w-full gap-4 grid-cols-1 lg:grid-cols-2 lg:gap-x-6">
-          <DeckCardSkeletons view="gallery" />
-        </div>
+        {/* デッキカード一覧（保存済みの表示モードに追従） */}
+        <DeckListSkeleton />
       </div>
     </div>
   );

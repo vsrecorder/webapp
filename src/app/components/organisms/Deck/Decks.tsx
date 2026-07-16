@@ -5,22 +5,19 @@ import { useEffect, useState, useCallback } from "react";
 import { Spinner } from "@heroui/spinner";
 import { Button, Link, useDisclosure } from "@heroui/react";
 
-import DeckCard, { DeckCardView } from "@app/components/organisms/Deck/DeckCard";
+import DeckCard from "@app/components/organisms/Deck/DeckCard";
 import {
   DeckCardSkeletons,
   DeckViewToggleSkeleton,
 } from "@app/components/organisms/Deck/Skeleton/DeckCardSkeleton";
 import CreateDeckModal from "@app/components/organisms/Deck/Modal/CreateDeckModal";
 import FetchError from "@app/components/molecules/FetchError";
+import { useDeckListView, setDeckListView } from "@app/hooks/useDeckListView";
 
 import { LuCirclePlus, LuPlus, LuLayoutGrid, LuArchive, LuList } from "react-icons/lu";
 
 import { DeckType, DeckGetResponseType } from "@app/types/deck";
 import { DeckUsageItemType, DeckUsageStatType } from "@app/types/deck_usage_stat";
-
-// デッキ一覧の表示モードを localStorage に保存するキー。
-// 表示密度の好みはユーザーごとの習慣なので、次回アクセス時も同じ状態で開く。
-const DECK_VIEW_STORAGE_KEY = "deckListView";
 
 async function fetchDecks(isArchived: boolean, cursor: string) {
   const res = await fetch(`/api/decks?archived=${isArchived}&cursor=${cursor}`, {
@@ -87,26 +84,13 @@ export default function Decks({ userId, isArchived, onCreated }: Props) {
   // デッキ一覧の取得に失敗したか。失敗した位置（初回か追加読み込みか）に関わらず、
   // 一覧の末尾にエラーと再読み込みボタンを出す。
   const [error, setError] = useState(false);
-  // 表示モード。SSR とのハイドレーション不一致を避けるため初期値は固定（ギャラリー）にし、
-  // マウント後に localStorage から復元する。
-  const [view, setView] = useState<DeckCardView>("gallery");
+  // 表示モードは localStorage に保存された値を購読する。
+  const view = useDeckListView();
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   useEffect(() => {
     fetchDeckUsageStats(userId).then(setDeckUsageStats);
   }, [userId]);
-
-  useEffect(() => {
-    const saved = localStorage.getItem(DECK_VIEW_STORAGE_KEY);
-    if (saved === "list" || saved === "gallery") {
-      setView(saved);
-    }
-  }, []);
-
-  const handleChangeView = (next: DeckCardView) => {
-    setView(next);
-    localStorage.setItem(DECK_VIEW_STORAGE_KEY, next);
-  };
 
   const handleRemove = (id: string) => {
     setItems((prev) => prev.filter((d) => d.data.id !== id));
@@ -274,7 +258,7 @@ export default function Decks({ userId, isArchived, onCreated }: Props) {
               <button
                 type="button"
                 aria-pressed={view === "list"}
-                onClick={() => handleChangeView("list")}
+                onClick={() => setDeckListView("list")}
                 className={`flex flex-1 items-center justify-center gap-1 rounded-md px-2.5 py-1.5 text-tiny font-bold transition-colors ${
                   view === "list"
                     ? "bg-background text-foreground shadow-sm"
@@ -287,7 +271,7 @@ export default function Decks({ userId, isArchived, onCreated }: Props) {
               <button
                 type="button"
                 aria-pressed={view === "gallery"}
-                onClick={() => handleChangeView("gallery")}
+                onClick={() => setDeckListView("gallery")}
                 className={`flex flex-1 items-center justify-center gap-1 rounded-md px-2.5 py-1.5 text-tiny font-bold transition-colors ${
                   view === "gallery"
                     ? "bg-background text-foreground shadow-sm"

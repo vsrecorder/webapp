@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 
 import {
   Modal,
@@ -321,6 +321,81 @@ function EventContent({ event }: { event: CalendarEvent }) {
   );
 }
 
+/*
+ * タイムラインの1行。
+ *
+ * 行を少しずつ増やして描画するため(useProgressiveRenderCount)、増えるたびに
+ * 既に描画済みの行まで作り直すと描画量が件数の二乗で膨らむ。memo で防ぐ。
+ */
+const EventRow = memo(function EventRow({
+  event,
+  isLast,
+}: {
+  event: CalendarEvent;
+  isLast: boolean;
+}) {
+  return (
+    <li className="flex gap-2.5">
+      {/* タイムラインのガター。ドットと時刻ラベルを同じ高さ(h-4)のボックスで
+          揃えることで水平方向に一列に並べ、リング(bg-content1)でラインとの
+          重なりを切り抜いて見せる */}
+      <div className="flex flex-col items-center w-2.5 shrink-0">
+        <div className="flex items-center justify-center h-4 shrink-0">
+          <span
+            className={`w-2.5 h-2.5 rounded-full ring-4 ring-content1 shrink-0 ${dotColorClass(event)}`}
+          />
+        </div>
+        {!isLast && <span className="w-px flex-1 mt-1.5 bg-divider" />}
+      </div>
+      <div className={`min-w-0 flex-1 ${isLast ? "pb-1" : "pb-5"}`}>
+        <div className="flex items-center gap-1 h-4">
+          <LuClock className="text-[11px] text-default-300 shrink-0" />
+          <span className="text-tiny font-bold text-default-400">
+            {formatTimeLabel(event.created_at)}
+          </span>
+        </div>
+        <div className="mt-1.5">
+          <EventContent event={event} />
+        </div>
+      </div>
+    </li>
+  );
+});
+
+// 開いた直後に描画する行数。スクロールせずに見える範囲をまかなえればよい。
+const INITIAL_RENDER_COUNT = 6;
+// 1フレームごとに追加で描画する行数。
+const RENDER_CHUNK_SIZE = 6;
+
+/*
+ * 表示する行数を、フレームを跨いで少しずつ増やす。
+ *
+ * 大会の日など1日のイベントが多いと、開いた瞬間に全行を組み立てることになり
+ * モーダルが出るまでに数百ms〜数秒かかっていた(イベント数に比例して増える)。
+ * 最初は見える範囲だけを描き、残りは後続フレームに回すことで、
+ * 開く操作を待たせず、描画中も操作を受け付けられるようにする。
+ */
+function useProgressiveRenderCount(total: number, isOpen: boolean): number {
+  const [count, setCount] = useState(0);
+
+  // 開くたびに最初からやり直す(閉じている間は何も描画しない)
+  useEffect(() => {
+    setCount(isOpen ? Math.min(INITIAL_RENDER_COUNT, total) : 0);
+  }, [isOpen, total]);
+
+  useEffect(() => {
+    if (!isOpen || count === 0 || count >= total) return;
+
+    const id = requestAnimationFrame(() => {
+      setCount((c) => Math.min(c + RENDER_CHUNK_SIZE, total));
+    });
+
+    return () => cancelAnimationFrame(id);
+  }, [isOpen, count, total]);
+
+  return count;
+}
+
 export default function CalendarDayDetailModal({
   isOpen,
   onOpenChange,
@@ -329,6 +404,7 @@ export default function CalendarDayDetailModal({
   events,
 }: Props) {
   const startY = useRef<number | null>(null);
+  const renderCount = useProgressiveRenderCount(events.length, isOpen);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     startY.current = e.touches[0].clientY;
@@ -379,36 +455,13 @@ export default function CalendarDayDetailModal({
                 </div>
               ) : (
                 <ol className="relative">
-                  {events.map((event, index) => {
-                    const isLast = index === events.length - 1;
-
-                    return (
-                      <li key={eventKey(event)} className="flex gap-2.5">
-                        {/* タイムラインのガター。ドットと時刻ラベルを同じ高さ(h-4)のボックスで
-                            揃えることで水平方向に一列に並べ、リング(bg-content1)でラインとの
-                            重なりを切り抜いて見せる */}
-                        <div className="flex flex-col items-center w-2.5 shrink-0">
-                          <div className="flex items-center justify-center h-4 shrink-0">
-                            <span
-                              className={`w-2.5 h-2.5 rounded-full ring-4 ring-content1 shrink-0 ${dotColorClass(event)}`}
-                            />
-                          </div>
-                          {!isLast && <span className="w-px flex-1 mt-1.5 bg-divider" />}
-                        </div>
-                        <div className={`min-w-0 flex-1 ${isLast ? "pb-1" : "pb-5"}`}>
-                          <div className="flex items-center gap-1 h-4">
-                            <LuClock className="text-[11px] text-default-300 shrink-0" />
-                            <span className="text-tiny font-bold text-default-400">
-                              {formatTimeLabel(event.created_at)}
-                            </span>
-                          </div>
-                          <div className="mt-1.5">
-                            <EventContent event={event} />
-                          </div>
-                        </div>
-                      </li>
-                    );
-                  })}
+                  {events.slice(0, renderCount).map((event, index) => (
+                    <EventRow
+                      key={eventKey(event)}
+                      event={event}
+                      isLast={index === events.length - 1}
+                    />
+                  ))}
                 </ol>
               )}
             </ModalBody>

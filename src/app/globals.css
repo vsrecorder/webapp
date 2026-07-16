@@ -142,7 +142,7 @@
  * 下端の余白がなく項目が上に張り付いて見えるため、少し下げて見た目を揃える。
  */
 .mobile-nav-item {
-  padding-top: 0.75rem;
+  padding-top: 0.875rem;
 }
 
 :root[data-ios-pwa="true"] .mobile-nav-item {

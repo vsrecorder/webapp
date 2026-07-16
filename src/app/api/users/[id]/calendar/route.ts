@@ -2,14 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { auth } from "@app/auth";
 
-import { RecordGetResponseType, RecordType } from "@app/types/record";
-import { MatchType } from "@app/types/match";
-import { DeckData, DeckGetResponseType } from "@app/types/deck";
-import { DeckCodeType } from "@app/types/deck_code";
 import { CalendarChipColor, CalendarDataType, CalendarEvent } from "@app/types/calendar";
 import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
-import { TonamelEventGetByIdResponseType } from "@app/types/tonamel_event";
-import { UnofficialEventGetByIdResponseType } from "@app/types/unofficial_event";
+import { DeckPokemonSpriteType, MatchPokemonSpriteType } from "@app/types/pokemon_sprite";
 
 import {
   cleanOfficialEventTitle,
@@ -23,11 +18,75 @@ import { toDateKey } from "@app/utils/calendar";
 
 import * as jwt from "jsonwebtoken";
 
+// core-apiserver の GET /users/{id}/calendar が返す形。
+// 記録・対戦結果・デッキ・デッキコードと、参照先のイベント情報がまとめて入っている。
+type CalendarApiGame = {
+  go_first: boolean;
+  your_prize_cards: number;
+  opponents_prize_cards: number;
+};
+
+type CalendarApiMatch = {
+  id: string;
+  created_at: string;
+  opponents_deck_info: string;
+  default_victory_flg: boolean;
+  default_defeat_flg: boolean;
+  victory_flg: boolean;
+  memo: string;
+  games: CalendarApiGame[];
+  pokemon_sprites: MatchPokemonSpriteType[];
+};
+
+type CalendarApiRecord = {
+  id: string;
+  created_at: string;
+  official_event_id: number;
+  tonamel_event_id: string;
+  unofficial_event_id: string;
+  deck_id: string;
+  deck_code_id: string;
+  matches: CalendarApiMatch[];
+};
+
+type CalendarApiDeckCode = {
+  id: string;
+  created_at: string;
+  code: string;
+};
+
+type CalendarApiDeck = {
+  id: string;
+  created_at: string;
+  // アーカイブされていない場合は null
+  archived_at: string | null;
+  name: string;
+  pokemon_sprites: DeckPokemonSpriteType[];
+  deck_codes: CalendarApiDeckCode[];
+};
+
+type CalendarApiNamedEvent = {
+  id: string;
+  title: string;
+};
+
+type CalendarApiResponse = {
+  records: CalendarApiRecord[];
+  decks: CalendarApiDeck[];
+  official_events: OfficialEventGetByIdResponseType[];
+  tonamel_events: CalendarApiNamedEvent[];
+  unofficial_events: CalendarApiNamedEvent[];
+};
+
+// カレンダーは記録・デッキを丸ごと集計するため、バックエンドの処理時間が
+// 単純な取得系より長くなりうる。トークンが処理の途中で切れないよう長めに取る。
+const TOKEN_EXPIRES_IN = "60s";
+
 function makeToken(uid: string): string {
   const jwtSecret: jwt.Secret = process.env.VSRECORDER_JWT_SECRET as string;
   const jwtSignOptions: jwt.SignOptions = {
     algorithm: "HS256",
-    expiresIn: "10s",
+    expiresIn: TOKEN_EXPIRES_IN,
   };
   const jwtPayload = {
     iss: "vsrecorder-webapp",
@@ -37,17 +96,18 @@ function makeToken(uid: string): string {
 }
 
 function resolveEventKind(
-  data: RecordType["data"],
+  record: CalendarApiRecord,
 ): "official" | "tonamel" | "unofficial" | "unknown" {
-  if (data.official_event_id && data.official_event_id !== 0) return "official";
-  if (data.tonamel_event_id) return "tonamel";
-  if (data.unofficial_event_id) return "unofficial";
+  if (record.official_event_id && record.official_event_id !== 0) return "official";
+  if (record.tonamel_event_id) return "tonamel";
+  if (record.unofficial_event_id) return "unofficial";
   return "unknown";
 }
 
 const UNKNOWN_TITLE = "(タイトル不明)";
 
-// 記録カード(OfficialEventRecord/TonamelEventRecord/UnofficialEventRecord)の表示情報
+// 記録カード(OfficialEventRecord/TonamelEventRecord/UnofficialEventRecord)の表示情報。
+// 色やラベルはUIの関心事なので、バックエンドには持たせずここで決める。
 type RecordEventDisplay = {
   title: string;
   chip_label: string;
@@ -56,266 +116,110 @@ type RecordEventDisplay = {
   venue_label: string;
 };
 
-async function fetchOfficialEventDisplay(id: number): Promise<RecordEventDisplay> {
-  const domain = process.env.VSRECORDER_DOMAIN;
-  const fallback: RecordEventDisplay = {
-    title: UNKNOWN_TITLE,
-    chip_label: "公式",
-    chip_color: "default",
-    accent_color_class: "bg-default-300",
-    venue_label: "",
-  };
+const FALLBACK_DISPLAY: RecordEventDisplay = {
+  title: UNKNOWN_TITLE,
+  chip_label: "記録",
+  chip_color: "default",
+  accent_color_class: "bg-default-300",
+  venue_label: "",
+};
 
-  try {
-    const res = await fetch(`https://${domain}/api/v1beta/official_events/${id}`, {
-      cache: "no-store",
-      method: "GET",
-      headers: { Accept: "application/json" },
-    });
-
-    if (!res.ok) return fallback;
-
-    const event: OfficialEventGetByIdResponseType = await res.json();
-    if (!event.title) return fallback;
-
+function buildOfficialEventDisplay(
+  event: OfficialEventGetByIdResponseType,
+): RecordEventDisplay {
+  if (!event.title) {
     return {
-      title: cleanOfficialEventTitle(event.title),
-      chip_label: getEventTypeName(event),
-      chip_color: getChipColor(event),
-      accent_color_class: getEventAccentColor(event),
-      venue_label: getEventVenueLabel(event),
+      title: UNKNOWN_TITLE,
+      chip_label: "公式",
+      chip_color: "default",
+      accent_color_class: "bg-default-300",
+      venue_label: "",
     };
-  } catch {
-    return fallback;
   }
+
+  return {
+    title: cleanOfficialEventTitle(event.title),
+    chip_label: getEventTypeName(event),
+    chip_color: getChipColor(event),
+    accent_color_class: getEventAccentColor(event),
+    venue_label: getEventVenueLabel(event),
+  };
 }
 
 // Tonamelイベントは一覧カード(TonamelEventRecord)と同じ固定の見た目(オレンジ系)にする
-async function fetchTonamelEventDisplay(id: string): Promise<RecordEventDisplay> {
-  const domain = process.env.VSRECORDER_DOMAIN;
-  const base = {
+function buildTonamelEventDisplay(title: string): RecordEventDisplay {
+  return {
+    title: title || UNKNOWN_TITLE,
     chip_label: "Tonamel",
-    chip_color: "warning" as CalendarChipColor,
+    chip_color: "warning",
     accent_color_class: "bg-orange-500",
     venue_label: "",
   };
-
-  try {
-    const res = await fetch(`https://${domain}/api/v1beta/tonamel_events/${id}`, {
-      cache: "no-store",
-      method: "GET",
-      headers: { Accept: "application/json" },
-    });
-
-    if (!res.ok) return { ...base, title: UNKNOWN_TITLE };
-
-    const event: TonamelEventGetByIdResponseType = await res.json();
-    return { ...base, title: event.title || UNKNOWN_TITLE };
-  } catch {
-    return { ...base, title: UNKNOWN_TITLE };
-  }
 }
 
 // 自由形式イベントは一覧カード(UnofficialEventRecord)と同じ固定の見た目(グレー系)にする
-async function fetchUnofficialEventDisplay(id: string): Promise<RecordEventDisplay> {
-  const domain = process.env.VSRECORDER_DOMAIN;
-  const base = {
+function buildUnofficialEventDisplay(title: string): RecordEventDisplay {
+  return {
+    title: title || UNKNOWN_TITLE,
     chip_label: "自由形式",
-    chip_color: "default" as CalendarChipColor,
+    chip_color: "default",
     accent_color_class: "bg-default-400",
     venue_label: "",
   };
+}
 
-  try {
-    const res = await fetch(`https://${domain}/api/v1beta/unofficial_events/${id}`, {
-      cache: "no-store",
-      method: "GET",
-      headers: { Accept: "application/json" },
-    });
-
-    if (!res.ok) return { ...base, title: UNKNOWN_TITLE };
-
-    const event: UnofficialEventGetByIdResponseType = await res.json();
-    return { ...base, title: event.title || UNKNOWN_TITLE };
-  } catch {
-    return { ...base, title: UNKNOWN_TITLE };
+function resolveDisplay(
+  record: CalendarApiRecord,
+  eventKind: ReturnType<typeof resolveEventKind>,
+  officialDisplayById: Map<number, RecordEventDisplay>,
+  tonamelDisplayById: Map<string, RecordEventDisplay>,
+  unofficialDisplayById: Map<string, RecordEventDisplay>,
+): RecordEventDisplay {
+  switch (eventKind) {
+    case "official":
+      return officialDisplayById.get(record.official_event_id) ?? FALLBACK_DISPLAY;
+    case "tonamel":
+      // Tonamelは外部サイトから取得するため、取得できなかったイベントは
+      // バックエンドの応答に含まれない。その場合もカードの見た目は保ちたいので、
+      // タイトル不明のTonamel表示にフォールバックする。
+      return (
+        tonamelDisplayById.get(record.tonamel_event_id) ?? buildTonamelEventDisplay("")
+      );
+    case "unofficial":
+      return (
+        unofficialDisplayById.get(record.unofficial_event_id) ??
+        buildUnofficialEventDisplay("")
+      );
+    default:
+      return FALLBACK_DISPLAY;
   }
-}
-
-async function buildEventDisplayMaps(records: RecordType["data"][]) {
-  const officialIds = Array.from(
-    new Set(
-      records
-        .filter((r) => resolveEventKind(r) === "official")
-        .map((r) => r.official_event_id),
-    ),
-  );
-  const tonamelIds = Array.from(
-    new Set(
-      records
-        .filter((r) => resolveEventKind(r) === "tonamel")
-        .map((r) => r.tonamel_event_id),
-    ),
-  );
-  const unofficialIds = Array.from(
-    new Set(
-      records
-        .filter((r) => resolveEventKind(r) === "unofficial")
-        .map((r) => r.unofficial_event_id),
-    ),
-  );
-
-  const [officialDisplays, tonamelDisplays, unofficialDisplays] = await Promise.all([
-    Promise.all(officialIds.map((id) => fetchOfficialEventDisplay(id))),
-    Promise.all(tonamelIds.map((id) => fetchTonamelEventDisplay(id))),
-    Promise.all(unofficialIds.map((id) => fetchUnofficialEventDisplay(id))),
-  ]);
-
-  return {
-    officialDisplayById: new Map(officialIds.map((id, i) => [id, officialDisplays[i]])),
-    tonamelDisplayById: new Map(tonamelIds.map((id, i) => [id, tonamelDisplays[i]])),
-    unofficialDisplayById: new Map(
-      unofficialIds.map((id, i) => [id, unofficialDisplays[i]]),
-    ),
-  };
-}
-
-async function fetchAllRecords(token: string): Promise<RecordType["data"][]> {
-  const domain = process.env.VSRECORDER_DOMAIN;
-  const results: RecordType["data"][] = [];
-  let cursor = "";
-
-  while (true) {
-    const res = await fetch(
-      `https://${domain}/api/v1beta/records?event_type=&deck_id=&cursor=${cursor}`,
-      {
-        cache: "no-store",
-        method: "GET",
-        headers: {
-          Authorization: "Bearer " + token,
-          Accept: "application/json",
-        },
-      },
-    );
-
-    if (!res.ok) {
-      throw new Error(`failed to fetch records: ${res.status}`);
-    }
-
-    const ret: RecordGetResponseType = await res.json();
-    if (ret.records.length === 0) break;
-
-    results.push(...ret.records.map((r) => r.data));
-
-    const last = ret.records[ret.records.length - 1];
-    if (!last.cursor || last.cursor === cursor) break;
-    cursor = last.cursor;
-  }
-
-  return results;
-}
-
-async function fetchMatchesByRecordId(
-  token: string,
-  recordId: string,
-): Promise<MatchType[]> {
-  const domain = process.env.VSRECORDER_DOMAIN;
-
-  const res = await fetch(`https://${domain}/api/v1beta/records/${recordId}/matches`, {
-    cache: "no-store",
-    method: "GET",
-    headers: {
-      Authorization: "Bearer " + token,
-      Accept: "application/json",
-    },
-  });
-
-  if (!res.ok) {
-    throw new Error(`failed to fetch matches for record ${recordId}: ${res.status}`);
-  }
-
-  return res.json();
-}
-
-// `/decks/all` はアーカイブ済みデッキを含まないため、archived=true/false を明示的に
-// 指定してページネーション取得し、両方をマージする
-async function fetchDecksByArchived(
-  token: string,
-  archived: boolean,
-): Promise<DeckData[]> {
-  const domain = process.env.VSRECORDER_DOMAIN;
-  const results: DeckData[] = [];
-  let cursor = "";
-
-  while (true) {
-    const res = await fetch(
-      `https://${domain}/api/v1beta/decks?limit=10&archived=${archived}&cursor=${cursor}`,
-      {
-        cache: "no-store",
-        method: "GET",
-        headers: {
-          Authorization: "Bearer " + token,
-          Accept: "application/json",
-        },
-      },
-    );
-
-    if (!res.ok) {
-      throw new Error(`failed to fetch decks(archived=${archived}): ${res.status}`);
-    }
-
-    const ret: DeckGetResponseType = await res.json();
-    if (ret.decks.length === 0) break;
-
-    results.push(...ret.decks.map((d) => d.data));
-
-    const last = ret.decks[ret.decks.length - 1];
-    if (!last.cursor || last.cursor === cursor) break;
-    cursor = last.cursor;
-  }
-
-  return results;
-}
-
-async function fetchAllDecks(token: string): Promise<DeckData[]> {
-  const [activeDecks, archivedDecks] = await Promise.all([
-    fetchDecksByArchived(token, false),
-    fetchDecksByArchived(token, true),
-  ]);
-
-  return [...activeDecks, ...archivedDecks];
-}
-
-// バックエンドの未設定(ゼロ値)日時はUnixエポック紀元前を表す年1になる規約
-function isArchived(deck: DeckData): boolean {
-  return new Date(deck.archived_at).getFullYear() !== 1;
-}
-
-async function fetchDeckCodesByDeckId(
-  token: string,
-  deckId: string,
-): Promise<DeckCodeType[]> {
-  const domain = process.env.VSRECORDER_DOMAIN;
-
-  const res = await fetch(`https://${domain}/api/v1beta/decks/${deckId}/deckcodes`, {
-    cache: "no-store",
-    method: "GET",
-    headers: {
-      Authorization: "Bearer " + token,
-      Accept: "application/json",
-    },
-  });
-
-  if (!res.ok) {
-    throw new Error(`failed to fetch deckcodes for deck ${deckId}: ${res.status}`);
-  }
-
-  return res.json();
 }
 
 function pushEvent(data: CalendarDataType, dateKey: string, event: CalendarEvent) {
   if (!data[dateKey]) data[dateKey] = [];
   data[dateKey].push(event);
+}
+
+async function fetchCalendar(
+  token: string,
+  userId: string,
+): Promise<CalendarApiResponse> {
+  const domain = process.env.VSRECORDER_DOMAIN;
+
+  const res = await fetch(`https://${domain}/api/v1beta/users/${userId}/calendar`, {
+    cache: "no-store",
+    method: "GET",
+    headers: {
+      Authorization: "Bearer " + token,
+      Accept: "application/json",
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error(`failed to fetch calendar: ${res.status}`);
+  }
+
+  return res.json();
 }
 
 export async function GET(
@@ -335,142 +239,150 @@ export async function GET(
   const token = makeToken(session.user.id);
 
   try {
-    const [records, decks] = await Promise.all([
-      fetchAllRecords(token),
-      fetchAllDecks(token),
-    ]);
+    // カレンダーの組み立てに必要なデータは、バックエンドの集計エンドポイントが
+    // 一度に返す。以前はここで記録・デッキごとにAPIを呼んでいたため、記録が増えるほど
+    // リクエスト数が線形に増え、処理中にトークンが失効して失敗することがあった。
+    const calendar = await fetchCalendar(token, session.user.id);
 
-    const deckById = new Map(decks.map((deck) => [deck.id, deck]));
+    return NextResponse.json({ data: buildCalendarData(calendar) }, { status: 200 });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: "failed to build calendar" }, { status: 500 });
+  }
+}
 
-    const [deckCodesByDeck, eventDisplayMaps, matchesByRecord] = await Promise.all([
-      Promise.all(decks.map((deck) => fetchDeckCodesByDeckId(token, deck.id))),
-      buildEventDisplayMaps(records),
-      Promise.all(records.map((record) => fetchMatchesByRecordId(token, record.id))),
-    ]);
-    const { officialDisplayById, tonamelDisplayById, unofficialDisplayById } =
-      eventDisplayMaps;
+// バックエンドの集計結果から、日付(JST)ごとの活動ログを組み立てる。
+function buildCalendarData(calendar: CalendarApiResponse): CalendarDataType {
+  const officialDisplayById = new Map(
+    calendar.official_events.map((event) => [event.id, buildOfficialEventDisplay(event)]),
+  );
+  const tonamelDisplayById = new Map(
+    calendar.tonamel_events.map((event) => [
+      event.id,
+      buildTonamelEventDisplay(event.title),
+    ]),
+  );
+  const unofficialDisplayById = new Map(
+    calendar.unofficial_events.map((event) => [
+      event.id,
+      buildUnofficialEventDisplay(event.title),
+    ]),
+  );
 
-    // 記録で使われたデッキコード(バージョン)の中身を引けるようにする
-    const deckCodeById = new Map(
-      deckCodesByDeck.flat().map((deckCode) => [deckCode.id, deckCode.code]),
+  const deckById = new Map(calendar.decks.map((deck) => [deck.id, deck]));
+
+  // 記録で使われたデッキコード(バージョン)の中身を引けるようにする
+  const deckCodeById = new Map(
+    calendar.decks.flatMap((deck) =>
+      deck.deck_codes.map((deckCode) => [deckCode.id, deckCode.code] as const),
+    ),
+  );
+
+  const data: CalendarDataType = {};
+
+  for (const record of calendar.records) {
+    const deck = deckById.get(record.deck_id);
+    const eventKind = resolveEventKind(record);
+    const display = resolveDisplay(
+      record,
+      eventKind,
+      officialDisplayById,
+      tonamelDisplayById,
+      unofficialDisplayById,
     );
 
-    const fallbackDisplay: RecordEventDisplay = {
-      title: UNKNOWN_TITLE,
-      chip_label: "記録",
-      chip_color: "default",
-      accent_color_class: "bg-default-300",
-      venue_label: "",
-    };
+    pushEvent(data, toDateKey(record.created_at), {
+      type: "record",
+      record_id: record.id,
+      deck_id: record.deck_id,
+      deck_name: deck?.name ?? "",
+      deck_pokemon_sprites: deck?.pokemon_sprites ?? [],
+      deck_code: deckCodeById.get(record.deck_code_id) ?? "",
+      event_kind: eventKind,
+      event_title: display.title,
+      chip_label: display.chip_label,
+      chip_color: display.chip_color,
+      accent_color_class: display.accent_color_class,
+      venue_label: display.venue_label,
+      created_at: String(record.created_at),
+    });
 
-    const data: CalendarDataType = {};
+    // 対戦結果は、紐づく記録と同じ表示情報(chip等)を持たせることで、
+    // どの記録に紐づく対戦かをカード上で明示する
+    for (const match of record.matches) {
+      const firstGame = match.games?.[0];
 
-    records.forEach((record, index) => {
-      const deck = deckById.get(record.deck_id);
-      const eventKind = resolveEventKind(record);
-      const display =
-        eventKind === "official"
-          ? (officialDisplayById.get(record.official_event_id) ?? fallbackDisplay)
-          : eventKind === "tonamel"
-            ? (tonamelDisplayById.get(record.tonamel_event_id) ?? fallbackDisplay)
-            : eventKind === "unofficial"
-              ? (unofficialDisplayById.get(record.unofficial_event_id) ?? fallbackDisplay)
-              : fallbackDisplay;
-
-      pushEvent(data, toDateKey(record.created_at), {
-        type: "record",
+      pushEvent(data, toDateKey(match.created_at), {
+        type: "match_added",
+        match_id: match.id,
         record_id: record.id,
-        deck_id: record.deck_id,
-        deck_name: deck?.name ?? "",
-        deck_pokemon_sprites: deck?.pokemon_sprites ?? [],
-        deck_code: deckCodeById.get(record.deck_code_id) ?? "",
         event_kind: eventKind,
         event_title: display.title,
         chip_label: display.chip_label,
         chip_color: display.chip_color,
         accent_color_class: display.accent_color_class,
         venue_label: display.venue_label,
-        created_at: String(record.created_at),
+        opponents_deck_info: match.opponents_deck_info,
+        opponents_pokemon_sprites: match.pokemon_sprites ?? [],
+        default_victory_flg: match.default_victory_flg,
+        default_defeat_flg: match.default_defeat_flg,
+        victory_flg: match.victory_flg,
+        go_first: firstGame ? firstGame.go_first : null,
+        your_prize_cards: firstGame ? firstGame.your_prize_cards : null,
+        opponents_prize_cards: firstGame ? firstGame.opponents_prize_cards : null,
+        memo: match.memo,
+        created_at: String(match.created_at),
       });
+    }
+  }
 
-      // 対戦結果は、紐づく記録と同じ表示情報(chip等)を持たせることで、
-      // どの記録に紐づく対戦かをカード上で明示する
-      for (const match of matchesByRecord[index]) {
-        const firstGame = match.games?.[0];
+  for (const deck of calendar.decks) {
+    // デッキ作成と同時刻に登録された初期バージョンは、別イベントにせず登録イベントにまとめる
+    const initialCode = deck.deck_codes.find(
+      (deckCode) => String(deckCode.created_at) === String(deck.created_at),
+    );
 
-        pushEvent(data, toDateKey(match.created_at), {
-          type: "match_added",
-          match_id: match.id,
-          record_id: record.id,
-          event_kind: eventKind,
-          event_title: display.title,
-          chip_label: display.chip_label,
-          chip_color: display.chip_color,
-          accent_color_class: display.accent_color_class,
-          venue_label: display.venue_label,
-          opponents_deck_info: match.opponents_deck_info,
-          opponents_pokemon_sprites: match.pokemon_sprites ?? [],
-          default_victory_flg: match.default_victory_flg,
-          default_defeat_flg: match.default_defeat_flg,
-          victory_flg: match.victory_flg,
-          go_first: firstGame ? firstGame.go_first : null,
-          your_prize_cards: firstGame ? firstGame.your_prize_cards : null,
-          opponents_prize_cards: firstGame ? firstGame.opponents_prize_cards : null,
-          memo: match.memo,
-          created_at: String(match.created_at),
-        });
-      }
+    pushEvent(data, toDateKey(deck.created_at), {
+      type: "deck_created",
+      deck_id: deck.id,
+      deck_name: deck.name,
+      pokemon_sprites: deck.pokemon_sprites ?? [],
+      code: initialCode?.code,
+      created_at: String(deck.created_at),
     });
 
-    decks.forEach((deck, index) => {
-      // デッキ作成と同時刻に登録された初期バージョンは、別イベントにせず登録イベントにまとめる
-      const initialCode = deckCodesByDeck[index].find(
-        (deckCode) => String(deckCode.created_at) === String(deck.created_at),
-      );
-
-      pushEvent(data, toDateKey(deck.created_at), {
-        type: "deck_created",
+    if (deck.archived_at) {
+      pushEvent(data, toDateKey(deck.archived_at), {
+        type: "deck_archived",
         deck_id: deck.id,
         deck_name: deck.name,
         pokemon_sprites: deck.pokemon_sprites ?? [],
-        code: initialCode?.code,
-        created_at: String(deck.created_at),
+        created_at: String(deck.archived_at),
       });
-
-      if (isArchived(deck)) {
-        pushEvent(data, toDateKey(deck.archived_at), {
-          type: "deck_archived",
-          deck_id: deck.id,
-          deck_name: deck.name,
-          pokemon_sprites: deck.pokemon_sprites ?? [],
-          created_at: String(deck.archived_at),
-        });
-      }
-
-      for (const deckCode of deckCodesByDeck[index]) {
-        if (deckCode.id === initialCode?.id) continue;
-
-        pushEvent(data, toDateKey(deckCode.created_at), {
-          type: "deck_code_added",
-          deck_id: deck.id,
-          deck_name: deck.name,
-          deck_code_id: deckCode.id,
-          code: deckCode.code,
-          pokemon_sprites: deck.pokemon_sprites ?? [],
-          created_at: String(deckCode.created_at),
-        });
-      }
-    });
-
-    for (const dateKey of Object.keys(data)) {
-      data[dateKey].sort(
-        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
-      );
     }
 
-    return NextResponse.json({ data }, { status: 200 });
-  } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error: "failed to build calendar" }, { status: 500 });
+    for (const deckCode of deck.deck_codes) {
+      // 初期バージョンは登録イベントにまとめているため、ここでは出さない
+      if (initialCode && deckCode.id === initialCode.id) continue;
+
+      pushEvent(data, toDateKey(deckCode.created_at), {
+        type: "deck_code_added",
+        deck_id: deck.id,
+        deck_name: deck.name,
+        deck_code_id: deckCode.id,
+        code: deckCode.code,
+        pokemon_sprites: deck.pokemon_sprites ?? [],
+        created_at: String(deckCode.created_at),
+      });
+    }
   }
+
+  // 同じ日の中は登録時刻の昇順で並べる
+  for (const dateKey of Object.keys(data)) {
+    data[dateKey].sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+    );
+  }
+
+  return data;
 }

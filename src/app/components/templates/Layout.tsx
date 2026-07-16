@@ -28,8 +28,11 @@ export default async function TemplateLayout({
         <div className={`flex flex-col flex-1 min-w-0 ${session ? "lg:pl-56" : ""}`}>
           <Header />
 
-          {/* デスクトップ(lg以上)はタブレット(md)より左右余白を絞り、コンテンツ側で幅を広く使えるようにする */}
-          <main className={`app-dot-bg flex-1 p-2 pt-14 lg:pt-28 lg:pb-6 min-h-svh w-full ${session ? "md:px-32 lg:px-12 xl:px-20 2xl:px-32 pb-14" : "pb-2"}`}>
+          {/* デスクトップ(lg以上)はタブレット(md)より左右余白を絞り、コンテンツ側で幅を広く使えるようにする。
+              下余白は下部ナビ(MobileNavigation)の実寸に合わせる: 本体 h-17(4.25rem) + safe-area の
+              下端余白。lg以上は下部ナビが消えるので lg:pb-6 に戻す。
+              ナビの高さを変えるときはここも合わせて更新すること */}
+          <main className={`app-dot-bg flex-1 p-2 pt-14 lg:pt-28 lg:pb-6 min-h-svh w-full ${session ? "md:px-32 lg:px-12 xl:px-20 2xl:px-32 pb-[calc(4.25rem+env(safe-area-inset-bottom))]" : "pb-2"}`}>
             {children}
           </main>
         </div>

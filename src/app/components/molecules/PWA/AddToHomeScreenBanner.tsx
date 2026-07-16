@@ -15,7 +15,7 @@ export default function AddToHomeScreenBanner({ iconUrl }: { iconUrl: string }) 
   if (installState === "idle") return null;
 
   return (
-    <div className="lg:hidden fixed z-50 bottom-[calc(4rem+env(safe-area-inset-bottom)+0.5rem)] left-2 right-2 rounded-2xl bg-content1/95 backdrop-blur-md shadow-xl border border-divider">
+    <div className="lg:hidden fixed z-50 bottom-[calc(4.25rem+env(safe-area-inset-bottom)+0.5rem)] left-2 right-2 rounded-2xl bg-content1/95 backdrop-blur-md shadow-xl border border-divider">
       <div className="flex items-center gap-3 px-4 py-3">
         <Image
           src={iconUrl}

@@ -15,12 +15,12 @@ import {
   addToast,
 } from "@heroui/react";
 
-import { LuShare2 } from "react-icons/lu";
+import { LuImageOff, LuRefreshCw, LuShare2, LuTriangleAlert } from "react-icons/lu";
 
 import RecordHero from "@app/components/organisms/Record/Hero/RecordHero";
 import Matches from "@app/components/organisms/Match/Matches";
 
-import { captureThemedPng, SIDE_PADDING } from "@app/utils/captureImage";
+import { captureThemedPng, hasUnloadedImages, SIDE_PADDING } from "@app/utils/captureImage";
 import {
   shareRecord,
   saveGeneratedImage,
@@ -104,7 +104,16 @@ export default function ShareRecordModal({
   const [heroReady, setHeroReady] = useState(false);
   // シェア用に生成済みの画像。タップ前に用意しておく(理由は生成用の useEffect を参照)。
   const [images, setImages] = useState<ShareImage[] | null>(null);
-  const canShare = heroReady && matches !== null && images !== null;
+  // 生成した画像にスプライト等の欠けがあるか(読み込めなかった画像が残っていたか)。
+  // 欠けは画像を見なくても判定できるため、黙ってシェアさせずに知らせる。
+  const [imagesIncomplete, setImagesIncomplete] = useState(false);
+  // 画像の生成そのものに失敗したか。
+  // 失敗を伝えるだけだと手詰まりになるため、作り直すか、ポスト文だけでシェアするかを選べるようにする。
+  const [captureFailed, setCaptureFailed] = useState(false);
+  // 「再生成」を押したときに生成用の useEffect を走らせ直すための世代番号
+  const [regenSeq, setRegenSeq] = useState(0);
+  // 画像が用意できたときに加えて、生成に失敗したとき(=ポスト文だけでシェアする)も許可する
+  const canShare = heroReady && matches !== null && (images !== null || captureFailed);
 
   // モーダルを閉じるとキャプチャ用 DOM は破棄されるため、次に開いたときは
   // 再度描画完了を待つよう準備状態をリセットする。
@@ -116,6 +125,8 @@ export default function ShareRecordModal({
     if (!isOpen) {
       setHeroReady(false);
       setImages(null);
+      setImagesIncomplete(false);
+      setCaptureFailed(false);
       setIncludeDeck(false);
       setHideDeck(false);
       setIncludePostMatches(true);
@@ -197,15 +208,20 @@ export default function ShareRecordModal({
 
     const seq = ++captureSeq.current;
     setImages(null);
+    setCaptureFailed(false);
 
     (async () => {
       try {
         const captured: ShareImage[] = [];
+        // 書き出し後に読み込めていない画像が残っていれば、その画像には欠けがある。
+        // captureThemedPng が待ちと再試行を終えた後に判定する。
+        let incomplete = false;
 
         if (shareContentRef.current) {
           const dataUrl = await captureThemedPng(shareContentRef.current, {
             targetWidth: captureWidth,
           });
+          incomplete = incomplete || hasUnloadedImages(shareContentRef.current);
           const filename = `${record.id}_result_${Date.now()}.png`;
           captured.push({
             dataUrl,
@@ -219,6 +235,7 @@ export default function ShareRecordModal({
           const dataUrl = await captureThemedPng(deckCardRef.current, {
             targetWidth: captureWidth,
           });
+          incomplete = incomplete || hasUnloadedImages(deckCardRef.current);
           const filename = `${record.id}_deck_${Date.now()}.png`;
           captured.push({
             dataUrl,
@@ -229,14 +246,13 @@ export default function ShareRecordModal({
 
         if (seq !== captureSeq.current) return;
         setImages(captured);
+        setImagesIncomplete(incomplete);
       } catch (e) {
         console.error(e);
         if (seq !== captureSeq.current) return;
-        addToast({
-          title: "画像の生成に失敗しました",
-          color: "danger",
-          timeout: 5000,
-        });
+        // 失敗はプレビュー欄に出し続ける(トーストは消えてしまい、
+        // 何が起きたのか分からないまま準備中の表示だけが残ってしまうため)。
+        setCaptureFailed(true);
       }
     })();
   }, [
@@ -249,24 +265,38 @@ export default function ShareRecordModal({
     captureWidth,
     record.id,
     deckCardRef,
+    regenSeq,
   ]);
 
   // 注意: navigator.share() の呼び出し前に await を挟むとユーザーアクティベーションが
   // 切れるため、この関数内では shareRecord() の前で await しないこと。
   const handleShare = async () => {
-    if (!canShare || images === null || images.length === 0) return;
+    if (!canShare) return;
     setBusy("share");
     try {
-      const result = await shareRecord(images, text);
+      // 画像の生成に失敗した場合は images が無い。shareRecord はその場合
+      // ポスト文だけの共有にフォールバックする。
+      const shareImages = images ?? [];
+      const result = await shareRecord(shareImages, text);
       if (result === "unsupported") {
-        // 共有非対応の環境では画像を保存にフォールバック
-        await saveGeneratedImage(images[0].dataUrl, images[0].filename);
-        addToast({
-          title: "共有に非対応のため画像を保存しました",
-          description: "ポスト文はコピーしてご利用ください",
-          color: "warning",
-          timeout: 5000,
-        });
+        if (shareImages.length === 0) {
+          // 共有非対応かつ保存する画像も無いため、ポスト文を手で使ってもらうほかない
+          addToast({
+            title: "共有に非対応の環境です",
+            description: "ポスト文はコピーしてご利用ください",
+            color: "warning",
+            timeout: 5000,
+          });
+        } else {
+          // 共有非対応の環境では画像を保存にフォールバック
+          await saveGeneratedImage(shareImages[0].dataUrl, shareImages[0].filename);
+          addToast({
+            title: "共有に非対応のため画像を保存しました",
+            description: "ポスト文はコピーしてご利用ください",
+            color: "warning",
+            timeout: 5000,
+          });
+        }
       } else if (result === "failed") {
         addToast({ title: "共有に失敗しました", color: "danger", timeout: 5000 });
       }
@@ -413,7 +443,53 @@ export default function ShareRecordModal({
                     )}
                   </div>
 
-                  {images === null || images.length === 0 ? (
+                  {/* 画像に欠けがある場合の注意書き。
+                      シェア自体は止めない(欠けても記録の内容は正しく、止めると
+                      共有する手段が無くなるため)。気づけるようにしたうえで、
+                      作り直すか、このままシェアするかは利用者に委ねる。 */}
+                  {images !== null && imagesIncomplete && (
+                    <div className="flex items-center gap-2.5 rounded-xl border border-warning-200 bg-warning-50 px-3 py-2.5">
+                      <LuTriangleAlert className="h-4 w-4 shrink-0 text-warning-600" />
+                      <div
+                        role="alert"
+                        className="min-w-0 flex-1 text-[11px] leading-relaxed text-warning-700"
+                      >
+                        画像を読み込めなかったため、ポケモンのアイコンが欠けています
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="flat"
+                        color="warning"
+                        className="shrink-0"
+                        startContent={<LuRefreshCw className="h-3 w-3" />}
+                        onPress={() => setRegenSeq((n) => n + 1)}
+                      >
+                        再生成
+                      </Button>
+                    </div>
+                  )}
+
+                  {captureFailed ? (
+                    // 生成に失敗したまま準備中の表示を続けると、待てば直るのか分からず
+                    // 手詰まりになる。何が起きたかを示し、作り直す手段を置く。
+                    // (ポスト文だけのシェアは下のボタンから行える)
+                    <div className="flex h-56 flex-col items-center justify-center gap-3 rounded-xl border border-divider bg-content2 px-4">
+                      <LuImageOff className="h-6 w-6 text-default-400" />
+                      <p role="alert" className="text-center text-[11px] text-default-500">
+                        画像を生成できませんでした
+                        <br />
+                        作り直すか、ポスト文だけでシェアできます
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="flat"
+                        startContent={<LuRefreshCw className="h-3 w-3" />}
+                        onPress={() => setRegenSeq((n) => n + 1)}
+                      >
+                        作り直す
+                      </Button>
+                    </div>
+                  ) : images === null || images.length === 0 ? (
                     // 生成中は枠内にスピナーを表示(画像の縦横比は不定なので固定高さの枠にする)
                     <div className="flex h-56 flex-col items-center justify-center gap-2 rounded-xl border border-divider bg-content2">
                       <Spinner size="sm" />
@@ -450,7 +526,11 @@ export default function ShareRecordModal({
                     isDisabled={busy !== null || !canShare}
                     onPress={handleShare}
                   >
-                    {canShare ? "シェアする" : "画像を準備しています"}
+                    {captureFailed
+                      ? "テキストだけでシェア"
+                      : canShare
+                        ? "シェアする"
+                        : "画像を準備しています"}
                   </Button>
                 </div>
               </ModalBody>

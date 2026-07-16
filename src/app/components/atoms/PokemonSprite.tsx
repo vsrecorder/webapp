@@ -16,8 +16,11 @@ import { spriteFitStyle } from "@app/utils/spriteFit";
 // id は padded 形式("0006" 等 / メガ等は "0006_mega_x")。未指定/欠損時は unknown を表示。
 //
 // raw=true のときは HeroUI の <Image> ではなく素の <img> を使う。
-// HeroUI の <Image> は基底クラスに opacity-0 を持つため、html2canvas 等での
-// 画像書き出しでは透明化して写らない。書き出し対象(シェアカード等)では raw を使う。
+// HeroUI の <Image> は読み込み完了まで opacity-0 で、完了時に data-loaded="true" が
+// 付いて表示される。画像書き出しはDOMを複製して描画するため、複製時点で
+// 読み込みが終わっていないと透明のまま写ってしまう。
+// captureThemedPng 経由の書き出しはこれを補正するので raw は必須ではないが、
+// 補正に頼らず確実に写したい書き出し専用のカードでは raw を使う。
 
 type Props = {
   id?: string | null;

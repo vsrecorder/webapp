@@ -21,7 +21,7 @@ export default function MobileNavigation() {
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <div
-        className="grid h-16"
+        className="grid h-17"
         style={{ gridTemplateColumns: `repeat(${navItems.length}, minmax(0, 1fr))` }}
       >
         {navItems.map(({ href, label, icon: Icon }) => {

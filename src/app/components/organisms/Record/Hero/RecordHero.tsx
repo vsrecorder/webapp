@@ -5,7 +5,7 @@ import { SetStateAction, Dispatch } from "react";
 
 import { Card, Image, Link, Chip, Skeleton, useDisclosure } from "@heroui/react";
 
-import { LuPencilLine } from "react-icons/lu";
+import { LuEyeOff, LuPencilLine } from "react-icons/lu";
 
 import FetchError from "@app/components/molecules/FetchError";
 import RecordStatPanel from "@app/components/organisms/Record/Hero/RecordStatPanel";
@@ -517,7 +517,31 @@ export default function RecordHero({
     </div>
   );
 
-  const deckNode = hideDeck ? null : record.deck_id ? (
+  // 「使用デッキを表示しない」選択時の行。使用デッキの部分を単に消すと、その記録に
+  // そもそもデッキが登録されていないのか、意図的に伏せているのかが伝わらないため、
+  // 同じ場所に「非公開」であることを明示する(デッキ名・スプライトは出さない)。
+  const deckHiddenRow = (
+    <div className={deckRowClass}>
+      <div className="flex items-center gap-1">
+        <span className="text-[9px] font-bold tracking-wide text-default-400">
+          使用デッキ
+        </span>
+      </div>
+      <div className="flex w-full items-center gap-2">
+        {/* スプライト2枚(40px × 2)と同じ幅・高さの枠にして、実表示との行の高さを揃える */}
+        <div className="flex h-10 w-20 shrink-0 items-center justify-center rounded-lg bg-default-100">
+          <LuEyeOff className="h-4 w-4 text-default-400" />
+        </div>
+        <div className="min-w-0 flex-1 truncate text-sm font-bold text-default-400">
+          非公開
+        </div>
+      </div>
+    </div>
+  );
+
+  const deckNode = !record.deck_id ? null : hideDeck ? (
+    deckHiddenRow
+  ) : (
     <>
       {enableEditUsedDeck && (
         <UpdateUsedDeckModal
@@ -543,7 +567,7 @@ export default function RecordHero({
         )
       ) : null}
     </>
-  ) : null;
+  );
 
   // ---- 公式イベント ----
   if (isOfficial && officialEvent) {

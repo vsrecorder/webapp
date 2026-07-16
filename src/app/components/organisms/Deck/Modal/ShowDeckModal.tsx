@@ -337,7 +337,8 @@ export default function ShowDeckModal({
                     <span className="text-tiny font-medium">対戦分析</span>
                   </button>
 
-                  <Dropdown placement="top">
+                  {/* ユーザメニューと同じく、メニューを開いている間は周囲のタップを塞ぐ */}
+                  <Dropdown placement="top" backdrop="opaque">
                     <DropdownTrigger>
                       <button
                         type="button"

@@ -6,11 +6,15 @@ import CityleagueEvents from "@app/components/organisms/Cityleague/CityleagueEve
 import DashboardCalendar from "@app/components/organisms/Calendar/DashboardCalendar";
 import Records from "@app/components/organisms/Record/Records";
 import UserStatPanel from "@app/components/organisms/UserStat/UserStatPanel";
-import UserStatHistoryChart from "@app/components/organisms/UserStat/UserStatHistoryChart";
-import RecentMatchWinRateChart from "@app/components/organisms/UserStat/RecentMatchWinRateChart";
-import DeckUsagePanel from "@app/components/organisms/DeckUsage/DeckUsagePanel";
-import OpponentDeckUsagePanel from "@app/components/organisms/DeckUsage/OpponentDeckUsagePanel";
 import WeeklyDeckUsagePanel from "@app/components/organisms/DeckMeta/WeeklyDeckUsagePanel";
+// chart.js を抱えるパネルは初期JSから切り離すため、ssr:false の動的importでまとめている。
+// 詳細は DashboardChartPanels 側のコメントを参照。
+import {
+  UserStatHistoryChart,
+  RecentMatchWinRateChart,
+  DeckUsagePanel,
+  OpponentDeckUsagePanel,
+} from "@app/components/organisms/Dashboard/DashboardChartPanels";
 import UserProfileCard from "@app/components/organisms/User/UserProfileCard";
 import StreakPanel from "@app/components/organisms/Badge/StreakPanel";
 import OnboardingBadgePanel from "@app/components/organisms/Badge/OnboardingBadgePanel";
@@ -28,6 +32,14 @@ import { ChampionshipSeriesType } from "@app/types/championship_series";
 import { UserType } from "@app/types/user";
 import { isDevEnv } from "@app/utils/appIcon";
 
+// マスタデータ（対戦環境・スタンダードレギュレーション・チャンピオンシップシリーズ）の
+// キャッシュ期間（秒）。滅多に増えないため長めに取る。
+const MASTER_DATA_REVALIDATE_SEC = 3600;
+
+// 日次更新のデータ（シティリーグ開催情報・対戦環境）のキャッシュ期間（秒）。
+// 非会員向けの Home.tsx と同じ値に揃える。
+const DAILY_DATA_REVALIDATE_SEC = 300;
+
 async function getCityleagueScheduleByDate(date: Date): Promise<CityleagueScheduleType> {
   const domain = process.env.VSRECORDER_DOMAIN;
   const today = date.toISOString().split("T")[0];
@@ -35,7 +47,9 @@ async function getCityleagueScheduleByDate(date: Date): Promise<CityleagueSchedu
   const res = await fetch(
     `https://${domain}/api/v1beta/cityleague_schedules?date=${today}`,
     {
-      cache: "no-store",
+      // シティリーグの開催情報は最大でも日次更新のため、毎回取得(no-store)は不要。
+      // キャッシュしてサーバ応答(TTFB)を短縮する。
+      next: { revalidate: DAILY_DATA_REVALIDATE_SEC },
       method: "GET",
       headers: { Accept: "application/json" },
     },
@@ -50,7 +64,8 @@ async function getEnvironmentByDate(date: Date): Promise<EnvironmentType> {
   const today = date.toISOString().split("T")[0];
 
   const res = await fetch(`https://${domain}/api/v1beta/environments?date=${today}`, {
-    cache: "no-store",
+    // 対戦環境情報も日次更新のため、キャッシュしてTTFBを短縮する。
+    next: { revalidate: DAILY_DATA_REVALIDATE_SEC },
     method: "GET",
     headers: { Accept: "application/json" },
   });
@@ -67,6 +82,7 @@ async function getUser(userId: string): Promise<UserType | null> {
   const domain = process.env.VSRECORDER_DOMAIN;
 
   const res = await fetch(`https://${domain}/api/v1beta/users/${userId}`, {
+    // ユーザ自身が編集した名前・アイコンを即座に反映したいため、ここはキャッシュしない。
     cache: "no-store",
     method: "GET",
     headers: { Accept: "application/json" },
@@ -80,7 +96,7 @@ async function getAllEnvironments(): Promise<EnvironmentType[]> {
   const domain = process.env.VSRECORDER_DOMAIN;
 
   const res = await fetch(`https://${domain}/api/v1beta/environments`, {
-    cache: "no-store",
+    next: { revalidate: MASTER_DATA_REVALIDATE_SEC },
     method: "GET",
     headers: { Accept: "application/json" },
   });
@@ -93,7 +109,7 @@ async function getAllStandardRegulations(): Promise<StandardRegulationType[]> {
   const domain = process.env.VSRECORDER_DOMAIN;
 
   const res = await fetch(`https://${domain}/api/v1beta/standard_regulations`, {
-    cache: "no-store",
+    next: { revalidate: MASTER_DATA_REVALIDATE_SEC },
     method: "GET",
     headers: { Accept: "application/json" },
   });
@@ -106,7 +122,7 @@ async function getAllChampionshipSeries(): Promise<ChampionshipSeriesType[]> {
   const domain = process.env.VSRECORDER_DOMAIN;
 
   const res = await fetch(`https://${domain}/api/v1beta/championship_series`, {
-    cache: "no-store",
+    next: { revalidate: MASTER_DATA_REVALIDATE_SEC },
     method: "GET",
     headers: { Accept: "application/json" },
   });
@@ -118,24 +134,19 @@ async function getAllChampionshipSeries(): Promise<ChampionshipSeriesType[]> {
 export default async function TemplateDashboard({ userId }: Props) {
   const date = new Date(Date.now() + 9 * 60 * 60 * 1000);
 
-  let cs: CityleagueScheduleType | undefined;
-  try {
-    cs = await getCityleagueScheduleByDate(date);
-  } catch {
-    cs = undefined;
-  }
-
-  let env: EnvironmentType | undefined;
-  try {
-    env = await getEnvironmentByDate(date);
-  } catch {
-    env = undefined;
-  }
-
-  const environments = await getAllEnvironments();
-  const standardRegulations = await getAllStandardRegulations();
-  const championshipSeries = await getAllChampionshipSeries();
-  const user = await getUser(userId);
+  // 6本の取得は互いに独立しているため、直列に await すると往復回数ぶん
+  // そのままサーバ応答(TTFB)が伸びる。並列化して全体の待ち時間を最も遅い1本ぶんに抑える。
+  // シティリーグ開催情報と対戦環境は「無ければ undefined」で描画を続ける仕様のため、
+  // ここで catch して他の取得を巻き込んで失敗させない。
+  const [cs, env, environments, standardRegulations, championshipSeries, user] =
+    await Promise.all([
+      getCityleagueScheduleByDate(date).catch(() => undefined),
+      getEnvironmentByDate(date).catch(() => undefined),
+      getAllEnvironments(),
+      getAllStandardRegulations(),
+      getAllChampionshipSeries(),
+      getUser(userId),
+    ]);
 
   const sections: DashboardSection[] = [];
 

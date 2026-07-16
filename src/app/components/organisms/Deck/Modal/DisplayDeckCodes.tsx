@@ -688,6 +688,20 @@ export default function DisplayDeckCodesModal({
                                           </button>
                                         </div>
 
+                                        <div className="relative w-full aspect-2/1">
+                                          {!imageLoaded && (
+                                            <Skeleton className="absolute inset-0 rounded-lg" />
+                                          )}
+                                          <Image
+                                            radius="sm"
+                                            shadow="none"
+                                            alt={deckcode.code}
+                                            src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
+                                            className=""
+                                            onLoad={() => setImageLoaded(true)}
+                                          />
+                                        </div>
+
                                         {/* デッキコード表示は他画面（DeckCodeCard）と統一。
                                             バージョン履歴のカードは bg-default-100 のため、
                                             背景のみ bg-content1 にしてコントラストを確保する。 */}
@@ -708,20 +722,6 @@ export default function DisplayDeckCodesModal({
                                           >
                                             {deckcode?.code ? deckcode.code : "なし"}
                                           </Snippet>
-                                        </div>
-
-                                        <div className="relative w-full aspect-2/1">
-                                          {!imageLoaded && (
-                                            <Skeleton className="absolute inset-0 rounded-lg" />
-                                          )}
-                                          <Image
-                                            radius="sm"
-                                            shadow="none"
-                                            alt={deckcode.code}
-                                            src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
-                                            className=""
-                                            onLoad={() => setImageLoaded(true)}
-                                          />
                                         </div>
 
                                         {(index !== displayDeckCodes.length - 1 ||

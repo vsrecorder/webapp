@@ -1,5 +1,6 @@
 import {
   HeadObjectCommand,
+  NotFound,
   PutObjectCommand,
   PutObjectCommandInput,
   S3Client,
@@ -36,12 +37,43 @@ export function buildOgImageKey(name: string): string {
   return `images/ogp/${name}-${OG_IMAGE_VERSION}.png`;
 }
 
+// HeadObject のエラーが「オブジェクトが存在しない(404)」を意味するか判定する。
+// 接続先はS3互換のオブジェクトストレージで、SDKの NotFound クラスに必ずしも
+// マッピングされるとは限らないため、HTTPステータスとエラー名でも判定する。
+function isNotFoundError(error: unknown): boolean {
+  if (error instanceof NotFound) {
+    return true;
+  }
+
+  const httpStatusCode = (error as { $metadata?: { httpStatusCode?: number } })?.$metadata
+    ?.httpStatusCode;
+  if (httpStatusCode === 404) {
+    return true;
+  }
+
+  const name = (error as { name?: string })?.name;
+  return name === "NotFound" || name === "NoSuchKey";
+}
+
+/**
+ * オブジェクトが存在するかを確認する。
+ *
+ * 404 以外のエラー（ネットワークの一時不調・認証エラー・スロットリングなど）を
+ * 「存在しない」と扱ってはいけない。誤判定すると、実際には存在する画像に対して
+ * 生成(satoriで数百ms)と再アップロードがページ描画の経路で走ってしまう。
+ * 存在を判定できない場合は例外をそのまま投げ、呼び出し元(ensureOgImage)の
+ * フォールバック（URLを返さない＝og:imageが欠けるだけ）に委ねる。
+ */
 async function exists(s3Client: S3Client, key: string): Promise<boolean> {
   try {
     await s3Client.send(new HeadObjectCommand({ Bucket: bucketName, Key: key }));
     return true;
-  } catch {
-    return false;
+  } catch (error) {
+    if (isNotFoundError(error)) {
+      return false;
+    }
+
+    throw error;
   }
 }
 

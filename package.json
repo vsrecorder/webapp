@@ -31,7 +31,6 @@
     "react-select": "^5.10.2",
     "react-window": "^1.8.11",
     "react-windowed-select": "^5.2.0",
-    "recharts": "^3.8.1",
     "swiper": "^12.0.3",
     "swr": "^2.3.8"
   },

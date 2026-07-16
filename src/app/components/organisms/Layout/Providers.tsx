@@ -14,10 +14,12 @@ export default function Providers({
 }>) {
   return (
     // refetchInterval: 他端末での退会等によるセッション失効を
-    // 画面を開いたままでも検知できるよう、定期的にセッションを再検証する。
-    // auth.tsのUSER_CHECK_CACHE_MS(5分)と揃えており、これより短くしても
-    // バックエンドへの疎通確認自体はキャッシュにより5分に1回しか行われないため意味がない
-    <SessionProvider refetchInterval={300}>
+    // 画面を開いたままでも検知できるよう、5分ごとにセッションを再検証する。
+    // これより短くしてもバックエンドへの疎通確認自体はauth.tsのUSER_CHECK_CACHE_MS(30分)
+    // でキャッシュされるため、退会の反映が早くなるわけではない。
+    // refetchWhenOffline: 未指定だとオフライン中もポーリングし続けて必ず失敗するため、
+    // 明示的にfalseを指定してオフライン時は問い合わせないようにする。
+    <SessionProvider refetchInterval={300} refetchWhenOffline={false}>
       <SessionWatcher />
       {/* locale="ja-JP": DatePicker等の日付表示順を年/月/日にし、カレンダーを日本語化する */}
       <HeroUIProvider locale="ja-JP">

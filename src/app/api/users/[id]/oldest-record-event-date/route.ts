@@ -28,6 +28,11 @@ export async function GET(
 
   try {
     const { id } = await params;
+    // 他人のIDを指定されてもバックエンドが403で弾くが、無駄な往復を避けるため手前で弾く。
+    if (session.user.id !== id) {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const deckId = searchParams.get("deck_id") ?? "";
 

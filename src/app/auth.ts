@@ -1,3 +1,5 @@
+import { cache } from "react";
+
 import NextAuth, { CredentialsSignin } from "next-auth";
 import "next-auth/jwt";
 
@@ -38,12 +40,20 @@ declare module "next-auth/jwt" {
 }
 
 // 退会済みユーザーのセッションを検知するためのキャッシュ有効期間（ミリ秒）
-const USER_CHECK_CACHE_MS = 5 * 60 * 1000;
+// この間隔ごとに、ページ描画の裏でバックエンドへの退会チェックが1回走る。
+// 短くするとページ遷移のたびにバックエンドへの同期fetchが挟まって遷移が重くなるため、
+// 「退会が他端末へ反映されるまでの許容遅延」と「遷移速度」のバランスで長めに取る。
+const USER_CHECK_CACHE_MS = 30 * 60 * 1000;
 
 // バックエンドのデプロイ中や一時的な障害などで偶発的に404が返るケースがあるため、
 // 1回の404だけで退会済みと断定せず、連続して404が返り続けた場合のみ退会済みと判定する
 const NOT_FOUND_RETRY_COUNT = 3;
 const NOT_FOUND_RETRY_INTERVAL_MS = 1000;
+
+// 退会チェックのfetch1回あたりのタイムアウト（ミリ秒）。
+// バックエンドが遅延・ハングした際に、ページ描画がその応答待ちで無制限にブロックされるのを防ぐ。
+// タイムアウトした場合はフェイルオープン（セッション維持）で扱う。
+const USER_CHECK_TIMEOUT_MS = 3000;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -63,6 +73,8 @@ async function isUserDeletedOnBackend(domain: string, uid: string): Promise<bool
       headers: {
         "Content-Type": "application/json",
       },
+      // バックエンドの遅延でページ描画が長時間ブロックされないよう、1回あたりの上限を設ける。
+      signal: AbortSignal.timeout(USER_CHECK_TIMEOUT_MS),
     });
 
     const isBackendNotFound =
@@ -101,7 +113,12 @@ async function fetchBackend(url: string, init?: RequestInit): Promise<Response> 
   }
 }
 
-export const { handlers, signIn, signOut, auth } = NextAuth({
+const {
+  handlers,
+  signIn,
+  signOut,
+  auth: uncachedAuth,
+} = NextAuth({
   providers: [
     Credentials({
       credentials: {
@@ -235,11 +252,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           if (await isUserDeletedOnBackend(domain!, token.uid)) {
             return null;
           }
-
-          token.userCheckedAt = Date.now();
         } catch (error) {
-          // バックエンドへの疎通エラー時はセッションを維持する（フェイルオープン）
+          // バックエンドへの疎通エラー・タイムアウト時はセッションを維持する（フェイルオープン）
           console.error("Failed to verify user existence:", error);
+        } finally {
+          // 成功・失敗にかかわらずチェック時刻を更新する。
+          // 失敗時に更新しないと、バックエンド障害中はページ遷移のたびに
+          // タイムアウトするfetchが挟まり、全ての遷移が重くなってしまう。
+          // フェイルオープン方針のため、次の間隔での再チェックに委ねる。
+          token.userCheckedAt = Date.now();
         }
       }
 
@@ -263,3 +284,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   useSecureCookies: true,
 });
+
+// auth() は1回のリクエスト内でレイアウト・ナビゲーション・各ページから複数回呼ばれる。
+// 素の auth() は呼ぶたびにJWTの復号や jwt コールバック（＝退会チェックのfetch）を
+// 独立して実行してしまうため、React の cache() でリクエスト単位にメモ化し、
+// 1リクエストにつき1回の実行に集約する。
+const auth = cache(uncachedAuth);
+
+export { handlers, signIn, signOut, auth };

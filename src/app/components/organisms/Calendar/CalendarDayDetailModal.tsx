@@ -435,6 +435,14 @@ export default function CalendarDayDetailModal({
       classNames={{
         base: "sm:max-w-full",
         closeButton: "text-xl",
+        /*
+         * 閉じるアニメーション(0.3秒)の間、全画面を覆う wrapper と backdrop が
+         * DOM に残り続けるため、その間のタップがカレンダーの日付セルに届かず
+         * 「閉じた直後に開けない」状態になる。閉じ始めた時点でクリックを
+         * 透過させることで、アニメーションを保ったまま即座に開き直せるようにする。
+         */
+        wrapper: isOpen ? "" : "pointer-events-none",
+        backdrop: isOpen ? "" : "pointer-events-none",
       }}
     >
       <ModalContent>

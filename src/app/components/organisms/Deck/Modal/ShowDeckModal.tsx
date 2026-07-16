@@ -209,7 +209,11 @@ export default function ShowDeckModal({
         <ModalContent>
           {() => (
             <>
-              <ModalHeader className="relative px-3 pt-8 pb-3 flex items-center gap-3">
+              {/* ヘッダーに relative を付けると「配置済み要素」となり、DOM上で先に
+                  描画される絶対配置の閉じるボタン（HeroUI標準）の上にヘッダーが重なって
+                  クリックを奪ってしまう。ヘッダー自体は pointer-events-none にして
+                  クリックを透過させ、操作が必要な詳細リンクだけ pointer-events-auto で戻す。 */}
+              <ModalHeader className="relative px-3 pt-8 pb-3 flex items-center gap-3 pointer-events-none">
                 <>
                   {/* 詳細ページへの遷移導線。右上はHeroUIの閉じるボタンが占めるため左上に置く。
                       閉じるボタン（top-1 end-1・40px角）と同じラインに揃うよう、高さ40px(h-10)・
@@ -218,7 +222,7 @@ export default function ShowDeckModal({
                   <Link
                     href={`/decks/${deck.id}`}
                     aria-label="デッキ詳細ページを開く"
-                    className="absolute inset-s-1 top-1 flex h-10 items-center gap-1 rounded-full px-2.5 text-tiny font-bold text-foreground-500 hover:bg-default-100 active:bg-default-200"
+                    className="absolute inset-s-1 top-1 flex h-10 items-center gap-1 rounded-full px-2.5 text-tiny font-bold text-foreground-500 hover:bg-default-100 active:bg-default-200 pointer-events-auto"
                   >
                     <LuExternalLink className="text-base" />
                     詳細

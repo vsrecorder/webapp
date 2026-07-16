@@ -18,12 +18,13 @@ import { handleSignOut } from "@app/handlers/handleSignOut";
 // 一時的な失敗だけで本当にセッションを破棄してしまう。
 // そのためstatusの変化を即断せず、失効かどうかを自前で確認してから判断する。
 
-// 失効と確定させるまでの再確認回数と間隔（ミリ秒）
-const VERIFY_RETRY_COUNT = 3;
-const VERIFY_RETRY_INTERVAL_MS = 2000;
-
-// 再確認1回あたりのタイムアウト（ミリ秒）
+// 確認1回あたりのタイムアウト（ミリ秒）
 const VERIFY_TIMEOUT_MS = 5000;
+
+// 失効かどうか判断できなかった場合の再確認間隔（ミリ秒）。
+// 通信の復帰を待ち続ける必要があるため、間隔を指数的に延ばして上限で頭打ちにする。
+const RETRY_INITIAL_INTERVAL_MS = 2000;
+const RETRY_MAX_INTERVAL_MS = 30 * 1000;
 
 // active : サーバがセッションを返した（ログイン中）
 // expired: サーバがセッション無しと明示的に応答した（失効）
@@ -34,6 +35,11 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function retryInterval(attempt: number): number {
+  return Math.min(RETRY_INITIAL_INTERVAL_MS * 2 ** attempt, RETRY_MAX_INTERVAL_MS);
+}
+
+// セッションが失効したかどうかをサーバに直接確認する。
 async function fetchSessionState(): Promise<SessionState> {
   try {
     const res = await fetch("/api/auth/session", {
@@ -49,7 +55,7 @@ async function fetchSessionState(): Promise<SessionState> {
       return "unknown";
     }
 
-    // 未ログイン時、next-authはnull（実装によっては空オブジェクト）を返す
+    // 未ログイン時、next-authはnullを返す
     const session = await res.json();
     return session?.user ? "active" : "expired";
   } catch (error) {
@@ -58,24 +64,15 @@ async function fetchSessionState(): Promise<SessionState> {
   }
 }
 
-// セッションが本当に失効したかを確認する。
-// サーバから明示的な応答が得られた場合はそれを信用し、
-// 応答が得られない場合のみ間隔を空けて最大VERIFY_RETRY_COUNT回まで再確認する。
-// 最後まで判断できなかった場合はセッションを維持する（フェイルオープン）。
-async function isSessionExpired(): Promise<boolean> {
-  for (let attempt = 1; attempt <= VERIFY_RETRY_COUNT; attempt++) {
-    const state = await fetchSessionState();
-
-    if (state !== "unknown") {
-      return state === "expired";
-    }
-
-    if (attempt < VERIFY_RETRY_COUNT) {
-      await sleep(VERIFY_RETRY_INTERVAL_MS);
-    }
-  }
-
-  return false;
+// 一時的な取得失敗だった場合に、クライアント側のセッション状態を復旧する。
+// next-authは取得に失敗すると内部状態(__NEXTAUTH._session)もnullにしてしまい、
+// 定期ポーリングもvisibilitychangeでの再取得も「_sessionがnullなら何もしない」
+// という条件で止まるため、放置するとリロードするまで復帰できない。
+// event: "storage" は内部状態のnullチェックを経ずに取得し直す経路のため、
+// これを使ってReactのstateと内部状態の両方を戻す。
+async function restoreSession(): Promise<boolean> {
+  await __NEXTAUTH._getSession({ event: "storage" });
+  return Boolean(__NEXTAUTH._session);
 }
 
 export default function SessionWatcher() {
@@ -93,24 +90,31 @@ export default function SessionWatcher() {
     let cancelled = false;
 
     (async () => {
-      if (await isSessionExpired()) {
-        if (!cancelled) {
-          handleSignOut();
+      // 失効が確定するか、通信が復帰してセッションを取り戻せるまで繰り返す。
+      // ここで諦めてしまうと、セッション自体は生きているのに画面だけログアウト状態のまま
+      // 固まってしまう。next-auth側の再取得は内部状態がnullになった時点で止まっており、
+      // リロードされるまで二度と動かないため、復旧はこちらでやりきる必要がある。
+      for (let attempt = 0; !cancelled; attempt++) {
+        const state = await fetchSessionState();
+        if (cancelled) {
+          return;
         }
-        return;
-      }
 
-      if (cancelled) {
-        return;
-      }
+        if (state === "expired") {
+          handleSignOut();
+          return;
+        }
 
-      // 一時的な取得失敗だったので、クライアント側のセッション状態を復旧する。
-      // next-authは取得に失敗すると内部状態(__NEXTAUTH._session)もnullにしてしまい、
-      // 定期ポーリングも visibilitychange での再取得も「_sessionがnullなら何もしない」
-      // という条件で止まるため、放置するとリロードするまで復帰できない。
-      // event: "storage" は内部状態のnullチェックを経ずに取得し直す経路のため、
-      // これを使ってReactのstateと内部状態の両方を戻す。
-      await __NEXTAUTH._getSession({ event: "storage" });
+        if (state === "active" && (await restoreSession())) {
+          return;
+        }
+
+        if (cancelled) {
+          return;
+        }
+
+        await sleep(retryInterval(attempt));
+      }
     })();
 
     return () => {

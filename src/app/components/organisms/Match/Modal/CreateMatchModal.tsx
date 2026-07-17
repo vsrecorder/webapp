@@ -159,6 +159,12 @@ export default function CreateMatchModal({
   const [isDisabled, setIsDisabled] = useState(false);
   const [couldCreateFlg, setCouldCreateFlg] = useState(false);
 
+  // 登録APIの実行中かどうか。実行中は登録ボタンを無効化し、Esc・ドラッグでも閉じられないようにする。
+  // isDisabled は「不戦勝/不戦敗の選択中(相手情報の入力欄を無効化)」の意味であり、実行中フラグではない。
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  // 連打対策の最終防衛線。state の再レンダーを待たずに同期的に多重実行を弾く
+  const submittingRef = useRef(false);
+
   // フッター下部の余白をOS別に切り替えるための判定。
   // navigator参照のためSSRとのハイドレーション不整合を避け、マウント後に確定させる。
   const [isIOSDevice, setIsIOSDevice] = useState(false);
@@ -312,10 +318,15 @@ export default function CreateMatchModal({
     setCouldCreateFlg(false);
   };
 
-  const attachHeader = useModalDragToClose(() => {
-    resetForm();
-    onClose();
-  });
+  const attachHeader = useModalDragToClose(
+    () => {
+      resetForm();
+      onClose();
+    },
+    // 登録APIの実行中にドラッグで閉じられると、結果(成功/失敗トースト)を確認できないまま
+    // フォームが消えてしまうため、実行中はドラッグを受け付けない
+    { disabled: isSubmitting },
+  );
 
 
   useEffect(() => {
@@ -396,7 +407,11 @@ export default function CreateMatchModal({
   }, [isDefaultVictory, isDefaultDefeat]);
 
   const createMatch = async (onClose: () => void) => {
-    setCouldCreateFlg(false);
+    // 連打による多重登録(同じ対戦結果が2件できる)を防ぐ。
+    // state(isSubmitting)によるボタン無効化は再レンダー待ちの隙間があるため、ref で同期的に弾く
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    setIsSubmitting(true);
 
     // BO3タブが選択されている場合はBO3(2本先取)として登録する
     const isBO3 = selectedTab === "bo3";
@@ -419,7 +434,9 @@ export default function CreateMatchModal({
           timeout: 5000,
         });
 
-        onClose();
+        // 入力し直して再登録できるよう、モーダルは開いたままにする
+        submittingRef.current = false;
+        setIsSubmitting(false);
 
         return;
       }
@@ -546,7 +563,10 @@ export default function CreateMatchModal({
         timeout: 5000,
       });
 
-      onClose();
+      // 失敗時は閉じない。入力内容を保持したまま、そのまま再登録(リトライ)できるようにする
+    } finally {
+      submittingRef.current = false;
+      setIsSubmitting(false);
     }
   };
 
@@ -877,8 +897,9 @@ export default function CreateMatchModal({
         size="md"
         placement="bottom"
         isDismissable={false}
-        // 処理中はESCキーでも閉じられないようにする
-        isKeyboardDismissDisabled={isDisabled}
+        // 登録APIの実行中はESCキーでも閉じられないようにする
+        // (isDisabled は不戦勝/不戦敗の選択中を表すフラグなので、ここでは使わない)
+        isKeyboardDismissDisabled={isSubmitting}
         isOpen={isOpen}
         onOpenChange={onOpenChange}
         onClose={resetForm}
@@ -968,7 +989,12 @@ export default function CreateMatchModal({
                 <Button
                   color="primary"
                   variant="solid"
-                  isDisabled={!isValidedFlg || (!isDisabled && !couldCreateFlg)}
+                  // isSubmitting: 登録APIの実行中の連打による多重登録を防ぐ。
+                  // 不戦勝/不戦敗(isDisabled)の場合は couldCreateFlg が効かないため、これが唯一のガードになる
+                  isDisabled={
+                    isSubmitting || !isValidedFlg || (!isDisabled && !couldCreateFlg)
+                  }
+                  isLoading={isSubmitting}
                   onPress={() => {
                     createMatch(onClose);
                   }}

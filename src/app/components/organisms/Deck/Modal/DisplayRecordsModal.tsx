@@ -170,7 +170,10 @@ export default function DisplayRecordsModal({
                   classNames={{
                     cursor: "",
                     tab: "h-8",
-                    tabList: "",
+                    // HeroUI 既定の overflow-x-scroll を打ち消す。実際には溢れないのに
+                    // overflow を持つ要素は、iOS でその上から始まるスワイプが
+                    // usePreventScroll(react-aria) に殺されるため(他モーダルのTabsと同じ対策)
+                    tabList: "overflow-x-visible",
                     tabContent: "font-bold",
                   }}
                 >

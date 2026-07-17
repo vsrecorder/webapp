@@ -160,6 +160,12 @@ export default function UpdateMatchModal({
   const [isDisabled, setIsDisabled] = useState(false);
   const [couldUpdateFlg, setCouldUpdateFlg] = useState(false);
 
+  // 更新APIの実行中かどうか。実行中は更新ボタンを無効化し、Esc・ドラッグでも閉じられないようにする。
+  // isDisabled は「不戦勝/不戦敗の選択中(相手情報の入力欄を無効化)」の意味であり、実行中フラグではない。
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  // 連打対策の最終防衛線。state の再レンダーを待たずに同期的に多重実行を弾く
+  const submittingRef = useRef(false);
+
   const [pokemonSprite1, setPokemonSprite1] = useState<PokemonSpriteType | null>(null);
   const [pokemonSprite2, setPokemonSprite2] = useState<PokemonSpriteType | null>(null);
 
@@ -353,7 +359,9 @@ export default function UpdateMatchModal({
     onOpenChange: onOpenChangeForDeleteMatchModal,
   } = useDisclosure();
 
-  const attachHeader = useModalDragToClose(onClose);
+  // 更新APIの実行中にドラッグで閉じられると、結果(成功/失敗トースト)を確認できないまま
+  // フォームが消えてしまうため、実行中はドラッグを受け付けない
+  const attachHeader = useModalDragToClose(onClose, { disabled: isSubmitting });
 
 
   useEffect(() => {
@@ -481,7 +489,11 @@ export default function UpdateMatchModal({
   }, [isDefaultVictory, isDefaultDefeat]);
 
   const updateMatch = async (onClose: () => void) => {
-    setCouldUpdateFlg(false);
+    // 連打による多重実行を防ぐ。
+    // state(isSubmitting)によるボタン無効化は再レンダー待ちの隙間があるため、ref で同期的に弾く
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    setIsSubmitting(true);
 
     // BO3タブが選択されている場合はBO3(2本先取)として更新する
     const isBO3 = selectedTab === "bo3";
@@ -504,7 +516,9 @@ export default function UpdateMatchModal({
           timeout: 5000,
         });
 
-        onClose();
+        // 入力し直して再更新できるよう、モーダルは開いたままにする
+        submittingRef.current = false;
+        setIsSubmitting(false);
 
         return;
       }
@@ -630,7 +644,10 @@ export default function UpdateMatchModal({
         timeout: 5000,
       });
 
-      onClose();
+      // 失敗時は閉じない。入力内容を保持したまま、そのまま再更新(リトライ)できるようにする
+    } finally {
+      submittingRef.current = false;
+      setIsSubmitting(false);
     }
   };
 
@@ -969,8 +986,9 @@ export default function UpdateMatchModal({
         size="md"
         placement="bottom"
         isDismissable={false}
-        // 処理中はESCキーでも閉じられないようにする
-        isKeyboardDismissDisabled={isDisabled}
+        // 更新APIの実行中はESCキーでも閉じられないようにする
+        // (isDisabled は不戦勝/不戦敗の選択中を表すフラグなので、ここでは使わない)
+        isKeyboardDismissDisabled={isSubmitting}
         isOpen={isOpen}
         onOpenChange={onOpenChange}
         onClose={() => {
@@ -1117,9 +1135,15 @@ export default function UpdateMatchModal({
                 <Button
                   color="success"
                   variant="solid"
+                  // isSubmitting: 更新APIの実行中の連打による多重実行を防ぐ。
+                  // 不戦勝/不戦敗(isDisabled)の場合は couldUpdateFlg が効かないため、これが唯一のガードになる
                   isDisabled={
-                    !isValidedFlg || (!isDisabled && !couldUpdateFlg) || !hasChanges
+                    isSubmitting ||
+                    !isValidedFlg ||
+                    (!isDisabled && !couldUpdateFlg) ||
+                    !hasChanges
                   }
+                  isLoading={isSubmitting}
                   onPress={() => {
                     updateMatch(onClose);
                   }}

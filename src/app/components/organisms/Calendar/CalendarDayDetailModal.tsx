@@ -469,7 +469,10 @@ export default function CalendarDayDetailModal({
                     <EventRow
                       key={eventKey(event)}
                       event={event}
-                      isLast={index === events.length - 1}
+                      // 「描画済みの最終行」を基準にする。総件数(events.length)基準だと、
+                      // 少しずつ描画している途中は最後の行の下にタイムラインの線だけが
+                      // 伸びて見えてしまう。行が追加されたら前の最終行だけ描き直される
+                      isLast={index === renderCount - 1}
                     />
                   ))}
                 </ol>

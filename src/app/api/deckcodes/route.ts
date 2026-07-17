@@ -2,7 +2,7 @@ import { NextResponse, NextRequest } from "next/server";
 
 import { auth } from "@app/auth";
 
-import { fetchUpstream, upstreamErrorResponse } from "@app/utils/upstream";
+import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/upstream";
 
 import {
   DeckCodeCreateRequestType,
@@ -29,12 +29,10 @@ export async function POST(request: NextRequest) {
   const token = jwt.sign(jwtPayload, jwtSecret, jwtSignOptions);
 
   try {
-    const domain = process.env.VSRECORDER_DOMAIN;
-
     const deckcode: DeckCodeCreateRequestType = await request.json();
 
     const created = await fetchUpstream<DeckCodeCreateResponseType>(
-      `https://${domain}/api/v1beta/deckcodes`,
+      upstreamUrl`/api/v1beta/deckcodes`,
       {
         method: "POST",
         headers: {

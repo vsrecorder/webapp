@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { auth } from "@app/auth";
 
-import { fetchUpstream, upstreamErrorResponse } from "@app/utils/upstream";
+import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/upstream";
 
 import { MatchGetResponseType } from "@app/types/match";
 
@@ -12,10 +12,8 @@ async function getMatches(
   token: string,
   record_id: string,
 ): Promise<MatchGetResponseType[]> {
-  const domain = process.env.VSRECORDER_DOMAIN;
-
   return await fetchUpstream<MatchGetResponseType[]>(
-    `https://${domain}/api/v1beta/records/${record_id}/matches`,
+    upstreamUrl`/api/v1beta/records/${record_id}/matches`,
     {
       method: "GET",
       headers: {

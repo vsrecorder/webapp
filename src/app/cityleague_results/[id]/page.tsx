@@ -10,6 +10,7 @@ import {
   getOfficialEventById,
 } from "@app/utils/cityleague";
 import { OG_SIZE, renderCityleagueEventOgImage } from "@app/utils/ogImage";
+import { serializeJsonLd } from "@app/utils/breadcrumb";
 import { ensureOgImage } from "@app/utils/ogStorage";
 
 type Props = {
@@ -145,7 +146,7 @@ export default async function Page({ params }: Props) {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
       <TemplateCityleagueResultByOfficialEventId
         event={event}

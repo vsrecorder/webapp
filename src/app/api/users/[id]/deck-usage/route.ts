@@ -6,6 +6,8 @@ import { DeckUsageStatType } from "@app/types/deck_usage_stat";
 
 import * as jwt from "jsonwebtoken";
 
+import { upstreamUrl } from "@app/utils/upstream";
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -40,18 +42,15 @@ export async function GET(
     const regulationId = searchParams.get("regulation_id") ?? "";
     const allTime = searchParams.get("all_time") ?? "";
 
-    const domain = process.env.VSRECORDER_DOMAIN;
-
     const queryParams = new URLSearchParams();
     if (yearMonth) queryParams.set("year_month", yearMonth);
     if (environmentId) queryParams.set("environment_id", environmentId);
     if (season) queryParams.set("season", season);
     if (regulationId) queryParams.set("regulation_id", regulationId);
     if (allTime) queryParams.set("all_time", allTime);
-    const query = queryParams.toString() ? `?${queryParams.toString()}` : "";
 
     const res = await fetch(
-      `https://${domain}/api/v1beta/users/${id}/deck_usage${query}`,
+      upstreamUrl`/api/v1beta/users/${id}/deck_usage?${queryParams}`,
       {
         cache: "no-store",
         method: "GET",

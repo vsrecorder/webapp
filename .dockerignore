@@ -1,8 +1,10 @@
-.env
-.env.production
-.env.production.local
-.env.development
-.env.development.local
+# Dockerfile が `COPY . .` でビルダーへ丸ごと持ち込むため、
+# envファイルは個別列挙ではなくまとめて除外する。
+# 個別に書いていると、新しく .env.local などを置いた瞬間に
+# 気付かないままシークレットがイメージのレイヤーに焼き込まれる。
+# .env.sample は値を持たないので除外しない。
+.env*
+!.env.sample
 .next
 .github
 .vscode

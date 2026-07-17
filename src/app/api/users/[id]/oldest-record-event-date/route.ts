@@ -6,6 +6,8 @@ import { OldestRecordEventDateType } from "@app/types/oldest_record_event_date";
 
 import * as jwt from "jsonwebtoken";
 
+import { upstreamUrl } from "@app/utils/upstream";
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -36,14 +38,11 @@ export async function GET(
     const { searchParams } = new URL(request.url);
     const deckId = searchParams.get("deck_id") ?? "";
 
-    const domain = process.env.VSRECORDER_DOMAIN;
-
     const queryParams = new URLSearchParams();
     if (deckId) queryParams.set("deck_id", deckId);
-    const query = queryParams.toString() ? `?${queryParams.toString()}` : "";
 
     const res = await fetch(
-      `https://${domain}/api/v1beta/users/${id}/oldest_record_event_date${query}`,
+      upstreamUrl`/api/v1beta/users/${id}/oldest_record_event_date?${queryParams}`,
       {
         cache: "no-store",
         method: "GET",

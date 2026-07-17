@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { UnofficialEventGetByIdResponseType } from "@app/types/unofficial_event";
 
+import { upstreamUrl } from "@app/utils/upstream";
+
 async function getUnofficialEventById(
   id: string,
 ): Promise<UnofficialEventGetByIdResponseType> {
   try {
-    const domain = process.env.VSRECORDER_DOMAIN;
-
-    const res = await fetch(`https://${domain}/api/v1beta/unofficial_events/${id}`, {
+    const res = await fetch(upstreamUrl`/api/v1beta/unofficial_events/${id}`, {
       cache: "no-store",
       method: "GET",
       headers: {

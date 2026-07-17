@@ -21,6 +21,47 @@ import { NextResponse } from "next/server";
  *   }
  */
 
+// 上流APIのURLを組み立てるタグ付きテンプレート。埋め込んだ値は自動でencodeURIComponentされる。
+//
+//   upstreamUrl`/api/v1beta/records/${id}`
+//   upstreamUrl`/api/v1beta/users/${id}/matches?${params}`   // URLSearchParamsはエンコード済みなのでそのまま展開
+//
+// 上流のURLを素のテンプレートリテラルで組み立ててはならない。
+// Next.jsはパスパラメータをデコードして渡すため（%2F→"/"、%2E→"."）、
+// `..` を含む値を送られるとURLパーサがパスを正規化し、意図した以外の上流エンドポイントへ
+// リクエストを飛ばせてしまう。
+// 例: /api/deckcards/..%2F..%2Fusers%2Fxxx/list → https://<domain>/api/users/xxx/list
+// ルートハンドラ側の所有者チェック（session.user.id !== id で403）も、この経路では迂回される。
+export function upstreamUrl(
+  strings: TemplateStringsArray,
+  ...values: (string | number | boolean | URLSearchParams | undefined | null)[]
+): string {
+  let url = `https://${process.env.VSRECORDER_DOMAIN}`;
+
+  strings.forEach((str, index) => {
+    url += str;
+
+    const value = values[index];
+    if (value === undefined || value === null) {
+      return;
+    }
+
+    if (value instanceof URLSearchParams) {
+      const query = value.toString();
+      // 条件付きのクエリが1つも付かなかった場合に、末尾の "?" だけが残らないようにする
+      if (!query && url.endsWith("?")) {
+        url = url.slice(0, -1);
+      }
+      url += query;
+      return;
+    }
+
+    url += encodeURIComponent(String(value));
+  });
+
+  return url;
+}
+
 // 上流APIが失敗を返したことを表す例外。返すべきステータスとボディを持つ。
 export class UpstreamError extends Error {
   readonly status: number;

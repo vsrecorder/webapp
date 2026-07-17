@@ -2,17 +2,15 @@ import { NextResponse } from "next/server";
 
 import { auth } from "@app/auth";
 
-import { fetchUpstream, upstreamErrorResponse } from "@app/utils/upstream";
+import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/upstream";
 
 import { UnreadCountResponseType } from "@app/types/notification";
 
 import * as jwt from "jsonwebtoken";
 
 async function getUnreadCount(token: string): Promise<UnreadCountResponseType> {
-  const domain = process.env.VSRECORDER_DOMAIN;
-
   return await fetchUpstream<UnreadCountResponseType>(
-    `https://${domain}/api/v1beta/notifications/unread_count`,
+    upstreamUrl`/api/v1beta/notifications/unread_count`,
     {
       method: "GET",
       headers: {

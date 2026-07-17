@@ -15,10 +15,10 @@ import { getAppIconUrl, isDevEnv } from "@app/utils/appIcon";
 
 import Link from "next/link";
 
-async function fetchUser(id: string): Promise<UserType> {
-  const domain = process.env.VSRECORDER_DOMAIN;
+import { upstreamUrl } from "@app/utils/upstream";
 
-  const res = await fetch(`https://${domain}/api/v1beta/users/${id}`, {
+async function fetchUser(id: string): Promise<UserType> {
+  const res = await fetch(upstreamUrl`/api/v1beta/users/${id}`, {
     cache: "no-store",
     method: "GET",
     headers: { Accept: "application/json" },
@@ -29,11 +29,10 @@ async function fetchUser(id: string): Promise<UserType> {
 }
 
 async function fetchCurrentEnvironment(): Promise<EnvironmentType | null> {
-  const domain = process.env.VSRECORDER_DOMAIN;
   const today = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().split("T")[0];
 
   try {
-    const res = await fetch(`https://${domain}/api/v1beta/environments?date=${today}`, {
+    const res = await fetch(upstreamUrl`/api/v1beta/environments?date=${today}`, {
       cache: "no-store",
       method: "GET",
       headers: { Accept: "application/json" },

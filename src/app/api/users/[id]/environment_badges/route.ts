@@ -2,12 +2,12 @@ import { NextResponse, NextRequest } from "next/server";
 
 import { UserEnvironmentBadgesResponseType } from "@app/types/environment_badge";
 
+import { upstreamUrl } from "@app/utils/upstream";
+
 async function getUserEnvironmentBadges(
   userId: string,
 ): Promise<UserEnvironmentBadgesResponseType> {
-  const domain = process.env.VSRECORDER_DOMAIN;
-
-  const res = await fetch(`https://${domain}/api/v1beta/users/${userId}/environment_badges`, {
+  const res = await fetch(upstreamUrl`/api/v1beta/users/${userId}/environment_badges`, {
     cache: "no-store",
     method: "GET",
     headers: { Accept: "application/json" },

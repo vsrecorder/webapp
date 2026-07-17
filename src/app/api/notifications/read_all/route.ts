@@ -4,10 +4,10 @@ import { auth } from "@app/auth";
 
 import * as jwt from "jsonwebtoken";
 
-async function markAllNotificationsAsRead(token: string): Promise<Response> {
-  const domain = process.env.VSRECORDER_DOMAIN;
+import { upstreamUrl } from "@app/utils/upstream";
 
-  return fetch(`https://${domain}/api/v1beta/notifications/read_all`, {
+async function markAllNotificationsAsRead(token: string): Promise<Response> {
+  return fetch(upstreamUrl`/api/v1beta/notifications/read_all`, {
     method: "POST",
     headers: {
       Authorization: "Bearer " + token,

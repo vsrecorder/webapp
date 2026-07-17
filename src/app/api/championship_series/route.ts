@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { upstreamUrl } from "@app/utils/upstream";
+
 export async function GET(request: NextRequest) {
   try {
-    const domain = process.env.VSRECORDER_DOMAIN;
     const { searchParams } = new URL(request.url);
     const date = searchParams.get("date");
 
     const url = date
-      ? `https://${domain}/api/v1beta/championship_series?date=${date}`
-      : `https://${domain}/api/v1beta/championship_series`;
+      ? upstreamUrl`/api/v1beta/championship_series?date=${date}`
+      : upstreamUrl`/api/v1beta/championship_series`;
 
     const res = await fetch(url, {
       cache: "no-store",

@@ -1,18 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { fetchUpstream, upstreamErrorResponse } from "@app/utils/upstream";
+import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/upstream";
 
 import { CityleagueResultGetResponseType } from "@app/types/cityleague_result";
 
 async function getCityleagueResults(
   league_type: number,
 ): Promise<CityleagueResultGetResponseType> {
-  const domain = process.env.VSRECORDER_DOMAIN;
-
   const today = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().split("T")[0];
 
   return await fetchUpstream<CityleagueResultGetResponseType>(
-    `https://${domain}/api/v1beta/cityleague_results?league_type=${league_type}&date=${today}`,
+    upstreamUrl`/api/v1beta/cityleague_results?league_type=${league_type}&date=${today}`,
     {
       method: "GET",
       headers: {
@@ -27,13 +25,11 @@ async function getCityleagueResultsByTerm(
   from_date: Date,
   to_date: Date,
 ): Promise<CityleagueResultGetResponseType> {
-  const domain = process.env.VSRECORDER_DOMAIN;
-
   const from_date_str = from_date.toISOString().split("T")[0];
   const to_date_str = to_date.toISOString().split("T")[0];
 
   return await fetchUpstream<CityleagueResultGetResponseType>(
-    `https://${domain}/api/v1beta/cityleague_results?league_type=${league_type}&from_date=${from_date_str}&to_date=${to_date_str}`,
+    upstreamUrl`/api/v1beta/cityleague_results?league_type=${league_type}&from_date=${from_date_str}&to_date=${to_date_str}`,
     {
       method: "GET",
       headers: {

@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { TonamelEventGetByIdResponseType } from "@app/types/tonamel_event";
 
+import { upstreamUrl } from "@app/utils/upstream";
+
 async function getTonamelEventById(id: string): Promise<TonamelEventGetByIdResponseType> {
   try {
-    const domain = process.env.VSRECORDER_DOMAIN;
-
-    const res = await fetch(`https://${domain}/api/v1beta/tonamel_events/${id}`, {
+    const res = await fetch(upstreamUrl`/api/v1beta/tonamel_events/${id}`, {
       cache: "no-store",
       method: "GET",
       headers: {

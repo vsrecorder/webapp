@@ -2,7 +2,7 @@ import { NextResponse, NextRequest } from "next/server";
 
 import { auth } from "@app/auth";
 
-import { fetchUpstream, upstreamErrorResponse } from "@app/utils/upstream";
+import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/upstream";
 
 import {
   DeckGetResponseType,
@@ -17,10 +17,8 @@ async function getDecks(
   archived: boolean,
   cursor: string,
 ): Promise<DeckGetResponseType> {
-  const domain = process.env.VSRECORDER_DOMAIN;
-
   return await fetchUpstream<DeckGetResponseType>(
-    `https://${domain}/api/v1beta/decks?limit=10&archived=${archived}&cursor=${cursor}`,
+    upstreamUrl`/api/v1beta/decks?limit=10&archived=${archived}&cursor=${cursor}`,
     {
       method: "GET",
       headers: {
@@ -83,12 +81,10 @@ export async function POST(request: NextRequest) {
   const token = jwt.sign(jwtPayload, jwtSecret, jwtSignOptions);
 
   try {
-    const domain = process.env.VSRECORDER_DOMAIN;
-
     const deck: DeckCreateRequestType = await request.json();
 
     const created = await fetchUpstream<DeckCreateResponseType>(
-      `https://${domain}/api/v1beta/decks`,
+      upstreamUrl`/api/v1beta/decks`,
       {
         method: "POST",
         headers: {

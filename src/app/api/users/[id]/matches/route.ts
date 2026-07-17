@@ -6,6 +6,8 @@ import { MatchGetResponseType } from "@app/types/match";
 
 import * as jwt from "jsonwebtoken";
 
+import { upstreamUrl } from "@app/utils/upstream";
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -35,11 +37,8 @@ export async function GET(
 
     const { searchParams } = new URL(request.url);
     const limit = searchParams.get("limit") ?? "10";
-
-    const domain = process.env.VSRECORDER_DOMAIN;
-
     const res = await fetch(
-      `https://${domain}/api/v1beta/users/${id}/matches?limit=${limit}`,
+      upstreamUrl`/api/v1beta/users/${id}/matches?limit=${limit}`,
       {
         cache: "no-store",
         method: "GET",

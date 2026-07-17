@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { auth } from "@app/auth";
 
-import { fetchUpstream, upstreamErrorResponse } from "@app/utils/upstream";
+import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/upstream";
 
 import { DeckCodeType } from "@app/types/deck_code";
 
@@ -12,10 +12,8 @@ async function getDeckCodesByDeckId(
   token: string,
   deck_id: string,
 ): Promise<DeckCodeType[]> {
-  const domain = process.env.VSRECORDER_DOMAIN;
-
   return await fetchUpstream<DeckCodeType[]>(
-    `https://${domain}/api/v1beta/decks/${deck_id}/deckcodes`,
+    upstreamUrl`/api/v1beta/decks/${deck_id}/deckcodes`,
     {
       method: "GET",
       headers: {

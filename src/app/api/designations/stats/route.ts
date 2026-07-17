@@ -1,13 +1,14 @@
 import { NextResponse, NextRequest } from "next/server";
 
+import { upstreamUrl } from "@app/utils/upstream";
+
 import { DesignationRankStatsType } from "@app/types/designation";
 
 async function getDesignationRankStats(season: string): Promise<DesignationRankStatsType> {
-  const domain = process.env.VSRECORDER_DOMAIN;
+  const query = new URLSearchParams();
+  if (season) query.set("season", season);
 
-  const query = season ? `?season=${encodeURIComponent(season)}` : "";
-
-  const res = await fetch(`https://${domain}/api/v1beta/designations/stats${query}`, {
+  const res = await fetch(upstreamUrl`/api/v1beta/designations/stats?${query}`, {
     cache: "no-store",
     method: "GET",
     headers: { Accept: "application/json" },

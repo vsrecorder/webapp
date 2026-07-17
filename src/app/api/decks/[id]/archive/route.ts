@@ -2,17 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { auth } from "@app/auth";
 
-import { fetchUpstream, upstreamErrorResponse } from "@app/utils/upstream";
+import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/upstream";
 
 import { DeckArchiveResponse } from "@app/types/deck";
 
 import * as jwt from "jsonwebtoken";
 
 async function archiveDeckById(token: string, id: string): Promise<DeckArchiveResponse> {
-  const domain = process.env.VSRECORDER_DOMAIN;
-
   return await fetchUpstream<DeckArchiveResponse>(
-    `https://${domain}/api/v1beta/decks/${id}/archive`,
+    upstreamUrl`/api/v1beta/decks/${id}/archive`,
     {
       method: "PATCH",
       headers: {

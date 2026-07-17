@@ -1,14 +1,12 @@
 import { NextResponse, NextRequest } from "next/server";
 
-import { fetchUpstream, upstreamErrorResponse } from "@app/utils/upstream";
+import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/upstream";
 
 import { EnvironmentType } from "@app/types/environment";
 
 async function getEnvironmentById(id: string): Promise<EnvironmentType> {
-  const domain = process.env.VSRECORDER_DOMAIN;
-
   return await fetchUpstream<EnvironmentType>(
-    `https://${domain}/api/v1beta/environments/${id}`,
+    upstreamUrl`/api/v1beta/environments/${id}`,
     {
       method: "GET",
       headers: {

@@ -2,7 +2,7 @@ import { NextResponse, NextRequest } from "next/server";
 
 import { auth } from "@app/auth";
 
-import { fetchUpstream, upstreamErrorResponse } from "@app/utils/upstream";
+import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/upstream";
 
 import { MatchUpdateRequestType, MatchUpdateResponseType } from "@app/types/match";
 
@@ -30,13 +30,10 @@ export async function PUT(
 
   try {
     const { id } = await params;
-
-    const domain = process.env.VSRECORDER_DOMAIN;
-
     const match: MatchUpdateRequestType = await request.json();
 
     const updated = await fetchUpstream<MatchUpdateResponseType>(
-      `https://${domain}/api/v1beta/matches/${id}`,
+      upstreamUrl`/api/v1beta/matches/${id}`,
       {
         method: "PUT",
         headers: {
@@ -75,10 +72,7 @@ export async function DELETE(
 
   try {
     const { id } = await params;
-
-    const domain = process.env.VSRECORDER_DOMAIN;
-
-    await fetchUpstream<null>(`https://${domain}/api/v1beta/matches/${id}`, {
+    await fetchUpstream<null>(upstreamUrl`/api/v1beta/matches/${id}`, {
       method: "DELETE",
       headers: {
         Authorization: "Bearer " + token,

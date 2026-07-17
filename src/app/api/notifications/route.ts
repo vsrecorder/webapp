@@ -2,7 +2,7 @@ import { NextResponse, NextRequest } from "next/server";
 
 import { auth } from "@app/auth";
 
-import { fetchUpstream, upstreamErrorResponse } from "@app/utils/upstream";
+import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/upstream";
 
 import { NotificationsGetResponseType } from "@app/types/notification";
 
@@ -12,10 +12,8 @@ async function getNotifications(
   token: string,
   limit: string,
 ): Promise<NotificationsGetResponseType> {
-  const domain = process.env.VSRECORDER_DOMAIN;
-
   return await fetchUpstream<NotificationsGetResponseType>(
-    `https://${domain}/api/v1beta/notifications?limit=${limit}`,
+    upstreamUrl`/api/v1beta/notifications?limit=${limit}`,
     {
       method: "GET",
       headers: {

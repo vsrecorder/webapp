@@ -2,10 +2,10 @@ import { NextResponse, NextRequest } from "next/server";
 
 import { UserStreakType } from "@app/types/streak";
 
-async function getUserStreak(userId: string): Promise<UserStreakType> {
-  const domain = process.env.VSRECORDER_DOMAIN;
+import { upstreamUrl } from "@app/utils/upstream";
 
-  const res = await fetch(`https://${domain}/api/v1beta/users/${userId}/streak`, {
+async function getUserStreak(userId: string): Promise<UserStreakType> {
+  const res = await fetch(upstreamUrl`/api/v1beta/users/${userId}/streak`, {
     cache: "no-store",
     method: "GET",
     headers: { Accept: "application/json" },

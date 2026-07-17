@@ -1,5 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 
+import { upstreamUrl } from "@app/utils/upstream";
+
 import { UserStatType } from "@app/types/user_stat";
 
 async function getUserStat(
@@ -9,18 +11,14 @@ async function getUserStat(
   season: string,
   regulationId: string,
 ): Promise<UserStatType> {
-  const domain = process.env.VSRECORDER_DOMAIN;
-
   const params = new URLSearchParams();
   if (yearMonth) params.set("year_month", yearMonth);
   if (environmentId) params.set("environment_id", environmentId);
   if (season) params.set("season", season);
   if (regulationId) params.set("regulation_id", regulationId);
 
-  const query = params.toString() ? `?${params.toString()}` : "";
-
   const res = await fetch(
-    `https://${domain}/api/v1beta/users/${userId}/stats${query}`,
+    upstreamUrl`/api/v1beta/users/${userId}/stats?${params}`,
     {
       cache: "no-store",
       method: "GET",

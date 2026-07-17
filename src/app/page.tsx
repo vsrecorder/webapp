@@ -4,6 +4,7 @@ import TemplateHome from "@app/components/templates/Home";
 import TemplateDashboard from "@app/components/templates/Dashboard";
 
 import { getAppIconUrl } from "@app/utils/appIcon";
+import { serializeJsonLd } from "@app/utils/breadcrumb";
 
 const description = "ポケカプレイヤーのための対戦記録サービス";
 
@@ -70,7 +71,7 @@ export default async function Home() {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
       <TemplateHome />
     </>

@@ -1,16 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { fetchUpstream, upstreamErrorResponse } from "@app/utils/upstream";
+import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/upstream";
 
 import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
 
 async function getOfficialEventById(
   id: string,
 ): Promise<OfficialEventGetByIdResponseType> {
-  const domain = process.env.VSRECORDER_DOMAIN;
-
   return await fetchUpstream<OfficialEventGetByIdResponseType>(
-    `https://${domain}/api/v1beta/official_events/${id}`,
+    upstreamUrl`/api/v1beta/official_events/${id}`,
     {
       method: "GET",
       headers: {

@@ -32,6 +32,8 @@ import { ChampionshipSeriesType } from "@app/types/championship_series";
 import { UserType } from "@app/types/user";
 import { isDevEnv } from "@app/utils/appIcon";
 
+import { upstreamUrl } from "@app/utils/upstream";
+
 // マスタデータ（対戦環境・スタンダードレギュレーション・チャンピオンシップシリーズ）の
 // キャッシュ期間（秒）。滅多に増えないため長めに取る。
 const MASTER_DATA_REVALIDATE_SEC = 3600;
@@ -41,11 +43,10 @@ const MASTER_DATA_REVALIDATE_SEC = 3600;
 const DAILY_DATA_REVALIDATE_SEC = 300;
 
 async function getCityleagueScheduleByDate(date: Date): Promise<CityleagueScheduleType> {
-  const domain = process.env.VSRECORDER_DOMAIN;
   const today = date.toISOString().split("T")[0];
 
   const res = await fetch(
-    `https://${domain}/api/v1beta/cityleague_schedules?date=${today}`,
+    upstreamUrl`/api/v1beta/cityleague_schedules?date=${today}`,
     {
       // シティリーグの開催情報は最大でも日次更新のため、毎回取得(no-store)は不要。
       // キャッシュしてサーバ応答(TTFB)を短縮する。
@@ -60,10 +61,9 @@ async function getCityleagueScheduleByDate(date: Date): Promise<CityleagueSchedu
 }
 
 async function getEnvironmentByDate(date: Date): Promise<EnvironmentType> {
-  const domain = process.env.VSRECORDER_DOMAIN;
   const today = date.toISOString().split("T")[0];
 
-  const res = await fetch(`https://${domain}/api/v1beta/environments?date=${today}`, {
+  const res = await fetch(upstreamUrl`/api/v1beta/environments?date=${today}`, {
     // 対戦環境情報も日次更新のため、キャッシュしてTTFBを短縮する。
     next: { revalidate: DAILY_DATA_REVALIDATE_SEC },
     method: "GET",
@@ -79,9 +79,7 @@ type Props = {
 };
 
 async function getUser(userId: string): Promise<UserType | null> {
-  const domain = process.env.VSRECORDER_DOMAIN;
-
-  const res = await fetch(`https://${domain}/api/v1beta/users/${userId}`, {
+  const res = await fetch(upstreamUrl`/api/v1beta/users/${userId}`, {
     // ユーザ自身が編集した名前・アイコンを即座に反映したいため、ここはキャッシュしない。
     cache: "no-store",
     method: "GET",
@@ -93,9 +91,7 @@ async function getUser(userId: string): Promise<UserType | null> {
 }
 
 async function getAllEnvironments(): Promise<EnvironmentType[]> {
-  const domain = process.env.VSRECORDER_DOMAIN;
-
-  const res = await fetch(`https://${domain}/api/v1beta/environments`, {
+  const res = await fetch(upstreamUrl`/api/v1beta/environments`, {
     next: { revalidate: MASTER_DATA_REVALIDATE_SEC },
     method: "GET",
     headers: { Accept: "application/json" },
@@ -106,9 +102,7 @@ async function getAllEnvironments(): Promise<EnvironmentType[]> {
 }
 
 async function getAllStandardRegulations(): Promise<StandardRegulationType[]> {
-  const domain = process.env.VSRECORDER_DOMAIN;
-
-  const res = await fetch(`https://${domain}/api/v1beta/standard_regulations`, {
+  const res = await fetch(upstreamUrl`/api/v1beta/standard_regulations`, {
     next: { revalidate: MASTER_DATA_REVALIDATE_SEC },
     method: "GET",
     headers: { Accept: "application/json" },
@@ -119,9 +113,7 @@ async function getAllStandardRegulations(): Promise<StandardRegulationType[]> {
 }
 
 async function getAllChampionshipSeries(): Promise<ChampionshipSeriesType[]> {
-  const domain = process.env.VSRECORDER_DOMAIN;
-
-  const res = await fetch(`https://${domain}/api/v1beta/championship_series`, {
+  const res = await fetch(upstreamUrl`/api/v1beta/championship_series`, {
     next: { revalidate: MASTER_DATA_REVALIDATE_SEC },
     method: "GET",
     headers: { Accept: "application/json" },

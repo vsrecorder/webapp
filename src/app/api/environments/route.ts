@@ -1,14 +1,12 @@
 import { NextResponse, NextRequest } from "next/server";
 
-import { fetchUpstream, upstreamErrorResponse } from "@app/utils/upstream";
+import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/upstream";
 
 import { EnvironmentType } from "@app/types/environment";
 
 async function getEnvironment(date: string): Promise<EnvironmentType> {
-  const domain = process.env.VSRECORDER_DOMAIN;
-
   return await fetchUpstream<EnvironmentType>(
-    `https://${domain}/api/v1beta/environments?date=${date}`,
+    upstreamUrl`/api/v1beta/environments?date=${date}`,
     {
       method: "GET",
       headers: {
@@ -20,10 +18,8 @@ async function getEnvironment(date: string): Promise<EnvironmentType> {
 
 // date未指定時は環境一覧をまとめて返す（環境フィルタのセレクタ選択肢取得用）
 async function getAllEnvironments(): Promise<EnvironmentType[]> {
-  const domain = process.env.VSRECORDER_DOMAIN;
-
   return await fetchUpstream<EnvironmentType[]>(
-    `https://${domain}/api/v1beta/environments`,
+    upstreamUrl`/api/v1beta/environments`,
     {
       method: "GET",
       headers: {

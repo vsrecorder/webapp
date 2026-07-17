@@ -7,6 +7,8 @@ import { UserGetByIdResponseType, UserUpdateRequestType, UserUpdateResponseType 
 
 import * as jwt from "jsonwebtoken";
 
+import { upstreamUrl } from "@app/utils/upstream";
+
 function makeToken(uid: string): string {
   const jwtSecret: jwt.Secret = process.env.VSRECORDER_JWT_SECRET as string;
   const jwtSignOptions: jwt.SignOptions = {
@@ -25,9 +27,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const domain = process.env.VSRECORDER_DOMAIN;
-
-  const res = await fetch(`https://${domain}/api/v1beta/users/${id}`, {
+  const res = await fetch(upstreamUrl`/api/v1beta/users/${id}`, {
     cache: "no-store",
     method: "GET",
     headers: { Accept: "application/json" },
@@ -57,11 +57,9 @@ export async function PUT(
   }
 
   const token = makeToken(session.user.id);
-  const domain = process.env.VSRECORDER_DOMAIN;
-
   const body: UserUpdateRequestType = await request.json();
 
-  const res = await fetch(`https://${domain}/api/v1beta/users/${id}`, {
+  const res = await fetch(upstreamUrl`/api/v1beta/users/${id}`, {
     method: "PUT",
     headers: {
       Authorization: "Bearer " + token,
@@ -94,9 +92,7 @@ export async function DELETE(
   }
 
   const token = makeToken(session.user.id);
-  const domain = process.env.VSRECORDER_DOMAIN;
-
-  const res = await fetch(`https://${domain}/api/v1beta/users/${id}`, {
+  const res = await fetch(upstreamUrl`/api/v1beta/users/${id}`, {
     method: "DELETE",
     headers: {
       Authorization: "Bearer " + token,

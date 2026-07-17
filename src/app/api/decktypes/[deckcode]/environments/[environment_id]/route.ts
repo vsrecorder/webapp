@@ -4,14 +4,15 @@ import { fetchUpstream, upstreamErrorResponse } from "@app/utils/upstream";
 
 import { DeckTypeData } from "@app/types/decktype";
 
+// ここだけは他のルートと違い、VSRECORDER_DOMAIN ではなく旧v1 APIを直接叩いているため
+// upstreamUrl が使えない。パスに埋める値のエンコードは自前で行う（理由は upstreamUrl のコメント参照）。
 async function getDeckType(
   deckcode: string,
   environment_id: string,
 ): Promise<DeckTypeData[]> {
-  //const domain = process.env.VSRECORDER_DOMAIN;
-
   return await fetchUpstream<DeckTypeData[]>(
-    `https://vsrecorder.mobi/api/v1/decktypes/${deckcode}/environments/${environment_id}`,
+    `https://vsrecorder.mobi/api/v1/decktypes/${encodeURIComponent(deckcode)}` +
+      `/environments/${encodeURIComponent(environment_id)}`,
     {
       method: "GET",
       headers: {

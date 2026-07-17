@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { auth } from "@app/auth";
 
-import { fetchUpstream, upstreamErrorResponse } from "@app/utils/upstream";
+import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/upstream";
 
 import { DeckUnarchiveResponse } from "@app/types/deck";
 
@@ -12,10 +12,8 @@ async function unarchiveDeckById(
   token: string,
   id: string,
 ): Promise<DeckUnarchiveResponse> {
-  const domain = process.env.VSRECORDER_DOMAIN;
-
   return await fetchUpstream<DeckUnarchiveResponse>(
-    `https://${domain}/api/v1beta/decks/${id}/unarchive`,
+    upstreamUrl`/api/v1beta/decks/${id}/unarchive`,
     {
       method: "PATCH",
       headers: {

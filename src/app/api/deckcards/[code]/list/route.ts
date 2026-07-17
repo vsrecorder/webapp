@@ -1,14 +1,12 @@
 import { NextResponse, NextRequest } from "next/server";
 
-import { fetchUpstream, upstreamErrorResponse } from "@app/utils/upstream";
+import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/upstream";
 
 import { DeckCardType } from "@app/types/deckcard";
 
 async function getDeckCardList(code: string): Promise<DeckCardType[]> {
-  const domain = process.env.VSRECORDER_DOMAIN;
-
   return await fetchUpstream<DeckCardType[]>(
-    `https://${domain}/api/v1beta/deckcards/${code}/list`,
+    upstreamUrl`/api/v1beta/deckcards/${code}/list`,
     {
       method: "GET",
       headers: {

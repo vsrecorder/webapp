@@ -1,5 +1,38 @@
 import type { NextConfig } from "next";
 
+// 画像・スプライト・バッジを配信しているCDN（SAKURA_OBJECTSTORAGE_CDN_URL と同じ）。
+// この値はクライアントに出るURLとして既にコード中に散在しているため、ここでも直に書く。
+const CDN_ORIGIN = "https://xx8nnpgt.user.webaccel.jp";
+
+// 開発時のみ webpack の HMR が eval を使う
+const isDev = process.env.NODE_ENV !== "production";
+
+// Content-Security-Policy。
+// script-src / style-src の 'unsafe-inline' は現状の作りでは外せない:
+//   - layout.tsx が iOS PWA 判定のインラインスクリプトをペイント前に実行している
+//   - GoogleAnalytics(@next/third-parties)がインラインスクリプトを出す
+//   - experimental.inlineCss で CSS を <style> として埋め込んでいる
+// nonce化にはリクエストごとの middleware が要るため、ここでは
+// 「どこへ通信できるか」「誰に埋め込ませるか」を絞ることを主眼に置く。
+const CSP = [
+  `default-src 'self'`,
+  `script-src 'self' 'unsafe-inline' ${isDev ? `'unsafe-eval' ` : ""}https://www.googletagmanager.com https://apis.google.com`,
+  `style-src 'self' 'unsafe-inline'`,
+  `font-src 'self' data:`,
+  // next/imageの最適化元(remotePatterns)と、canvasで画像を組み立てるためのdata:/blob:
+  `img-src 'self' data: blob: ${CDN_ORIGIN} https://lh3.googleusercontent.com https://pbs.twimg.com https://www.pokemon-card.com https://s3.isk01.sakurastorage.jp https://www.googletagmanager.com https://www.google-analytics.com`,
+  // Firebase Authentication(identitytoolkit/securetoken)、GA、スプライトCDNへのfetch。
+  // GAの計測ビーコンは region1.google-analytics.com や analytics.google.com にも飛ぶ。
+  `connect-src 'self' ${CDN_ORIGIN} https://*.googleapis.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com`,
+  // Firebase Authenticationのログインポップアップ/iframe
+  `frame-src 'self' https://*.firebaseapp.com https://accounts.google.com https://apis.google.com`,
+  `object-src 'none'`,
+  `base-uri 'self'`,
+  `form-action 'self'`,
+  // X-Frame-Optionsの後継。埋め込みを一切許可しない。
+  `frame-ancestors 'none'`,
+].join("; ");
+
 const nextConfig: NextConfig = {
   /* config options here */
   allowedDevOrigins: ["local.vsrecorder.mobi"],
@@ -49,6 +82,28 @@ const nextConfig: NextConfig = {
   },
   reactStrictMode: false,
   output: "standalone",
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          // MIMEスニッフィングを禁止する。CDN上のユーザーアップロード画像などを
+          // ブラウザが別の型として解釈するのを防ぐ。
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          // 外部サイトへは参照元をオリジンまでしか送らない（記録IDなどをパスに含むため）
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          // このサイトをiframeに埋め込ませない（クリックジャッキング対策）
+          { key: "X-Frame-Options", value: "DENY" },
+          // 使っていないブラウザ機能は明示的に閉じる
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=(), payment=()",
+          },
+          { key: "Content-Security-Policy", value: CSP },
+        ],
+      },
+    ];
+  },
   // OGP画像の生成に使う日本語フォント（計11.5MB）は、サーバ側で readFile するだけで
   // HTTP配信する必要がない。public/ に置くと誰でもダウンロードできてしまうため assets/ に置き、
   // standalone の出力に含めるようここで明示する（.next/standalone/assets/fonts/ にコピーされ、

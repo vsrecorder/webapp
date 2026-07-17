@@ -10,6 +10,8 @@ import {
 
 import * as jwt from "jsonwebtoken";
 
+import { upstreamUrl } from "@app/utils/upstream";
+
 function makeToken(uid: string): string {
   const jwtSecret: jwt.Secret = process.env.VSRECORDER_JWT_SECRET as string;
   const jwtSignOptions: jwt.SignOptions = {
@@ -30,9 +32,7 @@ export async function GET() {
   }
 
   const token = makeToken(session.user.id);
-  const domain = process.env.VSRECORDER_DOMAIN;
-
-  const res = await fetch(`https://${domain}/api/v1beta/usersplayers`, {
+  const res = await fetch(upstreamUrl`/api/v1beta/usersplayers`, {
     cache: "no-store",
     method: "GET",
     headers: {
@@ -57,11 +57,9 @@ export async function POST(request: NextRequest) {
   }
 
   const token = makeToken(session.user.id);
-  const domain = process.env.VSRECORDER_DOMAIN;
-
   const body: UserPlayerCreateRequestType = await request.json();
 
-  const res = await fetch(`https://${domain}/api/v1beta/usersplayers`, {
+  const res = await fetch(upstreamUrl`/api/v1beta/usersplayers`, {
     method: "POST",
     headers: {
       Authorization: "Bearer " + token,

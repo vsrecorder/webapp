@@ -18,6 +18,8 @@ import { toDateKey } from "@app/utils/calendar";
 
 import * as jwt from "jsonwebtoken";
 
+import { upstreamUrl } from "@app/utils/upstream";
+
 // core-apiserver の GET /users/{id}/calendar が返す形。
 // 記録・対戦結果・デッキ・デッキコードと、参照先のイベント情報がまとめて入っている。
 type CalendarApiGame = {
@@ -204,9 +206,7 @@ async function fetchCalendar(
   token: string,
   userId: string,
 ): Promise<CalendarApiResponse> {
-  const domain = process.env.VSRECORDER_DOMAIN;
-
-  const res = await fetch(`https://${domain}/api/v1beta/users/${userId}/calendar`, {
+  const res = await fetch(upstreamUrl`/api/v1beta/users/${userId}/calendar`, {
     cache: "no-store",
     method: "GET",
     headers: {

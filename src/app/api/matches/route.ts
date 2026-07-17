@@ -2,7 +2,7 @@ import { NextResponse, NextRequest } from "next/server";
 
 import { auth } from "@app/auth";
 
-import { fetchUpstream, upstreamErrorResponse } from "@app/utils/upstream";
+import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/upstream";
 
 import {
   MatchCreateRequestType,
@@ -32,11 +32,8 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const limit = searchParams.get("limit") ?? "20";
-
-    const domain = process.env.VSRECORDER_DOMAIN;
-
     const matches = await fetchUpstream<MatchGetResponseType[]>(
-      `https://${domain}/api/v1beta/matches?limit=${limit}`,
+      upstreamUrl`/api/v1beta/matches?limit=${limit}`,
       {
         method: "GET",
         headers: {
@@ -70,12 +67,10 @@ export async function POST(request: NextRequest) {
   const token = jwt.sign(jwtPayload, jwtSecret, jwtSignOptions);
 
   try {
-    const domain = process.env.VSRECORDER_DOMAIN;
-
     const match: MatchCreateRequestType = await request.json();
 
     const created = await fetchUpstream<MatchCreateResponseType>(
-      `https://${domain}/api/v1beta/matches`,
+      upstreamUrl`/api/v1beta/matches`,
       {
         method: "POST",
         headers: {

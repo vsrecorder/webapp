@@ -19,6 +19,8 @@ import { CityleagueScheduleType } from "@app/types/cityleague_schedule";
 import { EnvironmentType } from "@app/types/environment";
 import { isDevEnv } from "@app/utils/appIcon";
 
+import { upstreamUrl } from "@app/utils/upstream";
+
 const GRAFANA_DASHBOARD_UID = "636db44742fb4dca801d0b1c9343642a";
 
 async function getGrafanaStat(panelId: number): Promise<number | undefined> {
@@ -43,12 +45,10 @@ async function getGrafanaStat(panelId: number): Promise<number | undefined> {
 
 async function getCityleagueScheduleByDate(date: Date): Promise<CityleagueScheduleType> {
   try {
-    const domain = process.env.VSRECORDER_DOMAIN;
-
     const today = date.toISOString().split("T")[0];
 
     const res = await fetch(
-      `https://${domain}/api/v1beta/cityleague_schedules?date=${today}`,
+      upstreamUrl`/api/v1beta/cityleague_schedules?date=${today}`,
       {
         // シティリーグの開催情報は最大でも日次更新のため、毎回取得(no-store)は不要。
         // 5分キャッシュ(stale-while-revalidate)にしてサーバ応答(TTFB)を短縮し、FCP/LCPを改善する。
@@ -75,11 +75,9 @@ async function getCityleagueScheduleByDate(date: Date): Promise<CityleagueSchedu
 
 async function getEnvironmentByDate(date: Date): Promise<EnvironmentType> {
   try {
-    const domain = process.env.VSRECORDER_DOMAIN;
-
     const today = date.toISOString().split("T")[0];
 
-    const res = await fetch(`https://${domain}/api/v1beta/environments?date=${today}`, {
+    const res = await fetch(upstreamUrl`/api/v1beta/environments?date=${today}`, {
       // 対戦環境情報も日次更新のため、5分キャッシュにしてTTFBを短縮する。
       next: { revalidate: 300 },
       method: "GET",

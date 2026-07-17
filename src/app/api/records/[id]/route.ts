@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { auth } from "@app/auth";
 
-import { fetchUpstream, upstreamErrorResponse } from "@app/utils/upstream";
+import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/upstream";
 
 import {
   RecordGetByIdResponseType,
@@ -16,10 +16,8 @@ async function getRecordById(
   token: string,
   id: string,
 ): Promise<RecordGetByIdResponseType> {
-  const domain = process.env.VSRECORDER_DOMAIN;
-
   return await fetchUpstream<RecordGetByIdResponseType>(
-    `https://${domain}/api/v1beta/records/${id}`,
+    upstreamUrl`/api/v1beta/records/${id}`,
     {
       method: "GET",
       headers: {
@@ -83,13 +81,10 @@ export async function PUT(
 
   try {
     const { id } = await params;
-
-    const domain = process.env.VSRECORDER_DOMAIN;
-
     const record: RecordUpdateRequestType = await request.json();
 
     const updated = await fetchUpstream<RecordUpdateResponseType>(
-      `https://${domain}/api/v1beta/records/${id}`,
+      upstreamUrl`/api/v1beta/records/${id}`,
       {
         method: "PUT",
         headers: {
@@ -128,10 +123,7 @@ export async function DELETE(
 
   try {
     const { id } = await params;
-
-    const domain = process.env.VSRECORDER_DOMAIN;
-
-    await fetchUpstream<null>(`https://${domain}/api/v1beta/records/${id}`, {
+    await fetchUpstream<null>(upstreamUrl`/api/v1beta/records/${id}`, {
       method: "DELETE",
       headers: {
         Authorization: "Bearer " + token,

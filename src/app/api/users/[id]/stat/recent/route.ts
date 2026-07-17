@@ -1,5 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 
+import { upstreamUrl } from "@app/utils/upstream";
+
 import { RecentMatchStatType } from "@app/types/user_stat_recent";
 
 async function getUserStatRecent(
@@ -7,16 +9,12 @@ async function getUserStatRecent(
   count: string,
   deckId: string,
 ): Promise<RecentMatchStatType> {
-  const domain = process.env.VSRECORDER_DOMAIN;
-
   const params = new URLSearchParams();
   if (count) params.set("count", count);
   if (deckId) params.set("deck_id", deckId);
 
-  const query = params.toString() ? `?${params.toString()}` : "";
-
   const res = await fetch(
-    `https://${domain}/api/v1beta/users/${userId}/stats/recent${query}`,
+    upstreamUrl`/api/v1beta/users/${userId}/stats/recent?${params}`,
     {
       cache: "no-store",
       method: "GET",

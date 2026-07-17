@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { auth } from "@app/auth";
 
-import { fetchUpstream, upstreamErrorResponse } from "@app/utils/upstream";
+import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/upstream";
 
 import {
   DeckUpdateRequestType,
@@ -13,10 +13,8 @@ import {
 import * as jwt from "jsonwebtoken";
 
 async function getDeckById(token: string, id: string): Promise<DeckGetByIdResponseType> {
-  const domain = process.env.VSRECORDER_DOMAIN;
-
   return await fetchUpstream<DeckGetByIdResponseType>(
-    `https://${domain}/api/v1beta/decks/${id}`,
+    upstreamUrl`/api/v1beta/decks/${id}`,
     {
       method: "GET",
       headers: {
@@ -80,13 +78,10 @@ export async function PUT(
 
   try {
     const { id } = await params;
-
-    const domain = process.env.VSRECORDER_DOMAIN;
-
     const deck: DeckUpdateRequestType = await request.json();
 
     const updated = await fetchUpstream<DeckUpdateResponseType>(
-      `https://${domain}/api/v1beta/decks/${id}`,
+      upstreamUrl`/api/v1beta/decks/${id}`,
       {
         method: "PUT",
         headers: {
@@ -125,10 +120,7 @@ export async function DELETE(
 
   try {
     const { id } = await params;
-
-    const domain = process.env.VSRECORDER_DOMAIN;
-
-    await fetchUpstream<null>(`https://${domain}/api/v1beta/decks/${id}`, {
+    await fetchUpstream<null>(upstreamUrl`/api/v1beta/decks/${id}`, {
       method: "DELETE",
       headers: {
         Authorization: "Bearer " + token,

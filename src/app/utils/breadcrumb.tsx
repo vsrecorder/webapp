@@ -20,11 +20,19 @@ export function buildBreadcrumbJsonLd(crumbs: Crumb[]) {
   };
 }
 
+// 構造化データを<script>に埋め込む。
+// JSON.stringify は "<" をエスケープしないため、値に "</script>" が含まれると
+// そこでタグが閉じてしまい、以降が本物のスクリプトとして実行される。
+// イベント名や店舗名など上流由来の文字列を埋めているので、"<" は必ず潰しておく。
+export function serializeJsonLd(data: unknown): string {
+  return JSON.stringify(data).replace(/</g, "\\u003c");
+}
+
 export function JsonLd({ data }: { data: unknown }) {
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+      dangerouslySetInnerHTML={{ __html: serializeJsonLd(data) }}
     />
   );
 }

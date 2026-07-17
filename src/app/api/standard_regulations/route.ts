@@ -2,11 +2,11 @@ import { NextResponse } from "next/server";
 
 import { StandardRegulationType } from "@app/types/standard_regulation";
 
+import { upstreamUrl } from "@app/utils/upstream";
+
 export async function GET() {
   try {
-    const domain = process.env.VSRECORDER_DOMAIN;
-
-    const res = await fetch(`https://${domain}/api/v1beta/standard_regulations`, {
+    const res = await fetch(upstreamUrl`/api/v1beta/standard_regulations`, {
       cache: "no-store",
       method: "GET",
       headers: { Accept: "application/json" },

@@ -2,7 +2,7 @@ import { NextResponse, NextRequest } from "next/server";
 
 import { auth } from "@app/auth";
 
-import { fetchUpstream, upstreamErrorResponse } from "@app/utils/upstream";
+import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/upstream";
 
 import {
   RecordGetResponseType,
@@ -18,10 +18,8 @@ async function getRecords(
   deck_id: string,
   cursor: string,
 ): Promise<RecordGetResponseType> {
-  const domain = process.env.VSRECORDER_DOMAIN;
-
   return await fetchUpstream<RecordGetResponseType>(
-    `https://${domain}/api/v1beta/records?event_type=${event_type}&deck_id=${deck_id}&cursor=${cursor}`,
+    upstreamUrl`/api/v1beta/records?event_type=${event_type}&deck_id=${deck_id}&cursor=${cursor}`,
     {
       method: "GET",
       headers: {
@@ -81,12 +79,10 @@ export async function POST(request: NextRequest) {
   const token = jwt.sign(jwtPayload, jwtSecret, jwtSignOptions);
 
   try {
-    const domain = process.env.VSRECORDER_DOMAIN;
-
     const record: RecordCreateRequestType = await request.json();
 
     const created = await fetchUpstream<RecordCreateResponseType>(
-      `https://${domain}/api/v1beta/records`,
+      upstreamUrl`/api/v1beta/records`,
       {
         method: "POST",
         headers: {

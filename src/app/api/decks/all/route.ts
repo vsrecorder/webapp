@@ -2,16 +2,14 @@ import { NextResponse } from "next/server";
 
 import { auth } from "@app/auth";
 
-import { fetchUpstream, upstreamErrorResponse } from "@app/utils/upstream";
+import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/upstream";
 
 import { DeckGetAllType } from "@app/types/deck";
 
 import * as jwt from "jsonwebtoken";
 
 async function getAllDecks(token: string): Promise<DeckGetAllType> {
-  const domain = process.env.VSRECORDER_DOMAIN;
-
-  return await fetchUpstream<DeckGetAllType>(`https://${domain}/api/v1beta/decks/all`, {
+  return await fetchUpstream<DeckGetAllType>(upstreamUrl`/api/v1beta/decks/all`, {
     method: "GET",
     headers: {
       Authorization: "Bearer " + token,

@@ -6,6 +6,8 @@ import { UserPlayerVerifyRequestType, UserPlayerVerifyResponseType } from "@app/
 
 import * as jwt from "jsonwebtoken";
 
+import { upstreamUrl } from "@app/utils/upstream";
+
 function makeToken(uid: string): string {
   const jwtSecret: jwt.Secret = process.env.VSRECORDER_JWT_SECRET as string;
   const jwtSignOptions: jwt.SignOptions = {
@@ -26,11 +28,9 @@ export async function POST(request: NextRequest) {
   }
 
   const token = makeToken(session.user.id);
-  const domain = process.env.VSRECORDER_DOMAIN;
-
   const body: UserPlayerVerifyRequestType = await request.json();
 
-  const res = await fetch(`https://${domain}/api/v1beta/usersplayers/verify`, {
+  const res = await fetch(upstreamUrl`/api/v1beta/usersplayers/verify`, {
     method: "POST",
     headers: {
       Authorization: "Bearer " + token,

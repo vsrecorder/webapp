@@ -13,14 +13,22 @@ export type PostTextOptions = {
   includeVenue?: boolean;
 };
 
-// 記録の開催日ラベル("2025年6月15日(日)")。event_date が未設定(ゼロ値)なら作成日を使う。
+// 記録の開催日ラベル("2025年6月15日(日)")。
+// event_date が未設定(ゼロ値)の場合は、自由形式イベントの開催日 → 記録の作成日の順に
+// フォールバックする。この順は戦績カード(RecordHero)の表示と必ず揃えること。
+// ずれると、同じ記録なのにシェア画像とポスト文で日付が食い違う。
 export function formatEventDateLabel(
   eventDate: string,
   createdAt: string | Date,
+  // 自由形式イベントの開催日(unofficial_events.date)。他の種別では渡さない
+  unofficialEventDate?: string,
 ): string {
-  const dateStr =
-    eventDate && !eventDate.startsWith("0001-01-01")
-      ? eventDate
+  const isSet = (date?: string): date is string =>
+    !!date && !date.startsWith("0001-01-01");
+  const dateStr = isSet(eventDate)
+    ? eventDate
+    : isSet(unofficialEventDate)
+      ? unofficialEventDate
       : createdAt.toString();
   return new Date(dateStr).toLocaleString("ja-JP", {
     year: "numeric",

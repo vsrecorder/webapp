@@ -23,6 +23,14 @@ import { CardType } from "@app/types/deckcard";
 // 表示の好みはユーザーごとの習慣なので、次回アクセス時も同じ状態で開く。
 const DECK_CARD_VIEW_STORAGE_KEY = "deckCardSummaryView";
 
+// 画像先読みの開始を遅らせる時間。モーダルの開閉アニメーション（約300ms）が
+// 終わるまで待ってから読み始める。
+const PRELOAD_START_DELAY_MS = 400;
+
+// 画像先読みの同時実行数。表示中のカード画像のダウンロードから接続枠を奪わない
+// 程度に抑える。
+const PRELOAD_CONCURRENCY = 4;
+
 type DeckCardSummaryView = "chip" | "image";
 
 type Props = {
@@ -121,6 +129,9 @@ function CardThumbnail({ alt, src }: { alt: string; src: string }) {
         shadow="none"
         alt={alt}
         src={src}
+        // 開いた直後は複数枚の画像が同時に届く。同期デコードだとその分だけ
+        // メインスレッドが止まり、モーダルのアニメーションがカクつく。
+        decoding="async"
         classNames={{ wrapper: "w-full !max-w-full" }}
         className="w-full"
         onLoad={() => setLoaded(true)}
@@ -249,6 +260,11 @@ export default function DeckCardSummaryRow({ code }: Props) {
     localStorage.setItem(DECK_CARD_VIEW_STORAGE_KEY, next);
   };
 
+  // 他タブのカード画像を先読みしてタブ切替時の待ちを減らす。
+  // 内訳の取得完了はモーダルの開閉アニメーション中に訪れるため、全カード（50枚超）を
+  // 一斉に読み込むとデコードでメインスレッドが詰まり、同時接続枠も奪われて表示中の
+  // カード画像の取得まで遅れる。結果としてモーダルがカクつくので、アニメーションの
+  // 完了を待ってから、少数ずつブラウザの空き時間に読み込む。
   useEffect(() => {
     if (!deckcardSummary) {
       return;
@@ -265,10 +281,47 @@ export default function DeckCardSummaryRow({ code }: Props) {
 
     const uniqueUrls = [...new Set(urls)];
 
-    uniqueUrls.forEach((url) => {
+    let cancelled = false;
+    let cursor = 0;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+
+    // requestIdleCallback 非対応環境（Safari の一部バージョン）では setTimeout で代替する
+    const scheduleIdle = (task: () => void) => {
+      if (cancelled) return;
+      if (typeof window.requestIdleCallback === "function") {
+        window.requestIdleCallback(task, { timeout: 1000 });
+      } else {
+        timers.push(setTimeout(task, 0));
+      }
+    };
+
+    // 1枚読み終わるごとに次の1枚を予約することで、同時実行数を初回の起動数に保つ
+    const preloadNext = () => {
+      if (cancelled || cursor >= uniqueUrls.length) return;
+
+      const url = uniqueUrls[cursor];
+      cursor += 1;
+
       const img = new window.Image();
+      img.decoding = "async";
+      const next = () => scheduleIdle(preloadNext);
+      img.onload = next;
+      img.onerror = next;
       img.src = url;
-    });
+    };
+
+    timers.push(
+      setTimeout(() => {
+        for (let i = 0; i < PRELOAD_CONCURRENCY; i++) {
+          preloadNext();
+        }
+      }, PRELOAD_START_DELAY_MS),
+    );
+
+    return () => {
+      cancelled = true;
+      timers.forEach(clearTimeout);
+    };
   }, [deckcardSummary]);
 
   // デッキカード内訳だけを取得（失敗時のリロードから再利用）

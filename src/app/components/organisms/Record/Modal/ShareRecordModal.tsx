@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import type { Dispatch, SetStateAction, RefObject } from "react";
 
 import {
@@ -27,7 +27,7 @@ import {
 } from "@app/utils/captureImage";
 import {
   shareRecord,
-  saveGeneratedImage,
+  saveImages,
   dataUrlToFile,
   type ShareImage,
 } from "@app/utils/saveImage";
@@ -75,6 +75,16 @@ const CAPTURE_DEBOUNCE_MS = 250;
 // その重さがそのまま開く動きのカクつきになるため、動き終わってから描画する。
 const CAPTURE_MOUNT_DELAY_MS = 400;
 
+// 撮り終えた戦績画像を、条件の組み合わせごとに取っておく上限枚数。
+// トグルを戻したときに撮り直さずに済むが、書き出し画像は1枚でも数MBあるため
+// 端末のメモリを圧迫しないよう上限を設け、古いものから捨てる。
+// 組み合わせは「使用デッキ × 会場 × 戦績パネルの表裏」で最大8通りだが、
+// 実際に行き来するのは直近の数通りなので、この枚数で撮り直しはほぼ無くなる。
+const RESULT_CACHE_LIMIT = 4;
+
+// 戦績画像の中身を決めるオプションの組み合わせ。これが同じなら同じ画像になる
+type ResultCacheEntry = { image: ShareImage; incomplete: boolean };
+
 /*
  * 記録のシェア用モーダル。
  * 画面外に「戦績サマリー＋対戦結果」をレンダリングして1枚目の画像を生成し、
@@ -99,6 +109,8 @@ export default function ShareRecordModal({
   onClose,
 }: Props) {
   const shareContentRef = useRef<HTMLDivElement>(null);
+  // 撮り終えた戦績画像の置き場。同じ条件の組み合わせを撮り直さないために使う
+  const resultCacheRef = useRef<Map<string, ResultCacheEntry>>(new Map());
   // 生成済みのデッキ画像がどの条件(幅:世代)で撮られたか。使い回せるかの判定に使う
   const deckKeyRef = useRef<string | null>(null);
   // 生成中に条件が変わった/モーダルを閉じた場合に、後から終わった古い生成結果で
@@ -158,6 +170,30 @@ export default function ShareRecordModal({
 
   const capturing = capturingResult || capturingDeck;
 
+  // 初回の戦績画像ができるまでは、画像に関わるオプションを変更させない。
+  // 待っている間に条件を変えられると、その都度キャプチャを撮り直すことになり、
+  // 最初の1枚がいつまでも出てこない(＝いつまでもシェアできない)ため。
+  // 生成に失敗した場合も解除する(そのままだと「作り直す」以外に何もできなくなる)。
+  const optionsDisabled = resultImage === null && !captureFailed;
+
+  // スイッチの見た目(showDeck/showVenue)と、それを反映した重い描画を切り離す。
+  //
+  // トグルを押すと画面外の戦績カード(＋対戦一覧)を丸ごと描き直すことになる。
+  // これをスイッチの状態更新と同じ描画で行うと、その重さがアニメーションの
+  // フレームを奪い、スイッチがカクッと飛ぶ。
+  // 画像に関わる値だけを遅らせ、スイッチを先に動かしてから画面外を描き直させる。
+  const deferredShowDeck = useDeferredValue(showDeck);
+  const deferredShowVenue = useDeferredValue(showVenue);
+  // 遅らせた描画がまだ追いついていない(＝画面外の戦績カードが操作前のままの)状態。
+  // この間の画像は操作前の内容なので、シェアさせない。
+  const optionsPending = showDeck !== deferredShowDeck || showVenue !== deferredShowVenue;
+
+  // 戦績画像の中身を決めるオプションの組み合わせ。これが同じなら撮り直す必要はない。
+  // 実際に画面外へ描かれている(＝これから撮る)内容と一致させるため、遅らせた値で作る。
+  const resultVariantKey = `${deferredShowDeck ? 1 : 0}:${deferredShowVenue ? 1 : 0}:${
+    showSynergy ? 1 : 0
+  }`;
+
   // 実際に共有する画像。デッキ画像は「一緒にシェア」ONのときだけ2枚目として付ける。
   // ONにした直後はまだ生成できていないことがあるため、その間は canShare 側で止める。
   const images = useMemo(() => {
@@ -175,6 +211,7 @@ export default function ShareRecordModal({
     heroReady &&
     matches !== null &&
     !capturing &&
+    !optionsPending &&
     ((images !== null && deckImageReady) || captureFailed);
   // 会場の表示トグルは、伏せる会場がある(＝公式イベントで会場名を持つ)記録でだけ意味を持つ
   const venueLabel = officialEvent ? getEventVenueLabel(officialEvent) : "";
@@ -194,6 +231,9 @@ export default function ShareRecordModal({
       setDeckIncomplete(false);
       setCapturingResult(false);
       setCapturingDeck(false);
+      // 取っておいた画像は次に開いたときには使わない(記録の内容が変わっている
+      // 可能性があり、古い画像を共有してしまう)。メモリも抱えたままにしない。
+      resultCacheRef.current.clear();
       deckKeyRef.current = null;
       // 生成中に閉じた場合、後から終わった生成結果が状態を書き戻し、次に開いたとき
       // 古い画像が残ってしまう。世代を進めて、その結果を捨てさせる。
@@ -235,7 +275,12 @@ export default function ShareRecordModal({
   useEffect(() => {
     if (!isOpen) return;
 
-    const dateLabel = formatEventDateLabel(record.event_date, record.created_at);
+    // 開催日は戦績カードと同じ順で解決する(自由形式は unofficial_events.date へ落ちる)
+    const dateLabel = formatEventDateLabel(
+      record.event_date,
+      record.created_at,
+      unofficialEvent?.date,
+    );
     setText(
       buildRecordPostText(
         dateLabel,
@@ -290,9 +335,30 @@ export default function ShareRecordModal({
   //
   // 生成中に条件が変わった場合、後から終わった古い生成結果で上書きしないよう
   // 世代番号(seq)で自分が最新かを確認してから反映する。
+  // 撮る幅・世代(作り直す)、あるいは記録そのもの(対戦一覧を含む)が変わると、
+  // オプションの組み合わせが同じでも中身は変わる。取っておいた画像は使えなくなるため
+  // 捨てる。捨て損ねると、古い内容の画像をそのまま共有してしまう。
+  // (撮り直しの useEffect より前に置き、同じ変更で先に捨ててから撮らせる)
+  useEffect(() => {
+    resultCacheRef.current.clear();
+  }, [captureWidth, regenSeq, record, matches]);
+
   // 1枚目(戦績画像)。中身を変えるオプションが変わったときだけ撮り直す。
   useEffect(() => {
     if (!isOpen || !captureMounted || !heroReady || matches === null) return;
+
+    // 同じ組み合わせで撮った画像があればそのまま使う。撮り直しは端末では非常に重く、
+    // トグルを戻すたびに数秒待たされることになるため。
+    const cached = resultCacheRef.current.get(resultVariantKey);
+    if (cached) {
+      // 生成中のものがあれば、その結果で使い回した画像を上書きさせない
+      resultSeq.current++;
+      setResultImage(cached.image);
+      setResultIncomplete(cached.incomplete);
+      setResultFailed(false);
+      setCapturingResult(false);
+      return;
+    }
 
     const seq = ++resultSeq.current;
     setResultFailed(false);
@@ -321,7 +387,19 @@ export default function ShareRecordModal({
         const file = await dataUrlToFile(dataUrl, filename);
 
         if (seq !== resultSeq.current) return;
-        setResultImage({ dataUrl, filename, file });
+
+        // 次に同じ組み合わせへ戻したときに撮り直さずに済むよう取っておく。
+        // 上限を超えたぶんは、最も古いもの(Mapは挿入順)から捨てる。
+        const image = { dataUrl, filename, file };
+        const cache = resultCacheRef.current;
+        cache.set(resultVariantKey, { image, incomplete });
+        while (cache.size > RESULT_CACHE_LIMIT) {
+          const oldest = cache.keys().next().value;
+          if (oldest === undefined) break;
+          cache.delete(oldest);
+        }
+
+        setResultImage(image);
         setResultIncomplete(incomplete);
       } catch (e) {
         console.error(e);
@@ -346,9 +424,7 @@ export default function ShareRecordModal({
     captureMounted,
     heroReady,
     matches,
-    showDeck,
-    showVenue,
-    showSynergy,
+    resultVariantKey,
     captureWidth,
     record.id,
     regenSeq,
@@ -407,6 +483,54 @@ export default function ShareRecordModal({
     };
   }, [isOpen, includeDeck, captureWidth, record.id, deckCardRef, regenSeq]);
 
+  /*
+   * キャプチャ用の画面外DOM。戦績サマリー＋使用デッキ＋対戦結果を1枚のカードに統合して画像にする。
+   *
+   * 画像の中身に関わる値が変わったときだけ作り直す。ここを毎回作り直すと、
+   * ポスト文の入力1文字ごと・プレビューの差し替えごとに、画面外の戦績カードと
+   * 対戦一覧まで描き直すことになり、そのぶん操作の描画が遅れる。
+   */
+  const captureNode = useMemo(
+    () => (
+      <div className="pointer-events-none fixed left-[-10000px] top-0" aria-hidden="true">
+        <div ref={shareContentRef} style={{ width: captureWidth }}>
+          <RecordHero
+            record={record}
+            setRecord={setRecord}
+            stats={stats}
+            // 画面の戦績パネルと同じ面(勝率 / 貢献度)を撮る。
+            // onToggleSynergy は渡さない(キャプチャ用のパネルはタップさせない)
+            showSynergy={showSynergy}
+            hideDeck={!deferredShowDeck}
+            hideVenue={!deferredShowVenue}
+            onReadyChange={setHeroReady}
+            matchesSlot={
+              <Matches
+                record={record}
+                matches={matches}
+                setMatches={noopSetMatches}
+                loading={false}
+                enableCreateMatchModalButton={false}
+                enableUpdateMatchModalButton={false}
+                flat
+              />
+            }
+          />
+        </div>
+      </div>
+    ),
+    [
+      record,
+      setRecord,
+      stats,
+      showSynergy,
+      deferredShowDeck,
+      deferredShowVenue,
+      matches,
+      captureWidth,
+    ],
+  );
+
   // 注意: navigator.share() の呼び出し前に await を挟むとユーザーアクティベーションが
   // 切れるため、この関数内では shareRecord() の前で await しないこと。
   const handleShare = async () => {
@@ -427,8 +551,9 @@ export default function ShareRecordModal({
             timeout: 5000,
           });
         } else {
-          // 共有非対応の環境では画像を保存にフォールバック
-          await saveGeneratedImage(shareImages[0].dataUrl, shareImages[0].filename);
+          // 共有非対応の環境では画像を保存にフォールバック。
+          // デッキ画像(2枚目)も取り逃さないよう、生成した画像をすべて渡す。
+          await saveImages(shareImages);
           addToast({
             title: "共有に非対応のため画像を保存しました",
             description: "ポスト文はコピーしてご利用ください",
@@ -436,6 +561,18 @@ export default function ShareRecordModal({
             timeout: 5000,
           });
         }
+      } else if (result === "text-only" && shareImages.length > 0) {
+        // テキストと画像を一緒に共有できない環境。ポスト文だけが共有シートへ渡り、
+        // 画像は黙って落ちてしまうため、保存にフォールバックしたうえで知らせる。
+        // (画像が無い場合は、生成に失敗した記録をポスト文だけで共有した場合であり、
+        //  ボタンの表記どおりの結果なので何も知らせない)
+        await saveImages(shareImages);
+        addToast({
+          title: "画像を一緒に共有できない環境です",
+          description: "ポスト文のみ共有し、画像は保存しました",
+          color: "warning",
+          timeout: 5000,
+        });
       } else if (result === "failed") {
         addToast({ title: "共有に失敗しました", color: "danger", timeout: 5000 });
       }
@@ -486,9 +623,27 @@ export default function ShareRecordModal({
                     スイッチの向きと意味の対応が行ごとに反転し、読み違えるため)。 */}
                 {(venueLabel || record.deck_id) && (
                   <div className="flex flex-col gap-2.5">
+                    {/* 初回の画像ができるまで変更できないことを、グループの先頭で1回だけ知らせる。
+                        各行に同じ理由を並べると読みづらいだけなので、まとめて示す。 */}
+                    {optionsDisabled && (
+                      <div className="flex items-center gap-2.5 rounded-xl border border-divider bg-content2 px-3 py-2.5">
+                        <Spinner size="sm" className="shrink-0" />
+                        <div
+                          role="status"
+                          className="min-w-0 flex-1 text-[11px] leading-relaxed text-default-500"
+                        >
+                          画像を生成しています。完了するまでオプションは変更できません
+                        </div>
+                      </div>
+                    )}
+
                     {/* 会場(店舗名)。戦績画像・ポスト文の両方に効く */}
                     {venueLabel && (
-                      <div className="flex items-center gap-3 rounded-xl border border-divider bg-content2 px-3 py-2.5">
+                      <div
+                        className={`flex items-center gap-3 rounded-xl border border-divider bg-content2 px-3 py-2.5 ${
+                          optionsDisabled ? "opacity-50" : ""
+                        }`}
+                      >
                         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-default-200 text-lg">
                           📍
                         </span>
@@ -501,6 +656,7 @@ export default function ShareRecordModal({
                         <Switch
                           size="sm"
                           isSelected={showVenue}
+                          isDisabled={optionsDisabled}
                           onValueChange={setShowVenue}
                           aria-label="会場を表示する"
                         />
@@ -510,7 +666,11 @@ export default function ShareRecordModal({
                     {record.deck_id && (
                       <>
                         {/* 1枚目の戦績画像に使用デッキを描画する */}
-                        <div className="flex items-center gap-3 rounded-xl border border-divider bg-content2 px-3 py-2.5">
+                        <div
+                          className={`flex items-center gap-3 rounded-xl border border-divider bg-content2 px-3 py-2.5 ${
+                            optionsDisabled ? "opacity-50" : ""
+                          }`}
+                        >
                           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-default-200 text-lg">
                             🎴
                           </span>
@@ -523,6 +683,7 @@ export default function ShareRecordModal({
                           <Switch
                             size="sm"
                             isSelected={showDeck}
+                            isDisabled={optionsDisabled}
                             // 使用デッキを伏せるなら、2枚目のデッキ画像も一緒に取り下げる
                             // (デッキ画像を出しては伏せた意味が無くなるため)
                             onValueChange={(v) => {
@@ -538,7 +699,7 @@ export default function ShareRecordModal({
                             2枚目で出せてしまうと矛盾するため)。 */}
                         <div
                           className={`flex items-center gap-3 rounded-xl border border-divider bg-content2 px-3 py-2.5 ${
-                            showDeck ? "" : "opacity-50"
+                            showDeck && !optionsDisabled ? "" : "opacity-50"
                           }`}
                         >
                           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-lg">
@@ -557,7 +718,7 @@ export default function ShareRecordModal({
                           <Switch
                             size="sm"
                             isSelected={includeDeck}
-                            isDisabled={!showDeck}
+                            isDisabled={!showDeck || optionsDisabled}
                             onValueChange={setIncludeDeck}
                             aria-label="使用デッキの画像も一緒にシェア"
                           />
@@ -733,37 +894,7 @@ export default function ShareRecordModal({
 
       {/* キャプチャ用の画面外DOM。戦績サマリー＋使用デッキ＋対戦結果を1枚のカードに統合して画像にする。
           開くアニメーションが終わってから描画する(CAPTURE_MOUNT_DELAY_MS の理由を参照) */}
-      {isOpen && captureMounted && (
-        <div
-          className="pointer-events-none fixed left-[-10000px] top-0"
-          aria-hidden="true"
-        >
-          <div ref={shareContentRef} style={{ width: captureWidth }}>
-            <RecordHero
-              record={record}
-              setRecord={setRecord}
-              stats={stats}
-              // 画面の戦績パネルと同じ面(勝率 / 貢献度)を撮る。
-              // onToggleSynergy は渡さない(キャプチャ用のパネルはタップさせない)
-              showSynergy={showSynergy}
-              hideDeck={!showDeck}
-              hideVenue={!showVenue}
-              onReadyChange={setHeroReady}
-              matchesSlot={
-                <Matches
-                  record={record}
-                  matches={matches}
-                  setMatches={noopSetMatches}
-                  loading={false}
-                  enableCreateMatchModalButton={false}
-                  enableUpdateMatchModalButton={false}
-                  flat
-                />
-              }
-            />
-          </div>
-        </div>
-      )}
+      {isOpen && captureMounted && captureNode}
     </>
   );
 }

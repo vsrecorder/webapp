@@ -20,6 +20,9 @@ import { DeckCreateRequestType } from "@app/types/deck";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 
+const DECK_CODE_LENGTH = 20;
+const DECK_CODE_CHECK_DEBOUNCE_MS = 500;
+
 type Props = {
   deck_code: string;
   isOpen: boolean;
@@ -74,6 +77,12 @@ export default function CreateDeckModal({
       return;
     }
 
+    // デッキコードは必ず20桁なので、桁数が違う時点で問い合わせるまでもなく無効
+    if (deckcode.length !== DECK_CODE_LENGTH) {
+      setIsValidatedDeckCode(false);
+      return;
+    }
+
     let cancelled = false;
 
     const checkDeckCode = async () => {
@@ -83,6 +92,7 @@ export default function CreateDeckModal({
 
         const res = await fetch("https://www.pokemon-card.com/deck/deckIDCheck.php", {
           method: "POST",
+          headers: {},
           body: formData,
         });
 
@@ -98,10 +108,12 @@ export default function CreateDeckModal({
       }
     };
 
-    checkDeckCode();
+    // 入力が落ち着くまで外部APIへの問い合わせを遅らせる
+    const timerId = setTimeout(checkDeckCode, DECK_CODE_CHECK_DEBOUNCE_MS);
 
     return () => {
       cancelled = true;
+      clearTimeout(timerId);
     };
   }, [deckcode]);
 

@@ -45,7 +45,7 @@ function ChipSkelton() {
   ];
 
   return (
-    <div className="pl-1 flex flex-wrap gap-1">
+    <div className="pl-1 flex flex-wrap gap-x-1 gap-y-0">
       {widths.map((width, index) => (
         <Skeleton key={index} className={`h-5.5 rounded-2xl ${width}`} />
       ))}
@@ -74,8 +74,10 @@ function ChipRow<T extends { card_name: string; card_count: number }>({
   cards: T[];
   onSelect: (card: T) => void;
 }) {
+  // 折り返して複数行になるため、行間(gap-y)は列間(gap-x)より詰める。
+  // チップ自体が上下に余白を持っており、行間まで同じだけ空けると間延びする。
   return (
-    <div className="h-full overflow-y-auto pl-1 flex flex-wrap gap-1">
+    <div className="h-full overflow-y-auto pl-1 flex flex-wrap gap-x-1 gap-y-0">
       {cards.map((deckcard, index) => (
         <div key={index} onClick={() => onSelect(deckcard)}>
           <Chip
@@ -95,6 +97,28 @@ function ChipRow<T extends { card_name: string; card_count: number }>({
   );
 }
 
+// カード1枚分のサムネイル。内訳の取得完了後に画像の読み込みが始まるため、
+// 読み込み中は CardSkelton と同じ寸法（w-20・ポケモンカード比 63:88）の骨格を
+// 重ねておき、空白のポップインとレイアウトシフトを防ぐ。
+function CardThumbnail({ alt, src }: { alt: string; src: string }) {
+  const [loaded, setLoaded] = useState(false);
+
+  return (
+    <div className="relative w-20 aspect-63/88">
+      {!loaded && <Skeleton className="absolute inset-0 rounded-md" />}
+      <Image
+        radius="sm"
+        shadow="none"
+        alt={alt}
+        src={src}
+        // preflight の max-width:100% で幅が潰れるため max-w-none で解除する
+        className="w-20 max-w-none"
+        onLoad={() => setLoaded(true)}
+      />
+    </div>
+  );
+}
+
 // カード画像を横一列に並べ、下部に枚数を表示する（はみ出した分は横スクロールで閲覧）
 function CardRow<
   T extends { card_name: string; card_count: number; image_url: string },
@@ -108,14 +132,7 @@ function CardRow<
           onClick={() => onSelect(deckcard)}
           className="flex shrink-0 flex-col items-center gap-1"
         >
-          <Image
-            radius="sm"
-            shadow="none"
-            alt={deckcard.card_name}
-            src={deckcard.image_url}
-            // preflight の max-width:100% で幅が潰れるため max-w-none で解除する
-            className="w-20 max-w-none"
-          />
+          <CardThumbnail alt={deckcard.card_name} src={deckcard.image_url} />
           <small className="text-tiny font-bold leading-none">
             ×{deckcard.card_count}
           </small>

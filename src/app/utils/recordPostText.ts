@@ -9,6 +9,8 @@ export type PostTextOptions = {
   includeMatches?: boolean;
   // 使用デッキをポスト文に含めるか(既定: true)
   includeDeck?: boolean;
+  // 公式イベントの会場(店舗名)をポスト文に含めるか(既定: true)
+  includeVenue?: boolean;
 };
 
 // 記録の開催日ラベル("2025年6月15日(日)")。event_date が未設定(ゼロ値)なら作成日を使う。
@@ -45,6 +47,7 @@ export function buildRecordPostText(
 ): string {
   const includeMatches = opts?.includeMatches ?? true;
   const includeDeck = opts?.includeDeck ?? true;
+  const includeVenue = opts?.includeVenue ?? true;
 
   let results = "";
   if (includeMatches && matches && matches.length !== 0) {
@@ -95,8 +98,9 @@ export function buildRecordPostText(
       .replace(/（ジュニアリーグ）/g, "")
       .replace(/（スタンダード）/g, "")
       .replace(/（.*?）/g, "");
-    const shopName = officialEvent.shop_name || officialEvent.venue;
-    text += `${title}\n${shopName}\n`;
+    // 会場(店舗名)は伏せられるようにする。伏せる場合はイベント名だけを載せる。
+    const shopName = includeVenue ? officialEvent.shop_name || officialEvent.venue : "";
+    text += shopName ? `${title}\n${shopName}\n` : `${title}\n`;
   } else if (tonamelEvent) {
     text += `${tonamelEvent.title}\n`;
   } else if (unofficialEvent && unofficialEvent.title !== "") {

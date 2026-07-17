@@ -320,8 +320,11 @@ type Props = {
   // イベント・使用デッキの取得が完了して実データを描画できる状態かを通知する。
   // シェア画像のキャプチャで、スケルトン状態のまま撮影されるのを防ぐために使う。
   onReadyChange?: (ready: boolean) => void;
-  // 使用デッキ行を描画しない(シェア画像で「使用デッキを表示しない」オプションON時に使う)。
+  // 使用デッキ行を描画しない(シェア画像で「使用デッキを表示する」オプションOFF時に使う)。
   hideDeck?: boolean;
+  // 公式イベントの会場(店舗名)チップを描画しない
+  // (シェア画像で「会場を表示する」オプションOFF時に使う)。
+  hideVenue?: boolean;
 };
 
 /*
@@ -341,6 +344,7 @@ export default function RecordHero({
   matchesSlot,
   onReadyChange,
   hideDeck = false,
+  hideVenue = false,
 }: Props) {
   const [officialEvent, setOfficialEvent] =
     useState<OfficialEventGetByIdResponseType | null>(null);
@@ -519,7 +523,7 @@ export default function RecordHero({
     </div>
   );
 
-  // 「使用デッキを表示しない」選択時の行。使用デッキの部分を単に消すと、その記録に
+  // 「使用デッキを表示する」OFF時の行。使用デッキの部分を単に消すと、その記録に
   // そもそもデッキが登録されていないのか、意図的に伏せているのかが伝わらないため、
   // 同じ場所に「非公開」であることを明示する(デッキ名・スプライトは出さない)。
   const deckHiddenRow = (
@@ -577,7 +581,7 @@ export default function RecordHero({
       record.event_date && !record.event_date.startsWith("0001-01-01")
         ? record.event_date
         : record.created_at.toString();
-    const venue = getEventVenueLabel(officialEvent);
+    const venue = hideVenue ? "" : getEventVenueLabel(officialEvent);
 
     return (
       <>

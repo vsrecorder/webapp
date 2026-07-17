@@ -16,6 +16,9 @@ import DeckCardDiff from "@app/components/organisms/Deck/DeckCardDiff";
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { DeckCodeType, DeckCodeCreateRequestType } from "@app/types/deck_code";
 
+const DECK_CODE_LENGTH = 20;
+const DECK_CODE_CHECK_DEBOUNCE_MS = 500;
+
 type Props = {
   deck: DeckGetByIdResponseType | null;
   setDeck: Dispatch<SetStateAction<DeckGetByIdResponseType | null>>;
@@ -49,6 +52,14 @@ export default function CreateDeckCodeModal({
       return;
     }
 
+    // デッキコードは必ず20桁なので、桁数が違う時点で問い合わせるまでもなく無効
+    if (newdeckcode.length !== DECK_CODE_LENGTH) {
+      setIsValidedDeckCode(false);
+      return;
+    }
+
+    let cancelled = false;
+
     const checkDeckCode = async () => {
       try {
         const formData = new FormData();
@@ -61,14 +72,24 @@ export default function CreateDeckCodeModal({
         });
 
         const data = await res.json();
-        setIsValidedDeckCode(data.result === 1);
+        if (!cancelled) {
+          setIsValidedDeckCode(data.result === 1);
+        }
       } catch (error) {
         console.error(error);
-        setIsValidedDeckCode(false);
+        if (!cancelled) {
+          setIsValidedDeckCode(false);
+        }
       }
     };
 
-    checkDeckCode();
+    // 入力が落ち着くまで外部APIへの問い合わせを遅らせる
+    const timerId = setTimeout(checkDeckCode, DECK_CODE_CHECK_DEBOUNCE_MS);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timerId);
+    };
   }, [newdeckcode]);
 
   if (!deck) {

@@ -41,10 +41,14 @@ export default function CityleagueEventListSkeleton({
                   key={rowIndex}
                   className="flex items-center justify-between gap-2 px-3 py-2.5"
                 >
-                  <span className="flex min-w-0 flex-col gap-1.5">
+                  {/* 店舗名 / 都道府県・リーグ区分 */}
+                  <span className="flex min-w-0 flex-col gap-0.5">
                     <Skeleton className="h-4 w-44 rounded-md" />
                     <Skeleton className="h-3 w-28 rounded-md" />
                   </span>
+
+                  {/* 詳細ページへのシェブロン */}
+                  <Skeleton className="h-4 w-4 shrink-0 rounded-md" />
                 </li>
               ))}
             </ul>

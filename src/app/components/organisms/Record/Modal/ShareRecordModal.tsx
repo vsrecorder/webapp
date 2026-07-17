@@ -29,6 +29,7 @@ import {
 } from "@app/utils/saveImage";
 
 import { buildRecordPostText, formatEventDateLabel } from "@app/utils/recordPostText";
+import { getEventVenueLabel } from "@app/components/organisms/Record/officialEventHelpers";
 
 import { RecordGetByIdResponseType } from "@app/types/record";
 import { MatchGetResponseType } from "@app/types/match";
@@ -62,7 +63,8 @@ const noopSetMatches: Dispatch<SetStateAction<MatchGetResponseType[] | null>> = 
 /*
  * 記録のシェア用モーダル。
  * 画面外に「戦績サマリー＋対戦結果」をレンダリングして1枚目の画像を生成し、
- * 「使用デッキを表示しない」ONのときは1枚目から使用デッキの描画を省く。
+ * 「使用デッキを表示する」「会場を表示する」OFFのときはその要素の描画を省く
+ * (会場はポスト文からも省く)。
  * 「使用デッキの画像も一緒にシェア」ONのときはデッキコードパネルを2枚目として追加する。
  * 生成した画像をポスト文とともに Web Share API で共有する。
  */
@@ -89,8 +91,11 @@ export default function ShareRecordModal({
   // クライアント側で実際の画面幅から算出する。極端な幅を避けるためクランプする。
   const [captureWidth, setCaptureWidth] = useState(360);
   const [includeDeck, setIncludeDeck] = useState(false);
-  // 1枚目の戦績画像に使用デッキを描画しない(使用デッキを表示しない)
-  const [hideDeck, setHideDeck] = useState(false);
+  // 1枚目の戦績画像に使用デッキを描画するか(既定は表示)
+  const [showDeck, setShowDeck] = useState(true);
+  // 公式イベントの会場(店舗名)を戦績画像・ポスト文に載せるか。
+  // 会場を知られたくない場合に伏せられるようにする(既定は従来どおり表示)。
+  const [showVenue, setShowVenue] = useState(true);
   // ポスト文に含める要素(対戦結果・使用デッキ)
   const [includePostMatches, setIncludePostMatches] = useState(true);
   const [includePostDeck, setIncludePostDeck] = useState(true);
@@ -114,6 +119,8 @@ export default function ShareRecordModal({
   const [regenSeq, setRegenSeq] = useState(0);
   // 画像が用意できたときに加えて、生成に失敗したとき(=ポスト文だけでシェアする)も許可する
   const canShare = heroReady && matches !== null && (images !== null || captureFailed);
+  // 会場の表示トグルは、伏せる会場がある(＝公式イベントで会場名を持つ)記録でだけ意味を持つ
+  const venueLabel = officialEvent ? getEventVenueLabel(officialEvent) : "";
 
   // モーダルを閉じるとキャプチャ用 DOM は破棄されるため、次に開いたときは
   // 再度描画完了を待つよう準備状態をリセットする。
@@ -128,7 +135,8 @@ export default function ShareRecordModal({
       setImagesIncomplete(false);
       setCaptureFailed(false);
       setIncludeDeck(false);
-      setHideDeck(false);
+      setShowDeck(true);
+      setShowVenue(true);
       setIncludePostMatches(true);
       setIncludePostDeck(true);
     }
@@ -161,6 +169,7 @@ export default function ShareRecordModal({
         {
           includeMatches: includePostMatches,
           includeDeck: includePostDeck,
+          includeVenue: showVenue,
         },
       ) + "\n#バトレコ",
     );
@@ -175,6 +184,7 @@ export default function ShareRecordModal({
     matches,
     includePostMatches,
     includePostDeck,
+    showVenue,
   ]);
 
   // 上部バーのフリックでモーダルを閉じる(記録情報モーダルと同じ挙動)。
@@ -260,7 +270,8 @@ export default function ShareRecordModal({
     heroReady,
     matches,
     includeDeck,
-    hideDeck,
+    showDeck,
+    showVenue,
     showSynergy,
     captureWidth,
     record.id,
@@ -342,48 +353,89 @@ export default function ShareRecordModal({
                   記録の戦績を画像にして、ポスト文と一緒にシェアできます。
                 </p>
 
-                {/* 使用デッキがある場合のみ、使用デッキ関連のトグルを出す。 */}
-                {record.deck_id && (
+                {/* シェアに載せる内容のトグル。伏せられるもの(会場・使用デッキ)が
+                    ある場合のみ出す。文言は「ONで載せる」に揃える(否定形が混ざると
+                    スイッチの向きと意味の対応が行ごとに反転し、読み違えるため)。 */}
+                {(venueLabel || record.deck_id) && (
                   <div className="flex flex-col gap-2.5">
-                    {/* 1枚目の戦績画像に使用デッキを描画しない */}
-                    <div className="flex items-center gap-3 rounded-xl border border-divider bg-content2 px-3 py-2.5">
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-default-200 text-lg">
-                        🙈
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-sm font-bold">使用デッキを表示しない</div>
-                        <div className="text-[11px] text-default-400">
-                          戦績画像に使用デッキを描画しません
+                    {/* 会場(店舗名)。戦績画像・ポスト文の両方に効く */}
+                    {venueLabel && (
+                      <div className="flex items-center gap-3 rounded-xl border border-divider bg-content2 px-3 py-2.5">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-default-200 text-lg">
+                          📍
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-bold">会場を表示する</div>
+                          <div className="text-[11px] text-default-400">
+                            戦績画像とポスト文に会場を表示します
+                          </div>
                         </div>
+                        <Switch
+                          size="sm"
+                          isSelected={showVenue}
+                          onValueChange={setShowVenue}
+                          aria-label="会場を表示する"
+                        />
                       </div>
-                      <Switch
-                        size="sm"
-                        isSelected={hideDeck}
-                        onValueChange={setHideDeck}
-                        aria-label="使用デッキを表示しない"
-                      />
-                    </div>
+                    )}
 
-                    {/* 2枚目としてデッキ画像を追加する */}
-                    <div className="flex items-center gap-3 rounded-xl border border-divider bg-content2 px-3 py-2.5">
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-lg">
-                        🎴
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-sm font-bold">
-                          使用デッキの画像も一緒にシェア
+                    {record.deck_id && (
+                      <>
+                        {/* 1枚目の戦績画像に使用デッキを描画する */}
+                        <div className="flex items-center gap-3 rounded-xl border border-divider bg-content2 px-3 py-2.5">
+                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-default-200 text-lg">
+                            🎴
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-sm font-bold">使用デッキを表示する</div>
+                            <div className="text-[11px] text-default-400">
+                              戦績画像に使用デッキを表示します
+                            </div>
+                          </div>
+                          <Switch
+                            size="sm"
+                            isSelected={showDeck}
+                            // 使用デッキを伏せるなら、2枚目のデッキ画像も一緒に取り下げる
+                            // (デッキ画像を出しては伏せた意味が無くなるため)
+                            onValueChange={(v) => {
+                              setShowDeck(v);
+                              if (!v) setIncludeDeck(false);
+                            }}
+                            aria-label="使用デッキを表示する"
+                          />
                         </div>
-                        <div className="text-[11px] text-default-400">
-                          デッキ画像を2枚目として追加します
+
+                        {/* 2枚目としてデッキ画像を追加する。
+                            使用デッキを伏せている間は選べない(伏せたデッキの画像を
+                            2枚目で出せてしまうと矛盾するため)。 */}
+                        <div
+                          className={`flex items-center gap-3 rounded-xl border border-divider bg-content2 px-3 py-2.5 ${
+                            showDeck ? "" : "opacity-50"
+                          }`}
+                        >
+                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-lg">
+                            🖼️
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-sm font-bold">
+                              使用デッキの画像も一緒にシェア
+                            </div>
+                            <div className="text-[11px] text-default-400">
+                              {showDeck
+                                ? "デッキ画像を2枚目として追加します"
+                                : "使用デッキを表示するとONにできます"}
+                            </div>
+                          </div>
+                          <Switch
+                            size="sm"
+                            isSelected={includeDeck}
+                            isDisabled={!showDeck}
+                            onValueChange={setIncludeDeck}
+                            aria-label="使用デッキの画像も一緒にシェア"
+                          />
                         </div>
-                      </div>
-                      <Switch
-                        size="sm"
-                        isSelected={includeDeck}
-                        onValueChange={setIncludeDeck}
-                        aria-label="使用デッキの画像も一緒にシェア"
-                      />
-                    </div>
+                      </>
+                    )}
                   </div>
                 )}
 
@@ -553,7 +605,8 @@ export default function ShareRecordModal({
               // 画面の戦績パネルと同じ面(勝率 / 貢献度)を撮る。
               // onToggleSynergy は渡さない(キャプチャ用のパネルはタップさせない)
               showSynergy={showSynergy}
-              hideDeck={hideDeck}
+              hideDeck={!showDeck}
+              hideVenue={!showVenue}
               onReadyChange={setHeroReady}
               matchesSlot={
                 <Matches

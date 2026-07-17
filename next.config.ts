@@ -23,7 +23,8 @@ const CSP = [
   `img-src 'self' data: blob: ${CDN_ORIGIN} https://lh3.googleusercontent.com https://pbs.twimg.com https://www.pokemon-card.com https://s3.isk01.sakurastorage.jp https://www.googletagmanager.com https://www.google-analytics.com`,
   // Firebase Authentication(identitytoolkit/securetoken)、GA、スプライトCDNへのfetch。
   // GAの計測ビーコンは region1.google-analytics.com や analytics.google.com にも飛ぶ。
-  `connect-src 'self' ${CDN_ORIGIN} https://*.googleapis.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com`,
+  // pokemon-card.com はデッキコードの有効性チェック(deckIDCheck.php)をブラウザから直接叩くため。
+  `connect-src 'self' ${CDN_ORIGIN} https://www.pokemon-card.com https://*.googleapis.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com`,
   // Firebase Authenticationのログインポップアップ/iframe
   `frame-src 'self' https://*.firebaseapp.com https://accounts.google.com https://apis.google.com`,
   `object-src 'none'`,

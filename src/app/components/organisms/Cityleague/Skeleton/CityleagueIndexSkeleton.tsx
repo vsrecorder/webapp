@@ -34,11 +34,16 @@ export default function CityleagueIndexSkeleton({
             key={index}
             className="flex items-center justify-between gap-2 px-3 py-3"
           >
-            <span className="flex min-w-0 flex-col gap-1.5">
+            <span className="flex min-w-0 flex-col gap-0.5">
               <Skeleton className="h-4 w-40 rounded-md" />
               {showSubtitle && <Skeleton className="h-3 w-52 rounded-md" />}
             </span>
-            <Skeleton className="h-4 w-10 rounded-md" />
+
+            {/* 件数＋シェブロン */}
+            <span className="flex shrink-0 items-center gap-1">
+              <Skeleton className="h-3 w-8 rounded-md" />
+              <Skeleton className="h-4 w-4 rounded-md" />
+            </span>
           </li>
         ))}
       </ul>

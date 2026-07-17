@@ -3,34 +3,52 @@ import { Skeleton } from "@heroui/react";
 
 import CityleagueResultCardSkeleton from "@app/components/organisms/Cityleague/Skeleton/CityleagueResultCardSkeleton";
 
+// 一覧(CityleagueResults)の1件ぶん。実体(CityleagueResult)と同じ
+// 「イベントヘッダー＋公式サイトアイコン＋入賞カード＋詳細ページ導線」の枠に合わせる。
 export function CityleagueResultSkeleton() {
   return (
     <div className="">
       <Card className="pt-3 w-full">
-        <CardHeader className="pt-2.5 pb-1 px-3 flex-col items-start gap-1.5">
-          <small className="text-default-500">
-            <Skeleton className="h-4 w-44" />
-          </small>
+        <CardHeader className="pt-0 pb-0 px-3 flex-col items-start gap-0.5">
+          {/* 両端配置 */}
+          <div className="flex items-center justify-between w-full">
+            <div>
+              {/* イベント名 */}
+              <Skeleton className="h-4 w-44 rounded-md" />
 
-          <div className="font-bold text-tiny">
-            <Skeleton className="h-3 w-28" />
-          </div>
+              {/* 開催日 */}
+              <div className="pt-1">
+                <Skeleton className="h-3 w-36 rounded-md" />
+              </div>
 
-          <div className="font-bold text-medium">
-            <Skeleton className="h-5 w-50" />
-          </div>
+              {/* 店舗名 */}
+              <div className="pt-1 pb-1">
+                <Skeleton className="h-3.5 w-48 rounded-md" />
+              </div>
 
-          <div className="pt-0 pb-1 flex flex-wrap items-start gap-1">
-            <Skeleton className="h-5 w-12 rounded-2xl" />
-            <Skeleton className="h-5 w-21 rounded-2xl" />
-            <Skeleton className="h-5 w-24 rounded-2xl" />
+              {/* 都道府県・リーグ区分・環境のチップ */}
+              <div className="flex flex-wrap items-start gap-1 pt-0.5">
+                <Skeleton className="h-6 w-14 rounded-md" />
+                <Skeleton className="h-6 w-20 rounded-md" />
+                <Skeleton className="h-6 w-24 rounded-md" />
+              </div>
+            </div>
+
+            {/* 公式サイトの結果ページへのアイコンリンク */}
+            <div className="z-0 shrink-0 translate-x-1 -translate-y-5">
+              <Skeleton className="h-9 w-9 rounded-md" />
+            </div>
           </div>
         </CardHeader>
-        <CardBody className="px-2 py-1">
-          <CityleagueResultCardSkeleton />
+        <CardBody className="px-0 py-1">
+          {/* Swiper のスライド（p-2）1枚ぶん */}
+          <div className="p-2">
+            <CityleagueResultCardSkeleton />
+          </div>
         </CardBody>
-        <CardFooter className="pt-5 pb-2">
-          <Skeleton className="h-4 w-56" />
+        <CardFooter className="pt-1 pb-2">
+          {/* このイベント結果の詳細ページを見る */}
+          <Skeleton className="h-4 w-56 rounded-md" />
         </CardFooter>
       </Card>
     </div>

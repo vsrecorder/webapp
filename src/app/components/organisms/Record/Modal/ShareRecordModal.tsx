@@ -632,7 +632,9 @@ export default function ShareRecordModal({
                           role="status"
                           className="min-w-0 flex-1 text-[11px] leading-relaxed text-default-500"
                         >
-                          画像を生成しています。完了するまでオプションは変更できません
+                          画像を生成しています。
+                          <br />
+                          完了するまでオプションは変更できません。
                         </div>
                       </div>
                     )}

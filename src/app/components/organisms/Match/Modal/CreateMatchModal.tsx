@@ -37,6 +37,9 @@ import { MatchCreateRequestType, MatchCreateResponseType } from "@app/types/matc
 import { GameRequestType } from "@app/types/game";
 import { PokemonSpriteType } from "@app/types/pokemon_sprite";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
+
+import { useModalDragToClose } from "@app/hooks/useModalDragToClose";
+import { closingPassthroughClassNames } from "@app/utils/modal";
 import {
   GameInput,
   newGameInputs,
@@ -299,24 +302,10 @@ export default function CreateMatchModal({
     setCouldCreateFlg(false);
   };
 
-  const startY = useRef<number | null>(null);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    startY.current = e.touches[0].clientY;
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (startY.current === null) return;
-
-    const diff = e.touches[0].clientY - startY.current;
-
-    // 下方向に30px以上スワイプしたら閉じる
-    if (diff > 30) {
-      startY.current = null;
-      resetForm();
-      onClose();
-    }
-  };
+  const attachHeader = useModalDragToClose(() => {
+    resetForm();
+    onClose();
+  });
 
   useEffect(() => {
     if (qualifyingRoundFlg && finalTournamentFlg) {
@@ -875,6 +864,7 @@ export default function CreateMatchModal({
         classNames={{
           base: "sm:max-w-full",
           closeButton: "text-xl",
+          ...closingPassthroughClassNames(isOpen),
         }}
       >
         <ModalContent>
@@ -882,8 +872,7 @@ export default function CreateMatchModal({
             <>
               {/* スワイプ検知 */}
               <ModalHeader
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
+                ref={attachHeader}
                 className="px-3 py-3 flex flex-col gap-1 cursor-grab touch-none"
               >
                 {/* スワイプバー */}

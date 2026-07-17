@@ -43,6 +43,9 @@ import { UnofficialEventGetByIdResponseType } from "@app/types/unofficial_event"
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { MatchStats } from "@app/utils/matchStats";
 
+import { useModalDragToClose } from "@app/hooks/useModalDragToClose";
+import { closingPassthroughClassNames } from "@app/utils/modal";
+
 type Props = {
   record: RecordGetByIdResponseType;
   setRecord: Dispatch<SetStateAction<RecordGetByIdResponseType | null>>;
@@ -312,18 +315,7 @@ export default function ShareRecordModal({
 
   // 上部バーのフリックでモーダルを閉じる(記録情報モーダルと同じ挙動)。
   // ただしシェア/保存の処理中(busy)は閉じさせない。
-  const startY = useRef<number | null>(null);
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (busy !== null) return;
-    startY.current = e.touches[0].clientY;
-  };
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (busy !== null || startY.current === null) return;
-    if (e.touches[0].clientY - startY.current > 30) {
-      startY.current = null;
-      onClose();
-    }
-  };
+  const attachHeader = useModalDragToClose(onClose, { disabled: busy !== null });
 
   // シェア画像は「シェアする」をタップする前に生成しておく。
   //
@@ -598,13 +590,13 @@ export default function ShareRecordModal({
         isDismissable={false}
         scrollBehavior="inside"
         className="h-[calc(100dvh-104px)] max-h-[calc(100dvh-104px)] mt-26 my-0 rounded-b-none sm:max-w-full lg:max-w-lg"
+        classNames={closingPassthroughClassNames(isOpen)}
       >
         <ModalContent>
           {() => (
             <>
               <ModalHeader
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
+                ref={attachHeader}
                 className="flex cursor-grab touch-none flex-col gap-1 px-4 pb-3 pt-3"
               >
                 <div className="mx-auto mb-1 h-1 w-32 rounded-full bg-default-300" />

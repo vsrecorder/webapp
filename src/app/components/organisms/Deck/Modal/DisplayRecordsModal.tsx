@@ -7,6 +7,9 @@ import Records from "@app/components/organisms/Record/Records";
 
 import { DeckGetByIdResponseType } from "@app/types/deck";
 
+import { useModalDragToClose } from "@app/hooks/useModalDragToClose";
+import { closingPassthroughClassNames } from "@app/utils/modal";
+
 type TabKey = "all" | "official" | "tonamel" | "unofficial";
 
 // 記録一覧ページと同様に、選択タブを sessionStorage に保存・復元する。
@@ -37,23 +40,7 @@ export default function DisplayRecordsModal({
   onOpenChange,
   onClose,
 }: Props) {
-  const startY = useRef<number | null>(null);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    startY.current = e.touches[0].clientY;
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (startY.current === null) return;
-
-    const diff = e.touches[0].clientY - startY.current;
-
-    // 下方向に30px以上スワイプしたら閉じる
-    if (diff > 30) {
-      startY.current = null;
-      onClose();
-    }
-  };
+  const attachHeader = useModalDragToClose(onClose);
   // 既定は "すべて"。詳細ページからの戻り（再開）時のみ、遷移前のタブを復元する。
   // 通常のオープンでは常に "すべて" から始まる。
   // lazy 初期化で復元することで、保存用エフェクトとの競合を避ける。
@@ -157,6 +144,7 @@ export default function DisplayRecordsModal({
       classNames={{
         base: "sm:max-w-full lg:max-w-2xl",
         closeButton: "text-xl",
+        ...closingPassthroughClassNames(isOpen),
       }}
     >
       <ModalContent>
@@ -164,8 +152,7 @@ export default function DisplayRecordsModal({
           <>
             {/* スワイプ検知 */}
             <ModalHeader
-              onTouchStart={handleTouchStart}
-              onTouchMove={handleTouchMove}
+              ref={attachHeader}
               className="px-3 py-3 pb-0 flex flex-col gap-1.5 cursor-grab touch-none"
             >
               {/* スワイプバー */}

@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useEffect, useState } from "react";
 
 import {
   Modal,
@@ -26,6 +26,8 @@ import { CalendarEvent } from "@app/types/calendar";
 import { DeckPokemonSpriteType, MatchPokemonSpriteType } from "@app/types/pokemon_sprite";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import DeckCardDiff from "@app/components/organisms/Deck/DeckCardDiff";
+import { useModalDragToClose } from "@app/hooks/useModalDragToClose";
+import { closingPassthroughClassNames } from "@app/utils/modal";
 
 type Props = {
   isOpen: boolean;
@@ -426,60 +428,8 @@ export default function CalendarDayDetailModal({
   date,
   events,
 }: Props) {
-  const startY = useRef<number | null>(null);
   const renderCount = useProgressiveRenderCount(events.length, isOpen);
-
-  // リスナ内から常に最新の onClose を呼べるようにする(付け直しを避けるため)
-  const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
-
-  const detachRef = useRef<(() => void) | null>(null);
-
-  /*
-   * ヘッダーのドラッグで閉じる。touchmove を「非パッシブ」で登録して
-   * preventDefault() する必要があるため、React の onTouchMove ではなく
-   * ref から直接リスナを登録する。
-   *
-   * React の onTouchMove はパッシブリスナとして登録されるため
-   * preventDefault() が効かない。preventDefault() しないと、閉じた瞬間に
-   * touch-action:none を持つヘッダーが DOM から消え、ブラウザは残りの指の動きを
-   * ページスクロールとみなす。指を弾いて離すとそのままフリックの慣性が始まり、
-   * 慣性が続く約0.5秒間、次のタップは「慣性を止める操作」に消費されて click が
-   * 発火しない。その結果、閉じた直後にカレンダーの日付をタップしても反応せず、
-   * 二度目のタップまで開けなくなる。
-   */
-  const attachHeader = useCallback((node: HTMLElement | null) => {
-    detachRef.current?.();
-    detachRef.current = null;
-
-    if (!node) return;
-
-    const onTouchStart = (e: TouchEvent) => {
-      startY.current = e.touches[0].clientY;
-    };
-
-    const onTouchMove = (e: TouchEvent) => {
-      // ヘッダーはドラッグ専用の領域なので、常にブラウザのスクロールを止める
-      if (e.cancelable) e.preventDefault();
-
-      if (startY.current === null) return;
-
-      const diff = e.touches[0].clientY - startY.current;
-
-      if (diff > 30) {
-        startY.current = null;
-        onCloseRef.current();
-      }
-    };
-
-    node.addEventListener("touchstart", onTouchStart, { passive: false });
-    node.addEventListener("touchmove", onTouchMove, { passive: false });
-
-    detachRef.current = () => {
-      node.removeEventListener("touchstart", onTouchStart);
-      node.removeEventListener("touchmove", onTouchMove);
-    };
-  }, []);
+  const attachHeader = useModalDragToClose(onClose);
 
   if (!date) return null;
 
@@ -495,14 +445,7 @@ export default function CalendarDayDetailModal({
       classNames={{
         base: "sm:max-w-full",
         closeButton: "text-xl",
-        /*
-         * 閉じるアニメーション(0.3秒)の間、全画面を覆う wrapper と backdrop が
-         * DOM に残り続けるため、その間のタップがカレンダーの日付セルに届かず
-         * 「閉じた直後に開けない」状態になる。閉じ始めた時点でクリックを
-         * 透過させることで、アニメーションを保ったまま即座に開き直せるようにする。
-         */
-        wrapper: isOpen ? "" : "pointer-events-none",
-        backdrop: isOpen ? "" : "pointer-events-none",
+        ...closingPassthroughClassNames(isOpen),
       }}
     >
       <ModalContent>

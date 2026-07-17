@@ -1,5 +1,3 @@
-import { useRef } from "react";
-
 import { useState } from "react";
 
 import { Skeleton } from "@heroui/react";
@@ -11,6 +9,9 @@ import { Modal, ModalContent, ModalHeader, ModalBody } from "@heroui/react";
 import InspectDeck from "@app/components/organisms/Deck/InspectDeck";
 
 import { DeckCodeType } from "@app/types/deck_code";
+
+import { useModalDragToClose } from "@app/hooks/useModalDragToClose";
+import { closingPassthroughClassNames } from "@app/utils/modal";
 
 type Props = {
   deckcode: DeckCodeType | null;
@@ -27,23 +28,7 @@ export default function InspectDeckModal({
 }: Props) {
   const [imageLoaded, setImageLoaded] = useState(false);
 
-  const startY = useRef<number | null>(null);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    startY.current = e.touches[0].clientY;
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (startY.current === null) return;
-
-    const diff = e.touches[0].clientY - startY.current;
-
-    // 下方向に30px以上スワイプしたら閉じる
-    if (diff > 30) {
-      startY.current = null;
-      onClose();
-    }
-  };
+  const attachHeader = useModalDragToClose(onClose);
 
   return (
     <Modal
@@ -58,6 +43,7 @@ export default function InspectDeckModal({
       classNames={{
         base: "sm:max-w-full lg:max-w-2xl",
         closeButton: "text-xl",
+        ...closingPassthroughClassNames(isOpen),
       }}
     >
       <ModalContent>
@@ -65,8 +51,7 @@ export default function InspectDeckModal({
           <>
             {/* スワイプ検知 */}
             <ModalHeader
-              onTouchStart={handleTouchStart}
-              onTouchMove={handleTouchMove}
+              ref={attachHeader}
               className="px-1 py-3 pb-0 flex flex-col gap-1 cursor-grab touch-none"
             >
               {/* スワイプバー */}

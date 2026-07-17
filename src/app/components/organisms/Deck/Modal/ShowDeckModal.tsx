@@ -45,6 +45,8 @@ import { LuChartPie } from "react-icons/lu";
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
 
+import { closingPassthroughClassNames } from "@app/utils/modal";
+
 type Props = {
   deck: DeckGetByIdResponseType | null;
   setDeck: Dispatch<SetStateAction<DeckGetByIdResponseType | null>>;
@@ -204,6 +206,7 @@ export default function ShowDeckModal({
         classNames={{
           base: "sm:max-w-full lg:max-w-2xl",
           closeButton: "text-2xl",
+          ...closingPassthroughClassNames(isOpen),
         }}
       >
         <ModalContent>

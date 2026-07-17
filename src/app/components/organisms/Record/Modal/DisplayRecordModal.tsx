@@ -44,6 +44,8 @@ import { DeckGetByIdResponseType } from "@app/types/deck";
 import { MatchGetResponseType } from "@app/types/match";
 
 import { fetchMatchesByRecordId, summarizeMatches } from "@app/utils/matchStats";
+import { useModalDragToClose } from "@app/hooks/useModalDragToClose";
+import { closingPassthroughClassNames } from "@app/utils/modal";
 
 // シェアのポスト文組み立てに必要なイベント・デッキ情報の取得
 
@@ -227,21 +229,7 @@ export default function DisplayRecordModal({
     });
   }, [record]);
 
-  const startY = useRef<number | null>(null);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (isStatsUpdating) return;
-    startY.current = e.touches[0].clientY;
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (isStatsUpdating) return;
-    if (startY.current === null) return;
-    if (e.touches[0].clientY - startY.current > 30) {
-      startY.current = null;
-      onClose();
-    }
-  };
+  const attachHeader = useModalDragToClose(onClose, { disabled: isStatsUpdating });
 
   // Escキーなど HeroUI 側からの閉じる要求も、集計切り替え中は無視する。
   const handleOpenChange = () => {
@@ -291,6 +279,7 @@ export default function DisplayRecordModal({
         classNames={{
           base: "sm:max-w-full lg:max-w-2xl",
           closeButton: "text-xl",
+          ...closingPassthroughClassNames(isOpen),
         }}
       >
         <ModalContent>
@@ -309,8 +298,7 @@ export default function DisplayRecordModal({
 
               {/* スワイプ検知 */}
               <ModalHeader
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
+                ref={attachHeader}
                 className={`px-3 py-3 flex flex-col gap-1 touch-none ${
                   isStatsUpdating ? "cursor-not-allowed" : "cursor-grab"
                 }`}

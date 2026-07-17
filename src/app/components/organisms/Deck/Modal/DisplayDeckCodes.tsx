@@ -1,5 +1,3 @@
-import { useRef } from "react";
-
 import { SetStateAction, Dispatch } from "react";
 
 import { useCallback, useEffect, useState } from "react";
@@ -42,6 +40,9 @@ import FetchError from "@app/components/molecules/FetchError";
 
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { DeckCodeType, DeckCodeUpdateRequestType } from "@app/types/deck_code";
+
+import { useModalDragToClose } from "@app/hooks/useModalDragToClose";
+import { closingPassthroughClassNames } from "@app/utils/modal";
 
 async function fetchDeckCodesByDeckId(deck_id: string) {
   try {
@@ -110,23 +111,7 @@ export default function DisplayDeckCodesModal({
   const [memoInput, setMemoInput] = useState<string>("");
   const [isMemoSaving, setIsMemoSaving] = useState<boolean>(false);
 
-  const startY = useRef<number | null>(null);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    startY.current = e.touches[0].clientY;
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (startY.current === null) return;
-
-    const diff = e.touches[0].clientY - startY.current;
-
-    // 下方向に30px以上スワイプしたら閉じる
-    if (diff > 30) {
-      startY.current = null;
-      onClose();
-    }
-  };
+  const attachHeader = useModalDragToClose(onClose);
 
   // バージョン一覧だけを取得（失敗時のリロードから再利用）
   const loadDeckCodes = useCallback(async () => {
@@ -505,6 +490,7 @@ export default function DisplayDeckCodesModal({
         classNames={{
           base: "sm:max-w-full lg:max-w-2xl",
           closeButton: "text-xl",
+          ...closingPassthroughClassNames(isOpen),
         }}
       >
         <ModalContent>
@@ -512,8 +498,7 @@ export default function DisplayDeckCodesModal({
             <>
               {/* スワイプ検知 */}
               <ModalHeader
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
+                ref={attachHeader}
                 className="px-3 py-3 flex flex-col gap-1 cursor-grab touch-none"
               >
                 {/* スワイプバー */}

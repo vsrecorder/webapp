@@ -1,4 +1,5 @@
 import { toPng } from "html-to-image";
+import type { Context } from "modern-screenshot";
 
 import { isIOS } from "@app/utils/platform";
 
@@ -157,6 +158,73 @@ function forceLoadedImagesVisible(root: HTMLElement): void {
     img.style.transition = "none";
     img.style.opacity = "1";
   });
+}
+
+// box-shadow の値をレイヤー単位に分割する。
+// 色関数(rgba(0, 0, 0, 0.3) など)の中にもカンマが含まれるため、括弧の外側のカンマだけで区切る。
+function splitBoxShadowLayers(value: string): string[] {
+  const layers: string[] = [];
+  let depth = 0;
+  let current = "";
+  for (const char of value) {
+    if (char === "(") depth++;
+    if (char === ")") depth--;
+    if (char === "," && depth === 0) {
+      layers.push(current.trim());
+      current = "";
+      continue;
+    }
+    current += char;
+  }
+  if (current.trim()) layers.push(current.trim());
+  return layers;
+}
+
+// 影のレイヤーが「ぼかしのある外側の影」か。
+// 計算値の並びは「色 offsetX offsetY blur spread」なので、色関数を除いた3つ目が blur。
+// ぼかしのある外側の影 = カードを浮き上がらせる装飾。ぼかしの無い外側の影 = ring-* 相当。
+function isBlurredOuterShadow(layer: string): boolean {
+  if (layer.includes("inset")) return false;
+  const lengths = layer
+    .replace(/[\w-]*\([^)]*\)/g, " ")
+    .trim()
+    .split(/\s+/);
+  const blur = Number.parseFloat(lengths[2] ?? "0");
+  return Number.isFinite(blur) && blur > 0;
+}
+
+// ライトの書き出しでカードの輪郭に使う内側の線。
+// アプリ内の区切り線(border-divider = rgba(17,17,17,0.15))と同じ濃さに揃えている。
+// 画面上の影が作る輪郭ともほぼ同じ濃さになることを実測で確認済み(画面40 / これ38)。
+const CARD_OUTLINE = "inset 0 0 0 1px rgb(0 0 0 / 0.15)";
+
+/*
+ * 外側(非inset)の box-shadow を、書き出しに適した表現へ置き換える。
+ *
+ * iOS(WebKit)は SVG(foreignObject)へ描くとき box-shadow を正しく描けず、影がぼけずに
+ * 右側へずれた濃いグレーの帯になる(html-to-image でも同じで、ライブラリ側の問題ではない)。
+ * 壊れるのは「複数層の影」と「ぼかし無しで spread のみの影(=非insetの ring-*)」で、
+ * inset の影は正しく描ける。HeroUI の shadow-small は3層構成のため直撃する。
+ *
+ * そこで外側の影は落とす。ただし落とすだけだとカードの輪郭線まで消えて白背景に溶けてしまうため、
+ * ぼかしのある外側の影(=カードの浮き上がり表現)を持っていた要素には、代わりに内側の輪郭線を引く。
+ *
+ * iOS以外は影を正しく描けるが、そこだけ元の影を残すと同じ記録でも端末で見た目が変わってしまう。
+ * 書き出し画像は端末をまたいで共有されるものなので、全端末で同じ置き換えを行って見た目を揃える。
+ *
+ * ダークはカード地色と背景の明度差で輪郭が出るうえ、globals.css がダーク時のみ枠線を補うため何もしない。
+ * 非inset の ring は WebKit では元々右側にしか描かれていないため、落としても失うものはない。
+ */
+function replaceOuterBoxShadows(root: HTMLElement, isDark: boolean): void {
+  const nodes = [root, ...Array.from(root.querySelectorAll<HTMLElement>("*"))];
+  for (const node of nodes) {
+    const shadow = getComputedStyle(node).boxShadow;
+    if (!shadow || shadow === "none") continue;
+    const layers = splitBoxShadowLayers(shadow);
+    const kept = layers.filter((layer) => layer.includes("inset"));
+    if (!isDark && layers.some(isBlurredOuterShadow)) kept.push(CARD_OUTLINE);
+    node.style.boxShadow = kept.length > 0 ? kept.join(", ") : "none";
+  }
 }
 
 // 実行環境(ENV)はサーバー側でしか参照できないため、layout.tsxが<html>に埋め込んだ
@@ -335,6 +403,8 @@ export async function captureThemedPng(
     }
     await waitForImagesDecoded(container);
     forceLoadedImagesVisible(container);
+    // 外側の影は iOS で帯として描かれてしまう。端末で見た目が割れないよう全端末で置き換える。
+    replaceOuterBoxShadows(container, isDark);
 
     // 実レイアウト後のサイズから、canvas 制限を超えない pixelRatio を決める。
     // 縦長の記録(対戦数が多い)で高い pixelRatio のまま描画すると、iOS では
@@ -346,19 +416,32 @@ export async function captureThemedPng(
     if (isIOS()) {
       // iOS は modern-screenshot(動的importでサーバーバンドル回避)。
       // scale が pixelRatio 相当、fetch.bypassingCache が cacheBust 相当。
-      const { domToPng } = await import("modern-screenshot");
-      const options = {
+      const { createContext, destroyContext, domToPng } = await import("modern-screenshot");
+
+      // Safari は foreignObject 内の画像のデコードが1回目の canvas 描画に間に合わず
+      // 画像が欠けることがある。modern-screenshot はその対策として canvas を描き直すが、
+      // その回数は「埋め込んだ画像の枚数」ぶんになる(1回あたり drawImageInterval=100ms
+      // 待って再ラスタライズする)。スプライトが数十枚並ぶ戦績では、これだけで
+      // 十数秒かかってしまう。描き直しは数回で十分に効くため上限を設ける。
+      const MAX_REDRAW = 3;
+
+      // onCreateForeignObjectSvg は描き直し回数(drawImageCount)が確定したあと、
+      // canvas へ描く前に呼ばれる。ここで上限を掛ける。
+      // (コールバックが呼ばれるのは domToPng の実行中＝代入後なので context を参照できる)
+      const context: Context = await createContext(container, {
         scale: pixelRatio,
         backgroundColor: bgColor,
         fetch: { bypassingCache: true, placeholderImage: TRANSPARENT_PIXEL },
-      };
-      // iOS/Safari は初回の描画で foreignObject 内の画像が欠けることがあるため、
-      // 複数回描画して最後の結果を採用する(2回目以降は正しく描画されやすい)。
-      let dataUrl = "";
-      for (let i = 0; i < 3; i++) {
-        dataUrl = await domToPng(container, options);
+        onCreateForeignObjectSvg: () => {
+          context.drawImageCount = Math.min(context.drawImageCount, MAX_REDRAW);
+        },
+      });
+      try {
+        return await domToPng(context);
+      } finally {
+        // context を自前で作った場合は自動破棄されないため、明示的に後始末する
+        destroyContext(context);
       }
-      return dataUrl;
     }
 
     // iOS以外は html-to-image。

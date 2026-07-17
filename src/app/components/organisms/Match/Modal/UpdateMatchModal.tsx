@@ -38,6 +38,9 @@ import { MatchGetResponseType } from "@app/types/match";
 import { MatchUpdateRequestType, MatchUpdateResponseType } from "@app/types/match";
 import { GameRequestType } from "@app/types/game";
 import { PokemonSpriteType, MatchPokemonSpriteType } from "@app/types/pokemon_sprite";
+
+import { useModalDragToClose } from "@app/hooks/useModalDragToClose";
+import { closingPassthroughClassNames } from "@app/utils/modal";
 import {
   GameInput,
   newGameInputs,
@@ -348,23 +351,7 @@ export default function UpdateMatchModal({
     onOpenChange: onOpenChangeForDeleteMatchModal,
   } = useDisclosure();
 
-  const startY = useRef<number | null>(null);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    startY.current = e.touches[0].clientY;
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (startY.current === null) return;
-
-    const diff = e.touches[0].clientY - startY.current;
-
-    // 下方向に30px以上スワイプしたら閉じる
-    if (diff > 30) {
-      startY.current = null;
-      onClose();
-    }
-  };
+  const attachHeader = useModalDragToClose(onClose);
 
   useEffect(() => {
     if (!match || !isOpen) return;
@@ -1002,6 +989,7 @@ export default function UpdateMatchModal({
         classNames={{
           base: "sm:max-w-full",
           closeButton: "text-xl",
+          ...closingPassthroughClassNames(isOpen),
         }}
       >
         <ModalContent>
@@ -1009,8 +997,7 @@ export default function UpdateMatchModal({
             <>
               {/* スワイプ検知 */}
               <ModalHeader
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
+                ref={attachHeader}
                 className="px-3 py-3 flex flex-col gap-1 cursor-grab touch-none"
               >
                 {/* スワイプバー */}

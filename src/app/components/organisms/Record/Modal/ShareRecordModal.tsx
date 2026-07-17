@@ -144,9 +144,13 @@ export default function ShareRecordModal({
   // トグルを押すたびにモーダルの中身が飛び跳ねてしまうため)。
   const [capturingResult, setCapturingResult] = useState(false);
   const [capturingDeck, setCapturingDeck] = useState(false);
-  // 画像の生成そのものに失敗したか。
+  // 画像の生成そのものに失敗したか。1枚目・2枚目それぞれで持つ。
+  // まとめて1つで持つと、片方の失敗を他方の生成が「成功」で消してしまい、
+  // 失敗した画像が無いまま失敗の表示も消えて、シェアできない状態から抜け出せなくなる。
   // 失敗を伝えるだけだと手詰まりになるため、作り直すか、ポスト文だけでシェアするかを選べるようにする。
-  const [captureFailed, setCaptureFailed] = useState(false);
+  const [resultFailed, setResultFailed] = useState(false);
+  const [deckFailed, setDeckFailed] = useState(false);
+  const captureFailed = resultFailed || deckFailed;
   // 「再生成」を押したときに生成用の useEffect を走らせ直すための世代番号
   const [regenSeq, setRegenSeq] = useState(0);
   // キャプチャ用DOMを描画してよいか(開くアニメーションが終わるまで待つ)
@@ -165,7 +169,8 @@ export default function ShareRecordModal({
 
   // 画像が用意できたときに加えて、生成に失敗したとき(=ポスト文だけでシェアする)も許可する。
   // 生成中は、途中の(古い)画像を共有してしまわないよう止める。
-  const deckImageReady = !includeDeck || deckImage !== null;
+  // デッキ画像は、生成に失敗したときも「待ち」から抜けさせる(待ち続けても永久に揃わない)。
+  const deckImageReady = !includeDeck || deckImage !== null || deckFailed;
   const canShare =
     heroReady &&
     matches !== null &&
@@ -194,7 +199,8 @@ export default function ShareRecordModal({
       // 古い画像が残ってしまう。世代を進めて、その結果を捨てさせる。
       resultSeq.current++;
       deckSeq.current++;
-      setCaptureFailed(false);
+      setResultFailed(false);
+      setDeckFailed(false);
       setIncludeDeck(false);
       setShowDeck(true);
       setShowVenue(true);
@@ -289,7 +295,7 @@ export default function ShareRecordModal({
     if (!isOpen || !captureMounted || !heroReady || matches === null) return;
 
     const seq = ++resultSeq.current;
-    setCaptureFailed(false);
+    setResultFailed(false);
     // 待っている間も「生成中」にしておく。ここで立てないと、待ちの間だけ
     // 撮り直す前の画像でシェアできてしまう。
     setCapturingResult(true);
@@ -300,6 +306,8 @@ export default function ShareRecordModal({
       started = true;
       const el = shareContentRef.current;
       if (!el) {
+        // 撮る対象が無ければ画像は作れない。待ちのまま止まらないよう失敗として扱う。
+        setResultFailed(true);
         setCapturingResult(false);
         return;
       }
@@ -320,7 +328,7 @@ export default function ShareRecordModal({
         if (seq !== resultSeq.current) return;
         // 失敗はプレビュー欄に出し続ける(トーストは消えてしまい、
         // 何が起きたのか分からないまま準備中の表示だけが残ってしまうため)。
-        setCaptureFailed(true);
+        setResultFailed(true);
       } finally {
         if (seq === resultSeq.current) setCapturingResult(false);
       }
@@ -356,6 +364,7 @@ export default function ShareRecordModal({
     if (deckKeyRef.current === key) return;
 
     const seq = ++deckSeq.current;
+    setDeckFailed(false);
     // 待っている間も「生成中」にする(理由は1枚目と同じ)
     setCapturingDeck(true);
 
@@ -364,6 +373,9 @@ export default function ShareRecordModal({
       started = true;
       const el = deckCardRef.current;
       if (!el) {
+        // デッキパネルの実DOMが無ければ2枚目は作れない。黙って1枚だけ共有すると
+        // 「一緒にシェア」がONなのにデッキ画像が付かないため、失敗として扱う。
+        setDeckFailed(true);
         setCapturingDeck(false);
         return;
       }
@@ -382,7 +394,7 @@ export default function ShareRecordModal({
       } catch (e) {
         console.error(e);
         if (seq !== deckSeq.current) return;
-        setCaptureFailed(true);
+        setDeckFailed(true);
       } finally {
         if (seq === deckSeq.current) setCapturingDeck(false);
       }

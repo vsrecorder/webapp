@@ -629,7 +629,7 @@ export default function UpdateUsedDeckModal({
                                 <div className="pl-0.5 flex items-center gap-2 min-w-0">
                                   <DeckSprites
                                     sprites={opt.pokemon_sprites}
-                                    size={32}
+                                    size={28}
                                   />
                                   <span className="truncate">{opt.name}</span>
                                 </div>

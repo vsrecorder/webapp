@@ -12,7 +12,6 @@ import FetchError from "@app/components/molecules/FetchError";
 
 import { fetchDeckCardList } from "@app/utils/deckcard";
 
-import { DeckCodeType } from "@app/types/deck_code";
 import { DeckCardType, CardType } from "@app/types/deckcard";
 
 function makeCardKey(card: DeckCardType): string {
@@ -67,11 +66,12 @@ function diffByContentWithCount(a: DeckCardType[], b: DeckCardType[]): DeckCardT
 }
 
 type Props = {
-  current_deckcode: DeckCodeType;
-  previous_deckcode: DeckCodeType;
+  current_code: string;
+  // 比較対象。空文字なら差分を出さない
+  previous_code: string;
 };
 
-export default function DeckCardDiff({ current_deckcode, previous_deckcode }: Props) {
+export default function DeckCardDiff({ current_code, previous_code }: Props) {
   const [currentDeckCardList, setCurrentDeckCardList] = useState<DeckCardType[]>();
   const [previousDeckCardList, setPreviousDeckCardList] = useState<DeckCardType[]>();
   const [loading1, setLoading1] = useState(true);
@@ -88,7 +88,7 @@ export default function DeckCardDiff({ current_deckcode, previous_deckcode }: Pr
 
   // 現在バージョンのカード一覧だけを取得（失敗時のリロードから再利用）
   const loadCurrent = useCallback(async () => {
-    if (!current_deckcode) {
+    if (!current_code) {
       setLoading1(false);
       return;
     }
@@ -97,7 +97,7 @@ export default function DeckCardDiff({ current_deckcode, previous_deckcode }: Pr
     setLoading1(true);
 
     try {
-      const data = await fetchDeckCardList(current_deckcode.code);
+      const data = await fetchDeckCardList(current_code);
       setCurrentDeckCardList(data);
 
       const urls = [...data].map((c) => c.image_url);
@@ -112,11 +112,11 @@ export default function DeckCardDiff({ current_deckcode, previous_deckcode }: Pr
     } finally {
       setLoading1(false);
     }
-  }, [current_deckcode]);
+  }, [current_code]);
 
   // 直前バージョンのカード一覧だけを取得
   const loadPrevious = useCallback(async () => {
-    if (!previous_deckcode) {
+    if (!previous_code) {
       setLoading2(false);
       return;
     }
@@ -125,7 +125,7 @@ export default function DeckCardDiff({ current_deckcode, previous_deckcode }: Pr
     setLoading2(true);
 
     try {
-      const data = await fetchDeckCardList(previous_deckcode.code);
+      const data = await fetchDeckCardList(previous_code);
       setPreviousDeckCardList(data);
 
       const urls = [...data].map((c) => c.image_url);
@@ -140,14 +140,14 @@ export default function DeckCardDiff({ current_deckcode, previous_deckcode }: Pr
     } finally {
       setLoading2(false);
     }
-  }, [previous_deckcode]);
+  }, [previous_code]);
 
   useEffect(() => {
     loadCurrent();
     loadPrevious();
   }, [loadCurrent, loadPrevious]);
 
-  if (!current_deckcode || !previous_deckcode) return;
+  if (!current_code || !previous_code) return;
 
   if (loading1 || loading2) {
     return (

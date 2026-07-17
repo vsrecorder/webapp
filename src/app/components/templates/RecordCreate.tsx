@@ -1353,7 +1353,7 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
             {!isTabResolved ? (
               <RecordCreateTabSkeleton />
             ) : (
-              <div className="pt-9 pb-3 flex flex-col gap-2">
+              <div className="pt-9 pb-1.5 flex flex-col gap-2">
                 <div className="flex flex-col gap-1 pt-1">
                   <div className="flex flex-col gap-2">
                     <StepLabel num={1} required>
@@ -1638,7 +1638,7 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                                 <div className="pl-0.5 flex items-center gap-2 min-w-0">
                                   <DeckSprites
                                     sprites={option.pokemon_sprites}
-                                    size={32}
+                                    size={28}
                                   />
                                   <span className="truncate">{option.name}</span>
                                 </div>
@@ -1671,10 +1671,7 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                         }
                         return (
                           <div className="pl-1 flex items-center gap-2 text-sm min-w-0">
-                            <DeckSprites
-                              sprites={option.pokemon_sprites}
-                              size={28}
-                            />
+                            <DeckSprites sprites={option.pokemon_sprites} size={28} />
                             <span className="truncate">{option.name}</span>
                           </div>
                         );
@@ -1836,7 +1833,7 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
             {!isTabResolved ? (
               <RecordCreateTabSkeleton />
             ) : (
-              <div className="pt-9 pb-3 flex flex-col gap-2">
+              <div className="pt-9 pb-1.5 flex flex-col gap-2">
                 <div className="flex flex-col gap-1 pt-1">
                   <div className="flex flex-col gap-2">
                     <StepLabel num={1} required>
@@ -1982,7 +1979,7 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                                 <div className="flex items-center gap-2 min-w-0">
                                   <DeckSprites
                                     sprites={option.pokemon_sprites}
-                                    size={32}
+                                    size={28}
                                   />
                                   <span className="truncate">{option.name}</span>
                                 </div>
@@ -2015,10 +2012,7 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                         }
                         return (
                           <div className="flex items-center gap-2 text-sm min-w-0">
-                            <DeckSprites
-                              sprites={option.pokemon_sprites}
-                              size={28}
-                            />
+                            <DeckSprites sprites={option.pokemon_sprites} size={28} />
                             <span className="truncate">{option.name}</span>
                           </div>
                         );
@@ -2182,7 +2176,7 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
             {!isTabResolved ? (
               <RecordCreateTabSkeleton />
             ) : (
-              <div className="pt-9 pb-3 flex flex-col gap-2">
+              <div className="pt-9 pb-1.5 flex flex-col gap-2">
                 <div className="flex flex-col gap-1 pt-1">
                   <div className="flex flex-col gap-2">
                     <StepLabel num={1} required>
@@ -2294,7 +2288,7 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                                 <div className="flex items-center gap-2 min-w-0">
                                   <DeckSprites
                                     sprites={option.pokemon_sprites}
-                                    size={32}
+                                    size={28}
                                   />
                                   <span className="truncate">{option.name}</span>
                                 </div>
@@ -2327,10 +2321,7 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                         }
                         return (
                           <div className="flex items-center gap-2 text-sm min-w-0">
-                            <DeckSprites
-                              sprites={option.pokemon_sprites}
-                              size={28}
-                            />
+                            <DeckSprites sprites={option.pokemon_sprites} size={28} />
                             <span className="truncate">{option.name}</span>
                           </div>
                         );

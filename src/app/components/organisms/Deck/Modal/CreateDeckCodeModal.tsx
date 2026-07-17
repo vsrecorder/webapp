@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, SetStateAction, Dispatch } from "react";
+import { useEffect, useState, SetStateAction, Dispatch } from "react";
 
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
 import { Button } from "@heroui/react";
@@ -70,11 +70,6 @@ export default function CreateDeckCodeModal({
 
     checkDeckCode();
   }, [newdeckcode]);
-
-  const currentDeckCode = useMemo(
-    () => ({ code: newdeckcode }) as DeckCodeType,
-    [newdeckcode],
-  );
 
   if (!deck) {
     return;
@@ -267,8 +262,8 @@ export default function CreateDeckCodeModal({
                 <div className="h-30 overflow-y-auto">
                   {newdeckcode && isValidedDeckCode ? (
                     <DeckCardDiff
-                      current_deckcode={currentDeckCode}
-                      previous_deckcode={deckcode}
+                      current_code={newdeckcode}
+                      previous_code={deckcode.code}
                     />
                   ) : (
                     <div className="flex flex-col gap-3">

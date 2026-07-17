@@ -25,6 +25,7 @@ import {
 import { CalendarEvent } from "@app/types/calendar";
 import { DeckPokemonSpriteType, MatchPokemonSpriteType } from "@app/types/pokemon_sprite";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
+import DeckCardDiff from "@app/components/organisms/Deck/DeckCardDiff";
 
 type Props = {
   isOpen: boolean;
@@ -72,14 +73,15 @@ function eventKey(event: CalendarEvent): string {
   return `deck_archived-${event.deck_id}`;
 }
 
-// デッキにスプライトが登録されている場合のみ、先頭2体を表示する
+// デッキにスプライトが登録されている場合のみ、先頭2体を表示する。
+// サイズ・間隔はデッキ使用率分析・相手デッキ分布のリスト(size=32 / gap-0)と揃える
 function DeckSprites({ sprites }: { sprites: DeckPokemonSpriteType[] }) {
   if (sprites.length === 0) return null;
 
   return (
-    <div className="flex items-center shrink-0">
+    <div className="flex items-center gap-0 shrink-0">
       {sprites.slice(0, 2).map((sprite, index) => (
-        <PokemonSprite key={sprite.id ?? index} id={sprite.id} size={24} />
+        <PokemonSprite key={sprite.id ?? index} id={sprite.id} size={32} />
       ))}
     </div>
   );
@@ -88,9 +90,9 @@ function DeckSprites({ sprites }: { sprites: DeckPokemonSpriteType[] }) {
 // 対戦相手のデッキスプライト。未登録の枠は unknown.png で埋め、常に2体分のスペースを確保する
 function OpponentSprites({ sprites }: { sprites: MatchPokemonSpriteType[] }) {
   return (
-    <div className="flex items-center shrink-0">
+    <div className="flex items-center gap-0 shrink-0">
       {[0, 1].map((index) => (
-        <PokemonSprite key={index} id={sprites[index]?.id} size={24} />
+        <PokemonSprite key={index} id={sprites[index]?.id} size={32} />
       ))}
     </div>
   );
@@ -164,7 +166,10 @@ function EventContent({ event }: { event: CalendarEvent }) {
               {event.deck_name ? `『${event.deck_name}』` : "なし"}
             </span>
           </div>
-          <DeckCodeThumbnail code={event.deck_code} />
+          {/* ラベル〜デッキ情報より、デッキ情報〜デッキ画像の間を広くとる */}
+          <div className="mt-1.5">
+            <DeckCodeThumbnail code={event.deck_code} />
+          </div>
         </div>
       </div>
     );
@@ -212,6 +217,18 @@ function EventContent({ event }: { event: CalendarEvent }) {
                 </Chip>
               )}
             </div>
+          </div>
+        </div>
+
+        <div className="border-t border-divider" />
+
+        <div className="flex flex-col gap-1.5">
+          <span className="text-tiny font-bold text-default-400">使用デッキ</span>
+          <div className="flex items-center gap-2 pl-3">
+            <DeckSprites sprites={event.deck_pokemon_sprites} />
+            <span className="text-sm font-bold text-default-600 truncate">
+              {event.deck_name ? `『${event.deck_name}』` : "なし"}
+            </span>
           </div>
         </div>
 
@@ -305,6 +322,12 @@ function EventContent({ event }: { event: CalendarEvent }) {
           </div>
         </div>
         <DeckCodeThumbnail code={event.code} />
+        {/* 直前のバージョンが無い(このデッキで最初のバージョン)場合は差分を出さない */}
+        {event.previous_code && (
+          <div className="border-t border-divider pt-2.5">
+            <DeckCardDiff current_code={event.code} previous_code={event.previous_code} />
+          </div>
+        )}
       </div>
     );
   }

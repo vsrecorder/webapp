@@ -22,6 +22,7 @@ import {
   LuExternalLink,
   LuLogOut,
   LuChartColumn,
+  LuCalendarDays,
   LuCopy,
   LuCheck,
 } from "react-icons/lu";
@@ -160,15 +161,15 @@ export default function UserMenu({ user, iconUrl, isDevEnv }: Props) {
               トレーナー情報
             </DropdownItem>
             <DropdownItem
-              key="dashboard-customize"
+              key="calendar"
               color="default"
-              startContent={<LuLayoutDashboard className="w-4 h-4" />}
-              description="ホームの表示項目や並び順を変更"
+              startContent={<LuCalendarDays className="w-4 h-4" />}
+              description="日ごとの活動を振り返る"
               onPress={() => {
-                router.push(`/?${CUSTOMIZE_QUERY_PARAM}=1`);
+                router.push("/calendar");
               }}
             >
-              ホームの表示設定
+              活動ログのカレンダー
             </DropdownItem>
             <DropdownItem
               key="deck_meta"
@@ -180,6 +181,17 @@ export default function UserMenu({ user, iconUrl, isDevEnv }: Props) {
               }}
             >
               対戦環境分析（β機能）
+            </DropdownItem>
+            <DropdownItem
+              key="dashboard-customize"
+              color="default"
+              startContent={<LuLayoutDashboard className="w-4 h-4" />}
+              description="ホームの表示項目や並び順を変更"
+              onPress={() => {
+                router.push(`/?${CUSTOMIZE_QUERY_PARAM}=1`);
+              }}
+            >
+              ホームの表示設定
             </DropdownItem>
           </DropdownSection>
 

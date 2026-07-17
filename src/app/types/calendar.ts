@@ -47,6 +47,9 @@ export type CalendarMatchEvent = {
   chip_color: CalendarChipColor;
   venue_label: string;
   accent_color_class: string;
+  // 対戦で使用した自分のデッキ。対戦単位では持たないため、紐づく記録から引く
+  deck_name: string;
+  deck_pokemon_sprites: DeckPokemonSpriteType[];
   opponents_deck_info: string;
   opponents_pokemon_sprites: MatchPokemonSpriteType[];
   default_victory_flg: boolean;
@@ -76,6 +79,9 @@ export type CalendarDeckCodeEvent = {
   deck_name: string;
   deck_code_id: string;
   code: string;
+  // 直前のバージョンのコード。これと code を比べてカードの増減を出す。
+  // 比較対象が無い(このデッキで最初のバージョン)場合は空文字
+  previous_code: string;
   pokemon_sprites: DeckPokemonSpriteType[];
   created_at: string;
 };

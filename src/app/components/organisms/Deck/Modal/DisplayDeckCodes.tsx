@@ -730,9 +730,11 @@ export default function DisplayDeckCodesModal({
                                           <div className="flex flex-col gap-2 pt-2 border-t border-default-200">
                                             {index !== displayDeckCodes.length - 1 && (
                                               <DeckCardDiff
-                                                current_deckcode={displayDeckCodes[index]}
-                                                previous_deckcode={
-                                                  displayDeckCodes[index + 1]
+                                                current_code={
+                                                  displayDeckCodes[index]?.code ?? ""
+                                                }
+                                                previous_code={
+                                                  displayDeckCodes[index + 1]?.code ?? ""
                                                 }
                                               />
                                             )}

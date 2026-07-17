@@ -322,6 +322,8 @@ function buildCalendarData(calendar: CalendarApiResponse): CalendarDataType {
         chip_color: display.chip_color,
         accent_color_class: display.accent_color_class,
         venue_label: display.venue_label,
+        deck_name: deck?.name ?? "",
+        deck_pokemon_sprites: deck?.pokemon_sprites ?? [],
         opponents_deck_info: match.opponents_deck_info,
         opponents_pokemon_sprites: match.pokemon_sprites ?? [],
         default_victory_flg: match.default_victory_flg,
@@ -337,6 +339,11 @@ function buildCalendarData(calendar: CalendarApiResponse): CalendarDataType {
   }
 
   for (const deck of calendar.decks) {
+    // カードの増減は直前のバージョンとの比較で出すため、登録順に並べておく
+    const sortedDeckCodes = [...deck.deck_codes].sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+    );
+
     // デッキ作成と同時刻に登録された初期バージョンは、別イベントにせず登録イベントにまとめる
     const initialCode = deck.deck_codes.find(
       (deckCode) => String(deckCode.created_at) === String(deck.created_at),
@@ -361,7 +368,7 @@ function buildCalendarData(calendar: CalendarApiResponse): CalendarDataType {
       });
     }
 
-    for (const deckCode of deck.deck_codes) {
+    for (const [index, deckCode] of sortedDeckCodes.entries()) {
       // 初期バージョンは登録イベントにまとめているため、ここでは出さない
       if (initialCode && deckCode.id === initialCode.id) continue;
 
@@ -371,6 +378,8 @@ function buildCalendarData(calendar: CalendarApiResponse): CalendarDataType {
         deck_name: deck.name,
         deck_code_id: deckCode.id,
         code: deckCode.code,
+        // 初期バージョンも比較対象に含めるため、除外前の並びから直前を引く
+        previous_code: sortedDeckCodes[index - 1]?.code ?? "",
         pokemon_sprites: deck.pokemon_sprites ?? [],
         created_at: String(deckCode.created_at),
       });

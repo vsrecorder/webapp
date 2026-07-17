@@ -11,6 +11,7 @@ import {
   bo3VictoryFlg,
   isBO3GamesFilled,
 } from "@app/utils/bo3";
+import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
 
 type Props = {
   games: GameInput[];
@@ -41,7 +42,7 @@ export default function BO3GamesInput({ games, onChange, isDisabled }: Props) {
 
     return (
       <Card shadow="none" className="w-full border border-default-200">
-        <CardBody className="flex flex-col gap-2 py-2">
+        <CardBody className="overflow-visible flex flex-col gap-2 py-2">
           <span className="w-fit rounded-md bg-default-200 px-1.5 py-0.5 text-[10px] font-bold text-default-600">
             {index + 1}本目
           </span>
@@ -85,6 +86,7 @@ export default function BO3GamesInput({ games, onChange, isDisabled }: Props) {
               maxValue={6}
               value={game.yourPrizeCards}
               onValueChange={(value) => onChange(index, { yourPrizeCards: value })}
+              onFocus={(e) => scrollIntoViewAfterKeyboard(e.currentTarget)}
             />
 
             <span className="text-lg font-bold">-</span>
@@ -99,6 +101,7 @@ export default function BO3GamesInput({ games, onChange, isDisabled }: Props) {
               onValueChange={(value) =>
                 onChange(index, { opponentsPrizeCards: value })
               }
+              onFocus={(e) => scrollIntoViewAfterKeyboard(e.currentTarget)}
             />
           </div>
         </CardBody>
@@ -115,7 +118,7 @@ export default function BO3GamesInput({ games, onChange, isDisabled }: Props) {
             <span className="text-red-500 text-sm">*</span>
           </label>
         </CardHeader>
-        <CardBody className="flex flex-col gap-1.5">
+        <CardBody className="overflow-visible flex flex-col gap-1.5">
           {renderGame(0)}
           {renderGame(1)}
 
@@ -125,7 +128,7 @@ export default function BO3GamesInput({ games, onChange, isDisabled }: Props) {
               shadow="none"
               className="w-full border border-dashed border-default-200 bg-default-50 opacity-60"
             >
-              <CardBody className="py-2">
+              <CardBody className="overflow-visible py-2">
                 <div className="flex items-center gap-2">
                   <span className="rounded-md bg-default-200 px-1.5 py-0.5 text-[10px] font-bold text-default-600">
                     3本目
@@ -147,7 +150,7 @@ export default function BO3GamesInput({ games, onChange, isDisabled }: Props) {
           !isFilled ? "bg-default-100" : isVictory ? "bg-success/15" : "bg-danger/15"
         }`}
       >
-        <CardBody className="py-2">
+        <CardBody className="overflow-visible py-2">
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-bold text-default-600">対戦結果</span>
 

@@ -15,6 +15,7 @@ import {
 } from "@app/types/record";
 
 import { safeExternalUrl } from "@app/utils/url";
+import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
 
 type Props = {
   record: RecordGetByIdResponseType;
@@ -192,6 +193,7 @@ export default function UpdateUsedDeckModal({
                 placeholder="https://tcg.sfc-jpn.jp/tour.asp?tid=XXXXXX"
                 value={tcgMeisterURL}
                 onChange={(e) => setTCGMeisterURL(e.target.value)}
+                onFocus={(e) => scrollIntoViewAfterKeyboard(e.currentTarget)}
               />
 
               {!record.tcg_meister_url ? (

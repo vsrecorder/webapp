@@ -19,6 +19,7 @@ import {
   DeckGetByIdResponseType,
   DeckUpdateResponseType,
 } from "@app/types/deck";
+import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
 
 async function fetcherForPokemonSprites(url: string) {
   const res = await fetch(url, {
@@ -210,6 +211,9 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
       <Modal
         size={"sm"}
         placement="center"
+        // キーボード表示などで可視領域より背が高くなったとき、モーダル全体が画面から
+        // はみ出さないよう base に最大高を与え、はみ出す分は body 内スクロールにする
+        scrollBehavior="inside"
         isOpen={isOpen}
         isDismissable={false}
         // 処理中(isDisabled)はESC・閉じるボタン・onOpenChange経由のクローズを無効化する
@@ -224,7 +228,9 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
           resetToDefaults();
         }}
         classNames={{
-          base: "sm:max-w-full",
+          // scrollBehavior="inside" 既定の max-h(100%-8rem) は特にキーボード表示中に
+          // 窮屈なため、余白を 3rem まで縮めてモーダルを大きく使う
+          base: "sm:max-w-full max-h-[calc(100%-3rem)]",
           closeButton: "text-xl",
         }}
       >
@@ -268,6 +274,7 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
                   placeholder={deck.name}
                   value={newDeckName}
                   onChange={(e) => setNewDeckName(e.target.value)}
+                  onFocus={(e) => scrollIntoViewAfterKeyboard(e.currentTarget)}
                 />
 
                 {/*

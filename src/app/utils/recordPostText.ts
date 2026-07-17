@@ -128,6 +128,6 @@ export function buildRecordPostText(
     text += `使用デッキ：${deck.name}\n`;
   }
 
-  // 末尾の余分な改行を除去し、この後に付くハッシュタグとの間を1行にする
+  // 末尾の余分な改行を除去する。ハッシュタグとの間の空行は呼び出し側で入れる
   return text.trimEnd();
 }

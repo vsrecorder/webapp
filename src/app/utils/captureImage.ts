@@ -180,9 +180,16 @@ function splitBoxShadowLayers(value: string): string[] {
   return layers;
 }
 
+// 影が輪郭線も兼ねているサーフェス(HeroUI の Card など)。
+// 計算値の文字列に頼らずクラスで特定するため、端末による計算値の書式差の影響を受けない。
+const SURFACE_SHADOW_SELECTOR = ".shadow-small, .shadow-medium, .shadow-large";
+
 // 影のレイヤーが「ぼかしのある外側の影」か。
 // 計算値の並びは「色 offsetX offsetY blur spread」なので、色関数を除いた3つ目が blur。
 // ぼかしのある外側の影 = カードを浮き上がらせる装飾。ぼかしの無い外側の影 = ring-* 相当。
+//
+// 計算値の書式は端末で違いうるため、これは SURFACE_SHADOW_SELECTOR を補う保険として使う。
+// どちらか一方でも効けば輪郭線が引かれるようにしている(片方の判定が外れても輪郭が消えない)。
 function isBlurredOuterShadow(layer: string): boolean {
   if (layer.includes("inset")) return false;
   const lengths = layer
@@ -193,10 +200,73 @@ function isBlurredOuterShadow(layer: string): boolean {
   return Number.isFinite(blur) && blur > 0;
 }
 
-// ライトの書き出しでカードの輪郭に使う内側の線。
-// アプリ内の区切り線(border-divider = rgba(17,17,17,0.15))と同じ濃さに揃えている。
-// 画面上の影が作る輪郭ともほぼ同じ濃さになることを実測で確認済み(画面40 / これ38)。
-const CARD_OUTLINE = "inset 0 0 0 1px rgb(0 0 0 / 0.15)";
+// 書き出しでカードの輪郭に使う線の色。どちらもアプリのデザインに合わせている。
+//   ライト: アプリ内の区切り線(border-divider = rgba(17,17,17,0.15))と同じ濃さ
+//   ダーク: HeroUI のダークの影が持つ内側のハイライト(rgb(255 255 255 / 0.15))と同じ濃さ
+const CARD_OUTLINE_COLOR = {
+  light: "rgba(17, 17, 17, 0.15)",
+  dark: "rgba(255, 255, 255, 0.15)",
+};
+
+/*
+ * 枠線を、対象に重ねた要素の border として描く。
+ *
+ * box-shadow ではなく実要素の border を使う理由:
+ * iOS実機(Safari 18.7)では box-shadow が書き出し画像に描かれない。inset も同様で、
+ * 計算値としては正しく適用されている(実機の書き出し画像に焼き込んで確認済み)のに写らない。
+ * ローカルの WebKit(Playwright)では描かれてしまうため、この差は実機でしか出ない。
+ *
+ * 一方、絶対配置した要素の border は実機でも確実に描かれる。
+ * 戦績カード上部の緑のアクセント線(RecordHero の absolute inset-0 + border-t)が
+ * 同じ作りで、実機の書き出し画像に写っていることが根拠。
+ *
+ * inset には負値も渡せる(対象の外側に描く ring 用)。
+ * border-radius は継承させるので、対象の角丸にそのまま追従する。
+ * z-index は付けない。緑のアクセント線(z-10)より下に置くことで、上辺は緑のまま保たれる。
+ */
+function addBorderOverlay(
+  host: HTMLElement,
+  inset: number,
+  width: number,
+  color: string,
+): void {
+  // 絶対配置の基準にするため、位置指定が無いときだけ relative にする
+  if (getComputedStyle(host).position === "static") host.style.position = "relative";
+
+  const overlay = document.createElement("span");
+  overlay.style.position = "absolute";
+  overlay.style.inset = `${inset}px`;
+  overlay.style.borderRadius = "inherit";
+  overlay.style.border = `${width}px solid ${color}`;
+  overlay.style.pointerEvents = "none";
+  host.appendChild(overlay);
+}
+
+/*
+ * 影のレイヤーが ring(オフセットもぼかしも無く、太さ(spread)だけの影)なら、その色・太さ・内外を返す。
+ * ring は輪郭そのものなので border で正確に描き直せる(ぼかしのある影は border では表現できない)。
+ *
+ * 計算値の色は端末によって書式が違う(実機iOSでは ring-black/5 が oklab(0 0 0 / 0.05) で返る)ため、
+ * 色は解釈せず、色関数をそのまま border-color へ渡す。
+ */
+function parseRingLayer(
+  layer: string,
+): { color: string; width: number; inset: boolean } | null {
+  const color = layer.match(/[\w-]*\([^)]*\)/)?.[0];
+  if (!color) return null;
+  const inset = layer.includes("inset");
+  const lengths = layer
+    .replace(color, " ")
+    .replace("inset", " ")
+    .trim()
+    .split(/\s+/)
+    .map((value) => Number.parseFloat(value));
+  if (lengths.length !== 4) return null;
+  const [offsetX, offsetY, blur, spread] = lengths;
+  if (offsetX !== 0 || offsetY !== 0 || blur !== 0) return null;
+  if (!Number.isFinite(spread) || spread <= 0) return null;
+  return { color, width: spread, inset };
+}
 
 /*
  * 外側(非inset)の box-shadow を、書き出しに適した表現へ置き換える。
@@ -221,9 +291,26 @@ function replaceOuterBoxShadows(root: HTMLElement, isDark: boolean): void {
     const shadow = getComputedStyle(node).boxShadow;
     if (!shadow || shadow === "none") continue;
     const layers = splitBoxShadowLayers(shadow);
-    const kept = layers.filter((layer) => layer.includes("inset"));
-    if (!isDark && layers.some(isBlurredOuterShadow)) kept.push(CARD_OUTLINE);
-    node.style.boxShadow = kept.length > 0 ? kept.join(", ") : "none";
+
+    // 影は端末によって描かれたり描かれなかったりするため、書き出しでは一切使わない。
+    // 見た目に必要なものは、この下で border として描き直す。
+    node.style.boxShadow = "none";
+
+    // 影が輪郭線も兼ねているサーフェス(カード)は、影を落とすと背景に溶けてしまうため輪郭線を引く
+    const isSurface =
+      node.matches(SURFACE_SHADOW_SELECTOR) || layers.some(isBlurredOuterShadow);
+    if (isSurface) {
+      addBorderOverlay(node, 0, 1, isDark ? CARD_OUTLINE_COLOR.dark : CARD_OUTLINE_COLOR.light);
+    }
+
+    // ring(輪郭そのものの影)は、同じ位置・色・太さの border として描き直す。
+    //   外側の ring: 貢献度メーターのマーカーの白フチ(ring-2 ring-content1)
+    //   内側の ring: イベントアイコン枠の細い線(ring-1 ring-inset ring-black/5)
+    for (const layer of layers) {
+      const ring = parseRingLayer(layer);
+      if (!ring) continue;
+      addBorderOverlay(node, ring.inset ? 0 : -ring.width, ring.width, ring.color);
+    }
   }
 }
 

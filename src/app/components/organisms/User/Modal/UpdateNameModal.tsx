@@ -19,6 +19,7 @@ import { LuCamera } from "react-icons/lu";
 
 import { UserUpdateRequestType } from "@app/types/user";
 import { useUserAvatar } from "@app/contexts/UserAvatarContext";
+import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
 
 type Props = {
   userId: string;
@@ -261,6 +262,7 @@ export default function UpdateNameModal({
                     placeholder={currentName}
                     value={name}
                     onValueChange={setName}
+                    onFocus={(e) => scrollIntoViewAfterKeyboard(e.currentTarget)}
                     className="w-full"
                   />
                 </ModalBody>

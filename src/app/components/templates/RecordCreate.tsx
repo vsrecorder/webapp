@@ -49,6 +49,7 @@ import ScrollingText from "@app/components/molecules/ScrollingText";
 
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
+import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
 
 import { OfficialEventResponseType, OfficialEventType } from "@app/types/official_event";
 import { DeckGetAllType, DeckData } from "@app/types/deck";
@@ -1871,6 +1872,7 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                     errorMessage="無効なイベントIDです"
                     value={tonamelEventId}
                     onChange={(e) => setTonamelEventId(e.target.value)}
+                    onFocus={(e) => scrollIntoViewAfterKeyboard(e.currentTarget)}
                   />
                 </div>
                 <div className="flex flex-col items-center gap-1.5">
@@ -2213,6 +2215,7 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                     placeholder="例）〇〇自主大会"
                     value={unofficialEventTitle}
                     onChange={(e) => setUnofficialEventTitle(e.target.value)}
+                    onFocus={(e) => scrollIntoViewAfterKeyboard(e.currentTarget)}
                   />
                 </div>
 

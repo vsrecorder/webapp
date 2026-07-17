@@ -22,6 +22,7 @@ import {
   UserPlayerVerifyResponseType,
   UserPlayerType,
 } from "@app/types/user_player";
+import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
 
 type Props = {
   isOpen: boolean;
@@ -219,6 +220,7 @@ export default function LinkPlayerIdModal({ isOpen, onOpenChange, onLinked }: Pr
                   maxLength={16}
                   value={playerId}
                   onValueChange={setPlayerId}
+                  onFocus={(e) => scrollIntoViewAfterKeyboard(e.currentTarget)}
                   className="w-full"
                 />
 

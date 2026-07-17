@@ -35,7 +35,13 @@ export function CityleagueResultSkeleton() {
             </div>
 
             {/* 公式サイトの結果ページへのアイコンリンク */}
-            <div className="z-0 shrink-0 translate-x-1 -translate-y-5">
+            {/*
+              位置合わせに transform を使うと、iOS Safari で
+              「角丸(overflow:hidden)の内側にシマーの transform アニメを持つ子」が
+              transform 祖先の下に来て、角丸コーナーが黒く合成されるバグを踏む。
+              見た目は同じまま、GPU合成レイヤーを作らない relative オフセットで逃がす。
+            */}
+            <div className="relative z-0 shrink-0 left-1 -top-5">
               <Skeleton className="h-9 w-9 rounded-md" />
             </div>
           </div>

@@ -15,6 +15,7 @@ import DeckCardDiff from "@app/components/organisms/Deck/DeckCardDiff";
 
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { DeckCodeType, DeckCodeCreateRequestType } from "@app/types/deck_code";
+import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
 
 const DECK_CODE_LENGTH = 20;
 const DECK_CODE_CHECK_DEBOUNCE_MS = 500;
@@ -176,6 +177,9 @@ export default function CreateDeckCodeModal({
       isOpen={isOpen}
       size={"sm"}
       placement="center"
+      // キーボード表示などで可視領域より背が高くなったとき、モーダル全体が画面から
+      // はみ出さないよう base に最大高を与え、はみ出す分は body 内スクロールにする
+      scrollBehavior="inside"
       // 処理中(isDisabled)はESC・閉じるボタン・onOpenChange経由のクローズを無効化する
       isKeyboardDismissDisabled={isDisabled}
       hideCloseButton={isDisabled}
@@ -193,13 +197,17 @@ export default function CreateDeckCodeModal({
         //setIsSelected(false);
       }}
       classNames={{
-        base: "sm:max-w-full",
+        // scrollBehavior="inside" 既定の max-h(100%-8rem) は特にキーボード表示中に
+        // 窮屈なため、余白を 3rem まで縮めてモーダルを大きく使う
+        base: "sm:max-w-full max-h-[calc(100%-3rem)]",
         closeButton: "text-xl",
       }}
     >
       <ModalContent>
+        {/* ヘッダー/ボディ/フッターは base(flex-col) の直下に置く。
+            div で包むと body の高さ制約が効かず、内部スクロールが機能しない */}
         {(onClose) => (
-          <div>
+          <>
             <ModalHeader className="flex flex-col gap-1 px-3">
               新しいバージョンを作成
             </ModalHeader>
@@ -218,6 +226,7 @@ export default function CreateDeckCodeModal({
                   }
                   value={newdeckcode}
                   onChange={(e) => setNewDeckCode(e.target.value)}
+                  onFocus={(e) => scrollIntoViewAfterKeyboard(e.currentTarget)}
                 />
 
                 {/*
@@ -280,7 +289,13 @@ export default function CreateDeckCodeModal({
               </div>
 
               {deckcode?.code ? (
-                <div className="h-30 overflow-y-auto">
+                // 差分未表示(中身が溢れない)ときに overflow-y-auto を付けたままにすると、
+                // この領域に指を置いたスワイプが iOS で殺されモーダルがスクロールできなくなる
+                <div
+                  className={
+                    newdeckcode && isValidedDeckCode ? "h-30 overflow-y-auto" : "h-30"
+                  }
+                >
                   {newdeckcode && isValidedDeckCode ? (
                     <DeckCardDiff
                       current_code={newdeckcode}
@@ -314,6 +329,7 @@ export default function CreateDeckCodeModal({
                 placeholder="このバージョンのメモを残そう"
                 value={memo}
                 onChange={(e) => setMemo(e.target.value)}
+                onFocus={(e) => scrollIntoViewAfterKeyboard(e.currentTarget)}
               />
             </ModalBody>
             <ModalFooter>
@@ -340,7 +356,7 @@ export default function CreateDeckCodeModal({
                 作成
               </Button>
             </ModalFooter>
-          </div>
+          </>
         )}
       </ModalContent>
     </Modal>

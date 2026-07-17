@@ -6,6 +6,7 @@ import { ToastProvider } from "@heroui/toast";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { UserAvatarProvider } from "@app/contexts/UserAvatarContext";
 import SessionWatcher from "@app/components/organisms/Layout/SessionWatcher";
+import VisualViewportOffsetSync from "@app/components/organisms/Layout/VisualViewportOffsetSync";
 
 export default function Providers({
   children,
@@ -21,6 +22,7 @@ export default function Providers({
     // 明示的にfalseを指定してオフライン時は問い合わせないようにする。
     <SessionProvider refetchInterval={300} refetchWhenOffline={false}>
       <SessionWatcher />
+      <VisualViewportOffsetSync />
       {/* locale="ja-JP": DatePicker等の日付表示順を年/月/日にし、カレンダーを日本語化する */}
       <HeroUIProvider locale="ja-JP">
         {/* OS連動方式: classで.darkを付与し、既定では端末（OS）のライト/ダーク設定に

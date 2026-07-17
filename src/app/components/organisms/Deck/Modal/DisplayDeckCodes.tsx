@@ -42,6 +42,7 @@ import { DeckGetByIdResponseType } from "@app/types/deck";
 import { DeckCodeType, DeckCodeUpdateRequestType } from "@app/types/deck_code";
 
 import { useModalDragToClose } from "@app/hooks/useModalDragToClose";
+import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
 import { closingPassthroughClassNames } from "@app/utils/modal";
 
 async function fetchDeckCodesByDeckId(deck_id: string) {
@@ -447,6 +448,7 @@ export default function DisplayDeckCodesModal({
                   placeholder="このバージョンのメモを残そう"
                   value={memoInput}
                   onChange={(e) => setMemoInput(e.target.value)}
+                  onFocus={(e) => scrollIntoViewAfterKeyboard(e.currentTarget)}
                 />
               </ModalBody>
               <ModalFooter>
@@ -486,7 +488,9 @@ export default function DisplayDeckCodesModal({
         isDismissable={false}
         onOpenChange={onOpenChange}
         onClose={() => {}}
-        className="h-[calc(100dvh-104px)] max-h-[calc(100dvh-104px)] mt-26 my-0 rounded-b-none"
+        // min() でシート高の上限を可視領域(--visual-viewport-height)にし、
+        // iOS でキーボード表示中に入力欄がキーボードの裏に隠れるのを防ぐ
+        className="h-[min(calc(100dvh-104px),var(--visual-viewport-height,100dvh))] max-h-[min(calc(100dvh-104px),var(--visual-viewport-height,100dvh))] mt-26 my-0 rounded-b-none"
         classNames={{
           base: "sm:max-w-full lg:max-w-2xl",
           closeButton: "text-xl",

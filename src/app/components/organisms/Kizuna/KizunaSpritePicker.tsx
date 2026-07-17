@@ -10,6 +10,7 @@ import { CgSearch } from "react-icons/cg";
 import { LuX } from "react-icons/lu";
 
 import { katakanaToHiragana } from "@app/utils/kana";
+import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
 
 import { PokemonSpriteType } from "@app/types/pokemon_sprite";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
@@ -160,6 +161,7 @@ export default function KizunaSpritePicker({ sprite1, sprite2, onSelect }: Props
         ref={searchInputRef}
         value={query}
         onValueChange={setQuery}
+        onFocus={(e) => scrollIntoViewAfterKeyboard(e.currentTarget)}
         placeholder="ポケモンの名前を入力（ひらがなでも検索できます）"
         startContent={<CgSearch className="shrink-0 text-lg text-default-400" />}
         isClearable

@@ -33,6 +33,7 @@ import {
 } from "@app/utils/saveImage";
 
 import { buildRecordPostText, formatEventDateLabel } from "@app/utils/recordPostText";
+import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
 import { getEventVenueLabel } from "@app/components/organisms/Record/officialEventHelpers";
 
 import { RecordGetByIdResponseType } from "@app/types/record";
@@ -218,6 +219,9 @@ export default function ShareRecordModal({
     ((images !== null && deckImageReady) || captureFailed);
   // 会場の表示トグルは、伏せる会場がある(＝公式イベントで会場名を持つ)記録でだけ意味を持つ
   const venueLabel = officialEvent ? getEventVenueLabel(officialEvent) : "";
+  // 公認自主イベント(type_id === 6)は店舗の「会場」ではなく個人・団体が開催するため、
+  // トグルの呼称を「主催者」にする。
+  const venueTermName = officialEvent?.type_id === 6 ? "主催者" : "会場";
 
   // モーダルを閉じるとキャプチャ用 DOM は破棄されるため、次に開いたときは
   // 再度描画完了を待つよう準備状態をリセットする。
@@ -297,7 +301,7 @@ export default function ShareRecordModal({
           includeDeck: includePostDeck,
           includeVenue: showVenue,
         },
-      ) + "\n#バトレコ",
+      ) + "\n\n#バトレコ",
     );
   }, [
     isOpen,
@@ -589,7 +593,9 @@ export default function ShareRecordModal({
         hideCloseButton
         isDismissable={false}
         scrollBehavior="inside"
-        className="h-[calc(100dvh-104px)] max-h-[calc(100dvh-104px)] mt-26 my-0 rounded-b-none sm:max-w-full lg:max-w-lg"
+        // min() でシート高の上限を可視領域(--visual-viewport-height)にし、
+        // iOS でキーボード表示中に入力欄がキーボードの裏に隠れるのを防ぐ
+        className="h-[min(calc(100dvh-104px),var(--visual-viewport-height,100dvh))] max-h-[min(calc(100dvh-104px),var(--visual-viewport-height,100dvh))] mt-26 my-0 rounded-b-none sm:max-w-full lg:max-w-lg"
         classNames={closingPassthroughClassNames(isOpen)}
       >
         <ModalContent>
@@ -642,9 +648,11 @@ export default function ShareRecordModal({
                           📍
                         </span>
                         <div className="min-w-0 flex-1">
-                          <div className="text-sm font-bold">会場を表示する</div>
+                          <div className="text-sm font-bold">
+                            {venueTermName}を表示する
+                          </div>
                           <div className="text-[11px] text-default-400">
-                            戦績画像とポスト文に会場を表示します
+                            戦績画像とポスト文に{venueTermName}を表示します
                           </div>
                         </div>
                         <Switch
@@ -652,7 +660,7 @@ export default function ShareRecordModal({
                           isSelected={showVenue}
                           isDisabled={optionsDisabled}
                           onValueChange={setShowVenue}
-                          aria-label="会場を表示する"
+                          aria-label={`${venueTermName}を表示する`}
                         />
                       </div>
                     )}
@@ -758,6 +766,7 @@ export default function ShareRecordModal({
                   label="ポスト文"
                   value={text}
                   onValueChange={setText}
+                  onFocus={(e) => scrollIntoViewAfterKeyboard(e.currentTarget)}
                   minRows={5}
                   // 内容を隠さない(＝テキストエリア内スクロールを発生させない)ための上限
                   maxRows={999}

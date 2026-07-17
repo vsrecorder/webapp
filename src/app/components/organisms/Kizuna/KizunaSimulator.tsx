@@ -21,6 +21,7 @@ import {
 
 import { kizunaTierOf } from "@app/utils/kizuna";
 import { smoothScrollTo } from "@app/utils/scroll";
+import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
 
 import { useSetKizunaPreviewDeck } from "@app/components/organisms/Kizuna/KizunaPreviewContext";
 
@@ -419,6 +420,7 @@ export default function KizunaSimulator() {
               value={deckName}
               onValueChange={setDeckName}
               onKeyDown={handleDeckNameKeyDown}
+              onFocus={(e) => scrollIntoViewAfterKeyboard(e.currentTarget)}
               label="デッキ名（任意）"
               placeholder="リザードンex"
               maxLength={DECK_NAME_MAX_LENGTH}

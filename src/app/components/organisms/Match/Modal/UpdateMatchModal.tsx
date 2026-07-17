@@ -30,6 +30,7 @@ import { Skeleton } from "@heroui/react";
 import { LuTrash2 } from "react-icons/lu";
 
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
+import HScrollRow from "@app/components/atoms/HScrollRow";
 import PokemonSpriteModal from "@app/components/organisms/Match/Modal/PokemonSpriteModal";
 import DeleteMatchModal from "@app/components/organisms/Match/Modal/DeleteMatchModal";
 import BO3GamesInput from "@app/components/organisms/Match/BO3GamesInput";
@@ -40,6 +41,7 @@ import { GameRequestType } from "@app/types/game";
 import { PokemonSpriteType, MatchPokemonSpriteType } from "@app/types/pokemon_sprite";
 
 import { useModalDragToClose } from "@app/hooks/useModalDragToClose";
+import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
 import { closingPassthroughClassNames } from "@app/utils/modal";
 import {
   GameInput,
@@ -353,6 +355,7 @@ export default function UpdateMatchModal({
 
   const attachHeader = useModalDragToClose(onClose);
 
+
   useEffect(() => {
     if (!match || !isOpen) return;
 
@@ -633,6 +636,10 @@ export default function UpdateMatchModal({
 
   // BO1 / BO3 / チーム戦タブで共通の入力フォーム
   // mode に応じてゲームの入力欄（1ゲーム or BO3の複数ゲーム）とチームの勝敗欄を切り替える
+  //
+  // CardBody の overflow-visible は iOS のスクロール不能対策。
+  // HeroUI の CardBody は overflow-y-auto を持つが実際には溢れないため、その上に指を置いた
+  // スワイプが usePreventScroll(react-aria) に殺され、モーダルがスクロールしなくなる
   const renderMatchForm = (mode: "bo1" | "bo3" | "team") => {
     const showGroupMatch = mode === "team";
     const isBO3 = mode === "bo3";
@@ -641,7 +648,7 @@ export default function UpdateMatchModal({
       <div className="flex flex-col gap-2 pt-0">
         <Card shadow="md" className="w-full">
           <CardHeader className="pb-0 text-tiny">予選/本戦</CardHeader>
-          <CardBody className="">
+          <CardBody className="overflow-visible">
             <CheckboxGroup
               size="md"
               label=""
@@ -682,7 +689,7 @@ export default function UpdateMatchModal({
               <span className="text-sm text-red-500">*</span>
             </label>
           </CardHeader>
-          <CardBody className="flex flex-col gap-3">
+          <CardBody className="overflow-visible flex flex-col gap-3">
             {/* スプライト + デッキ名入力 */}
             <div className="flex items-center gap-1.5 w-full">
               <div className="flex items-center gap-0 shrink-0">
@@ -720,12 +727,13 @@ export default function UpdateMatchModal({
                 placeholder={"例）" + (activeCandidates[0]?.deckInfo ?? "相手のデッキ")}
                 value={opponentsDeckInfo}
                 onChange={(e) => setOpponentsDeckInfo(e.target.value)}
+                onFocus={(e) => scrollIntoViewAfterKeyboard(e.currentTarget)}
               />
             </div>
 
             {/* 履歴候補 - 横スクロールカード（入力欄の下に自動表示） */}
             {isCandidatesLoading ? (
-              <div className="flex gap-2 overflow-x-auto py-2">
+              <HScrollRow className="flex gap-2 py-2">
                 {[...Array(4)].map((_, i) => (
                   <div
                     key={i}
@@ -735,9 +743,9 @@ export default function UpdateMatchModal({
                     <Skeleton className="w-full h-3 rounded-md" />
                   </div>
                 ))}
-              </div>
+              </HScrollRow>
             ) : activeCandidates.length > 0 ? (
-              <div className="flex gap-2 overflow-x-auto py-2">
+              <HScrollRow className="flex gap-2 py-2">
                 {filteredHistories.length > 0 ? (
                   filteredHistories.map((history, index) => {
                     const isSelected =
@@ -787,7 +795,7 @@ export default function UpdateMatchModal({
                     </span>
                   </div>
                 )}
-              </div>
+              </HScrollRow>
             ) : null}
           </CardBody>
         </Card>
@@ -808,7 +816,7 @@ export default function UpdateMatchModal({
                     <span className="text-red-500 text-sm">*</span>
                   </label>
                 </CardHeader>
-                <CardBody className="">
+                <CardBody className="overflow-visible">
                   <RadioGroup
                     isRequired
                     isDisabled={isDisabled}
@@ -835,7 +843,7 @@ export default function UpdateMatchModal({
                     <span className="text-red-500 text-sm">*</span>
                   </label>
                 </CardHeader>
-                <CardBody className="">
+                <CardBody className="overflow-visible">
                   <RadioGroup
                     isRequired
                     isDisabled={isDisabled}
@@ -866,6 +874,7 @@ export default function UpdateMatchModal({
                 defaultValue={0}
                 value={yourPrizeCards}
                 onValueChange={setYourPrizeCards}
+                onFocus={(e) => scrollIntoViewAfterKeyboard(e.currentTarget)}
                 className=""
               />
 
@@ -880,6 +889,7 @@ export default function UpdateMatchModal({
                 defaultValue={0}
                 value={opponentsPrizeCards}
                 onValueChange={setOpponentsPrizeCards}
+                onFocus={(e) => scrollIntoViewAfterKeyboard(e.currentTarget)}
                 className=""
               />
             </div>
@@ -894,7 +904,7 @@ export default function UpdateMatchModal({
                 <span className="text-red-500 text-sm">*</span>
               </label>
             </CardHeader>
-            <CardBody className="">
+            <CardBody className="overflow-visible">
               <RadioGroup
                 isRequired
                 isDisabled={isDisabled}
@@ -915,16 +925,21 @@ export default function UpdateMatchModal({
           </Card>
         )}
 
+        {/* textarea 自身に overflow を持たせると、その上のスワイプが iOS で
+            モーダルのスクロールに繋がらない。内容の高さまで伸ばし、スクロールはモーダルに任せる */}
         <Textarea
           size="md"
           className=""
           label="対戦メモ"
           value={memo}
           placeholder="対戦のメモを残そう"
+          maxRows={999}
+          classNames={{ input: "overflow-hidden" }}
           onChange={(e) => {
             const inputValue = e.target.value;
             setMemo(inputValue);
           }}
+          onFocus={(e) => scrollIntoViewAfterKeyboard(e.currentTarget)}
         />
       </div>
     );
@@ -985,7 +1000,16 @@ export default function UpdateMatchModal({
           setPokemonSprite2(null);
         }}
         hideCloseButton
-        className="h-[calc(100dvh-108px)] max-h-[calc(100dvh-108px)] my-0 rounded-b-none"
+        /*
+         * --visual-viewport-height は HeroUI が wrapper に付ける「実際に見えている高さ」。
+         * iOS はキーボードが出てもレイアウトビューポート(= 100dvh)を縮めないため、100dvh 基準だと
+         * シートが wrapper からはみ出し、下端がキーボードの裏に隠れる。隠れた入力欄を見せようと
+         * ブラウザがビューポートごと押し上げるので、ヘッダーが画面外へ出てスクロールでも戻せなくなる。
+         *
+         * min() で可視領域を上限にする。キーボードが無いときは従来どおり 100dvh-108px、
+         * キーボードが出ているときは残った可視領域いっぱい(= 108px を更に削らない)になる。
+         */
+        className="h-[min(calc(100dvh-108px),var(--visual-viewport-height,100dvh))] max-h-[min(calc(100dvh-108px),var(--visual-viewport-height,100dvh))] my-0 rounded-b-none"
         classNames={{
           base: "sm:max-w-full",
           closeButton: "text-xl",
@@ -1026,6 +1050,9 @@ export default function UpdateMatchModal({
                   fullWidth
                   size="sm"
                   className="left-0 right-0 pl-1 pr-1 font-bold"
+                  // fullWidth のため溢れない overflow-x-scroll を打ち消す。
+                  // 残すとタブバー上のスワイプが iOS でモーダルのスクロールに繋がらない
+                  classNames={{ tabList: "overflow-x-visible" }}
                   selectedKey={selectedTab}
                   onSelectionChange={(key) => setSelectedTab(key as string)}
                 >

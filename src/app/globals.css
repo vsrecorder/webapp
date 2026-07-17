@@ -212,3 +212,17 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 */
+
+/*
+ * iOS で入力欄にフォーカスすると、Safari がキーボードに隠れないよう
+ * レイアウトビューポートごとページを押し上げることがある(visualViewport.offsetTop > 0)。
+ * position:fixed のモーダルは可視領域から上へずれ、上部が画面外に隠れてしまう
+ * (HeroUI がページのパンを抑止するためユーザーのスクロールでは戻せない)。
+ * VisualViewportOffsetSync が押し上げ量を --vv-offset-top へ常時反映しており、
+ * その分だけモーダルの wrapper を下へずらして可視領域に追従させる。
+ * .fixed を併記するのは、data-slot="wrapper" を持つ他コンポーネント(Pagination)を
+ * 巻き込まずモーダルだけに絞るため。
+ */
+[data-slot="wrapper"].fixed {
+  translate: 0 var(--vv-offset-top, 0px);
+}

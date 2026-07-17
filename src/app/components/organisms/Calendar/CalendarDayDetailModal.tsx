@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 
 import {
   Modal,
@@ -406,20 +406,57 @@ export default function CalendarDayDetailModal({
   const startY = useRef<number | null>(null);
   const renderCount = useProgressiveRenderCount(events.length, isOpen);
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    startY.current = e.touches[0].clientY;
-  };
+  // リスナ内から常に最新の onClose を呼べるようにする(付け直しを避けるため)
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (startY.current === null) return;
+  const detachRef = useRef<(() => void) | null>(null);
 
-    const diff = e.touches[0].clientY - startY.current;
+  /*
+   * ヘッダーのドラッグで閉じる。touchmove を「非パッシブ」で登録して
+   * preventDefault() する必要があるため、React の onTouchMove ではなく
+   * ref から直接リスナを登録する。
+   *
+   * React の onTouchMove はパッシブリスナとして登録されるため
+   * preventDefault() が効かない。preventDefault() しないと、閉じた瞬間に
+   * touch-action:none を持つヘッダーが DOM から消え、ブラウザは残りの指の動きを
+   * ページスクロールとみなす。指を弾いて離すとそのままフリックの慣性が始まり、
+   * 慣性が続く約0.5秒間、次のタップは「慣性を止める操作」に消費されて click が
+   * 発火しない。その結果、閉じた直後にカレンダーの日付をタップしても反応せず、
+   * 二度目のタップまで開けなくなる。
+   */
+  const attachHeader = useCallback((node: HTMLElement | null) => {
+    detachRef.current?.();
+    detachRef.current = null;
 
-    if (diff > 30) {
-      startY.current = null;
-      onClose();
-    }
-  };
+    if (!node) return;
+
+    const onTouchStart = (e: TouchEvent) => {
+      startY.current = e.touches[0].clientY;
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      // ヘッダーはドラッグ専用の領域なので、常にブラウザのスクロールを止める
+      if (e.cancelable) e.preventDefault();
+
+      if (startY.current === null) return;
+
+      const diff = e.touches[0].clientY - startY.current;
+
+      if (diff > 30) {
+        startY.current = null;
+        onCloseRef.current();
+      }
+    };
+
+    node.addEventListener("touchstart", onTouchStart, { passive: false });
+    node.addEventListener("touchmove", onTouchMove, { passive: false });
+
+    detachRef.current = () => {
+      node.removeEventListener("touchstart", onTouchStart);
+      node.removeEventListener("touchmove", onTouchMove);
+    };
+  }, []);
 
   if (!date) return null;
 
@@ -449,8 +486,7 @@ export default function CalendarDayDetailModal({
         {() => (
           <>
             <ModalHeader
-              onTouchStart={handleTouchStart}
-              onTouchMove={handleTouchMove}
+              ref={attachHeader}
               className="px-3 py-3 flex flex-col gap-1 cursor-grab touch-none"
             >
               <div className="mx-auto h-1 w-32 mb-1.5 rounded-full bg-default-300" />

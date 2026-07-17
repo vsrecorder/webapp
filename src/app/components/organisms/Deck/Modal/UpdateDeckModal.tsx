@@ -255,7 +255,7 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
                       >
                         <PokemonSprite
                           id={sprite?.id}
-                          size={44}
+                          size={48}
                           className={isDisabled ? "contrast-0" : ""}
                         />
                       </div>

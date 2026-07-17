@@ -254,7 +254,7 @@ export default function CreateDeckModal({
                       >
                         <PokemonSprite
                           id={sprite?.id}
-                          size={44}
+                          size={48}
                           className={isDisabled ? "contrast-0" : ""}
                         />
                       </div>

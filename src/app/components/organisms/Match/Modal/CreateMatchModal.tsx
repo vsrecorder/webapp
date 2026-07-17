@@ -625,7 +625,7 @@ export default function CreateMatchModal({
                     >
                       <PokemonSprite
                         id={sprite?.id}
-                        size={44}
+                        size={48}
                         className={disabled ? "contrast-0" : ""}
                       />
                     </div>

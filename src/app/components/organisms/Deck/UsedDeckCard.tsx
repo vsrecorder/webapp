@@ -126,8 +126,8 @@ export default function UsedDeckCard({
                 {/* 左側 */}
 
                 <div className="flex items-center gap-0 shrink-0">
-                  <PokemonSprite id={deck.pokemon_sprites[0]?.id} size={44} />
-                  <PokemonSprite id={deck.pokemon_sprites[1]?.id} size={44} />
+                  <PokemonSprite id={deck.pokemon_sprites[0]?.id} size={48} />
+                  <PokemonSprite id={deck.pokemon_sprites[1]?.id} size={48} />
                 </div>
 
                 {/* 右側：登録日＋バージョン件数バッジをひとかたまりに */}

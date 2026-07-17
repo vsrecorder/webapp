@@ -487,8 +487,8 @@ export default function Matches({
                                                 <>
                                                   <div className="flex items-center gap-1 shrink-0 ml-1.5">
                                                     {/* 不戦勝/不戦敗: 相手不明のためデフォルト(unknown)スプライトを表示 */}
-                                                    <PokemonSprite size={48} />
-                                                    <PokemonSprite size={48} />
+                                                    <PokemonSprite size={44} />
+                                                    <PokemonSprite size={44} />
                                                   </div>
                                                 </>
 
@@ -542,11 +542,11 @@ export default function Matches({
                                                     {/* 対戦相手のポケモン2体。各スプライトを枠内で最適表示(PokemonSprite) */}
                                                     <PokemonSprite
                                                       id={match.pokemon_sprites[0]?.id}
-                                                      size={48}
+                                                      size={44}
                                                     />
                                                     <PokemonSprite
                                                       id={match.pokemon_sprites[1]?.id}
-                                                      size={48}
+                                                      size={44}
                                                     />
                                                   </div>
                                                 </>

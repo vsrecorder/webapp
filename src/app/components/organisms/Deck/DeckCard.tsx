@@ -494,7 +494,7 @@ export default function DeckCard({
               <div className="flex w-full min-w-0 flex-col items-center gap-1">
                 <div className="flex items-center gap-0 shrink-0">
                   {[0, 1].map((i) => (
-                    <PokemonSprite key={i} id={deck.pokemon_sprites[i]?.id} size={44} />
+                    <PokemonSprite key={i} id={deck.pokemon_sprites[i]?.id} size={48} />
                   ))}
                 </div>
                 <div className="w-full min-w-0 truncate text-center font-bold text-large">

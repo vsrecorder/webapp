@@ -176,7 +176,7 @@ export default function RecordCardBase({
                               <PokemonSprite
                                 key={idx}
                                 id={deckSprites?.[idx]?.id}
-                                size={28}
+                                size={32}
                               />
                             ))}
                           </div>

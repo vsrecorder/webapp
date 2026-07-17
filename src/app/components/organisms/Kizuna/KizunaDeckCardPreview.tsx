@@ -70,13 +70,11 @@ type ViewModel = {
 function Sprites({
   spriteIds,
   kizunaRatio,
-  size,
 }: {
   spriteIds: string[];
   kizunaRatio: number;
-  size: "list" | "gallery";
 }) {
-  const spx = size === "list" ? 48 : 44;
+  const spx = 48;
 
   // 2枠を必ず埋める（本物の DeckCard も2体ぶんの枠を持つ）
   const slots = [spriteIds[0], spriteIds[1]];
@@ -142,7 +140,7 @@ function ListPreview({ vm }: { vm: ViewModel }) {
         </div>
 
         <div className="flex items-center gap-3">
-          <Sprites spriteIds={vm.spriteIds} kizunaRatio={vm.kizunaRatio} size="list" />
+          <Sprites spriteIds={vm.spriteIds} kizunaRatio={vm.kizunaRatio} />
 
           {/* 勝率リング（現状のまま） */}
           <div className="relative h-11 w-11 shrink-0">
@@ -217,7 +215,7 @@ function GalleryPreview({ vm }: { vm: ViewModel }) {
           </span>
         </div>
         <div className="flex w-full min-w-0 flex-col items-center gap-1">
-          <Sprites spriteIds={vm.spriteIds} kizunaRatio={vm.kizunaRatio} size="gallery" />
+          <Sprites spriteIds={vm.spriteIds} kizunaRatio={vm.kizunaRatio} />
           <div className="w-full min-w-0 truncate text-center font-bold text-large">
             {vm.deckName}
           </div>

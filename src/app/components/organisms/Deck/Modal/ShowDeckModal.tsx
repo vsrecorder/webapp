@@ -216,7 +216,7 @@ export default function ShowDeckModal({
                   描画される絶対配置の閉じるボタン（HeroUI標準）の上にヘッダーが重なって
                   クリックを奪ってしまう。ヘッダー自体は pointer-events-none にして
                   クリックを透過させ、操作が必要な詳細リンクだけ pointer-events-auto で戻す。 */}
-              <ModalHeader className="relative px-3 pt-8 pb-3 flex items-center gap-3 pointer-events-none">
+              <ModalHeader className="relative px-3 pt-8 pb-1 flex items-center gap-3 pointer-events-none">
                 <>
                   {/* 詳細ページへの遷移導線。右上はHeroUIの閉じるボタンが占めるため左上に置く。
                       閉じるボタン（top-1 end-1・40px角）と同じラインに揃うよう、高さ40px(h-10)・
@@ -233,8 +233,8 @@ export default function ShowDeckModal({
                   <div className="flex items-center justify-center w-full">
                     <div className="flex flex-col items-center gap-1 w-full min-w-0">
                       <div className="flex items-center gap-0 shrink-0">
-                        <PokemonSprite id={deck.pokemon_sprites[0]?.id} size={44} />
-                        <PokemonSprite id={deck.pokemon_sprites[1]?.id} size={44} />
+                        <PokemonSprite id={deck.pokemon_sprites[0]?.id} size={48} />
+                        <PokemonSprite id={deck.pokemon_sprites[1]?.id} size={48} />
                       </div>
 
                       <div className="w-full min-w-0 text-center font-bold text-large truncate">
@@ -244,7 +244,7 @@ export default function ShowDeckModal({
                   </div>
                 </>
               </ModalHeader>
-              <ModalBody className="px-3 py-2 pb-3 flex flex-col gap-3 overflow-y-auto">
+              <ModalBody className="px-3 pt-1 pb-3 flex flex-col gap-2 overflow-y-auto">
                 {/* デッキ画像を上に置き、その下にカードリスト、さらにその下にデッキコードを
                     並べる。デッキコード欄は hideCode で画像側から切り離し、カードリストの
                     下へ配置している（コード表示自体は DeckCodeCard の hideImage 版に委譲）。 */}

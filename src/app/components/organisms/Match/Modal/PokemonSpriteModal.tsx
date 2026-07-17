@@ -295,7 +295,7 @@ export default function PokemonSpriteModal({
                         {slot}
                       </span>
                       {option ? (
-                        <PokemonSprite id={option.id} size={48} />
+                        <PokemonSprite id={option.id} size={44} />
                       ) : (
                         <span className="text-tiny text-default-400">未選択</span>
                       )}

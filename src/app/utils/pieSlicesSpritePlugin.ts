@@ -101,7 +101,7 @@ function drawSprites(
 // 収まる(左右に余白)ため、隣接でも軽い隙間ができ、DOM と同じ見た目になる。
 const OVERLAP_RATIO = 0;
 // スプライト1体の表示サイズ（全スライス統一）
-const SPRITE_SIZE = 45;
+const SPRITE_SIZE = 44;
 // バッジ内側の余白
 const BADGE_PAD = 5;
 // パーセンテージ表示部分のフォントサイズ・スプライトとの間隔

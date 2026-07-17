@@ -93,6 +93,10 @@ export function useModalDragToClose(onClose: () => void, { disabled = false }: O
       }
     };
 
+    // touchend だけでなく touchcancel(システムジェスチャの割り込み等)でもリセットする。
+    // リセットが漏れると startY が残留し、次にヘッダー内のボタンへ触れたとき
+    // (touchstart は早期 return するため残留値が生きたまま)touchmove が誤って
+    // preventDefault・閉じ判定をしてしまう。
     const onTouchEnd = () => {
       startY.current = null;
     };
@@ -100,11 +104,13 @@ export function useModalDragToClose(onClose: () => void, { disabled = false }: O
     node.addEventListener("touchstart", onTouchStart, { passive: false });
     node.addEventListener("touchmove", onTouchMove, { passive: false });
     node.addEventListener("touchend", onTouchEnd);
+    node.addEventListener("touchcancel", onTouchEnd);
 
     detachRef.current = () => {
       node.removeEventListener("touchstart", onTouchStart);
       node.removeEventListener("touchmove", onTouchMove);
       node.removeEventListener("touchend", onTouchEnd);
+      node.removeEventListener("touchcancel", onTouchEnd);
     };
   }, []);
 }

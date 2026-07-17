@@ -23,6 +23,11 @@ const CLOSE_THRESHOLD = 30;
  * 指を弾いて離すとそのままフリックの慣性が始まり、慣性が続く約0.5秒間、次のタップは
  * 「慣性を止める操作」に消費されて click が発火しない。その結果、閉じた直後に
  * 背後のカードやボタンをタップしても反応せず、二度目のタップまで開けなくなる。
+ *
+ * 閉じる(onClose)とヘッダーごとこのリスナも unmount されて外れるため、ヘッダー側の
+ * preventDefault() だけでは閉じたあとの指の動きを抑止できない(特に Android で顕著)。
+ * そこで閉じる瞬間に document 側へ touchmove の抑止リスナを退避し、指を離す(touchend)まで
+ * 既定のスクロール/フリングを止め続ける。→ suppressFlingUntilTouchEnd()
  */
 export function useModalDragToClose(onClose: () => void, { disabled = false }: Options = {}) {
   const startY = useRef<number | null>(null);
@@ -40,6 +45,28 @@ export function useModalDragToClose(onClose: () => void, { disabled = false }: O
     detachRef.current = null;
 
     if (!node) return;
+
+    /*
+     * 閉じたあと、ヘッダー(touch-action:none)が unmount してこのリスナが外れても、
+     * 指を離すまでブラウザの慣性スクロール(フリング)が始まらないように document 側で
+     * touchmove を抑止し続ける。これが無いと Android では、閉じた直後のフリングが
+     * 続く間、素早い次のタップが「フリング停止」に消費されて click が発火せず、
+     * モーダルを開き直せない。触れているのはこのジェスチャの残りだけで、指を離せば
+     * (touchend / touchcancel)直ちに解除するため、以降の操作には影響しない。
+     */
+    const suppressFlingUntilTouchEnd = () => {
+      const onDocTouchMove = (e: TouchEvent) => {
+        if (e.cancelable) e.preventDefault();
+      };
+      const cleanup = () => {
+        document.removeEventListener("touchmove", onDocTouchMove);
+        document.removeEventListener("touchend", cleanup);
+        document.removeEventListener("touchcancel", cleanup);
+      };
+      document.addEventListener("touchmove", onDocTouchMove, { passive: false });
+      document.addEventListener("touchend", cleanup);
+      document.addEventListener("touchcancel", cleanup);
+    };
 
     const onTouchStart = (e: TouchEvent) => {
       if (disabledRef.current) return;
@@ -60,6 +87,8 @@ export function useModalDragToClose(onClose: () => void, { disabled = false }: O
 
       if (e.touches[0].clientY - startY.current > CLOSE_THRESHOLD) {
         startY.current = null;
+        // ヘッダーが消えたあとも指を離すまで既定動作を止め続ける(上記コメント参照)
+        suppressFlingUntilTouchEnd();
         onCloseRef.current();
       }
     };

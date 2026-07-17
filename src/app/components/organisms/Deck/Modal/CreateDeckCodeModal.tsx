@@ -332,7 +332,7 @@ export default function CreateDeckCodeModal({
                 onFocus={(e) => scrollIntoViewAfterKeyboard(e.currentTarget)}
               />
             </ModalBody>
-            <ModalFooter>
+            <ModalFooter className="pt-3 pb-3 ">
               <Button
                 color="default"
                 variant="solid"

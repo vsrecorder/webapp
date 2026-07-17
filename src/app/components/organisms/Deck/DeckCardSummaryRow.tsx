@@ -45,7 +45,7 @@ function ChipSkelton() {
   ];
 
   return (
-    <div className="pl-1 flex flex-wrap gap-x-1 gap-y-0">
+    <div className="pl-1 flex flex-wrap gap-1">
       {widths.map((width, index) => (
         <Skeleton key={index} className={`h-5.5 rounded-2xl ${width}`} />
       ))}
@@ -53,12 +53,19 @@ function ChipSkelton() {
   );
 }
 
+// カード画像1枚分の幅。画面(行の内容幅)にちょうど5枚収まるよう、gap-2(8px)×4 を
+// 引いた残りを5等分する。固定幅にすると画面幅ごとに収まる枚数が変わってしまう。
+const CARD_WIDTH_CLASS = "w-[calc((100%-2rem)/5)]";
+
 function CardSkelton() {
   return (
     <div className="pl-1 flex gap-2 overflow-hidden">
-      {Array.from({ length: 6 }).map((_, index) => (
-        <div key={index} className="flex shrink-0 flex-col items-center gap-1">
-          <Skeleton className="h-28 w-20 rounded-md" />
+      {Array.from({ length: 5 }).map((_, index) => (
+        <div
+          key={index}
+          className={`flex shrink-0 flex-col items-center gap-1 ${CARD_WIDTH_CLASS}`}
+        >
+          <Skeleton className="aspect-63/88 w-full rounded-md" />
           <Skeleton className="h-3 w-6 rounded-sm" />
         </div>
       ))}
@@ -74,10 +81,10 @@ function ChipRow<T extends { card_name: string; card_count: number }>({
   cards: T[];
   onSelect: (card: T) => void;
 }) {
-  // 折り返して複数行になるため、行間(gap-y)は列間(gap-x)より詰める。
-  // チップ自体が上下に余白を持っており、行間まで同じだけ空けると間延びする。
+  // content-start は必須。h-full の折返しコンテナでは align-content の既定値 stretch により
+  // 各行が余った高さを分け合って伸び、行間が gap とは無関係に間延びしてしまう。
   return (
-    <div className="h-full overflow-y-auto pl-1 flex flex-wrap gap-x-1 gap-y-0">
+    <div className="h-full overflow-y-auto pl-1 flex flex-wrap content-start gap-1">
       {cards.map((deckcard, index) => (
         <div key={index} onClick={() => onSelect(deckcard)}>
           <Chip
@@ -98,21 +105,24 @@ function ChipRow<T extends { card_name: string; card_count: number }>({
 }
 
 // カード1枚分のサムネイル。内訳の取得完了後に画像の読み込みが始まるため、
-// 読み込み中は CardSkelton と同じ寸法（w-20・ポケモンカード比 63:88）の骨格を
+// 読み込み中は CardSkelton と同じ寸法（ポケモンカード比 63:88）の骨格を
 // 重ねておき、空白のポップインとレイアウトシフトを防ぐ。
+// 幅は親(CardRow のボタン)から受け取るため w-full で追従させる。HeroUI Image は
+// img を max-width:fit-content のラッパーで包むため、ラッパー側も w-full へ広げないと
+// 画像が本来の幅のまま親からはみ出す。
 function CardThumbnail({ alt, src }: { alt: string; src: string }) {
   const [loaded, setLoaded] = useState(false);
 
   return (
-    <div className="relative w-20 aspect-63/88">
+    <div className="relative aspect-63/88 w-full">
       {!loaded && <Skeleton className="absolute inset-0 rounded-md" />}
       <Image
         radius="sm"
         shadow="none"
         alt={alt}
         src={src}
-        // preflight の max-width:100% で幅が潰れるため max-w-none で解除する
-        className="w-20 max-w-none"
+        classNames={{ wrapper: "w-full !max-w-full" }}
+        className="w-full"
         onLoad={() => setLoaded(true)}
       />
     </div>
@@ -130,7 +140,7 @@ function CardRow<
           key={index}
           type="button"
           onClick={() => onSelect(deckcard)}
-          className="flex shrink-0 flex-col items-center gap-1"
+          className={`flex shrink-0 flex-col items-center gap-1 ${CARD_WIDTH_CLASS}`}
         >
           <CardThumbnail alt={deckcard.card_name} src={deckcard.image_url} />
           <small className="text-tiny font-bold leading-none">
@@ -292,7 +302,7 @@ export default function DeckCardSummaryRow({ code }: Props) {
     const skelton = view === "chip" ? <ChipSkelton /> : <CardSkelton />;
 
     return (
-      <div className="h-56 w-full flex flex-col gap-1.5">
+      <div className="h-48 w-full flex flex-col gap-1.5">
         <ViewToggle view={view} onChange={handleChangeView} />
         <Tabs fullWidth size="sm" classNames={{ tabList: "bg-content1 shadow-sm" }}>
           <Tab key="card_pke" title={`ポケモン：??`}>
@@ -331,7 +341,7 @@ export default function DeckCardSummaryRow({ code }: Props) {
 
   return (
     <>
-      <div className="h-56 w-full flex flex-col gap-1.5">
+      <div className="h-48 w-full flex flex-col gap-1.5">
         <ViewToggle view={view} onChange={handleChangeView} />
         <Tabs
           fullWidth

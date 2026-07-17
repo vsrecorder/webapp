@@ -20,7 +20,10 @@ const CSP = [
   `style-src 'self' 'unsafe-inline'`,
   `font-src 'self' data:`,
   // next/imageの最適化元(remotePatterns)と、canvasで画像を組み立てるためのdata:/blob:
-  `img-src 'self' data: blob: ${CDN_ORIGIN} https://lh3.googleusercontent.com https://pbs.twimg.com https://www.pokemon-card.com https://s3.isk01.sakurastorage.jp https://www.googletagmanager.com https://www.google-analytics.com`,
+  // tonamel.com はイベントのog:image(core-apiserverが競技ページから抽出した値)を
+  // そのまま<img>で表示するため。カバー画像がサブドメインのCDNから配信される場合に
+  // 備えてワイルドカードも許可する。
+  `img-src 'self' data: blob: ${CDN_ORIGIN} https://lh3.googleusercontent.com https://pbs.twimg.com https://www.pokemon-card.com https://tonamel.com https://*.tonamel.com https://s3.isk01.sakurastorage.jp https://www.googletagmanager.com https://www.google-analytics.com`,
   // Firebase Authentication(identitytoolkit/securetoken)、GA、スプライトCDNへのfetch。
   // GAの計測ビーコンは region1.google-analytics.com や analytics.google.com にも飛ぶ。
   // pokemon-card.com はデッキコードの有効性チェック(deckIDCheck.php)をブラウザから直接叩くため。
@@ -38,10 +41,23 @@ const nextConfig: NextConfig = {
   /* config options here */
   allowedDevOrigins: ["local.vsrecorder.mobi"],
   experimental: {
-    // CSSを外部<link>ではなくHTMLの<head>へ<style>としてインライン化する。
-    // これによりレンダリングをブロックするCSSのネットワークリクエストが消え、
-    // クリティカルパスが短くなってFCP/LCPが改善する（PageSpeedのレンダリングブロッキング指摘への対応）。
-    inlineCss: true,
+    // CSSを<head>へ<style>としてインライン化する設定。
+    // レンダリングブロッキングなCSSリクエストを消すために一度は有効にしていたが、
+    // このプロジェクトのCSSはHeroUIのテーマ全体を含んで318KBあり、
+    // インライン化が有効な「クリティカルCSS」の規模(目安14KB)を大きく超えていた。
+    //
+    // 有効時の実測: 同じCSSが<style>(318KB)とRSCペイロード(384KB)に二重に載り、
+    // トップページのHTMLが1,077KBに膨らんでいた。ルートは page.tsx が auth() を
+    // 呼ぶため動的レンダリングになり Cache-Control: no-store が付くので、
+    // この700KBが全ページビューで再生成・再送されていた。
+    //
+    // 外部ファイル化すればハッシュ付きで恒久キャッシュされ、初回訪問でも
+    // 転送量は減る(139KB→90KB)。コストは初回のみの1RTTだが、HTTP/2の多重化で
+    // HTML転送と並行するため大半は隠れる。
+    //
+    // 再び有効にする場合は、CSSがクリティカルCSSの規模に収まっていることを
+    // 確認すること。この規模のままではSSRのスループットを削るだけになる。
+    inlineCss: false,
   },
   images: {
     // 最適化画像のキャッシュ最小保持時間（秒）

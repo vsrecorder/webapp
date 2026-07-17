@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Dispatch, SetStateAction, RefObject } from "react";
 
 import {
@@ -20,7 +20,11 @@ import { LuImageOff, LuRefreshCw, LuShare2, LuTriangleAlert } from "react-icons/
 import RecordHero from "@app/components/organisms/Record/Hero/RecordHero";
 import Matches from "@app/components/organisms/Match/Matches";
 
-import { captureThemedPng, hasUnloadedImages, SIDE_PADDING } from "@app/utils/captureImage";
+import {
+  captureThemedPng,
+  hasUnloadedImages,
+  SIDE_PADDING,
+} from "@app/utils/captureImage";
 import {
   shareRecord,
   saveGeneratedImage,
@@ -60,6 +64,17 @@ type Props = {
 // 画面外の対戦一覧では並び替え等の更新は起きないため、setMatches は何もしない。
 const noopSetMatches: Dispatch<SetStateAction<MatchGetResponseType[] | null>> = () => {};
 
+// トグルを押してから画像の生成を始めるまでの待ち時間(ms)。
+// 画像の生成は端末のメインスレッドを長く占有するため、押した直後に走らせると
+// スイッチのアニメーションやスクロールがそのぶん止まる。まず操作の描画を通し、
+// 続けて複数のトグルを操作したときは最後の1回だけ生成するために待つ。
+const CAPTURE_DEBOUNCE_MS = 250;
+
+// モーダルを開いてからキャプチャ用DOMを描画するまでの待ち時間(ms)。
+// 開くアニメーションの最中に画面外の戦績カード(＋対戦一覧)を描画すると、
+// その重さがそのまま開く動きのカクつきになるため、動き終わってから描画する。
+const CAPTURE_MOUNT_DELAY_MS = 400;
+
 /*
  * 記録のシェア用モーダル。
  * 画面外に「戦績サマリー＋対戦結果」をレンダリングして1枚目の画像を生成し、
@@ -84,6 +99,12 @@ export default function ShareRecordModal({
   onClose,
 }: Props) {
   const shareContentRef = useRef<HTMLDivElement>(null);
+  // 生成済みのデッキ画像がどの条件(幅:世代)で撮られたか。使い回せるかの判定に使う
+  const deckKeyRef = useRef<string | null>(null);
+  // 生成中に条件が変わった/モーダルを閉じた場合に、後から終わった古い生成結果で
+  // 上書きしてしまわないための世代番号。自分が最新かを確認してから反映する。
+  const resultSeq = useRef(0);
+  const deckSeq = useRef(0);
   // キャプチャ対象(戦績カード)の幅。書き出し画像の横幅が端末の画面幅いっぱいに
   // なるよう、端末の画面幅から左右余白(SIDE_PADDING * 2)を引いた値を使う。
   //   最終画像の横幅 = captureWidth + SIDE_PADDING * 2 = 端末の画面幅
@@ -108,17 +129,48 @@ export default function ShareRecordModal({
   // スケルトン状態のまま画像が生成されるのを防ぐ。
   const [heroReady, setHeroReady] = useState(false);
   // シェア用に生成済みの画像。タップ前に用意しておく(理由は生成用の useEffect を参照)。
-  const [images, setImages] = useState<ShareImage[] | null>(null);
+  //
+  // 1枚目(戦績)と2枚目(デッキ)は作り直しの要る条件が別々のため、別々に持ち、別々に生成する。
+  // 1つの配列にまとめて一度に生成すると、片方のトグルを触っただけで両方を撮り直すことになる。
+  // 画像の生成は端末では非常に重く(iOSは1枚につき描画を3周する)、その撮り直しが
+  // そのまま操作のカクつきになるため、変わった方だけを撮る。
+  const [resultImage, setResultImage] = useState<ShareImage | null>(null);
+  const [deckImage, setDeckImage] = useState<ShareImage | null>(null);
   // 生成した画像にスプライト等の欠けがあるか(読み込めなかった画像が残っていたか)。
   // 欠けは画像を見なくても判定できるため、黙ってシェアさせずに知らせる。
-  const [imagesIncomplete, setImagesIncomplete] = useState(false);
+  const [resultIncomplete, setResultIncomplete] = useState(false);
+  const [deckIncomplete, setDeckIncomplete] = useState(false);
+  // それぞれの画像を生成中か。生成中も古いプレビューは残す(消すと枠の高さが変わり、
+  // トグルを押すたびにモーダルの中身が飛び跳ねてしまうため)。
+  const [capturingResult, setCapturingResult] = useState(false);
+  const [capturingDeck, setCapturingDeck] = useState(false);
   // 画像の生成そのものに失敗したか。
   // 失敗を伝えるだけだと手詰まりになるため、作り直すか、ポスト文だけでシェアするかを選べるようにする。
   const [captureFailed, setCaptureFailed] = useState(false);
   // 「再生成」を押したときに生成用の useEffect を走らせ直すための世代番号
   const [regenSeq, setRegenSeq] = useState(0);
-  // 画像が用意できたときに加えて、生成に失敗したとき(=ポスト文だけでシェアする)も許可する
-  const canShare = heroReady && matches !== null && (images !== null || captureFailed);
+  // キャプチャ用DOMを描画してよいか(開くアニメーションが終わるまで待つ)
+  const [captureMounted, setCaptureMounted] = useState(false);
+
+  const capturing = capturingResult || capturingDeck;
+
+  // 実際に共有する画像。デッキ画像は「一緒にシェア」ONのときだけ2枚目として付ける。
+  // ONにした直後はまだ生成できていないことがあるため、その間は canShare 側で止める。
+  const images = useMemo(() => {
+    if (!resultImage) return null;
+    return includeDeck && deckImage ? [resultImage, deckImage] : [resultImage];
+  }, [resultImage, deckImage, includeDeck]);
+  const imagesIncomplete =
+    resultIncomplete || (includeDeck && deckImage !== null && deckIncomplete);
+
+  // 画像が用意できたときに加えて、生成に失敗したとき(=ポスト文だけでシェアする)も許可する。
+  // 生成中は、途中の(古い)画像を共有してしまわないよう止める。
+  const deckImageReady = !includeDeck || deckImage !== null;
+  const canShare =
+    heroReady &&
+    matches !== null &&
+    !capturing &&
+    ((images !== null && deckImageReady) || captureFailed);
   // 会場の表示トグルは、伏せる会場がある(＝公式イベントで会場名を持つ)記録でだけ意味を持つ
   const venueLabel = officialEvent ? getEventVenueLabel(officialEvent) : "";
 
@@ -131,8 +183,17 @@ export default function ShareRecordModal({
   useEffect(() => {
     if (!isOpen) {
       setHeroReady(false);
-      setImages(null);
-      setImagesIncomplete(false);
+      setResultImage(null);
+      setDeckImage(null);
+      setResultIncomplete(false);
+      setDeckIncomplete(false);
+      setCapturingResult(false);
+      setCapturingDeck(false);
+      deckKeyRef.current = null;
+      // 生成中に閉じた場合、後から終わった生成結果が状態を書き戻し、次に開いたとき
+      // 古い画像が残ってしまう。世代を進めて、その結果を捨てさせる。
+      resultSeq.current++;
+      deckSeq.current++;
       setCaptureFailed(false);
       setIncludeDeck(false);
       setShowDeck(true);
@@ -140,6 +201,17 @@ export default function ShareRecordModal({
       setIncludePostMatches(true);
       setIncludePostDeck(true);
     }
+  }, [isOpen]);
+
+  // キャプチャ用DOMは、開くアニメーションが終わってから描画する。
+  // アニメーション中に描画すると、その重さで開く動きがカクつく。
+  useEffect(() => {
+    if (!isOpen) {
+      setCaptureMounted(false);
+      return;
+    }
+    const timer = setTimeout(() => setCaptureMounted(true), CAPTURE_MOUNT_DELAY_MS);
+    return () => clearTimeout(timer);
   }, [isOpen]);
 
   // モーダルを開いたら、書き出し画像の横幅が端末の画面幅いっぱいになるよう
@@ -212,72 +284,116 @@ export default function ShareRecordModal({
   //
   // 生成中に条件が変わった場合、後から終わった古い生成結果で上書きしないよう
   // 世代番号(seq)で自分が最新かを確認してから反映する。
-  const captureSeq = useRef(0);
+  // 1枚目(戦績画像)。中身を変えるオプションが変わったときだけ撮り直す。
   useEffect(() => {
-    if (!isOpen || !heroReady || matches === null) return;
+    if (!isOpen || !captureMounted || !heroReady || matches === null) return;
 
-    const seq = ++captureSeq.current;
-    setImages(null);
+    const seq = ++resultSeq.current;
     setCaptureFailed(false);
+    // 待っている間も「生成中」にしておく。ここで立てないと、待ちの間だけ
+    // 撮り直す前の画像でシェアできてしまう。
+    setCapturingResult(true);
 
-    (async () => {
+    // すぐには撮らず、操作の描画を先に通す(CAPTURE_DEBOUNCE_MS の理由を参照)
+    let started = false;
+    const timer = setTimeout(async () => {
+      started = true;
+      const el = shareContentRef.current;
+      if (!el) {
+        setCapturingResult(false);
+        return;
+      }
+
       try {
-        const captured: ShareImage[] = [];
+        const dataUrl = await captureThemedPng(el, { targetWidth: captureWidth });
         // 書き出し後に読み込めていない画像が残っていれば、その画像には欠けがある。
         // captureThemedPng が待ちと再試行を終えた後に判定する。
-        let incomplete = false;
+        const incomplete = hasUnloadedImages(el);
+        const filename = `${record.id}_result_${Date.now()}.png`;
+        const file = await dataUrlToFile(dataUrl, filename);
 
-        if (shareContentRef.current) {
-          const dataUrl = await captureThemedPng(shareContentRef.current, {
-            targetWidth: captureWidth,
-          });
-          incomplete = incomplete || hasUnloadedImages(shareContentRef.current);
-          const filename = `${record.id}_result_${Date.now()}.png`;
-          captured.push({
-            dataUrl,
-            filename,
-            file: await dataUrlToFile(dataUrl, filename),
-          });
-        }
-
-        if (includeDeck && deckCardRef.current) {
-          // 2枚目(デッキ画像)も端末幅に合わせて、1枚目と同じ横幅で書き出す
-          const dataUrl = await captureThemedPng(deckCardRef.current, {
-            targetWidth: captureWidth,
-          });
-          incomplete = incomplete || hasUnloadedImages(deckCardRef.current);
-          const filename = `${record.id}_deck_${Date.now()}.png`;
-          captured.push({
-            dataUrl,
-            filename,
-            file: await dataUrlToFile(dataUrl, filename),
-          });
-        }
-
-        if (seq !== captureSeq.current) return;
-        setImages(captured);
-        setImagesIncomplete(incomplete);
+        if (seq !== resultSeq.current) return;
+        setResultImage({ dataUrl, filename, file });
+        setResultIncomplete(incomplete);
       } catch (e) {
         console.error(e);
-        if (seq !== captureSeq.current) return;
+        if (seq !== resultSeq.current) return;
         // 失敗はプレビュー欄に出し続ける(トーストは消えてしまい、
         // 何が起きたのか分からないまま準備中の表示だけが残ってしまうため)。
         setCaptureFailed(true);
+      } finally {
+        if (seq === resultSeq.current) setCapturingResult(false);
       }
-    })();
+    }, CAPTURE_DEBOUNCE_MS);
+
+    return () => {
+      clearTimeout(timer);
+      // 待っている間に条件が変わり、この予約が取り消された場合は生成中を解く。
+      // (解かないと、条件が「生成しない」側へ変わったときに生成中のまま残る)
+      // 走り出していた場合は、世代番号で最新の生成が状態を持つため触らない。
+      if (!started) setCapturingResult(false);
+    };
   }, [
     isOpen,
+    captureMounted,
     heroReady,
     matches,
-    includeDeck,
     showDeck,
     showVenue,
     showSynergy,
     captureWidth,
     record.id,
-    deckCardRef,
     regenSeq,
   ]);
+
+  // 2枚目(デッキ画像)。中身は撮る幅と「作り直す」以外では変わらないため、
+  // 一度撮ったものを使い回す。これで「一緒にシェア」の入切に生成が要らなくなる。
+  useEffect(() => {
+    if (!isOpen || !includeDeck) return;
+
+    // 生成済みのデッキ画像がそのまま使えるか(幅・世代が同じなら使える)
+    const key = `${captureWidth}:${regenSeq}`;
+    if (deckKeyRef.current === key) return;
+
+    const seq = ++deckSeq.current;
+    // 待っている間も「生成中」にする(理由は1枚目と同じ)
+    setCapturingDeck(true);
+
+    let started = false;
+    const timer = setTimeout(async () => {
+      started = true;
+      const el = deckCardRef.current;
+      if (!el) {
+        setCapturingDeck(false);
+        return;
+      }
+
+      try {
+        // 2枚目(デッキ画像)も端末幅に合わせて、1枚目と同じ横幅で書き出す
+        const dataUrl = await captureThemedPng(el, { targetWidth: captureWidth });
+        const incomplete = hasUnloadedImages(el);
+        const filename = `${record.id}_deck_${Date.now()}.png`;
+        const file = await dataUrlToFile(dataUrl, filename);
+
+        if (seq !== deckSeq.current) return;
+        deckKeyRef.current = key;
+        setDeckImage({ dataUrl, filename, file });
+        setDeckIncomplete(incomplete);
+      } catch (e) {
+        console.error(e);
+        if (seq !== deckSeq.current) return;
+        setCaptureFailed(true);
+      } finally {
+        if (seq === deckSeq.current) setCapturingDeck(false);
+      }
+    }, CAPTURE_DEBOUNCE_MS);
+
+    return () => {
+      clearTimeout(timer);
+      // 「一緒にシェア」を待ちの間にOFFへ戻した場合など(理由は1枚目と同じ)
+      if (!started) setCapturingDeck(false);
+    };
+  }, [isOpen, includeDeck, captureWidth, record.id, deckCardRef, regenSeq]);
 
   // 注意: navigator.share() の呼び出し前に await を挟むとユーザーアクティベーションが
   // 切れるため、この関数内では shareRecord() の前で await しないこと。
@@ -285,9 +401,9 @@ export default function ShareRecordModal({
     if (!canShare) return;
     setBusy("share");
     try {
-      // 画像の生成に失敗した場合は images が無い。shareRecord はその場合
-      // ポスト文だけの共有にフォールバックする。
-      const shareImages = images ?? [];
+      // 画像の生成に失敗した場合は画像を渡さない。shareRecord はその場合
+      // ポスト文だけの共有にフォールバックする(ボタンの表記もそうなっている)。
+      const shareImages = captureFailed ? [] : (images ?? []);
       const result = await shareRecord(shareImages, text);
       if (result === "unsupported") {
         if (shareImages.length === 0) {
@@ -348,7 +464,7 @@ export default function ShareRecordModal({
                   シェア
                 </div>
               </ModalHeader>
-              <ModalBody className="gap-5 px-4 pb-3">
+              <ModalBody className="gap-5 px-4 pb-6">
                 <p className="text-tiny text-default-500">
                   記録の戦績を画像にして、ポスト文と一緒にシェアできます。
                 </p>
@@ -527,7 +643,10 @@ export default function ShareRecordModal({
                     // (ポスト文だけのシェアは下のボタンから行える)
                     <div className="flex h-56 flex-col items-center justify-center gap-3 rounded-xl border border-divider bg-content2 px-4">
                       <LuImageOff className="h-6 w-6 text-default-400" />
-                      <p role="alert" className="text-center text-[11px] text-default-500">
+                      <p
+                        role="alert"
+                        className="text-center text-[11px] text-default-500"
+                      >
                         画像を生成できませんでした
                         <br />
                         作り直すか、ポスト文だけでシェアできます
@@ -551,7 +670,9 @@ export default function ShareRecordModal({
                     </div>
                   ) : (
                     // 複数枚(戦績＋デッキ)のときは縦に並べて表示する。
-                    <div className="flex flex-col gap-3">
+                    // 撮り直している間も直前の画像を残したまま、上に重ねて知らせる。
+                    // 消してしまうと枠の高さが変わり、トグルを押すたびに中身が飛び跳ねる。
+                    <div className="relative flex flex-col gap-3">
                       {images.map((img) => (
                         // 実際の書き出し画像。プレビューなので枠幅に収めて縮小表示する。
                         // h-auto で本来の縦横比を保ち、引き伸ばしを防ぐ。
@@ -560,9 +681,16 @@ export default function ShareRecordModal({
                           key={img.filename}
                           src={img.dataUrl}
                           alt="シェア画像のプレビュー"
+                          // 大きな画像のデコードでスクロールが止まらないようにする
+                          decoding="async"
                           className="h-auto w-full rounded-xl border border-divider bg-content2"
                         />
                       ))}
+                      {capturing && (
+                        <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-content1/60">
+                          <Spinner size="sm" />
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -591,8 +719,9 @@ export default function ShareRecordModal({
         </ModalContent>
       </Modal>
 
-      {/* キャプチャ用の画面外DOM。戦績サマリー＋使用デッキ＋対戦結果を1枚のカードに統合して画像にする */}
-      {isOpen && (
+      {/* キャプチャ用の画面外DOM。戦績サマリー＋使用デッキ＋対戦結果を1枚のカードに統合して画像にする。
+          開くアニメーションが終わってから描画する(CAPTURE_MOUNT_DELAY_MS の理由を参照) */}
+      {isOpen && captureMounted && (
         <div
           className="pointer-events-none fixed left-[-10000px] top-0"
           aria-hidden="true"

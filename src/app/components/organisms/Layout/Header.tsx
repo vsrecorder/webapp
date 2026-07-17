@@ -12,6 +12,7 @@ import ScrollingText from "@app/components/molecules/ScrollingText";
 import { UserType } from "@app/types/user";
 import { EnvironmentType } from "@app/types/environment";
 import { getAppIconUrl, isDevEnv } from "@app/utils/appIcon";
+import { diffInDays, toJSTDateString, todayJSTDateString } from "@app/utils/date";
 
 import Link from "next/link";
 
@@ -29,7 +30,7 @@ async function fetchUser(id: string): Promise<UserType> {
 }
 
 async function fetchCurrentEnvironment(): Promise<EnvironmentType | null> {
-  const today = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().split("T")[0];
+  const today = todayJSTDateString();
 
   try {
     const res = await fetch(upstreamUrl`/api/v1beta/environments?date=${today}`, {
@@ -85,10 +86,9 @@ function HeaderShell({
 
 // 残り日数に応じてドットの色を返す（14日以上: 緑, 14日以内: 黄=warning, 7日以内: 赤=critical）
 function getEnvDotColor(toDate: Date): string {
-  const now = new Date(Date.now() + 9 * 60 * 60 * 1000);
-  const daysLeft = Math.ceil(
-    (new Date(toDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
-  );
+  // JSTの暦日どうしで差を取る。Date同士を引くと時刻成分が混ざり、
+  // 色の切り替わりが深夜ではなくレンダリング時刻に依存してしまう。
+  const daysLeft = diffInDays(todayJSTDateString(), toJSTDateString(toDate));
 
   if (daysLeft <= 7) return "bg-red-400";
   if (daysLeft <= 14) return "bg-yellow-400";

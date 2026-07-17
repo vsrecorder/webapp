@@ -16,6 +16,7 @@ import {
   CityleagueResultType,
 } from "@app/types/cityleague_result";
 import { CityleagueScheduleType } from "@app/types/cityleague_schedule";
+import { toJSTDate, toJSTDateString } from "@app/utils/date";
 
 async function fetchCityleagueResultsByTerm(
   league_type: number,
@@ -64,15 +65,6 @@ async function fetchAllSchedules(): Promise<CityleagueScheduleType[]> {
   });
   if (!res.ok) return [];
   return res.json();
-}
-
-// バックエンドは JST 0:00 を UTC 変換して返すため、+9h して JST 日付として扱う
-function toJSTDate(date: Date | string): Date {
-  return new Date(new Date(date).getTime() + 9 * 60 * 60 * 1000);
-}
-
-function toJSTDateString(date: Date | string): string {
-  return toJSTDate(date).toISOString().split("T")[0];
 }
 
 type Props = {

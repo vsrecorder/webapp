@@ -1,3 +1,33 @@
+// data URL を Blob に変換する。
+//
+// fetch(dataUrl) でも同じことはできるが、data: への fetch は CSP の connect-src の
+// 対象になり、connect-src に data: を許可していない環境では TypeError で失敗する
+// (next.config.ts の CSP がこれに該当する)。画像を共有・保存するためだけに
+// connect-src を緩めるのは割に合わないため、ネットワークを介さず自前でデコードする。
+function dataUrlToBlob(dataUrl: string): Blob {
+  const commaIndex = dataUrl.indexOf(",");
+  if (!dataUrl.startsWith("data:") || commaIndex === -1) {
+    throw new Error("data URL ではありません");
+  }
+
+  const header = dataUrl.slice(5, commaIndex);
+  const body = dataUrl.slice(commaIndex + 1);
+  // 例: "image/png;base64" → "image/png"。省略時の既定はRFC 2397に従う。
+  const mime = header.split(";")[0] || "text/plain";
+
+  // 書き出し画像(toPng / domToPng)は常にbase64だが、非base64のdata URLも扱えるようにする
+  if (!header.includes(";base64")) {
+    return new Blob([decodeURIComponent(body)], { type: mime });
+  }
+
+  const binary = atob(body);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return new Blob([bytes], { type: mime });
+}
+
 // Web Share API で画像の共有(ファイル共有)を試みる。
 // 共有シートを開けた場合、あるいはユーザーが共有シートを閉じた場合(AbortError)は
 // 「処理は完了した」とみなし true を返す。API非対応やそれ以外のエラーは false を返す。
@@ -11,7 +41,7 @@ export async function tryShareImage(dataUrl: string, filename: string): Promise<
   }
 
   try {
-    const blob = await (await fetch(dataUrl)).blob();
+    const blob = dataUrlToBlob(dataUrl);
     const file = new File([blob], filename, { type: blob.type });
 
     if (!navigator.canShare({ files: [file] })) return false;
@@ -33,7 +63,7 @@ export type ShareImage = { dataUrl: string; filename: string; file: File };
 // navigator.share() の呼び出し前に await を挟むとユーザーアクティベーションを
 // 使い切ってしまうため、この変換はシェアボタンのタップより前に済ませておく。
 export async function dataUrlToFile(dataUrl: string, filename: string): Promise<File> {
-  const blob = await (await fetch(dataUrl)).blob();
+  const blob = dataUrlToBlob(dataUrl);
   return new File([blob], filename, { type: blob.type });
 }
 
@@ -116,12 +146,10 @@ export async function saveImages(
     typeof navigator.canShare === "function"
   ) {
     try {
-      const files = await Promise.all(
-        images.map(async (img) => {
-          const blob = await (await fetch(img.dataUrl)).blob();
-          return new File([blob], img.filename, { type: blob.type });
-        }),
-      );
+      const files = images.map((img) => {
+        const blob = dataUrlToBlob(img.dataUrl);
+        return new File([blob], img.filename, { type: blob.type });
+      });
       if (navigator.canShare({ files })) {
         await navigator.share({ files });
         return;

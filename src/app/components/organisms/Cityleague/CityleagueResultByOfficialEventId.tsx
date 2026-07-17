@@ -16,6 +16,8 @@ import CityleagueResultCard from "@app/components/organisms/Cityleague/Cityleagu
 import { CityleagueResultType, Result } from "@app/types/cityleague_result";
 import { OfficialEventType } from "@app/types/official_event";
 
+import { safeExternalUrl } from "@app/utils/url";
+
 type Props = {
   event: OfficialEventType;
   cityleagueResult: CityleagueResultType;
@@ -128,7 +130,7 @@ export default function CityleagueResultByOfficialEventId({
 
             <HeroLink
               isExternal
-              href={cityleagueResult.event_detail_result_url}
+              href={safeExternalUrl(cityleagueResult.event_detail_result_url)}
               className="shrink-0"
             >
               <Image
@@ -171,7 +173,7 @@ export default function CityleagueResultByOfficialEventId({
             isExternal
             showAnchorIcon
             underline="always"
-            href={cityleagueResult.event_detail_result_url}
+            href={safeExternalUrl(cityleagueResult.event_detail_result_url)}
             className="w-fit text-tiny"
           >
             公式サイトの結果ページを見る

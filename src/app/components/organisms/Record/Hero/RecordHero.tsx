@@ -37,6 +37,8 @@ import { UnofficialEventGetByIdResponseType } from "@app/types/unofficial_event"
 import { EnvironmentType } from "@app/types/environment";
 import { DeckGetByIdResponseType } from "@app/types/deck";
 
+import { safeExternalUrl } from "@app/utils/url";
+
 async function fetchOfficialEvent(id: number): Promise<OfficialEventGetByIdResponseType> {
   const res = await fetch(`/api/official_events/${id}`, {
     cache: "no-store",
@@ -601,9 +603,7 @@ export default function RecordHero({
           // それ以外(情報モーダル等)でURL登録済みなら、タップで外部リンクを開く。
           onTitleClick={enableEditTCGMeisterURL ? onOpenForTCGMeisterURLModal : undefined}
           titleHref={
-            !enableEditTCGMeisterURL && record.tcg_meister_url
-              ? record.tcg_meister_url
-              : undefined
+            !enableEditTCGMeisterURL ? safeExternalUrl(record.tcg_meister_url) : undefined
           }
           date={formatEventDate(dateStr)}
           chips={

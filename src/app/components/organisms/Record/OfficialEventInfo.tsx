@@ -23,6 +23,8 @@ import {
 import EditTCGMeisterURLModal from "@app/components/organisms/Record/Modal//EditTCGMeisterURLModal";
 
 import { RecordGetByIdResponseType } from "@app/types/record";
+
+import { safeExternalUrl } from "@app/utils/url";
 import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
 
 async function fetchOfficialEventById(id: number) {
@@ -211,10 +213,10 @@ export default function OfficialEventInfo({
             >
               <LuLink className="w-4 h-4" />
             </button>
-          ) : record.tcg_meister_url ? (
+          ) : safeExternalUrl(record.tcg_meister_url) ? (
             <Link
               isExternal
-              href={record.tcg_meister_url}
+              href={safeExternalUrl(record.tcg_meister_url)}
               aria-label="TCGマイスターURLを開く"
               className="p-2 rounded-lg text-default-400 hover:text-default-600 hover:bg-default-100 transition-colors"
             >

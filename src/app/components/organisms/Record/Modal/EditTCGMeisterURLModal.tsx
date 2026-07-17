@@ -14,6 +14,8 @@ import {
   RecordUpdateResponseType,
 } from "@app/types/record";
 
+import { safeExternalUrl } from "@app/utils/url";
+
 type Props = {
   record: RecordGetByIdResponseType;
   setRecord: Dispatch<SetStateAction<RecordGetByIdResponseType | null>>;
@@ -192,18 +194,24 @@ export default function UpdateUsedDeckModal({
                 onChange={(e) => setTCGMeisterURL(e.target.value)}
               />
 
-              {record.tcg_meister_url ? (
+              {!record.tcg_meister_url ? (
+                <></>
+              ) : safeExternalUrl(record.tcg_meister_url) ? (
                 <HeroLink
                   isExternal
                   showAnchorIcon
                   underline="always"
-                  href={record.tcg_meister_url}
+                  href={safeExternalUrl(record.tcg_meister_url)}
                   className="text-tiny"
                 >
                   {record.tcg_meister_url}
                 </HeroLink>
               ) : (
-                <></>
+                // http/https以外が保存されている場合はリンクにしない。
+                // 何が入っているかは見せて、本人が直せるようにする。
+                <span className="text-tiny text-default-500">
+                  {record.tcg_meister_url}
+                </span>
               )}
             </ModalBody>
             <ModalFooter>

@@ -67,7 +67,7 @@ const CARD_WIDTH_CLASS = "w-[calc((100%-2rem)/5)]";
 
 function CardSkelton() {
   return (
-    <div className="pl-1 flex gap-2 overflow-hidden">
+    <div className="pt-2.5 pl-1 flex gap-2 overflow-hidden">
       {Array.from({ length: 5 }).map((_, index) => (
         <div
           key={index}
@@ -155,7 +155,7 @@ function CardRow<T extends { card_name: string; card_count: number; image_url: s
   // overscroll-x-contain は横スクロールを端まで送っても背面へ伝播させないため。
   // items-start は、行の高さ変動時に子が縦へ引き伸ばされないよう上詰めで固定する。
   return (
-    <div className="pl-1 flex items-start gap-2 overflow-x-auto overflow-y-hidden overscroll-x-contain scrollbar-hide">
+    <div className="pt-2.5 pl-1 flex items-start gap-2 overflow-x-auto overflow-y-hidden overscroll-x-contain scrollbar-hide">
       {cards.map((deckcard, index) => (
         <button
           key={index}

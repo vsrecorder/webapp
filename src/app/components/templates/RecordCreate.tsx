@@ -48,6 +48,7 @@ import { useRouter } from "next/navigation";
 import ScrollingText from "@app/components/molecules/ScrollingText";
 
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
+import { cleanOfficialEventTitle } from "@app/components/organisms/Record/officialEventHelpers";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
 
@@ -200,21 +201,7 @@ function convertToOfficialEventOption(
     " " +
     eventTime;
 
-  officialEvent.title = officialEvent.title.replace(/【.*?】ポケモンカードジム　/g, "");
-  officialEvent.title = officialEvent.title.replace(/【.*?】ポケモンカードジム /g, "");
-  officialEvent.title = officialEvent.title.replace(/【.*?】ポケモンカードジム  /g, "");
-  officialEvent.title = officialEvent.title.replace(/【.*?】ポケモンカードジム   /g, "");
-  officialEvent.title = officialEvent.title.replace(
-    /【.*?】エクストラバトルの日/g,
-    "エクストラバトルの日",
-  );
-  officialEvent.title = officialEvent.title.replace(/【.*?】ポケモンカードゲーム　/g, "");
-  officialEvent.title = officialEvent.title.replace(/ポケモンカードゲーム /g, "");
-  officialEvent.title = officialEvent.title.replace(/（オープンリーグ）/g, "");
-  officialEvent.title = officialEvent.title.replace(/（マスターリーグ）/g, "");
-  officialEvent.title = officialEvent.title.replace(/（シニアリーグ）/g, "");
-  officialEvent.title = officialEvent.title.replace(/（ジュニアリーグ）/g, "");
-  officialEvent.title = officialEvent.title.replace(/（スタンダード）/g, "");
+  officialEvent.title = cleanOfficialEventTitle(officialEvent.title);
 
   let image_alt = "";
   let image_src = "https://xx8nnpgt.user.webaccel.jp/images/icons/";

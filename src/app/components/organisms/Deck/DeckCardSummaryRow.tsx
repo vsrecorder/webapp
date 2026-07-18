@@ -141,11 +141,21 @@ function CardThumbnail({ alt, src }: { alt: string; src: string }) {
 }
 
 // カード画像を横一列に並べ、下部に枚数を表示する（はみ出した分は横スクロールで閲覧）
-function CardRow<
-  T extends { card_name: string; card_count: number; image_url: string },
->({ cards, onSelect }: { cards: T[]; onSelect: (card: T) => void }) {
+function CardRow<T extends { card_name: string; card_count: number; image_url: string }>({
+  cards,
+  onSelect,
+}: {
+  cards: T[];
+  onSelect: (card: T) => void;
+}) {
+  // overflow-x-auto だけだと、CSS 仕様により overflow-y も auto に計算され、この要素が
+  // 縦スクロールコンテナになる。縦スクロール量ゼロ（1行のみ）でも iOS 等は縦タッチを奪って
+  // ラバーバンドで跳ね返るため、カード画像が引き伸びて見え、ページも下にスクロールできなくなる。
+  // overflow-y-hidden を明示して縦スクロールコンテナ化を防ぎ、縦スワイプはページへ委ねる。
+  // overscroll-x-contain は横スクロールを端まで送っても背面へ伝播させないため。
+  // items-start は、行の高さ変動時に子が縦へ引き伸ばされないよう上詰めで固定する。
   return (
-    <div className="pl-1 flex gap-2 overflow-x-auto scrollbar-hide">
+    <div className="pl-1 flex items-start gap-2 overflow-x-auto overflow-y-hidden overscroll-x-contain scrollbar-hide">
       {cards.map((deckcard, index) => (
         <button
           key={index}

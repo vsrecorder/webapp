@@ -3,6 +3,7 @@ import { TonamelEventGetByIdResponseType } from "@app/types/tonamel_event";
 import { UnofficialEventGetByIdResponseType } from "@app/types/unofficial_event";
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { MatchGetResponseType } from "@app/types/match";
+import { cleanOfficialEventTitle } from "@app/components/organisms/Record/officialEventHelpers";
 
 export type PostTextOptions = {
   // 対戦結果をポスト文に含めるか(既定: true)
@@ -95,17 +96,7 @@ export function buildRecordPostText(
   // イベント名。自由形式イベントはタイトルのみを持つ。
   let hasEventLine = true;
   if (officialEvent) {
-    const title = officialEvent.title
-      .replace(/【.*?】ポケモンカードジム　/g, "")
-      .replace(/【.*?】エクストラバトルの日/g, "エクストラバトルの日")
-      .replace(/【.*?】ポケモンカードゲーム　/g, "")
-      .replace(/ポケモンカードゲーム /g, "")
-      .replace(/（オープンリーグ）/g, "")
-      .replace(/（マスターリーグ）/g, "")
-      .replace(/（シニアリーグ）/g, "")
-      .replace(/（ジュニアリーグ）/g, "")
-      .replace(/（スタンダード）/g, "")
-      .replace(/（.*?）/g, "");
+    const title = cleanOfficialEventTitle(officialEvent.title);
     // 会場(店舗名)は伏せられるようにする。伏せる場合はイベント名だけを載せる。
     const shopName = includeVenue ? officialEvent.shop_name || officialEvent.venue : "";
     text += shopName ? `${title}\n${shopName}\n` : `${title}\n`;

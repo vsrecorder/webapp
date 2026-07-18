@@ -3,17 +3,13 @@ import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
 const ICON_BASE = "https://xx8nnpgt.user.webaccel.jp/images/icons/";
 
 // 公式イベントのタイトルから店舗名接頭辞・リーグ種別の注記などの冗長な部分を取り除く。
-// 一覧カード(OfficialEventRecord)とカレンダー機能で共有する。
+// 一覧カード・戦績カード・詳細カード・カレンダー・シェア文で共有する整形処理。
 export function cleanOfficialEventTitle(title: string): string {
   return title
-    .replace(/【.*?】ポケモンカードジム　/g, "")
-    .replace(/【.*?】ポケモンカードジム /g, "")
-    .replace(/【.*?】ポケモンカードジム  /g, "")
-    .replace(/【.*?】ポケモンカードジム   /g, "")
+    .replace(/【.*?】ポケモンカードジム\s*/g, "")
     .replace(/【.*?】エクストラバトルの日/g, "エクストラバトルの日")
     .replace(/【.*?】ポケモンカードゲーム　/g, "")
     .replace(/ポケモンカードゲーム /g, "")
-    .replace(/ポケモンジャパンチャンピオンシップス/g, "PJCS")
     .replace(/カードゲーム部門/g, "")
     .replace(/（オープンリーグ）/g, "")
     .replace(/（マスターリーグ）/g, "")
@@ -25,8 +21,8 @@ export function cleanOfficialEventTitle(title: string): string {
 }
 
 // PJCS(ポケモンジャパンチャンピオンシップス)かどうかを判定する。
-// 表示用に cleanOfficialEventTitle でタイトルを「PJCS」へ置換しているため、
-// 整形前(元の名称)・整形後(PJCS)のどちらのタイトルでも判定できるようにする。
+// タイトルは整形後もフルネーム(ポケモンジャパンチャンピオンシップス)を保持するが、
+// 過去データ等で「PJCS」表記のものも判定できるよう両方を見る。
 export function isPJCS(officialEvent: OfficialEventGetByIdResponseType): boolean {
   return (
     officialEvent.title.includes("ポケモンジャパンチャンピオンシップス") ||

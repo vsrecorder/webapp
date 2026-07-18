@@ -15,6 +15,7 @@ import FetchError from "@app/components/molecules/FetchError";
 import RecordInfoCardBase from "@app/components/organisms/Record/RecordInfoCardBase";
 import RecordInfoCardSkeleton from "@app/components/organisms/Record/Skeleton/RecordInfoCardSkeleton";
 import {
+  cleanOfficialEventTitle,
   getEventIconUrl,
   getChipColor,
   getEventTypeName,
@@ -84,22 +85,7 @@ export default function OfficialEventInfo({
     try {
       const data = await fetchOfficialEventById(record.official_event_id);
 
-      data.title = data.title.replace(/【.*?】ポケモンカードジム　/g, "");
-      data.title = data.title.replace(/【.*?】ポケモンカードジム /g, "");
-      data.title = data.title.replace(/【.*?】ポケモンカードジム  /g, "");
-      data.title = data.title.replace(/【.*?】ポケモンカードジム   /g, "");
-      data.title = data.title.replace(
-        /【.*?】エクストラバトルの日/g,
-        "エクストラバトルの日",
-      );
-      data.title = data.title.replace(/【.*?】ポケモンカードゲーム　/g, "");
-      data.title = data.title.replace(/ポケモンカードゲーム /g, "");
-      data.title = data.title.replace(/（オープンリーグ）/g, "");
-      data.title = data.title.replace(/（マスターリーグ）/g, "");
-      data.title = data.title.replace(/（シニアリーグ）/g, "");
-      data.title = data.title.replace(/（ジュニアリーグ）/g, "");
-      data.title = data.title.replace(/（スタンダード）/g, "");
-      data.title = data.title.replace(/（.*?）/g, "");
+      data.title = cleanOfficialEventTitle(data.title);
 
       setOfficialEvent(data);
     } catch (err) {

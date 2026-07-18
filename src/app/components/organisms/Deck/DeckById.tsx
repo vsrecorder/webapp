@@ -284,7 +284,7 @@ export default function DeckById({ id }: Props) {
   const ringCircumference = 2 * Math.PI * ringRadius;
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-3">
+    <div className="pb-3 mx-auto flex w-full max-w-2xl flex-col gap-3">
       {/* 戻る導線：デッキ一覧へ。スクロールしても追従させる。 */}
       <div className="sticky top-14 z-40 -mx-2 lg:top-28">
         <div className="absolute inset-0 border-b border-default-200/60 bg-white/90 backdrop-blur-md dark:bg-neutral-950/90" />
@@ -314,7 +314,12 @@ export default function DeckById({ id }: Props) {
               {createdDate} 登録
             </span>
             {isArchived && (
-              <Chip size="sm" variant="flat" color="warning" className="h-5 text-[10px] font-bold">
+              <Chip
+                size="sm"
+                variant="flat"
+                color="warning"
+                className="h-5 text-[10px] font-bold"
+              >
                 アーカイブ済み
               </Chip>
             )}
@@ -378,7 +383,9 @@ export default function DeckById({ id }: Props) {
             <DropdownItem
               key="archive-toggle"
               startContent={isArchived ? <LuFolderOutput /> : <LuFolderInput />}
-              onPress={isArchived ? onOpenForUnarchiveDeckModal : onOpenForArchiveDeckModal}
+              onPress={
+                isArchived ? onOpenForUnarchiveDeckModal : onOpenForArchiveDeckModal
+              }
             >
               {isArchived ? "整理を解除する" : "整理する"}
             </DropdownItem>
@@ -407,9 +414,7 @@ export default function DeckById({ id }: Props) {
           <LuLink className="text-base" />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="text-tiny font-bold text-default-600">
-            ページのURLをコピー
-          </div>
+          <div className="text-tiny font-bold text-default-600">ページのURLをコピー</div>
           <div className="truncate text-[10px] text-default-400">
             {pageUrl || `/decks/${deck.id}`}
           </div>
@@ -436,7 +441,10 @@ export default function DeckById({ id }: Props) {
               <div className="flex items-center gap-4">
                 {/* 勝率リング */}
                 <div className="relative h-20 w-20 shrink-0">
-                  <svg viewBox="0 0 64 64" className={`h-full w-full ${winRateTextColor(winRate)}`}>
+                  <svg
+                    viewBox="0 0 64 64"
+                    className={`h-full w-full ${winRateTextColor(winRate)}`}
+                  >
                     <circle
                       cx="32"
                       cy="32"
@@ -503,9 +511,13 @@ export default function DeckById({ id }: Props) {
                       <span
                         className={`text-right font-bold ${goFirstHasStats ? winRateTextColor(usageStat!.go_first_win_rate) : "text-default-500"}`}
                       >
-                        {goFirstHasStats ? formatPercent(usageStat!.go_first_win_rate) : "-"}
+                        {goFirstHasStats
+                          ? formatPercent(usageStat!.go_first_win_rate)
+                          : "-"}
                         {goFirstDeviation && (
-                          <span className={`ml-1 text-[10px] font-semibold ${goFirstDeviation.colorClass}`}>
+                          <span
+                            className={`ml-1 text-[10px] font-semibold ${goFirstDeviation.colorClass}`}
+                          >
                             （全体差 {goFirstDeviation.label}）
                           </span>
                         )}
@@ -532,9 +544,13 @@ export default function DeckById({ id }: Props) {
                       <span
                         className={`text-right font-bold ${goSecondHasStats ? winRateTextColor(usageStat!.go_second_win_rate) : "text-default-500"}`}
                       >
-                        {goSecondHasStats ? formatPercent(usageStat!.go_second_win_rate) : "-"}
+                        {goSecondHasStats
+                          ? formatPercent(usageStat!.go_second_win_rate)
+                          : "-"}
                         {goSecondDeviation && (
-                          <span className={`ml-1 text-[10px] font-semibold ${goSecondDeviation.colorClass}`}>
+                          <span
+                            className={`ml-1 text-[10px] font-semibold ${goSecondDeviation.colorClass}`}
+                          >
                             （全体差 {goSecondDeviation.label}）
                           </span>
                         )}
@@ -546,16 +562,25 @@ export default function DeckById({ id }: Props) {
 
               {ignoredCount > 0 && (
                 <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
-                  <Chip size="sm" variant="flat" color="warning" className="h-5 text-[10px] font-bold">
+                  <Chip
+                    size="sm"
+                    variant="flat"
+                    color="warning"
+                    className="h-5 text-[10px] font-bold"
+                  >
                     ⚠ 集計対象外 {ignoredCount}件
                   </Chip>
-                  <span className="text-[10px] text-default-400">勝率などの集計に未反映</span>
+                  <span className="text-[10px] text-default-400">
+                    勝率などの集計に未反映
+                  </span>
                 </div>
               )}
             </>
           ) : ignoredCount > 0 ? (
             <div className="flex flex-col items-center gap-2 rounded-lg bg-warning/10 px-3 py-4 text-center">
-              <span aria-hidden className="text-base text-warning">⚠</span>
+              <span aria-hidden className="text-base text-warning">
+                ⚠
+              </span>
               <div className="text-tiny font-bold text-warning">
                 集計対象外の記録が{ignoredCount}件あります
               </div>
@@ -631,7 +656,12 @@ export default function DeckById({ id }: Props) {
                           Ver.{versionNo ?? "-"}
                         </span>
                         {isCurrent && (
-                          <Chip size="sm" variant="flat" color="primary" className="h-5 text-[10px] font-bold">
+                          <Chip
+                            size="sm"
+                            variant="flat"
+                            color="primary"
+                            className="h-5 text-[10px] font-bold"
+                          >
                             最新
                           </Chip>
                         )}
@@ -643,14 +673,19 @@ export default function DeckById({ id }: Props) {
                     </div>
                     {dc.code && (
                       <div className="mt-1 flex min-w-0 items-center gap-2">
-                        <span className="shrink-0 text-tiny text-default-500">コード</span>
+                        <span className="shrink-0 text-tiny text-default-500">
+                          コード
+                        </span>
                         <Snippet
                           size="sm"
                           radius="none"
                           timeout={3000}
                           disableTooltip
                           hideSymbol
-                          classNames={{ base: "min-w-0 bg-transparent p-0", pre: "truncate" }}
+                          classNames={{
+                            base: "min-w-0 bg-transparent p-0",
+                            pre: "truncate",
+                          }}
                         >
                           {dc.code}
                         </Snippet>

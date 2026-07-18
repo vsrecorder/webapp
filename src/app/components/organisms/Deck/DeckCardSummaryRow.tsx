@@ -357,7 +357,11 @@ export default function DeckCardSummaryRow({ code }: Props) {
     return (
       <div className="h-48 w-full flex flex-col gap-1.5">
         <ViewToggle view={view} onChange={handleChangeView} />
-        <Tabs fullWidth size="sm" classNames={{ tabList: "bg-content1 shadow-sm" }}>
+        <Tabs
+          fullWidth
+          size="sm"
+          classNames={{ tabList: "bg-content1 shadow-sm p-0.5", tab: "h-6" }}
+        >
           <Tab key="card_pke" title={`ポケモン：??`}>
             {skelton}
           </Tab>
@@ -402,7 +406,9 @@ export default function DeckCardSummaryRow({ code }: Props) {
           className="flex flex-col"
           classNames={{
             base: "flex flex-col",
-            tabList: "shrink-0 bg-content1 shadow-sm",
+            // タブバーの縦幅を詰める。既定の余白(p-1)と各タブ高さ(h-8)を一段小さくする
+            tabList: "shrink-0 bg-content1 shadow-sm p-0.5",
+            tab: "h-6",
             // カード画像1枚分の高さを確保するため、パネルの上下余白は既定より詰める
             panel: "flex-1 overflow-hidden py-2",
           }}

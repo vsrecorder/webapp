@@ -2,15 +2,7 @@
 
 import { memo, useEffect, useState } from "react";
 
-import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  Chip,
-  Image,
-  Skeleton,
-} from "@heroui/react";
+import { Modal, ModalContent, ModalHeader, ModalBody, Chip } from "@heroui/react";
 
 import {
   LuClipboardList,
@@ -25,6 +17,7 @@ import {
 import { CalendarEvent } from "@app/types/calendar";
 import { DeckPokemonSpriteType, MatchPokemonSpriteType } from "@app/types/pokemon_sprite";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
+import ZoomableDeckImage from "@app/components/atoms/ZoomableDeckImage";
 import DeckCardDiff from "@app/components/organisms/Deck/DeckCardDiff";
 import { useModalDragToClose } from "@app/hooks/useModalDragToClose";
 import { closingPassthroughClassNames } from "@app/utils/modal";
@@ -100,25 +93,11 @@ function OpponentSprites({ sprites }: { sprites: MatchPokemonSpriteType[] }) {
   );
 }
 
-// 新バージョン作成時のデッキ画像。DisplayDeckCodes.tsx と同じ画像URL規約を使う
+// デッキ画像。表示・スケルトン・タップ全画面表示は共通コンポーネントに委譲する
 function DeckCodeThumbnail({ code }: { code: string }) {
-  const [imageLoaded, setImageLoaded] = useState(false);
-
   if (!code) return null;
 
-  return (
-    <div className="relative w-full aspect-2/1 rounded-lg overflow-hidden">
-      {!imageLoaded && <Skeleton className="absolute inset-0 rounded-lg" />}
-      <Image
-        radius="sm"
-        shadow="none"
-        alt={code}
-        src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${code}.jpg`}
-        className="w-full h-full object-cover"
-        onLoad={() => setImageLoaded(true)}
-      />
-    </div>
-  );
+  return <ZoomableDeckImage code={code} />;
 }
 
 function EventContent({ event }: { event: CalendarEvent }) {
@@ -439,6 +418,10 @@ export default function CalendarDayDetailModal({
       size="md"
       placement="bottom"
       hideCloseButton
+      // 他のボトムシート系モーダルと統一。外タップでは閉じず、ヘッダーのスワイプで閉じる。
+      // ZoomableDeckImage の全画面表示は body 直下へポータルされるため、これを付けないと
+      // ズームを閉じるタップが「モーダル外タップ」と判定され、このモーダルまで閉じてしまう。
+      isDismissable={false}
       onOpenChange={onOpenChange}
       onClose={onClose}
       className="z-20 h-[calc(100dvh-128px)] max-h-[calc(100dvh-128px)] mt-26 my-0 rounded-b-none overscroll-contain"

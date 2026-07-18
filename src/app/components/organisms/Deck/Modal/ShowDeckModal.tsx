@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SetStateAction, Dispatch } from "react";
 
 //import { Chip } from "@heroui/chip";
@@ -186,6 +186,18 @@ export default function ShowDeckModal({
   const { deckcodes } = useDeckCodes(deck?.id, deckcode?.id);
   const versionCount = deckcodes?.length ?? null;
 
+  // 新バージョン作成時のベース（差分・プレースホルダの基準）にするバージョン。
+  // 「バージョン履歴」の各バージョンから作成する場合に、そのバージョンを基準にする。
+  // 未指定(null)のときは現在表示中の最新バージョン(deckcode)を基準にする。
+  const [createBaseDeckCode, setCreateBaseDeckCode] = useState<DeckCodeType | null>(null);
+
+  // 新バージョン作成モーダルを開く。base を渡すとそのバージョンを基準にし、
+  // 省略時は現在の deckcode（最新）を基準にする。
+  const handleOpenCreateDeckCode = (base?: DeckCodeType) => {
+    setCreateBaseDeckCode(base ?? null);
+    onOpenForCreateDeckCodeModal();
+  };
+
   if (!deck) {
     return;
   }
@@ -244,14 +256,16 @@ export default function ShowDeckModal({
                   </div>
                 </>
               </ModalHeader>
-              <ModalBody className="px-3 pt-1 pb-3 flex flex-col gap-2 overflow-y-auto">
+              <ModalBody className="px-3 pt-1 pb-1.5 flex flex-col gap-2 overflow-y-auto">
                 {/* デッキ画像を上に置き、その下にカードリスト、さらにその下にデッキコードを
                     並べる。デッキコード欄は hideCode で画像側から切り離し、カードリストの
                     下へ配置している（コード表示自体は DeckCodeCard の hideImage 版に委譲）。 */}
                 <DeckCodeCard
                   deckcode={deckcode}
                   totalVersionCount={versionCount}
-                  onCreateVersion={isArchived ? undefined : onOpenForCreateDeckCodeModal}
+                  onCreateVersion={
+                    isArchived ? undefined : () => handleOpenCreateDeckCode()
+                  }
                   isArchived={isArchived}
                   hideCode
                 />
@@ -297,7 +311,7 @@ export default function ShowDeckModal({
                       ) : (
                         <button
                           type="button"
-                          onClick={onOpenForCreateDeckCodeModal}
+                          onClick={() => handleOpenCreateDeckCode()}
                           className="flex flex-col items-center justify-center gap-1 rounded-xl bg-default-100 py-1.5 active:opacity-70"
                         >
                           <LuBookPlus className="text-base" />
@@ -398,7 +412,7 @@ export default function ShowDeckModal({
       <CreateDeckCodeModal
         deck={deck}
         setDeck={setDeck}
-        deckcode={deckcode}
+        deckcode={createBaseDeckCode ?? deckcode}
         setDeckCode={setDeckCode}
         isOpen={isOpenForCreateDeckCodeModal}
         onOpenChange={onOpenChangeForCreateDeckCodeModal}
@@ -453,7 +467,7 @@ export default function ShowDeckModal({
         isOpen={isOpenForDisplayDeckCodesModal}
         onOpenChange={onOpenChangeForDisplayDeckCodesModal}
         onClose={onCloseForDisplayDeckCodesModal}
-        onOpenCreateDeckCode={onOpenForCreateDeckCodeModal}
+        onOpenCreateDeckCode={handleOpenCreateDeckCode}
       />
     </>
   );

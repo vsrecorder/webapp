@@ -7,6 +7,7 @@ import { Snippet } from "@heroui/react";
 import { Modal, ModalContent, ModalHeader, ModalBody } from "@heroui/react";
 
 import InspectDeck from "@app/components/organisms/Deck/InspectDeck";
+import ZoomableDeckImage from "@app/components/atoms/ZoomableDeckImage";
 
 import { DeckCodeType } from "@app/types/deck_code";
 
@@ -83,32 +84,24 @@ export default function InspectDeckModal({
                   </div>
                 </div>
 
-                <div className="relative w-full aspect-2/1">
-                  {!imageLoaded && <Skeleton className="absolute inset-0 rounded-lg" />}
-                  {deckcode?.code ? (
-                    <>
-                      <Image
-                        radius="sm"
-                        shadow="none"
-                        alt={deckcode.code}
-                        src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
-                        className=""
-                        onLoad={() => setImageLoaded(true)}
-                      />
-                    </>
-                  ) : (
-                    <>
-                      <Image
-                        radius="sm"
-                        shadow="none"
-                        alt="デッキコードなし"
-                        src={"https://www.pokemon-card.com/deck/deckView.php/deckID/"}
-                        className=""
-                        onLoad={() => setImageLoaded(true)}
-                      />
-                    </>
-                  )}
-                </div>
+                {deckcode?.code ? (
+                  // デッキ画像の表示・タップ全画面表示は共通コンポーネントに委譲する
+                  <ZoomableDeckImage code={deckcode.code} />
+                ) : (
+                  <div className="relative w-full aspect-2/1">
+                    {!imageLoaded && (
+                      <Skeleton className="absolute inset-0 rounded-lg" />
+                    )}
+                    <Image
+                      radius="sm"
+                      shadow="none"
+                      alt="デッキコードなし"
+                      src={"https://www.pokemon-card.com/deck/deckView.php/deckID/"}
+                      className=""
+                      onLoad={() => setImageLoaded(true)}
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="px-1 pt-1">

@@ -11,9 +11,7 @@ import {
   useDisclosure,
 } from "@heroui/react";
 
-import { Skeleton } from "@heroui/react";
 //import { Chip } from "@heroui/react";
-import { Image } from "@heroui/react";
 import { Snippet } from "@heroui/react";
 import { Spinner } from "@heroui/spinner";
 
@@ -33,13 +31,19 @@ import {
   LuClock,
   LuSquarePen,
   LuPlus,
+  LuArrowUpToLine,
 } from "react-icons/lu";
 
 import DeckCardDiff from "@app/components/organisms/Deck/DeckCardDiff";
 import FetchError from "@app/components/molecules/FetchError";
+import ZoomableDeckImage from "@app/components/atoms/ZoomableDeckImage";
 
 import { DeckGetByIdResponseType } from "@app/types/deck";
-import { DeckCodeType, DeckCodeUpdateRequestType } from "@app/types/deck_code";
+import {
+  DeckCodeType,
+  DeckCodeCreateRequestType,
+  DeckCodeUpdateRequestType,
+} from "@app/types/deck_code";
 
 import { useModalDragToClose } from "@app/hooks/useModalDragToClose";
 import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
@@ -74,7 +78,8 @@ type Props = {
   isOpen: boolean;
   onOpenChange: () => void;
   onClose: () => void;
-  onOpenCreateDeckCode?: () => void;
+  // base を渡すとそのバージョンを基準に新バージョンを作成する（省略時は最新が基準）
+  onOpenCreateDeckCode?: (base?: DeckCodeType) => void;
 };
 
 export default function DisplayDeckCodesModal({
@@ -86,7 +91,6 @@ export default function DisplayDeckCodesModal({
   onClose,
   onOpenCreateDeckCode,
 }: Props) {
-  const [imageLoaded, setImageLoaded] = useState(false);
   const [displayDeckCode, setDisplayDeckCode] = useState<DeckCodeType | null>(null);
   const [displayDeckCodes, setDisplayDeckCodes] = useState<DeckCodeType[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -104,8 +108,18 @@ export default function DisplayDeckCodesModal({
     onOpenChange: onOpenChangeForEditMemoModal,
   } = useDisclosure();
 
+  const {
+    isOpen: isOpenForMakeLatestModal,
+    onOpen: onOpenForMakeLatestModal,
+    onOpenChange: onOpenChangeForMakeLatestModal,
+  } = useDisclosure();
+
   const [isSelected, setIsSelected] = useState<boolean>(false);
   const [isDisabled, setIsDisabled] = useState<boolean>(false);
+
+  // 「このバージョンを最新にする」対象のバージョンと処理中フラグ
+  const [makeLatestDeckCode, setMakeLatestDeckCode] = useState<DeckCodeType | null>(null);
+  const [isMakingLatest, setIsMakingLatest] = useState<boolean>(false);
 
   // メモ編集用。編集対象のバージョンと入力中のメモ本文を保持する
   const [editMemoDeckCode, setEditMemoDeckCode] = useState<DeckCodeType | null>(null);
@@ -344,11 +358,106 @@ export default function DisplayDeckCodesModal({
     }
   };
 
+  // 「このバージョンを最新にする」確認モーダルを開く
+  const openMakeLatest = (target: DeckCodeType) => {
+    setMakeLatestDeckCode(target);
+    onOpenForMakeLatestModal();
+  };
+
+  // 選択したバージョンと同じデッキコードで新しいバージョンを作成し、最新にする。
+  // 新規作成のため、元のバージョンはそのまま履歴に残る。
+  const makeLatest = async (onClose: () => void) => {
+    if (!deck || !makeLatestDeckCode) return;
+
+    setIsMakingLatest(true);
+
+    const toastId = addToast({
+      title: "最新のバージョンにしています",
+      description: "しばらくお待ちください",
+      color: "default",
+      promise: new Promise(() => {}),
+    });
+
+    try {
+      const data: DeckCodeCreateRequestType = {
+        deck_id: deck.id,
+        code: makeLatestDeckCode.code,
+        private_code_flg: makeLatestDeckCode.private_code_flg,
+        memo: makeLatestDeckCode.memo,
+      };
+
+      const res = await fetch(`/api/deckcodes`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!res.ok) {
+        const t = await res.json();
+        throw new Error(`HTTP error: ${res.status} Message: ${t.message}`);
+      }
+
+      const ret: DeckCodeType = await res.json();
+
+      if (toastId) {
+        closeToast(toastId);
+      }
+
+      addToast({
+        title: "最新のバージョンにしました",
+        description: "同じデッキコードで新しいバージョンを作成しました",
+        color: "success",
+        timeout: 3000,
+      });
+
+      // 表示中のデッキコードを新バージョンに更新する。
+      // deckcode の変化を監視する useEffect が一覧の先頭へ追加する。
+      setDeckCode(ret);
+
+      onClose();
+    } catch (error) {
+      console.error(error);
+
+      const errorMessage =
+        error instanceof Error ? error.message : "不明なエラーが発生しました";
+
+      if (toastId) {
+        closeToast(toastId);
+      }
+
+      addToast({
+        title: "最新のバージョンにできませんでした",
+        description: (
+          <>
+            最新のバージョンにできませんでした
+            <br />
+            {errorMessage}
+          </>
+        ),
+        color: "danger",
+        timeout: 5000,
+      });
+
+      onClose();
+    }
+  };
+
   const isArchived = deck ? new Date(deck.archived_at).getFullYear() !== 1 : false;
 
   // バージョンが1件のときは、タイムラインの続きとして次バージョン作成を促す（アーカイブ済みは非表示）
   const showNextVersionPrompt =
     displayDeckCodes?.length === 1 && !!onOpenCreateDeckCode && !isArchived;
+
+  // バージョンが2件以上あるときは、各バージョンから新バージョンを作成できるようにする
+  // （そのバージョンを基準にした差分・デッキコードで作成する）。アーカイブ済みは非表示。
+  const showPerVersionCreate =
+    (displayDeckCodes?.length ?? 0) >= 2 && !!onOpenCreateDeckCode && !isArchived;
+
+  // バージョンが2件以上あるとき、過去バージョンを「最新にする」（同じデッキコードで
+  // 新バージョンを作成する）導線を出す。最新バージョン自身とアーカイブ済みは非表示。
+  const showMakeLatest = (displayDeckCodes?.length ?? 0) >= 2 && !isArchived;
 
   return (
     <>
@@ -473,6 +582,86 @@ export default function DisplayDeckCodesModal({
                   className="font-bold"
                 >
                   保存
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
+
+      <Modal
+        isOpen={isOpenForMakeLatestModal}
+        size={"sm"}
+        placement="center"
+        hideCloseButton={isMakingLatest}
+        isDismissable={!isMakingLatest}
+        isKeyboardDismissDisabled={isMakingLatest}
+        onOpenChange={() => {
+          if (isMakingLatest) return;
+          onOpenChangeForMakeLatestModal();
+        }}
+        onClose={() => {
+          setIsMakingLatest(false);
+          setMakeLatestDeckCode(null);
+        }}
+      >
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader className="px-3 flex items-center gap-2">
+                このバージョンを最新にしますか？
+              </ModalHeader>
+              <ModalBody className="px-3 py-1">
+                <div className="flex flex-col gap-2">
+                  <div className="text-tiny text-default-500">
+                    同じデッキコードで新しいバージョンを作成し、最新のバージョンにします。
+                    元のバージョンはそのまま履歴に残ります。
+                  </div>
+                  {makeLatestDeckCode?.code && (
+                    <div className="flex min-w-0 items-center justify-center gap-2 rounded-lg bg-default-100 px-3 py-2">
+                      <span className="shrink-0 text-tiny text-default-500">
+                        デッキコード
+                      </span>
+                      <Snippet
+                        size="sm"
+                        radius="none"
+                        timeout={3000}
+                        disableTooltip={true}
+                        hideSymbol={true}
+                        classNames={{
+                          base: "min-w-0 bg-transparent p-0",
+                          pre: "truncate",
+                        }}
+                      >
+                        {makeLatestDeckCode.code}
+                      </Snippet>
+                    </div>
+                  )}
+                </div>
+              </ModalBody>
+              <ModalFooter>
+                <Button
+                  color="default"
+                  variant="solid"
+                  isDisabled={isMakingLatest}
+                  onPress={() => {
+                    onClose();
+                  }}
+                  className="font-bold"
+                >
+                  戻る
+                </Button>
+                <Button
+                  color="primary"
+                  variant="solid"
+                  isDisabled={isMakingLatest}
+                  startContent={<LuArrowUpToLine className="text-base" />}
+                  onPress={() => {
+                    makeLatest(onClose);
+                  }}
+                  className="font-bold"
+                >
+                  最新にする
                 </Button>
               </ModalFooter>
             </>
@@ -606,8 +795,7 @@ export default function DisplayDeckCodesModal({
                               },
                             );
 
-                            const isLastCodeItem =
-                              index === displayDeckCodes.length - 1;
+                            const isLastCodeItem = index === displayDeckCodes.length - 1;
                             const lineVisible = !isLastCodeItem || showNextVersionPrompt;
                             const lineDashed = isLastCodeItem && showNextVersionPrompt;
 
@@ -677,19 +865,7 @@ export default function DisplayDeckCodesModal({
                                           </button>
                                         </div>
 
-                                        <div className="relative w-full aspect-2/1">
-                                          {!imageLoaded && (
-                                            <Skeleton className="absolute inset-0 rounded-lg" />
-                                          )}
-                                          <Image
-                                            radius="sm"
-                                            shadow="none"
-                                            alt={deckcode.code}
-                                            src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
-                                            className=""
-                                            onLoad={() => setImageLoaded(true)}
-                                          />
-                                        </div>
+                                        <ZoomableDeckImage code={deckcode.code} />
 
                                         {/* デッキコード表示は他画面（DeckCodeCard）と統一。
                                             バージョン履歴のカードは bg-default-100 のため、
@@ -763,6 +939,34 @@ export default function DisplayDeckCodesModal({
                                               )
                                             )}
                                           </div>
+                                        )}
+
+                                        {/* このバージョンを最新にする導線（同じデッキコードで
+                                            新バージョンを作成する）。すでに最新(index===0)には出さない */}
+                                        {showMakeLatest && index !== 0 && (
+                                          <button
+                                            type="button"
+                                            onClick={() => openMakeLatest(deckcode)}
+                                            className="flex items-center justify-center gap-1.5 rounded-lg bg-content1 py-2 text-tiny font-bold text-primary active:opacity-70"
+                                          >
+                                            <LuArrowUpToLine className="text-sm" />
+                                            このバージョンを最新にする
+                                          </button>
+                                        )}
+
+                                        {/* このバージョンを基準に新バージョンを作成する導線。
+                                            差分・デッキコードはこのバージョンを基準にする */}
+                                        {showPerVersionCreate && (
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              onOpenCreateDeckCode?.(deckcode)
+                                            }
+                                            className="flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-primary/40 bg-primary/5 py-2 text-tiny font-bold text-primary active:opacity-70"
+                                          >
+                                            <LuBookPlus className="text-sm" />
+                                            このバージョンから新しく作成
+                                          </button>
                                         )}
                                       </div>
                                     ) : (

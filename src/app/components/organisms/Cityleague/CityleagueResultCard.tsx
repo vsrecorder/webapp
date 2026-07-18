@@ -25,6 +25,7 @@ import { LuPlus } from "react-icons/lu";
 
 import CreateDeckModal from "@app/components/organisms/Deck/Modal/CreateDeckModal";
 import DeckCardSummaryRow from "@app/components/organisms/Deck/DeckCardSummaryRow";
+import ZoomableDeckImage from "@app/components/atoms/ZoomableDeckImage";
 
 import { Result } from "@app/types/cityleague_result";
 
@@ -195,32 +196,24 @@ export default function CityleagueResultCard({ result, showRankLabel = true }: P
               <div className="text-tiny">プレイヤーID: {result.player_id}</div>
             </div>
 
-            <div className="relative w-full aspect-2/1">
-              {!imageLoaded && <Skeleton className="absolute inset-0 rounded-lg" />}
-              {result.deck_code ? (
-                <>
-                  <Image
-                    radius="sm"
-                    shadow="none"
-                    alt={result.deck_code}
-                    src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${result.deck_code}.jpg`}
-                    className=""
-                    onLoad={() => setImageLoaded(true)}
-                  />
-                </>
-              ) : (
-                <>
-                  <Image
-                    radius="sm"
-                    shadow="none"
-                    alt="デッキコードなし"
-                    src={"https://www.pokemon-card.com/deck/deckView.php/deckID/"}
-                    className=""
-                    onLoad={() => setImageLoaded(true)}
-                  />
-                </>
-              )}
-            </div>
+            {result.deck_code ? (
+              // デッキ画像の表示・タップ全画面表示は共通コンポーネントに委譲する
+              <ZoomableDeckImage code={result.deck_code} />
+            ) : (
+              <div className="relative w-full aspect-2/1">
+                {!imageLoaded && (
+                  <Skeleton className="absolute inset-0 rounded-lg" />
+                )}
+                <Image
+                  radius="sm"
+                  shadow="none"
+                  alt="デッキコードなし"
+                  src={"https://www.pokemon-card.com/deck/deckView.php/deckID/"}
+                  className=""
+                  onLoad={() => setImageLoaded(true)}
+                />
+              </div>
+            )}
           </CardBody>
           <CardFooter>
             {/*
@@ -310,32 +303,24 @@ export default function CityleagueResultCard({ result, showRankLabel = true }: P
                   <div className="text-tiny">プレイヤー名: {result.player_name}</div>
                   <div className="text-tiny">プレイヤーID: {result.player_id}</div>
                 </div>
-                <div className="relative w-full aspect-2/1">
-                  {!imageLoaded && <Skeleton className="absolute inset-0 rounded-lg" />}
-                  {result.deck_code ? (
-                    <>
-                      <Image
-                        radius="sm"
-                        shadow="none"
-                        alt={result.deck_code}
-                        src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${result.deck_code}.jpg`}
-                        className=""
-                        onLoad={() => setImageLoaded(true)}
-                      />
-                    </>
-                  ) : (
-                    <>
-                      <Image
-                        radius="sm"
-                        shadow="none"
-                        alt="デッキコードなし"
-                        src={"https://www.pokemon-card.com/deck/deckView.php/deckID/"}
-                        className=""
-                        onLoad={() => setImageLoaded(true)}
-                      />
-                    </>
-                  )}
-                </div>
+                {result.deck_code ? (
+                  // デッキ画像の表示・タップ全画面表示は共通コンポーネントに委譲する
+                  <ZoomableDeckImage code={result.deck_code} />
+                ) : (
+                  <div className="relative w-full aspect-2/1">
+                    {!imageLoaded && (
+                      <Skeleton className="absolute inset-0 rounded-lg" />
+                    )}
+                    <Image
+                      radius="sm"
+                      shadow="none"
+                      alt="デッキコードなし"
+                      src={"https://www.pokemon-card.com/deck/deckView.php/deckID/"}
+                      className=""
+                      onLoad={() => setImageLoaded(true)}
+                    />
+                  </div>
+                )}
 
                 {result.deck_code && (
                   <>

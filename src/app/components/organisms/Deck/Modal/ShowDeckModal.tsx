@@ -26,7 +26,7 @@ import DisplayDeckCodesModal from "@app/components/organisms/Deck/Modal/DisplayD
 import DisplayDeckOpponentAnalysisModal from "@app/components/organisms/Deck/Modal/DisplayDeckOpponentAnalysisModal";
 
 import DeckCodeCard from "@app/components/organisms/Deck/DeckCodeCard";
-import DeckCardSummaryRow from "@app/components/organisms/Deck/DeckCardSummaryRow";
+import DeckCardDetailRow from "@app/components/organisms/Deck/DeckCardDetailRow";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import { useDeckCodes } from "@app/hooks/useDeckCodes";
 
@@ -273,7 +273,7 @@ export default function ShowDeckModal({
                 {deckcode?.code && (
                   <>
                     <div className="rounded-xl bg-default-100 p-2">
-                      <DeckCardSummaryRow code={deckcode.code} />
+                      <DeckCardDetailRow code={deckcode.code} />
                     </div>
 
                     <DeckCodeCard deckcode={deckcode} hideImage />

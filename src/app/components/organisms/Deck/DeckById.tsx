@@ -30,7 +30,7 @@ import { LuCheck } from "react-icons/lu";
 
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import DeckCodeCard from "@app/components/organisms/Deck/DeckCodeCard";
-import DeckCardSummaryRow from "@app/components/organisms/Deck/DeckCardSummaryRow";
+import DeckCardDetailRow from "@app/components/organisms/Deck/DeckCardDetailRow";
 import DeckOpponentAnalysisPanel from "@app/components/organisms/Deck/DeckOpponentAnalysisPanel";
 import Records from "@app/components/organisms/Record/Records";
 import FetchError from "@app/components/molecules/FetchError";
@@ -618,7 +618,7 @@ export default function DeckById({ id }: Props) {
           />
           {deckcode?.code && (
             <div className="rounded-xl bg-default-100 p-2">
-              <DeckCardSummaryRow code={deckcode.code} />
+              <DeckCardDetailRow code={deckcode.code} />
             </div>
           )}
         </CardBody>

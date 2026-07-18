@@ -7,10 +7,10 @@ import { Skeleton } from "@heroui/react";
 
 import FetchError from "@app/components/molecules/FetchError";
 
-import { fetchDeckCardSummary } from "@app/utils/deckcard";
+import { fetchDeckCardDetail } from "@app/utils/deckcard";
 
 import { DeckCodeType } from "@app/types/deck_code";
-import { DeckCardSummaryType } from "@app/types/deckcard";
+import { DeckCardDetailType } from "@app/types/deckcard";
 
 type Props = {
   deckcode: DeckCodeType | null;
@@ -47,15 +47,15 @@ function CardSkelton() {
   );
 }
 
-export default function DeckCardSummary({ deckcode }: Props) {
-  const [deckcardSummary, setDeckCardSummary] = useState<DeckCardSummaryType | null>(
+export default function DeckCardDetail({ deckcode }: Props) {
+  const [deckcardDetail, setDeckCardDetail] = useState<DeckCardDetailType | null>(
     null,
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
   // デッキカード内訳だけを取得（失敗時のリロードから再利用）
-  const loadDeckCardSummary = useCallback(async () => {
+  const loadDeckCardDetail = useCallback(async () => {
     if (!deckcode) {
       setLoading(false);
       return;
@@ -65,8 +65,8 @@ export default function DeckCardSummary({ deckcode }: Props) {
     setLoading(true);
 
     try {
-      const data = await fetchDeckCardSummary(deckcode.code);
-      setDeckCardSummary(data);
+      const data = await fetchDeckCardDetail(deckcode.code);
+      setDeckCardDetail(data);
     } catch (err) {
       console.log(err);
       setError(true);
@@ -76,8 +76,8 @@ export default function DeckCardSummary({ deckcode }: Props) {
   }, [deckcode]);
 
   useEffect(() => {
-    loadDeckCardSummary();
-  }, [loadDeckCardSummary]);
+    loadDeckCardDetail();
+  }, [loadDeckCardDetail]);
 
   if (!deckcode) return;
 
@@ -118,19 +118,19 @@ export default function DeckCardSummary({ deckcode }: Props) {
   }
 
   if (error) {
-    return <FetchError onRetry={loadDeckCardSummary} compact />;
+    return <FetchError onRetry={loadDeckCardDetail} compact />;
   }
 
-  if (!deckcardSummary) return;
+  if (!deckcardDetail) return;
 
   return (
     <div className="flex flex-col gap-3 w-full">
       <div className="pb-0.5 pr-0">
         <div className="font-bold text-tiny pb-1">
-          ポケモン：{deckcardSummary.card_pke_count}
+          ポケモン：{deckcardDetail.card_pke_count}
         </div>
         <div className="pl-1 flex flex-wrap gap-1">
-          {(deckcardSummary.card_pke ?? []).map((deckcard, index) => (
+          {(deckcardDetail.card_pke ?? []).map((deckcard, index) => (
             <div key={index}>
               <Chip
                 size="sm"
@@ -149,10 +149,10 @@ export default function DeckCardSummary({ deckcode }: Props) {
       </div>
       <div className="pb-0.5 pr-0">
         <div className="font-bold text-tiny pb-1">
-          グッズ：{deckcardSummary.card_gds_count}
+          グッズ：{deckcardDetail.card_gds_count}
         </div>
         <div className="pl-1 flex flex-wrap gap-1">
-          {(deckcardSummary.card_gds ?? []).map((deckcard, index) => (
+          {(deckcardDetail.card_gds ?? []).map((deckcard, index) => (
             <div key={index}>
               <Chip
                 size="sm"
@@ -171,10 +171,10 @@ export default function DeckCardSummary({ deckcode }: Props) {
       </div>
       <div className="pb-0.5 pr-0">
         <div className="font-bold text-tiny pb-1">
-          ポケモンのどうぐ：{deckcardSummary.card_tool_count}
+          ポケモンのどうぐ：{deckcardDetail.card_tool_count}
         </div>
         <div className="pl-1 flex flex-wrap gap-1">
-          {(deckcardSummary.card_tool ?? []).map((deckcard, index) => (
+          {(deckcardDetail.card_tool ?? []).map((deckcard, index) => (
             <div key={index}>
               <Chip
                 size="sm"
@@ -193,10 +193,10 @@ export default function DeckCardSummary({ deckcode }: Props) {
       </div>
       <div className="pb-0.5 pr-0">
         <div className="font-bold text-tiny pb-1">
-          サポート：{deckcardSummary.card_sup_count}
+          サポート：{deckcardDetail.card_sup_count}
         </div>
         <div className="pl-1 flex flex-wrap gap-1">
-          {(deckcardSummary.card_sup ?? []).map((deckcard, index) => (
+          {(deckcardDetail.card_sup ?? []).map((deckcard, index) => (
             <div key={index}>
               <Chip
                 size="sm"
@@ -215,10 +215,10 @@ export default function DeckCardSummary({ deckcode }: Props) {
       </div>
       <div className="pb-0.5 pr-0">
         <div className="font-bold text-tiny pb-1">
-          スタジアム：{deckcardSummary.card_sta_count}
+          スタジアム：{deckcardDetail.card_sta_count}
         </div>
         <div className="pl-1 flex flex-wrap gap-1">
-          {(deckcardSummary.card_sta ?? []).map((deckcard, index) => (
+          {(deckcardDetail.card_sta ?? []).map((deckcard, index) => (
             <div key={index}>
               <Chip
                 size="sm"
@@ -237,10 +237,10 @@ export default function DeckCardSummary({ deckcode }: Props) {
       </div>
       <div className="pb-0.5 pr-0">
         <div className="font-bold text-tiny pb-1">
-          エネルギー：{deckcardSummary.card_ene_count}
+          エネルギー：{deckcardDetail.card_ene_count}
         </div>
         <div className="pl-1 flex flex-wrap gap-1">
-          {(deckcardSummary.card_ene ?? []).map((deckcard, index) => (
+          {(deckcardDetail.card_ene ?? []).map((deckcard, index) => (
             <div key={index}>
               <Chip
                 size="sm"

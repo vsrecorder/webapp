@@ -1,4 +1,4 @@
-import { DeckCardSummaryType, DeckCardType } from "@app/types/deckcard";
+import { DeckCardDetailType, DeckCardType } from "@app/types/deckcard";
 
 // デッキに含まれるカードの取得（/api/deckcards/[code]/...）をここに集約する。
 //
@@ -8,7 +8,7 @@ import { DeckCardSummaryType, DeckCardType } from "@app/types/deckcard";
 // そのため取得時点で形を検証し、崩れていれば「取得失敗」として例外にする。
 // 呼び出し側は失敗を捕まえて、その表示部分にだけエラー（FetchError）を出すこと。
 
-const SUMMARY_CARD_KEYS = [
+const DETAIL_CARD_KEYS = [
   "card_pke",
   "card_gds",
   "card_tool",
@@ -17,19 +17,20 @@ const SUMMARY_CARD_KEYS = [
   "card_ene",
 ] as const;
 
-function isDeckCardSummary(value: unknown): value is DeckCardSummaryType {
+function isDeckCardDetail(value: unknown): value is DeckCardDetailType {
   if (typeof value !== "object" || value === null) {
     return false;
   }
 
-  const summary = value as Record<string, unknown>;
+  const detail = value as Record<string, unknown>;
 
-  return SUMMARY_CARD_KEYS.every((key) => Array.isArray(summary[key]));
+  return DETAIL_CARD_KEYS.every((key) => Array.isArray(detail[key]));
 }
 
-// デッキコードに紐づくカードの内訳（ポケモン・グッズ・エネルギーなど）を取得する
-export async function fetchDeckCardSummary(code: string): Promise<DeckCardSummaryType> {
-  const res = await fetch(`/api/deckcards/${code}/summary`, {
+// デッキコードに紐づくカードの内訳（ポケモン・グッズ・エネルギーなど）を取得する。
+// summaryと違い同名カードを集約せず、印刷（絵柄）違いも別カードとして返す。
+export async function fetchDeckCardDetail(code: string): Promise<DeckCardDetailType> {
+  const res = await fetch(`/api/deckcards/${code}/detail`, {
     cache: "no-store",
     method: "GET",
     headers: {
@@ -43,8 +44,8 @@ export async function fetchDeckCardSummary(code: string): Promise<DeckCardSummar
 
   const ret: unknown = await res.json();
 
-  if (!isDeckCardSummary(ret)) {
-    throw new Error("Unexpected deck card summary response");
+  if (!isDeckCardDetail(ret)) {
+    throw new Error("Unexpected deck card detail response");
   }
 
   return ret;

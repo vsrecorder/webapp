@@ -2,11 +2,11 @@ import { NextResponse, NextRequest } from "next/server";
 
 import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/upstream";
 
-import { DeckCardSummaryType } from "@app/types/deckcard";
+import { DeckCardDetailType } from "@app/types/deckcard";
 
-async function getDeckCardSummary(code: string): Promise<DeckCardSummaryType> {
-  return await fetchUpstream<DeckCardSummaryType>(
-    upstreamUrl`/api/v1beta/deckcards/${code}/summary`,
+async function getDeckCardDetail(code: string): Promise<DeckCardDetailType> {
+  return await fetchUpstream<DeckCardDetailType>(
+    upstreamUrl`/api/v1beta/deckcards/${code}/detail`,
     {
       method: "GET",
       headers: {
@@ -23,9 +23,9 @@ export async function GET(
   try {
     const { code } = await params;
 
-    const summary = await getDeckCardSummary(code);
+    const detail = await getDeckCardDetail(code);
 
-    return NextResponse.json(summary, { status: 200 });
+    return NextResponse.json(detail, { status: 200 });
   } catch (error) {
     return upstreamErrorResponse(error);
   }

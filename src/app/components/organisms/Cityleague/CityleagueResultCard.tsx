@@ -24,7 +24,7 @@ import { LuLayers } from "react-icons/lu";
 import { LuPlus } from "react-icons/lu";
 
 import CreateDeckModal from "@app/components/organisms/Deck/Modal/CreateDeckModal";
-import DeckCardSummaryRow from "@app/components/organisms/Deck/DeckCardSummaryRow";
+import DeckCardDetailRow from "@app/components/organisms/Deck/DeckCardDetailRow";
 import ZoomableDeckImage from "@app/components/atoms/ZoomableDeckImage";
 
 import { Result } from "@app/types/cityleague_result";
@@ -336,7 +336,7 @@ export default function CityleagueResultCard({ result, showRankLabel = true }: P
                       </Link>
                     </div>
                     <div className="px-1 overflow-y-auto">
-                      <DeckCardSummaryRow code={result.deck_code} />
+                      <DeckCardDetailRow code={result.deck_code} />
                     </div>
                   </>
                 )}

@@ -13,15 +13,15 @@ import { LuImage, LuTags } from "react-icons/lu";
 
 import FetchError from "@app/components/molecules/FetchError";
 
-import { fetchDeckCardSummary } from "@app/utils/deckcard";
+import { fetchDeckCardDetail } from "@app/utils/deckcard";
 
-import { DeckCardSummaryType } from "@app/types/deckcard";
+import { DeckCardDetailType } from "@app/types/deckcard";
 import { PkeCardType } from "@app/types/deckcard";
 import { CardType } from "@app/types/deckcard";
 
 // カードの表示モードを localStorage に保存するキー。
 // 表示の好みはユーザーごとの習慣なので、次回アクセス時も同じ状態で開く。
-const DECK_CARD_VIEW_STORAGE_KEY = "deckCardSummaryView";
+const DECK_CARD_VIEW_STORAGE_KEY = "deckCardDetailView";
 
 // 画像先読みの開始を遅らせる時間。モーダルの開閉アニメーション（約300ms）が
 // 終わるまで待ってから読み始める。
@@ -31,7 +31,7 @@ const PRELOAD_START_DELAY_MS = 400;
 // 程度に抑える。
 const PRELOAD_CONCURRENCY = 4;
 
-type DeckCardSummaryView = "chip" | "image";
+type DeckCardDetailView = "chip" | "image";
 
 type Props = {
   code: string | null;
@@ -178,8 +178,8 @@ function ViewToggle({
   view,
   onChange,
 }: {
-  view: DeckCardSummaryView;
-  onChange: (next: DeckCardSummaryView) => void;
+  view: DeckCardDetailView;
+  onChange: (next: DeckCardDetailView) => void;
 }) {
   const itemClassName = (selected: boolean) =>
     `flex flex-1 items-center justify-center gap-1 rounded-md px-2.5 py-1 text-tiny font-bold transition-colors ${
@@ -215,14 +215,14 @@ function ViewToggle({
 }
 
 // 選択中の表示モードに応じて、チップ表示とカード画像表示を出し分ける
-function SummaryRow<
+function CategoryCardRow<
   T extends { card_name: string; card_count: number; image_url: string },
 >({
   view,
   cards,
   onSelect,
 }: {
-  view: DeckCardSummaryView;
+  view: DeckCardDetailView;
   cards: T[];
   onSelect: (card: T) => void;
 }) {
@@ -233,16 +233,14 @@ function SummaryRow<
   return <CardRow cards={cards} onSelect={onSelect} />;
 }
 
-export default function DeckCardSummaryRow({ code }: Props) {
-  const [deckcardSummary, setDeckCardSummary] = useState<DeckCardSummaryType | null>(
-    null,
-  );
+export default function DeckCardDetailRow({ code }: Props) {
+  const [deckcardDetail, setDeckCardDetail] = useState<DeckCardDetailType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
   // 表示モード。SSR とのハイドレーション不一致を避けるため初期値は固定（チップ）にし、
   // マウント後に localStorage から復元する。
-  const [view, setView] = useState<DeckCardSummaryView>("chip");
+  const [view, setView] = useState<DeckCardDetailView>("chip");
 
   const [pkecard, setPkeCard] = useState<PkeCardType>();
   const {
@@ -265,7 +263,7 @@ export default function DeckCardSummaryRow({ code }: Props) {
     }
   }, []);
 
-  const handleChangeView = (next: DeckCardSummaryView) => {
+  const handleChangeView = (next: DeckCardDetailView) => {
     setView(next);
     localStorage.setItem(DECK_CARD_VIEW_STORAGE_KEY, next);
   };
@@ -276,17 +274,17 @@ export default function DeckCardSummaryRow({ code }: Props) {
   // カード画像の取得まで遅れる。結果としてモーダルがカクつくので、アニメーションの
   // 完了を待ってから、少数ずつブラウザの空き時間に読み込む。
   useEffect(() => {
-    if (!deckcardSummary) {
+    if (!deckcardDetail) {
       return;
     }
 
     const urls = [
-      ...deckcardSummary.card_pke,
-      ...deckcardSummary.card_gds,
-      ...deckcardSummary.card_tool,
-      ...deckcardSummary.card_sup,
-      ...deckcardSummary.card_sta,
-      ...deckcardSummary.card_ene,
+      ...deckcardDetail.card_pke,
+      ...deckcardDetail.card_gds,
+      ...deckcardDetail.card_tool,
+      ...deckcardDetail.card_sup,
+      ...deckcardDetail.card_sta,
+      ...deckcardDetail.card_ene,
     ].map((c) => c.image_url);
 
     const uniqueUrls = [...new Set(urls)];
@@ -332,10 +330,10 @@ export default function DeckCardSummaryRow({ code }: Props) {
       cancelled = true;
       timers.forEach(clearTimeout);
     };
-  }, [deckcardSummary]);
+  }, [deckcardDetail]);
 
   // デッキカード内訳だけを取得（失敗時のリロードから再利用）
-  const loadDeckCardSummary = useCallback(async () => {
+  const loadDeckCardDetail = useCallback(async () => {
     if (!code) {
       setLoading(false);
       return;
@@ -345,8 +343,8 @@ export default function DeckCardSummaryRow({ code }: Props) {
     setLoading(true);
 
     try {
-      const data = await fetchDeckCardSummary(code);
-      setDeckCardSummary(data);
+      const data = await fetchDeckCardDetail(code);
+      setDeckCardDetail(data);
     } catch (err) {
       console.log(err);
       setError(true);
@@ -356,8 +354,8 @@ export default function DeckCardSummaryRow({ code }: Props) {
   }, [code]);
 
   useEffect(() => {
-    loadDeckCardSummary();
-  }, [loadDeckCardSummary]);
+    loadDeckCardDetail();
+  }, [loadDeckCardDetail]);
 
   if (!code) return;
 
@@ -365,7 +363,7 @@ export default function DeckCardSummaryRow({ code }: Props) {
     const skelton = view === "chip" ? <ChipSkelton /> : <CardSkelton />;
 
     return (
-      <div className="h-48 w-full flex flex-col gap-1.5">
+      <div className="h-50 w-full flex flex-col gap-1.5">
         <ViewToggle view={view} onChange={handleChangeView} />
         <Tabs
           fullWidth
@@ -401,14 +399,14 @@ export default function DeckCardSummaryRow({ code }: Props) {
   }
 
   if (error) {
-    return <FetchError onRetry={loadDeckCardSummary} compact />;
+    return <FetchError onRetry={loadDeckCardDetail} compact />;
   }
 
-  if (!deckcardSummary) return;
+  if (!deckcardDetail) return;
 
   return (
     <>
-      <div className="h-48 w-full flex flex-col gap-1.5">
+      <div className="h-50 w-full flex flex-col gap-1.5">
         <ViewToggle view={view} onChange={handleChangeView} />
         <Tabs
           fullWidth
@@ -423,20 +421,20 @@ export default function DeckCardSummaryRow({ code }: Props) {
             panel: "flex-1 overflow-hidden py-2",
           }}
         >
-          <Tab key="card_pke" title={`ポケモン：${deckcardSummary.card_pke_count}`}>
-            <SummaryRow
+          <Tab key="card_pke" title={`ポケモン：${deckcardDetail.card_pke_count}`}>
+            <CategoryCardRow
               view={view}
-              cards={deckcardSummary.card_pke}
+              cards={deckcardDetail.card_pke}
               onSelect={(deckcard) => {
                 setPkeCard(deckcard);
                 onOpenForShowPkeCardModal();
               }}
             />
           </Tab>
-          <Tab key="card_gds" title={`グッズ：${deckcardSummary.card_gds_count}`}>
-            <SummaryRow
+          <Tab key="card_gds" title={`グッズ：${deckcardDetail.card_gds_count}`}>
+            <CategoryCardRow
               view={view}
-              cards={deckcardSummary.card_gds}
+              cards={deckcardDetail.card_gds}
               onSelect={(deckcard) => {
                 setCard(deckcard);
                 onOpenForShowCardModal();
@@ -445,41 +443,41 @@ export default function DeckCardSummaryRow({ code }: Props) {
           </Tab>
           <Tab
             key="card_tool"
-            title={`ポケモンのどうぐ：${deckcardSummary.card_tool_count}`}
+            title={`ポケモンのどうぐ：${deckcardDetail.card_tool_count}`}
           >
-            <SummaryRow
+            <CategoryCardRow
               view={view}
-              cards={deckcardSummary.card_tool}
+              cards={deckcardDetail.card_tool}
               onSelect={(deckcard) => {
                 setCard(deckcard);
                 onOpenForShowCardModal();
               }}
             />
           </Tab>
-          <Tab key="card_sup" title={`サポート：${deckcardSummary.card_sup_count}`}>
-            <SummaryRow
+          <Tab key="card_sup" title={`サポート：${deckcardDetail.card_sup_count}`}>
+            <CategoryCardRow
               view={view}
-              cards={deckcardSummary.card_sup}
+              cards={deckcardDetail.card_sup}
               onSelect={(deckcard) => {
                 setCard(deckcard);
                 onOpenForShowCardModal();
               }}
             />
           </Tab>
-          <Tab key="card_sta" title={`スタジアム：${deckcardSummary.card_sta_count}`}>
-            <SummaryRow
+          <Tab key="card_sta" title={`スタジアム：${deckcardDetail.card_sta_count}`}>
+            <CategoryCardRow
               view={view}
-              cards={deckcardSummary.card_sta}
+              cards={deckcardDetail.card_sta}
               onSelect={(deckcard) => {
                 setCard(deckcard);
                 onOpenForShowCardModal();
               }}
             />
           </Tab>
-          <Tab key="card_ene" title={`エネルギー：${deckcardSummary.card_ene_count}`}>
-            <SummaryRow
+          <Tab key="card_ene" title={`エネルギー：${deckcardDetail.card_ene_count}`}>
+            <CategoryCardRow
               view={view}
-              cards={deckcardSummary.card_ene}
+              cards={deckcardDetail.card_ene}
               onSelect={(deckcard) => {
                 setCard(deckcard);
                 onOpenForShowCardModal();

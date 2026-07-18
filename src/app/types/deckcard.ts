@@ -26,7 +26,13 @@ export type CardType = {
   image_url: string;
 };
 
-export type DeckCardSummaryType = {
+// ACE SPECカードは1デッキにつき最大1枚。入っていない場合はキー自体が返らない。
+export type AceSpecCardType = {
+  card_id: string;
+  card_name: string;
+};
+
+export type DeckCardDetailType = {
   card_pke: PkeCardType[];
   card_pke_count: number;
   card_gds: CardType[];
@@ -41,6 +47,7 @@ export type DeckCardSummaryType = {
   card_sta_count: number;
   card_ene: CardType[];
   card_ene_count: number;
+  card_acespec?: AceSpecCardType;
 };
 
 export type DeckCardListType = CardType[];

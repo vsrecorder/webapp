@@ -57,9 +57,9 @@ export function RecordCardSkeleton({ className = "" }: { className?: string }) {
                 <Skeleton className="w-8 h-8 rounded-lg shrink-0" />
                 <div className="flex items-center justify-between gap-2 flex-1 min-w-0">
                   <RecordDeckRowSkeleton />
-                  {/* チーム戦バッジ・勝敗バッジ(ともに text-xs px-1.5 py-0.5)と高さ・幅を揃える */}
+                  {/* 勝敗バッジ(text-xs px-1.5 py-0.5)と高さ・幅を揃える。
+                      チーム戦/BO3はカード右上へ移動し読み込み後に出現するためここには置かない */}
                   <div className="flex items-center gap-1.5 shrink-0">
-                    <Skeleton className="h-5 w-10 rounded-md" />
                     <Skeleton className="h-5 w-12 rounded-md" />
                   </div>
                 </div>

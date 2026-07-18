@@ -97,36 +97,52 @@ export default function RecordCardBase({
         shadow="none"
         className="relative border border-divider overflow-hidden hover:border-primary/50 transition-colors duration-200"
       >
-        {ignoreStatsFlg && (
-          <Popover placement="bottom-end">
-            <PopoverTrigger>
-              <button
-                type="button"
-                onClick={(e) => e.stopPropagation()}
-                className="absolute right-2 top-2 z-10"
-                aria-label="集計対象外の詳細を表示"
-              >
-                <Chip
-                  size="sm"
-                  variant="flat"
-                  color="warning"
-                  className="h-5 text-[10px] font-bold"
-                >
-                  ⚠ 集計対象外
-                </Chip>
-              </button>
-            </PopoverTrigger>
-            <PopoverContent onClick={(e) => e.stopPropagation()}>
-              <div className="px-1 py-2 max-w-64 flex flex-col gap-1">
-                <span className="text-sm font-bold text-warning">
-                  ⚠ この記録は分析・集計の対象外です
-                </span>
-                <span className="text-xs text-default-500">
-                  勝率・使用デッキ分析・相手デッキ分布・週次レポートから除外されています
-                </span>
-              </div>
-            </PopoverContent>
-          </Popover>
+        {/* カード右上のバッジ群(チーム戦/BO3/集計対象外)。対戦結果の集計後に確定するものを横並びで表示 */}
+        {(hasGroupMatch || hasBo3 || ignoreStatsFlg) && (
+          <div className="absolute right-2 top-2 z-10 flex items-center gap-1.5">
+            {/* チーム戦が1つでも含まれる場合に表示(文字色は対戦結果一覧のチーム戦タグと統一) */}
+            {hasGroupMatch && (
+              <span className="text-[10px] font-bold shrink-0 rounded-md border px-1.5 py-0.5 text-secondary border-secondary/40 bg-secondary/10">
+                チーム戦
+              </span>
+            )}
+            {/* BO3が1つでも含まれる場合に表示(色は対戦結果一覧のBO3チップと統一) */}
+            {hasBo3 && (
+              <span className="text-[10px] font-bold shrink-0 rounded-md border px-1.5 py-0.5 text-primary border-primary/40 bg-primary/10">
+                BO3
+              </span>
+            )}
+            {ignoreStatsFlg && (
+              <Popover placement="bottom-end">
+                <PopoverTrigger>
+                  <button
+                    type="button"
+                    onClick={(e) => e.stopPropagation()}
+                    aria-label="集計対象外の詳細を表示"
+                  >
+                    <Chip
+                      size="sm"
+                      variant="flat"
+                      color="warning"
+                      className="h-5 text-[10px] font-bold"
+                    >
+                      ⚠ 集計対象外
+                    </Chip>
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent onClick={(e) => e.stopPropagation()}>
+                  <div className="px-1 py-2 max-w-64 flex flex-col gap-1">
+                    <span className="text-sm font-bold text-warning">
+                      ⚠ この記録は分析・集計の対象外です
+                    </span>
+                    <span className="text-xs text-default-500">
+                      勝率・使用デッキ分析・相手デッキ分布・週次レポートから除外されています
+                    </span>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
+          </div>
         )}
 
         <CardBody className="p-0">
@@ -194,23 +210,10 @@ export default function RecordCardBase({
                     {/* 対戦の勝敗数(対戦結果が無い場合は「対戦なし」を同じ位置に表示) */}
                     {loadingMatches ? (
                       <div className="flex items-center gap-1.5 shrink-0">
-                        <Skeleton className="h-5 w-10 rounded-md" />
                         <Skeleton className="h-5 w-12 rounded-md" />
                       </div>
                     ) : hasMatchResult ? (
                       <div className="flex items-center gap-1.5 shrink-0">
-                        {/* チーム戦が1つでも含まれる場合に勝敗の左横に表示(文字色は対戦結果一覧のチーム戦タグと統一) */}
-                        {hasGroupMatch && (
-                          <span className="text-xs font-bold shrink-0 rounded-md border px-1.5 py-0.5 text-secondary border-secondary/40 bg-secondary/10">
-                            チーム戦
-                          </span>
-                        )}
-                        {/* BO3が1つでも含まれる場合に表示(色は対戦結果一覧のBO3チップと統一) */}
-                        {hasBo3 && (
-                          <span className="text-xs font-bold shrink-0 rounded-md border px-1.5 py-0.5 text-primary border-primary/40 bg-primary/10">
-                            BO3
-                          </span>
-                        )}
                         <span
                           className={`text-xs font-bold shrink-0 rounded-md border px-1.5 py-0.5 ${matchResultColorClass} ${matchResultBorderColorClass} ${matchResultBgColorClass}`}
                         >

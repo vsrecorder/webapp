@@ -73,6 +73,12 @@ export default function ZoomableDeckImage({ code, disableZoom = false }: Props) 
             onClick={() => setIsZoomOpen(false)}
             role="dialog"
             aria-modal="true"
+            // このオーバーレイは HeroUI Modal の外(body直下)に portal している。
+            // react-aria の interact-outside 判定は document のキャプチャで動くため
+            // 要素側の stopPropagation では止められず、ズームを閉じる操作が背面モーダルの
+            // 「外側クリック」とみなされモーダルまで閉じてしまう。
+            // top-layer 属性を付けると、この配下の操作は外側クリック判定から除外される。
+            data-react-aria-top-layer="true"
           >
             <button
               type="button"

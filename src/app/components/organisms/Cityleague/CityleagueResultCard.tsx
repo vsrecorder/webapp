@@ -197,8 +197,8 @@ export default function CityleagueResultCard({ result, showRankLabel = true }: P
             </div>
 
             {result.deck_code ? (
-              // デッキ画像の表示・タップ全画面表示は共通コンポーネントに委譲する
-              <ZoomableDeckImage code={result.deck_code} />
+              // カード内ではタップで詳細モーダルを開くため、画像タップのZoomは無効化する
+              <ZoomableDeckImage code={result.deck_code} disableZoom />
             ) : (
               <div className="relative w-full aspect-2/1">
                 {!imageLoaded && (

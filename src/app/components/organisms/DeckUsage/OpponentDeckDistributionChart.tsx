@@ -32,6 +32,11 @@ type Props = {
   // 一度でもデータ取得が完了しているか（初回読み込み中とロード済みで空件数を区別するため）
   hasData: boolean;
   emptyMessage: string;
+  // モーダル内で使う場合のみ true にする。モーダルの開くアニメーション中にチャートが初期化されると、
+  // chart.jsの入場アニメ(円を描くスイープ)が「初回描画の横取り」でスキップされてしまう。
+  // そのため、開き切って寸法が確定してから reset()+update() でネイティブの入場アニメを1回だけ再生し直す。
+  // ページ内(ホーム/デッキ詳細)では標準どおり再生されるので不要。既定 false = 従来と完全に同一挙動。
+  replayEntryAnimation?: boolean;
 };
 
 const SLICE_COLORS = [
@@ -130,11 +135,20 @@ export default function OpponentDeckDistributionChart({
   isLoading,
   hasData,
   emptyMessage,
+  replayEntryAnimation = false,
 }: Props) {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
 
   const chartRef = useRef<ChartJS<"pie">>(null);
+
+  // ▼ モーダル用の入場アニメ再生（replayEntryAnimation=false のページ内では一切使わない）
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const replayDoneRef = useRef(false);
+  // モーダルでは開くアニメ中に見えてしまう「静止した満円」を隠しておき、スイープと同時に現す
+  // （満円→空への逆戻りのちらつきを防ぐ）。ページ内では常に表示のままで挙動不変。
+  const [chartHidden, setChartHidden] = useState(replayEntryAnimation);
+  // ▲
 
   // 対面率が低い（出現頻度が低い）デッキをまとめて「その他」として1件に集約する。
   const { displayItems: displayDecks, hasOther } = useMemo(
@@ -219,6 +233,71 @@ export default function OpponentDeckDistributionChart({
     setTooltip(null);
     tooltipRef.current = null;
   }, [decks]);
+
+  // モーダルが開き切って寸法が確定したら、ネイティブの入場アニメ(animateRotate)を
+  // reset()+update() で1回だけ再生し直す。ページ内(replayEntryAnimation=false)では何もしない。
+  useEffect(() => {
+    if (!replayEntryAnimation || replayDoneRef.current) return;
+    // <Pie> が実際に描画される条件（下の return 分岐と一致）を満たすまで待つ
+    const chartWillRender = !(isLoading && !hasData) && decks.length > 0;
+    if (!chartWillRender) return;
+
+    const container = chartContainerRef.current;
+    if (!container) return;
+
+    let rafId = 0;
+    const startTime = performance.now();
+    let prevTop = Number.NaN;
+    let prevWidth = -1;
+    let prevHeight = -1;
+    let stableFrames = 0;
+
+    // 入場アニメを畳んだ状態から再生し、同時に（隠していたチャートを）現す
+    const replay = (): boolean => {
+      const chart = chartRef.current;
+      if (!chart) return false;
+      replayDoneRef.current = true;
+      chart.reset(); // 各スライスを角度0(空)まで畳む
+      chart.update(); // ネイティブの入場アニメで満円まで回す
+      setChartHidden(false); // スイープ開始と同時に現す（満円→空の逆戻りを見せない）
+      return true;
+    };
+
+    const tick = () => {
+      const rect = container.getBoundingClientRect();
+      // このモーダルは placement="bottom" の translateY スライドインで、開くアニメ中は
+      // width/height が変わらず top だけが動く。そのため top も静止判定に含めないと
+      // スライドの最中に「静止」と誤判定してしまう。
+      if (
+        Math.abs(rect.top - prevTop) < 0.5 &&
+        Math.abs(rect.width - prevWidth) < 0.5 &&
+        Math.abs(rect.height - prevHeight) < 0.5
+      ) {
+        stableFrames += 1;
+      } else {
+        stableFrames = 0;
+      }
+      prevTop = rect.top;
+      prevWidth = rect.width;
+      prevHeight = rect.height;
+
+      // 寸法が数フレーム安定(=モーダル開き切り)、または保険として一定時間経過で再生する
+      const settled = stableFrames >= 3 && rect.width > 0;
+      const timedOut = performance.now() - startTime > 1500;
+      if (settled || timedOut) {
+        if (replay()) return;
+        // タイムアウトしてもチャート未取得なら、隠しっぱなしを避けて表示だけ戻す
+        if (timedOut) {
+          setChartHidden(false);
+          return;
+        }
+      }
+      rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+
+    return () => cancelAnimationFrame(rafId);
+  }, [replayEntryAnimation, isLoading, hasData, decks]);
 
   // 詳細表示を閉じて円グラフのみの表示に戻す
   function closeDetail() {
@@ -335,8 +414,9 @@ export default function OpponentDeckDistributionChart({
       {/* グラフ領域＋詳細カード。選択時はグラフを左に寄せ、右側に詳細カードを表示する（グラフには重ねない） */}
       <div className="flex items-stretch gap-3">
         <div
+          ref={chartContainerRef}
           onClick={handleChartAreaClick}
-          className={`relative shrink-0 transition-all duration-300 ${isLoading ? "opacity-30" : "opacity-100"} ${tooltip ? "w-3/5" : "w-full"}`}
+          className={`relative shrink-0 transition-all duration-300 ${chartHidden ? "opacity-0 pointer-events-none" : isLoading ? "opacity-30" : "opacity-100"} ${tooltip ? "w-3/5" : "w-full"}`}
           style={{ height: chartSize + spritePaddingY * 2 }}
         >
           <Pie ref={chartRef} data={chartData} options={chartOptions} plugins={[spritePlugin, centerSpritePlugin]} />

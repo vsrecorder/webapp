@@ -24,12 +24,15 @@ type PeriodMode = "all" | "month" | "environment" | "season" | "regulation";
 
 type Props = {
   deckId: string;
+  // モーダル内で表示する場合のみ true。円グラフの入場アニメを開き切ってから再生し直す。
+  // ページ内（デッキ詳細のインライン表示）では不要なので既定 false。
+  inModal?: boolean;
 };
 
 // 「登録デッキの詳細」から、そのデッキで対戦した相手のデッキ分布・勝率を確認するための分析パネル。
 // ダッシュボードの分析(OpponentDeckUsagePanel)と同じ期間フィルタ(月次/環境/シーズン/レギュレーション)に加え、
 // デッキ単位ならではの「全期間」も用意する。
-export default function DeckOpponentAnalysisPanel({ deckId }: Props) {
+export default function DeckOpponentAnalysisPanel({ deckId, inModal = false }: Props) {
   const { data: session } = useSession();
   const userId = session?.user?.id;
 
@@ -319,6 +322,7 @@ export default function DeckOpponentAnalysisPanel({ deckId }: Props) {
           emptyMessage={
             "この期間の対戦記録がまだありません。\n記録を作成すると対戦相手のデッキ分布が表示されます。"
           }
+          replayEntryAnimation={inModal}
         />
       </div>
     </div>

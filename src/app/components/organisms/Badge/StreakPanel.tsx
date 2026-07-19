@@ -91,7 +91,9 @@ export default function StreakPanel({ userId }: Props) {
                 }`}
               >
                 <LuSnowflake className="w-3 h-3" />
-                {freezeRemaining > 0 ? "フリーズ使用可能" : "フリーズ使用済み"}
+                {freezeRemaining > 0
+                  ? `フリーズ残り${freezeRemaining}`
+                  : "フリーズ使用済み"}
               </span>
             )}
           </div>

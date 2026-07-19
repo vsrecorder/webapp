@@ -244,7 +244,16 @@ export default function ShowDeckModal({
                     詳細
                   </Link>
                   <div className="flex items-center justify-center w-full">
-                    <div className="flex flex-col items-center gap-1 w-full min-w-0">
+                    {/* スプライト・デッキ名のタップでデッキ情報の更新モーダルを開く。
+                        w-fullにすると左上の詳細リンク・右上の閉じるボタンと当たり判定が
+                        重なるため、コンテンツ幅に収めて（max-w-full+min-w-0で長い名前は
+                        truncate維持）タップ対象をスプライトと名前そのものに限定する。 */}
+                    <button
+                      type="button"
+                      aria-label="デッキ情報を更新"
+                      onClick={onOpenForUpdateDeckModal}
+                      className="flex flex-col items-center gap-1 max-w-full min-w-0 pointer-events-auto active:opacity-70"
+                    >
                       <div className="flex items-center gap-0 shrink-0">
                         <PokemonSprite
                           id={getDeckSpriteBySlot(deck.pokemon_sprites, 1)?.id}
@@ -259,7 +268,7 @@ export default function ShowDeckModal({
                       <div className="w-full min-w-0 text-center font-bold text-large truncate">
                         {deck.name}
                       </div>
-                    </div>
+                    </button>
                   </div>
                 </>
               </ModalHeader>

@@ -124,18 +124,29 @@ function CardThumbnail({ alt, src }: { alt: string; src: string }) {
   return (
     <div className="relative aspect-63/88 w-full">
       {!loaded && <Skeleton className="absolute inset-0 rounded-md" />}
-      <Image
-        radius="sm"
-        shadow="none"
-        alt={alt}
-        src={src}
-        // 開いた直後は複数枚の画像が同時に届く。同期デコードだとその分だけ
-        // メインスレッドが止まり、モーダルのアニメーションがカクつく。
-        decoding="async"
-        classNames={{ wrapper: "w-full !max-w-full" }}
-        className="w-full"
-        onLoad={() => setLoaded(true)}
-      />
+      {/* カード画像タップで開くモーダルと同じ「拡大しながらフェードイン」するポップ
+          インにする。スケルトンと実画像の寸法差によるちらつきを、拡大の動きで目立た
+          なくする狙いもあるため拡大量はやや大きめ(scale-90 → scale-100)にしている。
+          HeroUI Image は内部で img の opacity/transform を独自制御するため、その影響
+          を受けない自前のラッパーでアニメーションを掛ける。 */}
+      <div
+        className={`w-full transition duration-300 ease-out ${
+          loaded ? "scale-100 opacity-100" : "scale-90 opacity-0"
+        }`}
+      >
+        <Image
+          radius="sm"
+          shadow="none"
+          alt={alt}
+          src={src}
+          // 開いた直後は複数枚の画像が同時に届く。同期デコードだとその分だけ
+          // メインスレッドが止まり、モーダルのアニメーションがカクつく。
+          decoding="async"
+          classNames={{ wrapper: "w-full !max-w-full" }}
+          className="w-full"
+          onLoad={() => setLoaded(true)}
+        />
+      </div>
     </div>
   );
 }
@@ -214,6 +225,16 @@ function ViewToggle({
   );
 }
 
+// 該当カテゴリーのカードが1枚もないとき、描画済みで空であることを明示する。
+// 何も表示しないと、読み込み中なのか本当に0枚なのか区別がつかないため。
+function EmptyCategory() {
+  return (
+    <div className="h-full pl-1 flex items-center justify-center">
+      <span className="text-tiny text-default-400">このカテゴリーのカードはありません</span>
+    </div>
+  );
+}
+
 // 選択中の表示モードに応じて、チップ表示とカード画像表示を出し分ける
 function CategoryCardRow<
   T extends { card_name: string; card_count: number; image_url: string },
@@ -226,6 +247,10 @@ function CategoryCardRow<
   cards: T[];
   onSelect: (card: T) => void;
 }) {
+  if (cards.length === 0) {
+    return <EmptyCategory />;
+  }
+
   if (view === "chip") {
     return <ChipRow cards={cards} onSelect={onSelect} />;
   }

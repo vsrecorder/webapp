@@ -196,15 +196,19 @@ export default function DeckOpponentAnalysisPanel({ deckId }: Props) {
     <div className="flex flex-col gap-3">
       {/* 期間フィルタ。スクロールしても常に見えるよう、モーダル本文の先頭に固定する */}
       <div className="sticky top-0 z-10 bg-content1 pb-1">
-        {/* 5タブ分の幅は狭い画面では収まらないため、fullWidthにせず横スクロールで対応する */}
+        {/* 5タブ分の幅は狭い画面では収まらないため、fullWidthにせず横スクロールで対応する。
+            収まるときは中央寄せしたいが、base はデフォルトが inline-flex（コンテンツ幅に縮む）で
+            tabList 側の mx-auto は効かない。base を全幅 flex にして justify-content: safe center で
+            中央寄せする（safe を付けると溢れた場合は先頭が切れず左端起点でスクロールできる）。
+            iOS/WebKit と Chromium の両方で挙動が一致することを確認済み。 */}
         <Tabs
           size="sm"
           selectedKey={periodMode}
           onSelectionChange={(key) => setPeriodMode(key as PeriodMode)}
           classNames={{
-            base: "max-w-full",
+            base: "w-full flex [justify-content:safe_center]",
             tabList:
-              "w-full overflow-x-auto flex-nowrap [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none",
+              "max-w-full overflow-x-auto flex-nowrap [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none",
             tab: "h-7 w-auto shrink-0",
             tabContent: "font-bold text-xs whitespace-nowrap",
           }}

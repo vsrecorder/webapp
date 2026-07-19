@@ -121,19 +121,50 @@ export function useModalBackgroundScrollLock() {
 
     const sync = () => {
       // react-aria の usePreventScroll はモーダル表示中(入れ子があれば
-      // その全体の間)だけ documentElement を overflow:hidden にする
+      // その全体の間)だけ documentElement を overflow:hidden にする。
       const locked = html.style.overflow === "hidden";
-      if (locked && !applied) {
+
+      // ただし overflow:hidden はモーダルに限らず、スクロールをブロックする
+      // ポップオーバー(HeroUI の Dropdown/Select 等。既定で shouldBlockScroll=true)
+      // を開いたときにも設定される。これらまで背面固定してしまうと、少しスクロール
+      // した状態でメニューを開いた瞬間に apply() が背面を position:fixed 化 →
+      // 文書のスクロール可能領域が消えて window.scrollY が 0 に折りたたまれ、その
+      // scroll イベントで非モーダルのポップオーバーが即座に閉じてしまう(=メニューが
+      // 開けない)。そこで「実際にモーダルが開いているか」を aria-modal で併せて確認する。
+      // HeroUI Modal は開いている間 aria-modal="true" を付与するが、Dropdown/Select/
+      // Popover は付与しないため両者を確実に区別できる。この属性要素は usePreventScroll
+      // の layout effect(overflow 設定)より前の DOM コミットで挿入されるため、
+      // observer 発火時点で必ず参照でき、判定にレースは生じない。
+      const modalOpen = document.querySelector('[aria-modal="true"]') !== null;
+
+      if (locked && modalOpen && !applied) {
         applied = true;
         apply();
-      } else if (!locked && applied) {
+      } else if ((!locked || !modalOpen) && applied) {
         applied = false;
         release();
       }
     };
 
     const observer = new MutationObserver(sync);
+    // 主トリガー: モーダルの scroll ブロックは html の overflow:hidden として現れる。
     observer.observe(html, { attributes: true, attributeFilter: ["style"] });
+
+    // 補助トリガー: Dropdown/Select 等(scroll ブロック中)を開いたまま、そのメニュー
+    // 項目からモーダルを開くと、overflow:hidden が途切れず維持され html の style が
+    // 変化しないことがあり、主トリガーだけではモーダルの開始を取りこぼしうる。
+    // react-aria はモーダル表示中だけ背面アプリルートを ariaHideOutside で aria-hidden
+    // にする(非モーダルの Dropdown/Select/Popover では付与しない)ため、これを監視して
+    // モーダルの開閉を確実に捕捉する。sync() は冪等なので余分に発火しても害はない。
+    const appRoot = document.querySelector<HTMLElement>(
+      "body > [data-overlay-container]",
+    );
+    if (appRoot) {
+      observer.observe(appRoot, {
+        attributes: true,
+        attributeFilter: ["aria-hidden"],
+      });
+    }
     sync();
 
     return () => {

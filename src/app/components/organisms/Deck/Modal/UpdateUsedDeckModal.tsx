@@ -24,6 +24,7 @@ import { DeckCodeType } from "@app/types/deck_code";
 import { DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
 
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
+import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 
 // 失敗レスポンスのボディをそのまま返すと、選択肢を組み立てるmap/forEachがレンダー中に
@@ -94,7 +95,7 @@ function DeckSprites({
   sprites: DeckPokemonSpriteType[];
   size?: number;
 }) {
-  const slots = [sprites?.[0], sprites?.[1]];
+  const slots = [getDeckSpriteBySlot(sprites, 1), getDeckSpriteBySlot(sprites, 2)];
 
   return (
     <div className="flex items-center gap-0 shrink-0">

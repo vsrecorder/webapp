@@ -29,6 +29,7 @@ import { LuCopy } from "react-icons/lu";
 import { LuCheck } from "react-icons/lu";
 
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
+import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
 import DeckCodeCard from "@app/components/organisms/Deck/DeckCodeCard";
 import DeckCardDetailRow from "@app/components/organisms/Deck/DeckCardDetailRow";
 import DeckOpponentAnalysisPanel from "@app/components/organisms/Deck/DeckOpponentAnalysisPanel";
@@ -302,8 +303,14 @@ export default function DeckById({ id }: Props) {
       <Card className="w-full">
         <CardHeader className="flex flex-col items-center gap-1.5 px-3 pt-4 pb-3">
           <div className="flex items-center gap-0 shrink-0">
-            <PokemonSprite id={deck.pokemon_sprites[0]?.id} size={52} />
-            <PokemonSprite id={deck.pokemon_sprites[1]?.id} size={52} />
+            <PokemonSprite
+              id={getDeckSpriteBySlot(deck.pokemon_sprites, 1)?.id}
+              size={52}
+            />
+            <PokemonSprite
+              id={getDeckSpriteBySlot(deck.pokemon_sprites, 2)?.id}
+              size={52}
+            />
           </div>
           <div className="w-full min-w-0 truncate text-center font-bold text-xl">
             {deck.name}

@@ -16,6 +16,7 @@ import { Card, CardBody } from "@heroui/react";
 
 import { RecentMatchItemType, RecentMatchStatType } from "@app/types/user_stat_recent";
 import { spriteImageUrl } from "@app/utils/sprite";
+import { getSpriteBySlot } from "@app/utils/spriteSlot";
 import { spriteFitStyle } from "@app/utils/spriteFit";
 
 ChartJS.register(
@@ -47,14 +48,17 @@ function winRateTextColor(rate: number): string {
 }
 
 // ツールチップ内のスプライト画像を直接DOM操作で描画する（頻繁なmousemoveでのReact再レンダリングを避けるため）
-function renderTooltipSprites(container: HTMLDivElement, sprites: { id: string }[]) {
+function renderTooltipSprites(
+  container: HTMLDivElement,
+  rawSprites: { id: string; position?: number }[],
+) {
   container.innerHTML = "";
-  const slots =
-    sprites.length >= 2
-      ? sprites.slice(0, 2).map((s) => s.id)
-      : sprites.length === 1
-        ? [sprites[0].id, ""]
-        : ["", ""];
+  // position でスロット(1枠目/2枠目)を固定して表示する。空スロットは "" (unknown)。
+  // これにより2枠目だけ登録された相手も正しい枠に表示され、詰めて化けない。
+  const slots = [
+    getSpriteBySlot(rawSprites, 1)?.id ?? "",
+    getSpriteBySlot(rawSprites, 2)?.id ?? "",
+  ];
 
   slots.forEach((id) => {
     // 枠(28px)内に bbox 基準で最適配置。PokemonSprite と同じ算出を DOM 直操作で再現。

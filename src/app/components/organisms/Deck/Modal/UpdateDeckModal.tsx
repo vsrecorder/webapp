@@ -13,6 +13,7 @@ import PokemonSpriteModal from "@app/components/organisms/Match/Modal/PokemonSpr
 
 import { PokemonSpriteType, DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
+import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
 
 import {
   DeckUpdateRequestType,
@@ -71,24 +72,25 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
     fetcherForPokemonSprites,
   );
 
-  // デッキに設定済みのアイコンを初期値として反映
+  // モーダルを開くたびに、デッキの現在のアイコンで両スロットを完全同期する。
+  // アイコンが外れたスロットは null に戻す。ここで空スロットをクリアしないと、
+  // 更新後(スプライト削除後)の再オープン時に、削除済みアイコンが残ったまま表示される。
+  // また依存配列に isOpen を含めないと、deck の参照が変わらない再オープンでは
+  // 同期が走らず、resetToDefaults が復元した古い状態が残ってしまう。
   useEffect(() => {
-    if (!deck?.pokemon_sprites?.[0] || !pokemonSpritesData) return;
+    if (!isOpen || !deck || !pokemonSpritesData) return;
 
-    const matched1 = pokemonSpritesData.find((s) => s.id === deck.pokemon_sprites[0].id);
-    if (matched1) {
-      setSprite1(matched1);
-    }
-
-    if (deck?.pokemon_sprites?.[1]) {
-      const matched2 = pokemonSpritesData.find(
-        (s) => s.id === deck.pokemon_sprites[1].id,
-      );
-      if (matched2) {
-        setSprite2(matched2);
-      }
-    }
-  }, [deck, pokemonSpritesData]);
+    setSprite1(
+      pokemonSpritesData.find(
+        (s) => s.id === getDeckSpriteBySlot(deck.pokemon_sprites, 1)?.id,
+      ) ?? null,
+    );
+    setSprite2(
+      pokemonSpritesData.find(
+        (s) => s.id === getDeckSpriteBySlot(deck.pokemon_sprites, 2)?.id,
+      ) ?? null,
+    );
+  }, [isOpen, deck, pokemonSpritesData]);
 
   useEffect(() => {
     if (deck) {
@@ -102,31 +104,39 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
 
   const hasChanges =
     newDeckName !== deck.name ||
-    (sprite1?.id ?? null) !== (deck.pokemon_sprites?.[0]?.id ?? null) ||
-    (sprite2?.id ?? null) !== (deck.pokemon_sprites?.[1]?.id ?? null);
+    (sprite1?.id ?? null) !== (getDeckSpriteBySlot(deck.pokemon_sprites, 1)?.id ?? null) ||
+    (sprite2?.id ?? null) !== (getDeckSpriteBySlot(deck.pokemon_sprites, 2)?.id ?? null);
 
   const resetToDefaults = () => {
     setNewDeckName(deck.name);
     setSprite1(
-      pokemonSpritesData?.find((s) => s.id === deck.pokemon_sprites?.[0]?.id) ?? null,
+      pokemonSpritesData?.find(
+        (s) => s.id === getDeckSpriteBySlot(deck.pokemon_sprites, 1)?.id,
+      ) ?? null,
     );
     setSprite2(
-      pokemonSpritesData?.find((s) => s.id === deck.pokemon_sprites?.[1]?.id) ?? null,
+      pokemonSpritesData?.find(
+        (s) => s.id === getDeckSpriteBySlot(deck.pokemon_sprites, 2)?.id,
+      ) ?? null,
     );
   };
 
   const updateDeck = async (onClose: () => void) => {
+    // position(1/2)を必ず付与してスロットを固定する。1枠目が空でも2枠目は
+    // position:2 のまま保存されるため、再オープン時にスロットが化けない。
     const pokemon_sprites: DeckPokemonSpriteType[] = [];
 
     if (sprite1) {
       pokemon_sprites.push({
         id: sprite1.id,
+        position: 1,
       });
     }
 
     if (sprite2) {
       pokemon_sprites.push({
         id: sprite2.id,
+        position: 2,
       });
     }
 

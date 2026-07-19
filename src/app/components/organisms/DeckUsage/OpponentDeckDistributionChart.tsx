@@ -14,6 +14,7 @@ import { Chip } from "@heroui/react";
 
 import { OpponentDeckUsageItemType } from "@app/types/opponent_deck_usage_stat";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
+import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
 import { lighten } from "@app/utils/color";
 import { roundToSignificantDigits } from "@app/utils/number";
 import { groupIntoOther } from "@app/utils/deckUsageOther";
@@ -89,11 +90,12 @@ function spriteUrl(id: string): string {
 // 実スプライトが1体でも常に2枠分返し、足りない枠は unknown で補完する。
 // スプライトが0体のときは空配列を返してバッジを描画させない。
 function deckSpriteUrls(sprites: { id: string }[] | undefined): string[] {
-  const real = (sprites ?? []).slice(0, 2);
-  if (real.length === 0) return [];
-  const urls = real.map((s) => spriteUrl(s.id));
-  while (urls.length < 2) urls.push(`${SPRITE_BASE_URL}/unknown.png`);
-  return urls;
+  // position でスロットを固定し、DOM の DeckSprites と枠の並びを揃える。
+  const s1 = getDeckSpriteBySlot(sprites, 1);
+  const s2 = getDeckSpriteBySlot(sprites, 2);
+  if (!s1 && !s2) return [];
+  const unknown = `${SPRITE_BASE_URL}/unknown.png`;
+  return [s1 ? spriteUrl(s1.id) : unknown, s2 ? spriteUrl(s2.id) : unknown];
 }
 
 // 勝率に応じた色分け（UserStatPanel/UserProfileCardの勝率表示と同じ閾値に合わせる）
@@ -119,11 +121,11 @@ type TooltipState = {
 function DeckSprites({ deck }: { deck: OpponentDeckUsageItemType }) {
   const sprites = deck.pokemon_sprites ?? [];
 
-  // 凡例の先頭2体を枠内で最適表示(PokemonSprite)。無い枠は unknown。
+  // 凡例のスロットを position で固定して表示(PokemonSprite)。無い枠は unknown。
   return (
     <div className="flex items-center gap-0 shrink-0">
-      <PokemonSprite id={sprites[0]?.id} size={32} />
-      <PokemonSprite id={sprites[1]?.id} size={32} />
+      <PokemonSprite id={getDeckSpriteBySlot(sprites, 1)?.id} size={32} />
+      <PokemonSprite id={getDeckSpriteBySlot(sprites, 2)?.id} size={32} />
     </div>
   );
 }

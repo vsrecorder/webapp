@@ -36,11 +36,12 @@ import { RecordGetByIdResponseType } from "@app/types/record";
 import { MatchGetResponseType } from "@app/types/match";
 import { MatchCreateRequestType, MatchCreateResponseType } from "@app/types/match";
 import { GameRequestType } from "@app/types/game";
-import { PokemonSpriteType } from "@app/types/pokemon_sprite";
+import { PokemonSpriteType, MatchPokemonSpriteType } from "@app/types/pokemon_sprite";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 
 import { useModalDragToClose } from "@app/hooks/useModalDragToClose";
 import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
+import { getSpriteBySlot } from "@app/utils/spriteSlot";
 import { isIOS } from "@app/utils/platform";
 import { closingPassthroughClassNames } from "@app/utils/modal";
 import {
@@ -188,8 +189,8 @@ export default function CreateMatchModal({
     for (const match of recentMatches) {
       if (match.default_victory_flg || match.default_defeat_flg) continue;
       if (!match.opponents_deck_info) continue;
-      const s1Id = match.pokemon_sprites[0]?.id;
-      const s2Id = match.pokemon_sprites[1]?.id;
+      const s1Id = getSpriteBySlot(match.pokemon_sprites, 1)?.id;
+      const s2Id = getSpriteBySlot(match.pokemon_sprites, 2)?.id;
       const key = `${match.opponents_deck_info}|${s1Id ?? ""}|${s2Id ?? ""}`;
       const entry = countMap.get(key);
       if (entry) {
@@ -238,8 +239,8 @@ export default function CreateMatchModal({
     for (const match of globalMatches) {
       if (match.default_victory_flg || match.default_defeat_flg) continue;
       if (!match.opponents_deck_info) continue;
-      const s1Id = match.pokemon_sprites[0]?.id;
-      const s2Id = match.pokemon_sprites[1]?.id;
+      const s1Id = getSpriteBySlot(match.pokemon_sprites, 1)?.id;
+      const s2Id = getSpriteBySlot(match.pokemon_sprites, 2)?.id;
       const key = `${match.opponents_deck_info}|${s1Id ?? ""}|${s2Id ?? ""}`;
       if (seen.has(key)) continue;
       seen.add(key);
@@ -463,14 +464,15 @@ export default function CreateMatchModal({
       }
     }
 
-    const pokemon_sprites: PokemonSpriteType[] = [];
+    // position(1/2)を必ず付与してスロットを固定する(空スロットを詰めない)
+    const pokemon_sprites: MatchPokemonSpriteType[] = [];
 
     if (pokemonSprite1) {
-      pokemon_sprites.push(pokemonSprite1);
+      pokemon_sprites.push({ id: pokemonSprite1.id, position: 1 });
     }
 
     if (pokemonSprite2) {
-      pokemon_sprites.push(pokemonSprite2);
+      pokemon_sprites.push({ id: pokemonSprite2.id, position: 2 });
     }
 
     // BO3の対戦全体の勝敗はゲームの勝敗から導出する（不戦勝/不戦敗はトグルの値を使う）

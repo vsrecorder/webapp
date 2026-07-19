@@ -31,6 +31,7 @@ import { RecordGetByIdResponseType } from "@app/types/record";
 import { MatchGetResponseType, MatchOrderItemType } from "@app/types/match";
 
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
+import { getSpriteBySlot } from "@app/utils/spriteSlot";
 
 type SectionKey = "qualifying" | "final" | "other";
 
@@ -541,11 +542,21 @@ export default function Matches({
                                                   <div className="flex items-center gap-1 shrink-0 ml-1.5">
                                                     {/* 対戦相手のポケモン2体。各スプライトを枠内で最適表示(PokemonSprite) */}
                                                     <PokemonSprite
-                                                      id={match.pokemon_sprites[0]?.id}
+                                                      id={
+                                                        getSpriteBySlot(
+                                                          match.pokemon_sprites,
+                                                          1,
+                                                        )?.id
+                                                      }
                                                       size={44}
                                                     />
                                                     <PokemonSprite
-                                                      id={match.pokemon_sprites[1]?.id}
+                                                      id={
+                                                        getSpriteBySlot(
+                                                          match.pokemon_sprites,
+                                                          2,
+                                                        )?.id
+                                                      }
                                                       size={44}
                                                     />
                                                   </div>

@@ -28,6 +28,7 @@ import DisplayDeckOpponentAnalysisModal from "@app/components/organisms/Deck/Mod
 import DeckCodeCard from "@app/components/organisms/Deck/DeckCodeCard";
 import DeckCardDetailRow from "@app/components/organisms/Deck/DeckCardDetailRow";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
+import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
 import { useDeckCodes } from "@app/hooks/useDeckCodes";
 
 import { LuExternalLink } from "react-icons/lu";
@@ -245,8 +246,14 @@ export default function ShowDeckModal({
                   <div className="flex items-center justify-center w-full">
                     <div className="flex flex-col items-center gap-1 w-full min-w-0">
                       <div className="flex items-center gap-0 shrink-0">
-                        <PokemonSprite id={deck.pokemon_sprites[0]?.id} size={48} />
-                        <PokemonSprite id={deck.pokemon_sprites[1]?.id} size={48} />
+                        <PokemonSprite
+                          id={getDeckSpriteBySlot(deck.pokemon_sprites, 1)?.id}
+                          size={48}
+                        />
+                        <PokemonSprite
+                          id={getDeckSpriteBySlot(deck.pokemon_sprites, 2)?.id}
+                          size={48}
+                        />
                       </div>
 
                       <div className="w-full min-w-0 text-center font-bold text-large truncate">

@@ -22,6 +22,7 @@ import { EnvironmentType } from "@app/types/environment";
 import { StandardRegulationType } from "@app/types/standard_regulation";
 import { ChampionshipSeriesType } from "@app/types/championship_series";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
+import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
 import { DeckUsageItemType, DeckUsageStatType } from "@app/types/deck_usage_stat";
 import {
   seasonOptionsFromChampionshipSeries,
@@ -101,11 +102,13 @@ function spriteUrl(id: string): string {
 // 実スプライトが1体でも常に2枠分返し、足りない枠は unknown で補完する。
 // ただしスプライトが0体(「その他」等)のときは空配列を返してバッジを描画させない。
 function deckSpriteUrls(sprites: { id: string }[] | undefined): string[] {
-  const real = (sprites ?? []).slice(0, 2);
-  if (real.length === 0) return [];
-  const urls = real.map((s) => spriteUrl(s.id));
-  while (urls.length < 2) urls.push(`${SPRITE_BASE_URL}/unknown.png`);
-  return urls;
+  // position でスロットを固定し、DOM の DeckSprites と枠の並びを揃える。
+  // 実スプライトが片方だけでも常に2枠分返し、無い枠は unknown で補完する。
+  const s1 = getDeckSpriteBySlot(sprites, 1);
+  const s2 = getDeckSpriteBySlot(sprites, 2);
+  if (!s1 && !s2) return [];
+  const unknown = `${SPRITE_BASE_URL}/unknown.png`;
+  return [s1 ? spriteUrl(s1.id) : unknown, s2 ? spriteUrl(s2.id) : unknown];
 }
 
 function getCurrentYearMonth(): string {
@@ -152,11 +155,11 @@ type TooltipState = {
 function DeckSprites({ deck }: { deck: DeckUsageItemType }) {
   const sprites = deck.pokemon_sprites ?? [];
 
-  // 先頭2体を枠内で最適表示(PokemonSprite)。無い枠は unknown。
+  // position でスロットを固定して表示(PokemonSprite)。無い枠は unknown。
   return (
     <div className="flex items-center gap-0 shrink-0">
-      <PokemonSprite id={sprites[0]?.id} size={32} />
-      <PokemonSprite id={sprites[1]?.id} size={32} />
+      <PokemonSprite id={getDeckSpriteBySlot(sprites, 1)?.id} size={32} />
+      <PokemonSprite id={getDeckSpriteBySlot(sprites, 2)?.id} size={32} />
     </div>
   );
 }

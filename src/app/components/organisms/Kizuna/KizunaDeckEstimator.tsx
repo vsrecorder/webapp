@@ -28,6 +28,7 @@ import {
 import { estimateKizuna, kizunaTierOf, type KizunaEstimate } from "@app/utils/kizuna";
 import { spriteImageUrl } from "@app/utils/sprite";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
+import { getDeckSpriteBySlot, sortedDeckSprites } from "@app/utils/deckSprite";
 
 import { DeckGetResponseType, DeckType } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
@@ -199,7 +200,7 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
 
   const spritesOf = useCallback(
     (deck: DeckType): PokemonSpriteType[] =>
-      deck.data.pokemon_sprites.map(
+      sortedDeckSprites(deck.data.pokemon_sprites).map(
         (s) =>
           spriteMaster.get(s.id) ?? {
             id: s.id,
@@ -280,9 +281,14 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
     const deck = selectedDeck!.data;
     const usage = usages.find((u) => u.deck_id === deck.id);
 
+    // position でスロットを固定した2枠(空スロットは"")。両枠空なら空配列にして
+    // プレビュー側のサンプル差し替え(spriteIds.length>0 判定)を維持する。
+    const slot1Id = getDeckSpriteBySlot(deck.pokemon_sprites, 1)?.id;
+    const slot2Id = getDeckSpriteBySlot(deck.pokemon_sprites, 2)?.id;
+
     setPreviewDeck({
       deckName: deck.name,
-      spriteIds: deck.pokemon_sprites.slice(0, 2).map((s) => s.id),
+      spriteIds: slot1Id || slot2Id ? [slot1Id ?? "", slot2Id ?? ""] : [],
       kizunaLevel: estimate!.score,
       registeredAt: new Date(deck.created_at).toLocaleDateString("ja-JP", {
         year: "numeric",
@@ -484,10 +490,10 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
                       }`}
                     />
                     <span className="relative flex items-end">
-                      {[0, 1].map((i) => (
+                      {([1, 2] as const).map((slot) => (
                         <PokemonSprite
-                          key={i}
-                          id={deck.data.pokemon_sprites[i]?.id}
+                          key={slot}
+                          id={getDeckSpriteBySlot(deck.data.pokemon_sprites, slot)?.id}
                           size={44}
                         />
                       ))}

@@ -14,6 +14,7 @@ import {
 } from "react-icons/lu";
 
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
+import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
 import { generateWeekOptions, lastWeekValue } from "@app/utils/week";
 import {
   WeeklyDeckUsageItemType,
@@ -59,17 +60,13 @@ function RankBadge({ rank, isOther }: { rank: number; isOther: boolean }) {
 // デッキ変種のスプライトを最大2体まで横並び表示する。不足分は unknown で埋める。
 function DeckSprites({ deck }: { deck: WeeklyDeckUsageItemType }) {
   const sprites = deck.pokemon_sprites ?? [];
-  const shown = sprites.slice(0, 2);
-  const fillers = Math.max(0, 2 - shown.length);
 
+  // position でスロットを固定して常に2枠表示。無い枠は unknown。
   // サイズはデッキ使用率分析・相手デッキ分布のリスト(size=32)と揃える
   return (
     <div className="flex items-center gap-0 shrink-0">
-      {shown.map((sprite, idx) => (
-        <PokemonSprite key={`${sprite.id}-${idx}`} id={sprite.id} size={32} />
-      ))}
-      {Array.from({ length: fillers }).map((_, idx) => (
-        <PokemonSprite key={`filler-${idx}`} size={32} />
+      {([1, 2] as const).map((slot) => (
+        <PokemonSprite key={slot} id={getDeckSpriteBySlot(sprites, slot)?.id} size={32} />
       ))}
     </div>
   );

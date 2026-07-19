@@ -6,6 +6,7 @@ import { Card, CardHeader, CardBody } from "@heroui/react";
 import { Image, Skeleton, Chip } from "@heroui/react";
 
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
+import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
 //import { Chip } from "@heroui/react";
 
 import { useDisclosure } from "@heroui/react";
@@ -277,8 +278,12 @@ export default function DeckCard({
           <div className="flex items-center gap-3">
             {/* スプライト2体（識別用）。各スプライトを枠内で最適表示(PokemonSprite) */}
             <div className="flex items-center gap-0 shrink-0">
-              {[0, 1].map((i) => (
-                <PokemonSprite key={i} id={deck.pokemon_sprites[i]?.id} size={48} />
+              {([1, 2] as const).map((slot) => (
+                <PokemonSprite
+                  key={slot}
+                  id={getDeckSpriteBySlot(deck.pokemon_sprites, slot)?.id}
+                  size={48}
+                />
               ))}
             </div>
 
@@ -493,8 +498,12 @@ export default function DeckCard({
                 名前の全長まで広がり、カードごと横に伸びてしまう。 */}
               <div className="flex w-full min-w-0 flex-col items-center gap-1">
                 <div className="flex items-center gap-0 shrink-0">
-                  {[0, 1].map((i) => (
-                    <PokemonSprite key={i} id={deck.pokemon_sprites[i]?.id} size={48} />
+                  {([1, 2] as const).map((slot) => (
+                    <PokemonSprite
+                      key={slot}
+                      id={getDeckSpriteBySlot(deck.pokemon_sprites, slot)?.id}
+                      size={48}
+                    />
                   ))}
                 </div>
                 <div className="w-full min-w-0 truncate text-center font-bold text-large">

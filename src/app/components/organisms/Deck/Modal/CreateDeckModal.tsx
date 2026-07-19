@@ -129,9 +129,10 @@ export default function CreateDeckModal({
   };
 
   const createDeck = async (onClose: () => void) => {
+    // position(1/2)を必ず付与してスロットを固定する(空スロットを詰めない)
     const pokemon_sprites: DeckPokemonSpriteType[] = [];
-    if (sprite1) pokemon_sprites.push({ id: sprite1.id });
-    if (sprite2) pokemon_sprites.push({ id: sprite2.id });
+    if (sprite1) pokemon_sprites.push({ id: sprite1.id, position: 1 });
+    if (sprite2) pokemon_sprites.push({ id: sprite2.id, position: 2 });
 
     const deck: DeckCreateRequestType = {
       name: deckname,

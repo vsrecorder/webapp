@@ -42,6 +42,7 @@ import { PokemonSpriteType, MatchPokemonSpriteType } from "@app/types/pokemon_sp
 
 import { useModalDragToClose } from "@app/hooks/useModalDragToClose";
 import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
+import { getSpriteBySlot } from "@app/utils/spriteSlot";
 import { closingPassthroughClassNames } from "@app/utils/modal";
 import {
   GameInput,
@@ -182,8 +183,8 @@ export default function UpdateMatchModal({
     for (const m of recentMatches) {
       if (m.default_victory_flg || m.default_defeat_flg) continue;
       if (!m.opponents_deck_info) continue;
-      const s1Id = m.pokemon_sprites[0]?.id;
-      const s2Id = m.pokemon_sprites[1]?.id;
+      const s1Id = getSpriteBySlot(m.pokemon_sprites, 1)?.id;
+      const s2Id = getSpriteBySlot(m.pokemon_sprites, 2)?.id;
       const key = `${m.opponents_deck_info}|${s1Id ?? ""}|${s2Id ?? ""}`;
       const entry = countMap.get(key);
       if (entry) {
@@ -232,8 +233,8 @@ export default function UpdateMatchModal({
     for (const m of globalMatches) {
       if (m.default_victory_flg || m.default_defeat_flg) continue;
       if (!m.opponents_deck_info) continue;
-      const s1Id = m.pokemon_sprites[0]?.id;
-      const s2Id = m.pokemon_sprites[1]?.id;
+      const s1Id = getSpriteBySlot(m.pokemon_sprites, 1)?.id;
+      const s2Id = getSpriteBySlot(m.pokemon_sprites, 2)?.id;
       const key = `${m.opponents_deck_info}|${s1Id ?? ""}|${s2Id ?? ""}`;
       if (seen.has(key)) continue;
       seen.add(key);
@@ -302,9 +303,15 @@ export default function UpdateMatchModal({
           return true;
       }
 
-      if ((pokemonSprite1?.id ?? null) !== (match.pokemon_sprites[0]?.id ?? null))
+      if (
+        (pokemonSprite1?.id ?? null) !==
+        (getSpriteBySlot(match.pokemon_sprites, 1)?.id ?? null)
+      )
         return true;
-      if ((pokemonSprite2?.id ?? null) !== (match.pokemon_sprites[1]?.id ?? null))
+      if (
+        (pokemonSprite2?.id ?? null) !==
+        (getSpriteBySlot(match.pokemon_sprites, 2)?.id ?? null)
+      )
         return true;
     }
 
@@ -390,22 +397,26 @@ export default function UpdateMatchModal({
 
     setMemo(match.memo ?? "");
 
+    // position でスロットを固定して初期値を復元する(空スロットは化けない)
+    const initialSprite1 = getSpriteBySlot(match.pokemon_sprites, 1);
+    const initialSprite2 = getSpriteBySlot(match.pokemon_sprites, 2);
+
     setPokemonSprite1(
-      match.pokemon_sprites[0]
+      initialSprite1
         ? {
-            id: match.pokemon_sprites[0].id,
+            id: initialSprite1.id,
             name: "",
-            image_url: `${SPRITE_BASE_URL}/${match.pokemon_sprites[0].id.replace(/^0+(?!$)/, "")}.png`,
+            image_url: `${SPRITE_BASE_URL}/${initialSprite1.id.replace(/^0+(?!$)/, "")}.png`,
           }
         : null,
     );
 
     setPokemonSprite2(
-      match.pokemon_sprites[1]
+      initialSprite2
         ? {
-            id: match.pokemon_sprites[1].id,
+            id: initialSprite2.id,
             name: "",
-            image_url: `${SPRITE_BASE_URL}/${match.pokemon_sprites[1].id.replace(/^0+(?!$)/, "")}.png`,
+            image_url: `${SPRITE_BASE_URL}/${initialSprite2.id.replace(/^0+(?!$)/, "")}.png`,
           }
         : null,
     );
@@ -545,14 +556,15 @@ export default function UpdateMatchModal({
       }
     }
 
+    // position(1/2)を必ず付与してスロットを固定する(空スロットを詰めない)
     const pokemon_sprites: MatchPokemonSpriteType[] = [];
 
     if (pokemonSprite1) {
-      pokemon_sprites.push(pokemonSprite1);
+      pokemon_sprites.push({ id: pokemonSprite1.id, position: 1 });
     }
 
     if (pokemonSprite2) {
-      pokemon_sprites.push(pokemonSprite2);
+      pokemon_sprites.push({ id: pokemonSprite2.id, position: 2 });
     }
 
     // BO3の対戦全体の勝敗はゲームの勝敗から導出する（不戦勝/不戦敗はトグルの値を使う）

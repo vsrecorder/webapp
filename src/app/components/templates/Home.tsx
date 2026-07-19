@@ -21,7 +21,7 @@ import { isDevEnv } from "@app/utils/appIcon";
 
 import { upstreamUrl } from "@app/utils/upstream";
 
-const GRAFANA_DASHBOARD_UID = "636db44742fb4dca801d0b1c9343642a";
+const GRAFANA_DASHBOARD_UID = "55c83543db74465b895ff8301f4b9d5d";
 
 async function getGrafanaStat(panelId: number): Promise<number | undefined> {
   try {
@@ -220,15 +220,15 @@ const steps = [
 export default async function TemplateHome() {
   const date = new Date(Date.now() + 9 * 60 * 60 * 1000);
 
-  // シティリーグ・対戦環境・Grafana統計(パネルID: 8=デッキコード数, 2=対戦数, 7=ユーザ数)を
+  // シティリーグ・対戦環境・Grafana統計(パネルID: 7=デッキコード数, 5=対戦数, 2=ユーザ数)を
   // すべて並列取得する。直列にawaitするとfetch分だけTTFBが積み上がり、FCP/LCPが悪化するため。
   // 失敗しても描画を止めないよう、cs/envはcatchでundefinedにフォールバックする。
   const [cs, env, deckCodeCount, recordCount, userCount] = await Promise.all([
     getCityleagueScheduleByDate(date).catch(() => undefined),
     getEnvironmentByDate(date).catch(() => undefined),
-    getGrafanaStat(8),
-    getGrafanaStat(2),
     getGrafanaStat(7),
+    getGrafanaStat(5),
+    getGrafanaStat(2),
   ]);
 
   const statsItems = [

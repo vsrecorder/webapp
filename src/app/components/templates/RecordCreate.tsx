@@ -48,6 +48,7 @@ import { useRouter } from "next/navigation";
 import ScrollingText from "@app/components/molecules/ScrollingText";
 
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
+import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
 import { cleanOfficialEventTitle } from "@app/components/organisms/Record/officialEventHelpers";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
@@ -355,7 +356,7 @@ function DeckSprites({
   sprites: DeckPokemonSpriteType[];
   size?: number;
 }) {
-  const slots = [sprites?.[0], sprites?.[1]];
+  const slots = [getDeckSpriteBySlot(sprites, 1), getDeckSpriteBySlot(sprites, 2)];
 
   return (
     <div className="flex items-center gap-0 shrink-0">

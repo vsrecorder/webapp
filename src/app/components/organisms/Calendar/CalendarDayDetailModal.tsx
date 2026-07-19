@@ -17,6 +17,7 @@ import {
 import { CalendarEvent } from "@app/types/calendar";
 import { DeckPokemonSpriteType, MatchPokemonSpriteType } from "@app/types/pokemon_sprite";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
+import { getSpriteBySlot } from "@app/utils/spriteSlot";
 import ZoomableDeckImage from "@app/components/atoms/ZoomableDeckImage";
 import DeckCardDiff from "@app/components/organisms/Deck/DeckCardDiff";
 import { useModalDragToClose } from "@app/hooks/useModalDragToClose";
@@ -73,10 +74,11 @@ function eventKey(event: CalendarEvent): string {
 function DeckSprites({ sprites }: { sprites: DeckPokemonSpriteType[] }) {
   if (sprites.length === 0) return null;
 
+  // position でスロット(1枠目/2枠目)を固定して表示する(DeckCard 等と同じ配置)
   return (
     <div className="flex items-center gap-0 shrink-0">
-      {sprites.slice(0, 2).map((sprite, index) => (
-        <PokemonSprite key={sprite.id ?? index} id={sprite.id} size={32} />
+      {([1, 2] as const).map((slot) => (
+        <PokemonSprite key={slot} id={getSpriteBySlot(sprites, slot)?.id} size={32} />
       ))}
     </div>
   );
@@ -86,8 +88,8 @@ function DeckSprites({ sprites }: { sprites: DeckPokemonSpriteType[] }) {
 function OpponentSprites({ sprites }: { sprites: MatchPokemonSpriteType[] }) {
   return (
     <div className="flex items-center gap-0 shrink-0">
-      {[0, 1].map((index) => (
-        <PokemonSprite key={index} id={sprites[index]?.id} size={32} />
+      {([1, 2] as const).map((slot) => (
+        <PokemonSprite key={slot} id={getSpriteBySlot(sprites, slot)?.id} size={32} />
       ))}
     </div>
   );

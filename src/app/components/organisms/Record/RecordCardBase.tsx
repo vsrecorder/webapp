@@ -7,6 +7,7 @@ import ScrollingText from "@app/components/molecules/ScrollingText";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import { RecordDeckRowSkeleton } from "@app/components/organisms/Record/Skeleton/RecordCardSkeleton";
 import { DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
+import { getSpriteBySlot } from "@app/utils/spriteSlot";
 
 type Props = {
   // カード識別子(record-card-${id}) とクリックハンドラ
@@ -186,12 +187,12 @@ export default function RecordCardBase({
                         <RecordDeckRowSkeleton />
                       ) : deckName ? (
                         <div className="flex items-center gap-1.5 min-w-0">
-                          {/* デッキ先頭2体のスプライト(無い枠はデフォルトを表示) */}
+                          {/* デッキの2枠スプライト。position でスロットを固定(無い枠はデフォルトを表示) */}
                           <div className="flex items-center shrink-0">
-                            {[0, 1].map((idx) => (
+                            {([1, 2] as const).map((slot) => (
                               <PokemonSprite
-                                key={idx}
-                                id={deckSprites?.[idx]?.id}
+                                key={slot}
+                                id={getSpriteBySlot(deckSprites, slot)?.id}
                                 size={32}
                               />
                             ))}

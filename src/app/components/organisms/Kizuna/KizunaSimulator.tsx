@@ -200,7 +200,10 @@ export default function KizunaSimulator() {
 
     setPreviewDeck({
       deckName: partnerLabel,
-      spriteIds: [sprite1Id, sprite2Id].filter((id): id is string => !!id),
+      // スロット(1枠目/2枠目)を保持したまま渡す(空スロットは""でunknown表示)。
+      // 両枠空ならプレビュー側のサンプル差し替え(length>0判定)に合わせて空配列。
+      spriteIds:
+        sprite1Id || sprite2Id ? [sprite1Id ?? "", sprite2Id ?? ""] : [],
       kizunaLevel: score,
       registeredAt: null,
       stats: null,

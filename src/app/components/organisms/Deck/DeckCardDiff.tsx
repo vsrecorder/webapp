@@ -268,7 +268,7 @@ export default function DeckCardDiff({ current_code, previous_code }: Props) {
         }}
       >
         <ModalContent>
-          {() => (
+          {(onClose) => (
             <>
               <ModalBody>
                 <Image
@@ -276,7 +276,8 @@ export default function DeckCardDiff({ current_code, previous_code }: Props) {
                   shadow="none"
                   alt={card?.card_name}
                   src={card?.image_url}
-                  className="rounded-[20px]"
+                  onClick={onClose}
+                  className="rounded-[20px] cursor-pointer"
                 />
               </ModalBody>
             </>

@@ -524,7 +524,7 @@ export default function DeckCardDetailRow({ code }: Props) {
         }}
       >
         <ModalContent>
-          {() => (
+          {(onClose) => (
             <>
               <ModalBody>
                 <Image
@@ -533,7 +533,8 @@ export default function DeckCardDetailRow({ code }: Props) {
                   alt={pkecard?.card_name}
                   src={pkecard?.image_url}
                   onLoad={() => {}}
-                  className="rounded-[20px]"
+                  onClick={onClose}
+                  className="rounded-[20px] cursor-pointer"
                 />
               </ModalBody>
             </>
@@ -553,7 +554,7 @@ export default function DeckCardDetailRow({ code }: Props) {
         }}
       >
         <ModalContent>
-          {() => (
+          {(onClose) => (
             <>
               <ModalBody>
                 <Image
@@ -562,7 +563,8 @@ export default function DeckCardDetailRow({ code }: Props) {
                   alt={card?.card_name}
                   src={card?.image_url}
                   onLoad={() => {}}
-                  className="rounded-[20px]"
+                  onClick={onClose}
+                  className="rounded-[20px] cursor-pointer"
                 />
               </ModalBody>
             </>

@@ -377,7 +377,7 @@ export default function InspectDeck({ deckcode }: Props) {
         }}
       >
         <ModalContent>
-          {() => (
+          {(onClose) => (
             <>
               <ModalBody>
                 <Image
@@ -385,7 +385,8 @@ export default function InspectDeck({ deckcode }: Props) {
                   shadow="none"
                   alt={card?.card_name}
                   src={card?.image_url}
-                  className="rounded-[20px]"
+                  onClick={onClose}
+                  className="rounded-[20px] cursor-pointer"
                 />
               </ModalBody>
             </>

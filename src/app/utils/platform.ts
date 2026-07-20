@@ -34,7 +34,7 @@ function isLineInAppBrowser(): boolean {
   return /\bLine\//i.test(navigator.userAgent);
 }
 
-function isAndroid(): boolean {
+export function isAndroid(): boolean {
   if (typeof navigator === "undefined") return false;
 
   return /Android/i.test(navigator.userAgent);

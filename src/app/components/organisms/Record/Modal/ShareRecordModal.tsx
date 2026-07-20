@@ -15,7 +15,14 @@ import {
   addToast,
 } from "@heroui/react";
 
-import { LuImageOff, LuRefreshCw, LuShare2, LuTriangleAlert } from "react-icons/lu";
+import {
+  LuCheck,
+  LuCopy,
+  LuImageOff,
+  LuRefreshCw,
+  LuShare2,
+  LuTriangleAlert,
+} from "react-icons/lu";
 
 import RecordHero from "@app/components/organisms/Record/Hero/RecordHero";
 import Matches from "@app/components/organisms/Match/Matches";
@@ -29,8 +36,10 @@ import {
   shareRecord,
   saveImages,
   dataUrlToFile,
+  ANDROID_SHARE_IMAGES_ONLY,
   type ShareImage,
 } from "@app/utils/saveImage";
+import { isAndroid } from "@app/utils/platform";
 
 import { buildRecordPostText, formatEventDateLabel } from "@app/utils/recordPostText";
 import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
@@ -139,6 +148,14 @@ export default function ShareRecordModal({
   // 実行中の処理種別。処理中はローディング表示とモーダルのクローズ抑止に使う
   const [busy, setBusy] = useState<null | "share">(null);
   const [text, setText] = useState("");
+  // ポスト文をコピーしたか(コピーボタンの見た目を一時的に切り替えるのに使う)
+  const [textCopied, setTextCopied] = useState(false);
+  // Android 端末か。SSR では navigator を参照できないため、マウント後に判定する。
+  const [isAndroidDevice, setIsAndroidDevice] = useState(false);
+  useEffect(() => setIsAndroidDevice(isAndroid()), []);
+  // Android の回避策(画像だけ共有し、ポスト文はコピーしてもらう)を使うか。
+  // X の挙動が戻れば ANDROID_SHARE_IMAGES_ONLY を false にするだけで無効になる。
+  const androidImagesOnly = ANDROID_SHARE_IMAGES_ONLY && isAndroidDevice;
 
   // キャプチャ用の RecordHero がイベント・使用デッキを描画し終えたか。
   // 描画完了(＋対戦一覧の取得完了)までシェア/保存を無効化し、
@@ -527,6 +544,19 @@ export default function ShareRecordModal({
     ],
   );
 
+  // ポスト文をクリップボードへコピーする。
+  // Android では画像だけを共有するため、ここでコピーして X の投稿画面に貼り付けてもらう。
+  const handleCopyText = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setTextCopied(true);
+      addToast({ title: "ポスト文をコピーしました", color: "success", timeout: 2000 });
+      setTimeout(() => setTextCopied(false), 1500);
+    } catch {
+      addToast({ title: "コピーに失敗しました", color: "danger", timeout: 3000 });
+    }
+  };
+
   // 注意: navigator.share() の呼び出し前に await を挟むとユーザーアクティベーションが
   // 切れるため、この関数内では shareRecord() の前で await しないこと。
   const handleShare = async () => {
@@ -536,8 +566,19 @@ export default function ShareRecordModal({
       // 画像の生成に失敗した場合は画像を渡さない。shareRecord はその場合
       // ポスト文だけの共有にフォールバックする(ボタンの表記もそうなっている)。
       const shareImages = captureFailed ? [] : (images ?? []);
-      const result = await shareRecord(shareImages, text);
-      if (result === "unsupported") {
+      const result = await shareRecord(shareImages, text, {
+        imagesOnlyOnAndroid: androidImagesOnly,
+      });
+      if (result === "images-only") {
+        // Android では画像だけを共有したため、ポスト文は含まれていない。
+        // モーダルの「ポスト文」からコピーして貼り付けてもらうよう促す。
+        addToast({
+          title: "画像を共有しました",
+          description: "ポスト文はコピーして貼り付けてください",
+          color: "warning",
+          timeout: 6000,
+        });
+      } else if (result === "unsupported") {
         if (shareImages.length === 0) {
           // 共有非対応かつ保存する画像も無いため、ポスト文を手で使ってもらうほかない
           addToast({
@@ -757,21 +798,57 @@ export default function ShareRecordModal({
                   )}
                 </div>
 
-                {/* iOSでは<textarea>の既定のoverflowがautoのため、モーダルのスクロール抑止
-                    (react-ariaのpreventScrollMobileSafari)が「テキストエリア自身がスクロール
-                    可能」と誤判定し、内容が収まっていてもtouchmoveをpreventDefaultしてしまう。
-                    結果、テキストエリアの上で指を動かしてもモーダルがスクロールしなくなる。
-                    overflowを持たせず内容の高さまで伸ばし、スクロールはモーダル本体に任せる。 */}
-                <Textarea
-                  label="ポスト文"
-                  value={text}
-                  onValueChange={setText}
-                  onFocus={(e) => scrollIntoViewAfterKeyboard(e.currentTarget)}
-                  minRows={5}
-                  // 内容を隠さない(＝テキストエリア内スクロールを発生させない)ための上限
-                  maxRows={999}
-                  classNames={{ input: "text-sm overflow-hidden" }}
-                />
+                <div className="flex flex-col gap-2">
+                  {/* ラベルとコピーボタン。コピーはどの環境でも使えるが、とくに Android では
+                      画像だけを共有するため、ここでポスト文をコピーして貼り付けてもらう。 */}
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-bold">ポスト文</span>
+                    <Button
+                      size="sm"
+                      variant="flat"
+                      className="h-7 min-w-0 px-2.5"
+                      startContent={
+                        textCopied ? (
+                          <LuCheck className="h-3.5 w-3.5" />
+                        ) : (
+                          <LuCopy className="h-3.5 w-3.5" />
+                        )
+                      }
+                      onPress={handleCopyText}
+                    >
+                      {textCopied ? "コピーしました" : "コピー"}
+                    </Button>
+                  </div>
+
+                  {/* Android では画像とポスト文を一緒に共有できない(X が片方を捨てる)ため、
+                      画像のみ共有することと、ポスト文はコピーして貼り付ける必要があることを伝える。
+                      X の挙動が戻れば androidImagesOnly が false になり、この案内も消える。 */}
+                  {androidImagesOnly && (
+                    <div className="flex items-start gap-2.5 rounded-xl border border-warning-200 bg-warning-50 px-3 py-2.5">
+                      <LuTriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-warning-600" />
+                      <p className="min-w-0 flex-1 text-[11px] leading-relaxed text-warning-700">
+                        Android では画像とポスト文を一緒に共有できないため、画像のみ共有します。
+                        上の「コピー」でポスト文をコピーし、X の投稿画面に貼り付けてください。
+                      </p>
+                    </div>
+                  )}
+
+                  {/* iOSでは<textarea>の既定のoverflowがautoのため、モーダルのスクロール抑止
+                      (react-ariaのpreventScrollMobileSafari)が「テキストエリア自身がスクロール
+                      可能」と誤判定し、内容が収まっていてもtouchmoveをpreventDefaultしてしまう。
+                      結果、テキストエリアの上で指を動かしてもモーダルがスクロールしなくなる。
+                      overflowを持たせず内容の高さまで伸ばし、スクロールはモーダル本体に任せる。 */}
+                  <Textarea
+                    aria-label="ポスト文"
+                    value={text}
+                    onValueChange={setText}
+                    onFocus={(e) => scrollIntoViewAfterKeyboard(e.currentTarget)}
+                    minRows={5}
+                    // 内容を隠さない(＝テキストエリア内スクロールを発生させない)ための上限
+                    maxRows={999}
+                    classNames={{ input: "text-sm overflow-hidden" }}
+                  />
+                </div>
 
                 {/* シェアされる画像のプレビュー。
                     実際に共有される生成済み画像(images)をそのまま表示する。

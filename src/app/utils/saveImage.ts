@@ -54,7 +54,26 @@ export async function tryShareImage(dataUrl: string, filename: string): Promise<
   }
 }
 
-export type ShareResult = "shared" | "text-only" | "unsupported" | "failed";
+import { isAndroid } from "@app/utils/platform";
+
+// Android で「画像＋ポスト文」を一緒に共有せず、画像だけを共有するかどうか。
+//
+// X(Twitter)アプリのアップグレードで、Android から text と files を一緒に共有すると
+// X が画像かポスト文の片方を捨てるようになった(画像1枚のときは画像が、2枚のときは
+// ポスト文が落ちる)。回避策として Android では画像だけを共有し、ポスト文は
+// モーダルの「ポスト文」からコピーして貼り付けてもらう。
+//
+// ★ X の挙動が元に戻ったら、この定数を false にすれば従来どおり text と files を
+//    一緒に共有する状態にすぐ戻せる(他の分岐・呼び出し側もこの定数で切り替わる)。
+export const ANDROID_SHARE_IMAGES_ONLY = true;
+
+// "images-only": Android の回避策として、画像だけを共有した(ポスト文は含めていない)。
+export type ShareResult =
+  | "shared"
+  | "images-only"
+  | "text-only"
+  | "unsupported"
+  | "failed";
 
 // 共有する画像。data URL は保存フォールバック用、File は共有用に事前生成しておく。
 export type ShareImage = { dataUrl: string; filename: string; file: File };
@@ -80,6 +99,9 @@ export async function dataUrlToFile(dataUrl: string, filename: string): Promise<
 export async function shareRecord(
   images: ShareImage[],
   text: string,
+  // Android では画像だけを共有する(理由は ANDROID_SHARE_IMAGES_ONLY を参照)。
+  // 呼び出し側でこの回避策を使うかを選べるようにしておく(Kizuna 等には効かせない)。
+  options?: { imagesOnlyOnAndroid?: boolean },
 ): Promise<ShareResult> {
   if (
     typeof navigator === "undefined" ||
@@ -91,6 +113,20 @@ export async function shareRecord(
 
   try {
     const files = images.map((img) => img.file);
+
+    // Android の回避策: 画像だけを共有し、ポスト文は含めない。
+    // (含めると X が画像かポスト文の片方を捨てるため。詳細は ANDROID_SHARE_IMAGES_ONLY)
+    // canShare が false のときだけ下の従来フローへフォールバックする。
+    if (
+      options?.imagesOnlyOnAndroid &&
+      isAndroid() &&
+      files.length > 0 &&
+      navigator.canShare({ files })
+    ) {
+      await navigator.share({ files });
+      return "images-only";
+    }
+
     // 実際に share() へ渡すデータそのもの(text込み)で判定する。
     // files だけで判定すると、テキストとの同時共有に対応しない環境で
     // canShare が true なのに share() が失敗する。

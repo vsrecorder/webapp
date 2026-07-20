@@ -5,7 +5,14 @@ import type { KeyboardEvent } from "react";
 
 import { Button, Input, addToast } from "@heroui/react";
 
-import { LuRotateCcw, LuShare2, LuDownload } from "react-icons/lu";
+import {
+  LuRotateCcw,
+  LuShare2,
+  LuDownload,
+  LuCopy,
+  LuCheck,
+  LuTriangleAlert,
+} from "react-icons/lu";
 
 import KizunaSpritePicker from "@app/components/organisms/Kizuna/KizunaSpritePicker";
 import type { SpriteSlot } from "@app/components/organisms/Kizuna/KizunaSpritePicker";
@@ -16,8 +23,10 @@ import {
   shareRecord,
   saveGeneratedImage,
   dataUrlToFile,
+  ANDROID_SHARE_IMAGES_ONLY,
   type ShareImage,
 } from "@app/utils/saveImage";
+import { isAndroid } from "@app/utils/platform";
 
 import { kizunaTierOf } from "@app/utils/kizuna";
 import { smoothScrollTo } from "@app/utils/scroll";
@@ -301,6 +310,28 @@ export default function KizunaSimulator() {
   // 画像なしでシェアするときの退避先。X のポスト画面をテキストだけで開く。
   const xIntentHref = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`;
 
+  // ポスト文をコピーしたか(コピーボタンの見た目を一時的に切り替えるのに使う)
+  const [textCopied, setTextCopied] = useState(false);
+  // Android 端末か。SSR では navigator を参照できないため、マウント後に判定する。
+  const [isAndroidDevice, setIsAndroidDevice] = useState(false);
+  useEffect(() => setIsAndroidDevice(isAndroid()), []);
+  // Android の回避策(画像だけ共有し、ポスト文はコピーしてもらう)を使うか。
+  // X の挙動が戻れば ANDROID_SHARE_IMAGES_ONLY を false にするだけで無効になる。
+  const androidImagesOnly = ANDROID_SHARE_IMAGES_ONLY && isAndroidDevice;
+
+  // ポスト文をクリップボードへコピーする。
+  // Android では画像だけを共有するため、ここでコピーして X の投稿画面に貼り付けてもらう。
+  const handleCopyText = async () => {
+    try {
+      await navigator.clipboard.writeText(shareText);
+      setTextCopied(true);
+      addToast({ title: "ポスト文をコピーしました", color: "success", timeout: 2000 });
+      setTimeout(() => setTextCopied(false), 1500);
+    } catch {
+      addToast({ title: "コピーに失敗しました", color: "danger", timeout: 3000 });
+    }
+  };
+
   // 注意: navigator.share() の呼び出し前に await を挟むとユーザーアクティベーションが
   // 切れるため、この関数内では shareRecord() の前で await しないこと。
   const handleShare = async () => {
@@ -308,9 +339,20 @@ export default function KizunaSimulator() {
 
     setBusy("share");
     try {
-      const result = await shareRecord(images, shareText);
+      const result = await shareRecord(images, shareText, {
+        imagesOnlyOnAndroid: androidImagesOnly,
+      });
 
-      if (result === "unsupported") {
+      if (result === "images-only") {
+        // Android では画像だけを共有したため、ポスト文は含まれていない。
+        // コピーして貼り付けてもらうよう促す。
+        addToast({
+          title: "画像を共有しました",
+          description: "ポスト文はコピーして貼り付けてください",
+          color: "warning",
+          timeout: 6000,
+        });
+      } else if (result === "unsupported") {
         // 共有非対応の環境（PCブラウザなど）では画像の保存にフォールバックする
         await saveGeneratedImage(images[0].dataUrl, images[0].filename);
         addToast({
@@ -499,6 +541,37 @@ export default function KizunaSimulator() {
               <p role="alert" className="px-1 text-xs text-danger lg:text-sm">
                 画像の生成に失敗しました。テキストだけでシェアできます。
               </p>
+            )}
+
+            {/* Android では画像とポスト文を一緒に共有できない(X が片方を捨てる)ため、
+                画像のみ共有し、ポスト文はコピーして貼り付けてもらう。
+                X の挙動が戻れば androidImagesOnly が false になり、この案内も消える。 */}
+            {androidImagesOnly && !captureFailed && (
+              <div className="flex items-start gap-2.5 rounded-xl border border-warning-200 bg-warning-50 px-4 py-3">
+                <LuTriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-warning-600" />
+                <div className="flex min-w-0 flex-1 flex-col gap-2.5">
+                  <p className="text-xs leading-relaxed text-warning-700 lg:text-sm">
+                    Android では画像とポスト文を一緒に共有できないため、画像のみ共有します。
+                    ポスト文はコピーして X の投稿画面に貼り付けてください。
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="flat"
+                    color="warning"
+                    className="self-start font-bold"
+                    startContent={
+                      textCopied ? (
+                        <LuCheck className="text-base" />
+                      ) : (
+                        <LuCopy className="text-base" />
+                      )
+                    }
+                    onPress={handleCopyText}
+                  >
+                    {textCopied ? "コピーしました" : "ポスト文をコピー"}
+                  </Button>
+                </div>
+              </div>
             )}
 
             <div className="flex flex-col gap-3 sm:flex-row">

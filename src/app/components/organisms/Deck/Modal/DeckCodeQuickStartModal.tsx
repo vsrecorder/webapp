@@ -13,13 +13,18 @@ import {
   Image,
   Skeleton,
   Link,
+  useDisclosure,
   addToast,
   closeToast,
 } from "@heroui/react";
 import { LuLayers } from "react-icons/lu";
 import { sendGAEvent } from "@next/third-parties/google";
 
+import PokemonSprite from "@app/components/atoms/PokemonSprite";
+import PokemonSpriteModal from "@app/components/organisms/Match/Modal/PokemonSpriteModal";
+
 import { DeckCreateRequestType, DeckCreateResponseType } from "@app/types/deck";
+import { PokemonSpriteType, DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 
 const DECK_CODE_LENGTH = 20;
@@ -39,13 +44,31 @@ export default function DeckCodeQuickStartModal({ isOpen, onOpenChange }: Props)
 
   const [deckName, setDeckName] = useState("");
   const [deckCode, setDeckCode] = useState("");
-  const [isValidatedDeckCode, setIsValidatedDeckCode] = useState(false);
+  const [isValidatedDeckCode, setIsValidatedDeckCode] = useState(true);
   const [isDisabled, setIsDisabled] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+
+  // デッキアイコン(スプライト)。任意・最大2枠。
+  const [sprite1, setSprite1] = useState<PokemonSpriteType | null>(null);
+  const [sprite2, setSprite2] = useState<PokemonSpriteType | null>(null);
+  const [activeSpriteSlot, setActiveSpriteSlot] = useState<1 | 2>(1);
+  const {
+    isOpen: isSpriteOpen,
+    onOpen: onSpriteOpen,
+    onOpenChange: onSpriteOpenChange,
+  } = useDisclosure();
 
   // デッキコードは20桁固定。桁数が違えば即無効、20桁なら外部APIで有効性を確認する。
   useEffect(() => {
     setImageLoaded(false);
+
+    // マイデッキ登録(CreateDeckModal)と同じ判定条件:
+    // 未入力は有効(true)扱い、20桁でなければ無効、20桁なら外部APIで確認する。
+    // (デッキコード必須の担保は canSubmit の桁数チェック側で行う)
+    if (!deckCode) {
+      setIsValidatedDeckCode(true);
+      return;
+    }
 
     if (deckCode.length !== DECK_CODE_LENGTH) {
       setIsValidatedDeckCode(false);
@@ -97,6 +120,8 @@ export default function DeckCodeQuickStartModal({ isOpen, onOpenChange }: Props)
     setIsValidatedDeckCode(false);
     setIsDisabled(false);
     setImageLoaded(false);
+    setSprite1(null);
+    setSprite2(null);
   };
 
   const startWithDeckCode = async () => {
@@ -112,12 +137,17 @@ export default function DeckCodeQuickStartModal({ isOpen, onOpenChange }: Props)
     });
 
     try {
+      // position(1/2)を必ず付与してスロットを固定する(空スロットは詰めない)
+      const pokemon_sprites: DeckPokemonSpriteType[] = [];
+      if (sprite1) pokemon_sprites.push({ id: sprite1.id, position: 1 });
+      if (sprite2) pokemon_sprites.push({ id: sprite2.id, position: 2 });
+
       const deck: DeckCreateRequestType = {
         name: deckName.trim(),
         private_flg: true,
         deck_code: deckCode,
         private_deck_code_flg: true,
-        pokemon_sprites: [],
+        pokemon_sprites,
       };
 
       const res = await fetch("/api/decks", {
@@ -169,6 +199,7 @@ export default function DeckCodeQuickStartModal({ isOpen, onOpenChange }: Props)
   };
 
   return (
+    <>
     <Modal
       isOpen={isOpen}
       size="sm"
@@ -192,6 +223,35 @@ export default function DeckCodeQuickStartModal({ isOpen, onOpenChange }: Props)
           <>
             <ModalHeader className="text-lg px-3">デッキ登録から始める</ModalHeader>
             <ModalBody className="px-3 py-1 gap-3">
+              {/* デッキアイコン(スプライト)。タップで PokemonSpriteModal を開いて選択する。 */}
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-default-500">
+                  デッキアイコン（任意・最大2つ）
+                </span>
+                <div className="flex items-center gap-0">
+                  {([1, 2] as const).map((slot) => {
+                    const sprite = slot === 1 ? sprite1 : sprite2;
+                    return (
+                      <div
+                        key={slot}
+                        className={`shrink-0 ${isDisabled ? "" : "cursor-pointer"}`}
+                        onClick={() => {
+                          if (isDisabled) return;
+                          setActiveSpriteSlot(slot);
+                          onSpriteOpen();
+                        }}
+                      >
+                        <PokemonSprite
+                          id={sprite?.id}
+                          size={48}
+                          className={isDisabled ? "contrast-0" : ""}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
               <Input
                 isRequired
                 isDisabled={isDisabled}
@@ -283,5 +343,16 @@ export default function DeckCodeQuickStartModal({ isOpen, onOpenChange }: Props)
         )}
       </ModalContent>
     </Modal>
+
+    <PokemonSpriteModal
+      pokemonSprite1={sprite1}
+      setPokemonSprite1={setSprite1}
+      pokemonSprite2={sprite2}
+      setPokemonSprite2={setSprite2}
+      isOpen={isSpriteOpen}
+      onOpenChange={onSpriteOpenChange}
+      initialActiveSlot={activeSpriteSlot}
+    />
+    </>
   );
 }

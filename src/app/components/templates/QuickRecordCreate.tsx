@@ -723,7 +723,7 @@ export default function TemplateQuickRecordCreate({
           </Button>
           {eventType === "official" && officialEventId === null && (
             <p className="text-xs text-warning text-center">
-              公式イベントを選択してください
+              対象の公式イベントを選択してください
             </p>
           )}
           {eventType === "tonamel" && (tonamelEventId.trim() === "" || !tonamelValid) && (

@@ -240,27 +240,32 @@ export default function CreateDeckModal({
               <ModalHeader className="text-lg px-3">マイデッキ登録</ModalHeader>
               <ModalBody className="px-3 py-1 gap-3">
                 {/* スプライト2枚 */}
-                <div className="flex items-center gap-0">
-                  {([1, 2] as const).map((slot) => {
-                    const sprite = slot === 1 ? sprite1 : sprite2;
-                    return (
-                      <div
-                        key={slot}
-                        className={`shrink-0 ${isDisabled ? "" : "cursor-pointer"}`}
-                        onClick={() => {
-                          if (isDisabled) return;
-                          setActiveSpriteSlot(slot);
-                          onSpriteOpen();
-                        }}
-                      >
-                        <PokemonSprite
-                          id={sprite?.id}
-                          size={48}
-                          className={isDisabled ? "contrast-0" : ""}
-                        />
-                      </div>
-                    );
-                  })}
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-default-500">
+                    デッキアイコン（任意・最大2つ）
+                  </span>
+                  <div className="flex items-center gap-0">
+                    {([1, 2] as const).map((slot) => {
+                      const sprite = slot === 1 ? sprite1 : sprite2;
+                      return (
+                        <div
+                          key={slot}
+                          className={`shrink-0 ${isDisabled ? "" : "cursor-pointer"}`}
+                          onClick={() => {
+                            if (isDisabled) return;
+                            setActiveSpriteSlot(slot);
+                            onSpriteOpen();
+                          }}
+                        >
+                          <PokemonSprite
+                            id={sprite?.id}
+                            size={48}
+                            className={isDisabled ? "contrast-0" : ""}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 <Input

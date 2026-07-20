@@ -217,12 +217,12 @@ export default function CreateDeckCodeModal({
                   isRequired
                   isDisabled={isDisabled}
                   isInvalid={!isValidedDeckCode}
-                  errorMessage="有効なデッキコードを入力してください"
+                  errorMessage="有効なデッキコードを貼り付けてください"
                   type="text"
                   label="デッキコード"
                   labelPlacement="outside"
                   placeholder={
-                    deckcode && deckcode.code ? deckcode.code : "デッキコードを入力"
+                    deckcode && deckcode.code ? deckcode.code : "デッキコードを貼り付け"
                   }
                   value={newdeckcode}
                   onChange={(e) => setNewDeckCode(e.target.value)}

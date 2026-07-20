@@ -278,11 +278,11 @@ export default function CreateDeckModal({
                 <Input
                   isDisabled={isDisabled}
                   isInvalid={!isValidatedDeckCode}
-                  errorMessage="有効なデッキコードを入力してください"
+                  errorMessage="有効なデッキコードを貼り付けてください"
                   type="text"
                   label="デッキコード"
                   labelPlacement="outside"
-                  placeholder="デッキコードを入力"
+                  placeholder="デッキコードを貼り付け"
                   value={deckcode}
                   onChange={(e) => setDeckCode(e.target.value)}
                   onFocus={(e) => scrollIntoViewAfterKeyboard(e.currentTarget)}
@@ -327,7 +327,7 @@ export default function CreateDeckModal({
                       デッキコードは後からでも登録できます
                     </div>
                     <div className="text-tiny text-default-400 text-center">
-                      デッキコードを入力すると、
+                      対象のデッキコードが
                       <br />
                       最初のバージョンとして登録されます。
                     </div>

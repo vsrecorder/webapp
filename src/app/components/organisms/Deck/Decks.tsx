@@ -202,7 +202,7 @@ export default function Decks({ userId, isArchived, onCreated }: Props) {
                   <p className="text-xs text-default-500">
                     下のボタンまたは右下の
                     <span className="font-bold">「＋」ボタン</span>
-                    をタップして、<br></br>デッキ名とデッキコードを入力してください
+                    をタップして、<br></br>デッキ名とデッキコードを貼り付けてください
                   </p>
                 </div>
               </div>
@@ -330,7 +330,12 @@ export default function Decks({ userId, isArchived, onCreated }: Props) {
 
         {isInitialLoaded && !isLoading && !error && hasMore && (
           <div className="flex justify-center col-span-1 lg:col-span-2">
-            <Button size="sm" radius="full" onPress={loadMore} className="w-48 max-w-full">
+            <Button
+              size="sm"
+              radius="full"
+              onPress={loadMore}
+              className="w-48 max-w-full"
+            >
               <div className="flex items-center gap-1">
                 <span className="text-xs">
                   <LuCirclePlus />

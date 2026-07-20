@@ -104,7 +104,8 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
 
   const hasChanges =
     newDeckName !== deck.name ||
-    (sprite1?.id ?? null) !== (getDeckSpriteBySlot(deck.pokemon_sprites, 1)?.id ?? null) ||
+    (sprite1?.id ?? null) !==
+      (getDeckSpriteBySlot(deck.pokemon_sprites, 1)?.id ?? null) ||
     (sprite2?.id ?? null) !== (getDeckSpriteBySlot(deck.pokemon_sprites, 2)?.id ?? null);
 
   const resetToDefaults = () => {
@@ -277,7 +278,7 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
                   isRequired
                   isDisabled={isDisabled}
                   //isInvalid={!isValidedDeckName}
-                  //errorMessage="有効なデッキコードを入力してください"
+                  //errorMessage="有効なデッキコードを貼り付けてください"
                   type="text"
                   label="デッキ名"
                   labelPlacement="outside"

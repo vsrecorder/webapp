@@ -202,8 +202,7 @@ export default function KizunaSimulator() {
       deckName: partnerLabel,
       // スロット(1枠目/2枠目)を保持したまま渡す(空スロットは""でunknown表示)。
       // 両枠空ならプレビュー側のサンプル差し替え(length>0判定)に合わせて空配列。
-      spriteIds:
-        sprite1Id || sprite2Id ? [sprite1Id ?? "", sprite2Id ?? ""] : [],
+      spriteIds: sprite1Id || sprite2Id ? [sprite1Id ?? "", sprite2Id ?? ""] : [],
       kizunaLevel: score,
       registeredAt: null,
       stats: null,
@@ -425,7 +424,7 @@ export default function KizunaSimulator() {
               onKeyDown={handleDeckNameKeyDown}
               onFocus={(e) => scrollIntoViewAfterKeyboard(e.currentTarget)}
               label="デッキ名（任意）"
-              placeholder="リザードンex"
+              placeholder="デッキ名（任意）"
               maxLength={DECK_NAME_MAX_LENGTH}
               description={`${deckName.length} / ${DECK_NAME_MAX_LENGTH}文字（Enterで次へ）`}
               isClearable

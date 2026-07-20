@@ -253,6 +253,9 @@ function convertToOfficialEventOption(
     } else if (officialEvent.title.includes("ビクティニBWR争奪戦")) {
       image_alt = "ビクティニBWR争奪戦";
       image_src += "victini_bwr.png";
+    } else if (officialEvent.title.includes("メガエルレイドexSARゲットバトル")) {
+      image_alt = "メガエルレイドexSARゲットバトル";
+      image_src += "mega-gallade_ex_sar.png";
     } else if (officialEvent.title.includes("スタートデッキ100　そのままバトル")) {
       image_alt = "スタートデッキ100　そのままバトル";
       image_src += "100_sonomama_battle.png";

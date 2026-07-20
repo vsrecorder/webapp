@@ -28,7 +28,7 @@ import PokemonSprite from "@app/components/atoms/PokemonSprite";
 
 // 試算前に出すサンプル。実在しないデッキ。
 const SAMPLE = {
-  deckName: "リザードンex",
+  deckName: "ピジョリザ",
   spriteIds: ["0006", "0018"], // リザードン・ピジョット
   registeredAt: "2026年7月9日(金)",
   kizunaLevel: 209,

@@ -107,6 +107,9 @@ export function getEventIconUrl(officialEvent: OfficialEventGetByIdResponseType)
     if (officialEvent.title.includes("ビクティニBWR争奪戦")) {
       return `${ICON_BASE}victini_bwr.png`;
     }
+    if (officialEvent.title.includes("メガエルレイドexSARゲットバトル")) {
+      return `${ICON_BASE}mega-gallade_ex_sar.png`;
+    }
     if (officialEvent.title.includes("スタートデッキ100　そのままバトル")) {
       return `${ICON_BASE}100_sonomama_battle.png`;
     }

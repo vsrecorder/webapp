@@ -41,7 +41,7 @@ export default function MobileSignIn({ iconUrl, isDevEnv }: Props) {
         isKeyboardDismissDisabled={isSigningIn}
       >
         <ModalContent>
-          {() => (
+          {(onClose) => (
             <>
               <div
                 className={`px-6 pt-8 pb-7 flex flex-col items-center gap-3 rounded-t-xl ${
@@ -72,7 +72,7 @@ export default function MobileSignIn({ iconUrl, isDevEnv }: Props) {
                 <p className="text-center text-sm text-default-500">
                   アカウントでログイン
                 </p>
-                <SocialSignIn onLoadingChange={setIsSigningIn} />
+                <SocialSignIn onLoadingChange={setIsSigningIn} onClose={onClose} />
               </ModalBody>
 
               <ModalFooter />

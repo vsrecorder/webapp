@@ -41,7 +41,7 @@ export default function DesktopSignUp({ iconUrl, isDevEnv }: Props) {
         isKeyboardDismissDisabled={isSigningIn}
       >
         <ModalContent>
-          {() => (
+          {(onClose) => (
             <>
               <div
                 className={`px-6 pt-8 pb-7 flex flex-col items-center gap-3 rounded-t-xl ${
@@ -72,7 +72,7 @@ export default function DesktopSignUp({ iconUrl, isDevEnv }: Props) {
                 <p className="text-center text-sm text-default-500">
                   アカウントで新規登録
                 </p>
-                <SocialSignIn mode="signup" onLoadingChange={setIsSigningIn} />
+                <SocialSignIn mode="signup" onLoadingChange={setIsSigningIn} onClose={onClose} />
                 <p className="text-center text-xs text-default-400 leading-relaxed">
                   登録することで、バトレコの{" "}
                   <Link

@@ -18,6 +18,7 @@ import PhoneMock from "@app/components/molecules/PhoneMock";
 import { CityleagueScheduleType } from "@app/types/cityleague_schedule";
 import { EnvironmentType } from "@app/types/environment";
 import { isDevEnv } from "@app/utils/appIcon";
+import { getEnvDotColor } from "@app/utils/environment";
 
 import { upstreamUrl } from "@app/utils/upstream";
 
@@ -71,18 +72,15 @@ async function getCityleagueScheduleByDate(date: Date): Promise<CityleagueSchedu
   try {
     const today = date.toISOString().split("T")[0];
 
-    const res = await fetch(
-      upstreamUrl`/api/v1beta/cityleague_schedules?date=${today}`,
-      {
-        // シティリーグの開催情報は最大でも日次更新のため、毎回取得(no-store)は不要。
-        // 5分キャッシュ(stale-while-revalidate)にしてサーバ応答(TTFB)を短縮し、FCP/LCPを改善する。
-        next: { revalidate: 300 },
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-        },
+    const res = await fetch(upstreamUrl`/api/v1beta/cityleague_schedules?date=${today}`, {
+      // シティリーグの開催情報は最大でも日次更新のため、毎回取得(no-store)は不要。
+      // 5分キャッシュ(stale-while-revalidate)にしてサーバ応答(TTFB)を短縮し、FCP/LCPを改善する。
+      next: { revalidate: 300 },
+      method: "GET",
+      headers: {
+        Accept: "application/json",
       },
-    );
+    });
 
     if (res.status === 200) {
       const ret: CityleagueScheduleType = await res.json();
@@ -265,12 +263,31 @@ export default async function TemplateHome() {
     <>
       {/* ヒーローセクション：グラデーション背景で全幅に広げる（-mt-14でmainのpt-14分も覆い、ヘッダー裏の白背景を隠す。lg以上はヘッダーがh-28になる分-mt-28で揃える） */}
       <section
-        className={`-mx-2 -mt-14 lg:-mt-28 text-white px-6 pt-22 pb-14 lg:px-8 lg:pt-36 lg:pb-20 flex flex-col items-center gap-5 lg:gap-7 ${
+        className={`relative overflow-hidden -mx-2 -mt-14 lg:-mt-28 text-white px-6 pt-22 pb-14 lg:px-8 lg:pt-36 lg:pb-20 flex flex-col items-center gap-5 lg:gap-7 ${
           isDevEnv()
             ? "bg-linear-to-br from-orange-500 via-orange-600 to-amber-700"
             : "bg-linear-to-br from-blue-600 via-indigo-600 to-violet-700"
         }`}
       >
+        {/*
+         * 装飾：「きずな」ページの“焚き火の残光”と同じ手法。大きくぼかした光を背面に散らし、
+         * 平坦なグラデーションに奥行きと華やかさを与える。
+         * 以降の兄弟要素には relative を付け、絶対配置のこの光より前面に描画させる
+         * （z-index を使わず、位置指定要素同士のDOM順で重なりを決めている）。
+         */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -top-24 -left-24 h-80 w-80 rounded-full bg-cyan-300/25 blur-3xl"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -bottom-32 -right-16 h-96 w-96 rounded-full bg-amber-400/30 blur-3xl"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute top-1/4 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-violet-400/20 blur-3xl"
+        />
+
         <div className="w-20 h-20 lg:w-28 lg:h-28 relative">
           <Image
             // LCP要素。本番でも外部CDNではなくローカル静的ファイルを使い、
@@ -284,33 +301,59 @@ export default async function TemplateHome() {
           />
         </div>
 
-        <div className="flex flex-col items-center gap-2 lg:gap-4 text-center">
-          <h1 className="text-3xl lg:text-6xl font-black tracking-tight leading-snug lg:leading-tight">
-            ポケカの対戦を、
+        <div className="relative flex flex-col items-center gap-2 lg:gap-4 text-center">
+          <h1 className="text-3xl lg:text-6xl font-black tracking-tight leading-snug lg:leading-tight drop-shadow-[0_2px_24px_rgba(2,6,23,0.35)]">
+            対戦を記録するほど、
             <br />
-            記録しよう。
+            デッキは物語になる。
           </h1>
-          <p className="text-sm lg:text-lg text-white/80 max-w-s lg:max-w-xl leading-relaxed pt-1">
-            対戦記録・デッキ管理・シティリーグの結果閲覧まで。
+          {/*
+           * 一番読ませたい訴求。見出し直下に置き、文字自体を発光させて「きずな」の灯と
+           * 世界観を揃える。淡い放射グラデーションは要素自身の background に置いている
+           * （子要素 + 負のz-indexだと、親が重なりコンテキストを作らずヒーロー背景の裏に回るため）。
+           * モバイルを text-sm 止まりにしているのは、text-base だと1行が約358pxになり、
+           * 幅375pxの端末(可用幅約343px)で意図しない折り返しが起きるため。
+           */}
+          <p className="bg-radial from-amber-300/20 to-transparent to-70% pt-1 text-sm font-bold leading-relaxed text-amber-100 drop-shadow-[0_0_28px_rgba(251,191,36,0.5)] lg:px-10 lg:text-2xl">
+            勝敗だけじゃ語れない、デッキとの歩みを残す。
             <br />
-            ポケカプレイヤーのための対戦記録サービス。
+            ポケカトレーナーとデッキの物語をここに。
+          </p>
+
+          {/* 訴求と補足を分ける区切り。両端が消える金の罫線＋中央の菱形で紋章的な“格”を出す */}
+          <div
+            aria-hidden="true"
+            className="relative flex w-full max-w-2xs items-center justify-center lg:max-w-md"
+          >
+            <span className="h-px w-full bg-linear-to-r from-transparent via-amber-200/60 to-transparent" />
+            <span className="absolute h-2.5 w-2.5 rotate-45 bg-amber-200 shadow-[0_0_12px_rgba(251,191,36,0.9)]" />
+          </div>
+
+          {/* 機能の要約とサービスの定義。主役は上の訴求文なので、小さく控えめにまとめる */}
+          <p className="text-xs lg:text-base text-white/70 leading-relaxed">
+            対戦記録/デッキ管理/シティリーグの結果閲覧まで。
+            <br />
+            ポケカトレーナーのための対戦記録サービス。
           </p>
         </div>
 
-        <div className="flex items-center gap-3 lg:gap-4 flex-wrap justify-center">
-          <span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-5 py-2 lg:px-6 lg:py-2.5 text-sm lg:text-base font-bold">
+        <div className="relative flex items-center gap-3 lg:gap-4 flex-wrap justify-center">
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/15 px-5 py-2 lg:px-6 lg:py-2.5 text-sm lg:text-base font-bold backdrop-blur-sm">
             <LuMegaphoneOff className="text-base lg:text-lg shrink-0" />
             広告なし
           </span>
-          <span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-5 py-2 lg:px-6 lg:py-2.5 text-sm lg:text-base font-bold">
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/15 px-5 py-2 lg:px-6 lg:py-2.5 text-sm lg:text-base font-bold backdrop-blur-sm">
             <LuBadgeJapaneseYen className="text-base lg:text-lg shrink-0" />
             完全無料
           </span>
         </div>
 
         {env && (
-          <div className="inline-flex items-center gap-2 rounded-full bg-white/20 backdrop-blur-sm px-4 py-1.5 lg:px-5 lg:py-2 text-xs lg:text-sm font-bold">
-            <span className="w-2 h-2 lg:w-2.5 lg:h-2.5 rounded-full bg-green-300 animate-pulse shrink-0" />
+          <div className="relative inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/20 backdrop-blur-sm px-4 py-1.5 lg:px-5 lg:py-2 text-xs lg:text-sm font-bold">
+            {/* 残り日数による配色は、ログイン済みヘッダーの表示と同じ getEnvDotColor に揃える */}
+            <span
+              className={`w-2 h-2 lg:w-2.5 lg:h-2.5 rounded-full ${getEnvDotColor(env.to_date)} animate-pulse shrink-0`}
+            />
             現在の対戦環境：『{env.title}』
           </div>
         )}

@@ -21,9 +21,12 @@ type Props = {
   mode?: "signin" | "signup";
   // ログイン処理中（成功後のリダイレクト待ちを含む）かどうかを親に通知する
   onLoadingChange?: (isLoading: boolean) => void;
+  // モーダル内で表示している場合に閉じるためのコールバック。
+  // アプリ内ブラウザ案内でURLをコピーした後に呼ばれる。
+  onClose?: () => void;
 };
 
-export default function SocialSignIn({ mode = "signin", onLoadingChange }: Props) {
+export default function SocialSignIn({ mode = "signin", onLoadingChange, onClose }: Props) {
   const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
   const [isLoadingX, setIsLoadingX] = useState(false);
   const [errorStatus, setErrorStatus] = useState<SignInErrorStatus | null>(null);
@@ -48,7 +51,7 @@ export default function SocialSignIn({ mode = "signin", onLoadingChange }: Props
   // アプリ内ブラウザ(WebView)ではGoogleがOAuthを拒否するため、
   // ソーシャルログインは提示せず外部ブラウザへの導線のみを表示する
   if (isInApp) {
-    return <InAppBrowserNotice actionLabel={actionLabel} />;
+    return <InAppBrowserNotice actionLabel={actionLabel} onCopied={onClose} />;
   }
 
   const errorMessage =

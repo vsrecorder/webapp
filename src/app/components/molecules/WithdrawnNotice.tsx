@@ -32,9 +32,11 @@ export default function WithdrawnNotice() {
     return null;
   }
 
+  // ヒーローセクションが -mt-14(lg:-mt-28) でヘッダー裏まで広がる作りのため、
+  // 通常のフローに差し込むと重なって隠れてしまう。ヘッダーの直下に浮かせる。
   return (
-    <div className="px-4 pt-4">
-      <Card shadow="sm" className="w-full border border-default-200">
+    <div className="fixed inset-x-0 top-14 lg:top-28 z-40 flex justify-center px-3 pt-3 pointer-events-none">
+      <Card shadow="lg" className="w-full max-w-md border border-default-200 pointer-events-auto">
         <CardBody className="flex flex-row items-start gap-3 py-4 px-4">
           <LuInfo className="mt-0.5 shrink-0 text-medium text-default-400" />
 

@@ -45,6 +45,16 @@ const rollbackNewFirebaseUser = async (credential: UserCredential) => {
   }
 };
 
+// Firebase 側のサインイン状態を解除する。
+// 失敗しても後続の遷移は続けたいので、ここで握り潰す。
+const signOutFromFirebase = async () => {
+  try {
+    await firebaseClientAuth.signOut();
+  } catch (error) {
+    console.error("Failed to sign out from firebase:", error);
+  }
+};
+
 export const handleSignIn = async (
   provider: AuthProvider,
   redirectPathname: string,
@@ -95,12 +105,47 @@ export const handleSignIn = async (
 
     const idToken = await credential.user.getIdToken(true);
 
-    // NextAuth に渡してサインイン
+    // NextAuth に渡してサインイン。
+    //
+    // redirect:false にして遷移先を自分で決めている。
+    // authorize が投げる CredentialsSignin は kind が "signIn" のため、
+    // NextAuth は pages.error ではなく pages.signIn（未設定なら /api/auth/signin）へ
+    // 飛ばしてしまい、用意した案内画面に辿り着けないため。
     const result = await signIn("credentials", {
       callbackUrl: redirectPathname,
       idToken,
-      redirect: true,
+      redirect: false,
     });
+
+    if (result.ok && !result.error) {
+      // 成功。サーバ側で発行されたセッションを読み込ませるため画面ごと遷移する
+      window.location.href = result.url ?? redirectPathname;
+      return result;
+    }
+
+    setIsLoading(false);
+    console.error("Failed to sign in:", result.error, result.code);
+
+    // サインインが成立しなかった以上、このサインインで作られた認証ユーザは
+    // DB未登録のまま取り残される。サーバ側でも削除しているが、ID トークンの検証に
+    // 失敗した場合など、サーバ側があえて削除しない経路もあるためここでも取り消す。
+    // 既存ユーザ(isNewUser === false)は対象外なので、退会済みアカウントには影響しない。
+    await rollbackNewFirebaseUser(credential);
+
+    if (result.code === "withdrawn") {
+      // 退会済みのアカウント。認証ユーザはサーバ側で削除済みなので、
+      // ブラウザに残っているサインイン状態も消してからトップページへ戻す。
+      await signOutFromFirebase();
+      window.location.href = "/?notice=withdrawn";
+      return result;
+    }
+
+    if (result.code === "backend_unavailable" || result.code === "registration_failed") {
+      window.location.href = `/auth/error?code=${result.code}`;
+      return result;
+    }
+
+    setErrorStatus?.("failed");
 
     return result;
   } catch (error) {

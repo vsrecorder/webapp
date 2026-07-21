@@ -58,8 +58,10 @@ const FRESHLY_CREATED_WINDOW_MS = 10 * 60 * 1000;
 // このサインインで初めて作成された認証ユーザーかどうかを判定する。
 // DBの状態を確認できなかった経路では「既存ユーザーなのかDB未登録の新規ユーザーなのか」を
 // 区別できないため、誤って既存ユーザーを削除しないようにこの判定を挟む。
-// 作成時刻が直近であり、かつ最終ログイン時刻が作成時刻とほぼ同じ
-// （＝これが初回のログイン）である場合のみ新規とみなす。
+//
+// 作成から間もないことだけを条件にしている。既存ユーザーは作成時刻が古いので必ず外れ、
+// DB登録に失敗して取り残された過去の認証ユーザーも同様に対象外になる
+// （そちらはDBの状態を確認できた経路で無条件に削除される）。
 // 判定に失敗した場合は削除しない側に倒す。
 async function isFreshlyCreatedUser(app: admin.app.App, uid: string): Promise<boolean> {
   try {
@@ -70,18 +72,7 @@ async function isFreshlyCreatedUser(app: admin.app.App, uid: string): Promise<bo
       return false;
     }
 
-    // 作成から時間が経っているユーザーは、このサインインで作られたものではない
-    if (Date.now() - createdAt > FRESHLY_CREATED_WINDOW_MS) {
-      return false;
-    }
-
-    // 過去にログイン実績があるユーザーは、DB登録済みで運用されてきた可能性がある
-    const lastSignInAt = Date.parse(metadata.lastSignInTime);
-    if (!Number.isNaN(lastSignInAt) && lastSignInAt - createdAt > FRESHLY_CREATED_WINDOW_MS) {
-      return false;
-    }
-
-    return true;
+    return Date.now() - createdAt <= FRESHLY_CREATED_WINDOW_MS;
   } catch (error) {
     console.error("Failed to check if firebase user is freshly created:", uid, error);
     return false;

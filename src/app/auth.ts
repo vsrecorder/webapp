@@ -15,6 +15,8 @@ import {
 
 import type { DecodedIdToken } from "firebase-admin/auth";
 
+import { MAX_USER_NAME_LENGTH, exceedsTextLength } from "@app/utils/textLength";
+
 // バックエンド(core-apiserver)に疎通できない場合に投げるエラー。
 // CredentialsSigninを継承することで /auth/error?code=backend_unavailable にリダイレクトされ、
 // 専用の案内画面を表示できる。
@@ -60,10 +62,6 @@ declare module "next-auth/jwt" {
 // 認証プロバイダの表示名をそのまま使えない場合に代わりに使う名前
 const FALLBACK_USER_NAME = "ポケカトレーナー";
 
-// core-apiserver側のusers.nameはVARCHAR(63)で、超過するとユーザ登録が400で弾かれる。
-// 向こうのバリデーションはUTF-8のコードポイント数で行われるため、こちらも同じ数え方をする。
-const MAX_USER_NAME_LENGTH = 63;
-
 // 認証プロバイダから受け取った表示名を、DBに登録できる形に整える。
 // 表示名が未設定・空白のみだったり、上限を超えて長かったりする場合、
 // そのまま送るとバックエンドに400で弾かれ、そのユーザは何度サインインしても
@@ -71,12 +69,7 @@ const MAX_USER_NAME_LENGTH = 63;
 function normalizeUserName(name: unknown): string {
   const trimmed = typeof name === "string" ? name.trim() : "";
 
-  if (trimmed === "") {
-    return FALLBACK_USER_NAME;
-  }
-
-  // サロゲートペア(絵文字など)を1文字として数えるため、lengthではなく分割して数える
-  if ([...trimmed].length > MAX_USER_NAME_LENGTH) {
+  if (trimmed === "" || exceedsTextLength(trimmed, MAX_USER_NAME_LENGTH)) {
     return FALLBACK_USER_NAME;
   }
 
@@ -329,7 +322,11 @@ const {
           // 何もしないとFirebaseのユーザだけが残ってDB未登録の状態になるため、
           // Firebase側を削除してサインイン前の状態にロールバックする。
           // ただし削除は取り返しがつかないため、DBの状態をもう一度確認してから判断する。
-          const existence = await checkUserExistence(domain, user.id);
+          // 退会済み(410)だけは「有効なユーザが居ない」ことが確定しているので再確認を省く。
+          const existence =
+            error instanceof WithdrawnAccountError
+              ? "absent"
+              : await checkUserExistence(domain, user.id);
 
           if (existence === "exists") {
             // 登録POSTのレスポンスを受け取れなかっただけで、DBには登録できていた。

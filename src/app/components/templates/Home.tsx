@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 
 import {
   LuFilePen,
@@ -8,6 +9,7 @@ import {
   LuMoon,
   LuBadgeJapaneseYen,
   LuMegaphoneOff,
+  LuChevronRight,
 } from "react-icons/lu";
 
 import Footer from "@app/components/organisms/Layout/Footer";
@@ -16,9 +18,7 @@ import StatsCounter from "@app/components/molecules/StatsCounter";
 import PhoneMock from "@app/components/molecules/PhoneMock";
 
 import { CityleagueScheduleType } from "@app/types/cityleague_schedule";
-import { EnvironmentType } from "@app/types/environment";
 import { isDevEnv } from "@app/utils/appIcon";
-import { getEnvDotColor } from "@app/utils/environment";
 
 import { upstreamUrl } from "@app/utils/upstream";
 
@@ -87,32 +87,6 @@ async function getCityleagueScheduleByDate(date: Date): Promise<CityleagueSchedu
       return ret;
     } else if (res.status === 404) {
       throw new Error("not found");
-    } else {
-      throw new Error("error");
-    }
-  } catch (error) {
-    throw error;
-  }
-}
-
-async function getEnvironmentByDate(date: Date): Promise<EnvironmentType> {
-  try {
-    const today = date.toISOString().split("T")[0];
-
-    const res = await fetch(upstreamUrl`/api/v1beta/environments?date=${today}`, {
-      // 対戦環境情報も日次更新のため、5分キャッシュにしてTTFBを短縮する。
-      next: { revalidate: 300 },
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
-    });
-
-    if (res.status === 200) {
-      const ret: EnvironmentType = await res.json();
-      return ret;
-    } else if (res.status === 400) {
-      throw new Error("bad request");
     } else {
       throw new Error("error");
     }
@@ -242,12 +216,11 @@ const steps = [
 export default async function TemplateHome() {
   const date = new Date(Date.now() + 9 * 60 * 60 * 1000);
 
-  // シティリーグ・対戦環境・Grafana統計(パネルID: 7=デッキコード数, 5=対戦数, 2=ユーザ数)を
+  // シティリーグ・Grafana統計(パネルID: 7=デッキコード数, 5=対戦数, 2=ユーザ数)を
   // すべて並列取得する。直列にawaitするとfetch分だけTTFBが積み上がり、FCP/LCPが悪化するため。
-  // 失敗しても描画を止めないよう、cs/envはcatchでundefinedにフォールバックする。
-  const [cs, env, deckCodeCount, recordCount, userCount] = await Promise.all([
+  // 失敗しても描画を止めないよう、csはcatchでundefinedにフォールバックする。
+  const [cs, deckCodeCount, recordCount, userCount] = await Promise.all([
     getCityleagueScheduleByDate(date).catch(() => undefined),
-    getEnvironmentByDate(date).catch(() => undefined),
     getGrafanaStat(7),
     getGrafanaStat(5),
     getGrafanaStat(2),
@@ -348,15 +321,18 @@ export default async function TemplateHome() {
           </span>
         </div>
 
-        {env && (
-          <div className="relative inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/20 backdrop-blur-sm px-4 py-1.5 lg:px-5 lg:py-2 text-xs lg:text-sm font-bold">
-            {/* 残り日数による配色は、ログイン済みヘッダーの表示と同じ getEnvDotColor に揃える */}
-            <span
-              className={`w-2 h-2 lg:w-2.5 lg:h-2.5 rounded-full ${getEnvDotColor(env.to_date)} animate-pulse shrink-0`}
-            />
-            現在の対戦環境：『{env.title}』
-          </div>
-        )}
+        {/*
+         * 開発中の新機能「きずな」への導線。配色は /kizuna 側ヒーローの琥珀のピルに合わせ、
+         * 同じ機能の話だと一目で分かるようにする。押せることは矢印とホバーの動きで示す。
+         */}
+        <Link
+          href="/kizuna"
+          className="group relative inline-flex items-center gap-2.5 rounded-full border border-amber-300/50 bg-amber-400/15 px-5 py-2 lg:px-6 lg:py-2.5 text-xs lg:text-sm font-bold text-amber-100 backdrop-blur-sm transition-colors hover:bg-amber-400/25 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-200"
+        >
+          <span className="w-2 h-2 lg:w-2.5 lg:h-2.5 shrink-0 animate-pulse rounded-full bg-amber-300 shadow-[0_0_10px_rgba(251,191,36,0.9)]" />
+          新機能「きずな」を開発中
+          <LuChevronRight className="shrink-0 text-sm lg:text-base transition-transform group-hover:translate-x-0.5" />
+        </Link>
       </section>
 
       <div className="flex flex-col gap-16 lg:gap-24 max-w-2xl lg:max-w-6xl xl:max-w-7xl mx-auto w-full pt-14 lg:pt-20 lg:px-8">

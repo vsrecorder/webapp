@@ -45,6 +45,10 @@ import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
 import { getSpriteBySlot } from "@app/utils/spriteSlot";
 import { closingPassthroughClassNames } from "@app/utils/modal";
 import {
+  MAX_OPPONENTS_DECK_INFO_LENGTH,
+  exceedsTextLength,
+} from "@app/utils/textLength";
+import {
   GameInput,
   newGameInputs,
   submittedGames,
@@ -143,6 +147,12 @@ export default function UpdateMatchModal({
   const [finalTournamentFlg, setFinalTournamentFlg] = useState(false);
 
   const [opponentsDeckInfo, setOpponentsDeckInfo] = useState<string>("");
+
+  // 上限を超えたままではAPIが400を返すため、更新ボタンを押せないようにする
+  const isOpponentsDeckInfoTooLong = exceedsTextLength(
+    opponentsDeckInfo,
+    MAX_OPPONENTS_DECK_INFO_LENGTH,
+  );
 
   const [isGoFirst, setIsGoFirst] = useState("-1");
   const [isVictory, setIsVictory] = useState("-1");
@@ -757,6 +767,8 @@ export default function UpdateMatchModal({
                 value={opponentsDeckInfo}
                 onChange={(e) => setOpponentsDeckInfo(e.target.value)}
                 onFocus={(e) => scrollIntoViewAfterKeyboard(e.currentTarget)}
+                isInvalid={isOpponentsDeckInfoTooLong}
+                errorMessage={`${MAX_OPPONENTS_DECK_INFO_LENGTH}文字以内で入力してください`}
               />
             </div>
 
@@ -1152,6 +1164,7 @@ export default function UpdateMatchModal({
                   isDisabled={
                     isSubmitting ||
                     !isValidedFlg ||
+                    isOpponentsDeckInfoTooLong ||
                     (!isDisabled && !couldUpdateFlg) ||
                     !hasChanges
                   }

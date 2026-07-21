@@ -20,6 +20,11 @@ import { LuCamera } from "react-icons/lu";
 import { UserUpdateRequestType } from "@app/types/user";
 import { useUserAvatar } from "@app/contexts/UserAvatarContext";
 import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
+import {
+  MAX_USER_NAME_LENGTH,
+  countTextLength,
+  exceedsTextLength,
+} from "@app/utils/textLength";
 
 type Props = {
   userId: string;
@@ -133,7 +138,8 @@ export default function UpdateNameModal({
 
   const handleUpdate = async (onClose: () => void) => {
     const trimmedName = name.trim();
-    if (!trimmedName) return;
+    // 更新ボタン側でも弾いているが、送ってもサーバに400で拒否されるだけなので念のため止める
+    if (!trimmedName || exceedsTextLength(trimmedName, MAX_USER_NAME_LENGTH)) return;
 
     setIsDisabled(true);
 
@@ -203,6 +209,9 @@ export default function UpdateNameModal({
   const isUnchanged =
     name.trim() === currentName && !croppedBlob;
 
+  const nameLength = countTextLength(name.trim());
+  const isNameTooLong = nameLength > MAX_USER_NAME_LENGTH;
+
   return (
     <Modal
       size="sm"
@@ -263,6 +272,9 @@ export default function UpdateNameModal({
                     value={name}
                     onValueChange={setName}
                     onFocus={(e) => scrollIntoViewAfterKeyboard(e.currentTarget)}
+                    isInvalid={isNameTooLong}
+                    errorMessage={`名前は${MAX_USER_NAME_LENGTH}文字以内で入力してください（現在${nameLength}文字）`}
+                    description={`${nameLength}/${MAX_USER_NAME_LENGTH}文字`}
                     className="w-full"
                   />
                 </ModalBody>
@@ -280,7 +292,7 @@ export default function UpdateNameModal({
                   <Button
                     color="primary"
                     variant="solid"
-                    isDisabled={isDisabled || !name.trim() || isUnchanged}
+                    isDisabled={isDisabled || !name.trim() || isUnchanged || isNameTooLong}
                     onPress={() => handleUpdate(onClose)}
                     className="font-bold"
                   >

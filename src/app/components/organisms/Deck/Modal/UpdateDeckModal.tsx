@@ -21,6 +21,7 @@ import {
   DeckUpdateResponseType,
 } from "@app/types/deck";
 import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
+import { MAX_DECK_NAME_LENGTH, countTextLength } from "@app/utils/textLength";
 
 async function fetcherForPokemonSprites(url: string) {
   const res = await fetch(url, {
@@ -107,6 +108,10 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
     (sprite1?.id ?? null) !==
       (getDeckSpriteBySlot(deck.pokemon_sprites, 1)?.id ?? null) ||
     (sprite2?.id ?? null) !== (getDeckSpriteBySlot(deck.pokemon_sprites, 2)?.id ?? null);
+
+  const newDeckNameLength = countTextLength(newDeckName.trim());
+  // 上限を超えたままではAPIが400を返すため、更新ボタンを押せないようにする
+  const isNewDeckNameTooLong = newDeckNameLength > MAX_DECK_NAME_LENGTH;
 
   const resetToDefaults = () => {
     setNewDeckName(deck.name);
@@ -277,8 +282,6 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
                 <Input
                   isRequired
                   isDisabled={isDisabled}
-                  //isInvalid={!isValidedDeckName}
-                  //errorMessage="有効なデッキコードを貼り付けてください"
                   type="text"
                   label="デッキ名"
                   labelPlacement="outside"
@@ -286,6 +289,9 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
                   value={newDeckName}
                   onChange={(e) => setNewDeckName(e.target.value)}
                   onFocus={(e) => scrollIntoViewAfterKeyboard(e.currentTarget)}
+                  isInvalid={isNewDeckNameTooLong}
+                  errorMessage={`デッキ名は${MAX_DECK_NAME_LENGTH}文字以内で入力してください（現在${newDeckNameLength}文字）`}
+                  description={`${newDeckNameLength}/${MAX_DECK_NAME_LENGTH}文字`}
                 />
 
                 {/*
@@ -316,7 +322,7 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
                 <Button
                   color="primary"
                   variant="solid"
-                  isDisabled={!hasChanges || isDisabled}
+                  isDisabled={!hasChanges || isNewDeckNameTooLong || isDisabled}
                   onPress={() => {
                     updateDeck(onClose);
                   }}

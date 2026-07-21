@@ -45,6 +45,10 @@ import { getSpriteBySlot } from "@app/utils/spriteSlot";
 import { isIOS } from "@app/utils/platform";
 import { closingPassthroughClassNames } from "@app/utils/modal";
 import {
+  MAX_OPPONENTS_DECK_INFO_LENGTH,
+  exceedsTextLength,
+} from "@app/utils/textLength";
+import {
   GameInput,
   newGameInputs,
   submittedGames,
@@ -143,6 +147,12 @@ export default function CreateMatchModal({
   const [isValidedFlg, setIsValidedFlg] = useState(true);
 
   const [opponentsDeckInfo, setOpponentsDeckInfo] = useState<string>("");
+
+  // 上限を超えたままではAPIが400を返すため、作成ボタンを押せないようにする
+  const isOpponentsDeckInfoTooLong = exceedsTextLength(
+    opponentsDeckInfo,
+    MAX_OPPONENTS_DECK_INFO_LENGTH,
+  );
 
   const [isGoFirst, setIsGoFirst] = useState("-1");
   const [isVictory, setIsVictory] = useState("-1");
@@ -666,6 +676,8 @@ export default function CreateMatchModal({
                 value={opponentsDeckInfo}
                 onChange={(e) => setOpponentsDeckInfo(e.target.value)}
                 onFocus={(e) => scrollIntoViewAfterKeyboard(e.currentTarget)}
+                isInvalid={isOpponentsDeckInfoTooLong}
+                errorMessage={`${MAX_OPPONENTS_DECK_INFO_LENGTH}文字以内で入力してください`}
               />
             </div>
 
@@ -994,7 +1006,10 @@ export default function CreateMatchModal({
                   // isSubmitting: 登録APIの実行中の連打による多重登録を防ぐ。
                   // 不戦勝/不戦敗(isDisabled)の場合は couldCreateFlg が効かないため、これが唯一のガードになる
                   isDisabled={
-                    isSubmitting || !isValidedFlg || (!isDisabled && !couldCreateFlg)
+                    isSubmitting ||
+                    !isValidedFlg ||
+                    isOpponentsDeckInfoTooLong ||
+                    (!isDisabled && !couldCreateFlg)
                   }
                   isLoading={isSubmitting}
                   onPress={() => {

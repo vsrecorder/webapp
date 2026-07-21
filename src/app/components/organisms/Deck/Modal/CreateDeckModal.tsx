@@ -20,6 +20,7 @@ import { DeckCreateRequestType } from "@app/types/deck";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
+import { MAX_DECK_NAME_LENGTH, countTextLength } from "@app/utils/textLength";
 
 const DECK_CODE_LENGTH = 20;
 const DECK_CODE_CHECK_DEBOUNCE_MS = 500;
@@ -55,19 +56,24 @@ export default function CreateDeckModal({
     onOpenChange: onSpriteOpenChange,
   } = useDisclosure();
 
+  const decknameLength = countTextLength(deckname.trim());
+  const isDecknameTooLong = decknameLength > MAX_DECK_NAME_LENGTH;
+
   /*
     入力項目のチェック
     - デッキ名
+      - 空でないか
+      - 上限文字数を超えていないか（超えるとAPIが400を返す）
     - デッキコード
       - 有効なデッキコードかどうか
   */
   useEffect(() => {
-    if (deckname != "" && isValidatedDeckCode) {
+    if (deckname != "" && !isDecknameTooLong && isValidatedDeckCode) {
       setIsInvalid(false);
     } else {
       setIsInvalid(true);
     }
-  }, [deckname, isValidatedDeckCode]);
+  }, [deckname, isDecknameTooLong, isValidatedDeckCode]);
 
   /*
     デッキコードが有効かどうかチェック
@@ -278,6 +284,9 @@ export default function CreateDeckModal({
                   value={deckname}
                   onChange={(e) => setDeckName(e.target.value)}
                   onFocus={(e) => scrollIntoViewAfterKeyboard(e.currentTarget)}
+                  isInvalid={isDecknameTooLong}
+                  errorMessage={`デッキ名は${MAX_DECK_NAME_LENGTH}文字以内で入力してください（現在${decknameLength}文字）`}
+                  description={`${decknameLength}/${MAX_DECK_NAME_LENGTH}文字`}
                 />
 
                 <Input

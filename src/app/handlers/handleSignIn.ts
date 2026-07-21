@@ -117,6 +117,13 @@ export const handleSignIn = async (
       redirect: false,
     });
 
+    // プロバイダ一覧の取得に失敗した場合など、next-auth 自身が画面遷移させて
+    // 何も返さないことがある(型上はnon-nullだが実装上ありうる)。
+    // 既に遷移が始まっているため、ここでは何もしない。
+    if (!result) {
+      return;
+    }
+
     if (result.ok && !result.error) {
       // 成功。サーバ側で発行されたセッションを読み込ませるため画面ごと遷移する
       window.location.href = result.url ?? redirectPathname;

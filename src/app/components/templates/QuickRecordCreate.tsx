@@ -40,6 +40,11 @@ import { MatchCreateRequestType, MatchGetResponseType } from "@app/types/match";
 import { MatchPokemonSpriteType, PokemonSpriteType } from "@app/types/pokemon_sprite";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 import { getSpriteBySlot } from "@app/utils/spriteSlot";
+import {
+  MAX_EVENT_TITLE_LENGTH,
+  MAX_OPPONENTS_DECK_INFO_LENGTH,
+  exceedsTextLength,
+} from "@app/utils/textLength";
 
 const SPRITE_BASE_URL = "https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites";
 
@@ -196,8 +201,17 @@ export default function TemplateQuickRecordCreate({
     );
   }, [opponentsDeckInfo, activeCandidates]);
 
+  // 上限を超えたままではAPIが400を返すため、記録ボタンを押せないようにする
+  const isOpponentsDeckInfoTooLong = exceedsTextLength(
+    opponentsDeckInfo,
+    MAX_OPPONENTS_DECK_INFO_LENGTH,
+  );
+  const isEventTitleTooLong = exceedsTextLength(eventTitle, MAX_EVENT_TITLE_LENGTH);
+
   const canSubmit =
     opponentsDeckInfo.trim() !== "" &&
+    !isOpponentsDeckInfoTooLong &&
+    !isEventTitleTooLong &&
     goFirst !== null &&
     victory !== null &&
     (eventType === "unofficial" ||
@@ -447,6 +461,8 @@ export default function TemplateQuickRecordCreate({
                 placeholder={"例）" + (activeCandidates[0]?.deckInfo ?? "相手のデッキ名")}
                 value={opponentsDeckInfo}
                 onChange={(e) => setOpponentsDeckInfo(e.target.value)}
+                isInvalid={isOpponentsDeckInfoTooLong}
+                errorMessage={`${MAX_OPPONENTS_DECK_INFO_LENGTH}文字以内で入力してください`}
               />
             </div>
 
@@ -675,6 +691,8 @@ export default function TemplateQuickRecordCreate({
                         placeholder="例）ジムバトル（未入力なら「対戦記録」）"
                         value={eventTitle}
                         onChange={(e) => setEventTitle(e.target.value)}
+                        isInvalid={isEventTitleTooLong}
+                        errorMessage={`イベント名は${MAX_EVENT_TITLE_LENGTH}文字以内で入力してください`}
                       />
                     )}
                   </>

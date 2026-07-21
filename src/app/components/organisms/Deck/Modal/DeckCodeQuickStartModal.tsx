@@ -26,6 +26,7 @@ import PokemonSpriteModal from "@app/components/organisms/Match/Modal/PokemonSpr
 import { DeckCreateRequestType, DeckCreateResponseType } from "@app/types/deck";
 import { PokemonSpriteType, DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
+import { MAX_DECK_NAME_LENGTH, countTextLength } from "@app/utils/textLength";
 
 const DECK_CODE_LENGTH = 20;
 const DECK_CODE_CHECK_DEBOUNCE_MS = 500;
@@ -107,9 +108,14 @@ export default function DeckCodeQuickStartModal({ isOpen, onOpenChange }: Props)
     };
   }, [deckCode]);
 
+  const deckNameLength = countTextLength(deckName.trim());
+  // 上限を超えたままではAPIが400を返すため、送信させない
+  const isDeckNameTooLong = deckNameLength > MAX_DECK_NAME_LENGTH;
+
   // デッキコード(20桁・有効)とデッキ名の両方が揃って初めて「始める」を押せる
   const canSubmit =
     deckName.trim() !== "" &&
+    !isDeckNameTooLong &&
     deckCode.length === DECK_CODE_LENGTH &&
     isValidatedDeckCode &&
     !isDisabled;
@@ -261,6 +267,9 @@ export default function DeckCodeQuickStartModal({ isOpen, onOpenChange }: Props)
                 placeholder="デッキ名を入力"
                 value={deckName}
                 onChange={(e) => setDeckName(e.target.value)}
+                isInvalid={isDeckNameTooLong}
+                errorMessage={`デッキ名は${MAX_DECK_NAME_LENGTH}文字以内で入力してください（現在${deckNameLength}文字）`}
+                description={`${deckNameLength}/${MAX_DECK_NAME_LENGTH}文字`}
               />
 
               <Input

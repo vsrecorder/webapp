@@ -52,6 +52,7 @@ import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
 import { cleanOfficialEventTitle } from "@app/components/organisms/Record/officialEventHelpers";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
+import { MAX_EVENT_TITLE_LENGTH, exceedsTextLength } from "@app/utils/textLength";
 
 import { OfficialEventResponseType, OfficialEventType } from "@app/types/official_event";
 import { DeckGetAllType, DeckData } from "@app/types/deck";
@@ -920,14 +921,20 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
     }
   }, [tonamelEventId, isValidatedTonamelEventId]);
 
+  // 上限を超えたままではAPIが400を返すため、作成させない
+  const isUnofficialEventTitleTooLong = exceedsTextLength(
+    unofficialEventTitle,
+    MAX_EVENT_TITLE_LENGTH,
+  );
+
   // 自由形式はイベント名が入力されていれば作成可能（デッキは任意）
   useEffect(() => {
-    if (unofficialEventTitle.trim() !== "") {
+    if (unofficialEventTitle.trim() !== "" && !isUnofficialEventTitleTooLong) {
       setIsDisabledCreateUnofficialRecord(false);
     } else {
       setIsDisabledCreateUnofficialRecord(true);
     }
-  }, [unofficialEventTitle]);
+  }, [unofficialEventTitle, isUnofficialEventTitleTooLong]);
 
   /*
    * デッキが変更されたとき、SWR でデッキコードが取得され次第
@@ -2207,6 +2214,8 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                     value={unofficialEventTitle}
                     onChange={(e) => setUnofficialEventTitle(e.target.value)}
                     onFocus={(e) => scrollIntoViewAfterKeyboard(e.currentTarget)}
+                    isInvalid={isUnofficialEventTitleTooLong}
+                    errorMessage={`イベント名は${MAX_EVENT_TITLE_LENGTH}文字以内で入力してください`}
                   />
                 </div>
 

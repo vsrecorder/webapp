@@ -30,14 +30,38 @@ async function getGrafanaStat(panelId: number): Promise<number | undefined> {
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ timeRange: { timezone: "Asia/Tokyo" } }),
+        // 対象パネルは「その日時点の生存ベース累計」を日次で返す。範囲の開始位置に関わらず
+        // 各点が累計値なので、最新値だけ欲しい here では短い範囲で十分(日数分の行数を抑える)。
+        // 範囲を明示することで、ダッシュボード側の既定期間の変更に影響されない。
+        body: JSON.stringify({
+          timeRange: { from: "now-2d", to: "now", timezone: "Asia/Tokyo" },
+        }),
         next: { revalidate: 300 },
       },
     );
     if (!res.ok) return undefined;
     const data = await res.json();
-    const value = data?.results?.A?.frames?.[0]?.data?.values?.[0]?.[0];
-    return typeof value === "number" ? Math.floor(value) : undefined;
+
+    const frame = data?.results?.A?.frames?.[0];
+    const fields = frame?.schema?.fields;
+    const columns = frame?.data?.values;
+    if (!Array.isArray(fields) || !Array.isArray(columns)) return undefined;
+
+    // 時系列パネルは [Time, value] の2列を返すため、時刻列を読むとエポックミリ秒になる。
+    // 時刻以外の最後の列を値列とみなす(単一値を返すパネルにもそのまま通用する)。
+    let valueIndex = -1;
+    for (let i = 0; i < fields.length; i++) {
+      if (fields[i]?.type !== "time") valueIndex = i;
+    }
+    if (valueIndex < 0) return undefined;
+
+    // 日次系列は末尾が最新。null を挟むことがあるため後ろから最初の数値を採る。
+    const column = columns[valueIndex];
+    if (!Array.isArray(column)) return undefined;
+    for (let i = column.length - 1; i >= 0; i--) {
+      if (typeof column[i] === "number") return Math.floor(column[i]);
+    }
+    return undefined;
   } catch {
     return undefined;
   }

@@ -7,7 +7,11 @@ import * as jwt from "jsonwebtoken";
 
 import Credentials from "next-auth/providers/credentials";
 
-import { deleteFirebaseUserWithRetry, getFirebaseAdmin } from "@firebase/admin";
+import {
+  deleteFirebaseUserIfFreshlyCreated,
+  deleteFirebaseUserWithRetry,
+  getFirebaseAdmin,
+} from "@firebase/admin";
 
 import type { DecodedIdToken } from "firebase-admin/auth";
 
@@ -16,6 +20,20 @@ import type { DecodedIdToken } from "firebase-admin/auth";
 // 専用の案内画面を表示できる。
 class BackendUnavailableError extends CredentialsSignin {
   code = "backend_unavailable";
+}
+
+// 新規ユーザのDB登録が完了しなかった場合に投げるエラー。
+// /auth/error?code=registration_failed にリダイレクトされ、
+// 「登録に失敗したので最初からやり直してほしい」旨を案内する。
+class RegistrationFailedError extends CredentialsSignin {
+  code = "registration_failed";
+}
+
+// 退会済みのアカウントでサインインしようとした場合に投げるエラー。
+// 退会時にFirebaseの認証ユーザを消し損ねると、DB上は退会済みなのに
+// Firebaseにはログインできるアカウントが残るため、この経路に入る。
+class WithdrawnAccountError extends CredentialsSignin {
+  code = "withdrawn";
 }
 
 type Credential = Partial<Record<"callbackUrl" | "idToken" | "csrfToken", unknown>>;
@@ -37,6 +55,32 @@ declare module "next-auth/jwt" {
     uid: string;
     userCheckedAt?: number;
   }
+}
+
+// 認証プロバイダの表示名をそのまま使えない場合に代わりに使う名前
+const FALLBACK_USER_NAME = "ポケカトレーナー";
+
+// core-apiserver側のusers.nameはVARCHAR(63)で、超過するとユーザ登録が400で弾かれる。
+// 向こうのバリデーションはUTF-8のコードポイント数で行われるため、こちらも同じ数え方をする。
+const MAX_USER_NAME_LENGTH = 63;
+
+// 認証プロバイダから受け取った表示名を、DBに登録できる形に整える。
+// 表示名が未設定・空白のみだったり、上限を超えて長かったりする場合、
+// そのまま送るとバックエンドに400で弾かれ、そのユーザは何度サインインしても
+// 登録できなくなってしまう。登録自体は通せるようフォールバック名に置き換える。
+function normalizeUserName(name: unknown): string {
+  const trimmed = typeof name === "string" ? name.trim() : "";
+
+  if (trimmed === "") {
+    return FALLBACK_USER_NAME;
+  }
+
+  // サロゲートペア(絵文字など)を1文字として数えるため、lengthではなく分割して数える
+  if ([...trimmed].length > MAX_USER_NAME_LENGTH) {
+    return FALLBACK_USER_NAME;
+  }
+
+  return trimmed;
 }
 
 // 退会済みユーザーのセッションを検知するためのキャッシュ有効期間（ミリ秒）
@@ -102,6 +146,62 @@ type UserType = {
   image_url: string;
 };
 
+// DBにユーザが存在するかの再確認結果。
+//   exists  … 存在する
+//   absent  … 存在しないことが確認できた
+//   unknown … 疎通できないなどで判断できなかった
+type UserExistence = "exists" | "absent" | "unknown";
+
+// Firebaseのユーザを削除してよいかを判断するため、DBの状態をもう一度確認する。
+//
+// 登録POSTが成功した直後に接続が切れた場合など、実際にはDBに登録できているのに
+// エラー経路へ到達することがある。それを確認せずに削除すると
+// 「DBには居るのにログインできない」という、より復旧が難しい状態を作ってしまう。
+//
+// 不可逆な削除の判断材料になるため、404は1回で確定させず、
+// 間隔を空けて複数回確認し、全て404だった場合のみabsentとする。
+async function checkUserExistence(
+  domain: string | undefined,
+  uid: string,
+): Promise<UserExistence> {
+  for (let attempt = 1; attempt <= NOT_FOUND_RETRY_COUNT; attempt++) {
+    let ret: Response;
+
+    try {
+      ret = await fetch(`https://` + domain + `/api/v1beta/users/` + uid, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        signal: AbortSignal.timeout(USER_CHECK_TIMEOUT_MS),
+      });
+    } catch (error) {
+      console.error("Failed to re-check user existence:", uid, error);
+      return "unknown";
+    }
+
+    if (ret.status === 200) {
+      return "exists";
+    }
+
+    // プロキシ層の障害時などにバックエンドを経由しない404(HTMLのエラーページ等)が
+    // 返ることがあるため、core-apiserverが返すJSON形式の404であることも確認する。
+    const isBackendNotFound =
+      ret.status === 404 &&
+      (ret.headers.get("content-type") ?? "").includes("application/json");
+
+    if (!isBackendNotFound) {
+      return "unknown";
+    }
+
+    if (attempt < NOT_FOUND_RETRY_COUNT) {
+      await sleep(NOT_FOUND_RETRY_INTERVAL_MS);
+    }
+  }
+
+  return "absent";
+}
+
 // core-apiserverへの疎通確認用fetch。
 // 接続自体に失敗した場合（サーバー未起動など）はBackendUnavailableErrorに変換する。
 async function fetchBackend(url: string, init?: RequestInit): Promise<Response> {
@@ -146,10 +246,10 @@ const {
           ユーザを登録する処理
         */
         const user = { id: decoded.uid };
+        const domain = process.env.VSRECORDER_DOMAIN;
 
         try {
           // ユーザが既に登録されているか確認
-          const domain = process.env.VSRECORDER_DOMAIN;
           const ret = await fetchBackend(`https://` + domain + `/api/v1beta/users/` + user.id, {
             method: "GET",
             headers: {
@@ -159,82 +259,108 @@ const {
 
           // ユーザが登録されていない場合は新規登録
           if (ret.status == 404) {
-            // ここに到達した時点で「DBにユーザが存在しない」ことが確認できている。
-            // 以降で失敗するとFirebaseのユーザだけが残ってしまうため、
-            // この範囲の失敗は全てFirebase側の削除までやってロールバックする。
-            // 逆に、404を確認できていない経路(疎通失敗・5xx)では既存ユーザか判別できないため、
-            // 絶対にFirebaseのユーザを削除してはならない。
-            try {
-              const createUser: UserType = {
-                name: decoded.name ?? "名称未設定",
-                image_url:
-                  "https://xx8nnpgt.user.webaccel.jp/images/users/default_icon.png",
-              };
+            const createUser: UserType = {
+              name: normalizeUserName(decoded.name),
+              image_url:
+                "https://xx8nnpgt.user.webaccel.jp/images/users/default_icon.png",
+            };
 
-              const jwtSecret = process.env.VSRECORDER_JWT_SECRET;
-              if (!jwtSecret) {
-                throw new Error("VSRECORDER_JWT_SECRET is not set");
+            const jwtSecret = process.env.VSRECORDER_JWT_SECRET;
+            if (!jwtSecret) {
+              throw new Error("VSRECORDER_JWT_SECRET is not set");
+            }
+
+            const jwtSignOptions: jwt.SignOptions = {
+              algorithm: "HS256",
+              expiresIn: "10s",
+            };
+
+            const jwtPayload = {
+              iss: "vsrecorder-webapp",
+              uid: user.id,
+            };
+
+            const token = jwt.sign(jwtPayload, jwtSecret, jwtSignOptions);
+
+            // ユーザを登録
+            const createRet = await fetchBackend(`https://` + domain + `/api/v1beta/users`, {
+              method: "POST",
+              headers: {
+                Authorization: "Bearer " + token,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(createUser),
+            });
+
+            if (createRet.status === 201) {
+              // 新規登録成功: firebaseユーザの画像を初期化
+              // 失敗してもユーザ登録自体は完了しているためログインは継続する
+              try {
+                await firebaseAdmin.auth().updateUser(user.id, {
+                  photoURL: "https://xx8nnpgt.user.webaccel.jp/images/users/default_icon.png",
+                });
+              } catch (error) {
+                console.error("Failed to update firebase user photoURL:", error);
               }
-
-              const jwtSignOptions: jwt.SignOptions = {
-                algorithm: "HS256",
-                expiresIn: "10s",
-              };
-
-              const jwtPayload = {
-                iss: "vsrecorder-webapp",
-                uid: user.id,
-              };
-
-              const token = jwt.sign(jwtPayload, jwtSecret, jwtSignOptions);
-
-              // ユーザを登録
-              const createRet = await fetchBackend(`https://` + domain + `/api/v1beta/users`, {
-                method: "POST",
-                headers: {
-                  Authorization: "Bearer " + token,
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify(createUser),
-              });
-
-              if (createRet.status === 201) {
-                // 新規登録成功: firebaseユーザの画像を初期化
-                // 失敗してもユーザ登録自体は完了しているためログインは継続する
-                try {
-                  await firebaseAdmin.auth().updateUser(user.id, {
-                    photoURL: "https://xx8nnpgt.user.webaccel.jp/images/users/default_icon.png",
-                  });
-                } catch (error) {
-                  console.error("Failed to update firebase user photoURL:", error);
-                }
-              } else if (createRet.status === 409) {
-                // 同時ログインなどの競合により、別リクエストが先に登録済み。
-                // ユーザ自体は正常に存在するためエラー扱いにしない。
-                console.warn("User was already registered by a concurrent request:", user.id);
-              } else {
-                console.error("Failed to create user:", createRet.status);
-                await deleteFirebaseUserWithRetry(firebaseAdmin, user.id);
-                return null;
-              }
-            } catch (error) {
-              // 登録POSTに到達できなかった場合(疎通失敗)やJWTの生成に失敗した場合も、
-              // Firebaseのユーザだけが残るためロールバックしてから元のエラーを再送出する。
-              await deleteFirebaseUserWithRetry(firebaseAdmin, user.id);
-              throw error;
+            } else if (createRet.status === 409) {
+              // 同時ログインなどの競合により、別リクエストが先に登録済み。
+              // ユーザ自体は正常に存在するためエラー扱いにしない。
+              console.warn("User was already registered by a concurrent request:", user.id);
+            } else if (createRet.status === 410) {
+              // 退会済みのアカウント。退会時にFirebase側の削除に失敗して
+              // 認証ユーザだけが残っていた場合にここへ来る。
+              // 退会の意思を尊重してログインさせず、残っている認証ユーザを削除する
+              // (削除は後段のcatchでDBの状態を再確認した上で行う)。
+              console.warn("Withdrawn account tried to sign in again:", user.id);
+              throw new WithdrawnAccountError();
+            } else {
+              console.error("Failed to create user:", createRet.status);
+              throw new RegistrationFailedError();
             }
           } else if (ret.status != 200) {
+            // DBにユーザが存在するか確認できていないため、このまま登録処理を続けられない。
             console.error("Unexpected status from user API:", ret.status);
-            return null;
+            throw new RegistrationFailedError();
           }
 
           return user;
         } catch (error) {
-          if (error instanceof BackendUnavailableError) {
+          // ここに到達するのは「DBにユーザが居ることを確認できないまま登録処理が終わった」場合。
+          // 何もしないとFirebaseのユーザだけが残ってDB未登録の状態になるため、
+          // Firebase側を削除してサインイン前の状態にロールバックする。
+          // ただし削除は取り返しがつかないため、DBの状態をもう一度確認してから判断する。
+          const existence = await checkUserExistence(domain, user.id);
+
+          if (existence === "exists") {
+            // 登録POSTのレスポンスを受け取れなかっただけで、DBには登録できていた。
+            // ここでFirebaseのユーザを消すと「DBには居るのにログインできない」状態に
+            // なってしまうため、削除せずサインインを成功として扱う。
+            console.warn(
+              "User exists in DB despite the error; treating sign-in as successful:",
+              user.id,
+            );
+            return user;
+          }
+
+          if (existence === "absent") {
+            // DBに存在しないことが確認できたため、Firebaseのユーザを削除してよい。
+            if (!(await deleteFirebaseUserWithRetry(firebaseAdmin, user.id))) {
+              // 消し残しは core-apiserver の cmd/check-firebase-users で検出・回収する
+              console.error("Firebase user is left without a DB record:", user.id);
+            }
+          } else {
+            // DBの状態を確認できなかった。既存ユーザを巻き込んで削除しないよう、
+            // このサインインで作成されたばかりのユーザに限って削除する。
+            await deleteFirebaseUserIfFreshlyCreated(firebaseAdmin, user.id);
+          }
+
+          // backend_unavailable / registration_failed は専用の案内画面へ振り分ける
+          if (error instanceof CredentialsSignin) {
             throw error;
           }
+
           console.error("Failed to authorize:", error);
-          return null;
+          throw new RegistrationFailedError();
         }
       },
     }),

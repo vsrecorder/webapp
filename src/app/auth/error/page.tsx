@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import Image from "next/image";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { Button } from "@heroui/react";
 import { LuServerCrash, LuTriangleAlert } from "react-icons/lu";
@@ -25,10 +26,31 @@ type Props = {
 
 export default async function Page({ searchParams }: Props) {
   const { code } = await searchParams;
+
+  // 退会済みアカウントでのサインインは「失敗」ではなく、退会状態が保たれた結果。
+  // エラー画面を見せる場面ではないため、トップページで理由を案内する。
+  if (code === "withdrawn") {
+    redirect("/?notice=withdrawn");
+  }
+
   const isBackendDown = code === "backend_unavailable";
+  // 新規ユーザのDB登録に失敗し、作成途中のアカウントを取り消した場合
+  const isRegistrationFailed = code === "registration_failed";
 
   const devEnv = isDevEnv();
   const iconUrl = getAppIconUrl();
+
+  const title = isBackendDown
+    ? "サーバーに接続できません"
+    : isRegistrationFailed
+      ? "登録に失敗しました"
+      : "ログインに失敗しました";
+
+  const description = isBackendDown
+    ? "現在サーバーに接続できないため、ログイン・新規登録を行うことができません。しばらく時間をおいてから、再度お試しください。"
+    : isRegistrationFailed
+      ? "アカウントの登録処理に失敗したため、作成途中のアカウントを取り消しました。お手数ですが、しばらく時間をおいてから、はじめからやり直してください。"
+      : "認証処理に失敗しました。お手数ですが、もう一度お試しください。";
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[70svh] gap-4 px-4 text-center">
@@ -61,13 +83,11 @@ export default async function Page({ searchParams }: Props) {
           )}
 
           <h1 className="text-lg font-black text-neutral-800 dark:text-neutral-100">
-            {isBackendDown ? "サーバーに接続できません" : "ログインに失敗しました"}
+            {title}
           </h1>
 
           <p className="text-sm text-neutral-500 dark:text-neutral-400 leading-relaxed">
-            {isBackendDown
-              ? "現在サーバーに接続できないため、ログイン・新規登録を行うことができません。しばらく時間をおいてから、再度お試しください。"
-              : "認証処理に失敗しました。お手数ですが、もう一度お試しください。"}
+            {description}
           </p>
 
           <Button

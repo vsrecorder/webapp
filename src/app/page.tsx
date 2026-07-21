@@ -2,6 +2,7 @@ import { auth } from "@app/auth";
 
 import TemplateHome from "@app/components/templates/Home";
 import TemplateDashboard from "@app/components/templates/Dashboard";
+import WithdrawnNotice from "@app/components/molecules/WithdrawnNotice";
 
 import { getAppIconUrl } from "@app/utils/appIcon";
 import { serializeJsonLd } from "@app/utils/breadcrumb";
@@ -58,12 +59,21 @@ function buildJsonLd(domain: string | undefined) {
   };
 }
 
-export default async function Home() {
+type Props = {
+  searchParams: Promise<{
+    notice?: string;
+  }>;
+};
+
+export default async function Home({ searchParams }: Props) {
   const session = await auth();
 
   if (session) {
     return <TemplateDashboard userId={session.user.id} />;
   }
+
+  // 退会済みアカウントでサインインを試みた場合に /auth/error から転送されてくる
+  const { notice } = await searchParams;
 
   const jsonLd = buildJsonLd(process.env.VSRECORDER_DOMAIN);
 
@@ -73,6 +83,7 @@ export default async function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
+      {notice === "withdrawn" && <WithdrawnNotice />}
       <TemplateHome />
     </>
   );

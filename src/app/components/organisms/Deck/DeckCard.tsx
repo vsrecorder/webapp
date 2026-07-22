@@ -351,7 +351,7 @@ export default function DeckCard({
                   ) : (
                     <span className="flex items-center gap-1 text-default-400">
                       <LuSwords className="text-[11px] shrink-0" />
-                      まだ対戦記録がありません
+                      対戦記録なし
                     </span>
                   )}
                 </span>

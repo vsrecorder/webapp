@@ -59,6 +59,9 @@ export function KizunaLevelBar({
 /*
  * ギャラリー形式の二枚看板。カードの中心に「強かったか／どう歩んできたか」を並べる。
  * 勝率側は呼び出し元から渡す（色分けの閾値など、既存の表示をそのまま使いたいため）。
+ *
+ * ここに線（KizunaLevelBar）は置かない。ギャラリー形式では畳んだ状態でも見えるよう
+ * ヘッダー側に既に線があり、アコーディオンを開くと同じ線が2本並んでしまうため。
  */
 export function KizunaLevelBillboard({
   level,
@@ -70,26 +73,22 @@ export function KizunaLevelBillboard({
   matchSummary: string;
 }) {
   return (
-    <div className="flex flex-col gap-3">
-      <div className="grid grid-cols-[1fr_1px_1fr] items-center gap-2">
-        <div className="flex flex-col items-center gap-0.5">
-          <span className="font-bold text-tiny text-default-400">勝率</span>
-          {winRateNode}
-          <span className="text-tiny tabular-nums text-default-500">{matchSummary}</span>
-        </div>
-        <div className="h-12 w-px bg-default-200" />
-        <div className="flex flex-col items-center gap-0.5">
-          <span className="font-bold text-tiny text-amber-500 dark:text-amber-400">
-            きずなLv.
-          </span>
-          <span className="font-black text-3xl leading-none tabular-nums text-amber-500 dark:text-amber-400">
-            {level}
-          </span>
-          <span className="text-tiny text-default-500">{kizunaTierOf(level).name}</span>
-        </div>
+    <div className="grid grid-cols-[1fr_1px_1fr] items-center gap-2">
+      <div className="flex flex-col items-center gap-0.5">
+        <span className="font-bold text-tiny text-default-400">勝率</span>
+        {winRateNode}
+        <span className="text-tiny tabular-nums text-default-500">{matchSummary}</span>
       </div>
-
-      <KizunaLevelBar level={level} showTierName={false} />
+      <div className="h-12 w-px bg-default-200" />
+      <div className="flex flex-col items-center gap-0.5">
+        <span className="font-bold text-tiny text-amber-500 dark:text-amber-400">
+          きずなLv.
+        </span>
+        <span className="font-black text-3xl leading-none tabular-nums text-amber-500 dark:text-amber-400">
+          {level}
+        </span>
+        <span className="text-tiny text-default-500">{kizunaTierOf(level).name}</span>
+      </div>
     </div>
   );
 }

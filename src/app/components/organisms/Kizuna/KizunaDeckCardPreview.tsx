@@ -275,12 +275,9 @@ function GalleryPreview({ vm }: { vm: ViewModel }) {
           </div>
         </div>
 
-        <div className="h-1 w-full overflow-hidden rounded-full bg-default-200">
-          <div
-            className="h-full rounded-full bg-linear-to-r from-rose-500 to-amber-400"
-            style={{ width: `${vm.kizunaRatio * 100}%` }}
-          />
-        </div>
+        {/* 二枚看板の下に線は置かない。本物のカードでは、線はアコーディオンの外
+            （畳んでも見えるヘッダー側）に出しており、開いた中にも置くと同じ線が
+            2本並ぶため。ギャラリー形式では数値と段階名だけで足りる。 */}
 
         {/* 先攻・後攻（現状のまま） */}
         <div className="grid grid-cols-[auto_1fr_1fr] items-stretch gap-x-2 gap-y-1.5 text-[11px] tabular-nums">

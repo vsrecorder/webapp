@@ -20,9 +20,30 @@ const TARGET_RATIO = 0.86;
 const UNKNOWN_TARGET_RATIO = 0.5;
 // 枠下端からの余白(frame 比)
 const BOTTOM_PAD_RATIO = 0.04;
-// 極端な拡大/縮小を避けるクランプ
+// 極端な拡大/縮小を避けるクランプ。基準枠(REFERENCE_FRAME)での値。
 const MIN_SCALE = 0.7;
 const MAX_SCALE = 1.9;
+// クランプの基準となる枠の一辺(px)。デッキカードなど大半の箇所がこの大きさ。
+const REFERENCE_FRAME = 48;
+
+// 枠内でキャラを TARGET_RATIO に合わせるための拡大率。
+//
+// クランプは「元画像(68px)に対する拡大率」の上下限だが、固定値のままだと枠が
+// 大きいほどキャラが枠を埋められなくなる。実際 96px 枠(きずな結果カード)では
+// 1367体中1223体が上限1.9に張り付き、枠占有率の中央値が 0.86→0.65 まで落ちて、
+// 小さいポケモンほど枠の中で小さく見えていた。
+// そこで基準枠より大きい枠では上下限も枠に比例して広げ、どの枠でも同じ見え方に
+// 揃える（拡大率が上がるぶん元画像のドットは甘くなるが、枠ごとに大きさが
+// バラつく方が目につくため、見え方の統一を優先する）。
+// 基準枠以下は既存の見た目を保つため据え置く。
+function fitScale(bw: number, bh: number, frame: number, targetRatio: number): number {
+  const clampFactor = Math.max(1, frame / REFERENCE_FRAME);
+
+  return Math.min(
+    MAX_SCALE * clampFactor,
+    Math.max(MIN_SCALE * clampFactor, (frame * targetRatio) / Math.max(bw, bh)),
+  );
+}
 
 // bounds が unknown(未登録プレースホルダ)かどうか
 function isUnknownBounds(
@@ -40,13 +61,9 @@ export function spriteFitStyle(
 
   const isUnknown = isUnknownBounds(b);
   const targetRatio = isUnknown ? UNKNOWN_TARGET_RATIO : TARGET_RATIO;
-  const target = frame * targetRatio;
   const pad = frame * BOTTOM_PAD_RATIO;
 
-  const scale = Math.min(
-    MAX_SCALE,
-    Math.max(MIN_SCALE, target / Math.max(bw, bh)),
-  );
+  const scale = fitScale(bw, bh, frame, targetRatio);
 
   // 水平: キャラ中心を枠中心に
   const tx = frame / 2 - (bx + bw / 2) * scale;
@@ -101,9 +118,8 @@ export function spriteDrawRect(
   const [, , bx, by, bw, bh] = b;
   const isUnknown = isUnknownBounds(b);
   const targetRatio = isUnknown ? UNKNOWN_TARGET_RATIO : TARGET_RATIO;
-  const target = boxSize * targetRatio;
   const pad = boxSize * BOTTOM_PAD_RATIO;
-  const scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, target / Math.max(bw, bh)));
+  const scale = fitScale(bw, bh, boxSize, targetRatio);
   const dw = bw * scale;
   const dh = bh * scale;
   const dx = boxX + (boxSize - dw) / 2;

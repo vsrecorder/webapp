@@ -7,11 +7,7 @@ import * as jwt from "jsonwebtoken";
 
 import Credentials from "next-auth/providers/credentials";
 
-import {
-  deleteFirebaseUserIfFreshlyCreated,
-  deleteFirebaseUserWithRetry,
-  getFirebaseAdmin,
-} from "@firebase/admin";
+import { deleteFirebaseUserWithRetry, getFirebaseAdmin } from "@firebase/admin";
 
 import type { DecodedIdToken } from "firebase-admin/auth";
 
@@ -151,14 +147,21 @@ type UserExistence = "exists" | "absent" | "unknown";
 // エラー経路へ到達することがある。それを確認せずに削除すると
 // 「DBには居るのにログインできない」という、より復旧が難しい状態を作ってしまう。
 //
-// 不可逆な削除の判断材料になるため、404は1回で確定させず、
-// 間隔を空けて複数回確認し、全て404だった場合のみabsentとする。
+// 不可逆な削除の判断材料になるため、absent(不在の確定)は全ての確認が
+// core-apiserver由来のJSON形式の404だった場合に限る。
+// 疎通失敗や404以外の応答も1回で諦めず、途中で200が確認できればexistsとする。
+// バックエンドの再起動などの一時的な断で即unknownに倒すと、
+// 「実は登録に成功していた」ケースを救済(exists判定でサインイン継続)できないため、
+// できる限りexists/absentまで確定させてからunknownに落とす。
 async function checkUserExistence(
   domain: string | undefined,
   uid: string,
 ): Promise<UserExistence> {
+  // 全attemptがJSON形式の404だったときだけtrueのまま残り、absentが確定する
+  let sawOnlyBackendNotFound = true;
+
   for (let attempt = 1; attempt <= NOT_FOUND_RETRY_COUNT; attempt++) {
-    let ret: Response;
+    let ret: Response | undefined;
 
     try {
       ret = await fetch(`https://` + domain + `/api/v1beta/users/` + uid, {
@@ -169,22 +172,28 @@ async function checkUserExistence(
         signal: AbortSignal.timeout(USER_CHECK_TIMEOUT_MS),
       });
     } catch (error) {
-      console.error("Failed to re-check user existence:", uid, error);
-      return "unknown";
+      console.error(
+        `Failed to re-check user existence (attempt ${attempt}/${NOT_FOUND_RETRY_COUNT}):`,
+        uid,
+        error,
+      );
+      sawOnlyBackendNotFound = false;
     }
 
-    if (ret.status === 200) {
-      return "exists";
-    }
+    if (ret) {
+      if (ret.status === 200) {
+        return "exists";
+      }
 
-    // プロキシ層の障害時などにバックエンドを経由しない404(HTMLのエラーページ等)が
-    // 返ることがあるため、core-apiserverが返すJSON形式の404であることも確認する。
-    const isBackendNotFound =
-      ret.status === 404 &&
-      (ret.headers.get("content-type") ?? "").includes("application/json");
+      // プロキシ層の障害時などにバックエンドを経由しない404(HTMLのエラーページ等)が
+      // 返ることがあるため、core-apiserverが返すJSON形式の404であることも確認する。
+      const isBackendNotFound =
+        ret.status === 404 &&
+        (ret.headers.get("content-type") ?? "").includes("application/json");
 
-    if (!isBackendNotFound) {
-      return "unknown";
+      if (!isBackendNotFound) {
+        sawOnlyBackendNotFound = false;
+      }
     }
 
     if (attempt < NOT_FOUND_RETRY_COUNT) {
@@ -192,7 +201,7 @@ async function checkUserExistence(
     }
   }
 
-  return "absent";
+  return sawOnlyBackendNotFound ? "absent" : "unknown";
 }
 
 // core-apiserverへの疎通確認用fetch。
@@ -319,9 +328,10 @@ const {
           return user;
         } catch (error) {
           // ここに到達するのは「DBにユーザが居ることを確認できないまま登録処理が終わった」場合。
-          // 何もしないとFirebaseのユーザだけが残ってDB未登録の状態になるため、
-          // Firebase側を削除してサインイン前の状態にロールバックする。
-          // ただし削除は取り返しがつかないため、DBの状態をもう一度確認してから判断する。
+          // 何もしないとFirebaseのユーザだけが残ってDB未登録の状態になりうるため、
+          // DBに居ないことを確認できたときに限り、Firebase側を削除して
+          // サインイン前の状態にロールバックする。削除は取り返しがつかないため、
+          // 確認できない場合は削除しない側に倒す。
           // 退会済み(410)だけは「有効なユーザが居ない」ことが確定しているので再確認を省く。
           const existence =
             error instanceof WithdrawnAccountError
@@ -346,9 +356,12 @@ const {
               console.error("Firebase user is left without a DB record:", user.id);
             }
           } else {
-            // DBの状態を確認できなかった。既存ユーザを巻き込んで削除しないよう、
-            // このサインインで作成されたばかりのユーザに限って削除する。
-            await deleteFirebaseUserIfFreshlyCreated(firebaseAdmin, user.id);
+            // DBの状態を確認できなかった。実はDB登録に成功している可能性が残っており、
+            // ここで削除すると「DBには居るのにログインできないユーザ」を作りかねないため、
+            // 確認できないまま削除はしない。本当に未登録のままFirebaseにだけ残った場合も、
+            // 次回サインイン時のDB登録(GET 404→POST)で回収されるか、
+            // core-apiserver の cmd/check-firebase-users で検出できる。
+            console.warn("Skipped firebase user rollback because DB state is unverified:", user.id);
           }
 
           // backend_unavailable / registration_failed は専用の案内画面へ振り分ける

@@ -34,6 +34,21 @@ export async function GET(
   });
 
   if (!res.ok) {
+    // このルートの404は「core-apiserverがユーザ不在と答えた」ことを意味させる。
+    // プロキシ層の障害時などはバックエンドを経由しないHTMLの404が返ることがあり、
+    // それをそのまま404で返すと、呼び出し側(サインイン失敗時のロールバック等)が
+    // 実在するユーザを不在と誤認しかねないため、502で区別する。
+    const isBackendNotFound =
+      res.status === 404 &&
+      (res.headers.get("content-type") ?? "").includes("application/json");
+
+    if (res.status === 404 && !isBackendNotFound) {
+      return NextResponse.json(
+        { error: "upstream returned a non-JSON response" },
+        { status: 502 },
+      );
+    }
+
     return NextResponse.json({ error: "not found" }, { status: res.status });
   }
 

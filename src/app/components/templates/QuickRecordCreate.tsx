@@ -27,6 +27,7 @@ import { CalendarDate, today, getLocalTimeZone } from "@internationalized/date";
 
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import HScrollRow from "@app/components/atoms/HScrollRow";
+import ChoiceButtonGroup from "@app/components/molecules/ChoiceButtonGroup";
 import PokemonSpriteModal from "@app/components/organisms/Match/Modal/PokemonSpriteModal";
 import OfficialEventSelect from "@app/components/organisms/Record/OfficialEventSelect";
 import TonamelEventInput from "@app/components/organisms/Record/TonamelEventInput";
@@ -527,28 +528,14 @@ export default function TemplateQuickRecordCreate({
             <span className="text-sm font-medium text-default-700">
               先攻 / 後攻<span className="text-danger ml-0.5">*</span>
             </span>
-            <div className="flex gap-2">
-              <Button
-                fullWidth
-                radius="lg"
-                color={goFirst === true ? "primary" : "default"}
-                variant={goFirst === true ? "solid" : "bordered"}
-                className="font-bold"
-                onPress={() => setGoFirst(true)}
-              >
-                先攻
-              </Button>
-              <Button
-                fullWidth
-                radius="lg"
-                color={goFirst === false ? "primary" : "default"}
-                variant={goFirst === false ? "solid" : "bordered"}
-                className="font-bold"
-                onPress={() => setGoFirst(false)}
-              >
-                後攻
-              </Button>
-            </div>
+            <ChoiceButtonGroup
+              value={goFirst}
+              onChange={setGoFirst}
+              options={[
+                { value: true, label: "先攻", color: "secondary" },
+                { value: false, label: "後攻", color: "secondary" },
+              ]}
+            />
           </div>
 
           {/* ③ 勝ち / 負け(必須) */}
@@ -556,28 +543,14 @@ export default function TemplateQuickRecordCreate({
             <span className="text-sm font-medium text-default-700">
               勝ち / 負け<span className="text-danger ml-0.5">*</span>
             </span>
-            <div className="flex gap-2">
-              <Button
-                fullWidth
-                radius="lg"
-                color={victory === true ? "success" : "default"}
-                variant={victory === true ? "solid" : "bordered"}
-                className="font-bold"
-                onPress={() => setVictory(true)}
-              >
-                勝ち
-              </Button>
-              <Button
-                fullWidth
-                radius="lg"
-                color={victory === false ? "danger" : "default"}
-                variant={victory === false ? "solid" : "bordered"}
-                className="font-bold"
-                onPress={() => setVictory(false)}
-              >
-                負け
-              </Button>
-            </div>
+            <ChoiceButtonGroup
+              value={victory}
+              onChange={setVictory}
+              options={[
+                { value: true, label: "勝ち", color: "success" },
+                { value: false, label: "負け", color: "danger" },
+              ]}
+            />
           </div>
 
           {/* 詳細(任意)。アコーディオンだと分かるよう splitted のカード＋開閉インジケータで表示 */}

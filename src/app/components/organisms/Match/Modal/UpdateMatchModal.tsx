@@ -19,8 +19,6 @@ import { Input } from "@heroui/react";
 import { addToast, closeToast } from "@heroui/react";
 
 import { Tabs, Tab } from "@heroui/react";
-import { CheckboxGroup, Checkbox } from "@heroui/checkbox";
-import { RadioGroup, Radio } from "@heroui/react";
 import { NumberInput } from "@heroui/react";
 import { Textarea } from "@heroui/react";
 
@@ -31,6 +29,7 @@ import { LuTrash2 } from "react-icons/lu";
 
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import HScrollRow from "@app/components/atoms/HScrollRow";
+import ChoiceButtonGroup from "@app/components/molecules/ChoiceButtonGroup";
 import PokemonSpriteModal from "@app/components/organisms/Match/Modal/PokemonSpriteModal";
 import DeleteMatchModal from "@app/components/organisms/Match/Modal/DeleteMatchModal";
 import BO3GamesInput from "@app/components/organisms/Match/BO3GamesInput";
@@ -686,42 +685,6 @@ export default function UpdateMatchModal({
     return (
       <div className="flex flex-col gap-2 pt-0">
         <Card shadow="md" className="w-full">
-          <CardHeader className="pb-0 text-tiny">予選/本戦</CardHeader>
-          <CardBody className="overflow-visible">
-            <CheckboxGroup
-              size="md"
-              label=""
-              isInvalid={!isValidedFlg}
-              errorMessage=""
-              orientation="horizontal"
-              classNames={{
-                base: "",
-                wrapper: "flex items-center justify-center gap-21 mx-auto",
-              }}
-            >
-              <Checkbox
-                value="qualifying_round"
-                isSelected={qualifyingRoundFlg}
-                onChange={(e) => {
-                  setQualifyingRoundFlg(e.target.checked);
-                }}
-              >
-                予選
-              </Checkbox>
-              <Checkbox
-                value="final_tournament"
-                isSelected={finalTournamentFlg}
-                onChange={(e) => {
-                  setFinalTournamentFlg(e.target.checked);
-                }}
-              >
-                本戦
-              </Checkbox>
-            </CheckboxGroup>
-          </CardBody>
-        </Card>
-
-        <Card shadow="md" className="w-full">
           <CardHeader className="pb-0 flex flex-col items-start text-tiny">
             <label className="flex items-center gap-1">
               <span>相手のデッキ</span>
@@ -858,22 +821,15 @@ export default function UpdateMatchModal({
                   </label>
                 </CardHeader>
                 <CardBody className="overflow-visible">
-                  <RadioGroup
-                    isRequired
-                    isDisabled={isDisabled}
-                    size="md"
-                    label=""
-                    orientation="horizontal"
+                  <ChoiceButtonGroup
                     value={isGoFirst}
-                    onValueChange={setIsGoFirst}
-                    classNames={{
-                      base: "items-center",
-                      wrapper: "flex items-center gap-6",
-                    }}
-                  >
-                    <Radio value="1">先攻</Radio>
-                    <Radio value="0">後攻</Radio>
-                  </RadioGroup>
+                    onChange={setIsGoFirst}
+                    isDisabled={isDisabled}
+                    options={[
+                      { value: "1", label: "先攻", color: "secondary" },
+                      { value: "0", label: "後攻", color: "secondary" },
+                    ]}
+                  />
                 </CardBody>
               </Card>
 
@@ -885,22 +841,15 @@ export default function UpdateMatchModal({
                   </label>
                 </CardHeader>
                 <CardBody className="overflow-visible">
-                  <RadioGroup
-                    isRequired
-                    isDisabled={isDisabled}
-                    size="md"
-                    label=""
-                    orientation="horizontal"
+                  <ChoiceButtonGroup
                     value={isVictory}
-                    onValueChange={setIsVictory}
-                    classNames={{
-                      base: "items-center",
-                      wrapper: "flex items-center gap-6",
-                    }}
-                  >
-                    <Radio value="1">勝ち</Radio>
-                    <Radio value="0">負け</Radio>
-                  </RadioGroup>
+                    onChange={setIsVictory}
+                    isDisabled={isDisabled}
+                    options={[
+                      { value: "1", label: "勝ち", color: "success" },
+                      { value: "0", label: "負け", color: "danger" },
+                    ]}
+                  />
                 </CardBody>
               </Card>
             </div>
@@ -946,22 +895,15 @@ export default function UpdateMatchModal({
               </label>
             </CardHeader>
             <CardBody className="overflow-visible">
-              <RadioGroup
-                isRequired
-                isDisabled={isDisabled}
-                size="md"
-                label=""
-                orientation="horizontal"
+              <ChoiceButtonGroup
                 value={isGroupMatchVictory}
-                onValueChange={setIsGroupMatchVictory}
-                classNames={{
-                  base: "items-center",
-                  wrapper: "flex items-center gap-6",
-                }}
-              >
-                <Radio value="1">勝ち</Radio>
-                <Radio value="0">負け</Radio>
-              </RadioGroup>
+                onChange={setIsGroupMatchVictory}
+                isDisabled={isDisabled}
+                options={[
+                  { value: "1", label: "勝ち", color: "success" },
+                  { value: "0", label: "負け", color: "danger" },
+                ]}
+              />
             </CardBody>
           </Card>
         )}

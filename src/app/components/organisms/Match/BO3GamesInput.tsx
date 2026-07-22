@@ -1,9 +1,9 @@
 "use client";
 
 import { Card, CardHeader, CardBody } from "@heroui/react";
-import { RadioGroup, Radio } from "@heroui/react";
 import { NumberInput } from "@heroui/react";
 
+import ChoiceButtonGroup from "@app/components/molecules/ChoiceButtonGroup";
 import {
   GameInput,
   needsThirdGame,
@@ -48,33 +48,29 @@ export default function BO3GamesInput({ games, onChange, isDisabled }: Props) {
           </span>
 
           <div className="flex items-center justify-between gap-2">
-            <RadioGroup
-              isRequired
-              isDisabled={isDisabled}
+            <ChoiceButtonGroup
+              className="flex-1 min-w-0"
               size="sm"
-              label=""
-              orientation="horizontal"
               value={game.goFirst}
-              onValueChange={(value) => onChange(index, { goFirst: value })}
-              classNames={{ wrapper: "flex items-center gap-3" }}
-            >
-              <Radio value="1">先攻</Radio>
-              <Radio value="0">後攻</Radio>
-            </RadioGroup>
-
-            <RadioGroup
-              isRequired
+              onChange={(value) => onChange(index, { goFirst: value })}
               isDisabled={isDisabled}
+              options={[
+                { value: "1", label: "先攻", color: "secondary" },
+                { value: "0", label: "後攻", color: "secondary" },
+              ]}
+            />
+
+            <ChoiceButtonGroup
+              className="flex-1 min-w-0"
               size="sm"
-              label=""
-              orientation="horizontal"
               value={game.victory}
-              onValueChange={(value) => onChange(index, { victory: value })}
-              classNames={{ wrapper: "flex items-center gap-3" }}
-            >
-              <Radio value="1">勝ち</Radio>
-              <Radio value="0">負け</Radio>
-            </RadioGroup>
+              onChange={(value) => onChange(index, { victory: value })}
+              isDisabled={isDisabled}
+              options={[
+                { value: "1", label: "勝ち", color: "success" },
+                { value: "0", label: "負け", color: "danger" },
+              ]}
+            />
           </div>
 
           <div className="flex items-center gap-3">

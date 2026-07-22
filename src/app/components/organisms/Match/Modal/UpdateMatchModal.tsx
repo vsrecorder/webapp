@@ -19,6 +19,7 @@ import { Input } from "@heroui/react";
 import { addToast, closeToast } from "@heroui/react";
 
 import { Tabs, Tab } from "@heroui/react";
+import { CheckboxGroup, Checkbox } from "@heroui/checkbox";
 import { NumberInput } from "@heroui/react";
 import { Textarea } from "@heroui/react";
 
@@ -684,6 +685,56 @@ export default function UpdateMatchModal({
 
     return (
       <div className="flex flex-col gap-2 pt-0">
+        <Card shadow="md" className="w-full">
+          <CardHeader className="pb-0 text-tiny">予選/本戦</CardHeader>
+          <CardBody className="overflow-visible">
+            <CheckboxGroup
+              size="md"
+              label=""
+              isInvalid={!isValidedFlg}
+              errorMessage="予選と本戦は同時に選択できません"
+              orientation="horizontal"
+              classNames={{
+                base: "w-full",
+                // 2枚のカードを等幅で並べ、タップ領域を広く取る
+                wrapper: "grid grid-cols-2 gap-2 w-full",
+              }}
+            >
+              <Checkbox
+                value="qualifying_round"
+                color="warning"
+                isSelected={qualifyingRoundFlg}
+                onChange={(e) => {
+                  setQualifyingRoundFlg(e.target.checked);
+                }}
+                classNames={{
+                  // チェックマークは表示せず、カード全体の枠線・背景で選択状態を示す
+                  wrapper: "hidden",
+                  base: "inline-flex max-w-full w-full m-0 items-center justify-center cursor-pointer rounded-xl gap-0 p-3 border-2 border-default-200 bg-default-50 data-[selected=true]:border-warning data-[selected=true]:bg-warning/10",
+                  label: "text-sm font-bold text-center",
+                }}
+              >
+                🎯 予選
+              </Checkbox>
+              <Checkbox
+                value="final_tournament"
+                color="warning"
+                isSelected={finalTournamentFlg}
+                onChange={(e) => {
+                  setFinalTournamentFlg(e.target.checked);
+                }}
+                classNames={{
+                  wrapper: "hidden",
+                  base: "inline-flex max-w-full w-full m-0 items-center justify-center cursor-pointer rounded-xl gap-0 p-3 border-2 border-default-200 bg-default-50 data-[selected=true]:border-warning data-[selected=true]:bg-warning/10",
+                  label: "text-sm font-bold text-center",
+                }}
+              >
+                🏆 本戦
+              </Checkbox>
+            </CheckboxGroup>
+          </CardBody>
+        </Card>
+
         <Card shadow="md" className="w-full">
           <CardHeader className="pb-0 flex flex-col items-start text-tiny">
             <label className="flex items-center gap-1">

@@ -300,7 +300,12 @@ function replaceOuterBoxShadows(root: HTMLElement, isDark: boolean): void {
     const isSurface =
       node.matches(SURFACE_SHADOW_SELECTOR) || layers.some(isBlurredOuterShadow);
     if (isSurface) {
-      addBorderOverlay(node, 0, 1, isDark ? CARD_OUTLINE_COLOR.dark : CARD_OUTLINE_COLOR.light);
+      addBorderOverlay(
+        node,
+        0,
+        1,
+        isDark ? CARD_OUTLINE_COLOR.dark : CARD_OUTLINE_COLOR.light,
+      );
     }
 
     // ring(輪郭そのものの影)は、同じ位置・色・太さの border として描き直す。
@@ -455,6 +460,13 @@ export async function captureThemedPng(
 
   // クローンとフッターをまとめる内側コンテナ。これを丸ごとキャプチャ対象にする。
   const container = document.createElement("div");
+  /*
+   * 書き出すのは静止画である。クローンの中でCSSアニメーションが動いていると、
+   * 描画した瞬間の位置（＝揺れの途中）がそのまま焼き付き、要素が浮いた位置で
+   * 写ってしまう。この印を目印にCSS側で動きを止め、必ず基準位置で描かせる
+   * （globals.css の [data-capture-static="true"]）。
+   */
+  container.dataset.captureStatic = "true";
   container.style.boxSizing = "border-box";
   container.style.width = `${outerWidth}px`;
   container.style.padding = `${topPadding}px ${sidePadding}px 12px`;
@@ -503,7 +515,8 @@ export async function captureThemedPng(
     if (isIOS()) {
       // iOS は modern-screenshot(動的importでサーバーバンドル回避)。
       // scale が pixelRatio 相当、fetch.bypassingCache が cacheBust 相当。
-      const { createContext, destroyContext, domToPng } = await import("modern-screenshot");
+      const { createContext, destroyContext, domToPng } =
+        await import("modern-screenshot");
 
       // Safari は foreignObject 内の画像のデコードが1回目の canvas 描画に間に合わず
       // 画像が欠けることがある。modern-screenshot はその対策として canvas を描き直すが、

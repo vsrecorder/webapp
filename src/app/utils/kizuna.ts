@@ -15,6 +15,12 @@ export type KizunaTier = {
    * 動的に組み立てる（`bg-amber-500/${n}`）とビルドから消える。
    */
   glow: string;
+  /*
+   * ポケモンのスプライトが上下にゆれる動き（globals.css の .kizuna-bob-*）。
+   * 灯と同じく段階が上がるほど大きく・速くなる。「出会ったばかり」は動かない
+   * （空文字）。まだ息が通っていない、という絵にするため。
+   */
+  bob: string;
 };
 
 // 段階名はポケモン本編の「なつき度」の表現に寄せている。
@@ -24,36 +30,42 @@ export const KIZUNA_TIERS: KizunaTier[] = [
     name: "最高の相棒",
     message: "もう、言葉はいらないようです。",
     glow: "h-32 w-48 bg-amber-200/85 blur-2xl",
+    bob: "kizuna-bob kizuna-bob-5",
   },
   {
     min: 200,
     name: "かけがえのない",
     message: "このポケモンは、あなたの一部になっています。",
     glow: "h-28 w-44 bg-amber-300/70 blur-2xl",
+    bob: "kizuna-bob kizuna-bob-4",
   },
   {
     min: 150,
     name: "深く信頼している",
     message: "苦しいときに、まず手が伸びる一組です。",
     glow: "h-28 w-40 bg-amber-400/55 blur-2xl",
+    bob: "kizuna-bob kizuna-bob-3",
   },
   {
     min: 100,
     name: "心を許している",
     message: "勝ち負けの外側で、もう繋がっています。",
     glow: "h-24 w-36 bg-amber-500/45 blur-2xl",
+    bob: "kizuna-bob kizuna-bob-2",
   },
   {
     min: 50,
     name: "打ち解けてきた",
     message: "少しずつ、手に馴染んできたところ。",
     glow: "h-24 w-32 bg-amber-500/30 blur-2xl",
+    bob: "kizuna-bob kizuna-bob-1",
   },
   {
     min: 0,
     name: "出会ったばかり",
     message: "きずなLv.は、ここから積み上がっていきます。",
     glow: "h-20 w-28 bg-slate-300/20 blur-2xl",
+    bob: "",
   },
 ];
 
@@ -82,6 +94,27 @@ const WEIGHTS = {
 } as const;
 
 type MetricKey = keyof typeof WEIGHTS;
+
+/*
+ * 指標の表示名。
+ *
+ * バックエンド（core-apiserver）はキー（"loyalty" 等）だけを返す。
+ * 表示名は画面の文言なので webapp が持つ、という分担にしている。
+ * この対応表が、その文言の正となる。
+ */
+export const KIZUNA_METRIC_LABELS: Record<MetricKey, string> = {
+  loyalty: "逆境ロイヤルティ",
+  devotion: "一途度",
+  care: "手入れ度",
+  days: "同行日数",
+  trust: "託し度",
+  narrative: "語り度",
+};
+
+// バックエンドが返すキーは文字列なので、既知の指標かどうかを確かめてから表示する
+export function kizunaMetricLabel(key: string): string {
+  return KIZUNA_METRIC_LABELS[key as MetricKey] ?? key;
+}
 
 export type KizunaMetric = {
   key: MetricKey;
@@ -309,7 +342,7 @@ export function estimateKizuna({
   const draft: Omit<KizunaMetric, "points" | "maxPoints">[] = [
     {
       key: "loyalty",
-      label: "逆境ロイヤルティ",
+      label: KIZUNA_METRIC_LABELS.loyalty,
       weight: WEIGHTS.loyalty,
       value: loyaltyValue,
       detail: usage
@@ -320,7 +353,7 @@ export function estimateKizuna({
     },
     {
       key: "devotion",
-      label: "一途度",
+      label: KIZUNA_METRIC_LABELS.devotion,
       weight: WEIGHTS.devotion,
       value: devotionValue,
       detail:
@@ -330,7 +363,7 @@ export function estimateKizuna({
     },
     {
       key: "care",
-      label: "手入れ度",
+      label: KIZUNA_METRIC_LABELS.care,
       weight: WEIGHTS.care,
       value: careValue,
       detail:
@@ -342,21 +375,21 @@ export function estimateKizuna({
     },
     {
       key: "days",
-      label: "同行日数",
+      label: KIZUNA_METRIC_LABELS.days,
       weight: WEIGHTS.days,
       value: daysValue,
       detail: `${eventDays.size}日、会場へ同行`,
     },
     {
       key: "trust",
-      label: "託し度",
+      label: KIZUNA_METRIC_LABELS.trust,
       weight: WEIGHTS.trust,
       value: trustValue,
       detail: topStage ? `最高の舞台は${topStage.name}` : "記録なし",
     },
     {
       key: "narrative",
-      label: "語り度",
+      label: KIZUNA_METRIC_LABELS.narrative,
       weight: WEIGHTS.narrative,
       value: narrativeValue,
       detail: memos.length > 0 ? `メモ${memos.length}件` : "メモなし",

@@ -28,8 +28,9 @@ import { LuLink } from "react-icons/lu";
 import { LuCopy } from "react-icons/lu";
 import { LuCheck } from "react-icons/lu";
 
-import PokemonSprite from "@app/components/atoms/PokemonSprite";
-import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
+import { useKizunaDeck } from "@app/hooks/useKizunaLevels";
+import DeckKizunaPanel from "@app/components/organisms/Deck/DeckKizunaPanel";
+import KizunaDeckSprites from "@app/components/molecules/KizunaDeckSprites";
 import DeckCodeCard from "@app/components/organisms/Deck/DeckCodeCard";
 import DeckCardDetailRow from "@app/components/organisms/Deck/DeckCardDetailRow";
 import DeckOpponentAnalysisPanel from "@app/components/organisms/Deck/DeckOpponentAnalysisPanel";
@@ -131,6 +132,11 @@ export default function DeckById({ id }: Props) {
   const userId = session?.user?.id;
 
   const [deck, setDeck] = useState<DeckGetByIdResponseType | null>(null);
+
+  // きずな。灯の濃さ・スプライトの揺れ方と、きずなカードの表示に使う
+  const kizuna = useKizunaDeck(userId, id);
+  const kizunaLevel = kizuna?.level ?? null;
+
   // 画面上部に表示する代表デッキコード（＝最新バージョン）。
   const [deckcode, setDeckCode] = useState<DeckCodeType | null>(null);
   const [usageStat, setUsageStat] = useState<DeckUsageItemType | null>(null);
@@ -302,16 +308,12 @@ export default function DeckById({ id }: Props) {
       {/* ヘッダー：スプライト・デッキ名・登録日・アーカイブ状態 */}
       <Card className="w-full">
         <CardHeader className="flex flex-col items-center gap-1.5 px-3 pt-4 pb-3">
-          <div className="flex items-center gap-0 shrink-0">
-            <PokemonSprite
-              id={getDeckSpriteBySlot(deck.pokemon_sprites, 1)?.id}
-              size={52}
-            />
-            <PokemonSprite
-              id={getDeckSpriteBySlot(deck.pokemon_sprites, 2)?.id}
-              size={52}
-            />
-          </div>
+          {/* きずなの段階で灯がともり、上下にゆれる（デッキ詳細モーダルと同じ見た目） */}
+          <KizunaDeckSprites
+            sprites={deck.pokemon_sprites}
+            size={52}
+            level={kizunaLevel}
+          />
           <div className="w-full min-w-0 truncate text-center font-bold text-xl">
             {deck.name}
           </div>
@@ -610,6 +612,10 @@ export default function DeckById({ id }: Props) {
           )}
         </CardBody>
       </Card>
+
+      {/* きずな：対戦成績（勝率）のすぐ下に置き、
+        「強かったか」と「どう歩んできたか」を対等に並べる */}
+      {kizuna && <DeckKizunaPanel kizuna={kizuna} />}
 
       {/* デッキ画像・デッキコード・カード構成 */}
       <Card className="w-full">

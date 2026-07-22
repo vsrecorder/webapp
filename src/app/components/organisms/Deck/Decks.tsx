@@ -18,6 +18,7 @@ import { LuCirclePlus, LuPlus, LuLayoutGrid, LuArchive, LuList } from "react-ico
 
 import { DeckType, DeckGetResponseType } from "@app/types/deck";
 import { DeckUsageItemType, DeckUsageStatType } from "@app/types/deck_usage_stat";
+import { useKizunaDecks } from "@app/hooks/useKizunaLevels";
 
 async function fetchDecks(isArchived: boolean, cursor: string) {
   const res = await fetch(`/api/decks?archived=${isArchived}&cursor=${cursor}`, {
@@ -87,6 +88,9 @@ export default function Decks({ userId, isArchived, onCreated }: Props) {
   // 表示モードは localStorage に保存された値を購読する。
   const view = useDeckListView();
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
+
+  // deck_id → きずなの算出結果。灯の濃さ・揺れ方・きずなLv.の表示に使う
+  const kizunaDecks = useKizunaDecks(userId);
 
   useEffect(() => {
     fetchDeckUsageStats(userId).then(setDeckUsageStats);
@@ -299,6 +303,7 @@ export default function Decks({ userId, isArchived, onCreated }: Props) {
             deckData={deck.data}
             deckcodeData={deck.data.latest_deck_code}
             deckUsageStat={deckUsageStats.get(deck.data.id) ?? null}
+            kizunaLevel={kizunaDecks.get(deck.data.id)?.level ?? null}
             onRemove={handleRemove}
             enableShowDeckModal={true}
             view={view}

@@ -58,6 +58,8 @@ type ViewModel = {
   kizunaLevel: number;
   kizunaRatio: number;
   tierName: string;
+  // スプライトの揺れ方（段階が上がるほど大きく・速く。最下段は動かない）
+  bob: string;
   stats: KizunaPreviewStats;
   // 戦績が本人の記録によるものか（サンプルの数字を借りているか）
   hasRealStats: boolean;
@@ -70,9 +72,11 @@ type ViewModel = {
 function Sprites({
   spriteIds,
   kizunaRatio,
+  bob,
 }: {
   spriteIds: string[];
   kizunaRatio: number;
+  bob: string;
 }) {
   const spx = 48;
 
@@ -88,7 +92,12 @@ function Sprites({
         style={{ opacity: 0.12 + kizunaRatio * 0.4 }}
       />
       {slots.map((id, i) => (
-        <PokemonSprite key={`${id ?? "unknown"}-${i}`} id={id} size={spx} />
+        <PokemonSprite
+          key={`${id ?? "unknown"}-${i}`}
+          id={id}
+          size={spx}
+          className={bob}
+        />
       ))}
     </div>
   );
@@ -140,7 +149,7 @@ function ListPreview({ vm }: { vm: ViewModel }) {
         </div>
 
         <div className="flex items-center gap-3">
-          <Sprites spriteIds={vm.spriteIds} kizunaRatio={vm.kizunaRatio} />
+          <Sprites spriteIds={vm.spriteIds} kizunaRatio={vm.kizunaRatio} bob={vm.bob} />
 
           {/* 勝率リング（現状のまま） */}
           <div className="relative h-11 w-11 shrink-0">
@@ -215,7 +224,7 @@ function GalleryPreview({ vm }: { vm: ViewModel }) {
           </span>
         </div>
         <div className="flex w-full min-w-0 flex-col items-center gap-1">
-          <Sprites spriteIds={vm.spriteIds} kizunaRatio={vm.kizunaRatio} />
+          <Sprites spriteIds={vm.spriteIds} kizunaRatio={vm.kizunaRatio} bob={vm.bob} />
           <div className="w-full min-w-0 truncate text-center font-bold text-large">
             {vm.deckName}
           </div>
@@ -315,6 +324,7 @@ export default function KizunaDeckCardPreview() {
     kizunaLevel,
     kizunaRatio: Math.min(1, Math.max(0, kizunaLevel / 255)),
     tierName: kizunaTierOf(kizunaLevel).name,
+    bob: kizunaTierOf(kizunaLevel).bob,
     // 質問式の試算では戦績を持てないため、その場合はサンプルの数字を借りる
     stats: previewDeck?.stats ?? SAMPLE.stats,
     hasRealStats: !!previewDeck?.stats,

@@ -187,6 +187,85 @@
 }
 
 /*
+ * きずな（/kizuna）のポケモンスプライトを上下にゆらす。
+ *
+ * 揺れ幅と速さは、きずなLv.の段階（KIZUNA_TIERS の bob）で変わる。
+ * 段階が上がるほど大きく・速く動き、最下段の「出会ったばかり」は動かない。
+ * 灯（glow）と同じ設計で、積み上げた先に息を吹き込む。
+ *
+ * 2体は位相をずらさず同時に上下させる。ずらすと互い違いに跳ねて
+ * 別々の生き物に見えるが、揃えると「同じ呼吸をしている一組」に見える。
+ *
+ * 揺れ幅を px ではなく % で持つのは、スプライトの表示サイズが場所ごとに
+ * 違うため（結果カードは96px、デッキ一覧のモックは48px）。% なら自分の高さに
+ * 対する比率になるので、どのサイズでも同じ「揺れ具合」に見える。
+ */
+@keyframes kizuna-bob {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, var(--kizuna-bob-rise), 0);
+  }
+}
+
+.kizuna-bob {
+  /* marquee と同じ理由。iOS PWA では明示しないとアニメーションが再生されない */
+  will-change: transform;
+  animation: kizuna-bob var(--kizuna-bob-duration) ease-in-out infinite;
+}
+
+/*
+ * 揺れ幅は「いちばん小さい表示（デッキ一覧の48px）で見えるか」を基準に決めている。
+ * 実データのきずなLv.は0〜90あたりに寄るため、実際に使われるのはほぼ下2段である。
+ * ここを96pxの結果カードでちょうどよい値に合わせると、48pxでは1px程度しか動かず、
+ * 止まっているようにしか見えない。
+ */
+.kizuna-bob-1 {
+  --kizuna-bob-rise: -5%; /* 48px:2.4px / 96px:4.8px */
+  --kizuna-bob-duration: 3s;
+}
+
+.kizuna-bob-2 {
+  --kizuna-bob-rise: -7%; /* 48px:3.4px / 96px:6.7px */
+  --kizuna-bob-duration: 2.7s;
+}
+
+.kizuna-bob-3 {
+  --kizuna-bob-rise: -9%; /* 48px:4.3px / 96px:8.6px */
+  --kizuna-bob-duration: 2.3s;
+}
+
+.kizuna-bob-4 {
+  --kizuna-bob-rise: -11%; /* 48px:5.3px / 96px:10.6px */
+  --kizuna-bob-duration: 2s;
+}
+
+.kizuna-bob-5 {
+  --kizuna-bob-rise: -14%; /* 48px:6.7px / 96px:13.4px */
+  --kizuna-bob-duration: 1.6s;
+}
+
+/*
+ * シェア画像は静止画である。書き出しは対象DOMを複製して描画するため、
+ * 揺れの途中で複製されるとスプライトだけが浮いた位置で焼き付いてしまう。
+ * 書き出し用のコンテナ配下では揺れを止めて、必ず基準位置で写るようにする
+ * （captureThemedPng が data-capture-static を付ける）。
+ */
+[data-capture-static="true"] .kizuna-bob {
+  animation: none;
+  transform: none;
+}
+
+/* 動きに酔う人がいる。OSの設定を尊重して止める（灯の濃さだけで段階は伝わる） */
+@media (prefers-reduced-motion: reduce) {
+  .kizuna-bob {
+    animation: none;
+  }
+}
+
+/*
 :root {
   --background: #ffffff;
   --foreground: #171717;

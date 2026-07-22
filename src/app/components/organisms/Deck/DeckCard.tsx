@@ -5,8 +5,12 @@ import { useEffect, useState } from "react";
 import { Card, CardHeader, CardBody } from "@heroui/react";
 import { Image, Skeleton, Chip } from "@heroui/react";
 
-import PokemonSprite from "@app/components/atoms/PokemonSprite";
-import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
+import KizunaDeckSprites from "@app/components/molecules/KizunaDeckSprites";
+import {
+  KizunaLevelInline,
+  KizunaLevelBar,
+  KizunaLevelBillboard,
+} from "@app/components/molecules/KizunaDeckLevel";
 //import { Chip } from "@heroui/react";
 
 import { useDisclosure } from "@heroui/react";
@@ -32,6 +36,12 @@ type Props = {
   deckData: DeckGetByIdResponseType | null;
   deckcodeData: DeckCodeType | null;
   deckUsageStat?: DeckUsageItemType | null;
+  /*
+   * きずなLv.（0〜255）。灯の濃さ・スプライトの揺れ方と、数値の表示に使う。
+   * 取得できなかった場合（未取得・他人のデッキ）は null で、
+   * そのとき灯も揺れも数値も出さず、従来どおりの見た目になる。
+   */
+  kizunaLevel?: number | null;
   onRemove: (id: string) => void;
   enableShowDeckModal: boolean;
   view?: DeckCardView;
@@ -81,6 +91,7 @@ export default function DeckCard({
   deckData,
   deckcodeData,
   deckUsageStat,
+  kizunaLevel,
   onRemove,
   enableShowDeckModal,
   view = "list",
@@ -276,16 +287,12 @@ export default function DeckCard({
 
           {/* コンテンツ行：スプライト・勝率リング・デッキ名/戦績・シェブロン */}
           <div className="flex items-center gap-3">
-            {/* スプライト2体（識別用）。各スプライトを枠内で最適表示(PokemonSprite) */}
-            <div className="flex items-center gap-0 shrink-0">
-              {([1, 2] as const).map((slot) => (
-                <PokemonSprite
-                  key={slot}
-                  id={getDeckSpriteBySlot(deck.pokemon_sprites, slot)?.id}
-                  size={48}
-                />
-              ))}
-            </div>
+            {/* スプライト2体（識別用）。きずなの段階に応じて灯がともり、上下にゆれる */}
+            <KizunaDeckSprites
+              sprites={deck.pokemon_sprites}
+              size={48}
+              level={kizunaLevel}
+            />
 
             {/* 勝率リング（対戦記録が無い場合も枠を表示し、中央は「-」にする） */}
             <div className="relative w-11 h-11 shrink-0">
@@ -326,25 +333,31 @@ export default function DeckCard({
 
             {/* デッキ名＋戦績。対戦記録が無い場合は行内では一言に留め、
               詳しい案内は展開時にギャラリー表示と同じパネルで見せる。 */}
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 flex flex-col gap-1">
               <div className="font-bold text-medium truncate">{deck.name}</div>
-              <div className="text-tiny truncate">
-                {hasStats ? (
-                  <span className="text-default-400">
-                    {`${deckUsageStat!.count}戦${deckUsageStat!.wins}勝${deckUsageStat!.losses}敗`}
-                  </span>
-                ) : ignoredCount > 0 ? (
-                  <span className="flex items-center gap-1 font-semibold text-warning">
-                    <span aria-hidden>⚠</span>
-                    集計対象外の記録 {ignoredCount}件
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-1 text-default-400">
-                    <LuSwords className="text-[11px] shrink-0" />
-                    まだ対戦記録がありません
-                  </span>
-                )}
+              {/* 戦績ときずなLv.を同じ行に置く。「強かったか」と「どう歩んできたか」が
+                左右に並ぶことで、カードの中でも対比がそのまま読める。 */}
+              <div className="flex items-baseline justify-between gap-2 text-tiny">
+                <span className="truncate">
+                  {hasStats ? (
+                    <span className="text-default-400">
+                      {`${deckUsageStat!.count}戦${deckUsageStat!.wins}勝${deckUsageStat!.losses}敗`}
+                    </span>
+                  ) : ignoredCount > 0 ? (
+                    <span className="flex items-center gap-1 font-semibold text-warning">
+                      <span aria-hidden>⚠</span>
+                      集計対象外の記録 {ignoredCount}件
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 text-default-400">
+                      <LuSwords className="text-[11px] shrink-0" />
+                      まだ対戦記録がありません
+                    </span>
+                  )}
+                </span>
+                {kizunaLevel != null && <KizunaLevelInline level={kizunaLevel} />}
               </div>
+              {kizunaLevel != null && <KizunaLevelBar level={kizunaLevel} />}
             </div>
 
             {/* 内訳の開閉ボタン。行タップ（＝詳細を開く）と役割が衝突しないよう、
@@ -497,18 +510,25 @@ export default function DeckCard({
                 デッキ名は折り返さない（truncate）ため、min-w-0 を挟まないと最小コンテンツ幅が
                 名前の全長まで広がり、カードごと横に伸びてしまう。 */}
               <div className="flex w-full min-w-0 flex-col items-center gap-1">
-                <div className="flex items-center gap-0 shrink-0">
-                  {([1, 2] as const).map((slot) => (
-                    <PokemonSprite
-                      key={slot}
-                      id={getDeckSpriteBySlot(deck.pokemon_sprites, slot)?.id}
-                      size={48}
-                    />
-                  ))}
-                </div>
+                <KizunaDeckSprites
+                  sprites={deck.pokemon_sprites}
+                  size={48}
+                  level={kizunaLevel}
+                />
                 <div className="w-full min-w-0 truncate text-center font-bold text-large">
                   {deck.name}
                 </div>
+                {/* きずなLv.は展開しなくても見えるようにする。戦績はアコーディオンの
+                  中にあるため、ここに置かないと畳んだ状態では何も見えなくなる。
+                  勝率との対比（二枚看板）は展開後に置く。 */}
+                {kizunaLevel != null && (
+                  <div className="flex w-full min-w-0 flex-col gap-1 pt-0.5">
+                    <div className="flex items-baseline justify-center">
+                      <KizunaLevelInline level={kizunaLevel} />
+                    </div>
+                    <KizunaLevelBar level={kizunaLevel} showTierName={false} />
+                  </div>
+                )}
               </div>
             </CardHeader>
 
@@ -584,19 +604,34 @@ export default function DeckCard({
                 />
 
                 {hasStats ? (
-                  /* 戦績：勝率を中央で大きく目立たせ、対戦成績はその下に添える
-                   （登録日はヘッダーに表示） */
-                  <div className="flex flex-col items-center gap-0.5">
-                    <span className="text-tiny font-bold text-default-400">勝率</span>
-                    <span
-                      className={`text-3xl font-black leading-none tabular-nums ${winRateTextColor(winRate)}`}
-                    >
-                      {formatPercent(winRate)}
-                    </span>
-                    <span className="text-tiny tabular-nums text-default-500">
-                      {`${deckUsageStat!.count}戦${deckUsageStat!.wins}勝${deckUsageStat!.losses}敗`}
-                    </span>
-                  </div>
+                  /* 戦績：勝率ときずなLv.を左右に並べ、カードの中心に
+                     「強かったか／どう歩んできたか」の対比を据える
+                     （登録日はヘッダーに表示）。きずなLv.が無いときは勝率のみ。 */
+                  kizunaLevel != null ? (
+                    <KizunaLevelBillboard
+                      level={kizunaLevel}
+                      winRateNode={
+                        <span
+                          className={`text-3xl font-black leading-none tabular-nums ${winRateTextColor(winRate)}`}
+                        >
+                          {formatPercent(winRate)}
+                        </span>
+                      }
+                      matchSummary={`${deckUsageStat!.count}戦${deckUsageStat!.wins}勝${deckUsageStat!.losses}敗`}
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center gap-0.5">
+                      <span className="text-tiny font-bold text-default-400">勝率</span>
+                      <span
+                        className={`text-3xl font-black leading-none tabular-nums ${winRateTextColor(winRate)}`}
+                      >
+                        {formatPercent(winRate)}
+                      </span>
+                      <span className="text-tiny tabular-nums text-default-500">
+                        {`${deckUsageStat!.count}戦${deckUsageStat!.wins}勝${deckUsageStat!.losses}敗`}
+                      </span>
+                    </div>
+                  )
                 ) : ignoredCount > 0 ? (
                   /* 集計対象外の記録だけがあるデッキ（勝率などは集計されない） */
                   <div className="flex flex-col items-center gap-2 rounded-lg bg-warning/10 px-3 py-3 text-center">
@@ -624,7 +659,9 @@ export default function DeckCard({
                   <div className="grid grid-cols-2 gap-2">
                     {/* 先攻 */}
                     <div className="rounded-lg bg-default-100 px-2.5 py-2">
-                      <div className="text-tiny font-bold text-default-600 mb-1">先攻</div>
+                      <div className="text-tiny font-bold text-default-600 mb-1">
+                        先攻
+                      </div>
                       <div className="grid grid-cols-[auto_1fr] items-baseline gap-x-2 gap-y-0.5 text-[11px] tabular-nums">
                         <span className="text-default-400">割合</span>
                         <span className="text-right text-default-600">
@@ -662,7 +699,9 @@ export default function DeckCard({
                     </div>
                     {/* 後攻 */}
                     <div className="rounded-lg bg-default-100 px-2.5 py-2">
-                      <div className="text-tiny font-bold text-default-600 mb-1">後攻</div>
+                      <div className="text-tiny font-bold text-default-600 mb-1">
+                        後攻
+                      </div>
                       <div className="grid grid-cols-[auto_1fr] items-baseline gap-x-2 gap-y-0.5 text-[11px] tabular-nums">
                         <span className="text-default-400">割合</span>
                         <span className="text-right text-default-600">

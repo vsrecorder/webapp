@@ -27,8 +27,8 @@ import DisplayDeckOpponentAnalysisModal from "@app/components/organisms/Deck/Mod
 
 import DeckCodeCard from "@app/components/organisms/Deck/DeckCodeCard";
 import CardListAccordion from "@app/components/organisms/Deck/CardListAccordion";
-import PokemonSprite from "@app/components/atoms/PokemonSprite";
-import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
+import { useKizunaLevel } from "@app/hooks/useKizunaLevels";
+import KizunaDeckSprites from "@app/components/molecules/KizunaDeckSprites";
 import { useDeckCodes } from "@app/hooks/useDeckCodes";
 
 import { LuExternalLink } from "react-icons/lu";
@@ -72,6 +72,16 @@ export default function ShowDeckModal({
   autoOpenHistory,
   onAutoOpenHistoryHandled,
 }: Props) {
+  /*
+   * きずなの段階でスプライトの揺れ方が変わる（デッキ一覧カードと同じ）。
+   *
+   * 呼び出し元から prop で受け取る形にすると、このモーダルは複数の入口
+   * （デッキ一覧カード・記録詳細の使用デッキカード）から開かれるため、
+   * 渡し忘れた入口だけ揺れない、という食い違いが起きる。
+   * 自分で引けば、どこから開いても同じ見た目になる。
+   * 取得は SWR がまとめるので、一覧と同時に開いてもリクエストは増えない。
+   */
+  const kizunaLevel = useKizunaLevel(deck?.user_id, deck?.id);
   const {
     isOpen: isOpenForCreateDeckCodeModal,
     onOpen: onOpenForCreateDeckCodeModal,
@@ -255,16 +265,11 @@ export default function ShowDeckModal({
                       onClick={onOpenForUpdateDeckModal}
                       className="flex flex-col items-center gap-1 max-w-full min-w-0 pointer-events-auto active:opacity-70"
                     >
-                      <div className="flex items-center gap-0 shrink-0">
-                        <PokemonSprite
-                          id={getDeckSpriteBySlot(deck.pokemon_sprites, 1)?.id}
-                          size={48}
-                        />
-                        <PokemonSprite
-                          id={getDeckSpriteBySlot(deck.pokemon_sprites, 2)?.id}
-                          size={48}
-                        />
-                      </div>
+                      <KizunaDeckSprites
+                        sprites={deck.pokemon_sprites}
+                        size={48}
+                        level={kizunaLevel}
+                      />
 
                       <div className="w-full min-w-0 text-center font-bold text-large truncate">
                         {deck.name}

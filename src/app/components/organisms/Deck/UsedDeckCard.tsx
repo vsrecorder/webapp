@@ -6,8 +6,8 @@ import { SetStateAction, Dispatch, useState } from "react";
 
 import { Card, CardHeader, CardBody } from "@heroui/react";
 
-import PokemonSprite from "@app/components/atoms/PokemonSprite";
-import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
+import { useKizunaLevel } from "@app/hooks/useKizunaLevels";
+import KizunaDeckSprites from "@app/components/molecules/KizunaDeckSprites";
 //import { Chip } from "@heroui/react";
 
 import { useDisclosure } from "@heroui/react";
@@ -59,6 +59,9 @@ export default function UsedDeckCard({
   //const [deckcode, setDeckCode] = useState<DeckCodeType | null>(deckcodeData);
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
+
+  // きずなの段階で灯の濃さとスプライトの揺れ方が変わる（デッキ一覧カードと同じ）
+  const kizunaLevel = useKizunaLevel(deck?.user_id, deck?.id);
 
   // このデッキの全バージョン（デッキコード）。件数バッジの算出に使う。
   const { deckcodes } = useDeckCodes(deck?.id, deckcode?.id);
@@ -124,52 +127,48 @@ export default function UsedDeckCard({
           className={`w-full ${compact ? "border-none bg-transparent shadow-none" : "pt-3"}`}
         >
           {!compact && (
-          <CardHeader className="pt-0 pb-0 px-3">
-            <div className="flex flex-col gap-1 w-full">
-              {/* 両端配置 */}
-              <div className="flex items-start justify-between w-full">
-                {/* 左側 */}
+            <CardHeader className="pt-0 pb-0 px-3">
+              <div className="flex flex-col gap-1 w-full">
+                {/* 両端配置 */}
+                <div className="flex items-start justify-between w-full">
+                  {/* 左側 */}
 
-                <div className="flex items-center gap-0 shrink-0">
-                  <PokemonSprite
-                    id={getDeckSpriteBySlot(deck.pokemon_sprites, 1)?.id}
+                  {/* きずなの段階で灯がともり、上下にゆれる（デッキ一覧カードと同じ） */}
+                  <KizunaDeckSprites
+                    sprites={deck.pokemon_sprites}
                     size={48}
+                    level={kizunaLevel}
                   />
-                  <PokemonSprite
-                    id={getDeckSpriteBySlot(deck.pokemon_sprites, 2)?.id}
-                    size={48}
-                  />
-                </div>
 
-                {/* 右側：登録日＋バージョン件数バッジをひとかたまりに */}
-                <div className="flex flex-col items-end gap-2 shrink-0">
-                  <div className="flex items-center gap-1 text-tiny text-default-400">
-                    <LuCalendar className="text-xs" />
-                    {date}
+                  {/* 右側：登録日＋バージョン件数バッジをひとかたまりに */}
+                  <div className="flex flex-col items-end gap-2 shrink-0">
+                    <div className="flex items-center gap-1 text-tiny text-default-400">
+                      <LuCalendar className="text-xs" />
+                      {date}
+                    </div>
+
+                    {versionCount !== null && versionCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenHistoryOnShow(true);
+                          onOpen();
+                        }}
+                        className="flex items-center gap-1 bg-primary/10 text-primary px-2.5 py-1 rounded-full text-tiny font-bold active:opacity-70"
+                      >
+                        <LuLayers className="text-sm" />
+                        バージョンの数： {versionCount}
+                      </button>
+                    )}
                   </div>
+                </div>
 
-                  {versionCount !== null && versionCount > 0 && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setOpenHistoryOnShow(true);
-                        onOpen();
-                      }}
-                      className="flex items-center gap-1 bg-primary/10 text-primary px-2.5 py-1 rounded-full text-tiny font-bold active:opacity-70"
-                    >
-                      <LuLayers className="text-sm" />
-                      バージョンの数： {versionCount}
-                    </button>
-                  )}
+                <div className="font-bold text-large truncate w-full min-w-0">
+                  {deck.name}
                 </div>
               </div>
-
-              <div className="font-bold text-large truncate w-full min-w-0">
-                {deck.name}
-              </div>
-            </div>
-          </CardHeader>
+            </CardHeader>
           )}
           <CardBody className={compact ? "px-0 py-0" : "px-3 py-2"}>
             {/* デッキコード(画像・コード)と、その下に置くカードリストの間隔は

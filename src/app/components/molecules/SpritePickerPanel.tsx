@@ -209,7 +209,7 @@ export default function SpritePickerPanel({
         value={query}
         onValueChange={setQuery}
         onFocus={(e) => scrollIntoViewAfterKeyboard(e.currentTarget)}
-        placeholder="ポケモンの名前を入力（ひらがなでも検索できます）"
+        placeholder="ポケモンの名前を入力（ひらがな可）"
         startContent={<CgSearch className="shrink-0 text-lg text-default-400" />}
         isClearable
         onClear={() => setQuery("")}
@@ -248,7 +248,9 @@ export default function SpritePickerPanel({
           {hasMore && (
             <p className="text-center text-xs text-default-500">
               ほかにも{matched.length - MAX_VISIBLE}
-              体が該当します。名前をもう少し入れて絞り込んでください。
+              体が該当します。
+              <br />
+              名前をもう少し入れて絞り込んでください。
             </p>
           )}
         </div>

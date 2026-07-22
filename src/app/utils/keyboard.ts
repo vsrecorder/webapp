@@ -1,3 +1,5 @@
+import { isAndroid } from "@app/utils/platform";
+
 /*
  * ソフトウェアキーボードの表示が終わったあとに、隠れた入力欄を可視領域までスクロールする。
  *
@@ -47,4 +49,90 @@ export function scrollIntoViewAfterKeyboard(element: Element) {
   } else {
     timer = setTimeout(doScroll, 300);
   }
+}
+
+// スクロールを担っている祖先を探す。
+// モーダル側で [data-keyboard-scroll-container] を付けておけば、それを優先する
+// (overflow-x だけの横スクロール行は overflow-y が auto に計算されるため、
+//  素朴に overflow-y だけを見ると誤検出しうる)。
+function findScrollContainer(element: Element): HTMLElement | null {
+  const marked = element.closest<HTMLElement>("[data-keyboard-scroll-container]");
+  if (marked) return marked;
+
+  let node = element.parentElement;
+  while (node) {
+    const overflowY = getComputedStyle(node).overflowY;
+    if (
+      (overflowY === "auto" || overflowY === "scroll") &&
+      node.scrollHeight > node.clientHeight + 1
+    ) {
+      return node;
+    }
+    node = node.parentElement;
+  }
+
+  return null;
+}
+
+/*
+ * 【Android 限定】ソフトウェアキーボードが出たあと、対象要素がスクロール領域の
+ * 上端に来るようにする。
+ *
+ * モーダル内では scrollIntoViewAfterKeyboard は何もしない(documentElement が
+ * overflow:hidden のため)。代わりに react-aria が「見える範囲に入る最小限」だけ
+ * スクロールするので、Android では入力欄がキーボードのすぐ上に貼り付き、その下に
+ * 出る履歴候補がキーボードの裏に隠れてしまう。そこで入力欄(を含むカード)を
+ * 可視領域の上端へ引き上げ、下に続く候補まで見えるようにする。
+ *
+ * iOS は対象にしない。キーボード表示中のスクロールはレイアウトビューポートごと
+ * 動く事故につながりやすく、現状 react-aria の既定挙動で問題が出ていないため。
+ * (同じ理由で scrollIntoView も使わず、スクロール親の scrollTop だけを動かす)
+ *
+ *   <Input onFocus={(e) => scrollToTopAfterKeyboard(e.currentTarget.closest("[data-xxx]"))} />
+ */
+export function scrollToTopAfterKeyboard(element: Element | null, offset = 8) {
+  if (typeof window === "undefined" || !element) return;
+
+  if (!isAndroid()) return;
+
+  const container = findScrollContainer(element);
+  if (!container) return;
+
+  const viewport = window.visualViewport;
+
+  // キーボードでビューポートが変化したか。変化していないデスクトップでは、
+  // 見えている入力欄をわざわざ動かさない(ユーザーの位置を奪わない)
+  let resizedByKeyboard = false;
+
+  const align = (force: boolean) => {
+    // フォーカスが外れているなら、ユーザーは次の操作に移っている。割り込まない
+    if (!container.contains(document.activeElement)) return;
+
+    const rect = element.getBoundingClientRect();
+    const box = container.getBoundingClientRect();
+
+    const isFullyVisible = rect.top >= box.top && rect.bottom <= box.bottom;
+    if (!force && isFullyVisible) return;
+
+    const delta = rect.top - box.top - offset;
+    if (Math.abs(delta) < 2) return;
+
+    container.scrollTop += delta;
+  };
+
+  // キーボードは段階的に開くため、変化のたびに合わせ直す
+  const onViewportResize = () => {
+    resizedByKeyboard = true;
+    align(true);
+  };
+  viewport?.addEventListener("resize", onViewportResize);
+
+  // キーボードが既に出ている(= resize が発火しない)場合は、隠れているときだけ引き上げる
+  setTimeout(() => align(false), 250);
+
+  // キーボードのアニメーションが終わるころに最終位置へ合わせ、後片付けする
+  setTimeout(() => {
+    viewport?.removeEventListener("resize", onViewportResize);
+    align(resizedByKeyboard);
+  }, 700);
 }

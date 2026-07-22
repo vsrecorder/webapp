@@ -41,7 +41,10 @@ import { PokemonSpriteType, MatchPokemonSpriteType } from "@app/types/pokemon_sp
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 
 import { useModalDragToClose } from "@app/hooks/useModalDragToClose";
-import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
+import {
+  scrollIntoViewAfterKeyboard,
+  scrollToTopAfterKeyboard,
+} from "@app/utils/keyboard";
 import { getSpriteBySlot } from "@app/utils/spriteSlot";
 import { isIOS } from "@app/utils/platform";
 import { closingPassthroughClassNames } from "@app/utils/modal";
@@ -645,7 +648,7 @@ export default function CreateMatchModal({
           </CardBody>
         </Card>
 
-        <Card shadow="md" className="w-full">
+        <Card data-opponents-deck-field shadow="md" className="w-full">
           <CardHeader className="pb-0 flex flex-col items-start text-tiny">
             <label className="flex items-center gap-1">
               <span>相手のデッキ</span>
@@ -679,7 +682,13 @@ export default function CreateMatchModal({
                 placeholder={"例）" + (activeCandidates[0]?.deckInfo ?? "相手のデッキ")}
                 value={opponentsDeckInfo}
                 onChange={(e) => setOpponentsDeckInfo(e.target.value)}
-                onFocus={(e) => scrollIntoViewAfterKeyboard(e.currentTarget)}
+                // Android のキーボードで隠れないよう、カードごと可視領域の上端へ
+                // 引き上げる(下に出る履歴候補まで見せるため、入力欄単体ではなくカード基準)
+                onFocus={(e) =>
+                  scrollToTopAfterKeyboard(
+                    e.currentTarget.closest("[data-opponents-deck-field]"),
+                  )
+                }
                 isInvalid={isOpponentsDeckInfoTooLong}
                 errorMessage={`${MAX_OPPONENTS_DECK_INFO_LENGTH}文字以内で入力してください`}
               />
@@ -914,7 +923,10 @@ export default function CreateMatchModal({
                 <div className="mx-auto h-1 w-32 mb-1.5 rounded-full bg-default-300" />
                 <div>対戦結果を追加</div>
               </ModalHeader>
-              <ModalBody className="flex flex-col gap-0 px-1 py-1 pb-0 overflow-y-auto">
+              <ModalBody
+                data-keyboard-scroll-container
+                className="flex flex-col gap-0 px-1 py-1 pb-0 overflow-y-auto"
+              >
                 <Tabs
                   fullWidth
                   size="sm"

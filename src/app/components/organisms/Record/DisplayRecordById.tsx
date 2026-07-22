@@ -90,6 +90,7 @@ export default function DisplayRecordById({ recordData }: Props) {
                 enableShowDeckModal={false}
                 enableUpdateUsedDeckModal={true}
                 compact={true}
+                enableCardList={true}
               />
             </div>
           </BoardPanel>

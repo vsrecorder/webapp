@@ -26,7 +26,7 @@ import DisplayDeckCodesModal from "@app/components/organisms/Deck/Modal/DisplayD
 import DisplayDeckOpponentAnalysisModal from "@app/components/organisms/Deck/Modal/DisplayDeckOpponentAnalysisModal";
 
 import DeckCodeCard from "@app/components/organisms/Deck/DeckCodeCard";
-import DeckCardDetailRow from "@app/components/organisms/Deck/DeckCardDetailRow";
+import CardListAccordion from "@app/components/organisms/Deck/CardListAccordion";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
 import { useDeckCodes } from "@app/hooks/useDeckCodes";
@@ -212,7 +212,8 @@ export default function ShowDeckModal({
         isOpen={isOpen}
         size="md"
         placement="center"
-        isDismissable={false}
+        // 閲覧用のモーダルのため、モーダル外（背景）のタップでも閉じられるようにする
+        isDismissable
         onOpenChange={onOpenChange}
         onClose={() => {}}
         //className="h-[calc(100dvh-256px)] max-h-[calc(100dvh-256px)]"
@@ -273,9 +274,9 @@ export default function ShowDeckModal({
                 </>
               </ModalHeader>
               <ModalBody className="px-3 pt-1 pb-1.5 flex flex-col gap-2 overflow-y-auto">
-                {/* デッキ画像を上に置き、その下にカードリスト、さらにその下にデッキコードを
-                    並べる。デッキコード欄は hideCode で画像側から切り離し、カードリストの
-                    下へ配置している（コード表示自体は DeckCodeCard の hideImage 版に委譲）。 */}
+                {/* デッキ画像・デッキコード・カードリストの順に並べる。
+                    デッキコード欄は hideCode で画像側から切り離し、画像の下へ
+                    配置している（コード表示自体は DeckCodeCard の hideImage 版に委譲）。 */}
                 <DeckCodeCard
                   deckcode={deckcode}
                   totalVersionCount={versionCount}
@@ -288,11 +289,9 @@ export default function ShowDeckModal({
 
                 {deckcode?.code && (
                   <>
-                    <div className="rounded-xl bg-default-100 p-2">
-                      <DeckCardDetailRow code={deckcode.code} />
-                    </div>
-
                     <DeckCodeCard deckcode={deckcode} hideImage />
+
+                    <CardListAccordion code={deckcode.code} />
                   </>
                 )}
               </ModalBody>

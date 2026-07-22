@@ -73,6 +73,8 @@ type Props = {
   enableUpdateUsedDeckModal: boolean;
   // デッキ名ヘッダーを省いてデッキコードに特化する(ヒーローに使用デッキ名がある場合)
   compact?: boolean;
+  // デッキコードの下に、展開でカード内訳を見られるカードリストのアコーディオンを置く
+  enableCardList?: boolean;
 };
 
 export default function UsedDeckById({
@@ -81,6 +83,7 @@ export default function UsedDeckById({
   enableShowDeckModal,
   enableUpdateUsedDeckModal,
   compact = false,
+  enableCardList = false,
 }: Props) {
   const [deck, setDeck] = useState<DeckGetByIdResponseType | null>(null);
   const [deckcode, setDeckCode] = useState<DeckCodeType | null>(null);
@@ -214,7 +217,7 @@ export default function UsedDeckById({
   }, [loadDeck, loadDeckCode]);
 
   if (loading1 || loading2) {
-    return <DeckCardSkeleton compact={compact} />;
+    return <DeckCardSkeleton compact={compact} enableCardList={enableCardList} />;
   }
 
   // デッキ本体が失敗 → デッキ分だけ再取得
@@ -262,6 +265,7 @@ export default function UsedDeckById({
           onSelectExistingVersion={onOpenForUpdateUsedDeckModal}
           onCreateVersion={onOpenForCreateDeckCodeModal}
           compact={compact}
+          enableCardList={enableCardList}
         />
       </div>
     </>

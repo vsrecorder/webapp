@@ -6,14 +6,13 @@ import SignUp from "./SignUp";
 import SignIn from "./SignIn";
 import UserMenu from "./UserMenu";
 import NotificationBell from "./NotificationBell";
+import CurrentEnvironment from "./CurrentEnvironment";
 import ThemeSwitcher from "@app/components/molecules/Theme/ThemeSwitcher";
 import ReloadButton from "@app/components/molecules/Header/ReloadButton";
-import ScrollingText from "@app/components/molecules/ScrollingText";
 import { UserType } from "@app/types/user";
 import { EnvironmentType } from "@app/types/environment";
 import { getAppIconUrl, isDevEnv } from "@app/utils/appIcon";
 import { todayJSTDateString } from "@app/utils/date";
-import { getEnvDotColor } from "@app/utils/environment";
 
 import Link from "next/link";
 
@@ -118,17 +117,7 @@ export default async function Header() {
     return (
       <HeaderShell hasSidebar>
         <Logo iconUrl={iconUrl} />
-        {resolvedEnv && (
-          <div className="flex flex-1 items-center gap-1.5 min-w-0 mx-3">
-            <span
-              className={`w-1.5 h-1.5 rounded-full ${getEnvDotColor(resolvedEnv.to_date)} animate-pulse shrink-0`}
-            />
-            <ScrollingText
-              text={`現在の対戦環境：『${resolvedEnv.title}』`}
-              className="flex-1 text-white/80 text-xs font-medium min-w-0"
-            />
-          </div>
-        )}
+        {resolvedEnv && <CurrentEnvironment environment={resolvedEnv} />}
 
         <div className="flex items-center gap-1 shrink-0">
           <ReloadButton />

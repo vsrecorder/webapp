@@ -434,6 +434,7 @@ export default function DisplayRecordModal({
                             enableShowDeckModal={false}
                             enableUpdateUsedDeckModal={false}
                             compact={true}
+                            enableCardList={true}
                           />
                         </div>
                       </BoardPanel>

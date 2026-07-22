@@ -9,7 +9,13 @@ import { Button } from "@heroui/react";
 // 「作成」「更新」「保存」などのアクションボタンは primary のため、
 // 選択状態の色に primary を使うと押すべきボタンと紛らわしい。
 // 先攻/後攻のような中立の2択には secondary を使う。
-type ChoiceColor = "primary" | "secondary" | "success" | "warning" | "danger";
+type ChoiceColor =
+  | "default"
+  | "primary"
+  | "secondary"
+  | "success"
+  | "warning"
+  | "danger";
 
 export type ChoiceOption<T> = {
   value: T;

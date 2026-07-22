@@ -48,7 +48,10 @@ export function DeckViewToggleSkeleton() {
   return <Skeleton className="h-8 w-full rounded-lg" />;
 }
 
-export function DeckCardSkeleton({ compact = false }: { compact?: boolean } = {}) {
+export function DeckCardSkeleton({
+  compact = false,
+  enableCardList = false,
+}: { compact?: boolean; enableCardList?: boolean } = {}) {
   // ボード(記録詳細/モーダル)向けのスケルトン。実態のDeckCodeCardに合わせて、
   // デッキ画像(2:1)を主役に、その下にデッキコード行だけを並べる（チップ行は無い）。
   if (compact) {
@@ -56,6 +59,9 @@ export function DeckCardSkeleton({ compact = false }: { compact?: boolean } = {}
       <div className="flex w-full flex-col gap-2.5">
         <Skeleton className="aspect-2/1 w-full rounded-lg" />
         <Skeleton className="h-9 w-full rounded-lg" />
+        {/* カードリストのアコーディオン（たたんだ状態）。
+            実体の見出し行の高さ（上下padding 8px＋行の高さ16px＝32px）に合わせる。 */}
+        {enableCardList && <Skeleton className="h-8 w-full rounded-lg" />}
       </div>
     );
   }

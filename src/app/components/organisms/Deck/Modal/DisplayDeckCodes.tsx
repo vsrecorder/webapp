@@ -35,6 +35,7 @@ import {
 } from "react-icons/lu";
 
 import DeckCardDiff from "@app/components/organisms/Deck/DeckCardDiff";
+import CardListAccordion from "@app/components/organisms/Deck/CardListAccordion";
 import FetchError from "@app/components/molecules/FetchError";
 import ZoomableDeckImage from "@app/components/atoms/ZoomableDeckImage";
 
@@ -678,8 +679,10 @@ export default function DisplayDeckCodesModal({
         onOpenChange={onOpenChange}
         onClose={() => {}}
         // min() でシート高の上限を可視領域(--visual-viewport-height)にし、
-        // iOS でキーボード表示中に入力欄がキーボードの裏に隠れるのを防ぐ
-        className="h-[min(calc(100dvh-104px),var(--visual-viewport-height,100dvh))] max-h-[min(calc(100dvh-104px),var(--visual-viewport-height,100dvh))] mt-26 my-0 rounded-b-none"
+        // iOS でキーボード表示中に入力欄がキーボードの裏に隠れるのを防ぐ。
+        // mx-0 はHeroUI既定の左右マージン(mx-1)を打ち消し、シートを画面幅いっぱいに広げる
+        // （バージョンのカードを少しでも広く見せるため。sm以上のsm:mx-6はそのまま）
+        className="h-[min(calc(100dvh-104px),var(--visual-viewport-height,100dvh))] max-h-[min(calc(100dvh-104px),var(--visual-viewport-height,100dvh))] mt-26 my-0 mx-0 rounded-b-none"
         classNames={{
           base: "sm:max-w-full lg:max-w-2xl",
           closeButton: "text-xl",
@@ -699,7 +702,9 @@ export default function DisplayDeckCodesModal({
 
                 <div>バージョン一覧</div>
               </ModalHeader>
-              <ModalBody className="px-2 py-3 flex flex-col overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none">
+              {/* px-1: バージョンのカードを広く見せつつ、画面端に貼り付かない余白を残す。
+                  ドットのリング(4px)がちょうど画面端に収まる幅でもある */}
+              <ModalBody className="px-1 py-3 flex flex-col overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none">
                 <>
                   {loading ? (
                     <Spinner size="lg" className="pt-32" />
@@ -800,7 +805,9 @@ export default function DisplayDeckCodesModal({
                             const lineDashed = isLastCodeItem && showNextVersionPrompt;
 
                             return (
-                              <li key={deckcode.id} className="flex gap-2.5">
+                              // gapはドットのリング(4px)とカードが接しない範囲で詰め、
+                              // カードを少しでも広く見せる
+                              <li key={deckcode.id} className="flex gap-2">
                                 {/* タイムラインのガター。ドットと時刻ラベルを同じ高さ(h-4)の
                                     ボックスで揃えることで水平方向に一列に並べ、リング
                                     (bg-content1)でラインとの重なりを切り抜いて見せる */}
@@ -810,7 +817,7 @@ export default function DisplayDeckCodesModal({
                                   </div>
                                   {lineVisible && (
                                     <span
-                                      className={`w-0 flex-1 mt-1.5 border-l border-primary/30 ${
+                                      className={`w-0 flex-1 mt-1.5 border-l-2 border-primary/30 ${
                                         lineDashed ? "border-dashed" : ""
                                       }`}
                                     />
@@ -829,7 +836,10 @@ export default function DisplayDeckCodesModal({
                                     </span>
                                   </div>
 
-                                  <div className="mt-1.5">
+                                  {/* -ml-2 でカードだけをガターのgap分(8px)だけ左へ張り出す。
+                                      ドット・縦線・作成日時ラベルの位置はそのままにして、
+                                      カードの左端をドットの右端に接するところまで寄せる */}
+                                  <div className="mt-1.5 -ml-2">
                                     {deckcode.code ? (
                                       <div className="rounded-xl bg-default-100 p-3 flex flex-col gap-2.5">
                                         {/* 両端配置 */}
@@ -888,6 +898,13 @@ export default function DisplayDeckCodesModal({
                                             {deckcode?.code ? deckcode.code : "なし"}
                                           </Snippet>
                                         </div>
+
+                                        {/* カードリスト。バージョンごとに畳んでおき、
+                                            開いたバージョンの内訳だけを取得する */}
+                                        <CardListAccordion
+                                          code={deckcode.code}
+                                          background="content1"
+                                        />
 
                                         {(index !== displayDeckCodes.length - 1 ||
                                           deckcode.memo ||
@@ -980,7 +997,8 @@ export default function DisplayDeckCodesModal({
                         )}
 
                         {showNextVersionPrompt && (
-                          <li className="flex gap-2.5">
+                          // 各バージョンのliと同じgapにして左端を揃える
+                          <li className="flex gap-2">
                             <div className="flex flex-col items-center w-2.5 shrink-0">
                               {/* 未作成を示す中空ノード */}
                               <div className="flex items-center justify-center h-4 shrink-0">
@@ -994,7 +1012,8 @@ export default function DisplayDeckCodesModal({
                                 </span>
                               </div>
 
-                              <div className="mt-1.5">
+                              {/* 各バージョンのカードと左端を揃える */}
+                              <div className="mt-1.5 -ml-2">
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -1021,7 +1040,10 @@ export default function DisplayDeckCodesModal({
                       </div>
                     </ol>
                   ) : (
-                    <FetchError onRetry={loadDeckCodes} compact />
+                    // ModalBodyの左右余白は狭いため、エラーカードだけ余白を足す
+                    <div className="px-2">
+                      <FetchError onRetry={loadDeckCodes} compact />
+                    </div>
                   )}
                 </>
               </ModalBody>

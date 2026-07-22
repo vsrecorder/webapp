@@ -17,6 +17,7 @@ import { LuCalendar } from "react-icons/lu";
 import { LuLayoutGrid } from "react-icons/lu";
 
 import DeckCodeCard from "@app/components/organisms/Deck/DeckCodeCard";
+import CardListAccordion from "@app/components/organisms/Deck/CardListAccordion";
 import ShowDeckModal from "@app/components/organisms/Deck/Modal/ShowDeckModal";
 
 import { useDeckCodes } from "@app/hooks/useDeckCodes";
@@ -39,6 +40,8 @@ type Props = {
   // デッキ名・スプライト等のヘッダーを省き、デッキコード(画像・コード・環境)に特化する。
   // ヒーローに使用デッキ名を表示している記録詳細/モーダルで使う。
   compact?: boolean;
+  // デッキコードの下に、展開でカード内訳を見られるカードリストのアコーディオンを置く
+  enableCardList?: boolean;
 };
 
 export default function UsedDeckCard({
@@ -50,6 +53,7 @@ export default function UsedDeckCard({
   onSelectExistingVersion,
   onCreateVersion,
   compact = false,
+  enableCardList = false,
 }: Props) {
   //const [deck, setDeck] = useState<DeckGetByIdResponseType | null>(deckData);
   //const [deckcode, setDeckCode] = useState<DeckCodeType | null>(deckcodeData);
@@ -168,13 +172,21 @@ export default function UsedDeckCard({
           </CardHeader>
           )}
           <CardBody className={compact ? "px-0 py-0" : "px-3 py-2"}>
-            <DeckCodeCard
-              deckcode={deckcode}
-              totalVersionCount={versionCount}
-              onCreateVersion={isArchived ? undefined : onCreateVersion}
-              onSelectExistingVersion={onSelectExistingVersion}
-              isArchived={isArchived}
-            />
+            {/* デッキコード(画像・コード)と、その下に置くカードリストの間隔は
+                DeckCodeCard内部の要素間(gap-2.5)と揃える */}
+            <div className="flex flex-col gap-2.5">
+              <DeckCodeCard
+                deckcode={deckcode}
+                totalVersionCount={versionCount}
+                onCreateVersion={isArchived ? undefined : onCreateVersion}
+                onSelectExistingVersion={onSelectExistingVersion}
+                isArchived={isArchived}
+              />
+
+              {enableCardList && deckcode?.code && (
+                <CardListAccordion code={deckcode.code} />
+              )}
+            </div>
           </CardBody>
         </Card>
       </div>

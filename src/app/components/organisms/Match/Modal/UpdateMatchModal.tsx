@@ -20,7 +20,6 @@ import { addToast, closeToast } from "@heroui/react";
 
 import { Tabs, Tab } from "@heroui/react";
 import { CheckboxGroup, Checkbox } from "@heroui/checkbox";
-import { NumberInput } from "@heroui/react";
 import { Textarea } from "@heroui/react";
 
 import { Card, CardHeader, CardBody } from "@heroui/react";
@@ -31,6 +30,7 @@ import { LuTrash2 } from "react-icons/lu";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import HScrollRow from "@app/components/atoms/HScrollRow";
 import ChoiceButtonGroup from "@app/components/molecules/ChoiceButtonGroup";
+import PrizeCardsStepper from "@app/components/molecules/PrizeCardsStepper";
 import PokemonSpriteModal from "@app/components/organisms/Match/Modal/PokemonSpriteModal";
 import DeleteMatchModal from "@app/components/organisms/Match/Modal/DeleteMatchModal";
 import BO3GamesInput from "@app/components/organisms/Match/BO3GamesInput";
@@ -905,35 +905,20 @@ export default function UpdateMatchModal({
               </Card>
             </div>
 
-            <div className="flex items-center gap-5">
-              <NumberInput
-                label="自分"
-                placeholder=""
-                isDisabled={isDisabled}
-                minValue={0}
-                maxValue={6}
-                defaultValue={0}
-                value={yourPrizeCards}
-                onValueChange={setYourPrizeCards}
-                onFocus={(e) => scrollIntoViewAfterKeyboard(e.currentTarget)}
-                className=""
-              />
-
-              <span className="font-bold text-2xl">-</span>
-
-              <NumberInput
-                label="相手"
-                placeholder=""
-                isDisabled={isDisabled}
-                minValue={0}
-                maxValue={6}
-                defaultValue={0}
-                value={opponentsPrizeCards}
-                onValueChange={setOpponentsPrizeCards}
-                onFocus={(e) => scrollIntoViewAfterKeyboard(e.currentTarget)}
-                className=""
-              />
-            </div>
+            <Card shadow="md" className="w-full">
+              <CardHeader className="pb-0 text-tiny">
+                サイド（取ったサイドの枚数）
+              </CardHeader>
+              <CardBody className="overflow-visible">
+                <PrizeCardsStepper
+                  yourPrizeCards={yourPrizeCards}
+                  opponentsPrizeCards={opponentsPrizeCards}
+                  onYourChange={setYourPrizeCards}
+                  onOpponentsChange={setOpponentsPrizeCards}
+                  isDisabled={isDisabled}
+                />
+              </CardBody>
+            </Card>
           </>
         )}
 

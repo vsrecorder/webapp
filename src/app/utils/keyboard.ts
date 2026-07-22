@@ -51,6 +51,11 @@ export function scrollIntoViewAfterKeyboard(element: Element) {
   }
 }
 
+// アニメーションを控える設定(OS のアクセシビリティ設定)かどうか
+function prefersReducedMotion(): boolean {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
 // スクロールを担っている祖先を探す。
 // モーダル側で [data-keyboard-scroll-container] を付けておけば、それを優先する
 // (overflow-x だけの横スクロール行は overflow-y が auto に計算されるため、
@@ -117,7 +122,13 @@ export function scrollToTopAfterKeyboard(element: Element | null, offset = 8) {
     const delta = rect.top - box.top - offset;
     if (Math.abs(delta) < 2) return;
 
-    container.scrollTop += delta;
+    // 目的地はコンテンツ基準の絶対位置になる(要素の位置とスクロール位置は同じだけ動くため)。
+    // スクロールの途中で測り直しても同じ値が出るので、キーボードのアニメーション中に
+    // 何度呼ばれても目的地がぶれず、滑らかなスクロールが途中で飛ばない。
+    container.scrollTo({
+      top: container.scrollTop + delta,
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
+    });
   };
 
   // キーボードは段階的に開くため、変化のたびに合わせ直す
@@ -130,9 +141,10 @@ export function scrollToTopAfterKeyboard(element: Element | null, offset = 8) {
   // キーボードが既に出ている(= resize が発火しない)場合は、隠れているときだけ引き上げる
   setTimeout(() => align(false), 250);
 
-  // キーボードのアニメーションが終わるころに最終位置へ合わせ、後片付けする
+  // キーボードが出そろうころに最終位置へ合わせ、後片付けする。
+  // 監視を短く切りすぎると、キーボードの表示が遅い端末で取りこぼす
   setTimeout(() => {
     viewport?.removeEventListener("resize", onViewportResize);
     align(resizedByKeyboard);
-  }, 700);
+  }, 1000);
 }

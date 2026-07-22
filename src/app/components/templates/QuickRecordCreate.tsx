@@ -28,6 +28,7 @@ import { CalendarDate, today, getLocalTimeZone } from "@internationalized/date";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import HScrollRow from "@app/components/atoms/HScrollRow";
 import ChoiceButtonGroup from "@app/components/molecules/ChoiceButtonGroup";
+import PokemonSpriteSelectButton from "@app/components/molecules/PokemonSpriteSelectButton";
 import PokemonSpriteModal from "@app/components/organisms/Match/Modal/PokemonSpriteModal";
 import OfficialEventSelect from "@app/components/organisms/Record/OfficialEventSelect";
 import TonamelEventInput from "@app/components/organisms/Record/TonamelEventInput";
@@ -438,24 +439,19 @@ export default function TemplateQuickRecordCreate({
             <span className="text-sm font-medium text-default-700">
               相手のデッキ<span className="text-danger ml-0.5">*</span>
             </span>
+            {/* アイコン枠がタップできることに気づかれにくいため、常に案内を出す */}
+            <span className="text-tiny text-default-400 -mt-1">
+              アイコン枠をタップするとポケモンを選べます（任意）
+            </span>
             <div className="flex items-center gap-1.5 w-full">
-              <div className="flex items-center gap-0 shrink-0">
-                {([1, 2] as const).map((slot) => {
-                  const sprite = slot === 1 ? pokemonSprite1 : pokemonSprite2;
-                  return (
-                    <div
-                      key={slot}
-                      className="shrink-0 cursor-pointer"
-                      onClick={() => {
-                        setActiveSpriteSlot(slot);
-                        onSpriteOpen();
-                      }}
-                    >
-                      <PokemonSprite id={sprite?.id} size={48} />
-                    </div>
-                  );
-                })}
-              </div>
+              <PokemonSpriteSelectButton
+                sprite1={pokemonSprite1}
+                sprite2={pokemonSprite2}
+                onOpen={(slot) => {
+                  setActiveSpriteSlot(slot);
+                  onSpriteOpen();
+                }}
+              />
               <Input
                 type="text"
                 aria-label="相手のデッキ"

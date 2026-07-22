@@ -28,6 +28,7 @@ import { Skeleton } from "@heroui/react";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import HScrollRow from "@app/components/atoms/HScrollRow";
 import ChoiceButtonGroup from "@app/components/molecules/ChoiceButtonGroup";
+import PokemonSpriteSelectButton from "@app/components/molecules/PokemonSpriteSelectButton";
 import PrizeCardsStepper from "@app/components/molecules/PrizeCardsStepper";
 import PokemonSpriteModal from "@app/components/organisms/Match/Modal/PokemonSpriteModal";
 import BO3GamesInput from "@app/components/organisms/Match/BO3GamesInput";
@@ -650,34 +651,23 @@ export default function CreateMatchModal({
               <span>相手のデッキ</span>
               <span className="text-sm text-red-500">*</span>
             </label>
+            {/* アイコン枠がタップできることに気づかれにくいため、常に案内を出す */}
+            <span className="text-default-400">
+              アイコン枠をタップするとポケモンを選べます（任意）
+            </span>
           </CardHeader>
           <CardBody className="overflow-visible flex flex-col gap-3">
             {/* スプライト + デッキ名入力 */}
             <div className="flex items-center gap-1.5 w-full">
-              <div className="flex items-center gap-0 shrink-0">
-                {([1, 2] as const).map((slot) => {
-                  const sprite = slot === 1 ? pokemonSprite1 : pokemonSprite2;
-                  const disabled = isDefaultVictory || isDefaultDefeat;
-                  return (
-                    <div
-                      key={slot}
-                      className={`shrink-0 ${disabled ? "" : "cursor-pointer"}`}
-                      onClick={() => {
-                        if (!disabled) {
-                          setActivePokemonSpriteSlot(slot);
-                          onOpenForPokemonSpriteModal();
-                        }
-                      }}
-                    >
-                      <PokemonSprite
-                        id={sprite?.id}
-                        size={48}
-                        className={disabled ? "contrast-0" : ""}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
+              <PokemonSpriteSelectButton
+                sprite1={pokemonSprite1}
+                sprite2={pokemonSprite2}
+                isDisabled={isDefaultVictory || isDefaultDefeat}
+                onOpen={(slot) => {
+                  setActivePokemonSpriteSlot(slot);
+                  onOpenForPokemonSpriteModal();
+                }}
+              />
 
               <Input
                 isDisabled={isDisabled}

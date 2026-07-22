@@ -14,8 +14,8 @@ import {
   LuTriangleAlert,
 } from "react-icons/lu";
 
-import KizunaSpritePicker from "@app/components/organisms/Kizuna/KizunaSpritePicker";
-import type { SpriteSlot } from "@app/components/organisms/Kizuna/KizunaSpritePicker";
+import SpritePickerPanel from "@app/components/molecules/SpritePickerPanel";
+import type { SpriteSlot } from "@app/components/molecules/SpritePickerPanel";
 import KizunaShareCard from "@app/components/organisms/Kizuna/KizunaShareCard";
 
 import { captureThemedPng, SIDE_PADDING } from "@app/utils/captureImage";
@@ -129,7 +129,7 @@ export default function KizunaSimulator() {
   /*
    * スプライト選択をやり直させるための世代番号。key に渡してピッカーごと作り直す。
    *
-   * KizunaSpritePicker は「いまどちらのスロットを選んでいるか」を内部に持ち、
+   * SpritePickerPanel は「いまどちらのスロットを選んでいるか」を内部に持ち、
    * 1体目を選んだ時点で2体目へ送っている。sprite1/sprite2 を null に戻すだけでは
    * その内部状態は 2体目のまま残り、リセット直後なのに2体目にフォーカスが当たる。
    */
@@ -446,7 +446,7 @@ export default function KizunaSimulator() {
             </span>
           </legend>
 
-          <KizunaSpritePicker
+          <SpritePickerPanel
             key={pickerGeneration}
             sprite1={sprite1}
             sprite2={sprite2}

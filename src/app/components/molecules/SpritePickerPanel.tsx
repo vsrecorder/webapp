@@ -23,6 +23,7 @@ import PokemonSprite from "@app/components/atoms/PokemonSprite";
 // 目的のポケモンも見つけにくいため、この件数を超える分は検索で辿らせる。
 const MAX_VISIBLE = 24;
 
+
 export type SpriteSlot = 1 | 2;
 
 export type SpritePickerAccent = "amber" | "primary";
@@ -94,6 +95,11 @@ export default function SpritePickerPanel({
   const [query, setQuery] = useState("");
   const [activeSlot, setActiveSlot] = useState<SpriteSlot>(initialActiveSlot);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+
+  // 候補が実際に画面からはみ出しているか。数件しか該当しないときや広い画面で
+  // 「横にスクロール」と案内すると、存在しない操作を促すことになるため実測する。
+  const [canScrollList, setCanScrollList] = useState(false);
 
   const colors = ACCENT_CLASSES[accent];
 
@@ -121,6 +127,29 @@ export default function SpritePickerPanel({
 
   const candidates = matched.slice(0, MAX_VISIBLE);
   const hasMore = matched.length > MAX_VISIBLE;
+
+  // 候補の件数・画面幅のどちらが変わってもはみ出しは変わるので、両方を見る
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el) {
+      setCanScrollList(false);
+      return;
+    }
+
+    const update = () => setCanScrollList(el.scrollWidth > el.clientWidth + 1);
+    update();
+
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+
+    return () => observer.disconnect();
+  }, [candidates.length, isSearching, error, isLoading]);
+
+  // 検索語が変わると候補は総入れ替えになる。前の検索でスクロールした位置が残っていると
+  // 新しい候補の先頭が画面外から始まってしまうため、行の頭に戻す。
+  useEffect(() => {
+    listRef.current?.scrollTo({ left: 0 });
+  }, [query]);
 
   const slots: { slot: SpriteSlot; sprite: PokemonSpriteType | null; hint: string }[] = [
     { slot: 1, sprite: sprite1, hint: slot1Hint },
@@ -227,37 +256,14 @@ export default function SpritePickerPanel({
         <p className="py-4 text-center text-sm text-default-500">
           「{query}」に一致するポケモンはいませんでした。
         </p>
-      ) : isSearching ? (
-        // 検索中は結果を一覧で見せる
-        <div className="flex flex-col gap-2">
-          <ul className="grid grid-cols-4 gap-2 sm:grid-cols-6">
-            {candidates.map((sprite) => (
-              <li key={sprite.id} className="min-w-0">
-                <button
-                  type="button"
-                  aria-pressed={sprite1?.id === sprite.id || sprite2?.id === sprite.id}
-                  onClick={() => handlePick(sprite)}
-                  className={spriteButtonClass(sprite)}
-                >
-                  {spriteButtonContent(sprite)}
-                </button>
-              </li>
-            ))}
-          </ul>
-
-          {hasMore && (
-            <p className="text-center text-xs text-default-500">
-              ほかにも{matched.length - MAX_VISIBLE}
-              体が該当します。
-              <br />
-              名前をもう少し入れて絞り込んでください。
-            </p>
-          )}
-        </div>
       ) : (
-        // 未検索のときは1列だけ。横スクロールで24体まで辿れる。
+        // 検索中かどうかに関わらず1列。横スクロールで MAX_VISIBLE 体まで辿れる。
+        // (検索結果をグリッドで積むと縦に伸びて、キーボード表示中に候補が隠れる)
         <div className="flex flex-col gap-2">
-          <ul className="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-1">
+          <ul
+            ref={listRef}
+            className="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-1"
+          >
             {candidates.map((sprite) => (
               <li key={sprite.id} className="w-20 shrink-0 snap-start">
                 <button
@@ -271,8 +277,8 @@ export default function SpritePickerPanel({
               </li>
             ))}
 
-            {/* 24体の先は検索でしか辿れないことを、列の終端で明示する */}
-            {hasMore && (
+            {/* MAX_VISIBLE の先は検索でしか辿れないことを、列の終端で明示する */}
+            {hasMore && !isSearching && (
               <li className="w-24 shrink-0 snap-start">
                 <button
                   type="button"
@@ -290,11 +296,33 @@ export default function SpritePickerPanel({
             )}
           </ul>
 
-          <p className="text-center text-xs text-default-500">
-            横にスクロールして選べます。
-            <br />
-            ほかのポケモンは検索から探してください。
-          </p>
+          {isSearching ? (
+            <p className="text-center text-xs text-default-500">
+              {hasMore ? (
+                <>
+                  {matched.length}体が該当（先頭{MAX_VISIBLE}体を表示）。
+                  <br />
+                  {canScrollList && "横スクロールで選べます。"}
+                  もう少し入力すると絞り込めます。
+                </>
+              ) : (
+                <>
+                  {matched.length}体が該当しました。
+                  {canScrollList && "横にスクロールして選べます。"}
+                </>
+              )}
+            </p>
+          ) : (
+            <p className="text-center text-xs text-default-500">
+              {canScrollList && (
+                <>
+                  横にスクロールして選べます。
+                  <br />
+                </>
+              )}
+              ほかのポケモンは検索から探してください。
+            </p>
+          )}
         </div>
       )}
     </div>

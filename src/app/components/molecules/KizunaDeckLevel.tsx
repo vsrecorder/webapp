@@ -31,13 +31,21 @@ export function KizunaLevelInline({ level }: { level: number }) {
   );
 }
 
-// きずなLv.の線（4px）と、その下の段階名。
+/*
+ * きずなLv.の線（4px）と、その下の段階名。
+ *
+ * trailing は段階名の右端に添える要素（説明への入口など）。段階名は「旅人」のように
+ * 短く、行の右側がまるまる余るため、幅の奪い合いが起きない場所として空けてある。
+ * きずなLv.の数値の側は、リスト形式だと戦績と同じ行を分け合っていて余裕がない。
+ */
 export function KizunaLevelBar({
   level,
   showTierName = true,
+  trailing,
 }: {
   level: number;
   showTierName?: boolean;
+  trailing?: React.ReactNode;
 }) {
   return (
     <div className="flex flex-col gap-1">
@@ -48,9 +56,12 @@ export function KizunaLevelBar({
         />
       </div>
       {showTierName && (
-        <span className="truncate text-[11px] font-bold text-default-600">
-          {kizunaTierOf(level).name}
-        </span>
+        <div className="flex items-center justify-between gap-1">
+          <span className="truncate text-[11px] font-bold text-default-600">
+            {kizunaTierOf(level).name}
+          </span>
+          {trailing}
+        </div>
       )}
     </div>
   );

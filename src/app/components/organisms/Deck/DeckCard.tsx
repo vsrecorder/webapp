@@ -6,6 +6,8 @@ import { Card, CardHeader, CardBody } from "@heroui/react";
 import { Image, Skeleton, Chip } from "@heroui/react";
 
 import KizunaDeckSprites from "@app/components/molecules/KizunaDeckSprites";
+import KizunaHintPopover from "@app/components/molecules/KizunaHintPopover";
+import ScrollingText from "@app/components/molecules/ScrollingText";
 import {
   KizunaLevelInline,
   KizunaLevelBar,
@@ -269,6 +271,19 @@ export default function DeckCard({
       </div>
     ) : null;
 
+  /*
+   * きずなの説明への入口。きずなLv.の数値の真横に置き、リスト/ギャラリー双方で使い回す。
+   *
+   * カードはどこをタップしてもデッキ情報モーダルが開くため、ここで伝播を止めないと
+   * 「説明を開いたつもりがモーダルも開く」になる（内訳の開閉ボタンと同じ扱い）。
+   * 吹き出し側は層(backdrop)を敷いてあるので、閉じる操作はカードまで届かない。
+   */
+  const kizunaHint = (
+    <span className="flex" onClick={(e) => e.stopPropagation()}>
+      <KizunaHintPopover />
+    </span>
+  );
+
   // 1行に畳んだコンパクト表示。スプライト＋勝率リングで識別する。
   // タップ＝デッキ詳細を開く（ギャラリー表示と同じルール）。先攻/後攻の内訳や
   // デッキコード画像の段階的開示は、右端のシェブロンボタンだけが担う。
@@ -338,26 +353,37 @@ export default function DeckCard({
               {/* 戦績ときずなLv.を同じ行に置く。「強かったか」と「どう歩んできたか」が
                 左右に並ぶことで、カードの中でも対比がそのまま読める。 */}
               <div className="flex items-baseline justify-between gap-2 text-tiny">
-                <span className="truncate">
-                  {hasStats ? (
-                    <span className="text-default-400">
-                      {`${deckUsageStat!.count}戦${deckUsageStat!.wins}勝${deckUsageStat!.losses}敗`}
+                {hasStats ? (
+                  <span className="min-w-0 truncate text-default-400">
+                    {`${deckUsageStat!.count}戦${deckUsageStat!.wins}勝${deckUsageStat!.losses}敗`}
+                  </span>
+                ) : ignoredCount > 0 ? (
+                  /* きずなLv.と同じ行に並ぶと幅が足りず末尾が切れるため、
+                    溢れるときだけ横に流して最後まで読めるようにする。
+                    ⚠ は目印なので流さず頭に固定し、文言だけを流す。 */
+                  <span className="flex min-w-0 flex-1 items-center gap-1 font-semibold text-warning">
+                    <span aria-hidden className="shrink-0">
+                      ⚠
                     </span>
-                  ) : ignoredCount > 0 ? (
-                    <span className="flex items-center gap-1 font-semibold text-warning">
-                      <span aria-hidden>⚠</span>
-                      集計対象外の記録 {ignoredCount}件
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-1 text-default-400">
-                      <LuSwords className="text-[11px] shrink-0" />
-                      対戦記録なし
-                    </span>
-                  )}
-                </span>
+                    <ScrollingText
+                      text={`集計対象外の記録 ${ignoredCount}件`}
+                      className="min-w-0 flex-1"
+                      animationClass="animate-marquee-card-slow"
+                    />
+                  </span>
+                ) : (
+                  <span className="flex min-w-0 items-center gap-1 text-default-400">
+                    <LuSwords className="text-[11px] shrink-0" />
+                    対戦記録なし
+                  </span>
+                )}
                 {kizunaLevel != null && <KizunaLevelInline level={kizunaLevel} />}
               </div>
-              {kizunaLevel != null && <KizunaLevelBar level={kizunaLevel} />}
+              {/* 説明への入口は段階名の行に置く。きずなLv.の数値側は戦績と同じ行を
+                分け合っていて、ここに足すと戦績が先に切れてしまう（実測で 82→57px）。 */}
+              {kizunaLevel != null && (
+                <KizunaLevelBar level={kizunaLevel} trailing={kizunaHint} />
+              )}
             </div>
 
             {/* 内訳の開閉ボタン。行タップ（＝詳細を開く）と役割が衝突しないよう、
@@ -523,8 +549,9 @@ export default function DeckCard({
                   勝率との対比（二枚看板）は展開後に置く。 */}
                 {kizunaLevel != null && (
                   <div className="flex w-full min-w-0 flex-col gap-1 pt-0.5">
-                    <div className="flex items-baseline justify-center">
+                    <div className="flex items-center justify-center gap-0.5">
                       <KizunaLevelInline level={kizunaLevel} />
+                      {kizunaHint}
                     </div>
                     <KizunaLevelBar level={kizunaLevel} showTierName={false} />
                   </div>

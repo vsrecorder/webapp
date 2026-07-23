@@ -36,9 +36,9 @@ export default function KizunaShareCard({
   const spriteNames = sprites.map((sprite) => sprite.name).join("・");
   const title = deckName.trim() || spriteNames;
 
-  // 灯の強さと揺れの大きさはきずなLv.で決まる。
-  // 数字を読まなくても、絵の明るさと動きの活きの良さで深さが伝わる。
-  const { glow, bob } = kizunaTierOf(score);
+  // 灯の大きさ・グラデーションと、揺れの大きさはきずなLv.で決まる。
+  // 数字を読まなくても、炎の色と動きの活きの良さで深さが伝わる。
+  const { glow, glowGradient, bob } = kizunaTierOf(score);
 
   return (
     <div className="flex flex-col items-center gap-5 rounded-2xl border border-amber-500/30 bg-linear-to-br from-indigo-950 via-slate-900 to-neutral-950 px-6 py-7 text-center text-white">
@@ -52,9 +52,16 @@ export default function KizunaShareCard({
           {/* 焚き火の灯を背負わせる。相棒が光を受けて立っている、という絵にする。
               灯の大きさと濃さ、スプライトの揺れ方はきずなLv.の段階で変わる
               （KIZUNA_TIERS の glow / bob）。灯は動かさない。
-              揺れているのは光ではなくポケモンだ、と見えるようにするため。 */}
+              揺れているのは光ではなくポケモンだ、と見えるようにするため。
+              「出会ったばかり」は glow が空文字で、灯そのものが出ない。 */}
           <div className="relative flex h-28 items-center justify-center gap-1">
-            <span aria-hidden="true" className={`absolute rounded-full ${glow}`} />
+            {glow && (
+              <span
+                aria-hidden="true"
+                className={`absolute rounded-full ${glow}`}
+                style={{ background: glowGradient }}
+              />
+            )}
             {sprites.map((sprite) => (
               <PokemonSprite
                 key={sprite.id}

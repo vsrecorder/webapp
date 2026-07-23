@@ -8,7 +8,7 @@ import {
   useKizunaPreviewDeck,
   type KizunaPreviewStats,
 } from "@app/components/organisms/Kizuna/KizunaPreviewContext";
-import { kizunaTierOf } from "@app/utils/kizuna";
+import { kizunaHasGlow, kizunaTierOf } from "@app/utils/kizuna";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 
 /*
@@ -60,23 +60,27 @@ type ViewModel = {
   tierName: string;
   // スプライトの揺れ方（段階が上がるほど大きく・速く。最下段は動かない）
   bob: string;
+  // 灯をともすか（「出会ったばかり」だけ灯らない）
+  showGlow: boolean;
+  // 灯のグラデーション（段階で炎の色が変わる）
+  glowGradient: string;
   stats: KizunaPreviewStats;
   // 戦績が本人の記録によるものか（サンプルの数字を借りているか）
   hasRealStats: boolean;
 };
 
-// スプライトの背後にともる灯。きずなLv.が高いほど濃くなる（結果カードと同じ思想）。
-// 結果カードの glow はスプライト96pxを前提とした大きさなので、一覧のサイズに合わせて別に持つ。
-// 濃さは Tailwind の静的クラスでは刻めない（`bg-amber-400/${n}` はビルドから消える）ため、
-// 不透明度だけインラインで与える。
+// スプライトの背後にともる灯。きずなLv.の段階でグラデーション（炎の色）が変わる
+// （結果カード・本物のデッキ一覧と同じ tier.glowGradient を使う）。
 function Sprites({
   spriteIds,
-  kizunaRatio,
   bob,
+  showGlow,
+  glowGradient,
 }: {
   spriteIds: string[];
-  kizunaRatio: number;
   bob: string;
+  showGlow: boolean;
+  glowGradient: string;
 }) {
   const spx = 48;
 
@@ -85,12 +89,15 @@ function Sprites({
 
   return (
     <div className="relative flex shrink-0 items-center gap-0">
-      {/* 灯。バッジで濃さを数値化はしない（灯っているかどうかが見えれば足りる） */}
-      <span
-        aria-hidden="true"
-        className="absolute left-1/2 top-1/2 h-14 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-400 blur-lg"
-        style={{ opacity: 0.12 + kizunaRatio * 0.4 }}
-      />
+      {/* 灯。バッジで濃さを数値化はしない（灯っているかどうかが見えれば足りる）。
+          「出会ったばかり」は灯そのものを出さない。 */}
+      {showGlow && (
+        <span
+          aria-hidden="true"
+          className="absolute left-1/2 top-1/2 h-14 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full blur-lg"
+          style={{ background: glowGradient }}
+        />
+      )}
       {slots.map((id, i) => (
         <PokemonSprite
           key={`${id ?? "unknown"}-${i}`}
@@ -149,7 +156,12 @@ function ListPreview({ vm }: { vm: ViewModel }) {
         </div>
 
         <div className="flex items-center gap-3">
-          <Sprites spriteIds={vm.spriteIds} kizunaRatio={vm.kizunaRatio} bob={vm.bob} />
+          <Sprites
+            spriteIds={vm.spriteIds}
+            bob={vm.bob}
+            showGlow={vm.showGlow}
+            glowGradient={vm.glowGradient}
+          />
 
           {/* 勝率リング（現状のまま） */}
           <div className="relative h-11 w-11 shrink-0">
@@ -224,7 +236,12 @@ function GalleryPreview({ vm }: { vm: ViewModel }) {
           </span>
         </div>
         <div className="flex w-full min-w-0 flex-col items-center gap-1">
-          <Sprites spriteIds={vm.spriteIds} kizunaRatio={vm.kizunaRatio} bob={vm.bob} />
+          <Sprites
+            spriteIds={vm.spriteIds}
+            bob={vm.bob}
+            showGlow={vm.showGlow}
+            glowGradient={vm.glowGradient}
+          />
           <div className="w-full min-w-0 truncate text-center font-bold text-large">
             {vm.deckName}
           </div>
@@ -322,6 +339,8 @@ export default function KizunaDeckCardPreview() {
     kizunaRatio: Math.min(1, Math.max(0, kizunaLevel / 255)),
     tierName: kizunaTierOf(kizunaLevel).name,
     bob: kizunaTierOf(kizunaLevel).bob,
+    showGlow: kizunaHasGlow(kizunaLevel),
+    glowGradient: kizunaTierOf(kizunaLevel).glowGradient,
     // 質問式の試算では戦績を持てないため、その場合はサンプルの数字を借りる
     stats: previewDeck?.stats ?? SAMPLE.stats,
     hasRealStats: !!previewDeck?.stats,

@@ -7,14 +7,24 @@ export type KizunaTier = {
   name: string;
   message: string;
   /*
-   * 結果カードでポケモンの背後にともる焚き火の灯。段階が上がるほど、
-   * 大きく・濃く・暖かくなる。「出会ったばかり」だけは暖色にならず、
-   * 冷たい微光にとどまる（灯は積み上げた先にともる、という設計）。
+   * ポケモンの背後にともる焚き火の灯。段階が上がるほど、大きく・濃く・暖かくなる。
+   * 「出会ったばかり」だけは灯がともらない（空文字）。まだ火は熾っていない、
+   * 灯は積み上げた先にともる、という設計。
    *
-   * Tailwind は静的な文字列しか拾えないため、クラス名は完全な形で持つこと。
-   * 動的に組み立てる（`bg-amber-500/${n}`）とビルドから消える。
+   * この glow は灯の「大きさとぼかし」だけを持つ（結果カード用のサイズ）。色は
+   * glowGradient が持つ。Tailwind は静的な文字列しか拾えないため、クラス名は完全な形で
+   * 持つこと。動的に組み立てる（`h-${n}`）とビルドから消える。
    */
   glow: string;
+  /*
+   * 灯のグラデーション（CSS の background 値）。段階が上がるほど、中心が白く熱くなり、
+   * 外側へ薔薇色に広がる（機能の rose→amber の配色に合わせる）。50未満は灯らないので空文字。
+   *
+   * 単色ではなくグラデーションなのは、きずなLv.が上がったことを「明るさ」だけでなく
+   * 「炎の色の変化」で伝えるため。Tailwind ではなくインラインの background で与える
+   * （多段の rgba を持つ放射グラデーションはユーティリティクラスにできないため）。
+   */
+  glowGradient: string;
   /*
    * ポケモンのスプライトが上下にゆれる動き（globals.css の .kizuna-bob-*）。
    * 灯と同じく段階が上がるほど大きく・速くなる。「出会ったばかり」は動かない
@@ -29,42 +39,58 @@ export const KIZUNA_TIERS: KizunaTier[] = [
     min: 255,
     name: "最高の相棒",
     message: "もう、言葉はいらないようです。",
-    glow: "h-32 w-48 bg-amber-200/85 blur-2xl",
+    glow: "h-32 w-48 blur-2xl",
+    // 白熱の芯 → 金 → 薔薇色。いちばん熱い炎
+    glowGradient:
+      "radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(253,224,71,0.66) 30%, rgba(251,113,133,0.34) 60%, transparent 82%)",
     bob: "kizuna-bob kizuna-bob-5",
   },
   {
     min: 200,
     name: "かけがえのない",
-    message: "このポケモンは、あなたの一部になっています。",
-    glow: "h-28 w-44 bg-amber-300/70 blur-2xl",
+    message: "このデッキは、あなたの一部になっています。",
+    glow: "h-28 w-44 blur-2xl",
+    // 明るい金の芯 → 橙 → 薔薇色（はっきり）
+    glowGradient:
+      "radial-gradient(circle, rgba(254,240,138,0.74) 0%, rgba(251,146,60,0.44) 38%, rgba(244,63,94,0.24) 64%, transparent 80%)",
     bob: "kizuna-bob kizuna-bob-4",
   },
   {
     min: 150,
     name: "深く信頼している",
     message: "苦しいときに、まず手が伸びる一組です。",
-    glow: "h-28 w-40 bg-amber-400/55 blur-2xl",
+    glow: "h-28 w-40 blur-2xl",
+    // 金の芯 → 橙、薔薇色が入り始める
+    glowGradient:
+      "radial-gradient(circle, rgba(253,224,71,0.64) 0%, rgba(249,115,22,0.32) 42%, rgba(244,63,94,0.16) 66%, transparent 78%)",
     bob: "kizuna-bob kizuna-bob-3",
   },
   {
     min: 100,
     name: "心を許している",
     message: "勝ち負けの外側で、もう繋がっています。",
-    glow: "h-24 w-36 bg-amber-500/45 blur-2xl",
+    glow: "h-24 w-36 blur-2xl",
+    // 琥珀の芯 → 橙。まだ薔薇色は入らない
+    glowGradient:
+      "radial-gradient(circle, rgba(251,191,36,0.6) 0%, rgba(249,115,22,0.26) 46%, transparent 74%)",
     bob: "kizuna-bob kizuna-bob-2",
   },
   {
     min: 50,
     name: "打ち解けてきた",
     message: "少しずつ、手に馴染んできたところ。",
-    glow: "h-24 w-32 bg-amber-500/30 blur-2xl",
+    glow: "h-24 w-32 blur-2xl",
+    // 灯り始めの琥珀。まだ淡く、橙の気配だけ
+    glowGradient:
+      "radial-gradient(circle, rgba(245,158,11,0.46) 0%, rgba(234,88,12,0.14) 50%, transparent 72%)",
     bob: "kizuna-bob kizuna-bob-1",
   },
   {
     min: 0,
     name: "出会ったばかり",
     message: "きずなLv.は、ここから積み上がっていきます。",
-    glow: "h-20 w-28 bg-slate-300/20 blur-2xl",
+    glow: "",
+    glowGradient: "",
     bob: "",
   },
 ];
@@ -73,6 +99,12 @@ export function kizunaTierOf(score: number): KizunaTier {
   return (
     KIZUNA_TIERS.find((t) => score >= t.min) ?? KIZUNA_TIERS[KIZUNA_TIERS.length - 1]
   );
+}
+
+// その段階で灯がともるか。「出会ったばかり」だけは灯らない（glow が空文字）。
+// 灯を描くすべての箇所で、この判定を共通の入口にする。
+export function kizunaHasGlow(score: number): boolean {
+  return kizunaTierOf(score).glow !== "";
 }
 
 // ── 実データからのきずなLv.算出 ────────────────────────────────

@@ -2,7 +2,7 @@
 
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
-import { kizunaTierOf } from "@app/utils/kizuna";
+import { kizunaHasGlow, kizunaTierOf } from "@app/utils/kizuna";
 import { DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
 
 /*
@@ -25,7 +25,8 @@ type Props = {
 
 export default function KizunaDeckSprites({ sprites, size = 48, level }: Props) {
   const tier = level == null ? null : kizunaTierOf(level);
-  const ratio = level == null ? 0 : Math.min(1, Math.max(0, level / 255));
+  // 「出会ったばかり」は灯をともさない（結果カードと同じ判定）
+  const showGlow = level != null && kizunaHasGlow(level);
 
   /*
    * 灯の大きさはスプライトの表示サイズに比例させる。
@@ -37,17 +38,17 @@ export default function KizunaDeckSprites({ sprites, size = 48, level }: Props) 
 
   return (
     <div className="relative flex shrink-0 items-center gap-0">
-      {/* 灯。きずなLv.が高いほど濃くなる。数値で示さず、明るさだけで伝える。
-          濃さは Tailwind の静的クラスでは刻めない（`bg-amber-400/${n}` はビルドから
-          消える）ため、不透明度だけインラインで与える。 */}
-      {level != null && (
+      {/* 灯。きずなLv.の段階でグラデーション（炎の色）が変わる。結果カードと同じ
+          tier.glowGradient を使い、どこでも同じ段階なら同じ色になるようにする。
+          「出会ったばかり」は灯そのものを出さない。 */}
+      {showGlow && tier && (
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-400 blur-lg"
+          className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full blur-lg"
           style={{
             width: glowWidth,
             height: glowHeight,
-            opacity: 0.12 + ratio * 0.4,
+            background: tier.glowGradient,
           }}
         />
       )}

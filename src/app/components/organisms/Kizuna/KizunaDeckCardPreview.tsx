@@ -10,6 +10,22 @@ import {
 } from "@app/components/organisms/Kizuna/KizunaPreviewContext";
 import { kizunaHasGlow, kizunaTierOf } from "@app/utils/kizuna";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
+// 本物のデッキ一覧カード（organisms/Deck/DeckCard.tsx）と同じ表示部品を使う。
+// 独自にマークアップを組むと、本物を直したときにこのモックだけ実態とずれるため。
+import {
+  KizunaLevelInline,
+  KizunaLevelBar,
+  KizunaLevelBillboard,
+} from "@app/components/molecules/KizunaDeckLevel";
+import DeckGoStatsGrid from "@app/components/molecules/DeckGoStatsGrid";
+
+// 勝率の色分け。本物の DeckCard / DeckById と同じ閾値に合わせる。
+function winRateTextColor(rate: number): string {
+  if (rate >= 0.55) return "text-success";
+  if (rate >= 0.45) return "text-default-500";
+  if (rate >= 0.4) return "text-warning";
+  return "text-danger";
+}
 
 /*
  * 「きずな」が実装されたら、デッキ一覧のカードがどう見えるかのモック。
@@ -56,8 +72,6 @@ type ViewModel = {
   spriteIds: string[];
   registeredAt: string;
   kizunaLevel: number;
-  kizunaRatio: number;
-  tierName: string;
   // スプライトの揺れ方（段階が上がるほど大きく・速く。最下段は動かない）
   bob: string;
   // 灯をともすか（「出会ったばかり」だけ灯らない）
@@ -110,35 +124,6 @@ function Sprites({
   );
 }
 
-// きずなLv.の数値。戦績（勝敗）と同じ行に並べ、勝率ときずなの対比をその場で見せる。
-function KizunaLevel({ vm }: { vm: ViewModel }) {
-  return (
-    <span className="flex shrink-0 items-baseline gap-1">
-      <span className="text-[9px] text-default-400">きずなLv.</span>
-      <span className="text-[11px] font-bold tabular-nums text-amber-500 dark:text-amber-400">
-        {vm.kizunaLevel}
-      </span>
-    </span>
-  );
-}
-
-// きずなLv.の線（4px）と、その下の段階名。勝率は「円」、きずなは「線」。
-function KizunaBar({ vm }: { vm: ViewModel }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <div className="h-1 w-full overflow-hidden rounded-full bg-default-200">
-        <div
-          className="h-full rounded-full bg-linear-to-r from-rose-500 to-amber-400"
-          style={{ width: `${vm.kizunaRatio * 100}%` }}
-        />
-      </div>
-      <span className="truncate text-[11px] font-bold text-default-600">
-        {vm.tierName}
-      </span>
-    </div>
-  );
-}
-
 // ── リスト形式 ───────────────────────────────────────────────
 // スプライトに灯を宿し（案C）、デッキ名ブロックの下にきずなLv.の線を1本足す（案A）。
 // 勝率リングと行の構成には手を触れない。
@@ -163,9 +148,12 @@ function ListPreview({ vm }: { vm: ViewModel }) {
             glowGradient={vm.glowGradient}
           />
 
-          {/* 勝率リング（現状のまま） */}
+          {/* 勝率リング（本物と同じく勝率で色分け） */}
           <div className="relative h-11 w-11 shrink-0">
-            <svg viewBox="0 0 44 44" className="h-full w-full text-success">
+            <svg
+              viewBox="0 0 44 44"
+              className={`h-full w-full ${winRateTextColor(stats.winRate)}`}
+            >
               <circle
                 cx="22"
                 cy="22"
@@ -188,7 +176,9 @@ function ListPreview({ vm }: { vm: ViewModel }) {
                 transform="rotate(-90 22 22)"
               />
             </svg>
-            <div className="absolute inset-0 flex items-center justify-center text-tiny font-black tabular-nums text-success">
+            <div
+              className={`absolute inset-0 flex items-center justify-center text-tiny font-black tabular-nums ${winRateTextColor(stats.winRate)}`}
+            >
               {percent(stats.winRate)}
             </div>
           </div>
@@ -201,9 +191,9 @@ function ListPreview({ vm }: { vm: ViewModel }) {
               <span className="truncate text-tiny text-default-400">
                 {stats.matchCount}戦{stats.wins}勝{stats.losses}敗
               </span>
-              <KizunaLevel vm={vm} />
+              <KizunaLevelInline level={vm.kizunaLevel} />
             </div>
-            <KizunaBar vm={vm} />
+            <KizunaLevelBar level={vm.kizunaLevel} />
           </div>
 
           <span
@@ -245,6 +235,14 @@ function GalleryPreview({ vm }: { vm: ViewModel }) {
           <div className="w-full min-w-0 truncate text-center font-bold text-large">
             {vm.deckName}
           </div>
+          {/* きずなLv.は展開しなくても見えるよう、ヘッダーに常時出す（本物と同じ）。
+              勝率との対比（二枚看板）は展開後に置く。 */}
+          <div className="flex w-full min-w-0 flex-col gap-1 pt-0.5">
+            <div className="flex items-center justify-center">
+              <KizunaLevelInline level={vm.kizunaLevel} />
+            </div>
+            <KizunaLevelBar level={vm.kizunaLevel} showTierName={false} />
+          </div>
         </div>
       </CardHeader>
 
@@ -269,54 +267,30 @@ function GalleryPreview({ vm }: { vm: ViewModel }) {
       </div>
 
       <div className="flex flex-col gap-3 px-3 pt-0 pb-3">
-        {/* 二枚看板：カードの中心に「強かったか／どう歩んできたか」を並べる */}
-        <div className="grid grid-cols-[1fr_1px_1fr] items-center gap-2">
-          <div className="flex flex-col items-center gap-0.5">
-            <span className="font-bold text-tiny text-default-400">勝率</span>
-            <span className="font-black text-3xl leading-none tabular-nums text-success">
+        {/* 二枚看板：カードの中心に「強かったか／どう歩んできたか」を並べる。
+            本物のカード（DeckCard 展開時）と同じ KizunaLevelBillboard を使う。 */}
+        <KizunaLevelBillboard
+          level={vm.kizunaLevel}
+          winRateNode={
+            <span
+              className={`font-black text-3xl leading-none tabular-nums ${winRateTextColor(stats.winRate)}`}
+            >
               {percent(stats.winRate)}
             </span>
-            <span className="text-tiny tabular-nums text-default-500">
-              {stats.matchCount}戦{stats.wins}勝{stats.losses}敗
-            </span>
-          </div>
-          <div className="h-12 w-px bg-default-200" />
-          <div className="flex flex-col items-center gap-0.5">
-            <span className="font-bold text-tiny text-amber-500 dark:text-amber-400">
-              きずなLv.
-            </span>
-            <span className="font-black text-3xl leading-none tabular-nums text-amber-500 dark:text-amber-400">
-              {vm.kizunaLevel}
-            </span>
-            <span className="text-tiny text-default-500">{vm.tierName}</span>
-          </div>
-        </div>
+          }
+          matchSummary={`${stats.matchCount}戦${stats.wins}勝${stats.losses}敗`}
+        />
 
-        {/* 二枚看板の下に線は置かない。本物のカードでは、線はアコーディオンの外
-            （畳んでも見えるヘッダー側）に出しており、開いた中にも置くと同じ線が
-            2本並ぶため。ギャラリー形式では数値と段階名だけで足りる。 */}
-
-        {/* 先攻・後攻（現状のまま） */}
-        <div className="grid grid-cols-[auto_1fr_1fr] items-stretch gap-x-2 gap-y-1.5 text-[11px] tabular-nums">
-          <span className="flex items-center font-bold text-default-600">先攻</span>
-          <span className="flex items-baseline justify-center gap-1 rounded-lg bg-default-100 px-2 py-1.5">
-            <span className="text-[9px] font-semibold text-default-400">割合</span>
-            {percent(stats.goFirstRate)}（{stats.goFirstCount}件）
-          </span>
-          <span className="flex items-baseline justify-center gap-1 rounded-lg bg-default-100 px-2 py-1.5 font-bold text-success">
-            <span className="text-[9px] font-semibold text-default-400">勝率</span>
-            {percent(stats.goFirstWinRate)}
-          </span>
-          <span className="flex items-center font-bold text-default-600">後攻</span>
-          <span className="flex items-baseline justify-center gap-1 rounded-lg bg-default-100 px-2 py-1.5">
-            <span className="text-[9px] font-semibold text-default-400">割合</span>
-            {percent(1 - stats.goFirstRate)}（{stats.goSecondCount}件）
-          </span>
-          <span className="flex items-baseline justify-center gap-1 rounded-lg bg-default-100 px-2 py-1.5 font-bold text-success">
-            <span className="text-[9px] font-semibold text-default-400">勝率</span>
-            {percent(stats.goSecondWinRate)}
-          </span>
-        </div>
+        {/* 先攻・後攻：本物のカードと同じ共有部品。割合と勝率を縦に積み、
+            勝率は色分け＋全体差（デッキ全体の勝率との差）を添える。 */}
+        <DeckGoStatsGrid
+          winRate={stats.winRate}
+          goFirstCount={stats.goFirstCount}
+          goFirstRate={stats.goFirstRate}
+          goFirstWinRate={stats.goFirstWinRate}
+          goSecondCount={stats.goSecondCount}
+          goSecondWinRate={stats.goSecondWinRate}
+        />
       </div>
     </Card>
   );
@@ -336,8 +310,6 @@ export default function KizunaDeckCardPreview() {
     spriteIds,
     registeredAt: previewDeck?.registeredAt ?? SAMPLE.registeredAt,
     kizunaLevel,
-    kizunaRatio: Math.min(1, Math.max(0, kizunaLevel / 255)),
-    tierName: kizunaTierOf(kizunaLevel).name,
     bob: kizunaTierOf(kizunaLevel).bob,
     showGlow: kizunaHasGlow(kizunaLevel),
     glowGradient: kizunaTierOf(kizunaLevel).glowGradient,

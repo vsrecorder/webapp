@@ -89,7 +89,7 @@ export default function KizunaBreakdownCard({
         </span>
         {/* 内訳＝算出方法そのものを見せる画像なので、確定でないことをここで断る */}
         <span className="text-[10px] leading-relaxed text-white/30">
-          算出方法は開発中です。指標や重み付けは今後変更される場合があります
+          きずなはβ版です。指標や重み付けは今後変更される場合があります
         </span>
       </div>
 

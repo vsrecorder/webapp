@@ -532,9 +532,9 @@ export default function KizunaSimulator() {
             />
 
             <p className="px-1 text-xs leading-relaxed text-default-500 lg:text-sm">
-              これはあくまで試算です。本物のきずなLv.は、あなたが積み重ねた対戦記録から自動で算出されます。
+              これはあくまで試算です。ログインすると、あなたが積み重ねた対戦記録から本物のきずなLv.が算出されます。
               <br />
-              算出方法は開発中のため、指標や重み付けは今後変更される可能性があります。
+              きずなはβ版のため、指標や重み付けは今後変更される可能性があります。
             </p>
 
             {captureFailed && (
@@ -551,7 +551,8 @@ export default function KizunaSimulator() {
                 <LuTriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-warning-600" />
                 <div className="flex min-w-0 flex-1 flex-col gap-2.5">
                   <p className="text-xs leading-relaxed text-warning-700 lg:text-sm">
-                    Android では画像とポスト文を一緒に共有できないため、画像のみ共有します。
+                    Android
+                    では画像とポスト文を一緒に共有できないため、画像のみ共有します。
                     ポスト文はコピーして X の投稿画面に貼り付けてください。
                   </p>
                   <Button

@@ -322,7 +322,7 @@ export default async function TemplateHome() {
         </div>
 
         {/*
-         * 開発中の新機能「きずな」への導線。配色は /kizuna 側ヒーローの琥珀のピルに合わせ、
+         * β版の新機能「きずな」への導線。配色は /kizuna 側ヒーローの琥珀のピルに合わせ、
          * 同じ機能の話だと一目で分かるようにする。押せることは矢印とホバーの動きで示す。
          */}
         <Link
@@ -330,7 +330,7 @@ export default async function TemplateHome() {
           className="group relative inline-flex items-center gap-2.5 rounded-full border border-amber-300/50 bg-amber-400/15 px-5 py-2 lg:px-6 lg:py-2.5 text-xs lg:text-sm font-bold text-amber-100 backdrop-blur-sm transition-colors hover:bg-amber-400/25 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-200"
         >
           <span className="w-2 h-2 lg:w-2.5 lg:h-2.5 shrink-0 animate-pulse rounded-full bg-amber-300 shadow-[0_0_10px_rgba(251,191,36,0.9)]" />
-          新機能「きずな」を開発中
+          新機能「きずな」β版公開中
           <LuChevronRight className="shrink-0 text-sm lg:text-base transition-transform group-hover:translate-x-0.5" />
         </Link>
       </section>

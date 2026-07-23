@@ -13,6 +13,7 @@ import {
   KizunaLevelBar,
   KizunaLevelBillboard,
 } from "@app/components/molecules/KizunaDeckLevel";
+import DeckGoStatsGrid from "@app/components/molecules/DeckGoStatsGrid";
 //import { Chip } from "@heroui/react";
 
 import { useDisclosure } from "@heroui/react";
@@ -72,21 +73,6 @@ function formatPercent(rate: number): string {
 // 省スペースで概数を示せば十分な箇所で使う）
 function formatPercentInt(rate: number): string {
   return `${Math.round(rate * 100)}%`;
-}
-
-// 先攻時/後攻時の勝率が、デッキ全体の勝率からどれだけ乖離しているかを
-// 小数点第1位までのポイント差（引き算）で表すラベルと色を算出する。
-// 「全体比」は比率（割り算）を連想させ実態と合わないため、列見出しは
-// 差であることが伝わる「全体差」とする（値自体には単位を付けずスペースを節約する）。
-function formatWinRateDeviation(rate: number, overallWinRate: number) {
-  const diffPt = Math.round((rate - overallWinRate) * 1000) / 10;
-  const absLabel = trimTrailingZeroDecimal(Math.abs(diffPt).toFixed(1));
-
-  return {
-    label: diffPt === 0 ? "±0" : diffPt > 0 ? `+${absLabel}` : `-${absLabel}`,
-    colorClass:
-      diffPt > 0 ? "text-success" : diffPt < 0 ? "text-danger" : "text-default-400",
-  };
 }
 
 export default function DeckCard({
@@ -209,25 +195,6 @@ export default function DeckCard({
 
   // archived_atがゼロ値(年が1)なら未アーカイブ
   const isArchived = new Date(deck.archived_at).getFullYear() !== 1;
-
-  // 先攻/後攻それぞれで試行回数があるか（勝率列の表示可否に使う）
-  const goFirstHasStats = !!deckUsageStat && deckUsageStat.go_first_count > 0;
-  const goSecondHasStats = !!deckUsageStat && deckUsageStat.go_second_count > 0;
-
-  // 先攻時/後攻時の勝率とデッキ全体の勝率との乖離度。試行回数が0件の側は表示しない。
-  // また勝率が0%または100%の場合は、母数が少なく乖離度の情報価値が乏しいため表示しない。
-  const goFirstDeviation =
-    goFirstHasStats &&
-    deckUsageStat!.go_first_win_rate > 0 &&
-    deckUsageStat!.go_first_win_rate < 1
-      ? formatWinRateDeviation(deckUsageStat!.go_first_win_rate, deckUsageStat!.win_rate)
-      : null;
-  const goSecondDeviation =
-    goSecondHasStats &&
-    deckUsageStat!.go_second_win_rate > 0 &&
-    deckUsageStat!.go_second_win_rate < 1
-      ? formatWinRateDeviation(deckUsageStat!.go_second_win_rate, deckUsageStat!.win_rate)
-      : null;
 
   const hasStats = !!deckUsageStat && deckUsageStat.count > 0;
   const winRate = deckUsageStat?.win_rate ?? 0;
@@ -416,85 +383,14 @@ export default function DeckCard({
             {!hasStats && ignoredCount === 0 && noRecordsNote}
 
             {hasStats && deckUsageStat!.game_count > 0 && (
-              <div className="grid grid-cols-2 gap-2">
-                {/* 先攻：各数値が何を表すか分かるよう「割合／勝率」のラベルを付け、
-                    勝率の横に全体差（デッキ全体の勝率との差）を添える。 */}
-                <div className="rounded-lg bg-default-100 px-2.5 py-2">
-                  <div className="text-tiny font-bold text-default-600 mb-1">先攻</div>
-                  <div className="grid grid-cols-[auto_1fr] items-baseline gap-x-2 gap-y-0.5 text-[11px] tabular-nums">
-                    <span className="text-default-400">割合</span>
-                    <span className="text-right text-default-600">
-                      {deckUsageStat!.go_first_count > 0 ? (
-                        <>
-                          {formatPercent(deckUsageStat!.go_first_rate)}
-                          <span className="text-default-400">
-                            （{deckUsageStat!.go_first_count}件）
-                          </span>
-                        </>
-                      ) : (
-                        "-"
-                      )}
-                    </span>
-                    <span className="text-default-400">勝率</span>
-                    <span
-                      className={`text-right font-bold ${
-                        goFirstHasStats
-                          ? winRateTextColor(deckUsageStat!.go_first_win_rate)
-                          : "text-default-500"
-                      }`}
-                    >
-                      {goFirstHasStats
-                        ? formatPercent(deckUsageStat!.go_first_win_rate)
-                        : "-"}
-                      {goFirstDeviation && (
-                        <span
-                          className={`ml-1 text-[10px] font-semibold ${goFirstDeviation.colorClass}`}
-                        >
-                          （全体差 {goFirstDeviation.label}）
-                        </span>
-                      )}
-                    </span>
-                  </div>
-                </div>
-                {/* 後攻 */}
-                <div className="rounded-lg bg-default-100 px-2.5 py-2">
-                  <div className="text-tiny font-bold text-default-600 mb-1">後攻</div>
-                  <div className="grid grid-cols-[auto_1fr] items-baseline gap-x-2 gap-y-0.5 text-[11px] tabular-nums">
-                    <span className="text-default-400">割合</span>
-                    <span className="text-right text-default-600">
-                      {deckUsageStat!.go_second_count > 0 ? (
-                        <>
-                          {formatPercent(1 - deckUsageStat!.go_first_rate)}
-                          <span className="text-default-400">
-                            （{deckUsageStat!.go_second_count}件）
-                          </span>
-                        </>
-                      ) : (
-                        "-"
-                      )}
-                    </span>
-                    <span className="text-default-400">勝率</span>
-                    <span
-                      className={`text-right font-bold ${
-                        goSecondHasStats
-                          ? winRateTextColor(deckUsageStat!.go_second_win_rate)
-                          : "text-default-500"
-                      }`}
-                    >
-                      {goSecondHasStats
-                        ? formatPercent(deckUsageStat!.go_second_win_rate)
-                        : "-"}
-                      {goSecondDeviation && (
-                        <span
-                          className={`ml-1 text-[10px] font-semibold ${goSecondDeviation.colorClass}`}
-                        >
-                          （全体差 {goSecondDeviation.label}）
-                        </span>
-                      )}
-                    </span>
-                  </div>
-                </div>
-              </div>
+              <DeckGoStatsGrid
+                winRate={deckUsageStat!.win_rate}
+                goFirstCount={deckUsageStat!.go_first_count}
+                goFirstRate={deckUsageStat!.go_first_rate}
+                goFirstWinRate={deckUsageStat!.go_first_win_rate}
+                goSecondCount={deckUsageStat!.go_second_count}
+                goSecondWinRate={deckUsageStat!.go_second_win_rate}
+              />
             )}
 
             {ignoredNote}
@@ -680,91 +576,16 @@ export default function DeckCard({
                   noRecordsNote
                 )}
 
-                {/* 先攻/後攻：リスト表示と同じレイアウト（2ボックスに分け、各ボックス内で
-                    割合／勝率を行にして勝率横に全体差を添える）で揃える。 */}
+                {/* 先攻/後攻：リスト表示と同じ共有部品（DeckGoStatsGrid）で揃える。 */}
                 {hasStats && deckUsageStat!.game_count > 0 && (
-                  <div className="grid grid-cols-2 gap-2">
-                    {/* 先攻 */}
-                    <div className="rounded-lg bg-default-100 px-2.5 py-2">
-                      <div className="text-tiny font-bold text-default-600 mb-1">
-                        先攻
-                      </div>
-                      <div className="grid grid-cols-[auto_1fr] items-baseline gap-x-2 gap-y-0.5 text-[11px] tabular-nums">
-                        <span className="text-default-400">割合</span>
-                        <span className="text-right text-default-600">
-                          {deckUsageStat!.go_first_count > 0 ? (
-                            <>
-                              {formatPercent(deckUsageStat!.go_first_rate)}
-                              <span className="text-default-400">
-                                （{deckUsageStat!.go_first_count}件）
-                              </span>
-                            </>
-                          ) : (
-                            "-"
-                          )}
-                        </span>
-                        <span className="text-default-400">勝率</span>
-                        <span
-                          className={`text-right font-bold ${
-                            goFirstHasStats
-                              ? winRateTextColor(deckUsageStat!.go_first_win_rate)
-                              : "text-default-500"
-                          }`}
-                        >
-                          {goFirstHasStats
-                            ? formatPercent(deckUsageStat!.go_first_win_rate)
-                            : "-"}
-                          {goFirstDeviation && (
-                            <span
-                              className={`ml-1 text-[10px] font-semibold ${goFirstDeviation.colorClass}`}
-                            >
-                              （全体差 {goFirstDeviation.label}）
-                            </span>
-                          )}
-                        </span>
-                      </div>
-                    </div>
-                    {/* 後攻 */}
-                    <div className="rounded-lg bg-default-100 px-2.5 py-2">
-                      <div className="text-tiny font-bold text-default-600 mb-1">
-                        後攻
-                      </div>
-                      <div className="grid grid-cols-[auto_1fr] items-baseline gap-x-2 gap-y-0.5 text-[11px] tabular-nums">
-                        <span className="text-default-400">割合</span>
-                        <span className="text-right text-default-600">
-                          {deckUsageStat!.go_second_count > 0 ? (
-                            <>
-                              {formatPercent(1 - deckUsageStat!.go_first_rate)}
-                              <span className="text-default-400">
-                                （{deckUsageStat!.go_second_count}件）
-                              </span>
-                            </>
-                          ) : (
-                            "-"
-                          )}
-                        </span>
-                        <span className="text-default-400">勝率</span>
-                        <span
-                          className={`text-right font-bold ${
-                            goSecondHasStats
-                              ? winRateTextColor(deckUsageStat!.go_second_win_rate)
-                              : "text-default-500"
-                          }`}
-                        >
-                          {goSecondHasStats
-                            ? formatPercent(deckUsageStat!.go_second_win_rate)
-                            : "-"}
-                          {goSecondDeviation && (
-                            <span
-                              className={`ml-1 text-[10px] font-semibold ${goSecondDeviation.colorClass}`}
-                            >
-                              （全体差 {goSecondDeviation.label}）
-                            </span>
-                          )}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+                  <DeckGoStatsGrid
+                    winRate={deckUsageStat!.win_rate}
+                    goFirstCount={deckUsageStat!.go_first_count}
+                    goFirstRate={deckUsageStat!.go_first_rate}
+                    goFirstWinRate={deckUsageStat!.go_first_win_rate}
+                    goSecondCount={deckUsageStat!.go_second_count}
+                    goSecondWinRate={deckUsageStat!.go_second_win_rate}
+                  />
                 )}
 
                 {/* 集計対象外の記録がある場合の注記（勝率などには未反映） */}

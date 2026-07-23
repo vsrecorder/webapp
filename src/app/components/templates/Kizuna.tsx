@@ -66,7 +66,7 @@ const reasons = [
     no: "1",
     title: "きずなLv.は、過去の記録から算出される",
     description:
-      "公開日にゼロから始まるのではありません。あなたがこれまでに積み重ねた対戦記録が、そのまま初期値になります。",
+      "今からゼロで始まるのではありません。あなたがこれまでに積み重ねた対戦記録が、そのまま今のきずなLv.になります。",
   },
   {
     no: "2",
@@ -78,7 +78,7 @@ const reasons = [
     no: "3",
     title: "だから、1日でも早く始めた人ほど深い",
     description:
-      "公開を待ってから記録を始めた人と、今日から始めた人。公開日に表示されるきずなLv.は、同じにはなりません。",
+      "昨日から記録している人と、今日から始める人。いま表示されるきずなLv.は、同じにはなりません。",
   },
 ];
 
@@ -113,7 +113,7 @@ export default function TemplateKizuna({ userId }: Props) {
       className={`dark -mt-14 min-h-svh bg-neutral-950 px-2 pt-14 text-foreground lg:-mt-28 lg:pt-28 ${bleedClass}`}
     >
       {/* ヒーロー：OGP画像と同じ「黄昏に灯がともる」世界観。
-          トップページの青系ヒーローとは意図的に色を変え、新機能の予告であることを視覚的に区別する。 */}
+          トップページの青系ヒーローとは意図的に色を変え、β版の新機能であることを視覚的に区別する。 */}
       <section className="-mx-2 -mt-14 lg:-mt-28 relative overflow-hidden bg-linear-to-br from-indigo-950 via-slate-900 to-neutral-950 px-6 pt-24 pb-16 lg:px-8 lg:pt-40 lg:pb-24 text-white">
         {/* 焚き火の残光 */}
         <div
@@ -124,7 +124,7 @@ export default function TemplateKizuna({ userId }: Props) {
         <div className="relative mx-auto flex w-full max-w-2xl lg:max-w-5xl flex-col gap-8 lg:gap-9">
           <span className="inline-flex w-fit items-center gap-2.5 rounded-full border border-amber-400/40 bg-amber-400/10 px-4 py-2 text-xs lg:text-sm font-bold tracking-widest text-amber-200">
             <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-amber-400" />
-            新機能「きずな」近日公開
+            新機能「きずな」β版公開中
           </span>
 
           {/* 主語（勝率／きずな）を一段大きくし、述部と色を揃える。
@@ -154,15 +154,15 @@ export default function TemplateKizuna({ userId }: Props) {
             対戦環境が変わっても連れて行ったポケモン。
             <br />
             <br className="hidden lg:block" />
-            バトレコはいま、対戦記録から「きずなLv.」を算出する機能をつくっています。
+            バトレコは対戦記録から「きずなLv.」を算出します。いま、β版として公開中です。
           </p>
 
-          {/* 開発中であることを、試算を試す前に伝える。
+          {/* β版であることを、試算を試す前に伝える。
               数値が後から変わったときに「勝手に下がった」と受け取られないための予防線。 */}
           <p className="max-w-xl rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-xs lg:text-sm leading-relaxed text-white/50">
-            きずなLv.の算出方法は
-            <span className="font-bold text-white/70">開発中</span>
-            です。指標の内容や重み付けは正式公開までに変更される可能性があり、同じ対戦記録でも数値が変わることがあります。
+            きずなは
+            <span className="font-bold text-white/70">β版</span>
+            です。いまは6指標で算出しており、今後、指標を追加していく予定です。指標の内容や重み付けは変更される可能性があり、同じ対戦記録でも数値が変わることがあります。
           </p>
 
           <div className="pt-3 flex flex-col gap-5 sm:flex-row sm:items-center">
@@ -240,7 +240,7 @@ export default function TemplateKizuna({ userId }: Props) {
             </div>
           </section>
 
-          {/* 実装イメージ：公開されたらデッキ一覧がどう見えるか。
+          {/* 実装イメージ：β版のデッキ一覧できずなLv.がどう見えるか。
               試算の直後に置く。試算した値がそのままカードに載るため、
               「何を見て決まった数字か（指標）」より先に「どこに出るか」を見せる。 */}
           <section className="flex flex-col gap-4">
@@ -302,9 +302,9 @@ export default function TemplateKizuna({ userId }: Props) {
             {/* 指標を見せた直後に、これが確定仕様ではないことを断る。
               数値が後から変わったときに「勝手に下がった」と受け取られないための予防線。 */}
             <p className="pt-2 text-center text-xs lg:text-sm leading-relaxed text-default-400">
-              ❈きずなLv.の算出方法は開発中です。
+              ❈きずなはβ版です。いまは6指標で算出しており、今後、指標を追加していく予定です。
               <br />
-              指標の内容や重み付けは正式公開までに変更される可能性があり、同じ対戦記録でも数値が変わることがあります。
+              指標の内容や重み付けは変更される可能性があり、同じ対戦記録でも数値が変わることがあります。
             </p>
           </section>
         </KizunaPreviewProvider>
@@ -316,24 +316,24 @@ export default function TemplateKizuna({ userId }: Props) {
         >
           <div className="flex flex-col items-center gap-3">
             <h2 className="text-2xl lg:text-4xl font-black leading-snug">
-              公開日までに、
+              今日から、
               <br className="sm:hidden" />
               きずなLv.を高めよう。
             </h2>
             <p className="max-w-lg text-sm lg:text-base leading-relaxed text-white/60">
               {isLoggedIn
-                ? "今日つけた1件の記録が、公開日に表示されるきずなLv.の初期値になります。これまでの記録もすべて対象です。"
-                : "今日つけた1件の記録が、公開日に表示されるきずなLv.の初期値になります。登録は無料、広告はありません。"}
+                ? "今日つけた1件の記録が、あなたのきずなLv.を積み上げます。これまでの記録もすべて、いまのきずなLv.に反映されています。"
+                : "今日つけた1件の記録が、あなたのきずなLv.を積み上げます。これまでの記録もすべて対象です。登録は無料、広告はありません。"}
             </p>
           </div>
 
-          {/* ログイン済みのユーザーに登録ボタンを見せても意味がないため、記録へ送り返す */}
+          {/* ログイン済みのユーザーは自分のきずなLv.をデッキ一覧で見られるので、そこへ送る */}
           {isLoggedIn ? (
             <Link
-              href="/"
+              href="/decks"
               className="inline-flex items-center justify-center rounded-full bg-amber-400 px-8 py-3.5 text-base font-bold text-neutral-900 transition-opacity hover:opacity-90"
             >
-              記録をつけにいく
+              デッキ一覧できずなLv.を見る
             </Link>
           ) : (
             <>

@@ -118,7 +118,7 @@ export default function KizunaShareCard({
           きずな試算 ｜ vsrecorder.mobi/kizuna
         </span>
         <span className="text-[9px] leading-relaxed text-white/25">
-          算出方法は開発中です。今後変更される場合があります
+          きずなはβ版です。算出方法は今後変更される場合があります
         </span>
       </div>
     </div>

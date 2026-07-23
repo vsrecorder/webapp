@@ -647,9 +647,9 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
             />
 
             <p className="px-1 text-[11px] leading-relaxed text-default-400 lg:text-xs">
-              これは既存の記録から算出できる6指標による簡易試算です。公開時には16指標すべてを使って算出されます。
+              これは対戦記録から6指標で算出したきずなLv.です。今後、指標を追加していく予定です。
               <br />
-              算出方法は開発中のため、指標や重み付けは今後変更される可能性があります（同じ記録でも数値が変わることがあります）。
+              きずなはβ版のため、指標や重み付けは変更される可能性があります（同じ記録でも数値が変わることがあります）。
             </p>
 
             {/* 内訳カードを2枚目としてシェアに含めるか */}
@@ -683,7 +683,8 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
                 <LuTriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-warning-600" />
                 <div className="flex min-w-0 flex-1 flex-col gap-2.5">
                   <p className="text-xs leading-relaxed text-warning-700 lg:text-sm">
-                    Android では画像とポスト文を一緒に共有できないため、画像のみ共有します。
+                    Android
+                    では画像とポスト文を一緒に共有できないため、画像のみ共有します。
                     ポスト文はコピーして X の投稿画面に貼り付けてください。
                   </p>
                   <Button

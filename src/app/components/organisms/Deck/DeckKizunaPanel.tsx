@@ -88,7 +88,7 @@ export default function DeckKizunaPanel({ kizuna }: Props) {
             数値を出す画面には必ず明記する。 */}
         <p className="text-[10px] leading-relaxed text-default-400">
           6指標の合計がきずなLv.です。勝率は含まれません。
-          算出方法は開発中のため、今後変更される場合があります。
+          きずなはβ版のため、算出方法は今後変更される場合があります。
         </p>
       </CardBody>
     </Card>

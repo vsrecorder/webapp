@@ -1,4 +1,5 @@
 import FixedTabBarSkeleton from "@app/components/molecules/Skeleton/FixedTabBarSkeleton";
+import FloatingButtonClearance from "@app/components/atoms/Floating/FloatingButtonClearance";
 import { DeckViewToggleSkeleton } from "@app/components/organisms/Deck/Skeleton/DeckCardSkeleton";
 import DeckListSkeleton from "@app/components/organisms/Deck/Skeleton/DeckListSkeleton";
 
@@ -13,7 +14,7 @@ export default function Loading() {
         positionClassName="top-15 left-0 right-0 lg:left-56"
       />
 
-      <div className="pt-2 pb-35 lg:pb-6 lg:max-w-4xl lg:mx-auto">
+      <div className="pt-2 lg:pb-6 lg:max-w-4xl lg:mx-auto">
         {/* リスト/ギャラリー表示の切り替えトグル */}
         <div className="pb-2">
           <DeckViewToggleSkeleton />
@@ -21,6 +22,9 @@ export default function Loading() {
 
         {/* デッキカード一覧（保存済みの表示モードに追従） */}
         <DeckListSkeleton />
+
+        {/* 実ページと同じく、溢れたときだけ下部クリアランスを出す */}
+        <FloatingButtonClearance />
       </div>
     </div>
   );

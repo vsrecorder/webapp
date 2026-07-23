@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { Tabs, Tab } from "@heroui/react";
 
 import ScrollUpFloating from "@app/components/atoms/Floating/ScrollUpFloating";
+import FloatingButtonClearance from "@app/components/atoms/Floating/FloatingButtonClearance";
 import CreateRecordFloating from "@app/components/atoms/Floating/CreateRecordFloating";
 
 import Records from "@app/components/organisms/Record/Records";
@@ -94,32 +95,37 @@ export default function TemplateRecords() {
       </div>
 
       <div
-        className="w-full pt-2 pb-35 lg:pb-6 lg:max-w-4xl lg:mx-auto"
+        className="w-full pt-2 lg:pb-6 lg:max-w-4xl lg:mx-auto"
         hidden={selectedKey !== "all"}
       >
         <Records event_type={"all"} isActive={selectedKey === "all"} />
       </div>
 
       <div
-        className="w-full pt-2 pb-35 lg:pb-6 lg:max-w-4xl lg:mx-auto"
+        className="w-full pt-2 lg:pb-6 lg:max-w-4xl lg:mx-auto"
         hidden={selectedKey !== "official"}
       >
         <Records event_type={"official"} isActive={selectedKey === "official"} />
       </div>
 
       <div
-        className="w-full pt-2 pb-35 lg:pb-6 lg:max-w-4xl lg:mx-auto"
+        className="w-full pt-2 lg:pb-6 lg:max-w-4xl lg:mx-auto"
         hidden={selectedKey !== "tonamel"}
       >
         <Records event_type={"tonamel"} isActive={selectedKey === "tonamel"} />
       </div>
 
       <div
-        className="w-full pt-2 pb-35 lg:pb-6 lg:max-w-4xl lg:mx-auto"
+        className="w-full pt-2 lg:pb-6 lg:max-w-4xl lg:mx-auto"
         hidden={selectedKey !== "unofficial"}
       >
         <Records event_type={"unofficial"} isActive={selectedKey === "unofficial"} />
       </div>
+
+      {/* 表示中のパネル以外は hidden(display:none)で高さを持たないため、
+          クリアランスは4パネルの後に1つ置けば表示中パネル末尾に付く。
+          コンテンツが1画面に収まるときは余白を出さず、空白へのスクロールを防ぐ。 */}
+      <FloatingButtonClearance />
     </>
   );
 }

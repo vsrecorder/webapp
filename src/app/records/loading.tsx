@@ -1,4 +1,5 @@
 import FixedTabBarSkeleton from "@app/components/molecules/Skeleton/FixedTabBarSkeleton";
+import FloatingButtonClearance from "@app/components/atoms/Floating/FloatingButtonClearance";
 import { RecordCardSkeletons } from "@app/components/organisms/Record/Skeleton/RecordCardSkeleton";
 
 // /records の Suspense 境界。実ページ(TemplateRecords)と同じ「上部固定タブ＋記録カード一覧」の
@@ -14,10 +15,13 @@ export default function Loading() {
         />
       </div>
 
-      <div className="w-full pt-2 pb-35 lg:pb-6 lg:max-w-4xl lg:mx-auto">
+      <div className="w-full pt-2 lg:pb-6 lg:max-w-4xl lg:mx-auto">
         <div className="grid grid-cols-1 w-full gap-3 lg:grid-cols-2 lg:gap-x-6">
           <RecordCardSkeletons desktopColumns={2} />
         </div>
+
+        {/* 実ページと同じく、溢れたときだけ下部クリアランスを出す */}
+        <FloatingButtonClearance />
       </div>
     </>
   );

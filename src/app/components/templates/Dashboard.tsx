@@ -219,6 +219,18 @@ export default async function TemplateDashboard({ userId }: Props) {
     ),
   });
 
+  // ストリーク
+  sections.push({
+    id: "streak",
+    label: "ストリーク",
+    node: (
+      <section key="streak" className="flex flex-col gap-2">
+        <h2 className="text-sm font-bold text-default-700">ストリーク</h2>
+        <StreakPanel userId={userId} />
+      </section>
+    ),
+  });
+
   // 本日のシティリーグ
   if (cs) {
     sections.push({
@@ -278,18 +290,6 @@ export default async function TemplateDashboard({ userId }: Props) {
       <section key="environment_badges" className="flex flex-col gap-2">
         <h2 className="text-sm font-bold text-default-700">対戦環境バッジ</h2>
         <EnvironmentBadgeGallery userId={userId} />
-      </section>
-    ),
-  });
-
-  // ストリーク
-  sections.push({
-    id: "streak",
-    label: "ストリーク",
-    node: (
-      <section key="streak" className="flex flex-col gap-2">
-        <h2 className="text-sm font-bold text-default-700">ストリーク</h2>
-        <StreakPanel userId={userId} />
       </section>
     ),
   });
@@ -436,6 +436,7 @@ export default async function TemplateDashboard({ userId }: Props) {
     <>
       <div className="pt-3 lg:pt-9 xl:pt-9 max-w-2xl lg:max-w-6xl xl:max-w-7xl mx-auto w-full">
         <DashboardSections
+          userId={userId}
           pinned={
             user ? (
               <div className="flex flex-col gap-3 lg:gap-6">

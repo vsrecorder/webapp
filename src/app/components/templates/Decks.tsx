@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 
 import ScrollUpFloating from "@app/components/atoms/Floating/ScrollUpFloating";
+import FloatingButtonClearance from "@app/components/atoms/Floating/FloatingButtonClearance";
 import CreateDeckFloating from "@app/components/molecules/Floating/CreateDeckFloating";
 
 import Decks from "@app/components/organisms/Deck/Decks";
@@ -73,15 +74,17 @@ export default function TemplateDecks({ userId }: Props) {
           <Tab key="inuse" title="利用中" />
           <Tab key="archived" title="アーカイブ済み" />
         </Tabs>
-        {/* モバイルは最下部のカードがフローティングボタン（＋/トップへ戻る）と重ならないよう、
-            ボタンの上端（bottom-35＋ボタン高さ）を超える余白を確保する。 */}
-        <div className="pt-2 pb-35 lg:pb-6 lg:max-w-4xl lg:mx-auto">
+        {/* 最下部のカードがフローティングボタン（＋/トップへ戻る）と重ならないよう余白を確保するが、
+            デッキが少なく1画面に収まるときは余白を出さず、空白へスクロールできてしまうのを防ぐ
+            （FloatingButtonClearance がコンテンツの溢れを検知して余白を出し分ける）。 */}
+        <div className="pt-2 lg:pb-6 lg:max-w-4xl lg:mx-auto">
           <Decks
             key={`${selectedKey}-${refreshKey}`}
             userId={userId}
             isArchived={selectedKey === "archived"}
             onCreated={handleCreatedDeck}
           />
+          <FloatingButtonClearance />
         </div>
       </div>
     </>

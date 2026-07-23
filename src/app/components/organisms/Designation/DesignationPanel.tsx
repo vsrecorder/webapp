@@ -500,14 +500,18 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
                 ) : selected.criteria_type ===
                   CITY_LEAGUE_GRANDMASTER_CRITERIA_TYPE ? (
                   // 名人は「優勝を1回以上」かつ「参加した全大会で入賞」の2条件。
-                  // 優勝(N/1)と入賞(N/参加数)をそれぞれプログレスバーで表示する。
+                  // 優勝は1回以上で達成のため上限1で頭打ち(複数回優勝でも 1/1 表示)。
+                  // 入賞は優勝も含む記録数を参加数で割った N/参加数 で表示する。
                   <div className="flex flex-col items-center gap-1.5 w-full mt-1 rounded-xl bg-default-50 p-2">
                     <span className="text-[10px] font-bold text-default-400">
                       優勝を1回以上、かつ参加した全大会で入賞
                     </span>
                     <ProgressBar
                       label="優勝"
-                      value={selected.city_league_win_count}
+                      value={Math.min(
+                        selected.city_league_win_count,
+                        selected.criteria_value,
+                      )}
                       max={selected.criteria_value}
                     />
                     <ProgressBar

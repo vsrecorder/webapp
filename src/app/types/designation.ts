@@ -25,7 +25,8 @@ export type DesignationLadderItemType = DesignationType & {
   // であるかを表す。それ以外は常にfalse。
   missing_official_event_record: boolean;
   // criteria_type が "official_city_league_placement"(ベテラン)・
-  // "official_city_league_playoff"(熟練)・"official_city_league_champion"(達人)の
+  // "official_city_league_playoff"(熟練)・"official_city_league_champion"(達人)・
+  // "official_city_league_grandmaster"(名人)の
   // いずれかの場合のみ、プレイヤーズクラブ未連携で
   // あるにもかかわらず、対象シーズン内にシティリーグの記録を既に作成済みであるかを表す。
   // それ以外、またはプレイヤーズクラブ連携済みの場合は常にfalse。

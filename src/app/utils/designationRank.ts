@@ -19,11 +19,11 @@ export const RANKS: { minTier: number; maxTier: number; info: RankInfo }[] = [
   },
   {
     minTier: 5,
-    maxTier: 5,
+    maxTier: 6,
     info: { name: "ハイパーボール級", image: "https://xx8nnpgt.user.webaccel.jp/images/icons/ultra-ball.png" },
   },
   {
-    minTier: 6,
+    minTier: 7,
     maxTier: 8,
     info: { name: "マスターボール級", image: "https://xx8nnpgt.user.webaccel.jp/images/icons/master-ball.png" },
   },

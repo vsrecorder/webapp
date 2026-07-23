@@ -2,10 +2,13 @@
 
 import { useEffect, useState, useCallback } from "react";
 
+import NextLink from "next/link";
+
 import { Spinner } from "@heroui/spinner";
 import { Button, Link, useDisclosure } from "@heroui/react";
 
 import DeckCard from "@app/components/organisms/Deck/DeckCard";
+import KizunaMark from "@app/components/atoms/Kizuna/KizunaMark";
 import {
   DeckCardSkeletons,
   DeckViewToggleSkeleton,
@@ -14,7 +17,14 @@ import CreateDeckModal from "@app/components/organisms/Deck/Modal/CreateDeckModa
 import FetchError from "@app/components/molecules/FetchError";
 import { useDeckListView, setDeckListView } from "@app/hooks/useDeckListView";
 
-import { LuCirclePlus, LuPlus, LuLayoutGrid, LuArchive, LuList } from "react-icons/lu";
+import {
+  LuCirclePlus,
+  LuPlus,
+  LuLayoutGrid,
+  LuArchive,
+  LuList,
+  LuChevronRight,
+} from "react-icons/lu";
 
 import { DeckType, DeckGetResponseType } from "@app/types/deck";
 import { DeckUsageItemType, DeckUsageStatType } from "@app/types/deck_usage_stat";
@@ -161,15 +171,46 @@ export default function Decks({ userId, isArchived, onCreated }: Props) {
       {/* 空状態：利用中 */}
       {isInitialLoaded && !isLoading && !hasMore && items.length === 0 && !isArchived && (
         <div className="flex flex-col items-center justify-center py-10 px-4 gap-6">
-          <div className="flex flex-col items-center gap-3 text-center">
-            <div className="p-4 rounded-full bg-primary/10">
-              <LuLayoutGrid className="w-12 h-12 text-primary" />
-            </div>
-            <div className="flex flex-col gap-1">
-              <p className="font-bold text-lg">デッキを登録しましょう</p>
-              <p className="text-sm text-default-500">
-                デッキを登録して対戦記録を管理できます
+          {/* きずな訴求：デッキ登録を「対戦記録の管理」ではなく「デッキとのきずなを育てる第一歩」
+              として動機づける。きずなLv.は過去の記録から算出されるため、早く始めるほど深くなる——
+              という一点を、灯（KizunaMark）の視覚言語で伝え、詳細は /kizuna のLPへ送る。 */}
+          <div className="w-full max-w-sm overflow-hidden rounded-2xl border border-amber-300/50 bg-linear-to-br from-amber-50 to-rose-50 dark:border-amber-400/20 dark:from-amber-950/40 dark:to-rose-950/30">
+            <div className="flex flex-col items-center gap-4 px-5 py-6 text-center">
+              <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/40 bg-amber-400/10 px-3 py-1 text-[11px] font-bold tracking-wider text-amber-700 dark:text-amber-300">
+                <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-amber-500" />
+                新機能「きずな」β版公開中
+              </span>
+
+              <div className="flex flex-col items-center gap-2">
+                <KizunaMark
+                  size={44}
+                  className="drop-shadow-[0_0_18px_rgba(251,191,36,0.55)]"
+                />
+                <p className="text-lg font-black leading-snug text-foreground">
+                  最初のデッキと、
+                  <br />
+                  きずなを育てよう
+                </p>
+              </div>
+
+              <p className="text-xs leading-relaxed text-default-600 dark:text-default-400">
+                負けても握り続けた回数、組み直した夜、連れて行った大会。
+                勝率では測れないデッキとの歩みが、「きずなLv.」になります。
               </p>
+
+              <p className="w-full rounded-xl bg-amber-500/10 px-3 py-2 text-xs font-bold leading-relaxed text-amber-800 dark:text-amber-200">
+                きずなLv.は過去の記録から算出されます。
+                <br />
+                1日でも早く始めるほど、深くなります。
+              </p>
+
+              <NextLink
+                href="/kizuna"
+                className="inline-flex items-center gap-0.5 text-xs font-bold text-amber-700 transition-opacity hover:opacity-80 dark:text-amber-300"
+              >
+                きずなについて詳しく
+                <LuChevronRight className="text-sm" />
+              </NextLink>
             </div>
           </div>
 

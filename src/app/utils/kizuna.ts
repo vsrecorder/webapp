@@ -180,6 +180,42 @@ const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 const logScale = (value: number, saturation: number) =>
   clamp01(Math.log(1 + Math.max(0, value)) / Math.log(1 + saturation));
 
+// 「出会ったばかり」を抜け出すのに必要な最低対戦数。これ未満のデッキは、
+// 対戦数に依らない指標（同行日数・手入れ度など）だけで高く出ても出会ったばかりに留める。
+const KIZUNA_MIN_MATCHES_TO_ESCAPE = 9;
+// 「出会ったばかり」の上限（KIZUNA_TIERS の 50 から次段に対応）。
+const KIZUNA_MEETING_LEVEL_MAX = 49;
+
+/*
+ * 各指標の points を、合計が target になるよう按分し直す（最大剰余法）。
+ * floor で配ったうえで余りを小数部の大きい順（同点はキー昇順）に1点ずつ配る。
+ * 合計はちょうど target になり、Go 実装（entity/kizuna.go の apportionKizunaPoints）と
+ * ビット単位で一致する。value も points/maxPoints に合わせ、内訳のバーと数値をずらさない。
+ */
+function apportionKizunaPoints(metrics: KizunaMetric[], target: number): number {
+  const total = metrics.reduce((sum, m) => sum + m.points, 0);
+  if (total <= target) return total;
+
+  const fracs = metrics.map((m, idx) => {
+    const exact = (m.points * target) / total;
+    const floor = Math.floor(exact);
+    m.points = floor;
+    return { idx, frac: exact - floor };
+  });
+
+  const assigned = metrics.reduce((sum, m) => sum + m.points, 0);
+  fracs.sort((a, b) => (b.frac !== a.frac ? b.frac - a.frac : a.idx - b.idx));
+  for (let k = 0; k < target - assigned; k++) {
+    metrics[fracs[k].idx].points++;
+  }
+
+  for (const m of metrics) {
+    if (m.maxPoints > 0) m.value = m.points / m.maxPoints;
+  }
+
+  return target;
+}
+
 // 大会に向けた調整とみなす時間帯：開催日の3日前から、当日の昼まで
 const EVE_WINDOW_MS = 72 * 60 * 60 * 1000;
 const EVENT_DAY_WINDOW_MS = 12 * 60 * 60 * 1000;
@@ -440,7 +476,14 @@ export function estimateKizuna({
     return { ...m, maxPoints, points: Math.round(m.value * maxPoints) };
   });
 
-  const score = metrics.reduce((sum, m) => sum + m.points, 0);
+  let score = metrics.reduce((sum, m) => sum + m.points, 0);
+
+  // 9戦に満たないデッキは「出会ったばかり」に留める。
+  // 内訳の「合計＝きずなLv.」を保つため、各指標の点も 49 に按分し直す。
+  const matchCount = usage?.count ?? 0;
+  if (matchCount < KIZUNA_MIN_MATCHES_TO_ESCAPE && score > KIZUNA_MEETING_LEVEL_MAX) {
+    score = apportionKizunaPoints(metrics, KIZUNA_MEETING_LEVEL_MAX);
+  }
 
   return { score, metrics, recordCount };
 }

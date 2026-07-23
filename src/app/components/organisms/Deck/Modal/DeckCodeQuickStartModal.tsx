@@ -63,7 +63,7 @@ export default function DeckCodeQuickStartModal({ isOpen, onOpenChange }: Props)
   useEffect(() => {
     setImageLoaded(false);
 
-    // マイデッキ登録(CreateDeckModal)と同じ判定条件:
+    // デッキ登録(CreateDeckModal)と同じ判定条件:
     // 未入力は有効(true)扱い、20桁でなければ無効、20桁なら外部APIで確認する。
     // (デッキコード必須の担保は canSubmit の桁数チェック側で行う)
     if (!deckCode) {
@@ -206,162 +206,162 @@ export default function DeckCodeQuickStartModal({ isOpen, onOpenChange }: Props)
 
   return (
     <>
-    <Modal
-      isOpen={isOpen}
-      size="sm"
-      placement="center"
-      scrollBehavior="inside"
-      isDismissable={false}
-      isKeyboardDismissDisabled={isDisabled}
-      hideCloseButton={isDisabled}
-      onOpenChange={() => {
-        if (isDisabled) return;
-        onOpenChange();
-      }}
-      onClose={resetState}
-      classNames={{
-        base: "sm:max-w-full max-h-[calc(100%-3rem)]",
-        closeButton: "text-xl",
-      }}
-    >
-      <ModalContent>
-        {(onClose) => (
-          <>
-            <ModalHeader className="text-lg px-3">デッキ登録から始める</ModalHeader>
-            <ModalBody className="px-3 py-1 gap-3">
-              {/* デッキアイコン(スプライト)。タップで PokemonSpriteModal を開いて選択する。 */}
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-default-500">
-                  デッキアイコン（任意・最大2つ）
-                </span>
-                <div className="flex items-center gap-0">
-                  {([1, 2] as const).map((slot) => {
-                    const sprite = slot === 1 ? sprite1 : sprite2;
-                    return (
-                      <div
-                        key={slot}
-                        className={`shrink-0 ${isDisabled ? "" : "cursor-pointer"}`}
-                        onClick={() => {
-                          if (isDisabled) return;
-                          setActiveSpriteSlot(slot);
-                          onSpriteOpen();
-                        }}
-                      >
-                        <PokemonSprite
-                          id={sprite?.id}
-                          size={48}
-                          className={isDisabled ? "contrast-0" : ""}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <Input
-                isRequired
-                isDisabled={isDisabled}
-                type="text"
-                label="デッキ名"
-                labelPlacement="outside"
-                placeholder="デッキ名を入力"
-                value={deckName}
-                onChange={(e) => setDeckName(e.target.value)}
-                isInvalid={isDeckNameTooLong}
-                errorMessage={`デッキ名は${MAX_DECK_NAME_LENGTH}文字以内で入力してください（現在${deckNameLength}文字）`}
-                description={`${deckNameLength}/${MAX_DECK_NAME_LENGTH}文字`}
-              />
-
-              <Input
-                isRequired
-                isDisabled={isDisabled}
-                isInvalid={deckCode !== "" && !isValidatedDeckCode}
-                errorMessage="有効なデッキコード(20桁)を入力してください"
-                type="text"
-                label="デッキコード"
-                labelPlacement="outside"
-                placeholder="デッキコードを貼り付け"
-                value={deckCode}
-                onChange={(e) => setDeckCode(e.target.value)}
-              />
-
-              {deckCode ? (
-                <div className="relative w-full aspect-2/1">
-                  {!imageLoaded && <Skeleton className="absolute inset-0 rounded-lg" />}
-                  <Image
-                    radius="sm"
-                    shadow="none"
-                    alt={deckCode}
-                    src={
-                      isValidatedDeckCode
-                        ? `https://www.pokemon-card.com/deck/deckView.php/deckID/${deckCode}.png`
-                        : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
-                    }
-                    onLoad={() => setImageLoaded(true)}
-                    onError={() => {}}
-                  />
-                </div>
-              ) : (
-                <div className="w-full flex flex-col items-center gap-2 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 px-4 py-6">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <LuLayers className="text-xl text-primary" />
-                  </div>
-                  <div className="font-bold text-tiny text-primary">
-                    公式サイトの20桁のデッキコードを貼り付け
-                  </div>
-                  <div className="text-tiny text-default-400 text-center">
-                    貼り付けると、ここにデッキ画像が表示されます。
+      <Modal
+        isOpen={isOpen}
+        size="sm"
+        placement="center"
+        scrollBehavior="inside"
+        isDismissable={false}
+        isKeyboardDismissDisabled={isDisabled}
+        hideCloseButton={isDisabled}
+        onOpenChange={() => {
+          if (isDisabled) return;
+          onOpenChange();
+        }}
+        onClose={resetState}
+        classNames={{
+          base: "sm:max-w-full max-h-[calc(100%-3rem)]",
+          closeButton: "text-xl",
+        }}
+      >
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader className="text-lg px-3">デッキ登録から始める</ModalHeader>
+              <ModalBody className="px-3 py-1 gap-3">
+                {/* デッキアイコン(スプライト)。タップで PokemonSpriteModal を開いて選択する。 */}
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-default-500">
+                    デッキアイコン（任意・最大2つ）
+                  </span>
+                  <div className="flex items-center gap-0">
+                    {([1, 2] as const).map((slot) => {
+                      const sprite = slot === 1 ? sprite1 : sprite2;
+                      return (
+                        <div
+                          key={slot}
+                          className={`shrink-0 ${isDisabled ? "" : "cursor-pointer"}`}
+                          onClick={() => {
+                            if (isDisabled) return;
+                            setActiveSpriteSlot(slot);
+                            onSpriteOpen();
+                          }}
+                        >
+                          <PokemonSprite
+                            id={sprite?.id}
+                            size={48}
+                            className={isDisabled ? "contrast-0" : ""}
+                          />
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
-              )}
 
-              <div className="-translate-y-1">
-                <Link
-                  isExternal
-                  showAnchorIcon
-                  underline="always"
-                  href="https://www.pokemon-card.com/deck/"
-                  className="text-xs"
+                <Input
+                  isRequired
+                  isDisabled={isDisabled}
+                  type="text"
+                  label="デッキ名"
+                  labelPlacement="outside"
+                  placeholder="デッキ名を入力"
+                  value={deckName}
+                  onChange={(e) => setDeckName(e.target.value)}
+                  isInvalid={isDeckNameTooLong}
+                  errorMessage={`デッキ名は${MAX_DECK_NAME_LENGTH}文字以内で入力してください（現在${deckNameLength}文字）`}
+                  description={`${deckNameLength}/${MAX_DECK_NAME_LENGTH}文字`}
+                />
+
+                <Input
+                  isRequired
+                  isDisabled={isDisabled}
+                  isInvalid={deckCode !== "" && !isValidatedDeckCode}
+                  errorMessage="有効なデッキコード(20桁)を入力してください"
+                  type="text"
+                  label="デッキコード"
+                  labelPlacement="outside"
+                  placeholder="デッキコードを貼り付け"
+                  value={deckCode}
+                  onChange={(e) => setDeckCode(e.target.value)}
+                />
+
+                {deckCode ? (
+                  <div className="relative w-full aspect-2/1">
+                    {!imageLoaded && <Skeleton className="absolute inset-0 rounded-lg" />}
+                    <Image
+                      radius="sm"
+                      shadow="none"
+                      alt={deckCode}
+                      src={
+                        isValidatedDeckCode
+                          ? `https://www.pokemon-card.com/deck/deckView.php/deckID/${deckCode}.png`
+                          : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
+                      }
+                      onLoad={() => setImageLoaded(true)}
+                      onError={() => {}}
+                    />
+                  </div>
+                ) : (
+                  <div className="w-full flex flex-col items-center gap-2 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 px-4 py-6">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <LuLayers className="text-xl text-primary" />
+                    </div>
+                    <div className="font-bold text-tiny text-primary">
+                      公式サイトの20桁のデッキコードを貼り付け
+                    </div>
+                    <div className="text-tiny text-default-400 text-center">
+                      貼り付けると、ここにデッキ画像が表示されます。
+                    </div>
+                  </div>
+                )}
+
+                <div className="-translate-y-1">
+                  <Link
+                    isExternal
+                    showAnchorIcon
+                    underline="always"
+                    href="https://www.pokemon-card.com/deck/"
+                    className="text-xs"
+                  >
+                    <span>トレーナーズウェブサイトでデッキを構築する</span>
+                  </Link>
+                </div>
+              </ModalBody>
+              <ModalFooter>
+                <Button
+                  color="default"
+                  variant="solid"
+                  isDisabled={isDisabled}
+                  onPress={onClose}
+                  className="font-bold"
                 >
-                  <span>トレーナーズウェブサイトでデッキを構築する</span>
-                </Link>
-              </div>
-            </ModalBody>
-            <ModalFooter>
-              <Button
-                color="default"
-                variant="solid"
-                isDisabled={isDisabled}
-                onPress={onClose}
-                className="font-bold"
-              >
-                閉じる
-              </Button>
-              <Button
-                color="primary"
-                variant="solid"
-                isDisabled={!canSubmit}
-                isLoading={isDisabled}
-                onPress={startWithDeckCode}
-                className="font-bold"
-              >
-                始める
-              </Button>
-            </ModalFooter>
-          </>
-        )}
-      </ModalContent>
-    </Modal>
+                  閉じる
+                </Button>
+                <Button
+                  color="primary"
+                  variant="solid"
+                  isDisabled={!canSubmit}
+                  isLoading={isDisabled}
+                  onPress={startWithDeckCode}
+                  className="font-bold"
+                >
+                  始める
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
 
-    <PokemonSpriteModal
-      pokemonSprite1={sprite1}
-      setPokemonSprite1={setSprite1}
-      pokemonSprite2={sprite2}
-      setPokemonSprite2={setSprite2}
-      isOpen={isSpriteOpen}
-      onOpenChange={onSpriteOpenChange}
-      initialActiveSlot={activeSpriteSlot}
-    />
+      <PokemonSpriteModal
+        pokemonSprite1={sprite1}
+        setPokemonSprite1={setSprite1}
+        pokemonSprite2={sprite2}
+        setPokemonSprite2={setSprite2}
+        isOpen={isSpriteOpen}
+        onOpenChange={onSpriteOpenChange}
+        initialActiveSlot={activeSpriteSlot}
+      />
     </>
   );
 }

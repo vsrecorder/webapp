@@ -47,8 +47,8 @@ export function CityleagueResultSkeleton() {
           </div>
         </CardHeader>
         <CardBody className="px-0 py-1">
-          {/* Swiper のスライド（p-2）1枚ぶん */}
-          <div className="p-2">
+          {/* Swiper のスライド（px-2 pt-2 pb-10：ドット分の下余白を含む）1枚ぶん */}
+          <div className="px-2 pt-2 pb-10">
             <CityleagueResultCardSkeleton />
           </div>
         </CardBody>

@@ -176,7 +176,7 @@ export default function CityleagueResult({ event_result }: Props) {
               {event_result.results.map(
                 (result, index) =>
                   result.rank < 9 && (
-                    <SwiperSlide key={index} className="p-2">
+                    <SwiperSlide key={index} className="px-2 pt-2 pb-10">
                       <CityleagueResultCard result={result} date={event_result.date} />
                     </SwiperSlide>
                   ),

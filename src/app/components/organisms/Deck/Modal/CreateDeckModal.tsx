@@ -152,7 +152,7 @@ export default function CreateDeckModal({
     setIsDisabled(true);
 
     const toastId = addToast({
-      title: "マイデッキ登録中",
+      title: "デッキ登録中",
       description: "しばらくお待ちください",
       color: "default",
       promise: new Promise(() => {}),
@@ -177,8 +177,8 @@ export default function CreateDeckModal({
       }
 
       addToast({
-        title: "マイデッキ登録が完了",
-        description: "マイデッキに登録しました",
+        title: "デッキ登録が完了",
+        description: "デッキに登録しました",
         color: "success",
         timeout: 3000,
       });
@@ -198,10 +198,10 @@ export default function CreateDeckModal({
       }
 
       addToast({
-        title: "マイデッキ登録に失敗",
+        title: "デッキ登録に失敗",
         description: (
           <>
-            マイデッキへの登録に失敗しました
+            デッキへの登録に失敗しました
             <br />
             {errorMessage}
           </>
@@ -243,7 +243,7 @@ export default function CreateDeckModal({
         <ModalContent>
           {(onClose) => (
             <>
-              <ModalHeader className="text-lg px-3">マイデッキ登録</ModalHeader>
+              <ModalHeader className="text-lg px-3">デッキ登録</ModalHeader>
               <ModalBody className="px-3 py-1 gap-3">
                 {/* スプライト2枚 */}
                 <div className="flex flex-col gap-1">

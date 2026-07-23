@@ -82,7 +82,7 @@ export default function DisplayRecordById({ recordData }: Props) {
       {/* ボード：デッキコード・戦績集計を1枚のカードにまとめる */}
       <Card shadow="sm" className="w-full overflow-hidden">
         <CardBody className="p-0">
-          <BoardPanel icon={<LuLayers />} label="デッキコード">
+          <BoardPanel icon={<LuLayers />} label="デッキ情報">
             <div ref={deckCardRef}>
               <UsedDeckById
                 record={record}

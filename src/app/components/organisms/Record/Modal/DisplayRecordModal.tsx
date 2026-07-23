@@ -426,7 +426,7 @@ export default function DisplayRecordModal({
                 <div className="px-1">
                   <Card shadow="sm" className="w-full overflow-hidden">
                     <CardBody className="p-0">
-                      <BoardPanel icon={<LuLayers />} label="デッキコード">
+                      <BoardPanel icon={<LuLayers />} label="デッキ情報">
                         <div ref={deckCardRef}>
                           <UsedDeckById
                             record={record}

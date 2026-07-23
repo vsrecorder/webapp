@@ -1,4 +1,4 @@
-import { Card, CardHeader, CardBody, CardFooter } from "@heroui/react";
+import { Card, CardHeader, CardBody } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
 
 type Props = {
@@ -9,26 +9,28 @@ type Props = {
 
 export default function CityleagueResultCardSkeleton({ showRankLabel = true }: Props) {
   return (
-    <Card shadow="sm" className="py-3 w-full border-3 border-default-100">
-      {showRankLabel && (
-        <CardHeader className="pb-0 pt-0 px-3">
-          {/* 順位ラベル（🥇 優勝 など） */}
-          <Skeleton className="h-6 w-20 rounded-md" />
-        </CardHeader>
-      )}
-      <CardBody className="p-3 gap-3">
-        {/* プレイヤー名・プレイヤーID */}
-        <div className="flex flex-col items-start gap-1.5">
-          <Skeleton className="h-3.5 w-32 rounded-md" />
-          <Skeleton className="h-3.5 w-36 rounded-md" />
-        </div>
+    <Card shadow="sm" className="w-full border-2 border-default-100">
+      {/* ヘッダー：順位タグの右隣にプレイヤー情報（アイコン・名前・ID）を横並び */}
+      <CardHeader className="flex items-center gap-2 px-3 pt-3 pb-0">
+        {/* 順位タグ */}
+        {showRankLabel && <Skeleton className="h-7 w-20 shrink-0 rounded-full" />}
 
+        {/* プレイヤー情報 */}
+        <div className="flex min-w-0 items-center gap-2">
+          <Skeleton className="h-7 w-7 shrink-0 rounded-full" />
+          <div className="flex flex-col gap-1">
+            <Skeleton className="h-3.5 w-24 rounded-md" />
+            <Skeleton className="h-3 w-20 rounded-md" />
+          </div>
+        </div>
+      </CardHeader>
+
+      <CardBody className="px-3 pb-3 pt-2">
         {/* デッキ画像 */}
         <div className="relative w-full aspect-2/1">
           <Skeleton className="absolute inset-0 rounded-lg" />
         </div>
       </CardBody>
-      <CardFooter />
     </Card>
   );
 }

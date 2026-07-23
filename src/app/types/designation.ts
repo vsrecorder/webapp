@@ -31,6 +31,14 @@ export type DesignationLadderItemType = DesignationType & {
   // あるにもかかわらず、対象シーズン内にシティリーグの記録を既に作成済みであるかを表す。
   // それ以外、またはプレイヤーズクラブ連携済みの場合は常にfalse。
   city_league_record_without_player_link: boolean;
+  // criteria_type が "official_city_league_grandmaster"(名人)の場合のみ設定される、
+  // 称号詳細モーダルの「優勝 N/1」「入賞 N/参加数」プログレスバー用の集計値。それ以外は常に0。
+  //   - city_league_win_count: 今シーズンの優勝(rank1)回数(優勝バーの分子。分母は criteria_value=1)
+  //   - city_league_placement_count: 今シーズンの入賞回数(入賞バーの分子)
+  //   - city_league_record_count: 今シーズンのシティリーグ記録数=参加数(入賞バーの分母)
+  city_league_win_count: number;
+  city_league_placement_count: number;
+  city_league_record_count: number;
 };
 
 export type UserDesignationType = {

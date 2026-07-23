@@ -497,6 +497,25 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
                       公式サイトの結果は確認できましたが、対応する大会の記録がバトレコに見つかりません。該当する大会の記録を作成すると達成できます。
                     </span>
                   </div>
+                ) : selected.criteria_type ===
+                  CITY_LEAGUE_GRANDMASTER_CRITERIA_TYPE ? (
+                  // 名人は「優勝を1回以上」かつ「参加した全大会で入賞」の2条件。
+                  // 優勝(N/1)と入賞(N/参加数)をそれぞれプログレスバーで表示する。
+                  <div className="flex flex-col items-center gap-1.5 w-full mt-1 rounded-xl bg-default-50 p-2">
+                    <span className="text-[10px] font-bold text-default-400">
+                      優勝を1回以上、かつ参加した全大会で入賞
+                    </span>
+                    <ProgressBar
+                      label="優勝"
+                      value={selected.city_league_win_count}
+                      max={selected.criteria_value}
+                    />
+                    <ProgressBar
+                      label="入賞"
+                      value={selected.city_league_placement_count}
+                      max={selected.city_league_record_count}
+                    />
+                  </div>
                 ) : (
                   <div className="flex flex-col items-center gap-2 w-full mt-1">
                     <ProgressBar

@@ -7,3 +7,10 @@
 export function isFirstRecordCtaEnabled(): boolean {
   return process.env.FIRST_RECORD_CTA_ENABLED !== "false";
 }
+
+// 「環境の窓」カード（施策E-2）の表示可否。記録0件ユーザーの空状態で、自分の登録デッキが
+// 環境ランキングで何位かを先出しし、価値を前倒しする。
+// 既定は有効。緊急停止・段階公開したい場合のみ ENV_WINDOW_ENABLED=false を設定する。
+export function isEnvWindowEnabled(): boolean {
+  return process.env.ENV_WINDOW_ENABLED !== "false";
+}

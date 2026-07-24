@@ -17,6 +17,7 @@ import {
 } from "@app/components/organisms/Dashboard/DashboardChartPanels";
 import UserProfileCard from "@app/components/organisms/User/UserProfileCard";
 import FirstRecordCtaCard from "@app/components/organisms/Dashboard/FirstRecordCtaCard";
+import EnvironmentWindowCard from "@app/components/organisms/Dashboard/EnvironmentWindowCard";
 import StreakPanel from "@app/components/organisms/Badge/StreakPanel";
 import OnboardingBadgePanel from "@app/components/organisms/Badge/OnboardingBadgePanel";
 import BadgeGallery from "@app/components/organisms/Badge/BadgeGallery";
@@ -33,7 +34,7 @@ import { ChampionshipSeriesType } from "@app/types/championship_series";
 import { UserType } from "@app/types/user";
 import { UserStatType } from "@app/types/user_stat";
 import { isDevEnv } from "@app/utils/appIcon";
-import { isFirstRecordCtaEnabled } from "@app/utils/featureFlags";
+import { isFirstRecordCtaEnabled, isEnvWindowEnabled } from "@app/utils/featureFlags";
 
 import { upstreamUrl } from "@app/utils/upstream";
 
@@ -174,8 +175,11 @@ export default async function TemplateDashboard({ userId }: Props) {
   const date = new Date(Date.now() + 9 * 60 * 60 * 1000);
 
   // 施策0-6: 記録0件のユーザーにだけ「最初の記録を作る」CTAを出す。
-  // トグルが無効なら件数取得自体をスキップして無駄な往復を省く。
+  // 施策E-2: 同じく記録0件のユーザーに「環境の窓」カードを出す。
+  // どちらのトグルも無効なら件数取得自体をスキップして無駄な往復を省く。
   const ctaEnabled = isFirstRecordCtaEnabled();
+  const envWindowEnabled = isEnvWindowEnabled();
+  const needTotalRecords = ctaEnabled || envWindowEnabled;
 
   // 各取得は互いに独立しているため、直列に await すると往復回数ぶん
   // そのままサーバ応答(TTFB)が伸びる。並列化して全体の待ち時間を最も遅い1本ぶんに抑える。
@@ -196,14 +200,16 @@ export default async function TemplateDashboard({ userId }: Props) {
     getAllStandardRegulations(),
     getAllChampionshipSeries(),
     getUser(userId),
-    ctaEnabled
+    needTotalRecords
       ? getUserTotalRecords(userId).catch(() => null)
       : Promise.resolve<number | null>(null),
   ]);
 
   // 記録がちょうど0件のときだけ表示。取得失敗(null)時は非表示に倒す。
   const showFirstRecordCta = ctaEnabled && totalRecords === 0;
-  const cohort = showFirstRecordCta ? computeCohort(user?.created_at) : {};
+  const showEnvWindow = envWindowEnabled && totalRecords === 0;
+  const cohort =
+    showFirstRecordCta || showEnvWindow ? computeCohort(user?.created_at) : {};
 
   const sections: DashboardSection[] = [];
 
@@ -456,6 +462,17 @@ export default async function TemplateDashboard({ userId }: Props) {
                 */}
                 {showFirstRecordCta && (
                   <FirstRecordCtaCard
+                    cohortWeek={cohort.cohortWeek}
+                    daysSinceSignup={cohort.daysSinceSignup}
+                  />
+                )}
+                {/*
+                  施策E-2 価値の前倒し: 記録0件のユーザーに、自分の登録デッキが環境で何位かを
+                  先出しし「予約席」で記録を促す。CTA(0-6)の直後に固定で並べる。
+                  記録が1件でも入ると showEnvWindow が false になり自動的に消える。
+                */}
+                {showEnvWindow && (
+                  <EnvironmentWindowCard
                     cohortWeek={cohort.cohortWeek}
                     daysSinceSignup={cohort.daysSinceSignup}
                   />

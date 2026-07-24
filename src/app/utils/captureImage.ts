@@ -422,7 +422,17 @@ export async function captureThemedPng(
   // クローンを描画する。端末の画面幅に合わせて書き出したいとき(シェア画像)に使う。
   // theme を指定すると、端末のテーマ設定を無視してその配色で書き出す。
   // 配色をダークに固定しているページ（/kizuna）から使う。
-  options?: { targetWidth?: number; theme?: "light" | "dark" },
+  options?: {
+    targetWidth?: number;
+    theme?: "light" | "dark";
+    // 余白とサービスフッターを付けず、対象要素の見た目をそのまま画像にする(既定 false)。
+    // カード自身が縁まで描き、サービス表記も内包する「Xヘッダー画像」など、
+    // アスペクト比を厳密に保ちたい書き出しに使う。
+    bare?: boolean;
+    // 書き出しの pixelRatio の希望値(既定 4)。canvas 上限を超える場合は自動で下がる。
+    // 1500×500 のヘッダーを @2x の 3000×1000 で出したいときは 2 を渡す。
+    desiredPixelRatio?: number;
+  },
 ): Promise<string> {
   // 書き出しは対象DOMを複製して描画するため、「複製した時点の見た目」がそのまま
   // 画像になる。複製後にDOMがReactから更新されることはないため、読み込み途中の
@@ -445,9 +455,13 @@ export async function captureThemedPng(
   // 内容が端に張り付かないよう、周囲に余白を持たせる。
   // 左右はやや詰めて、書き出し画像内で戦績カードを大きく見せる。
   // targetWidth 指定時は端末幅に合わせるためその幅を採用する。
+  // bare 指定時は余白・フッターを付けず、対象要素の見た目をそのまま画像にする。
+  const bare = options?.bare ?? false;
+
   const contentWidth = options?.targetWidth ?? el.offsetWidth;
-  const sidePadding = SIDE_PADDING; // 左右の余白
-  const topPadding = 20; // 上の余白(従来どおり)
+  const sidePadding = bare ? 0 : SIDE_PADDING; // 左右の余白
+  const topPadding = bare ? 0 : 20; // 上の余白(従来どおり)
+  const bottomPadding = bare ? 0 : 12; // 下の余白
   const outerWidth = contentWidth + sidePadding * 2;
 
   // 画面外に逃がすためのラッパー（位置指定はここだけが持つ）
@@ -469,7 +483,7 @@ export async function captureThemedPng(
   container.dataset.captureStatic = "true";
   container.style.boxSizing = "border-box";
   container.style.width = `${outerWidth}px`;
-  container.style.padding = `${topPadding}px ${sidePadding}px 12px`;
+  container.style.padding = `${topPadding}px ${sidePadding}px ${bottomPadding}px`;
   container.style.backgroundColor = bgColor;
 
   const clone = el.cloneNode(true) as HTMLElement;
@@ -485,16 +499,17 @@ export async function captureThemedPng(
     .querySelectorAll<HTMLElement>('[data-capture-hide="true"]')
     .forEach((node) => node.remove());
 
-  const { footer, iconLoaded } = buildServiceFooter(isDark);
+  // bare 指定時はサービスフッターを付けない(カードが自前でサービス表記を内包する)
+  const service = bare ? null : buildServiceFooter(isDark);
 
   container.appendChild(clone);
-  container.appendChild(footer);
+  if (service) container.appendChild(service.footer);
   wrapper.appendChild(container);
   document.body.appendChild(wrapper);
 
   try {
     // アイコン未読み込みのまま書き出すと欠けるため、読み込み完了を待つ
-    await iconLoaded;
+    if (service) await service.iconLoaded;
     // フォント・画像の読み込み(デコード)完了を待ってから描画する。
     // 未完了のまま描画すると、文字化けや画像欠けの原因になる。
     if (document.fonts?.ready) {
@@ -510,7 +525,11 @@ export async function captureThemedPng(
     // canvas 上限を超えて真っ白になることがあるため。
     const width = container.offsetWidth;
     const height = container.offsetHeight;
-    const pixelRatio = computeSafePixelRatio(width, height);
+    const pixelRatio = computeSafePixelRatio(
+      width,
+      height,
+      options?.desiredPixelRatio ?? 4,
+    );
 
     if (isIOS()) {
       // iOS は modern-screenshot(動的importでサーバーバンドル回避)。

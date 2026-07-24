@@ -13,10 +13,12 @@ import {
   LuTriangleAlert,
   LuChevronRight,
   LuChevronDown,
+  LuImage,
 } from "react-icons/lu";
 
 import KizunaShareCard from "@app/components/organisms/Kizuna/KizunaShareCard";
 import KizunaBreakdownCard from "@app/components/organisms/Kizuna/KizunaBreakdownCard";
+import KizunaHeaderShareModal from "@app/components/organisms/Kizuna/KizunaHeaderShareModal";
 import { useSetKizunaPreviewDeck } from "@app/components/organisms/Kizuna/KizunaPreviewContext";
 
 import { captureThemedPng, SIDE_PADDING } from "@app/utils/captureImage";
@@ -261,6 +263,9 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
   // 内訳カードを2枚目の画像として一緒にシェアするか。
   // 既定はOFF。シェアしたいのはまず結果であり、内訳まで出すかは本人が選ぶこと。
   const [includeBreakdown, setIncludeBreakdown] = useState(false);
+
+  // X ヘッダー画像モーダルの開閉
+  const [headerModalOpen, setHeaderModalOpen] = useState(false);
 
   const [captureWidth, setCaptureWidth] = useState(360);
   useEffect(() => {
@@ -749,6 +754,29 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
                 </Button>
               )}
             </div>
+
+            {/* X プロフィールのヘッダー画像(横長 1500×500)を作る。
+                結果カードのシェアとは別に、保存して自分のプロフィールに設定してもらう導線。 */}
+            <Button
+              size="lg"
+              variant="bordered"
+              className="font-bold"
+              startContent={<LuImage className="text-lg" />}
+              isDisabled={busy !== null}
+              onPress={() => setHeaderModalOpen(true)}
+            >
+              X ヘッダー画像を作る
+            </Button>
+
+            <KizunaHeaderShareModal
+              isOpen={headerModalOpen}
+              onClose={() => setHeaderModalOpen(false)}
+              sprites={spritesOf(selectedDeck!)}
+              deckName={selectedDeck!.data.name}
+              score={estimate!.score}
+              tierName={tier.name}
+              tierMessage={tier.message}
+            />
           </div>
         )}
       </div>

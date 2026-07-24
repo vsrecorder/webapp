@@ -12,11 +12,13 @@ import {
   LuCopy,
   LuCheck,
   LuTriangleAlert,
+  LuImage,
 } from "react-icons/lu";
 
 import SpritePickerPanel from "@app/components/molecules/SpritePickerPanel";
 import type { SpriteSlot } from "@app/components/molecules/SpritePickerPanel";
 import KizunaShareCard from "@app/components/organisms/Kizuna/KizunaShareCard";
+import KizunaHeaderShareModal from "@app/components/organisms/Kizuna/KizunaHeaderShareModal";
 
 import { captureThemedPng, SIDE_PADDING } from "@app/utils/captureImage";
 import {
@@ -249,6 +251,9 @@ export default function KizunaSimulator() {
   // 失敗を検知できないと「画像を準備しています」のまま永久に押せないボタンが残るため、
   // 明示的に持ち、テキストのみのシェアへ退避できるようにする。
   const [captureFailed, setCaptureFailed] = useState(false);
+
+  // X ヘッダー画像モーダルの開閉
+  const [headerModalOpen, setHeaderModalOpen] = useState(false);
 
   // 書き出し画像の横幅が端末の画面幅いっぱいになるようキャプチャ対象の幅を決める。
   // SSR時は window を参照できないため 360 で初期化する。
@@ -629,6 +634,28 @@ export default function KizunaSimulator() {
                 もう一度試す
               </Button>
             </div>
+
+            {/* X プロフィールのヘッダー画像(横長 1500×500)を作る */}
+            <Button
+              size="lg"
+              variant="bordered"
+              className="font-bold"
+              startContent={<LuImage className="text-lg" />}
+              isDisabled={busy !== null}
+              onPress={() => setHeaderModalOpen(true)}
+            >
+              X ヘッダー画像を作る
+            </Button>
+
+            <KizunaHeaderShareModal
+              isOpen={headerModalOpen}
+              onClose={() => setHeaderModalOpen(false)}
+              sprites={sprites}
+              deckName={deckName}
+              score={score}
+              tierName={tier.name}
+              tierMessage={tier.message}
+            />
           </div>
         ) : (
           <div className="rounded-2xl border border-dashed border-default-200 px-6 py-8 text-center">

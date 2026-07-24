@@ -58,6 +58,58 @@ function RankBadge({ rank, isOther }: { rank: number; isOther: boolean }) {
   );
 }
 
+// 前週からの順位変動。上昇は▲、下降は▼、変動なしは−、前週圏外(新登場)は NEW。
+function RankDelta({ rank, previousRank }: { rank: number; previousRank?: number }) {
+  if (previousRank == null) {
+    return (
+      <span className="text-[8px] font-black text-warning-500 leading-none">NEW</span>
+    );
+  }
+
+  const diff = previousRank - rank;
+  if (diff === 0) {
+    return (
+      <span className="text-[9px] font-bold text-default-300 leading-none">－</span>
+    );
+  }
+
+  const up = diff > 0;
+  return (
+    <span
+      className={`text-[9px] font-black tabular-nums leading-none ${
+        up ? "text-success-600" : "text-danger-500"
+      }`}
+    >
+      {up ? "▲" : "▼"}
+      {Math.abs(diff)}
+    </span>
+  );
+}
+
+// 前週からの変化量をポイント差(+1.2 / -0.8)で表示する。前週値が無ければ何も出さない。
+function DeltaPoints({ current, previous }: { current: number; previous?: number }) {
+  if (previous == null) return null;
+
+  const diff = (current - previous) * 100;
+  if (Math.abs(diff) < 0.05) {
+    return (
+      <span className="text-[9px] font-bold tabular-nums text-default-300">±0.0</span>
+    );
+  }
+
+  const up = diff > 0;
+  return (
+    <span
+      className={`text-[9px] font-bold tabular-nums ${
+        up ? "text-success-600" : "text-danger-500"
+      }`}
+    >
+      {up ? "+" : ""}
+      {diff.toFixed(1)}
+    </span>
+  );
+}
+
 // デッキ変種のスプライトを最大2体まで横並び表示する。不足分は unknown で埋める。
 function DeckSprites({ deck }: { deck: WeeklyDeckUsageItemType }) {
   const sprites = deck.pokemon_sprites ?? [];
@@ -285,6 +337,8 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
               集計するため、対戦数より多くなっています
               <br />
               ※ポケモン未設定の対戦はデッキ名から推測して集計しています
+              <br />
+              ※▲▼・NEW と +/− の数値は前週の順位・使用率・勝率との比較です
             </span>
           </div>
         )}
@@ -364,7 +418,12 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
                   className="flex flex-col gap-1.5 rounded-xl bg-default-100 px-3 py-2"
                 >
                   <div className="flex items-center gap-2">
-                    <RankBadge rank={idx + 1} isOther={isOther} />
+                    <div className="flex flex-col items-center gap-0.5 shrink-0 w-6">
+                      <RankBadge rank={idx + 1} isOther={isOther} />
+                      {!isOther && (
+                        <RankDelta rank={idx + 1} previousRank={deck.previous_rank} />
+                      )}
+                    </div>
                     <DeckSprites deck={deck} />
                     {isOther && (
                       <span className="font-bold text-xs text-default-500 truncate">
@@ -384,12 +443,19 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
                         </span>
                       )}
                       {/* 「その他を除く」表示中は、基準の違いを見失わないよう全体比も併記する */}
-                      <span className="text-[9px] text-default-400 tabular-nums mt-0.5">
+                      <span className="flex items-center gap-1 text-[9px] text-default-400 tabular-nums mt-0.5">
                         {isExcluded
                           ? `${deck.count}件・全体の${(deck.usage_rate * 100).toFixed(1)}%`
                           : rateMode === "excl_other"
                             ? `${deck.count}件・全体比${(deck.usage_rate * 100).toFixed(1)}%`
                             : `${deck.count}件`}
+                        {/* 使用率の前週比は全体基準の値でのみ表示する(「その他を除く」は分母が違うため) */}
+                        {rateMode === "all" && !isExcluded && (
+                          <DeltaPoints
+                            current={deck.usage_rate}
+                            previous={deck.previous_usage_rate}
+                          />
+                        )}
                       </span>
                     </div>
                   </div>
@@ -413,6 +479,10 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
                     >
                       勝率 {(deck.win_rate * 100).toFixed(1)}%
                     </Chip>
+                    <DeltaPoints
+                      current={deck.win_rate}
+                      previous={deck.previous_win_rate}
+                    />
                   </div>
 
                   {/* 「その他」に集約された少数変種(3件未満)の内訳をアコーディオンで一覧表示する。

@@ -159,7 +159,7 @@ export default function Decks({ userId, isArchived, onCreated }: Props) {
         setIsInitialLoaded(true);
       }
     }
-  }, [isArchived, nextCursor, isLoading, hasMore]);
+  }, [isArchived, nextCursor, isLoading, hasMore, isInitialLoaded]);
 
   useEffect(() => {
     if (isInitialLoaded) return;
@@ -195,7 +195,7 @@ export default function Decks({ userId, isArchived, onCreated }: Props) {
 
               <p className="text-xs leading-relaxed text-default-600 dark:text-default-400">
                 負けても握り続けた回数、組み直した夜、連れて行った大会。
-                勝率では測れないデッキとの歩みが、「きずなLv.」になります。
+                勝率では測れないデッキとの歩みが「きずなLv.」になります。
               </p>
 
               <p className="w-full rounded-xl bg-amber-500/10 px-3 py-2 text-xs font-bold leading-relaxed text-amber-800 dark:text-amber-200">

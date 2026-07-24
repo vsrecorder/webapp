@@ -205,9 +205,13 @@ export default async function TemplateDashboard({ userId }: Props) {
       : Promise.resolve<number | null>(null),
   ]);
 
-  // 記録がちょうど0件のときだけ表示。取得失敗(null)時は非表示に倒す。
+  // 「最初の記録」CTAは記録0件のときだけ。取得失敗(null)時は非表示に倒す。
   const showFirstRecordCta = ctaEnabled && totalRecords === 0;
-  const showEnvWindow = envWindowEnabled && totalRecords === 0;
+  // 環境の窓(E-2)は「価値の後払い」ゾーン(記録3件未満)を対象にする。1〜3件は勝率が
+  // 統計的に無意味なため、集合データの前倒しが効く層(blindspots §2)。
+  // null(取得失敗)は 0 未満扱いにならないよう明示的に除外する(null < 3 は true になるため)。
+  const showEnvWindow =
+    envWindowEnabled && totalRecords !== null && totalRecords < 3;
   const cohort =
     showFirstRecordCta || showEnvWindow ? computeCohort(user?.created_at) : {};
 
@@ -473,6 +477,7 @@ export default async function TemplateDashboard({ userId }: Props) {
                 */}
                 {showEnvWindow && (
                   <EnvironmentWindowCard
+                    totalRecords={totalRecords ?? 0}
                     cohortWeek={cohort.cohortWeek}
                     daysSinceSignup={cohort.daysSinceSignup}
                   />

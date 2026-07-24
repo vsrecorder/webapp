@@ -20,25 +20,38 @@ import {
 
 // 施策E-2「環境の窓」カード。
 //
-// 記録0件のユーザーは、自分の勝率が貯まるまで価値を得られない（価値の後払い構造・
-// engagement-strategy-blindspots.md §2）。そこで、既に持っているプラットフォーム全体の
-// 週次デッキ使用率（/deck_meta と同じ集計）に、ユーザー自身の登録デッキを突き合わせ、
-// 「あなたのデッキは環境◯位」を記録ゼロの時点で先出しする。あわせて「あなた自身の勝率が
-// 入る空欄（予約席）」を見せ、「見る→書く」への動機に変える。
+// 記録がまだ少ないユーザー(3件未満)は、自分の勝率が貯まるまで価値を得られない(価値の後払い
+// 構造・engagement-strategy-blindspots.md §2)。そこで、既に持っているプラットフォーム全体の
+// 週次デッキ使用率(/deck_meta と同じ集計)に、ユーザー自身の登録デッキを突き合わせ、
+// 「あなたのデッキは環境◯位」を記録が貯まる前に先出しする。あわせて「あなた自身の勝率が
+// 入る空欄(予約席)」を見せ、「見る→書く」への動機に変える。
 //
-// 突合はフロントだけで完結する（core-api 改修なし）。自分デッキの pokemon_sprites から
-// サーバと同じ規則で指紋を再計算し（fingerprint.ts）、環境各行の fingerprint と一致する
-// 行を探す。表示条件（記録0件・トグル有効）はサーバ側(Dashboard.tsx)で判定するため、
+// 複数デッキを持つユーザーは、セレクタで見たいデッキを選べる(選んだデッキの順位・予約席・
+// 当たりやすい相手に切り替わる)。突合はフロントだけで完結する(core-api 改修なし)。自分デッキの
+// pokemon_sprites からサーバと同じ規則で指紋を再計算し(fingerprint.ts)、環境各行の fingerprint と
+// 一致する行を探す。表示条件(記録3件未満・トグル有効)はサーバ側(Dashboard.tsx)で判定するため、
 // このコンポーネントは「表示すると決まったとき」だけ描画される。
 
 type Props = {
+  // 対象ユーザーの現在の記録件数(0〜2)。予約席の文言・CTA を「まだ0件」と「1〜2件」で
+  // 出し分けるために使う。1〜2件のユーザーは勝率が既にあるが統計的に無意味な段階のため、
+  // 「まだ参考にならない」と正直に見せる(blindspots §2)。
+  totalRecords: number;
   // GA 計測のラベル用。FirstRecordCtaCard と同じくコホート別に効果を見られるようにする。
   cohortWeek?: string;
   daysSinceSignup?: number;
 };
 
-// 表示状態。A=自分デッキがランキングにヒット / B=デッキはあるがランク外 / C=デッキ未登録。
-type Variant = "A" | "B" | "C";
+// GA 用の状態ラベル。A=ランク入りデッキを持つ / B=デッキはあるが全てランク外 / C=デッキ未登録。
+type GaVariant = "A" | "B" | "C";
+
+// 自分の登録デッキ1つ分の、環境上での立ち位置。rank/row は圏外なら null。
+type DeckPosition = {
+  deck: DeckData;
+  fingerprint: string;
+  rank: number | null;
+  row: WeeklyDeckUsageItemType | null;
+};
 
 // 勝率に応じた色分け（WeeklyDeckUsagePanel・既存の統計表示と同じ閾値）。
 function winRateChipColor(
@@ -163,9 +176,78 @@ function DeckRankRow({
   );
 }
 
-// 予約席: 環境の平均勝率（借り物・実線）と、あなたの勝率（空欄・破線）を並べて見せる。
-// 空欄を「自分の数字で埋めたい未完成」に変え、記録への動機にする。
-function ReservedSeat({ envWinRate }: { envWinRate: number }) {
+// 自分の登録デッキを選ぶ横スクロールのセレクタ。各チップに順位/圏外も出す。
+function DeckSelector({
+  positions,
+  selectedId,
+  onSelect,
+}: {
+  positions: DeckPosition[];
+  selectedId: string;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <div className="flex gap-1.5 overflow-x-auto pb-1">
+      {positions.map((p) => {
+        const active = p.deck.id === selectedId;
+        return (
+          <button
+            key={p.deck.id}
+            type="button"
+            onClick={() => onSelect(p.deck.id)}
+            aria-pressed={active}
+            className={`flex items-center gap-1.5 shrink-0 rounded-full border pl-1 pr-2.5 py-1 transition-colors ${
+              active
+                ? "border-primary bg-primary/10"
+                : "border-default-200 bg-default-50 hover:bg-default-100"
+            }`}
+          >
+            <DeckSprites sprites={p.deck.pokemon_sprites} size={22} />
+            <span
+              className={`text-[11px] font-bold max-w-[6.5rem] truncate ${
+                active ? "text-primary" : "text-default-600"
+              }`}
+            >
+              {p.deck.name}
+            </span>
+            <span
+              className={`text-[10px] font-black tabular-nums ${
+                p.rank != null
+                  ? active
+                    ? "text-primary"
+                    : "text-default-500"
+                  : "text-default-400"
+              }`}
+            >
+              {p.rank != null ? `${p.rank}位` : "圏外"}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// 予約席: 環境の平均勝率（借り物・実線）と、あなたの勝率（まだ無い/参考にならない・破線）を
+// 並べて見せる。空欄を「自分の数字で埋めたい未完成」に変え、記録への動機にする。
+// 記録0件と1〜2件で文言を出し分ける（1〜2件は勝率が既にあるが統計的に無意味な段階のため、
+// 「まだ参考にならない」と正直に伝える）。
+function ReservedSeat({
+  envWinRate,
+  totalRecords,
+}: {
+  envWinRate: number;
+  totalRecords: number;
+}) {
+  const yourSub =
+    totalRecords === 0
+      ? "あなたの記録から算出"
+      : `まだ${totalRecords}件では参考になりません`;
+  const hint =
+    totalRecords === 0
+      ? "1件記録すると、ここに「あなた vs 環境平均」が出ます"
+      : "記録を続けると、あなたの数字が環境平均と比べられるようになります";
+
   return (
     <div className="flex flex-col gap-2 rounded-xl border border-dashed border-default-300 bg-default-50 px-3 py-3">
       <div className="flex items-center justify-between gap-3">
@@ -184,7 +266,7 @@ function ReservedSeat({ envWinRate }: { envWinRate: number }) {
         <div className="text-xs font-bold text-default-600">
           あなたの勝率
           <span className="block text-[10px] font-medium text-default-400 mt-0.5">
-            あなたの記録から算出
+            {yourSub}
           </span>
         </div>
         <span className="text-lg font-black tabular-nums text-default-300 tracking-widest">
@@ -193,9 +275,105 @@ function ReservedSeat({ envWinRate }: { envWinRate: number }) {
       </div>
       <div className="flex items-center gap-1.5 text-[11px] font-bold text-primary leading-snug">
         <LuLock className="w-3 h-3 shrink-0" />
-        1件記録すると、ここに「あなた vs 環境平均」が出ます
+        {hint}
       </div>
     </div>
+  );
+}
+
+// ランク入りデッキのヒーロー表示（環境◯位＋使用率・件数）。
+function RankedHero({
+  deck,
+  rank,
+  row,
+}: {
+  deck: DeckData;
+  rank: number;
+  row: WeeklyDeckUsageItemType;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-2xl bg-default-50 border border-default-100 px-3.5 py-3">
+      <DeckSprites sprites={deck.pokemon_sprites} size={40} />
+      <div className="min-w-0 flex-1">
+        <div className="font-bold text-sm truncate">{deck.name}</div>
+        <div className="flex items-baseline gap-2 mt-1 flex-wrap">
+          <span className="text-2xl font-black leading-none tabular-nums">
+            環境{rank}
+            <span className="text-xs font-black text-default-400 ml-0.5">位</span>
+          </span>
+          <span className="text-[11px] text-default-500 tabular-nums">
+            使用率 {(row.usage_rate * 100).toFixed(1)}% ・ {row.count}件
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ランク外デッキのヒーロー表示。
+function RankedOutHero({ deck }: { deck: DeckData }) {
+  return (
+    <div className="flex items-center gap-3 rounded-2xl bg-default-50 border border-default-100 px-3.5 py-3">
+      <DeckSprites sprites={deck.pokemon_sprites} size={40} />
+      <div className="min-w-0 flex-1">
+        <div className="font-bold text-sm truncate">{deck.name}</div>
+        <div className="text-sm font-bold text-default-500 mt-1">今週はまだランク外</div>
+        <div className="text-[11px] text-default-400 mt-0.5 leading-snug">
+          出現が少なく、まだ集計対象に届いていません
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ランク外デッキに添える希少性の訴求。
+function EncourageNote() {
+  return (
+    <p className="text-xs font-bold text-primary leading-relaxed rounded-xl bg-primary/10 px-3 py-2.5">
+      あなたの記録が、このデッキの環境データを作ります。
+    </p>
+  );
+}
+
+function RankHeader({ title, subtitle = "使用率順" }: { title: string; subtitle?: string }) {
+  return (
+    <div className="flex items-center justify-between px-1 -mb-1">
+      <span className="text-[11px] font-black text-default-500">{title}</span>
+      <span className="text-[10px] text-default-400">{subtitle}</span>
+    </div>
+  );
+}
+
+// 「記録する」CTA。表示中のデッキがランク入りか、記録が0件か1〜2件かでラベルを出し分ける。
+function RecordCtaButton({
+  ranked,
+  totalRecords,
+  onClick,
+}: {
+  ranked: boolean;
+  totalRecords: number;
+  onClick: () => void;
+}) {
+  const label = ranked
+    ? totalRecords === 0
+      ? "この枠を、あなたの1戦で解錠する"
+      : "もう1戦、記録する"
+    : totalRecords === 0
+      ? "最初の記録をつける"
+      : "記録を続ける";
+
+  return (
+    <Button
+      as={Link}
+      href="/records/quick"
+      color="primary"
+      radius="full"
+      startContent={<LuFilePen className="w-4 h-4" />}
+      className="font-bold shadow-md w-full"
+      onPress={onClick}
+    >
+      {label}
+    </Button>
   );
 }
 
@@ -237,7 +415,89 @@ function SkeletonCard() {
   );
 }
 
-export default function EnvironmentWindowCard({ cohortWeek, daysSinceSignup }: Props) {
+// 自分の(識別可能な)デッキを選んで、その環境順位・予約席・当たりやすい相手を見せる本体。
+// 選択状態はこの中に閉じ込める（positions は常に1件以上）。
+function SelectModeView({
+  positions,
+  top3,
+  totalRecords,
+  onRecordClick,
+  onSwitch,
+}: {
+  positions: DeckPosition[];
+  top3: WeeklyDeckUsageItemType[];
+  totalRecords: number;
+  onRecordClick: () => void;
+  onSwitch: () => void;
+}) {
+  // 既定は先頭 = 最上位ランク（positions はランク入りを上位に整列済み）。
+  const [selectedDeckId, setSelectedDeckId] = useState<string | null>(null);
+  const selected =
+    positions.find((p) => p.deck.id === selectedDeckId) ?? positions[0];
+  const ranked = selected.rank != null;
+
+  function handleSelect(id: string) {
+    setSelectedDeckId(id);
+    onSwitch();
+  }
+
+  return (
+    <>
+      <span className="text-xs font-bold text-default-500 tracking-wide">
+        環境の中の、あなたのデッキ
+      </span>
+
+      {positions.length >= 2 && (
+        <DeckSelector
+          positions={positions}
+          selectedId={selected.deck.id}
+          onSelect={handleSelect}
+        />
+      )}
+
+      {selected.rank != null && selected.row != null ? (
+        <>
+          <RankedHero deck={selected.deck} rank={selected.rank} row={selected.row} />
+          <ReservedSeat envWinRate={selected.row.win_rate} totalRecords={totalRecords} />
+          <RankHeader title="今週あなたが当たりやすいデッキ" />
+          <div className="flex flex-col gap-1.5">
+            {top3.map((item, idx) => {
+              const isMe = item.fingerprint === selected.fingerprint;
+              return (
+                <DeckRankRow
+                  key={item.fingerprint}
+                  rank={idx + 1}
+                  item={item}
+                  isMe={isMe}
+                  meName={isMe ? selected.deck.name : undefined}
+                />
+              );
+            })}
+          </div>
+        </>
+      ) : (
+        <>
+          <RankedOutHero deck={selected.deck} />
+          <EncourageNote />
+          <RankHeader title="今週の環境 TOP3" />
+          <div className="flex flex-col gap-1.5">
+            {top3.map((item, idx) => (
+              <DeckRankRow key={item.fingerprint} rank={idx + 1} item={item} />
+            ))}
+          </div>
+        </>
+      )}
+
+      <RecordCtaButton ranked={ranked} totalRecords={totalRecords} onClick={onRecordClick} />
+    </>
+  );
+}
+
+export default function EnvironmentWindowCard({
+  totalRecords,
+  cohortWeek,
+  daysSinceSignup,
+}: Props) {
   const [stat, setStat] = useState<WeeklyDeckUsageStatType | null>(null);
   const [userDecks, setUserDecks] = useState<DeckData[] | null>(null);
   const [failed, setFailed] = useState(false);
@@ -282,44 +542,70 @@ export default function EnvironmentWindowCard({ cohortWeek, daysSinceSignup }: P
     return [...list].sort((a, b) => b.count - a.count || b.win_rate - a.win_rate);
   }, [stat]);
 
-  // 自分の登録デッキのうち、今週のランキングにヒットしたもの（順位昇順）。
-  const myMatches = useMemo(() => {
+  // 自分の登録デッキ(スプライトあり=環境上で識別可能)ごとの立ち位置。ランク入りを上位に。
+  const deckPositions = useMemo<DeckPosition[]>(() => {
     if (!userDecks) return [];
-    const out: { deck: DeckData; rank: number; row: WeeklyDeckUsageItemType }[] = [];
+    const list: DeckPosition[] = [];
     for (const deck of userDecks) {
       const fp = fingerprintKey((deck.pokemon_sprites ?? []).map((s) => s.id));
-      if (fp === "") continue; // スプライト未設定は突合不可
+      if (fp === "") continue; // スプライト未設定は環境上で識別できないため選択肢に出さない
       const idx = rankable.findIndex((d) => d.fingerprint === fp);
-      if (idx >= 0) out.push({ deck, rank: idx + 1, row: rankable[idx] });
+      list.push({
+        deck,
+        fingerprint: fp,
+        rank: idx >= 0 ? idx + 1 : null,
+        row: idx >= 0 ? rankable[idx] : null,
+      });
     }
-    return out.sort((a, b) => a.rank - b.rank);
+    // ランク入り(順位昇順) → 圏外 の順に並べ、既定選択が最上位ランクになるようにする。
+    return list.sort((a, b) => {
+      if (a.rank == null && b.rank == null) return 0;
+      if (a.rank == null) return 1;
+      if (b.rank == null) return -1;
+      return a.rank - b.rank;
+    });
   }, [userDecks, rankable]);
 
-  const variant: Variant | null = useMemo(() => {
+  const hasRanked = deckPositions.some((p) => p.rank != null);
+
+  // 描画モード。select=自分の識別可能なデッキを選んで見る / B=デッキはあるが識別不能 / C=未登録。
+  const renderMode: "select" | "B" | "C" | null = useMemo(() => {
     if (!stat || !userDecks) return null; // 読み込み中
     if (rankable.length === 0) return null; // 環境データが無い週はカードごと出さない
-    if (myMatches.length > 0) return "A";
+    if (deckPositions.length > 0) return "select";
     if (userDecks.length > 0) return "B";
     return "C";
-  }, [stat, userDecks, rankable, myMatches]);
+  }, [stat, userDecks, rankable, deckPositions]);
+
+  // GA 用ラベル。A=ランク入りデッキを持つ / B=デッキはあるが全てランク外 / C=未登録。
+  const gaVariant: GaVariant = hasRanked
+    ? "A"
+    : userDecks && userDecks.length > 0
+      ? "B"
+      : "C";
 
   const eventParams = useMemo(
-    () => ({ cohort_week: cohortWeek ?? "unknown", days_since_signup: daysSinceSignup ?? -1 }),
-    [cohortWeek, daysSinceSignup],
+    () => ({
+      cohort_week: cohortWeek ?? "unknown",
+      days_since_signup: daysSinceSignup ?? -1,
+      total_records: totalRecords,
+      deck_count: deckPositions.length,
+    }),
+    [cohortWeek, daysSinceSignup, totalRecords, deckPositions.length],
   );
 
   // 表示回数を計測（状態が確定したとき1回だけ）。
   const sentImpression = useRef(false);
   useEffect(() => {
-    if (variant == null || sentImpression.current) return;
+    if (renderMode == null || sentImpression.current) return;
     sentImpression.current = true;
-    sendGAEvent("event", "env_window_impression", { ...eventParams, variant });
-  }, [variant, eventParams]);
+    sendGAEvent("event", "env_window_impression", { ...eventParams, variant: gaVariant });
+  }, [renderMode, gaVariant, eventParams]);
 
   function handleRecordClick() {
     sendGAEvent("event", "env_window_cta_click", {
       ...eventParams,
-      variant: variant ?? "unknown",
+      variant: gaVariant,
       action: "record",
     });
   }
@@ -327,35 +613,21 @@ export default function EnvironmentWindowCard({ cohortWeek, daysSinceSignup }: P
   function handleDeckRegisterClick() {
     sendGAEvent("event", "env_window_cta_click", {
       ...eventParams,
-      variant: variant ?? "unknown",
+      variant: gaVariant,
       action: "deck_register",
     });
     onOpen();
   }
 
+  function handleDeckSwitch() {
+    sendGAEvent("event", "env_window_deck_switch", { ...eventParams, variant: gaVariant });
+  }
+
   if (failed) return null;
   if (stat == null || userDecks == null) return <SkeletonCard />;
-  if (variant == null) return null;
+  if (renderMode == null) return null;
 
   const top3 = rankable.slice(0, 3);
-  // 指紋 → 自分のデッキ名。TOP3内に自分のデッキが複数入っても、行ごとに正しい名前を出す。
-  const myDeckNameByFingerprint = new Map(
-    myMatches.map((m) => [m.row.fingerprint, m.deck.name]),
-  );
-
-  const recordCta = (
-    <Button
-      as={Link}
-      href="/records/quick"
-      color="primary"
-      radius="full"
-      startContent={<LuFilePen className="w-4 h-4" />}
-      className="font-bold shadow-md w-full"
-      onPress={handleRecordClick}
-    >
-      {variant === "A" ? "この枠を、あなたの1戦で解錠する" : "最初の記録をつける"}
-    </Button>
-  );
 
   return (
     <>
@@ -363,7 +635,7 @@ export default function EnvironmentWindowCard({ cohortWeek, daysSinceSignup }: P
         <CardBody className="gap-3 p-4">
           <BetaHeader stat={stat} />
 
-          {variant === "C" ? (
+          {renderMode === "C" ? (
             <>
               <span className="text-xs font-bold text-default-500 tracking-wide">
                 今週の対戦環境
@@ -376,10 +648,7 @@ export default function EnvironmentWindowCard({ cohortWeek, daysSinceSignup }: P
                 がここに表示されます。
               </p>
 
-              <div className="flex items-center justify-between px-1 -mb-1">
-                <span className="text-[11px] font-black text-default-500">使用率ランキング</span>
-                <span className="text-[10px] text-default-400">使用率が高い順</span>
-              </div>
+              <RankHeader title="使用率ランキング" subtitle="使用率が高い順" />
               <div className="flex flex-col gap-1.5">
                 {top3.map((item, idx) => (
                   <DeckRankRow key={item.fingerprint} rank={idx + 1} item={item} />
@@ -397,91 +666,33 @@ export default function EnvironmentWindowCard({ cohortWeek, daysSinceSignup }: P
                 デッキコードで登録する
               </Button>
             </>
-          ) : variant === "A" ? (
+          ) : renderMode === "B" ? (
             <>
               <span className="text-xs font-bold text-default-500 tracking-wide">
                 環境の中の、あなたのデッキ
               </span>
-
-              {/* ヒーロー: あなたは環境◯位 */}
-              <div className="flex items-center gap-3 rounded-2xl bg-default-50 border border-default-100 px-3.5 py-3">
-                <DeckSprites sprites={myMatches[0].deck.pokemon_sprites} size={40} />
-                <div className="min-w-0 flex-1">
-                  <div className="font-bold text-sm truncate">{myMatches[0].deck.name}</div>
-                  <div className="flex items-baseline gap-2 mt-1 flex-wrap">
-                    <span className="text-2xl font-black leading-none tabular-nums">
-                      環境{myMatches[0].rank}
-                      <span className="text-xs font-black text-default-400 ml-0.5">位</span>
-                    </span>
-                    <span className="text-[11px] text-default-500 tabular-nums">
-                      使用率 {(myMatches[0].row.usage_rate * 100).toFixed(1)}% ・{" "}
-                      {myMatches[0].row.count}件
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <ReservedSeat envWinRate={myMatches[0].row.win_rate} />
-
-              <div className="flex items-center justify-between px-1 -mb-1">
-                <span className="text-[11px] font-black text-default-500">
-                  今週あなたが当たりやすいデッキ
-                </span>
-                <span className="text-[10px] text-default-400">使用率順</span>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                {top3.map((item, idx) => {
-                  const meName = myDeckNameByFingerprint.get(item.fingerprint);
-                  return (
-                    <DeckRankRow
-                      key={item.fingerprint}
-                      rank={idx + 1}
-                      item={item}
-                      isMe={meName != null}
-                      meName={meName}
-                    />
-                  );
-                })}
-              </div>
-
-              {recordCta}
-            </>
-          ) : (
-            // variant === "B": デッキはあるがランク外
-            <>
-              <span className="text-xs font-bold text-default-500 tracking-wide">
-                環境の中の、あなたのデッキ
-              </span>
-
-              <div className="flex items-center gap-3 rounded-2xl bg-default-50 border border-default-100 px-3.5 py-3">
-                <DeckSprites sprites={userDecks[0].pokemon_sprites} size={40} />
-                <div className="min-w-0 flex-1">
-                  <div className="font-bold text-sm truncate">{userDecks[0].name}</div>
-                  <div className="text-sm font-bold text-default-500 mt-1">
-                    今週はまだランク外
-                  </div>
-                  <div className="text-[11px] text-default-400 mt-0.5 leading-snug">
-                    出現が少なく、まだ集計対象に届いていません
-                  </div>
-                </div>
-              </div>
-
-              <p className="text-xs font-bold text-primary leading-relaxed rounded-xl bg-primary/10 px-3 py-2.5">
-                あなたの記録が、このデッキの環境データを作ります。
-              </p>
-
-              <div className="flex items-center justify-between px-1 -mb-1">
-                <span className="text-[11px] font-black text-default-500">今週の環境 TOP3</span>
-                <span className="text-[10px] text-default-400">使用率順</span>
-              </div>
+              <RankedOutHero deck={userDecks[0]} />
+              <EncourageNote />
+              <RankHeader title="今週の環境 TOP3" />
               <div className="flex flex-col gap-1.5">
                 {top3.map((item, idx) => (
                   <DeckRankRow key={item.fingerprint} rank={idx + 1} item={item} />
                 ))}
               </div>
-
-              {recordCta}
+              <RecordCtaButton
+                ranked={false}
+                totalRecords={totalRecords}
+                onClick={handleRecordClick}
+              />
             </>
+          ) : (
+            <SelectModeView
+              positions={deckPositions}
+              top3={top3}
+              totalRecords={totalRecords}
+              onRecordClick={handleRecordClick}
+              onSwitch={handleDeckSwitch}
+            />
           )}
         </CardBody>
       </Card>

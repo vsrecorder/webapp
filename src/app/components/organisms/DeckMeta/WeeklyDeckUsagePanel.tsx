@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 
 import { Button, Card, CardBody, Chip, Tab, Tabs } from "@heroui/react";
 import {
+  LuChevronDown,
   LuChevronLeft,
   LuChevronRight,
   LuChevronsDown,
@@ -109,9 +110,13 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
   const [stat, setStat] = useState<WeeklyDeckUsageStatType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [rateMode, setRateMode] = useState<RateMode>("all");
+  // 「その他」の内訳アコーディオンの開閉状態
+  const [otherExpanded, setOtherExpanded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
+    // 週を切り替えたら内訳アコーディオンは畳んでおく（別週の展開状態を持ち越さない）
+    setOtherExpanded(false);
 
     async function fetchStat() {
       setIsLoading(true);
@@ -409,6 +414,67 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
                       勝率 {(deck.win_rate * 100).toFixed(1)}%
                     </Chip>
                   </div>
+
+                  {/* 「その他」に集約された少数変種(3件未満)の内訳をアコーディオンで一覧表示する。
+                      全体を俯瞰する埋め込み(limit指定)では畳んだままにし、詳細ページでのみ展開可能にする */}
+                  {isOther && limit == null && (deck.members?.length ?? 0) > 0 && (
+                    <div className="flex flex-col gap-1 mt-0.5">
+                      <button
+                        type="button"
+                        onClick={() => setOtherExpanded((v) => !v)}
+                        aria-expanded={otherExpanded}
+                        className="flex items-center justify-center gap-1 py-1 text-[10px] font-bold text-default-500 hover:text-default-600"
+                      >
+                        <LuChevronDown
+                          className={`w-3.5 h-3.5 transition-transform ${
+                            otherExpanded ? "rotate-180" : ""
+                          }`}
+                        />
+                        {otherExpanded
+                          ? "内訳を閉じる"
+                          : `内訳をすべて見る（${deck.members!.length}種類）`}
+                      </button>
+
+                      {otherExpanded && (
+                        <div className="flex flex-col gap-1">
+                          {deck.members!.map((member, mIdx) => (
+                            <div
+                              key={`${member.fingerprint || "member"}-${mIdx}`}
+                              className="flex items-center gap-2 rounded-lg bg-default-50 px-2 py-1.5"
+                            >
+                              {/* 「その他」に畳まれる前の順位を引き継ぐ（その他行の次の順位から連番） */}
+                              <span className="w-6 text-center text-[10px] font-black tabular-nums text-default-400 shrink-0">
+                                {idx + 1 + mIdx}
+                              </span>
+                              <DeckSprites deck={member} />
+                              <div className="ml-auto flex flex-col items-end shrink-0 leading-none">
+                                <span className="text-sm font-black tabular-nums text-default-600">
+                                  {(member.usage_rate * 100).toFixed(1)}
+                                  <span className="text-[10px] font-bold text-default-400">
+                                    %
+                                  </span>
+                                </span>
+                                <span className="text-[9px] text-default-400 tabular-nums mt-0.5">
+                                  {member.count}件・全体比
+                                </span>
+                              </div>
+                              <Chip
+                                size="sm"
+                                variant="flat"
+                                color={winRateChipColor(member.win_rate)}
+                                classNames={{
+                                  base: "h-5 px-0.5 shrink-0",
+                                  content: "text-[10px] font-bold tabular-nums px-1.5",
+                                }}
+                              >
+                                勝率 {(member.win_rate * 100).toFixed(1)}%
+                              </Chip>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}

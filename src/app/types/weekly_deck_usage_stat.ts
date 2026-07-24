@@ -10,6 +10,9 @@ export type WeeklyDeckUsageItemType = {
   losses: number;
   win_rate: number;
   pokemon_sprites: MatchPokemonSpriteType[];
+  // 「その他」枠に集約された個別変種の内訳（「その他」行のみ）。
+  // 少数変種もアコーディオンで展開して個別に一覧表示するために使う。
+  members?: WeeklyDeckUsageItemType[];
 };
 
 export type WeeklyDeckUsageStatType = {

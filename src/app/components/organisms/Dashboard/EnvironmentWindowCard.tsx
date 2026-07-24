@@ -54,9 +54,7 @@ type DeckPosition = {
 };
 
 // 勝率に応じた色分け（WeeklyDeckUsagePanel・既存の統計表示と同じ閾値）。
-function winRateChipColor(
-  rate: number,
-): "success" | "default" | "warning" | "danger" {
+function winRateChipColor(rate: number): "success" | "default" | "warning" | "danger" {
   if (rate >= 0.55) return "success";
   if (rate >= 0.45) return "default";
   if (rate >= 0.4) return "warning";
@@ -110,15 +108,18 @@ function RankBadge({ rank }: { rank: number }) {
   );
 }
 
-// TOP3 の1行（自分のデッキなら isMe でハイライト＋デッキ名を出す）。
+// ランキングの1行（自分のデッキなら isMe でハイライト＋デッキ名を出す）。
+// displayRate は表示する使用率。「その他を除いた割合」(count / exclOtherTotal)を渡す。
 function DeckRankRow({
   rank,
   item,
+  displayRate,
   isMe,
   meName,
 }: {
   rank: number;
   item: WeeklyDeckUsageItemType;
+  displayRate: number;
   isMe?: boolean;
   meName?: string;
 }) {
@@ -149,7 +150,7 @@ function DeckRankRow({
           </>
         )}
         <span className="ml-auto text-lg font-black tabular-nums text-default-700 shrink-0 leading-none">
-          {(item.usage_rate * 100).toFixed(1)}
+          {(displayRate * 100).toFixed(1)}
           <span className="text-xs font-bold text-default-400">%</span>
         </span>
       </div>
@@ -157,7 +158,9 @@ function DeckRankRow({
         <div className="flex-1 h-1.5 rounded-full bg-default-200 overflow-hidden">
           <div
             className="h-full rounded-full bg-primary/70"
-            style={{ width: `${Math.min(100, Math.max(2, Math.round(item.usage_rate * 100)))}%` }}
+            style={{
+              width: `${Math.min(100, Math.max(2, Math.round(displayRate * 100)))}%`,
+            }}
           />
         </div>
         <Chip
@@ -172,6 +175,41 @@ function DeckRankRow({
           勝率 {(item.win_rate * 100).toFixed(1)}%
         </Chip>
       </div>
+    </div>
+  );
+}
+
+// 使用率ランキングのリスト。使用率は「その他を除いた割合」(count / exclOtherTotal)で表示する。
+// 同じデッキがカード内のどの表示でも同じ%になるよう、全ランキングをこの基準に統一する。
+function RankingList({
+  items,
+  exclOtherTotal,
+  selectedFingerprint,
+  selectedName,
+}: {
+  items: WeeklyDeckUsageItemType[];
+  exclOtherTotal: number;
+  selectedFingerprint?: string;
+  selectedName?: string;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      {items.map((item, idx) => {
+        const isMe =
+          selectedFingerprint != null && item.fingerprint === selectedFingerprint;
+        return (
+          <DeckRankRow
+            key={item.fingerprint}
+            rank={idx + 1}
+            item={item}
+            displayRate={
+              exclOtherTotal > 0 ? item.count / exclOtherTotal : item.usage_rate
+            }
+            isMe={isMe}
+            meName={isMe ? selectedName : undefined}
+          />
+        );
+      })}
     </div>
   );
 }
@@ -204,7 +242,7 @@ function DeckSelector({
           >
             <DeckSprites sprites={p.deck.pokemon_sprites} size={22} />
             <span
-              className={`text-[11px] font-bold max-w-[6.5rem] truncate ${
+              className={`text-[11px] font-bold max-w-26 truncate ${
                 active ? "text-primary" : "text-default-600"
               }`}
             >
@@ -257,7 +295,9 @@ function ReservedSeat({
             環境の平均（借り物）
           </span>
         </div>
-        <span className={`text-lg font-black tabular-nums ${winRateTextClass(envWinRate)}`}>
+        <span
+          className={`text-lg font-black tabular-nums ${winRateTextClass(envWinRate)}`}
+        >
           {(envWinRate * 100).toFixed(1)}%
         </span>
       </div>
@@ -335,7 +375,13 @@ function EncourageNote() {
   );
 }
 
-function RankHeader({ title, subtitle = "使用率順" }: { title: string; subtitle?: string }) {
+function RankHeader({
+  title,
+  subtitle = "使用率順",
+}: {
+  title: string;
+  subtitle?: string;
+}) {
   return (
     <div className="flex items-center justify-between px-1 -mb-1">
       <span className="text-[11px] font-black text-default-500">{title}</span>
@@ -386,7 +432,10 @@ function BetaHeader({ stat }: { stat: WeeklyDeckUsageStatType }) {
         size="sm"
         color="warning"
         variant="flat"
-        classNames={{ base: "h-5 px-0.5 shrink-0", content: "text-[10px] font-black px-1.5" }}
+        classNames={{
+          base: "h-5 px-0.5 shrink-0",
+          content: "text-[10px] font-black px-1.5",
+        }}
       >
         β機能
       </Chip>
@@ -419,21 +468,22 @@ function SkeletonCard() {
 // 選択状態はこの中に閉じ込める（positions は常に1件以上）。
 function SelectModeView({
   positions,
-  top3,
+  ranking,
+  exclOtherTotal,
   totalRecords,
   onRecordClick,
   onSwitch,
 }: {
   positions: DeckPosition[];
-  top3: WeeklyDeckUsageItemType[];
+  ranking: WeeklyDeckUsageItemType[];
+  exclOtherTotal: number;
   totalRecords: number;
   onRecordClick: () => void;
   onSwitch: () => void;
 }) {
   // 既定は先頭 = 最上位ランク（positions はランク入りを上位に整列済み）。
   const [selectedDeckId, setSelectedDeckId] = useState<string | null>(null);
-  const selected =
-    positions.find((p) => p.deck.id === selectedDeckId) ?? positions[0];
+  const selected = positions.find((p) => p.deck.id === selectedDeckId) ?? positions[0];
   const ranked = selected.rank != null;
 
   function handleSelect(id: string) {
@@ -459,36 +509,31 @@ function SelectModeView({
         <>
           <RankedHero deck={selected.deck} rank={selected.rank} row={selected.row} />
           <ReservedSeat envWinRate={selected.row.win_rate} totalRecords={totalRecords} />
-          <RankHeader title="今週あなたが当たりやすいデッキ" />
-          <div className="flex flex-col gap-1.5">
-            {top3.map((item, idx) => {
-              const isMe = item.fingerprint === selected.fingerprint;
-              return (
-                <DeckRankRow
-                  key={item.fingerprint}
-                  rank={idx + 1}
-                  item={item}
-                  isMe={isMe}
-                  meName={isMe ? selected.deck.name : undefined}
-                />
-              );
-            })}
-          </div>
+          <RankHeader
+            title="今週あなたが当たりやすい相手のデッキ"
+            subtitle="その他を除いた割合"
+          />
+          <RankingList
+            items={ranking.slice(0, 5)}
+            exclOtherTotal={exclOtherTotal}
+            selectedFingerprint={selected.fingerprint}
+            selectedName={selected.deck.name}
+          />
         </>
       ) : (
         <>
           <RankedOutHero deck={selected.deck} />
           <EncourageNote />
           <RankHeader title="今週の環境 TOP3" />
-          <div className="flex flex-col gap-1.5">
-            {top3.map((item, idx) => (
-              <DeckRankRow key={item.fingerprint} rank={idx + 1} item={item} />
-            ))}
-          </div>
+          <RankingList items={ranking.slice(0, 3)} exclOtherTotal={exclOtherTotal} />
         </>
       )}
 
-      <RecordCtaButton ranked={ranked} totalRecords={totalRecords} onClick={onRecordClick} />
+      <RecordCtaButton
+        ranked={ranked}
+        totalRecords={totalRecords}
+        onClick={onRecordClick}
+      />
     </>
   );
 }
@@ -512,7 +557,9 @@ export default function EnvironmentWindowCard({
     async function load() {
       try {
         const [statRes, decksRes] = await Promise.all([
-          fetch(`/api/deck_meta/weekly_usage?week=${lastWeekValue()}`, { cache: "no-store" }),
+          fetch(`/api/deck_meta/weekly_usage?week=${lastWeekValue()}`, {
+            cache: "no-store",
+          }),
           fetch(`/api/decks?archived=false&cursor=`, { cache: "no-store" }),
         ]);
 
@@ -620,13 +667,19 @@ export default function EnvironmentWindowCard({
   }
 
   function handleDeckSwitch() {
-    sendGAEvent("event", "env_window_deck_switch", { ...eventParams, variant: gaVariant });
+    sendGAEvent("event", "env_window_deck_switch", {
+      ...eventParams,
+      variant: gaVariant,
+    });
   }
 
   if (failed) return null;
   if (stat == null || userDecks == null) return <SkeletonCard />;
   if (renderMode == null) return null;
 
+  // 「その他」(空指紋)を分母から除いた割合の母数。カード内の全ランキングをこの基準で表示する。
+  const otherCount = stat.decks.find((d) => d.fingerprint === "")?.count ?? 0;
+  const exclOtherTotal = stat.total_votes - otherCount;
   const top3 = rankable.slice(0, 3);
 
   return (
@@ -649,11 +702,7 @@ export default function EnvironmentWindowCard({
               </p>
 
               <RankHeader title="使用率ランキング" subtitle="使用率が高い順" />
-              <div className="flex flex-col gap-1.5">
-                {top3.map((item, idx) => (
-                  <DeckRankRow key={item.fingerprint} rank={idx + 1} item={item} />
-                ))}
-              </div>
+              <RankingList items={top3} exclOtherTotal={exclOtherTotal} />
 
               <Button
                 color="primary"
@@ -674,11 +723,7 @@ export default function EnvironmentWindowCard({
               <RankedOutHero deck={userDecks[0]} />
               <EncourageNote />
               <RankHeader title="今週の環境 TOP3" />
-              <div className="flex flex-col gap-1.5">
-                {top3.map((item, idx) => (
-                  <DeckRankRow key={item.fingerprint} rank={idx + 1} item={item} />
-                ))}
-              </div>
+              <RankingList items={top3} exclOtherTotal={exclOtherTotal} />
               <RecordCtaButton
                 ranked={false}
                 totalRecords={totalRecords}
@@ -688,7 +733,8 @@ export default function EnvironmentWindowCard({
           ) : (
             <SelectModeView
               positions={deckPositions}
-              top3={top3}
+              ranking={rankable}
+              exclOtherTotal={exclOtherTotal}
               totalRecords={totalRecords}
               onRecordClick={handleRecordClick}
               onSwitch={handleDeckSwitch}

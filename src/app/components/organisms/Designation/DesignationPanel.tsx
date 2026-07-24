@@ -500,8 +500,9 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
                 ) : selected.criteria_type ===
                   CITY_LEAGUE_GRANDMASTER_CRITERIA_TYPE ? (
                   // 名人は「優勝を1回以上」かつ「参加した全大会で入賞」の2条件。
+                  // ベテラン〜名人はいずれも記録と公式結果の両方が必須のため、優勝・入賞とも記録ベース。
                   // 優勝は1回以上で達成のため上限1で頭打ち(複数回優勝でも 1/1 表示)。
-                  // 入賞は優勝も含む記録数を参加数で割った N/参加数 で表示する。
+                  // 入賞(優勝含む・記録と公式結果がそろったもの)を、参加数(シティリーグ記録数)で割って表示する。
                   <div className="flex flex-col items-center gap-1.5 w-full mt-1 rounded-xl bg-default-50 p-2">
                     <span className="text-[10px] font-bold text-default-400">
                       優勝を1回以上、かつ参加した全大会で入賞
@@ -517,7 +518,7 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
                     <ProgressBar
                       label="入賞"
                       value={selected.city_league_placement_count}
-                      max={selected.city_league_record_count}
+                      max={selected.city_league_participation_count}
                     />
                   </div>
                 ) : (

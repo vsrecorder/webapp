@@ -278,6 +278,8 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
               ※自分・相手それぞれのデッキを1件として
               <br />
               集計するため、対戦数より多くなっています
+              <br />
+              ※ポケモン未設定の対戦はデッキ名から推測して集計しています
             </span>
           </div>
         )}

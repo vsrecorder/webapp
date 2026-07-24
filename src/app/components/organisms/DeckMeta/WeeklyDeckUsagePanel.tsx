@@ -86,14 +86,25 @@ function RankDelta({ rank, previousRank }: { rank: number; previousRank?: number
   );
 }
 
-// 前週からの変化量をポイント差(+1.2 / -0.8)で表示する。前週値が無ければ何も出さない。
-function DeltaPoints({ current, previous }: { current: number; previous?: number }) {
+// 前週からの変化量をポイント差(+1.2pt / -0.8pt)で表示する。前週値が無ければ何も出さない。
+function DeltaPoints({
+  current,
+  previous,
+  unit = "",
+}: {
+  current: number;
+  previous?: number;
+  /** 数値の後ろに付ける単位表記（例: "pt"） */
+  unit?: string;
+}) {
   if (previous == null) return null;
 
   const diff = (current - previous) * 100;
   if (Math.abs(diff) < 0.05) {
     return (
-      <span className="text-[9px] font-bold tabular-nums text-default-300">±0.0</span>
+      <span className="text-[9px] font-bold tabular-nums text-default-300">
+        ±0.0{unit}
+      </span>
     );
   }
 
@@ -106,6 +117,7 @@ function DeltaPoints({ current, previous }: { current: number; previous?: number
     >
       {up ? "+" : ""}
       {diff.toFixed(1)}
+      {unit}
     </span>
   );
 }
@@ -454,6 +466,7 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
                           <DeltaPoints
                             current={deck.usage_rate}
                             previous={deck.previous_usage_rate}
+                            unit="pt"
                           />
                         )}
                       </span>
@@ -482,6 +495,7 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
                     <DeltaPoints
                       current={deck.win_rate}
                       previous={deck.previous_win_rate}
+                      unit="pt"
                     />
                   </div>
 

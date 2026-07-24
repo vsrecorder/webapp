@@ -336,12 +336,13 @@ function RankedHero({
     <div className="flex items-center gap-3 rounded-2xl bg-default-50 border border-default-100 px-3.5 py-3">
       <DeckSprites sprites={deck.pokemon_sprites} size={40} />
       <div className="min-w-0 flex-1">
-        <div className="font-bold text-sm truncate">{deck.name}</div>
         <div className="flex items-baseline gap-2 mt-1 flex-wrap">
-          <span className="text-2xl font-black leading-none tabular-nums">
-            環境{rank}
-            <span className="text-xs font-black text-default-400 ml-0.5">位</span>
+          <span className="text-md font-black leading-none tabular-nums">
+            環境使用率ランキング {rank}
+            <span className="text-sm font-black text-default-400 ml-0.5">位</span>
+            <div className="pt-1.5 text-md font-bold truncate">{deck.name}</div>
           </span>
+
           <span className="text-[11px] text-default-500 tabular-nums">
             使用率 {(row.usage_rate * 100).toFixed(1)}% ・ {row.count}件
           </span>
@@ -465,13 +466,46 @@ function BetaHeader({ stat }: { stat: WeeklyDeckUsageStatType }) {
   );
 }
 
+// 読み込み中のプレースホルダ。実際に描画される本体（βヘッダー → 見出し → デッキヒーロー →
+// 予約席 → ランキング見出し → ランキング行 → 記録CTA）と同じ骨格・順序・高さに合わせ、
+// 読み込み完了時のレイアウトシフトを抑える。最も情報量の多いランク入り select 表示を模す。
 function SkeletonCard() {
   return (
     <Card className="shadow-md">
       <CardBody className="gap-3 p-4">
-        <div className="h-4 w-40 rounded bg-default-100 animate-pulse" />
-        <div className="h-16 rounded-xl bg-default-100 animate-pulse" />
-        <div className="h-20 rounded-xl bg-default-100 animate-pulse" />
+        {/* BetaHeader: β機能チップ ＋ 2行テキスト */}
+        <div className="flex items-start gap-2">
+          <div className="h-5 w-11 rounded-full bg-default-100 animate-pulse shrink-0" />
+          <div className="flex flex-1 flex-col gap-1.5 pt-0.5">
+            <div className="h-3 w-40 rounded bg-default-100 animate-pulse" />
+            <div className="h-3 w-52 rounded bg-default-100 animate-pulse" />
+          </div>
+        </div>
+
+        {/* セクション見出し */}
+        <div className="h-4 w-56 rounded bg-default-100 animate-pulse" />
+
+        {/* デッキヒーロー(環境順位) */}
+        <div className="h-17 rounded-2xl bg-default-100 animate-pulse" />
+
+        {/* 予約席 */}
+        <div className="h-31 rounded-xl bg-default-100 animate-pulse" />
+
+        {/* ランキング見出し */}
+        <div className="flex items-center justify-between px-1 -mb-1">
+          <div className="h-3 w-44 rounded bg-default-100 animate-pulse" />
+          <div className="h-3 w-16 rounded bg-default-100 animate-pulse" />
+        </div>
+
+        {/* ランキング行 */}
+        <div className="flex flex-col gap-1.5">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-16.5 rounded-xl bg-default-100 animate-pulse" />
+          ))}
+        </div>
+
+        {/* 記録CTA ボタン */}
+        <div className="h-10 rounded-full bg-default-100 animate-pulse" />
       </CardBody>
     </Card>
   );

@@ -149,11 +149,13 @@ export async function renderSiteOgImage(): Promise<Buffer> {
       </div>
 
       <div style={{ display: "flex", gap: 12 }}>
-        {["デッキコードで登録", "公式イベントに紐づく記録", "完全無料・広告なし"].map(
-          (label) => (
-            <Chip key={label}>{label}</Chip>
-          ),
-        )}
+        {[
+          "デッキコードからデッキ登録",
+          "公式イベントに紐づく記録",
+          "完全無料・広告なし",
+        ].map((label) => (
+          <Chip key={label}>{label}</Chip>
+        ))}
       </div>
 
       <div

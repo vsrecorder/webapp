@@ -40,6 +40,14 @@ export default function CurrentEnvironment({ environment }: Props) {
     // なお HeroUI の Popover は aria-modal を付けないため、モーダル用のグローバルな
     // 背面固定フック(useModalBackgroundScrollLock)は作動しない。よって「スクロール後に
     // 開くと即座に閉じる」既知の不具合の経路には乗らない（実測で確認済み）。
+    //
+    // disableAnimation を付けている理由（「タップしても吹き出しが出ないことがある」の修正）:
+    // アニメーション有りだと HeroUI は AnimatePresence で overlay(=backdrop)を閉じた後も
+    // exit アニメの間(約300ms)マウントし続ける。backdrop は全面 fixed でトリガーも覆うため、
+    // 閉じてから約300ms以内にトリガーを再タップすると、タップが消えゆく backdrop に吸われて
+    // トリガーに届かず開かない（＝閉→即再オープンが不発になる死に窓。Playwright webkit で
+    // 再オープン遅延 50〜350ms は 0/6、500ms で 6/6 と実測）。disableAnimation にすると
+    // overlay は isOpen=false で即アンマウントされ backdrop が残らないため、死に窓が消える。
     <Popover
       placement="bottom"
       offset={30}
@@ -47,6 +55,7 @@ export default function CurrentEnvironment({ environment }: Props) {
       backdrop="opaque"
       shouldBlockScroll
       isNonModal={false}
+      disableAnimation
     >
       <PopoverTrigger>
         <button

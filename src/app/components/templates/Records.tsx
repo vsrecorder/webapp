@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Tabs, Tab } from "@heroui/react";
 
@@ -32,6 +32,17 @@ export default function TemplateRecords() {
   // SSR と初回クライアントレンダリングを一致させるため、初期値は必ず "all" にする。
   // 実際の復元はマウント後の useEffect で行う（ハイドレーション不整合の回避）。
   const [selectedKey, setSelectedKey] = useState<TabKey>("all");
+  // 「すべて」タブが空か（null=未判定）。全種別を含むため、これが空＝記録が1件も無い。
+  const [allEmpty, setAllEmpty] = useState<boolean | null>(null);
+
+  // 「すべて」タブの空判定を受け取る（全記録を含むため記録ゼロの検出に使える）。
+  const handleAllEmptyChange = useCallback((isEmpty: boolean) => {
+    setAllEmpty(isEmpty);
+  }, []);
+
+  // 記録が1つも無いときはフローティング（トップへ戻る／＋作成）を隠す。
+  // 作成は空状態カード内の「記録を作成する」ボタンから行える。
+  const hideFloating = allEmpty === true;
 
   // マウント後に保存済みタブを復元する。
   // 初回 "all" からの state 遷移により通常の再レンダリングが走り、
@@ -71,8 +82,12 @@ export default function TemplateRecords() {
 
   return (
     <>
-      <ScrollUpFloating />
-      <CreateRecordFloating eventType={selectedKey} />
+      {!hideFloating && (
+        <>
+          <ScrollUpFloating />
+          <CreateRecordFloating eventType={selectedKey} />
+        </>
+      )}
       <div className="pt-12 w-full">
         <Tabs
           fullWidth
@@ -98,7 +113,11 @@ export default function TemplateRecords() {
         className="w-full pt-2 lg:pb-6 lg:max-w-4xl lg:mx-auto"
         hidden={selectedKey !== "all"}
       >
-        <Records event_type={"all"} isActive={selectedKey === "all"} />
+        <Records
+          event_type={"all"}
+          isActive={selectedKey === "all"}
+          onEmptyChange={handleAllEmptyChange}
+        />
       </div>
 
       <div

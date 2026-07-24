@@ -137,17 +137,33 @@ function DeckSprites({ deck }: { deck: WeeklyDeckUsageItemType }) {
   );
 }
 
+// 実際の行と同じグリッド構成([可変|3.5rem|2.5rem])・同じ要素サイズで骨格を組み、
+// 読み込み完了時のレイアウトシフトを防ぐ。実レイアウトを変えたらここも追従させること。
 function SkeletonRow() {
   return (
     <div className="flex flex-col gap-1.5 rounded-xl bg-default-100 px-3 py-2 animate-pulse">
-      <div className="flex items-center gap-2">
-        <div className="w-6 h-6 rounded-full bg-default-200 shrink-0" />
-        <div className="w-20 h-9 rounded-lg bg-default-200 shrink-0" />
-        <div className="ml-auto w-12 h-6 rounded-lg bg-default-200 shrink-0" />
+      {/* 上段: 順位バッジ+変動 / スプライト2体 / 使用率 / 前週差・件数 */}
+      <div className="grid grid-cols-[minmax(0,1fr)_3.5rem_2.5rem] items-center gap-1">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="flex flex-col items-center gap-0.5 w-6 shrink-0">
+            <div className="w-6 h-6 rounded-full bg-default-200" />
+            <div className="w-4 h-2 rounded bg-default-200" />
+          </div>
+          <div className="w-16 h-8 rounded-lg bg-default-200 shrink-0" />
+        </div>
+        <div className="h-6 rounded-lg bg-default-200" />
+        <div className="flex flex-col items-end gap-0.5">
+          <div className="w-7 h-3 rounded bg-default-200" />
+          <div className="w-8 h-2.5 rounded bg-default-200" />
+        </div>
       </div>
-      <div className="flex items-center gap-2">
-        <div className="flex-1 h-1.5 rounded-full bg-default-200" />
-        <div className="w-14 h-5 rounded-full bg-default-200 shrink-0" />
+      {/* 下段: 使用率バー / 勝率チップ / 勝率の前週差 */}
+      <div className="grid grid-cols-[minmax(0,1fr)_3.5rem_2.5rem] items-center gap-1">
+        <div className="h-1.5 rounded-full bg-default-200" />
+        <div className="h-5 rounded-full bg-default-200" />
+        <div className="flex justify-end">
+          <div className="w-7 h-3 rounded bg-default-200" />
+        </div>
       </div>
     </div>
   );
@@ -318,7 +334,22 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
           </Button>
         </div>
 
-        {/* 母集団の明示 */}
+        {/* 母集団の明示(初回読み込み中は同寸のスケルトンを置き、完了時にレイアウトが跳ねないようにする) */}
+        {isLoading && stat == null && (
+          <div className="flex flex-col items-center gap-1.5 animate-pulse">
+            {/* 期間ラベル */}
+            <div className="h-3 w-36 rounded bg-default-200" />
+            {/* 人数・のべ件数のサマリボックス */}
+            <div className="h-8 w-full rounded-xl bg-default-100" />
+            {/* 注記4行 */}
+            <div className="flex flex-col items-center gap-1">
+              <div className="h-2.5 w-52 rounded bg-default-200" />
+              <div className="h-2.5 w-60 rounded bg-default-200" />
+              <div className="h-2.5 w-64 rounded bg-default-200" />
+              <div className="h-2.5 w-64 rounded bg-default-200" />
+            </div>
+          </div>
+        )}
         {stat != null && (
           <div className="flex flex-col items-center gap-1.5">
             <span className="text-xs text-default-400">{periodLabel}</span>
@@ -355,7 +386,15 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
           </div>
         )}
 
-        {/* 使用率の算出基準切り替え（全体件数基準 / その他を除いた件数基準） */}
+        {/* 使用率の算出基準切り替え(こちらも初回読み込み中はスケルトンで場所を確保する) */}
+        {isLoading && stat == null && (
+          <div className="flex flex-col items-center gap-1.5 animate-pulse">
+            {/* タブ */}
+            <div className="h-9 w-full rounded-xl bg-default-100" />
+            {/* 分母の説明1行 */}
+            <div className="h-2.5 w-56 rounded bg-default-200" />
+          </div>
+        )}
         {stat != null && (
           <div className="flex flex-col gap-1.5">
             <Tabs
@@ -429,74 +468,86 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
                   key={`${deck.fingerprint || "other"}-${idx}`}
                   className="flex flex-col gap-1.5 rounded-xl bg-default-100 px-3 py-2"
                 >
-                  <div className="flex items-center gap-2">
-                    <div className="flex flex-col items-center gap-0.5 shrink-0 w-6">
-                      <RankBadge rank={idx + 1} isOther={isOther} />
-                      {!isOther && (
-                        <RankDelta rank={idx + 1} previousRank={deck.previous_rank} />
+                  {/* 上段(使用率)と下段(バー・勝率)を同じ列構成のグリッドに載せ、
+                      バーの右端が使用率カラムの開始位置に、各数値が全行で縦に揃うようにする。
+                      列: [可変(スプライト/バー)][3.5rem(使用率/勝率チップ)][2.5rem(前週差・件数)] */}
+                  <div className="grid grid-cols-[minmax(0,1fr)_3.5rem_2.5rem] items-center gap-1">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="flex flex-col items-center gap-0.5 shrink-0 w-6">
+                        <RankBadge rank={idx + 1} isOther={isOther} />
+                        {!isOther && (
+                          <RankDelta rank={idx + 1} previousRank={deck.previous_rank} />
+                        )}
+                      </div>
+                      <DeckSprites deck={deck} />
+                      {isOther && (
+                        <span className="font-bold text-xs text-default-500 truncate">
+                          その他
+                        </span>
                       )}
                     </div>
-                    <DeckSprites deck={deck} />
-                    {isOther && (
-                      <span className="font-bold text-xs text-default-500 truncate">
-                        その他
+                    {/* 使用率を主指標として大きく強調表示する */}
+                    {isExcluded ? (
+                      <span className="text-right text-xs font-bold text-default-400 leading-none">
+                        集計対象外
+                      </span>
+                    ) : (
+                      <span className="text-right text-lg font-black tabular-nums text-default-700 leading-none">
+                        {(displayRate! * 100).toFixed(1)}
+                        <span className="text-xs font-bold text-default-400">%</span>
                       </span>
                     )}
-                    {/* 使用率を主指標として大きく強調表示する */}
-                    <div className="ml-auto flex flex-col items-end shrink-0 leading-none">
-                      {isExcluded ? (
-                        <span className="text-xs font-bold text-default-400">
-                          集計対象外
-                        </span>
-                      ) : (
-                        <span className="text-lg font-black tabular-nums text-default-700">
-                          {(displayRate! * 100).toFixed(1)}
-                          <span className="text-xs font-bold text-default-400">%</span>
-                        </span>
-                      )}
-                      {/* 「その他を除く」表示中は、基準の違いを見失わないよう全体比も併記する */}
-                      <span className="flex items-center gap-1 text-[9px] text-default-400 tabular-nums mt-0.5">
-                        {isExcluded
-                          ? `${deck.count}件・全体の${(deck.usage_rate * 100).toFixed(1)}%`
-                          : rateMode === "excl_other"
-                            ? `${deck.count}件・全体比${(deck.usage_rate * 100).toFixed(1)}%`
-                            : `${deck.count}件`}
-                        {/* 使用率の前週比は全体基準の値でのみ表示する(「その他を除く」は分母が違うため) */}
-                        {rateMode === "all" && !isExcluded && (
+                    <span className="flex flex-col items-end gap-0.5 leading-none">
+                      {/* 前週差は表示中の基準に合わせる(「その他を除く」は除外後分母の前週値と比較)。
+                          前週差の無い行(NEW等)も高さを確保して件数の位置を揃える */}
+                      <span className="flex h-3 items-center">
+                        {!isExcluded && (
                           <DeltaPoints
-                            current={deck.usage_rate}
-                            previous={deck.previous_usage_rate}
+                            current={displayRate!}
+                            previous={
+                              rateMode === "all"
+                                ? deck.previous_usage_rate
+                                : deck.previous_usage_rate_excl_other
+                            }
                             unit="pt"
                           />
                         )}
                       </span>
-                    </div>
+                      <span className="text-[9px] text-default-400 tabular-nums">
+                        ({deck.count}件)
+                      </span>
+                    </span>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 h-1.5 rounded-full bg-default-200 overflow-hidden">
+                  <div className="grid grid-cols-[minmax(0,1fr)_3.5rem_2.5rem] items-center gap-1">
+                    <div className="h-1.5 rounded-full bg-default-200 overflow-hidden">
                       <div
                         className={`h-full rounded-full ${isOther ? "bg-default-400/60" : "bg-primary/70"}`}
                         style={{ width: `${barWidth}%` }}
                       />
                     </div>
-                    {/* 勝率は補助情報として控えめに表示する */}
+                    {/* 勝率は補助情報として控えめに表示する。固定幅で全行の位置を揃える。
+                        文字は 9px(前週差・件数と同サイズ)。10px だと「勝率 100.0%」(実測56.7px)が
+                        3.5rem(56px)のチップからはみ出す */}
                     <Chip
                       size="sm"
                       variant="flat"
                       color={isOther ? "default" : winRateChipColor(deck.win_rate)}
                       classNames={{
-                        base: "h-5 px-0.5 shrink-0",
-                        content: "text-[10px] font-bold tabular-nums px-1.5",
+                        base: "h-5 w-full max-w-none px-0",
+                        content: "w-full text-center text-[9px] font-bold tabular-nums px-0",
                       }}
                     >
                       勝率 {(deck.win_rate * 100).toFixed(1)}%
                     </Chip>
-                    <DeltaPoints
-                      current={deck.win_rate}
-                      previous={deck.previous_win_rate}
-                      unit="pt"
-                    />
+                    {/* 前週差が無い行(NEW等)でも列幅は保たれ、バーの長さが全行で揃う */}
+                    <span className="text-right">
+                      <DeltaPoints
+                        current={deck.win_rate}
+                        previous={deck.previous_win_rate}
+                        unit="pt"
+                      />
+                    </span>
                   </div>
 
                   {/* 「その他」に集約された少数変種(3件未満)の内訳をアコーディオンで一覧表示する。

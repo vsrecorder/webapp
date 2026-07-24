@@ -21,17 +21,19 @@ import {
   addToast,
   closeToast,
 } from "@heroui/react";
-import { LuFilePen, LuCircleCheck, LuSlidersHorizontal } from "react-icons/lu";
+import { LuFilePen, LuSlidersHorizontal } from "react-icons/lu";
 import { sendGAEvent } from "@next/third-parties/google";
 import { CalendarDate, today, getLocalTimeZone } from "@internationalized/date";
 
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import HScrollRow from "@app/components/atoms/HScrollRow";
+import KizunaDeckSprites from "@app/components/molecules/KizunaDeckSprites";
 import ChoiceButtonGroup from "@app/components/molecules/ChoiceButtonGroup";
 import PokemonSpriteSelectButton from "@app/components/molecules/PokemonSpriteSelectButton";
 import PokemonSpriteModal from "@app/components/organisms/Match/Modal/PokemonSpriteModal";
 import OfficialEventSelect from "@app/components/organisms/Record/OfficialEventSelect";
 import TonamelEventInput from "@app/components/organisms/Record/TonamelEventInput";
+import EnvironmentReturnModal from "@app/components/organisms/Record/Modal/EnvironmentReturnModal";
 
 import {
   UnofficialEventCreateRequestType,
@@ -40,6 +42,7 @@ import {
 import { RecordCreateRequestType, RecordCreateResponseType } from "@app/types/record";
 import { MatchCreateRequestType, MatchGetResponseType } from "@app/types/match";
 import { MatchPokemonSpriteType, PokemonSpriteType } from "@app/types/pokemon_sprite";
+import { DeckData } from "@app/types/deck";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 import { getSpriteBySlot } from "@app/utils/spriteSlot";
 import {
@@ -47,6 +50,7 @@ import {
   MAX_OPPONENTS_DECK_INFO_LENGTH,
   exceedsTextLength,
 } from "@app/utils/textLength";
+import { fetchOpponentEnv, DeckEnvPosition } from "@app/utils/deckEnv";
 
 const SPRITE_BASE_URL = "https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites";
 
@@ -70,6 +74,16 @@ async function fetchMatches(url: string): Promise<MatchGetResponseType[]> {
     headers: { Accept: "application/json" },
   });
   if (!res.ok) return [];
+  return res.json();
+}
+
+// 使用デッキ(選択済み)の情報を取得する。スプライトを「使用デッキ」表示に出すために使う。
+async function fetchDeck(url: string): Promise<DeckData | null> {
+  const res = await fetch(url, {
+    method: "GET",
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok) return null;
   return res.json();
 }
 
@@ -126,6 +140,8 @@ type Props = {
   deckId?: string;
   deckCodeId?: string;
   deckName?: string;
+  // 施策E-1: 記録直後の環境ベンチマーク・リターンの有効/無効(サーバのフラグをpropsで受ける)。
+  envReturnEnabled?: boolean;
 };
 
 // 施策A-3: 記録作成と対戦入力を1画面に統合した簡素化フォーム。
@@ -137,10 +153,23 @@ export default function TemplateQuickRecordCreate({
   deckId = "",
   deckCodeId = "",
   deckName = "",
+  envReturnEnabled = true,
 }: Props) {
   const router = useRouter();
   const { data: session } = useSession();
   const userId = session?.user?.id ?? "";
+
+  // 施策E-1: 記録直後の環境ベンチマーク・リターン(相手が先週ランキングに載っていれば開く)。
+  const [returnOpen, setReturnOpen] = useState(false);
+  const [returnData, setReturnData] = useState<{
+    recordId: string;
+    opponentName: string;
+    opponentSprites: MatchPokemonSpriteType[];
+    position: DeckEnvPosition | null; // null = 先週の環境ランキング外
+    victory: boolean;
+  } | null>(null);
+  // リターンから記録詳細ページへ遷移する間、全画面オーバーレイで操作をブロックする。
+  const [isNavigating, setIsNavigating] = useState(false);
 
   // 必須3項目
   const [opponentsDeckInfo, setOpponentsDeckInfo] = useState("");
@@ -177,6 +206,13 @@ export default function TemplateQuickRecordCreate({
     userId ? `/api/users/${userId}/matches?limit=100` : null,
     fetchMatches,
   );
+
+  // 使用デッキ(A-2で選択済み)のスプライトを「使用デッキ」表示に出すため、デッキ情報を取得する。
+  const { data: usedDeck, isLoading: isUsedDeckLoading } = useSWR<DeckData | null>(
+    deckId ? `/api/decks/${deckId}` : null,
+    fetchDeck,
+  );
+  const usedDeckSprites = usedDeck?.pokemon_sprites ?? [];
   const deckHistories = useMemo(
     () => buildDeckHistories(recentMatches, false),
     [recentMatches],
@@ -370,20 +406,53 @@ export default function TemplateQuickRecordCreate({
       }
 
       if (toastId) closeToast(toastId);
-      addToast({
-        title: "記録作成完了",
-        description: "最初の1件を記録しました",
-        color: "success",
-        timeout: 3000,
-      });
 
       sendGAEvent("event", "quick_record_saved", {
         with_deck: deckId !== "",
         event_type: eventType,
       });
-
       triggerNotificationsRefresh();
-      router.push("/records/" + record.id);
+
+      // 施策E-1: 相手が先週ランキングに載っていれば、記録直後に環境ベンチマークを返す。
+      // 載っていない/スプライト無し/無効時は従来どおり成功トースト＋記録詳細へ即遷移する。
+      const opponentSpriteIds = pokemonSprites.map((s) => s.id);
+      const env = envReturnEnabled ? await fetchOpponentEnv(opponentSpriteIds) : null;
+
+      // 保存も環境判定も完了。全画面ローディングオーバーレイ(z-9999)をここで畳んでから
+      // 分岐する。畳む前にリターンのシートを開くと、オーバーレイがシートに被ってしまうため
+      // (finally での解除では「シートを開く」より後になり一瞬かぶる)。
+      submittingRef.current = false;
+      setIsSubmitting(false);
+
+      // 相手にスプライトがあり、先週の対戦環境データがあれば、ランキング外(position=null)でもリターンを出す。
+      if (env && env.hasEnvData) {
+        // リターンのシート自身が「記録できました」を伝えるため、成功トーストは出さない。
+        setReturnData({
+          recordId: record.id,
+          opponentName: opponentsDeckInfo.trim(),
+          opponentSprites: pokemonSprites,
+          position: env.position, // null = 先週の環境ランキング外
+          victory,
+        });
+        setReturnOpen(true);
+        sendGAEvent("event", "env_return_impression", {
+          rank: env.position?.rank ?? -1,
+          ranked: env.position != null,
+          victory,
+        });
+      } else {
+        // モーダルを出さずに記録詳細ページへ遷移する場合も、遷移中はオーバーレイで操作をブロックする。
+        // (前段で isSubmitting=false にしているが、同一レンダーで isNavigating=true になるため
+        //  (isSubmitting || isNavigating) のオーバーレイは途切れない)
+        addToast({
+          title: "記録作成完了",
+          description: "最初の1件を記録しました",
+          color: "success",
+          timeout: 3000,
+        });
+        setIsNavigating(true);
+        router.push("/records/" + record.id);
+      }
     } catch (error) {
       console.error(error);
       const errorMessage =
@@ -408,10 +477,39 @@ export default function TemplateQuickRecordCreate({
     }
   }
 
+  // リターンから「記録を見る」→ 詳細ページへ。
+  function handleReturnViewRecord() {
+    if (returnData) {
+      sendGAEvent("event", "env_return_cta_click", {
+        action: "view_record",
+        rank: returnData.position?.rank ?? -1,
+      });
+      const id = returnData.recordId;
+      setReturnOpen(false);
+      setIsNavigating(true);
+      router.push("/records/" + id);
+    }
+  }
+
+  // リターンから「続けて対戦結果を追加する」→ 記録詳細ページへ遷移する(「記録を見る」と同じ着地点)。
+  // 詳細ページで、この記録に対戦結果(対戦)を追加していける。
+  function handleReturnRecordAgain() {
+    if (returnData) {
+      sendGAEvent("event", "env_return_cta_click", {
+        action: "add_match",
+        rank: returnData.position?.rank ?? -1,
+      });
+      const id = returnData.recordId;
+      setReturnOpen(false);
+      setIsNavigating(true);
+      router.push("/records/" + id);
+    }
+  }
+
   return (
-    <div className="max-w-3xl mx-auto w-full px-3 py-6">
+    <div className="max-w-3xl mx-auto w-full px-3 py-3">
       <Card className="shadow-md">
-        <CardBody className="p-5 flex flex-col gap-5">
+        <CardBody className="p-4 flex flex-col gap-4">
           <div className="flex flex-col gap-1">
             <h1 className="text-lg font-bold">1戦目を記録しよう</h1>
             <p className="text-sm text-default-500">
@@ -424,7 +522,17 @@ export default function TemplateQuickRecordCreate({
           {/* 使用デッキ(A-2クイックスタート連携時のみ表示) */}
           {deckId && (
             <div className="flex items-center gap-3 rounded-xl border border-success-200 bg-success-50 px-3 py-2.5">
-              <LuCircleCheck className="w-5 h-5 text-success shrink-0" />
+              {/* 記録情報モーダルの使用デッキ(KizunaDeckSprites・size48・2枠gap-0)に合わせる。
+                  ロード中は同寸(48px×2)のスケルトン、ロード後はスプライト
+                  (未設定スロットは unknown.png)を表示する。 */}
+              {isUsedDeckLoading ? (
+                <div className="flex items-center gap-0 shrink-0">
+                  <Skeleton className="w-12 h-12 rounded-lg" />
+                  <Skeleton className="w-12 h-12 rounded-lg" />
+                </div>
+              ) : (
+                <KizunaDeckSprites sprites={usedDeckSprites} size={48} />
+              )}
               <div className="min-w-0">
                 <p className="text-sm font-bold truncate">
                   {deckName || "選択済みのデッキ"}
@@ -460,6 +568,9 @@ export default function TemplateQuickRecordCreate({
                 onChange={(e) => setOpponentsDeckInfo(e.target.value)}
                 isInvalid={isOpponentsDeckInfoTooLong}
                 errorMessage={`${MAX_OPPONENTS_DECK_INFO_LENGTH}文字以内で入力してください`}
+                // iOS はフォント16px未満の入力にフォーカスすると画面が拡大するため、
+                // 入力文字を16px(text-base)にしてズームを防ぐ(既存の対処と同じ流儀)。
+                classNames={{ input: "text-base" }}
               />
             </div>
 
@@ -662,6 +773,8 @@ export default function TemplateQuickRecordCreate({
                         onChange={(e) => setEventTitle(e.target.value)}
                         isInvalid={isEventTitleTooLong}
                         errorMessage={`イベント名は${MAX_EVENT_TITLE_LENGTH}文字以内で入力してください`}
+                        // iOSズーム対策(入力を16pxに)
+                        classNames={{ input: "text-base" }}
                       />
                     )}
                   </>
@@ -675,6 +788,8 @@ export default function TemplateQuickRecordCreate({
                     maxValue={6}
                     value={yourPrizeCards}
                     onValueChange={(v) => setYourPrizeCards(Number.isNaN(v) ? 0 : v)}
+                    // iOSズーム対策(入力を16pxに)
+                    classNames={{ input: "text-base" }}
                   />
                   <NumberInput
                     label="サイド(相手)"
@@ -683,6 +798,8 @@ export default function TemplateQuickRecordCreate({
                     maxValue={6}
                     value={opponentsPrizeCards}
                     onValueChange={(v) => setOpponentsPrizeCards(Number.isNaN(v) ? 0 : v)}
+                    // iOSズーム対策(入力を16pxに)
+                    classNames={{ input: "text-base" }}
                   />
                 </div>
                 <Textarea
@@ -691,6 +808,8 @@ export default function TemplateQuickRecordCreate({
                   placeholder="対戦のメモを残そう"
                   value={memo}
                   onChange={(e) => setMemo(e.target.value)}
+                  // iOSズーム対策(入力を16pxに)
+                  classNames={{ input: "text-base" }}
                 />
               </div>
             </AccordionItem>
@@ -725,10 +844,11 @@ export default function TemplateQuickRecordCreate({
       </Card>
 
       {/*
-        保存中は全画面オーバーレイで操作をブロックする(完了/失敗まで解除しない)。
+        保存中、およびリターンから記録詳細ページへ遷移する間は、全画面オーバーレイで
+        操作をブロックする(保存は完了/失敗まで、遷移はページ離脱=アンマウントまで解除しない)。
         fixed inset-0 が画面全体のポインタ操作を受け止めるため、下の入力に触れられなくなる。
       */}
-      {isSubmitting &&
+      {(isSubmitting || isNavigating) &&
         typeof document !== "undefined" &&
         createPortal(
           <div
@@ -749,6 +869,23 @@ export default function TemplateQuickRecordCreate({
         onOpenChange={onSpriteOpenChange}
         initialActiveSlot={activeSpriteSlot}
       />
+
+      {/* 施策E-1: 記録直後の環境ベンチマーク・リターン(相手がランキングに載っていれば開く) */}
+      {returnData && (
+        <EnvironmentReturnModal
+          isOpen={returnOpen}
+          savedLabel="記録できました"
+          opponentName={returnData.opponentName}
+          opponentSprites={returnData.opponentSprites}
+          position={returnData.position}
+          victory={returnData.victory}
+          primaryCta={{ label: "記録を見る", onPress: handleReturnViewRecord }}
+          secondaryCta={{
+            label: "続けて対戦結果を追加する",
+            onPress: handleReturnRecordAgain,
+          }}
+        />
+      )}
     </div>
   );
 }

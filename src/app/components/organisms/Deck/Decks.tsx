@@ -81,9 +81,12 @@ type Props = {
   userId: string;
   isArchived: boolean;
   onCreated?: () => void;
+  // 初回ロードが終わり1件も無い状態になったかを親へ通知する。
+  // 親（TemplateDecks）はこれを使ってタブ表示・スクロール可否を切り替える。
+  onEmptyChange?: (isEmpty: boolean) => void;
 };
 
-export default function Decks({ userId, isArchived, onCreated }: Props) {
+export default function Decks({ userId, isArchived, onCreated, onEmptyChange }: Props) {
   const [items, setItems] = useState<DeckType[]>([]);
   const [deckUsageStats, setDeckUsageStats] = useState<Map<string, DeckUsageItemType>>(
     new Map(),
@@ -165,6 +168,12 @@ export default function Decks({ userId, isArchived, onCreated }: Props) {
     if (isInitialLoaded) return;
     loadMore();
   }, [isInitialLoaded, loadMore]);
+
+  // 初回ロードが終わり、追加読み込みも無く、1件も無い状態を「空」として親へ通知する。
+  const isEmpty = isInitialLoaded && !isLoading && !hasMore && items.length === 0;
+  useEffect(() => {
+    onEmptyChange?.(isEmpty);
+  }, [isEmpty, onEmptyChange]);
 
   return (
     <div className="flex flex-col items-center space-y-3 pb-3">

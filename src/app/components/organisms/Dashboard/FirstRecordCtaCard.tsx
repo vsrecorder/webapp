@@ -53,7 +53,7 @@ export default function FirstRecordCtaCard({ cohortWeek, daysSinceSignup }: Prop
             </span>
             <h2 className="text-lg font-bold">さっそく1戦目を記録しよう</h2>
             <p className="text-sm text-default-500">
-              勝敗と相手のデッキ名だけでOK！
+              相手のデッキ名・先攻/後攻・勝敗だけでOK！
               <br />
               10秒で最初の記録を作成しよう。
             </p>
@@ -69,7 +69,7 @@ export default function FirstRecordCtaCard({ cohortWeek, daysSinceSignup }: Prop
               className="font-bold shadow-md"
               onPress={handlePrimaryClick}
             >
-              最初の記録を作る
+              最初の記録を作成する
             </Button>
             <Button
               variant="light"

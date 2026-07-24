@@ -14,6 +14,7 @@ import { LuInfo } from "react-icons/lu";
  *   backdrop         … 全面を覆う層でタップを受け止める（層タップで閉じる）
  *   shouldBlockScroll… スクロール抑止（iOS は react-aria が touchmove も抑止する）
  *   isNonModal={false}… 背面を aria-hidden にしてフォーカス移動も封じる
+ *   disableAnimation … 閉→即再オープンの死に窓を消す（理由は CurrentEnvironment 参照）
  *
  * 層を敷くのはカードの上に置くため。層が無いと、吹き出しの外を触って閉じる操作が
  * そのままカードのタップ（＝デッキ情報モーダルを開く）になってしまう。
@@ -37,6 +38,7 @@ export default function KizunaHintPopover() {
       backdrop="opaque"
       shouldBlockScroll
       isNonModal={false}
+      disableAnimation
     >
       <PopoverTrigger>
         {/*

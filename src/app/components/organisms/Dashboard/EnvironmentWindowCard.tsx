@@ -11,6 +11,7 @@ import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import DeckCodeQuickStartModal from "@app/components/organisms/Deck/Modal/DeckCodeQuickStartModal";
 import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
 import { fingerprintKey } from "@app/utils/fingerprint";
+import { rankableDecks, exclOtherTotalOf } from "@app/utils/deckEnv";
 import { lastWeekValue } from "@app/utils/week";
 import { DeckData, DeckGetResponseType } from "@app/types/deck";
 import {
@@ -370,7 +371,7 @@ function RankedOutHero({ deck }: { deck: DeckData }) {
 function EncourageNote() {
   return (
     <p className="text-xs font-bold text-primary leading-relaxed rounded-xl bg-primary/10 px-3 py-2.5">
-      あなたの記録が、このデッキの環境データを作ります。
+      あなたの記録が、このデッキの対戦環境データを作ります。
     </p>
   );
 }
@@ -394,10 +395,13 @@ function RankHeader({
 function RecordCtaButton({
   ranked,
   totalRecords,
+  deck,
   onClick,
 }: {
   ranked: boolean;
   totalRecords: number;
+  // 選択中のデッキ。あれば「使用デッキ選択済み」でクイック記録を開く。
+  deck?: DeckData;
   onClick: () => void;
 }) {
   const label = ranked
@@ -405,13 +409,22 @@ function RecordCtaButton({
       ? "この枠を、あなたの1戦で解錠する"
       : "もう1戦、記録する"
     : totalRecords === 0
-      ? "最初の記録をつける"
-      : "記録を続ける";
+      ? "このデッキを使用して最初の記録を作成する"
+      : "このデッキを使用して記録を続ける";
+
+  // 選択中のデッキがあれば、そのデッキを使用デッキに選択済みの状態で記録フォーム(/records/quick)を開く。
+  const href = deck
+    ? `/records/quick?${new URLSearchParams({
+        deck_id: deck.id,
+        deck_code_id: deck.latest_deck_code?.id ?? "",
+        deck_name: deck.name,
+      }).toString()}`
+    : "/records/quick";
 
   return (
     <Button
       as={Link}
-      href="/records/quick"
+      href={href}
       color="primary"
       radius="full"
       startContent={<LuFilePen className="w-4 h-4" />}
@@ -494,7 +507,7 @@ function SelectModeView({
   return (
     <>
       <span className="text-xs font-bold text-default-500 tracking-wide">
-        環境の中の、あなたのデッキ
+        あなたのデッキと類似する対戦環境データ
       </span>
 
       {positions.length >= 2 && (
@@ -532,6 +545,7 @@ function SelectModeView({
       <RecordCtaButton
         ranked={ranked}
         totalRecords={totalRecords}
+        deck={selected.deck}
         onClick={onRecordClick}
       />
     </>
@@ -583,11 +597,8 @@ export default function EnvironmentWindowCard({
     };
   }, []);
 
-  // ランキング対象（「その他」= 空指紋を除く）。使用率降順・同率は勝率降順で順位を確定する。
-  const rankable = useMemo(() => {
-    const list = (stat?.decks ?? []).filter((d) => d.fingerprint !== "");
-    return [...list].sort((a, b) => b.count - a.count || b.win_rate - a.win_rate);
-  }, [stat]);
+  // ランキング対象（「その他」= 空指紋を除く・使用率降順）。共通ロジックに集約(deckEnv)。
+  const rankable = useMemo(() => (stat ? rankableDecks(stat) : []), [stat]);
 
   // 自分の登録デッキ(スプライトあり=環境上で識別可能)ごとの立ち位置。ランク入りを上位に。
   const deckPositions = useMemo<DeckPosition[]>(() => {
@@ -618,7 +629,7 @@ export default function EnvironmentWindowCard({
   // 描画モード。select=自分の識別可能なデッキを選んで見る / B=デッキはあるが識別不能 / C=未登録。
   const renderMode: "select" | "B" | "C" | null = useMemo(() => {
     if (!stat || !userDecks) return null; // 読み込み中
-    if (rankable.length === 0) return null; // 環境データが無い週はカードごと出さない
+    if (rankable.length === 0) return null; // 対戦環境データが無い週はカードごと出さない
     if (deckPositions.length > 0) return "select";
     if (userDecks.length > 0) return "B";
     return "C";
@@ -677,9 +688,8 @@ export default function EnvironmentWindowCard({
   if (stat == null || userDecks == null) return <SkeletonCard />;
   if (renderMode == null) return null;
 
-  // 「その他」(空指紋)を分母から除いた割合の母数。カード内の全ランキングをこの基準で表示する。
-  const otherCount = stat.decks.find((d) => d.fingerprint === "")?.count ?? 0;
-  const exclOtherTotal = stat.total_votes - otherCount;
+  // 「その他」を除いた割合の母数。カード内の全ランキングをこの基準で表示する(deckEnv)。
+  const exclOtherTotal = exclOtherTotalOf(stat);
   const top3 = rankable.slice(0, 3);
 
   return (
@@ -712,13 +722,13 @@ export default function EnvironmentWindowCard({
                 className="font-bold w-full"
                 onPress={handleDeckRegisterClick}
               >
-                デッキコードで登録する
+                デッキコードからデッキを登録する
               </Button>
             </>
           ) : renderMode === "B" ? (
             <>
               <span className="text-xs font-bold text-default-500 tracking-wide">
-                環境の中の、あなたのデッキ
+                あなたのデッキと類似する対戦環境データ
               </span>
               <RankedOutHero deck={userDecks[0]} />
               <EncourageNote />
@@ -727,6 +737,7 @@ export default function EnvironmentWindowCard({
               <RecordCtaButton
                 ranked={false}
                 totalRecords={totalRecords}
+                deck={userDecks[0]}
                 onClick={handleRecordClick}
               />
             </>

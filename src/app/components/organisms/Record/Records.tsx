@@ -89,6 +89,9 @@ type Props = {
   // デスクトップ(lg以上)でのグリッド列数。ダッシュボードの「最近の記録」だけ
   // 横に3枚並べたいため、呼び出し元から明示的に指定できるようにしている。
   desktopColumns?: 2 | 3;
+  // 初回ロードが終わり1件も無い状態になったかを親へ通知する。
+  // 記録一覧ページの「すべて」タブでフローティング表示の切り替えに使う。
+  onEmptyChange?: (isEmpty: boolean) => void;
 };
 
 export default function Records({
@@ -101,6 +104,7 @@ export default function Records({
   nestedInModal = false,
   scrollContainerRef,
   desktopColumns = 2,
+  onEmptyChange,
 }: Props) {
   // desktopColumns=3 のときは lg(1024px〜)で2列、xl(1280px〜)で3列と段階的に増やす。
   // 画面幅が狭まった際にカードが窮屈にならないようにするため。
@@ -247,6 +251,12 @@ export default function Records({
       }
     }
   }, [pendingReopenId, isInitialLoaded, isLoading, items, hasMore, loadMore]);
+
+  // 初回ロードが終わり、追加読み込みも無く、1件も無い状態を「空」として親へ通知する。
+  const isEmpty = isInitialLoaded && !isLoading && !hasMore && items.length === 0;
+  useEffect(() => {
+    onEmptyChange?.(isEmpty);
+  }, [isEmpty, onEmptyChange]);
 
   return (
     <div className="flex flex-col items-center space-y-3 pb-3">

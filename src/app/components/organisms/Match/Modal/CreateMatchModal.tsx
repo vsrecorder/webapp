@@ -32,6 +32,7 @@ import PokemonSpriteSelectButton from "@app/components/molecules/PokemonSpriteSe
 import PrizeCardsStepper from "@app/components/molecules/PrizeCardsStepper";
 import PokemonSpriteModal from "@app/components/organisms/Match/Modal/PokemonSpriteModal";
 import BO3GamesInput from "@app/components/organisms/Match/BO3GamesInput";
+import EnvironmentReturnModal from "@app/components/organisms/Record/Modal/EnvironmentReturnModal";
 
 import { RecordGetByIdResponseType } from "@app/types/record";
 import { MatchGetResponseType } from "@app/types/match";
@@ -39,6 +40,7 @@ import { MatchCreateRequestType, MatchCreateResponseType } from "@app/types/matc
 import { GameRequestType } from "@app/types/game";
 import { PokemonSpriteType, MatchPokemonSpriteType } from "@app/types/pokemon_sprite";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
+import { fetchOpponentEnv, DeckEnvPosition } from "@app/utils/deckEnv";
 
 import { useModalDragToClose } from "@app/hooks/useModalDragToClose";
 import {
@@ -107,6 +109,55 @@ type DeckHistory = {
   sprite1: PokemonSpriteType | null;
   sprite2: PokemonSpriteType | null;
 };
+
+// 相手デッキ候補の表示上限。自身の履歴がこの件数に満たない場合は他ユーザの履歴で水増しする
+const MAX_DECK_HISTORY_CANDIDATES = 50;
+
+// 「相手デッキ名 + スロット1/2のスプライト」の組み合わせを一意に識別するキー。
+// 同じデッキでもスプライトが異なれば別候補として扱う
+const historyKey = (h: DeckHistory) =>
+  `${h.deckInfo}|${h.sprite1?.id ?? ""}|${h.sprite2?.id ?? ""}`;
+
+// マッチ配列を「相手デッキ名 + スプライト」の組み合わせで集計し、出現回数の多い順に並べて返す。
+// 不戦勝/不戦敗・デッキ名なしは候補から除外する。自身の履歴・他ユーザの水増し候補の双方で共通利用する
+function aggregateDeckHistories(matches: MatchGetResponseType[]): DeckHistory[] {
+  const countMap = new Map<string, { history: DeckHistory; count: number }>();
+  for (const match of matches) {
+    if (match.default_victory_flg || match.default_defeat_flg) continue;
+    if (!match.opponents_deck_info) continue;
+    const s1Id = getSpriteBySlot(match.pokemon_sprites, 1)?.id;
+    const s2Id = getSpriteBySlot(match.pokemon_sprites, 2)?.id;
+    const key = `${match.opponents_deck_info}|${s1Id ?? ""}|${s2Id ?? ""}`;
+    const entry = countMap.get(key);
+    if (entry) {
+      entry.count++;
+    } else {
+      countMap.set(key, {
+        count: 1,
+        history: {
+          deckInfo: match.opponents_deck_info,
+          sprite1: s1Id
+            ? {
+                id: s1Id,
+                name: "",
+                image_url: `${SPRITE_BASE_URL}/${s1Id.replace(/^0+(?!$)/, "")}.png`,
+              }
+            : null,
+          sprite2: s2Id
+            ? {
+                id: s2Id,
+                name: "",
+                image_url: `${SPRITE_BASE_URL}/${s2Id.replace(/^0+(?!$)/, "")}.png`,
+              }
+            : null,
+        },
+      });
+    }
+  }
+  return Array.from(countMap.values())
+    .sort((a, b) => b.count - a.count)
+    .map((item) => item.history);
+}
 
 async function fetchMatches(url: string): Promise<MatchGetResponseType[]> {
   const res = await fetch(url, {
@@ -180,6 +231,15 @@ export default function CreateMatchModal({
   // 連打対策の最終防衛線。state の再レンダーを待たずに同期的に多重実行を弾く
   const submittingRef = useRef(false);
 
+  // 施策E-1: 対戦追加の完了後に、相手が先週ランキングに載っていれば環境リターンを重ねて出す。
+  const [returnOpen, setReturnOpen] = useState(false);
+  const [returnData, setReturnData] = useState<{
+    opponentName: string;
+    opponentSprites: MatchPokemonSpriteType[];
+    position: DeckEnvPosition | null; // null = 先週の環境ランキング外
+    victory: boolean;
+  } | null>(null);
+
   // フッター下部の余白をOS別に切り替えるための判定。
   // navigator参照のためSSRとのハイドレーション不整合を避け、マウント後に確定させる。
   const [isIOSDevice, setIsIOSDevice] = useState(false);
@@ -191,98 +251,55 @@ export default function CreateMatchModal({
   const [pokemonSprite2, setPokemonSprite2] = useState<PokemonSpriteType | null>(null);
 
   // モーダルが開いているときだけ直近マッチを取得（limit=100 で十分な候補数を確保）
-  const { data: recentMatches } = useSWR<MatchGetResponseType[]>(
+  const { data: recentMatches, mutate: mutateRecentMatches } = useSWR<
+    MatchGetResponseType[]
+  >(
     isOpen && record ? `/api/users/${record.user_id}/matches?limit=100` : null,
     fetchMatches,
   );
 
-  // 出現回数の多い順に並んだデッキ履歴（上位30件、不戦勝/不戦敗を除外）
+  // 出現回数の多い順に並んだ自身のデッキ履歴（上位 MAX_DECK_HISTORY_CANDIDATES 件、不戦勝/不戦敗を除外）
   const deckHistories = useMemo<DeckHistory[]>(() => {
     if (!recentMatches) return [];
-    const countMap = new Map<string, { history: DeckHistory; count: number }>();
-    for (const match of recentMatches) {
-      if (match.default_victory_flg || match.default_defeat_flg) continue;
-      if (!match.opponents_deck_info) continue;
-      const s1Id = getSpriteBySlot(match.pokemon_sprites, 1)?.id;
-      const s2Id = getSpriteBySlot(match.pokemon_sprites, 2)?.id;
-      const key = `${match.opponents_deck_info}|${s1Id ?? ""}|${s2Id ?? ""}`;
-      const entry = countMap.get(key);
-      if (entry) {
-        entry.count++;
-      } else {
-        countMap.set(key, {
-          count: 1,
-          history: {
-            deckInfo: match.opponents_deck_info,
-            sprite1: s1Id
-              ? {
-                  id: s1Id,
-                  name: "",
-                  image_url: `${SPRITE_BASE_URL}/${s1Id.replace(/^0+(?!$)/, "")}.png`,
-                }
-              : null,
-            sprite2: s2Id
-              ? {
-                  id: s2Id,
-                  name: "",
-                  image_url: `${SPRITE_BASE_URL}/${s2Id.replace(/^0+(?!$)/, "")}.png`,
-                }
-              : null,
-          },
-        });
-      }
-    }
-    return Array.from(countMap.values())
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 50)
-      .map((item) => item.history);
+    return aggregateDeckHistories(recentMatches).slice(
+      0,
+      MAX_DECK_HISTORY_CANDIDATES,
+    );
   }, [recentMatches]);
 
-  // ユーザ履歴がない場合のみ全体の直近100件を取得してダミー候補を作成
+  // 自身の履歴が上限に満たない場合のみ、他ユーザの直近100件を取得して不足分の水増しに使う
   const { data: globalMatches } = useSWR<MatchGetResponseType[]>(
-    isOpen && recentMatches !== undefined && deckHistories.length === 0
+    isOpen &&
+      recentMatches !== undefined &&
+      deckHistories.length < MAX_DECK_HISTORY_CANDIDATES
       ? `/api/matches?limit=100`
       : null,
     fetchMatches,
   );
 
-  const dummyHistories = useMemo<DeckHistory[]>(() => {
+  // 他ユーザのマッチを出現回数の多い順に集計した水増し候補
+  const globalHistories = useMemo<DeckHistory[]>(() => {
     if (!globalMatches) return [];
-    const seen = new Set<string>();
-    const result: DeckHistory[] = [];
-    for (const match of globalMatches) {
-      if (match.default_victory_flg || match.default_defeat_flg) continue;
-      if (!match.opponents_deck_info) continue;
-      const s1Id = getSpriteBySlot(match.pokemon_sprites, 1)?.id;
-      const s2Id = getSpriteBySlot(match.pokemon_sprites, 2)?.id;
-      const key = `${match.opponents_deck_info}|${s1Id ?? ""}|${s2Id ?? ""}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      result.push({
-        deckInfo: match.opponents_deck_info,
-        sprite1: s1Id
-          ? {
-              id: s1Id,
-              name: "",
-              image_url: `${SPRITE_BASE_URL}/${s1Id.replace(/^0+(?!$)/, "")}.png`,
-            }
-          : null,
-        sprite2: s2Id
-          ? {
-              id: s2Id,
-              name: "",
-              image_url: `${SPRITE_BASE_URL}/${s2Id.replace(/^0+(?!$)/, "")}.png`,
-            }
-          : null,
-      });
-    }
-    return result;
+    return aggregateDeckHistories(globalMatches);
   }, [globalMatches]);
 
-  // 表示に使う候補（ユーザ履歴優先、なければダミー）
-  const activeCandidates = deckHistories.length > 0 ? deckHistories : dummyHistories;
+  // 表示に使う候補。自身の履歴を先頭に並べ、上限に満たない分だけ他ユーザ履歴の多い順で水増しする
+  // （自身の履歴と重複する組み合わせは除外）
+  const activeCandidates = useMemo<DeckHistory[]>(() => {
+    const result = [...deckHistories];
+    const seen = new Set(deckHistories.map(historyKey));
+    for (const history of globalHistories) {
+      if (result.length >= MAX_DECK_HISTORY_CANDIDATES) break;
+      const key = historyKey(history);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      result.push(history);
+    }
+    return result;
+  }, [deckHistories, globalHistories]);
 
-  // ユーザ履歴ロード中、またはダミー候補フェッチ中
+  // ユーザ履歴ロード中、または（履歴が空で）水増し候補フェッチ中。
+  // 履歴が1件でもあれば即表示し、水増し分は取得でき次第あとから追加する（ちらつき防止）
   const isCandidatesLoading =
     recentMatches === undefined ||
     (deckHistories.length === 0 && globalMatches === undefined);
@@ -541,13 +558,6 @@ export default function CreateMatchModal({
         closeToast(toastId);
       }
 
-      addToast({
-        title: "対戦結果の追加が完了",
-        description: "対戦結果を追加しました",
-        color: "success",
-        timeout: 3000,
-      });
-
       setMatches((prev) => {
         if (!prev) return [ret];
         return [...prev, ret];
@@ -555,7 +565,36 @@ export default function CreateMatchModal({
 
       triggerNotificationsRefresh();
 
-      onClose();
+      // 「続けて対戦結果を追加する」で直前に入力した相手デッキ(スプライト含む)が候補に出るよう、
+      // 相手デッキ候補の元データ(直近マッチ)を再取得しておく。
+      mutateRecentMatches();
+
+      // 施策E-1: 相手が先週ランキングに載っていれば環境リターンを出す。
+      // 出すときはフォームを閉じずにリセットして背後に残し(「続けて追加」でそのまま入力可)、
+      // その上にリターンのシートを重ねる。シートが「追加しました」を伝えるため成功トーストは出さない。
+      // ただし、記録が集計対象外(ignore_stats_flg)=戦績集計に含めない設定のときは環境リターンを出さない。
+      const includeInStats = !record?.ignore_stats_flg;
+      const envRet = includeInStats
+        ? await fetchOpponentEnv(pokemon_sprites.map((s) => s.id))
+        : null;
+      if (envRet && envRet.hasEnvData) {
+        setReturnData({
+          opponentName: opponentsDeckInfo,
+          opponentSprites: pokemon_sprites,
+          position: envRet.position,
+          victory: victoryFlg,
+        });
+        setReturnOpen(true);
+        resetForm();
+      } else {
+        addToast({
+          title: "対戦結果の追加が完了",
+          description: "対戦結果を追加しました",
+          color: "success",
+          timeout: 3000,
+        });
+        onClose();
+      }
     } catch (error) {
       console.error(error);
 
@@ -883,6 +922,31 @@ export default function CreateMatchModal({
         onOpenChange={onOpenChangeForPokemonSpriteModal}
         initialActiveSlot={activePokemonSpriteSlot}
       />
+
+      {/* 施策E-1: 対戦追加の完了後に、相手が先週ランキングに載っていれば環境リターンを重ねて出す。
+          「続けて対戦結果を追加する」はシートを閉じるだけ(背後のリセット済みフォームで続けて入力)、
+          「閉じる」はフォームごと閉じる。 */}
+      {returnData && (
+        <EnvironmentReturnModal
+          isOpen={returnOpen}
+          savedLabel="対戦結果を追加しました"
+          opponentName={returnData.opponentName}
+          opponentSprites={returnData.opponentSprites}
+          position={returnData.position}
+          victory={returnData.victory}
+          primaryCta={{
+            label: "続けて対戦結果を追加する",
+            onPress: () => setReturnOpen(false),
+          }}
+          secondaryCta={{
+            label: "閉じる",
+            onPress: () => {
+              setReturnOpen(false);
+              onClose();
+            },
+          }}
+        />
+      )}
 
       <Modal
         size="md"

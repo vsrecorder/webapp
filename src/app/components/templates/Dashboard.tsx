@@ -51,16 +51,13 @@ const DAILY_DATA_REVALIDATE_SEC = 300;
 async function getCityleagueScheduleByDate(date: Date): Promise<CityleagueScheduleType> {
   const today = date.toISOString().split("T")[0];
 
-  const res = await fetch(
-    upstreamUrl`/api/v1beta/cityleague_schedules?date=${today}`,
-    {
-      // シティリーグの開催情報は最大でも日次更新のため、毎回取得(no-store)は不要。
-      // キャッシュしてサーバ応答(TTFB)を短縮する。
-      next: { revalidate: DAILY_DATA_REVALIDATE_SEC },
-      method: "GET",
-      headers: { Accept: "application/json" },
-    },
-  );
+  const res = await fetch(upstreamUrl`/api/v1beta/cityleague_schedules?date=${today}`, {
+    // シティリーグの開催情報は最大でも日次更新のため、毎回取得(no-store)は不要。
+    // キャッシュしてサーバ応答(TTFB)を短縮する。
+    next: { revalidate: DAILY_DATA_REVALIDATE_SEC },
+    method: "GET",
+    headers: { Accept: "application/json" },
+  });
 
   if (res.status === 200) return res.json();
   throw new Error("not found");
@@ -149,9 +146,7 @@ function computeCohort(createdAt: UserType["created_at"] | undefined): {
   const cohortWeek = monday.toISOString().split("T")[0];
 
   const nowJst = new Date(Date.now() + 9 * 60 * 60 * 1000);
-  const daysSinceSignup = Math.floor(
-    (nowJst.getTime() - createdJst.getTime()) / DAY_MS,
-  );
+  const daysSinceSignup = Math.floor((nowJst.getTime() - createdJst.getTime()) / DAY_MS);
 
   return { cohortWeek, daysSinceSignup };
 }
@@ -192,7 +187,7 @@ async function getAllChampionshipSeries(): Promise<ChampionshipSeriesType[]> {
 export default async function TemplateDashboard({ userId }: Props) {
   const date = new Date(Date.now() + 9 * 60 * 60 * 1000);
 
-  // 施策0-6: 記録0件のユーザーにだけ「最初の記録を作る」CTAを出す。
+  // 施策0-6: 記録0件のユーザーにだけ「最初の記録を作成する」CTAを出す。
   // 施策E-2: 同じく記録0件のユーザーに「環境の窓」カードを出す。
   // どちらのトグルも無効なら件数取得自体をスキップして無駄な往復を省く。
   const ctaEnabled = isFirstRecordCtaEnabled();
@@ -229,8 +224,7 @@ export default async function TemplateDashboard({ userId }: Props) {
   // 環境の窓(E-2)は「価値の後払い」ゾーン(記録3件未満)を対象にする。1〜3件は勝率が
   // 統計的に無意味なため、集合データの前倒しが効く層(blindspots §2)。
   // null(取得失敗)は 0 未満扱いにならないよう明示的に除外する(null < 3 は true になるため)。
-  const showEnvWindow =
-    envWindowEnabled && totalRecords !== null && totalRecords < 3;
+  const showEnvWindow = envWindowEnabled && totalRecords !== null && totalRecords < 3;
   const cohort =
     showFirstRecordCta || showEnvWindow ? computeCohort(user?.created_at) : {};
 

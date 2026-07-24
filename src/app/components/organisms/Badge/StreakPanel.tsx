@@ -144,6 +144,7 @@ export default function StreakPanel({ userId }: Props) {
             backdrop         … 全面を覆う層で外側タップを受け止めて閉じる
             shouldBlockScroll… 表示中のスクロール抑止(iOS は touchmove も抑止)
             isNonModal={false}… 背面を aria-hidden にしフォーカス移動も封じる
+            disableAnimation … 閉→即再オープンの死に窓を消す(理由は CurrentEnvironment 参照)
           StreakPanel はページ直下(モーダル外)かつカード自体は無反応なので、この構成で問題ない。
         */}
         {showFreeze && (
@@ -154,6 +155,7 @@ export default function StreakPanel({ userId }: Props) {
             backdrop="opaque"
             shouldBlockScroll
             isNonModal={false}
+            disableAnimation
           >
             <PopoverTrigger>
               <button

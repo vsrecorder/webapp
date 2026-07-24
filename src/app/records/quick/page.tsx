@@ -2,6 +2,7 @@ import { auth } from "@app/auth";
 import { redirect } from "next/navigation";
 
 import TemplateQuickRecordCreate from "@app/components/templates/QuickRecordCreate";
+import { isEnvReturnEnabled } from "@app/utils/featureFlags";
 
 type Props = {
   searchParams: Promise<{
@@ -27,6 +28,7 @@ export default async function Page({ searchParams }: Props) {
       deckId={deck_id ?? ""}
       deckCodeId={deck_code_id ?? ""}
       deckName={deck_name ?? ""}
+      envReturnEnabled={isEnvReturnEnabled()}
     />
   );
 }

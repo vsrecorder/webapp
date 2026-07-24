@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -30,6 +30,9 @@ ChartJS.register(
 
 type CountMode = "20" | "30" | "40" | "50" | "100";
 
+// ツールチップ内スプライトの枠(px)。他のリスト行と揃えた最小サイズ。
+const SPRITE_SIZE = 28;
+
 type Props = {
   userId: string;
 };
@@ -47,6 +50,20 @@ function winRateTextColor(rate: number): string {
   return "text-danger";
 }
 
+// spriteFitStyle が返すスタイルを DOM 要素へそのまま適用する。
+// プロパティを1つずつ書き写すと spriteFitStyle 側の変更(表示比率の算出など)に
+// 追従できず、この箇所だけ他と違う見え方になるため、丸ごと写す。
+// 数値は px として解釈させる(spriteFitStyle が返す数値は width/height/left/top のみ)。
+function applyFitStyle(el: HTMLElement, style: CSSProperties) {
+  for (const [key, value] of Object.entries(style)) {
+    if (value == null) continue;
+    el.style.setProperty(
+      key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`),
+      typeof value === "number" ? `${value}px` : String(value),
+    );
+  }
+}
+
 // ツールチップ内のスプライト画像を直接DOM操作で描画する（頻繁なmousemoveでのReact再レンダリングを避けるため）
 function renderTooltipSprites(
   container: HTMLDivElement,
@@ -61,29 +78,20 @@ function renderTooltipSprites(
   ];
 
   slots.forEach((id) => {
-    // 枠(28px)内に bbox 基準で最適配置。PokemonSprite と同じ算出を DOM 直操作で再現。
+    // 枠(28px)内に bbox 基準・身長由来の表示比率で最適配置。
+    // PokemonSprite と同じ算出(spriteFitStyle)を DOM 直操作で再現する。
     const frame = document.createElement("div");
     Object.assign(frame.style, {
       position: "relative",
       overflow: "hidden",
       flexShrink: "0",
-      width: "28px",
-      height: "28px",
+      width: `${SPRITE_SIZE}px`,
+      height: `${SPRITE_SIZE}px`,
     });
     const img = document.createElement("img");
     img.src = spriteImageUrl(id || null);
     img.alt = id || "unknown";
-    const s = spriteFitStyle(id || null, 28);
-    Object.assign(img.style, {
-      position: "absolute",
-      left: "0",
-      top: "0",
-      width: `${s.width}px`,
-      height: `${s.height}px`,
-      maxWidth: "none",
-      transformOrigin: "0 0",
-      transform: String(s.transform),
-    });
+    applyFitStyle(img, spriteFitStyle(id || null, SPRITE_SIZE));
     frame.appendChild(img);
     container.appendChild(frame);
   });

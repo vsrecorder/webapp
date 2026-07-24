@@ -205,7 +205,7 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
   }, [loadDesignation]);
 
   useEffect(() => {
-    fetch("/api/userplayers", { cache: "no-store" })
+    fetch("/api/usersplayers", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((data: UserPlayerType | null) => setIsPlayerLinked(data != null))
       .catch(() => setIsPlayerLinked(false));
@@ -497,8 +497,7 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
                       公式サイトの結果は確認できましたが、対応する大会の記録がバトレコに見つかりません。該当する大会の記録を作成すると達成できます。
                     </span>
                   </div>
-                ) : selected.criteria_type ===
-                  CITY_LEAGUE_GRANDMASTER_CRITERIA_TYPE ? (
+                ) : selected.criteria_type === CITY_LEAGUE_GRANDMASTER_CRITERIA_TYPE ? (
                   // 名人は「優勝を1回以上」かつ「参加した全大会で入賞」の2条件。
                   // ベテラン〜名人はいずれも記録と公式結果の両方が必須のため、優勝・入賞とも記録ベース。
                   // 優勝は1回以上で達成のため上限1で頭打ち(複数回優勝でも 1/1 表示)。

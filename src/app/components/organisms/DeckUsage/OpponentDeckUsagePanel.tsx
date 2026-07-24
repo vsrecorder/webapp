@@ -19,8 +19,14 @@ import {
   generateYearMonthOptions,
 } from "@app/utils/yearMonthOptions";
 import OpponentDeckDistributionChart from "@app/components/organisms/DeckUsage/OpponentDeckDistributionChart";
+import PokemonSprite from "@app/components/atoms/PokemonSprite";
+import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
 
 type FilterMode = "month" | "environment" | "season" | "regulation";
+
+// 使用デッキセレクタに添えるスプライトの枠(px)。ADR pokemon-sprite-size-and-gap の
+// 「デッキ選択(選択済み)」に合わせる。
+const OWN_DECK_SPRITE_SIZE = 28;
 
 type Props = {
   userId: string;
@@ -175,6 +181,16 @@ export default function OpponentDeckUsagePanel({
   }, [userId, filterMode, yearMonth, environmentId, season, regulationId]);
 
   const decks = stat?.decks ?? [];
+  // 使用デッキを絞り込んでいるときは、どのデッキを選んでいるかスプライトでも示す。
+  // 円グラフのバッジ(OpponentDeckDistributionChart の deckSpriteUrls)と同じ扱いにし、
+  // 1体でも登録があれば position でスロットを固定して2枠表示、1体も無いデッキでは
+  // 何も出さない(モンスターボール2つはデッキの手掛かりにならないため)。
+  const selectedOwnDeck = ownDeckId
+    ? ownDecks.find((d) => d.deck_id === ownDeckId)
+    : undefined;
+  const ownDeckSprite1 = getDeckSpriteBySlot(selectedOwnDeck?.pokemon_sprites, 1);
+  const ownDeckSprite2 = getDeckSpriteBySlot(selectedOwnDeck?.pokemon_sprites, 2);
+  const hasOwnDeckSprite = Boolean(ownDeckSprite1 || ownDeckSprite2);
 
   const filterLabel =
     filterMode === "month"
@@ -262,32 +278,44 @@ export default function OpponentDeckUsagePanel({
           </span>
         </div>
 
-        {/* 自分のデッキセレクタ（対面相性の勝率は使用デッキによって変わるため） */}
-        <div className="relative">
-          <select
-            value={ownDeckId}
-            onChange={(e) => setOwnDeckId(e.target.value)}
-            className="w-full appearance-none rounded-xl border border-default-200 bg-default-100 px-4 py-2.5 pr-10 text-sm font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
-          >
-            <option value="">使用したすべてのデッキで集計</option>
-            {ownDecks.map((deck) => (
-              <option key={deck.deck_id} value={deck.deck_id}>
-                {deck.name}
-              </option>
-            ))}
-          </select>
-          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-default-400 text-xs">
-            ▼
-          </span>
+        {/* 自分のデッキセレクタ（対面相性の勝率は使用デッキによって変わるため）。
+            ネイティブの <select> には画像を入れられないため、選択中デッキのスプライトは
+            セレクタの左に並べて示す（未選択＝全デッキ集計のときは表示しない） */}
+        <div className="flex items-center gap-2">
+          {hasOwnDeckSprite && (
+            <div className="flex items-center gap-0 shrink-0">
+              <PokemonSprite id={ownDeckSprite1?.id} size={OWN_DECK_SPRITE_SIZE} />
+              <PokemonSprite id={ownDeckSprite2?.id} size={OWN_DECK_SPRITE_SIZE} />
+            </div>
+          )}
+          {/* 期間セレクタより一段小さくし、月毎の勝率推移パネルのデッキセレクタと寸法を揃える */}
+          <div className="relative flex-1 min-w-0">
+            <select
+              value={ownDeckId}
+              onChange={(e) => setOwnDeckId(e.target.value)}
+              className="w-full appearance-none rounded-lg border border-default-200 bg-default-100 pl-3 pr-7 py-1.5 text-xs font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
+            >
+              <option value="">使用したすべてのデッキで集計</option>
+              {ownDecks.map((deck) => (
+                <option key={deck.deck_id} value={deck.deck_id}>
+                  {deck.name}
+                </option>
+              ))}
+            </select>
+            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-default-400 text-[10px]">
+              ▼
+            </span>
+          </div>
         </div>
 
         {/* 期間ラベル */}
         <p className="text-center text-xs text-default-400 -mt-2">
           {filterLabel}
           {ownDeckId
-            ? `『${ownDecks.find((d) => d.deck_id === ownDeckId)?.name ?? ""}』使用時の`
+            ? `・『${ownDecks.find((d) => d.deck_id === ownDeckId)?.name ?? ""}』使用時の`
             : ""}
-          対戦相手のデッキ分布・勝率
+          <br />
+          対戦相手のデッキ分布
         </p>
 
         {/* グラフ + 凡例 */}

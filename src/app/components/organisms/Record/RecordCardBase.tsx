@@ -182,7 +182,10 @@ export default function RecordCardBase({
                   {infoRowAboveDeck}
 
                   <div className="flex items-center justify-between gap-2 min-w-0">
-                    <div className="min-w-0 flex-1">
+                    {/* デッキ行だけアイコン枠の側へ寄せる(情報行の gap-3 = 12px のうち 6px を
+                        打ち消し、上の会場行より左に出す)。読み込み中のスケルトン
+                        (RecordCardSkeleton)も同じ量ずらし、実データ描画時に横位置が飛ばないようにする */}
+                    <div className="min-w-0 flex-1 -ml-1.5">
                       {loadingDeck ? (
                         <RecordDeckRowSkeleton />
                       ) : deckName ? (

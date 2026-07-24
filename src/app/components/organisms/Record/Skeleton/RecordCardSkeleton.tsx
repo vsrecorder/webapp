@@ -56,7 +56,10 @@ export function RecordCardSkeleton({ className = "" }: { className?: string }) {
               <div className="flex items-center gap-3">
                 <Skeleton className="w-8 h-8 rounded-lg shrink-0" />
                 <div className="flex items-center justify-between gap-2 flex-1 min-w-0">
-                  <RecordDeckRowSkeleton />
+                  {/* RecordCardBase のデッキ行と同じだけ左に寄せる(情報行の gap-3 = 12px のうち 6px) */}
+                  <div className="min-w-0 flex-1 -ml-1.5">
+                    <RecordDeckRowSkeleton />
+                  </div>
                   {/* 勝敗バッジ(text-xs px-1.5 py-0.5)と高さ・幅を揃える。
                       チーム戦/BO3はカード右上へ移動し読み込み後に出現するためここには置かない */}
                   <div className="flex items-center gap-1.5 shrink-0">

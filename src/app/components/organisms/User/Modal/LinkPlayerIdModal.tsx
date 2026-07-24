@@ -64,7 +64,7 @@ export default function LinkPlayerIdModal({ isOpen, onOpenChange, onLinked }: Pr
     try {
       const body: UserPlayerVerifyRequestType = { player_id: trimmed };
 
-      const res = await fetch("/api/userplayers/verify", {
+      const res = await fetch("/api/usersplayers/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -121,7 +121,7 @@ export default function LinkPlayerIdModal({ isOpen, onOpenChange, onLinked }: Pr
         challenge_token: verifiedAccount.challenge.token,
       };
 
-      const res = await fetch("/api/userplayers", {
+      const res = await fetch("/api/usersplayers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),

@@ -349,7 +349,7 @@ export default function UserProfileCard({
 
   useEffect(() => {
     setIsUserPlayerLoading(true);
-    fetch("/api/userplayers", { cache: "no-store" })
+    fetch("/api/usersplayers", { cache: "no-store" })
       .then((r) => {
         if (r.status === 503) {
           setIsPlayersClubFeatureDisabled(true);

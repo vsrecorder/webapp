@@ -15,7 +15,7 @@ export default function PlayerLinkCard() {
 
   useEffect(() => {
     setIsLoading(true);
-    fetch("/api/userplayers", { cache: "no-store" })
+    fetch("/api/usersplayers", { cache: "no-store" })
       .then((r) => {
         if (r.status === 503) {
           setIsFeatureDisabled(true);

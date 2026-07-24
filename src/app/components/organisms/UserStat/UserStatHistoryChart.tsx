@@ -18,6 +18,8 @@ import { DeckUsageItemType, DeckUsageStatType } from "@app/types/deck_usage_stat
 import { DeckGetResponseType } from "@app/types/deck";
 import { ChampionshipSeriesType } from "@app/types/championship_series";
 import { seasonOptionsFromChampionshipSeries, currentSeasonValue } from "@app/utils/season";
+import PokemonSprite from "@app/components/atoms/PokemonSprite";
+import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
 
 ChartJS.register(
   CategoryScale,
@@ -29,6 +31,10 @@ ChartJS.register(
 );
 
 type PeriodMode = "3months" | "6months" | "current_season" | "select_season";
+
+// デッキセレクタに添えるスプライトの枠(px)。ADR pokemon-sprite-size-and-gap の
+// 「デッキ選択(選択済み)」に合わせる。
+const OWN_DECK_SPRITE_SIZE = 28;
 
 type Props = {
   userId: string;
@@ -191,6 +197,16 @@ export default function UserStatHistoryChart({ userId, championshipSeries }: Pro
     ? ownDecks.filter((deck) => activeDeckIds.has(deck.deck_id))
     : ownDecks;
 
+  // デッキを絞り込んでいるときは、どのデッキを選んでいるかスプライトでも示す。
+  // 1体でも登録があれば position でスロットを固定して2枠表示し、1体も無いデッキでは
+  // 何も出さない(モンスターボール2つはデッキの手掛かりにならないため)。
+  const selectedDeck = deckId
+    ? selectableDecks.find((deck) => deck.deck_id === deckId)
+    : undefined;
+  const deckSprite1 = getDeckSpriteBySlot(selectedDeck?.pokemon_sprites, 1);
+  const deckSprite2 = getDeckSpriteBySlot(selectedDeck?.pokemon_sprites, 2);
+  const hasDeckSprite = Boolean(deckSprite1 || deckSprite2);
+
   const chartData: UserStatMonthlyType[] = history?.history ?? [];
   chartDataRef.current = chartData;
 
@@ -347,23 +363,33 @@ export default function UserStatHistoryChart({ userId, championshipSeries }: Pro
           </div>
         </div>
 
-        {/* デッキセレクタ（対戦相手のデッキ分布パネルと同様、「使用したすべてのデッキで集計」がデフォルト） */}
-        <div className="relative">
-          <select
-            value={deckId}
-            onChange={(e) => setDeckId(e.target.value)}
-            className="w-full appearance-none rounded-lg border border-default-200 bg-default-100 pl-3 pr-7 py-1.5 text-xs font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
-          >
-            <option value="">使用したすべてのデッキで集計</option>
-            {selectableDecks.map((deck) => (
-              <option key={deck.deck_id} value={deck.deck_id}>
-                {deck.name}
-              </option>
-            ))}
-          </select>
-          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-default-400 text-[10px]">
-            ▼
-          </span>
+        {/* デッキセレクタ（対戦相手のデッキ分布パネルと同様、「使用したすべてのデッキで集計」がデフォルト）。
+            ネイティブの <select> には画像を入れられないため、選択中デッキのスプライトは
+            セレクタの左に並べて示す（未選択＝全デッキ集計のときは表示しない） */}
+        <div className="flex items-center gap-2">
+          {hasDeckSprite && (
+            <div className="flex items-center gap-0 shrink-0">
+              <PokemonSprite id={deckSprite1?.id} size={OWN_DECK_SPRITE_SIZE} />
+              <PokemonSprite id={deckSprite2?.id} size={OWN_DECK_SPRITE_SIZE} />
+            </div>
+          )}
+          <div className="relative flex-1 min-w-0">
+            <select
+              value={deckId}
+              onChange={(e) => setDeckId(e.target.value)}
+              className="w-full appearance-none rounded-lg border border-default-200 bg-default-100 pl-3 pr-7 py-1.5 text-xs font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
+            >
+              <option value="">使用したすべてのデッキで集計</option>
+              {selectableDecks.map((deck) => (
+                <option key={deck.deck_id} value={deck.deck_id}>
+                  {deck.name}
+                </option>
+              ))}
+            </select>
+            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-default-400 text-[10px]">
+              ▼
+            </span>
+          </div>
         </div>
 
         {/* グラフ */}

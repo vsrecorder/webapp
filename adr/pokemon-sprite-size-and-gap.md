@@ -2,7 +2,7 @@
 
 ## ステータス
 
-提案中 (Proposed) — 2026-07-17
+提案中 (Proposed) — 2026-07-17 / D5(表示比率)を追記 — 2026-07-24
 
 ## Context
 
@@ -18,6 +18,7 @@
 
 - **表示は必ず [PokemonSprite](src/app/components/atoms/PokemonSprite.tsx) を使う。** 各スプライト画像はキャラの大きさ・キャンバス内の位置がまちまちなため、単純に固定サイズで表示すると小型ポケモンが小さく・下寄りに見える。PokemonSprite は各画像のアルファ境界(bbox)を基準に、枠内で最適サイズ・位置へ正規化する。(例外として円グラフだけは canvas 描画のため別系統。同じ bbox 正規化を共有する。D4 参照)
 - **`size` は「枠」の一辺(px)であって、見た目のキャラの大きさではない。** 枠は `size` px の正方形で、中の `<img>` は bbox に応じて拡縮される(同じ `size=32` でも、中の画像は 48px にも 89px にもなる)。**サイズを検証するときは指定値ではなく実描画の枠を測ること。**
+- **枠の中でキャラをどれだけの大きさに見せるか(表示比率)は、`size` とは独立に「公式身長」で決まる。** 呼び出し側が制御する余地は無く、全箇所で共通。詳細は D5。
 - `id` は padded 形式の文字列(`"0006"` / メガ等は `"0006_mega_x"`)。未指定・欠損時は unknown が表示される。
 - **2体1組が基本。** デッキ識別は先頭2体を並べる。未登録の枠を unknown で埋めて常に2体分の幅を確保する箇所と、何も表示しない箇所がある(下記「既知の不整合」)。
 
@@ -42,8 +43,8 @@
 
 | size | gap | 用途 | 箇所 |
 | --- | --- | --- | --- |
-| **28** | `gap-0` | デッキ選択(リスト・選択済みとも) | [RecordCreate.tsx:375](src/app/components/templates/RecordCreate.tsx#L375)(3タブ×2), [UpdateUsedDeckModal.tsx:102](src/app/components/organisms/Deck/Modal/UpdateUsedDeckModal.tsx#L102)(×2) |
-| **32** | `0`※ | 記録カードのデッキ行 | [RecordCardBase.tsx:176](src/app/components/organisms/Record/RecordCardBase.tsx#L176) |
+| **28** | `gap-0` | デッキ選択(リスト・選択済みとも) | [RecordCreate.tsx:375](src/app/components/templates/RecordCreate.tsx#L375)(3タブ×2), [UpdateUsedDeckModal.tsx:102](src/app/components/organisms/Deck/Modal/UpdateUsedDeckModal.tsx#L102)(×2), [OpponentDeckUsagePanel.tsx:286](src/app/components/organisms/DeckUsage/OpponentDeckUsagePanel.tsx#L286) と [UserStatHistoryChart.tsx:371](src/app/components/organisms/UserStat/UserStatHistoryChart.tsx#L371)(デッキセレクタ横の選択中デッキ) |
+| **32** | `0`※ | 記録カードのデッキ行 | [RecordCardBase.tsx:196](src/app/components/organisms/Record/RecordCardBase.tsx#L196) |
 | **32** | `gap-0` | **リスト行**(使用率分析・相手デッキ分布・週間使用率・活動ログ) | [DeckUsagePanel.tsx:158](src/app/components/organisms/DeckUsage/DeckUsagePanel.tsx#L158), [OpponentDeckDistributionChart.tsx:120](src/app/components/organisms/DeckUsage/OpponentDeckDistributionChart.tsx#L120), [WeeklyDeckUsagePanel.tsx:69](src/app/components/organisms/DeckMeta/WeeklyDeckUsagePanel.tsx#L69), [CalendarDayDetailModal.tsx:84](src/app/components/organisms/Calendar/CalendarDayDetailModal.tsx#L84)(使用デッキ・対戦相手とも) |
 | **36** | `0`※ | 対戦作成/編集の入力履歴 | [CreateMatchModal.tsx:691](src/app/components/organisms/Match/Modal/CreateMatchModal.tsx#L691), [UpdateMatchModal.tsx:785](src/app/components/organisms/Match/Modal/UpdateMatchModal.tsx#L785) |
 | **40** | —(単体) | スプライト選択の候補行 | [KizunaSpritePicker.tsx:100](src/app/components/organisms/Kizuna/KizunaSpritePicker.tsx#L100), [PokemonSpriteModal.tsx:384](src/app/components/organisms/Match/Modal/PokemonSpriteModal.tsx#L384) |
@@ -87,6 +88,60 @@
 - スプライト同士の間隔は Tailwind の `gap` ではなく `OVERLAP_RATIO = 0`([:102](src/app/utils/pieSlicesSpritePlugin.ts#L102))で表し、DOM 側の `gap-0`(隣接・重なりなし)と揃えている。
 - 吹き出しは大きくするとバッジが外周へ張り出し、カード幅の制約で円本体が縮む/余白から見切れるため、**44 前後が上限の目安**(同ファイルのコメント参照)。中心はバッジ内に単体表示で余裕があるため、半径に応じて動的に拡大する。
 
+### D5. 枠の中の表示比率は「公式身長」で決まり、全箇所で共通
+
+`size`(枠の一辺)とは別軸の話。**枠の中でキャラをどれだけの大きさに見せるか(枠占有率)は、各ポケモンの公式身長から算出する**。小型ポケモンは小さく、大型ポケモンは大きく見える。以前は全個体が同じ枠占有率(0.86 固定)だった。
+
+**呼び出し側にこれを制御する手段は無い**(props も無い)。`size` を変えても中のキャラの「枠に対する比率」は変わらず、枠ごと拡大縮小されるだけ。したがって新しい表示箇所は、下の2経路のどちらかを通しさえすれば自動的に同じ比率になる。
+
+#### 算出経路(この2つ以外を作らない)
+
+| 経路 | 用途 | 身長の引き方 |
+| --- | --- | --- |
+| [spriteFitStyle](src/app/utils/spriteFit.ts#L82) | DOM(`PokemonSprite` が使う) | id(`"0006"`)で `SPRITE_HEIGHTS` を直接引く |
+| [spriteDrawRect](src/app/utils/spriteFit.ts#L157) | canvas(円グラフの chart.js プラグイン) | URL のファイル名(`6.png`)から `HEIGHT_BY_FILE` で逆引き |
+
+DOM 側は必ず [PokemonSprite](src/app/components/atoms/PokemonSprite.tsx) を使う(D1 冒頭の前提)。React の再レンダリングを避けるため DOM を直接組み立てる箇所([RecentMatchWinRateChart.tsx](src/app/components/organisms/UserStat/RecentMatchWinRateChart.tsx))も、**`spriteFitStyle` の戻り値をそのまま要素へ適用する**。プロパティを1つずつ書き写すと算出式の変更に追従できず、そこだけ見え方がずれる。
+
+#### 身長データ
+
+[spriteHeights.ts](src/app/utils/spriteHeights.ts)(`SPRITE_HEIGHTS: Record<id, メートル>`)。[generate-sprite-heights.mjs](scripts/generate-sprite-heights.mjs) が **PokéAPI の公開 CSV**(`pokemon.csv`、デシメートル→m 変換)から自動生成する。値は公式ずかんの身長。
+
+対象 id は `spriteBounds.ts` のキーから読むため、**スプライトを追加したら `generate-sprite-bounds.mjs` → `generate-sprite-heights.mjs` の順に再実行する**。メガ・キョダイマックス・リージョンフォームは identifier のトークン境界一致で個別の身長にマッチし、未マッチは基本フォームの身長にフォールバックする(生成時にログが出る)。
+
+#### 身長 → 枠占有率(対数圧縮)
+
+身長は 0.1m〜100m級(キョダイマックス等)まで幅が極端に広く、線形に写すと小型ポケモンが枠内で潰れて見えなくなる。そこで対数で圧縮し、競技でよく使う 0.3〜6m 帯に効きを集中させる([heightTargetRatio](src/app/utils/spriteFit.ts#L39))。
+
+| 定数 | 値 | 意味 |
+| --- | --- | --- |
+| `MIN_H` / `MAX_H` | 0.3m / 6.0m | この帯の外側はクランプ(巨大は一律最大、極小は一律最小) |
+| `MIN_RATIO` / `MAX_RATIO` | 0.58 / 0.93 | 枠占有率の下限・上限 |
+| `FALLBACK_RATIO` | 0.72 | 身長データが無い id(未知フォーム等)の既定 |
+| `UNKNOWN_TARGET_RATIO` | 0.5 | unknown プレースホルダ(モンスターボール)。身長非依存の固定値 |
+
+いずれも**見え方の調整用 tunable** であり、変えると全表示箇所に一律で効く。実例: フシギダネ 0.7m → 0.68、リザードン 1.7m → 0.78、カビゴン 2.1m → 0.81、レックウザ 7m → 0.93(上限に張り付き)。
+
+#### 枠サイズに依存させない(2026-07-24 修正)
+
+`fitScale` のクランプ(`MIN_SCALE=0.7` / `MAX_SCALE=1.9`)は「元画像 68px に対する拡大率」の上下限で、**枠サイズ `REFERENCE_FRAME=48` を基準にした値**である。これを枠に比例させる(`clampFactor = frame / REFERENCE_FRAME`)ことで `scale` が `frame` に完全比例し、**実効の枠占有率が枠サイズに依存しなくなる**。
+
+比例させないと、身長比率が枠サイズに食われて箇所ごとに見え方が変わる:
+
+| | クランプに張り付いた個体数(全1366体) | 実効占有率の中央値 |
+| --- | --- | --- |
+| 28px(デッキ選択) | **884体 (65%)** が下限に張り付き | 0.825 |
+| 32px(リスト行) | **616体 (45%)** が下限に張り付き | 0.760 |
+| 36px | 303体 (22%) が下限に張り付き | 0.742 |
+| 48px(基準) | 36体 (2.6%)(下限18・上限18) | 0.732 |
+| 96px(シェア画像) | 36体 (2.6%)(下限18・上限18) | 0.732 |
+
+下限に張り付くと**キャラが枠からはみ出て `overflow-hidden` で見切れる**(28px 枠のキョダイマックスリザードンは占有率 1.25、エターナルムゲンダイナは 1.68 だった)。比例修正後はどの枠サイズでも上表の 48px 行と同じ(張り付き 36体 / 中央値 0.732)になる。
+
+残る 36体は bbox が極端な個体で、`max(bw, bh)` 基準ゆえの残差(下限側=`0925` のような 48×27 の横長など bbox が大きすぎる個体、上限側=bbox が 15px 未満の極小個体)。**枠サイズには依存しない**ため「箇所ごとの不統一」にはならない。
+
+拡大率が上がるぶん大きい枠では元画像のドットが甘くなるが、箇所ごとに大きさがバラつく方が目につくため、見え方の統一を優先する。
+
 ---
 
 ## 未解決事項 / 既知の不整合
@@ -97,7 +152,7 @@
 
    | size | 箇所 | class |
    | --- | --- | --- |
-   | 32 | [RecordCardBase.tsx:174](src/app/components/organisms/Record/RecordCardBase.tsx#L174) | `flex items-center shrink-0` |
+   | 32 | [RecordCardBase.tsx:194](src/app/components/organisms/Record/RecordCardBase.tsx#L194) | `flex items-center shrink-0` |
    | 36 | [CreateMatchModal.tsx:690](src/app/components/organisms/Match/Modal/CreateMatchModal.tsx#L690), [:700](src/app/components/organisms/Match/Modal/CreateMatchModal.tsx#L700) | `flex items-end justify-center w-full h-9` |
    | 36 | [UpdateMatchModal.tsx:784](src/app/components/organisms/Match/Modal/UpdateMatchModal.tsx#L784), [:794](src/app/components/organisms/Match/Modal/UpdateMatchModal.tsx#L794) | 同上 |
    | 44 | [KizunaDeckEstimator.tsx:486](src/app/components/organisms/Kizuna/KizunaDeckEstimator.tsx#L486) | `relative flex items-end` |
@@ -105,7 +160,9 @@
 
    36 は「入力履歴の行」と「履歴が無いときのプレースホルダ」で各ファイル2つずつある。
    なお [KizunaSpritePicker.tsx:129](src/app/components/organisms/Kizuna/KizunaSpritePicker.tsx#L129)(56)は単体表示、[PokemonSpriteModal.tsx:294](src/app/components/organisms/Match/Modal/PokemonSpriteModal.tsx#L294)(44)はスロット番号バッジの span でスプライトのコンテナではないため、上表からは除いている。
-2. **[RecentMatchWinRateChart.tsx:60](src/app/components/organisms/UserStat/RecentMatchWinRateChart.tsx#L60) だけ PokemonSprite を使っていない** — 28px 相当の bbox 算出を DOM 直操作で再現している(Chart.js の描画に載せる都合と思われる)。**サイズの一括変更がここには波及しない**ため、スプライト表示を触るときは個別に確認が必要。
+2. **[RecentMatchWinRateChart.tsx](src/app/components/organisms/UserStat/RecentMatchWinRateChart.tsx) だけ PokemonSprite を使っていない** — ツールチップを DOM 直操作で組み立てている(頻繁な mousemove での React 再レンダリングを避けるため)。**枠サイズはローカル定数 `SPRITE_SIZE = 28` で持つので、`size` の一括変更はここに波及しない**。ただし表示比率は `spriteFitStyle` の戻り値をそのまま要素へ適用しているため、D5 の算出には自動で追従する。
 3. **未登録枠の埋め方が揃っていない** — 使用率分析系や活動ログの `OpponentSprites` は unknown で埋めて常に2枠を確保するが、活動ログの `DeckSprites` はスプライトが無ければ何も表示しない。サイズ・間隔とは別軸の論点。
+
+   ただし**リストの行ではない単発の表示**(円グラフのバッジ [deckSpriteUrls](src/app/components/organisms/DeckUsage/OpponentDeckDistributionChart.tsx#L92)、デッキセレクタ横の [OpponentDeckUsagePanel.tsx:286](src/app/components/organisms/DeckUsage/OpponentDeckUsagePanel.tsx#L286) / [UserStatHistoryChart.tsx:371](src/app/components/organisms/UserStat/UserStatHistoryChart.tsx#L371))は、**1体でも登録があれば position でスロットを固定して2枠、1体も無ければ何も出さない**で揃えている。行の高さを揃える必要が無く、unknown 2枠は「どのデッキか」の手掛かりにならないため。
 4. **ローカルラッパーの既定値が実態と合っていない** — [RecordCreate.tsx](src/app/components/templates/RecordCreate.tsx) と [UpdateUsedDeckModal.tsx](src/app/components/organisms/Deck/Modal/UpdateUsedDeckModal.tsx) のローカル `DeckSprites` は既定 `size = 36` だが、全呼び出しが `28` を明示的に渡しており**既定値が使われる箇所は無い**。既定を 28 にすれば `size` の指定自体を省ける。
 5. **`PokemonSpriteModal` の `gap-3` はスプライト同士の間隔ではない** — スプライトとテキストラベルの間隔であり、D1 の対象外。棚卸し時に混同しやすい。

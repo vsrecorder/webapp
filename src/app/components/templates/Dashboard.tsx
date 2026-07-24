@@ -32,11 +32,13 @@ import { EnvironmentType } from "@app/types/environment";
 import { StandardRegulationType } from "@app/types/standard_regulation";
 import { ChampionshipSeriesType } from "@app/types/championship_series";
 import { UserType } from "@app/types/user";
-import { UserStatType } from "@app/types/user_stat";
+import { RecordGetResponseType } from "@app/types/record";
 import { isDevEnv } from "@app/utils/appIcon";
 import { isFirstRecordCtaEnabled, isEnvWindowEnabled } from "@app/utils/featureFlags";
 
 import { upstreamUrl } from "@app/utils/upstream";
+
+import * as jwt from "jsonwebtoken";
 
 // マスタデータ（対戦環境・スタンダードレギュレーション・チャンピオンシップシリーズ）の
 // キャッシュ期間（秒）。滅多に増えないため長めに取る。
@@ -94,19 +96,35 @@ async function getUser(userId: string): Promise<UserType | null> {
   return null;
 }
 
-// 記録0件判定用に、全期間の対戦記録件数を取得する（施策0-6 CTAの表示条件）。
-// クエリ無しで叩くと全期間の集計が返る（user_stat.total_records）。
-// 失敗時は null を返し、CTAは「出さない」側に倒す（誤表示より非表示を優先）。
-async function getUserTotalRecords(userId: string): Promise<number | null> {
-  const res = await fetch(upstreamUrl`/api/v1beta/users/${userId}/stats`, {
+// 全期間の対戦記録件数を「最大3件」だけ取得して数える（施策0-6 CTA=0件 / 施策E-2=3件未満の判定用）。
+// 返す値は 0〜3 にキャップされる（3 は「3件以上」を意味する）。
+//
+// 注意: user_stat の total_records は使えない。`/users/:id/stats` はクエリ無しだと
+// 「当月」の集計を返すため（全期間ではない）、月初に履歴のあるユーザーへ誤って CTA/カードを
+// 出してしまう。records 一覧を limit=3 で引き、その件数で全期間の到達状況を判定する。
+//
+// records 一覧はトークンの uid 基準（要認証）のため、webapp の /api routes と同じ方式で
+// 短命 JWT を署名して呼ぶ（userId は page.tsx で session.user.id を渡しており本人のみ）。
+// 失敗時は null を返し、CTA・カードは「出さない」側に倒す（誤表示より非表示を優先）。
+async function getCappedRecordCount(userId: string): Promise<number | null> {
+  const jwtSecret = process.env.VSRECORDER_JWT_SECRET as jwt.Secret;
+  const token = jwt.sign({ iss: "vsrecorder-webapp", uid: userId }, jwtSecret, {
+    algorithm: "HS256",
+    expiresIn: "10s",
+  });
+
+  const res = await fetch(upstreamUrl`/api/v1beta/records?limit=3`, {
     cache: "no-store",
     method: "GET",
-    headers: { Accept: "application/json" },
+    headers: {
+      Authorization: "Bearer " + token,
+      Accept: "application/json",
+    },
   });
 
   if (res.status === 200) {
-    const stat: UserStatType = await res.json();
-    return stat.total_records;
+    const data: RecordGetResponseType = await res.json();
+    return data.records.length; // 0〜3。3なら「3件以上」の意味
   }
   return null;
 }
@@ -201,10 +219,11 @@ export default async function TemplateDashboard({ userId }: Props) {
     getAllChampionshipSeries(),
     getUser(userId),
     needTotalRecords
-      ? getUserTotalRecords(userId).catch(() => null)
+      ? getCappedRecordCount(userId).catch(() => null)
       : Promise.resolve<number | null>(null),
   ]);
 
+  // totalRecords は「全期間の記録件数（0〜3にキャップ）」。3 は「3件以上」の意味。
   // 「最初の記録」CTAは記録0件のときだけ。取得失敗(null)時は非表示に倒す。
   const showFirstRecordCta = ctaEnabled && totalRecords === 0;
   // 環境の窓(E-2)は「価値の後払い」ゾーン(記録3件未満)を対象にする。1〜3件は勝率が

@@ -104,7 +104,7 @@ function CompareRow({
 //       ② 環境平均が引ければ暫定勝率に併記（借りて→返す）。
 //   ・解錠済み（count >= MAGIC）= 比較モード（後払いの報酬を返す）:
 //       あなたの勝率 vs 比較の錨 ＋ 差分(pt)。
-//       錨は「同デッキの環境平均」。環境データが無いときは「勝ち越しライン(50%)」にフォールバック。
+//       錨は「同デッキの環境平均勝率」。環境データが無いときは「勝ち越しライン(50%)」にフォールバック。
 export default function DeckValueMeter({ count, winRate, envWinRate }: Props) {
   const impressionSent = useRef(false);
 
@@ -142,7 +142,7 @@ export default function DeckValueMeter({ count, winRate, envWinRate }: Props) {
               <CompareRow
                 winRate={winRate}
                 count={count}
-                anchorLabel="同デッキの環境平均"
+                anchorLabel="同デッキの環境平均勝率"
                 anchorRate={envWinRate}
               />
               <p className="text-[10px] leading-relaxed text-default-400">
@@ -163,7 +163,7 @@ export default function DeckValueMeter({ count, winRate, envWinRate }: Props) {
                 anchorRate={BREAK_EVEN}
               />
               <p className="text-[10px] leading-relaxed text-default-400">
-                同デッキの環境平均は今週分がまだ揃っていません。
+                同デッキの環境平均勝率は今週分がまだ揃っていません。
                 <br />
                 揃うと、勝ち越しラインに代えて環境平均との比較を表示します。
               </p>
@@ -199,7 +199,7 @@ export default function DeckValueMeter({ count, winRate, envWinRate }: Props) {
           {hasEnv && (
             <div className="flex-1 rounded-xl border border-primary/15 bg-primary/5 px-3 py-2">
               <div className="text-[10px] font-bold text-primary/70">
-                同デッキの環境平均
+                同デッキの環境平均勝率
               </div>
               <span className="text-lg font-black tabular-nums leading-tight text-primary">
                 {formatPercent(envWinRate)}
@@ -213,13 +213,13 @@ export default function DeckValueMeter({ count, winRate, envWinRate }: Props) {
           {hasEnv ? (
             hasOwn ? (
               <>
-                まだ対戦数が少ないので、同デッキの環境平均を錨にあなたの勝率を読み解けます。
+                まだ対戦数が少ないので、同デッキの環境平均勝率を錨にあなたの勝率を読み解けます。
                 <br />
                 対戦を重ねるほど、あなたの数字が主役になります。
               </>
             ) : (
               <>
-                先に同デッキの環境平均を見せています。
+                先に同デッキの環境平均勝率を見せています。
                 <br />
                 対戦を記録するほど、あなた自身の勝率が立ち上がります。
               </>

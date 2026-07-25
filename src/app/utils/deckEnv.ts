@@ -11,9 +11,7 @@ import {
 
 // 「ランキング対象」= 「その他」(空指紋)を除いたデッキ変種を、使用率(count)降順・
 // 同率は勝率降順に整列して返す。順位はこの並びの index+1。
-export function rankableDecks(
-  stat: WeeklyDeckUsageStatType,
-): WeeklyDeckUsageItemType[] {
+export function rankableDecks(stat: WeeklyDeckUsageStatType): WeeklyDeckUsageItemType[] {
   return [...stat.decks.filter((d) => d.fingerprint !== "")].sort(
     (a, b) => b.count - a.count || b.win_rate - a.win_rate,
   );
@@ -71,7 +69,7 @@ export async function fetchOpponentEnv(
 }
 
 // 施策E-3: 自分のデッキのスプライトから、先週の環境での立ち位置(順位・環境平均勝率)を引く。
-// 「暫定値の環境補完(借りて→返す)」で、個人勝率の錨となる同デッキの環境平均を得るために使う。
+// 「暫定値の環境補完(借りて→返す)」で、個人勝率の錨となる同デッキの環境平均勝率を得るために使う。
 // 実体は fetchOpponentEnv と同じ(対象が相手か自分かの違いだけ)なので、意図を明示する薄い別名。
 export function fetchDeckEnv(spriteIds: string[]) {
   return fetchOpponentEnv(spriteIds);

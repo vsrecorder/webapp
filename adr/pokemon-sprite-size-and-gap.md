@@ -92,16 +92,20 @@
 
 `size`(枠の一辺)とは別軸の話。**枠の中でキャラをどれだけの大きさに見せるか(枠占有率)は、各ポケモンの公式身長から算出する**。小型ポケモンは小さく、大型ポケモンは大きく見える。以前は全個体が同じ枠占有率(0.86 固定)だった。
 
-**呼び出し側にこれを制御する手段は無い**(props も無い)。`size` を変えても中のキャラの「枠に対する比率」は変わらず、枠ごと拡大縮小されるだけ。したがって新しい表示箇所は、下の2経路のどちらかを通しさえすれば自動的に同じ比率になる。
+**呼び出し側にこれを制御する手段は無い**(props も無い)。`size` を変えても中のキャラの「枠に対する比率」は変わらず、枠ごと拡大縮小されるだけ。したがって新しい表示箇所は、下の2経路のどれかを通しさえすれば自動的に同じ比率になる。
 
-#### 算出経路(この2つ以外を作らない)
+#### 算出経路(スプライトを描くときはこの2つ以外を作らない)
 
 | 経路 | 用途 | 身長の引き方 |
 | --- | --- | --- |
 | [spriteFitStyle](src/app/utils/spriteFit.ts#L82) | DOM(`PokemonSprite` が使う) | id(`"0006"`)で `SPRITE_HEIGHTS` を直接引く |
 | [spriteDrawRect](src/app/utils/spriteFit.ts#L157) | canvas(円グラフの chart.js プラグイン) | URL のファイル名(`6.png`)から `HEIGHT_BY_FILE` で逆引き |
 
-DOM 側は必ず [PokemonSprite](src/app/components/atoms/PokemonSprite.tsx) を使う(D1 冒頭の前提)。React の再レンダリングを避けるため DOM を直接組み立てる箇所([RecentMatchWinRateChart.tsx](src/app/components/organisms/UserStat/RecentMatchWinRateChart.tsx))も、**`spriteFitStyle` の戻り値をそのまま要素へ適用する**。プロパティを1つずつ書き写すと算出式の変更に追従できず、そこだけ見え方がずれる。
+- **DOM 側は必ず [PokemonSprite](src/app/components/atoms/PokemonSprite.tsx) を使う**(D1 冒頭の前提)。React の再レンダリングを避けるため DOM を直接組み立てる箇所([RecentMatchWinRateChart.tsx](src/app/components/organisms/UserStat/RecentMatchWinRateChart.tsx) のツールチップ)も、`img.src = spriteImageUrl(...)` の後に **`spriteFitStyle` の戻り値をそのまま要素へ適用する**。プロパティを1つずつ書き写すと算出式の変更に追従できず、そこだけ見え方がずれる。
+- **canvas 側は必ず [spriteDrawRect](src/app/utils/spriteFit.ts#L157) を通す**。円グラフの [pieSlicesSpritePlugin](src/app/utils/pieSlicesSpritePlugin.ts#L56) の `drawContain` が唯一の canvas 描画経路で、`ctx.drawImage` に渡す矩形をここから得ている。
+- **`<img>` / HeroUI `<Image>` に自前の width/height・`transform: scale()`・`object-fit` などでスプライトを直描きしない。** 身長比率が効かず、その箇所だけ大きさが揃わなくなる。`spriteImageUrl()` で URL だけ組み立てて素の画像として出すのも同様に禁止(URL 組み立て自体は API 送信ペイロード用途に限る)。
+
+> **2026-07-24 棚卸し:** 上記2経路を通っているか全描画箇所を確認済み(スプライトを画面に描く箇所は DOM=`PokemonSprite`+`spriteFitStyle` 直適用1件、canvas=`spriteDrawRect` のみ)。非正規の描画は0件。旧方式の名残だった `spriteScaleClass`(id ごとに `scale-150` 等を返す関数)は**どこからも呼ばれていないデッドコードだったため削除**した(この関数は身長比率を無視する固定倍率で、復活させると比率が壊れる)。
 
 #### 身長データ
 

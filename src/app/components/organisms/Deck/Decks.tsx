@@ -196,7 +196,7 @@ export default function Decks({ userId, isArchived, onCreated, onEmptyChange }: 
                   className="drop-shadow-[0_0_18px_rgba(251,191,36,0.55)]"
                 />
                 <p className="text-lg font-black leading-snug text-foreground">
-                  最初のデッキと、
+                  最初のデッキと
                   <br />
                   きずなを育てよう
                 </p>

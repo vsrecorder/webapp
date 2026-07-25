@@ -69,3 +69,10 @@ export async function fetchOpponentEnv(
     return null;
   }
 }
+
+// 施策E-3: 自分のデッキのスプライトから、先週の環境での立ち位置(順位・環境平均勝率)を引く。
+// 「暫定値の環境補完(借りて→返す)」で、個人勝率の錨となる同デッキの環境平均を得るために使う。
+// 実体は fetchOpponentEnv と同じ(対象が相手か自分かの違いだけ)なので、意図を明示する薄い別名。
+export function fetchDeckEnv(spriteIds: string[]) {
+  return fetchOpponentEnv(spriteIds);
+}

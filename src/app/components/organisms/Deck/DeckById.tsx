@@ -30,6 +30,8 @@ import { LuCheck } from "react-icons/lu";
 
 import { useKizunaDeck } from "@app/hooks/useKizunaLevels";
 import DeckKizunaPanel from "@app/components/organisms/Deck/DeckKizunaPanel";
+import DeckValueMeter from "@app/components/organisms/Deck/DeckValueMeter";
+import { fetchDeckEnv } from "@app/utils/deckEnv";
 import KizunaDeckSprites from "@app/components/molecules/KizunaDeckSprites";
 import DeckCodeCard from "@app/components/organisms/Deck/DeckCodeCard";
 import DeckCardDetailRow from "@app/components/organisms/Deck/DeckCardDetailRow";
@@ -124,9 +126,11 @@ async function fetchDeckUsageStat(
 
 type Props = {
   id: string;
+  // 施策E-3「価値メーター＋暫定値の環境補完」の表示可否（サーバーから props で受け取る）。
+  valueMeterEnabled?: boolean;
 };
 
-export default function DeckById({ id }: Props) {
+export default function DeckById({ id, valueMeterEnabled = false }: Props) {
   const router = useRouter();
   const { data: session } = useSession();
   const userId = session?.user?.id;
@@ -140,6 +144,10 @@ export default function DeckById({ id }: Props) {
   // 画面上部に表示する代表デッキコード（＝最新バージョン）。
   const [deckcode, setDeckCode] = useState<DeckCodeType | null>(null);
   const [usageStat, setUsageStat] = useState<DeckUsageItemType | null>(null);
+
+  // 施策E-3: 同デッキの先週の環境平均勝率（0〜1）。価値メーターの「借りて→返す」で
+  // 個人勝率の錨として併記する。環境データが引けない・圏外なら null のまま。
+  const [deckEnvWinRate, setDeckEnvWinRate] = useState<number | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [deckError, setDeckError] = useState(false);
@@ -217,6 +225,22 @@ export default function DeckById({ id }: Props) {
       cancelled = true;
     };
   }, [userId, deck]);
+
+  // 施策E-3: 自分のデッキのスプライトから、先週の環境での立ち位置（環境平均勝率）を引く。
+  // 価値メーターが有効なときだけ取得する。圏外・データ無しは null のまま（環境併記を出さない）。
+  useEffect(() => {
+    if (!valueMeterEnabled || !deck) return;
+    let cancelled = false;
+
+    fetchDeckEnv(deck.pokemon_sprites.map((s) => s.id)).then((env) => {
+      if (cancelled) return;
+      setDeckEnvWinRate(env?.position?.row.win_rate ?? null);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [valueMeterEnabled, deck]);
 
   // 削除・アーカイブ操作の完了後はデッキ一覧へ戻す（このデッキはもう表示できないため）。
   const handleRemove = useCallback(() => {
@@ -612,6 +636,17 @@ export default function DeckById({ id }: Props) {
           )}
         </CardBody>
       </Card>
+
+      {/* 施策E-3「価値メーター＋暫定値の環境補完」。勝率パネルの直下・きずなの直前に置き、
+        「あと◯件で勝率が"参考になる"精度に解錠」＋件数が少ないうちの環境平均併記で、
+        後払いの報酬を"見える距離"に変える。件数十分・環境データ無しなら自身で非表示にする。 */}
+      {valueMeterEnabled && (
+        <DeckValueMeter
+          count={usageStat?.count ?? 0}
+          winRate={winRate}
+          envWinRate={deckEnvWinRate}
+        />
+      )}
 
       {/* きずな：対戦成績（勝率）のすぐ下に置き、
         「強かったか」と「どう歩んできたか」を対等に並べる */}

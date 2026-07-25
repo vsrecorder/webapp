@@ -21,3 +21,11 @@ export function isEnvWindowEnabled(): boolean {
 export function isEnvReturnEnabled(): boolean {
   return process.env.ENV_RETURN_ENABLED !== "false";
 }
+
+// 「価値メーター＋暫定値の環境補完」（施策E-3）の表示可否。デッキ詳細の勝率パネル付近に、
+// 「あと◯件で勝率が"参考になる"精度に解錠」というメーターと、件数が少ないうちは
+// 個人勝率に環境平均を併記する「借りて→返す」演出を置き、後払いの報酬を"見える距離"にする。
+// 既定は有効。緊急停止したい場合のみ VALUE_METER_ENABLED=false を設定する。
+export function isValueMeterEnabled(): boolean {
+  return process.env.VALUE_METER_ENABLED !== "false";
+}

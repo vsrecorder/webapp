@@ -507,9 +507,9 @@ export default function TemplateQuickRecordCreate({
   }
 
   return (
-    <div className="max-w-3xl mx-auto w-full px-3 py-3">
+    <div className="max-w-3xl mx-auto w-full px-2 py-3">
       <Card className="shadow-md">
-        <CardBody className="p-4 flex flex-col gap-4">
+        <CardBody className="p-4 flex flex-col gap-2">
           <div className="flex flex-col gap-1">
             <h1 className="text-lg font-bold">1戦目を記録しよう</h1>
             <p className="text-sm text-default-500">

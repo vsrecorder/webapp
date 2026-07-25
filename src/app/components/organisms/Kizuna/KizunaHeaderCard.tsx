@@ -61,13 +61,13 @@ export default function KizunaHeaderCard({
       {/* 焚き火の残光。右下から暖色が滲み、黄昏の世界観をヘッダー全体に敷く */}
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute -bottom-32 -right-24 h-[560px] w-[560px] rounded-full bg-amber-500/15 blur-3xl"
+        className="pointer-events-none absolute -bottom-32 -right-24 h-140 w-140 rounded-full bg-amber-500/15 blur-3xl"
       />
 
       {/* 上辺:左に呼び名、右にサービス表記。
           下辺は X のプロフィールアイコン/表示名が重なるため、文字を置かず空ける。 */}
       <div className="absolute inset-x-0 top-0 flex items-start justify-between px-16 pt-10">
-        <span className="max-w-[860px] truncate text-[19px] font-bold tracking-[0.3em] text-white/55">
+        <span className="max-w-215 truncate text-[19px] font-bold tracking-[0.3em] text-white/55">
           {title}
         </span>
         <span className="shrink-0 pt-1 text-[15px] tracking-[0.18em] text-white/35">
@@ -98,7 +98,7 @@ export default function KizunaHeaderCard({
       </div>
 
       {/* 右:きずなLv.(主役) */}
-      <div className="relative flex h-full w-[600px] shrink-0 flex-col justify-center gap-4 pr-20">
+      <div className="relative flex h-full w-150 shrink-0 flex-col justify-center gap-4 pr-20">
         <span className="text-[19px] font-bold tracking-[0.3em] text-white/50">
           きずなLv.
         </span>

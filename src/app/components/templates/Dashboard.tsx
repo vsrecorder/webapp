@@ -221,12 +221,15 @@ export default async function TemplateDashboard({ userId }: Props) {
   // totalRecords は「全期間の記録件数（0〜3にキャップ）」。3 は「3件以上」の意味。
   // 「最初の記録」CTAは記録0件のときだけ。取得失敗(null)時は非表示に倒す。
   const showFirstRecordCta = ctaEnabled && totalRecords === 0;
-  // 環境の窓(E-2)は「価値の後払い」ゾーン(記録3件未満)を対象にする。1〜3件は勝率が
-  // 統計的に無意味なため、集合データの前倒しが効く層(blindspots §2)。
-  // null(取得失敗)は 0 未満扱いにならないよう明示的に除外する(null < 3 は true になるため)。
-  const showEnvWindow = envWindowEnabled && totalRecords !== null && totalRecords < 3;
-  const cohort =
-    showFirstRecordCta || showEnvWindow ? computeCohort(user?.created_at) : {};
+  // 組み合わせパネル(環境ウィンドウ E-2 ＋ 対戦環境分析)。記録数で配置を出し分ける(境界=3件):
+  //  ・3件未満 → プロフィール直下(pinned)。価値の後払いゾーン(blindspots §2)に前倒しで見せる。
+  //  ・3件以上 → 「対戦環境分析」セクションの位置。実勝率での「あなたの勝率 vs 環境平均勝率」比較が主役になる。
+  // フラグ無効・件数取得失敗(null)時は組み合わせパネルを出さず、セクションは従来の
+  // WeeklyDeckUsagePanel をフォールバック表示する(対戦環境分析を全員から消さないため)。
+  const combinedEnabled = envWindowEnabled && totalRecords !== null;
+  const combinedAtTop = combinedEnabled && (totalRecords as number) < 3;
+  const combinedAtSection = combinedEnabled && (totalRecords as number) >= 3;
+  const cohort = computeCohort(user?.created_at);
 
   const sections: DashboardSection[] = [];
 
@@ -398,30 +401,48 @@ export default async function TemplateDashboard({ userId }: Props) {
     ),
   });
 
-  // 対戦環境分析（プラットフォーム全体の週次デッキ使用率・β機能）
-  sections.push({
-    id: "environment_meta",
-    label: "対戦環境分析",
-    node: (
-      <section key="environment_meta" className="flex flex-col gap-2">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold text-default-700">対戦環境分析</h2>
-          <Button
-            as={Link}
-            href="/deck_meta"
-            size="sm"
-            variant="light"
-            color="primary"
-            radius="full"
-            className="text-xs font-bold h-7 px-3"
-          >
-            詳しく見る
-          </Button>
-        </div>
-        <WeeklyDeckUsagePanel limit={5} />
-      </section>
-    ),
-  });
+  // 対戦環境分析（プラットフォーム全体の週次デッキ使用率・β機能）。
+  // 記録3件未満のユーザーは組み合わせパネルをプロフィール直下(pinned)に出すため、
+  // ここではセクションを積まない(ランキングの二重表示を避ける)。
+  // 3件以上は組み合わせパネルをこの位置に、フラグ無効・件数不明時は従来パネルをフォールバック表示。
+  if (!combinedAtTop) {
+    sections.push({
+      id: "environment_meta",
+      label: "対戦環境データ",
+      node: (
+        <section key="environment_meta" className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold text-default-700">対戦環境データ</h2>
+            {/* 「詳しく見る」(→/deck_meta)は従来パネルのフォールバック表示時のみ。
+                組み合わせパネル(3件以上)では不要なため出さない。 */}
+            {!combinedAtSection && (
+              <Button
+                as={Link}
+                href="/deck_meta"
+                size="sm"
+                variant="light"
+                color="primary"
+                radius="full"
+                className="text-xs font-bold h-7 px-3"
+              >
+                詳しく見る
+              </Button>
+            )}
+          </div>
+          {combinedAtSection ? (
+            <EnvironmentWindowCard
+              userId={userId}
+              totalRecords={totalRecords ?? 0}
+              cohortWeek={cohort.cohortWeek}
+              daysSinceSignup={cohort.daysSinceSignup}
+            />
+          ) : (
+            <WeeklyDeckUsagePanel limit={5} />
+          )}
+        </section>
+      ),
+    });
+  }
 
   // 活動ログのカレンダー
   sections.push({
@@ -484,12 +505,13 @@ export default async function TemplateDashboard({ userId }: Props) {
                   />
                 )}
                 {/*
-                  施策E-2 価値の前倒し: 記録0件のユーザーに、自分の登録デッキが環境で何位かを
-                  先出しし「予約席」で記録を促す。CTA(0-6)の直後に固定で並べる。
-                  記録が1件でも入ると showEnvWindow が false になり自動的に消える。
+                  組み合わせパネル(環境ウィンドウ E-2 ＋ 対戦環境分析): 記録3件未満のユーザーには
+                  プロフィールカードの直後(CTA 0-6 の直後)に固定で並べ、価値を前倒しで見せる。
+                  3件以上のユーザーには pinned では出さず「対戦環境分析」セクション位置に出す。
                 */}
-                {showEnvWindow && (
+                {combinedAtTop && (
                   <EnvironmentWindowCard
+                    userId={userId}
                     totalRecords={totalRecords ?? 0}
                     cohortWeek={cohort.cohortWeek}
                     daysSinceSignup={cohort.daysSinceSignup}

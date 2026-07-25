@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 
 import { Button, Card, CardBody, Chip, useDisclosure } from "@heroui/react";
-import { LuChevronRight, LuFilePen, LuLock } from "react-icons/lu";
+import { LuChevronDown, LuChevronRight, LuFilePen, LuLock } from "react-icons/lu";
 import { sendGAEvent } from "@next/third-parties/google";
 
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
@@ -14,31 +14,28 @@ import { fingerprintKey } from "@app/utils/fingerprint";
 import { rankableDecks, exclOtherTotalOf } from "@app/utils/deckEnv";
 import { lastWeekValue } from "@app/utils/week";
 import { DeckData, DeckGetResponseType } from "@app/types/deck";
+import { DeckUsageItemType, DeckUsageStatType } from "@app/types/deck_usage_stat";
 import {
   WeeklyDeckUsageItemType,
   WeeklyDeckUsageStatType,
 } from "@app/types/weekly_deck_usage_stat";
 
-// 施策E-2「環境の窓」カード。
+// 「環境ウィンドウ(E-2)」と「対戦環境分析(週次デッキ使用率)」を1枚に組み合わせたパネル。
 //
-// 記録がまだ少ないユーザー(3件未満)は、自分の勝率が貯まるまで価値を得られない(価値の後払い
-// 構造・engagement-strategy-blindspots.md §2)。そこで、既に持っているプラットフォーム全体の
-// 週次デッキ使用率(/deck_meta と同じ集計)に、ユーザー自身の登録デッキを突き合わせ、
-// 「あなたのデッキは環境◯位」を記録が貯まる前に先出しする。あわせて「あなた自身の勝率が
-// 入る空欄(予約席)」を見せ、「見る→書く」への動機に変える。
+// - 上段: 自分の登録デッキの環境上の立ち位置（環境◯位）＋「あなたの勝率 vs 環境平均勝率」の勝率比較。
+//   記録が無いデッキは空欄(予約席)、記録があるデッキは実勝率(deck-usage)を入れて差分を出す。
+// - 下段: プラットフォーム全体の使用率ランキング（5位まで＋アコーディオンで6〜10位）。週セレクタは無し。
 //
-// 複数デッキを持つユーザーは、セレクタで見たいデッキを選べる(選んだデッキの順位・予約席・
-// 当たりやすい相手に切り替わる)。突合はフロントだけで完結する(core-api 改修なし)。自分デッキの
-// pokemon_sprites からサーバと同じ規則で指紋を再計算し(fingerprint.ts)、環境各行の fingerprint と
-// 一致する行を探す。表示条件(記録3件未満・トグル有効)はサーバ側(Dashboard.tsx)で判定するため、
-// このコンポーネントは「表示すると決まったとき」だけ描画される。
+// 配置は記録数で出し分ける（Dashboard.tsx 側）: 3件未満はプロフィール直下、4件以上は「対戦環境分析」の位置。
+// 突合はフロントで完結（core-api 改修なし）。自分デッキの pokemon_sprites からサーバと同じ規則で指紋を
+// 再計算し(fingerprint.ts)、環境各行の fingerprint と一致する行を探す。
 
 type Props = {
-  // 対象ユーザーの現在の記録件数(0〜2)。予約席の文言・CTA を「まだ0件」と「1〜2件」で
-  // 出し分けるために使う。1〜2件のユーザーは勝率が既にあるが統計的に無意味な段階のため、
-  // 「まだ参考にならない」と正直に見せる(blindspots §2)。
+  // 対象ユーザーID。デッキ別の実勝率(deck-usage)を引いて「あなたの勝率 vs 環境平均勝率」を出すために使う。
+  userId: string;
+  // 対象ユーザーの現在の記録件数(0〜3にキャップ。3は「3件以上」)。CTA・予約席の文言出し分け用。
   totalRecords: number;
-  // GA 計測のラベル用。FirstRecordCtaCard と同じくコホート別に効果を見られるようにする。
+  // GA 計測のラベル用。
   cohortWeek?: string;
   daysSinceSignup?: number;
 };
@@ -53,6 +50,9 @@ type DeckPosition = {
   rank: number | null;
   row: WeeklyDeckUsageItemType | null;
 };
+
+// あなたのデッキ別の実績（deck-usage 由来）。記録が無ければ undefined。
+type OwnStat = { winRate: number; count: number };
 
 // 勝率に応じた色分け（WeeklyDeckUsagePanel・既存の統計表示と同じ閾値）。
 function winRateChipColor(rate: number): "success" | "default" | "warning" | "danger" {
@@ -69,6 +69,13 @@ function winRateTextClass(rate: number): string {
   if (color === "warning") return "text-warning";
   if (color === "danger") return "text-danger";
   return "text-default-600";
+}
+
+// ポイント差（±）を "+3.2" / "-1.5" / "±0" で表す。
+function formatDeltaPt(pt: number): string {
+  const s = Math.abs(pt).toFixed(1);
+  const trimmed = s.endsWith(".0") ? s.slice(0, -2) : s;
+  return pt === 0 ? "±0" : pt > 0 ? `+${trimmed}` : `-${trimmed}`;
 }
 
 // デッキ変種のスプライトを2枠固定で表示する（WeeklyDeckUsagePanel の DeckSprites と同じ流儀）。
@@ -181,15 +188,17 @@ function DeckRankRow({
 }
 
 // 使用率ランキングのリスト。使用率は「その他を除いた割合」(count / exclOtherTotal)で表示する。
-// 同じデッキがカード内のどの表示でも同じ%になるよう、全ランキングをこの基準に統一する。
+// startRank から連番で順位を振る（アコーディオンで 6〜10 位を出すときに使う）。
 function RankingList({
   items,
   exclOtherTotal,
+  startRank = 1,
   selectedFingerprint,
   selectedName,
 }: {
   items: WeeklyDeckUsageItemType[];
   exclOtherTotal: number;
+  startRank?: number;
   selectedFingerprint?: string;
   selectedName?: string;
 }) {
@@ -201,7 +210,7 @@ function RankingList({
         return (
           <DeckRankRow
             key={item.fingerprint}
-            rank={idx + 1}
+            rank={startRank + idx}
             item={item}
             displayRate={
               exclOtherTotal > 0 ? item.count / exclOtherTotal : item.usage_rate
@@ -212,6 +221,64 @@ function RankingList({
         );
       })}
     </div>
+  );
+}
+
+// 使用率ランキング（5位まで＋アコーディオンで6〜10位）。週セレクタは持たない。
+function UsageRankingSection({
+  ranking,
+  exclOtherTotal,
+  title,
+  subtitle = "その他を除いた割合",
+  selectedFingerprint,
+  selectedName,
+}: {
+  ranking: WeeklyDeckUsageItemType[];
+  exclOtherTotal: number;
+  title: string;
+  subtitle?: string;
+  selectedFingerprint?: string;
+  selectedName?: string;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const top5 = ranking.slice(0, 5);
+  const rest = ranking.slice(5, 10); // 6〜10位
+
+  return (
+    <>
+      <RankHeader title={title} subtitle={subtitle} />
+      <RankingList
+        items={top5}
+        exclOtherTotal={exclOtherTotal}
+        startRank={1}
+        selectedFingerprint={selectedFingerprint}
+        selectedName={selectedName}
+      />
+      {rest.length > 0 && (
+        <div className="flex flex-col gap-1.5">
+          {expanded && (
+            <RankingList
+              items={rest}
+              exclOtherTotal={exclOtherTotal}
+              startRank={6}
+              selectedFingerprint={selectedFingerprint}
+              selectedName={selectedName}
+            />
+          )}
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            aria-expanded={expanded}
+            className="flex items-center justify-center gap-1 py-1.5 text-[11px] font-bold text-default-500 hover:text-default-600"
+          >
+            <LuChevronDown
+              className={`w-3.5 h-3.5 transition-transform ${expanded ? "rotate-180" : ""}`}
+            />
+            {expanded ? "6〜10位を閉じる" : `6〜10位を見る（あと${rest.length}件）`}
+          </button>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -267,57 +334,75 @@ function DeckSelector({
   );
 }
 
-// 予約席: 環境の平均勝率（借り物・実線）と、あなたの勝率（まだ無い/参考にならない・破線）を
-// 並べて見せる。空欄を「自分の数字で埋めたい未完成」に変え、記録への動機にする。
-// 記録0件と1〜2件で文言を出し分ける（1〜2件は勝率が既にあるが統計的に無意味な段階のため、
-// 「まだ参考にならない」と正直に伝える）。
-function ReservedSeat({
+// 「あなたの勝率 vs 環境平均勝率」。環境の平均勝率（借り物）と、あなたの実勝率(deck-usage)を並べて比較する。
+// 記録がまだ無いデッキ(ownStat 無し)は「あなたの勝率」を空欄(予約席)にし、記録への動機に変える。
+function YourVsEnv({
   envWinRate,
+  ownStat,
   totalRecords,
 }: {
   envWinRate: number;
+  ownStat?: OwnStat;
   totalRecords: number;
 }) {
-  const yourSub =
-    totalRecords === 0
-      ? "あなたの記録から算出"
-      : `まだ${totalRecords}件では参考になりません`;
+  const hasOwn = ownStat != null && ownStat.count > 0;
+  const deltaPt = hasOwn ? (ownStat!.winRate - envWinRate) * 100 : 0;
+  const deltaColor =
+    deltaPt > 0 ? "text-success" : deltaPt < 0 ? "text-warning" : "text-default-500";
+
   const hint =
     totalRecords === 0
-      ? "1件記録すると、ここに「あなた vs 環境平均」が出ます"
-      : "記録を続けると、あなたの数字が環境平均と比べられるようになります";
+      ? "記録すると、ここに「あなたの勝率 vs 環境平均勝率」が出ます。"
+      : "このデッキを使用して記録すると、あなたの勝率と環境平均勝率を比べられます。";
 
   return (
     <div className="flex flex-col gap-2 rounded-xl border border-dashed border-default-300 bg-default-50 px-3 py-3">
-      <div className="flex items-center justify-between gap-3">
-        <div className="text-xs font-bold text-default-600">
-          このデッキの全体勝率
-          <span className="block text-[10px] font-medium text-default-400 mt-0.5">
-            環境の平均（借り物）
+      <div className="flex items-stretch gap-2">
+        {/* 環境平均（借り物） */}
+        <div className="flex-1 rounded-lg bg-default-100 px-3 py-2">
+          <div className="text-[10px] font-bold text-default-400">
+            このデッキの環境平均
+          </div>
+          <span
+            className={`text-lg font-black tabular-nums leading-tight ${winRateTextClass(envWinRate)}`}
+          >
+            {(envWinRate * 100).toFixed(1)}%
           </span>
         </div>
-        <span
-          className={`text-lg font-black tabular-nums ${winRateTextClass(envWinRate)}`}
-        >
-          {(envWinRate * 100).toFixed(1)}%
-        </span>
+        {/* あなたの勝率（実データ or 予約席） */}
+        <div className="flex-1 rounded-lg bg-default-100 px-3 py-2">
+          <div className="text-[10px] font-bold text-default-400">あなたの勝率</div>
+          {hasOwn ? (
+            <div className="flex items-baseline gap-1">
+              <span
+                className={`text-lg font-black tabular-nums leading-tight ${winRateTextClass(ownStat!.winRate)}`}
+              >
+                {(ownStat!.winRate * 100).toFixed(1)}%
+              </span>
+              <span className="text-[10px] font-bold text-default-400">
+                n={ownStat!.count}
+              </span>
+            </div>
+          ) : (
+            <span className="text-lg font-black tabular-nums text-default-300 tracking-widest leading-tight">
+              — —
+            </span>
+          )}
+        </div>
       </div>
-      <div className="h-px bg-default-200" />
-      <div className="flex items-center justify-between gap-3">
-        <div className="text-xs font-bold text-default-600">
-          あなたの勝率
-          <span className="block text-[10px] font-medium text-default-400 mt-0.5">
-            {yourSub}
+      {hasOwn ? (
+        <div className="flex items-center justify-center gap-1.5 rounded-lg bg-default-100/60 py-1.5">
+          <span className="text-[11px] font-bold text-default-500">環境平均より</span>
+          <span className={`text-sm font-black tabular-nums ${deltaColor}`}>
+            {formatDeltaPt(deltaPt)}pt
           </span>
         </div>
-        <span className="text-lg font-black tabular-nums text-default-300 tracking-widest">
-          — —
-        </span>
-      </div>
-      <div className="flex items-center gap-1.5 text-[11px] font-bold text-primary leading-snug">
-        <LuLock className="w-3 h-3 shrink-0" />
-        {hint}
-      </div>
+      ) : (
+        <div className="flex items-center gap-1.5 text-[11px] font-bold text-primary leading-snug">
+          <LuLock className="w-3 h-3 shrink-0" />
+          {hint}
+        </div>
+      )}
     </div>
   );
 }
@@ -392,7 +477,7 @@ function RankHeader({
   );
 }
 
-// 「記録する」CTA。表示中のデッキがランク入りか、記録が0件か1〜2件かでラベルを出し分ける。
+// 「記録する」CTA。表示中のデッキがランク入りか、記録が0件か1件以上かでラベルを出し分ける。
 function RecordCtaButton({
   ranked,
   totalRecords,
@@ -405,22 +490,33 @@ function RecordCtaButton({
   deck?: DeckData;
   onClick: () => void;
 }) {
+  const isFirst = totalRecords === 0;
   const label = ranked
-    ? totalRecords === 0
+    ? isFirst
       ? "この枠を、あなたの1戦で解錠する"
       : "もう1戦、記録する"
-    : totalRecords === 0
+    : isFirst
       ? "このデッキを使用して最初の記録を作成する"
-      : "このデッキを使用して記録を続ける";
+      : "このデッキを使用して記録を作成する";
 
-  // 選択中のデッキがあれば、そのデッキを使用デッキに選択済みの状態で記録フォーム(/records/quick)を開く。
+  // 遷移先: 記録が無いうち(オンボーディング)はクイック記録(/records/quick)、
+  // 記録がある「続ける」導線は通常の記録作成(/records/create)へ。
+  // どちらも選択中のデッキを使用デッキに設定済みの状態で開く
+  // (/records/create は deck_id・deck_code_id を読んで使用デッキをプリセットする。deck_name は使わない)。
   const href = deck
-    ? `/records/quick?${new URLSearchParams({
-        deck_id: deck.id,
-        deck_code_id: deck.latest_deck_code?.id ?? "",
-        deck_name: deck.name,
-      }).toString()}`
-    : "/records/quick";
+    ? isFirst
+      ? `/records/quick?${new URLSearchParams({
+          deck_id: deck.id,
+          deck_code_id: deck.latest_deck_code?.id ?? "",
+          deck_name: deck.name,
+        }).toString()}`
+      : `/records/create?${new URLSearchParams({
+          deck_id: deck.id,
+          deck_code_id: deck.latest_deck_code?.id ?? "",
+        }).toString()}`
+    : isFirst
+      ? "/records/quick"
+      : "/records/create";
 
   return (
     <Button
@@ -466,14 +562,13 @@ function BetaHeader({ stat }: { stat: WeeklyDeckUsageStatType }) {
   );
 }
 
-// 読み込み中のプレースホルダ。実際に描画される本体（βヘッダー → 見出し → デッキヒーロー →
-// 予約席 → ランキング見出し → ランキング行 → 記録CTA）と同じ骨格・順序・高さに合わせ、
-// 読み込み完了時のレイアウトシフトを抑える。最も情報量の多いランク入り select 表示を模す。
+// 読み込み中のプレースホルダ。本体（βヘッダー → 見出し → デッキヒーロー → 予約席 →
+// ランキング見出し → ランキング行 → 記録CTA）と同じ骨格・順序・高さに合わせ、
+// 読み込み完了時のレイアウトシフトを抑える。
 function SkeletonCard() {
   return (
     <Card className="shadow-md">
       <CardBody className="gap-3 p-4">
-        {/* BetaHeader: β機能チップ ＋ 2行テキスト */}
         <div className="flex items-start gap-2">
           <div className="h-5 w-11 rounded-full bg-default-100 animate-pulse shrink-0" />
           <div className="flex flex-1 flex-col gap-1.5 pt-0.5">
@@ -482,42 +577,34 @@ function SkeletonCard() {
           </div>
         </div>
 
-        {/* セクション見出し */}
         <div className="h-4 w-56 rounded bg-default-100 animate-pulse" />
-
-        {/* デッキヒーロー(環境順位) */}
         <div className="h-17 rounded-2xl bg-default-100 animate-pulse" />
-
-        {/* 予約席 */}
         <div className="h-31 rounded-xl bg-default-100 animate-pulse" />
 
-        {/* ランキング見出し */}
         <div className="flex items-center justify-between px-1 -mb-1">
           <div className="h-3 w-44 rounded bg-default-100 animate-pulse" />
           <div className="h-3 w-16 rounded bg-default-100 animate-pulse" />
         </div>
 
-        {/* ランキング行 */}
         <div className="flex flex-col gap-1.5">
           {[0, 1, 2].map((i) => (
             <div key={i} className="h-16.5 rounded-xl bg-default-100 animate-pulse" />
           ))}
         </div>
 
-        {/* 記録CTA ボタン */}
         <div className="h-10 rounded-full bg-default-100 animate-pulse" />
       </CardBody>
     </Card>
   );
 }
 
-// 自分の(識別可能な)デッキを選んで、その環境順位・予約席・当たりやすい相手を見せる本体。
-// 選択状態はこの中に閉じ込める（positions は常に1件以上）。
+// 自分の(識別可能な)デッキを選んで、その環境順位・あなたvs環境平均・当たりやすい相手を見せる本体。
 function SelectModeView({
   positions,
   ranking,
   exclOtherTotal,
   totalRecords,
+  ownStatByDeckId,
   onRecordClick,
   onSwitch,
 }: {
@@ -525,6 +612,7 @@ function SelectModeView({
   ranking: WeeklyDeckUsageItemType[];
   exclOtherTotal: number;
   totalRecords: number;
+  ownStatByDeckId: Map<string, OwnStat>;
   onRecordClick: () => void;
   onSwitch: () => void;
 }) {
@@ -532,6 +620,7 @@ function SelectModeView({
   const [selectedDeckId, setSelectedDeckId] = useState<string | null>(null);
   const selected = positions.find((p) => p.deck.id === selectedDeckId) ?? positions[0];
   const ranked = selected.rank != null;
+  const ownStat = ownStatByDeckId.get(selected.deck.id);
 
   function handleSelect(id: string) {
     setSelectedDeckId(id);
@@ -555,14 +644,15 @@ function SelectModeView({
       {selected.rank != null && selected.row != null ? (
         <>
           <RankedHero deck={selected.deck} rank={selected.rank} row={selected.row} />
-          <ReservedSeat envWinRate={selected.row.win_rate} totalRecords={totalRecords} />
-          <RankHeader
-            title="今週あなたが当たりやすい相手のデッキ"
-            subtitle="その他を除いた割合"
+          <YourVsEnv
+            envWinRate={selected.row.win_rate}
+            ownStat={ownStat}
+            totalRecords={totalRecords}
           />
-          <RankingList
-            items={ranking.slice(0, 5)}
+          <UsageRankingSection
+            ranking={ranking}
             exclOtherTotal={exclOtherTotal}
+            title="今週あなたが当たりやすい相手のデッキ"
             selectedFingerprint={selected.fingerprint}
             selectedName={selected.deck.name}
           />
@@ -571,8 +661,11 @@ function SelectModeView({
         <>
           <RankedOutHero deck={selected.deck} />
           <EncourageNote />
-          <RankHeader title="今週の環境 TOP3" />
-          <RankingList items={ranking.slice(0, 3)} exclOtherTotal={exclOtherTotal} />
+          <UsageRankingSection
+            ranking={ranking}
+            exclOtherTotal={exclOtherTotal}
+            title="今週の環境 使用率ランキング"
+          />
         </>
       )}
 
@@ -587,28 +680,35 @@ function SelectModeView({
 }
 
 export default function EnvironmentWindowCard({
+  userId,
   totalRecords,
   cohortWeek,
   daysSinceSignup,
 }: Props) {
   const [stat, setStat] = useState<WeeklyDeckUsageStatType | null>(null);
   const [userDecks, setUserDecks] = useState<DeckData[] | null>(null);
+  // あなたのデッキ別実績(deck-usage)。取得失敗・未対応でも致命ではないので空配列で続行する。
+  const [deckUsage, setDeckUsage] = useState<DeckUsageItemType[]>([]);
   const [failed, setFailed] = useState(false);
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
-  // 環境ランキング（公開・認証不要）と自分の登録デッキ（要ログイン）を並行取得する。
-  // どちらか一方でも失敗したら、誤情報を出さないためカードごと非表示にする。
+  // 環境ランキング（公開）・自分の登録デッキ（要ログイン）・デッキ別実績を並行取得する。
+  // 環境とデッキのどちらかが失敗したら、誤情報を出さないためカードごと非表示にする。
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
       try {
-        const [statRes, decksRes] = await Promise.all([
+        const [statRes, decksRes, usageRes] = await Promise.all([
           fetch(`/api/deck_meta/weekly_usage?week=${lastWeekValue()}`, {
             cache: "no-store",
           }),
           fetch(`/api/decks?archived=false&cursor=`, { cache: "no-store" }),
+          // deck-usage は「あなたの実勝率」を出すための補助。失敗しても本体は出すため寛容に。
+          fetch(`/api/users/${userId}/deck-usage?all_time=true`, {
+            cache: "no-store",
+          }).catch(() => null),
         ]);
 
         if (!statRes.ok || !decksRes.ok) throw new Error("fetch failed");
@@ -619,6 +719,11 @@ export default function EnvironmentWindowCard({
         if (cancelled) return;
         setStat(statData);
         setUserDecks(decksData.decks.map((d) => d.data));
+
+        if (usageRes && usageRes.ok) {
+          const usageData: DeckUsageStatType = await usageRes.json();
+          if (!cancelled) setDeckUsage(usageData.decks);
+        }
       } catch (e) {
         console.error(e);
         if (!cancelled) setFailed(true);
@@ -629,10 +734,19 @@ export default function EnvironmentWindowCard({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [userId]);
 
   // ランキング対象（「その他」= 空指紋を除く・使用率降順）。共通ロジックに集約(deckEnv)。
   const rankable = useMemo(() => (stat ? rankableDecks(stat) : []), [stat]);
+
+  // デッキID → あなたの実勝率・対戦数。予約席の「あなたの勝率 vs 環境平均勝率」に使う。
+  const ownStatByDeckId = useMemo(() => {
+    const map = new Map<string, OwnStat>();
+    for (const d of deckUsage) {
+      map.set(d.deck_id, { winRate: d.win_rate, count: d.count });
+    }
+    return map;
+  }, [deckUsage]);
 
   // 自分の登録デッキ(スプライトあり=環境上で識別可能)ごとの立ち位置。ランク入りを上位に。
   const deckPositions = useMemo<DeckPosition[]>(() => {
@@ -724,7 +838,6 @@ export default function EnvironmentWindowCard({
 
   // 「その他」を除いた割合の母数。カード内の全ランキングをこの基準で表示する(deckEnv)。
   const exclOtherTotal = exclOtherTotalOf(stat);
-  const top3 = rankable.slice(0, 3);
 
   return (
     <>
@@ -745,8 +858,11 @@ export default function EnvironmentWindowCard({
                 がここに表示されます。
               </p>
 
-              <RankHeader title="使用率ランキング" subtitle="使用率が高い順" />
-              <RankingList items={top3} exclOtherTotal={exclOtherTotal} />
+              <UsageRankingSection
+                ranking={rankable}
+                exclOtherTotal={exclOtherTotal}
+                title="使用率ランキング"
+              />
 
               <Button
                 color="primary"
@@ -766,8 +882,11 @@ export default function EnvironmentWindowCard({
               </span>
               <RankedOutHero deck={userDecks[0]} />
               <EncourageNote />
-              <RankHeader title="今週の環境 TOP3" />
-              <RankingList items={top3} exclOtherTotal={exclOtherTotal} />
+              <UsageRankingSection
+                ranking={rankable}
+                exclOtherTotal={exclOtherTotal}
+                title="今週の環境 使用率ランキング"
+              />
               <RecordCtaButton
                 ranked={false}
                 totalRecords={totalRecords}
@@ -781,6 +900,7 @@ export default function EnvironmentWindowCard({
               ranking={rankable}
               exclOtherTotal={exclOtherTotal}
               totalRecords={totalRecords}
+              ownStatByDeckId={ownStatByDeckId}
               onRecordClick={handleRecordClick}
               onSwitch={handleDeckSwitch}
             />

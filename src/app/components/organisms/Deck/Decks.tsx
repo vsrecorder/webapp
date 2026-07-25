@@ -179,12 +179,12 @@ export default function Decks({ userId, isArchived, onCreated, onEmptyChange }: 
     <div className="flex flex-col items-center space-y-3 pb-3">
       {/* 空状態：利用中 */}
       {isInitialLoaded && !isLoading && !hasMore && items.length === 0 && !isArchived && (
-        <div className="flex flex-col items-center justify-center py-10 px-4 gap-6">
+        <div className="flex flex-col items-center justify-center py-10 px-2.5 gap-6">
           {/* きずな訴求：デッキ登録を「対戦記録の管理」ではなく「デッキとのきずなを育てる第一歩」
               として動機づける。きずなLv.は過去の記録から算出されるため、早く始めるほど深くなる——
               という一点を、灯（KizunaMark）の視覚言語で伝え、詳細は /kizuna のLPへ送る。 */}
           <div className="w-full max-w-sm overflow-hidden rounded-2xl border border-amber-300/50 bg-linear-to-br from-amber-50 to-rose-50 dark:border-amber-400/20 dark:from-amber-950/40 dark:to-rose-950/30">
-            <div className="flex flex-col items-center gap-4 px-5 py-6 text-center">
+            <div className="flex flex-col items-center gap-4 px-3 py-6 text-center">
               <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/40 bg-amber-400/10 px-3 py-1 text-[11px] font-bold tracking-wider text-amber-700 dark:text-amber-300">
                 <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-amber-500" />
                 新機能「きずな」β版公開中

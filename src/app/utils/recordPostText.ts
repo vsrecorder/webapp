@@ -67,14 +67,17 @@ export function buildRecordPostText(
       results += " チ個\n";
     }
     matches.forEach((match) => {
-      // 勝敗マーク。チーム戦はチーム・個人の2つ、それ以外は個人のみを表示する
+      // 勝敗マーク。チーム戦はチーム・個人の2つ、それ以外は個人のみを表示する。
+      // 両者引き分け(BO3のみ)は 🔺 で表す。
       const victory = match.group_match_flg
         ? `${match.group_match_victory_flg ? "⭕" : "❌"}${
             match.victory_flg ? "⭕" : "❌"
           }`
-        : match.victory_flg
-          ? "⭕"
-          : "❌";
+        : match.draw_flg
+          ? "🔺"
+          : match.victory_flg
+            ? "⭕"
+            : "❌";
       const go_first =
         match.default_victory_flg || match.default_defeat_flg
           ? "　"

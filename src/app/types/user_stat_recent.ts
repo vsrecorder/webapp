@@ -6,6 +6,7 @@ export type RecentMatchItemType = {
   deck_id: string;
   opponents_deck_info: string;
   victory: boolean;
+  draw: boolean;
   rolling_win_rate: number;
   environment_id?: string;
   environment_title?: string;

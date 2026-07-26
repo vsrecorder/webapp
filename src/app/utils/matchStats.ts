@@ -16,7 +16,7 @@ export async function fetchMatchesByRecordId(
   return res.json();
 }
 
-export type MatchResult = "win" | "loss";
+export type MatchResult = "win" | "loss" | "draw";
 
 // チーム戦(group_match_flg)の対戦だけを集計した、チームとしての勝敗。
 // チーム戦を含まない記録では total が 0 になる。
@@ -52,9 +52,11 @@ export type MatchStats = {
   wins: number;
   // 負け数
   losses: number;
+  // 両者引き分け数(BO3のみ)
+  draws: number;
   // 総対戦数
   total: number;
-  // 勝率(0〜100の整数。総対戦数0のときは0)
+  // 勝率(0〜100の整数。引き分けは分母から除外する。決着0件のときは0)
   winRate: number;
   // 勝敗の時系列(1戦目 → 最終戦の順)
   results: MatchResult[];
@@ -73,11 +75,17 @@ export type MatchStats = {
  * 対象で、チーム側はチーム戦の対戦だけが対象になる(分母が異なりうる)。
  */
 export function summarizeMatches(matches: MatchGetResponseType[]): MatchStats {
-  const results: MatchResult[] = matches.map((m) => (m.victory_flg ? "win" : "loss"));
+  // 両者引き分け(BO3のみ)は勝ちでも負けでもない第3の結果として扱う。
+  const results: MatchResult[] = matches.map((m) =>
+    m.draw_flg ? "draw" : m.victory_flg ? "win" : "loss",
+  );
   const wins = results.filter((r) => r === "win").length;
+  const draws = results.filter((r) => r === "draw").length;
   const total = results.length;
-  const losses = total - wins;
-  const winRate = total > 0 ? Math.round((wins / total) * 100) : 0;
+  const losses = total - wins - draws;
+  // 勝率は引き分けを分母から除外する(勝ち/(勝ち+負け))。
+  const decided = wins + losses;
+  const winRate = decided > 0 ? Math.round((wins / decided) * 100) : 0;
 
   const teamMatches = matches.filter((m) => m.group_match_flg);
   const teamTotal = teamMatches.length;
@@ -103,6 +111,7 @@ export function summarizeMatches(matches: MatchGetResponseType[]): MatchStats {
   return {
     wins,
     losses,
+    draws,
     total,
     winRate,
     results,

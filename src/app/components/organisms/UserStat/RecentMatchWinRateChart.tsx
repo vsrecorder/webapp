@@ -236,8 +236,15 @@ export default function RecentMatchWinRateChart({ userId }: Props) {
     }
 
     if (tooltipResultRef.current) {
-      tooltipResultRef.current.textContent = d.victory ? "勝ち" : "負け";
-      tooltipResultRef.current.className = `font-black text-[11px] ${d.victory ? "text-success" : "text-danger"}`;
+      // 両者引き分け(BO3のみ)はニュートラル色で「引き分け」と表示する
+      tooltipResultRef.current.textContent = d.draw
+        ? "引き分け"
+        : d.victory
+          ? "勝ち"
+          : "負け";
+      tooltipResultRef.current.className = `font-black text-[11px] ${
+        d.draw ? "text-default-500" : d.victory ? "text-success" : "text-danger"
+      }`;
     }
     if (tooltipOpponentRef.current)
       tooltipOpponentRef.current.textContent = `対${d.opponents_deck_info || "不明"}`;
@@ -299,8 +306,12 @@ export default function RecentMatchWinRateChart({ userId }: Props) {
         borderColor: "#F5A524",
         backgroundColor: "rgba(245, 165, 36, 0.08)",
         borderWidth: 2,
-        pointBackgroundColor: (ctx: { dataIndex: number }) =>
-          chartDataRef.current[ctx.dataIndex]?.victory ? "#17C964" : "#F31260",
+        pointBackgroundColor: (ctx: { dataIndex: number }) => {
+          const d = chartDataRef.current[ctx.dataIndex];
+          // 引き分け(BO3のみ)はグレー、勝ち=緑、負け=赤
+          if (d?.draw) return "#A1A1AA";
+          return d?.victory ? "#17C964" : "#F31260";
+        },
         pointRadius: 4,
         pointHoverRadius: 6,
         pointHitRadius: 24,

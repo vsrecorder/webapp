@@ -57,6 +57,7 @@ import {
   newGameInputs,
   submittedGames,
   bo3VictoryFlg,
+  bo3DrawFlg,
   isBO3GamesFilled,
   toGameInputs,
 } from "@app/utils/bo3";
@@ -581,8 +582,10 @@ export default function UpdateMatchModal({
       pokemon_sprites.push({ id: pokemonSprite2.id, position: 2 });
     }
 
-    // BO3の対戦全体の勝敗はゲームの勝敗から導出する（不戦勝/不戦敗はトグルの値を使う）
+    // BO3の対戦全体の勝敗はゲームの勝敗から導出する（不戦勝/不戦敗はトグルの値を使う）。
+    // 両者引き分け(ダブルドロー)はBO3でのみ発生する。
     const victoryFlg = isBO3 && !isDefault ? bo3VictoryFlg(bo3Games) : isVictory === "1";
+    const drawFlg = isBO3 && !isDefault ? bo3DrawFlg(bo3Games) : false;
 
     const data: MatchUpdateRequestType = {
       record_id: match?.record_id ?? "",
@@ -596,6 +599,7 @@ export default function UpdateMatchModal({
       default_victory_flg: isDefaultVictory,
       default_defeat_flg: isDefaultDefeat,
       victory_flg: victoryFlg,
+      draw_flg: drawFlg,
       // チーム戦のときのみチームの勝敗を設定（個人戦では常に false）
       // 不戦勝の場合はチームも勝ちとして扱う
       group_match_victory_flg:

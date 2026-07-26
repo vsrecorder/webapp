@@ -133,7 +133,8 @@ export default function RecordStatPanel({
                 />
               </div>
             ) : (
-              // 通常戦: 勝/敗を並列のタイルとして読ませる
+              // 通常戦: 勝/敗を並列のタイルとして読ませる。
+              // 両者引き分け(BO3のみ)がある記録では「分」タイルも追加する。
               <div className="mt-2.5 flex w-full items-stretch border-t border-divider pt-2.5">
                 <div className="flex flex-1 flex-col items-center leading-none">
                   <span className="text-lg font-bold tabular-nums text-success">
@@ -148,6 +149,19 @@ export default function RecordStatPanel({
                   </span>
                   <span className="mt-1 text-[9px] font-bold text-default-500">敗</span>
                 </div>
+                {stats.draws > 0 && (
+                  <>
+                    <span aria-hidden className="w-px self-stretch bg-divider" />
+                    <div className="flex flex-1 flex-col items-center leading-none">
+                      <span className="text-lg font-bold tabular-nums text-default-500">
+                        {stats.draws}
+                      </span>
+                      <span className="mt-1 text-[9px] font-bold text-default-500">
+                        分
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </>

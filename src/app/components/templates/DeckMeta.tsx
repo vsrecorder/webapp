@@ -11,7 +11,7 @@ export default function TemplateDeckMeta() {
     <>
       <ScrollUpFloating />
       <div className="pt-6 pb-6 w-full">
-        <div className="mx-auto w-full max-w-2xl px-3 flex flex-col gap-5">
+        <div className="mx-auto w-full max-w-2xl px-1.5 pb-15 flex flex-col gap-5">
           {/* ページヘッダー */}
           <div className="flex items-start gap-3">
             <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-primary/15 text-primary shrink-0">

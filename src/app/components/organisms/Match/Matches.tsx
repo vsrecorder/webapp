@@ -161,6 +161,9 @@ function matchRowGradientClass(match: MatchGetResponseType): string {
       return "bg-linear-to-r from-danger/15 to-success/15 dark:from-danger/20 dark:to-success/20";
     return "bg-linear-to-r from-danger/10 to-danger/10 dark:from-danger/15 dark:to-danger/15";
   }
+  // 両者引き分け(BO3のみ)はニュートラル色。勝ちでも負けでもないことを表す。
+  if (match.draw_flg)
+    return "bg-linear-to-r from-default-300/25 to-transparent dark:from-default-300/20";
   return match.victory_flg
     ? "bg-linear-to-r from-success/10 to-transparent dark:from-success/15"
     : "bg-linear-to-r from-danger/10 to-transparent dark:from-danger/15";
@@ -472,12 +475,18 @@ export default function Matches({
                                           ) : (
                                             <span
                                               className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-base font-bold ${
-                                                match.victory_flg
-                                                  ? "bg-success/15 text-success"
-                                                  : "bg-danger/15 text-danger"
+                                                match.draw_flg
+                                                  ? "bg-default-300/40 text-default-600"
+                                                  : match.victory_flg
+                                                    ? "bg-success/15 text-success"
+                                                    : "bg-danger/15 text-danger"
                                               }`}
                                             >
-                                              {match.victory_flg ? "W" : "L"}
+                                              {match.draw_flg
+                                                ? "D"
+                                                : match.victory_flg
+                                                  ? "W"
+                                                  : "L"}
                                             </span>
                                           )}
 
@@ -617,6 +626,7 @@ export default function Matches({
                                                             <GameStreak
                                                               games={match.games}
                                                               size={11}
+                                                              isDraw={match.draw_flg}
                                                             />
                                                           </Chip>
                                                         </>

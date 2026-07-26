@@ -37,6 +37,9 @@ export function RecordCardSkeleton({ className = "" }: { className?: string }) {
             <Skeleton className="w-1 shrink-0 rounded-none" />
 
             <div className="flex-1 px-4 py-3.5 min-w-0">
+              {/* 集計対象外マークは大半の記録に無いため、スケルトンは
+                  マーク無しカードの表示に合わせて枠を設けない */}
+
               {/* 開催日 */}
               <Skeleton className="h-3.5 w-28 rounded-md" />
 

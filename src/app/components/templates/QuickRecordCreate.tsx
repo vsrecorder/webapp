@@ -381,6 +381,7 @@ export default function TemplateQuickRecordCreate({
         default_victory_flg: false,
         default_defeat_flg: false,
         victory_flg: victory,
+        draw_flg: false,
         group_match_victory_flg: false,
         opponents_deck_info: opponentsDeckInfo.trim(),
         memo: memo,

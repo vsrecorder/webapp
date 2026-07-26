@@ -55,6 +55,7 @@ export type CalendarMatchEvent = {
   default_victory_flg: boolean;
   default_defeat_flg: boolean;
   victory_flg: boolean;
+  draw_flg: boolean;
   // 不戦勝/不戦敗の場合は対局データが無いため null
   go_first: boolean | null;
   your_prize_cards: number | null;

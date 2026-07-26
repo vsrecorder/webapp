@@ -35,6 +35,7 @@ type CalendarApiMatch = {
   default_victory_flg: boolean;
   default_defeat_flg: boolean;
   victory_flg: boolean;
+  draw_flg: boolean;
   memo: string;
   games: CalendarApiGame[];
   pokemon_sprites: MatchPokemonSpriteType[];
@@ -327,6 +328,7 @@ function buildCalendarData(calendar: CalendarApiResponse): CalendarDataType {
         opponents_deck_info: match.opponents_deck_info,
         opponents_pokemon_sprites: match.pokemon_sprites ?? [],
         default_victory_flg: match.default_victory_flg,
+        draw_flg: match.draw_flg,
         default_defeat_flg: match.default_defeat_flg,
         victory_flg: match.victory_flg,
         go_first: firstGame ? firstGame.go_first : null,

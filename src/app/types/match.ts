@@ -16,6 +16,7 @@ export type MatchType = {
   default_victory_flg: boolean;
   default_defeat_flg: boolean;
   victory_flg: boolean;
+  draw_flg: boolean;
   group_match_victory_flg: boolean;
   opponents_deck_info: string;
   memo: string;
@@ -35,6 +36,7 @@ export type MatchCreateRequestType = {
   default_victory_flg: boolean;
   default_defeat_flg: boolean;
   victory_flg: boolean;
+  draw_flg: boolean;
   group_match_victory_flg: boolean;
   opponents_deck_info: string;
   memo: string;
@@ -54,6 +56,7 @@ export type MatchUpdateRequestType = {
   default_victory_flg: boolean;
   default_defeat_flg: boolean;
   victory_flg: boolean;
+  draw_flg: boolean;
   group_match_victory_flg: boolean;
   opponents_deck_info: string;
   memo: string;

@@ -35,6 +35,8 @@ type Props = {
   // 対戦の勝敗数(デッキ行の右端に表示)
   winCount?: number;
   lossCount?: number;
+  // 両者引き分け数(BO3のみ。0のときは表示しない)
+  drawCount?: number;
   // 対戦結果にチーム戦が1つでも含まれるか(勝敗の左横にバッジ表示)
   hasGroupMatch?: boolean;
   // 対戦結果にBO3が1つでも含まれるか(勝敗の左横にバッジ表示)
@@ -65,12 +67,14 @@ export default function RecordCardBase({
   infoRowAboveDeck,
   winCount,
   lossCount,
+  drawCount,
   hasGroupMatch,
   hasBo3,
   loadingMatches,
   ignoreStatsFlg,
 }: Props) {
-  const hasMatchResult = (winCount ?? 0) + (lossCount ?? 0) > 0;
+  const hasMatchResult =
+    (winCount ?? 0) + (lossCount ?? 0) + (drawCount ?? 0) > 0;
   const matchResultColorClass =
     (winCount ?? 0) > (lossCount ?? 0)
       ? "text-success"
@@ -98,9 +102,10 @@ export default function RecordCardBase({
         shadow="none"
         className="relative border border-divider overflow-hidden hover:border-primary/50 transition-colors duration-200"
       >
-        {/* カード右上のバッジ群(チーム戦/BO3/集計対象外)。対戦結果の集計後に確定するものを横並びで表示 */}
-        {(hasGroupMatch || hasBo3 || ignoreStatsFlg) && (
-          <div className="absolute right-2 top-2 z-10 flex items-center gap-1.5">
+        {/* カード右上のバッジ群(チーム戦/BO3)。対戦結果の集計後に確定するものを横並びで表示。
+            右端は勝敗マーク(デッキ行の px-4)と同じ 16px ガターに揃える */}
+        {(hasGroupMatch || hasBo3) && (
+          <div className="absolute right-4 top-2 z-10 flex items-center gap-1.5">
             {/* チーム戦が1つでも含まれる場合に表示(文字色は対戦結果一覧のチーム戦タグと統一) */}
             {hasGroupMatch && (
               <span className="text-[10px] font-bold shrink-0 rounded-md border px-1.5 py-0.5 text-secondary border-secondary/40 bg-secondary/10">
@@ -113,36 +118,6 @@ export default function RecordCardBase({
                 BO3
               </span>
             )}
-            {ignoreStatsFlg && (
-              <Popover placement="bottom-end">
-                <PopoverTrigger>
-                  <button
-                    type="button"
-                    onClick={(e) => e.stopPropagation()}
-                    aria-label="集計対象外の詳細を表示"
-                  >
-                    <Chip
-                      size="sm"
-                      variant="flat"
-                      color="warning"
-                      className="h-5 text-[10px] font-bold"
-                    >
-                      ⚠ 集計対象外
-                    </Chip>
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent onClick={(e) => e.stopPropagation()}>
-                  <div className="px-1 py-2 max-w-64 flex flex-col gap-1">
-                    <span className="text-sm font-bold text-warning">
-                      ⚠ この記録は分析・集計の対象外です
-                    </span>
-                    <span className="text-xs text-default-500">
-                      勝率・使用デッキ分析・相手デッキ分布・週次レポートから除外されています
-                    </span>
-                  </div>
-                </PopoverContent>
-              </Popover>
-            )}
           </div>
         )}
 
@@ -152,6 +127,42 @@ export default function RecordCardBase({
             <div className={`w-1 shrink-0 ${accentColorClass}`} />
 
             <div className="flex-1 px-4 py-3.5 min-w-0">
+              {/* 集計対象外マーク。日付の上に表示する。
+                  マークが無いカードには余白を出さないため、対象外のときだけ枠ごと描画する
+                  (この場合、マークの有無でカードの高さはずれる) */}
+              {ignoreStatsFlg && (
+                <div className="flex h-5 items-center mb-1">
+                  <Popover placement="bottom-start">
+                    <PopoverTrigger>
+                      <button
+                        type="button"
+                        onClick={(e) => e.stopPropagation()}
+                        aria-label="集計対象外の詳細を表示"
+                      >
+                        <Chip
+                          size="sm"
+                          variant="flat"
+                          color="warning"
+                          className="h-5 text-[10px] font-bold"
+                        >
+                          ⚠ 集計対象外
+                        </Chip>
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent onClick={(e) => e.stopPropagation()}>
+                      <div className="px-1 py-2 max-w-64 flex flex-col gap-1">
+                        <span className="text-sm font-bold text-warning">
+                          ⚠ この記録は分析・集計の対象外です
+                        </span>
+                        <span className="text-xs text-default-500">
+                          勝率・使用デッキ分析・相手デッキ分布・週次レポートから除外されています
+                        </span>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              )}
+
               {/* 開催日 */}
               <span className="text-xs text-default-500">{date}</span>
 
@@ -222,6 +233,7 @@ export default function RecordCardBase({
                           className={`text-xs font-bold shrink-0 rounded-md border px-1.5 py-0.5 ${matchResultColorClass} ${matchResultBorderColorClass} ${matchResultBgColorClass}`}
                         >
                           {winCount}勝{lossCount}敗
+                          {(drawCount ?? 0) > 0 && `${drawCount}分`}
                         </span>
                       </div>
                     ) : (

@@ -1,10 +1,12 @@
 import { MatchGetResponseType } from "@app/types/match";
 
-// 対戦一覧から勝敗数を集計する
+// 対戦一覧から勝敗数を集計する。
+// 両者引き分け(BO3のみ)は勝ちでも負けでもないため、draws として分けて数える。
 export function countMatchResults(matches: MatchGetResponseType[]) {
   const wins = matches.filter((m) => m.victory_flg).length;
-  const losses = matches.length - wins;
-  return { wins, losses, total: matches.length };
+  const draws = matches.filter((m) => m.draw_flg).length;
+  const losses = matches.length - wins - draws;
+  return { wins, losses, draws, total: matches.length };
 }
 
 // 対戦一覧にチーム戦(group_match_flg)が1つでも含まれるか判定する

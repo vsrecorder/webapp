@@ -68,9 +68,7 @@ function RankDelta({ rank, previousRank }: { rank: number; previousRank?: number
 
   const diff = previousRank - rank;
   if (diff === 0) {
-    return (
-      <span className="text-[9px] font-bold text-default-300 leading-none">－</span>
-    );
+    return <span className="text-[9px] font-bold text-default-300 leading-none">－</span>;
   }
 
   const up = diff > 0;
@@ -274,7 +272,7 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
 
   return (
     <Card className="shadow-md">
-      <CardBody className="gap-4 p-4">
+      <CardBody className="gap-4 p-3">
         {/* β機能の注記 */}
         <div className="flex items-center gap-2">
           <Chip
@@ -488,9 +486,7 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
                     </div>
                     {/* 使用率を主指標として大きく強調表示する */}
                     {isExcluded ? (
-                      <span className="text-right text-xs font-bold text-default-400 leading-none">
-                        集計対象外
-                      </span>
+                      <span className="text-right text-xs font-bold text-default-400 leading-none"></span>
                     ) : (
                       <span className="text-right text-lg font-black tabular-nums text-default-700 leading-none">
                         {(displayRate! * 100).toFixed(1)}
@@ -535,7 +531,8 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
                       color={isOther ? "default" : winRateChipColor(deck.win_rate)}
                       classNames={{
                         base: "h-5 w-full max-w-none px-0",
-                        content: "w-full text-center text-[9px] font-bold tabular-nums px-0",
+                        content:
+                          "w-full text-center text-[9px] font-bold tabular-nums px-0",
                       }}
                     >
                       勝率 {(deck.win_rate * 100).toFixed(1)}%

@@ -50,15 +50,13 @@ import {
 import { getSpriteBySlot } from "@app/utils/spriteSlot";
 import { isIOS } from "@app/utils/platform";
 import { closingPassthroughClassNames } from "@app/utils/modal";
-import {
-  MAX_OPPONENTS_DECK_INFO_LENGTH,
-  exceedsTextLength,
-} from "@app/utils/textLength";
+import { MAX_OPPONENTS_DECK_INFO_LENGTH, exceedsTextLength } from "@app/utils/textLength";
 import {
   GameInput,
   newGameInputs,
   submittedGames,
   bo3VictoryFlg,
+  bo3DrawFlg,
   isBO3GamesFilled,
 } from "@app/utils/bo3";
 
@@ -261,10 +259,7 @@ export default function CreateMatchModal({
   // 出現回数の多い順に並んだ自身のデッキ履歴（上位 MAX_DECK_HISTORY_CANDIDATES 件、不戦勝/不戦敗を除外）
   const deckHistories = useMemo<DeckHistory[]>(() => {
     if (!recentMatches) return [];
-    return aggregateDeckHistories(recentMatches).slice(
-      0,
-      MAX_DECK_HISTORY_CANDIDATES,
-    );
+    return aggregateDeckHistories(recentMatches).slice(0, MAX_DECK_HISTORY_CANDIDATES);
   }, [recentMatches]);
 
   // 自身の履歴が上限に満たない場合のみ、他ユーザの直近100件を取得して不足分の水増しに使う
@@ -359,7 +354,6 @@ export default function CreateMatchModal({
     // フォームが消えてしまうため、実行中はドラッグを受け付けない
     { disabled: isSubmitting },
   );
-
 
   useEffect(() => {
     if (qualifyingRoundFlg && finalTournamentFlg) {
@@ -506,8 +500,10 @@ export default function CreateMatchModal({
       pokemon_sprites.push({ id: pokemonSprite2.id, position: 2 });
     }
 
-    // BO3の対戦全体の勝敗はゲームの勝敗から導出する（不戦勝/不戦敗はトグルの値を使う）
+    // BO3の対戦全体の勝敗はゲームの勝敗から導出する（不戦勝/不戦敗はトグルの値を使う）。
+    // 両者引き分け(ダブルドロー)はBO3でのみ発生する。
     const victoryFlg = isBO3 && !isDefault ? bo3VictoryFlg(bo3Games) : isVictory === "1";
+    const drawFlg = isBO3 && !isDefault ? bo3DrawFlg(bo3Games) : false;
 
     const match: MatchCreateRequestType = {
       record_id: record ? record.id : "",
@@ -521,6 +517,7 @@ export default function CreateMatchModal({
       default_victory_flg: isDefaultVictory,
       default_defeat_flg: isDefaultDefeat,
       victory_flg: victoryFlg,
+      draw_flg: drawFlg,
       // チーム戦のときのみチームの勝敗を設定（個人戦では常に false）
       // 不戦勝の場合はチームも勝ちとして扱う
       group_match_victory_flg:
@@ -1005,7 +1002,7 @@ export default function CreateMatchModal({
                     {renderMatchForm("bo1")}
                   </Tab>
                   {/* BO3は一旦提供を停止しているため無効化する */}
-                  <Tab key="bo3" title="BO3(準備中)" isDisabled>
+                  <Tab key="bo3" title="BO3">
                     {renderMatchForm("bo3")}
                   </Tab>
                   <Tab key="team" title="チーム戦">

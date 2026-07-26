@@ -236,7 +236,7 @@ export default function UnofficialEventRecord({
     return;
   }
 
-  const { wins, losses } = countMatchResults(matches);
+  const { wins, losses, draws } = countMatchResults(matches);
 
   // 開催日は records.event_date(ユーザ入力値)を優先し、
   // 未設定(ゼロ値)の場合は unofficial_events.date または記録の作成日へフォールバックする。
@@ -292,6 +292,7 @@ export default function UnofficialEventRecord({
         loadingDeck={loadingDeck}
         winCount={wins}
         lossCount={losses}
+        drawCount={draws}
         hasGroupMatch={hasGroupMatch(matches)}
         hasBo3={hasBo3Match(matches)}
         loadingMatches={loadingMatches}

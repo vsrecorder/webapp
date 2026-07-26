@@ -239,7 +239,7 @@ export default function TonamelEventRecord({
     return;
   }
 
-  const { wins, losses } = countMatchResults(matches);
+  const { wins, losses, draws } = countMatchResults(matches);
 
   const dateStr =
     record?.event_date && !record.event_date.startsWith("0001-01-01")
@@ -294,6 +294,7 @@ export default function TonamelEventRecord({
         loadingDeck={loadingDeck}
         winCount={wins}
         lossCount={losses}
+        drawCount={draws}
         hasGroupMatch={hasGroupMatch(matches)}
         hasBo3={hasBo3Match(matches)}
         loadingMatches={loadingMatches}

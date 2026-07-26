@@ -88,7 +88,7 @@ export default function BO3GamesInput({ games, onChange, isDisabled }: Props) {
         <CardBody className="overflow-visible flex flex-col gap-2 py-2">
           {/* min-h を固定し、「引き分けに戻す」ボタンの表示/非表示で行の高さが
               変わって下の要素がずれないようにする */}
-          <div className="flex min-h-[24px] items-center justify-between gap-2">
+          <div className="flex min-h-6 items-center justify-between gap-2">
             <span className="w-fit rounded-md bg-default-200 px-1.5 py-0.5 text-[10px] font-bold text-default-600">
               {index + 1}本目
             </span>

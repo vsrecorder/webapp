@@ -26,6 +26,7 @@ import {
   LuCopy,
   LuCheck,
 } from "react-icons/lu";
+import { FaXTwitter } from "react-icons/fa6";
 
 import { handleSignOut } from "@app/handlers/handleSignOut";
 
@@ -37,6 +38,7 @@ import { CUSTOMIZE_QUERY_PARAM } from "@app/components/organisms/Dashboard/Dashb
 import { rankForTier, NO_RANK_IMAGE } from "@app/utils/designationRank";
 
 const CONTACT_FORM_URL = "https://forms.gle/pN8vUF9sQMPnZWc5A";
+const X_ACCOUNT_URL = "https://x.com/vsrecorder_mobi";
 
 type Props = {
   user: UserType;
@@ -197,10 +199,23 @@ export default function UserMenu({ user, iconUrl, isDevEnv }: Props) {
 
           <DropdownSection aria-label="サポート">
             <DropdownItem
+              key="x-account"
+              color="default"
+              startContent={<FaXTwitter className="w-4 h-4" />}
+              endContent={<LuExternalLink className="w-4 h-4 text-default-300" />}
+              description="最新情報やアップデートをお知らせ"
+              onPress={() => {
+                window.open(X_ACCOUNT_URL, "_blank", "noopener,noreferrer");
+              }}
+            >
+              公式Xアカウント
+            </DropdownItem>
+            <DropdownItem
               key="contact"
               color="default"
               startContent={<LuMessageCircle className="w-4 h-4" />}
               endContent={<LuExternalLink className="w-4 h-4 text-default-300" />}
+              description="不具合の報告など"
               onPress={() => {
                 window.open(CONTACT_FORM_URL, "_blank", "noopener,noreferrer");
               }}

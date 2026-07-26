@@ -147,8 +147,8 @@ export default function TemplateDecks({ userId }: Props) {
           </Tabs>
         )}
         {/* 最下部のカードがフローティングボタン（＋/トップへ戻る）と重ならないよう余白を確保するが、
-            デッキが少なく1画面に収まるときは余白を出さず、空白へスクロールできてしまうのを防ぐ
-            （FloatingButtonClearance がコンテンツの溢れを検知して余白を出し分ける）。 */}
+            末尾がボタンに掛からないときは余白を出さず、空白へスクロールできてしまうのを防ぐ
+            （FloatingButtonClearance が不足分だけ余白を出し分ける）。 */}
         <div className="pt-2 lg:pb-6 lg:max-w-4xl lg:mx-auto">
           <Decks
             key={`${selectedKey}-${refreshKey}`}

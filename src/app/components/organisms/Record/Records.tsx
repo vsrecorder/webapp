@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback, Fragment } from "react";
-import { createPortal } from "react-dom";
 
 import { Spinner } from "@heroui/spinner";
 import { Button, Link } from "@heroui/react";
 
+import ScreenLockLoading from "@app/components/atoms/ScreenLockLoading";
+import { useScreenLockLoading } from "@app/hooks/useScreenLockLoading";
 import OfficialEventRecord from "@app/components/organisms/Record/OfficialEventRecord";
 import TonamelEventRecord from "@app/components/organisms/Record/TonamelEventRecord";
 import UnofficialEventRecord from "@app/components/organisms/Record/UnofficialEventRecord";
@@ -127,23 +128,41 @@ export default function Records({
   const [hasMore, setHasMore] = useState(true);
   const [isInitialLoaded, setIsInitialLoaded] = useState(false);
   const [pendingReopenId, setPendingReopenId] = useState<string | null>(null);
-  const scrollToIdRef = useRef<string | null>(null);
+  // この一覧インスタンスの描画範囲。再開時に対象カードを探す起点にする。
+  const listRef = useRef<HTMLDivElement>(null);
+  /*
+   * 再開が済むまで画面全体をローディングで覆う（デッキ一覧の再開時と同じ共通フック）。
+   *
+   * pendingReopenId とは別に持つ。pendingReopenId はカード側がモーダルを開く直前に
+   * null になるが、対象カードへの自動スクロールはその後に走るため、それに合わせて
+   * 覆いを外すと「勝手にスクロールする様子」が見えてしまう。
+   * 覆いは自動スクロールとモーダルが開き切るところまで残す。
+   */
+  const {
+    isLocked: isReopening,
+    lock: lockScreen,
+    release: releaseScreen,
+  } = useScreenLockLoading();
 
-  // カード側からモーダルを開く直前に呼ばれるコールバック
-  const handleReopenComplete = useCallback((id: string) => {
-    scrollToIdRef.current = id;
-    setPendingReopenId(null);
-  }, []);
-
-  // スピナーが消えた後（= pendingReopenId が null になった後）にスクロール実行
-  useEffect(() => {
-    if (pendingReopenId !== null) return;
-    const id = scrollToIdRef.current;
-    if (!id) return;
-    scrollToIdRef.current = null;
-    requestAnimationFrame(() => {
-      const el = document.getElementById(`record-card-${id}`);
+  /*
+   * 対象カードの位置まで移動する。
+   *
+   * 記録モーダルが開くより前に、同期的に呼ぶこと。モーダルが開くと背面が
+   * position:fixed で固定され（useModalBackgroundScrollLock）、文書のスクロール範囲が
+   * ビューポート寸法まで縮むため、以降 window.scrollTo は 0 に丸められて効かなくなる。
+   * 併せて、そのとき固定される位置＝モーダルを閉じたときの戻り先になるので、
+   * ここで合わせておくと閉じた後も対象カードが同じ位置に残る。
+   *
+   * 覆いの下で動かすので、なめらかに見せる必要はなく瞬間移動（behavior:auto）にする。
+   */
+  const scrollToCard = useCallback(
+    (id: string) => {
+      // 記録一覧では「すべて」タブと種別タブが同時にマウントされ、同じ記録のカードが
+      // 同じ id で重複して存在しうる。document 全体から引くと非表示タブ側の
+      // カード（位置が取れない）を掴んでしまうため、この一覧の中だけから探す。
+      const el = listRef.current?.querySelector<HTMLElement>(`[id="record-card-${id}"]`);
       if (!el) return;
+
       const container = scrollContainerRef?.current;
       if (container) {
         // モーダル内：ModalBody（コンテナ）をスクロールする。
@@ -151,14 +170,26 @@ export default function Records({
         const elRect = el.getBoundingClientRect();
         const containerRect = container.getBoundingClientRect();
         const y = container.scrollTop + (elRect.top - containerRect.top) - 56;
-        container.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+        container.scrollTo({ top: Math.max(0, y), behavior: "auto" });
       } else {
         // 通常ページ：window をスクロールする。
         const y = el.getBoundingClientRect().top + window.scrollY - 80;
-        window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+        window.scrollTo({ top: Math.max(0, y), behavior: "auto" });
       }
-    });
-  }, [pendingReopenId, scrollContainerRef]);
+    },
+    [scrollContainerRef],
+  );
+
+  // カード側からモーダルを開く直前に呼ばれるコールバック。
+  // 覆いは外さず、モーダルが開き切るまで（350ms）残す。
+  const handleReopenComplete = useCallback(
+    (id: string) => {
+      scrollToCard(id);
+      setPendingReopenId(null);
+      releaseScreen(350);
+    },
+    [scrollToCard, releaseScreen],
+  );
 
   const loadMore = useCallback(async () => {
     if (isLoading || !hasMore) return;
@@ -212,7 +243,16 @@ export default function Records({
         setIsInitialLoaded(true);
       }
     }
-  }, [apiEventType, deck_id, nextCursor, isLoading, hasMore, isInitialLoaded, items.length, limit]);
+  }, [
+    apiEventType,
+    deck_id,
+    nextCursor,
+    isLoading,
+    hasMore,
+    isInitialLoaded,
+    items.length,
+    limit,
+  ]);
 
   useEffect(() => {
     if (isInitialLoaded) return;
@@ -225,6 +265,7 @@ export default function Records({
     //（アクティブなインスタンスとのキー奪い合いを防ぐ）。
     if (!isActive) {
       setPendingReopenId(null);
+      releaseScreen();
       return;
     }
     const id = sessionStorage.getItem("reopenModalRecordId");
@@ -232,8 +273,10 @@ export default function Records({
     // すべて表示では全種別を含むため、保存された種別に関わらず再開対象とする。
     if (id && (event_type === "all" || storedType === event_type)) {
       setPendingReopenId(id);
+      // 対象カードを探し始める時点から覆う（自動追加読み込みの間も含む）。
+      lockScreen();
     }
-  }, [event_type, isActive]);
+  }, [event_type, isActive, lockScreen, releaseScreen]);
 
   // 対象 record が描画されるまで自動ロード
   // found になったときは何もしない（カード側の handleReopenComplete が pendingReopenId を null にする）
@@ -246,11 +289,21 @@ export default function Records({
       if (hasMore) {
         loadMore();
       } else {
-        // 全件読み込んでも見つからなかった場合はスピナーを解除
+        // 全件読み込んでも見つからなかった（削除済み等）。
+        // スクロールする対象も無いので、覆いもここで外す。
         setPendingReopenId(null);
+        releaseScreen();
       }
     }
-  }, [pendingReopenId, isInitialLoaded, isLoading, items, hasMore, loadMore]);
+  }, [
+    pendingReopenId,
+    isInitialLoaded,
+    isLoading,
+    items,
+    hasMore,
+    loadMore,
+    releaseScreen,
+  ]);
 
   // 初回ロードが終わり、追加読み込みも無く、1件も無い状態を「空」として親へ通知する。
   const isEmpty = isInitialLoaded && !isLoading && !hasMore && items.length === 0;
@@ -259,20 +312,11 @@ export default function Records({
   }, [isEmpty, onEmptyChange]);
 
   return (
-    <div className="flex flex-col items-center space-y-3 pb-3">
-      {/* 対象 record を探している間はオーバーレイでスピナーを表示 */}
-      {/* createPortal で body 直下に置くことで、祖先要素の包含ブロック問題を回避しビューポート全体を覆う */}
-      {pendingReopenId &&
-        typeof document !== "undefined" &&
-        createPortal(
-          <div
-            style={{ zIndex: 9999 }}
-            className="fixed inset-0 flex items-center justify-center bg-background/80"
-          >
-            <Spinner size="lg" />
-          </div>,
-          document.body,
-        )}
+    <div ref={listRef} className="flex flex-col items-center space-y-3 pb-3">
+      {/* 対象 record を探している間から、対象カードへの自動スクロール・モーダルが
+          開き切るまでを覆い、その間の操作も受け付けないようにする
+          （デッキ一覧の再開時と同じ部品・同じ見え方に揃えている）。 */}
+      {isReopening && <ScreenLockLoading label="記録情報を開いています" />}
       {/* 空状態 */}
       {isInitialLoaded && !isLoading && !hasMore && items.length === 0 && (
         <div className="flex flex-col items-center justify-center py-10 px-4 gap-6">
@@ -418,7 +462,12 @@ export default function Records({
         )}
         {!disable_more_load && isInitialLoaded && !isLoading && hasMore && (
           <div className={`flex justify-center col-span-1 ${colSpanClass}`}>
-            <Button size="sm" radius="full" onPress={loadMore} className="w-48 max-w-full">
+            <Button
+              size="sm"
+              radius="full"
+              onPress={loadMore}
+              className="w-48 max-w-full"
+            >
               <div className="flex items-center gap-1">
                 <span className="text-xs">
                   <LuCirclePlus />

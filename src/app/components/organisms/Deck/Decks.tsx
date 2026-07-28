@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useState, useCallback } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useCallback } from "react";
 
 import NextLink from "next/link";
 
@@ -98,6 +98,10 @@ type Props = {
   // マウントされず再開できないため、このタブでだけ自動で追加読み込みする。
   // 対象タブ以外が担うと、見つからないまま再開フラグを捨ててしまうので親が判定する。
   isReopenTargetTab?: boolean;
+  // 再開の一連の処理（自動追加読み込み→対象デッキへの自動スクロール）が
+  // 終わったことを親へ一度だけ通知する。見つからなかった場合・取得に失敗した場合も
+  // 「これ以上は待たない」ことを伝えるために呼ぶ（親はこれで画面の覆いを外す）。
+  onReopenSettled?: () => void;
 };
 
 export default function Decks({
@@ -106,6 +110,7 @@ export default function Decks({
   onCreated,
   onEmptyChange,
   isReopenTargetTab = false,
+  onReopenSettled,
 }: Props) {
   const [items, setItems] = useState<DeckType[]>([]);
   const [deckUsageStats, setDeckUsageStats] = useState<Map<string, DeckUsageItemType>>(
@@ -192,11 +197,28 @@ export default function Decks({
   // 戻り遷移で再開する対象デッキ。一覧に現れるまで自動で追加読み込みする。
   const [pendingReopenDeckId, setPendingReopenDeckId] = useState<string | null>(null);
 
+  // 再開完了の通知は一度だけ。スクロール後も items（きずな・戦績の反映など）は
+  // 更新され続けるため、通知済みかを ref で覚えておく。
+  const reopenSettledRef = useRef(false);
+  const onReopenSettledRef = useRef(onReopenSettled);
+  onReopenSettledRef.current = onReopenSettled;
+
+  const settleReopen = useCallback(() => {
+    if (reopenSettledRef.current) return;
+    reopenSettledRef.current = true;
+    onReopenSettledRef.current?.();
+  }, []);
+
   useEffect(() => {
     if (!isReopenTargetTab) return;
     const id = sessionStorage.getItem(REOPEN_DECK_MODAL_DECK_ID);
-    if (id) setPendingReopenDeckId(id);
-  }, [isReopenTargetTab]);
+    if (id) {
+      setPendingReopenDeckId(id);
+    } else {
+      // 再開対象が無い（既に消費済み等）。待つものが無いので親を待たせない。
+      settleReopen();
+    }
+  }, [isReopenTargetTab, settleReopen]);
 
   // 対象デッキが一覧に現れたら、その位置までスクロールする。
   //
@@ -211,11 +233,16 @@ export default function Decks({
     if (!items.some((item) => item.data.id === pendingReopenDeckId)) return;
 
     const el = document.getElementById(deckAnchorId(pendingReopenDeckId));
-    if (!el) return;
+    if (el) {
+      const y = el.getBoundingClientRect().top + window.scrollY - REOPEN_SCROLL_OFFSET;
+      window.scrollTo({ top: Math.max(0, y), behavior: "auto" });
+    }
 
-    const y = el.getBoundingClientRect().top + window.scrollY - REOPEN_SCROLL_OFFSET;
-    window.scrollTo({ top: Math.max(0, y), behavior: "auto" });
-  }, [pendingReopenDeckId, items]);
+    // 対象デッキが描画されてスクロールも済んだ時点で、再開処理としては終わり。
+    // 追加読み込みの完了（次ページの先読み）まで待つと、その間ずっと覆いが残って
+    // 開いたばかりのデッキモーダルまで隠してしまうため、ここで通知する。
+    settleReopen();
+  }, [pendingReopenDeckId, items, settleReopen]);
 
   // 対象デッキが描画されるまで自動ロードする。
   // 見つかった後の再開（モーダルを開く・フラグの削除）は DeckCard 側が担う。
@@ -225,7 +252,20 @@ export default function Decks({
 
     const found = items.some((item) => item.data.id === pendingReopenDeckId);
     if (found) {
+      // 同じコミットのレイアウトエフェクトでスクロールと通知は済んでいるが、
+      // 万一取りこぼしても覆いが残り続けないよう、ここでも通知する（二重呼び出しは無視される）。
       setPendingReopenDeckId(null);
+      settleReopen();
+      return;
+    }
+
+    if (error) {
+      // 取得に失敗した状態で自動読み込みを続けると、同じ cursor を延々と
+      // 取り直す（＝覆いも外れない）ため、ここで自動追加読み込みは打ち切る。
+      // sessionStorage のフラグは残すので、末尾の再読み込みボタンから
+      // 取り直して対象デッキが現れれば、DeckCard 側で再開はできる。
+      setPendingReopenDeckId(null);
+      settleReopen();
       return;
     }
 
@@ -238,8 +278,18 @@ export default function Decks({
       sessionStorage.removeItem(REOPEN_DECK_MODAL_DECK_ID);
       sessionStorage.removeItem(REOPEN_DECK_MODAL_WITH_RECORDS);
       setPendingReopenDeckId(null);
+      settleReopen();
     }
-  }, [pendingReopenDeckId, isInitialLoaded, isLoading, items, hasMore, loadMore]);
+  }, [
+    pendingReopenDeckId,
+    isInitialLoaded,
+    isLoading,
+    items,
+    hasMore,
+    error,
+    loadMore,
+    settleReopen,
+  ]);
 
   // 初回ロードが終わり、追加読み込みも無く、1件も無い状態を「空」として親へ通知する。
   const isEmpty = isInitialLoaded && !isLoading && !hasMore && items.length === 0;

@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import NextLink from "next/link";
+
 import { Card, CardHeader, CardBody, CardFooter } from "@heroui/react";
 import { Chip } from "@heroui/react";
 import { Link as HeroLink } from "@heroui/react";
@@ -186,7 +188,14 @@ export default function CityleagueResult({ event_result }: Props) {
         </CardBody>
         <CardFooter className="pt-1 pb-2">
           <div>
+            {/*
+              as={NextLink}: 素の<a>のままだと詳細ページへの遷移がフルページロードになり、
+              戻るときもブラウザがドキュメントを取り直す(実測で1回の「戻る」につき
+              180件前後のリクエストが再発行される)。クライアント遷移にすることで
+              戻りはNext.jsのルーターが処理し、ブラウザのドキュメントキャッシュを引かない。
+            */}
             <HeroLink
+              as={NextLink}
               showAnchorIcon
               underline="always"
               href={`/cityleague_results/${event.id}`}

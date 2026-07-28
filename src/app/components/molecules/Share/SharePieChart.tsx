@@ -58,6 +58,15 @@ const MAX_DRIFT_FACTOR = 1.2;
 // スライス同士の境界線（画面の borderColor: "#ffffff" / borderWidth: 2 と同じ）
 const SLICE_BORDER_COLOR = "#ffffff";
 const SLICE_BORDER_WIDTH = 2;
+/*
+ * SVG の描画領域に持たせる余白。
+ *
+ * SVG の線はパスの線上を中心に引かれるため、円の外周では線の半分が円の外側へはみ出す。
+ * viewBox を円の直径ぴったりにすると、このはみ出しがビューポートの外になって切り取られ、
+ * 円が枠に接する4点（12時・3時・6時・9時）だけ輪郭が欠けて、上下左右が潰れて見える。
+ * 線の半分ぶん余白を確保して、外周の境界線を最後まで描き切る。
+ */
+const SVG_PADDING = SLICE_BORDER_WIDTH / 2;
 
 type BadgeItem = {
   key: number;
@@ -160,9 +169,12 @@ export default function SharePieChart({ slices, width }: Props) {
     Math.min(CHART_SIZE / 2, Math.round(width) / 2 - badgeReach),
   );
   const diameter = radius * 2;
+  // SVG は円より境界線の半分ぶん大きく取り、その中心に円を置く
+  const svgSize = diameter + SVG_PADDING * 2;
+  const svgCenter = SVG_PADDING + radius;
   // 上下はバッジの高さ分だけ確保する（バッジは円の外周から badgeHeight だけ張り出す）
   const containerHeight =
-    maxSpriteCount > 0 ? (radius + BADGE_GAP + badgeHeight) * 2 : diameter;
+    maxSpriteCount > 0 ? (radius + BADGE_GAP + badgeHeight) * 2 : svgSize;
 
   // 円の描画。chart.js の pie と同じく真上から時計回りに並べる
   const paths: { key: number; d: string; fill: string }[] = [];
@@ -177,7 +189,7 @@ export default function SharePieChart({ slices, width }: Props) {
 
     paths.push({
       key: index,
-      d: arcPath(radius, radius, radius, start, end),
+      d: arcPath(svgCenter, svgCenter, radius, start, end),
       fill: slice.softColor,
     });
 
@@ -208,9 +220,9 @@ export default function SharePieChart({ slices, width }: Props) {
   return (
     <div className="relative w-full" style={{ height: containerHeight }}>
       <svg
-        width={diameter}
-        height={diameter}
-        viewBox={`0 0 ${diameter} ${diameter}`}
+        width={svgSize}
+        height={svgSize}
+        viewBox={`0 0 ${svgSize} ${svgSize}`}
         role="img"
         aria-label="デッキ分布の円グラフ"
         style={{

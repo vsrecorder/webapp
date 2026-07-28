@@ -2,11 +2,14 @@
 
 import { useState, useCallback, useEffect } from "react";
 
+import ScreenLockLoading from "@app/components/atoms/ScreenLockLoading";
 import ScrollUpFloating from "@app/components/atoms/Floating/ScrollUpFloating";
 import FloatingButtonClearance from "@app/components/atoms/Floating/FloatingButtonClearance";
 import CreateDeckFloating from "@app/components/molecules/Floating/CreateDeckFloating";
 
 import Decks from "@app/components/organisms/Deck/Decks";
+
+import { useScreenLockLoading } from "@app/hooks/useScreenLockLoading";
 
 import { Tabs, Tab } from "@heroui/react";
 
@@ -29,6 +32,19 @@ export default function TemplateDecks({ userId }: Props) {
   // 戻り遷移でデッキモーダルを再開する対象デッキが、アーカイブ済みタブ側か
   // （null=再開対象なし）。対象タブの Decks にだけ自動追加読み込みを担わせる。
   const [reopenTargetArchived, setReopenTargetArchived] = useState<boolean | null>(null);
+  /*
+   * 戻り遷移でのデッキモーダル再開が済むまで、画面全体をローディングで覆う。
+   *
+   * 再開時は「タブの切り替え → 対象デッキが出るまでの自動追加読み込み →
+   * 対象デッキへの自動スクロール」が続けて走る。素のままだと一覧が伸びていく様子と
+   * 勝手なスクロールが見えてしまい、その途中で触ると位置もずれるため、
+   * 一連の処理が終わるまで覆って操作も受け付けないようにする。
+   */
+  const {
+    isLocked: isReopening,
+    lock: lockScreen,
+    release: releaseScreen,
+  } = useScreenLockLoading();
 
   // マウント後（クライアント専用）にタブを復元する。
   // 遷移再開フラグ（reopenDeckModalArchived）が立っていればそちらを優先し、
@@ -45,10 +61,11 @@ export default function TemplateDecks({ userId }: Props) {
     // 対象デッキが2ページ目以降にいる場合に、そのタブでだけ自動で追加読み込みさせる。
     if (sessionStorage.getItem("reopenDeckModalDeckId") !== null) {
       setReopenTargetArchived(archivedFlag === "1");
+      lockScreen();
     }
     // 役目を終えたフラグは削除（DeckCard が使う reopenDeckModalDeckId は残す）。
     sessionStorage.removeItem("reopenDeckModalArchived");
-  }, []);
+  }, [lockScreen]);
 
   // 選択タブを sessionStorage に保存し、リロード後も復元できるようにする。
   useEffect(() => {
@@ -68,6 +85,14 @@ export default function TemplateDecks({ userId }: Props) {
   const handleInUseEmptyChange = useCallback((isEmpty: boolean) => {
     setInUseEmpty(isEmpty);
   }, []);
+
+  // 再開処理（自動追加読み込み→自動スクロール）が終わったら覆いを外す。
+  // 対象デッキへスクロールした直後にデッキモーダルが開くため、すぐ外すと
+  // モーダルが開き切る前の一覧が一瞬見えてしまう。開閉アニメーション（約300ms）が
+  // 終わるまで覆いを残し、覆いが消えたときにはモーダルが出ている状態にする。
+  const handleReopenSettled = useCallback(() => {
+    releaseScreen(350);
+  }, [releaseScreen]);
 
   // 利用中が空になったときだけ、アーカイブ済みデッキの有無を一度確認する。
   // これで「デッキが1つも無い（新規ユーザー）」と「利用中は空だがアーカイブ済みはある」を区別する。
@@ -125,6 +150,10 @@ export default function TemplateDecks({ userId }: Props) {
 
   return (
     <>
+      {/* 再開中の目隠し。デッキモーダルより前面に出したいので、
+          この位置（ページ最前面のポータル）で描画する。 */}
+      {isReopening && <ScreenLockLoading label="デッキを開いています" />}
+
       {/* デッキが1つも無いときはフローティング（トップへ戻る／＋登録）も隠す。
           登録は空状態カード内の「デッキを登録する」ボタンから行える。 */}
       {!hideTabs && (
@@ -170,6 +199,7 @@ export default function TemplateDecks({ userId }: Props) {
               reopenTargetArchived !== null &&
               reopenTargetArchived === (selectedKey === "archived")
             }
+            onReopenSettled={handleReopenSettled}
           />
           <FloatingButtonClearance />
         </div>

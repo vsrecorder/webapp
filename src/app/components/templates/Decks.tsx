@@ -152,7 +152,7 @@ export default function TemplateDecks({ userId }: Props) {
     <>
       {/* 再開中の目隠し。デッキモーダルより前面に出したいので、
           この位置（ページ最前面のポータル）で描画する。 */}
-      {isReopening && <ScreenLockLoading label="デッキを開いています" />}
+      {isReopening && <ScreenLockLoading label="デッキ情報を開いています" />}
 
       {/* デッキが1つも無いときはフローティング（トップへ戻る／＋登録）も隠す。
           登録は空状態カード内の「デッキを登録する」ボタンから行える。 */}

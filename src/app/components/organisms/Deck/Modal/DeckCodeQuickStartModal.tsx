@@ -27,6 +27,7 @@ import { DeckCreateRequestType, DeckCreateResponseType } from "@app/types/deck";
 import { PokemonSpriteType, DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 import { MAX_DECK_NAME_LENGTH, countTextLength } from "@app/utils/textLength";
+import { normalizeDeckCode } from "@app/utils/deckCode";
 
 const DECK_CODE_LENGTH = 20;
 const DECK_CODE_CHECK_DEBOUNCE_MS = 500;
@@ -282,7 +283,8 @@ export default function DeckCodeQuickStartModal({ isOpen, onOpenChange }: Props)
                   labelPlacement="outside"
                   placeholder="デッキコードを貼り付け"
                   value={deckCode}
-                  onChange={(e) => setDeckCode(e.target.value)}
+                  // 貼り付け時に紛れ込む空白・改行・全角文字を吸収する(そのままだと桁数チェックで弾かれる)
+                  onChange={(e) => setDeckCode(normalizeDeckCode(e.target.value))}
                 />
 
                 {deckCode ? (

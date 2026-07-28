@@ -16,6 +16,7 @@ import DeckCardDiff from "@app/components/organisms/Deck/DeckCardDiff";
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { DeckCodeType, DeckCodeCreateRequestType } from "@app/types/deck_code";
 import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
+import { normalizeDeckCode } from "@app/utils/deckCode";
 
 const DECK_CODE_LENGTH = 20;
 const DECK_CODE_CHECK_DEBOUNCE_MS = 500;
@@ -225,7 +226,8 @@ export default function CreateDeckCodeModal({
                     deckcode && deckcode.code ? deckcode.code : "デッキコードを貼り付け"
                   }
                   value={newdeckcode}
-                  onChange={(e) => setNewDeckCode(e.target.value)}
+                  // 貼り付け時に紛れ込む空白・改行・全角文字を吸収する(そのままだと桁数チェックで弾かれる)
+                  onChange={(e) => setNewDeckCode(normalizeDeckCode(e.target.value))}
                   onFocus={(e) => scrollIntoViewAfterKeyboard(e.currentTarget)}
                 />
 

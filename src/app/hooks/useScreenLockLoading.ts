@@ -11,7 +11,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
  *
  *   const { isLocked, lock, release } = useScreenLockLoading();
  *   ...
- *   {isLocked && <ScreenLockLoading label="デッキを開いています" />}
+ *   {isLocked && <ScreenLockLoading label="デッキ情報を開いています" />}
  */
 
 // 解除の契機が来なかった場合に、それでも必ず覆いを外すまでの時間。

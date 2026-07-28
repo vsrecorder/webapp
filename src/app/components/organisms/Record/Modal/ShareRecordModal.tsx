@@ -731,7 +731,10 @@ export default function ShareRecordModal({
                             // (デッキ画像を出しては伏せた意味が無くなるため)
                             onValueChange={(v) => {
                               setShowDeck(v);
-                              if (!v) setIncludeDeck(false);
+                              if (!v) {
+                                setIncludeDeck(false);
+                                setIncludePostDeck(false);
+                              }
                             }}
                             aria-label="使用デッキを表示する"
                           />
@@ -774,24 +777,31 @@ export default function ShareRecordModal({
                 {/* ポスト文に含める要素の切り替え */}
                 <div className="flex flex-col rounded-xl border border-divider bg-content2 px-3">
                   <div className="flex items-center gap-2 py-2.5">
-                    <span className="flex-1 text-sm">対戦結果をポストに含める</span>
+                    <span className="flex-1 text-sm">対戦結果をポスト文に含める</span>
                     <Switch
                       size="sm"
                       isSelected={includePostMatches}
                       onValueChange={setIncludePostMatches}
-                      aria-label="対戦結果をポストに含める"
+                      aria-label="対戦結果をポスト文に含める"
                     />
                   </div>
                   {record.deck_id && (
                     <>
                       <div className="h-px bg-divider" />
-                      <div className="flex items-center gap-2 py-2.5">
-                        <span className="flex-1 text-sm">使用デッキをポストに含める</span>
+                      <div
+                        className={`flex items-center gap-2 py-2.5 ${
+                          showDeck ? "" : "opacity-50"
+                        }`}
+                      >
+                        <span className="flex-1 text-sm">
+                          使用デッキをポスト文に含める
+                        </span>
                         <Switch
                           size="sm"
                           isSelected={includePostDeck}
+                          isDisabled={!showDeck}
                           onValueChange={setIncludePostDeck}
-                          aria-label="使用デッキをポストに含める"
+                          aria-label="使用デッキをポスト文に含める"
                         />
                       </div>
                     </>
@@ -827,8 +837,10 @@ export default function ShareRecordModal({
                     <div className="flex items-start gap-2.5 rounded-xl border border-warning-200 bg-warning-50 px-3 py-2.5">
                       <LuTriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-warning-600" />
                       <p className="min-w-0 flex-1 text-[11px] leading-relaxed text-warning-700">
-                        Android では画像とポスト文を一緒に共有できないため、画像のみ共有します。
-                        上の「コピー」でポスト文をコピーし、X の投稿画面に貼り付けてください。
+                        Android
+                        では画像とポスト文を一緒に共有できないため、画像のみ共有します。
+                        上の「コピー」でポスト文をコピーし、X
+                        の投稿画面に貼り付けてください。
                       </p>
                     </div>
                   )}

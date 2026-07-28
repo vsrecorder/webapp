@@ -1,9 +1,15 @@
 "use client";
 
-import { Card, CardBody, CardHeader } from "@heroui/react";
+import { useState } from "react";
 
+import { Button, Card, CardBody, CardHeader } from "@heroui/react";
+import { LuChartBar, LuRadar } from "react-icons/lu";
+
+import KizunaRadarChart from "@app/components/molecules/Kizuna/KizunaRadarChart";
 import { kizunaMetricLabel, kizunaTierOf } from "@app/utils/kizuna";
 import { KizunaDeckType } from "@app/types/kizuna";
+
+type BreakdownView = "bar" | "radar";
 
 /*
  * デッキ詳細ページの「きずな」。
@@ -24,6 +30,7 @@ type Props = {
 export default function DeckKizunaPanel({ kizuna }: Props) {
   const tier = kizunaTierOf(kizuna.level);
   const ratio = Math.min(1, Math.max(0, kizuna.level / KIZUNA_MAX_LEVEL));
+  const [breakdownView, setBreakdownView] = useState<BreakdownView>("radar");
 
   return (
     <Card className="w-full">
@@ -62,21 +69,61 @@ export default function DeckKizunaPanel({ kizuna }: Props) {
         </div>
 
         {/* 内訳。6指標の獲得点を足すと、そのままきずなLv.になる。
-            満点は出さない（％と点が並ぶと、意味の違う数字が2つ並んで読めなくなる）。 */}
+            満点は出さない（％と点が並ぶと、意味の違う数字が2つ並んで読めなくなる）。
+            バー（数値の正確さ）とレーダー（6指標の「かたち」）は伝わるものが違うため、
+            両方を常に出さずトグルで切り替える（カードの縦幅を圧迫しないため）。 */}
         <div className="flex flex-col gap-1.5 pt-1">
+          <div className="flex justify-end gap-1">
+            <Button
+              isIconOnly
+              size="sm"
+              variant={breakdownView === "radar" ? "flat" : "light"}
+              color={breakdownView === "radar" ? "warning" : "default"}
+              aria-label="内訳をレーダーチャートで表示"
+              aria-pressed={breakdownView === "radar"}
+              onPress={() => setBreakdownView("radar")}
+            >
+              <LuRadar className="h-4 w-4" />
+            </Button>
+            <Button
+              isIconOnly
+              size="sm"
+              variant={breakdownView === "bar" ? "flat" : "light"}
+              color={breakdownView === "bar" ? "warning" : "default"}
+              aria-label="内訳をバーで表示"
+              aria-pressed={breakdownView === "bar"}
+              onPress={() => setBreakdownView("bar")}
+            >
+              <LuChartBar className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {breakdownView === "radar" && (
+            <KizunaRadarChart
+              metrics={kizuna.metrics.map((metric) => ({
+                key: metric.key,
+                label: kizunaMetricLabel(metric.key),
+                value: metric.value,
+              }))}
+            />
+          )}
+
           {kizuna.metrics.map((metric) => (
             <div key={metric.key} className="flex items-center gap-2">
               <span className="w-28 shrink-0 truncate text-tiny text-default-500">
                 {kizunaMetricLabel(metric.key)}
               </span>
-              <div className="h-1 min-w-0 flex-1 overflow-hidden rounded-full bg-default-200">
-                <div
-                  className="h-full rounded-full bg-amber-400"
-                  style={{
-                    width: `${Math.min(1, Math.max(0, metric.value)) * 100}%`,
-                  }}
-                />
-              </div>
+              {breakdownView === "bar" && (
+                <div className="h-1 min-w-0 flex-1 overflow-hidden rounded-full bg-default-200">
+                  <div
+                    className="h-full rounded-full bg-amber-400"
+                    style={{
+                      width: `${Math.min(1, Math.max(0, metric.value)) * 100}%`,
+                    }}
+                  />
+                </div>
+              )}
+              {breakdownView === "radar" && <div className="min-w-0 flex-1" />}
               <span className="w-7 shrink-0 text-right text-tiny font-bold tabular-nums text-default-600">
                 {metric.points}
               </span>

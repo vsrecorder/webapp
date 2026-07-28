@@ -1,9 +1,17 @@
 "use client";
 
-import type { KizunaMetric } from "@app/utils/kizuna";
+// KizunaMetric（推定ロジック側の詳細情報つきの型）を要求すると、weight/points/detail
+// を持たない呼び出し元（デッキ詳細ページのAPI由来データなど）が渡せなくなる。
+// この図は key/label/value しか使わないため、必要最小限の型だけを要求する。
+type RadarMetric = {
+  key: string;
+  label: string;
+  // 0〜1 に正規化した達成度
+  value: number;
+};
 
 type Props = {
-  metrics: KizunaMetric[];
+  metrics: RadarMetric[];
 };
 
 // ── 図形の定数 ────────────────────────────────────────────────

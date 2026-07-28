@@ -26,16 +26,25 @@ export default function TemplateDecks({ userId }: Props) {
   const [inUseEmpty, setInUseEmpty] = useState<boolean | null>(null);
   // アーカイブ済みにデッキがあるか（null=未確認）。利用中が空のときだけ確認する。
   const [hasArchivedDecks, setHasArchivedDecks] = useState<boolean | null>(null);
+  // 戻り遷移でデッキモーダルを再開する対象デッキが、アーカイブ済みタブ側か
+  // （null=再開対象なし）。対象タブの Decks にだけ自動追加読み込みを担わせる。
+  const [reopenTargetArchived, setReopenTargetArchived] = useState<boolean | null>(null);
 
   // マウント後（クライアント専用）にタブを復元する。
   // 遷移再開フラグ（reopenDeckModalArchived）が立っていればそちらを優先し、
   // なければ sessionStorage に保存済みのタブを復元する。
   useEffect(() => {
-    if (sessionStorage.getItem("reopenDeckModalArchived") === "1") {
+    const archivedFlag = sessionStorage.getItem("reopenDeckModalArchived");
+    if (archivedFlag === "1") {
       setSelectedKey("archived");
     } else {
       const saved = sessionStorage.getItem(SELECTED_TAB_STORAGE_KEY);
       if (saved === "archived") setSelectedKey("archived");
+    }
+    // 再開対象のデッキがどちらのタブに属するかを控えておく。
+    // 対象デッキが2ページ目以降にいる場合に、そのタブでだけ自動で追加読み込みさせる。
+    if (sessionStorage.getItem("reopenDeckModalDeckId") !== null) {
+      setReopenTargetArchived(archivedFlag === "1");
     }
     // 役目を終えたフラグは削除（DeckCard が使う reopenDeckModalDeckId は残す）。
     sessionStorage.removeItem("reopenDeckModalArchived");
@@ -157,6 +166,10 @@ export default function TemplateDecks({ userId }: Props) {
             onCreated={handleCreatedDeck}
             // 利用中タブのときだけ空通知を受け取る（アーカイブ済みの空はタブ表示に使わない）。
             onEmptyChange={selectedKey === "inuse" ? handleInUseEmptyChange : undefined}
+            isReopenTargetTab={
+              reopenTargetArchived !== null &&
+              reopenTargetArchived === (selectedKey === "archived")
+            }
           />
           <FloatingButtonClearance />
         </div>

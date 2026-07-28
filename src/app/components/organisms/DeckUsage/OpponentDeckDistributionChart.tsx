@@ -10,7 +10,7 @@ import {
 } from "chart.js";
 import { Pie } from "react-chartjs-2";
 import { AnimatePresence, motion } from "framer-motion";
-import { Chip } from "@heroui/react";
+import { Accordion, AccordionItem, Chip } from "@heroui/react";
 
 import { OpponentDeckUsageItemType } from "@app/types/opponent_deck_usage_stat";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
@@ -118,6 +118,12 @@ type TooltipState = {
   color: string;
 };
 
+// 「その他」に集約されたデッキは、内訳（集約前の個々のデッキ）を others に保持する。
+// 通常のデッキ項目では未設定。
+type DisplayDeckItem = OpponentDeckUsageItemType & {
+  others?: OpponentDeckUsageItemType[];
+};
+
 function DeckSprites({ deck }: { deck: OpponentDeckUsageItemType }) {
   const sprites = deck.pokemon_sprites ?? [];
 
@@ -127,6 +133,37 @@ function DeckSprites({ deck }: { deck: OpponentDeckUsageItemType }) {
       <PokemonSprite id={getDeckSpriteBySlot(sprites, 1)?.id} size={32} />
       <PokemonSprite id={getDeckSpriteBySlot(sprites, 2)?.id} size={32} />
     </div>
+  );
+}
+
+// 凡例1行分の中身（スプライト・デッキ名・対面率・勝率）。
+// 通常の凡例行と、「その他」を展開した内訳行の両方で使い回す。
+function OpponentDeckLegendRow({ deck }: { deck: OpponentDeckUsageItemType }) {
+  return (
+    <>
+      <div className="w-16 flex justify-center shrink-0">
+        <DeckSprites deck={deck} />
+      </div>
+      <span className="font-bold text-xs text-default-700 truncate flex-1 min-w-0">
+        {deck.deck_info}
+      </span>
+      <div className="flex flex-col items-end gap-1 shrink-0 pl-2 border-l border-default-200">
+        <span className="text-[10px] text-default-400 tabular-nums">
+          対面率 {(deck.usage_rate * 100).toFixed(1)}% ({deck.count}件)
+        </span>
+        <Chip
+          size="sm"
+          variant="flat"
+          color={winRateChipColor(deck.win_rate)}
+          classNames={{
+            base: "h-5 px-0.5",
+            content: "text-[11px] font-black tabular-nums px-1.5",
+          }}
+        >
+          勝率 {(deck.win_rate * 100).toFixed(1)}%
+        </Chip>
+      </div>
+    </>
   );
 }
 
@@ -153,15 +190,17 @@ export default function OpponentDeckDistributionChart({
   // ▲
 
   // 対面率が低い（出現頻度が低い）デッキをまとめて「その他」として1件に集約する。
+  // 集約前の個々のデッキは others に保持し、凡例側でアコーディオン展開して一覧できるようにする。
   const { displayItems: displayDecks, hasOther } = useMemo(
     () =>
-      groupIntoOther(decks, {
+      groupIntoOther<DisplayDeckItem>(decks, {
         threshold: OTHER_THRESHOLD,
         maxIndividual: MAX_INDIVIDUAL_DECKS,
-        createOther: (aggregate): OpponentDeckUsageItemType => ({
+        createOther: (aggregate, rest): DisplayDeckItem => ({
           deck_info: "その他",
           pokemon_sprites: [],
           ...aggregate,
+          others: rest,
         }),
       }),
     [decks],
@@ -465,46 +504,75 @@ export default function OpponentDeckDistributionChart({
         </AnimatePresence>
       </div>
 
-      {/* 凡例リスト（スプライト画像 + デッキ名 + 対面率） */}
+      {/* 凡例リスト（スプライト画像 + デッキ名 + 対面率）。
+          「その他」に集約された行だけは、集約前の個々のデッキをアコーディオンで展開して一覧できる。 */}
       <div className="flex flex-col gap-1.5">
-        {displayDecks.map((deck, idx) => (
-          <div
-            key={`${deck.deck_info}-${idx}`}
-            onClick={() => handleLegendClick(idx)}
-            className={`flex items-center gap-2 rounded-xl px-3 py-1.5 cursor-pointer transition-colors duration-150 ${
-              selectedIdx === idx
-                ? "bg-default-200 ring-1 ring-default-400"
-                : "bg-default-100 hover:bg-default-200"
-            }`}
-          >
-            <span
-              className="w-2.5 h-2.5 rounded-full shrink-0"
-              style={{ backgroundColor: deckColors[idx] }}
-            />
-            <div className="w-16 flex justify-center shrink-0">
-              <DeckSprites deck={deck} />
-            </div>
-            <span className="font-bold text-xs text-default-700 truncate flex-1 min-w-0">
-              {deck.deck_info}
-            </span>
-            <div className="flex flex-col items-end gap-1 shrink-0 pl-2 border-l border-default-200">
-              <span className="text-[10px] text-default-400 tabular-nums">
-                対面率 {(deck.usage_rate * 100).toFixed(1)}% ({deck.count}件)
-              </span>
-              <Chip
-                size="sm"
-                variant="flat"
-                color={winRateChipColor(deck.win_rate)}
-                classNames={{
-                  base: "h-5 px-0.5",
-                  content: "text-[11px] font-black tabular-nums px-1.5",
+        {displayDecks.map((deck, idx) => {
+          const others = deck.others;
+          if (others && others.length > 0) {
+            return (
+              <Accordion
+                key={`${deck.deck_info}-${idx}`}
+                isCompact
+                className="px-0"
+                itemClasses={{
+                  base: `rounded-xl px-3 ${
+                    selectedIdx === idx
+                      ? "bg-default-200 ring-1 ring-default-400"
+                      : "bg-default-100"
+                  }`,
+                  trigger: "py-1.5 gap-2",
+                  title: "min-w-0",
+                  indicator: "text-default-400",
+                  content: "pt-0 pb-2",
                 }}
               >
-                勝率 {(deck.win_rate * 100).toFixed(1)}%
-              </Chip>
+                <AccordionItem
+                  key="other"
+                  aria-label={`${deck.deck_info}の内訳`}
+                  title={
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="w-2.5 h-2.5 rounded-full shrink-0"
+                        style={{ backgroundColor: deckColors[idx] }}
+                      />
+                      <OpponentDeckLegendRow deck={deck} />
+                    </div>
+                  }
+                >
+                  <div className="flex flex-col gap-1.5">
+                    {others.map((otherDeck, otherIdx) => (
+                      <div
+                        key={`${otherDeck.deck_info}-${otherIdx}`}
+                        className="flex items-center gap-2 rounded-lg bg-content1 px-2 py-1.5"
+                      >
+                        <OpponentDeckLegendRow deck={otherDeck} />
+                      </div>
+                    ))}
+                  </div>
+                </AccordionItem>
+              </Accordion>
+            );
+          }
+
+          return (
+            <div
+              key={`${deck.deck_info}-${idx}`}
+              onClick={() => handleLegendClick(idx)}
+              className={`flex items-center gap-2 rounded-xl px-3 py-1.5 cursor-pointer transition-colors duration-150 ${
+                selectedIdx === idx
+                  ? "bg-default-200 ring-1 ring-default-400"
+                  : "bg-default-100 hover:bg-default-200"
+              }`}
+            >
+              <span
+                className="w-2.5 h-2.5 rounded-full shrink-0"
+                style={{ backgroundColor: deckColors[idx] }}
+              />
+              <OpponentDeckLegendRow deck={deck} />
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </>
   );

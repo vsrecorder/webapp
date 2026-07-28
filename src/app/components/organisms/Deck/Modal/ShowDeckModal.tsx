@@ -47,6 +47,7 @@ import { DeckGetByIdResponseType } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
 
 import { closingPassthroughClassNames } from "@app/utils/modal";
+import { markDeckModalReopen } from "@app/utils/deckModalReopen";
 
 type Props = {
   deck: DeckGetByIdResponseType | null;
@@ -249,6 +250,8 @@ export default function ShowDeckModal({
                   <Link
                     href={`/decks/${deck.id}`}
                     aria-label="デッキ詳細ページを開く"
+                    // 戻ってきたときにこのモーダルを開き直す
+                    onClick={() => markDeckModalReopen(deck.id, isArchived)}
                     className="absolute inset-s-1 top-1 flex h-10 items-center gap-1 rounded-full px-2.5 text-tiny font-bold text-foreground-500 hover:bg-default-100 active:bg-default-200 pointer-events-auto"
                   >
                     <LuExternalLink className="text-base" />
@@ -349,6 +352,8 @@ export default function ShowDeckModal({
                   ) : (
                     <Link
                       href={`/records/create?deck_id=${deck.id}${deckcode?.id ? `&deck_code_id=${deckcode.id}` : ""}`}
+                      // 戻ってきたときにこのモーダルを開き直す
+                      onClick={() => markDeckModalReopen(deck.id, isArchived)}
                       className="flex flex-col items-center justify-center gap-1 rounded-lg bg-default-100 py-2 text-foreground active:opacity-70"
                     >
                       <LuFilePen className="text-base" />

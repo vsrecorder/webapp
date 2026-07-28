@@ -45,6 +45,9 @@ import { addToast, closeToast } from "@heroui/react";
 
 import { useRouter } from "next/navigation";
 
+import { useReopenFlagsOnBack } from "@app/hooks/useReopenFlagsOnBack";
+import { DECK_MODAL_REOPEN_KEYS } from "@app/utils/deckModalReopen";
+
 import ScrollingText from "@app/components/molecules/ScrollingText";
 
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
@@ -610,6 +613,10 @@ const MenuListScrollToSelected = ({ innerRef, ...props }: any) => {
 
 export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Props) {
   const router = useRouter();
+
+  // デッキモーダルの「記録する」から遷移してきた場合、バック遷移で戻ったときだけ
+  // デッキモーダルを開き直せるよう、再開フラグをこのページで預かる。
+  useReopenFlagsOnBack(DECK_MODAL_REOPEN_KEYS);
 
   // react-select をダークモードに追従させるテーマ
   const reactSelectTheme = useReactSelectTheme();

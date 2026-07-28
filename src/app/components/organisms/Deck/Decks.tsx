@@ -29,6 +29,10 @@ import {
 import { DeckType, DeckGetResponseType } from "@app/types/deck";
 import { DeckUsageItemType, DeckUsageStatType } from "@app/types/deck_usage_stat";
 import { useKizunaDecks } from "@app/hooks/useKizunaLevels";
+import {
+  REOPEN_DECK_MODAL_DECK_ID,
+  REOPEN_DECK_MODAL_WITH_RECORDS,
+} from "@app/utils/deckModalReopen";
 
 async function fetchDecks(isArchived: boolean, cursor: string) {
   const res = await fetch(`/api/decks?archived=${isArchived}&cursor=${cursor}`, {
@@ -84,9 +88,20 @@ type Props = {
   // 初回ロードが終わり1件も無い状態になったかを親へ通知する。
   // 親（TemplateDecks）はこれを使ってタブ表示・スクロール可否を切り替える。
   onEmptyChange?: (isEmpty: boolean) => void;
+  // 戻り遷移でデッキモーダルを再開する対象タブか。
+  // 対象デッキが2ページ目以降にいると「更に読み込む」まで DeckCard が
+  // マウントされず再開できないため、このタブでだけ自動で追加読み込みする。
+  // 対象タブ以外が担うと、見つからないまま再開フラグを捨ててしまうので親が判定する。
+  isReopenTargetTab?: boolean;
 };
 
-export default function Decks({ userId, isArchived, onCreated, onEmptyChange }: Props) {
+export default function Decks({
+  userId,
+  isArchived,
+  onCreated,
+  onEmptyChange,
+  isReopenTargetTab = false,
+}: Props) {
   const [items, setItems] = useState<DeckType[]>([]);
   const [deckUsageStats, setDeckUsageStats] = useState<Map<string, DeckUsageItemType>>(
     new Map(),
@@ -168,6 +183,39 @@ export default function Decks({ userId, isArchived, onCreated, onEmptyChange }: 
     if (isInitialLoaded) return;
     loadMore();
   }, [isInitialLoaded, loadMore]);
+
+  // 戻り遷移で再開する対象デッキ。一覧に現れるまで自動で追加読み込みする。
+  const [pendingReopenDeckId, setPendingReopenDeckId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isReopenTargetTab) return;
+    const id = sessionStorage.getItem(REOPEN_DECK_MODAL_DECK_ID);
+    if (id) setPendingReopenDeckId(id);
+  }, [isReopenTargetTab]);
+
+  // 対象デッキが描画されるまで自動ロードする。
+  // 見つかった後の再開（モーダルを開く・フラグの削除）は DeckCard 側が担う。
+  useEffect(() => {
+    if (!pendingReopenDeckId) return;
+    if (!isInitialLoaded || isLoading) return;
+
+    const found = items.some((item) => item.data.id === pendingReopenDeckId);
+    if (found) {
+      setPendingReopenDeckId(null);
+      return;
+    }
+
+    if (hasMore) {
+      loadMore();
+    } else {
+      // 全件読み込んでも見つからない（削除済み・別タブのデッキ等）。
+      // フラグを残すと、後で「更に読み込む」を押した時などに
+      // 意図しないタイミングでモーダルが開いてしまうため捨てる。
+      sessionStorage.removeItem(REOPEN_DECK_MODAL_DECK_ID);
+      sessionStorage.removeItem(REOPEN_DECK_MODAL_WITH_RECORDS);
+      setPendingReopenDeckId(null);
+    }
+  }, [pendingReopenDeckId, isInitialLoaded, isLoading, items, hasMore, loadMore]);
 
   // 初回ロードが終わり、追加読み込みも無く、1件も無い状態を「空」として親へ通知する。
   const isEmpty = isInitialLoaded && !isLoading && !hasMore && items.length === 0;

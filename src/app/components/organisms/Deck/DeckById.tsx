@@ -29,6 +29,8 @@ import { LuCopy } from "react-icons/lu";
 import { LuCheck } from "react-icons/lu";
 
 import { useKizunaDeck } from "@app/hooks/useKizunaLevels";
+import { useReopenFlagsOnBack } from "@app/hooks/useReopenFlagsOnBack";
+import { DECK_MODAL_REOPEN_KEYS } from "@app/utils/deckModalReopen";
 import DeckKizunaPanel from "@app/components/organisms/Deck/DeckKizunaPanel";
 import DeckValueMeter from "@app/components/organisms/Deck/DeckValueMeter";
 import { fetchDeckEnv } from "@app/utils/deckEnv";
@@ -134,6 +136,10 @@ export default function DeckById({ id, valueMeterEnabled = false }: Props) {
   const router = useRouter();
   const { data: session } = useSession();
   const userId = session?.user?.id;
+
+  // デッキモーダルの「詳細」から遷移してきた場合、バック遷移で戻ったときだけ
+  // デッキモーダルを開き直せるよう、再開フラグをこのページで預かる。
+  useReopenFlagsOnBack(DECK_MODAL_REOPEN_KEYS);
 
   const [deck, setDeck] = useState<DeckGetByIdResponseType | null>(null);
 

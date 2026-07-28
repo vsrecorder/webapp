@@ -77,6 +77,9 @@ export default function RecordById({ id }: Props) {
     const pendingDeckId = sessionStorage.getItem("reopenDeckModalDeckId");
     // 対象デッキがアーカイブ済みか（戻り時のデッキページのタブ切り替え用）。
     const pendingDeckArchived = sessionStorage.getItem("reopenDeckModalArchived");
+    // 記録一覧モーダルまで開き直すか。deck 系キーと必ず同じライフサイクルで扱う
+    // （取り残すと、後のデッキモーダル発の遷移で誤って記録一覧モーダルが開く）。
+    const pendingDeckWithRecords = sessionStorage.getItem("reopenDeckModalWithRecords");
 
     if (pendingId && pendingId === id) {
       sessionStorage.setItem("detailPagePendingReopenRecordId", pendingId);
@@ -89,10 +92,17 @@ export default function RecordById({ id }: Props) {
       if (pendingDeckArchived) {
         sessionStorage.setItem("detailPagePendingReopenArchived", pendingDeckArchived);
       }
+      if (pendingDeckWithRecords) {
+        sessionStorage.setItem(
+          "detailPagePendingReopenWithRecords",
+          pendingDeckWithRecords,
+        );
+      }
       sessionStorage.removeItem("reopenModalRecordId");
       sessionStorage.removeItem("reopenModalEventType");
       sessionStorage.removeItem("reopenDeckModalDeckId");
       sessionStorage.removeItem("reopenDeckModalArchived");
+      sessionStorage.removeItem("reopenDeckModalWithRecords");
     }
 
     const originalPushState = window.history.pushState;
@@ -101,6 +111,7 @@ export default function RecordById({ id }: Props) {
       sessionStorage.removeItem("detailPagePendingReopenEventType");
       sessionStorage.removeItem("detailPagePendingReopenDeckId");
       sessionStorage.removeItem("detailPagePendingReopenArchived");
+      sessionStorage.removeItem("detailPagePendingReopenWithRecords");
       return originalPushState.apply(window.history, args);
     };
 
@@ -111,6 +122,9 @@ export default function RecordById({ id }: Props) {
       const savedEventType = sessionStorage.getItem("detailPagePendingReopenEventType");
       const savedDeckId = sessionStorage.getItem("detailPagePendingReopenDeckId");
       const savedDeckArchived = sessionStorage.getItem("detailPagePendingReopenArchived");
+      const savedDeckWithRecords = sessionStorage.getItem(
+        "detailPagePendingReopenWithRecords",
+      );
       if (savedId) {
         // pushState が発生しなかった（バック遷移）場合のみここに来る
         sessionStorage.setItem("reopenModalRecordId", savedId);
@@ -123,10 +137,14 @@ export default function RecordById({ id }: Props) {
         if (savedDeckArchived) {
           sessionStorage.setItem("reopenDeckModalArchived", savedDeckArchived);
         }
+        if (savedDeckWithRecords) {
+          sessionStorage.setItem("reopenDeckModalWithRecords", savedDeckWithRecords);
+        }
         sessionStorage.removeItem("detailPagePendingReopenRecordId");
         sessionStorage.removeItem("detailPagePendingReopenEventType");
         sessionStorage.removeItem("detailPagePendingReopenDeckId");
         sessionStorage.removeItem("detailPagePendingReopenArchived");
+        sessionStorage.removeItem("detailPagePendingReopenWithRecords");
       }
     };
   }, [id]);

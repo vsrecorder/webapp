@@ -368,6 +368,12 @@ export default function DisplayRecordModal({
                                 "reopenDeckModalDeckId",
                                 activeDeckId,
                               );
+                              // この経路は記録一覧モーダルまで開き直す
+                              // （デッキモーダルの「詳細」「記録する」経路では立てない）
+                              sessionStorage.setItem(
+                                "reopenDeckModalWithRecords",
+                                "1",
+                              );
                               // アーカイブ状態も引き継ぐ（戻り時のタブ切り替え用）
                               const activeArchived = sessionStorage.getItem(
                                 "activeDeckRecordsModalArchived",

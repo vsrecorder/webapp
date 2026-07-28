@@ -32,6 +32,11 @@ import { DeckGetByIdResponseType } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
 import { DeckUsageItemType } from "@app/types/deck_usage_stat";
 
+import {
+  REOPEN_DECK_MODAL_DECK_ID,
+  REOPEN_DECK_MODAL_WITH_RECORDS,
+} from "@app/utils/deckModalReopen";
+
 // 一覧の表示モード。gallery=従来の詳細カード、list=1行に畳んだコンパクト表示。
 export type DeckCardView = "gallery" | "list";
 
@@ -112,16 +117,25 @@ export default function DeckCard({
   // バッジタップ時、デッキ詳細を開くと同時にバージョン履歴も自動で開く
   const [openHistoryOnShow, setOpenHistoryOnShow] = useState(false);
 
-  // 記録の詳細ページから戻ってきた際、対象デッキならデッキモーダルを再開する。
+  // 記録の詳細ページ・デッキ詳細ページ・記録作成ページから戻ってきた際、
+  // 対象デッキならデッキモーダルを再開する。
   // 記録一覧モーダルも再開する意図は、React state ではなく sessionStorage で
   // 伝える（StrictMode の二重マウントで state 同期が壊れるのを避けるため）。
   useEffect(() => {
     if (!enableShowDeckModal || !deck) return;
-    const pendingDeckId = sessionStorage.getItem("reopenDeckModalDeckId");
+    const pendingDeckId = sessionStorage.getItem(REOPEN_DECK_MODAL_DECK_ID);
     if (pendingDeckId && pendingDeckId === deck.id) {
-      sessionStorage.removeItem("reopenDeckModalDeckId");
-      // ShowDeckModal が開いたときに記録一覧モーダルも開くための意図フラグ
-      sessionStorage.setItem("reopenRecordsModalForDeckId", deck.id);
+      sessionStorage.removeItem(REOPEN_DECK_MODAL_DECK_ID);
+      // 記録一覧モーダル発の遷移だった場合のみ、記録一覧モーダルも開き直す。
+      // デッキモーダルの「詳細」「記録する」発の遷移では立っておらず、
+      // デッキモーダルだけが再開する。
+      const withRecords =
+        sessionStorage.getItem(REOPEN_DECK_MODAL_WITH_RECORDS) === "1";
+      sessionStorage.removeItem(REOPEN_DECK_MODAL_WITH_RECORDS);
+      if (withRecords) {
+        // ShowDeckModal が開いたときに記録一覧モーダルも開くための意図フラグ
+        sessionStorage.setItem("reopenRecordsModalForDeckId", deck.id);
+      }
       onOpen();
     }
     // deck.id を依存に含め、対象デッキのカードでのみ一度だけ実行する。

@@ -55,7 +55,7 @@ export default function DisplayDeckOpponentAnalysisModal({
 
               <div>対戦相手の分析</div>
             </ModalHeader>
-            <ModalBody className="px-2 py-2 flex flex-col overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none">
+            <ModalBody className="px-2 pt-2 pb-6 flex flex-col overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none">
               <DeckOpponentAnalysisPanel deckId={deck.id} inModal />
             </ModalBody>
           </>

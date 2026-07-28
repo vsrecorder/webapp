@@ -33,6 +33,7 @@ import { DeckCodeType } from "@app/types/deck_code";
 import { DeckUsageItemType } from "@app/types/deck_usage_stat";
 
 import {
+  deckAnchorId,
   REOPEN_DECK_MODAL_DECK_ID,
   REOPEN_DECK_MODAL_WITH_RECORDS,
 } from "@app/utils/deckModalReopen";
@@ -269,7 +270,8 @@ export default function DeckCard({
   // タップ＝デッキ詳細を開く（ギャラリー表示と同じルール）。先攻/後攻の内訳や
   // デッキコード画像の段階的開示は、右端のシェブロンボタンだけが担う。
   const listCard = (
-    <div className="w-full">
+    // 戻り遷移でデッキモーダルを再開する際、この id を目印にスクロールする
+    <div id={deckAnchorId(deck.id)} className="w-full">
       <Card className="w-full transition-transform active:scale-[0.985]">
         {/* ヘッダー：タップでデッキ詳細（ShowDeckModal）を開く */}
         <div className="flex flex-col gap-1.5 px-3 py-3 cursor-pointer" onClick={onOpen}>
@@ -429,7 +431,12 @@ export default function DeckCard({
       {view === "list" ? (
         listCard
       ) : (
-        <div onClick={onOpen} className="min-w-0 cursor-pointer">
+        // 戻り遷移でデッキモーダルを再開する際、この id を目印にスクロールする
+        <div
+          id={deckAnchorId(deck.id)}
+          onClick={onOpen}
+          className="min-w-0 cursor-pointer"
+        >
           <Card className="w-full overflow-hidden border border-default-200 shadow-sm transition-transform active:scale-[0.985]">
             {/* ヘッダー：登録日を右上に独立表示し、その下にスプライト＋デッキ名。
               デッキ画像は明るい場合が多く重ね文字が読みづらいため、名前とスプライトは

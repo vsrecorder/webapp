@@ -65,6 +65,11 @@ function ChipSkelton() {
 // 引いた残りを5等分する。固定幅にすると画面幅ごとに収まる枚数が変わってしまう。
 const CARD_WIDTH_CLASS = "w-[calc((100%-2rem)/5)]";
 
+// カード画像の角丸。タップで開くカードモーダルの画像（幅約336pxに対して20px＝約6%）と
+// 見た目の比率を揃える。サムネイルは幅約56pxなのでその6%にあたる4pxを使う。
+// モーダルと同じ20pxを当てると幅の3割を超え、別物の形に見えてしまう。
+const CARD_RADIUS_CLASS = "rounded-[4px]";
+
 function CardSkelton() {
   return (
     <div className="pt-2.5 pl-1 flex gap-2 overflow-hidden">
@@ -73,7 +78,7 @@ function CardSkelton() {
           key={index}
           className={`flex shrink-0 flex-col items-center gap-1 ${CARD_WIDTH_CLASS}`}
         >
-          <Skeleton className="aspect-63/88 w-full rounded-md" />
+          <Skeleton className={`aspect-63/88 w-full ${CARD_RADIUS_CLASS}`} />
           <Skeleton className="h-3 w-6 rounded-sm" />
         </div>
       ))}
@@ -123,7 +128,7 @@ function CardThumbnail({ alt, src }: { alt: string; src: string }) {
 
   return (
     <div className="relative aspect-63/88 w-full">
-      {!loaded && <Skeleton className="absolute inset-0 rounded-md" />}
+      {!loaded && <Skeleton className={`absolute inset-0 ${CARD_RADIUS_CLASS}`} />}
       {/* カード画像タップで開くモーダルと同じ「拡大しながらフェードイン」するポップ
           インにする。スケルトンと実画像の寸法差によるちらつきを、拡大の動きで目立た
           なくする狙いもあるため拡大量はやや大きめ(scale-90 → scale-100)にしている。
@@ -135,7 +140,10 @@ function CardThumbnail({ alt, src }: { alt: string; src: string }) {
         }`}
       >
         <Image
-          radius="sm"
+          // 角丸はカードモーダルの画像と同じ指定方法（radius は none にして
+          // className 側で明示）に揃える。HeroUI の radius="sm" は 8px 固定のため、
+          // サムネイルの幅では比率が合わない。
+          radius="none"
           shadow="none"
           alt={alt}
           src={src}
@@ -143,7 +151,7 @@ function CardThumbnail({ alt, src }: { alt: string; src: string }) {
           // メインスレッドが止まり、モーダルのアニメーションがカクつく。
           decoding="async"
           classNames={{ wrapper: "w-full !max-w-full" }}
-          className="w-full"
+          className={`w-full ${CARD_RADIUS_CLASS}`}
           onLoad={() => setLoaded(true)}
         />
       </div>

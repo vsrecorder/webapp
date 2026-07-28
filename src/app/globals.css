@@ -149,6 +149,16 @@
   padding-top: 0.25rem;
 }
 
+/*
+ * シェアモーダル(記録・パネル/デッキ共通)の固定フッター。
+ * iOS の standalone PWA では画面下端がホームインジケータ/セーフエリアに近く、
+ * 「シェアする」ボタンの下に余白が欲しいため下パディングを足す(pb-6 相当)。
+ * それ以外(data-ios-pwa 未設定)は Tailwind の pb-3 のままにする。
+ */
+:root[data-ios-pwa="true"] .share-modal-footer {
+  padding-bottom: 1.5rem; /* pb-6 */
+}
+
 /* ヘッダーの環境テキストスクロールアニメーション */
 @keyframes marquee {
   from {

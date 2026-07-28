@@ -124,6 +124,43 @@ type DisplayDeckItem = OpponentDeckUsageItemType & {
   others?: OpponentDeckUsageItemType[];
 };
 
+/*
+ * 対戦相手のデッキ一覧を「その他」に集約し、スライス/凡例の配色まで含めた表示用データを返す。
+ *
+ * 円グラフ本体だけでなく、シェア画像(DeckDistributionShareCard)も同じ並び・同じ色で
+ * 描く必要があるため、集約と配色をここに集約して呼び出し側から使えるようにしている。
+ * 別々に計算すると、画面とシェア画像で「その他」の境目や色がずれてしまう。
+ */
+export function buildOpponentDeckDisplay(decks: OpponentDeckUsageItemType[]): {
+  items: DisplayDeckItem[];
+  colors: string[];
+  softColors: string[];
+} {
+  const { displayItems, hasOther } = groupIntoOther<DisplayDeckItem>(decks, {
+    threshold: OTHER_THRESHOLD,
+    maxIndividual: MAX_INDIVIDUAL_DECKS,
+    createOther: (aggregate, rest): DisplayDeckItem => ({
+      deck_info: "その他",
+      pokemon_sprites: [],
+      ...aggregate,
+      others: rest,
+    }),
+  });
+
+  const isOther = (idx: number) => hasOther && idx === displayItems.length - 1;
+
+  return {
+    items: displayItems,
+    colors: displayItems.map((_, idx) =>
+      isOther(idx) ? OTHER_COLOR : SLICE_COLORS[idx],
+    ),
+    // 円グラフ本体に使う薄色（凡例・詳細カードの文字色は従来通り濃色を使う）
+    softColors: displayItems.map((_, idx) =>
+      isOther(idx) ? OTHER_COLOR_SOFT : SLICE_COLORS_SOFT[idx],
+    ),
+  };
+}
+
 function DeckSprites({ deck }: { deck: OpponentDeckUsageItemType }) {
   const sprites = deck.pokemon_sprites ?? [];
 
@@ -191,38 +228,11 @@ export default function OpponentDeckDistributionChart({
 
   // 対面率が低い（出現頻度が低い）デッキをまとめて「その他」として1件に集約する。
   // 集約前の個々のデッキは others に保持し、凡例側でアコーディオン展開して一覧できるようにする。
-  const { displayItems: displayDecks, hasOther } = useMemo(
-    () =>
-      groupIntoOther<DisplayDeckItem>(decks, {
-        threshold: OTHER_THRESHOLD,
-        maxIndividual: MAX_INDIVIDUAL_DECKS,
-        createOther: (aggregate, rest): DisplayDeckItem => ({
-          deck_info: "その他",
-          pokemon_sprites: [],
-          ...aggregate,
-          others: rest,
-        }),
-      }),
-    [decks],
-  );
-
-  const deckColors = useMemo(
-    () =>
-      displayDecks.map((_, idx) =>
-        hasOther && idx === displayDecks.length - 1 ? OTHER_COLOR : SLICE_COLORS[idx],
-      ),
-    [displayDecks, hasOther],
-  );
-  // 円グラフ本体に使う薄色（凡例・ツールチップの文字色は従来通り濃色を使う）
-  const deckColorsSoft = useMemo(
-    () =>
-      displayDecks.map((_, idx) =>
-        hasOther && idx === displayDecks.length - 1
-          ? OTHER_COLOR_SOFT
-          : SLICE_COLORS_SOFT[idx],
-      ),
-    [displayDecks, hasOther],
-  );
+  const {
+    items: displayDecks,
+    colors: deckColors,
+    softColors: deckColorsSoft,
+  } = useMemo(() => buildOpponentDeckDisplay(decks), [decks]);
 
   // react-chartjs-2はマウント後にplugins prop自体の変更を反映しないため、
   // プラグインの中身は常に最新のstateを見るようrefを介して参照する

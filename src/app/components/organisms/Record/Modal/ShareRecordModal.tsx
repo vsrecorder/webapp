@@ -8,6 +8,7 @@ import {
   ModalContent,
   ModalHeader,
   ModalBody,
+  ModalFooter,
   Button,
   Switch,
   Textarea,
@@ -960,25 +961,28 @@ export default function ShareRecordModal({
                   )}
                 </div>
 
-                <div className="flex flex-col gap-2">
-                  {/* 画像の準備が終わるまでは「シェアする」ボタン上に準備中を表示し、
-                      スピナー付きで無効化する(準備完了までシェアさせない)。 */}
-                  <Button
-                    color="primary"
-                    size="lg"
-                    startContent={busy !== "share" && canShare && <LuShare2 />}
-                    isLoading={busy === "share" || !canShare}
-                    isDisabled={busy !== null || !canShare}
-                    onPress={handleShare}
-                  >
-                    {captureFailed
-                      ? "テキストだけでシェア"
-                      : canShare
-                        ? "シェアする"
-                        : "画像を準備しています"}
-                  </Button>
-                </div>
               </ModalBody>
+              {/* 「シェアする」ボタンはモーダル下部に固定する。プレビュー画像が縦に長いと
+                  スクロール範囲の外へ押し出されて見えなくなるため、本文(スクロール領域)から
+                  出してフッターに置き、常に見える・押せる状態にする（パネルのシェアと共通）。
+                  画像の準備が終わるまではスピナー付きで無効化し、準備完了までシェアさせない。 */}
+              <ModalFooter className="share-modal-footer border-t border-divider px-4 pt-3 pb-3">
+                <Button
+                  className="w-full"
+                  color="primary"
+                  size="lg"
+                  startContent={busy !== "share" && canShare && <LuShare2 />}
+                  isLoading={busy === "share" || !canShare}
+                  isDisabled={busy !== null || !canShare}
+                  onPress={handleShare}
+                >
+                  {captureFailed
+                    ? "テキストだけでシェア"
+                    : canShare
+                      ? "シェアする"
+                      : "画像を準備しています"}
+                </Button>
+              </ModalFooter>
             </>
           )}
         </ModalContent>

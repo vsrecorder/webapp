@@ -27,6 +27,7 @@ import { LuEllipsis } from "react-icons/lu";
 import { LuLink } from "react-icons/lu";
 import { LuCopy } from "react-icons/lu";
 import { LuCheck } from "react-icons/lu";
+import { LuShare2 } from "react-icons/lu";
 
 import { useKizunaDeck } from "@app/hooks/useKizunaLevels";
 import { useReopenFlagsOnBack } from "@app/hooks/useReopenFlagsOnBack";
@@ -40,6 +41,10 @@ import DeckCardDetailRow from "@app/components/organisms/Deck/DeckCardDetailRow"
 import DeckOpponentAnalysisPanel from "@app/components/organisms/Deck/DeckOpponentAnalysisPanel";
 import Records from "@app/components/organisms/Record/Records";
 import FetchError from "@app/components/molecules/FetchError";
+
+import PanelShareModal from "@app/components/organisms/Share/PanelShareModal";
+import DeckSummaryShareCard from "@app/components/organisms/Deck/DeckSummaryShareCard";
+import { buildDeckSummaryPostText } from "@app/utils/panelPostText";
 
 import UpdateDeckModal from "@app/components/organisms/Deck/Modal/UpdateDeckModal";
 import CreateDeckCodeModal from "@app/components/organisms/Deck/Modal/CreateDeckCodeModal";
@@ -160,10 +165,13 @@ export default function DeckById({ id, valueMeterEnabled = false }: Props) {
 
   const [recordTab, setRecordTab] = useState<RecordTabKey>("all");
 
-  // このページの絶対URL（NFCタグに書き込む用途でコピーできるようにする）。
+  // このページの絶対URL（NFCタグに書き込む用途でコピーできるものにする）。
   // window はクライアントでのみ参照できるため、マウント後に組み立てる。
   const [pageUrl, setPageUrl] = useState("");
   const [copied, setCopied] = useState(false);
+
+  // 「シェアする」モーダル（記録情報のシェアと同じ流れ：画像＋ポスト文を共有）の開閉。
+  const [shareOpen, setShareOpen] = useState(false);
 
   // 各操作モーダルの開閉状態
   const {
@@ -322,17 +330,31 @@ export default function DeckById({ id, valueMeterEnabled = false }: Props) {
 
   return (
     <div className="pb-3 mx-auto flex w-full max-w-2xl flex-col gap-3">
-      {/* 戻る導線：デッキ一覧へ。スクロールしても追従させる。 */}
+      {/* 上部バー：左に「デッキ一覧」への戻る導線、右に「シェアする」。スクロールしても
+          追従させる。シェアをここに置くのは、ヘッダーカードの右上に置くと、この固定バー
+          （z-40）にスクロール時に覆われて隠れてしまうため（常時タップできる位置にする）。 */}
       <div className="sticky top-14 z-40 -mx-2 lg:top-28">
         <div className="absolute inset-0 border-b border-default-200/60 bg-white/90 backdrop-blur-md dark:bg-neutral-950/90" />
-        <HeroLink
-          as={NextLink}
-          href="/decks"
-          className="relative w-fit gap-0.5 px-2.5 py-2 font-bold text-tiny text-default-600"
-        >
-          <LuChevronLeft />
-          <span>デッキ一覧</span>
-        </HeroLink>
+        <div className="relative flex items-center justify-between pr-2">
+          <HeroLink
+            as={NextLink}
+            href="/decks"
+            className="w-fit gap-0.5 px-2.5 py-2 font-bold text-tiny text-default-600"
+          >
+            <LuChevronLeft />
+            <span>デッキ一覧</span>
+          </HeroLink>
+          {/* シェア：記録情報のシェアと同じく、プライマリ色で強調した独立ボタン */}
+          <button
+            type="button"
+            onClick={() => setShareOpen(true)}
+            aria-label="このデッキをシェアする"
+            className="flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1.5 text-tiny font-bold text-primary active:opacity-70"
+          >
+            <LuShare2 className="text-sm" />
+            シェア
+          </button>
+        </div>
       </div>
 
       {/* ヘッダー：スプライト・デッキ名・登録日・アーカイブ状態 */}
@@ -790,6 +812,24 @@ export default function DeckById({ id, valueMeterEnabled = false }: Props) {
           <Records key={recordTab} event_type={recordTab} deck_id={deck.id} />
         </CardBody>
       </Card>
+
+      {/* シェア：デッキ成績を画像化し、ポスト文とともに共有する（記録情報のシェアと同じ流れ）。 */}
+      <PanelShareModal
+        isOpen={shareOpen}
+        onOpenChange={() => setShareOpen((open) => !open)}
+        onClose={() => setShareOpen(false)}
+        description="このデッキの成績を画像にして、ポスト文と一緒にシェアできます。"
+        postText={buildDeckSummaryPostText(deck.name, usageStat)}
+        filenamePrefix="deck_summary"
+      >
+        {() => (
+          <DeckSummaryShareCard
+            deckName={deck.name}
+            sprites={deck.pokemon_sprites}
+            stat={usageStat}
+          />
+        )}
+      </PanelShareModal>
 
       {/* 操作モーダル群 */}
       <UpdateDeckModal

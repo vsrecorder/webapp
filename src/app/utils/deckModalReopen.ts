@@ -25,6 +25,12 @@ export const DECK_MODAL_REOPEN_KEYS = [
   REOPEN_DECK_MODAL_WITH_RECORDS,
 ] as const;
 
+// デッキ一覧の各カードに付ける id。戻り遷移での再開時、対象デッキの位置まで
+// スクロールするための目印にする。
+export function deckAnchorId(deckId: string): string {
+  return `deck-card-${deckId}`;
+}
+
 // デッキモーダルから別ページへ遷移する直前に呼ぶ。
 // 戻ってきたときに、このデッキのデッキモーダルが再度開くようになる。
 export function markDeckModalReopen(deckId: string, isArchived: boolean) {

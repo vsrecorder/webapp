@@ -16,7 +16,14 @@ import {
 } from "chart.js";
 import { Pie } from "react-chartjs-2";
 import { AnimatePresence, motion } from "framer-motion";
-import { Card, CardBody, Chip, Tab, Tabs } from "@heroui/react";
+import { Button, Card, CardBody, Chip, Tab, Tabs } from "@heroui/react";
+import { LuShare2 } from "react-icons/lu";
+
+import PanelShareModal from "@app/components/organisms/Share/PanelShareModal";
+import DeckDistributionShareCard, {
+  type ShareDeckRow,
+} from "@app/components/organisms/DeckUsage/DeckDistributionShareCard";
+import { buildDeckDistributionPostText } from "@app/utils/panelPostText";
 
 import { EnvironmentType } from "@app/types/environment";
 import { StandardRegulationType } from "@app/types/standard_regulation";
@@ -49,6 +56,8 @@ type Props = {
   standardRegulations: StandardRegulationType[];
   championshipSeries: ChampionshipSeriesType[];
   userCreatedAt?: string;
+  // セクション見出し。パネル自身が見出し行を描画し、その右端にシェアボタンを置く。
+  sectionTitle: string;
 };
 
 // 円グラフの各スライスに割り当てる配色
@@ -171,6 +180,7 @@ export default function DeckUsagePanel({
   standardRegulations,
   championshipSeries,
   userCreatedAt,
+  sectionTitle,
 }: Props) {
   const [filterMode, setFilterMode] = useState<FilterMode>("environment");
   const [yearMonth, setYearMonth] = useState<string>(getCurrentYearMonth);
@@ -187,6 +197,8 @@ export default function DeckUsagePanel({
   const [isLoading, setIsLoading] = useState(true);
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+  // シェアモーダルの開閉
+  const [shareOpen, setShareOpen] = useState(false);
 
   const chartRef = useRef<ChartJS<"pie">>(null);
 
@@ -283,6 +295,26 @@ export default function DeckUsagePanel({
           : SLICE_COLORS_SOFT[idx],
       ),
     [displayDecks, hasOther],
+  );
+
+  // シェア画像・ポスト文に渡す表示データ。
+  // 画面の円グラフ・凡例と同じ並び(「その他」に集約したあと)にする。
+  const shareRows = useMemo(
+    () =>
+      displayDecks.map((deck, idx): ShareDeckRow => {
+        const sprite1 = getDeckSpriteBySlot(deck.pokemon_sprites, 1);
+        const sprite2 = getDeckSpriteBySlot(deck.pokemon_sprites, 2);
+        return {
+          key: deck.deck_id || `other-${idx}`,
+          name: deck.name,
+          spriteIds: [sprite1?.id, sprite2?.id],
+          hasSprite: Boolean(sprite1 || sprite2),
+          count: deck.count,
+          usageRate: deck.usage_rate,
+          winRate: deck.win_rate,
+        };
+      }),
+    [displayDecks],
   );
 
   // react-chartjs-2はマウント後にplugins prop自体の変更を反映しないため、
@@ -443,203 +475,246 @@ export default function DeckUsagePanel({
     },
   };
 
-  return (
-    <Card>
-      <CardBody className="gap-4 p-4">
-        {/* フィルタータブ */}
-        <Tabs
-          fullWidth
-          size="sm"
-          selectedKey={filterMode}
-          onSelectionChange={(key) => setFilterMode(key as FilterMode)}
-          classNames={{
-            tab: "h-7",
-            tabContent: "font-bold text-xs",
-          }}
-        >
-          <Tab key="month" title="月次" />
-          <Tab key="environment" title="環境" />
-          <Tab key="season" title="シーズン" />
-          <Tab key="regulation" title="レギュレーション" />
-        </Tabs>
+  const shareSubtitle = `${filterLabel} のデッキ使用率`;
 
-        {/* セレクタ */}
-        <div className="relative">
-          <select
-            value={
-              filterMode === "month"
-                ? yearMonth
-                : filterMode === "environment"
-                  ? environmentId
-                  : filterMode === "season"
-                    ? season
-                    : regulationId
-            }
-            onChange={(e) => {
-              if (filterMode === "month") {
-                setYearMonth(e.target.value);
-              } else if (filterMode === "environment") {
-                setEnvironmentId(e.target.value);
-              } else if (filterMode === "season") {
-                setSeason(e.target.value);
-              } else {
-                setRegulationId(e.target.value);
-              }
+  return (
+    <>
+      {/* セクション見出し行。タイトルを左、シェアボタンを右端に置く（ダッシュボードの
+          「対戦環境データ」の見出し行と同じ配置ルール）。集計が空の間は画像に載せる
+          中身が無いためシェアを押させない。 */}
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-sm font-bold text-default-700">{sectionTitle}</h2>
+        <Button
+          size="sm"
+          variant="flat"
+          radius="full"
+          className="h-7 shrink-0 px-3 text-xs font-bold"
+          startContent={<LuShare2 className="h-3.5 w-3.5" />}
+          isDisabled={isLoading || decks.length === 0}
+          onPress={() => setShareOpen(true)}
+        >
+          シェア
+        </Button>
+      </div>
+      <Card>
+        <CardBody className="gap-4 p-4">
+          {/* フィルタータブ */}
+          <Tabs
+            fullWidth
+            size="sm"
+            selectedKey={filterMode}
+            onSelectionChange={(key) => setFilterMode(key as FilterMode)}
+            classNames={{
+              tab: "h-7",
+              tabContent: "font-bold text-xs",
             }}
-            className="w-full appearance-none rounded-xl border border-default-200 bg-default-100 px-4 py-2.5 pr-10 text-sm font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
           >
-            {filterMode === "month"
-              ? yearMonthOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))
-              : filterMode === "environment"
-                ? environments.map((env) => (
-                    <option key={env.id} value={env.id}>
-                      『{env.title}』
+            <Tab key="month" title="月次" />
+            <Tab key="environment" title="環境" />
+            <Tab key="season" title="シーズン" />
+            <Tab key="regulation" title="レギュレーション" />
+          </Tabs>
+
+          {/* セレクタ */}
+          <div className="relative">
+            <select
+              value={
+                filterMode === "month"
+                  ? yearMonth
+                  : filterMode === "environment"
+                    ? environmentId
+                    : filterMode === "season"
+                      ? season
+                      : regulationId
+              }
+              onChange={(e) => {
+                if (filterMode === "month") {
+                  setYearMonth(e.target.value);
+                } else if (filterMode === "environment") {
+                  setEnvironmentId(e.target.value);
+                } else if (filterMode === "season") {
+                  setSeason(e.target.value);
+                } else {
+                  setRegulationId(e.target.value);
+                }
+              }}
+              className="w-full appearance-none rounded-xl border border-default-200 bg-default-100 px-4 py-2.5 pr-10 text-sm font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
+            >
+              {filterMode === "month"
+                ? yearMonthOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
                     </option>
                   ))
-                : filterMode === "season"
-                  ? seasonOptions.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
+                : filterMode === "environment"
+                  ? environments.map((env) => (
+                      <option key={env.id} value={env.id}>
+                        『{env.title}』
                       </option>
                     ))
-                  : standardRegulations.map((reg) => (
-                      <option key={reg.id} value={reg.id}>
-                        『{reg.marks}』
-                      </option>
-                    ))}
-          </select>
-          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-default-400 text-xs">
-            ▼
-          </span>
-        </div>
-
-        {/* 期間ラベル */}
-        <p className="text-center text-xs text-default-400 -mt-2">
-          {filterLabel} のデッキ使用率
-        </p>
-
-        {/* グラフ + 凡例 */}
-        {isLoading && !stat ? (
-          <div
-            className="flex items-center justify-center"
-            style={{ height: CHART_SIZE + EXTERNAL_SPRITE_PADDING_Y * 2 }}
-          >
-            <span className="text-xs text-default-400">読み込み中...</span>
+                  : filterMode === "season"
+                    ? seasonOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))
+                    : standardRegulations.map((reg) => (
+                        <option key={reg.id} value={reg.id}>
+                          『{reg.marks}』
+                        </option>
+                      ))}
+            </select>
+            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-default-400 text-xs">
+              ▼
+            </span>
           </div>
-        ) : decks.length === 0 ? (
-          <DeckUsageEmptyState
-            message={
-              "この期間の対戦記録がまだありません。\n記録を作成するとデッキ使用率が表示されます。"
-            }
-          />
-        ) : (
-          <>
-            {/* グラフ領域＋詳細カード。選択時はグラフを左に寄せ、右側に詳細カードを表示する（グラフには重ねない） */}
-            <div className="flex items-stretch gap-3">
-              <div
-                onClick={handleChartAreaClick}
-                className={`relative shrink-0 transition-all duration-300 ${isLoading ? "opacity-30" : "opacity-100"} ${tooltip ? "w-3/5" : "w-full"}`}
-                style={{ height: chartSize + spritePaddingY * 2 }}
-              >
-                <Pie
-                  ref={chartRef}
-                  data={chartData}
-                  options={chartOptions}
-                  plugins={[spritePlugin, centerSpritePlugin]}
-                />
+
+          {/* 期間ラベル */}
+          <p className="text-center text-xs text-default-400 -mt-2">
+            {filterLabel} のデッキ使用率
+          </p>
+
+          {/* グラフ + 凡例 */}
+          {isLoading && !stat ? (
+            <div
+              className="flex items-center justify-center"
+              style={{ height: CHART_SIZE + EXTERNAL_SPRITE_PADDING_Y * 2 }}
+            >
+              <span className="text-xs text-default-400">読み込み中...</span>
+            </div>
+          ) : decks.length === 0 ? (
+            <DeckUsageEmptyState
+              message={
+                "この期間の対戦記録がまだありません。\n記録を作成するとデッキ使用率が表示されます。"
+              }
+            />
+          ) : (
+            <>
+              {/* グラフ領域＋詳細カード。選択時はグラフを左に寄せ、右側に詳細カードを表示する（グラフには重ねない） */}
+              <div className="flex items-stretch gap-3">
+                <div
+                  onClick={handleChartAreaClick}
+                  className={`relative shrink-0 transition-all duration-300 ${isLoading ? "opacity-30" : "opacity-100"} ${tooltip ? "w-3/5" : "w-full"}`}
+                  style={{ height: chartSize + spritePaddingY * 2 }}
+                >
+                  <Pie
+                    ref={chartRef}
+                    data={chartData}
+                    options={chartOptions}
+                    plugins={[spritePlugin, centerSpritePlugin]}
+                  />
+                </div>
+
+                {/* タップしたデッキの詳細（再タップで閉じて円グラフのみの表示に戻す。閉じる際は右にフェードアウトする） */}
+                <AnimatePresence>
+                  {tooltip && (
+                    <motion.div
+                      key="deck-detail"
+                      onClick={closeDetail}
+                      initial={{ opacity: 0, x: 24 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 24 }}
+                      transition={{ duration: 0.3, ease: "easeInOut" }}
+                      className="flex-1 min-w-0 flex flex-col items-center justify-center gap-1.5 rounded-xl border border-default-200 bg-content1 px-2 py-3 shadow-sm cursor-pointer"
+                      style={{ borderLeftColor: tooltip.color, borderLeftWidth: 4 }}
+                    >
+                      <DeckSprites deck={tooltip.deck} />
+                      <p className="text-xs font-bold text-default-700 text-center truncate w-full">
+                        {tooltip.deck.name}
+                      </p>
+                      <div className="flex flex-col items-center gap-0.5">
+                        <span className="text-[10px] font-bold text-default-400">使用率</span>
+                        <span className="text-lg font-black tabular-nums leading-none text-default-700">
+                          {(tooltip.deck.usage_rate * 100).toFixed(1)}
+                          <span className="text-xs font-bold">%</span>
+                        </span>
+                        <span className="text-[10px] text-default-400">
+                          ({tooltip.deck.count}件)
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-center gap-0.5 mt-1.5 pt-3 border-t border-default-200 w-full">
+                        <span className="text-[10px] font-bold text-default-400">勝率</span>
+                        <span
+                          className={`text-base font-black tabular-nums ${winRateTextColor(tooltip.deck.win_rate)}`}
+                        >
+                          {(tooltip.deck.win_rate * 100).toFixed(1)}%
+                        </span>
+                        <span className="text-[9px] text-default-400">
+                          {tooltip.deck.wins}勝{tooltip.deck.losses}敗
+                        </span>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
-              {/* タップしたデッキの詳細（再タップで閉じて円グラフのみの表示に戻す。閉じる際は右にフェードアウトする） */}
-              <AnimatePresence>
-                {tooltip && (
-                  <motion.div
-                    key="deck-detail"
-                    onClick={closeDetail}
-                    initial={{ opacity: 0, x: 24 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 24 }}
-                    transition={{ duration: 0.3, ease: "easeInOut" }}
-                    className="flex-1 min-w-0 flex flex-col items-center justify-center gap-1.5 rounded-xl border border-default-200 bg-content1 px-2 py-3 shadow-sm cursor-pointer"
-                    style={{ borderLeftColor: tooltip.color, borderLeftWidth: 4 }}
+              {/* 凡例リスト（スプライト画像 + デッキ名 + 使用率） */}
+              <div className="flex flex-col gap-1.5">
+                {displayDecks.map((deck, idx) => (
+                  <div
+                    key={deck.deck_id || `unknown-${idx}`}
+                    onClick={() => handleLegendClick(idx)}
+                    className={`flex items-center gap-2 rounded-xl px-3 py-1.5 cursor-pointer transition-colors duration-150 ${
+                      selectedIdx === idx
+                        ? "bg-default-200 ring-1 ring-default-400"
+                        : "bg-default-100 hover:bg-default-200"
+                    }`}
                   >
-                    <DeckSprites deck={tooltip.deck} />
-                    <p className="text-xs font-bold text-default-700 text-center truncate w-full">
-                      {tooltip.deck.name}
-                    </p>
-                    <div className="flex flex-col items-center gap-0.5">
-                      <span className="text-[10px] font-bold text-default-400">使用率</span>
-                      <span className="text-lg font-black tabular-nums leading-none text-default-700">
-                        {(tooltip.deck.usage_rate * 100).toFixed(1)}
-                        <span className="text-xs font-bold">%</span>
-                      </span>
-                      <span className="text-[10px] text-default-400">
-                        ({tooltip.deck.count}件)
-                      </span>
+                    <span
+                      className="w-2.5 h-2.5 rounded-full shrink-0"
+                      style={{ backgroundColor: deckColors[idx] }}
+                    />
+                    <div className="w-16 flex justify-center shrink-0">
+                      <DeckSprites deck={deck} />
                     </div>
-                    <div className="flex flex-col items-center gap-0.5 mt-1.5 pt-3 border-t border-default-200 w-full">
-                      <span className="text-[10px] font-bold text-default-400">勝率</span>
-                      <span
-                        className={`text-base font-black tabular-nums ${winRateTextColor(tooltip.deck.win_rate)}`}
-                      >
-                        {(tooltip.deck.win_rate * 100).toFixed(1)}%
-                      </span>
-                      <span className="text-[9px] text-default-400">
-                        {tooltip.deck.wins}勝{tooltip.deck.losses}敗
-                      </span>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* 凡例リスト（スプライト画像 + デッキ名 + 使用率） */}
-            <div className="flex flex-col gap-1.5">
-              {displayDecks.map((deck, idx) => (
-                <div
-                  key={deck.deck_id || `unknown-${idx}`}
-                  onClick={() => handleLegendClick(idx)}
-                  className={`flex items-center gap-2 rounded-xl px-3 py-1.5 cursor-pointer transition-colors duration-150 ${
-                    selectedIdx === idx
-                      ? "bg-default-200 ring-1 ring-default-400"
-                      : "bg-default-100 hover:bg-default-200"
-                  }`}
-                >
-                  <span
-                    className="w-2.5 h-2.5 rounded-full shrink-0"
-                    style={{ backgroundColor: deckColors[idx] }}
-                  />
-                  <div className="w-16 flex justify-center shrink-0">
-                    <DeckSprites deck={deck} />
-                  </div>
-                  <span className="font-bold text-xs text-default-700 truncate flex-1 min-w-0">
-                    {deck.name}
-                  </span>
-                  <div className="flex flex-col items-end gap-1 shrink-0 pl-2 border-l border-default-200">
-                    <span className="font-black text-xs text-default-700 tabular-nums">
-                      {(deck.usage_rate * 100).toFixed(1)}%({deck.count}件)
+                    <span className="font-bold text-xs text-default-700 truncate flex-1 min-w-0">
+                      {deck.name}
                     </span>
-                    <Chip
-                      size="sm"
-                      variant="flat"
-                      color={winRateChipColor(deck.win_rate)}
-                      classNames={{
-                        base: "h-4 px-0.5",
-                        content: "text-[9px] font-black tabular-nums px-1",
-                      }}
-                    >
-                      勝率 {(deck.win_rate * 100).toFixed(1)}%
-                    </Chip>
+                    <div className="flex flex-col items-end gap-1 shrink-0 pl-2 border-l border-default-200">
+                      <span className="font-black text-xs text-default-700 tabular-nums">
+                        {(deck.usage_rate * 100).toFixed(1)}%({deck.count}件)
+                      </span>
+                      <Chip
+                        size="sm"
+                        variant="flat"
+                        color={winRateChipColor(deck.win_rate)}
+                        classNames={{
+                          base: "h-4 px-0.5",
+                          content: "text-[9px] font-black tabular-nums px-1",
+                        }}
+                      >
+                        勝率 {(deck.win_rate * 100).toFixed(1)}%
+                      </Chip>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          </>
+                ))}
+              </div>
+            </>
+          )}
+
+        </CardBody>
+      </Card>
+
+      <PanelShareModal
+        isOpen={shareOpen}
+        onOpenChange={() => setShareOpen((open) => !open)}
+        onClose={() => setShareOpen(false)}
+        description="デッキ使用率分析を画像にして、ポスト文と一緒にシェアできます。"
+        postText={buildDeckDistributionPostText(shareSubtitle, shareRows)}
+        filenamePrefix="deck_usage"
+      >
+        {(width) => (
+          <DeckDistributionShareCard
+            title="デッキ使用率分析"
+            subtitle={shareSubtitle}
+            rows={shareRows}
+            colors={deckColors}
+            softColors={deckColorsSoft}
+            usageLabel="使用率"
+            width={width}
+          />
         )}
-      </CardBody>
-    </Card>
+      </PanelShareModal>
+    </>
   );
 }

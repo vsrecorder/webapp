@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useLayoutEffect, useState, useCallback } from "react";
 
 import NextLink from "next/link";
 
@@ -30,9 +30,14 @@ import { DeckType, DeckGetResponseType } from "@app/types/deck";
 import { DeckUsageItemType, DeckUsageStatType } from "@app/types/deck_usage_stat";
 import { useKizunaDecks } from "@app/hooks/useKizunaLevels";
 import {
+  deckAnchorId,
   REOPEN_DECK_MODAL_DECK_ID,
   REOPEN_DECK_MODAL_WITH_RECORDS,
 } from "@app/utils/deckModalReopen";
+
+// 再開時のスクロール位置。画面上部に固定されたヘッダー＋タブの分だけ手前で止め、
+// 対象デッキのカードがそれらに隠れないようにする。
+const REOPEN_SCROLL_OFFSET = 100;
 
 async function fetchDecks(isArchived: boolean, cursor: string) {
   const res = await fetch(`/api/decks?archived=${isArchived}&cursor=${cursor}`, {
@@ -192,6 +197,25 @@ export default function Decks({
     const id = sessionStorage.getItem(REOPEN_DECK_MODAL_DECK_ID);
     if (id) setPendingReopenDeckId(id);
   }, [isReopenTargetTab]);
+
+  // 対象デッキが一覧に現れたら、その位置までスクロールする。
+  //
+  // useLayoutEffect なのは順序のため。DeckCard はマウント時の useEffect(passive)で
+  // モーダルを開くが、モーダルが開くと背面がスクロールロックされ、閉じたときに
+  // ロック直前の位置へ戻される。レイアウトエフェクトは同じコミットの passive より
+  // 必ず先に走るため、ここでロック前の位置を合わせておく。
+  // スムーススクロールだとロックが掛かる頃には移動が終わっておらず、途中の位置が
+  // 記録されてしまうため、瞬間移動(auto)にする。
+  useLayoutEffect(() => {
+    if (!pendingReopenDeckId) return;
+    if (!items.some((item) => item.data.id === pendingReopenDeckId)) return;
+
+    const el = document.getElementById(deckAnchorId(pendingReopenDeckId));
+    if (!el) return;
+
+    const y = el.getBoundingClientRect().top + window.scrollY - REOPEN_SCROLL_OFFSET;
+    window.scrollTo({ top: Math.max(0, y), behavior: "auto" });
+  }, [pendingReopenDeckId, items]);
 
   // 対象デッキが描画されるまで自動ロードする。
   // 見つかった後の再開（モーダルを開く・フラグの削除）は DeckCard 側が担う。

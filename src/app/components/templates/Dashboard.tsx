@@ -326,8 +326,8 @@ export default async function TemplateDashboard({ userId }: Props) {
     label: "戦績分析",
     node: (
       <section key="stats" className="flex flex-col gap-2">
-        <h2 className="text-sm font-bold text-default-700">戦績分析</h2>
         <UserStatPanel
+          sectionTitle="戦績分析"
           userId={userId}
           environments={environments}
           currentEnvironmentId={env?.id}
@@ -369,8 +369,8 @@ export default async function TemplateDashboard({ userId }: Props) {
     label: "デッキ使用率分析",
     node: (
       <section key="deck_usage" className="flex flex-col gap-2">
-        <h2 className="text-sm font-bold text-default-700">デッキ使用率分析</h2>
         <DeckUsagePanel
+          sectionTitle="デッキ使用率分析"
           userId={userId}
           environments={environments}
           currentEnvironmentId={env?.id}
@@ -388,8 +388,8 @@ export default async function TemplateDashboard({ userId }: Props) {
     label: "対戦相手のデッキ分布",
     node: (
       <section key="opponent_deck_usage" className="flex flex-col gap-2">
-        <h2 className="text-sm font-bold text-default-700">対戦相手のデッキ分布</h2>
         <OpponentDeckUsagePanel
+          sectionTitle="対戦相手のデッキ分布"
           userId={userId}
           environments={environments}
           currentEnvironmentId={env?.id}

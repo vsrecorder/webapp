@@ -290,7 +290,7 @@ export default async function TemplateHome() {
           <p className="bg-radial from-amber-300/20 to-transparent to-70% pt-1 text-sm font-bold leading-relaxed text-amber-100 drop-shadow-[0_0_28px_rgba(251,191,36,0.5)] lg:px-10 lg:text-2xl">
             勝敗だけじゃ語れない、デッキとの歩みを残す。
             <br />
-            ポケカトレーナーとデッキの物語をここに。
+            ポケカプレイヤーとデッキの物語をここに。
           </p>
 
           {/* 訴求と補足を分ける区切り。両端が消える金の罫線＋中央の菱形で紋章的な“格”を出す */}
@@ -306,7 +306,7 @@ export default async function TemplateHome() {
           <p className="text-xs lg:text-base text-white/70 leading-relaxed">
             対戦記録/デッキ管理/シティリーグの結果閲覧まで。
             <br />
-            ポケカトレーナーのための対戦記録サービス。
+            ポケカプレイヤーのための対戦記録サービス。
           </p>
         </div>
 

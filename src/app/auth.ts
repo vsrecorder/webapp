@@ -56,7 +56,7 @@ declare module "next-auth/jwt" {
 }
 
 // 認証プロバイダの表示名をそのまま使えない場合に代わりに使う名前
-const FALLBACK_USER_NAME = "ポケカトレーナー";
+const FALLBACK_USER_NAME = "ポケカプレイヤー";
 
 // 認証プロバイダから受け取った表示名を、DBに登録できる形に整える。
 // 表示名が未設定・空白のみだったり、上限を超えて長かったりする場合、
@@ -252,12 +252,15 @@ const {
 
         try {
           // ユーザが既に登録されているか確認
-          const ret = await fetchBackend(`https://` + domain + `/api/v1beta/users/` + user.id, {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
+          const ret = await fetchBackend(
+            `https://` + domain + `/api/v1beta/users/` + user.id,
+            {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+              },
             },
-          });
+          );
 
           // ユーザが登録されていない場合は新規登録
           if (ret.status == 404) {
@@ -285,21 +288,25 @@ const {
             const token = jwt.sign(jwtPayload, jwtSecret, jwtSignOptions);
 
             // ユーザを登録
-            const createRet = await fetchBackend(`https://` + domain + `/api/v1beta/users`, {
-              method: "POST",
-              headers: {
-                Authorization: "Bearer " + token,
-                "Content-Type": "application/json",
+            const createRet = await fetchBackend(
+              `https://` + domain + `/api/v1beta/users`,
+              {
+                method: "POST",
+                headers: {
+                  Authorization: "Bearer " + token,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify(createUser),
               },
-              body: JSON.stringify(createUser),
-            });
+            );
 
             if (createRet.status === 201) {
               // 新規登録成功: firebaseユーザの画像を初期化
               // 失敗してもユーザ登録自体は完了しているためログインは継続する
               try {
                 await firebaseAdmin.auth().updateUser(user.id, {
-                  photoURL: "https://xx8nnpgt.user.webaccel.jp/images/users/default_icon.png",
+                  photoURL:
+                    "https://xx8nnpgt.user.webaccel.jp/images/users/default_icon.png",
                 });
               } catch (error) {
                 console.error("Failed to update firebase user photoURL:", error);
@@ -307,7 +314,10 @@ const {
             } else if (createRet.status === 409) {
               // 同時ログインなどの競合により、別リクエストが先に登録済み。
               // ユーザ自体は正常に存在するためエラー扱いにしない。
-              console.warn("User was already registered by a concurrent request:", user.id);
+              console.warn(
+                "User was already registered by a concurrent request:",
+                user.id,
+              );
             } else if (createRet.status === 410) {
               // 退会済みのアカウント。退会時にFirebase側の削除に失敗して
               // 認証ユーザだけが残っていた場合にここへ来る。
@@ -361,7 +371,10 @@ const {
             // 確認できないまま削除はしない。本当に未登録のままFirebaseにだけ残った場合も、
             // 次回サインイン時のDB登録(GET 404→POST)で回収されるか、
             // core-apiserver の cmd/check-firebase-users で検出できる。
-            console.warn("Skipped firebase user rollback because DB state is unverified:", user.id);
+            console.warn(
+              "Skipped firebase user rollback because DB state is unverified:",
+              user.id,
+            );
           }
 
           // backend_unavailable / registration_failed は専用の案内画面へ振り分ける

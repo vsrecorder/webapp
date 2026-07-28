@@ -361,7 +361,7 @@ function YourVsEnv({
         {/* 環境平均（借り物） */}
         <div className="flex-1 rounded-lg bg-default-100 px-3 py-2">
           <div className="text-[10px] font-bold text-default-400">
-            このデッキの環境平均
+            このデッキの環境平均勝率
           </div>
           <span
             className={`text-lg font-black tabular-nums leading-tight ${winRateTextClass(envWinRate)}`}

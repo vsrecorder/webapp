@@ -79,6 +79,14 @@ export default function LinkPlayerIdModal({ isOpen, onOpenChange, onLinked }: Pr
           );
         }
 
+        // 503はプレイヤーズクラブ側が応答しない場合と、連携機能を停止している場合。
+        // どちらも利用者側では解消できないため、時間をおいた再試行を促す。
+        if (res.status === 503) {
+          throw new Error(
+            "現在プレイヤーズクラブとの連携をご利用いただけません。時間をおいてから再度お試しください。",
+          );
+        }
+
         throw new Error(
           typeof resBody?.message === "string"
             ? resBody.message
@@ -138,6 +146,14 @@ export default function LinkPlayerIdModal({ isOpen, onOpenChange, onLinked }: Pr
         if (res.status === 429) {
           throw new Error(
             "試行回数の上限に達しました。しばらく時間をおいてから再度お試しください。",
+          );
+        }
+
+        // 503はプレイヤーズクラブ側が応答しない場合と、連携機能を停止している場合。
+        // アバターは変更済みのため、チャレンジの期限内なら再試行できる。
+        if (res.status === 503) {
+          throw new Error(
+            "現在プレイヤーズクラブとの連携をご利用いただけません。時間をおいてから再度お試しください。",
           );
         }
 

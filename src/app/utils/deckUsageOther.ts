@@ -17,12 +17,16 @@ export function groupIntoOther<T extends OtherAggregate>(
     threshold: number;
     /** 個別に表示できる最大件数（配色数に合わせる） */
     maxIndividual: number;
+    /** 件数(=対面率・使用率)が並んだデッキ同士の並び順。未指定なら元の順序のまま */
+    tieBreak?: (a: T, b: T) => number;
     /** 集約結果から「その他」アイテムを組み立てる */
     createOther: (aggregate: OtherAggregate, rest: T[]) => T;
   },
 ): { displayItems: T[]; hasOther: boolean } {
-  const { threshold, maxIndividual, createOther } = options;
-  const sorted = [...items].sort((a, b) => b.count - a.count);
+  const { threshold, maxIndividual, tieBreak, createOther } = options;
+  const sorted = [...items].sort(
+    (a, b) => b.count - a.count || (tieBreak ? tieBreak(a, b) : 0),
+  );
 
   let cutoff = sorted.findIndex((item) => item.usage_rate < threshold);
   if (cutoff === -1) cutoff = sorted.length;

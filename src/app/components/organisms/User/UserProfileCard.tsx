@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { Avatar, Card, CardBody, useDisclosure } from "@heroui/react";
 import {
   LuSwords,
@@ -21,10 +20,6 @@ import FetchError from "@app/components/molecules/FetchError";
 import { UserType } from "@app/types/user";
 import { UserStatType } from "@app/types/user_stat";
 import { UserPlayerType } from "@app/types/user_player";
-import { formatDateJa } from "@app/utils/calendar";
-
-const CHAMPION_SHIP_POINT_ICON_URL =
-  "https://xx8nnpgt.user.webaccel.jp/images/icons/csp_icon.png";
 
 type Props = {
   user: UserType;
@@ -234,49 +229,20 @@ type PlayersClubBadgeProps = {
   userPlayer: UserPlayerType | null;
 };
 
+// チャンピオンシップポイントは表示しない。
+// プレイヤーIDの実在確認・所有権確認を行わない方針にしたため、連携されている
+// player_id が本人のものである保証がなく、他人のポイントを表示しうるため。
 function PlayersClubBadge({ isLoading, userPlayer }: PlayersClubBadgeProps) {
-  const animatedPoint = useCountUp(
-    isLoading || userPlayer?.champion_ship_point == null
-      ? 0
-      : userPlayer.champion_ship_point,
-  );
-
   if (isLoading) {
-    return (
-      <div className="flex flex-col gap-1">
-        <span className="w-28 h-3 rounded-full bg-white/20 animate-pulse" />
-        <span className="ml-2 w-44 h-8 rounded-full bg-white/20 animate-pulse" />
-      </div>
-    );
+    return <span className="block w-28 h-3 rounded-full bg-white/20 animate-pulse" />;
   }
 
   if (userPlayer) {
     return (
-      <div className="flex flex-col gap-1">
-        <span className="flex items-center gap-1 text-white/80 text-[10px] font-medium">
-          <LuCircleCheck className="w-3 h-3 shrink-0" />
-          プレイヤーズクラブ連携済み
-        </span>
-        <div className="inline-flex items-center w-fit ml-2 gap-1.5 rounded-full bg-white/15 pl-1.5 pr-3 py-1">
-          <Image
-            src={CHAMPION_SHIP_POINT_ICON_URL}
-            alt=""
-            width={22}
-            height={22}
-            unoptimized
-            className="shrink-0"
-          />
-          <span className="text-white text-xl font-black leading-none tabular-nums">
-            {Math.round(animatedPoint).toLocaleString()}
-            <span className="text-xs font-bold ml-0.5">pt</span>
-          </span>
-          {userPlayer.ranking_date !== null && (
-            <span className="text-white/60 text-[9px] font-medium ml-1.5">
-              {formatDateJa(userPlayer.ranking_date)}現在
-            </span>
-          )}
-        </div>
-      </div>
+      <span className="flex items-center gap-1 text-white/80 text-[10px] font-medium">
+        <LuCircleCheck className="w-3 h-3 shrink-0" />
+        プレイヤーズクラブ連携済み
+      </span>
     );
   }
 

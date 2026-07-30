@@ -15,6 +15,13 @@ export function isEnvWindowEnabled(): boolean {
   return process.env.ENV_WINDOW_ENABLED !== "false";
 }
 
+// 「クイックスタート」モーダルの表示可否。記録0件のユーザーがホーム（ダッシュボード）を
+// 開いたときに、最初の1件へ進む導線を自動で前に出す。
+// 既定は有効。緊急停止・段階公開したい場合のみ QUICK_START_MODAL_ENABLED=false を設定する。
+export function isQuickStartModalEnabled(): boolean {
+  return process.env.QUICK_START_MODAL_ENABLED !== "false";
+}
+
 // 「環境ベンチマーク・リターン」（施策E-1）の表示可否。記録直後に、相手デッキの環境順位・
 // 全体勝率と勝敗の意味づけを返し、労力の直後に報酬を置く。
 // 既定は有効。緊急停止したい場合のみ ENV_RETURN_ENABLED=false を設定する。

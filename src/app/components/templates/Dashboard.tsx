@@ -17,6 +17,7 @@ import {
 } from "@app/components/organisms/Dashboard/DashboardChartPanels";
 import UserProfileCard from "@app/components/organisms/User/UserProfileCard";
 import FirstRecordCtaCard from "@app/components/organisms/Dashboard/FirstRecordCtaCard";
+import QuickStartModal from "@app/components/organisms/Dashboard/QuickStartModal";
 import EnvironmentWindowCard from "@app/components/organisms/Dashboard/EnvironmentWindowCard";
 import StreakPanel from "@app/components/organisms/Badge/StreakPanel";
 import OnboardingBadgePanel from "@app/components/organisms/Badge/OnboardingBadgePanel";
@@ -34,7 +35,11 @@ import { ChampionshipSeriesType } from "@app/types/championship_series";
 import { UserType } from "@app/types/user";
 import { RecordGetResponseType } from "@app/types/record";
 import { isDevEnv } from "@app/utils/appIcon";
-import { isFirstRecordCtaEnabled, isEnvWindowEnabled } from "@app/utils/featureFlags";
+import {
+  isFirstRecordCtaEnabled,
+  isEnvWindowEnabled,
+  isQuickStartModalEnabled,
+} from "@app/utils/featureFlags";
 
 import { upstreamUrl } from "@app/utils/upstream";
 
@@ -189,10 +194,12 @@ export default async function TemplateDashboard({ userId }: Props) {
 
   // 施策0-6: 記録0件のユーザーにだけ「最初の記録を作成する」CTAを出す。
   // 施策E-2: 同じく記録0件のユーザーに「環境の窓」カードを出す。
-  // どちらのトグルも無効なら件数取得自体をスキップして無駄な往復を省く。
+  // クイックスタートモーダル: 同じく記録0件のユーザーに、開いた直後の導線として自動表示する。
+  // どのトグルも無効なら件数取得自体をスキップして無駄な往復を省く。
   const ctaEnabled = isFirstRecordCtaEnabled();
   const envWindowEnabled = isEnvWindowEnabled();
-  const needTotalRecords = ctaEnabled || envWindowEnabled;
+  const quickStartModalEnabled = isQuickStartModalEnabled();
+  const needTotalRecords = ctaEnabled || envWindowEnabled || quickStartModalEnabled;
 
   // 各取得は互いに独立しているため、直列に await すると往復回数ぶん
   // そのままサーバ応答(TTFB)が伸びる。並列化して全体の待ち時間を最も遅い1本ぶんに抑える。
@@ -221,6 +228,9 @@ export default async function TemplateDashboard({ userId }: Props) {
   // totalRecords は「全期間の記録件数（0〜3にキャップ）」。3 は「3件以上」の意味。
   // 「最初の記録」CTAは記録0件のときだけ。取得失敗(null)時は非表示に倒す。
   const showFirstRecordCta = ctaEnabled && totalRecords === 0;
+  // クイックスタートモーダルも記録0件のときだけ。取得失敗(null)時は非表示に倒す。
+  // 実際に開くかどうか（前回閉じてから3日空いたか）はクライアント側で判定する。
+  const showQuickStartModal = quickStartModalEnabled && totalRecords === 0;
   // 組み合わせパネル(環境ウィンドウ E-2 ＋ 対戦環境分析)。記録数で配置を出し分ける(境界=3件):
   //  ・3件未満 → プロフィール直下(pinned)。価値の後払いゾーン(blindspots §2)に前倒しで見せる。
   //  ・3件以上 → 「対戦環境分析」セクションの位置。実勝率での「あなたの勝率 vs 環境平均勝率」比較が主役になる。
@@ -524,6 +534,17 @@ export default async function TemplateDashboard({ userId }: Props) {
           trailing={recentRecords}
         />
       </div>
+
+      {/*
+        記録0件のユーザーには、ホームを開いた直後にクイックスタートを前に出す。
+        プロフィールカードの取得結果(user)に依存しない導線なので、pinned の外に置く。
+      */}
+      {showQuickStartModal && (
+        <QuickStartModal
+          cohortWeek={cohort.cohortWeek}
+          daysSinceSignup={cohort.daysSinceSignup}
+        />
+      )}
 
       <Footer />
     </>

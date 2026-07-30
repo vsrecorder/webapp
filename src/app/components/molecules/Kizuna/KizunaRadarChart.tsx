@@ -17,12 +17,18 @@ type Props = {
 // ── 図形の定数 ────────────────────────────────────────────────
 // viewBox は軸ラベル（最長「逆境ロイヤルティ」）が収まる幅を確保している。
 const VIEW_W = 300;
-const VIEW_H = 202;
+// 下端の軸（同行日数）はラベルの下に数値がもう1行入るため、その分の余白を含む。
+const VIEW_H = 210;
 const CX = VIEW_W / 2;
 const CY = 96;
 const RADIUS = 66;
 // 目盛りリング（25 / 50 / 75 / 100%）
 const RINGS = [0.25, 0.5, 0.75, 1];
+// 多角形がつぶれて線に見えないよう、頂点に持たせる最小の半径比。
+// これを下回る値は「実質0」として扱う。
+const MIN_RATIO = 0.02;
+// 軸ラベルのベースラインから、その下に添える数値のベースラインまでの距離。
+const LABEL_VALUE_GAP = 11;
 
 // i番目の軸の座標。頂点を真上から時計回りに配置する。
 function axisPoint(index: number, total: number, ratio: number) {
@@ -56,15 +62,23 @@ function labelAnchor(index: number, total: number) {
  * <canvas> をクローンしても描画内容（ビットマップ）は複製されず、シェア画像では
  * 真っ白になる。SVG はDOMそのものなのでクローンしても欠けない。
  *
- * 単一系列のため凡例は置かない。正確な値は隣の一覧（数値）が担うので、
- * 頂点に数値ラベルは打たない（図が読めなくなるため）。
+ * 単一系列のため凡例は置かない。頂点にドットは打たず、面の「かたち」で読ませる。
+ *
+ * 軸ラベルの下に出す数値は達成度（％）であり、獲得点ではない。
+ * 半径が表しているのは達成度そのもので、獲得点は指標ごとに満点が違う
+ * （62/47/47/37/31/31）。獲得点を軸に添えると「31点の軸が外周まで届き、
+ * 40点の軸は届かない」という矛盾した読み方になる。点数は一覧側で読ませる。
  */
 export default function KizunaRadarChart({ metrics }: Props) {
   const total = metrics.length;
 
+  // 全指標が実質0（きずなLv.が0）なら、値の図形そのものを描かない。
+  // クランプで中心に残る極小の多角形は、値ではなく描画の都合でしかない。
+  const isEmpty = metrics.every((m) => m.value < MIN_RATIO);
+
   const valuePoints = metrics
     .map((m, i) => {
-      const p = axisPoint(i, total, Math.max(0.02, m.value));
+      const p = axisPoint(i, total, Math.max(MIN_RATIO, m.value));
       return `${p.x.toFixed(1)},${p.y.toFixed(1)}`;
     })
     .join(" ");
@@ -75,7 +89,7 @@ export default function KizunaRadarChart({ metrics }: Props) {
       className="w-full"
       role="img"
       aria-label={`きずなLv.の内訳: ${metrics
-        .map((m) => `${m.label} ${Math.round(m.value * 100)}`)
+        .map((m) => `${m.label} ${Math.round(m.value * 100)}%`)
         .join("、")}`}
     >
       <defs>
@@ -121,46 +135,44 @@ export default function KizunaRadarChart({ metrics }: Props) {
         );
       })}
 
-      {/* 値の多角形 */}
-      <polygon
-        points={valuePoints}
-        fill="url(#kizuna-radar-fill)"
-        stroke="url(#kizuna-radar-stroke)"
-        strokeWidth="2"
-        strokeLinejoin="round"
-      />
+      {/* 値の多角形。きずなLv.が0のときは目盛りだけの空の図にする */}
+      {!isEmpty && (
+        <polygon
+          points={valuePoints}
+          fill="url(#kizuna-radar-fill)"
+          stroke="url(#kizuna-radar-stroke)"
+          strokeWidth="2"
+          strokeLinejoin="round"
+        />
+      )}
 
-      {/* 頂点 */}
-      {metrics.map((m, i) => {
-        const p = axisPoint(i, total, Math.max(0.02, m.value));
-        return (
-          <circle
-            key={m.key}
-            cx={p.x}
-            cy={p.y}
-            r="4"
-            fill="#FBBF24"
-            stroke="#0F172A"
-            strokeWidth="1.5"
-          />
-        );
-      })}
-
-      {/* 軸ラベル。数値は打たない（一覧側で正確な値を読ませる） */}
+      {/* 軸ラベルと、その下に達成度（％） */}
       {metrics.map((m, i) => {
         const l = labelAnchor(i, total);
         return (
-          <text
-            key={m.key}
-            x={l.x}
-            y={l.y}
-            textAnchor={l.anchor}
-            fontSize="10"
-            fontWeight="700"
-            fill="rgba(255,255,255,0.72)"
-          >
-            {m.label}
-          </text>
+          <g key={m.key}>
+            <text
+              x={l.x}
+              y={l.y}
+              textAnchor={l.anchor}
+              fontSize="10"
+              fontWeight="700"
+              fill="rgba(255,255,255,0.72)"
+            >
+              {m.label}
+            </text>
+            {/* ラベルとの主従が崩れないよう、数値は一段小さく灯の色で添える */}
+            <text
+              x={l.x}
+              y={l.y + LABEL_VALUE_GAP}
+              textAnchor={l.anchor}
+              fontSize="9"
+              fontWeight="700"
+              fill="rgba(251,191,36,0.9)"
+            >
+              {Math.round(m.value * 100)}%
+            </text>
+          </g>
         );
       })}
     </svg>

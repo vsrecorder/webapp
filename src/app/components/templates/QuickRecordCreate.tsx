@@ -21,7 +21,7 @@ import {
   addToast,
   closeToast,
 } from "@heroui/react";
-import { LuFilePen, LuSlidersHorizontal } from "react-icons/lu";
+import { LuFilePen, LuSlidersHorizontal, LuCircleSlash } from "react-icons/lu";
 import { sendGAEvent } from "@next/third-parties/google";
 import { CalendarDate, today, getLocalTimeZone } from "@internationalized/date";
 
@@ -77,13 +77,16 @@ async function fetchMatches(url: string): Promise<MatchGetResponseType[]> {
   return res.json();
 }
 
-// 使用デッキ(選択済み)の情報を取得する。スプライトを「使用デッキ」表示に出すために使う。
-async function fetchDeck(url: string): Promise<DeckData | null> {
+// 自分のデッキ一覧を取得する。「使用デッキ」の選択肢と、選択中デッキのスプライト表示に使う。
+// upstream の /decks/all はアーカイブ済みを除外し、作成日の新しい順で返す。
+// 失敗時は空配列ではなく throw する。空配列を返すと SWR が「デッキ0件」として扱い、
+// サーバー側で渡した初期データ(fallbackData)を上書きして選択肢が消えてしまうため。
+async function fetchDecks(url: string): Promise<DeckData[]> {
   const res = await fetch(url, {
     method: "GET",
     headers: { Accept: "application/json" },
   });
-  if (!res.ok) return null;
+  if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
   return res.json();
 }
 
@@ -136,10 +139,15 @@ function buildDeckHistories(
 type EventType = "unofficial" | "official" | "tonamel";
 
 type Props = {
-  // 施策A-2 クイックスタートから渡される、作成済みデッキ。無ければデッキ未指定で記録する。
+  // 施策A-2 クイックスタートから渡される、作成済みデッキ。初期選択に使う。
+  // 無ければデッキ未指定で開き、既にデッキを持っていれば画面上で選べる。
   deckId?: string;
   deckCodeId?: string;
   deckName?: string;
+  // 「使用デッキ」の選択肢。サーバー側で取得したものを初期データとして受け取り、
+  // 初回描画からデッキ候補を出す(後から現れるポップインを避ける)。
+  // undefined はサーバー側の取得失敗を表し、その場合はクライアントで取り直す。
+  initialDecks?: DeckData[];
   // 施策E-1: 記録直後の環境ベンチマーク・リターンの有効/無効(サーバのフラグをpropsで受ける)。
   envReturnEnabled?: boolean;
 };
@@ -153,6 +161,7 @@ export default function TemplateQuickRecordCreate({
   deckId = "",
   deckCodeId = "",
   deckName = "",
+  initialDecks,
   envReturnEnabled = true,
 }: Props) {
   const router = useRouter();
@@ -170,6 +179,11 @@ export default function TemplateQuickRecordCreate({
   } | null>(null);
   // リターンから記録詳細ページへ遷移する間、全画面オーバーレイで操作をブロックする。
   const [isNavigating, setIsNavigating] = useState(false);
+
+  // 使用デッキ(任意)。クイックスタートから引き継いだデッキを初期選択とし、
+  // 画面上の選択で差し替えられるようにするため state で持つ。
+  const [selectedDeckId, setSelectedDeckId] = useState(deckId);
+  const [selectedDeckCodeId, setSelectedDeckCodeId] = useState(deckCodeId);
 
   // 必須3項目
   const [opponentsDeckInfo, setOpponentsDeckInfo] = useState("");
@@ -207,12 +221,23 @@ export default function TemplateQuickRecordCreate({
     fetchMatches,
   );
 
-  // 使用デッキ(A-2で選択済み)のスプライトを「使用デッキ」表示に出すため、デッキ情報を取得する。
-  const { data: usedDeck, isLoading: isUsedDeckLoading } = useSWR<DeckData | null>(
-    deckId ? `/api/decks/${deckId}` : null,
-    fetchDeck,
+  // 使用デッキの選択肢。既にデッキを作成しているユーザーは、ここから選んで記録できる。
+  // 選択中デッキのスプライト・デッキ名もこの一覧から引く(単体取得の往復を増やさない)。
+  // サーバー側で取得済み(initialDecks)なら初回描画からデッキ候補を出し、裏で最新化する。
+  // 取得できていなければ従来どおりクライアントで取りに行く。
+  const { data: decks, isLoading: isDecksLoading } = useSWR<DeckData[]>(
+    `/api/decks/all`,
+    fetchDecks,
+    { revalidateOnFocus: false, fallbackData: initialDecks },
   );
-  const usedDeckSprites = usedDeck?.pokemon_sprites ?? [];
+  const deckOptions = decks ?? [];
+  const selectedDeck = selectedDeckId
+    ? (deckOptions.find((d) => d.id === selectedDeckId) ?? null)
+    : null;
+  // 一覧の取得中や、一覧に無いデッキ(アーカイブ済みなど)をクエリで渡された場合は、
+  // クイックスタートから受け取ったデッキ名で表示を埋める。
+  const selectedDeckName = selectedDeck?.name || deckName;
+  const selectedDeckSprites = selectedDeck?.pokemon_sprites ?? [];
   const deckHistories = useMemo(
     () => buildDeckHistories(recentMatches, false),
     [recentMatches],
@@ -257,6 +282,15 @@ export default function TemplateQuickRecordCreate({
       (eventType === "tonamel" && tonamelEventId.trim() !== "" && tonamelValid)) &&
     !isSubmitting;
 
+  // 使用デッキの選択。選択中のデッキをもう一度押すと解除する(相手デッキの候補と同じ操作感)。
+  // デッキコードは選んだデッキの最新版を使う(バージョンの選択は記録の詳細ページで行える)。
+  function selectDeck(deck: DeckData | null) {
+    const next = deck && deck.id !== selectedDeckId ? deck : null;
+    setSelectedDeckId(next?.id ?? "");
+    setSelectedDeckCodeId(next?.latest_deck_code?.id ?? "");
+    sendGAEvent("event", "quick_record_deck_select", { selected: next !== null });
+  }
+
   function selectHistory(history: DeckHistory) {
     const isSelected =
       opponentsDeckInfo === history.deckInfo &&
@@ -299,8 +333,8 @@ export default function TemplateQuickRecordCreate({
           official_event_id: officialEventId,
           tonamel_event_id: "",
           friend_id: "",
-          deck_id: deckId,
-          deck_code_id: deckCodeId,
+          deck_id: selectedDeckId,
+          deck_code_id: selectedDeckCodeId,
           private_flg: true,
           ignore_stats_flg: false,
           tcg_meister_url: "",
@@ -313,8 +347,8 @@ export default function TemplateQuickRecordCreate({
           official_event_id: 0,
           tonamel_event_id: tonamelEventId.trim(),
           friend_id: "",
-          deck_id: deckId,
-          deck_code_id: deckCodeId,
+          deck_id: selectedDeckId,
+          deck_code_id: selectedDeckCodeId,
           private_flg: true,
           ignore_stats_flg: false,
           tcg_meister_url: "",
@@ -341,8 +375,8 @@ export default function TemplateQuickRecordCreate({
           official_event_id: 0,
           tonamel_event_id: "",
           friend_id: "",
-          deck_id: deckId,
-          deck_code_id: deckCodeId,
+          deck_id: selectedDeckId,
+          deck_code_id: selectedDeckCodeId,
           private_flg: true,
           ignore_stats_flg: false,
           tcg_meister_url: "",
@@ -409,7 +443,7 @@ export default function TemplateQuickRecordCreate({
       if (toastId) closeToast(toastId);
 
       sendGAEvent("event", "quick_record_saved", {
-        with_deck: deckId !== "",
+        with_deck: selectedDeckId !== "",
         event_type: eventType,
       });
       triggerNotificationsRefresh();
@@ -520,26 +554,112 @@ export default function TemplateQuickRecordCreate({
             </p>
           </div>
 
-          {/* 使用デッキ(A-2クイックスタート連携時のみ表示) */}
-          {deckId && (
-            <div className="flex items-center gap-3 rounded-xl border border-success-200 bg-success-50 px-3 py-2.5">
-              {/* 記録情報モーダルの使用デッキ(KizunaDeckSprites・size48・2枠gap-0)に合わせる。
-                  ロード中は同寸(48px×2)のスケルトン、ロード後はスプライト
-                  (未設定スロットは unknown.png)を表示する。 */}
-              {isUsedDeckLoading ? (
-                <div className="flex items-center gap-0 shrink-0">
-                  <Skeleton className="w-12 h-12 rounded-lg" />
-                  <Skeleton className="w-12 h-12 rounded-lg" />
+          {/*
+            使用デッキ(任意)。クイックスタート(A-2)から来た場合は選択済みの状態で開き、
+            先にデッキだけ作っていたユーザーはここで自分のデッキを選んで記録できる。
+            デッキが1つも無く、引き継ぎも無いときは何も出さない(必須項目を増やさない)。
+
+            一覧の取得中は、デッキがあると分かっている場合(クイックスタートからの引き継ぎ)
+            だけ枠を出す。デッキを持たないユーザーにも読み込み中のスケルトンを見せると、
+            結局消える欄がちらついてしまうため、取得が終わってから出す。
+          */}
+          {(deckOptions.length > 0 || selectedDeckId) && (
+            <div className="flex flex-col gap-2">
+              <span className="text-sm font-medium text-default-700">
+                使用デッキ
+                <span className="text-tiny text-default-400 ml-1">（任意）</span>
+              </span>
+
+              {/* 選択中のデッキ。記録情報モーダルの使用デッキ(KizunaDeckSprites・size48・
+                  2枠gap-0)に合わせる。デッキの情報がまだ無い(一覧の取得待ち)ときだけ、
+                  同寸(48px×2)のスケルトンを出す。 */}
+              {selectedDeckId && (
+                <div className="flex items-center gap-3 rounded-xl border border-success-200 bg-success-50 px-3 py-2.5">
+                  {!selectedDeck && isDecksLoading ? (
+                    <div className="flex items-center gap-0 shrink-0">
+                      <Skeleton className="w-12 h-12 rounded-lg" />
+                      <Skeleton className="w-12 h-12 rounded-lg" />
+                    </div>
+                  ) : (
+                    <KizunaDeckSprites sprites={selectedDeckSprites} size={48} />
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold truncate">
+                      {selectedDeckName || "選択済みのデッキ"}
+                    </p>
+                    <p className="text-xs text-success-600 font-bold">
+                      使用デッキ・選択済み
+                    </p>
+                  </div>
                 </div>
-              ) : (
-                <KizunaDeckSprites sprites={usedDeckSprites} size={48} />
               )}
-              <div className="min-w-0">
-                <p className="text-sm font-bold truncate">
-                  {deckName || "選択済みのデッキ"}
-                </p>
-                <p className="text-xs text-success-600 font-bold">使用デッキ・選択済み</p>
-              </div>
+
+              {/* デッキの選択候補(相手デッキの候補行と同じ操作感・見た目に揃える)。
+                  一覧が手元にあるなら常にそれを描く。SWR は初期データ(fallbackData)を
+                  持っていても isLoading を立てるため、ロード判定を先に見るとサーバー描画が
+                  スケルトンになってしまう。スケルトンは一覧がまだ無いときだけ。 */}
+              {deckOptions.length === 0 && isDecksLoading ? (
+                <HScrollRow className="flex gap-2 py-1">
+                  {[...Array(3)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="shrink-0 w-24 rounded-xl border-2 border-default-200 bg-default-50 py-2 px-2 flex flex-col items-center gap-1"
+                    >
+                      <Skeleton className="w-full h-9 rounded-lg" />
+                      <Skeleton className="w-full h-3 rounded-md" />
+                    </div>
+                  ))}
+                </HScrollRow>
+              ) : deckOptions.length > 0 ? (
+                <HScrollRow className="flex gap-2 py-1">
+                  {/* 「指定しない」= デッキ未指定。選択中のデッキをもう一度押しても解除できる。 */}
+                  <button
+                    type="button"
+                    className={`shrink-0 flex flex-col items-center gap-1 py-2 px-2 rounded-xl border-2 w-24 transition-colors ${
+                      selectedDeckId
+                        ? "border-default-200 bg-default-50 active:bg-default-100"
+                        : "border-primary bg-primary/10"
+                    }`}
+                    onClick={() => selectDeck(null)}
+                  >
+                    <div className="flex items-center justify-center w-full h-9">
+                      <LuCircleSlash className="w-5 h-5 text-default-400" />
+                    </div>
+                    <span className="block w-full text-[10px] leading-snug text-center truncate">
+                      指定しない
+                    </span>
+                  </button>
+                  {deckOptions.map((deck) => {
+                    const isSelected = deck.id === selectedDeckId;
+                    return (
+                      <button
+                        key={deck.id}
+                        type="button"
+                        className={`shrink-0 flex flex-col items-center gap-1 py-2 px-2 rounded-xl border-2 w-24 transition-colors ${
+                          isSelected
+                            ? "border-primary bg-primary/10"
+                            : "border-default-200 bg-default-50 active:bg-default-100"
+                        }`}
+                        onClick={() => selectDeck(deck)}
+                      >
+                        <div className="flex items-end justify-center w-full h-9">
+                          <PokemonSprite
+                            id={getSpriteBySlot(deck.pokemon_sprites, 1)?.id}
+                            size={36}
+                          />
+                          <PokemonSprite
+                            id={getSpriteBySlot(deck.pokemon_sprites, 2)?.id}
+                            size={36}
+                          />
+                        </div>
+                        <span className="block w-full text-[10px] leading-snug text-center truncate">
+                          {deck.name}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </HScrollRow>
+              ) : null}
             </div>
           )}
 

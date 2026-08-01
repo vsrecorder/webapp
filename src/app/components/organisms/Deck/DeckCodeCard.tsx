@@ -146,7 +146,13 @@ export default function DeckCodeCard({
             timeout={3000}
             disableTooltip={true}
             hideSymbol={true}
-            classNames={{ base: "min-w-0 bg-transparent p-0", pre: "truncate" }}
+            classNames={{
+              base: "min-w-0 bg-transparent p-0",
+              pre: "truncate",
+              // コピーボタンは操作用UIなので、シェア画像には含めない
+              // (capture-hide は captureThemedPng が複製後に除去する目印)
+              copyButton: "capture-hide",
+            }}
           >
             {deckcode.code}
           </Snippet>

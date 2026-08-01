@@ -494,9 +494,12 @@ export async function captureThemedPng(
     .querySelectorAll<HTMLImageElement>("img")
     .forEach((img) => (img.loading = "eager"));
 
-  // 並び替えボタンなど、操作用UIで書き出し画像には含めたくない要素を除去する
+  // 並び替えボタンなど、操作用UIで書き出し画像には含めたくない要素を除去する。
+  // HeroUIが内部で描画する要素(Snippetのコピーボタンなど)には属性を渡せない
+  // (props の型に data-* が無い)ため、classNames から付けられる .capture-hide も
+  // 同じ目印として扱う。
   clone
-    .querySelectorAll<HTMLElement>('[data-capture-hide="true"]')
+    .querySelectorAll<HTMLElement>('[data-capture-hide="true"], .capture-hide')
     .forEach((node) => node.remove());
 
   // bare 指定時はサービスフッターを付けない(カードが自前でサービス表記を内包する)

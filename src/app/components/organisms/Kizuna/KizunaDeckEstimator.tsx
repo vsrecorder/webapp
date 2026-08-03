@@ -40,6 +40,7 @@ import { DeckGetResponseType, DeckType } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
 import { DeckUsageItemType, DeckUsageStatType } from "@app/types/deck_usage_stat";
 import { RecordGetResponseType, RecordType } from "@app/types/record";
+import { MatchType } from "@app/types/match";
 import { OfficialEventType } from "@app/types/official_event";
 import { PokemonSpriteType } from "@app/types/pokemon_sprite";
 
@@ -58,6 +59,11 @@ const DECKS_PER_PAGE = 5;
 // 引く件数と並列数に上限を置き、記録の多いデッキでもAPIを叩き潰さないようにする。
 const MAX_OFFICIAL_EVENT_FETCHES = 60;
 const OFFICIAL_EVENT_CONCURRENCY = 6;
+
+// 語り度は対戦（matches）のメモを見るが、記録一覧に対戦は含まれないため、記録ごとに
+// 対戦を1件ずつ引いてメモを集める。イベント種別と同じく件数・並列数に上限を置く。
+const MAX_MATCH_FETCHES = 60;
+const MATCH_CONCURRENCY = 6;
 
 async function fetchJson<T>(url: string): Promise<T> {
   const res = await fetch(url, {
@@ -113,6 +119,32 @@ async function fetchOfficialEventTypes(
   }
 
   return cache;
+}
+
+// 語り度用に、このデッキの対戦（matches）のメモ（空でないものだけ）を集める。
+// 記録ごとに /api/records/{id}/matches を引く。件数は上限で打ち切る（試算の精度に
+// 大きくは影響しないため）。取得に失敗した記録は黙って飛ばす。
+async function fetchMatchMemos(records: RecordType[]): Promise<string[]> {
+  const recordIds = records.map((r) => r.data.id).slice(0, MAX_MATCH_FETCHES);
+  const memos: string[] = [];
+
+  for (let i = 0; i < recordIds.length; i += MATCH_CONCURRENCY) {
+    const chunk = recordIds.slice(i, i + MATCH_CONCURRENCY);
+    const results = await Promise.all(
+      chunk.map((id) =>
+        fetchJson<MatchType[]>(`/api/records/${id}/matches`).catch(() => []),
+      ),
+    );
+
+    for (const matches of results) {
+      for (const match of matches) {
+        const memo = match.memo?.trim() ?? "";
+        if (memo.length > 0) memos.push(memo);
+      }
+    }
+  }
+
+  return memos;
 }
 
 type Props = {
@@ -229,11 +261,11 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
         fetchJson<DeckCodeType[]>(`/api/decks/${deckId}/deckcodes`).catch(() => []),
       ]);
 
-      // 舞台の格を知るため、記録に紐づく公式イベントの種別を引く
-      const officialEventTypes = await fetchOfficialEventTypes(
-        records,
-        officialEventTypesRef.current,
-      );
+      // 舞台の格（公式イベントの種別）と、語り度に使う対戦メモを並行して集める
+      const [officialEventTypes, matchMemos] = await Promise.all([
+        fetchOfficialEventTypes(records, officialEventTypesRef.current),
+        fetchMatchMemos(records),
+      ]);
 
       setEstimate(
         estimateKizuna({
@@ -242,6 +274,7 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
           officialEventTypes,
           usage: usages.find((u) => u.deck_id === deckId),
           allUsages: usages,
+          matchMemos,
         }),
       );
     } catch {

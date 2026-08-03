@@ -286,6 +286,9 @@ export type KizunaEstimateInput = {
   usage: DeckUsageItemType | undefined;
   // 自分の全デッキの戦績（一途度と、逆境ロイヤルティの基準になる「他デッキの勝率」に使う）
   allUsages: DeckUsageItemType[];
+  // 語り度で使う、このデッキの対戦（matches）メモ（空でないものだけ）。
+  // 記録（records）のメモは準備段階のメモなので使わない。記入率の分母は usage.count（対戦数）。
+  matchMemos: string[];
 };
 
 export function estimateKizuna({
@@ -294,6 +297,7 @@ export function estimateKizuna({
   officialEventTypes,
   usage,
   allUsages,
+  matchMemos,
 }: KizunaEstimateInput): KizunaEstimate {
   const recordCount = records.length;
 
@@ -330,9 +334,12 @@ export function estimateKizuna({
     0.6 * (topStage?.score ?? 0) + 0.4 * logScale(seriousSum, TRUST_SERIOUS_SATURATION),
   );
 
-  // ── 語り度：memo を書き残したか（記入率 × 熱量）
-  const memos = records.map((r) => r.data.memo?.trim() ?? "").filter((m) => m.length > 0);
-  const memoRate = recordCount > 0 ? memos.length / recordCount : 0;
+  // ── 語り度：対戦のメモを書き残したか（記入率 × 熱量）
+  // 記入率は「メモのある対戦 ÷ 対戦数」、熱量はメモの平均文字数。
+  // 記録（records）のメモは準備段階のメモなので使わない。
+  const memos = matchMemos.map((m) => m.trim()).filter((m) => m.length > 0);
+  const matchCount = usage?.count ?? 0;
+  const memoRate = matchCount > 0 ? memos.length / matchCount : 0;
   const memoAvgLength =
     memos.length > 0 ? memos.reduce((a, m) => a + m.length, 0) / memos.length : 0;
   const narrativeValue = memoRate * logScale(memoAvgLength, 120);
@@ -460,7 +467,7 @@ export function estimateKizuna({
       label: KIZUNA_METRIC_LABELS.narrative,
       weight: WEIGHTS.narrative,
       value: narrativeValue,
-      detail: memos.length > 0 ? `メモ${memos.length}件` : "メモなし",
+      detail: memos.length > 0 ? `対戦メモ${memos.length}件` : "対戦メモなし",
     },
   ];
 
@@ -480,7 +487,7 @@ export function estimateKizuna({
 
   // 9戦に満たないデッキは「出会ったばかり」に留める。
   // 内訳の「合計＝きずなLv.」を保つため、各指標の点も 49 に按分し直す。
-  const matchCount = usage?.count ?? 0;
+  // matchCount は語り度で定義済み（usage?.count）。
   if (matchCount < KIZUNA_MIN_MATCHES_TO_ESCAPE && score > KIZUNA_MEETING_LEVEL_MAX) {
     score = apportionKizunaPoints(metrics, KIZUNA_MEETING_LEVEL_MAX);
   }

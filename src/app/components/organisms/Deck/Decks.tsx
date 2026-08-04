@@ -219,6 +219,17 @@ export default function Decks({
     }
   }, []);
 
+  /*
+   * これまでに取得済みのデッキID。重複表示の抑止と、
+   * 「次のページに未取得のデッキがあるか」の判定に使う。
+   *
+   * 利用中タブの1ページ目だけはお気に入りのデッキが先頭へ繰り上げられるため、
+   * そのデッキは本来の位置（＝より後ろのページ）でも再び返ってくる。
+   * 先読みしたページを件数だけで判定すると、中身が取得済みのお気に入り1件でも
+   * 「まだある」と誤判定し、押しても1件も増えない「更に読み込む」が出てしまう。
+   */
+  const loadedDeckIdsRef = useRef<Set<string>>(new Set());
+
   const loadMore = useCallback(async () => {
     if (isLoading || !hasMore) return;
 
@@ -233,27 +244,26 @@ export default function Decks({
         return;
       }
 
-      // 失敗後の再読み込みでは同じページを取り直すことがあるため、
-      // 既に一覧にあるデッキは足さない（重複表示を防ぐ）
-      setItems((prev) => {
-        const loaded = new Set(prev.map((d) => d.data.id));
+      // 失敗後の再読み込みやお気に入りの繰り上げで同じデッキが再び返ることがあるため、
+      // 既に取得済みのデッキは足さない（重複表示を防ぐ）
+      const loadedDeckIds = loadedDeckIdsRef.current;
+      const appended = newItems.decks.filter((d) => !loadedDeckIds.has(d.data.id));
+      appended.forEach((d) => loadedDeckIds.add(d.data.id));
 
-        return [...prev, ...newItems.decks.filter((d) => !loaded.has(d.data.id))];
-      });
+      if (appended.length > 0) {
+        setItems((prev) => [...prev, ...appended]);
+      }
 
       const lastItem = newItems.decks[newItems.decks.length - 1];
       if (lastItem && lastItem.cursor) {
+        // 次のページを先読みして「更に読み込む」を出すかどうかを決める。
+        // 件数ではなく未取得のデッキが含まれるかで判定する。
         const nextItems: DeckGetResponseType = await fetchDecks(
           isArchived,
           lastItem.cursor,
         );
 
-        if (nextItems.decks.length === 0) {
-          setHasMore(false);
-        } else {
-          setNextCursor(lastItem.cursor);
-        }
-
+        setHasMore(nextItems.decks.some((d) => !loadedDeckIds.has(d.data.id)));
         setNextCursor(lastItem.cursor);
       } else {
         setHasMore(false);

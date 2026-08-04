@@ -4,6 +4,21 @@ import type { NextConfig } from "next";
 // この値はクライアントに出るURLとして既にコード中に散在しているため、ここでも直に書く。
 const CDN_ORIGIN = "https://xx8nnpgt.user.webaccel.jp";
 
+// Next.js 16 から Turbopack が dev/build の既定バンドラになったが、
+// このプロジェクトは package.json の scripts で --webpack を付けて明示的に降りている。
+//
+// 理由: @heroui/react のエントリは "use client" を持たないバレルで、47個の
+// サブパッケージを export * で再輸出している。Turbopack はこのバレルを
+// RSCグラフ上で実際に評価するため、依存の @react-aria/ssr(SSRProvider.tsx)が
+// モジュールトップレベルで呼ぶ React.createContext に到達して落ちる
+// ("createContext only works in Client Components")。webpack は該当モジュールを
+// client reference に置換するので評価されず、これまで顕在化していなかった。
+//
+// Skeleton や loading.tsx を含む45ファイルがサーバコンポーネントのまま
+// @heroui/react を使っているため、"use client" を足して回るとバンドル境界が
+// 大きく変わる。experimental.optimizePackageImports でも回避できないことを確認済み。
+// 解消するには HeroUI 3.x への移行が要る（現在 2.8 系、メジャー跨ぎ）。
+//
 // 開発時のみ webpack の HMR が eval を使う
 const isDev = process.env.NODE_ENV !== "production";
 

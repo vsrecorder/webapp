@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 
 import Image from "next/image";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { Button } from "@heroui/react";
 import { LuServerCrash, LuTriangleAlert } from "react-icons/lu";
+
+import LinkButton from "@app/components/molecules/LinkButton";
 
 import { getAppIconUrl, isDevEnv } from "@app/utils/appIcon";
 
@@ -90,16 +90,9 @@ export default async function Page({ searchParams }: Props) {
             {description}
           </p>
 
-          <Button
-            as={Link}
-            href="/"
-            color="primary"
-            radius="full"
-            size="sm"
-            className="mt-2"
-          >
+          <LinkButton href="/" color="primary" radius="full" size="sm" className="mt-2">
             トップページに戻る
-          </Button>
+          </LinkButton>
         </div>
       </div>
     </div>

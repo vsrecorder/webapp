@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { Button } from "@heroui/react";
+import LinkButton from "@app/components/molecules/LinkButton";
 
 import Footer from "@app/components/organisms/Layout/Footer";
 import CityleagueEvents from "@app/components/organisms/Cityleague/CityleagueEvents";
@@ -276,8 +275,7 @@ export default async function TemplateDashboard({ userId }: Props) {
         <section key="cityleague" className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold text-default-700">{cs.title} 開催中</h2>
-            <Button
-              as={Link}
+            <LinkButton
               href="/cityleague_results"
               size="sm"
               variant="light"
@@ -286,7 +284,7 @@ export default async function TemplateDashboard({ userId }: Props) {
               className="text-xs font-bold h-7 px-3"
             >
               結果を見る
-            </Button>
+            </LinkButton>
           </div>
           <CityleagueEvents />
         </section>
@@ -426,8 +424,7 @@ export default async function TemplateDashboard({ userId }: Props) {
             {/* 「詳しく見る」(→/deck_meta)は従来パネルのフォールバック表示時のみ。
                 組み合わせパネル(3件以上)では不要なため出さない。 */}
             {!combinedAtSection && (
-              <Button
-                as={Link}
+              <LinkButton
                 href="/deck_meta"
                 size="sm"
                 variant="light"
@@ -436,7 +433,7 @@ export default async function TemplateDashboard({ userId }: Props) {
                 className="text-xs font-bold h-7 px-3"
               >
                 詳しく見る
-              </Button>
+              </LinkButton>
             )}
           </div>
           {combinedAtSection ? (
@@ -470,8 +467,7 @@ export default async function TemplateDashboard({ userId }: Props) {
     <section key="recent-records" className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-bold text-default-700">最近の記録</h2>
-        <Button
-          as={Link}
+        <LinkButton
           href="/records"
           size="sm"
           variant="light"
@@ -480,7 +476,7 @@ export default async function TemplateDashboard({ userId }: Props) {
           className="text-xs font-bold h-7 px-3"
         >
           すべて見る
-        </Button>
+        </LinkButton>
       </div>
       <Records event_type="all" disable_more_load={true} limit={10} desktopColumns={3} />
     </section>

@@ -13,13 +13,14 @@ import { Button } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
 
 import { CgSearch } from "react-icons/cg";
+import { LuStar } from "react-icons/lu";
 
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
 
 import { RecordGetByIdResponseType } from "@app/types/record";
 import { RecordUpdateRequestType, RecordUpdateResponseType } from "@app/types/record";
 
-import { DeckGetAllType, DeckData } from "@app/types/deck";
+import { DeckGetAllType, DeckData, isFavoritedDeck } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
 import { DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
 
@@ -55,6 +56,8 @@ type DeckOption = {
   private_flg: boolean;
   latest_deck_code: DeckCodeType;
   pokemon_sprites: DeckPokemonSpriteType[];
+  // お気に入りのデッキ。一覧の先頭に置き、★を添えて見分けられるようにする。
+  is_favorited: boolean;
 };
 
 function katakanaToHiragana(str: string): string {
@@ -83,6 +86,7 @@ function convertToDeckOption(data: DeckData): DeckOption {
     private_flg: data.private_flg,
     latest_deck_code: data.latest_deck_code,
     pokemon_sprites: data.pokemon_sprites ?? [],
+    is_favorited: isFavoritedDeck(data),
   };
 }
 
@@ -623,16 +627,17 @@ export default function UpdateUsedDeckModal({
                           return (
                             <div className="text-sm truncate border-1 p-2">
                               <div className="grid min-w-0">
-                                <span className="truncate">
-                                  登録日：{opt.created_at}
-                                </span>
+                                <span className="truncate">登録日：{opt.created_at}</span>
 
                                 <div className="pl-0.5 flex items-center gap-2 min-w-0">
-                                  <DeckSprites
-                                    sprites={opt.pokemon_sprites}
-                                    size={28}
-                                  />
+                                  <DeckSprites sprites={opt.pokemon_sprites} size={28} />
                                   <span className="truncate">{opt.name}</span>
+                                  {opt.is_favorited && (
+                                    <LuStar
+                                      aria-label="お気に入り"
+                                      className="shrink-0 fill-current text-sm text-amber-500"
+                                    />
+                                  )}
                                 </div>
 
                                 <span className="pt-1">
@@ -662,11 +667,14 @@ export default function UpdateUsedDeckModal({
                         }
                         return (
                           <div className="pl-1 flex items-center gap-2 text-sm min-w-0">
-                            <DeckSprites
-                              sprites={opt.pokemon_sprites}
-                              size={28}
-                            />
+                            <DeckSprites sprites={opt.pokemon_sprites} size={28} />
                             <span className="truncate">{opt.name}</span>
+                            {opt.is_favorited && (
+                              <LuStar
+                                aria-label="お気に入り"
+                                className="shrink-0 fill-current text-sm text-amber-500"
+                              />
+                            )}
                           </div>
                         );
                       }}

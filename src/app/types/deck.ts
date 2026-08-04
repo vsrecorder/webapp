@@ -5,6 +5,9 @@ export type DeckData = {
   id: string;
   created_at: Date;
   archived_at: Date;
+  // お気に入りに設定した日時。未設定のときはゼロ値(年が1)が返る。
+  // 判定には isFavoritedDeck() を使う。
+  favorited_at: Date;
   user_id: string;
   name: string;
   private_flg: boolean;
@@ -49,3 +52,15 @@ export type DeckUpdateResponseType = DeckData;
 export type DeckArchiveResponse = DeckData;
 
 export type DeckUnarchiveResponse = DeckData;
+
+export type DeckFavoriteResponse = DeckData;
+
+export type DeckUnfavoriteResponse = DeckData;
+
+// お気に入りかどうか。APIは未設定時にゼロ値(0001-01-01)を返すため、
+// archived_at と同じく「年が1でない」ことで判定する。
+export function isFavoritedDeck(deck: { favorited_at?: Date } | null): boolean {
+  if (!deck?.favorited_at) return false;
+
+  return new Date(deck.favorited_at).getFullYear() !== 1;
+}

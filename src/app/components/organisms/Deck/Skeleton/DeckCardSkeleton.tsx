@@ -4,19 +4,30 @@ import { Skeleton } from "@heroui/react";
 import type { DeckCardView } from "@app/components/organisms/Deck/DeckCard";
 
 // リスト表示（コンパクト行）用スケルトン。実際のリストカードの構造に合わせて、
-// 右上に登録日、コンテンツ行にスプライト2体・勝率リング・デッキ名/戦績＋きずなLv.・
+// 上段に★ボタンと登録日、コンテンツ行にスプライト2体・勝率リング・デッキ名/戦績＋きずなLv.・
 // きずなLv.の線＋段階名・内訳の開閉ボタンの骨格を並べる。
 //
-// 各行の高さは実物のカードを実測した値に合わせてある（合計123px）。骨格が1本でも
-// 欠けると、データが入った瞬間に行が伸びて一覧全体が飛ぶ。
-export function DeckListRowSkeleton() {
+// 各行の高さは実物のカードを実測した値に合わせてある（★ボタンありで合計143px、
+// なしで123px）。骨格が1本でも欠けると、データが入った瞬間に行が伸びて一覧全体が飛ぶ。
+export function DeckListRowSkeleton({
+  withFavorite = false,
+}: { withFavorite?: boolean } = {}) {
   return (
     <Card className="w-full">
       <div className="flex flex-col gap-1.5 px-3 py-3">
-        {/* 右上：登録日（実体は text-tiny の16px行） */}
-        <div className="flex h-4 justify-end">
-          <Skeleton className="h-3.5 w-28 rounded-lg" />
-        </div>
+        {/* 上段：左に★ボタン（36pxの丸）、右に登録日。
+            ★ボタンが出るのは利用中のデッキだけで、そのとき上段は36pxになる。
+            アーカイブ済みでは出ないため、登録日だけの16px行のままにする。 */}
+        {withFavorite ? (
+          <div className="flex h-9 items-center justify-between gap-2">
+            <Skeleton className="h-9 w-9 rounded-full shrink-0" />
+            <Skeleton className="h-3.5 w-28 rounded-lg" />
+          </div>
+        ) : (
+          <div className="flex h-4 justify-end">
+            <Skeleton className="h-3.5 w-28 rounded-lg" />
+          </div>
+        )}
 
         {/* コンテンツ行 */}
         <div className="flex items-center gap-3">
@@ -70,7 +81,8 @@ export function DeckViewToggleSkeleton() {
 export function DeckCardSkeleton({
   compact = false,
   enableCardList = false,
-}: { compact?: boolean; enableCardList?: boolean } = {}) {
+  withFavorite = false,
+}: { compact?: boolean; enableCardList?: boolean; withFavorite?: boolean } = {}) {
   // ボード(記録詳細/モーダル)向けのスケルトン。実態のDeckCodeCardに合わせて、
   // デッキ画像(2:1)を主役に、その下にデッキコード行だけを並べる（チップ行は無い）。
   if (compact) {
@@ -86,18 +98,27 @@ export function DeckCardSkeleton({
   }
 
   // ギャラリー表示用スケルトン。実際のギャラリーカードの「既定（畳んだ）状態」に合わせて、
-  // ヘッダー(登録日＋スプライト＋名前＋きずなLv.の数値と線)・ヒーロー画像・
+  // ヘッダー(★ボタン＋登録日＋スプライト＋名前＋きずなLv.の数値と線)・ヒーロー画像・
   // 「デッキコード・戦績を見る」開閉ボタンの骨格を並べる。
   // デッキコード・戦績・先攻/後攻は開いたときだけ出るためここには含めない。
   //
-  // 各要素の高さは実物のカードを実測した値に合わせてある（合計399px）。
+  // 各要素の高さは実物のカードを実測した値に合わせてある（★ボタンありで合計419px、
+  // なしで399px）。
   return (
     <Card className="w-full overflow-hidden border border-default-200 shadow-sm">
       <CardHeader className="flex flex-col gap-1.5 px-3 pt-3 pb-2">
-        {/* 右上：登録日（実体は text-tiny の16px行） */}
-        <div className="flex h-4 justify-end">
-          <Skeleton className="h-3.5 w-28 rounded-lg" />
-        </div>
+        {/* 上段：左に★ボタン（36pxの丸）、右に登録日。リスト表示と同じ扱いで、
+            ★ボタンが出る利用中のデッキでは36px、出ないアーカイブ済みでは16pxになる。 */}
+        {withFavorite ? (
+          <div className="flex h-9 w-full items-center justify-between gap-2">
+            <Skeleton className="h-9 w-9 rounded-full shrink-0" />
+            <Skeleton className="h-3.5 w-28 rounded-lg" />
+          </div>
+        ) : (
+          <div className="flex h-4 justify-end">
+            <Skeleton className="h-3.5 w-28 rounded-lg" />
+          </div>
+        )}
         {/* スプライトを上、デッキ名ときずなLv.を下に配置（中央揃え）。
             スプライト骨格は実物の PokemonSprite（48px スロットを隙間なく2つ）に合わせ、
             中の丸はキャラ位置（やや小さめ・下端中央寄り）に合わせて下端中央へ配置する。 */}
@@ -136,13 +157,16 @@ export function DeckCardSkeleton({
 
 export function DeckCardSkeletons({
   view = "gallery",
-}: { view?: DeckCardView } = {}) {
+  // ★ボタンが出るかどうか。骨格の高さが実物と20pxずれると、
+  // 読み込みが終わった瞬間に一覧全体が飛ぶため、呼び出し側の状況を渡してもらう。
+  withFavorite = false,
+}: { view?: DeckCardView; withFavorite?: boolean } = {}) {
   if (view === "list") {
     // リストは1行が低く一覧性が高いので、多めに5件分の骨格を表示する。
     return (
       <>
         {Array.from({ length: 5 }).map((_, i) => (
-          <DeckListRowSkeleton key={i} />
+          <DeckListRowSkeleton key={i} withFavorite={withFavorite} />
         ))}
       </>
     );
@@ -150,8 +174,8 @@ export function DeckCardSkeletons({
 
   return (
     <>
-      <DeckCardSkeleton />
-      <DeckCardSkeleton />
+      <DeckCardSkeleton withFavorite={withFavorite} />
+      <DeckCardSkeleton withFavorite={withFavorite} />
     </>
   );
 }

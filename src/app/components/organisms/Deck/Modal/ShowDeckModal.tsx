@@ -42,6 +42,7 @@ import { LuFilePen } from "react-icons/lu";
 import { LuSquarePen } from "react-icons/lu";
 import { LuEllipsis } from "react-icons/lu";
 import { LuChartPie } from "react-icons/lu";
+import { LuStar } from "react-icons/lu";
 
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
@@ -60,6 +61,15 @@ type Props = {
   // 一覧カードのバージョンバッジから開かれた場合、バージョン履歴を自動で開く
   autoOpenHistory: boolean;
   onAutoOpenHistoryHandled: () => void;
+  /*
+   * お気に入りの状態と切り替え。お気に入りはユーザごとに最大1つで、
+   * 設定すると他のデッキは解除されるため、状態も API 呼び出しも
+   * 一覧側(Decks)が持つ。onToggleFavorite が渡されない入口
+   * (記録詳細の使用デッキカードなど)ではメニューに項目を出さない。
+   */
+  isFavorited?: boolean;
+  onToggleFavorite?: (id: string, next: boolean) => void;
+  isFavoritePending?: boolean;
 };
 
 export default function ShowDeckModal({
@@ -72,6 +82,9 @@ export default function ShowDeckModal({
   onRemove,
   autoOpenHistory,
   onAutoOpenHistoryHandled,
+  isFavorited = false,
+  onToggleFavorite,
+  isFavoritePending = false,
 }: Props) {
   /*
    * きずなの段階でスプライトの揺れ方が変わる（デッキ一覧カードと同じ）。
@@ -391,33 +404,57 @@ export default function ShowDeckModal({
                       </button>
                     </DropdownTrigger>
                     <DropdownMenu aria-label="デッキの操作">
-                      <DropdownItem
-                        key="edit"
-                        startContent={<LuSquarePen />}
-                        onPress={onOpenForUpdateDeckModal}
-                      >
-                        デッキ情報を編集する
-                      </DropdownItem>
-                      <DropdownItem
-                        key="archive-toggle"
-                        startContent={isArchived ? <LuFolderOutput /> : <LuFolderInput />}
-                        onPress={
-                          isArchived
-                            ? onOpenForUnarchiveDeckModal
-                            : onOpenForArchiveDeckModal
-                        }
-                      >
-                        {isArchived ? "整理を解除する" : "整理する"}
-                      </DropdownItem>
-                      <DropdownItem
-                        key="delete"
-                        color="danger"
-                        className="text-danger"
-                        startContent={<LuTrash2 />}
-                        onPress={onOpenForDeleteDeckModal}
-                      >
-                        このデッキを削除する
-                      </DropdownItem>
+                      {/* HeroUI の DropdownMenu は子要素に false/null を許容しないため、
+                          出し分けのある項目は配列を組み立てて渡す。 */}
+                      {[
+                        <DropdownItem
+                          key="edit"
+                          startContent={<LuSquarePen />}
+                          onPress={onOpenForUpdateDeckModal}
+                        >
+                          デッキ情報を編集する
+                        </DropdownItem>,
+                        /* アーカイブ済みのデッキはお気に入りにできない
+                         (アーカイブ時に自動で解除される)ため項目を出さない。 */
+                        ...(onToggleFavorite && !isArchived
+                          ? [
+                              <DropdownItem
+                                key="favorite-toggle"
+                                startContent={
+                                  <LuStar className={isFavorited ? "fill-current" : ""} />
+                                }
+                                onPress={() => onToggleFavorite(deck.id, !isFavorited)}
+                                isDisabled={isFavoritePending}
+                              >
+                                {isFavorited
+                                  ? "お気に入りを解除する"
+                                  : "お気に入りに設定する"}
+                              </DropdownItem>,
+                            ]
+                          : []),
+                        <DropdownItem
+                          key="archive-toggle"
+                          startContent={
+                            isArchived ? <LuFolderOutput /> : <LuFolderInput />
+                          }
+                          onPress={
+                            isArchived
+                              ? onOpenForUnarchiveDeckModal
+                              : onOpenForArchiveDeckModal
+                          }
+                        >
+                          {isArchived ? "整理を解除する" : "整理する"}
+                        </DropdownItem>,
+                        <DropdownItem
+                          key="delete"
+                          color="danger"
+                          className="text-danger"
+                          startContent={<LuTrash2 />}
+                          onPress={onOpenForDeleteDeckModal}
+                        >
+                          このデッキを削除する
+                        </DropdownItem>,
+                      ]}
                     </DropdownMenu>
                   </Dropdown>
                 </div>

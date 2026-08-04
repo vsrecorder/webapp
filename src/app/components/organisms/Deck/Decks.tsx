@@ -6,6 +6,7 @@ import NextLink from "next/link";
 
 import { Spinner } from "@heroui/spinner";
 import { Button, Link, useDisclosure } from "@heroui/react";
+import { addToast } from "@heroui/react";
 
 import DeckCard from "@app/components/organisms/Deck/DeckCard";
 import KizunaMark from "@app/components/atoms/Kizuna/KizunaMark";
@@ -26,7 +27,12 @@ import {
   LuChevronRight,
 } from "react-icons/lu";
 
-import { DeckType, DeckGetResponseType } from "@app/types/deck";
+import {
+  DeckType,
+  DeckData,
+  DeckGetResponseType,
+  isFavoritedDeck,
+} from "@app/types/deck";
 import { DeckUsageItemType, DeckUsageStatType } from "@app/types/deck_usage_stat";
 import { useKizunaDecks } from "@app/hooks/useKizunaLevels";
 import {
@@ -38,6 +44,10 @@ import {
 // 再開時のスクロール位置。画面上部に固定されたヘッダー＋タブの分だけ手前で止め、
 // 対象デッキのカードがそれらに隠れないようにする。
 const REOPEN_SCROLL_OFFSET = 100;
+
+// APIが「未設定」を表すために返す日時のゼロ値(Goのtime.Timeのゼロ値)。
+// お気に入りの解除を再取得を待たずに画面へ反映するとき、この値を入れる。
+const ZERO_DATE = "0001-01-01T00:00:00Z";
 
 async function fetchDecks(isArchived: boolean, cursor: string) {
   const res = await fetch(`/api/decks?archived=${isArchived}&cursor=${cursor}`, {
@@ -137,6 +147,77 @@ export default function Decks({
   const handleRemove = (id: string) => {
     setItems((prev) => prev.filter((d) => d.data.id !== id));
   };
+
+  /*
+   * お気に入りの切り替え。
+   *
+   * お気に入りはユーザごとに最大1つで、設定すると他のデッキは解除される。
+   * その解除は個々のカードからは反映できないため、API呼び出しも一覧全体への
+   * 反映もここでまとめて行う（カードは★の表示とタップの通知だけを担う）。
+   */
+  const [favoritePendingDeckId, setFavoritePendingDeckId] = useState<string | null>(null);
+
+  const handleToggleFavorite = useCallback(async (id: string, next: boolean) => {
+    setFavoritePendingDeckId(id);
+
+    try {
+      const res = await fetch(`/api/decks/${id}/${next ? "favorite" : "unfavorite"}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!res.ok) {
+        const t = await res.json();
+        throw new Error(`HTTP error: ${res.status} Message: ${t.message}`);
+      }
+
+      const updated: DeckData = await res.json();
+
+      // 対象のデッキだけをサーバの返した日時で更新し、他は解除済みとして揃える。
+      // 「1つだけ」の状態を画面側でも守るため、解除の反映は対象以外にも及ぶ。
+      setItems((prev) =>
+        prev.map((d) => ({
+          ...d,
+          data: {
+            ...d.data,
+            favorited_at:
+              d.data.id === id ? updated.favorited_at : (ZERO_DATE as unknown as Date),
+          },
+        })),
+      );
+
+      addToast({
+        title: next ? "お気に入りに設定しました" : "お気に入りを解除しました",
+        description: next
+          ? "デッキ一覧と記録作成のデッキ選択で先頭に表示されます"
+          : undefined,
+        color: "success",
+        timeout: 3000,
+      });
+    } catch (error) {
+      console.error(error);
+
+      const errorMessage =
+        error instanceof Error ? error.message : "不明なエラーが発生しました";
+
+      addToast({
+        title: next ? "お気に入りの設定に失敗" : "お気に入りの解除に失敗",
+        description: (
+          <>
+            お気に入りの更新に失敗しました
+            <br />
+            {errorMessage}
+          </>
+        ),
+        color: "danger",
+        timeout: 5000,
+      });
+    } finally {
+      setFavoritePendingDeckId(null);
+    }
+  }, []);
 
   const loadMore = useCallback(async () => {
     if (isLoading || !hasMore) return;
@@ -479,11 +560,15 @@ export default function Decks({
             onRemove={handleRemove}
             enableShowDeckModal={true}
             view={view}
+            isFavorited={isFavoritedDeck(deck.data)}
+            onToggleFavorite={handleToggleFavorite}
+            isFavoritePending={favoritePendingDeckId === deck.data.id}
           />
         ))}
 
         {/* ローディング表示 */}
-        {isLoading && <DeckCardSkeletons view={view} />}
+        {/* ★ボタンは利用中のデッキにだけ出るため、骨格もタブに合わせる */}
+        {isLoading && <DeckCardSkeletons view={view} withFavorite={!isArchived} />}
         {isInitialLoaded && isLoading && (
           <div className="flex justify-center col-span-1 lg:col-span-2">
             <Spinner size="lg" className="pt-0" />

@@ -32,6 +32,7 @@ import { LuBookmark } from "react-icons/lu";
 import { LuCalendar } from "react-icons/lu";
 import { LuHouse } from "react-icons/lu";
 import { LuMapPin } from "react-icons/lu";
+import { LuStar } from "react-icons/lu";
 
 import { Card, CardBody } from "@heroui/react";
 import { CgSearch } from "react-icons/cg";
@@ -58,7 +59,7 @@ import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
 import { MAX_EVENT_TITLE_LENGTH, exceedsTextLength } from "@app/utils/textLength";
 
 import { OfficialEventResponseType, OfficialEventType } from "@app/types/official_event";
-import { DeckGetAllType, DeckData } from "@app/types/deck";
+import { DeckGetAllType, DeckData, isFavoritedDeck } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
 import { DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
 import { RecordCreateRequestType, RecordCreateResponseType } from "@app/types/record";
@@ -93,6 +94,8 @@ type DeckOption = {
   private_flg: boolean;
   latest_deck_code: DeckCodeType;
   pokemon_sprites: DeckPokemonSpriteType[];
+  // お気に入りのデッキ。一覧の先頭に置き、★を添えて見分けられるようにする。
+  is_favorited: boolean;
 };
 
 type DeckCodeOption = {
@@ -327,6 +330,7 @@ function convertToDeckOption(data: DeckData): DeckOption {
     private_flg: data.private_flg,
     latest_deck_code: data.latest_deck_code,
     pokemon_sprites: data.pokemon_sprites ?? [],
+    is_favorited: isFavoritedDeck(data),
   };
 }
 
@@ -371,6 +375,22 @@ function DeckSprites({
         <PokemonSprite key={i} id={sprite?.id} size={size} />
       ))}
     </div>
+  );
+}
+
+/*
+ * お気に入りのデッキに添える★。
+ *
+ * デッキ選択の一覧はサーバ側(GET /decks/all)がお気に入りを先頭に並べて返す。
+ * 先頭にあるだけでは「たまたま最近作ったデッキ」と区別がつかないため、
+ * ★を添えて意図した並びであることが分かるようにする。
+ */
+function FavoriteStar() {
+  return (
+    <LuStar
+      aria-label="お気に入り"
+      className="shrink-0 fill-current text-sm text-amber-500"
+    />
   );
 }
 
@@ -1647,6 +1667,7 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                                     size={28}
                                   />
                                   <span className="truncate">{option.name}</span>
+                                  {option.is_favorited && <FavoriteStar />}
                                 </div>
 
                                 <span className="pt-1">
@@ -1679,6 +1700,7 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                           <div className="pl-1 flex items-center gap-2 text-sm min-w-0">
                             <DeckSprites sprites={option.pokemon_sprites} size={28} />
                             <span className="truncate">{option.name}</span>
+                            {option.is_favorited && <FavoriteStar />}
                           </div>
                         );
                       }}
@@ -1989,6 +2011,7 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                                     size={28}
                                   />
                                   <span className="truncate">{option.name}</span>
+                                  {option.is_favorited && <FavoriteStar />}
                                 </div>
 
                                 <span className="pt-1">
@@ -2021,6 +2044,7 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                           <div className="flex items-center gap-2 text-sm min-w-0">
                             <DeckSprites sprites={option.pokemon_sprites} size={28} />
                             <span className="truncate">{option.name}</span>
+                            {option.is_favorited && <FavoriteStar />}
                           </div>
                         );
                       }}
@@ -2301,6 +2325,7 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                                     size={28}
                                   />
                                   <span className="truncate">{option.name}</span>
+                                  {option.is_favorited && <FavoriteStar />}
                                 </div>
 
                                 <span className="pt-1">
@@ -2333,6 +2358,7 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                           <div className="flex items-center gap-2 text-sm min-w-0">
                             <DeckSprites sprites={option.pokemon_sprites} size={28} />
                             <span className="truncate">{option.name}</span>
+                            {option.is_favorited && <FavoriteStar />}
                           </div>
                         );
                       }}

@@ -22,6 +22,7 @@ import { LuCalendar } from "react-icons/lu";
 import { LuChevronDown } from "react-icons/lu";
 import { LuChevronRight } from "react-icons/lu";
 import { LuSwords } from "react-icons/lu";
+import { LuStar } from "react-icons/lu";
 
 import DeckCodeCard from "@app/components/organisms/Deck/DeckCodeCard";
 import ShowDeckModal from "@app/components/organisms/Deck/Modal/ShowDeckModal";
@@ -54,6 +55,19 @@ type Props = {
   onRemove: (id: string) => void;
   enableShowDeckModal: boolean;
   view?: DeckCardView;
+  /*
+   * お気に入りに設定されているか。お気に入りはユーザごとに最大1つで、
+   * 1つ設定すると他のデッキは解除される。そのため状態は個々のカードではなく
+   * 一覧側(Decks)が持ち、ここへは表示用に渡ってくる。
+   */
+  isFavorited?: boolean;
+  /*
+   * ★ボタンのタップ。API呼び出しと一覧全体への反映(他のデッキの解除)は
+   * 一覧側が担う。onToggleFavorite が渡されない場合は★ボタンを表示しない。
+   */
+  onToggleFavorite?: (id: string, next: boolean) => void;
+  // 切り替えの通信中。二重タップを防ぐためボタンを無効化する。
+  isFavoritePending?: boolean;
 };
 
 // 勝率に応じた色分け（UserStatPanel/RecentMatchWinRateChartの勝率表示と同じ閾値に合わせる）
@@ -89,6 +103,9 @@ export default function DeckCard({
   onRemove,
   enableShowDeckModal,
   view = "list",
+  isFavorited = false,
+  onToggleFavorite,
+  isFavoritePending = false,
 }: Props) {
   const [deck, setDeck] = useState<DeckGetByIdResponseType | null>(deckData);
   const [deckcode, setDeckCode] = useState<DeckCodeType | null>(deckcodeData);
@@ -130,8 +147,7 @@ export default function DeckCard({
       // 記録一覧モーダル発の遷移だった場合のみ、記録一覧モーダルも開き直す。
       // デッキモーダルの「詳細」「記録する」発の遷移では立っておらず、
       // デッキモーダルだけが再開する。
-      const withRecords =
-        sessionStorage.getItem(REOPEN_DECK_MODAL_WITH_RECORDS) === "1";
+      const withRecords = sessionStorage.getItem(REOPEN_DECK_MODAL_WITH_RECORDS) === "1";
       sessionStorage.removeItem(REOPEN_DECK_MODAL_WITH_RECORDS);
       if (withRecords) {
         // ShowDeckModal が開いたときに記録一覧モーダルも開くための意図フラグ
@@ -211,6 +227,44 @@ export default function DeckCard({
   // archived_atがゼロ値(年が1)なら未アーカイブ
   const isArchived = new Date(deck.archived_at).getFullYear() !== 1;
 
+  /*
+   * お気に入りの★ボタン。リスト/ギャラリー双方の右上（登録日の対角）に置く。
+   *
+   * カードはどこをタップしてもデッキ情報モーダルが開くため、内訳の開閉ボタンと
+   * 同じく伝播を止める。アーカイブ済みのデッキはお気に入りにできない
+   * （アーカイブ時に自動で解除される）ため、ボタン自体を出さない。
+   */
+  const favoriteButton =
+    onToggleFavorite && !isArchived ? (
+      <button
+        type="button"
+        aria-label={isFavorited ? "お気に入りを解除する" : "お気に入りに設定する"}
+        aria-pressed={isFavorited}
+        disabled={isFavoritePending}
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggleFavorite(deck.id, !isFavorited);
+        }}
+        className={`shrink-0 flex h-9 w-9 items-center justify-center rounded-full active:opacity-70 disabled:opacity-50 ${
+          isFavorited
+            ? "bg-amber-400/15 text-amber-500"
+            : "bg-default-100 text-default-400"
+        }`}
+      >
+        <LuStar
+          aria-hidden
+          className={`text-base ${isFavorited ? "fill-current" : ""}`}
+        />
+      </button>
+    ) : null;
+
+  // お気に入りであることを示すラベル。★ボタンだけだと「押せる」ことは伝わっても
+  // 「今どちらの状態か」が一覧をスクロール中に読み取りにくいため、名前の近くに添える。
+  // お気に入りのカードは枠を琥珀色にして、一覧の中で一目で見分けられるようにする。
+  const favoriteCardClass = isFavorited
+    ? "border border-amber-400/70 ring-1 ring-amber-400/20"
+    : "";
+
   const hasStats = !!deckUsageStat && deckUsageStat.count > 0;
   const winRate = deckUsageStat?.win_rate ?? 0;
   const ringRadius = 18;
@@ -272,11 +326,14 @@ export default function DeckCard({
   const listCard = (
     // 戻り遷移でデッキモーダルを再開する際、この id を目印にスクロールする
     <div id={deckAnchorId(deck.id)} className="w-full">
-      <Card className="w-full transition-transform active:scale-[0.985]">
+      <Card
+        className={`w-full transition-transform active:scale-[0.985] ${favoriteCardClass}`}
+      >
         {/* ヘッダー：タップでデッキ詳細（ShowDeckModal）を開く */}
         <div className="flex flex-col gap-1.5 px-3 py-3 cursor-pointer" onClick={onOpen}>
-          {/* 右上：登録日を独立した行として右寄せで表示（見切れ防止） */}
-          <div className="flex justify-end">
+          {/* 上段：左に★ボタン、右に登録日（見切れ防止のため独立した行にする） */}
+          <div className="flex items-center justify-between gap-2">
+            {favoriteButton ?? <span />}
             <span className="flex items-center gap-1 text-tiny text-default-400 whitespace-nowrap">
               <LuCalendar className="text-xs" />
               {listDate}
@@ -437,13 +494,18 @@ export default function DeckCard({
           onClick={onOpen}
           className="min-w-0 cursor-pointer"
         >
-          <Card className="w-full overflow-hidden border border-default-200 shadow-sm transition-transform active:scale-[0.985]">
+          <Card
+            className={`w-full overflow-hidden shadow-sm transition-transform active:scale-[0.985] ${
+              favoriteCardClass || "border border-default-200"
+            }`}
+          >
             {/* ヘッダー：登録日を右上に独立表示し、その下にスプライト＋デッキ名。
               デッキ画像は明るい場合が多く重ね文字が読みづらいため、名前とスプライトは
               画像上ではなくここに置く。日付を別行にしてデッキ名の幅を確保する。 */}
             <CardHeader className="flex flex-col gap-1.5 px-3 pt-3 pb-2">
-              {/* 右上：登録日 */}
-              <div className="flex justify-end">
+              {/* 上段：左に★ボタン、右に登録日 */}
+              <div className="flex w-full items-center justify-between gap-2">
+                {favoriteButton ?? <span />}
                 <span className="flex items-center gap-1 whitespace-nowrap text-tiny text-default-400">
                   <LuCalendar className="text-xs" />
                   {date}
@@ -628,6 +690,9 @@ export default function DeckCard({
           onRemove={onRemove}
           autoOpenHistory={openHistoryOnShow}
           onAutoOpenHistoryHandled={() => setOpenHistoryOnShow(false)}
+          isFavorited={isFavorited}
+          onToggleFavorite={onToggleFavorite}
+          isFavoritePending={isFavoritePending}
         />
       )}
     </>

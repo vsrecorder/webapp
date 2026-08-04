@@ -16,7 +16,9 @@ export default function DeckListSkeleton() {
           : "gap-3 grid-cols-1"
       }`}
     >
-      <DeckCardSkeletons view={view} />
+      {/* ページ全体の読み込み中はまだタブが決まっていないため、既定の「利用中」に
+          合わせて★ボタンありの骨格を出す（アーカイブ済みでは★は出ない）。 */}
+      <DeckCardSkeletons view={view} withFavorite />
     </div>
   );
 }

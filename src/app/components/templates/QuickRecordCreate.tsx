@@ -21,7 +21,7 @@ import {
   addToast,
   closeToast,
 } from "@heroui/react";
-import { LuFilePen, LuSlidersHorizontal, LuCircleSlash } from "react-icons/lu";
+import { LuFilePen, LuSlidersHorizontal, LuCircleSlash, LuStar } from "react-icons/lu";
 import { sendGAEvent } from "@next/third-parties/google";
 import { CalendarDate, today, getLocalTimeZone } from "@internationalized/date";
 
@@ -42,7 +42,7 @@ import {
 import { RecordCreateRequestType, RecordCreateResponseType } from "@app/types/record";
 import { MatchCreateRequestType, MatchGetResponseType } from "@app/types/match";
 import { MatchPokemonSpriteType, PokemonSpriteType } from "@app/types/pokemon_sprite";
-import { DeckData } from "@app/types/deck";
+import { DeckData, isFavoritedDeck } from "@app/types/deck";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 import { getSpriteBySlot } from "@app/utils/spriteSlot";
 import {
@@ -631,6 +631,9 @@ export default function TemplateQuickRecordCreate({
                   </button>
                   {deckOptions.map((deck) => {
                     const isSelected = deck.id === selectedDeckId;
+                    // お気に入りのデッキは一覧の先頭に並ぶ(サーバ側で並べ替え済み)。
+                    // 先頭にあるだけでは理由が伝わらないため★を添える。
+                    const isFavorited = isFavoritedDeck(deck);
                     return (
                       <button
                         key={deck.id}
@@ -638,7 +641,9 @@ export default function TemplateQuickRecordCreate({
                         className={`shrink-0 flex flex-col items-center gap-1 py-2 px-2 rounded-xl border-2 w-24 transition-colors ${
                           isSelected
                             ? "border-primary bg-primary/10"
-                            : "border-default-200 bg-default-50 active:bg-default-100"
+                            : isFavorited
+                              ? "border-amber-400/70 bg-amber-400/5 active:bg-amber-400/10"
+                              : "border-default-200 bg-default-50 active:bg-default-100"
                         }`}
                         onClick={() => selectDeck(deck)}
                       >
@@ -652,8 +657,14 @@ export default function TemplateQuickRecordCreate({
                             size={36}
                           />
                         </div>
-                        <span className="block w-full text-[10px] leading-snug text-center truncate">
-                          {deck.name}
+                        <span className="flex w-full items-center justify-center gap-0.5 text-[10px] leading-snug">
+                          {isFavorited && (
+                            <LuStar
+                              aria-label="お気に入り"
+                              className="shrink-0 fill-current text-amber-500"
+                            />
+                          )}
+                          <span className="min-w-0 truncate">{deck.name}</span>
                         </span>
                       </button>
                     );

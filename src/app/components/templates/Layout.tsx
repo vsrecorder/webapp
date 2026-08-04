@@ -4,8 +4,21 @@ import Providers from "@app/components/organisms/Layout/Providers";
 
 import Header from "@app/components/organisms/Layout/Header";
 import Navigation from "@app/components/organisms/Layout/Navigation";
+import dynamic from "next/dynamic";
+
 import AddToHomeScreenBanner from "@app/components/molecules/PWA/AddToHomeScreenBanner";
 import ServiceWorkerRegister from "@app/components/molecules/PWA/ServiceWorkerRegister";
+
+// dev ツールインジケーターをスマホでドラッグ可能にする回避策(開発時のみ)。
+//
+// 静的 import にすると、描画を条件分岐で止めてもクライアント参照が生成され、
+// 本番のクライアントバンドルとルートごとの client-reference-manifest に載ってしまう。
+// NODE_ENV はビルド時に定数化されるため、動的 import をこの形で書くと
+// 本番では枝ごと消えてチャンク自体が生成されない。
+const DevToolsDragFix =
+  process.env.NODE_ENV !== "production"
+    ? dynamic(() => import("@app/components/molecules/DevToolsDragFix"))
+    : null;
 import { isDevEnv } from "@app/utils/appIcon";
 
 export default async function TemplateLayout({
@@ -40,6 +53,7 @@ export default async function TemplateLayout({
 
       <AddToHomeScreenBanner iconUrl={homeScreenIconUrl} />
       <ServiceWorkerRegister />
+      {DevToolsDragFix && <DevToolsDragFix />}
     </Providers>
   );
 }

@@ -2,21 +2,73 @@
 
 import { useEffect, useRef, useState } from "react";
 
-// フローティングボタン(＋ / トップへ戻る)に最下部のコンテンツが隠れないよう、
-// 画面下端から確保したい余白(px)。= 旧 pb-35 / h-35。
-const CLEARANCE_PX = 140;
+/*
+ * フローティングボタン(＋ / トップへ戻る)にコンテンツが隠れないよう、
+ * 画面下端から確保したい余白(px)。
+ *
+ * 一番上に来るのは「＋」ボタンで、bottom-36(=144px) に高さ h-12(=48px) なので
+ * その上端は画面下端から 192px。そこに 8px の余裕を足した値にしている。
+ * ボタンの位置や大きさを変えるときはここも合わせて更新すること。
+ */
+const CLEARANCE_PX = 200;
+
+/**
+ * クリアランス要素より下に既にある「固定の余白」を測る。
+ * 祖先の padding-bottom / border-bottom と、流れの中で後ろに続く要素の高さを足す。
+ * (例: <main> が下部ナビぶんに確保している padding-bottom)
+ *
+ * 祖先の高さそのものは数えない。<main> の min-h-svh のように
+ * 「1画面に満たないときだけ引き伸ばされる」高さは、余白を足せばその分だけ縮むので、
+ * コンテンツを押し上げる力にはならない。数えてしまうと余白が足りなくなる。
+ *
+ * margin は数えていない。少なめに見積もる分には余白が増える側に倒れるだけなので、
+ * 隠れないという目的は損なわない。
+ */
+function measureFixedSpaceBelow(el: HTMLElement): number {
+  let total = 0;
+  let node: HTMLElement = el;
+
+  while (node !== document.body && node.parentElement) {
+    for (
+      let sibling = node.nextElementSibling;
+      sibling;
+      sibling = sibling.nextElementSibling
+    ) {
+      const style = getComputedStyle(sibling);
+      // フローティングなど流れから外れた要素は、下のコンテンツを押し上げない。
+      if (style.position === "fixed" || style.position === "absolute") continue;
+      total += sibling.getBoundingClientRect().height;
+    }
+
+    const parent = node.parentElement;
+    const parentStyle = getComputedStyle(parent);
+    total +=
+      parseFloat(parentStyle.paddingBottom) + parseFloat(parentStyle.borderBottomWidth);
+    node = parent;
+  }
+
+  return total;
+}
 
 /**
  * モバイルのフローティングボタン(＋ / トップへ戻る)に一覧の最後のカードが
  * 隠れないための下部クリアランス。
  *
- * ただし固定の余白(pb-35 など)にすると、件数が少なくコンテンツが画面下端から
+ * 固定の余白(pb-35 など)にすると、件数が少なくコンテンツが画面下端から
  * 十分離れているときでも余白ぶんだけ画面を超え、「空白へスクロールできてしまう」。
  * そこで、コンテンツ末尾がフローティング領域(画面下端から CLEARANCE_PX)に
- * 掛かるときだけ、足りない分の余白を出す。
- *   - 画面下端まで CLEARANCE_PX 以上空いているとき: 高さ0。ボタンと被らないので余白不要。
- *   - 掛かっているとき: 不足分だけ(最大 CLEARANCE_PX)。スクロール末尾でも
- *     最後のカードがボタンに隠れず、かつ余分な空白は増やさない。
+ * 掛かるときだけ余白を出す。
+ *   - 画面下端まで CLEARANCE_PX 以上空いているとき: 高さ0。スクロールしなくても
+ *     ボタンに掛からないので余白は要らない。
+ *   - 掛かっているとき: 「文書の末尾がコンテンツ末尾より CLEARANCE_PX 下にある」
+ *     状態にする。こうすると一番下までスクロールしたときに、コンテンツ末尾が
+ *     ちょうどフローティング領域の上端まで上がる。
+ *
+ * 「不足分だけ(CLEARANCE_PX - 空き)」では足りない。余白を足しても文書が画面を
+ * 超えなければスクロールできず、コンテンツ末尾は一切上がらないため、
+ * デッキが5件などちょうど下端付近で終わる件数でボタンがカードに被ってしまう。
+ * ページ側に既にある固定の余白(下部ナビぶんの padding など)は、押し上げる力として
+ * そのまま使えるので、その分は差し引いて二重に余白を出さない。
  *
  * コンテンツがビューポートを超えるときだけでは、記録一覧の Tonamel /
  * 自由形式タブのように件数が少なく1画面に収まるケースで余白が出ず、
@@ -44,9 +96,10 @@ export default function FloatingButtonClearance() {
       const svh = probe.offsetHeight;
       // 画面下端からコンテンツ末尾までの空き。ビューポートを超えていれば負になる。
       const gap = svh - contentBottom;
-      // 空きが CLEARANCE_PX に満たない分だけを余白として足す。
-      // (超えているときは gap<=0 なので上限の CLEARANCE_PX になる)
-      setClearance(Math.min(CLEARANCE_PX, Math.max(0, CLEARANCE_PX - gap)));
+
+      setClearance(
+        gap >= CLEARANCE_PX ? 0 : Math.max(0, CLEARANCE_PX - measureFixedSpaceBelow(el)),
+      );
     };
 
     measure();

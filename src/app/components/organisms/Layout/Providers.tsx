@@ -6,6 +6,7 @@ import { ToastProvider } from "@heroui/toast";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { UserAvatarProvider } from "@app/contexts/UserAvatarContext";
 import SessionWatcher from "@app/components/organisms/Layout/SessionWatcher";
+import DailyActivityBeacon from "@app/components/organisms/Layout/DailyActivityBeacon";
 import VisualViewportOffsetSync from "@app/components/organisms/Layout/VisualViewportOffsetSync";
 import ModalBackgroundScrollLock from "@app/components/organisms/Layout/ModalBackgroundScrollLock";
 
@@ -23,6 +24,7 @@ export default function Providers({
     // 明示的にfalseを指定してオフライン時は問い合わせないようにする。
     <SessionProvider refetchInterval={300} refetchWhenOffline={false}>
       <SessionWatcher />
+      <DailyActivityBeacon />
       <VisualViewportOffsetSync />
       <ModalBackgroundScrollLock />
       {/* locale="ja-JP": DatePicker等の日付表示順を年/月/日にし、カレンダーを日本語化する */}

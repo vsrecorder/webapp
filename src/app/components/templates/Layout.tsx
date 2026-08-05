@@ -1,13 +1,14 @@
+import dynamic from "next/dynamic";
+
 import { auth } from "@app/auth";
 
 import Providers from "@app/components/organisms/Layout/Providers";
 
 import Header from "@app/components/organisms/Layout/Header";
 import Navigation from "@app/components/organisms/Layout/Navigation";
-import dynamic from "next/dynamic";
-
 import AddToHomeScreenBanner from "@app/components/molecules/PWA/AddToHomeScreenBanner";
 import ServiceWorkerRegister from "@app/components/molecules/PWA/ServiceWorkerRegister";
+import { isDevEnv } from "@app/utils/appIcon";
 
 // dev ツールインジケーターをスマホでドラッグ可能にする回避策(開発時のみ)。
 //
@@ -19,7 +20,6 @@ const DevToolsDragFix =
   process.env.NODE_ENV !== "production"
     ? dynamic(() => import("@app/components/molecules/DevToolsDragFix"))
     : null;
-import { isDevEnv } from "@app/utils/appIcon";
 
 export default async function TemplateLayout({
   children,

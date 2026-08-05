@@ -433,14 +433,21 @@ export default function DeckUsagePanel({
         // 通常時は薄色にして無機質さを抑え、選択中のスライスだけ元の鮮やかな色にして目立たせる。
         // chart.jsのhover/active機構(setActiveElements・hoverBackgroundColor)は、
         // 選択時にグラフの横幅が変わって発生するresize処理の途中でリセットされてしまうため使わず、
-        // 通常のデータ(backgroundColor・offset)として選択状態を表現する
+        // 通常のデータ(backgroundColor)として選択状態を表現する。
+        //
+        // 選択中のスライスを外側に押し出す(dataset.offset)強調は使わない。
+        // chart.jsのoffsetはスライスを中心角方向へずらすと同時に外半径も広げるため、
+        // 詳細カード表示中(円の中心に白いバッジを敷いてドーナツ状に見せている状態)では
+        // 選択スライスだけリングの太さが太くなってしまう。
+        // 特にデッキが1件だけのときは円全体がずれて、リングの太さが上下で不均等になる。
         backgroundColor: displayDecks.map((_, i) =>
           i === selectedIdx ? deckColors[i] : deckColorsSoft[i],
         ),
         borderColor: "#ffffff",
-        borderWidth: 2,
-        // 選択中のスライスを少し外側に押し出してさらに目立たせる
-        offset: displayDecks.map((_, i) => (i === selectedIdx ? 10 : 0)),
+        // スライス同士の境界を白線で区切る。ただしデッキが1件だけのときは円弧が360°になり、
+        // 始点と終点が同じ位置で重なるため、区切る相手がいないのに12時方向へ白線が引かれて
+        // 円(詳細表示中はリング)が切れて見えてしまう。1件のときは枠線を引かない。
+        borderWidth: displayDecks.length > 1 ? 2 : 0,
       },
     ],
   };

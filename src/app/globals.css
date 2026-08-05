@@ -17,6 +17,18 @@
   background-image: radial-gradient(#27272a 1.2px, transparent 1.2px);
 }
 
+/* ドット背景の「地色だけ」を敷く面。画面へ固定表示するバーの背景に使う。
+   ドット柄は入れない（柄はページ側と一緒に流れるので、固定側に描くとズレて見える）。
+   bg-background(#fff/#000)ではなくこの地色を使うと、ページとの境目が出ない。
+   不透明なのが要点で、半透明にすると下を流れる内容が透けて揺らいで見える。 */
+.app-dot-bg-plain {
+  background-color: #fafcff;
+}
+
+.dark .app-dot-bg-plain {
+  background-color: #0a0a0a;
+}
+
 /*
  * 記録ヒーロー(戦績カード)の背景グラデ。
  * 左下にアクセントのやわらかい放射を重ねる。ベースはカード面(content1)。

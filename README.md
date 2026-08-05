@@ -20,7 +20,7 @@ VSRecorder は、ポケモンカードゲームの対戦記録を残すための
 
 | 分類           | 使用技術                                                                                  |
 | -------------- | ----------------------------------------------------------------------------------------- |
-| フレームワーク | [Next.js 15](https://nextjs.org)（App Router / standalone 出力）                          |
+| フレームワーク | [Next.js 16](https://nextjs.org)（App Router / standalone 出力 / バンドラは webpack）      |
 | 言語           | TypeScript / React 19                                                                     |
 | UI             | HeroUI, Tailwind CSS 4, Framer Motion, Swiper                                             |
 | 認証           | NextAuth (Auth.js) v5 + Firebase Authentication（Credentials プロバイダ, IDトークン検証） |
@@ -98,12 +98,21 @@ npm run build   # make build
 
 ## スクリプト
 
-| コマンド        | 説明             |
-| --------------- | ---------------- |
-| `npm run dev`   | 開発サーバの起動 |
-| `npm run build` | 本番ビルド       |
-| `npm run start` | 本番サーバの起動 |
-| `npm run lint`  | Lint 実行        |
+| コマンド        | 説明                                             |
+| --------------- | ------------------------------------------------ |
+| `npm run dev`   | 開発サーバの起動                                 |
+| `npm run build` | 本番ビルド                                       |
+| `npm run start` | ビルド済みの standalone 出力をローカルで起動     |
+| `npm run lint`  | Lint 実行                                        |
+
+`npm run start` は `next start` ではなく `.next/standalone/server.js` を直接起動する。
+`output: "standalone"` を使っている場合 `next start` は動作せず、Next.js 16 は
+「`next start` does not work with `output: standalone`」と警告して案内する。
+
+standalone 出力には `.next/static` が含まれず、`public/` もビルドがトレースした
+一部のファイルしか入らない。Dockerfile が両方を別途コピーしているのと同じ理由で、
+このスクリプトも起動前に `public/` と `.next/static` をコピーしている。
+コピー内容を変えるときは Dockerfile 側と揃えること。
 
 ## Docker / デプロイ
 

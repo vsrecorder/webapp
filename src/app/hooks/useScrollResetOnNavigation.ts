@@ -1,9 +1,13 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 
 /*
  * ページを表示したとき、必ずページ先頭から表示する。
  * 対象は「戻る/進む(履歴移動)」と「リンクによるページ遷移」の両方。
+ *
+ * 例外はリロードで、こちらは直前の位置を復元する(長い一覧を見ている途中で
+ * 引っ張って更新したときに先頭へ飛ばされないようにするため)。
+ * 詳細は後半の startReloadRestore のコメントを参照。
  *
  * --- 履歴移動(戻る/進む) ---
  *
@@ -63,8 +67,132 @@ import { usePathname } from "next/navigation";
  *   各ページにある(記録一覧の scrollToCard、大会結果の scrollToId など)。
  *   いずれも対象の描画を待ってから走るため、この先頭リセットより後になり、上書きされない。
  */
+// リロード直前のスクロール位置の保存先。
+// タブを閉じれば消えてほしいので localStorage ではなく sessionStorage を使う。
+const RELOAD_SCROLL_KEY = "vsrecorder:scroll-before-unload";
+
+// 復元を諦めるまでの時間。この間に文書が目的の高さまで伸びなければ、
+// 届いたところまでで打ち切る(伸びないページを延々と監視し続けないため)。
+const RELOAD_RESTORE_TIMEOUT_MS = 3000;
+
+// 文書の高さが何フレーム変わらなければ「伸びきった」とみなすか。
+// 目的地に着いた時点で監視をやめると、その後の伸長でスクロールアンカリングが
+// 働いて位置がずれるため、高さが落ち着くまで当て直しを続ける。
+const RELOAD_RESTORE_STABLE_FRAMES = 10;
+
+type SavedScroll = {
+  href: string;
+  y: number;
+};
+
+// sessionStorage はプライベートモードや容量超過で例外を投げることがある。
+// スクロール位置は失っても実害が無いので、失敗は握りつぶす。
+function readSavedScroll(): SavedScroll | null {
+  try {
+    const raw = sessionStorage.getItem(RELOAD_SCROLL_KEY);
+    if (!raw) return null;
+
+    const parsed: unknown = JSON.parse(raw);
+    if (
+      typeof parsed === "object" &&
+      parsed !== null &&
+      typeof (parsed as SavedScroll).href === "string" &&
+      typeof (parsed as SavedScroll).y === "number"
+    ) {
+      return parsed as SavedScroll;
+    }
+  } catch {
+    // 無視
+  }
+  return null;
+}
+
+function saveScroll() {
+  try {
+    const value: SavedScroll = { href: window.location.href, y: window.scrollY };
+    sessionStorage.setItem(RELOAD_SCROLL_KEY, JSON.stringify(value));
+  } catch {
+    // 無視
+  }
+}
+
+// 今回の読み込みがリロードだったか。
+// 戻る/進むによる文書の再読み込み("back_forward")とは区別する必要がある
+// (そちらは従来どおり先頭に倒す)。
+function isReloadNavigation(): boolean {
+  const entries = performance.getEntriesByType(
+    "navigation",
+  ) as PerformanceNavigationTiming[];
+  return entries[0]?.type === "reload";
+}
+
+/*
+ * リロード時にスクロール位置を復元する。
+ *
+ * scrollRestoration を manual にしたままブラウザ任せにしないのは、履歴移動と同じ
+ * 「復元しようとした時点では文書が短く、位置が上限で切り詰められ、その後データが
+ * 届いて伸びるとアンカリングでずれる」問題がリロードでも起きるため。
+ * ここでは文書が伸びるのを追いかけながら、目的の位置に届くまで復元し直す。
+ *
+ * 途中でユーザーが自分でスクロールしたら、そちらを優先して即座に打ち切る。
+ */
+function startReloadRestore(targetY: number): () => void {
+  const deadline = Date.now() + RELOAD_RESTORE_TIMEOUT_MS;
+  const userEvents = ["wheel", "touchstart", "keydown", "pointerdown"] as const;
+
+  let rafId = 0;
+  let stopped = false;
+  let lastHeight = -1;
+  let stableFrames = 0;
+
+  const stop = () => {
+    if (stopped) return;
+    stopped = true;
+    cancelAnimationFrame(rafId);
+    for (const type of userEvents) window.removeEventListener(type, stop);
+  };
+
+  for (const type of userEvents) {
+    window.addEventListener(type, stop, { passive: true });
+  }
+
+  const step = () => {
+    if (stopped) return;
+
+    // 文書の高さが変わったときだけ当て直す（毎フレームの scrollTo を避ける）
+    const height = document.documentElement.scrollHeight;
+    if (height !== lastHeight) {
+      lastHeight = height;
+      stableFrames = 0;
+      const maxY = Math.max(0, height - window.innerHeight);
+      window.scrollTo({ top: Math.min(targetY, maxY), left: 0, behavior: "instant" });
+    } else {
+      stableFrames++;
+    }
+
+    // 高さが落ち着き、かつ目的地に届いていれば終了。時間切れでも終了。
+    const reached = Math.round(window.scrollY) >= Math.round(targetY);
+    if (
+      (reached && stableFrames >= RELOAD_RESTORE_STABLE_FRAMES) ||
+      Date.now() > deadline
+    ) {
+      stop();
+      return;
+    }
+
+    rafId = requestAnimationFrame(step);
+  };
+
+  rafId = requestAnimationFrame(step);
+
+  return stop;
+}
+
 export function useScrollResetOnNavigation() {
   const pathname = usePathname();
+
+  // リロード復元を走らせた初回だけ、リンク遷移用の先頭リセットを見送るための目印。
+  const skipInitialResetRef = useRef(false);
 
   useEffect(() => {
     if (!("scrollRestoration" in window.history)) return;
@@ -97,8 +225,36 @@ export function useScrollResetOnNavigation() {
 
     window.addEventListener("popstate", handlePopState);
 
+    /*
+     * リロード用の保存。
+     *
+     * pagehide はモバイルで beforeunload より確実に呼ばれる。ただし iOS では
+     * アプリ切り替えなどで pagehide を経ずに破棄されることがあるため、
+     * 非表示になった時点でも保存しておく。
+     */
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") saveScroll();
+    };
+
+    window.addEventListener("pagehide", saveScroll);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    // リロードのときだけ、保存しておいた位置へ戻す。
+    // URL が一致しない場合(別ページを開き直した等)は持ち込まない。
+    let stopRestore: (() => void) | null = null;
+    if (isReloadNavigation()) {
+      const saved = readSavedScroll();
+      if (saved && saved.href === window.location.href && saved.y > 0) {
+        skipInitialResetRef.current = true;
+        stopRestore = startReloadRestore(saved.y);
+      }
+    }
+
     return () => {
+      stopRestore?.();
       window.removeEventListener("popstate", handlePopState);
+      window.removeEventListener("pagehide", saveScroll);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.history.scrollRestoration = previous;
     };
   }, []);
@@ -106,6 +262,12 @@ export function useScrollResetOnNavigation() {
   // リンク遷移。ページが変わった最初の描画で先頭へ戻す。
   // ハッシュ付きのURLへ移動したときは、その移動先(App Router が処理する)を優先して何もしない。
   useEffect(() => {
+    // リロード復元中はその位置を尊重する。見送るのは初回の1回だけ。
+    if (skipInitialResetRef.current) {
+      skipInitialResetRef.current = false;
+      return;
+    }
+
     if (window.location.hash.length > 1) return;
 
     window.scrollTo({ top: 0, left: 0, behavior: "instant" });

@@ -49,6 +49,78 @@ const REOPEN_SCROLL_OFFSET = 100;
 // お気に入りの解除を再取得を待たずに画面へ反映するとき、この値を入れる。
 const ZERO_DATE = "0001-01-01T00:00:00Z";
 
+/*
+ * 画面上部に固定表示するバーの「横位置合わせ」。
+ *
+ * position:sticky はスクロール量に応じて毎フレーム位置が決まるため、iOS のように
+ * スクロールを別スレッドで処理する環境では固定タブ(position:fixed)より遅れて追従し、
+ * 上下に揺れて見える。そこで上のタブと同じ position:fixed に揃えて、
+ * スクロール量から完全に切り離す。
+ *
+ * ただし fixed はレイアウトの流れから外れるので、横幅・横位置を自分で決める必要がある。
+ * ここでは「流れの中に残した空き枠(slot)」の実測値をバーへ写すことで解決する。
+ * <main> の左右余白(ログイン状態やブレークポイントで変わる)や lg:max-w-4xl を
+ * 書き写さずに済み、将来それらが変わってもデッキカードの列と必ず揃う。
+ *
+ * 位置の再計算はリサイズ時だけで、スクロール中は何もしない。
+ */
+function useFixedBarAlignment() {
+  const slotRef = useRef<HTMLDivElement | null>(null);
+  const barRef = useRef<HTMLDivElement | null>(null);
+  // 空き枠に確保する高さ。バーの実測値を入れて、抜けたぶんのズレを埋める。
+  const [slotHeight, setSlotHeight] = useState<number | undefined>(undefined);
+
+  useLayoutEffect(() => {
+    const slot = slotRef.current;
+    const bar = barRef.current;
+    if (!slot || !bar) return;
+
+    const sync = () => {
+      const rect = slot.getBoundingClientRect();
+      const left = `${rect.left}px`;
+      const width = `${rect.width}px`;
+      // 同じ値の書き戻しは ResizeObserver のループ警告を招くので避ける
+      if (bar.style.left !== left) bar.style.left = left;
+      if (bar.style.width !== width) bar.style.width = width;
+
+      /*
+       * 空き枠の縦位置を、バーの貼り付き位置に合わせて持ち上げる。
+       *
+       * 空き枠は「上の余白ぶん下」から始まるが、バーは常に top-25 に貼り付く。
+       * 揃えないと、ページ最上部にいるときだけバーが空き枠より上にずれ、
+       * バーとカードの間隔がスクロール開始の瞬間に詰まって見える。
+       * ずれ量は余白の合計（ヘッダー・タブぶん）から決まるので、
+       * 数値を書き写さずに実測の差から求める。
+       */
+      slot.style.marginTop = "0px";
+      const slotDocumentTop = slot.getBoundingClientRect().top + window.scrollY;
+      // fixed なのでバーの top はビューポート基準＝スクロール量0のときの文書上の位置
+      const barPinnedTop = bar.getBoundingClientRect().top;
+      slot.style.marginTop = `${barPinnedTop - slotDocumentTop}px`;
+
+      // 高さは横幅を当てたあとに測る(幅が決まらないと折り返しで変わるため)
+      const height = bar.offsetHeight;
+      setSlotHeight((prev) =>
+        prev !== undefined && Math.abs(prev - height) < 0.5 ? prev : height,
+      );
+    };
+
+    sync();
+
+    const observer = new ResizeObserver(sync);
+    observer.observe(slot);
+    observer.observe(bar);
+    window.addEventListener("resize", sync);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", sync);
+    };
+  }, []);
+
+  return { slotRef, barRef, slotHeight };
+}
+
 async function fetchDecks(isArchived: boolean, cursor: string) {
   const res = await fetch(`/api/decks?archived=${isArchived}&cursor=${cursor}`, {
     cache: "no-store",
@@ -135,6 +207,12 @@ export default function Decks({
   const [error, setError] = useState(false);
   // 表示モードは localStorage に保存された値を購読する。
   const view = useDeckListView();
+  // リスト/ギャラリー切り替えバーを、上の固定タブと同じく画面へ固定するための位置合わせ。
+  const {
+    slotRef: viewToggleSlotRef,
+    barRef: viewToggleBarRef,
+    slotHeight: viewToggleSlotHeight,
+  } = useFixedBarAlignment();
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   // deck_id → きずなの算出結果。灯の濃さ・揺れ方・きずなLv.の表示に使う
@@ -258,13 +336,30 @@ export default function Decks({
       if (lastItem && lastItem.cursor) {
         // 次のページを先読みして「更に読み込む」を出すかどうかを決める。
         // 件数ではなく未取得のデッキが含まれるかで判定する。
-        const nextItems: DeckGetResponseType = await fetchDecks(
-          isArchived,
-          lastItem.cursor,
-        );
+        //
+        // 全件が取得済みだったページは、そこで打ち切らずカーソルを進めて次を見る。
+        // 「1ページ全部が取得済み」は、お気に入りが1件だけの現状では最終ページでしか
+        // 起こらないためループは実際には回らないが、繰り上げ対象が増えたときに
+        // 一覧が途中で黙って止まるのを防ぐ。ページ数は有限なので必ず終わる。
+        const hasUnloaded = (page: DeckGetResponseType) =>
+          page.decks.some((d) => !loadedDeckIds.has(d.data.id));
 
-        setHasMore(nextItems.decks.some((d) => !loadedDeckIds.has(d.data.id)));
-        setNextCursor(lastItem.cursor);
+        let cursor = lastItem.cursor;
+        let nextItems: DeckGetResponseType = await fetchDecks(isArchived, cursor);
+
+        while (nextItems.decks.length > 0 && !hasUnloaded(nextItems)) {
+          const nextLast = nextItems.decks[nextItems.decks.length - 1];
+
+          // カーソルが進まないとき（サーバが同じページを返し続ける等）は
+          // 無限に取得し続けてしまうため、ここで打ち切る。
+          if (!nextLast?.cursor || nextLast.cursor === cursor) break;
+
+          cursor = nextLast.cursor;
+          nextItems = await fetchDecks(isArchived, cursor);
+        }
+
+        setHasMore(hasUnloaded(nextItems));
+        setNextCursor(cursor);
       } else {
         setHasMore(false);
       }
@@ -510,46 +605,69 @@ export default function Decks({
 
       {/* 表示モード切り替え：一覧ヘッダー右上にセグメントコントロールを配置。
           リスト＝素早く探す、ギャラリー＝画像で見て探す、を用途で使い分ける。
-          固定タブ（top-15＋タブ高さ≒100px）の直下にスクロール追従で固定する。
+          固定タブ（top-15＋タブ高さ≒100px）の直下に、そのタブと同じ position:fixed で
+          貼り付ける（sticky だとスクロール中にタブとの間隔が揺れて見えるため。
+          詳細は useFixedBarAlignment のコメント）。
           初回ロード中はトグルのスケルトンを表示する。 */}
       {(!isInitialLoaded || items.length > 0) && (
-        <div className="sticky top-25 z-40 w-full bg-background/85 backdrop-blur-sm py-2">
-          {!isInitialLoaded ? (
-            <DeckViewToggleSkeleton />
-          ) : (
-            <div
-              role="group"
-              aria-label="表示モード"
-              className="flex w-full items-center gap-0.5 rounded-lg bg-default-100 p-0.5"
-            >
-              <button
-                type="button"
-                aria-pressed={view === "list"}
-                onClick={() => setDeckListView("list")}
-                className={`flex flex-1 items-center justify-center gap-1 rounded-md px-2.5 py-1.5 text-tiny font-bold transition-colors ${
-                  view === "list"
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-default-500"
-                }`}
+        // 親の space-y-3 は「隣り合う子」に上マージンを付ける。バーを直接の子にすると
+        // fixed なのにそのマージンぶん下へずれてしまうため、空き枠と一緒に包んで避ける。
+        <div className="w-full">
+          {/* 流れの中に残す空き枠。バーの横位置・横幅の基準になり、
+              同時に fixed で抜けたぶんの高さを埋めてカードの重なりを防ぐ。
+              h-12 はバーの実寸(py-2 16px＋トグル32px)と同じ既定値で、
+              実測が入るまで（サーバ描画〜ハイドレーション）の高さを埋める。 */}
+          <div
+            ref={viewToggleSlotRef}
+            aria-hidden
+            className="h-12"
+            style={{ height: viewToggleSlotHeight }}
+          />
+          {/* 半透明にすると下を流れるカードが透けて揺らいで見えるため、背景は不透明にする。
+              地色はページのドット背景と同じにして、境目が出ないようにする。
+              left-0 right-0 は実測が入るまでの仮の横幅。無いと横幅が内容依存に縮んで
+              ハイドレーション前だけバーが潰れて見える（実測後はインラインの left/width が勝つ）。 */}
+          <div
+            ref={viewToggleBarRef}
+            className="app-dot-bg-plain fixed top-25 right-0 left-0 z-40 py-2"
+          >
+            {!isInitialLoaded ? (
+              <DeckViewToggleSkeleton />
+            ) : (
+              <div
+                role="group"
+                aria-label="表示モード"
+                className="flex w-full items-center gap-0.5 rounded-lg bg-default-100 p-0.5"
               >
-                <LuList className="text-sm" />
-                リスト
-              </button>
-              <button
-                type="button"
-                aria-pressed={view === "gallery"}
-                onClick={() => setDeckListView("gallery")}
-                className={`flex flex-1 items-center justify-center gap-1 rounded-md px-2.5 py-1.5 text-tiny font-bold transition-colors ${
-                  view === "gallery"
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-default-500"
-                }`}
-              >
-                <LuLayoutGrid className="text-sm" />
-                ギャラリー
-              </button>
-            </div>
-          )}
+                <button
+                  type="button"
+                  aria-pressed={view === "list"}
+                  onClick={() => setDeckListView("list")}
+                  className={`flex flex-1 items-center justify-center gap-1 rounded-md px-2.5 py-1.5 text-tiny font-bold transition-colors ${
+                    view === "list"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-default-500"
+                  }`}
+                >
+                  <LuList className="text-sm" />
+                  リスト
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={view === "gallery"}
+                  onClick={() => setDeckListView("gallery")}
+                  className={`flex flex-1 items-center justify-center gap-1 rounded-md px-2.5 py-1.5 text-tiny font-bold transition-colors ${
+                    view === "gallery"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-default-500"
+                  }`}
+                >
+                  <LuLayoutGrid className="text-sm" />
+                  ギャラリー
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

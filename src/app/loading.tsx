@@ -1,24 +1,23 @@
 import { Card, CardBody, Skeleton } from "@heroui/react";
 
+import UserProfileCardSkeleton from "@app/components/organisms/User/Skeleton/UserProfileCardSkeleton";
+import { isDevEnv } from "@app/utils/appIcon";
+
 // ルートセグメントの Suspense 境界。
 // トップページ(ログイン後はダッシュボード)は複数のバックエンド取得を挟むため
 // サーバレンダリングに時間がかかる。独自の loading を持たない動的ページ全体の
 // フォールバックも兼ね、遷移直後に「画面が固まって見える」体感を無くすための
-// ニュートラルなページスケルトンを表示する。
+// ページスケルトンを表示する。
+//
+// 先頭のプロフィールカードだけは実物と同じ骨格・同じ高さのスケルトンを使う。
+// ダッシュボードで最初に目に入る要素であり、形が違うと差し替わった瞬間に
+// 見た目が飛んでしまうため(以降のセクションは中身が可変なのでニュートラルなまま)。
 export default function Loading() {
   return (
     <div className="mx-auto w-full max-w-2xl lg:max-w-6xl xl:max-w-7xl pt-3 lg:pt-9">
-      <div className="flex flex-col gap-4">
-        {/* ヘッダー相当（プロフィールカードなど） */}
-        <Card shadow="sm" className="w-full">
-          <CardBody className="flex flex-row items-center gap-4 p-4">
-            <Skeleton className="h-14 w-14 shrink-0 rounded-full" />
-            <div className="flex flex-1 flex-col gap-2">
-              <Skeleton className="h-4 w-40 rounded-md" />
-              <Skeleton className="h-3 w-28 rounded-md" />
-            </div>
-          </CardBody>
-        </Card>
+      {/* 節の間隔は DashboardSections(mb-3 lg:mb-6)に合わせる */}
+      <div className="flex flex-col gap-3 lg:gap-6">
+        <UserProfileCardSkeleton isDevEnv={isDevEnv()} />
 
         {/* コンテンツセクション相当（見出し＋カード） */}
         {Array.from({ length: 3 }).map((_, i) => (

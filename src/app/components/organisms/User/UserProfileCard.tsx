@@ -27,10 +27,28 @@ type Props = {
   userCreatedAt?: string;
 };
 
+// 年月を「年 * 12 + (月 - 1)」の通し番号に変換する。基準は常にJST。
+//
+// Date の getFullYear/getMonth は端末のタイムゾーンで解釈されるため、これで年月を
+// 組み立てるとサーバ(TZ=Asia/Tokyo)とJST以外の端末とで月替わりの瞬間に食い違い、
+// ハイドレーション不一致や「選択中の年月が選択肢に無い」状態を招く。+9時間ずらして
+// UTCとして読むことでJSTに固定する。
+//
+// 月の加減算も Date ではなくこの通し番号の整数演算で行う(年跨ぎを自前で扱わずに済む)。
+function jstYearMonthIndex(date: Date): number {
+  const jst = new Date(date.getTime() + 9 * 60 * 60 * 1000);
+  return jst.getUTCFullYear() * 12 + jst.getUTCMonth();
+}
+
+function yearMonthValue(index: number): string {
+  const year = Math.floor(index / 12);
+  const month = (index % 12) + 1;
+  return `${year}-${String(month).padStart(2, "0")}`;
+}
+
 // JST で現在の年月("YYYY-MM")を返す
 function getCurrentYearMonthValue(): string {
-  const now = new Date(Date.now() + 9 * 60 * 60 * 1000);
-  return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+  return yearMonthValue(jstYearMonthIndex(new Date()));
 }
 
 function yearMonthLabel(yearMonth: string): string {
@@ -40,17 +58,15 @@ function yearMonthLabel(yearMonth: string): string {
 
 // 登録月(なければ直近12ヶ月)〜当月までの年月選択肢を新しい順で生成する
 function generateYearMonthOptions(createdAt?: Date) {
+  const currentIndex = jstYearMonthIndex(new Date());
+  const startIndex = createdAt ? jstYearMonthIndex(createdAt) : currentIndex - 11;
+
   const options: { value: string; label: string }[] = [];
-  const now = new Date();
-  const start = createdAt
-    ? new Date(createdAt.getFullYear(), createdAt.getMonth(), 1)
-    : new Date(now.getFullYear(), now.getMonth() - 11, 1);
-  let d = new Date(now.getFullYear(), now.getMonth(), 1);
-  while (d >= start) {
-    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  for (let index = currentIndex; index >= startIndex; index--) {
+    const value = yearMonthValue(index);
     options.push({ value, label: yearMonthLabel(value) });
-    d = new Date(d.getFullYear(), d.getMonth() - 1, 1);
   }
+
   return options;
 }
 
@@ -122,7 +138,13 @@ function WinRateBadge({
   return (
     <div className="flex flex-col justify-center items-end gap-0.5">
       <div className="relative flex items-center">
+        {/* Chrome iOS はオートフィルのため、Reactがハイドレートする前にフォーム要素へ
+            __gcruniqueid 属性を注入する。サーバのHTMLに無い属性がDOM側にだけ存在する形に
+            なるため、ハイドレーション不一致の警告が出る(開発時のみ・動作には影響しない)。
+            ブラウザ側の注入なのでアプリからは防げないため、この要素に限って抑止する。
+            抑止はこの要素自身の属性のみに効き、<option>の不一致は従来どおり検出される。 */}
         <select
+          suppressHydrationWarning
           value={yearMonth}
           onChange={(e) => onYearMonthChange(e.target.value)}
           aria-label="表示する年月を選択"

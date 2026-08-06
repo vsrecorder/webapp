@@ -9,6 +9,7 @@ import Credentials from "next-auth/providers/credentials";
 
 import { deleteFirebaseUserWithRetry, getFirebaseAdmin } from "@firebase/admin";
 
+import { getAuth } from "firebase-admin/auth";
 import type { DecodedIdToken } from "firebase-admin/auth";
 
 import { MAX_USER_NAME_LENGTH, exceedsTextLength } from "@app/utils/textLength";
@@ -238,7 +239,7 @@ const {
 
         let decoded: DecodedIdToken;
         try {
-          decoded = await firebaseAdmin.auth().verifyIdToken(String(idToken), true);
+          decoded = await getAuth(firebaseAdmin).verifyIdToken(String(idToken), true);
         } catch (error) {
           console.error("Failed to verify ID token:", error);
           return null;
@@ -304,7 +305,7 @@ const {
               // 新規登録成功: firebaseユーザの画像を初期化
               // 失敗してもユーザ登録自体は完了しているためログインは継続する
               try {
-                await firebaseAdmin.auth().updateUser(user.id, {
+                await getAuth(firebaseAdmin).updateUser(user.id, {
                   photoURL:
                     "https://xx8nnpgt.user.webaccel.jp/images/users/default_icon.png",
                 });

@@ -15,13 +15,13 @@
     "@next/third-parties": "^16.3.0",
     "chart.js": "^4.5.1",
     "firebase": "^12.6.0",
-    "firebase-admin": "^12.7.0",
+    "firebase-admin": "^14.2.0",
     "framer-motion": "^12.33.0",
     "html-to-image": "^1.11.13",
     "jsonwebtoken": "^9.0.3",
     "modern-screenshot": "^4.7.0",
     "next": "^16.3.0",
-    "next-auth": "^5.0.0-beta.30",
+    "next-auth": "^5.0.0-beta.32",
     "next-themes": "^0.4.6",
     "react": "^19.2.8",
     "react-chartjs-2": "^5.3.1",
@@ -48,6 +48,7 @@
     "typescript": "^5"
   },
   "overrides": {
-    "fast-xml-parser": "^5.3.3"
+    "fast-xml-parser": "^5.10.1",
+    "uuid": "^11.1.1"
   }
 }

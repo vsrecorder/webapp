@@ -1,5 +1,6 @@
-import * as admin from "firebase-admin";
-import type { ServiceAccount } from "firebase-admin";
+import { cert, getApps, initializeApp } from "firebase-admin/app";
+import type { App, ServiceAccount } from "firebase-admin/app";
+import { getAuth } from "firebase-admin/auth";
 
 // Firebaseの認証ユーザー削除に失敗した際のリトライ回数と間隔。
 // 消し損ねると「Firebaseにのみ存在するユーザー」が残ってしまうため、
@@ -7,7 +8,7 @@ import type { ServiceAccount } from "firebase-admin";
 const DELETE_RETRY_COUNT = 3;
 const DELETE_RETRY_INTERVAL_MS = 500;
 
-let firebaseAdmin: admin.app.App;
+let firebaseAdmin: App;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -17,12 +18,12 @@ function sleep(ms: number): Promise<void> {
 // 最終的に削除できたかどうかを返す。呼び出し側は戻り値を握り潰さずログに残すこと。
 // 消し残した認証ユーザーは core-apiserver の cmd/check-firebase-users で検出できる。
 export async function deleteFirebaseUserWithRetry(
-  app: admin.app.App,
+  app: App,
   uid: string,
 ): Promise<boolean> {
   for (let attempt = 1; attempt <= DELETE_RETRY_COUNT; attempt++) {
     try {
-      await app.auth().deleteUser(uid);
+      await getAuth(app).deleteUser(uid);
       return true;
     } catch (error) {
       // 既に存在しない場合は「Firebaseに認証ユーザーが居ない」という目的の状態が
@@ -51,10 +52,11 @@ export async function deleteFirebaseUserWithRetry(
   return false;
 }
 
-export function getFirebaseAdmin(): admin.app.App {
-  if (admin.apps.length > 0) {
-    if (admin.apps[0]) {
-      return admin.apps[0];
+export function getFirebaseAdmin(): App {
+  const apps = getApps();
+  if (apps.length > 0) {
+    if (apps[0]) {
+      return apps[0];
     }
   }
 
@@ -69,8 +71,8 @@ export function getFirebaseAdmin(): admin.app.App {
       throw new Error("FIREBASE_PRIVATE_KEY is not set");
     }
 
-    firebaseAdmin = admin.initializeApp({
-      credential: admin.credential.cert(sa),
+    firebaseAdmin = initializeApp({
+      credential: cert(sa),
     });
   }
 

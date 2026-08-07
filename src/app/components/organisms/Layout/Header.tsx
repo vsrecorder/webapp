@@ -61,14 +61,21 @@ function HeaderShell({
     : "bg-linear-to-br from-blue-600/90 via-indigo-600/90 to-violet-700/90";
 
   return (
-    <header className="fixed z-50 top-0 left-0 right-0 h-14 lg:h-28 border-b border-white/15">
+    <header className="fixed z-50 top-0 left-0 right-0 h-14 lg:h-28">
       {/*
         iOS の standalone PWA では、position:fixed な要素に直接 backdrop-blur を
         かけると、その中の transform アニメーション（マーキー）が再描画されなく
         なることがあるため、ぼかし背景だけを別レイヤー（absolute）に分離し、
         コンテンツ側は backdrop-filter の直接の対象にならないようにする。
+
+        下端の境界線もこのレイヤーに持たせる。header 側に付けると、inset-0 の
+        レイヤーはパディングボックスまでしか広がらないため境界線の1pxだけ背景が
+        抜け、白15%が背後のページ背景に乗って「ほぼ白い線」になる。利用規約など
+        直下が濃色のページでは、それがヘッダーとの隙間に見えてしまう。
       */}
-      <div className={`absolute inset-0 ${gradientClass} backdrop-blur-md`} />
+      <div
+        className={`absolute inset-0 border-b border-white/15 ${gradientClass} backdrop-blur-md`}
+      />
       {/* 本サービスはモバイル専用のため、デスクトップ幅（lg以上）でのみ非対応の旨を表示する */}
       <div
         className={`relative hidden lg:flex items-center justify-center h-8 bg-amber-400 text-amber-950 text-xs font-semibold ${hasSidebar ? "lg:pl-56" : ""}`}
@@ -92,6 +99,10 @@ function Logo({ iconUrl }: { iconUrl: string }) {
           src={iconUrl}
           alt="バトレコ"
           fill
+          // 固定ヘッダー内なので常にファーストビューに入る。利用規約のような
+          // テキスト主体のページではこのロゴが唯一の画像＝LCP要素になるため、
+          // 遅延読み込みさせず優先的に取りに行かせる。
+          priority
           sizes="(min-width: 1024px) 40px, 32px"
           className="object-contain rounded-lg"
         />

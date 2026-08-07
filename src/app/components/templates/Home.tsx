@@ -1,5 +1,9 @@
+import { Suspense } from "react";
+
 import Image from "next/image";
 import Link from "next/link";
+
+import { Skeleton } from "@heroui/react";
 
 import {
   LuFilePen,
@@ -213,14 +217,11 @@ const steps = [
   },
 ];
 
-export default async function TemplateHome() {
-  const date = new Date(Date.now() + 9 * 60 * 60 * 1000);
-
-  // シティリーグ・Grafana統計(パネルID: 7=デッキコード数, 5=対戦数, 2=ユーザ数)を
-  // すべて並列取得する。直列にawaitするとfetch分だけTTFBが積み上がり、FCP/LCPが悪化するため。
-  // 失敗しても描画を止めないよう、csはcatchでundefinedにフォールバックする。
-  const [cs, deckCodeCount, recordCount, userCount] = await Promise.all([
-    getCityleagueScheduleByDate(date).catch(() => undefined),
+// 統計カウンター。Grafanaへの往復(パネルID: 7=デッキコード数, 5=対戦数, 2=ユーザ数)を
+// 抱えるため、ページ本体から切り離して Suspense の内側に置く。
+// 直列にawaitするとfetch分だけTTFBが積み上がるので3本は並列で取る。
+async function StatsSection() {
+  const [deckCodeCount, recordCount, userCount] = await Promise.all([
     getGrafanaStat(7),
     getGrafanaStat(5),
     getGrafanaStat(2),
@@ -232,6 +233,89 @@ export default async function TemplateHome() {
     { value: userCount, label: "ユーザ数" },
   ].filter((item) => item.value !== undefined) as { value: number; label: string }[];
 
+  // 全滅したときはセクションごと出さない(ラベルだけ残ると壊れて見えるため)
+  if (statsItems.length === 0) return null;
+
+  return (
+    <section className="flex flex-col gap-3">
+      <div className="grid grid-cols-3 divide-x divide-default-200">
+        {statsItems.map((item) => (
+          <div
+            key={item.label}
+            className="flex flex-col items-center gap-1 lg:gap-2 px-4 py-2 lg:px-8 lg:py-4"
+          >
+            <span className="text-3xl lg:text-5xl font-black tabular-nums text-foreground">
+              <StatsCounter value={item.value} />
+              <span className="text-xl lg:text-3xl text-primary">+</span>
+            </span>
+            <span className="text-xs lg:text-sm text-default-500">{item.label}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// 取得待ちの間に置く枠。ラベルは固定なのでそのまま出し、数値の位置だけ
+// スケルトンにする。
+//
+// 高さを数値で決め打ちせず、実物と同じ組版のspanをそのまま置いて中身を透明にし、
+// スケルトンをその行ボックスへ absolute で敷いている。行の高さはフォントの
+// メトリクスまで含めて決まる(実測で lg は 48px ではなく 49px)ため、決め打ちだと
+// 値が届いた瞬間に下がわずかに飛ぶ。位置合わせに transform を使っていないのは
+// iOS で角丸スケルトンのコーナーが黒くなるバグを踏まないため。
+function StatsSectionFallback() {
+  return (
+    <section className="flex flex-col gap-3">
+      <div className="grid grid-cols-3 divide-x divide-default-200">
+        {["デッキコード数", "対戦数", "ユーザ数"].map((label) => (
+          <div
+            key={label}
+            className="flex flex-col items-center gap-1 lg:gap-2 px-4 py-2 lg:px-8 lg:py-4"
+          >
+            <span className="relative text-3xl lg:text-5xl font-black tabular-nums text-transparent">
+              <Skeleton className="absolute inset-0 rounded-md" />
+              0,000
+              <span className="text-xl lg:text-3xl">+</span>
+            </span>
+            <span className="text-xs lg:text-sm text-default-500">{label}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// 本日のシティリーグ。開催がない日は丸ごと出ないセクションなので、
+// 取得待ちの枠は作らず(作ると開催なしの日に空白が残る)、揃ってから差し込む。
+async function TodayCityleagueSection() {
+  const date = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  // 失敗しても描画を止めないよう、undefinedにフォールバックする。
+  const cs = await getCityleagueScheduleByDate(date).catch(() => undefined);
+
+  if (!cs) return null;
+
+  return (
+    <section className="flex flex-col gap-4">
+      <div className="flex flex-col items-center gap-1 text-center">
+        <span className="text-xs lg:text-sm font-bold text-primary uppercase tracking-widest">
+          TODAY
+        </span>
+        <h2 className="text-2xl lg:text-4xl font-black">{cs.title} 開催中！</h2>
+        <p className="text-sm lg:text-base text-default-500">本日開催のシティリーグ会場</p>
+      </div>
+      <CityleagueEvents />
+    </section>
+  );
+}
+
+// 非会員向けランディング。
+//
+// ファーストビュー(ヒーロー)はデータに依存しないので、この関数自体は同期に保つ。
+// ここで await すると、ページ全体がフォールバック待ちになり、取得が終わるまで
+// 何も出せない = ログイン後のダッシュボード用スケルトンが一瞬映り込む原因になる。
+// データを要する部分だけを Suspense の内側の子コンポーネントへ追い出している。
+export default function TemplateHome() {
   return (
     <>
       {/* ヒーローセクション：グラデーション背景で全幅に広げる（-mt-14でmainのpt-14分も覆い、ヘッダー裏の白背景を隠す。lg以上はヘッダーがh-28になる分-mt-28で揃える） */}
@@ -337,26 +421,9 @@ export default async function TemplateHome() {
 
       <div className="flex flex-col gap-16 lg:gap-24 max-w-2xl lg:max-w-6xl xl:max-w-7xl mx-auto w-full pt-14 lg:pt-20 lg:px-8">
         {/* 統計カウンター */}
-        {statsItems.length > 0 && (
-          <section className="flex flex-col gap-3">
-            <div className="grid grid-cols-3 divide-x divide-default-200">
-              {statsItems.map((item) => (
-                <div
-                  key={item.label}
-                  className="flex flex-col items-center gap-1 lg:gap-2 px-4 py-2 lg:px-8 lg:py-4"
-                >
-                  <span className="text-3xl lg:text-5xl font-black tabular-nums text-foreground">
-                    <StatsCounter value={item.value} />
-                    <span className="text-xl lg:text-3xl text-primary">+</span>
-                  </span>
-                  <span className="text-xs lg:text-sm text-default-500">
-                    {item.label}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
+        <Suspense fallback={<StatsSectionFallback />}>
+          <StatsSection />
+        </Suspense>
 
         {/* できること別の画面イメージ */}
         <section className="flex flex-col gap-4">
@@ -442,20 +509,9 @@ export default async function TemplateHome() {
         </section>
 
         {/* 本日のシティリーグ */}
-        {cs && (
-          <section className="flex flex-col gap-4">
-            <div className="flex flex-col items-center gap-1 text-center">
-              <span className="text-xs lg:text-sm font-bold text-primary uppercase tracking-widest">
-                TODAY
-              </span>
-              <h2 className="text-2xl lg:text-4xl font-black">{cs.title} 開催中！</h2>
-              <p className="text-sm lg:text-base text-default-500">
-                本日開催のシティリーグ会場
-              </p>
-            </div>
-            <CityleagueEvents />
-          </section>
-        )}
+        <Suspense fallback={null}>
+          <TodayCityleagueSection />
+        </Suspense>
       </div>
 
       <Footer />

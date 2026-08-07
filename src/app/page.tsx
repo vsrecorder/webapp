@@ -1,7 +1,10 @@
+import { Suspense } from "react";
+
 import { auth } from "@app/auth";
 
 import TemplateHome from "@app/components/templates/Home";
 import TemplateDashboard from "@app/components/templates/Dashboard";
+import DashboardSkeleton from "@app/components/organisms/Dashboard/Skeleton/DashboardSkeleton";
 import WithdrawnNotice from "@app/components/molecules/WithdrawnNotice";
 
 import { getAppIconUrl } from "@app/utils/appIcon";
@@ -68,8 +71,15 @@ type Props = {
 export default async function Home({ searchParams }: Props) {
   const session = await auth();
 
+  // スケルトンはこの分岐の内側に置く。ページ全体の loading.tsx にすると
+  // セッションを見る前に表示が始まり、非会員のランディングでもダッシュボードの
+  // スケルトンが一瞬映り込む。
   if (session) {
-    return <TemplateDashboard userId={session.user.id} />;
+    return (
+      <Suspense fallback={<DashboardSkeleton />}>
+        <TemplateDashboard userId={session.user.id} />
+      </Suspense>
+    );
   }
 
   // 退会済みアカウントでサインインを試みた場合に /auth/error から転送されてくる

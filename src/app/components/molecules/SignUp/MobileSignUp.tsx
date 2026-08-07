@@ -77,6 +77,7 @@ export default function MobileSignUp({ iconUrl, isDevEnv }: Props) {
                   登録することで、バトレコの{" "}
                   <Link
                     href="/terms"
+                    onClick={onClose}
                     className="text-primary hover:underline underline-offset-2"
                   >
                     利用規約
@@ -84,6 +85,7 @@ export default function MobileSignUp({ iconUrl, isDevEnv }: Props) {
                   および{" "}
                   <Link
                     href="/privacy"
+                    onClick={onClose}
                     className="text-primary hover:underline underline-offset-2"
                   >
                     プライバシーポリシー

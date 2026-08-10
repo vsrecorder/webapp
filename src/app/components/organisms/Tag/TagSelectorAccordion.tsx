@@ -20,6 +20,20 @@ const ITEM_KEY = "tags";
 // height は duration 0.3s の spring なので、それより少しだけ後に最終位置を取る。
 const EXPAND_DURATION_MS = 340;
 
+// 実際に動くスクロールコンテナ(overflow を持つ最も近い祖先)を探す。
+// 見つからなければ null を返し、呼び出し側でウィンドウスクロールにフォールバックする。
+function findScrollContainer(el: HTMLElement): HTMLElement | null {
+  let node = el.parentElement;
+
+  while (node && node !== document.body) {
+    const { overflowY } = window.getComputedStyle(node);
+    if (overflowY === "auto" || overflowY === "scroll") return node;
+    node = node.parentElement;
+  }
+
+  return null;
+}
+
 // タグ付与を、たたんだ状態のアコーディオンに入れて置くためのラッパ。
 // デッキ登録・新バージョン作成のように、普段はタグ欄を隠しておきたい場所で使う。
 // 付与済みの件数を見出しに出すので、開かなくても付けたかどうかが分かる。
@@ -33,6 +47,7 @@ export default function TagSelectorAccordion({
     selectedTagIds.length > 0 ? `${title}（${selectedTagIds.length}）` : title;
 
   const rootRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const scrollTimerRef = useRef<number | null>(null);
   // HeroUI(@react-types)の Key は string | number で React の Key(bigint を含む)とは
   // 別物なので、そのまま持つと selectedKeys に渡せない。文字列に寄せて保持する。
@@ -72,14 +87,44 @@ export default function TagSelectorAccordion({
     };
   }, []);
 
-  // アコーディオンを開いたら、展開後の全体が見えるようスクロールコンテナ側を動かす。
-  // 展開の開始時と完了時の2回に分けて smooth スクロールを投げる。
-  // 開始時の1回で即座に動き出すので「開いたのに動かない」間が無く、完了時の1回で
-  // 伸びきった後の下端に合わせ直すため全体が収まる。
-  // アニメーション中ずっと追従させると毎フレーム同期レイアウトが走り、
-  // モーダル内の大きなフォームでは展開自体がカクつくので、呼ぶのはこの2回だけにする。
-  const scrollToShowWhole = () => {
-    rootRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  // 展開後にコンテンツが占める高さ。たたんでいる間も中身はDOMに居て、外側の
+  // section が height:0 / overflow:hidden で隠しているだけなので、開く前に実寸を測れる。
+  const measureExpandedHeight = () => {
+    const content = contentRef.current?.closest('[data-slot="content"]');
+    return content ? content.getBoundingClientRect().height : 0;
+  };
+
+  // 展開後の下端がスクロールコンテナからはみ出るぶんだけ、下方向に寄せる。
+  // extraHeight には、これから展開する(まだ高さに現れていない)ぶんを渡す。
+  //
+  // 上方向には決して動かさない。scrollIntoView(block:"end") のように下端を「揃える」と、
+  // 展開前は要素が小さいぶん上に戻され、展開後に今度は下がるので上下にバウンドする。
+  // ここでは「はみ出ていたら、はみ出たぶんだけ下げる」に限定する。
+  //
+  // 目標はスクロール量ではなく絶対位置として求まるので、アニメーション中に何度呼んでも
+  // 同じ位置に収束する(scrollTop が増えたぶん要素の下端は上がるため相殺される)。
+  const scrollToShowWhole = (extraHeight: number) => {
+    const root = rootRef.current;
+    if (!root) return;
+
+    const container = findScrollContainer(root);
+    const bottom = root.getBoundingClientRect().bottom + extraHeight;
+    const viewportBottom = container
+      ? container.getBoundingClientRect().bottom
+      : window.innerHeight;
+
+    const overflow = bottom - viewportBottom;
+    if (overflow <= 0) return;
+
+    if (container) {
+      container.scrollTo({
+        top: container.scrollTop + overflow,
+        behavior: "smooth",
+      });
+      return;
+    }
+
+    window.scrollBy({ top: overflow, behavior: "smooth" });
   };
 
   const handleSelectionChange = (keys: "all" | Set<Key>) => {
@@ -99,10 +144,15 @@ export default function TagSelectorAccordion({
     // アイドル待ちが終わる前に開かれた場合に備えて、ここでも中身を出す。
     setIsContentReady(true);
 
-    scrollToShowWhole();
+    // 展開後の高さを見込んで、最終位置へ一度で動かす。
+    scrollToShowWhole(measureExpandedHeight());
+
+    // 測り損ねたぶんの保険。展開し終えた時点でまだはみ出ていれば追加で寄せる。
+    // この時点の高さは実測値に含まれているので extraHeight は 0。
+    // 下方向にしか動かさないため、既に収まっていれば何も起きない。
     scrollTimerRef.current = window.setTimeout(() => {
       scrollTimerRef.current = null;
-      scrollToShowWhole();
+      scrollToShowWhole(0);
     }, EXPAND_DURATION_MS);
   };
 
@@ -132,7 +182,7 @@ export default function TagSelectorAccordion({
           {/* たたんでいる間は高さ0で見えないだけでDOMには残るので、
               inert でフォーカス・支援技術の対象から外す。
               これが無いと閉じているタグ入力欄にTabで入り込める。 */}
-          <div inert={!isOpen}>
+          <div ref={contentRef} inert={!isOpen}>
             {isContentReady && (
               <TagSelector
                 selectedTagIds={selectedTagIds}

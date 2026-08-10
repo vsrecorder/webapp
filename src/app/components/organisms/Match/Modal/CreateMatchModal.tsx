@@ -31,6 +31,7 @@ import ChoiceButtonGroup from "@app/components/molecules/ChoiceButtonGroup";
 import PokemonSpriteSelectButton from "@app/components/molecules/PokemonSpriteSelectButton";
 import PrizeCardsStepper from "@app/components/molecules/PrizeCardsStepper";
 import PokemonSpriteModal from "@app/components/organisms/Match/Modal/PokemonSpriteModal";
+import TagSelectorAccordion from "@app/components/organisms/Tag/TagSelectorAccordion";
 import BO3GamesInput from "@app/components/organisms/Match/BO3GamesInput";
 import EnvironmentReturnModal from "@app/components/organisms/Record/Modal/EnvironmentReturnModal";
 
@@ -219,6 +220,9 @@ export default function CreateMatchModal({
   const [opponentsPrizeCards, setOpponentsPrizeCards] = useState(0);
 
   const [memo, setMemo] = useState("");
+  const [tagIds, setTagIds] = useState<string[]>([]);
+  // タグ管理中は「作成」やモーダルのクローズを無効化する
+  const [isTagManaging, setIsTagManaging] = useState<boolean>(false);
 
   const [isDisabled, setIsDisabled] = useState(false);
   const [couldCreateFlg, setCouldCreateFlg] = useState(false);
@@ -337,6 +341,8 @@ export default function CreateMatchModal({
     setOpponentsPrizeCards(0);
 
     setMemo("");
+    setTagIds([]);
+    setIsTagManaging(false);
 
     setPokemonSprite1(null);
     setPokemonSprite2(null);
@@ -526,6 +532,7 @@ export default function CreateMatchModal({
       memo: memo,
       games: games,
       pokemon_sprites: pokemon_sprites,
+      tag_ids: tagIds,
     };
 
     const toastId = addToast({
@@ -951,7 +958,7 @@ export default function CreateMatchModal({
         isDismissable={false}
         // 登録APIの実行中はESCキーでも閉じられないようにする
         // (isDisabled は不戦勝/不戦敗の選択中を表すフラグなので、ここでは使わない)
-        isKeyboardDismissDisabled={isSubmitting}
+        isKeyboardDismissDisabled={isSubmitting || isTagManaging}
         isOpen={isOpen}
         onOpenChange={onOpenChange}
         onClose={resetForm}
@@ -1009,6 +1016,18 @@ export default function CreateMatchModal({
                     {renderMatchForm("team")}
                   </Tab>
                 </Tabs>
+
+                {/* タグ付与は全タブ共通。たたんだアコーディオンで本文の一番下に置く。
+                    下端がフッターに詰まらないよう余白を確保する。 */}
+                {!isSubmitting && (
+                  <div className="px-2 pt-1 pb-5">
+                    <TagSelectorAccordion
+                      selectedTagIds={tagIds}
+                      onChange={setTagIds}
+                      onManageModeChange={setIsTagManaging}
+                    />
+                  </div>
+                )}
               </ModalBody>
               <ModalFooter
                 className={`pt-2 ${isIOSDevice ? "pb-5" : "pb-2"} flex items-center`}
@@ -1048,6 +1067,7 @@ export default function CreateMatchModal({
                   // 不戦勝/不戦敗(isDisabled)の場合は couldCreateFlg が効かないため、これが唯一のガードになる
                   isDisabled={
                     isSubmitting ||
+                    isTagManaging ||
                     !isValidedFlg ||
                     isOpponentsDeckInfoTooLong ||
                     (!isDisabled && !couldCreateFlg)

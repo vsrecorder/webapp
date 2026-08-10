@@ -14,6 +14,7 @@ import {
   KizunaLevelBillboard,
 } from "@app/components/molecules/KizunaDeckLevel";
 import DeckGoStatsGrid from "@app/components/molecules/DeckGoStatsGrid";
+import TagChips from "@app/components/molecules/TagChips";
 //import { Chip } from "@heroui/react";
 
 import { useDisclosure } from "@heroui/react";
@@ -390,6 +391,7 @@ export default function DeckCard({
               詳しい案内は展開時にギャラリー表示と同じパネルで見せる。 */}
             <div className="flex-1 min-w-0 flex flex-col gap-1">
               <div className="font-bold text-medium truncate">{deck.name}</div>
+              <TagChips tags={deck.tags} />
               {/* 戦績ときずなLv.を同じ行に置く。「強かったか」と「どう歩んできたか」が
                 左右に並ぶことで、カードの中でも対比がそのまま読める。 */}
               <div className="flex items-baseline justify-between gap-2 text-tiny">
@@ -523,6 +525,7 @@ export default function DeckCard({
                 <div className="w-full min-w-0 truncate text-center font-bold text-large">
                   {deck.name}
                 </div>
+                <TagChips tags={deck.tags} className="justify-center" />
                 {/* きずなLv.は展開しなくても見えるようにする。戦績はアコーディオンの
                   中にあるため、ここに置かないと畳んだ状態では何も見えなくなる。
                   勝率との対比（二枚看板）は展開後に置く。 */}

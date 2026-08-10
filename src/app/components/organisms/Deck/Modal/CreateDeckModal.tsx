@@ -18,6 +18,7 @@ import PokemonSpriteModal from "@app/components/organisms/Match/Modal/PokemonSpr
 import { PokemonSpriteType, DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
 import { DeckCreateRequestType } from "@app/types/deck";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
+import TagSelectorAccordion from "@app/components/organisms/Tag/TagSelectorAccordion";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
 import { MAX_DECK_NAME_LENGTH, countTextLength } from "@app/utils/textLength";
@@ -50,6 +51,10 @@ export default function CreateDeckModal({
   const [sprite1, setSprite1] = useState<PokemonSpriteType | null>(null);
   const [sprite2, setSprite2] = useState<PokemonSpriteType | null>(null);
   const [activeSpriteSlot, setActiveSpriteSlot] = useState<1 | 2>(1);
+
+  const [tagIds, setTagIds] = useState<string[]>([]);
+  // タグ管理中は「閉じる」「登録」やモーダルのクローズを無効化する
+  const [isTagManaging, setIsTagManaging] = useState<boolean>(false);
 
   const {
     isOpen: isSpriteOpen,
@@ -132,6 +137,8 @@ export default function CreateDeckModal({
     setDeckCode(deck_code);
     setSprite1(null);
     setSprite2(null);
+    setTagIds([]);
+    setIsTagManaging(false);
     //setIsSelectedPrivateCode(false);
   };
 
@@ -148,6 +155,7 @@ export default function CreateDeckModal({
       private_deck_code_flg: true,
       //private_deck_code_flg: isSelectedPrivateCode,
       pokemon_sprites,
+      tag_ids: tagIds,
     };
 
     setIsDisabled(true);
@@ -225,12 +233,12 @@ export default function CreateDeckModal({
         // はみ出さないよう base に最大高を与え、はみ出す分は body 内スクロールにする
         scrollBehavior="inside"
         isDismissable={false}
-        // 登録処理中(isDisabled)はESC・閉じるボタン・onOpenChange経由での
-        // クローズをすべて無効化し、処理中にモーダルが閉じないようにする
-        isKeyboardDismissDisabled={isDisabled}
-        hideCloseButton={isDisabled}
+        // 登録処理中(isDisabled)・タグ管理中(isTagManaging)はESC・閉じるボタン・
+        // onOpenChange経由でのクローズを無効化する
+        isKeyboardDismissDisabled={isDisabled || isTagManaging}
+        hideCloseButton={isDisabled || isTagManaging}
         onOpenChange={() => {
-          if (isDisabled) return;
+          if (isDisabled || isTagManaging) return;
           onOpenChange();
         }}
         onClose={resetState}
@@ -361,12 +369,21 @@ export default function CreateDeckModal({
                     <span>トレーナーズウェブサイトでデッキを構築する</span>
                   </Link>
                 </div>
+
+                {/* タグ選択はモーダルの一番下に、たたんだアコーディオンで置く */}
+                {!isDisabled && (
+                  <TagSelectorAccordion
+                    selectedTagIds={tagIds}
+                    onChange={setTagIds}
+                    onManageModeChange={setIsTagManaging}
+                  />
+                )}
               </ModalBody>
               <ModalFooter>
                 <Button
                   color="default"
                   variant="solid"
-                  isDisabled={isDisabled}
+                  isDisabled={isDisabled || isTagManaging}
                   onPress={() => {
                     onClose();
                   }}
@@ -377,7 +394,9 @@ export default function CreateDeckModal({
                 <Button
                   color="primary"
                   variant="solid"
-                  isDisabled={!isValidatedDeckCode || isInvalid || isDisabled}
+                  isDisabled={
+                    !isValidatedDeckCode || isInvalid || isDisabled || isTagManaging
+                  }
                   onPress={() => {
                     createDeck(onClose);
                   }}

@@ -111,6 +111,9 @@ export async function ensureOgImage(
         Key: key,
         Body: body,
         ContentType: "image/png",
+        // キーに OG_IMAGE_VERSION が入るため、デザインを変えれば別URLになる。
+        // 同じURLの中身は変わらないので、ブラウザにも長期キャッシュさせる。
+        CacheControl: "public, max-age=31536000, immutable",
         // CDN から直接配信するため、公開読み取りにする（プロフィール画像と同じ扱い）
         ACL: "public-read",
       } satisfies PutObjectCommandInput),

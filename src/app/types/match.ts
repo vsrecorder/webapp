@@ -1,5 +1,6 @@
 import { GameType, GameRequestType } from "@app/types/game";
 import { MatchPokemonSpriteType } from "@app/types/pokemon_sprite";
+import { TagType } from "@app/types/tag";
 
 export type MatchType = {
   id: string;
@@ -22,6 +23,8 @@ export type MatchType = {
   memo: string;
   games: GameType[];
   pokemon_sprites: MatchPokemonSpriteType[];
+  // 付与されたタグ。未設定の対戦結果では空配列。
+  tags: TagType[];
 };
 
 export type MatchCreateRequestType = {
@@ -42,6 +45,7 @@ export type MatchCreateRequestType = {
   memo: string;
   games: GameRequestType[];
   pokemon_sprites: MatchPokemonSpriteType[];
+  tag_ids: string[];
 };
 
 export type MatchUpdateRequestType = {
@@ -62,6 +66,7 @@ export type MatchUpdateRequestType = {
   memo: string;
   games: GameRequestType[];
   pokemon_sprites: MatchPokemonSpriteType[];
+  tag_ids: string[];
 };
 
 export type MatchCreateResponseType = MatchType;

@@ -429,6 +429,7 @@ export default function TemplateQuickRecordCreate({
           },
         ],
         pokemon_sprites: pokemonSprites,
+        tag_ids: [],
       };
       const matchRes = await fetch("/api/matches", {
         method: "POST",

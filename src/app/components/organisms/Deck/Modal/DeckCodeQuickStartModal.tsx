@@ -155,6 +155,7 @@ export default function DeckCodeQuickStartModal({ isOpen, onOpenChange }: Props)
         deck_code: deckCode,
         private_deck_code_flg: true,
         pokemon_sprites,
+        tag_ids: [],
       };
 
       const res = await fetch("/api/decks", {

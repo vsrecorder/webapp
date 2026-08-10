@@ -349,9 +349,9 @@ export default function DeckById({ id, valueMeterEnabled = false }: Props) {
             type="button"
             onClick={() => setShareOpen(true)}
             aria-label="このデッキをシェアする"
-            className="flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1.5 text-tiny font-bold text-primary active:opacity-70"
+            className="flex items-center gap-0.5 rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-bold text-primary active:opacity-70"
           >
-            <LuShare2 className="text-sm" />
+            <LuShare2 className="text-xs" />
             シェア
           </button>
         </div>

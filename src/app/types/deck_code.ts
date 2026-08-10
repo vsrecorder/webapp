@@ -1,3 +1,5 @@
+import { TagType } from "@app/types/tag";
+
 export type DeckCodeType = {
   id: string;
   created_at: Date;
@@ -6,6 +8,8 @@ export type DeckCodeType = {
   code: string;
   private_code_flg: boolean;
   memo: string;
+  // 付与されたタグ。未設定のデッキコードでは空配列。
+  tags: TagType[];
 };
 
 export type DeckCodeCreateRequestType = {
@@ -13,6 +17,7 @@ export type DeckCodeCreateRequestType = {
   code: string;
   private_code_flg: boolean;
   memo: string;
+  tag_ids: string[];
 };
 
 export type DeckCodeCreateResponseType = DeckCodeType;
@@ -20,6 +25,7 @@ export type DeckCodeCreateResponseType = DeckCodeType;
 export type DeckCodeUpdateRequestType = {
   private_code_flg: boolean;
   memo: string;
+  tag_ids: string[];
 };
 
 export type DeckCodeUpdateResponseType = DeckCodeType;

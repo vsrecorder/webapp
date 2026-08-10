@@ -99,6 +99,10 @@ export async function POST(
       Key: key,
       Body: buffer,
       ContentType: "image/png",
+      // キーに日時が入るため、更新すれば必ず別URLになる。同じURLの中身は変わらないので
+      // ブラウザに長期キャッシュさせてよい。これを付けないとCDNが s-maxage しか返さず、
+      // 共有キャッシュにしか効かない(ブラウザは毎回取り直す)。
+      CacheControl: "public, max-age=31536000, immutable",
       ACL: "public-read",
     } satisfies PutObjectCommandInput);
 

@@ -15,6 +15,7 @@ import DeckCardDiff from "@app/components/organisms/Deck/DeckCardDiff";
 
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { DeckCodeType, DeckCodeCreateRequestType } from "@app/types/deck_code";
+import TagSelectorAccordion from "@app/components/organisms/Tag/TagSelectorAccordion";
 import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
 import { normalizeDeckCode } from "@app/utils/deckCode";
 
@@ -41,6 +42,9 @@ export default function CreateDeckCodeModal({
   const [imageLoaded, setImageLoaded] = useState(false);
   const [newdeckcode, setNewDeckCode] = useState<string>("");
   const [memo, setMemo] = useState<string>("");
+  const [tagIds, setTagIds] = useState<string[]>([]);
+  // タグ管理中は「閉じる」「作成」やモーダルのクローズを無効化する
+  const [isTagManaging, setIsTagManaging] = useState<boolean>(false);
   //const [isSelected, setIsSelected] = useState<boolean>(false);
   const [isValidedDeckCode, setIsValidedDeckCode] = useState<boolean>(true);
   const [isDisabled, setIsDisabled] = useState<boolean>(false);
@@ -105,6 +109,7 @@ export default function CreateDeckCodeModal({
       private_code_flg: true,
       //private_code_flg: isSelected,
       memo: memo,
+      tag_ids: tagIds,
     };
 
     setIsDisabled(true);
@@ -181,11 +186,12 @@ export default function CreateDeckCodeModal({
       // キーボード表示などで可視領域より背が高くなったとき、モーダル全体が画面から
       // はみ出さないよう base に最大高を与え、はみ出す分は body 内スクロールにする
       scrollBehavior="inside"
-      // 処理中(isDisabled)はESC・閉じるボタン・onOpenChange経由のクローズを無効化する
-      isKeyboardDismissDisabled={isDisabled}
-      hideCloseButton={isDisabled}
+      // 処理中(isDisabled)・タグ管理中(isTagManaging)はESC・閉じるボタン・
+      // onOpenChange経由のクローズを無効化する
+      isKeyboardDismissDisabled={isDisabled || isTagManaging}
+      hideCloseButton={isDisabled || isTagManaging}
       onOpenChange={() => {
-        if (isDisabled) return;
+        if (isDisabled || isTagManaging) return;
         onOpenChange();
       }}
       isDismissable={false}
@@ -195,12 +201,14 @@ export default function CreateDeckCodeModal({
 
         setNewDeckCode("");
         setMemo("");
+        setTagIds([]);
+        setIsTagManaging(false);
         //setIsSelected(false);
       }}
       classNames={{
         // scrollBehavior="inside" 既定の max-h(100%-8rem) は特にキーボード表示中に
         // 窮屈なため、余白を 3rem まで縮めてモーダルを大きく使う
-        base: "sm:max-w-full max-h-[calc(100%-3rem)]",
+        base: "sm:max-w-full max-h-[calc(100%-2rem)]",
         closeButton: "text-xl",
       }}
     >
@@ -333,12 +341,22 @@ export default function CreateDeckCodeModal({
                 onChange={(e) => setMemo(e.target.value)}
                 onFocus={(e) => scrollIntoViewAfterKeyboard(e.currentTarget)}
               />
+
+              {/* タグ選択はモーダルの一番下に、たたんだアコーディオンで置く */}
+              {!isDisabled && (
+                <TagSelectorAccordion
+                  selectedTagIds={tagIds}
+                  onChange={setTagIds}
+                  title="このバージョンにタグを付ける"
+                  onManageModeChange={setIsTagManaging}
+                />
+              )}
             </ModalBody>
             <ModalFooter className="pt-3 pb-3 ">
               <Button
                 color="default"
                 variant="solid"
-                isDisabled={isDisabled}
+                isDisabled={isDisabled || isTagManaging}
                 onPress={() => {
                   onClose();
                 }}
@@ -349,7 +367,9 @@ export default function CreateDeckCodeModal({
               <Button
                 color="primary"
                 variant="solid"
-                isDisabled={!isValidedDeckCode || !newdeckcode || isDisabled}
+                isDisabled={
+                  !isValidedDeckCode || !newdeckcode || isDisabled || isTagManaging
+                }
                 onPress={() => {
                   createNewDeckCode(onClose);
                 }}

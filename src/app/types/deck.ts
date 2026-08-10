@@ -1,5 +1,6 @@
 import { DeckCodeType } from "@app/types/deck_code";
 import { DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
+import { TagType } from "@app/types/tag";
 
 export type DeckData = {
   id: string;
@@ -13,6 +14,8 @@ export type DeckData = {
   private_flg: boolean;
   latest_deck_code: DeckCodeType;
   pokemon_sprites: DeckPokemonSpriteType[];
+  // 付与されたタグ。未設定のデッキでは空配列。
+  tags: TagType[];
 };
 
 export type DeckType = {
@@ -33,12 +36,14 @@ export type DeckCreateRequestType = {
   deck_code: string;
   private_deck_code_flg: boolean;
   pokemon_sprites: DeckPokemonSpriteType[];
+  tag_ids: string[];
 };
 
 export type DeckUpdateRequestType = {
   name: string;
   private_flg: boolean;
   pokemon_sprites: DeckPokemonSpriteType[];
+  tag_ids: string[];
 };
 
 export type DeckGetAllType = DeckData[];

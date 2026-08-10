@@ -14,6 +14,14 @@ import PokemonSpriteModal from "@app/components/organisms/Match/Modal/PokemonSpr
 import { PokemonSpriteType, DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
+import TagSelector from "@app/components/organisms/Tag/TagSelector";
+
+// 2つの文字列配列が「順序も含めて」同じかを判定する。タグ付与の変更検知に使う。
+// タグは付与順(position)で表示するため、集合が同じでも並べ替えは変更として扱う。
+function sameStringList(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false;
+  return a.every((v, i) => v === b[i]);
+}
 
 import {
   DeckUpdateRequestType,
@@ -56,10 +64,14 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
   );
   */
   const [isDisabled, setIsDisabled] = useState<boolean>(false);
+  // タグ管理中は「閉じる」「保存」やモーダルのクローズを無効化する
+  const [isTagManaging, setIsTagManaging] = useState<boolean>(false);
 
   const [sprite1, setSprite1] = useState<PokemonSpriteType | null>(null);
   const [sprite2, setSprite2] = useState<PokemonSpriteType | null>(null);
   const [activeSpriteSlot, setActiveSpriteSlot] = useState<1 | 2>(1);
+
+  const [tagIds, setTagIds] = useState<string[]>([]);
 
   const {
     isOpen: isSpriteOpen,
@@ -99,6 +111,12 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
     }
   }, [deck]);
 
+  // モーダルを開くたびに、デッキの現在の付与タグでタグ選択状態を同期する。
+  useEffect(() => {
+    if (!isOpen || !deck) return;
+    setTagIds((deck.tags ?? []).map((tag) => tag.id));
+  }, [isOpen, deck]);
+
   if (!deck) {
     return;
   }
@@ -107,7 +125,11 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
     newDeckName !== deck.name ||
     (sprite1?.id ?? null) !==
       (getDeckSpriteBySlot(deck.pokemon_sprites, 1)?.id ?? null) ||
-    (sprite2?.id ?? null) !== (getDeckSpriteBySlot(deck.pokemon_sprites, 2)?.id ?? null);
+    (sprite2?.id ?? null) !== (getDeckSpriteBySlot(deck.pokemon_sprites, 2)?.id ?? null) ||
+    !sameStringList(
+      tagIds,
+      (deck.tags ?? []).map((tag) => tag.id),
+    );
 
   const newDeckNameLength = countTextLength(newDeckName.trim());
   // 上限を超えたままではAPIが400を返すため、更新ボタンを押せないようにする
@@ -125,6 +147,7 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
         (s) => s.id === getDeckSpriteBySlot(deck.pokemon_sprites, 2)?.id,
       ) ?? null,
     );
+    setTagIds((deck.tags ?? []).map((tag) => tag.id));
   };
 
   const updateDeck = async (onClose: () => void) => {
@@ -151,6 +174,7 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
       private_flg: true,
       //private_flg: isSelectedPrivate,
       pokemon_sprites: pokemon_sprites,
+      tag_ids: tagIds,
     };
 
     setIsDisabled(true);
@@ -232,15 +256,17 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
         scrollBehavior="inside"
         isOpen={isOpen}
         isDismissable={false}
-        // 処理中(isDisabled)はESC・閉じるボタン・onOpenChange経由のクローズを無効化する
-        isKeyboardDismissDisabled={isDisabled}
-        hideCloseButton={isDisabled}
+        // 処理中(isDisabled)・タグ管理中(isTagManaging)はESC・閉じるボタン・
+        // onOpenChange経由のクローズを無効化する
+        isKeyboardDismissDisabled={isDisabled || isTagManaging}
+        hideCloseButton={isDisabled || isTagManaging}
         onOpenChange={() => {
-          if (isDisabled) return;
+          if (isDisabled || isTagManaging) return;
           onOpenChange();
         }}
         onClose={() => {
           setIsDisabled(false);
+          setIsTagManaging(false);
           resetToDefaults();
         }}
         classNames={{
@@ -305,12 +331,21 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
                   デッキ情報を非公開にする
                 </Checkbox>
                 */}
+
+                {/* タグ選択はモーダルの一番下に置く */}
+                {!isDisabled && (
+                  <TagSelector
+                    selectedTagIds={tagIds}
+                    onChange={setTagIds}
+                    onManageModeChange={setIsTagManaging}
+                  />
+                )}
               </ModalBody>
               <ModalFooter>
                 <Button
                   color="default"
                   variant="solid"
-                  isDisabled={isDisabled}
+                  isDisabled={isDisabled || isTagManaging}
                   onPress={() => {
                     resetToDefaults();
                     onClose();
@@ -322,7 +357,12 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
                 <Button
                   color="primary"
                   variant="solid"
-                  isDisabled={!hasChanges || isNewDeckNameTooLong || isDisabled}
+                  isDisabled={
+                    !hasChanges ||
+                    isNewDeckNameTooLong ||
+                    isDisabled ||
+                    isTagManaging
+                  }
                   onPress={() => {
                     updateDeck(onClose);
                   }}

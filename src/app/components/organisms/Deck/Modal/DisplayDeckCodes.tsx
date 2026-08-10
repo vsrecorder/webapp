@@ -1,6 +1,6 @@
 import { SetStateAction, Dispatch } from "react";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   Modal,
@@ -38,6 +38,8 @@ import DeckCardDiff from "@app/components/organisms/Deck/DeckCardDiff";
 import CardListAccordion from "@app/components/organisms/Deck/CardListAccordion";
 import FetchError from "@app/components/molecules/FetchError";
 import ZoomableDeckImage from "@app/components/atoms/ZoomableDeckImage";
+import TagChips from "@app/components/molecules/TagChips";
+import TagSelector from "@app/components/organisms/Tag/TagSelector";
 
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import {
@@ -122,12 +124,20 @@ export default function DisplayDeckCodesModal({
   const [makeLatestDeckCode, setMakeLatestDeckCode] = useState<DeckCodeType | null>(null);
   const [isMakingLatest, setIsMakingLatest] = useState<boolean>(false);
 
-  // メモ編集用。編集対象のバージョンと入力中のメモ本文を保持する
+  // バージョン編集用。編集対象のバージョンと、入力中のメモ本文・付与タグを保持する
   const [editMemoDeckCode, setEditMemoDeckCode] = useState<DeckCodeType | null>(null);
   const [memoInput, setMemoInput] = useState<string>("");
+  const [editTagIds, setEditTagIds] = useState<string[]>([]);
   const [isMemoSaving, setIsMemoSaving] = useState<boolean>(false);
+  // タグ管理中は「閉じる」「保存」やモーダルのクローズを無効化する
+  const [isTagManaging, setIsTagManaging] = useState<boolean>(false);
 
   const attachHeader = useModalDragToClose(onClose);
+
+  // 一覧のスクロールコンテナ（ModalBody）。新バージョン追加時に最上部へ戻すために使う
+  const bodyRef = useRef<HTMLDivElement | null>(null);
+  // 一覧の先頭に新バージョンを差し込んだことを次の描画へ伝えるフラグ
+  const shouldScrollToTopRef = useRef<boolean>(false);
 
   // バージョン一覧だけを取得（失敗時のリロードから再利用）
   const loadDeckCodes = useCallback(async () => {
@@ -158,16 +168,28 @@ export default function DisplayDeckCodesModal({
   useEffect(() => {
     if (!isOpen || !deckcode?.id) return;
 
-    setDisplayDeckCodes((prev) => {
-      // まだ未取得（0件）の場合はそのまま先頭に
-      if (!prev) return [deckcode];
+    // すでに一覧に存在する場合は何もしない（重複防止。削除で表示中のバージョンが
+    // 繰り上がったときに、下のスクロール処理を誤って走らせないためでもある）
+    if (displayDeckCodes?.some((dc) => dc.id === deckcode.id)) return;
 
-      // すでに一覧に存在する場合は何もしない（重複防止）
-      if (prev.some((dc) => dc.id === deckcode.id)) return prev;
+    // まだ未取得（0件）の場合はそのまま先頭に
+    setDisplayDeckCodes((prev) => (prev ? [deckcode, ...prev] : [deckcode]));
 
-      return [deckcode, ...prev];
-    });
-  }, [isOpen, deckcode]);
+    // 追加した新バージョンは一覧の先頭に入るため、描画後に最上部へ戻す。
+    // 「このバージョンから新しく作成」は一覧の途中から呼ばれるので、
+    // そのままだと作成した最新バージョンが画面外に残ってしまう
+    shouldScrollToTopRef.current = true;
+  }, [isOpen, deckcode, displayDeckCodes]);
+
+  // 先頭に差し込んだ新バージョンが描画されてから最上部へスクロールする。
+  // 先頭への挿入直後はスクロールアンカリングで位置が押し下げられるため、
+  // 描画が反映されたこのタイミングで戻す
+  useEffect(() => {
+    if (!shouldScrollToTopRef.current) return;
+    shouldScrollToTopRef.current = false;
+
+    bodyRef.current?.scrollTo({ top: 0 });
+  }, [displayDeckCodes]);
 
   if (!deck) {
     return;
@@ -269,10 +291,11 @@ export default function DisplayDeckCodesModal({
     }
   };
 
-  // メモ編集モーダルを開く。対象バージョンと現在のメモを入力欄へ反映する
+  // バージョン編集モーダルを開く。対象バージョンの現在のメモ・付与タグを入力欄へ反映する
   const openEditMemo = (target: DeckCodeType) => {
     setEditMemoDeckCode(target);
     setMemoInput(target.memo ?? "");
+    setEditTagIds((target.tags ?? []).map((tag) => tag.id));
     onOpenForEditMemoModal();
   };
 
@@ -282,7 +305,7 @@ export default function DisplayDeckCodesModal({
     setIsMemoSaving(true);
 
     const toastId = addToast({
-      title: "メモを保存中",
+      title: "保存中",
       description: "しばらくお待ちください",
       color: "default",
       promise: new Promise(() => {}),
@@ -292,6 +315,8 @@ export default function DisplayDeckCodesModal({
       const data: DeckCodeUpdateRequestType = {
         private_code_flg: editMemoDeckCode.private_code_flg,
         memo: memoInput,
+        // メモと付与タグをまとめて更新する。
+        tag_ids: editTagIds,
       };
 
       const res = await fetch(`/api/deckcodes/${editMemoDeckCode.id}`, {
@@ -314,21 +339,27 @@ export default function DisplayDeckCodesModal({
       }
 
       addToast({
-        title: "メモを保存しました",
+        title: "保存しました",
         color: "success",
         timeout: 3000,
       });
 
-      // 一覧の該当バージョンを更新
+      // 一覧の該当バージョンのメモ・タグを更新
       setDisplayDeckCodes((prev) =>
         prev
-          ? prev.map((dc) => (dc.id === updated.id ? { ...dc, memo: updated.memo } : dc))
+          ? prev.map((dc) =>
+              dc.id === updated.id
+                ? { ...dc, memo: updated.memo, tags: updated.tags }
+                : dc,
+            )
           : prev,
       );
 
       // 表示中のデッキコードが編集対象なら同期する
       setDeckCode((prev) =>
-        prev && prev.id === updated.id ? { ...prev, memo: updated.memo } : prev,
+        prev && prev.id === updated.id
+          ? { ...prev, memo: updated.memo, tags: updated.tags }
+          : prev,
       );
 
       onClose();
@@ -343,10 +374,10 @@ export default function DisplayDeckCodesModal({
       }
 
       addToast({
-        title: "メモの保存に失敗",
+        title: "保存に失敗",
         description: (
           <>
-            メモの保存に失敗しました
+            保存に失敗しました
             <br />
             {errorMessage}
           </>
@@ -385,6 +416,8 @@ export default function DisplayDeckCodesModal({
         code: makeLatestDeckCode.code,
         private_code_flg: makeLatestDeckCode.private_code_flg,
         memo: makeLatestDeckCode.memo,
+        // 最新化は既存バージョンを複製して作り直すため、そのバージョンのタグも引き継ぐ。
+        tag_ids: (makeLatestDeckCode.tags ?? []).map((tag) => tag.id),
       };
 
       const res = await fetch(`/api/deckcodes`, {
@@ -527,18 +560,21 @@ export default function DisplayDeckCodesModal({
         isOpen={isOpenForEditMemoModal}
         size={"sm"}
         placement="center"
-        // 保存中(isMemoSaving)はESC・onOpenChange経由のクローズを無効化する
-        isKeyboardDismissDisabled={isMemoSaving}
-        hideCloseButton={isMemoSaving}
+        // 保存中(isMemoSaving)・タグ管理中(isTagManaging)はESC・onOpenChange経由の
+        // クローズを無効化する
+        isKeyboardDismissDisabled={isMemoSaving || isTagManaging}
+        hideCloseButton={isMemoSaving || isTagManaging}
         isDismissable={false}
         onOpenChange={() => {
-          if (isMemoSaving) return;
+          if (isMemoSaving || isTagManaging) return;
           onOpenChangeForEditMemoModal();
         }}
         onClose={() => {
           setIsMemoSaving(false);
+          setIsTagManaging(false);
           setEditMemoDeckCode(null);
           setMemoInput("");
+          setEditTagIds([]);
         }}
         classNames={{
           base: "sm:max-w-full",
@@ -548,9 +584,9 @@ export default function DisplayDeckCodesModal({
           {(onClose) => (
             <>
               <ModalHeader className="px-3 flex flex-col gap-1">
-                {editMemoDeckCode?.memo ? "メモを編集" : "メモを追加"}
+                メモ・タグを編集
               </ModalHeader>
-              <ModalBody className="px-3 py-1">
+              <ModalBody className="px-3 py-1 gap-3">
                 <Textarea
                   size="md"
                   isDisabled={isMemoSaving}
@@ -560,12 +596,21 @@ export default function DisplayDeckCodesModal({
                   onChange={(e) => setMemoInput(e.target.value)}
                   onFocus={(e) => scrollIntoViewAfterKeyboard(e.currentTarget)}
                 />
+
+                {!isMemoSaving && (
+                  <TagSelector
+                    selectedTagIds={editTagIds}
+                    onChange={setEditTagIds}
+                    label="このバージョンのタグ"
+                    onManageModeChange={setIsTagManaging}
+                  />
+                )}
               </ModalBody>
               <ModalFooter>
                 <Button
                   color="default"
                   variant="solid"
-                  isDisabled={isMemoSaving}
+                  isDisabled={isMemoSaving || isTagManaging}
                   onPress={() => {
                     onClose();
                   }}
@@ -576,7 +621,7 @@ export default function DisplayDeckCodesModal({
                 <Button
                   color="primary"
                   variant="solid"
-                  isDisabled={isMemoSaving}
+                  isDisabled={isMemoSaving || isTagManaging}
                   onPress={() => {
                     updateMemo(onClose);
                   }}
@@ -704,7 +749,10 @@ export default function DisplayDeckCodesModal({
               </ModalHeader>
               {/* px-1: バージョンのカードを広く見せつつ、画面端に貼り付かない余白を残す。
                   ドットのリング(4px)がちょうど画面端に収まる幅でもある */}
-              <ModalBody className="px-1 py-3 flex flex-col overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none">
+              <ModalBody
+                ref={bodyRef}
+                className="px-1 py-3 flex flex-col overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none"
+              >
                 <>
                   {loading ? (
                     <Spinner size="lg" className="pt-32" />
@@ -908,6 +956,8 @@ export default function DisplayDeckCodesModal({
 
                                         {(index !== displayDeckCodes.length - 1 ||
                                           deckcode.memo ||
+                                          (deckcode.tags &&
+                                            deckcode.tags.length > 0) ||
                                           !isArchived) && (
                                           <div className="flex flex-col gap-2 pt-2 border-t border-default-200">
                                             {index !== displayDeckCodes.length - 1 && (
@@ -955,6 +1005,36 @@ export default function DisplayDeckCodesModal({
                                                 </button>
                                               )
                                             )}
+
+                                            {/* タグ。各バージョンごとに表示し、編集で
+                                                メモ・タグ編集モーダルを開く */}
+                                            <div className="flex flex-col gap-1">
+                                              <div className="flex items-center justify-between gap-2">
+                                                <div className="font-bold text-tiny">
+                                                  タグ
+                                                </div>
+                                                {!isArchived && (
+                                                  <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                      openEditMemo(deckcode)
+                                                    }
+                                                    className="flex items-center gap-1 text-tiny text-default-500 active:opacity-70"
+                                                  >
+                                                    <LuSquarePen className="text-xs" />
+                                                    編集
+                                                  </button>
+                                                )}
+                                              </div>
+                                              {deckcode.tags &&
+                                              deckcode.tags.length > 0 ? (
+                                                <TagChips tags={deckcode.tags} />
+                                              ) : (
+                                                <div className="text-tiny text-default-400">
+                                                  タグなし
+                                                </div>
+                                              )}
+                                            </div>
                                           </div>
                                         )}
 

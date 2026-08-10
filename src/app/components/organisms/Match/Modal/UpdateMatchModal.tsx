@@ -33,6 +33,7 @@ import ChoiceButtonGroup from "@app/components/molecules/ChoiceButtonGroup";
 import PokemonSpriteSelectButton from "@app/components/molecules/PokemonSpriteSelectButton";
 import PrizeCardsStepper from "@app/components/molecules/PrizeCardsStepper";
 import PokemonSpriteModal from "@app/components/organisms/Match/Modal/PokemonSpriteModal";
+import TagSelectorAccordion from "@app/components/organisms/Tag/TagSelectorAccordion";
 import DeleteMatchModal from "@app/components/organisms/Match/Modal/DeleteMatchModal";
 import BO3GamesInput from "@app/components/organisms/Match/BO3GamesInput";
 
@@ -171,6 +172,9 @@ export default function UpdateMatchModal({
   const [opponentsPrizeCards, setOpponentsPrizeCards] = useState(0);
 
   const [memo, setMemo] = useState("");
+  const [tagIds, setTagIds] = useState<string[]>([]);
+  // タグ管理中は「更新」やモーダルのクローズを無効化する
+  const [isTagManaging, setIsTagManaging] = useState<boolean>(false);
 
   const [isValidedFlg, setIsValidedFlg] = useState(true);
   const [isDisabled, setIsDisabled] = useState(false);
@@ -284,6 +288,16 @@ export default function UpdateMatchModal({
     if (isDefaultDefeat !== (match.default_defeat_flg ?? false)) return true;
     if (memo !== (match.memo ?? "")) return true;
 
+    // タグ付与の変更。表示は付与順(position)なので、集合だけでなく並び順の入れ替えも
+    // 変更として扱う(同じ集合でも順序が変われば更新できるようにする)。
+    const currentTagIds = (match.tags ?? []).map((tag) => tag.id);
+    if (
+      tagIds.length !== currentTagIds.length ||
+      tagIds.some((id, index) => id !== currentTagIds[index])
+    ) {
+      return true;
+    }
+
     // BO3 / チーム戦の切り替え、またはチームの勝敗が変更された場合
     if ((selectedTab === "bo3") !== (match.bo3_flg ?? false)) return true;
     if ((selectedTab === "team") !== (match.group_match_flg ?? false)) return true;
@@ -348,6 +362,7 @@ export default function UpdateMatchModal({
     bo3Games,
     pokemonSprite1,
     pokemonSprite2,
+    tagIds,
   ]);
 
   // 表示に使う候補（ユーザ履歴優先、なければダミー）
@@ -383,7 +398,9 @@ export default function UpdateMatchModal({
 
   // 更新APIの実行中にドラッグで閉じられると、結果(成功/失敗トースト)を確認できないまま
   // フォームが消えてしまうため、実行中はドラッグを受け付けない
-  const attachHeader = useModalDragToClose(onClose, { disabled: isSubmitting });
+  const attachHeader = useModalDragToClose(onClose, {
+    disabled: isSubmitting || isTagManaging,
+  });
 
 
   useEffect(() => {
@@ -411,6 +428,7 @@ export default function UpdateMatchModal({
     setOpponentsPrizeCards(match.games?.[0]?.opponents_prize_cards ?? 0);
 
     setMemo(match.memo ?? "");
+    setTagIds((match.tags ?? []).map((tag) => tag.id));
 
     // position でスロットを固定して初期値を復元する(空スロットは化けない)
     const initialSprite1 = getSpriteBySlot(match.pokemon_sprites, 1);
@@ -608,6 +626,7 @@ export default function UpdateMatchModal({
       memo: memo,
       games: games,
       pokemon_sprites: pokemon_sprites,
+      tag_ids: tagIds,
     };
 
     const toastId = addToast({
@@ -993,7 +1012,7 @@ export default function UpdateMatchModal({
         isDismissable={false}
         // 更新APIの実行中はESCキーでも閉じられないようにする
         // (isDisabled は不戦勝/不戦敗の選択中を表すフラグなので、ここでは使わない)
-        isKeyboardDismissDisabled={isSubmitting}
+        isKeyboardDismissDisabled={isSubmitting || isTagManaging}
         isOpen={isOpen}
         onOpenChange={onOpenChange}
         onClose={() => {
@@ -1110,6 +1129,18 @@ export default function UpdateMatchModal({
                     {renderMatchForm("team")}
                   </Tab>
                 </Tabs>
+
+                {/* タグ付与は全タブ共通。たたんだアコーディオンで本文の一番下に置く。
+                    下端がフッターに詰まらないよう余白を確保する。 */}
+                {!isSubmitting && (
+                  <div className="px-2 pt-1 pb-5">
+                    <TagSelectorAccordion
+                      selectedTagIds={tagIds}
+                      onChange={setTagIds}
+                      onManageModeChange={setIsTagManaging}
+                    />
+                  </div>
+                )}
               </ModalBody>
               <ModalFooter className="pt-2 pb-2 flex items-center">
                 <div className="w-full">
@@ -1147,6 +1178,7 @@ export default function UpdateMatchModal({
                   // 不戦勝/不戦敗(isDisabled)の場合は couldUpdateFlg が効かないため、これが唯一のガードになる
                   isDisabled={
                     isSubmitting ||
+                    isTagManaging ||
                     !isValidedFlg ||
                     isOpponentsDeckInfoTooLong ||
                     (!isDisabled && !couldUpdateFlg) ||

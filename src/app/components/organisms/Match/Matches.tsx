@@ -577,8 +577,10 @@ export default function Matches({
                                                       {match.opponents_deck_info}
                                                     </div>
 
-                                                    {/* 種別・先後・サイド数を chip で表示（種別を先頭に配置） */}
-                                                    <div className="mt-1 flex flex-wrap items-center gap-1">
+                                                    {/* 種別・先後・サイド数・タグを chip で表示。
+                                                        タグが多くても行が縦に伸びて情報が見切れないよう、
+                                                        折り返さず1行で横スクロールさせる([&>*]:shrink-0 で各chipを潰さない)。 */}
+                                                    <div className="mt-1 flex flex-nowrap items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0">
                                                       {match.group_match_flg && (
                                                         <Chip
                                                           size="sm"
@@ -668,6 +670,32 @@ export default function Matches({
                                                           )}
                                                         </>
                                                       )}
+                                                      {/* 付与タグ。先攻/後攻・サイド数などの後ろに、
+                                                          同じ横スクロール行で続ける。表示は付与順(position 昇順)。 */}
+                                                      {match.tags?.map((tag) => (
+                                                        <Chip
+                                                          key={tag.id}
+                                                          size="sm"
+                                                          variant="flat"
+                                                          radius="sm"
+                                                          style={
+                                                            tag.color
+                                                              ? {
+                                                                  backgroundColor:
+                                                                    tag.color,
+                                                                }
+                                                              : undefined
+                                                          }
+                                                          classNames={{
+                                                            base: "h-4 px-1",
+                                                            content: tag.color
+                                                              ? "px-1 text-[8px] font-bold text-white"
+                                                              : "px-1 text-[8px] font-bold",
+                                                          }}
+                                                        >
+                                                          {tag.name}
+                                                        </Chip>
+                                                      ))}
                                                     </div>
                                                   </div>
                                                 </div>

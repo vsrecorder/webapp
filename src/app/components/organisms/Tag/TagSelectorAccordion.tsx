@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, type Key } from "react";
+import { useEffect, useRef, type Key } from "react";
 
 import { Accordion, AccordionItem } from "@heroui/react";
 import { LuTag } from "react-icons/lu";
@@ -13,6 +13,10 @@ type Props = {
   title?: string;
   onManageModeChange?: (managing: boolean) => void;
 };
+
+// 展開アニメーション(framer-motion)の所要時間ぶん、下端を追いかけ続ける時間。
+// アニメーションが少し長引いてもスクロールが取り残されないよう、やや長めに取る。
+const FOLLOW_SCROLL_DURATION_MS = 420;
 
 // タグ付与を、たたんだ状態のアコーディオンに入れて置くためのラッパ。
 // デッキ登録・新バージョン作成のように、普段はタグ欄を隠しておきたい場所で使う。
@@ -27,17 +31,39 @@ export default function TagSelectorAccordion({
     selectedTagIds.length > 0 ? `${title}（${selectedTagIds.length}）` : title;
 
   const rootRef = useRef<HTMLDivElement>(null);
+  const followRafRef = useRef<number | null>(null);
+
+  const stopFollowScroll = () => {
+    if (followRafRef.current !== null) {
+      cancelAnimationFrame(followRafRef.current);
+      followRafRef.current = null;
+    }
+  };
+
+  // 追従が中途半端に残らないよう、アンマウント時にループを止める。
+  useEffect(() => stopFollowScroll, []);
 
   // アコーディオンを開いたら、展開後の全体が見えるようスクロールコンテナ側を動かす。
-  // 高さの展開アニメーション(framer-motion)が終わってからでないと最終位置が出ないため、
-  // アニメーション時間ぶん待ってから scrollIntoView する。
+  // 展開が終わってから一度だけ動かすと「開いてから間があいてスクロールする」ように見えるので、
+  // 開いた瞬間からアニメーション中の高さ変化に毎フレーム追従させ、開ききった時点で
+  // 全体が見えている状態にする。高さが滑らかに伸びるぶん、behavior は auto でも滑らかに見える。
   const handleSelectionChange = (keys: "all" | Set<Key>) => {
+    stopFollowScroll();
+
     const opened = keys === "all" || keys.size > 0;
     if (!opened) return;
 
-    window.setTimeout(() => {
-      rootRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-    }, 320);
+    const startedAt = performance.now();
+    const step = () => {
+      rootRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
+
+      if (performance.now() - startedAt < FOLLOW_SCROLL_DURATION_MS) {
+        followRafRef.current = requestAnimationFrame(step);
+      } else {
+        followRafRef.current = null;
+      }
+    };
+    followRafRef.current = requestAnimationFrame(step);
   };
 
   return (

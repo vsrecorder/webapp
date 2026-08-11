@@ -3,6 +3,36 @@
 import { useLayoutEffect, useRef, useState } from "react";
 
 /*
+ * 要素の「ページ先頭からの縦位置」。
+ *
+ * `getBoundingClientRect().top + window.scrollY` は使えない。モーダル表示中は
+ * 背面のアプリルート(body > [data-overlay-container])が position:fixed かつ
+ * top:-スクロール量 で固定される(useModalBackgroundScrollLock)。このとき文書の
+ * スクロール範囲はビューポート寸法まで縮んで window.scrollY が 0 に折りたたまれる
+ * 一方、要素自体はスクロール量ぶん上へずれているため、両者を足しても実際の位置に
+ * ならない(スクロール量ぶん小さく出る)。
+ *
+ * offsetTop の積み上げは固定された側の座標系の中で完結するので、背面固定中でも
+ * 通常時と同じ値が出る。fixed な祖先はページの流れから外れている(その top は
+ * ページ内の位置ではなく固定位置)ため、そこで積み上げを打ち切る。
+ */
+function pageTop(el: HTMLElement): number {
+  let top = 0;
+  let node: HTMLElement | null = el;
+
+  while (node) {
+    top += node.offsetTop;
+
+    const parent = node.offsetParent as HTMLElement | null;
+    if (!parent || getComputedStyle(parent).position === "fixed") break;
+
+    node = parent;
+  }
+
+  return top;
+}
+
+/*
  * 画面上部に固定表示するバーの「横位置合わせ」。
  *
  * position:sticky はスクロール量に応じて毎フレーム位置が決まるため、iOS のように
@@ -44,12 +74,14 @@ function useFixedBarAlignment() {
        * バーとカードの間隔がスクロール開始の瞬間に詰まって見える。
        * ずれ量は余白の合計（ヘッダー・タブぶん）から決まるので、
        * 数値を書き写さずに実測の差から求める。
+       *
+       * 空き枠の位置はスクロール量に依存しない pageTop で測る。詳細はその定義を参照。
        */
       slot.style.marginTop = "0px";
-      const slotDocumentTop = slot.getBoundingClientRect().top + window.scrollY;
-      // fixed なのでバーの top はビューポート基準＝スクロール量0のときの文書上の位置
+      const slotPageTop = pageTop(slot);
+      // fixed なのでバーの top はビューポート基準＝ページ先頭から見た貼り付き位置
       const barPinnedTop = bar.getBoundingClientRect().top;
-      slot.style.marginTop = `${barPinnedTop - slotDocumentTop}px`;
+      slot.style.marginTop = `${barPinnedTop - slotPageTop}px`;
 
       // 高さは横幅を当てたあとに測る(幅が決まらないと折り返しで変わるため)
       const height = bar.offsetHeight;

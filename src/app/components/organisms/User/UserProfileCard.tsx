@@ -70,7 +70,24 @@ function generateYearMonthOptions(createdAt?: Date) {
   return options;
 }
 
+// 1フレームとして認める最大間隔(ms)。これを超えた分は「描けなかった時間」とみなし、
+// 進捗に加算しない。60fpsで16.7ms、30fpsで33.3msなので、実際にコマ落ちしている場合だけ
+// 引っかかる値にしている。
+const MAX_FRAME_MS = 50;
+
 // target が変わったとき from → target へアニメーション
+//
+// 進捗は「開始時刻からの実時間」ではなく、フレーム間隔を積み上げた時間で決めている。
+// ホームは他のパネル(チャートの遅延読み込み、各パネルの取得結果の反映)が同時に立ち上がるため、
+// カウントアップの最中にメインスレッドが数百ms詰まってフレームが飛ぶ。実時間で進捗を出すと
+// 詰まっている間は描画が止まったまま時間だけ進み、空いた瞬間に一気に跳ぶ
+// (「一度止まってからまたカウントされる」見え方になる)。上限を超えた間隔を捨てることで、
+// 詰まりを跳ねではなく一時停止に変え、止まった続きから滑らかに再開させる。
+//
+// 起点に performance.now() ではなく最初のフレームのタイムスタンプを使うのも同じ理由。
+// requestAnimationFrame に渡る時刻はそのフレームの開始時刻なので、effect の実行時刻より
+// 前になることがある。実時間で計算すると初回フレームの進捗が負になり、一瞬マイナスの数字
+// (例: -3.3%)が表示される。
 function useCountUp(target: number, duration = 700): number {
   const [display, setDisplay] = useState(0);
   const prevRef = useRef(0);
@@ -80,18 +97,26 @@ function useCountUp(target: number, duration = 700): number {
     prevRef.current = target;
     if (target === from) return;
 
-    const startTime = performance.now();
-    let raf: number;
+    let elapsed = 0;
+    let lastTime: number | null = null;
+    let raf = 0;
 
     function step(now: number) {
-      const t = Math.min((now - startTime) / duration, 1);
-      const eased = 1 - Math.pow(1 - t, 3); // easeOutCubic
-      setDisplay(from + (target - from) * eased);
-      if (t < 1) {
+      // 最初のフレームは基準時刻を取るだけ(進捗0なので表示は from のまま)
+      if (lastTime === null) {
+        lastTime = now;
         raf = requestAnimationFrame(step);
-      } else {
-        setDisplay(target);
+        return;
       }
+
+      elapsed += Math.min(now - lastTime, MAX_FRAME_MS);
+      lastTime = now;
+
+      const t = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - t, 3); // easeOutCubic
+      setDisplay(t < 1 ? from + (target - from) * eased : target);
+
+      if (t < 1) raf = requestAnimationFrame(step);
     }
 
     raf = requestAnimationFrame(step);

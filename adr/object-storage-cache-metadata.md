@@ -2,7 +2,8 @@
 
 ## ステータス
 
-採用 (Accepted) — 2026-08-11 / 既存 114,453 件への適用と両サービスの修正が完了
+採用 (Accepted) — 2026-08-11 / 既存 114,453 件への適用が完了
+アップロード経路の洗い出しと import-cityleague-result-{job,bat} の修正を追記 — 2026-08-12
 
 ## Context
 
@@ -70,13 +71,24 @@ CDN が返す : public, max-age=31536000, immutable, s-maxage=604800
 
 ### D3. アップロード時に必ずメタデータを指定する
 
-| サービス | 箇所 | 対象 |
+アップロード経路は**4リポジトリ・8箇所**ある。デッキ画像を書くのは core-apiserver だけではない点に注意(シティリーグ結果の取り込みでも同じキーへ書く)。
+
+| リポジトリ | 箇所 | 対象 |
 | --- | --- | --- |
 | webapp | [route.ts](src/app/api/users/%5Bid%5D/images/route.ts) | プロフィール画像 |
 | webapp | [ogStorage.ts](src/app/utils/ogStorage.ts) | OGP画像 |
 | core-apiserver | `internal/infrastructure/deck_asset.go` | デッキ画像 / デッキ結果HTML |
+| import-cityleague-result-job | `cmd/dequeue/main.go` | デッキ画像 / デッキ結果HTML |
+| import-cityleague-result-bat | `cmd/main.go` | デッキ画像 / デッキ結果HTML |
+| import-cityleague-result-bat | `cmd/add/main.go` | デッキ結果HTML |
 
 core-apiserver の `putObject` は**デッキ画像(JPEG)とデッキ結果HTMLの2用途で共用**されているため、固定値ではなく引数で受ける。定数 `deckImageContentType` / `deckImageCacheControl` / `deckResultHTMLContentType` / `deckResultHTMLCacheControl` を用意している。
+
+job と bat は `internal/objectstorage/metadata.go` に定数を置き、そこから参照する。bat は `cmd/main.go` と `cmd/add/main.go` の2つの main パッケージで結果HTML用の定数を共有するため、パッケージに切り出す必要があった。job は1ファイルで完結するが構造を揃えている。
+
+**定数は3リポジトリに同じ値が重複している**(別リポジトリなので共有できない)。方針を変えるときは3つとも直すこと。各パッケージのコメントに相互参照を書いてある。
+
+> **補足:** bat の module 名は `import-cityleague-results-bat`(results と複数形)でディレクトリ名・GitHubのリポジトリ名と食い違っていたため、2026-08-12 に `import-cityleague-result-bat` へ揃えた。
 
 ### D4. 既存オブジェクトは CopyObject でメタデータのみ差し替える
 
@@ -179,6 +191,19 @@ curl -sI "https://xx8nnpgt.user.webaccel.jp/images/decks/<デッキコード>.jp
 ```
 
 中央値 227ms → 4ms。再訪問時のネットワーク往復が消えた。LP の CDN 画像 8 枚も描画失敗 0、4xx/5xx 0 件。
+
+### アップロード経路の横断確認 (2026-08-12)
+
+一括適用の直後は core-apiserver しか直していなかったが、**シティリーグ結果の取り込み 2 リポジトリが同じ `images/decks/` へ書いていた**ため、そのままでは新規分が古いメタデータで増え続ける状態だった。
+
+全リポジトリを走査して漏れを潰した。`node_modules` と `vendor` を除いた実コードで確認する:
+
+```fish
+grep -rn --include="*.go" --include="*.ts" "PutObjectInput{\|new PutObjectCommand(" . \
+  | grep -vE "node_modules|/vendor/|dist-types"
+```
+
+2026-08-12 時点で 8 箇所すべてに ContentType / CacheControl / `ACL: public-read` が設定されていることを確認済み。**アップロード処理を追加するときは、この ADR の D3 の表も更新すること。**
 
 ## 付録: 発端となったLCP警告について
 

@@ -98,6 +98,14 @@ export default function CreateDeckCodeModal({
     };
   }, [newdeckcode]);
 
+  // 新しいバージョンは、元にした(最新)バージョンのタグを引き継いで初期選択する。
+  // モーダルを開くたびに、継承元 deckcode の付与タグでタグ選択状態を初期化する
+  // (継承元が無い＝最初のバージョン作成時は空のまま)。
+  useEffect(() => {
+    if (!isOpen) return;
+    setTagIds((deckcode?.tags ?? []).map((tag) => tag.id));
+  }, [isOpen, deckcode]);
+
   if (!deck) {
     return;
   }

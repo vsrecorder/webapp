@@ -39,6 +39,40 @@ const CATEGORY_RULES: { category: string; patterns: RegExp[] }[] = [
 // サイトを開いたこと自体を表すカテゴリ。全ページで必ず送る。
 const BASE_CATEGORY = "visit";
 
+// 端末・起動方法から決まるカテゴリ。ルート判定ではないため CATEGORY_RULES とは
+// 別の分岐で持つ（USER_DAILY_ACTIVITIES_PLAN.md §3.3 の注記）。
+const CATEGORY_STANDALONE = "standalone";
+const CATEGORY_PUSH_CAPABLE = "push_capable";
+
+// その日の「起動方法」と「Web Pushを受けられる環境か」を返す。
+// Web Push（B-1）に投資してよいかは iOS の到達率で決まるが、iOS はホーム画面に
+// 追加したPWAでしか PushManager が生えない。そこで
+//   push_capable         = 到達率の上限（＝いま通知を送れる人の規模）
+//   standalone           = PWA起動の規模（＝インストール訴求の効き具合）
+// の2つを測り、差分を「インストールさえされれば届く層」として読む
+// （WAU_RECOVERY_EXECUTION_PLAN.md Step 0-C）。
+function deviceCategories(): string[] {
+  const categories: string[] = [];
+
+  // iOS Safari のホーム画面追加だけは display-mode メディアクエリに乗らない時期が
+  // あるため、非標準の navigator.standalone も併せて見る。
+  const standalone =
+    window.matchMedia?.("(display-mode: standalone)").matches === true ||
+    (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
+
+  if (standalone) {
+    categories.push(CATEGORY_STANDALONE);
+  }
+
+  // 許諾の可否ではなくAPIの有無を見る（許諾はUIを出してからでないと分からず、
+  // 出す前に規模を知りたいのがこの計測の目的のため）。
+  if ("serviceWorker" in navigator && "PushManager" in window && "Notification" in window) {
+    categories.push(CATEGORY_PUSH_CAPABLE);
+  }
+
+  return categories;
+}
+
 const KEY_PREFIX = "vsrec:daily-activity:";
 
 // JSTの当日を "YYYY-MM-DD" で得る。端末のタイムゾーンに依存させない
@@ -93,7 +127,7 @@ export default function DailyActivityBeacon() {
       rule.patterns.some((pattern) => pattern.test(pathname)),
     ).map((rule) => rule.category);
 
-    void sendPending([BASE_CATEGORY, ...matched]);
+    void sendPending([BASE_CATEGORY, ...matched, ...deviceCategories()]);
   }, [status, pathname]);
 
   return null;

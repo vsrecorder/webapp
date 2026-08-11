@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Avatar, Card, CardBody, useDisclosure } from "@heroui/react";
 import {
@@ -70,51 +70,90 @@ function generateYearMonthOptions(createdAt?: Date) {
   return options;
 }
 
-// 1フレームとして認める最大間隔(ms)。これを超えた分は「描けなかった時間」とみなし、
-// 進捗に加算しない。60fpsで16.7ms、30fpsで33.3msなので、実際にコマ落ちしている場合だけ
-// 引っかかる値にしている。
-const MAX_FRAME_MS = 50;
+// フレームがこの間隔以内で描けていれば「滑らかに描ける状態」とみなす(およそ25fps以上)。
+const SMOOTH_FRAME_MS = 40;
+// 走行中にこれ以上フレームがあいたら「詰まった」と判断する。
+// 100ms 前後から人の目には「止まった」と映るため、その手前を閾値にしている。
+const JANK_FRAME_MS = 100;
+// 滑らかに描けるようになるのを待つ上限。これを超えたらアニメーションを諦める。
+// ローディング表示を引き延ばしすぎない範囲に収める。
+const MAX_WAIT_MS = 400;
 
-// target が変わったとき from → target へアニメーション
+// target が変わったとき 0 → target へカウントアップする。
+// 戻り値が null の間は「まだ数値を出さない」= 呼び出し側はローディング表示を続ける。
 //
-// 進捗は「開始時刻からの実時間」ではなく、フレーム間隔を積み上げた時間で決めている。
 // ホームは他のパネル(チャートの遅延読み込み、各パネルの取得結果の反映)が同時に立ち上がるため、
-// カウントアップの最中にメインスレッドが数百ms詰まってフレームが飛ぶ。実時間で進捗を出すと
-// 詰まっている間は描画が止まったまま時間だけ進み、空いた瞬間に一気に跳ぶ
-// (「一度止まってからまたカウントされる」見え方になる)。上限を超えた間隔を捨てることで、
-// 詰まりを跳ねではなく一時停止に変え、止まった続きから滑らかに再開させる。
+// 戦績が届いた直後はメインスレッドが詰まりやすい。詰まっている間はフレーム自体が描けないので、
+// 進捗の計算をどう工夫してもカウントアップは途中で止まって見える
+// (実測: 0.0% のまま402ms停止 → 18.6%へ跳ぶ → 途中でも133ms停止)。
 //
-// 起点に performance.now() ではなく最初のフレームのタイムスタンプを使うのも同じ理由。
-// requestAnimationFrame に渡る時刻はそのフレームの開始時刻なので、effect の実行時刻より
-// 前になることがある。実時間で計算すると初回フレームの進捗が負になり、一瞬マイナスの数字
-// (例: -3.3%)が表示される。
-function useCountUp(target: number, duration = 700): number {
-  const [display, setDisplay] = useState(0);
-  const prevRef = useRef(0);
+// そこで「滑らかに出せないならアニメーションしない」方針を取る。
+//   1. まずフレームの間隔を観測し、連続して滑らかに描けることを確かめてから走り出す。
+//      カウントアップの1フレーム目は 0 を描くので、確かめる前に走らせると
+//      「0.0% で止まってから跳ぶ」ことになる(本番ビルドでも4x絞りで101ms停止を実測)。
+//   2. 走行中にコマ落ちを検知したら、その場で打ち切って最終値へ送る。
+//   3. 待っても整わなければアニメーションせず最終値をそのまま出す。
+// 数値が出てから止まると壊れて見えるため、走らせるか決まるまでは数値を返さない(null)。
+// 結果として表示は
+//   ・空いている  → 0 から滑らかにカウントアップ
+//   ・詰まっている → ローディング表示のまま待ち、最終値をそのまま表示
+// のどちらかになり、「途中で止まって跳ぶ」中間状態が出ない。
+function useCountUp(target: number | null, duration = 700): number | null {
+  // どの target に対する表示値なのかを持たせ、target が変わった直後(=まだ何も描いていない)を
+  // 「出さない」状態として描画時に判別できるようにする。
+  const [state, setState] = useState<{ target: number; value: number } | null>(null);
 
   useEffect(() => {
-    const from = prevRef.current;
-    prevRef.current = target;
-    if (target === from) return;
+    if (target === null) return;
 
-    let elapsed = 0;
-    let lastTime: number | null = null;
+    const to = target;
+    const scheduledAt = performance.now();
+    // 走り出す前の観測用。滑らかに描けたフレームが連続した回数を数える。
+    let prevFrame: number | null = null;
+    let smoothFrames = 0;
+    // 走行開始時刻。null の間はまだ観測中。
+    let startTime: number | null = null;
+    let lastFrame = 0;
     let raf = 0;
 
-    function step(now: number) {
-      // 最初のフレームは基準時刻を取るだけ(進捗0なので表示は from のまま)
-      if (lastTime === null) {
-        lastTime = now;
-        raf = requestAnimationFrame(step);
+    function step() {
+      // rAF に渡される時刻はフレームの開始時刻で、effect の実行時刻より前になることがある
+      // (実時間で計算すると進捗が負になり、一瞬マイナスの数字が出る)。基準を揃えるため
+      // ここでは performance.now() を使う。
+      const now = performance.now();
+
+      if (startTime === null) {
+        // 動かす必要がない(0戦0勝など)ならそのまま出す
+        if (to === 0) {
+          setState({ target: to, value: to });
+          return;
+        }
+
+        if (prevFrame !== null && now - prevFrame <= SMOOTH_FRAME_MS) smoothFrames++;
+        else smoothFrames = 0;
+        prevFrame = now;
+
+        if (smoothFrames < 2) {
+          // まだ滑らかと言い切れない。待ちすぎるならアニメーションを諦める。
+          if (now - scheduledAt > MAX_WAIT_MS) {
+            setState({ target: to, value: to });
+            return;
+          }
+          raf = requestAnimationFrame(step);
+          return;
+        }
+
+        startTime = now;
+      } else if (now - lastFrame > JANK_FRAME_MS) {
+        // 走行中に詰まった。中途半端な位置から跳ねさせず、最終値へ送って終わる。
+        setState({ target: to, value: to });
         return;
       }
+      lastFrame = now;
 
-      elapsed += Math.min(now - lastTime, MAX_FRAME_MS);
-      lastTime = now;
-
-      const t = Math.min(elapsed / duration, 1);
+      const t = Math.min((now - startTime) / duration, 1);
       const eased = 1 - Math.pow(1 - t, 3); // easeOutCubic
-      setDisplay(t < 1 ? from + (target - from) * eased : target);
+      setState({ target: to, value: t < 1 ? to * eased : to });
 
       if (t < 1) raf = requestAnimationFrame(step);
     }
@@ -123,7 +162,8 @@ function useCountUp(target: number, duration = 700): number {
     return () => cancelAnimationFrame(raf);
   }, [target, duration]);
 
-  return display;
+  // 表示値が現在の target に対応しているときだけ返す
+  return state !== null && state.target === target ? state.value : null;
 }
 
 function winRateColor(rate: number): string {
@@ -156,8 +196,9 @@ function WinRateBadge({
   onToggle,
 }: WinRateBadgeProps) {
   // winRate は 0〜1 なので ×1000 して小数1桁精度でカウントアップ
-  const animated = useCountUp(isLoading ? 0 : winRate * 1000, 900);
-  const pct = (animated / 10).toFixed(1);
+  const animated = useCountUp(isLoading ? null : winRate * 1000, 900);
+  // null の間はまだ数値を出さない(取得中と同じローディング表示のままにする)
+  const pct = animated === null ? null : (animated / 10).toFixed(1);
   const color = isLoading ? "text-white/30" : winRateColor(winRate);
 
   return (
@@ -206,7 +247,7 @@ function WinRateBadge({
           <span className="text-3xl font-black text-white/30 leading-none">——</span>
         ) : hasError ? (
           <span className="text-3xl font-black text-white/30 leading-none">—</span>
-        ) : isLoading ? (
+        ) : isLoading || pct === null ? (
           <span className="text-3xl font-black text-white/30 animate-pulse leading-none">
             —
           </span>
@@ -241,7 +282,8 @@ function StatChip({
   colorClass = "text-default-700",
   suffix,
 }: StatChipProps) {
-  const animated = useCountUp(isLoading ? 0 : value);
+  // null の間はまだ数値を出さない(取得中と同じローディング表示のままにする)
+  const animated = useCountUp(isLoading ? null : value);
 
   return (
     <div className="flex flex-col items-center gap-0.5 py-2.5 px-1 rounded-xl bg-default-100">
@@ -250,7 +292,7 @@ function StatChip({
       </div>
       {hidden ? (
         <span className="text-lg font-black text-default-300 leading-none">——</span>
-      ) : isLoading ? (
+      ) : isLoading || animated === null ? (
         <span className="text-lg font-black text-default-300 animate-pulse leading-none">
           —
         </span>

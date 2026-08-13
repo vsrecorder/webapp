@@ -54,10 +54,18 @@ const SLICE_COLORS = [
 ];
 const OTHER_COLOR = "#A1A1AA";
 // 対面率がこの値未満のデッキは「その他」にまとめる
-const OTHER_THRESHOLD = 0.05;
+const OTHER_THRESHOLD = 0.03;
 // 個別に表示するデッキの最大数（これを超える分は「その他」1件にまとめ、
 // 合計の最大表示件数は7件になる）
 const MAX_INDIVIDUAL_DECKS = 6;
+// 「その他」がこの割合以上を占めると、どのデッキと当たっているのかが分布から読み取れなく
+// なってしまうため、下回るまで個別表示するデッキを増やす
+const OTHER_RATE_CAP = 0.5;
+// 上の拡張で個別表示できる最大数。スライスと凡例の色は SLICE_COLORS を index で引くため、
+// 配色数がそのまま上限になる（個別10件 +「その他」で最大11件）。
+// 対面デッキが極端に分散していて10件まで増やしても「その他」が OTHER_RATE_CAP を
+// 下回らない場合は、この件数で打ち切る。
+const MAX_INDIVIDUAL_DECKS_EXPANDED = SLICE_COLORS.length;
 
 // 円グラフ本体はスプライト画像を主役にしたいため、塗りは薄いパステル調にする
 const SLICE_COLORS_SOFT = SLICE_COLORS.map((c) => lighten(c, 0.55));
@@ -139,6 +147,8 @@ export function buildOpponentDeckDisplay(decks: OpponentDeckUsageItemType[]): {
   const { displayItems, hasOther } = groupIntoOther<DisplayDeckItem>(decks, {
     threshold: OTHER_THRESHOLD,
     maxIndividual: MAX_INDIVIDUAL_DECKS,
+    otherRateCap: OTHER_RATE_CAP,
+    expandedMaxIndividual: MAX_INDIVIDUAL_DECKS_EXPANDED,
     // 対面率(件数)が並んだデッキは、勝率の高い方を上に並べる
     tieBreak: (a, b) => b.win_rate - a.win_rate,
     createOther: (aggregate, rest): DisplayDeckItem => ({

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
+import { isModalHistoryPop } from "@app/utils/modalHistory";
 
 /*
  * ページを表示したとき、必ずページ先頭から表示する。
@@ -209,7 +210,12 @@ export function useScrollResetOnNavigation() {
       }
     };
 
-    const handlePopState = () => {
+    const handlePopState = (event: PopStateEvent) => {
+      // モーダルを閉じるためのバックと、閉じたあとに戻り先を取り除く巻き戻し
+      // (useCloseModalOnBack)はページ遷移ではない。ここで先頭へ戻すと、
+      // モーダルを閉じただけで背面が勝手に先頭へ飛んでしまう
+      if (isModalHistoryPop(event)) return;
+
       const hash = window.location.hash;
 
       if (hash.length > 1) {

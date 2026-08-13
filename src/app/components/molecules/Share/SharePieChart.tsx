@@ -1,6 +1,17 @@
 "use client";
 
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
+import {
+  BADGE_GAP,
+  BADGE_PERCENT_FONT_SIZE,
+  BADGE_PERCENT_GAP,
+  BADGE_SPRITE_SIZE,
+  badgeHeight,
+  badgeWidth,
+  fitBadgeSpriteSize,
+  resolveBadgeCollisions,
+  type BadgeAngleItem,
+} from "@app/utils/pieBadgeLayout";
 
 /*
  * シェア画像用の円グラフ（SVG + DOM）。
@@ -39,22 +50,10 @@ type Props = {
 
 // 以下の定数は画面の円グラフ（DeckUsagePanel / OpponentDeckDistributionChart と
 // pieSlicesSpritePlugin）と同じ値。ずらすとシェア画像だけ見た目が変わってしまう。
+// バッジ自体の寸法は画面と共通の pieBadgeLayout から取る。
 const CHART_SIZE = 192;
 // 円が小さくなりすぎると凡例のスプライトより小さく見えるため下限を設ける
 const MIN_CHART_SIZE = 120;
-// バッジ内のスプライト1体の表示サイズ
-const SPRITE_SIZE = 44;
-// バッジ内側の余白
-const BADGE_PAD = 5;
-// バッジ内の割合文字のサイズと、スプライトとの間隔
-const PERCENT_FONT_SIZE = 9;
-const PERCENT_GAP = 1;
-// 円の外周とバッジの間隔
-const BADGE_GAP = 4;
-// バッジ同士の最低間隔
-const OUTSIDE_MARGIN = 6;
-// 衝突解消で元の位置から離してよい最大距離（自身のバッジ高さの何倍まで）
-const MAX_DRIFT_FACTOR = 1.2;
 // スライス同士の境界線（画面の borderColor: "#ffffff" / borderWidth: 2 と同じ）
 const SLICE_BORDER_COLOR = "#ffffff";
 const SLICE_BORDER_WIDTH = 2;
@@ -68,18 +67,12 @@ const SLICE_BORDER_WIDTH = 2;
  */
 const SVG_PADDING = SLICE_BORDER_WIDTH / 2;
 
-type BadgeItem = {
+type BadgeItem = BadgeAngleItem & {
   key: number;
   spriteIds: (string | undefined)[];
   percentText: string | null;
   color: string;
-  angle: number;
-  originalAngle: number;
-  radius: number;
   width: number;
-  height: number;
-  // 衝突判定に使う、このバッジのおおよその半径（横幅ベース）
-  boundRadius: number;
 };
 
 // 座標は小数第2位までに丸める。
@@ -116,27 +109,6 @@ function arcPath(
   return `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`;
 }
 
-// バッジ同士が重ならないよう、角度が近いものを引き離す。
-// pieSlicesSpritePlugin の resolveOutsideCollisions と同じ考え方（角度順に前から1回なめる）。
-function resolveCollisions(items: BadgeItem[]): void {
-  if (items.length < 2) return;
-
-  items.sort((a, b) => a.angle - b.angle);
-
-  for (let i = 1; i < items.length; i++) {
-    const prev = items[i - 1];
-    const cur = items[i];
-    const gap = cur.angle - prev.angle;
-    const avgRadius = (prev.radius + cur.radius) / 2;
-    // 弧長 = 角度 × 半径 なので、必要な弧長を角度に変換する
-    const minGap = (prev.boundRadius + cur.boundRadius + OUTSIDE_MARGIN) / avgRadius;
-    if (gap < minGap) {
-      const maxAngle = cur.originalAngle + (cur.height * MAX_DRIFT_FACTOR) / cur.radius;
-      cur.angle = Math.min(prev.angle + minGap, maxAngle);
-    }
-  }
-}
-
 export default function SharePieChart({ slices, width }: Props) {
   const total = slices.reduce((sum, slice) => sum + slice.value, 0);
   if (total <= 0) return null;
@@ -157,24 +129,42 @@ export default function SharePieChart({ slices, width }: Props) {
     ? Math.max(...badgeSpriteCounts)
     : 0;
   const hasPercent = slices.some((slice) => slice.percentText !== null);
-  const badgeHeight =
-    SPRITE_SIZE + BADGE_PAD * 2 + (hasPercent ? PERCENT_GAP + PERCENT_FONT_SIZE : 0);
-  const maxBadgeWidth = SPRITE_SIZE * maxSpriteCount + BADGE_PAD * 2;
-  // バッジが真横を向いたとき、中心から badgeWidth/2 だけさらに外へ張り出す
-  const badgeReach =
-    maxSpriteCount > 0 ? BADGE_GAP + badgeHeight / 2 + maxBadgeWidth / 2 : 0;
 
-  const radius = Math.max(
-    MIN_CHART_SIZE / 2,
-    Math.min(CHART_SIZE / 2, Math.round(width) / 2 - badgeReach),
-  );
+  // バッジが真横を向いたとき、中心から badgeWidth/2 だけさらに外へ張り出す
+  const radiusFor = (spriteSize: number): number => {
+    const badgeReach =
+      maxSpriteCount > 0
+        ? BADGE_GAP +
+          badgeHeight(spriteSize, hasPercent) / 2 +
+          badgeWidth(spriteSize, maxSpriteCount) / 2
+        : 0;
+    return Math.max(
+      MIN_CHART_SIZE / 2,
+      Math.min(CHART_SIZE / 2, Math.round(width) / 2 - badgeReach),
+    );
+  };
+
+  /*
+   * 円の大きさとバッジの大きさは互いに依存する（バッジが大きいほど円は小さくなる）。
+   * まず標準サイズのバッジで半径を求め、その外周にバッジが並びきらない件数であれば
+   * スプライトを縮めてから半径を求め直す。バッジが小さくなった分だけ円は大きくできるので、
+   * 求め直した半径では外周にさらに余裕ができる（並びきらなくなることはない）。
+   */
+  const spriteSize = fitBadgeSpriteSize({
+    count: badgeSpriteCounts.length,
+    outerRadius: radiusFor(BADGE_SPRITE_SIZE),
+    maxSpriteCount,
+    hasPercent,
+  });
+  const radius = radiusFor(spriteSize);
+  const badgeH = badgeHeight(spriteSize, hasPercent);
   const diameter = radius * 2;
   // SVG は円より境界線の半分ぶん大きく取り、その中心に円を置く
   const svgSize = diameter + SVG_PADDING * 2;
   const svgCenter = SVG_PADDING + radius;
-  // 上下はバッジの高さ分だけ確保する（バッジは円の外周から badgeHeight だけ張り出す）
+  // 上下はバッジの高さ分だけ確保する（バッジは円の外周から badgeH だけ張り出す）
   const containerHeight =
-    maxSpriteCount > 0 ? (radius + BADGE_GAP + badgeHeight) * 2 : svgSize;
+    maxSpriteCount > 0 ? (radius + BADGE_GAP + badgeH) * 2 : svgSize;
 
   // 円の描画。chart.js の pie と同じく真上から時計回りに並べる
   const paths: { key: number; d: string; fill: string }[] = [];
@@ -198,7 +188,7 @@ export default function SharePieChart({ slices, width }: Props) {
 
     // 高さは全バッジで揃える（円の大きさもこの高さを前提に決めている）。
     // 横幅はスプライトの数で変わる。
-    const badgeWidth = SPRITE_SIZE * slice.spriteIds.length + BADGE_PAD * 2;
+    const badgeW = badgeWidth(spriteSize, slice.spriteIds.length);
     const midAngle = (start + end) / 2;
 
     badges.push({
@@ -208,14 +198,14 @@ export default function SharePieChart({ slices, width }: Props) {
       color: slice.color,
       angle: midAngle,
       originalAngle: midAngle,
-      radius: radius + BADGE_GAP + badgeHeight / 2,
-      width: badgeWidth,
-      height: badgeHeight,
-      boundRadius: badgeWidth / 2,
+      radius: radius + BADGE_GAP + badgeH / 2,
+      width: badgeW,
+      height: badgeH,
+      boundRadius: badgeW / 2,
     });
   });
 
-  resolveCollisions(badges);
+  resolveBadgeCollisions(badges);
 
   return (
     <div className="relative w-full" style={{ height: containerHeight }}>
@@ -265,16 +255,16 @@ export default function SharePieChart({ slices, width }: Props) {
           >
             <div className="flex items-center">
               {badge.spriteIds.map((id, i) => (
-                <PokemonSprite key={i} id={id} size={SPRITE_SIZE} raw />
+                <PokemonSprite key={i} id={id} size={spriteSize} raw />
               ))}
             </div>
             {badge.percentText && (
               <span
                 className="font-bold tabular-nums text-default-600"
                 style={{
-                  fontSize: PERCENT_FONT_SIZE,
-                  lineHeight: `${PERCENT_FONT_SIZE}px`,
-                  marginTop: PERCENT_GAP,
+                  fontSize: BADGE_PERCENT_FONT_SIZE,
+                  lineHeight: `${BADGE_PERCENT_FONT_SIZE}px`,
+                  marginTop: BADGE_PERCENT_GAP,
                 }}
               >
                 {badge.percentText}

@@ -4,6 +4,16 @@ import type { Chart, Plugin } from "chart.js";
 import { getRelativePosition } from "chart.js/helpers";
 
 import { spriteDrawRect } from "@app/utils/spriteFit";
+import {
+  BADGE_GAP,
+  BADGE_PERCENT_FONT_SIZE,
+  BADGE_PERCENT_GAP,
+  badgeHeight,
+  badgeWidth,
+  fitBadgeSpriteSize,
+  resolveBadgeCollisions,
+  type BadgeAngleItem,
+} from "@app/utils/pieBadgeLayout";
 
 // スライスごとの角度・半径情報を取り出すための最小限の型
 // (chart.jsのArcElementインスタンスは実行時にこれらのプロパティを直接持つ)
@@ -100,27 +110,11 @@ function drawSprites(
 // canvas 側も重なりを 0 にして表示方法を揃える。各キャラは bbox 正規化でボックス内に
 // 収まる(左右に余白)ため、隣接でも軽い隙間ができ、DOM と同じ見た目になる。
 const OVERLAP_RATIO = 0;
-// スプライト1体の表示サイズ（全スライス統一）
-const SPRITE_SIZE = 44;
-// バッジ内側の余白
-const BADGE_PAD = 5;
-// パーセンテージ表示部分のフォントサイズ・スプライトとの間隔
-// (バッジ高さの増加分がそのまま外周への張り出しに直結し、余白からの見切れにつながるため
-// 視認性を保てる範囲でできるだけ小さくしている)
-const PERCENT_FONT_SIZE = 9;
-const PERCENT_GAP = 1;
-const PERCENT_BLOCK_HEIGHT = PERCENT_GAP + PERCENT_FONT_SIZE;
+// スプライトの下に出すパーセンテージ表示が占める高さ（間隔 + 文字サイズ）
+const PERCENT_BLOCK_HEIGHT = BADGE_PERCENT_GAP + BADGE_PERCENT_FONT_SIZE;
 // パーセンテージ文字の色（ライト/ダークモードそれぞれで視認性を確保する）
 const PERCENT_COLOR_LIGHT = "#3f3f46";
 const PERCENT_COLOR_DARK = "#e4e4e7";
-// 円の外周とバッジの間隔
-const BADGE_GAP = 4;
-// バッジ同士の最低間隔（隣り合うバッジが接触しすぎないための余白）
-const OUTSIDE_MARGIN = 6;
-// 衝突解消のために動かせる最大距離（自身のバッジ高さの何倍まで元の位置から離れてよいか）。
-// これを超えてまで引き離すと、そのスライスから遠い場所に表示されてしまうため、
-// 上限を超える場合は多少重なることを許容する。
-const MAX_DRIFT_FACTOR = 1.2;
 
 // ダークモード時のバッジの塗り・枠線色。白のままだと暗い画面の中で浮いて見えるため、
 // アプリのダーク配色（globals.cssのドット背景などで使っている#27272a系）に合わせた
@@ -129,19 +123,21 @@ const BADGE_FILL_LIGHT = "#ffffff";
 const BADGE_FILL_DARK = "#27272a";
 const BADGE_OUTLINE_DARK = "rgba(255, 255, 255, 0.25)";
 
-type BadgeItem = {
+// 描画対象として拾ったバッジ。スプライトの表示サイズはバッジの総数から決めるため、
+// 寸法・配置を確定させる前の段階ではこの形で保持する。
+type PendingBadge = {
+  index: number;
+  images: HTMLImageElement[];
+  arc: ArcGeometry;
+  percentText: string | null;
+};
+
+type BadgeItem = BadgeAngleItem & {
   index: number;
   images: HTMLImageElement[];
   arcX: number;
   arcY: number;
-  angle: number;
-  originalAngle: number;
-  radius: number;
-  size: number;
-  badgeW: number;
-  badgeH: number;
-  // 衝突判定に使う、このバッジのおおよその半径（横幅ベース）
-  boundRadius: number;
+  width: number;
   color: string;
   // バッジ内・スプライト下に表示する割合文字列（例: "23%"）。nullなら表示しない
   percentText: string | null;
@@ -153,29 +149,6 @@ const badgeHitAreas = new WeakMap<Chart, BadgeHitArea[]>();
 
 // テーマ(ライト/ダーク)切り替え時に再描画するためのMutationObserverをチャートごとに保持する
 const themeObservers = new WeakMap<Chart, MutationObserver>();
-
-// バッジ同士が重ならないよう、角度が近いものを引き離す。
-// 角度順に並べ、前の項目との間隔（半径上の弧長換算）が互いのboundRadius+余白より
-// 狭い場合は後ろ側の項目を角度方向に押し出す（前から順に1回なめるだけで済む）。
-// ただし、自身のスライスから離れすぎないよう押し出せる距離には上限を設ける。
-function resolveOutsideCollisions(items: BadgeItem[]) {
-  if (items.length < 2) return;
-
-  items.sort((a, b) => a.angle - b.angle);
-
-  for (let i = 1; i < items.length; i++) {
-    const prev = items[i - 1];
-    const cur = items[i];
-    const gap = cur.angle - prev.angle;
-    const avgRadius = (prev.radius + cur.radius) / 2;
-    // 弧長 = 角度 × 半径 なので、必要な弧長を角度に変換する
-    const minGap = (prev.boundRadius + cur.boundRadius + OUTSIDE_MARGIN) / avgRadius;
-    if (gap < minGap) {
-      const maxAngle = cur.originalAngle + (cur.size * MAX_DRIFT_FACTOR) / cur.radius;
-      cur.angle = Math.min(prev.angle + minGap, maxAngle);
-    }
-  }
-}
 
 // スライス色の縁取り付きバッジ（スタジアム形）を描画する。
 // バッジの縁色がスライスの色・凡例の色ドットと一致することで、
@@ -242,9 +215,11 @@ function drawBadgePercent(
  * - 内側/外側の混在をやめ、全アイコンを外周の同じ半径上に配置して規則性を持たせる
  * - スライス色の縁取り付きバッジで「どのスライスのアイコンか」を色で明示する
  *   （凡例の色ドットとも対応し、引き出し線が不要になる）
- * - サイズを統一し円グラフ本体を主役に保つ
+ * - サイズを統一し円グラフ本体を主役に保つ（件数が多く外周に並びきらない場合のみ、
+ *   全バッジを同じ比率で縮める）
  * - 表示順序（左→右）が入れ替わらないよう、並べる軸は常に画面上の水平固定
- * - バッジ同士は角度方向の衝突解消で重なりを防ぐ（自スライスから離れすぎない上限付き）
+ * - バッジ同士は角度方向の衝突解消で重なりを防ぐ（自スライスの近くに留めるのを優先し、
+ *   それでは潰れ合う密集時だけ、空いている外周まで広げる。resolveBadgeCollisions 参照）
  *
  * バッジの位置はチャートインスタンスに記録され、getSpriteBadgeIndexAtでタップ判定に使える。
  * 呼び出し側では、バッジの分だけchart.jsの`layout.padding`と
@@ -275,8 +250,11 @@ export function createPieSlicesSpritePlugin(
     afterDatasetsDraw(chart: Chart<"pie">) {
       const meta = chart.getDatasetMeta(0);
       const { ctx } = chart;
-      const items: BadgeItem[] = [];
 
+      // まず描画対象のバッジを集める。スプライトの表示サイズはバッジの総数が
+      // 決まらないと確定できない（外周に並びきらない件数なら縮める）ため、
+      // ここではまだ寸法を求めない。
+      const pending: PendingBadge[] = [];
       meta.data.forEach((el, index) => {
         const urls = (getSpriteUrls(index) ?? []).filter((u): u is string => !!u);
         if (urls.length === 0) return;
@@ -286,55 +264,66 @@ export function createPieSlicesSpritePlugin(
         // 全画像の読み込みが揃うまでは描画しない（ちらつき防止。読み込み完了時にchart.draw()で再描画される）
         const images = urls.map((url) => loadImage(url, () => chart.draw()));
         if (images.some((img) => !img)) return;
-        const loadedImages = images as HTMLImageElement[];
-        const n = loadedImages.length;
 
+        pending.push({
+          index,
+          images: images as HTMLImageElement[],
+          arc,
+          percentText: getPercentText?.(index) ?? null,
+        });
+      });
+
+      // 表示するデッキが多いときは、外周に並びきるようスプライトを縮める
+      const spriteSize = fitBadgeSpriteSize({
+        count: pending.length,
+        outerRadius: pending[0]?.arc.outerRadius ?? 0,
+        maxSpriteCount: pending.reduce((max, p) => Math.max(max, p.images.length), 0),
+        hasPercent: pending.some((p) => p.percentText != null),
+      });
+
+      const items: BadgeItem[] = pending.map(({ index, images, arc, percentText }) => {
         const midAngle = (arc.startAngle + arc.endAngle) / 2;
-        const overlap = SPRITE_SIZE * OVERLAP_RATIO;
-        const totalWidth = n === 1 ? SPRITE_SIZE : SPRITE_SIZE * n - overlap * (n - 1);
-        const percentText = getPercentText?.(index) ?? null;
-        const badgeW = totalWidth + BADGE_PAD * 2;
-        const badgeH =
-          SPRITE_SIZE + BADGE_PAD * 2 + (percentText ? PERCENT_BLOCK_HEIGHT : 0);
+        const overlap = spriteSize * OVERLAP_RATIO;
+        const badgeW =
+          badgeWidth(spriteSize, images.length) - overlap * (images.length - 1);
+        const badgeH = badgeHeight(spriteSize, percentText != null);
 
         // バッジ中心の半径はbadgeHの半分を基準にする。バッジは画面上で常に横長固定のため、
         // スライスがほぼ真横を向く場合は横幅(badgeW)の方が半径方向に大きく張り出すが、
         // それに合わせて余白を確保するとカード幅の制約で円グラフ自体が縮んでしまうため、
         // ここでは高さ基準に留め、真横向きのごく稀なケースでの多少のはみ出しは許容する。
-        items.push({
+        return {
           index,
-          images: loadedImages,
+          images,
           arcX: arc.x,
           arcY: arc.y,
           angle: midAngle,
           originalAngle: midAngle,
           radius: arc.outerRadius + BADGE_GAP + badgeH / 2,
-          size: badgeH,
-          badgeW,
-          badgeH,
+          width: badgeW,
+          height: badgeH,
           boundRadius: badgeW / 2,
           color: getSliceColor(index),
           percentText,
-        });
+        };
       });
 
-      resolveOutsideCollisions(items);
+      resolveBadgeCollisions(items);
 
       const hitAreas: BadgeHitArea[] = [];
       items.forEach((item) => {
         const cx = item.arcX + Math.cos(item.angle) * item.radius;
         const cy = item.arcY + Math.sin(item.angle) * item.radius;
-        drawBadge(ctx, cx, cy, item.badgeW, item.badgeH, item.color);
+        drawBadge(ctx, cx, cy, item.width, item.height, item.color);
         // パーセンテージ表示分だけスプライトを上にずらし、その下の空きに文字を描画する
-        const spriteCy = item.percentText
-          ? cy - PERCENT_BLOCK_HEIGHT / 2
-          : cy;
-        drawSprites(ctx, item.images, cx, spriteCy, SPRITE_SIZE);
+        const spriteCy = item.percentText ? cy - PERCENT_BLOCK_HEIGHT / 2 : cy;
+        drawSprites(ctx, item.images, cx, spriteCy, spriteSize);
         if (item.percentText) {
-          const percentCy = spriteCy + SPRITE_SIZE / 2 + PERCENT_GAP + PERCENT_FONT_SIZE / 2;
-          drawBadgePercent(ctx, item.percentText, cx, percentCy, PERCENT_FONT_SIZE);
+          const percentCy =
+            spriteCy + spriteSize / 2 + BADGE_PERCENT_GAP + BADGE_PERCENT_FONT_SIZE / 2;
+          drawBadgePercent(ctx, item.percentText, cx, percentCy, BADGE_PERCENT_FONT_SIZE);
         }
-        hitAreas.push({ index: item.index, cx, cy, w: item.badgeW, h: item.badgeH });
+        hitAreas.push({ index: item.index, cx, cy, w: item.width, h: item.height });
       });
       badgeHitAreas.set(chart, hitAreas);
     },

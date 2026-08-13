@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { isModalHistoryPushState } from "@app/utils/modalHistory";
 
 // 退避先のページ専用キーに付ける接頭辞。元のキーと衝突しないよう固定の接頭辞を使う。
 const PENDING_PREFIX = "pendingReopenOnBack:";
@@ -37,9 +38,13 @@ export function useReopenFlagsOnBack(keys: readonly string[]) {
     window.history.pushState = function (
       ...args: Parameters<typeof window.history.pushState>
     ) {
-      // このページから更に先へ進んだ場合は、戻ってきてもモーダルを再開しない
-      for (const key of targetKeys) {
-        sessionStorage.removeItem(`${PENDING_PREFIX}${key}`);
+      // このページから更に先へ進んだ場合は、戻ってきてもモーダルを再開しない。
+      // ただしモーダル表示中のバック対策(useCloseModalOnBack)が積む戻り先は
+      // ページ遷移ではないので、モーダルを開いただけでフラグを捨てないよう除外する
+      if (!isModalHistoryPushState(args[0])) {
+        for (const key of targetKeys) {
+          sessionStorage.removeItem(`${PENDING_PREFIX}${key}`);
+        }
       }
       return originalPushState.apply(window.history, args);
     };

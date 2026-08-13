@@ -11,6 +11,8 @@ import FetchError from "@app/components/molecules/FetchError";
 
 import { RecordGetByIdResponseType } from "@app/types/record";
 
+import { isModalHistoryPushState } from "@app/utils/modalHistory";
+
 async function fetchRecordById(id: string) {
   try {
     const res = await fetch(`/api/records/` + id, {
@@ -107,11 +109,15 @@ export default function RecordById({ id }: Props) {
 
     const originalPushState = window.history.pushState;
     window.history.pushState = function (...args: Parameters<typeof window.history.pushState>) {
-      sessionStorage.removeItem("detailPagePendingReopenRecordId");
-      sessionStorage.removeItem("detailPagePendingReopenEventType");
-      sessionStorage.removeItem("detailPagePendingReopenDeckId");
-      sessionStorage.removeItem("detailPagePendingReopenArchived");
-      sessionStorage.removeItem("detailPagePendingReopenWithRecords");
+      // モーダル表示中のバック対策（useCloseModalOnBack）が積む戻り先は
+      // ページ遷移ではないため、モーダルを開いただけでフラグを捨てないよう除外する
+      if (!isModalHistoryPushState(args[0])) {
+        sessionStorage.removeItem("detailPagePendingReopenRecordId");
+        sessionStorage.removeItem("detailPagePendingReopenEventType");
+        sessionStorage.removeItem("detailPagePendingReopenDeckId");
+        sessionStorage.removeItem("detailPagePendingReopenArchived");
+        sessionStorage.removeItem("detailPagePendingReopenWithRecords");
+      }
       return originalPushState.apply(window.history, args);
     };
 

@@ -9,6 +9,7 @@ import SessionWatcher from "@app/components/organisms/Layout/SessionWatcher";
 import DailyActivityBeacon from "@app/components/organisms/Layout/DailyActivityBeacon";
 import VisualViewportOffsetSync from "@app/components/organisms/Layout/VisualViewportOffsetSync";
 import ModalBackgroundScrollLock from "@app/components/organisms/Layout/ModalBackgroundScrollLock";
+import CloseModalOnBack from "@app/components/organisms/Layout/CloseModalOnBack";
 import ScrollResetOnNavigation from "@app/components/organisms/Layout/ScrollResetOnNavigation";
 
 export default function Providers({
@@ -28,6 +29,7 @@ export default function Providers({
       <DailyActivityBeacon />
       <VisualViewportOffsetSync />
       <ModalBackgroundScrollLock />
+      <CloseModalOnBack />
       <ScrollResetOnNavigation />
       {/* locale="ja-JP": DatePicker等の日付表示順を年/月/日にし、カレンダーを日本語化する */}
       <HeroUIProvider locale="ja-JP">

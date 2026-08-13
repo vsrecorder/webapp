@@ -23,7 +23,7 @@ import { useDisclosure } from "@heroui/react";
 import { LuStickyNote, LuSwords, LuChevronUp, LuChevronDown } from "react-icons/lu";
 
 import UpdateMatchModal from "@app/components/organisms/Match/Modal/UpdateMatchModal";
-import DisplayMatchMemoModal from "@app/components/organisms/Match/Modal/DisplayMatchMemoModal";
+import DisplayMatchDetailModal from "@app/components/organisms/Match/Modal/DisplayMatchDetailModal";
 import CreateMatchModalButton from "@app/components/organisms/Match/CreateMatchModalButton";
 import MatchSkeleton from "@app/components/organisms/Match/Skeleton/MatchSkeleton";
 
@@ -203,9 +203,9 @@ export default function Matches({
   } = useDisclosure();
 
   const {
-    isOpen: isOpenForDisplayMatchMemoModal,
-    onOpen: onOpenForDisplayMatchMemoModal,
-    onOpenChange: onOpenChangeForDisplayMatchMemoModal,
+    isOpen: isOpenForDisplayMatchDetailModal,
+    onOpen: onOpenForDisplayMatchDetailModal,
+    onOpenChange: onOpenChangeForDisplayMatchDetailModal,
   } = useDisclosure();
 
   if (loading) {
@@ -311,10 +311,11 @@ export default function Matches({
         onClose={onCloseForUpdateMatchModal}
       />
 
-      <DisplayMatchMemoModal
+      <DisplayMatchDetailModal
         match={selectedMatch}
-        isOpen={isOpenForDisplayMatchMemoModal}
-        onOpenChange={onOpenChangeForDisplayMatchMemoModal}
+        record={record}
+        isOpen={isOpenForDisplayMatchDetailModal}
+        onOpenChange={onOpenChangeForDisplayMatchDetailModal}
       />
 
       <div>
@@ -428,11 +429,11 @@ export default function Matches({
                                         onPress={() => {
                                           setSelectedMatch(match);
                                           // 編集可能な場合は編集モーダル、
-                                          // それ以外でメモがある場合はメモ表示モーダルを開く
+                                          // それ以外は対戦の詳細モーダル(環境データ・タグ・メモ)を開く
                                           if (enableUpdateMatchModalButton) {
                                             onOpenForUpdateMatchModal();
-                                          } else if (match.memo && match.memo !== "") {
-                                            onOpenForDisplayMatchMemoModal();
+                                          } else {
+                                            onOpenForDisplayMatchDetailModal();
                                           }
                                         }}
                                       >

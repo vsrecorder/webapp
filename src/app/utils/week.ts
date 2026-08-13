@@ -42,6 +42,14 @@ function mondayOfJSTDateString(ymd: string): string {
   return d.toISOString().slice(0, 10);
 }
 
+// 指定日(JSTの暦日として解釈)が属する週の月曜日を "YYYY-MM-DD" で返す。
+// 過去の記録から「対戦当時の環境週」を求めるときに使う。不正な日付は "" を返す。
+export function weekValueOfJSTDate(date: string | Date): string {
+  const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return "";
+  return mondayOfJSTDateString(toJSTDateString(d));
+}
+
 // 指定日が今週（JSTの今日が属する月曜始まりの週）に含まれるかを返す。
 // 記録の開催日(event_date)は JST 0:00 をUTC変換した値で返るため、比較の前にJSTの暦日へ
 // 直してから判定する（端末のタイムゾーンのまま判定すると海外在住のユーザーで前日に寄る）。

@@ -31,6 +31,14 @@ export default function Providers({
       <ModalBackgroundScrollLock />
       <CloseModalOnBack />
       <ScrollResetOnNavigation />
+      {/* ToastProviderはポータルせず、その場にトースト領域(z-100)を描画する。
+          HeroUIProviderの内側に置くとアプリルート(body > [data-overlay-container])の
+          内側に入り、モーダル表示中にuseModalBackgroundScrollLockがアプリルートを
+          position:fixed化した際にstacking contextへ閉じ込められて、モーダル(z-50、
+          body末尾へポータル)より背後に描画されてしまう。そのためHeroUIProviderの
+          外に置き、トースト領域をbody直下(アプリルートの外)に出す。
+          トーストのキューはモジュールグローバルなので、プロバイダの外でもaddToastは動く */}
+      <ToastProvider placement={"top-center"} />
       {/* locale="ja-JP": DatePicker等の日付表示順を年/月/日にし、カレンダーを日本語化する */}
       <HeroUIProvider locale="ja-JP">
         {/* OS連動方式: classで.darkを付与し、既定では端末（OS）のライト/ダーク設定に
@@ -44,7 +52,6 @@ export default function Providers({
           disableTransitionOnChange
         >
           <UserAvatarProvider>
-            <ToastProvider placement={"top-center"} />
             {children}
           </UserAvatarProvider>
         </NextThemesProvider>

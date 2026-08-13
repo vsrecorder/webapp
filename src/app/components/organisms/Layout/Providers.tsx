@@ -31,14 +31,6 @@ export default function Providers({
       <ModalBackgroundScrollLock />
       <CloseModalOnBack />
       <ScrollResetOnNavigation />
-      {/* ToastProviderはポータルせず、その場にトースト領域(z-100)を描画する。
-          HeroUIProviderの内側に置くとアプリルート(body > [data-overlay-container])の
-          内側に入り、モーダル表示中にuseModalBackgroundScrollLockがアプリルートを
-          position:fixed化した際にstacking contextへ閉じ込められて、モーダル(z-50、
-          body末尾へポータル)より背後に描画されてしまう。そのためHeroUIProviderの
-          外に置き、トースト領域をbody直下(アプリルートの外)に出す。
-          トーストのキューはモジュールグローバルなので、プロバイダの外でもaddToastは動く */}
-      <ToastProvider placement={"top-center"} />
       {/* locale="ja-JP": DatePicker等の日付表示順を年/月/日にし、カレンダーを日本語化する */}
       <HeroUIProvider locale="ja-JP">
         {/* OS連動方式: classで.darkを付与し、既定では端末（OS）のライト/ダーク設定に
@@ -52,7 +44,20 @@ export default function Providers({
           disableTransitionOnChange
         >
           <UserAvatarProvider>
-            {children}
+            {/* ToastProviderはポータルせず、その場にトースト領域(z-100)を描画する。
+                モーダル(z-50、body末尾へポータル)より前面に出すには、この領域が
+                position:fixed な祖先のstacking contextに閉じ込められないことが必要。
+                そのため useModalBackgroundScrollLock がモーダル表示中に固定する
+                data-scroll-lock-root の外(兄弟)に置く。
+                body直下(HeroUIProviderの外)へ出す形は、実機iOSでトーストが
+                表示されなくなったため採らない */}
+            <ToastProvider placement={"top-center"} />
+            {/* モーダル表示中の背面スクロール対策(useModalBackgroundScrollLock)が
+                position:fixed で固定する対象。トースト領域を含むアプリルート全体を
+                固定すると、fixedが作るstacking contextにトーストのz-100が閉じ込められ
+                モーダルの背後に描画されてしまうため、トースト領域を除いた
+                ページ内容だけをこのラッパーで括って固定対象にする */}
+            <div data-scroll-lock-root="">{children}</div>
           </UserAvatarProvider>
         </NextThemesProvider>
       </HeroUIProvider>

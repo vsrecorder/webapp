@@ -20,10 +20,14 @@ import { useEffect } from "react";
  * ように見える。これが入力フォーカス中(=キーボード表示中)にだけ起こる理由。
  *
  * 対策(モーダル表示中のみ・全モーダル共通):
- * 1. 背面のアプリルート(body > [data-overlay-container])を position:fixed で
- *    現在のスクロール位置のまま固定する。文書のスクロール可能領域がビューポートと
- *    同寸になり、キーボード表示中でも iOS にスクロールさせる余地がなくなる。
+ * 1. 背面のページ内容ラッパー([data-scroll-lock-root]、Providers.tsx が children を
+ *    括っている要素)を position:fixed で現在のスクロール位置のまま固定する。
+ *    文書のスクロール可能領域がビューポートと同寸になり、キーボード表示中でも
+ *    iOS にスクロールさせる余地がなくなる。
  *    (overflow:hidden が無視されても「スクロールするものが無い」状態は無視できない)
+ *    アプリルート(body > [data-overlay-container])ごと固定しないのは、その内側に
+ *    HeroUI のトースト領域(z-100)があるため。fixed は stacking context を作るので、
+ *    まるごと固定するとトーストが閉じ込められてモーダル(z-50)の背後に描画されてしまう。
  * 2. viewport meta に interactive-widget=resizes-content を一時付与する。
  *    Android ではキーボード表示時にレイアウトビューポート自体が縮み、visual viewport
  *    とのずれ(=パンの余地)が生じなくなる。iOS/未対応ブラウザでは単に無視される。
@@ -63,26 +67,26 @@ export function useModalBackgroundScrollLock() {
     };
 
     const apply = () => {
-      const appRoot = document.querySelector<HTMLElement>(
-        "body > [data-overlay-container]",
+      const lockRoot = document.querySelector<HTMLElement>(
+        "[data-scroll-lock-root]",
       );
-      if (!appRoot) return;
+      if (!lockRoot) return;
 
       savedY = window.scrollY;
       savedHref = window.location.href;
 
-      // 現在見えている位置(top: -scrollY)のままアプリルートを固定する。
+      // 現在見えている位置(top: -scrollY)のままページ内容ラッパーを固定する。
       // fixed 化で文書フローから外れるため、文書のスクロール範囲が
       // ビューポート寸法まで縮み、背面をスクロールさせる余地がなくなる。
       // overflow:hidden は、はみ出した背面コンテンツが文書のスクロール範囲を
       // 再び押し広げないための保険(fixed 内の Header 等は clip されない)。
       const restores = [
-        setStyle(appRoot, "position", "fixed"),
-        setStyle(appRoot, "top", `${-savedY}px`),
-        setStyle(appRoot, "left", "0"),
-        setStyle(appRoot, "right", "0"),
-        setStyle(appRoot, "bottom", "0"),
-        setStyle(appRoot, "overflow", "hidden"),
+        setStyle(lockRoot, "position", "fixed"),
+        setStyle(lockRoot, "top", `${-savedY}px`),
+        setStyle(lockRoot, "left", "0"),
+        setStyle(lockRoot, "right", "0"),
+        setStyle(lockRoot, "bottom", "0"),
+        setStyle(lockRoot, "overflow", "hidden"),
       ];
       restoreStyles = () => restores.forEach((fn) => fn());
 

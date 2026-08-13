@@ -49,9 +49,17 @@ export default function Providers({
                 position:fixed な祖先のstacking contextに閉じ込められないことが必要。
                 そのため useModalBackgroundScrollLock がモーダル表示中に固定する
                 data-scroll-lock-root の外(兄弟)に置く。
-                body直下(HeroUIProviderの外)へ出す形は、実機iOSでトーストが
-                表示されなくなったため採らない */}
-            <ToastProvider placement={"top-center"} />
+
+                fixed z-[100] のラッパーは実機iOS(WebKit)対策。WebKitには
+                「position:fixed要素が特定条件の祖先にビジュアル上クリップされて
+                見えなくなる」未修正バグ(bugs.webkit.org/160953)があり、トースト自身
+                (fixed)がfixedな祖先を持たないと、モーダル表示中(背面ロックで文書の
+                流れが潰れている間)に実機iOSでトーストが描画されない。HeroUI公式も
+                同じ回避策を採っている(heroui PR #5400)。ラッパーは中身が全て
+                fixedのため0x0で、操作を遮ることはない */}
+            <div className="fixed z-100">
+              <ToastProvider placement={"top-center"} />
+            </div>
             {/* モーダル表示中の背面スクロール対策(useModalBackgroundScrollLock)が
                 position:fixed で固定する対象。トースト領域を含むアプリルート全体を
                 固定すると、fixedが作るstacking contextにトーストのz-100が閉じ込められ

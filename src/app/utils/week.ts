@@ -1,6 +1,8 @@
 // 週次デッキ使用率ページの週セレクタ用ユーティリティ。
 // 週は月曜始まりとし、値は週の月曜日を "YYYY-MM-DD" で表す（core-api の week パラメータ形式と一致）。
 
+import { toJSTDateString, todayJSTDateString } from "@app/utils/date";
+
 // 指定日が属する週の月曜日を返す。
 function mondayOf(date: Date): Date {
   const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
@@ -28,6 +30,28 @@ export function lastWeekValue(): string {
   const monday = mondayOf(new Date());
   monday.setDate(monday.getDate() - 7);
   return formatDate(monday);
+}
+
+// JSTの暦日 "YYYY-MM-DD" が属する週の月曜日を "YYYY-MM-DD" で返す。
+// 暦日の文字列をUTCとして扱って計算するため、端末のタイムゾーンに影響されない。
+function mondayOfJSTDateString(ymd: string): string {
+  const d = new Date(`${ymd}T00:00:00Z`);
+  // getUTCDay: 日曜=0 ... 土曜=6。月曜始まりの経過日数へ変換する。
+  const offset = (d.getUTCDay() + 6) % 7;
+  d.setUTCDate(d.getUTCDate() - offset);
+  return d.toISOString().slice(0, 10);
+}
+
+// 指定日が今週（JSTの今日が属する月曜始まりの週）に含まれるかを返す。
+// 記録の開催日(event_date)は JST 0:00 をUTC変換した値で返るため、比較の前にJSTの暦日へ
+// 直してから判定する（端末のタイムゾーンのまま判定すると海外在住のユーザーで前日に寄る）。
+export function isInCurrentWeekJST(date: string | Date): boolean {
+  const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return false;
+  return (
+    mondayOfJSTDateString(toJSTDateString(d)) ===
+    mondayOfJSTDateString(todayJSTDateString())
+  );
 }
 
 // 直近 count 週分の週セレクタ選択肢を新しい週順で生成する。

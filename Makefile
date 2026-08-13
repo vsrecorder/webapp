@@ -37,7 +37,7 @@ image:
 
 .PHONY: deploy
 deploy:
-	git pull
+	git pull --ff-only
 	git fetch --prune
 	docker compose pull
 	docker compose up -d --no-deps --wait webapp

@@ -38,6 +38,10 @@ type Props = {
   // GA 計測のラベル用。
   cohortWeek?: string;
   daysSinceSignup?: number;
+  // 見出し付きのセクション（ダッシュボードの「対戦環境データ」）として置かれているか。
+  // true のときは、環境データが無い週・取得失敗でもカードを消さず空状態を描画する
+  // （見出しはサーバ側で描画されるため、ここで消すと見出しだけが宙に浮いて残る）。
+  showEmptyState?: boolean;
 };
 
 // GA 用の状態ラベル。A=ランク入りデッキを持つ / B=デッキはあるが全てランク外 / C=デッキ未登録。
@@ -598,6 +602,96 @@ function SkeletonCard() {
   );
 }
 
+// 空状態で並べるダミー行。実データの行(DeckRankRow)と同じ骨格・高さで組み、
+// 「ここに使用率ランキングが入る」ことを形で伝える。
+function DummyRankRow({ rank, barWidth }: { rank: number; barWidth: number }) {
+  return (
+    <div className="flex flex-col gap-1.5 rounded-xl bg-default-100 px-3 py-2">
+      <div className="flex items-center gap-2">
+        <RankBadge rank={rank} />
+        <DeckSprites sprites={undefined} />
+        <span className="ml-auto text-lg font-black tabular-nums text-default-300 shrink-0 leading-none">
+          --.-<span className="text-xs font-bold text-default-300">%</span>
+        </span>
+      </div>
+      <div className="flex items-center gap-2">
+        <div className="flex-1 h-1.5 rounded-full bg-default-200 overflow-hidden">
+          <div
+            className="h-full rounded-full bg-default-300"
+            style={{ width: `${barWidth}%` }}
+          />
+        </div>
+        <span className="h-5 w-15 rounded-full bg-default-200 shrink-0" />
+      </div>
+    </div>
+  );
+}
+
+// 対戦環境データがまだ無い週・取得に失敗したときの空状態。
+// ダッシュボードでは見出し(「対戦環境データ」)をサーバ側で描画しているため、ここでカードごと
+// 消すと見出しだけが残って中身が無い見た目になる。ランキングの骨格をダミーで示したうえで、
+// 何が入る場所なのかと次の一歩(記録の作成・他の週)を添える。
+function EmptyStateCard({
+  stat,
+  failed,
+}: {
+  // 取得できていれば集計期間・母数を出す。取得失敗時は null。
+  stat: WeeklyDeckUsageStatType | null;
+  failed: boolean;
+}) {
+  return (
+    <Card className="shadow-md">
+      <CardBody className="gap-3 p-4">
+        {stat != null && <BetaHeader stat={stat} />}
+
+        {/* 取得失敗時は「ランキングの体裁」だけ整っていると誤解を招くため見出しを出さない。
+            集計期間の見出し(サブタイトルの割合基準)も、出す数値が無いここでは伏せる。 */}
+        {!failed && <RankHeader title="使用率ランキング" subtitle="" />}
+        <div className="flex flex-col gap-1.5 opacity-40" aria-hidden="true">
+          {[
+            { rank: 1, barWidth: 60 },
+            { rank: 2, barWidth: 40 },
+            { rank: 3, barWidth: 25 },
+          ].map((d) => (
+            <DummyRankRow key={d.rank} rank={d.rank} barWidth={d.barWidth} />
+          ))}
+        </div>
+
+        <p className="text-center text-xs text-default-400 leading-relaxed whitespace-pre-line px-2">
+          {failed
+            ? "対戦環境データを読み込めませんでした。\n時間をおいて、もう一度お試しください。"
+            : "この週の公開可能なデータはまだありません。\n記録が集まると、使用率ランキングが表示されます。"}
+        </p>
+
+        {!failed && (
+          <div className="flex flex-col gap-1">
+            <Button
+              as={Link}
+              href="/records/create"
+              color="primary"
+              radius="full"
+              startContent={<LuFilePen className="w-4 h-4" />}
+              className="font-bold shadow-md w-full"
+            >
+              対戦記録を作成する
+            </Button>
+            <Button
+              as={Link}
+              href="/deck_meta"
+              variant="light"
+              color="default"
+              radius="full"
+              className="h-8 text-xs font-bold text-default-500"
+            >
+              他の週の対戦環境データを見る
+            </Button>
+          </div>
+        )}
+      </CardBody>
+    </Card>
+  );
+}
+
 // 自分の(識別可能な)デッキを選んで、その環境順位・あなたvs環境平均・当たりやすい相手を見せる本体。
 function SelectModeView({
   positions,
@@ -684,6 +778,7 @@ export default function EnvironmentWindowCard({
   totalRecords,
   cohortWeek,
   daysSinceSignup,
+  showEmptyState = false,
 }: Props) {
   const [stat, setStat] = useState<WeeklyDeckUsageStatType | null>(null);
   const [userDecks, setUserDecks] = useState<DeckData[] | null>(null);
@@ -832,9 +927,13 @@ export default function EnvironmentWindowCard({
     });
   }
 
-  if (failed) return null;
+  // 見出し付きセクションに置かれている場合は、データが無くても空状態のカードを出す
+  // (見出しだけが残るのを防ぐ)。プロフィール直下(pinned)は見出しが無いため従来どおり非表示。
+  if (failed) return showEmptyState ? <EmptyStateCard stat={null} failed /> : null;
   if (stat == null || userDecks == null) return <SkeletonCard />;
-  if (renderMode == null) return null;
+  // ここに来る renderMode == null は「対戦環境データが無い週」(rankable が空)のみ。
+  if (renderMode == null)
+    return showEmptyState ? <EmptyStateCard stat={stat} failed={false} /> : null;
 
   // 「その他」を除いた割合の母数。カード内の全ランキングをこの基準で表示する(deckEnv)。
   const exclOtherTotal = exclOtherTotalOf(stat);

@@ -437,11 +437,14 @@ export default async function TemplateDashboard({ userId }: Props) {
             )}
           </div>
           {combinedAtSection ? (
+            /* 見出し(「対戦環境データ」)はここで描画しているため、環境データが無い週でも
+               カードを消さず空状態を出させる(showEmptyState)。消すと見出しだけが残る。 */
             <EnvironmentWindowCard
               userId={userId}
               totalRecords={totalRecords ?? 0}
               cohortWeek={cohort.cohortWeek}
               daysSinceSignup={cohort.daysSinceSignup}
+              showEmptyState
             />
           ) : (
             <WeeklyDeckUsagePanel limit={5} />

@@ -50,7 +50,11 @@ import {
   MAX_OPPONENTS_DECK_INFO_LENGTH,
   exceedsTextLength,
 } from "@app/utils/textLength";
-import { fetchOpponentEnv, DeckEnvPosition } from "@app/utils/deckEnv";
+import {
+  fetchOpponentEnv,
+  isEnvReturnTargetDate,
+  DeckEnvPosition,
+} from "@app/utils/deckEnv";
 
 const SPRITE_BASE_URL = "https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites";
 
@@ -451,8 +455,12 @@ export default function TemplateQuickRecordCreate({
 
       // 施策E-1: 相手が先週ランキングに載っていれば、記録直後に環境ベンチマークを返す。
       // 載っていない/スプライト無し/無効時は従来どおり成功トースト＋記録詳細へ即遷移する。
+      // 「詳細」で開催日を今週より前にした遡り記録でも出さない(根拠が「先週の環境」のため)。
       const opponentSpriteIds = pokemonSprites.map((s) => s.id);
-      const env = envReturnEnabled ? await fetchOpponentEnv(opponentSpriteIds) : null;
+      const env =
+        envReturnEnabled && isEnvReturnTargetDate(eventDateISO)
+          ? await fetchOpponentEnv(opponentSpriteIds)
+          : null;
 
       // 保存も環境判定も完了。全画面ローディングオーバーレイ(z-9999)をここで畳んでから
       // 分岐する。畳む前にリターンのシートを開くと、オーバーレイがシートに被ってしまうため

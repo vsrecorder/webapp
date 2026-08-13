@@ -3,7 +3,7 @@
 // 施策E-2(環境の窓カード)と施策E-1(記録直後のリターン)で共有する。
 
 import { fingerprintKey } from "@app/utils/fingerprint";
-import { lastWeekValue } from "@app/utils/week";
+import { lastWeekValue, isInCurrentWeekJST } from "@app/utils/week";
 import {
   WeeklyDeckUsageItemType,
   WeeklyDeckUsageStatType,
@@ -42,6 +42,23 @@ export function findDeckPosition(
   const idx = rankable.findIndex((d) => d.fingerprint === fp);
   if (idx < 0) return null;
   return { rank: idx + 1, row: rankable[idx], exclOtherTotal: exclOtherTotalOf(stat) };
+}
+
+// 施策E-1: 環境リターンを出してよい記録かどうかを、記録の開催日から判定する。
+// リターンの根拠は常に「(操作日から見た)先週の対戦環境データ」なので、今週より前の対戦を
+// 遡って記録した場合は当時の環境と食い違う(当時はトップでも今は圏外、の逆もある)。
+// 開催日が今週から外れる記録では出さない。
+// 開催日は event_date、未設定(ゼロ値 0001-01-01)なら記録の作成日で見る。
+// このフォールバック順は戦績カード(RecordHero)の日付表示と揃えること。
+export function isEnvReturnTargetDate(
+  eventDate?: string,
+  createdAt?: string | Date,
+): boolean {
+  const isSet = (date?: string): date is string =>
+    !!date && !date.startsWith("0001-01-01");
+  const dateStr = isSet(eventDate) ? eventDate : createdAt?.toString();
+  if (!dateStr) return false;
+  return isInCurrentWeekJST(dateStr);
 }
 
 // 施策E-1: 相手デッキのスプライトから、先週の環境での立ち位置を引く。

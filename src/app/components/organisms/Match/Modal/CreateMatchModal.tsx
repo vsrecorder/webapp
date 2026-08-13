@@ -41,7 +41,11 @@ import { MatchCreateRequestType, MatchCreateResponseType } from "@app/types/matc
 import { GameRequestType } from "@app/types/game";
 import { PokemonSpriteType, MatchPokemonSpriteType } from "@app/types/pokemon_sprite";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
-import { fetchOpponentEnv, DeckEnvPosition } from "@app/utils/deckEnv";
+import {
+  fetchOpponentEnv,
+  isEnvReturnTargetDate,
+  DeckEnvPosition,
+} from "@app/utils/deckEnv";
 
 import { useModalDragToClose } from "@app/hooks/useModalDragToClose";
 import {
@@ -577,10 +581,17 @@ export default function CreateMatchModal({
       // 出すときはフォームを閉じずにリセットして背後に残し(「続けて追加」でそのまま入力可)、
       // その上にリターンのシートを重ねる。シートが「追加しました」を伝えるため成功トーストは出さない。
       // ただし、記録が集計対象外(ignore_stats_flg)=戦績集計に含めない設定のときは環境リターンを出さない。
+      // 今週より前の対戦を遡って記録したときも出さない(リターンの根拠は「先週の環境」なので、
+      // 過去の対戦に今の環境データを当てると事実と食い違う)。
       const includeInStats = !record?.ignore_stats_flg;
-      const envRet = includeInStats
-        ? await fetchOpponentEnv(pokemon_sprites.map((s) => s.id))
-        : null;
+      const isThisWeekRecord = isEnvReturnTargetDate(
+        record?.event_date,
+        record?.created_at,
+      );
+      const envRet =
+        includeInStats && isThisWeekRecord
+          ? await fetchOpponentEnv(pokemon_sprites.map((s) => s.id))
+          : null;
       if (envRet && envRet.hasEnvData) {
         setReturnData({
           opponentName: opponentsDeckInfo,

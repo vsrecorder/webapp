@@ -10,8 +10,32 @@ type RadarMetric = {
   value: number;
 };
 
+/*
+ * 配色。
+ * "onDark"（既定）は、地色が常に暗いカードの中に置く前提（きずな試算の内訳カード＝
+ * シェア画像）。端末がライトモードでも色を変えてはいけないため、テーマに追従させない。
+ * "adaptive" は画面のテーマに追従する（デッキ詳細ページのきずなパネル）。
+ */
+type Tone = "onDark" | "adaptive";
+
+// 線と文字は currentColor で塗り、色は text-* クラスで与える（ライト/ダークの
+// 出し分けが dark: バリアントだけで済み、書き出し時も computed style で拾われる）。
+const TONE_CLASS: Record<Tone, { grid: string; label: string; value: string }> = {
+  onDark: {
+    grid: "text-white/10",
+    label: "text-white/70",
+    value: "text-amber-400/90",
+  },
+  adaptive: {
+    grid: "text-black/10 dark:text-white/10",
+    label: "text-black/70 dark:text-white/70",
+    value: "text-amber-600 dark:text-amber-400/90",
+  },
+};
+
 type Props = {
   metrics: RadarMetric[];
+  tone?: Tone;
 };
 
 // ── 図形の定数 ────────────────────────────────────────────────
@@ -69,8 +93,9 @@ function labelAnchor(index: number, total: number) {
  * （62/47/47/37/31/31）。獲得点を軸に添えると「31点の軸が外周まで届き、
  * 40点の軸は届かない」という矛盾した読み方になる。点数は一覧側で読ませる。
  */
-export default function KizunaRadarChart({ metrics }: Props) {
+export default function KizunaRadarChart({ metrics, tone = "onDark" }: Props) {
   const total = metrics.length;
+  const color = TONE_CLASS[tone];
 
   // 全指標が実質0（きずなLv.が0）なら、値の図形そのものを描かない。
   // クランプで中心に残る極小の多角形は、値ではなく描画の都合でしかない。
@@ -114,8 +139,9 @@ export default function KizunaRadarChart({ metrics }: Props) {
             })
             .join(" ")}
           fill="none"
-          stroke="rgba(255,255,255,0.10)"
+          stroke="currentColor"
           strokeWidth="1"
+          className={color.grid}
         />
       ))}
 
@@ -129,8 +155,9 @@ export default function KizunaRadarChart({ metrics }: Props) {
             y1={CY}
             x2={p.x}
             y2={p.y}
-            stroke="rgba(255,255,255,0.10)"
+            stroke="currentColor"
             strokeWidth="1"
+            className={color.grid}
           />
         );
       })}
@@ -157,7 +184,8 @@ export default function KizunaRadarChart({ metrics }: Props) {
               textAnchor={l.anchor}
               fontSize="10"
               fontWeight="700"
-              fill="rgba(255,255,255,0.72)"
+              fill="currentColor"
+              className={color.label}
             >
               {m.label}
             </text>
@@ -168,7 +196,8 @@ export default function KizunaRadarChart({ metrics }: Props) {
               textAnchor={l.anchor}
               fontSize="9"
               fontWeight="700"
-              fill="rgba(251,191,36,0.9)"
+              fill="currentColor"
+              className={color.value}
             >
               {Math.round(m.value * 100)}%
             </text>

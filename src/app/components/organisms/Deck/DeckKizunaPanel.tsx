@@ -100,6 +100,9 @@ export default function DeckKizunaPanel({ kizuna }: Props) {
 
           {breakdownView === "radar" && (
             <KizunaRadarChart
+              // このパネルはカードの地色（＝画面のテーマ）の上に置くため、
+              // シェア画像の内訳カード（常に暗い地色）と違い配色をテーマに追従させる
+              tone="adaptive"
               metrics={kizuna.metrics.map((metric) => ({
                 key: metric.key,
                 label: kizunaMetricLabel(metric.key),

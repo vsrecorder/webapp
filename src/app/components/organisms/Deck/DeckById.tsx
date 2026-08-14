@@ -7,7 +7,7 @@ import NextLink from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 
-import { Card, CardBody, CardHeader } from "@heroui/react";
+import { Button, Card, CardBody, CardHeader } from "@heroui/react";
 import { Chip, Tabs, Tab, useDisclosure, addToast } from "@heroui/react";
 import { Link as HeroLink } from "@heroui/react";
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/dropdown";
@@ -28,6 +28,7 @@ import { LuLink } from "react-icons/lu";
 import { LuCopy } from "react-icons/lu";
 import { LuCheck } from "react-icons/lu";
 import { LuShare2 } from "react-icons/lu";
+import { LuCirclePlus } from "react-icons/lu";
 
 import { useKizunaDeck } from "@app/hooks/useKizunaLevels";
 import { useReopenFlagsOnBack } from "@app/hooks/useReopenFlagsOnBack";
@@ -59,6 +60,11 @@ import { DeckCodeType } from "@app/types/deck_code";
 import { DeckUsageItemType, DeckUsageStatType } from "@app/types/deck_usage_stat";
 
 type RecordTabKey = "all" | "official" | "tonamel" | "unofficial";
+
+// バージョン履歴の初期表示数と、「更に読み込む」1回あたりの追加数。
+// デッキコードは1回のリクエストで全件返るため、これは取得ではなく表示の段階分けだが、
+// 長く使っているデッキほど履歴が伸び、下にある対戦分析・記録一覧が遠くなるため畳む。
+const VERSIONS_PER_PAGE = 5;
 
 // 勝率に応じた色分け（DeckCard/UserStatPanel などの勝率表示と同じ閾値に合わせる）
 function winRateTextColor(rate: number): string {
@@ -164,6 +170,9 @@ export default function DeckById({ id, valueMeterEnabled = false }: Props) {
   const [deckError, setDeckError] = useState(false);
 
   const [recordTab, setRecordTab] = useState<RecordTabKey>("all");
+
+  // バージョン履歴の表示件数。新しい順に並ぶため、増やすと古いバージョンが下に伸びる。
+  const [visibleVersionCount, setVisibleVersionCount] = useState(VERSIONS_PER_PAGE);
 
   // このページの絶対URL（NFCタグに書き込む用途でコピーできるものにする）。
   // window はクライアントでのみ参照できるため、マウント後に組み立てる。
@@ -712,7 +721,7 @@ export default function DeckById({ id, valueMeterEnabled = false }: Props) {
           </CardHeader>
           <CardBody className="px-3 pt-1 pb-3">
             <ol className="flex flex-col gap-2">
-              {deckcodes.map((dc) => {
+              {deckcodes.slice(0, visibleVersionCount).map((dc) => {
                 const versionNo = getDeckCodeVersionNumber(deckcodes, dc.id);
                 const dcDate = new Date(dc.created_at).toLocaleDateString("ja-JP", {
                   year: "numeric",
@@ -776,6 +785,30 @@ export default function DeckById({ id, valueMeterEnabled = false }: Props) {
                 );
               })}
             </ol>
+
+            {/* 残りは求められたときだけ出す（表記と見た目は同ページの記録一覧に合わせる）。
+                総数が分かっているので、あと何件あるかまで出す */}
+            {deckcodes.length > visibleVersionCount && (
+              <div className="flex justify-center pt-3">
+                <Button
+                  size="sm"
+                  radius="full"
+                  className="w-48 max-w-full"
+                  onPress={() =>
+                    setVisibleVersionCount((count) => count + VERSIONS_PER_PAGE)
+                  }
+                >
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs">
+                      <LuCirclePlus />
+                    </span>
+                    <span className="font-bold text-xs">
+                      更に読み込む（残り{deckcodes.length - visibleVersionCount}件）
+                    </span>
+                  </div>
+                </Button>
+              </div>
+            )}
           </CardBody>
         </Card>
       )}

@@ -1,7 +1,7 @@
 "use client";
 
 import { SetStateAction, Dispatch } from "react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { addToast, closeToast } from "@heroui/react";
 
@@ -10,6 +10,7 @@ import { LuChartNoAxesColumn, LuCheck, LuTriangleAlert } from "react-icons/lu";
 import { RecordGetByIdResponseType } from "@app/types/record";
 import { updateIgnoreStatsFlg } from "@app/components/organisms/Record/updateIgnoreStatsFlg";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
+import { findScrollContainer, forceRepaint } from "@app/utils/scrollRepaint";
 
 type Props = {
   record: RecordGetByIdResponseType;
@@ -36,11 +37,33 @@ export default function IgnoreStatsFlgSetting({
   const [isUpdating, setIsUpdating] = useState(false);
   const excluded = record.ignore_stats_flg;
 
+  const rootRef = useRef<HTMLDivElement>(null);
+
   // 更新中フラグは親(モーダル)にも伝える。親は実行中の閉じる操作を無効化する。
   function updateIsUpdating(next: boolean) {
     setIsUpdating(next);
     onUpdatingChange?.(next);
   }
+
+  /*
+   * 集計対象に戻すと、スクロール領域(モーダル本体 / 記録詳細ページ)の先頭にある
+   * 集計対象外バナーが消えて中身が縮み、ブラウザがスクロール位置を自分で調整する。
+   * iOS ではこの調整のあと再描画が走らず、縮む前の描画が残ってズレて重なって
+   * 見える(対戦結果が崩れて見える原因)。反映後に再描画を明示的に要求して
+   * 古い描画を捨てさせる。詳細は scrollRepaint.ts のコメントを参照。
+   *
+   * バナーが増える方向(集計に含める → 集計から除外)では症状が出ないため、
+   * バナーが消えた場合だけ実行する。
+   */
+  const previouslyExcludedRef = useRef(excluded);
+  useEffect(() => {
+    const wasExcluded = previouslyExcludedRef.current;
+    previouslyExcludedRef.current = excluded;
+
+    if (!wasExcluded || excluded) return;
+
+    forceRepaint(findScrollContainer(rootRef.current) ?? document.body);
+  }, [excluded]);
 
   async function select(nextIgnore: boolean) {
     // 既に選択中の状態、または更新中は何もしない
@@ -94,7 +117,10 @@ export default function IgnoreStatsFlgSetting({
   }
 
   return (
-    <div className={flat ? "" : "rounded-2xl border border-divider bg-content1 p-3 shadow-sm"}>
+    <div
+      ref={rootRef}
+      className={flat ? "" : "rounded-2xl border border-divider bg-content1 p-3 shadow-sm"}
+    >
       {/* 見出し(ボードのパネル内ではパネル側の見出しを使うため省略) */}
       {!flat && (
         <div className="flex items-center gap-2">

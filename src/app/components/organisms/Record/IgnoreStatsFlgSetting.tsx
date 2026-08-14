@@ -10,7 +10,11 @@ import { LuChartNoAxesColumn, LuCheck, LuTriangleAlert } from "react-icons/lu";
 import { RecordGetByIdResponseType } from "@app/types/record";
 import { updateIgnoreStatsFlg } from "@app/components/organisms/Record/updateIgnoreStatsFlg";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
-import { findScrollContainer, forceRepaint } from "@app/utils/scrollRepaint";
+import {
+  applyWithScrollCompensation,
+  findScrollContainer,
+  forceRepaint,
+} from "@app/utils/scrollRepaint";
 
 type Props = {
   record: RecordGetByIdResponseType;
@@ -46,21 +50,19 @@ export default function IgnoreStatsFlgSetting({
   }
 
   /*
-   * 集計対象に戻すと、スクロール領域(モーダル本体 / 記録詳細ページ)の先頭にある
-   * 集計対象外バナーが消えて中身が縮み、ブラウザがスクロール位置を自分で調整する。
-   * iOS ではこの調整のあと再描画が走らず、縮む前の描画が残ってズレて重なって
-   * 見える(対戦結果が崩れて見える原因)。反映後に再描画を明示的に要求して
-   * 古い描画を捨てさせる。詳細は scrollRepaint.ts のコメントを参照。
-   *
-   * バナーが増える方向(集計に含める → 集計から除外)では症状が出ないため、
-   * バナーが消えた場合だけ実行する。
+   * バナーの増減に伴ってスクロール位置が動く(ブラウザ側の切り詰め・アンカリングと、
+   * select 内の applyWithScrollCompensation による補正)が、これらはユーザー操作に
+   * よるスクロールではないため、iOS では位置だけが変わって再描画が走らず、変化前の
+   * 描画が残って重なって見えることがある(対戦結果が崩れて見える原因)。
+   * 反映後に再描画を明示的に要求して古い描画を捨てさせる。
+   * 詳細は scrollRepaint.ts のコメントを参照。
    */
   const previouslyExcludedRef = useRef(excluded);
   useEffect(() => {
-    const wasExcluded = previouslyExcludedRef.current;
+    const changed = previouslyExcludedRef.current !== excluded;
     previouslyExcludedRef.current = excluded;
 
-    if (!wasExcluded || excluded) return;
+    if (!changed) return;
 
     forceRepaint(findScrollContainer(rootRef.current) ?? document.body);
   }, [excluded]);
@@ -84,9 +86,17 @@ export default function IgnoreStatsFlgSetting({
     try {
       const ret = await updateIgnoreStatsFlg(record, nextIgnore);
 
-      setRecord((prev) =>
-        prev ? { ...prev, ignore_stats_flg: ret.ignore_stats_flg } : prev,
-      );
+      /*
+       * 集計対象外バナーはスクロール領域(モーダル本体 / 記録詳細ページ)の先頭に
+       * 出入りするため、素直に反映すると中身がそのぶん上下にずれる。Chrome は
+       * スクロールアンカリングで自動補正するが iOS Safari は補正しないため、
+       * この設定カードの画面上の位置を基準に、ずれたぶんだけ自分で戻す。
+       */
+      applyWithScrollCompensation(rootRef.current, () => {
+        setRecord((prev) =>
+          prev ? { ...prev, ignore_stats_flg: ret.ignore_stats_flg } : prev,
+        );
+      });
 
       if (loadingToastKey) closeToast(loadingToastKey);
       addToast({

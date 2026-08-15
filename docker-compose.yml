@@ -2,6 +2,33 @@ services:
   webapp:
     image: vsrecorder/webapp:latest
     restart: unless-stopped
+    #
+    # メモリ上限。本番は単一VM(4vCPU/4GiB)に PostgreSQL・nginx・Grafana・
+    # 各APIサーバが同居しているため、上限が無いとリークやスパイクを起こした
+    # コンテナがホストのメモリを食い尽くし、カーネルのOOM Killerが
+    # 巻き添えで PostgreSQL を殺しうる。上限は「暴走を1コンテナに閉じ込める」
+    # ためのもので、平常時には決して当たらない値にしてある。
+    #
+    # memswap_limit を mem_limit と同値にしてスワップへの逃げを塞ぐ。
+    # 未指定だと docker は「メモリ+スワップ」を mem_limit の2倍まで許すため、
+    # 実質の上限が倍になり、スワップに落ちた分だけ応答が遅くなる。
+    #
+    # mem_reservation はソフトリミット。ホスト全体が逼迫したときに、
+    # この値を超えている分から先に回収対象となる。
+    #
+    # 1024m の根拠: 2026-08-16 の本番実測(docker stats)でコンテナ全体 243MiB
+    # (pm2 daemon + next-server×2)。OGP画像生成が日本語フォント11.5MBの読み込みと
+    # WASMでスパイクするため、平常時の約4倍を取っている。
+    #
+    # ecosystem.config.cjs の max_memory_restart(384M/プロセス)が先に働く。
+    # 2プロセスで768M + pm2 daemon 約74M = 842M となり、この mem_limit の
+    # 内側に収まる。両者は連動しているので、片方を変えるならもう片方も見直すこと。
+    #
+    # mem_reservation は実測値に合わせている。ホスト逼迫時にここまでは確保される。
+    #
+    mem_limit: 1024m
+    memswap_limit: 1024m
+    mem_reservation: 256m
     ports:
       - 3003:3003
     environment:

@@ -23,6 +23,8 @@ import {
   LuTriangleAlert,
 } from "react-icons/lu";
 
+import { sendGAEvent } from "@next/third-parties/google";
+
 import {
   captureThemedPng,
   hasUnloadedImages,
@@ -223,6 +225,9 @@ export default function PanelShareModal({
     try {
       await navigator.clipboard.writeText(text);
       setTextCopied(true);
+      // Android では画像だけを共有してポスト文はコピーで補ってもらうため、
+      // コピーも共有導線の一部として同じイベントで数える(method で区別する)。
+      sendGAEvent("event", "share", { method: "copy", content_type: filenamePrefix });
       addToast({ title: "ポスト文をコピーしました", color: "success", timeout: 2000 });
       setTimeout(() => setTextCopied(false), 1500);
     } catch {
@@ -241,6 +246,14 @@ export default function PanelShareModal({
       const shareImages = image && !captureFailed ? [image] : [];
       const result = await shareRecord(shareImages, text, {
         imagesOnlyOnAndroid: androidImagesOnly,
+      });
+
+      // GA4推奨のshareイベント。content_type には filenamePrefix(例: "user_stat")を使い、
+      // 同じモーダルを共用している分析パネルごとに分けて見られるようにする。
+      sendGAEvent("event", "share", {
+        method: "web_share",
+        content_type: filenamePrefix,
+        share_result: result,
       });
 
       if (result === "images-only") {

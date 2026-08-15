@@ -451,6 +451,13 @@ export default function TemplateQuickRecordCreate({
         with_deck: selectedDeckId !== "",
         event_type: eventType,
       });
+      // 導線を問わない記録作成のベースライン計測(RecordCreate 側と対になる)。
+      // quick_record_saved は簡素化フォーム(施策A-3)の効果測定用として別に残している。
+      sendGAEvent("event", "record_created", {
+        entry_point: "quick",
+        event_type: eventType,
+        with_deck: selectedDeckId !== "",
+      });
       triggerNotificationsRefresh();
 
       // 施策E-1: 相手が先週ランキングに載っていれば、記録直後に環境ベンチマークを返す。

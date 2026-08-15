@@ -25,6 +25,8 @@ import {
   LuTriangleAlert,
 } from "react-icons/lu";
 
+import { sendGAEvent } from "@next/third-parties/google";
+
 import RecordHero from "@app/components/organisms/Record/Hero/RecordHero";
 import Matches from "@app/components/organisms/Match/Matches";
 
@@ -551,6 +553,9 @@ export default function ShareRecordModal({
     try {
       await navigator.clipboard.writeText(text);
       setTextCopied(true);
+      // Android では画像だけを共有してポスト文はコピーで補ってもらうため、
+      // コピーも共有導線の一部として同じイベントで数える(method で区別する)。
+      sendGAEvent("event", "share", { method: "copy", content_type: "record" });
       addToast({ title: "ポスト文をコピーしました", color: "success", timeout: 2000 });
       setTimeout(() => setTextCopied(false), 1500);
     } catch {
@@ -570,6 +575,17 @@ export default function ShareRecordModal({
       const result = await shareRecord(shareImages, text, {
         imagesOnlyOnAndroid: androidImagesOnly,
       });
+
+      // GA4推奨のshareイベント。Xが主な獲得チャネルのため、共有の発生を計測しておく。
+      // share_result まで残すのは、共有シートを開けたのか(shared)、Androidの回避策で
+      // 画像だけになったのか(images-only)、環境が非対応で保存に落ちたのか(unsupported)で
+      // ユーザーの手間がまったく違い、後から分けて見たいため。
+      sendGAEvent("event", "share", {
+        method: "web_share",
+        content_type: "record",
+        share_result: result,
+      });
+
       if (result === "images-only") {
         // Android では画像だけを共有したため、ポスト文は含まれていない。
         // モーダルの「ポスト文」からコピーして貼り付けてもらうよう促す。

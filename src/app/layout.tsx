@@ -11,9 +11,11 @@ import { ensureOgImage } from "@app/utils/ogStorage";
 
 const domain = process.env.VSRECORDER_DOMAIN;
 
-const gaId = process.env.FIREBASE_MEASUREMENT_ID
-  ? process.env.FIREBASE_MEASUREMENT_ID
-  : "";
+// GA4の測定ID。Firebaseコンソールが払い出す measurementId をそのまま使っている
+// (dev/prodで別プロパティを指す)。未設定の環境では計測タグごと出さない。
+// 空文字のまま <GoogleAnalytics> を描画すると、id 無しの gtag/js を取りに行ったうえで
+// gtag('config','') まで実行してしまい、無駄なリクエストとコンソールエラーになる。
+const gaId = process.env.FIREBASE_MEASUREMENT_ID ?? "";
 
 const title = "バトレコ - ポケカプレイヤーのための対戦記録サービス";
 const description = "ポケカプレイヤーのための対戦記録サービス";
@@ -79,7 +81,11 @@ export default function RootLayout({
             __html: `(function(){try{var ua=navigator.userAgent;var isIOS=(/iPad|iPhone|iPod/.test(ua)&&!('MSStream' in window))||(ua.indexOf('Mac')>-1&&navigator.maxTouchPoints>1);var isStandalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;if(isIOS&&isStandalone){document.documentElement.setAttribute('data-ios-pwa','true');}}catch(e){}})();`,
           }}
         />
-        <GoogleAnalytics gaId={gaId} />
+        {/*
+          dev環境では debugMode を有効にし、GA4のDebugViewでイベントを即時検証できるようにする。
+          (gtag('config') に debug_mode を渡すだけで、本番の計測には影響しない)
+        */}
+        {gaId ? <GoogleAnalytics gaId={gaId} debugMode={isDevEnv()} /> : null}
         <Layout>{children}</Layout>
       </body>
     </html>

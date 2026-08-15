@@ -15,6 +15,8 @@ import {
   LuImage,
 } from "react-icons/lu";
 
+import { sendGAEvent } from "@next/third-parties/google";
+
 import SpritePickerPanel from "@app/components/molecules/SpritePickerPanel";
 import type { SpriteSlot } from "@app/components/molecules/SpritePickerPanel";
 import KizunaShareCard from "@app/components/organisms/Kizuna/KizunaShareCard";
@@ -330,6 +332,9 @@ export default function KizunaSimulator() {
     try {
       await navigator.clipboard.writeText(shareText);
       setTextCopied(true);
+      // Android では画像だけを共有してポスト文はコピーで補ってもらうため、
+      // コピーも共有導線の一部として同じイベントで数える(method で区別する)。
+      sendGAEvent("event", "share", { method: "copy", content_type: "kizuna" });
       addToast({ title: "ポスト文をコピーしました", color: "success", timeout: 2000 });
       setTimeout(() => setTextCopied(false), 1500);
     } catch {
@@ -346,6 +351,13 @@ export default function KizunaSimulator() {
     try {
       const result = await shareRecord(images, shareText, {
         imagesOnlyOnAndroid: androidImagesOnly,
+      });
+
+      // GA4推奨のshareイベント（記録・分析パネルの共有と同じ形で送る）
+      sendGAEvent("event", "share", {
+        method: "web_share",
+        content_type: "kizuna",
+        share_result: result,
       });
 
       if (result === "images-only") {

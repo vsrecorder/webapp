@@ -13,6 +13,8 @@ import { useDisclosure } from "@heroui/react";
 
 import { LuLayers } from "react-icons/lu";
 
+import { sendGAEvent } from "@next/third-parties/google";
+
 import PokemonSpriteModal from "@app/components/organisms/Match/Modal/PokemonSpriteModal";
 
 import { PokemonSpriteType, DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
@@ -190,6 +192,13 @@ export default function CreateDeckModal({
         description: "デッキに登録しました",
         color: "success",
         timeout: 3000,
+      });
+
+      // 導線を問わないデッキ登録のベースライン計測
+      // (クイックスタート経由は DeckCodeQuickStartModal 側で同じイベントを送っている)。
+      sendGAEvent("event", "deck_created", {
+        entry_point: "decks",
+        with_tags: tagIds.length > 0,
       });
 
       triggerNotificationsRefresh();

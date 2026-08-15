@@ -2,6 +2,7 @@ import { signIn } from "next-auth/react";
 import { FirebaseError } from "firebase/app";
 import { deleteUser, getAdditionalUserInfo, signInWithPopup } from "firebase/auth";
 import type { AuthProvider, UserCredential } from "firebase/auth";
+import { sendGAEvent } from "@next/third-parties/google";
 
 import { firebaseClientAuth } from "@firebase/client";
 
@@ -188,6 +189,17 @@ export const handleSignIn = async (
     }
 
     if (result.ok && !result.error) {
+      // GA4の推奨イベント(sign_up / login)。流入(utm_*)から新規登録までを
+      // 一つのプロパティ内で繋ぐための基点になるので、この2つは必ず送る。
+      //
+      // 直後に window.location.href で画面ごと遷移するが、gtag は送信に sendBeacon を
+      // 使うため遷移が始まってもビーコンは飛ぶ。ただし順序は必ず「送信 → 遷移」にすること。
+      const additionalUserInfo = getAdditionalUserInfo(credential);
+      sendGAEvent("event", additionalUserInfo?.isNewUser ? "sign_up" : "login", {
+        // GA4推奨の method パラメータ。値は "google.com" / "twitter.com" 等
+        method: additionalUserInfo?.providerId ?? "unknown",
+      });
+
       // 成功。サーバ側で発行されたセッションを読み込ませるため画面ごと遷移する
       window.location.href = result.url ?? redirectPathname;
       return result;

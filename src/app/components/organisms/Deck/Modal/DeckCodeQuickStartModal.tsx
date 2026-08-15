@@ -174,6 +174,9 @@ export default function DeckCodeQuickStartModal({ isOpen, onOpenChange }: Props)
       if (toastId) closeToast(toastId);
 
       sendGAEvent("event", "cta_quickstart_deck_created", {});
+      // 導線を問わないデッキ登録のベースライン計測(CreateDeckModal 側と対になる)。
+      // cta_quickstart_deck_created は施策A-2の効果測定用として別に残している。
+      sendGAEvent("event", "deck_created", { entry_point: "quickstart" });
       triggerNotificationsRefresh();
 
       // 作成したデッキを選択済みにして、そのまま簡素化フォームへ直行する。

@@ -45,6 +45,7 @@ import { Skeleton } from "@heroui/react";
 import { addToast, closeToast } from "@heroui/react";
 
 import { useRouter } from "next/navigation";
+import { sendGAEvent } from "@next/third-parties/google";
 
 import { useReopenFlagsOnBack } from "@app/hooks/useReopenFlagsOnBack";
 import { DECK_MODAL_REOPEN_KEYS } from "@app/utils/deckModalReopen";
@@ -1073,6 +1074,20 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
         timeout: 3000,
       });
 
+      // 記録作成のベースライン計測。導線(通常フォーム/クイック記録)を問わず
+      // 「記録が作られた」ことを1つのイベントで追えるようにしておく。
+      // 施策単位の quick_record_saved とは目的が違うので、両方送る。
+      sendGAEvent("event", "record_created", {
+        entry_point: "form",
+        event_type:
+          record.official_event_id !== 0
+            ? "official"
+            : record.tonamel_event_id !== ""
+              ? "tonamel"
+              : "unofficial",
+        with_deck: record.deck_id !== "" || record.deck_code_id !== "",
+      });
+
       triggerNotificationsRefresh();
 
       router.push("/records/" + ret.id);
@@ -1171,6 +1186,20 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
         description: "記録を作成しました",
         color: "success",
         timeout: 3000,
+      });
+
+      // 記録作成のベースライン計測。導線(通常フォーム/クイック記録)を問わず
+      // 「記録が作られた」ことを1つのイベントで追えるようにしておく。
+      // 施策単位の quick_record_saved とは目的が違うので、両方送る。
+      sendGAEvent("event", "record_created", {
+        entry_point: "form",
+        event_type:
+          record.official_event_id !== 0
+            ? "official"
+            : record.tonamel_event_id !== ""
+              ? "tonamel"
+              : "unofficial",
+        with_deck: record.deck_id !== "" || record.deck_code_id !== "",
       });
 
       triggerNotificationsRefresh();
@@ -1298,6 +1327,20 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
         description: "記録を作成しました",
         color: "success",
         timeout: 3000,
+      });
+
+      // 記録作成のベースライン計測。導線(通常フォーム/クイック記録)を問わず
+      // 「記録が作られた」ことを1つのイベントで追えるようにしておく。
+      // 施策単位の quick_record_saved とは目的が違うので、両方送る。
+      sendGAEvent("event", "record_created", {
+        entry_point: "form",
+        event_type:
+          record.official_event_id !== 0
+            ? "official"
+            : record.tonamel_event_id !== ""
+              ? "tonamel"
+              : "unofficial",
+        with_deck: record.deck_id !== "" || record.deck_code_id !== "",
       });
 
       triggerNotificationsRefresh();

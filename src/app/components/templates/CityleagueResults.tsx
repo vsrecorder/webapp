@@ -26,9 +26,15 @@ type Props = {
   // 過去の結果を探す導線。サーバコンポーネントのまま受け取るため、props で差し込む。
   // タブが fixed で画面上部に固定されているため、タブの下（スクロール領域の先頭）に置く。
   browseSection?: React.ReactNode;
+  // 個別ページへのリンク集。上のタブは結果をその場に展開するだけでリンクを持たないため、
+  // 個別ページへの導線をここで補う。タブの表示を邪魔しないよう末尾に置く。
+  latestSection?: React.ReactNode;
 };
 
-export default function TemplateCityleagueResults({ browseSection }: Props) {
+export default function TemplateCityleagueResults({
+  browseSection,
+  latestSection,
+}: Props) {
   // SSR と初回クライアントレンダリングを一致させるため、初期値は必ず "league_type_1" にする。
   // 実際の復元はマウント後の useEffect で行う（ハイドレーション不整合の回避）。
   const [selectedKey, setSelectedKey] = useState<TabKey>("league_type_1");
@@ -100,6 +106,8 @@ export default function TemplateCityleagueResults({ browseSection }: Props) {
       <div className="w-full" hidden={selectedKey !== "league_type_2"}>
         <CityleagueResults league_type={2} />
       </div>
+
+      {latestSection}
     </>
   );
 }

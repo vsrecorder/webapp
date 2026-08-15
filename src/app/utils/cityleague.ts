@@ -124,6 +124,56 @@ export async function getCityleagueEventsInTerm(
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
+/**
+ * 結果が登録済みのシティリーグを、新しい順に limit 件返す。
+ *
+ * 一覧トップから個別ページへ直接リンクするために使う。一覧のタブは結果そのものを
+ * その場で展開する作りで個別ページへのリンクを持たないため、ここが個別ページへの
+ * 最も浅い入口になる（トップ → 一覧 → 個別 の深さ2）。
+ */
+export async function getLatestCityleagueEvents(
+  limit: number,
+): Promise<OfficialEventType[]> {
+  const eventRefs = await getAllCityleagueEventRefs();
+
+  if (eventRefs.length === 0) return [];
+
+  // 結果の登録は開催から数日遅れるうえ、シーズンの合間は開催自体が無い。
+  // 今日を起点にすると空振りするため、結果がある最新の開催日を起点にする。
+  const latestTime = eventRefs.reduce(
+    (max, ref) => Math.max(max, new Date(ref.date).getTime()),
+    0,
+  );
+  const latestDate = new Date(latestTime);
+
+  // シティリーグは週末に集中するため、90日遡れば limit 件はまず満たせる。
+  const fromDate = new Date(latestTime);
+  fromDate.setDate(fromDate.getDate() - 90);
+
+  const events = await getCityleagueEventsInTerm(fromDate, latestDate);
+
+  return events.slice(0, limit);
+}
+
+/**
+ * 指定イベントと同じ月に開催された、結果が登録済みの他のシティリーグを limit 件返す。
+ *
+ * 個別ページ同士を横に繋ぐために使う。これが無いと個別ページへの内部リンクは
+ * 開催月ハブからの1本だけになり、クローラが個別ページ間を辿れない。
+ */
+export async function getRelatedCityleagueEvents(
+  event: OfficialEventType,
+  limit: number,
+): Promise<OfficialEventType[]> {
+  const term = monthKeyToTerm(toMonthKey(event.date));
+
+  if (!term) return [];
+
+  const events = await getCityleagueEventsInTerm(term.fromDate, term.toDate);
+
+  return events.filter((related) => related.id !== event.id).slice(0, limit);
+}
+
 // 期間の配列から、指定日を含むものを返す。シーズン・環境の判定に使う。
 export function findTermByDate(
   terms: CityleagueTerm[],

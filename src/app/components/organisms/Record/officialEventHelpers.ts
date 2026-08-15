@@ -5,7 +5,7 @@ const ICON_BASE = "https://xx8nnpgt.user.webaccel.jp/images/icons/";
 // 公式イベントのタイトルから店舗名接頭辞・リーグ種別の注記などの冗長な部分を取り除く。
 // 一覧カード・戦績カード・詳細カード・カレンダー・シェア文で共有する整形処理。
 export function cleanOfficialEventTitle(title: string): string {
-  return title
+  const cleaned = title
     .replace(/【.*?】ポケモンカードジム\s*/g, "")
     .replace(/【.*?】エクストラバトルの日/g, "エクストラバトルの日")
     .replace(/【.*?】ポケモンカードゲーム　/g, "")
@@ -15,9 +15,14 @@ export function cleanOfficialEventTitle(title: string): string {
     .replace(/（マスターリーグ）/g, "")
     .replace(/（シニアリーグ）/g, "")
     .replace(/（ジュニアリーグ）/g, "")
-    .replace(/（スタンダード）/g, "")
-    .replace(/（.*?）/g, "")
-    .trim();
+    .replace(/（スタンダード）/g, "");
+
+  // スクランブルバトルの括弧は「（ソロバトル）」「（トリオバトル）」のように
+  // 同じ会場で並行開催される種目を表すため、消すと別イベントが同名になってしまう。
+  // リーグ・レギュレーションの注記は上で除去済みなので、残りはそのまま残す。
+  if (cleaned.includes("スクランブルバトル")) return cleaned.trim();
+
+  return cleaned.replace(/（.*?）/g, "").trim();
 }
 
 // PJCS(ポケモンジャパンチャンピオンシップス)かどうかを判定する。

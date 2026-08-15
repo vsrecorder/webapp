@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import CityleagueBrowseSection from "@app/components/organisms/Cityleague/CityleagueBrowseSection";
+import CityleagueLatestSection from "@app/components/organisms/Cityleague/CityleagueLatestSection";
 import TemplateCityleagueResults from "@app/components/templates/CityleagueResults";
 
 import { OG_SIZE, renderCityleagueListOgImage } from "@app/utils/ogImage";
@@ -42,5 +43,10 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Page() {
-  return <TemplateCityleagueResults browseSection={<CityleagueBrowseSection />} />;
+  return (
+    <TemplateCityleagueResults
+      browseSection={<CityleagueBrowseSection />}
+      latestSection={<CityleagueLatestSection />}
+    />
+  );
 }

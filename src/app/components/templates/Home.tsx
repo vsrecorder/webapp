@@ -1,4 +1,4 @@
-import { Suspense } from "react";
+import { Suspense, type ReactNode } from "react";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -99,7 +99,17 @@ async function getCityleagueScheduleByDate(date: Date): Promise<CityleagueSchedu
   }
 }
 
-const features = [
+// href を持つ機能は、紹介から実物へ直接飛べるようにする（レンダリング側でリンクを出す）。
+// 未ログインでも見られるページに限る。型注釈を付けているのは、href を持つ要素と
+// 持たない要素が混在すると配列リテラルの推論から href が落ちるため。
+const features: {
+  icon: ReactNode;
+  title: string;
+  description: ReactNode;
+  href?: string;
+  linkLabel?: string;
+  images: { src: string; rotateClass: string }[];
+}[] = [
   {
     icon: <LuLayers />,
     title: "デッキを管理",
@@ -169,6 +179,10 @@ const features = [
         環境の最前線をいつでも把握できます。
       </>
     ),
+    // ログイン不要で見られるうえ、個別ページを7,000件以上抱えるセクション。
+    // ここがトップページから /cityleague_results への導線になる。
+    href: "/cityleague_results",
+    linkLabel: "シティリーグ結果を見る",
     images: [
       {
         src: "https://xx8nnpgt.user.webaccel.jp/images/icons/cityleague_results.png",
@@ -452,6 +466,15 @@ export default function TemplateHome() {
                     <p className="text-sm lg:text-base text-default-500 leading-relaxed max-w-xs lg:max-w-sm">
                       {feature.description}
                     </p>
+                    {feature.href && (
+                      <Link
+                        href={feature.href}
+                        className="group inline-flex items-center gap-1 pt-1 font-bold text-sm lg:text-base text-primary hover:underline"
+                      >
+                        {feature.linkLabel}
+                        <LuChevronRight className="shrink-0 transition-transform group-hover:translate-x-0.5" />
+                      </Link>
+                    )}
                   </div>
                 </div>
 

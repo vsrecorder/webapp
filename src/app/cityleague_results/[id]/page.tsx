@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import CityleagueRelatedSection from "@app/components/organisms/Cityleague/CityleagueRelatedSection";
 import TemplateCityleagueResultByOfficialEventId from "@app/components/templates/CityleagueResultByOfficialEventId";
 
 import { OfficialEventType } from "@app/types/official_event";
@@ -151,6 +152,7 @@ export default async function Page({ params }: Props) {
       <TemplateCityleagueResultByOfficialEventId
         event={event}
         cityleagueResult={cityleagueResult}
+        relatedSection={<CityleagueRelatedSection event={event} />}
       />
     </>
   );

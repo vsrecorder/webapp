@@ -21,6 +21,8 @@ import { safeExternalUrl } from "@app/utils/url";
 type Props = {
   event: OfficialEventType;
   cityleagueResult: CityleagueResultType;
+  // 同じ月の他会場・各ハブへのリンク。サーバコンポーネントのまま受け取るため props で差し込む。
+  relatedSection?: React.ReactNode;
 };
 
 // 順位ごとのセクション定義。accentはカード枠線の色（CityleagueResultCard）と揃える。
@@ -76,6 +78,7 @@ function buildSections(results: Result[]): Section[] {
 export default function CityleagueResultByOfficialEventId({
   event,
   cityleagueResult,
+  relatedSection,
 }: Props) {
   const date = new Date(event.date).toLocaleString("ja-JP", {
     timeZone: "Asia/Tokyo",
@@ -89,6 +92,17 @@ export default function CityleagueResultByOfficialEventId({
   const deckCodeCount = cityleagueResult.results.filter(
     (result) => !!result.deck_code,
   ).length;
+
+  const winner = cityleagueResult.results.find((result) => result.rank === 1);
+
+  // 検索結果から直接開かれたとき、何のページなのかを冒頭の1文で伝える。
+  // 会場・日付・優勝者・件数が入るためページごとに内容が変わり、
+  // 入賞者名の羅列しか無かった本文の薄さも補える。
+  const summary =
+    `${date}に${event.prefecture_name}の${event.shop_name}で開催された` +
+    `${event.title}（${event.league_title}リーグ / 環境『${event.environment_title}』）の結果です。` +
+    (winner ? `優勝は${winner.player_name}選手。` : "") +
+    `入賞${cityleagueResult.results.length}名のうち、${deckCodeCount}名のデッキコードを掲載しています。`;
 
   return (
     <div className="flex flex-col gap-3 pt-1 pb-3">
@@ -169,6 +183,8 @@ export default function CityleagueResultByOfficialEventId({
             </div>
           </div>
 
+          <p className="text-tiny leading-relaxed text-default-500">{summary}</p>
+
           <HeroLink
             isExternal
             showAnchorIcon
@@ -202,6 +218,8 @@ export default function CityleagueResultByOfficialEventId({
           </div>
         </section>
       ))}
+
+      {relatedSection}
     </div>
   );
 }

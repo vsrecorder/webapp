@@ -321,14 +321,16 @@ export default function CityleagueResults({ league_type }: Props) {
         {isInitialLoaded && isLoading && <Spinner size="lg" className="pt-0" />}
 
         {isInitialLoaded && !isLoading && hasMore && (
-          <Button size="sm" radius="full" onPress={loadMore} className="w-48 max-w-full">
-            <div className="flex items-center gap-1">
-              <span className="text-xs">
-                <LuCirclePlus />
-              </span>
-              <span className="font-bold text-xs">更に読み込む</span>
-            </div>
-          </Button>
+          <div className="flex justify-center">
+            <Button size="sm" radius="full" onPress={loadMore} className="w-48 max-w-full">
+              <div className="flex items-center gap-1">
+                <span className="text-xs">
+                  <LuCirclePlus />
+                </span>
+                <span className="font-bold text-xs">更に読み込む</span>
+              </div>
+            </Button>
+          </div>
         )}
       </div>
     </div>

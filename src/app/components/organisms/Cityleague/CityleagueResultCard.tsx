@@ -236,8 +236,17 @@ export default function CityleagueResultCard({ result, showRankLabel = true }: P
           <CardBody className="px-3 pb-3 pt-2">
             {/* デッキ画像を主役として大きく見せる */}
             {result.deck_code ? (
-              // カード内ではタップで詳細モーダルを開くため、画像タップのZoomは無効化する
-              <ZoomableDeckImage code={result.deck_code} disableZoom />
+              <>
+                {/* カード内ではタップで詳細モーダルを開くため、画像タップのZoomは無効化する */}
+                <ZoomableDeckImage code={result.deck_code} disableZoom />
+
+                {/* デッキコードはこれまでモーダルの中にしか無く、閉じている間は
+                    HTMLにも載っていなかった。カード表面にも出すことで、開かずに
+                    読めるようにする（デッキの中身はCDNの画像で、文字では追えないため）。 */}
+                <span className="pt-1.5 text-center text-tiny text-default-400">
+                  デッキコード {result.deck_code}
+                </span>
+              </>
             ) : (
               <div className="relative w-full aspect-2/1">
                 {!imageLoaded && (

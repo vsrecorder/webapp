@@ -29,10 +29,12 @@ const LIMIT = 20;
 export default async function CityleagueRelatedSection({ event }: Props) {
   const monthKey = toMonthKey(event.date);
 
+  // 関連リンクは本文の付随物なので、取得に失敗してもページ本体は出す
+  // （getJson は障害時に例外を投げる）。出せる軸だけ出す。
   const [relatedEvents, seasons, environments] = await Promise.all([
-    getRelatedCityleagueEvents(event, LIMIT),
-    getCityleagueSeasons(),
-    getEnvironments(),
+    getRelatedCityleagueEvents(event, LIMIT).catch(() => []),
+    getCityleagueSeasons().catch(() => []),
+    getEnvironments().catch(() => []),
   ]);
 
   const season = findTermByDate(seasons, event.date);

@@ -21,7 +21,16 @@ async function getJson<T>(path: string): Promise<T | null> {
     next: { revalidate: REVALIDATE_SECONDS },
   });
 
-  if (!res.ok) return null;
+  // 404 は「本当に存在しない」ので null を返し、呼び出し元の notFound() に流す。
+  if (res.status === 404) return null;
+
+  // それ以外の失敗は一時的な障害の可能性がある。ここで null を返すと notFound() に
+  // 流れ、生きているページが noindex 付きで返る。noindex は 404 や 500 と違って
+  // 「意図的にインデックスするな」という指示なので、障害中にクロールされた分だけ
+  // 検索結果から外れてしまう。例外にして 500 を返し、クローラに再訪させる。
+  if (!res.ok) {
+    throw new Error(`core-apiserver responded ${res.status}: ${path}`);
+  }
 
   return res.json();
 }

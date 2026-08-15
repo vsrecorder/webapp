@@ -13,7 +13,9 @@ import { getLatestCityleagueEvents } from "@app/utils/cityleague";
 const LIMIT = 100;
 
 export default async function CityleagueLatestSection() {
-  const events = await getLatestCityleagueEvents(LIMIT);
+  // 一覧トップはタブ側のコンテンツで成立するため、ここの取得失敗でページ全体を
+  // 落とさない（getJson は障害時に例外を投げる）。セクションを出さないに留める。
+  const events = await getLatestCityleagueEvents(LIMIT).catch(() => []);
 
   if (events.length === 0) return null;
 

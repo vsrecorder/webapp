@@ -51,6 +51,9 @@ export function cityleagueRankBorderClass(rank: number): string {
       return "border-orange-700 bg-orange-100 dark:bg-orange-900/30";
     case 5:
       return "border-blue-500 bg-blue-50 dark:bg-blue-900/30";
+    case 9:
+      // 順位バッジ(cityleagueRankBadgeClass)のベスト16が emerald なので枠も揃える。
+      return "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30";
     default:
       return "";
   }

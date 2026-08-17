@@ -29,9 +29,9 @@ type Props = {
 // 閾値ではなく画像で実績を表現するため、BadgeGallery/OnboardingBadgePanelとは別コンポーネントとして
 // 独立させている。
 
-// 1行3列で表示し、多い場合は初期表示を2行分に折りたたむ。
+// 1行3列で表示し、多い場合は初期表示を3行分に折りたたむ。
 const COLUMN_COUNT = 3;
-const INITIAL_VISIBLE_ROWS = 2;
+const INITIAL_VISIBLE_ROWS = 3;
 const INITIAL_VISIBLE_COUNT = COLUMN_COUNT * INITIAL_VISIBLE_ROWS;
 
 // "/"区切りやスペース区切りのタイトル(例:「スタン/ローテ」「シティリーグ 2024」)は

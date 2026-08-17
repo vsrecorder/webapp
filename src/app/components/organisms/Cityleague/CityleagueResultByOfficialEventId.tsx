@@ -31,7 +31,7 @@ const RANK_SECTIONS: { rank: number; label: string; accent: string }[] = [
   { rank: 2, label: "🥈 準優勝", accent: "bg-default-400" },
   { rank: 3, label: "🥉 ベスト4", accent: "bg-orange-700" },
   { rank: 5, label: "ベスト8", accent: "bg-blue-500" },
-  { rank: 9, label: "ベスト16", accent: "bg-default-300" },
+  { rank: 9, label: "ベスト16", accent: "bg-emerald-500" },
 ];
 
 type Section = {

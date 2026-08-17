@@ -29,11 +29,13 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 const CATEGORY_ORDER = ["milestone", "streak"];
 
-// マイルストーンは記録数・デッキ数・対戦数の3系統がそれぞれ独立した昇格トラックのため、
+// マイルストーンは記録数・デッキコード数・対戦数の3系統がそれぞれ独立した昇格トラックのため、
 // criteria_type ごとに分けて1系統=1行の「左→右」の流れとして見せる。
+// デッキ系のcriteria_typeは、オンボーディングの「初デッキ」が deck_count なのに対し
+// マイルストーンは deck_code_count(デッキコードの登録数)で別物なので取り違えないこと。
 const MILESTONE_SUBGROUP_LABELS: Record<string, string> = {
   record_count: "記録数",
-  deck_count: "デッキ数",
+  deck_code_count: "デッキコード数",
   match_count: "対戦数",
 };
 
@@ -188,8 +190,6 @@ export default function BadgeGallery({ userId, championshipSeries }: Props) {
     return <FetchError message="バッジの取得に失敗しました" onRetry={loadBadges} />;
   }
 
-  const achievedCount = badges?.filter((b) => b.achieved).length ?? 0;
-
   const grouped = CATEGORY_ORDER.map((category) => ({
     category,
     label: CATEGORY_LABELS[category] ?? category,
@@ -198,12 +198,18 @@ export default function BadgeGallery({ userId, championshipSeries }: Props) {
       .sort((a, b) => a.criteria_value - b.criteria_value),
   })).filter((g) => g.badges.length > 0);
 
+  // APIはonboarding系も含む全バッジを返すが、それらは「はじめの一歩」(OnboardingBadgePanel)
+  // 側に並ぶ。獲得数はこのカードに実際に表示されているバッジだけで数えないと、
+  // 画面上のタイル数と分母が食い違う。
+  const visibleBadges = grouped.flatMap((g) => g.badges);
+  const achievedCount = visibleBadges.filter((b) => b.achieved).length;
+
   return (
     <Card className="shadow-md">
       <CardBody className="p-4 flex flex-col gap-4">
         <div className="flex items-center justify-between gap-2">
           <span className="text-xs font-bold text-default-500 shrink-0">
-            獲得数 {achievedCount} / {badges?.length ?? 0}
+            獲得数 {achievedCount} / {visibleBadges.length}
           </span>
           <div className="relative inline-block shrink-0">
             <select

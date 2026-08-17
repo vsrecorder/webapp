@@ -29,6 +29,11 @@ import ZoomableDeckImage from "@app/components/atoms/ZoomableDeckImage";
 import BoardPanel from "@app/components/organisms/Record/BoardPanel";
 
 import { Result } from "@app/types/cityleague_result";
+import {
+  cityleagueRankBadgeClass,
+  cityleagueRankBorderClass,
+  cityleagueRankLabel,
+} from "@app/utils/cityleagueRank";
 
 type Props = {
   result: Result;
@@ -134,57 +139,11 @@ export default function CityleagueResultCard({ result, showRankLabel = true }: P
   */
   }
 
-  const getRankLabel = (rank: number, withMedal: boolean) => {
-    switch (rank) {
-      case 1:
-        return withMedal ? "🥇 優勝" : "優勝";
-      case 2:
-        return withMedal ? "🥈 準優勝" : "準優勝";
-      case 3:
-        return withMedal ? "🥉 ベスト4" : "ベスト4";
-      case 5:
-        return "ベスト8";
-      case 9:
-        return "ベスト16";
-      default:
-        return "";
-    }
-  };
-
-  const getBorderColor = (rank: number) => {
-    switch (rank) {
-      case 1:
-        // ダークモードでは淡色背景に白文字が埋もれるため、背景を暗いトーンに切り替える
-        return "border-amber-400 bg-amber-50 dark:bg-amber-900/30";
-      case 2:
-        return "border-default-400 bg-default-100";
-      case 3:
-        return "border-orange-700 bg-orange-100 dark:bg-orange-900/30";
-      case 5:
-        return "border-blue-500 bg-blue-50 dark:bg-blue-900/30";
-      //return "border-green-500 bg-green-50 dark:bg-green-900/30";
-      default:
-        return "";
-    }
-  };
-
-  // 順位バッジの塗り色。絵文字メダルに加え、背景色でも順位を区別できるようにする。
-  const getRankBadgeClass = (rank: number) => {
-    switch (rank) {
-      case 1:
-        return "bg-amber-400 text-amber-950";
-      case 2:
-        return "bg-zinc-300 text-zinc-800";
-      case 3:
-        return "bg-orange-400 text-orange-950";
-      case 5:
-        return "bg-blue-500 text-white";
-      case 9:
-        return "bg-emerald-500 text-white";
-      default:
-        return "bg-default-200 text-default-700";
-    }
-  };
+  // 順位の見え方(ラベル・枠色・バッジ色)はトレーナー情報ページの「入賞したシティリーグ」
+  // (PlayerCityleagueResults)と共通のため utils/cityleagueRank に集約している。
+  const getRankLabel = cityleagueRankLabel;
+  const getBorderColor = cityleagueRankBorderClass;
+  const getRankBadgeClass = cityleagueRankBadgeClass;
 
   return (
     <>

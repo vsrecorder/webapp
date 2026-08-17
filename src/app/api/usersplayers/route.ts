@@ -25,6 +25,18 @@ function makeToken(uid: string): string {
   return jwt.sign(jwtPayload, jwtSecret, jwtSignOptions);
 }
 
+// 未連携(上流404)は null を200で返す。「まだ連携していない」は大多数のユーザにとっての
+// 通常状態であって異常ではなく、404で返すとブラウザが画面を開くたびにアクセスログへ4xxを積む。
+//
+// このパスはブラウザが直接叩くため、その404はエンドユーザのグローバルIPで記録され、
+// fail2ban の nginx-http jail(403/404/444 を600秒に20回でban)のカウント対象になる。
+// 実ログ(2026-08-16〜17)では1端末が10分間に16回まで到達しており、閾値20まで余裕が4回しか
+// 無かった。現状は filter.d/nginx-http.conf の除外パターンで救われているが、除外の綴りが
+// 1文字ずれるだけで正常なユーザが80/443ごとbanされる。除外に頼らず、ここで404を出さない。
+//
+// 呼び出し側(PlayerLinkCard・DesignationPanel・UserProfileCard)はいずれも
+// `r.ok ? r.json() : null` で受けているため、200+null でも従来と同じ「未連携」表示になる。
+// 同じ理由の200化は /api/cityleague_schedules・/api/usersplayers/cityleague_results でも行っている。
 export async function GET() {
   const session = await auth();
   if (!session) {
@@ -40,6 +52,10 @@ export async function GET() {
       Accept: "application/json",
     },
   });
+
+  if (res.status === 404) {
+    return NextResponse.json(null, { status: 200 });
+  }
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));

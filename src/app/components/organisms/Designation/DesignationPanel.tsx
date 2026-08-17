@@ -15,6 +15,7 @@ import {
 import { LuLock, LuTriangleAlert } from "react-icons/lu";
 
 import FetchError from "@app/components/molecules/FetchError";
+import PlayerCityleagueResults from "@app/components/organisms/Cityleague/PlayerCityleagueResults";
 
 import {
   DesignationLadderItemType,
@@ -387,6 +388,20 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
             );
           })}
         </div>
+
+        {/*
+          入賞したシティリーグのデッキ。ベテラン〜名人の称号はこれらの入賞で判定されるため、
+          ランク・称号ラダーと同じシーズン選択のまま続けて見られるようここに置く。
+          プレイヤーズクラブ未連携(および連携機能の停止中)のユーザには判定材料が無いので出さない。
+        */}
+        {isPlayerLinked === true && (
+          <div className="border-t border-default-100 pt-4">
+            <PlayerCityleagueResults
+              season={season}
+              seasonLabel={seasonOptions.find((opt) => opt.value === season)?.label}
+            />
+          </div>
+        )}
       </CardBody>
 
       <Modal isOpen={isOpen} onOpenChange={onOpenChange} placement="center" size="sm">

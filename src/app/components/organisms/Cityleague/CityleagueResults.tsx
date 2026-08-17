@@ -4,12 +4,13 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 
 import { Spinner } from "@heroui/spinner";
-import { Button, Skeleton } from "@heroui/react";
+import { Button } from "@heroui/react";
 
 import { LuCirclePlus, LuTrophy, LuCalendar } from "react-icons/lu";
 
 import CityleagueResult from "@app/components/organisms/Cityleague/CityleagueResult";
 import { CityleagueResultSkeletons } from "@app/components/organisms/Cityleague/Skeleton/CityleagueResultSkeleton";
+import CityleagueScheduleHeaderSkeleton from "@app/components/organisms/Cityleague/Skeleton/CityleagueScheduleHeaderSkeleton";
 
 import {
   CityleagueResultGetResponseType,
@@ -264,11 +265,7 @@ export default function CityleagueResults({ league_type }: Props) {
         )}
       {/* スケジュール情報ヘッダー */}
       {!isScheduleInitialized ? (
-        <div className="w-full rounded-2xl bg-default-100 px-4 py-4 flex flex-col items-center gap-3">
-          <Skeleton className="h-3 w-16 rounded-full" />
-          <Skeleton className="h-4 w-52 rounded-lg" />
-          <Skeleton className="h-3 w-36 rounded-lg" />
-        </div>
+        <CityleagueScheduleHeaderSkeleton />
       ) : schedule ? (
         <div className="w-full rounded-2xl bg-violet-500/15 border border-violet-500/30 px-4 py-4 flex flex-col items-center gap-1.5">
           <div className="flex items-center gap-1.5">

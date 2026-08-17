@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+
 import type { Metadata } from "next";
 
 import CityleagueBrowseSection from "@app/components/organisms/Cityleague/CityleagueBrowseSection";
@@ -42,11 +44,20 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function Page() {
+export default function Page() {
   return (
     <TemplateCityleagueResults
       browseSection={<CityleagueBrowseSection />}
-      latestSection={<CityleagueLatestSection />}
+      // CityleagueLatestSection は core-apiserver へ2往復する（全イベント一覧 → 期間内のイベント）。
+      // Suspense で包まないとこのページ全体がその往復を待ってから描画されるため、
+      // loading.tsx の骨格からタブ・一覧へ切り替わるのがまるごと遅れる。
+      // ページ末尾のリンク集で初期表示に要らないので、後から流し込む。
+      // events が0件のとき自身が null を返す作りなので、fallback も同じく何も出さない。
+      latestSection={
+        <Suspense fallback={null}>
+          <CityleagueLatestSection />
+        </Suspense>
+      }
     />
   );
 }

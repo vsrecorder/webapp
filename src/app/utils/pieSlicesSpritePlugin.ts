@@ -1,6 +1,6 @@
 "use client";
 
-import type { Chart, Plugin } from "chart.js";
+import type { ArcElement, Chart, Plugin } from "chart.js";
 import { getRelativePosition } from "chart.js/helpers";
 
 import { spriteDrawRect } from "@app/utils/spriteFit";
@@ -25,6 +25,47 @@ type ArcGeometry = {
   outerRadius: number;
   innerRadius: number;
 };
+
+// バッジの配置に使う、1スライス分の幾何情報
+type SliceGeometry = {
+  x: number;
+  y: number;
+  outerRadius: number;
+  // バッジを置く基準になる中心角。入場アニメの途中経過ではなく最終角度を使う
+  midAngle: number;
+  // 入場アニメでこのスライスがどこまで描かれたか(0=まだ無い, 1=描き切った)
+  revealRatio: number;
+};
+
+/*
+ * バッジ配置用の幾何情報を取り出す。
+ *
+ * 角度だけはアニメーションの最終値(getPropsの第2引数=true)を読む。chart.jsの入場アニメは
+ * 全スライスを角度0(12時方向)から扇状に開いていくため、途中経過の角度をそのまま使うと
+ * 全バッジが12時付近に集まった状態から始まり、衝突解消で外周へ押し出されながら
+ * 各スライスの最終位置まで円周上を大きく滑って動いてしまう（スプライトがずれながら現れる）。
+ * 最終角度で置けばバッジは最初から最後まで動かず、その場で現れるだけになる。
+ *
+ * 一方で中心(x,y)と半径は現在値のままにする。これらは入場アニメでは変化せず、
+ * 詳細カードの開閉などで円の大きさ・位置が変わるときだけ動くため、現在値を使った方が
+ * 円の変化にバッジが追従する。
+ */
+function getSliceGeometry(el: ArcElement): SliceGeometry {
+  const final = el.getProps(["startAngle", "endAngle", "circumference"], true);
+  const finalCircumference = final.circumference ?? 0;
+  const drawnCircumference = el.circumference ?? 0;
+
+  return {
+    x: el.x,
+    y: el.y,
+    outerRadius: el.outerRadius,
+    midAngle: (final.startAngle + final.endAngle) / 2,
+    revealRatio:
+      finalCircumference > 0
+        ? Math.min(1, Math.max(0, drawnCircumference / finalCircumference))
+        : 1,
+  };
+}
 
 // 画像はスライス間・呼び出し間で使い回すためモジュールスコープでキャッシュする
 const imageCache = new Map<string, HTMLImageElement>();
@@ -127,20 +168,26 @@ const BADGE_OUTLINE_DARK = "rgba(255, 255, 255, 0.25)";
 // 寸法・配置を確定させる前の段階ではこの形で保持する。
 type PendingBadge = {
   index: number;
-  images: HTMLImageElement[];
-  arc: ArcGeometry;
+  // レイアウトに使うスプライトの枠数。画像の読み込み状況に依存させない
+  spriteCount: number;
+  // 画像が全て読み込めていれば描画対象。1枚でも未読み込みなら null（位置だけ確保する）
+  images: HTMLImageElement[] | null;
+  slice: SliceGeometry;
   percentText: string | null;
 };
 
 type BadgeItem = BadgeAngleItem & {
   index: number;
-  images: HTMLImageElement[];
+  images: HTMLImageElement[] | null;
+  spriteCount: number;
   arcX: number;
   arcY: number;
   width: number;
   color: string;
   // バッジ内・スプライト下に表示する割合文字列（例: "23%"）。nullなら表示しない
   percentText: string | null;
+  // 入場アニメの進捗。位置は動かさず、この値を不透明度に使ってその場で現す
+  revealRatio: number;
 };
 
 // タップ判定用に、直近の描画で確定したバッジの位置・サイズをチャートインスタンスに保持しておく
@@ -259,16 +306,18 @@ export function createPieSlicesSpritePlugin(
         const urls = (getSpriteUrls(index) ?? []).filter((u): u is string => !!u);
         if (urls.length === 0) return;
 
-        const arc = el as unknown as ArcGeometry;
-
-        // 全画像の読み込みが揃うまでは描画しない（ちらつき防止。読み込み完了時にchart.draw()で再描画される）
+        // 画像が揃っていないバッジも、枠だけはレイアウトに参加させる。
+        // 読み込めた分だけで配置を決めると、画像が1つ届くたびに件数が変わって
+        // スプライトの大きさも衝突解消の結果も変わり、既に出ているバッジまで動いてしまう。
+        // 描画自体は全画像が揃ってから行う（ちらつき防止。完了時にchart.draw()で再描画される）
         const images = urls.map((url) => loadImage(url, () => chart.draw()));
-        if (images.some((img) => !img)) return;
+        const loaded = images.every((img) => !!img);
 
         pending.push({
           index,
-          images: images as HTMLImageElement[],
-          arc,
+          spriteCount: urls.length,
+          images: loaded ? (images as HTMLImageElement[]) : null,
+          slice: getSliceGeometry(el as unknown as ArcElement),
           percentText: getPercentText?.(index) ?? null,
         });
       });
@@ -276,44 +325,56 @@ export function createPieSlicesSpritePlugin(
       // 表示するデッキが多いときは、外周に並びきるようスプライトを縮める
       const spriteSize = fitBadgeSpriteSize({
         count: pending.length,
-        outerRadius: pending[0]?.arc.outerRadius ?? 0,
-        maxSpriteCount: pending.reduce((max, p) => Math.max(max, p.images.length), 0),
+        outerRadius: pending[0]?.slice.outerRadius ?? 0,
+        maxSpriteCount: pending.reduce((max, p) => Math.max(max, p.spriteCount), 0),
         hasPercent: pending.some((p) => p.percentText != null),
       });
 
-      const items: BadgeItem[] = pending.map(({ index, images, arc, percentText }) => {
-        const midAngle = (arc.startAngle + arc.endAngle) / 2;
-        const overlap = spriteSize * OVERLAP_RATIO;
-        const badgeW =
-          badgeWidth(spriteSize, images.length) - overlap * (images.length - 1);
-        const badgeH = badgeHeight(spriteSize, percentText != null);
+      const items: BadgeItem[] = pending.map(
+        ({ index, spriteCount, images, slice, percentText }) => {
+          const overlap = spriteSize * OVERLAP_RATIO;
+          const badgeW =
+            badgeWidth(spriteSize, spriteCount) - overlap * (spriteCount - 1);
+          const badgeH = badgeHeight(spriteSize, percentText != null);
 
-        // バッジ中心の半径はbadgeHの半分を基準にする。バッジは画面上で常に横長固定のため、
-        // スライスがほぼ真横を向く場合は横幅(badgeW)の方が半径方向に大きく張り出すが、
-        // それに合わせて余白を確保するとカード幅の制約で円グラフ自体が縮んでしまうため、
-        // ここでは高さ基準に留め、真横向きのごく稀なケースでの多少のはみ出しは許容する。
-        return {
-          index,
-          images,
-          arcX: arc.x,
-          arcY: arc.y,
-          angle: midAngle,
-          originalAngle: midAngle,
-          radius: arc.outerRadius + BADGE_GAP + badgeH / 2,
-          width: badgeW,
-          height: badgeH,
-          boundRadius: badgeW / 2,
-          color: getSliceColor(index),
-          percentText,
-        };
-      });
+          // バッジ中心の半径はbadgeHの半分を基準にする。バッジは画面上で常に横長固定のため、
+          // スライスがほぼ真横を向く場合は横幅(badgeW)の方が半径方向に大きく張り出すが、
+          // それに合わせて余白を確保するとカード幅の制約で円グラフ自体が縮んでしまうため、
+          // ここでは高さ基準に留め、真横向きのごく稀なケースでの多少のはみ出しは許容する。
+          return {
+            index,
+            images,
+            spriteCount,
+            arcX: slice.x,
+            arcY: slice.y,
+            angle: slice.midAngle,
+            originalAngle: slice.midAngle,
+            radius: slice.outerRadius + BADGE_GAP + badgeH / 2,
+            width: badgeW,
+            height: badgeH,
+            boundRadius: badgeW / 2,
+            color: getSliceColor(index),
+            percentText,
+            revealRatio: slice.revealRatio,
+          };
+        },
+      );
 
       resolveBadgeCollisions(items);
 
       const hitAreas: BadgeHitArea[] = [];
       items.forEach((item) => {
+        // 画像がまだ揃っていないバッジは、位置だけ確保して描画を見送る
+        if (!item.images) return;
+        // 入場アニメでスライスが姿を現すのに合わせてバッジも現す。位置は最終角度で
+        // 固定してあるため、動かずにその場でフェードインするだけになる。
+        if (item.revealRatio <= 0) return;
+
         const cx = item.arcX + Math.cos(item.angle) * item.radius;
         const cy = item.arcY + Math.sin(item.angle) * item.radius;
+
+        ctx.save();
+        ctx.globalAlpha = item.revealRatio;
         drawBadge(ctx, cx, cy, item.width, item.height, item.color);
         // パーセンテージ表示分だけスプライトを上にずらし、その下の空きに文字を描画する
         const spriteCy = item.percentText ? cy - PERCENT_BLOCK_HEIGHT / 2 : cy;
@@ -323,6 +384,8 @@ export function createPieSlicesSpritePlugin(
             spriteCy + spriteSize / 2 + BADGE_PERCENT_GAP + BADGE_PERCENT_FONT_SIZE / 2;
           drawBadgePercent(ctx, item.percentText, cx, percentCy, BADGE_PERCENT_FONT_SIZE);
         }
+        ctx.restore();
+
         hitAreas.push({ index: item.index, cx, cy, w: item.width, h: item.height });
       });
       badgeHitAreas.set(chart, hitAreas);

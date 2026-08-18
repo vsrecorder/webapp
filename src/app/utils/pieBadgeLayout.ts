@@ -43,11 +43,17 @@ export function badgeHeight(spriteSize: number, hasPercent: boolean): number {
 }
 
 /*
- * バッジ count 個が、半径 outerRadius の円の外周に重ならず並びきる最大のスプライトサイズを返す。
+ * バッジ count 個が「外周に重ならず並びきり」「描画領域からはみ出さない」最大の
+ * スプライトサイズを返す。
  *
  * 円の外周に並べられるバッジの数は「バッジ中心が乗る円の周長 ÷ バッジ幅」で頭打ちになる。
  * 表示するデッキ数が増えて標準サイズのままでは並びきらない場合、スプライトを1pxずつ縮めて
  * 収まる最大サイズを探す（従来の表示件数=7件程度では標準サイズのまま変わらない）。
+ *
+ * reachX/reachY を渡すと、バッジが描画領域からはみ出さないことも条件に加える。
+ * 画面の円グラフは左右の余白が固定値で円を小さくできないため、狭い端末では真横を向いた
+ * バッジがキャンバスの縁で切れてしまう。そこでスプライトを縮めて収める。
+ * （シェア画像は円の半径自体をバッジ込みで決めていて元から切れないため、指定しない）
  */
 export function fitBadgeSpriteSize(options: {
   // 実際に描画するバッジの数（スプライトを持たない「その他」などは数えない）
@@ -58,17 +64,32 @@ export function fitBadgeSpriteSize(options: {
   maxSpriteCount: number;
   // バッジ内に割合文字を出すか
   hasPercent: boolean;
+  // 円の中心から描画領域の左右端・上下端までの距離
+  reachX?: number;
+  reachY?: number;
 }): number {
-  const { count, outerRadius, maxSpriteCount, hasPercent } = options;
-  if (count <= 1 || maxSpriteCount <= 0 || outerRadius <= 0) {
-    return BADGE_SPRITE_SIZE;
-  }
+  const { count, outerRadius, maxSpriteCount, hasPercent, reachX, reachY } = options;
+  if (maxSpriteCount <= 0 || outerRadius <= 0) return BADGE_SPRITE_SIZE;
 
   for (let size = BADGE_SPRITE_SIZE; size > BADGE_SPRITE_SIZE_MIN; size--) {
     const width = badgeWidth(size, maxSpriteCount);
     const height = badgeHeight(size, hasPercent);
-    const circumference = 2 * Math.PI * (outerRadius + BADGE_GAP + height / 2);
-    if (count * (width + BADGE_OUTSIDE_MARGIN) <= circumference) return size;
+    // バッジ中心が乗る円の半径
+    const radius = outerRadius + BADGE_GAP + height / 2;
+
+    // 外周に重ならず並びきるか（1件だけなら並びの制約はない）
+    if (
+      count > 1 &&
+      count * (width + BADGE_OUTSIDE_MARGIN) > 2 * Math.PI * radius
+    ) {
+      continue;
+    }
+    // 描画領域に収まるか。真横を向いたバッジは横幅の半分、真上・真下を向いたバッジは
+    // 高さの半分だけ、バッジ中心の円からさらに外へ張り出す。
+    if (reachX != null && radius + width / 2 > reachX) continue;
+    if (reachY != null && radius + height / 2 > reachY) continue;
+
+    return size;
   }
 
   return BADGE_SPRITE_SIZE_MIN;

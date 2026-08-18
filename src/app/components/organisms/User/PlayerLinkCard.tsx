@@ -45,12 +45,26 @@ export default function PlayerLinkCard() {
     window.history.replaceState(null, "", query ? `?${query}` : window.location.pathname);
   }, [isLoading, isFeatureDisabled, userPlayer, onOpen]);
 
+  // 読み込み中のスケルトン。実カードは「見出し行(アイコン + ラベル)＋本文＋ボタン」の3段構成なので、
+  // 同じ骨格・同じ余白で組む。各ブロックの高さはブラウザで実測した行ボックスに合わせてあり、
+  // 未連携(カード高 120px)の実カードに入れ替わってもカードの高さが変わらない。
+  // 本文は連携済みだとプレイヤーIDのチップ(32px)になるが、未連携と機能停止中はどちらも
+  // text-xs の1行(16px)なので、多数派である1行の方に合わせている。
   if (isLoading) {
     return (
       <Card className="shadow-md">
         <CardBody className="p-4 flex flex-col gap-3">
-          <div className="w-40 h-3.5 rounded-full bg-default-100 animate-pulse" />
-          <div className="w-full h-9 rounded-xl bg-default-100 animate-pulse" />
+          {/* 見出し行(アイコン 16px + text-[9px] のラベル。行の高さはアイコンで決まる) */}
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 shrink-0 rounded-md bg-default-100 animate-pulse" />
+            <div className="h-2.5 w-32 rounded-full bg-default-100 animate-pulse" />
+          </div>
+          {/* 本文(text-xs の1行 = 16px) */}
+          <div className="h-4 flex items-center">
+            <div className="h-3 w-33 rounded-full bg-default-100 animate-pulse" />
+          </div>
+          {/* Button size="sm"(h-8 = 32px, rounded-small = 8px) */}
+          <div className="w-full h-8 rounded-lg bg-default-100 animate-pulse" />
         </CardBody>
       </Card>
     );

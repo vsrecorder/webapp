@@ -69,16 +69,72 @@ function getSliceGeometry(el: ArcElement): SliceGeometry {
 
 // 画像はスライス間・呼び出し間で使い回すためモジュールスコープでキャッシュする
 const imageCache = new Map<string, HTMLImageElement>();
+// 読み込みに失敗したURL。何度も読み直さないよう覚えておく
+const failedImageUrls = new Set<string>();
+/*
+ * 読み込み中の画像を待っているチャート。読み込みが終わったらまとめて再描画する。
+ *
+ * 1枚の画像は複数のチャートで共有される（ダッシュボードの「デッキ使用率分析」と
+ * 「対戦相手のデッキ分布」に同じデッキが並ぶなど）。最初に読み始めたチャートにだけ
+ * 再描画を仕掛けると、後から同じ画像を要求したチャートは読み込み完了に気づけず、
+ * 他に再描画のきっかけが無い限りバッジが出ないままになる。
+ */
+const imageWaiters = new Map<string, Set<Chart>>();
 
-function loadImage(url: string, onLoad: () => void): HTMLImageElement | null {
+function loadImage(url: string, chart: Chart): HTMLImageElement | null {
   const cached = imageCache.get(url);
-  if (cached) return cached.complete && cached.naturalWidth > 0 ? cached : null;
+  if (cached?.complete && cached.naturalWidth > 0) return cached;
+  if (failedImageUrls.has(url)) return null;
+
+  const waiters = imageWaiters.get(url) ?? new Set<Chart>();
+  waiters.add(chart);
+  imageWaiters.set(url, waiters);
+
+  // 既に読み込みが始まっていれば、完了を待つだけでよい
+  if (cached) return null;
 
   const img = new Image();
-  img.onload = onLoad;
+  // 読み込み(または失敗)が確定したら、待っていたチャートをまとめて描き直す
+  const notify = () => {
+    imageWaiters.get(url)?.forEach((waiter) => waiter.draw());
+    imageWaiters.delete(url);
+  };
+  img.onload = notify;
+  // 失敗した画像も待ち手を解放する（そのスプライトは「不明」で埋めて表示を続ける）
+  img.onerror = () => {
+    failedImageUrls.add(url);
+    notify();
+  };
   img.src = url;
   imageCache.set(url, img);
   return null;
+}
+
+/*
+ * バッジに並べるスプライト1体分の画像を返す。
+ *
+ * 読み込みに失敗したスプライトは「不明」プレースホルダで埋める。1体でも欠けたら
+ * バッジごと描かない作りだと、CDNが一時的に落ちただけでそのデッキのバッジが
+ * まるごと消えてしまい、どのスライスがどのデッキか分からなくなる。
+ * プレースホルダは呼び出し側(deckSpriteUrls)が空き枠に使っているものと同じ画像で、
+ * スプライトと同じディレクトリに置かれている。
+ */
+function loadSpriteImage(url: string, chart: Chart): HTMLImageElement | null {
+  const img = loadImage(url, chart);
+  if (img) return img;
+  // まだ読み込み中なら、確定するまで待つ（ちらつき防止）
+  if (!failedImageUrls.has(url)) return null;
+
+  const fallbackUrl = url.replace(/[^/]+$/, "unknown.png");
+  return fallbackUrl === url ? null : loadImage(fallbackUrl, chart);
+}
+
+// 破棄されたチャートを待ち手から外す（破棄後に draw() を呼ばないため）
+function forgetImageWaiters(chart: Chart) {
+  imageWaiters.forEach((waiters, url) => {
+    waiters.delete(chart);
+    if (waiters.size === 0) imageWaiters.delete(url);
+  });
 }
 
 // next-themesが<html>に付与する"dark"クラスを見て、現在ダークモードかどうかを判定する
@@ -197,6 +253,139 @@ const badgeHitAreas = new WeakMap<Chart, BadgeHitArea[]>();
 // テーマ(ライト/ダーク)切り替え時に再描画するためのMutationObserverをチャートごとに保持する
 const themeObservers = new WeakMap<Chart, MutationObserver>();
 
+/*
+ * 円グラフの寸法がまだ動いている間はバッジを描かないための監視。
+ *
+ * 詳細カードを閉じると、円グラフの横幅はCSSのtransition(300ms)で戻る一方、
+ * バッジ用の余白(layout.padding)はその場で広い値に戻る。この間はキャンバスが狭いまま
+ * 大きな余白を取るため円が本来より小さく計算され、外周に置いたバッジがキャンバスから
+ * はみ出して左右が切れてしまう。寸法が落ち着くまで待ってから描く。
+ *
+ * 判定はキャンバスを包む要素の実寸をrequestAnimationFrameで毎フレーム測って行う。
+ * 描画回数で数えるとchart.js側のリサイズ通知が届く前の描画で「変化なし」と誤判定してしまい、
+ * アニメーションの途中でバッジが出てしまう。
+ */
+type ResizeWatch = {
+  observer: ResizeObserver | null;
+  target: HTMLElement;
+  // 直近に測った寸法。初回の観測時はここに記録するだけで、リサイズ扱いにはしない
+  size: { w: number; h: number } | null;
+  // 直近にバッジを描いたときの描画領域(chartArea)。余白の変更もここで検知する
+  area: { w: number; h: number } | null;
+  resizing: boolean;
+  rafId: number;
+  stableFrames: number;
+};
+const resizeWatches = new WeakMap<Chart, ResizeWatch>();
+// 寸法が変わらないままこのフレーム数が過ぎたら、リサイズが終わったとみなす
+const RESIZE_SETTLED_FRAMES = 3;
+
+// 寸法が落ち着くまで毎フレーム実寸を測り続け、落ち着いたらバッジ込みで描き直す
+function startSettleLoop(chart: Chart, watch: ResizeWatch) {
+  if (watch.rafId) return;
+
+  const tick = () => {
+    const { width, height } = watch.target.getBoundingClientRect();
+    const unchanged =
+      !!watch.size &&
+      Math.abs(watch.size.w - width) < 0.5 &&
+      Math.abs(watch.size.h - height) < 0.5;
+
+    watch.size = { w: width, h: height };
+    watch.stableFrames = unchanged ? watch.stableFrames + 1 : 0;
+
+    if (watch.stableFrames < RESIZE_SETTLED_FRAMES) {
+      watch.rafId = requestAnimationFrame(tick);
+      return;
+    }
+
+    watch.rafId = 0;
+    watch.resizing = false;
+    // 落ち着いた後の1回目は「変化あり」と判定させないため、基準を捨ててから描き直す
+    watch.area = null;
+    chart.draw();
+  };
+
+  watch.stableFrames = 0;
+  watch.rafId = requestAnimationFrame(tick);
+}
+
+function watchChartResize(chart: Chart) {
+  const target = chart.canvas.parentElement ?? chart.canvas;
+
+  resizeWatches.set(chart, {
+    observer: null,
+    target,
+    size: null,
+    area: null,
+    resizing: false,
+    rafId: 0,
+    stableFrames: 0,
+  });
+
+  if (typeof ResizeObserver === "undefined") return;
+
+  const observer = new ResizeObserver(() => {
+    const watch = resizeWatches.get(chart);
+    if (!watch) return;
+
+    const { width, height } = watch.target.getBoundingClientRect();
+    if (watch.size == null) {
+      // 監視開始直後の1回目。今の寸法を基準として覚えるだけにする
+      watch.size = { w: width, h: height };
+      return;
+    }
+    if (
+      Math.abs(watch.size.w - width) < 0.5 &&
+      Math.abs(watch.size.h - height) < 0.5
+    ) {
+      return;
+    }
+
+    watch.resizing = true;
+    startSettleLoop(chart, watch);
+  });
+
+  const watch = resizeWatches.get(chart);
+  if (watch) watch.observer = observer;
+  observer.observe(target);
+}
+
+/*
+ * バッジを描いてよい状態か（＝円の大きさが確定しているか）を返す。
+ *
+ * リサイズ通知(ResizeObserver)だけでは、詳細カードを閉じた直後の1フレームに間に合わない。
+ * このときキャンバスの幅はまだ縮んだままなのに余白だけが広い値に戻るため、描画領域が
+ * 急に狭くなる。描画領域の変化そのものを合図にして、寸法が落ち着くまで描画を止める。
+ */
+function isLayoutInFlux(chart: Chart): boolean {
+  const watch = resizeWatches.get(chart);
+  if (!watch) return false;
+
+  const { chartArea } = chart;
+  const w = chartArea.right - chartArea.left;
+  const h = chartArea.bottom - chartArea.top;
+  const changed =
+    !!watch.area &&
+    (Math.abs(watch.area.w - w) >= 0.5 || Math.abs(watch.area.h - h) >= 0.5);
+
+  watch.area = { w, h };
+  if (changed) {
+    watch.resizing = true;
+    startSettleLoop(chart, watch);
+  }
+  return watch.resizing;
+}
+
+function unwatchChartResize(chart: Chart) {
+  const watch = resizeWatches.get(chart);
+  if (!watch) return;
+
+  watch.observer?.disconnect();
+  if (watch.rafId) cancelAnimationFrame(watch.rafId);
+  resizeWatches.delete(chart);
+}
+
 // スライス色の縁取り付きバッジ（スタジアム形）を描画する。
 // バッジの縁色がスライスの色・凡例の色ドットと一致することで、
 // 引き出し線に頼らずどのスライスのスプライトかが分かる。
@@ -285,16 +474,31 @@ export function createPieSlicesSpritePlugin(
     // ダーク用の塗りが残る）。<html>のclass属性をMutationObserverで監視し、
     // 変化したら再描画してバッジの色を最新のテーマに追従させる。
     afterInit(chart: Chart<"pie">) {
-      if (typeof document === "undefined" || typeof MutationObserver === "undefined") return;
-      const observer = new MutationObserver(() => chart.draw());
-      observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
-      themeObservers.set(chart, observer);
+      if (typeof window === "undefined") return;
+
+      if (typeof MutationObserver !== "undefined") {
+        const observer = new MutationObserver(() => chart.draw());
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+        themeObservers.set(chart, observer);
+      }
+
+      watchChartResize(chart);
     },
     beforeDestroy(chart: Chart<"pie">) {
       themeObservers.get(chart)?.disconnect();
       themeObservers.delete(chart);
+
+      unwatchChartResize(chart);
+      forgetImageWaiters(chart);
     },
     afterDatasetsDraw(chart: Chart<"pie">) {
+      // 円の大きさがまだ変わっている途中（詳細カードの開閉など）は、はみ出しを避けるため
+      // 描画を見送る。落ち着いたら startSettleLoop が改めて描き直す。
+      if (isLayoutInFlux(chart)) {
+        badgeHitAreas.set(chart, []);
+        return;
+      }
+
       const meta = chart.getDatasetMeta(0);
       const { ctx } = chart;
 
@@ -310,7 +514,7 @@ export function createPieSlicesSpritePlugin(
         // 読み込めた分だけで配置を決めると、画像が1つ届くたびに件数が変わって
         // スプライトの大きさも衝突解消の結果も変わり、既に出ているバッジまで動いてしまう。
         // 描画自体は全画像が揃ってから行う（ちらつき防止。完了時にchart.draw()で再描画される）
-        const images = urls.map((url) => loadImage(url, () => chart.draw()));
+        const images = urls.map((url) => loadSpriteImage(url, chart));
         const loaded = images.every((img) => !!img);
 
         pending.push({
@@ -322,12 +526,16 @@ export function createPieSlicesSpritePlugin(
         });
       });
 
-      // 表示するデッキが多いときは、外周に並びきるようスプライトを縮める
+      // 表示するデッキが多いとき（外周に並びきらない）や、画面が狭くてバッジが
+      // キャンバスからはみ出すときは、収まるようスプライトを縮める
+      const circle = pending[0]?.slice;
       const spriteSize = fitBadgeSpriteSize({
         count: pending.length,
-        outerRadius: pending[0]?.slice.outerRadius ?? 0,
+        outerRadius: circle?.outerRadius ?? 0,
         maxSpriteCount: pending.reduce((max, p) => Math.max(max, p.spriteCount), 0),
         hasPercent: pending.some((p) => p.percentText != null),
+        reachX: circle && Math.min(circle.x, chart.width - circle.x),
+        reachY: circle && Math.min(circle.y, chart.height - circle.y),
       });
 
       const items: BadgeItem[] = pending.map(
@@ -431,6 +639,9 @@ export function createPieCenterSpritePlugin(
 ): Plugin<"pie"> {
   return {
     id: "pieCenterSprite",
+    beforeDestroy(chart: Chart<"pie">) {
+      forgetImageWaiters(chart);
+    },
     afterDatasetsDraw(chart: Chart<"pie">) {
       const urls = (getSpriteUrls() ?? []).filter((u): u is string => !!u);
       if (urls.length === 0) return;
@@ -439,7 +650,7 @@ export function createPieCenterSpritePlugin(
       const firstArc = meta.data[0] as unknown as ArcGeometry | undefined;
       if (!firstArc) return;
 
-      const images = urls.map((url) => loadImage(url, () => chart.draw()));
+      const images = urls.map((url) => loadSpriteImage(url, chart));
       if (images.some((img) => !img)) return;
       const loadedImages = images as HTMLImageElement[];
 

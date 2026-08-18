@@ -303,17 +303,19 @@ export default function OfficialEventRecord({
                   {`『${officialEvent.environment_title}』`}
                 </Chip>
               )}
-            {officialEvent.shop_name && (
-              <Chip
-                size="sm"
-                variant="flat"
-                color="default"
-                className="h-5 text-[10px] font-bold max-w-40 truncate"
-              >
-                {officialEvent.shop_name}
-              </Chip>
-            )}
           </>
+        }
+        chipsSecondRow={
+          officialEvent.shop_name ? (
+            <Chip
+              size="sm"
+              variant="flat"
+              color="default"
+              className="h-5 text-[10px] font-bold max-w-40 truncate"
+            >
+              {officialEvent.shop_name}
+            </Chip>
+          ) : undefined
         }
         ignoreStatsFlg={record.ignore_stats_flg}
         icon={

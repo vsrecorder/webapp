@@ -21,8 +21,10 @@ type Props = {
   title: string;
   loadingTitle: boolean;
   titleFallback?: string;
-  // 種別チップ等(複数可)
+  // 1段目のチップ(種別・対戦環境名など。複数可)
   chips: React.ReactNode;
+  // 2段目のチップ(会場名など)。渡さないカードは行ごと省略する
+  chipsSecondRow?: React.ReactNode;
   // アイコン枠(8x8)の中身。種別アイコン/ブランドロゴ/記号など
   icon: React.ReactNode;
   // デッキ名
@@ -60,6 +62,7 @@ export default function RecordCardBase({
   loadingTitle,
   titleFallback = "無題のイベント",
   chips,
+  chipsSecondRow,
   icon,
   deckName,
   deckSprites,
@@ -177,8 +180,16 @@ export default function RecordCardBase({
                 />
               )}
 
-              {/* チップ */}
+              {/* チップ1段目(種別・対戦環境名) */}
               <div className="flex items-center gap-2 mt-1.5 flex-wrap">{chips}</div>
+
+              {/* チップ2段目(会場名)。2段目が無いカードには余白を出さないため、
+                  渡されたときだけ行ごと描画する */}
+              {chipsSecondRow && (
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                  {chipsSecondRow}
+                </div>
+              )}
 
               {/* 区切り線 */}
               <div className="border-t border-divider mt-3 mb-2.5" />

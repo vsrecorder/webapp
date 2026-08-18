@@ -13,7 +13,7 @@ import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
 import { fingerprintKey } from "@app/utils/fingerprint";
 import { rankableDecks, exclOtherTotalOf } from "@app/utils/deckEnv";
 import { lastWeekValue } from "@app/utils/week";
-import { DeckData, DeckGetResponseType } from "@app/types/deck";
+import { DeckData, DeckGetResponseType, isFavoritedDeck } from "@app/types/deck";
 import { DeckUsageItemType, DeckUsageStatType } from "@app/types/deck_usage_stat";
 import {
   WeeklyDeckUsageItemType,
@@ -53,6 +53,8 @@ type DeckPosition = {
   fingerprint: string;
   rank: number | null;
   row: WeeklyDeckUsageItemType | null;
+  // お気に入りに設定されているデッキか(ユーザーごとに1つだけ)。既定選択の決定に使う。
+  favorited: boolean;
 };
 
 // あなたのデッキ別の実績（deck-usage 由来）。記録が無ければ undefined。
@@ -856,10 +858,14 @@ export default function EnvironmentWindowCard({
         fingerprint: fp,
         rank: idx >= 0 ? idx + 1 : null,
         row: idx >= 0 ? rankable[idx] : null,
+        favorited: isFavoritedDeck(deck),
       });
     }
-    // ランク入り(順位昇順) → 圏外 の順に並べ、既定選択が最上位ランクになるようにする。
+    // お気に入り → ランク入り(順位昇順) → 圏外 の順に並べる。既定選択は先頭なので、
+    // お気に入りがあればそれが、無ければ最上位ランクが初期表示になる
+    // (デッキ一覧・記録作成のデッキ選択と同じく「お気に入りは先頭」に揃える)。
     return list.sort((a, b) => {
+      if (a.favorited !== b.favorited) return a.favorited ? -1 : 1;
       if (a.rank == null && b.rank == null) return 0;
       if (a.rank == null) return 1;
       if (b.rank == null) return -1;
@@ -938,6 +944,10 @@ export default function EnvironmentWindowCard({
   // 「その他」を除いた割合の母数。カード内の全ランキングをこの基準で表示する(deckEnv)。
   const exclOtherTotal = exclOtherTotalOf(stat);
 
+  // モードB(環境上で識別できるデッキが1つも無い)で代表として見せるデッキ。
+  // select モードの既定選択と揃えて、お気に入りがあればそれを優先する。
+  const representativeDeck = userDecks.find(isFavoritedDeck) ?? userDecks[0];
+
   return (
     <>
       <Card className="shadow-md">
@@ -979,7 +989,7 @@ export default function EnvironmentWindowCard({
               <span className="text-xs font-bold text-default-500 tracking-wide">
                 あなたのデッキと類似する対戦環境データ
               </span>
-              <RankedOutHero deck={userDecks[0]} />
+              <RankedOutHero deck={representativeDeck} />
               <EncourageNote />
               <UsageRankingSection
                 ranking={rankable}
@@ -989,7 +999,7 @@ export default function EnvironmentWindowCard({
               <RecordCtaButton
                 ranked={false}
                 totalRecords={totalRecords}
-                deck={userDecks[0]}
+                deck={representativeDeck}
                 onClick={handleRecordClick}
               />
             </>

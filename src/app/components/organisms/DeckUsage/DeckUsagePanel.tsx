@@ -43,6 +43,7 @@ import {
   createPieCenterSpritePlugin,
   getSpriteBadgeIndexAt,
 } from "@app/utils/pieSlicesSpritePlugin";
+import usePieChartPadding, { type PieChartBox } from "@app/hooks/usePieChartPadding";
 import DeckUsageEmptyState from "@app/components/organisms/DeckUsage/DeckUsageEmptyState";
 
 ChartJS.register(ArcElement, ChartTooltip);
@@ -100,6 +101,22 @@ const EXTERNAL_SPRITE_PADDING_X_NARROW = 28;
 const EXTERNAL_SPRITE_PADDING_Y = 88;
 // 詳細カード表示中は外周バッジ自体を描画しないため、見た目の余白程度の小さい値でよい
 const EXTERNAL_SPRITE_PADDING_Y_NARROW = 28;
+
+// 通常表示・詳細カード表示それぞれの余白と、キャンバスを包む要素の高さ。
+// 開閉アニメーションの最中は、この2つの間をキャンバスの実寸に合わせて補間する
+// （切り替えた瞬間に余白だけ新しい値にすると円の大きさが逆向きに振れる。
+//   usePieChartPadding のコメント参照）
+const CHART_BOX_NORMAL: PieChartBox = {
+  padding: { x: EXTERNAL_SPRITE_PADDING_X, y: EXTERNAL_SPRITE_PADDING_Y },
+  height: CHART_SIZE + EXTERNAL_SPRITE_PADDING_Y * 2,
+};
+const CHART_BOX_DETAIL: PieChartBox = {
+  padding: {
+    x: EXTERNAL_SPRITE_PADDING_X_NARROW,
+    y: EXTERNAL_SPRITE_PADDING_Y_NARROW,
+  },
+  height: CHART_SIZE_DETAIL + EXTERNAL_SPRITE_PADDING_Y_NARROW * 2,
+};
 
 const SPRITE_BASE_URL = "https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites";
 
@@ -201,6 +218,8 @@ export default function DeckUsagePanel({
   const [shareOpen, setShareOpen] = useState(false);
 
   const chartRef = useRef<ChartJS<"pie">>(null);
+  // 詳細カードの開閉に合わせて幅・高さがCSSのtransitionで変化する、キャンバスの入れ物
+  const chartContainerRef = useRef<HTMLDivElement>(null);
 
   const createdAtDate = userCreatedAt != null ? new Date(userCreatedAt) : undefined;
   const yearMonthOptions = generateYearMonthOptions(createdAtDate);
@@ -452,35 +471,46 @@ export default function DeckUsagePanel({
     ],
   };
 
-  // 詳細カード表示中は外周バッジを描画しないため余白は最低限でよく、その分円を大きく表示できる
-  const spritePaddingX = tooltip
-    ? EXTERNAL_SPRITE_PADDING_X_NARROW
-    : EXTERNAL_SPRITE_PADDING_X;
-  const spritePaddingY = tooltip
-    ? EXTERNAL_SPRITE_PADDING_Y_NARROW
-    : EXTERNAL_SPRITE_PADDING_Y;
-  const chartSize = tooltip ? CHART_SIZE_DETAIL : CHART_SIZE;
+  // 詳細カード表示中は外周バッジを描画しないため余白は最低限でよく、その分円を大きく表示できる。
+  // 開閉アニメーションの最中はキャンバスの実寸に合わせて余白を補間する。
+  usePieChartPadding({
+    containerRef: chartContainerRef,
+    chartRef,
+    isDetail: tooltip != null,
+    normal: CHART_BOX_NORMAL,
+    detail: CHART_BOX_DETAIL,
+  });
+  // コンテナの高さはCSSのtransitionの目標値なので、補間中の余白ではなく定常値から決める
+  const containerHeight = (tooltip ? CHART_BOX_DETAIL : CHART_BOX_NORMAL).height;
 
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    // 狭いスライスのスプライトを円の外側に描画するための余白（円自体は縮小しない。下記コンテナの高さ側で吸収する）
-    layout: {
-      padding: {
-        top: spritePaddingY,
-        bottom: spritePaddingY,
-        left: spritePaddingX,
-        right: spritePaddingX,
+  // options オブジェクトは作り直さない。react-chartjs-2 は options prop が変わるたびに
+  // chart.options を差し替えるため、作り直すと usePieChartPadding が補間中に書き込んだ
+  // layout.padding が初期値に巻き戻ってしまう。
+  const chartOptions = useMemo(
+    () => ({
+      responsive: true,
+      maintainAspectRatio: false,
+      // 狭いスライスのスプライトを円の外側に描画するための余白
+      // （円自体は縮小しない。下記コンテナの高さ側で吸収する）。
+      // 詳細カードの開閉中は usePieChartPadding が実寸に合わせて書き換える。
+      layout: {
+        padding: {
+          top: CHART_BOX_NORMAL.padding.y,
+          bottom: CHART_BOX_NORMAL.padding.y,
+          left: CHART_BOX_NORMAL.padding.x,
+          right: CHART_BOX_NORMAL.padding.x,
+        },
       },
-    },
-    // クリック判定は下のコンテナdiv側(handleChartAreaClick)で行うため、ここでは何もしない
-    // (chart.jsのoptions.onClickはchartArea外側=余白部分のタップを検知できないため)
-    plugins: {
-      legend: { display: false },
-      // ビルトイン tooltip を無効化してカスタム HTML tooltip を使う
-      tooltip: { enabled: false },
-    },
-  };
+      // クリック判定は下のコンテナdiv側(handleChartAreaClick)で行うため、ここでは何もしない
+      // (chart.jsのoptions.onClickはchartArea外側=余白部分のタップを検知できないため)
+      plugins: {
+        legend: { display: false },
+        // ビルトイン tooltip を無効化してカスタム HTML tooltip を使う
+        tooltip: { enabled: false },
+      },
+    }),
+    [],
+  );
 
   const shareSubtitle = `${filterLabel} のデッキ使用率`;
 
@@ -600,9 +630,10 @@ export default function DeckUsagePanel({
               {/* グラフ領域＋詳細カード。選択時はグラフを左に寄せ、右側に詳細カードを表示する（グラフには重ねない） */}
               <div className="flex items-stretch gap-3">
                 <div
+                  ref={chartContainerRef}
                   onClick={handleChartAreaClick}
                   className={`relative shrink-0 transition-all duration-300 ${isLoading ? "opacity-30" : "opacity-100"} ${tooltip ? "w-3/5" : "w-full"}`}
-                  style={{ height: chartSize + spritePaddingY * 2 }}
+                  style={{ height: containerHeight }}
                 >
                   <Pie
                     ref={chartRef}

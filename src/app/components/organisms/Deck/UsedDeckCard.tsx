@@ -18,12 +18,18 @@ import { LuLayoutGrid } from "react-icons/lu";
 
 import DeckCodeCard from "@app/components/organisms/Deck/DeckCodeCard";
 import CardListAccordion from "@app/components/organisms/Deck/CardListAccordion";
-import ShowDeckModal from "@app/components/organisms/Deck/Modal/ShowDeckModal";
+import { createLazyModal } from "@app/utils/lazyModal";
 
 import { useDeckCodes } from "@app/hooks/useDeckCodes";
 
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
+
+// デッキ詳細モーダルは子モーダル9個と chart.js などを抱える。
+// 初期JSと初期マウントから外すため、開くまで読み込まない(理由は createLazyModal を参照)。
+const ShowDeckModal = createLazyModal(
+  () => import("@app/components/organisms/Deck/Modal/ShowDeckModal"),
+);
 
 type Props = {
   deck: DeckGetByIdResponseType | null;

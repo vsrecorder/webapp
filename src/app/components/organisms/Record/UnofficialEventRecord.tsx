@@ -8,7 +8,7 @@ import { LuPencilLine } from "react-icons/lu";
 
 import FetchError from "@app/components/molecules/FetchError";
 import RecordCardBase from "@app/components/organisms/Record/RecordCardBase";
-import DisplayRecordModal from "@app/components/organisms/Record/Modal/DisplayRecordModal";
+import { createLazyModal } from "@app/utils/lazyModal";
 import { RecordCardSkeleton } from "@app/components/organisms/Record/Skeleton/RecordCardSkeleton";
 
 import { RecordType, RecordGetByIdResponseType } from "@app/types/record";
@@ -16,6 +16,12 @@ import { DeckGetByIdResponseType } from "@app/types/deck";
 import { UnofficialEventGetByIdResponseType } from "@app/types/unofficial_event";
 import { MatchGetResponseType } from "@app/types/match";
 import { countMatchResults, hasGroupMatch, hasBo3Match } from "@app/utils/match";
+
+// 記録詳細モーダルは使用デッキ編集(react-select)とシェア(画像書き出し)を抱える。
+// 初期JSと初期マウントから外すため、開くまで読み込まない(理由は createLazyModal を参照)。
+const DisplayRecordModal = createLazyModal(
+  () => import("@app/components/organisms/Record/Modal/DisplayRecordModal"),
+);
 
 async function fetchUnofficialEventById(
   id: string,

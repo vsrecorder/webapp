@@ -26,7 +26,7 @@ import { LuSwords } from "react-icons/lu";
 import { LuStar } from "react-icons/lu";
 
 import DeckCodeCard from "@app/components/organisms/Deck/DeckCodeCard";
-import ShowDeckModal from "@app/components/organisms/Deck/Modal/ShowDeckModal";
+import { createLazyModal } from "@app/utils/lazyModal";
 
 import { useDeckCodes } from "@app/hooks/useDeckCodes";
 
@@ -39,6 +39,12 @@ import {
   REOPEN_DECK_MODAL_DECK_ID,
   REOPEN_DECK_MODAL_WITH_RECORDS,
 } from "@app/utils/deckModalReopen";
+
+// デッキ詳細モーダルは子モーダル9個と chart.js などを抱える。
+// 初期JSと初期マウントから外すため、開くまで読み込まない(理由は createLazyModal を参照)。
+const ShowDeckModal = createLazyModal(
+  () => import("@app/components/organisms/Deck/Modal/ShowDeckModal"),
+);
 
 // 一覧の表示モード。gallery=従来の詳細カード、list=1行に畳んだコンパクト表示。
 export type DeckCardView = "gallery" | "list";

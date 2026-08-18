@@ -16,7 +16,8 @@ const CDN_ORIGIN = "https://xx8nnpgt.user.webaccel.jp";
 //
 // Skeleton や loading.tsx を含む45ファイルがサーバコンポーネントのまま
 // @heroui/react を使っているため、"use client" を足して回るとバンドル境界が
-// 大きく変わる。experimental.optimizePackageImports でも回避できないことを確認済み。
+// 大きく変わる。下で有効にしている experimental.optimizePackageImports は
+// バンドルサイズには効くが、この Turbopack のクラッシュは回避できないことを確認済み。
 // 解消するには HeroUI 3.x への移行が要る（現在 2.8 系、メジャー跨ぎ）。
 //
 // 開発時のみ webpack の HMR が eval を使う
@@ -73,6 +74,27 @@ const nextConfig: NextConfig = {
     // 再び有効にする場合は、CSSがクリティカルCSSの規模に収まっていることを
     // 確認すること。この規模のままではSSRのスループットを削るだけになる。
     inlineCss: false,
+
+    /*
+     * @heroui/react のバレルを、実際に使うサブモジュールへの直接importに書き換える。
+     *
+     * このパッケージのエントリは47個のサブパッケージを export * で再輸出するバレルで、
+     * 素のままだと使っていない部品まで初期JSに載る（実測で Autocomplete などが
+     * 参照ゼロなのに同梱されていた）。
+     *
+     * 実測(本番ビルド / 圧縮後 / 表示までに読むJS):
+     *   /cityleague_results 797→604KB、/ 777→587KB、/records 801→605KB、
+     *   /decks 818→629KB、/records/create 852→728KB。おおむね2割強の削減。
+     *
+     * 注意: この最適化は import が解決されるモジュールを変えるため、上のコメントにある
+     * 「サーバコンポーネントのまま @heroui/react を使うファイル群」(Skeleton 各種・
+     * loading.tsx・DashboardSkeleton など)が影響を受けうる。書き換え先が "use client" を
+     * 持たなければ createContext 系のエラーを踏む。有効化にあたって、それらが関わる画面
+     * (各一覧の骨格表示・ダッシュボード・LP・規約類)を有無の2ビルドで撮り比べ、
+     * DOM構造が完全一致すること・エラーが0件であることを確認済み。
+     * HeroUI を上げるときは同じ確認をやり直すこと。
+     */
+    optimizePackageImports: ["@heroui/react"],
   },
   images: {
     // 最適化画像のキャッシュ最小保持時間（秒）

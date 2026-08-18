@@ -24,12 +24,14 @@ export default function MobileNavigation() {
         className="grid h-17"
         style={{ gridTemplateColumns: `repeat(${navItems.length}, minmax(0, 1fr))` }}
       >
-        {navItems.map(({ href, label, icon: Icon }) => {
+        {navItems.map(({ href, label, icon: Icon, prefetch }) => {
           const active = isActiveRoute(pathname, href);
           return (
             <Link
               key={href}
               href={href}
+              // ホームのみ true。理由は navItems.ts の NavItem.prefetch を参照
+              prefetch={prefetch}
               aria-label={label}
               aria-current={active ? "page" : undefined}
               className={`mobile-nav-item flex flex-col items-center justify-start gap-1 transition-all duration-150 active:scale-90 ${

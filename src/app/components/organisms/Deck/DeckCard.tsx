@@ -231,8 +231,8 @@ export default function DeckCard({
   /*
    * お気に入りの★ボタン。リスト/ギャラリー双方の右上（登録日の対角）に置く。
    *
-   * カードはどこをタップしてもデッキ情報モーダルが開くため、内訳の開閉ボタンと
-   * 同じく伝播を止める。アーカイブ済みのデッキはお気に入りにできない
+   * カードはどこをタップしてもデッキ情報モーダルが開くため、ギャラリー表示の
+   * 開閉ボタンと同じく伝播を止める。アーカイブ済みのデッキはお気に入りにできない
    * （アーカイブ時に自動で解除される）ため、ボタン自体を出さない。
    */
   const favoriteButton =
@@ -312,7 +312,7 @@ export default function DeckCard({
    * きずなの説明への入口。きずなLv.の数値の真横に置き、リスト/ギャラリー双方で使い回す。
    *
    * カードはどこをタップしてもデッキ情報モーダルが開くため、ここで伝播を止めないと
-   * 「説明を開いたつもりがモーダルも開く」になる（内訳の開閉ボタンと同じ扱い）。
+   * 「説明を開いたつもりがモーダルも開く」になる（★ボタンと同じ扱い）。
    * 吹き出し側は層(backdrop)を敷いてあるので、閉じる操作はカードまで届かない。
    */
   const kizunaHint = (
@@ -323,15 +323,19 @@ export default function DeckCard({
 
   // 1行に畳んだコンパクト表示。スプライト＋勝率リングで識別する。
   // タップ＝デッキ詳細を開く（ギャラリー表示と同じルール）。先攻/後攻の内訳や
-  // デッキコード画像の段階的開示は、右端のシェブロンボタンだけが担う。
+  // デッキコード画像の段階的開示は、カード下部の開閉ボタンだけが担う。
   const listCard = (
     // 戻り遷移でデッキモーダルを再開する際、この id を目印にスクロールする
     <div id={deckAnchorId(deck.id)} className="w-full">
       <Card
         className={`w-full transition-transform active:scale-[0.985] ${favoriteCardClass}`}
       >
-        {/* ヘッダー：タップでデッキ詳細（ShowDeckModal）を開く */}
-        <div className="flex flex-col gap-1.5 px-3 py-3 cursor-pointer" onClick={onOpen}>
+        {/* ヘッダー：タップでデッキ詳細（ShowDeckModal）を開く。
+            下の余白は開閉ボタンの枠(pt-2)と分け合うため、ギャラリー表示と同じ pb-2 にする */}
+        <div
+          className="flex flex-col gap-1.5 px-3 pt-3 pb-2 cursor-pointer"
+          onClick={onOpen}
+        >
           {/* 上段：左に★ボタン、右に登録日（見切れ防止のため独立した行にする） */}
           <div className="flex items-center justify-between gap-2">
             {favoriteButton ?? <span />}
@@ -341,7 +345,7 @@ export default function DeckCard({
             </span>
           </div>
 
-          {/* コンテンツ行：スプライト・勝率リング・デッキ名/戦績・シェブロン */}
+          {/* コンテンツ行：スプライト・勝率リング・デッキ名/戦績 */}
           <div className="flex items-center gap-3">
             {/* スプライト2体（識別用）。きずなの段階に応じて灯がともり、上下にゆれる */}
             <KizunaDeckSprites
@@ -427,27 +431,28 @@ export default function DeckCard({
                 <KizunaLevelBar level={kizunaLevel} trailing={kizunaHint} />
               )}
             </div>
-
-            {/* 内訳の開閉ボタン。行タップ（＝詳細を開く）と役割が衝突しないよう、
-              独立した当たり判定（44px相当）を持つボタンにして伝播を止める。 */}
-            <button
-              type="button"
-              aria-label={
-                listExpanded ? "先攻・後攻の内訳を閉じる" : "先攻・後攻の内訳を開く"
-              }
-              aria-expanded={listExpanded}
-              onClick={(e) => {
-                e.stopPropagation();
-                setListExpanded((v) => !v);
-              }}
-              className="shrink-0 flex h-9 w-9 items-center justify-center rounded-full text-default-400 bg-default-100 active:opacity-70"
-            >
-              <LuChevronDown
-                aria-hidden
-                className={`text-lg transition-transform ${listExpanded ? "rotate-180" : ""}`}
-              />
-            </button>
           </div>
+        </div>
+
+        {/* 開閉ボタン：ギャラリー表示と同じ「カード下部の横幅いっぱいのボタン」に揃える。
+            行の右端に置いていた頃と違い、デッキ名・戦績の幅を削らずに済む。
+            カードのタップ領域(ヘッダー/展開部)の外にあるので伝播を止める必要はない。 */}
+        <div className="px-3 pt-2 pb-3">
+          <button
+            type="button"
+            aria-label={
+              listExpanded ? "デッキコード・戦績を閉じる" : "デッキコード・戦績を開く"
+            }
+            aria-expanded={listExpanded}
+            onClick={() => setListExpanded((v) => !v)}
+            className="flex w-full items-center justify-center gap-1 rounded-lg bg-default-100 px-3 py-2 text-tiny font-bold text-default-600 active:opacity-70"
+          >
+            {listExpanded ? "閉じる" : "デッキコード・戦績を見る"}
+            <LuChevronDown
+              aria-hidden
+              className={`text-base transition-transform ${listExpanded ? "rotate-180" : ""}`}
+            />
+          </button>
         </div>
 
         {/* 展開部：タップでデッキ情報モーダルを開く。

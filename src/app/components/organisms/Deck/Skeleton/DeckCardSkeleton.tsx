@@ -5,16 +5,16 @@ import type { DeckCardView } from "@app/components/organisms/Deck/DeckCard";
 
 // リスト表示（コンパクト行）用スケルトン。実際のリストカードの構造に合わせて、
 // 上段に★ボタンと登録日、コンテンツ行にスプライト2体・勝率リング・デッキ名/戦績＋きずなLv.・
-// きずなLv.の線＋段階名・内訳の開閉ボタンの骨格を並べる。
+// きずなLv.の線＋段階名、その下にギャラリー表示と同じ開閉ボタンの骨格を並べる。
 //
-// 各行の高さは実物のカードを実測した値に合わせてある（★ボタンありで合計143px、
-// なしで123px）。骨格が1本でも欠けると、データが入った瞬間に行が伸びて一覧全体が飛ぶ。
+// 各行の高さは実物のカードを実測した値に合わせてある（幅390pxで★ボタンありは合計191px、
+// なしは171px）。骨格が1本でも欠けると、データが入った瞬間に行が伸びて一覧全体が飛ぶ。
 export function DeckListRowSkeleton({
   withFavorite = false,
 }: { withFavorite?: boolean } = {}) {
   return (
     <Card className="w-full">
-      <div className="flex flex-col gap-1.5 px-3 py-3">
+      <div className="flex flex-col gap-1.5 px-3 pt-3 pb-2">
         {/* 上段：左に★ボタン（36pxの丸）、右に登録日。
             ★ボタンが出るのは利用中のデッキだけで、そのとき上段は36pxになる。
             アーカイブ済みでは出ないため、登録日だけの16px行のままにする。 */}
@@ -51,23 +51,30 @@ export function DeckListRowSkeleton({
               <Skeleton className="h-4 w-full rounded-lg" />
             </div>
             {/* 戦績（左）ときずなLv.の数値（右）。実体は text-tiny の行に11pxの数値が
-                baseline で並ぶため17px。 */}
+                baseline で並ぶため17px。幅は「20戦12勝8敗」69px と
+                「きずなLv.120」61px の実測に合わせる。 */}
             <div className="flex h-4.25 items-center justify-between gap-2">
-              <Skeleton className="h-3 w-24 rounded" />
-              <Skeleton className="h-3 w-12 rounded" />
+              <Skeleton className="h-3 w-17 rounded" />
+              <Skeleton className="h-3 w-15 rounded" />
             </div>
-            {/* きずなLv.の線と、その下の段階名（右端に説明への入口が並ぶ20px行） */}
+            {/* きずなLv.の線と、その下の段階名（右端に説明への入口が並ぶ20px行）。
+                説明への入口は実体では44px幅のボタンの中央に12pxのアイコンが載る。 */}
             <div className="flex flex-col gap-1">
               <Skeleton className="h-1 w-full rounded-full" />
-              <div className="flex h-5 items-center">
+              <div className="flex h-5 items-center justify-between gap-1">
                 <Skeleton className="h-3 w-20 rounded" />
+                <div className="flex h-5 w-11 items-center justify-center shrink-0">
+                  <Skeleton className="h-3 w-3 rounded-full" />
+                </div>
               </div>
             </div>
           </div>
-
-          {/* 内訳の開閉ボタン（36pxの丸ボタン） */}
-          <Skeleton className="h-9 w-9 rounded-full shrink-0" />
         </div>
+      </div>
+
+      {/* 「デッキコード・戦績を見る」開閉ボタン（ギャラリー表示と同じ32pxの全幅ボタン） */}
+      <div className="px-3 pt-2 pb-3">
+        <Skeleton className="h-8 w-full rounded-lg" />
       </div>
     </Card>
   );
@@ -102,8 +109,8 @@ export function DeckCardSkeleton({
   // 「デッキコード・戦績を見る」開閉ボタンの骨格を並べる。
   // デッキコード・戦績・先攻/後攻は開いたときだけ出るためここには含めない。
   //
-  // 各要素の高さは実物のカードを実測した値に合わせてある（★ボタンありで合計419px、
-  // なしで399px）。
+  // 各要素の高さは実物のカードを実測した値に合わせてある（幅390pxで★ボタンありは
+  // 合計416px、なしは396px）。
   return (
     <Card className="w-full overflow-hidden border border-default-200 shadow-sm">
       <CardHeader className="flex flex-col gap-1.5 px-3 pt-3 pb-2">
@@ -115,7 +122,9 @@ export function DeckCardSkeleton({
             <Skeleton className="h-3.5 w-28 rounded-lg" />
           </div>
         ) : (
-          <div className="flex h-4 justify-end">
+          /* CardHeader が items-center のため、w-full を付けないと登録日が
+             右端ではなくカード中央に寄ってしまう。 */
+          <div className="flex h-4 w-full justify-end">
             <Skeleton className="h-3.5 w-28 rounded-lg" />
           </div>
         )}
@@ -134,10 +143,15 @@ export function DeckCardSkeleton({
           <div className="flex h-7 items-center">
             <Skeleton className="h-5 w-40 rounded-lg" />
           </div>
-          {/* きずなLv.の数値（20px行）と線。畳んだ状態でも見えるため骨格に含める。 */}
+          {/* きずなLv.の数値（20px行）と線。畳んだ状態でも見えるため骨格に含める。
+              数値の幅は「きずなLv.120」61px、その右の説明への入口は実体では
+              44px幅のボタンの中央に12pxのアイコンが載る。 */}
           <div className="flex w-full min-w-0 flex-col gap-1 pt-0.5">
-            <div className="flex h-5 items-center justify-center">
-              <Skeleton className="h-3.5 w-20 rounded" />
+            <div className="flex h-5 items-center justify-center gap-0.5">
+              <Skeleton className="h-3.5 w-15 rounded" />
+              <div className="flex h-5 w-11 items-center justify-center shrink-0">
+                <Skeleton className="h-3 w-3 rounded-full" />
+              </div>
             </div>
             <Skeleton className="h-1 w-full rounded-full" />
           </div>

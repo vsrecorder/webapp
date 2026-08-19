@@ -7,9 +7,17 @@ import { useRouter } from "next/navigation";
 import { Button, useDisclosure } from "@heroui/react";
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/dropdown";
 
-import { LuEllipsisVertical, LuTrash2, LuShare2 } from "react-icons/lu";
+import {
+  LuEllipsisVertical,
+  LuTrash2,
+  LuShare2,
+  LuCalendarCog,
+  LuLayers,
+} from "react-icons/lu";
 
 import DeleteRecordModal from "@app/components/organisms/Record/Modal/DeleteRecordModal";
+import EditEventInfoModal from "@app/components/organisms/Record/Modal/EditEventInfoModal";
+import UpdateUsedDeckModal from "@app/components/organisms/Deck/Modal/UpdateUsedDeckModal";
 import ShareRecordModal from "@app/components/organisms/Record/Modal/ShareRecordModal";
 
 import { RecordGetByIdResponseType } from "@app/types/record";
@@ -78,6 +86,9 @@ type Props = {
   // 戦績パネルで貢献度(裏面)を表示中か。シェア画像に同じ面を写すため、そのまま中継する
   showSynergy?: boolean;
   deckCardRef: RefObject<HTMLDivElement | null>;
+  // イベント情報を変更したときの通知。参照先IDが変わらない自由形式イベントの編集にも
+  // ヒーローの表示を追従させるため、親からイベント情報の取り直しを促す。
+  onEventInfoUpdated?: () => void;
 };
 
 export default function RecordActionsFloating({
@@ -87,6 +98,7 @@ export default function RecordActionsFloating({
   stats,
   showSynergy,
   deckCardRef,
+  onEventInfoUpdated,
 }: Props) {
   const router = useRouter();
 
@@ -94,6 +106,18 @@ export default function RecordActionsFloating({
     isOpen: isOpenForDeleteRecordModal,
     onOpen: onOpenForDeleteRecordModal,
     onOpenChange: onOpenChangeForDeleteRecordModal,
+  } = useDisclosure();
+
+  const {
+    isOpen: isOpenForEditEventInfoModal,
+    onOpen: onOpenForEditEventInfoModal,
+    onOpenChange: onOpenChangeForEditEventInfoModal,
+  } = useDisclosure();
+
+  const {
+    isOpen: isOpenForUpdateUsedDeckModal,
+    onOpen: onOpenForUpdateUsedDeckModal,
+    onOpenChange: onOpenChangeForUpdateUsedDeckModal,
   } = useDisclosure();
 
   const {
@@ -185,6 +209,21 @@ export default function RecordActionsFloating({
         onClose={onCloseForShareModal}
       />
 
+      <EditEventInfoModal
+        record={record}
+        setRecord={setRecord}
+        isOpen={isOpenForEditEventInfoModal}
+        onOpenChange={onOpenChangeForEditEventInfoModal}
+        onUpdated={onEventInfoUpdated}
+      />
+
+      <UpdateUsedDeckModal
+        record={record}
+        setRecord={setRecord}
+        isOpen={isOpenForUpdateUsedDeckModal}
+        onOpenChange={onOpenChangeForUpdateUsedDeckModal}
+      />
+
       <DeleteRecordModal
         record={record}
         setRecord={setRecord}
@@ -245,6 +284,20 @@ export default function RecordActionsFloating({
             </Button>
           </DropdownTrigger>
           <DropdownMenu aria-label="記録の操作">
+            <DropdownItem
+              key="edit-event-info"
+              startContent={<LuCalendarCog />}
+              onPress={() => onOpenForEditEventInfoModal()}
+            >
+              イベント情報を変更する
+            </DropdownItem>
+            <DropdownItem
+              key="edit-used-deck"
+              startContent={<LuLayers />}
+              onPress={() => onOpenForUpdateUsedDeckModal()}
+            >
+              使用したデッキを編集する
+            </DropdownItem>
             <DropdownItem
               key="delete"
               startContent={<LuTrash2 />}

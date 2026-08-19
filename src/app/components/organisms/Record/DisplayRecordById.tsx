@@ -30,6 +30,10 @@ export default function DisplayRecordById({ recordData }: Props) {
   // 描画して撮るため、画面と同じ面を撮れるよう状態はここで持ちシェア側にも渡す。
   const [showSynergy, setShowSynergy] = useState(false);
 
+  // イベント情報を変更したときにヒーローへ取り直しを促すためのキー。
+  // 自由形式イベントの編集は参照先IDが変わらないため、record の変化では追従できない。
+  const [eventRefreshKey, setEventRefreshKey] = useState(0);
+
   const deckCardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -65,6 +69,7 @@ export default function DisplayRecordById({ recordData }: Props) {
           onToggleSynergy={() => setShowSynergy((prev) => !prev)}
           enableEditTCGMeisterURL={true}
           enableEditUsedDeck={true}
+          eventRefreshKey={eventRefreshKey}
           matchesSlot={
             <Matches
               record={record}
@@ -111,6 +116,7 @@ export default function DisplayRecordById({ recordData }: Props) {
           stats={stats}
           showSynergy={showSynergy}
           deckCardRef={deckCardRef}
+          onEventInfoUpdated={() => setEventRefreshKey((prev) => prev + 1)}
         />
       )}
     </div>

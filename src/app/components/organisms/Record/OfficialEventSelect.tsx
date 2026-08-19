@@ -90,9 +90,17 @@ type Props = {
   date: string;
   selectedId: number | null;
   onChange: (id: number | null) => void;
+  // 検索メニューを閉じたときの通知。モーダル内で使う場合に、フォーカスを
+  // 受け皿へ移してソフトウェアキーボードを閉じるために使う。
+  onMenuClose?: () => void;
 };
 
-export default function OfficialEventSelect({ date, selectedId, onChange }: Props) {
+export default function OfficialEventSelect({
+  date,
+  selectedId,
+  onChange,
+  onMenuClose,
+}: Props) {
   const reactSelectTheme = useReactSelectTheme();
 
   const { data, isLoading, error } = useSWR<OfficialEventType[]>(
@@ -134,6 +142,7 @@ export default function OfficialEventSelect({ date, selectedId, onChange }: Prop
         maxMenuHeight={485}
         windowThreshold={100}
         menuPosition="fixed"
+        onMenuClose={onMenuClose}
         menuPortalTarget={typeof document !== "undefined" ? document.body : null}
         styles={{
           menuPortal: (base) => ({ ...base, zIndex: 9999 }),
@@ -193,7 +202,10 @@ export default function OfficialEventSelect({ date, selectedId, onChange }: Prop
 
       <div className="pt-1">
         <Card radius="none" shadow="sm">
-          <CardBody>
+          {/* overflow-visible は iOS のスクロール不能対策(モーダル内で使う場合に効く)。
+              HeroUI の CardBody 既定 overflow-y-auto は、溢れていなくても
+              react-aria にスワイプを殺されるため打ち消しておく。 */}
+          <CardBody className="overflow-visible">
             <div className="pl-1 pr-1 flex items-center gap-5 w-full min-w-0">
               <div className="flex items-center justify-center gap-5 min-w-0">
                 <div className="z-0 shrink-0">

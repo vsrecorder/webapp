@@ -326,6 +326,9 @@ type Props = {
   // 公式イベントの会場(店舗名)チップを描画しない
   // (シェア画像で「会場を表示する」オプションOFF時に使う)。
   hideVenue?: boolean;
+  // 値が変わるとイベント情報を取り直す。自由形式イベントの編集は参照先IDが
+  // 変わらないため、record の変化だけでは新しいイベント名を取得できない。
+  eventRefreshKey?: number;
 };
 
 /*
@@ -346,6 +349,7 @@ export default function RecordHero({
   onReadyChange,
   hideDeck = false,
   hideVenue = false,
+  eventRefreshKey = 0,
 }: Props) {
   const [officialEvent, setOfficialEvent] =
     useState<OfficialEventGetByIdResponseType | null>(null);
@@ -412,7 +416,8 @@ export default function RecordHero({
 
   useEffect(() => {
     loadEvent();
-  }, [loadEvent]);
+    // eventRefreshKey は取り直しのトリガーとしてのみ使う(loadEvent 内では参照しない)
+  }, [loadEvent, eventRefreshKey]);
 
   // 使用デッキを取得する(登録済みの記録のみ。ヒーロー下段に名前とスプライトを表示)
   useEffect(() => {

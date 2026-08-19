@@ -11,6 +11,13 @@ export type UnofficialEventCreateRequestType = {
   date: string;
 };
 
+export type UnofficialEventUpdateRequestType = {
+  title: string;
+  date: string;
+};
+
 export type UnofficialEventGetByIdResponseType = UnofficialEventType;
 
 export type UnofficialEventCreateResponseType = UnofficialEventType;
+
+export type UnofficialEventUpdateResponseType = UnofficialEventType;

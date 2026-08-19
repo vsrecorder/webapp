@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { UnofficialEventGetByIdResponseType } from "@app/types/unofficial_event";
+import { auth } from "@app/auth";
 
-import { upstreamUrl } from "@app/utils/upstream";
+import {
+  UnofficialEventGetByIdResponseType,
+  UnofficialEventUpdateRequestType,
+  UnofficialEventUpdateResponseType,
+} from "@app/types/unofficial_event";
+
+import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/upstream";
+
+import * as jwt from "jsonwebtoken";
 
 async function getUnofficialEventById(
   id: string,
@@ -41,5 +49,84 @@ export async function GET(
     return NextResponse.json(ret, { status: 200 });
   } catch (error) {
     throw error;
+  }
+}
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const session = await auth();
+  if (!session) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  const jwtSecret: jwt.Secret = process.env.VSRECORDER_JWT_SECRET as string;
+  const jwtSignOptions: jwt.SignOptions = {
+    algorithm: "HS256",
+    expiresIn: "10s",
+  };
+  const jwtPayload = {
+    iss: "vsrecorder-webapp",
+    uid: session.user.id,
+  };
+  const token = jwt.sign(jwtPayload, jwtSecret, jwtSignOptions);
+
+  try {
+    const { id } = await params;
+    const unofficialEvent: UnofficialEventUpdateRequestType = await request.json();
+
+    const updated = await fetchUpstream<UnofficialEventUpdateResponseType>(
+      upstreamUrl`/api/v1beta/unofficial_events/${id}`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: "Bearer " + token,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(unofficialEvent),
+      },
+    );
+
+    return NextResponse.json(updated, { status: 200 });
+  } catch (error) {
+    return upstreamErrorResponse(error);
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const session = await auth();
+  if (!session) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  const jwtSecret: jwt.Secret = process.env.VSRECORDER_JWT_SECRET as string;
+  const jwtSignOptions: jwt.SignOptions = {
+    algorithm: "HS256",
+    expiresIn: "10s",
+  };
+  const jwtPayload = {
+    iss: "vsrecorder-webapp",
+    uid: session.user.id,
+  };
+  const token = jwt.sign(jwtPayload, jwtSecret, jwtSignOptions);
+
+  try {
+    const { id } = await params;
+
+    await fetchUpstream<null>(upstreamUrl`/api/v1beta/unofficial_events/${id}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: "Bearer " + token,
+        "Content-Type": "application/json",
+      },
+    });
+
+    return new NextResponse(null, { status: 204 });
+  } catch (error) {
+    return upstreamErrorResponse(error);
   }
 }

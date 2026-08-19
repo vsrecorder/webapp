@@ -916,7 +916,7 @@ export default function TemplateQuickRecordCreate({
                         type="text"
                         label="イベント名"
                         labelPlacement="outside"
-                        placeholder="例）ジムバトル（未入力なら「対戦記録」）"
+                        placeholder="例）〇〇自主大会（未入力なら「対戦記録」）"
                         value={eventTitle}
                         onChange={(e) => setEventTitle(e.target.value)}
                         isInvalid={isEventTitleTooLong}

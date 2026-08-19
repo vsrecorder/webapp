@@ -183,6 +183,39 @@ export async function getRelatedCityleagueEvents(
   return events.filter((related) => related.id !== event.id).slice(0, limit);
 }
 
+type TermBounds = {
+  term: CityleagueTerm;
+  from: string;
+  to: string;
+};
+
+/*
+ * 期間の境界を "YYYY-MM-DD" に正規化した結果を、期間配列ごとに覚えておく。
+ *
+ * findTermByDate はイベント1件ごとに呼ばれるため、素直に書くと同じ期間の境界を
+ * イベント件数ぶん計算し直すことになる（実測: 7,802件 × 環境31件 × 2 = 48万回の
+ * Date 生成で約97ms、シーズンで約59ms）。境界は期間配列が同じなら変わらないので、
+ * 1度だけ求めて使い回す。
+ *
+ * キーを期間配列そのものにしているのは、配列が取得のたびに作り直されるため。
+ * WeakMap にしておけば配列が捨てられた時点でこちらも回収される。
+ */
+const termBoundsCache = new WeakMap<CityleagueTerm[], TermBounds[]>();
+
+function getTermBounds(terms: CityleagueTerm[]): TermBounds[] {
+  const cached = termBoundsCache.get(terms);
+  if (cached) return cached;
+
+  const bounds = terms.map((term) => ({
+    term,
+    from: toDateOnly(term.from_date),
+    to: toDateOnly(term.to_date),
+  }));
+  termBoundsCache.set(terms, bounds);
+
+  return bounds;
+}
+
 // 期間の配列から、指定日を含むものを返す。シーズン・環境の判定に使う。
 export function findTermByDate(
   terms: CityleagueTerm[],
@@ -190,9 +223,9 @@ export function findTermByDate(
 ): CityleagueTerm | undefined {
   const target = toDateOnly(date);
 
-  return terms.find(
-    (term) => toDateOnly(term.from_date) <= target && target <= toDateOnly(term.to_date),
-  );
+  return getTermBounds(terms).find(
+    (bounds) => bounds.from <= target && target <= bounds.to,
+  )?.term;
 }
 
 // "2026-04-30T00:00:00+09:00" -> "2026-04"（JSTでの年月）
@@ -227,11 +260,31 @@ export function formatMonthKey(monthKey: string): string {
   return `${matched[1]}年${Number(matched[2])}月`;
 }
 
+/*
+ * 書式ごとの Intl.DateTimeFormat を使い回すためのキャッシュ。
+ *
+ * toLocaleDateString は呼び出しのたびに内部で Intl.DateTimeFormat を作る。
+ * 開催月ハブは 7,802件のイベント全件に対して toMonthKey を呼ぶため、この生成コストが
+ * そのままページの表示時間になっていた（実測: この集計だけで約420ms、本番の TTFB は約2秒）。
+ * 書式は数種類しかないので、1つ作って使い回す。
+ *
+ * キーに JSON 文字列を使えるのは、呼び出し側が固定のオブジェクトリテラルを渡すため。
+ */
+const jstFormatterCache = new Map<string, Intl.DateTimeFormat>();
+
 function formatInJst(date: Date | string, options: Intl.DateTimeFormatOptions): string {
-  return new Date(date).toLocaleDateString("ja-JP", {
-    timeZone: "Asia/Tokyo",
-    ...options,
-  });
+  const cacheKey = JSON.stringify(options);
+
+  let formatter = jstFormatterCache.get(cacheKey);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat("ja-JP", {
+      timeZone: "Asia/Tokyo",
+      ...options,
+    });
+    jstFormatterCache.set(cacheKey, formatter);
+  }
+
+  return formatter.format(new Date(date));
 }
 
 export function formatEventDate(date: Date | string): string {

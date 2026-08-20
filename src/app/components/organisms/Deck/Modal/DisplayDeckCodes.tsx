@@ -12,7 +12,6 @@ import {
 } from "@heroui/react";
 
 //import { Chip } from "@heroui/react";
-import { Snippet } from "@heroui/react";
 import { Spinner } from "@heroui/spinner";
 
 import { Alert } from "@heroui/react";
@@ -37,6 +36,7 @@ import {
 import DeckCardDiff from "@app/components/organisms/Deck/DeckCardDiff";
 import CardListAccordion from "@app/components/organisms/Deck/CardListAccordion";
 import FetchError from "@app/components/molecules/FetchError";
+import CopyableDeckCode from "@app/components/atoms/CopyableDeckCode";
 import ZoomableDeckImage from "@app/components/atoms/ZoomableDeckImage";
 import TagChips from "@app/components/molecules/TagChips";
 import TagSelector from "@app/components/organisms/Tag/TagSelector";
@@ -664,24 +664,7 @@ export default function DisplayDeckCodesModal({
                     元のバージョンはそのまま履歴に残ります。
                   </div>
                   {makeLatestDeckCode?.code && (
-                    <div className="flex min-w-0 items-center justify-center gap-2 rounded-lg bg-default-100 px-3 py-2">
-                      <span className="shrink-0 text-tiny text-default-500">
-                        デッキコード
-                      </span>
-                      <Snippet
-                        size="sm"
-                        radius="none"
-                        timeout={3000}
-                        disableTooltip={true}
-                        hideSymbol={true}
-                        classNames={{
-                          base: "min-w-0 bg-transparent p-0",
-                          pre: "truncate",
-                        }}
-                      >
-                        {makeLatestDeckCode.code}
-                      </Snippet>
-                    </div>
+                    <CopyableDeckCode code={makeLatestDeckCode.code} />
                   )}
                 </div>
               </ModalBody>
@@ -925,27 +908,12 @@ export default function DisplayDeckCodesModal({
 
                                         <ZoomableDeckImage code={deckcode.code} />
 
-                                        {/* デッキコード表示は他画面（DeckCodeCard）と統一。
-                                            バージョン履歴のカードは bg-default-100 のため、
+                                        {/* バージョン履歴のカードは bg-default-100 のため、
                                             背景のみ bg-content1 にしてコントラストを確保する。 */}
-                                        <div className="flex min-w-0 items-center justify-center gap-2 rounded-lg bg-content1 px-3 py-2">
-                                          <span className="shrink-0 text-tiny text-default-500">
-                                            デッキコード
-                                          </span>
-                                          <Snippet
-                                            size="sm"
-                                            radius="none"
-                                            timeout={3000}
-                                            disableTooltip={true}
-                                            hideSymbol={true}
-                                            classNames={{
-                                              base: "min-w-0 bg-transparent p-0",
-                                              pre: "truncate",
-                                            }}
-                                          >
-                                            {deckcode?.code ? deckcode.code : "なし"}
-                                          </Snippet>
-                                        </div>
+                                        <CopyableDeckCode
+                                          code={deckcode?.code}
+                                          background="content1"
+                                        />
 
                                         {/* カードリスト。バージョンごとに畳んでおき、
                                             開いたバージョンの内訳だけを取得する */}

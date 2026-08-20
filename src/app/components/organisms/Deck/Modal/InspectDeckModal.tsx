@@ -2,11 +2,11 @@ import { useState } from "react";
 
 import { Skeleton } from "@heroui/react";
 import { Image } from "@heroui/react";
-import { Snippet } from "@heroui/react";
 
 import { Modal, ModalContent, ModalHeader, ModalBody } from "@heroui/react";
 
 import InspectDeck from "@app/components/organisms/Deck/InspectDeck";
+import CopyableDeckCode from "@app/components/atoms/CopyableDeckCode";
 import ZoomableDeckImage from "@app/components/atoms/ZoomableDeckImage";
 
 import { DeckCodeType } from "@app/types/deck_code";
@@ -63,25 +63,9 @@ export default function InspectDeckModal({
 
             <ModalBody className="px-1">
               <div className="flex flex-col gap-5">
-                <div className="pt-5 flex flex-col items-center justify-center gap-3">
-                  <div className="flex items-center gap-2">
-                    <div className="font-bold text-tiny">
-                      <>デッキコード：</>
-                      {deckcode?.code ? (
-                        <Snippet
-                          size="sm"
-                          radius="none"
-                          timeout={3000}
-                          disableTooltip={true}
-                          hideSymbol={true}
-                        >
-                          {deckcode.code}
-                        </Snippet>
-                      ) : (
-                        "なし"
-                      )}
-                    </div>
-                  </div>
+                {/* デッキコード欄は他画面（DeckCodeCard など）と同じ共通部品にする */}
+                <div className="px-2 pt-5">
+                  <CopyableDeckCode code={deckcode?.code} />
                 </div>
 
                 {deckcode?.code ? (

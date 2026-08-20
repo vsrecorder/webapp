@@ -11,7 +11,6 @@ import { Button, Card, CardBody, CardHeader } from "@heroui/react";
 import { Chip, Tabs, Tab, useDisclosure, addToast } from "@heroui/react";
 import { Link as HeroLink } from "@heroui/react";
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/dropdown";
-import { Snippet } from "@heroui/react";
 
 import { LuCalendar } from "react-icons/lu";
 import { LuChevronLeft } from "react-icons/lu";
@@ -36,6 +35,7 @@ import { DECK_MODAL_REOPEN_KEYS } from "@app/utils/deckModalReopen";
 import DeckKizunaPanel from "@app/components/organisms/Deck/DeckKizunaPanel";
 import DeckValueMeter from "@app/components/organisms/Deck/DeckValueMeter";
 import { fetchDeckEnv } from "@app/utils/deckEnv";
+import CopyableDeckCode from "@app/components/atoms/CopyableDeckCode";
 import KizunaDeckSprites from "@app/components/molecules/KizunaDeckSprites";
 import DeckCodeCard from "@app/components/organisms/Deck/DeckCodeCard";
 import DeckCardDetailRow from "@app/components/organisms/Deck/DeckCardDetailRow";
@@ -757,24 +757,12 @@ export default function DeckById({ id, valueMeterEnabled = false }: Props) {
                       </span>
                     </div>
                     {dc.code && (
-                      <div className="mt-1 flex min-w-0 items-center gap-2">
-                        <span className="shrink-0 text-tiny text-default-500">
-                          コード
-                        </span>
-                        <Snippet
-                          size="sm"
-                          radius="none"
-                          timeout={3000}
-                          disableTooltip
-                          hideSymbol
-                          classNames={{
-                            base: "min-w-0 bg-transparent p-0",
-                            pre: "truncate",
-                          }}
-                        >
-                          {dc.code}
-                        </Snippet>
-                      </div>
+                      <CopyableDeckCode
+                        code={dc.code}
+                        label="コード"
+                        background="none"
+                        className="mt-1"
+                      />
                     )}
                     {dc.memo && (
                       <p className="mt-1 whitespace-pre-wrap wrap-break-word text-tiny text-default-500">

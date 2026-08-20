@@ -8,7 +8,6 @@ import { Card, CardHeader, CardBody } from "@heroui/react";
 import { Image } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
 import { Button } from "@heroui/react";
-import { Snippet } from "@heroui/react";
 import { Link } from "@heroui/react";
 
 import {
@@ -25,6 +24,7 @@ import { LuUser } from "react-icons/lu";
 
 import CreateDeckModal from "@app/components/organisms/Deck/Modal/CreateDeckModal";
 import CardListAccordion from "@app/components/organisms/Deck/CardListAccordion";
+import CopyableDeckCode from "@app/components/atoms/CopyableDeckCode";
 import ZoomableDeckImage from "@app/components/atoms/ZoomableDeckImage";
 import BoardPanel from "@app/components/organisms/Record/BoardPanel";
 
@@ -281,25 +281,8 @@ export default function CityleagueResultCard({ result, showRankLabel = true }: P
                             {/* デッキ画像の表示・タップ全画面表示は共通コンポーネントに委譲する */}
                             <ZoomableDeckImage code={result.deck_code} />
 
-                            {/* デッキコード欄：記録側 DeckCodeCard と同じデザイン */}
-                            <div className="flex min-w-0 items-center justify-center gap-2 rounded-lg bg-default-100 px-3 py-2">
-                              <span className="shrink-0 text-tiny text-default-500">
-                                デッキコード
-                              </span>
-                              <Snippet
-                                size="sm"
-                                radius="none"
-                                timeout={3000}
-                                disableTooltip={true}
-                                hideSymbol={true}
-                                classNames={{
-                                  base: "min-w-0 bg-transparent p-0",
-                                  pre: "truncate",
-                                }}
-                              >
-                                {result.deck_code}
-                              </Snippet>
-                            </div>
+                            {/* デッキコード欄：記録側 DeckCodeCard と同じ共通部品 */}
+                            <CopyableDeckCode code={result.deck_code} />
 
                             {/* カード内訳：展開でカードリストを見られるアコーディオン */}
                             <CardListAccordion code={result.deck_code} />

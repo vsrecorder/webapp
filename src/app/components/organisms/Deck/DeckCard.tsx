@@ -21,10 +21,13 @@ import { useDisclosure } from "@heroui/react";
 
 import { LuCalendar } from "react-icons/lu";
 import { LuChevronDown } from "react-icons/lu";
-import { LuChevronRight } from "react-icons/lu";
+import { LuExpand } from "react-icons/lu";
 import { LuSwords } from "react-icons/lu";
 import { LuStar } from "react-icons/lu";
 
+import DeckImageZoomOverlay, {
+  deckImageUrl,
+} from "@app/components/atoms/DeckImageZoomOverlay";
 import DeckCodeCard from "@app/components/organisms/Deck/DeckCodeCard";
 import { createLazyModal } from "@app/utils/lazyModal";
 
@@ -132,6 +135,9 @@ export default function DeckCard({
 
   // ギャラリー表示のヒーロー画像の読み込み状態
   const [heroImageLoaded, setHeroImageLoaded] = useState(false);
+
+  // ヒーロー画像タップで開く全画面（横向き）表示のオープン状態
+  const [isHeroZoomOpen, setIsHeroZoomOpen] = useState(false);
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
@@ -482,13 +488,13 @@ export default function DeckCard({
             {ignoredNote}
 
             {/* デッキ詳細/記録情報モーダルと同じレイアウト（デッキ画像→デッキコード）。
-                ただしリスト表示のアコーディオン内では画像タップでの全画面表示は行わない。 */}
+                デッキ画像のタップは全画面表示（DeckCodeCard 側で伝播を止めるため、
+                この展開部のタップで開くデッキ詳細モーダルとは競合しない）。 */}
             <DeckCodeCard
               deckcode={deckcode}
               totalVersionCount={versionCount}
               onCreateVersion={isArchived ? undefined : onOpen}
               isArchived={isArchived}
-              disableImageZoom
             />
           </div>
         )}
@@ -555,32 +561,44 @@ export default function DeckCard({
             {/* ヒーロー：デッキ画像を主役に大きく表示。
               オーバーレイは暗背景で常に視認できる勝率バッジのみ。 */}
             {deckcode?.code && (
-              <div className="relative w-full aspect-2/1 bg-default-100">
+              /* 画像そのものへのタップは全画面表示にあてる。カード全体のタップ
+                （＝デッキ詳細を開く）と役割が衝突しないよう伝播を止める。 */
+              <button
+                type="button"
+                aria-label="デッキ画像を拡大表示する"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsHeroZoomOpen(true);
+                }}
+                className="relative block w-full aspect-2/1 cursor-zoom-in bg-default-100 active:opacity-90"
+              >
                 {!heroImageLoaded && <Skeleton className="absolute inset-0" />}
                 <Image
                   removeWrapper
                   radius="none"
                   alt={deckcode.code}
-                  src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`}
+                  src={deckImageUrl(deckcode.code)}
                   onLoad={() => setHeroImageLoaded(true)}
                   className="absolute inset-0 h-full w-full object-cover"
                 />
-                {/* 画像上に「タップで詳細」を重ねる。デッキ画像は一覧で最も目を引く
+                {/* 画像上に「タップで拡大」を重ねる。デッキ画像は一覧で最も目を引く
                   要素なので、押せることの手がかりをここに置くのが最も届きやすい。
-                  暗い半透明の下地で、明るいデッキ画像の上でも読めるようにする。 */}
-                <span className="absolute bottom-2 left-2 flex items-center gap-0.5 rounded-full bg-black/60 pl-2 pr-1.5 py-1 text-[10px] font-bold text-white backdrop-blur-sm">
-                  タップで詳細
-                  <LuChevronRight aria-hidden className="text-xs" />
+                  暗い半透明の下地で、明るいデッキ画像の上でも読めるようにする。
+                  HeroUI Image は自前で z-10 を持つため、z-20 を指定しないと
+                  画像の下に潜って見えなくなる（勝率バッジも同じ）。 */}
+                <span className="absolute bottom-2 left-2 z-20 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[10px] font-bold text-white backdrop-blur-sm">
+                  タップで拡大
+                  <LuExpand aria-hidden className="text-xs" />
                 </span>
                 {hasStats && (
-                  <span className="absolute bottom-2 right-2 flex items-baseline gap-1 rounded-full bg-black/65 px-2.5 py-1 text-white backdrop-blur-sm">
+                  <span className="absolute bottom-2 right-2 z-20 flex items-baseline gap-1 rounded-full bg-black/65 px-2.5 py-1 text-white backdrop-blur-sm">
                     <span className="text-medium font-black tabular-nums">
                       {formatPercent(winRate)}
                     </span>
                     <span className="text-[9px] opacity-85">勝率</span>
                   </span>
                 )}
-              </div>
+              </button>
             )}
 
             {/* ヒーロー画像より下の情報（デッキコード・戦績・先攻/後攻）はアコーディオンに畳む。
@@ -691,6 +709,14 @@ export default function DeckCard({
             )}
           </Card>
         </div>
+      )}
+
+      {deckcode?.code && (
+        <DeckImageZoomOverlay
+          code={deckcode.code}
+          isOpen={isHeroZoomOpen}
+          onClose={() => setIsHeroZoomOpen(false)}
+        />
       )}
 
       {enableShowDeckModal && (

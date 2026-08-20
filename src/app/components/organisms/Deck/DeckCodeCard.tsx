@@ -2,11 +2,10 @@
 
 import { useEffect } from "react";
 
-import { Snippet } from "@heroui/react";
-
 import { LuLayers } from "react-icons/lu";
 
 import { DeckCodeType } from "@app/types/deck_code";
+import CopyableDeckCode from "@app/components/atoms/CopyableDeckCode";
 import ZoomableDeckImage from "@app/components/atoms/ZoomableDeckImage";
 
 type Props = {
@@ -25,9 +24,6 @@ type Props = {
   // デッキコードを別所（カードリストの下など）へ配置する場合に true。
   // このとき画像のみ描画し、デッキコード欄を省く。
   hideCode?: boolean;
-  // デッキ画像タップでの全画面表示を無効化する場合に true。
-  // リスト表示のアコーディオン内などでは、画像タップで拡大させたくない。
-  disableImageZoom?: boolean;
   // アーカイブしたデッキでは新しいバージョンを作成できないため、
   // バージョン作成CTAはグレーアウトした非活性表示に差し替える
   isArchived?: boolean;
@@ -40,7 +36,6 @@ export default function DeckCodeCard({
   onSelectExistingVersion,
   hideImage = false,
   hideCode = false,
-  disableImageZoom = false,
   isArchived = false,
 }: Props) {
   useEffect(() => {
@@ -123,41 +118,14 @@ export default function DeckCodeCard({
 
   // デッキ画像を主役に上へ置き、その下にデッキコードを並べる。
   // 画像を別所（ギャラリー表示のヒーロー画像）で見せている場合は hideImage で省く。
-  // 記録詳細では使用デッキカード全体が親の onClick（使用デッキ編集モーダル）で
-  // 包まれているため、実デッキコード表示のタップが編集モーダルを開かないよう
-  // ここでクリックの伝播を止める（画像タップは拡大、コードはコピー用途に限定する）。
-  // ただし disableImageZoom（リスト表示のアコーディオン内）では、カードのタップで
-  // デッキ詳細モーダルを開くのが期待動作のため、伝播は止めない。
+  // このカードは親の onClick（記録詳細の使用デッキ編集モーダル、デッキ一覧の
+  // デッキ詳細モーダル）に包まれて置かれることが多い。画像タップは拡大、
+  // コード欄タップはコピーと役割が決まっているため、ここで伝播を止める。
   return (
-    <div
-      className="flex w-full flex-col gap-2.5"
-      onClick={disableImageZoom ? undefined : (e) => e.stopPropagation()}
-    >
-      {!hideImage && (
-        <ZoomableDeckImage code={deckcode.code} disableZoom={disableImageZoom} />
-      )}
+    <div className="flex w-full flex-col gap-2.5" onClick={(e) => e.stopPropagation()}>
+      {!hideImage && <ZoomableDeckImage code={deckcode.code} />}
 
-      {!hideCode && (
-        <div className="flex min-w-0 items-center justify-center gap-2 rounded-lg bg-default-100 px-3 py-2">
-          <span className="shrink-0 text-tiny text-default-500">デッキコード</span>
-          <Snippet
-            size="sm"
-            radius="none"
-            timeout={3000}
-            disableTooltip={true}
-            hideSymbol={true}
-            classNames={{
-              base: "min-w-0 bg-transparent p-0",
-              pre: "truncate",
-              // コピーボタンは操作用UIなので、シェア画像には含めない
-              // (capture-hide は captureThemedPng が複製後に除去する目印)
-              copyButton: "capture-hide",
-            }}
-          >
-            {deckcode.code}
-          </Snippet>
-        </div>
-      )}
+      {!hideCode && <CopyableDeckCode code={deckcode.code} />}
     </div>
   );
 }

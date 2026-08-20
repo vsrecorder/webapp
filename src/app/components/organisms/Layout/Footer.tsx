@@ -12,7 +12,9 @@ export default async function Footer() {
 
   return (
     <footer className="-mx-2 mt-8 bg-neutral-900 dark:bg-neutral-950 dark:border-t dark:border-neutral-800 text-neutral-400">
-      <div className="max-w-2xl mx-auto px-6 pt-10 pb-8">
+      {/* 本体コンテンツ(Home/Dashboard)と同じ最大幅に揃える。
+          片方だけ狭いとデスクトップでフッターの中身が中央に寄って見える */}
+      <div className="max-w-2xl lg:max-w-6xl xl:max-w-7xl mx-auto px-6 lg:px-8 pt-10 pb-8">
         {/* ブランド + リンクグループ */}
         <div className="flex flex-col sm:flex-row sm:justify-between gap-8 pb-8 border-b border-neutral-800">
           {/* ブランドエリア */}

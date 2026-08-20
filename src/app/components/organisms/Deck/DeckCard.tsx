@@ -21,7 +21,6 @@ import { useDisclosure } from "@heroui/react";
 
 import { LuCalendar } from "react-icons/lu";
 import { LuChevronDown } from "react-icons/lu";
-import { LuExpand } from "react-icons/lu";
 import { LuSwords } from "react-icons/lu";
 import { LuStar } from "react-icons/lu";
 
@@ -559,7 +558,7 @@ export default function DeckCard({
             </CardHeader>
 
             {/* ヒーロー：デッキ画像を主役に大きく表示。
-              オーバーレイは暗背景で常に視認できる勝率バッジのみ。 */}
+              重ね文字は置かず、画像だけを見せる。 */}
             {deckcode?.code && (
               /* 画像そのものへのタップは全画面表示にあてる。カード全体のタップ
                 （＝デッキ詳細を開く）と役割が衝突しないよう伝播を止める。 */
@@ -581,28 +580,11 @@ export default function DeckCard({
                   onLoad={() => setHeroImageLoaded(true)}
                   className="absolute inset-0 h-full w-full object-cover"
                 />
-                {/* 画像上に「タップで拡大」を重ねる。デッキ画像は一覧で最も目を引く
-                  要素なので、押せることの手がかりをここに置くのが最も届きやすい。
-                  暗い半透明の下地で、明るいデッキ画像の上でも読めるようにする。
-                  HeroUI Image は自前で z-10 を持つため、z-20 を指定しないと
-                  画像の下に潜って見えなくなる（勝率バッジも同じ）。 */}
-                <span className="absolute bottom-2 left-2 z-20 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[10px] font-bold text-white backdrop-blur-sm">
-                  タップで拡大
-                  <LuExpand aria-hidden className="text-xs" />
-                </span>
-                {hasStats && (
-                  <span className="absolute bottom-2 right-2 z-20 flex items-baseline gap-1 rounded-full bg-black/65 px-2.5 py-1 text-white backdrop-blur-sm">
-                    <span className="text-medium font-black tabular-nums">
-                      {formatPercent(winRate)}
-                    </span>
-                    <span className="text-[9px] opacity-85">勝率</span>
-                  </span>
-                )}
               </button>
             )}
 
             {/* ヒーロー画像より下の情報（デッキコード・戦績・先攻/後攻）はアコーディオンに畳む。
-              一覧をスクロールする段階ではスプライト・デッキ名・画像・勝率バッジで足りるため、
+              一覧をスクロールする段階ではスプライト・デッキ名・画像で足りるため、
               既定は閉じておき、必要なときだけ開く。カード自体のタップ（＝デッキ詳細を開く）と
               役割が衝突しないよう、開閉ボタンは伝播を止める。 */}
             <div className="px-3 pt-2 pb-3">

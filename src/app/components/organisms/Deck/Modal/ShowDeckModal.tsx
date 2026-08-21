@@ -443,7 +443,7 @@ export default function ShowDeckModal({
                               : onOpenForArchiveDeckModal
                           }
                         >
-                          {isArchived ? "整理を解除する" : "整理する"}
+                          {isArchived ? "アーカイブを解除する" : "アーカイブする"}
                         </DropdownItem>,
                         <DropdownItem
                           key="delete"

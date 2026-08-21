@@ -37,8 +37,12 @@ export function RecordCardSkeleton({ className = "" }: { className?: string }) {
             <Skeleton className="w-1 shrink-0 rounded-none" />
 
             <div className="flex-1 px-4 py-3.5 min-w-0">
-              {/* 集計対象外マークは大半の記録に無いため、スケルトンは
-                  マーク無しカードの表示に合わせて枠を設けない */}
+              {/* レギュレーションのチップ行(全ての記録に付くため常に枠を確保する。
+                  集計対象外マークは大半の記録に無いのでスケルトンには出さない)。
+                  幅は「スタンダード」のチップ(text-[10px] font-bold + 左右padding)に合わせる */}
+              <div className="flex h-5 items-center mb-1">
+                <Skeleton className="h-5 w-20 rounded-full" />
+              </div>
 
               {/* 開催日(実体は text-xs のインラインテキスト。行ボックスは親の strut ぶん
                   24px 取るので、同じ高さの枠にバーを入れて実データ描画時のズレを防ぐ)。

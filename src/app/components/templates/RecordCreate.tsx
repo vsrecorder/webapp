@@ -51,6 +51,7 @@ import { useReopenFlagsOnBack } from "@app/hooks/useReopenFlagsOnBack";
 import { DECK_MODAL_REOPEN_KEYS } from "@app/utils/deckModalReopen";
 
 import ScrollingText from "@app/components/molecules/ScrollingText";
+import RegulationSegmentedControl from "@app/components/molecules/RegulationSegmentedControl";
 
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
@@ -60,6 +61,7 @@ import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
 import { MAX_EVENT_TITLE_LENGTH, exceedsTextLength } from "@app/utils/textLength";
 
 import { OfficialEventResponseType, OfficialEventType } from "@app/types/official_event";
+import { DEFAULT_REGULATION_ID } from "@app/types/regulation";
 import { DeckGetAllType, DeckData, isFavoritedDeck } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
 import { DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
@@ -425,6 +427,31 @@ function StepLabel({
 }
 
 /*
+ * レギュレーション(使用可能なカードの範囲)の選択。公式/Tonamel/自由形式の3タブで同じUIを使う。
+ * セグメント本体は記録詳細・戦績分析と共通のコンポーネント。
+ */
+function RegulationOption({
+  regulationId,
+  setRegulationId,
+}: {
+  regulationId: number;
+  setRegulationId: (value: number) => void;
+}) {
+  return (
+    <>
+      <div className="flex flex-col gap-2">
+        <StepLabel num={4}>レギュレーション</StepLabel>
+      </div>
+
+      <RegulationSegmentedControl
+        regulationId={regulationId}
+        onChange={setRegulationId}
+      />
+    </>
+  );
+}
+
+/*
  * 「この記録を戦績集計に含めない」トグル。公式/Tonamel/自由形式の3タブで同じUIを使う。
  *
  * ON のときに警告文を「追加」すると、その分ブロックが伸びて直下の「記録を作成」ボタンが
@@ -445,7 +472,7 @@ function IgnoreStatsOption({
   return (
     <>
       <div className="flex flex-col gap-2">
-        <StepLabel num={4}>集計オプション</StepLabel>
+        <StepLabel num={5}>集計オプション</StepLabel>
       </div>
 
       <div
@@ -705,6 +732,9 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
   // この記録を戦績集計(勝率・デッキ使用率・週次レポートなど)から除外するかどうか。
   // タブ(公式/Tonamel/自由形式)を切り替えても保持される共通の設定として扱う。
   const [ignoreStatsFlg, setIgnoreStatsFlg] = useState<boolean>(false);
+
+  // レギュレーションも集計オプションと同じく、タブを切り替えても保持される共通の設定。
+  const [regulationId, setRegulationId] = useState<number>(DEFAULT_REGULATION_ID);
 
   const [selectedDeckOption, setSelectedDeckOption] = useState<DeckOption | null>(null);
   const [selectedDeckCodeOption, setSelectedDeckCodeOption] =
@@ -1041,6 +1071,7 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
       deck_code_id: deckCodeId,
       private_flg: true,
       ignore_stats_flg: ignoreStatsFlg,
+      regulation_id: regulationId,
       tcg_meister_url: "",
       memo: "",
       event_date: eventDateISO,
@@ -1155,6 +1186,7 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
       deck_code_id: deckCodeId,
       private_flg: true,
       ignore_stats_flg: ignoreStatsFlg,
+      regulation_id: regulationId,
       tcg_meister_url: "",
       memo: "",
       event_date: eventDateISO,
@@ -1297,6 +1329,7 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
         deck_code_id: deckCodeId,
         private_flg: true,
         ignore_stats_flg: ignoreStatsFlg,
+        regulation_id: regulationId,
         tcg_meister_url: "",
         memo: "",
         event_date: eventDateISO,
@@ -1865,6 +1898,11 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                   </div>
                 </div>
 
+                <RegulationOption
+                  regulationId={regulationId}
+                  setRegulationId={setRegulationId}
+                />
+
                 <IgnoreStatsOption
                   ignoreStatsFlg={ignoreStatsFlg}
                   setIgnoreStatsFlg={setIgnoreStatsFlg}
@@ -2209,6 +2247,11 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                   </div>
                 </div>
 
+                <RegulationOption
+                  regulationId={regulationId}
+                  setRegulationId={setRegulationId}
+                />
+
                 <IgnoreStatsOption
                   ignoreStatsFlg={ignoreStatsFlg}
                   setIgnoreStatsFlg={setIgnoreStatsFlg}
@@ -2522,6 +2565,11 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                     />
                   </div>
                 </div>
+
+                <RegulationOption
+                  regulationId={regulationId}
+                  setRegulationId={setRegulationId}
+                />
 
                 <IgnoreStatsOption
                   ignoreStatsFlg={ignoreStatsFlg}

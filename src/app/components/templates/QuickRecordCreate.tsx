@@ -40,6 +40,7 @@ import {
   UnofficialEventCreateResponseType,
 } from "@app/types/unofficial_event";
 import { RecordCreateRequestType, RecordCreateResponseType } from "@app/types/record";
+import { DEFAULT_REGULATION_ID } from "@app/types/regulation";
 import { MatchCreateRequestType, MatchGetResponseType } from "@app/types/match";
 import { MatchPokemonSpriteType, PokemonSpriteType } from "@app/types/pokemon_sprite";
 import { DeckData, isFavoritedDeck } from "@app/types/deck";
@@ -341,6 +342,7 @@ export default function TemplateQuickRecordCreate({
           deck_code_id: selectedDeckCodeId,
           private_flg: true,
           ignore_stats_flg: false,
+          regulation_id: DEFAULT_REGULATION_ID,
           tcg_meister_url: "",
           memo: "",
           event_date: eventDateISO,
@@ -355,6 +357,7 @@ export default function TemplateQuickRecordCreate({
           deck_code_id: selectedDeckCodeId,
           private_flg: true,
           ignore_stats_flg: false,
+          regulation_id: DEFAULT_REGULATION_ID,
           tcg_meister_url: "",
           memo: "",
           event_date: eventDateISO,
@@ -383,6 +386,7 @@ export default function TemplateQuickRecordCreate({
           deck_code_id: selectedDeckCodeId,
           private_flg: true,
           ignore_stats_flg: false,
+          regulation_id: DEFAULT_REGULATION_ID,
           tcg_meister_url: "",
           memo: "",
           event_date: eventDateISO,

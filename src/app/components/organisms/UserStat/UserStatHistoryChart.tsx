@@ -19,6 +19,8 @@ import { DeckGetResponseType } from "@app/types/deck";
 import { ChampionshipSeriesType } from "@app/types/championship_series";
 import { seasonOptionsFromChampionshipSeries, currentSeasonValue } from "@app/utils/season";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
+import RegulationSegmentedControl from "@app/components/molecules/RegulationSegmentedControl";
+import { DEFAULT_REGULATION_ID } from "@app/types/regulation";
 import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
 
 ChartJS.register(
@@ -59,6 +61,9 @@ export default function UserStatHistoryChart({ userId, championshipSeries }: Pro
     currentSeasonValue(championshipSeries),
   );
   const [deckId, setDeckId] = useState<string>("");
+
+  // レギュレーション区分(スタンダード/エクストラ/殿堂)。既定はスタンダード。
+  const [regulationId, setRegulationId] = useState<number>(DEFAULT_REGULATION_ID);
   const [ownDecks, setOwnDecks] = useState<DeckUsageItemType[]>([]);
   const [activeDeckIds, setActiveDeckIds] = useState<Set<string> | null>(null);
   const [history, setHistory] = useState<UserStatHistoryType | null>(null);
@@ -90,6 +95,7 @@ export default function UserStatHistoryChart({ userId, championshipSeries }: Pro
           params.set("season", seasonYear);
         }
         if (deckId) params.set("deck_id", deckId);
+        params.set("regulation_id", String(regulationId));
 
         const res = await fetch(
           `/api/users/${userId}/stat/history?${params.toString()}`,
@@ -112,7 +118,7 @@ export default function UserStatHistoryChart({ userId, championshipSeries }: Pro
     return () => {
       cancelled = true;
     };
-  }, [userId, periodMode, seasonYear, deckId]);
+  }, [userId, periodMode, seasonYear, deckId, regulationId]);
 
   // 選択中シーズンで実際に使用したデッキ一覧を取得し、デッキセレクタの選択肢にする
   // （対戦相手のデッキ分布パネルと同様、「使用したすべてのデッキで集計」をデフォルトにした単一パネル構成）
@@ -323,6 +329,12 @@ export default function UserStatHistoryChart({ userId, championshipSeries }: Pro
   return (
     <Card>
       <CardBody className="gap-3 p-4">
+        {/* レギュレーション区分の絞り込み */}
+        <RegulationSegmentedControl
+          regulationId={regulationId}
+          onChange={setRegulationId}
+        />
+
         {/* ヘッダー */}
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold text-default-700"></span>

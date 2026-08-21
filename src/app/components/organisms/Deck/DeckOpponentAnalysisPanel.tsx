@@ -7,6 +7,8 @@ import { Tab, Tabs } from "@heroui/react";
 
 import { EnvironmentType } from "@app/types/environment";
 import { StandardRegulationType } from "@app/types/standard_regulation";
+import { DEFAULT_REGULATION_ID } from "@app/types/regulation";
+import RegulationSegmentedControl from "@app/components/molecules/RegulationSegmentedControl";
 import { ChampionshipSeriesType } from "@app/types/championship_series";
 import { OpponentDeckUsageStatType } from "@app/types/opponent_deck_usage_stat";
 import { OldestRecordEventDateType } from "@app/types/oldest_record_event_date";
@@ -43,7 +45,11 @@ export default function DeckOpponentAnalysisPanel({ deckId, inModal = false }: P
   const [standardRegulations, setStandardRegulations] = useState<
     StandardRegulationType[]
   >([]);
-  const [regulationId, setRegulationId] = useState<string>("");
+  const [standardRegulationId, setStandardRegulationId] = useState<string>("");
+
+  // レギュレーション区分(スタンダード/エクストラ/殿堂)。期間の絞り込みとは直交する軸で、
+  // 既定はスタンダード(レギュレーションが混ざった数字を初期表示しない)。
+  const [regulationId, setRegulationId] = useState<number>(DEFAULT_REGULATION_ID);
   const [championshipSeries, setChampionshipSeries] = useState<ChampionshipSeriesType[]>(
     [],
   );
@@ -138,7 +144,7 @@ export default function DeckOpponentAnalysisPanel({ deckId, inModal = false }: P
         if (cancelled) return;
 
         setStandardRegulations(regulations);
-        setRegulationId((prev) => prev || (regulations[0]?.id ?? ""));
+        setStandardRegulationId((prev) => prev || (regulations[0]?.id ?? ""));
         setChampionshipSeries(series);
         setSeason((prev) => prev || currentSeasonValue(series));
       } catch (e) {
@@ -161,14 +167,15 @@ export default function DeckOpponentAnalysisPanel({ deckId, inModal = false }: P
       try {
         const params = new URLSearchParams();
         params.set("deck_id", deckId);
+        params.set("regulation_id", String(regulationId));
         if (periodMode === "month" && yearMonth) {
           params.set("year_month", yearMonth);
         } else if (periodMode === "environment" && environmentId) {
           params.set("environment_id", environmentId);
         } else if (periodMode === "season" && season) {
           params.set("season", season);
-        } else if (periodMode === "regulation" && regulationId) {
-          params.set("regulation_id", regulationId);
+        } else if (periodMode === "regulation" && standardRegulationId) {
+          params.set("standard_regulation_id", standardRegulationId);
         }
 
         const res = await fetch(
@@ -191,7 +198,48 @@ export default function DeckOpponentAnalysisPanel({ deckId, inModal = false }: P
     return () => {
       cancelled = true;
     };
-  }, [userId, deckId, periodMode, yearMonth, environmentId, season, regulationId]);
+  }, [
+    userId,
+    deckId,
+    periodMode,
+    yearMonth,
+    environmentId,
+    season,
+    standardRegulationId,
+    regulationId,
+  ]);
+
+  // 「環境」と「レギュレーションマーク」はスタンダードのカードプールを前提にした
+  // 区切りのため、
+  // エクストラ・殿堂では全期間・月次・シーズンだけを出す。
+  const isStandardRegulation = regulationId === DEFAULT_REGULATION_ID;
+
+  const periodTabs: { key: PeriodMode; title: string }[] = [
+    { key: "all", title: "全期間" },
+    { key: "month", title: "月次" },
+    ...(isStandardRegulation
+      ? [{ key: "environment" as PeriodMode, title: "環境" }]
+      : []),
+    { key: "season", title: "シーズン" },
+    ...(isStandardRegulation
+      ? [{ key: "regulation" as PeriodMode, title: "レギュレーションマーク" }]
+      : []),
+  ];
+
+  // レギュレーションを切り替えると選べる集計タブも変わるため、集計の選択もそれに合わせる。
+  // このパネルの既定は全期間なので、消えるタブ(環境・レギュ)を選んでいた場合も
+  // スタンダードへ戻した場合も、全期間へ戻す。
+  const handleRegulationChange = (nextRegulationId: number) => {
+    setRegulationId(nextRegulationId);
+
+    if (
+      nextRegulationId === DEFAULT_REGULATION_ID ||
+      periodMode === "environment" ||
+      periodMode === "regulation"
+    ) {
+      setPeriodMode("all");
+    }
+  };
 
   const decks = stat?.decks ?? [];
 
@@ -199,11 +247,17 @@ export default function DeckOpponentAnalysisPanel({ deckId, inModal = false }: P
     <div className="flex flex-col gap-3">
       {/* 期間フィルタ。スクロールしても常に見えるよう、モーダル本文の先頭に固定する */}
       <div className="sticky top-0 z-10 bg-content1 pb-1">
-        {/* 5タブを横スクロールさせず、常に画面幅へ収める。fullWidth で等幅に配分し、
-            タブ内の余白と文字サイズを詰めることで、狭い画面(320px相当)でも
-            最長ラベル「シーズン」が折り返さず収まるようにしている。
-            「レギュレーション」は等幅1枠に収まらないため「レギュ」と短縮する
-            （選択中の内容は下の選択欄と期間ラベルに『マーク』付きで表示される）。 */}
+        {/* レギュレーション区分の絞り込み(期間の絞り込みとは独立に効く) */}
+        <div className="pb-1.5">
+          <RegulationSegmentedControl
+            regulationId={regulationId}
+            onChange={handleRegulationChange}
+          />
+        </div>
+
+        {/* fullWidth で等幅に配分し、タブ内の余白と文字サイズを詰めて画面幅へ収める。
+            「レギュレーションマーク」は等幅1枠に収まらないため、このタブだけ
+            2行に折り返して高さを揃える（他のタブは whitespace-nowrap で1行のまま）。 */}
         <Tabs
           fullWidth
           size="sm"
@@ -212,15 +266,13 @@ export default function DeckOpponentAnalysisPanel({ deckId, inModal = false }: P
           classNames={{
             base: "w-full",
             tabList: "w-full",
-            tab: "h-7 px-0.5",
-            tabContent: "font-bold text-[11px] whitespace-nowrap",
+            tab: "h-9 px-0.5",
+            tabContent: "font-bold text-[11px] leading-tight",
           }}
         >
-          <Tab key="all" title="全期間" />
-          <Tab key="month" title="月次" />
-          <Tab key="environment" title="環境" />
-          <Tab key="season" title="シーズン" />
-          <Tab key="regulation" title="レギュ" />
+          {periodTabs.map((tab) => (
+            <Tab key={tab.key} title={tab.title} />
+          ))}
         </Tabs>
       </div>
 
@@ -285,8 +337,8 @@ export default function DeckOpponentAnalysisPanel({ deckId, inModal = false }: P
         {periodMode === "regulation" && (
           <div className="relative">
             <select
-              value={regulationId}
-              onChange={(e) => setRegulationId(e.target.value)}
+              value={standardRegulationId}
+              onChange={(e) => setStandardRegulationId(e.target.value)}
               className="w-full appearance-none rounded-xl border border-default-200 bg-default-100 px-4 py-2.5 pr-10 text-sm font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
             >
               {standardRegulations.map((reg) => (
@@ -310,7 +362,7 @@ export default function DeckOpponentAnalysisPanel({ deckId, inModal = false }: P
               : periodMode === "season"
                 ? (seasonOptions.find((o) => o.value === season)?.label ?? season)
                 : periodMode === "regulation"
-                  ? `『${standardRegulations.find((r) => r.id === regulationId)?.marks ?? ""}』`
+                  ? `『${standardRegulations.find((r) => r.id === standardRegulationId)?.marks ?? ""}』`
                   : "全期間"}
           の対戦相手のデッキ分布・勝率
         </p>

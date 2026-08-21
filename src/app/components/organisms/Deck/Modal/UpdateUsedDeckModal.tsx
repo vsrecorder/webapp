@@ -18,6 +18,7 @@ import { LuStar } from "react-icons/lu";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
 
 import { RecordGetByIdResponseType } from "@app/types/record";
+import { DEFAULT_REGULATION_ID } from "@app/types/regulation";
 import { RecordUpdateRequestType, RecordUpdateResponseType } from "@app/types/record";
 
 import { DeckGetAllType, DeckData, isFavoritedDeck } from "@app/types/deck";
@@ -466,6 +467,7 @@ export default function UpdateUsedDeckModal({
       deck_code_id: deckcodeId,
       private_flg: record ? record.private_flg : true,
       ignore_stats_flg: record ? record.ignore_stats_flg : false,
+      regulation_id: record ? record.regulation_id : DEFAULT_REGULATION_ID,
       tcg_meister_url: record ? record.tcg_meister_url : "",
       memo: record ? record.memo : "",
       event_date: record ? record.event_date : "",

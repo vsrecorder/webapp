@@ -13,6 +13,8 @@ import { buildUserStatPostText } from "@app/utils/panelPostText";
 
 import { EnvironmentType } from "@app/types/environment";
 import { StandardRegulationType } from "@app/types/standard_regulation";
+import { DEFAULT_REGULATION_ID, regulationDisplay } from "@app/types/regulation";
+import RegulationSegmentedControl from "@app/components/molecules/RegulationSegmentedControl";
 import { ChampionshipSeriesType } from "@app/types/championship_series";
 import { UserStatType } from "@app/types/user_stat";
 import {
@@ -71,9 +73,13 @@ export default function UserStatPanel({
   const [season, setSeason] = useState<string>(() =>
     currentSeasonValue(championshipSeries),
   );
-  const [regulationId, setRegulationId] = useState<string>(
+  const [standardRegulationId, setStandardRegulationId] = useState<string>(
     standardRegulations[0]?.id ?? "",
   );
+
+  // レギュレーション区分(スタンダード/エクストラ/殿堂)。期間の絞り込みとは直交する軸で、
+  // 既定はスタンダード(レギュレーションが混ざった数字を初期表示しない)。
+  const [regulationId, setRegulationId] = useState<number>(DEFAULT_REGULATION_ID);
   const [stat, setStat] = useState<UserStatType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   // シェアモーダルの開閉
@@ -90,14 +96,15 @@ export default function UserStatPanel({
       setIsLoading(true);
       try {
         const params = new URLSearchParams();
+        params.set("regulation_id", String(regulationId));
         if (filterMode === "month" && yearMonth) {
           params.set("year_month", yearMonth);
         } else if (filterMode === "environment" && environmentId) {
           params.set("environment_id", environmentId);
         } else if (filterMode === "season" && season) {
           params.set("season", season);
-        } else if (filterMode === "regulation" && regulationId) {
-          params.set("regulation_id", regulationId);
+        } else if (filterMode === "regulation" && standardRegulationId) {
+          params.set("standard_regulation_id", standardRegulationId);
         }
 
         const res = await fetch(`/api/users/${userId}/stat?${params.toString()}`, {
@@ -119,16 +126,57 @@ export default function UserStatPanel({
     return () => {
       cancelled = true;
     };
-  }, [userId, filterMode, yearMonth, environmentId, season, regulationId]);
+  }, [userId, filterMode, yearMonth, environmentId, season, standardRegulationId, regulationId]);
 
-  const filterLabel =
+
+  // 「環境」と「レギュレーションマーク」はスタンダードのカードプールを前提にした区切りのため、
+  // エクストラ・殿堂では月次とシーズンだけを出す。
+  const isStandardRegulation = regulationId === DEFAULT_REGULATION_ID;
+
+  const filterTabs: { key: FilterMode; title: string }[] = [
+    { key: "month", title: "月次" },
+    ...(isStandardRegulation
+      ? [{ key: "environment" as FilterMode, title: "環境" }]
+      : []),
+    { key: "season", title: "シーズン" },
+    ...(isStandardRegulation
+      ? [{ key: "regulation" as FilterMode, title: "レギュレーションマーク" }]
+      : []),
+  ];
+
+  // レギュレーションを切り替えると選べる集計タブも変わるため、集計の選択もそれに合わせる。
+  //  ・スタンダードへ戻したとき: 既定の集計である環境へ戻す。
+  //  ・エクストラ・殿堂へ切り替えたとき: 消えるタブ(環境・レギュレーションマーク)を選んだ
+  //    ままだと、その条件で集計され続けてしまうためシーズンへ寄せる
+  //    (エクストラ・殿堂でも母数を確保しやすい区切り)。
+  const handleRegulationChange = (nextRegulationId: number) => {
+    setRegulationId(nextRegulationId);
+
+    if (nextRegulationId === DEFAULT_REGULATION_ID) {
+      setFilterMode("environment");
+      return;
+    }
+
+    if (filterMode === "environment" || filterMode === "regulation") {
+      setFilterMode("season");
+    }
+  };
+
+  const periodFilterLabel =
     filterMode === "month"
       ? (yearMonthOptions.find((o) => o.value === yearMonth)?.label ?? yearMonth)
       : filterMode === "environment"
         ? `『${environments.find((e) => e.id === environmentId)?.title ?? ""}』`
         : filterMode === "season"
           ? (seasonOptions.find((o) => o.value === season)?.label ?? season)
-          : `『${standardRegulations.find((r) => r.id === regulationId)?.marks ?? ""}』`;
+          : `『${standardRegulations.find((r) => r.id === standardRegulationId)?.marks ?? ""}』`;
+
+  // レギュレーションはパネル上のセグメントで選ぶが、シェア画像には写らない。
+  // 既定のスタンダード以外を見ているときは、何のレギュレーションの数字か分かるよう添える。
+  const filterLabel =
+    regulationId === DEFAULT_REGULATION_ID
+      ? periodFilterLabel
+      : `${periodFilterLabel}(${regulationDisplay(regulationId).name})`;
 
   // セクション見出し行。タイトルを左、シェアボタンを右端に置く（ダッシュボードの
   // 「対戦環境データ」の見出し行と同じ配置ルール）。ローディング中・集計が無い間は
@@ -164,6 +212,12 @@ export default function UserStatPanel({
       {header}
       <Card>
         <CardBody className="gap-4 p-4">
+          {/* レギュレーション区分の絞り込み(期間の絞り込みとは独立に効く) */}
+          <RegulationSegmentedControl
+            regulationId={regulationId}
+            onChange={handleRegulationChange}
+          />
+
           {/* フィルタータブ */}
           <Tabs
             fullWidth
@@ -175,10 +229,9 @@ export default function UserStatPanel({
               tabContent: "font-bold text-xs",
             }}
           >
-            <Tab key="month" title="月次" />
-            <Tab key="environment" title="環境" />
-            <Tab key="season" title="シーズン" />
-            <Tab key="regulation" title="レギュレーション" />
+            {filterTabs.map((tab) => (
+              <Tab key={tab.key} title={tab.title} />
+            ))}
           </Tabs>
 
           {/* セレクタ */}
@@ -191,7 +244,7 @@ export default function UserStatPanel({
                     ? environmentId
                     : filterMode === "season"
                       ? season
-                      : regulationId
+                      : standardRegulationId
               }
               onChange={(e) => {
                 if (filterMode === "month") {
@@ -201,7 +254,7 @@ export default function UserStatPanel({
                 } else if (filterMode === "season") {
                   setSeason(e.target.value);
                 } else {
-                  setRegulationId(e.target.value);
+                  setStandardRegulationId(e.target.value);
                 }
               }}
               className="w-full appearance-none rounded-xl border border-default-200 bg-default-100 px-4 py-2.5 pr-10 text-sm font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
@@ -234,6 +287,7 @@ export default function UserStatPanel({
               ▼
             </span>
           </div>
+
 
           {/* 期間ラベル */}
           <p className="text-center text-xs text-default-400 -mt-2">{filterLabel} の戦績</p>

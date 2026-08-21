@@ -9,12 +9,15 @@ async function getUserStat(
   yearMonth: string,
   environmentId: string,
   season: string,
+  standardRegulationId: string,
   regulationId: string,
 ): Promise<UserStatType> {
   const params = new URLSearchParams();
   if (yearMonth) params.set("year_month", yearMonth);
   if (environmentId) params.set("environment_id", environmentId);
   if (season) params.set("season", season);
+  if (standardRegulationId)
+    params.set("standard_regulation_id", standardRegulationId);
   if (regulationId) params.set("regulation_id", regulationId);
 
   const res = await fetch(
@@ -42,8 +45,16 @@ export async function GET(
   const yearMonth = searchParams.get("year_month") ?? "";
   const environmentId = searchParams.get("environment_id") ?? "";
   const season = searchParams.get("season") ?? "";
+  const standardRegulationId = searchParams.get("standard_regulation_id") ?? "";
   const regulationId = searchParams.get("regulation_id") ?? "";
 
-  const stat = await getUserStat(id, yearMonth, environmentId, season, regulationId);
+  const stat = await getUserStat(
+    id,
+    yearMonth,
+    environmentId,
+    season,
+    standardRegulationId,
+    regulationId,
+  );
   return NextResponse.json(stat, { status: 200 });
 }

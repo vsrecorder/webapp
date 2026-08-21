@@ -131,6 +131,7 @@ export default function UsedDeckById({
       deck_code_id: newDeckCode.id,
       private_flg: targetRecord.private_flg,
       ignore_stats_flg: targetRecord.ignore_stats_flg,
+      regulation_id: targetRecord.regulation_id,
       tcg_meister_url: targetRecord.tcg_meister_url,
       memo: targetRecord.memo,
       event_date: targetRecord.event_date,

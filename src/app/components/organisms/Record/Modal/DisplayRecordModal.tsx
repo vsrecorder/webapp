@@ -24,12 +24,14 @@ import {
   LuTrash2,
   LuLayers,
   LuChartNoAxesColumn,
+  LuScrollText,
   LuShare2,
 } from "react-icons/lu";
 
 import RecordHero from "@app/components/organisms/Record/Hero/RecordHero";
 import BoardPanel from "@app/components/organisms/Record/BoardPanel";
 import IgnoreStatsFlgSetting from "@app/components/organisms/Record/IgnoreStatsFlgSetting";
+import RegulationSetting from "@app/components/organisms/Record/RegulationSetting";
 import Matches from "@app/components/organisms/Match/Matches";
 import UsedDeckById from "@app/components/organisms/Deck/UsedDeckById";
 
@@ -134,10 +136,10 @@ export default function DisplayRecordModal({
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  // 戦績集計の有効/無効を切り替えるAPIの実行中かどうか。
+  // 記録の設定(レギュレーション / 戦績集計の有効・無効)を切り替えるAPIの実行中かどうか。
   // 実行中に閉じられると、更新結果(集計対象外バナーの出現/消失)や失敗トーストを
   // 確認できないまま画面から消えてしまうため、この間は閉じる操作を受け付けない。
-  const [isStatsUpdating, setIsStatsUpdating] = useState(false);
+  const [isSettingUpdating, setIsSettingUpdating] = useState(false);
 
   // 戦績パネルの裏面(貢献度)の表示状態。シェア画像は画面外に別の RecordHero を
   // 描画して撮るため、画面と同じ面を撮れるよう状態はここで持ちシェア側にも渡す。
@@ -229,11 +231,11 @@ export default function DisplayRecordModal({
     });
   }, [record]);
 
-  const attachHeader = useModalDragToClose(onClose, { disabled: isStatsUpdating });
+  const attachHeader = useModalDragToClose(onClose, { disabled: isSettingUpdating });
 
   // Escキーなど HeroUI 側からの閉じる要求も、集計切り替え中は無視する。
   const handleOpenChange = () => {
-    if (isStatsUpdating) return;
+    if (isSettingUpdating) return;
     onOpenChange();
   };
 
@@ -274,7 +276,7 @@ export default function DisplayRecordModal({
         hideCloseButton
         backdrop={nestedInModal ? "transparent" : "opaque"}
         isDismissable={false}
-        isKeyboardDismissDisabled={isStatsUpdating}
+        isKeyboardDismissDisabled={isSettingUpdating}
         className="z-20 h-[calc(100dvh-104px)] max-h-[calc(100dvh-104px)] mt-26 my-0 rounded-b-none overscroll-contain"
         classNames={{
           base: "sm:max-w-full lg:max-w-2xl",
@@ -300,7 +302,7 @@ export default function DisplayRecordModal({
               <ModalHeader
                 ref={attachHeader}
                 className={`px-3 py-3 flex flex-col gap-1 touch-none ${
-                  isStatsUpdating ? "cursor-not-allowed" : "cursor-grab"
+                  isSettingUpdating ? "cursor-not-allowed" : "cursor-grab"
                 }`}
               >
                 {/* スワイプバー */}
@@ -428,7 +430,7 @@ export default function DisplayRecordModal({
                   />
                 </div>
 
-                {/* ボード：デッキコード・戦績集計を1枚のカードにまとめる */}
+                {/* ボード：デッキコード・レギュレーション・戦績集計を1枚のカードにまとめる */}
                 <div className="px-1">
                   <Card shadow="sm" className="w-full overflow-hidden">
                     <CardBody className="p-0">
@@ -445,12 +447,21 @@ export default function DisplayRecordModal({
                         </div>
                       </BoardPanel>
 
+                      <BoardPanel icon={<LuScrollText />} label="レギュレーション">
+                        <RegulationSetting
+                          record={record}
+                          setRecord={setRecord}
+                          flat={true}
+                          onUpdatingChange={setIsSettingUpdating}
+                        />
+                      </BoardPanel>
+
                       <BoardPanel icon={<LuChartNoAxesColumn />} label="戦績集計">
                         <IgnoreStatsFlgSetting
                           record={record}
                           setRecord={setRecord}
                           flat={true}
-                          onUpdatingChange={setIsStatsUpdating}
+                          onUpdatingChange={setIsSettingUpdating}
                         />
                       </BoardPanel>
                     </CardBody>

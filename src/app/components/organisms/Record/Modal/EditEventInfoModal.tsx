@@ -316,6 +316,7 @@ export default function EditEventInfoModal({
         deck_code_id: record.deck_code_id,
         private_flg: record.private_flg,
         ignore_stats_flg: record.ignore_stats_flg,
+        regulation_id: record.regulation_id,
         // TCGマイスターのURLは公式イベントの記録にのみ紐づく情報のため、
         // 他の種別へ変更した場合は一緒に外す
         tcg_meister_url: eventType === "official" ? record.tcg_meister_url : "",

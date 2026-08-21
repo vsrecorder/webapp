@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 
 import { Card, CardBody } from "@heroui/react";
-import { LuLayers, LuChartNoAxesColumn } from "react-icons/lu";
+import { LuLayers, LuChartNoAxesColumn, LuScrollText } from "react-icons/lu";
 
 import RecordHero from "@app/components/organisms/Record/Hero/RecordHero";
 import BoardPanel from "@app/components/organisms/Record/BoardPanel";
 import IgnoreStatsFlgSetting from "@app/components/organisms/Record/IgnoreStatsFlgSetting";
+import RegulationSetting from "@app/components/organisms/Record/RegulationSetting";
 import Matches from "@app/components/organisms/Match/Matches";
 import UsedDeckById from "@app/components/organisms/Deck/UsedDeckById";
 import RecordActionsFloating from "@app/components/molecules/Floating/RecordActionsFloating";
@@ -84,7 +85,7 @@ export default function DisplayRecordById({ recordData }: Props) {
         />
       )}
 
-      {/* ボード：デッキコード・戦績集計を1枚のカードにまとめる */}
+      {/* ボード：デッキコード・レギュレーション・戦績集計を1枚のカードにまとめる */}
       <Card shadow="sm" className="w-full overflow-hidden">
         <CardBody className="p-0">
           <BoardPanel icon={<LuLayers />} label="デッキ情報">
@@ -98,6 +99,12 @@ export default function DisplayRecordById({ recordData }: Props) {
                 enableCardList={true}
               />
             </div>
+          </BoardPanel>
+
+          <BoardPanel icon={<LuScrollText />} label="レギュレーション">
+            {record && (
+              <RegulationSetting record={record} setRecord={setRecord} flat={true} />
+            )}
           </BoardPanel>
 
           <BoardPanel icon={<LuChartNoAxesColumn />} label="戦績集計">

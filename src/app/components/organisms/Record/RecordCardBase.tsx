@@ -8,6 +8,7 @@ import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import { RecordDeckRowSkeleton } from "@app/components/organisms/Record/Skeleton/RecordCardSkeleton";
 import { DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
 import { getSpriteBySlot } from "@app/utils/spriteSlot";
+import { regulationDisplay } from "@app/types/regulation";
 
 type Props = {
   // カード識別子(record-card-${id}) とクリックハンドラ
@@ -46,6 +47,8 @@ type Props = {
   loadingMatches: boolean;
   // 戦績集計から除外されているか。true の場合カード右上にバッジを表示する
   ignoreStatsFlg?: boolean;
+  // レギュレーション(regulations テーブルのID)。全ての記録でチップを表示する
+  regulationId: number;
 };
 
 /*
@@ -75,7 +78,10 @@ export default function RecordCardBase({
   hasBo3,
   loadingMatches,
   ignoreStatsFlg,
+  regulationId,
 }: Props) {
+  const regulation = regulationDisplay(regulationId);
+
   const hasMatchResult =
     (winCount ?? 0) + (lossCount ?? 0) + (drawCount ?? 0) > 0;
   const matchResultColorClass =
@@ -130,11 +136,19 @@ export default function RecordCardBase({
             <div className={`w-1 shrink-0 ${accentColorClass}`} />
 
             <div className="flex-1 px-4 py-3.5 min-w-0">
-              {/* 集計対象外マーク。日付の上に表示する。
-                  マークが無いカードには余白を出さないため、対象外のときだけ枠ごと描画する
-                  (この場合、マークの有無でカードの高さはずれる) */}
-              {ignoreStatsFlg && (
-                <div className="flex h-5 items-center mb-1">
+              {/* レギュレーションと集計対象外のマーク。日付の上に表示する。
+                  レギュレーションは全ての記録に付くため、この行は常に描画する */}
+              <div className="flex h-5 items-center gap-1.5 mb-1">
+                <Chip
+                  size="sm"
+                  variant="flat"
+                  color={regulation.chipColor}
+                  className="h-5 text-[10px] font-bold"
+                >
+                  {regulation.name}
+                </Chip>
+
+                {ignoreStatsFlg && (
                   <Popover placement="bottom-start">
                     <PopoverTrigger>
                       <button
@@ -163,8 +177,8 @@ export default function RecordCardBase({
                       </div>
                     </PopoverContent>
                   </Popover>
-                </div>
-              )}
+                )}
+              </div>
 
               {/* 開催日 */}
               <span className="text-xs text-default-500">{date}</span>

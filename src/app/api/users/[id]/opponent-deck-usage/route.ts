@@ -39,6 +39,7 @@ export async function GET(
     const yearMonth = searchParams.get("year_month") ?? "";
     const environmentId = searchParams.get("environment_id") ?? "";
     const season = searchParams.get("season") ?? "";
+    const standardRegulationId = searchParams.get("standard_regulation_id") ?? "";
     const regulationId = searchParams.get("regulation_id") ?? "";
     const deckId = searchParams.get("deck_id") ?? "";
 
@@ -46,6 +47,8 @@ export async function GET(
     if (yearMonth) queryParams.set("year_month", yearMonth);
     if (environmentId) queryParams.set("environment_id", environmentId);
     if (season) queryParams.set("season", season);
+    if (standardRegulationId)
+      queryParams.set("standard_regulation_id", standardRegulationId);
     if (regulationId) queryParams.set("regulation_id", regulationId);
     if (deckId) queryParams.set("deck_id", deckId);
 

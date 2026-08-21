@@ -8,10 +8,12 @@ async function getUserStatRecent(
   userId: string,
   count: string,
   deckId: string,
+  regulationId: string,
 ): Promise<RecentMatchStatType> {
   const params = new URLSearchParams();
   if (count) params.set("count", count);
   if (deckId) params.set("deck_id", deckId);
+  if (regulationId) params.set("regulation_id", regulationId);
 
   const res = await fetch(
     upstreamUrl`/api/v1beta/users/${userId}/stats/recent?${params}`,
@@ -37,7 +39,8 @@ export async function GET(
   const { searchParams } = new URL(request.url);
   const count = searchParams.get("count") ?? "";
   const deckId = searchParams.get("deck_id") ?? "";
+  const regulationId = searchParams.get("regulation_id") ?? "";
 
-  const stat = await getUserStatRecent(id, count, deckId);
+  const stat = await getUserStatRecent(id, count, deckId, regulationId);
   return NextResponse.json(stat, { status: 200 });
 }

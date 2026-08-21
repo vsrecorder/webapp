@@ -339,8 +339,9 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
             <div className="h-3 w-36 rounded bg-default-200" />
             {/* 人数・のべ件数のサマリボックス */}
             <div className="h-8 w-full rounded-xl bg-default-100" />
-            {/* 注記4行 */}
+            {/* 注記5行 */}
             <div className="flex flex-col items-center gap-1">
+              <div className="h-2.5 w-48 rounded bg-default-200" />
               <div className="h-2.5 w-52 rounded bg-default-200" />
               <div className="h-2.5 w-60 rounded bg-default-200" />
               <div className="h-2.5 w-64 rounded bg-default-200" />
@@ -373,6 +374,8 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
               </div>
             </div>
             <span className="text-[10px] text-default-300 leading-snug text-center">
+              ※スタンダードの記録のみを集計しています
+              <br />
               ※自分・相手それぞれのデッキを1件として
               <br />
               集計するため、対戦数より多くなっています

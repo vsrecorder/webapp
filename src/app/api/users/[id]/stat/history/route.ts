@@ -9,11 +9,13 @@ async function getUserStatHistory(
   period: string,
   season: string,
   deckId: string,
+  regulationId: string,
 ): Promise<UserStatHistoryType> {
   const params = new URLSearchParams();
   if (period) params.set("period", period);
   if (season) params.set("season", season);
   if (deckId) params.set("deck_id", deckId);
+  if (regulationId) params.set("regulation_id", regulationId);
 
   const res = await fetch(
     upstreamUrl`/api/v1beta/users/${userId}/stats/history?${params}`,
@@ -40,7 +42,8 @@ export async function GET(
   const period = searchParams.get("period") ?? "";
   const season = searchParams.get("season") ?? "";
   const deckId = searchParams.get("deck_id") ?? "";
+  const regulationId = searchParams.get("regulation_id") ?? "";
 
-  const history = await getUserStatHistory(id, period, season, deckId);
+  const history = await getUserStatHistory(id, period, season, deckId, regulationId);
   return NextResponse.json(history, { status: 200 });
 }

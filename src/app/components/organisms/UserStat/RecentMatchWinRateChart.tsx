@@ -15,6 +15,8 @@ import { Line } from "react-chartjs-2";
 import { Card, CardBody } from "@heroui/react";
 
 import { RecentMatchItemType, RecentMatchStatType } from "@app/types/user_stat_recent";
+import RegulationSegmentedControl from "@app/components/molecules/RegulationSegmentedControl";
+import { DEFAULT_REGULATION_ID } from "@app/types/regulation";
 import { spriteImageUrl } from "@app/utils/sprite";
 import { getSpriteBySlot } from "@app/utils/spriteSlot";
 import { spriteFitStyle } from "@app/utils/spriteFit";
@@ -99,6 +101,9 @@ function renderTooltipSprites(
 
 export default function RecentMatchWinRateChart({ userId }: Props) {
   const [countMode, setCountMode] = useState<CountMode>("20");
+
+  // レギュレーション区分(スタンダード/エクストラ/殿堂)。既定はスタンダード。
+  const [regulationId, setRegulationId] = useState<number>(DEFAULT_REGULATION_ID);
   const [stat, setStat] = useState<RecentMatchStatType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -120,6 +125,7 @@ export default function RecentMatchWinRateChart({ userId }: Props) {
       try {
         const params = new URLSearchParams();
         params.set("count", countMode);
+        params.set("regulation_id", String(regulationId));
 
         const res = await fetch(`/api/users/${userId}/stat/recent?${params.toString()}`, {
           cache: "no-store",
@@ -139,7 +145,7 @@ export default function RecentMatchWinRateChart({ userId }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [userId, countMode]);
+  }, [userId, countMode, regulationId]);
 
   const chartData: RecentMatchItemType[] = stat?.matches ?? [];
   chartDataRef.current = chartData;
@@ -359,6 +365,12 @@ export default function RecentMatchWinRateChart({ userId }: Props) {
   return (
     <Card>
       <CardBody className="gap-3 p-4">
+        {/* レギュレーション区分の絞り込み */}
+        <RegulationSegmentedControl
+          regulationId={regulationId}
+          onChange={setRegulationId}
+        />
+
         {/* ヘッダー */}
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold text-default-700">直近N戦の勝率推移</span>

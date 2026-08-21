@@ -9,6 +9,7 @@ type Data = {
   deck_code_id: string;
   private_flg: boolean;
   ignore_stats_flg: boolean;
+  regulation_id: number;
   tcg_meister_url: string;
   memo: string;
   // 自由形式イベント用。開催日(ISO文字列)と unofficial_events のID
@@ -36,6 +37,7 @@ export type RecordCreateRequestType = {
   deck_code_id: string;
   private_flg: boolean;
   ignore_stats_flg: boolean;
+  regulation_id: number;
   tcg_meister_url: string;
   memo: string;
   event_date: string;
@@ -50,6 +52,7 @@ export type RecordUpdateRequestType = {
   deck_code_id: string;
   private_flg: boolean;
   ignore_stats_flg: boolean;
+  regulation_id: number;
   tcg_meister_url: string;
   memo: string;
   event_date: string;

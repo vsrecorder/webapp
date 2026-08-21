@@ -59,6 +59,19 @@ function useFixedBarAlignment() {
     if (!slot || !bar) return;
 
     const sync = () => {
+      /*
+       * 実測が入るこの瞬間に、流れの中から固定へ切り替える。
+       *
+       * サーバ描画〜ハイドレーションの間はまだ実測値が無く、fixed のままだと
+       * 横幅・横位置を自分で決められない。ビューポート全幅で代用すると、
+       * 〜lg では <main> の左右余白ぶん(8px)、lg 以上ではサイドバーと
+       * lg:max-w-4xl ぶん(実測で片側192px以上)はみ出したバーが見えてしまう。
+       * 流れの中に置いておけば幅は親から決まるので、その間もカード列と必ず揃う。
+       *
+       * 切り替えは useLayoutEffect のためペイント前に済み、移動は目に見えない。
+       */
+      if (bar.style.position !== "fixed") bar.style.position = "fixed";
+
       const rect = slot.getBoundingClientRect();
       const left = `${rect.left}px`;
       const width = `${rect.width}px`;
@@ -124,8 +137,8 @@ export default function DeckViewToggleBar({ children }: { children: React.ReactN
     <div className="w-full">
       {/* 流れの中に残す空き枠。バーの横位置・横幅の基準になり、
           同時に fixed で抜けたぶんの高さを埋めてカードの重なりを防ぐ。
-          h-12 はバーの実寸(py-2 16px＋トグル32px)と同じ既定値で、
-          実測が入るまで（サーバ描画〜ハイドレーション）の高さを埋める。
+          高さの既定値は 0。バーが fixed になるまで（サーバ描画〜ハイドレーション）は
+          バー自身が流れの中で場所を取るため、ここで埋めると二重になる。
 
           負の上マージンは、実測で入る marginTop（バーの貼り付き位置 top-25＝100px と、
           空き枠が流れの中で本来始まる位置との差）の既定値。これが無いと
@@ -140,17 +153,15 @@ export default function DeckViewToggleBar({ children }: { children: React.ReactN
       <div
         ref={slotRef}
         aria-hidden
-        className="-mt-3 h-12 lg:-mt-17"
+        className="-mt-3 lg:-mt-17"
         style={{ height: slotHeight }}
       />
       {/* 半透明にすると下を流れるカードが透けて揺らいで見えるため、背景は不透明にする。
           地色はページのドット背景と同じにして、境目が出ないようにする。
-          left-0 right-0 は実測が入るまでの仮の横幅。無いと横幅が内容依存に縮んで
-          ハイドレーション前だけバーが潰れて見える（実測後はインラインの left/width が勝つ）。 */}
-      <div
-        ref={barRef}
-        className="app-dot-bg-plain fixed top-25 right-0 left-0 z-40 py-2"
-      >
+          position は付けない。実測が入るまでは流れの中に置き、幅を親（＝カード列と
+          同じ枠）から決めさせる。fixed 化は sync が行う（理由はそちらのコメント）。
+          top-25 / z-40 は fixed になって初めて効くので、先に書いておいてよい。 */}
+      <div ref={barRef} className="app-dot-bg-plain top-25 z-40 py-2">
         {children}
       </div>
     </div>

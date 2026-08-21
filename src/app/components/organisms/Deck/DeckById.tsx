@@ -457,7 +457,7 @@ export default function DeckById({ id, valueMeterEnabled = false }: Props) {
                 isArchived ? onOpenForUnarchiveDeckModal : onOpenForArchiveDeckModal
               }
             >
-              {isArchived ? "整理を解除する" : "整理する"}
+              {isArchived ? "アーカイブを解除する" : "アーカイブする"}
             </DropdownItem>
             <DropdownItem
               key="delete"

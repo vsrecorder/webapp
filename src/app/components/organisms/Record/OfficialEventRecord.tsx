@@ -324,6 +324,7 @@ export default function OfficialEventRecord({
           ) : undefined
         }
         ignoreStatsFlg={record.ignore_stats_flg}
+        regulationId={record.regulation_id}
         icon={
           <Image
             alt={officialEvent.title}

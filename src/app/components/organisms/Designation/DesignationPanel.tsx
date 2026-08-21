@@ -321,6 +321,7 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
               alt={rankImageAlt}
               fill
               unoptimized
+              loading="eager"
               className="object-contain p-2"
             />
           </button>

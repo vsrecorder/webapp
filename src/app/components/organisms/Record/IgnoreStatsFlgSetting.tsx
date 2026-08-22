@@ -174,7 +174,7 @@ export default function IgnoreStatsFlgSetting({
           onClick={() => select(true)}
           className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs font-bold transition-colors ${
             excluded
-              ? "bg-danger text-danger-foreground shadow-sm"
+              ? "bg-warning text-warning-foreground shadow-sm"
               : "text-default-500 hover:text-default-700"
           }`}
         >

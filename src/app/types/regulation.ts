@@ -24,14 +24,16 @@ type RegulationDisplay = {
   name: string;
   // 記録一覧カードのチップ色。大半の記録が占めるスタンダードは主張を弱くし、
   // それ以外が目に留まるようにしている。
-  chipColor: "default" | "secondary" | "warning" | "danger";
+  // warning は「集計対象外」の表示に充てているので、ここでは使わない
+  // (同じカードに並ぶため、同系色だと別の意味が混ざって見える)。
+  chipColor: "default" | "primary" | "secondary" | "danger";
 };
 
 export const REGULATION_DISPLAY: Record<number, RegulationDisplay> = {
   [REGULATION_ID_STANDARD]: { name: "スタンダード", chipColor: "default" },
   [REGULATION_ID_EXTRA]: { name: "エクストラ", chipColor: "secondary" },
   [REGULATION_ID_HALL_OF_FAME]: { name: "殿堂", chipColor: "danger" },
-  [REGULATION_ID_OTHER]: { name: "その他", chipColor: "warning" },
+  [REGULATION_ID_OTHER]: { name: "その他", chipColor: "primary" },
 };
 
 // マスタ取得前に選択肢を描くためのフォールバック。取得できたらAPIの結果で置き換える。

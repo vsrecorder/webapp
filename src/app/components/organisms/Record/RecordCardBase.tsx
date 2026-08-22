@@ -159,13 +159,13 @@ export default function RecordCardBase({
                         onClick={(e) => e.stopPropagation()}
                         aria-label="集計対象外の詳細を表示"
                       >
-                        {/* レギュレーションのチップは flat。こちらは色(danger)と塗り(solid)の
-                            両方で差をつけて、いちばん先に目に入るようにする。
-                            danger は殿堂と同じ色だが、solid かどうかで見分けられる。 */}
+                        {/* レギュレーションのチップは flat。こちらは塗り(solid)で差をつけて、
+                            いちばん先に目に入るようにする。色は集計対象外を示す warning で、
+                            バナー・「集計から除外」の選択と揃えてある。 */}
                         <Chip
                           size="sm"
                           variant="solid"
-                          color="danger"
+                          color="warning"
                           className="h-5 text-[10px] font-bold"
                         >
                           ⚠ 集計対象外

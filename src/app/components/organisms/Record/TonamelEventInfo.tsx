@@ -166,7 +166,7 @@ export default function TonamelEventInfo({ record }: Props) {
               <Chip
                 size="sm"
                 variant="solid"
-                color="danger"
+                color="warning"
                 className="h-5 text-[10px] font-bold"
               >
                 ⚠ 集計対象外

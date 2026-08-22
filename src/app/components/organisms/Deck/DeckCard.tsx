@@ -307,9 +307,10 @@ export default function DeckCard({
   const ignoredNote =
     ignoredCount > 0 ? (
       <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+        {/* 記録カードの「集計対象外」チップと同じ塗り(solid)・同じ warning で揃える */}
         <Chip
           size="sm"
-          variant="flat"
+          variant="solid"
           color="warning"
           className="h-5 text-[10px] font-bold"
         >
@@ -418,7 +419,7 @@ export default function DeckCard({
                   /* きずなLv.と同じ行に並ぶと幅が足りず末尾が切れるため、
                     溢れるときだけ横に流して最後まで読めるようにする。
                     ⚠ は目印なので流さず頭に固定し、文言だけを流す。 */
-                  <span className="flex min-w-0 flex-1 items-center gap-1 font-semibold text-warning">
+                  <span className="flex min-w-0 flex-1 items-center gap-1 font-semibold text-warning-700">
                     <span aria-hidden className="shrink-0">
                       ⚠
                     </span>
@@ -654,17 +655,17 @@ export default function DeckCard({
                   )
                 ) : ignoredCount > 0 ? (
                   /* 集計対象外の記録だけがあるデッキ（勝率などは集計されない） */
-                  <div className="flex flex-col items-center gap-2 rounded-lg bg-warning/10 px-3 py-3 text-center">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-warning/20 text-warning">
+                  <div className="flex flex-col items-center gap-2 rounded-lg border border-warning-200 bg-warning-100 px-3 py-3 text-center">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-warning text-warning-foreground">
                       <span aria-hidden className="text-base">
                         ⚠
                       </span>
                     </div>
                     <div className="min-w-0">
-                      <div className="text-tiny font-bold text-warning">
+                      <div className="text-tiny font-bold text-warning-700">
                         集計対象外の記録が{ignoredCount}件あります
                       </div>
-                      <div className="text-[10px] text-default-400">
+                      <div className="text-[10px] text-warning-600/80">
                         勝率・先攻/後攻などの集計には含まれていません
                       </div>
                     </div>

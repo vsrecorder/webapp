@@ -632,9 +632,10 @@ export default function DeckById({ id, valueMeterEnabled = false }: Props) {
 
               {ignoredCount > 0 && (
                 <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                  {/* 記録カードの「集計対象外」チップと同じ塗り(solid)・同じ warning で揃える */}
                   <Chip
                     size="sm"
-                    variant="flat"
+                    variant="solid"
                     color="warning"
                     className="h-5 text-[10px] font-bold"
                   >
@@ -647,14 +648,16 @@ export default function DeckById({ id, valueMeterEnabled = false }: Props) {
               )}
             </>
           ) : ignoredCount > 0 ? (
-            <div className="flex flex-col items-center gap-2 rounded-lg bg-warning/10 px-3 py-4 text-center">
-              <span aria-hidden className="text-base text-warning">
-                ⚠
+            <div className="flex flex-col items-center gap-2 rounded-lg border border-warning-200 bg-warning-100 px-3 py-4 text-center">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-warning text-warning-foreground">
+                <span aria-hidden className="text-base">
+                  ⚠
+                </span>
               </span>
-              <div className="text-tiny font-bold text-warning">
+              <div className="text-tiny font-bold text-warning-700">
                 集計対象外の記録が{ignoredCount}件あります
               </div>
-              <div className="text-[10px] text-default-400">
+              <div className="text-[10px] text-warning-600/80">
                 勝率・先攻/後攻などの集計には含まれていません
               </div>
             </div>

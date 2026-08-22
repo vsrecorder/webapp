@@ -151,15 +151,21 @@ export default function RecordCardBase({
                 {ignoreStatsFlg && (
                   <Popover placement="bottom-start">
                     <PopoverTrigger>
+                      {/* ボタンにも高さと flex を持たせる。持たせないと中の Chip だけが
+                          20px でも、ボタン自身の行送りで隣のチップと base がずれる。 */}
                       <button
                         type="button"
+                        className="flex h-5 items-center"
                         onClick={(e) => e.stopPropagation()}
                         aria-label="集計対象外の詳細を表示"
                       >
+                        {/* レギュレーションのチップは flat。こちらは色(danger)と塗り(solid)の
+                            両方で差をつけて、いちばん先に目に入るようにする。
+                            danger は殿堂と同じ色だが、solid かどうかで見分けられる。 */}
                         <Chip
                           size="sm"
-                          variant="flat"
-                          color="warning"
+                          variant="solid"
+                          color="danger"
                           className="h-5 text-[10px] font-bold"
                         >
                           ⚠ 集計対象外

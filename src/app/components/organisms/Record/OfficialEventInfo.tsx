@@ -178,8 +178,8 @@ export default function OfficialEventInfo({
             {record.ignore_stats_flg && (
               <Chip
                 size="sm"
-                variant="flat"
-                color="warning"
+                variant="solid"
+                color="danger"
                 className="h-5 text-[10px] font-bold"
               >
                 ⚠ 集計対象外

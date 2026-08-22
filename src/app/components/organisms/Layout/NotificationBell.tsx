@@ -300,7 +300,8 @@ export default function NotificationBell({ userId }: Props) {
                     environmentBadgeId ? (
                       // 他のバッジ通知(w-4のアイコン)とテキストの開始位置が揃うよう、
                       // 占有幅はアイコンと同じ w-4 に固定し、画像自体は絶対配置で
-                      // はみ出させて大きく見せる。
+                      // はみ出させて大きく見せる。max-w-none は preflight の
+                      // img{max-width:100%} が幅を親(16px)に潰すのを防ぐため必須。
                       <div className="relative w-4 h-4 shrink-0">
                         <Image
                           src={environmentBadgeImageUrl(environmentBadgeId)}
@@ -308,7 +309,7 @@ export default function NotificationBell({ userId }: Props) {
                           width={36}
                           height={36}
                           unoptimized
-                          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-9 h-9 object-contain"
+                          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-9 h-9 max-w-none object-contain"
                         />
                       </div>
                     ) : rankImage ? (

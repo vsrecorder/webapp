@@ -20,9 +20,9 @@ async function fetcher(url: string): Promise<RegulationType[]> {
 }
 
 /*
- * レギュレーション(スタンダード/エクストラ/殿堂)のマスタ。
+ * レギュレーション(スタンダード/エクストラ/殿堂/その他)のマスタ。
  *
- * 3件から滅多に変わらないため、フォーカスのたびには引き直さない。取得前・取得失敗時は
+ * 滅多に増減しないため、フォーカスのたびには引き直さない。取得前・取得失敗時は
  * FALLBACK_REGULATIONS を返す(マスタが引けないことを理由に記録の作成・変更を止めない)。
  */
 export function useRegulations(): RegulationType[] {

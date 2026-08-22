@@ -213,7 +213,7 @@ export default function DeckUsagePanel({
     standardRegulations[0]?.id ?? "",
   );
 
-  // レギュレーション区分(スタンダード/エクストラ/殿堂)。期間の絞り込みとは直交する軸で、
+  // レギュレーション区分(スタンダード/エクストラ/殿堂/その他)。期間の絞り込みとは直交する軸で、
   // 既定はスタンダード(レギュレーションが混ざった数字を初期表示しない)。
   const [regulationId, setRegulationId] = useState<number>(DEFAULT_REGULATION_ID);
   const [stat, setStat] = useState<DeckUsageStatType | null>(null);

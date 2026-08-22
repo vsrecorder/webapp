@@ -31,12 +31,11 @@ import {
   SIDE_PADDING,
 } from "@app/utils/captureImage";
 import {
-  shareRecord,
-  saveImages,
   dataUrlToFile,
   ANDROID_SHARE_IMAGES_ONLY,
   type ShareImage,
 } from "@app/utils/saveImage";
+import { shareImagesWithText } from "@app/utils/shareWithText";
 import { isAndroid } from "@app/utils/platform";
 import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
 
@@ -54,6 +53,7 @@ const CAPTURE_DEBOUNCE_MS = 250;
 
 // 画像生成の上限時間(ms)。スプライト画像の取得が詰まると描画ライブラリが
 // 返ってこないことがあるため、待ち続けずに失敗として扱う。
+// 複数枚のときは1枚ごとにこの時間を見るので、待ち時間は最大で「枚数 × この値」になる。
 const CAPTURE_TIMEOUT_MS = 15000;
 
 type Props = {
@@ -66,8 +66,25 @@ type Props = {
   postText: string;
   // 書き出しファイル名の接頭辞（例: "user_stat"）
   filenamePrefix: string;
-  // 画面外に描画するシェア画像の中身。書き出し幅(px)を受け取って描く
-  children: (captureWidth: number) => ReactNode;
+  // 書き出しの指定。既定は「端末幅に合わせた幅＋余白＋サービスフッター」で、
+  // 画面のパネルをそのまま画像にする用途に合わせてある。
+  // 実寸が決まっていて縦横比を保ちたいカード（月次ふりかえりカードなど）は、
+  // width を固定し bare を立てて、カード自身の見た目だけを書き出す。
+  capture?: {
+    // 書き出し幅(px)。省略時は端末の画面幅から算出する
+    width?: number;
+    // 余白とサービスフッターを付けない（カードが自前でサービス表記を持つ場合）
+    bare?: boolean;
+    // 端末のテーマ設定を無視して配色を固定する
+    theme?: "light" | "dark";
+    // 書き出しの pixelRatio の希望値（既定 4）。大きなカードでは下げる
+    desiredPixelRatio?: number;
+  };
+  // 画面外に描画するシェア画像の中身。書き出し幅(px)を受け取って描く（1枚のとき）
+  children?: (captureWidth: number) => ReactNode;
+  // 複数枚をまとめて書き出す場合はこちらを渡す（children より優先）。
+  // 生成は順番に行い、共有も1回で全部を渡す。
+  sheets?: Array<{ key: string; node: ReactNode }>;
 };
 
 /*
@@ -88,9 +105,11 @@ export default function PanelShareModal({
   description,
   postText,
   filenamePrefix,
+  capture,
   children,
+  sheets,
 }: Props) {
-  const captureRef = useRef<HTMLDivElement>(null);
+  const captureRefs = useRef<(HTMLDivElement | null)[]>([]);
   // 生成中に条件が変わった/モーダルを閉じた場合に、後から終わった古い生成結果で
   // 上書きしてしまわないための世代番号。自分が最新かを確認してから反映する。
   const captureSeq = useRef(0);
@@ -100,7 +119,9 @@ export default function PanelShareModal({
   // SSR時はwindowを参照できないため360で初期化する。
   const [captureWidth, setCaptureWidth] = useState(360);
   const [captureMounted, setCaptureMounted] = useState(false);
-  const [image, setImage] = useState<ShareImage | null>(null);
+  const [images, setImages] = useState<ShareImage[]>([]);
+  // 複数枚のときの進捗（何枚目まで作れたか）
+  const [capturedCount, setCapturedCount] = useState(0);
   // 生成した画像にスプライト等の欠けがあるか(読み込めなかった画像が残っていたか)。
   // 欠けは画像を見なくても判定できるため、黙ってシェアさせずに知らせる。
   const [incomplete, setIncomplete] = useState(false);
@@ -122,13 +143,23 @@ export default function PanelShareModal({
   const androidImagesOnly = ANDROID_SHARE_IMAGES_ONLY && isAndroidDevice;
 
   // 画像が用意できたときに加えて、生成に失敗したとき(=ポスト文だけでシェアする)も許可する。
-  const canShare = !capturing && (image !== null || captureFailed);
+  // 書き出す枚数。sheets が無ければ children の1枚
+  const sheetCount = sheets?.length ?? 1;
+  const isBatch = sheetCount > 1;
+
+  /*
+   * 1枚のときは、画像が作れなくてもポスト文だけで共有させる（手が無くなるより良い）。
+   * 複数枚のときはそうしない。何枚目が欠けたのか分からないまま投稿されるより、
+   * 作り直してもらう方がよいため、失敗したら共有そのものを止める。
+   */
+  const canShare = !capturing && (images.length > 0 || (captureFailed && !isBatch));
 
   // モーダルを閉じるとキャプチャ用DOMは破棄されるため、生成済み画像も捨てる
   // (次に開いたとき、古い内容の画像を共有してしまわないようにする)。
   useEffect(() => {
     if (isOpen) return;
-    setImage(null);
+    setImages([]);
+    setCapturedCount(0);
     setIncomplete(false);
     setCapturing(false);
     setCaptureFailed(false);
@@ -158,9 +189,14 @@ export default function PanelShareModal({
   // キャプチャ対象の幅を算出する。画面が狭すぎ/PCなどで広すぎる場合に備えクランプする。
   useEffect(() => {
     if (!isOpen) return;
+    // 実寸が決まっているカードは端末幅に合わせず、その幅で書き出す
+    if (capture?.width != null) {
+      setCaptureWidth(capture.width);
+      return;
+    }
     const target = Math.round(window.innerWidth) - SIDE_PADDING * 2;
     setCaptureWidth(Math.max(320, Math.min(target, 480)));
-  }, [isOpen]);
+  }, [isOpen, capture?.width]);
 
   // シェア画像の生成
   useEffect(() => {
@@ -173,29 +209,49 @@ export default function PanelShareModal({
     let started = false;
     const timer = setTimeout(async () => {
       started = true;
-      const el = captureRef.current;
-      if (!el) {
-        // 撮る対象が無ければ画像は作れない。待ちのまま止まらないよう失敗として扱う。
-        setCaptureFailed(true);
-        setCapturing(false);
-        return;
-      }
 
       try {
-        const dataUrl = await Promise.race([
-          captureThemedPng(el, { targetWidth: captureWidth }),
-          new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error("capture timeout")), CAPTURE_TIMEOUT_MS),
-          ),
-        ]);
-        // 書き出し後に読み込めていない画像が残っていれば、その画像には欠けがある。
-        // captureThemedPng が待ちと再試行を終えた後に判定する。
-        const hasMissing = hasUnloadedImages(el);
-        const filename = `${filenamePrefix}_${Date.now()}.png`;
-        const file = await dataUrlToFile(dataUrl, filename);
+        const captured: ShareImage[] = [];
+        const stamp = Date.now();
+        let hasMissing = false;
+
+        // 枚数ぶんを順に撮る。並列にすると端末のメインスレッドを奪い合って
+        // かえって遅くなるうえ、iOS では canvas を同時に多数持てない。
+        for (let index = 0; index < sheetCount; index++) {
+          const el = captureRefs.current[index];
+          // 撮る対象が無ければ画像は作れない。待ちのまま止まらないよう失敗として扱う。
+          if (!el) throw new Error("capture target not found");
+
+          const dataUrl = await Promise.race([
+            captureThemedPng(el, {
+              targetWidth: captureWidth,
+              bare: capture?.bare,
+              theme: capture?.theme,
+              desiredPixelRatio: capture?.desiredPixelRatio,
+            }),
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error("capture timeout")), CAPTURE_TIMEOUT_MS),
+            ),
+          ]);
+
+          // 書き出し後に読み込めていない画像が残っていれば、その画像には欠けがある。
+          // captureThemedPng が待ちと再試行を終えた後に判定する。
+          if (hasUnloadedImages(el)) hasMissing = true;
+
+          // 複数枚のときは順番が分かるよう連番を挟む
+          const filename =
+            sheetCount > 1
+              ? `${filenamePrefix}_${index + 1}_${stamp}.png`
+              : `${filenamePrefix}_${stamp}.png`;
+          const file = await dataUrlToFile(dataUrl, filename);
+
+          if (seq !== captureSeq.current) return;
+          captured.push({ dataUrl, filename, file });
+          setCapturedCount(captured.length);
+        }
 
         if (seq !== captureSeq.current) return;
-        setImage({ dataUrl, filename, file });
+        setImages(captured);
         setIncomplete(hasMissing);
       } catch (e) {
         console.error(e);
@@ -214,7 +270,17 @@ export default function PanelShareModal({
       // (走り出していた場合は、世代番号で最新の生成が状態を持つため触らない)
       if (!started) setCapturing(false);
     };
-  }, [isOpen, captureMounted, captureWidth, filenamePrefix, regenSeq]);
+  }, [
+    isOpen,
+    captureMounted,
+    captureWidth,
+    filenamePrefix,
+    sheetCount,
+    regenSeq,
+    capture?.bare,
+    capture?.theme,
+    capture?.desiredPixelRatio,
+  ]);
 
   // 上部バーのフリックでモーダルを閉じる。ただしシェアの処理中(busy)は閉じさせない。
   const attachHeader = useModalDragToClose(onClose, { disabled: busy !== null });
@@ -241,61 +307,13 @@ export default function PanelShareModal({
     if (!canShare) return;
     setBusy("share");
     try {
-      // 画像の生成に失敗した場合は画像を渡さない。shareRecord はその場合
+      // 画像の生成に失敗した場合は画像を渡さない。共有処理はその場合
       // ポスト文だけの共有にフォールバックする(ボタンの表記もそうなっている)。
-      const shareImages = image && !captureFailed ? [image] : [];
-      const result = await shareRecord(shareImages, text, {
+      const shareImages = images.length > 0 && !captureFailed ? images : [];
+      await shareImagesWithText(shareImages, text, {
+        analyticsLabel: filenamePrefix,
         imagesOnlyOnAndroid: androidImagesOnly,
       });
-
-      // GA4推奨のshareイベント。content_type には filenamePrefix(例: "user_stat")を使い、
-      // 同じモーダルを共用している分析パネルごとに分けて見られるようにする。
-      sendGAEvent("event", "share", {
-        method: "web_share",
-        content_type: filenamePrefix,
-        share_result: result,
-      });
-
-      if (result === "images-only") {
-        // Android では画像だけを共有したため、ポスト文は含まれていない。
-        // モーダルの「ポスト文」からコピーして貼り付けてもらうよう促す。
-        addToast({
-          title: "画像を共有しました",
-          description: "ポスト文はコピーして貼り付けてください",
-          color: "warning",
-          timeout: 6000,
-        });
-      } else if (result === "unsupported") {
-        if (shareImages.length === 0) {
-          addToast({
-            title: "共有に非対応の環境です",
-            description: "ポスト文はコピーしてご利用ください",
-            color: "warning",
-            timeout: 5000,
-          });
-        } else {
-          // 共有非対応の環境では画像を保存にフォールバックする
-          await saveImages(shareImages);
-          addToast({
-            title: "共有に非対応のため画像を保存しました",
-            description: "ポスト文はコピーしてご利用ください",
-            color: "warning",
-            timeout: 5000,
-          });
-        }
-      } else if (result === "text-only" && shareImages.length > 0) {
-        // テキストと画像を一緒に共有できない環境。画像は黙って落ちてしまうため、
-        // 保存にフォールバックしたうえで知らせる。
-        await saveImages(shareImages);
-        addToast({
-          title: "画像を一緒に共有できない環境です",
-          description: "ポスト文のみ共有し、画像は保存しました",
-          color: "warning",
-          timeout: 5000,
-        });
-      } else if (result === "failed") {
-        addToast({ title: "共有に失敗しました", color: "danger", timeout: 5000 });
-      }
     } catch (e) {
       console.error(e);
       addToast({ title: "共有に失敗しました", color: "danger", timeout: 5000 });
@@ -396,7 +414,7 @@ export default function PanelShareModal({
                   {/* 画像に欠けがある場合の注意書き。
                       シェア自体は止めない(欠けても内容は正しく、止めると共有する手段が
                       無くなるため)。作り直すか、このままシェアするかは利用者に委ねる。 */}
-                  {image !== null && incomplete && (
+                  {images.length > 0 && incomplete && (
                     <div className="flex items-center gap-2.5 rounded-xl border border-warning-200 bg-warning-50 px-3 py-2.5">
                       <LuTriangleAlert className="h-4 w-4 shrink-0 text-warning-600" />
                       <div
@@ -429,7 +447,9 @@ export default function PanelShareModal({
                       >
                         画像を生成できませんでした
                         <br />
-                        作り直すか、ポスト文だけでシェアできます
+                        {isBatch
+                          ? "作り直してからシェアしてください"
+                          : "作り直すか、ポスト文だけでシェアできます"}
                       </p>
                       <Button
                         size="sm"
@@ -440,27 +460,44 @@ export default function PanelShareModal({
                         作り直す
                       </Button>
                     </div>
-                  ) : image === null ? (
+                  ) : images.length === 0 ? (
                     // 生成中は枠内にスピナーを表示(画像の縦横比は不定なので固定高さの枠にする)
                     <div className="flex h-56 flex-col items-center justify-center gap-2 rounded-xl border border-divider bg-content2">
                       <Spinner size="sm" />
                       <span className="text-[11px] text-default-400">
-                        画像を生成しています
+                        {sheetCount > 1
+                          ? `画像を生成しています（${capturedCount}/${sheetCount}）`
+                          : "画像を生成しています"}
                       </span>
                     </div>
                   ) : (
                     // 撮り直している間も直前の画像を残したまま、上に重ねて知らせる
                     <div className="relative">
                       {/* 実際の書き出し画像。プレビューなので枠幅に収めて縮小表示する。
-                          h-auto で本来の縦横比を保ち、引き伸ばしを防ぐ。 */}
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={image.dataUrl}
-                        alt="シェア画像のプレビュー"
-                        // 大きな画像のデコードでスクロールが止まらないようにする
-                        decoding="async"
-                        className="h-auto w-full rounded-xl border border-divider bg-content2"
-                      />
+                          1枚なら幅いっぱい、複数枚は高さを揃えて横に並べる。 */}
+                      {images.length === 1 ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={images[0].dataUrl}
+                          alt="シェア画像のプレビュー"
+                          // 大きな画像のデコードでスクロールが止まらないようにする
+                          decoding="async"
+                          className="h-auto w-full rounded-xl border border-divider bg-content2"
+                        />
+                      ) : (
+                        <div className="flex gap-2 overflow-x-auto pb-1">
+                          {images.map((img, index) => (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              key={img.filename}
+                              src={img.dataUrl}
+                              alt={`シェア画像のプレビュー ${index + 1}枚目`}
+                              decoding="async"
+                              className="h-52 w-auto shrink-0 rounded-xl border border-divider bg-content2"
+                            />
+                          ))}
+                        </div>
+                      )}
                       {capturing && (
                         <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-content1/60">
                           <Spinner size="sm" />
@@ -480,12 +517,16 @@ export default function PanelShareModal({
                   color="primary"
                   size="lg"
                   startContent={busy !== "share" && canShare && <LuShare2 />}
-                  isLoading={busy === "share" || !canShare}
+                  // 生成中はスピナー。失敗して共有できないときは、回っていると
+                  // 待てば直るように見えるため、無効化だけにする。
+                  isLoading={busy === "share" || (!canShare && !captureFailed)}
                   isDisabled={busy !== null || !canShare}
                   onPress={handleShare}
                 >
                   {captureFailed
-                    ? "テキストだけでシェア"
+                    ? isBatch
+                      ? "画像を作り直してください"
+                      : "テキストだけでシェア"
                     : canShare
                       ? "シェアする"
                       : "画像を準備しています"}
@@ -503,9 +544,28 @@ export default function PanelShareModal({
           className="pointer-events-none fixed left-[-10000px] top-0"
           aria-hidden="true"
         >
-          <div ref={captureRef} style={{ width: captureWidth }}>
-            {children(captureWidth)}
-          </div>
+          {sheets ? (
+            sheets.map((sheet, index) => (
+              <div
+                key={sheet.key}
+                ref={(el) => {
+                  captureRefs.current[index] = el;
+                }}
+                style={{ width: captureWidth }}
+              >
+                {sheet.node}
+              </div>
+            ))
+          ) : (
+            <div
+              ref={(el) => {
+                captureRefs.current[0] = el;
+              }}
+              style={{ width: captureWidth }}
+            >
+              {children?.(captureWidth)}
+            </div>
+          )}
         </div>
       )}
     </>

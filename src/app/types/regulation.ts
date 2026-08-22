@@ -17,18 +17,21 @@ export const DEFAULT_REGULATION_ID = 1;
 export const REGULATION_ID_STANDARD = 1;
 export const REGULATION_ID_EXTRA = 2;
 export const REGULATION_ID_HALL_OF_FAME = 3;
+// 上のいずれにも当てはまらない対戦(独自ルールの自主大会など)の受け皿
+export const REGULATION_ID_OTHER = 4;
 
 type RegulationDisplay = {
   name: string;
   // 記録一覧カードのチップ色。大半の記録が占めるスタンダードは主張を弱くし、
   // それ以外が目に留まるようにしている。
-  chipColor: "default" | "secondary" | "danger";
+  chipColor: "default" | "secondary" | "warning" | "danger";
 };
 
 export const REGULATION_DISPLAY: Record<number, RegulationDisplay> = {
   [REGULATION_ID_STANDARD]: { name: "スタンダード", chipColor: "default" },
   [REGULATION_ID_EXTRA]: { name: "エクストラ", chipColor: "secondary" },
   [REGULATION_ID_HALL_OF_FAME]: { name: "殿堂", chipColor: "danger" },
+  [REGULATION_ID_OTHER]: { name: "その他", chipColor: "warning" },
 };
 
 // マスタ取得前に選択肢を描くためのフォールバック。取得できたらAPIの結果で置き換える。
@@ -36,6 +39,7 @@ export const FALLBACK_REGULATIONS: RegulationType[] = [
   REGULATION_ID_STANDARD,
   REGULATION_ID_EXTRA,
   REGULATION_ID_HALL_OF_FAME,
+  REGULATION_ID_OTHER,
 ].map((id) => ({ id, name: REGULATION_DISPLAY[id].name }));
 
 /*

@@ -23,6 +23,7 @@ import {
   LuLogOut,
   LuChartColumn,
   LuCalendarDays,
+  LuSparkles,
   LuCopy,
   LuCheck,
 } from "react-icons/lu";
@@ -174,6 +175,17 @@ export default function UserMenu({ user, iconUrl, isDevEnv }: Props) {
               活動ログのカレンダー
             </DropdownItem>
             <DropdownItem
+              key="battle-report"
+              color="default"
+              startContent={<LuSparkles className="w-4 h-4" />}
+              description="月毎・環境毎の戦績をまとめて見返す"
+              onPress={() => {
+                router.push("/users/report");
+              }}
+            >
+              バトルレポート
+            </DropdownItem>
+            <DropdownItem
               key="deck_meta"
               color="default"
               startContent={<LuChartColumn className="w-4 h-4" />}
@@ -258,7 +270,9 @@ export default function UserMenu({ user, iconUrl, isDevEnv }: Props) {
                     src={iconUrl}
                     alt="バトレコ"
                     fill
-                    priority
+                    // モーダルを開いたときにだけ描画されるので、head に preload を
+                    // 入れても間に合わない。遅延読み込みを外すだけにする。
+                    loading="eager"
                     sizes="56px"
                     className="object-contain rounded-xl shadow-lg"
                   />

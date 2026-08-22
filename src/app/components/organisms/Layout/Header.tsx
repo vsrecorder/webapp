@@ -102,7 +102,7 @@ function Logo({ iconUrl }: { iconUrl: string }) {
           // 固定ヘッダー内なので常にファーストビューに入る。利用規約のような
           // テキスト主体のページではこのロゴが唯一の画像＝LCP要素になるため、
           // 遅延読み込みさせず優先的に取りに行かせる。
-          priority
+          preload
           sizes="(min-width: 1024px) 40px, 32px"
           className="object-contain rounded-lg"
         />

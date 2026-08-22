@@ -102,7 +102,7 @@ function renderTooltipSprites(
 export default function RecentMatchWinRateChart({ userId }: Props) {
   const [countMode, setCountMode] = useState<CountMode>("20");
 
-  // レギュレーション区分(スタンダード/エクストラ/殿堂)。既定はスタンダード。
+  // レギュレーション区分(スタンダード/エクストラ/殿堂/その他)。既定はスタンダード。
   const [regulationId, setRegulationId] = useState<number>(DEFAULT_REGULATION_ID);
   const [stat, setStat] = useState<RecentMatchStatType | null>(null);
   const [isLoading, setIsLoading] = useState(true);

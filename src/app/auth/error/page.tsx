@@ -67,7 +67,9 @@ export default async function Page({ searchParams }: Props) {
               src={iconUrl}
               alt="バトレコ"
               fill
-              priority
+              // このページで唯一の画像＝LCP要素。サーバーで描画され初期HTMLに載るため、
+              // head に preload を入れて body に到達する前から取りに行かせる。
+              preload
               sizes="56px"
               className="object-contain rounded-xl shadow-lg"
             />

@@ -62,7 +62,7 @@ export default function UserStatHistoryChart({ userId, championshipSeries }: Pro
   );
   const [deckId, setDeckId] = useState<string>("");
 
-  // レギュレーション区分(スタンダード/エクストラ/殿堂)。既定はスタンダード。
+  // レギュレーション区分(スタンダード/エクストラ/殿堂/その他)。既定はスタンダード。
   const [regulationId, setRegulationId] = useState<number>(DEFAULT_REGULATION_ID);
   const [ownDecks, setOwnDecks] = useState<DeckUsageItemType[]>([]);
   const [activeDeckIds, setActiveDeckIds] = useState<Set<string> | null>(null);

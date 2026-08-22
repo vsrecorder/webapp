@@ -366,7 +366,7 @@ export default function TemplateHome() {
             src={isDevEnv() ? "/icon_dev-512x512.png" : "/icon-512x512.png"}
             alt="バトレコ"
             fill
-            priority
+            preload
             sizes="(min-width: 1024px) 112px, 80px"
             className="object-contain rounded-2xl shadow-lg"
           />

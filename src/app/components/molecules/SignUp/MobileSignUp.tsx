@@ -55,7 +55,9 @@ export default function MobileSignUp({ iconUrl, isDevEnv }: Props) {
                     src={iconUrl}
                     alt="バトレコ"
                     fill
-                    priority
+                    // モーダルを開いたときにだけ描画されるので、head に preload を
+                    // 入れても間に合わない。遅延読み込みを外すだけにする。
+                    loading="eager"
                     sizes="56px"
                     className="object-contain rounded-xl shadow-lg"
                   />

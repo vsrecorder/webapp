@@ -151,7 +151,10 @@ export default function TemplateUserReport({ userId, period }: Props) {
 
   const envRate = useMemo(() => {
     if (!env || !topOpponent) return null;
-    return envUsageRate(env, (topOpponent.pokemon_sprites ?? []).map((s) => s.id));
+    return envUsageRate(
+      env,
+      (topOpponent.pokemon_sprites ?? []).map((s) => s.id),
+    );
   }, [env, topOpponent]);
 
   // usage_rate の分母は相手デッキ集計側で数えた試合数。戦績(stat)側の試合数とは
@@ -209,16 +212,7 @@ export default function TemplateUserReport({ userId, period }: Props) {
     });
 
     return list;
-  }, [
-    stat,
-    period,
-    topDecks,
-    topOpponents,
-    opponentTotalMatches,
-    envRate,
-    env,
-    streak,
-  ]);
+  }, [stat, period, topDecks, topOpponents, opponentTotalMatches, envRate, env, streak]);
 
   const postContext: RecapPostContext | null = stat
     ? {
@@ -383,7 +377,7 @@ function RecapSection({
           className="absolute bottom-0 right-4 h-11 w-11 min-w-11 shadow-lg ring-1 ring-black/10"
           onPress={onShare}
         >
-          <LuShare2 className="h-[18px] w-[18px]" />
+          <LuShare2 className="h-4.5 w-4.5" />
         </Button>
       </div>
     </motion.section>

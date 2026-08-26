@@ -353,7 +353,7 @@ export default function PanelShareModal({
                   シェア
                 </div>
               </ModalHeader>
-              <ModalBody className="gap-5 px-4 pb-6">
+              <ModalBody className="gap-5 px-4 pb-1">
                 <p className="text-tiny text-default-500">{description}</p>
 
                 <div className="flex flex-col gap-2">
@@ -462,7 +462,7 @@ export default function PanelShareModal({
                     </div>
                   ) : images.length === 0 ? (
                     // 生成中は枠内にスピナーを表示(画像の縦横比は不定なので固定高さの枠にする)
-                    <div className="flex h-56 flex-col items-center justify-center gap-2 rounded-xl border border-divider bg-content2">
+                    <div className="flex h-52 flex-col items-center justify-center gap-2 rounded-xl border border-divider bg-content2">
                       <Spinner size="sm" />
                       <span className="text-[11px] text-default-400">
                         {sheetCount > 1

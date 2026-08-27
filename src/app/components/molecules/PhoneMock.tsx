@@ -2,7 +2,9 @@
 
 import Image from "next/image";
 
-import { Modal, ModalContent, useDisclosure } from "@heroui/react";
+import { ModalContent, useDisclosure } from "@heroui/react";
+
+import { Modal } from "@app/components/atoms/AppModal";
 
 type PhoneMockProps = {
   src: string;

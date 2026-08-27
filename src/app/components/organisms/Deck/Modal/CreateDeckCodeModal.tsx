@@ -1,6 +1,6 @@
 import { useEffect, useState, SetStateAction, Dispatch } from "react";
 
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
+import { ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
 import { Button } from "@heroui/react";
 import { Input } from "@heroui/react";
 import { Textarea } from "@heroui/react";
@@ -11,6 +11,7 @@ import { Link } from "@heroui/react";
 
 import { addToast, closeToast } from "@heroui/react";
 
+import { Modal } from "@app/components/atoms/AppModal";
 import DeckCardDiff from "@app/components/organisms/Deck/DeckCardDiff";
 
 import { DeckGetByIdResponseType } from "@app/types/deck";

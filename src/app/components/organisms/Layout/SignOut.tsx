@@ -5,8 +5,9 @@ import Image from "next/image";
 import { Button } from "@heroui/react";
 
 import { useDisclosure } from "@heroui/react";
-import { Modal, ModalContent, ModalBody, ModalFooter } from "@heroui/modal";
+import { ModalContent, ModalBody, ModalFooter } from "@heroui/modal";
 
+import { Modal } from "@app/components/atoms/AppModal";
 import { handleSignOut } from "@app/handlers/handleSignOut";
 
 type Props = {

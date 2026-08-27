@@ -6,7 +6,6 @@ import {
   Button,
   Card,
   CardBody,
-  Modal,
   ModalBody,
   ModalContent,
   ModalFooter,
@@ -21,6 +20,7 @@ import {
   LuTriangleAlert,
 } from "react-icons/lu";
 
+import { Modal } from "@app/components/atoms/AppModal";
 import TagChips from "@app/components/molecules/TagChips";
 import IgnoreStatsFlgSetting from "@app/components/organisms/Record/IgnoreStatsFlgSetting";
 import RegulationSetting from "@app/components/organisms/Record/RegulationSetting";

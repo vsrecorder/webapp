@@ -6,7 +6,6 @@ import { SetStateAction, Dispatch } from "react";
 import useSWR from "swr";
 
 import {
-  Modal,
   ModalContent,
   ModalHeader,
   ModalBody,
@@ -27,6 +26,7 @@ import { Skeleton } from "@heroui/react";
 
 import { LuTrash2 } from "react-icons/lu";
 
+import { Modal } from "@app/components/atoms/AppModal";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import HScrollRow from "@app/components/atoms/HScrollRow";
 import ChoiceButtonGroup from "@app/components/molecules/ChoiceButtonGroup";

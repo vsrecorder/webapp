@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 
 import { Tabs, Tab } from "@heroui/react";
-import { Modal, ModalContent, ModalHeader, ModalBody } from "@heroui/react";
+import { ModalContent, ModalHeader, ModalBody } from "@heroui/react";
 
+import { Modal } from "@app/components/atoms/AppModal";
 import Records from "@app/components/organisms/Record/Records";
 
 import { DeckGetByIdResponseType } from "@app/types/deck";

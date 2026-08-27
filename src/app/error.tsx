@@ -3,6 +3,8 @@
 import { useEffect } from "react";
 
 import { Button } from "@heroui/react";
+
+import { isChunkLoadError } from "@app/utils/chunkLoadError";
 import { LuTriangleAlert } from "react-icons/lu";
 import Link from "next/link";
 
@@ -35,7 +37,13 @@ export default function Error({
         </p>
 
         <div className="flex gap-3 mt-2">
-          <Button color="primary" radius="full" size="sm" onPress={() => reset()}>
+          {/* チャンク取得失敗(デプロイ跨ぎ)は reset() では復旧しないため、ページごと読み込み直す */}
+          <Button
+            color="primary"
+            radius="full"
+            size="sm"
+            onPress={() => (isChunkLoadError(error) ? window.location.reload() : reset())}
+          >
             再読み込み
           </Button>
           <Button as={Link} href="/" variant="light" radius="full" size="sm">

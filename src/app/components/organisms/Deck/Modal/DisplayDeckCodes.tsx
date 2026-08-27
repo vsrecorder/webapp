@@ -3,7 +3,6 @@ import { SetStateAction, Dispatch } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
-  Modal,
   ModalContent,
   ModalHeader,
   ModalBody,
@@ -33,6 +32,7 @@ import {
   LuArrowUpToLine,
 } from "react-icons/lu";
 
+import { Modal } from "@app/components/atoms/AppModal";
 import DeckCardDiff from "@app/components/organisms/Deck/DeckCardDiff";
 import CardListAccordion from "@app/components/organisms/Deck/CardListAccordion";
 import FetchError from "@app/components/molecules/FetchError";

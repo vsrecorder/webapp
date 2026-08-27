@@ -6,7 +6,7 @@ import { Button } from "@heroui/react";
 import { Input } from "@heroui/react";
 import { Link as HeroLink } from "@heroui/react";
 
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
+import { ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
 
 import {
   RecordGetByIdResponseType,
@@ -14,6 +14,7 @@ import {
   RecordUpdateResponseType,
 } from "@app/types/record";
 
+import { Modal } from "@app/components/atoms/AppModal";
 import { safeExternalUrl } from "@app/utils/url";
 import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
 

@@ -17,6 +17,7 @@ import {
   CityleagueResultType,
 } from "@app/types/cityleague_result";
 import { CityleagueScheduleType } from "@app/types/cityleague_schedule";
+import { OfficialEventResponseType, OfficialEventType } from "@app/types/official_event";
 import { toJSTDate, toJSTDateString } from "@app/utils/date";
 
 async function fetchCityleagueResultsByTerm(
@@ -48,6 +49,22 @@ async function fetchCityleagueResultsByTerm(
   }
 }
 
+/*
+ * タブ(オープン/シニア/ジュニア)の3インスタンスが同時にマウントし、league_type に
+ * よらない同じスケジュールAPIをそれぞれ叩くため(実測で同一URLが3本ずつ)、進行中の
+ * Promise をモジュールスコープで共有して1本にまとめる。完了したら消すので、
+ * マウントのたびに取り直す従来の鮮度は変わらない。
+ */
+const inflightScheduleFetches = new Map<string, Promise<unknown>>();
+
+function dedupeInflight<T>(key: string, fn: () => Promise<T>): Promise<T> {
+  const hit = inflightScheduleFetches.get(key);
+  if (hit) return hit as Promise<T>;
+  const p = fn().finally(() => inflightScheduleFetches.delete(key));
+  inflightScheduleFetches.set(key, p);
+  return p;
+}
+
 async function fetchScheduleByDate(date: string): Promise<CityleagueScheduleType | null> {
   const res = await fetch(`/api/cityleague_schedules?date=${date}`, {
     cache: "no-store",
@@ -68,6 +85,24 @@ async function fetchAllSchedules(): Promise<CityleagueScheduleType[]> {
   return res.json();
 }
 
+// その日のシティリーグ(type_id=2)の公式イベント一覧。応答の要素は
+// /api/official_events/{id} の単品応答と同じ形(実データで全キー・全値の一致を確認済み)
+async function fetchOfficialEventsByDate(
+  league_type: number,
+  date: string,
+): Promise<OfficialEventResponseType | null> {
+  const res = await fetch(
+    `/api/official_events?type_id=2&league_type=${league_type}&date=${date}`,
+    {
+      cache: "no-store",
+      method: "GET",
+      headers: { Accept: "application/json" },
+    },
+  );
+  if (!res.ok) return null;
+  return res.json();
+}
+
 type Props = {
   league_type: number;
 };
@@ -76,6 +111,11 @@ export default function CityleagueResults({ league_type }: Props) {
   const now = new Date(Date.now() + 9 * 60 * 60 * 1000);
 
   const [items, setItems] = useState<CityleagueResultType[]>([]);
+  // official_event_id → イベント情報。日単位の一覧APIでまとめて取得したものを
+  // 各カード(CityleagueResult)へ配り、カードごとの個別フェッチ(N+1)を避ける
+  const [eventsById, setEventsById] = useState<ReadonlyMap<number, OfficialEventType>>(
+    new Map(),
+  );
   const [nextFromDate, setNextFromDate] = useState<Date>(now);
   const [nextToDate, setNextToDate] = useState<Date>(now);
   const [isLoading, setIsLoading] = useState(false);
@@ -96,11 +136,13 @@ export default function CityleagueResults({ league_type }: Props) {
       const todayStr = now.toISOString().split("T")[0];
 
       // 今日のスケジュールを確認（開催中かどうか）
-      let foundSchedule = await fetchScheduleByDate(todayStr);
+      let foundSchedule = await dedupeInflight(`by-date:${todayStr}`, () =>
+        fetchScheduleByDate(todayStr),
+      );
 
       if (!foundSchedule) {
         // 開催中でない場合、全スケジュールから直近のものを取得
-        const allSchedules = await fetchAllSchedules();
+        const allSchedules = await dedupeInflight("all", fetchAllSchedules);
 
         const pastSchedules = allSchedules
           .filter((s) => toJSTDateString(s.to_date) < todayStr)
@@ -136,9 +178,11 @@ export default function CityleagueResults({ league_type }: Props) {
         fromDate.setDate(fromDate.getDate() - i);
         toDate.setDate(toDate.getDate() - i);
 
+        const fromDateStr = fromDate.toISOString().split("T")[0];
+        const toDateStr = toDate.toISOString().split("T")[0];
+
         // スケジュールの from_date より前には遡らない
         if (schedule) {
-          const fromDateStr = fromDate.toISOString().split("T")[0];
           if (fromDateStr < toJSTDateString(schedule.from_date)) {
             setHasMore(false);
             return;
@@ -146,13 +190,25 @@ export default function CityleagueResults({ league_type }: Props) {
         }
 
         const newItems: CityleagueResultGetResponseType =
-          await fetchCityleagueResultsByTerm(
-            league_type,
-            fromDate.toISOString().split("T")[0],
-            toDate.toISOString().split("T")[0],
-          );
+          await fetchCityleagueResultsByTerm(league_type, fromDateStr, toDateStr);
 
         if (newItems.count !== 0) {
+          /*
+           * 同じ日の公式イベント一覧を1回で取得してから結果を出す。
+           * 一覧に無いidが混ざっていても、カード側が従来どおり個別に取得する
+           * フォールバックがあるので表示は壊れない。取得失敗時も同様。
+           */
+          const dayEvents = await fetchOfficialEventsByDate(league_type, fromDateStr).catch(
+            () => null,
+          );
+          if (dayEvents?.official_events) {
+            setEventsById((prev) => {
+              const next = new Map(prev);
+              for (const ev of dayEvents.official_events) next.set(ev.id, ev);
+              return next;
+            });
+          }
+
           setItems((prev) => [...prev, ...newItems.event_results]);
 
           fromDate.setDate(fromDate.getDate() - 1);
@@ -309,7 +365,10 @@ export default function CityleagueResults({ league_type }: Props) {
             key={event_result.official_event_id}
             id={`cityleague-result-${event_result.official_event_id}`}
           >
-            <CityleagueResult event_result={event_result} />
+            <CityleagueResult
+              event_result={event_result}
+              official_event={eventsById.get(event_result.official_event_id)}
+            />
           </div>
         ))}
 

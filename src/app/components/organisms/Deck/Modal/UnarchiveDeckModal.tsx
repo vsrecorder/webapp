@@ -1,11 +1,12 @@
 import { useState } from "react";
 
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
+import { ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
 
 import { Button } from "@heroui/react";
 
 import { addToast, closeToast } from "@heroui/react";
 
+import { Modal } from "@app/components/atoms/AppModal";
 import { DeckGetByIdResponseType } from "@app/types/deck";
 
 type Props = {

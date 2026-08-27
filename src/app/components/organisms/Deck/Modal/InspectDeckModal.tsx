@@ -3,8 +3,9 @@ import { useState } from "react";
 import { Skeleton } from "@heroui/react";
 import { Image } from "@heroui/react";
 
-import { Modal, ModalContent, ModalHeader, ModalBody } from "@heroui/react";
+import { ModalContent, ModalHeader, ModalBody } from "@heroui/react";
 
+import { Modal } from "@app/components/atoms/AppModal";
 import InspectDeck from "@app/components/organisms/Deck/InspectDeck";
 import CopyableDeckCode from "@app/components/atoms/CopyableDeckCode";
 import ZoomableDeckImage from "@app/components/atoms/ZoomableDeckImage";

@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback, Dispatch, SetStateAction } from "react";
 import {
-  Modal,
   ModalContent,
   ModalHeader,
   ModalBody,
@@ -17,6 +16,7 @@ import Cropper from "react-easy-crop";
 import type { Area } from "react-easy-crop";
 import { LuCamera } from "react-icons/lu";
 
+import { Modal } from "@app/components/atoms/AppModal";
 import { UserUpdateRequestType } from "@app/types/user";
 import { useUserAvatar } from "@app/contexts/UserAvatarContext";
 import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";

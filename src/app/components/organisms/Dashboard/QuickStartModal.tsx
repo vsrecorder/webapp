@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Modal, ModalContent, ModalBody, Button } from "@heroui/react";
+import { ModalContent, ModalBody, Button } from "@heroui/react";
 import { LuFilePen, LuClipboardPaste, LuRocket } from "react-icons/lu";
 import { sendGAEvent } from "@next/third-parties/google";
 
+import { Modal } from "@app/components/atoms/AppModal";
 import DeckCodeQuickStartModal from "@app/components/organisms/Deck/Modal/DeckCodeQuickStartModal";
 
 // 閉じてから再表示しない期間。PWAインストールバナー(useInstallPrompt)と同じ流儀・同じ長さ。

@@ -48,11 +48,18 @@ async function fetchOfficialEventById(id: number) {
 
 type Props = {
   event_result: CityleagueResultType;
+  /*
+   * 呼び出し側が既に公式イベント情報を持っている場合に渡す。渡されたときは
+   * /api/official_events/{id} の個別フェッチを行わない。一覧ページでは
+   * カードごとに個別フェッチするとN+1(1日分で数十本)になるため、
+   * CityleagueResults 側が日単位の一覧APIでまとめて取得して配ってくる。
+   */
+  official_event?: OfficialEventGetByIdResponseType;
 };
 
-export default function CityleagueResult({ event_result }: Props) {
-  const [event, setEvent] = useState<OfficialEventGetByIdResponseType | null>(null);
-  const [loading, setLoading] = useState(true);
+export default function CityleagueResult({ event_result, official_event }: Props) {
+  const [fetchedEvent, setFetchedEvent] = useState<OfficialEventGetByIdResponseType | null>(null);
+  const [loading, setLoading] = useState(!official_event);
   const [error, setError] = useState(false);
 
   // 公式イベント情報だけを取得（失敗時のリロードから再利用）
@@ -67,7 +74,7 @@ export default function CityleagueResult({ event_result }: Props) {
 
     try {
       const data = await fetchOfficialEventById(event_result.official_event_id);
-      setEvent(data);
+      setFetchedEvent(data);
     } catch (err) {
       console.log(err);
       setError(true);
@@ -77,8 +84,12 @@ export default function CityleagueResult({ event_result }: Props) {
   }, [event_result.official_event_id]);
 
   useEffect(() => {
+    // 親からイベント情報が渡されていれば取得は不要
+    if (official_event) return;
     loadEvent();
-  }, [loadEvent]);
+  }, [official_event, loadEvent]);
+
+  const event = official_event ?? fetchedEvent;
 
   const isNew = (date: Date) => {
     const now = new Date();

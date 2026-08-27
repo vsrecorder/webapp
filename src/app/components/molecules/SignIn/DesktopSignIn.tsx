@@ -6,7 +6,9 @@ import Image from "next/image";
 
 import { useDisclosure } from "@heroui/react";
 import { Button } from "@heroui/react";
-import { Modal, ModalContent, ModalBody, ModalFooter } from "@heroui/react";
+import { ModalContent, ModalBody, ModalFooter } from "@heroui/react";
+
+import { Modal } from "@app/components/atoms/AppModal";
 
 import SocialSignIn from "./SocialSingIn";
 

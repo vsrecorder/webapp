@@ -1,11 +1,12 @@
 "use client";
 
 import { Card, CardHeader, CardBody, CardFooter } from "@heroui/react";
-import { Modal, ModalContent, ModalHeader, ModalBody } from "@heroui/react";
+import { ModalContent, ModalHeader, ModalBody } from "@heroui/react";
 import { useDisclosure } from "@heroui/react";
 
 import { Chip } from "@heroui/react";
 
+import { Modal } from "@app/components/atoms/AppModal";
 import CityleagueResult from "@app/components/organisms/Cityleague/CityleagueResult";
 
 import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
@@ -55,7 +56,8 @@ export default function CityleagueEventCard({ event, results }: Props) {
                   <div className="">シティリーグの結果発表！</div>
                 </ModalHeader>
                 <ModalBody className="px-1.5">
-                  <CityleagueResult event_result={matchedResult} />
+                  {/* このカード自身が event を持っているので、モーダル内での再取得を省く */}
+                  <CityleagueResult event_result={matchedResult} official_event={event} />
                 </ModalBody>
               </>
             )}

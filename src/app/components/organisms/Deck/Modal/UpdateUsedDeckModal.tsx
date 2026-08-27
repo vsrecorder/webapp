@@ -2,6 +2,7 @@ import useSWR from "swr";
 
 import WindowedSelect from "react-windowed-select";
 import Select from "react-select";
+import { Modal } from "@app/components/atoms/AppModal";
 import { useReactSelectTheme } from "@app/components/molecules/Select/useReactSelectTheme";
 
 import { SetStateAction, Dispatch } from "react";
@@ -15,7 +16,7 @@ import { Skeleton } from "@heroui/react";
 import { CgSearch } from "react-icons/cg";
 import { LuStar } from "react-icons/lu";
 
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
+import { ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
 
 import { RecordGetByIdResponseType } from "@app/types/record";
 import { DEFAULT_REGULATION_ID } from "@app/types/regulation";

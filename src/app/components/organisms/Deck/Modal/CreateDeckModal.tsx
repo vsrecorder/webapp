@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
+import { ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
 import { Image, Button } from "@heroui/react";
 import { Input } from "@heroui/react";
 //import { Checkbox } from "@heroui/react";
@@ -15,6 +15,7 @@ import { LuLayers } from "react-icons/lu";
 
 import { sendGAEvent } from "@next/third-parties/google";
 
+import { Modal } from "@app/components/atoms/AppModal";
 import PokemonSpriteModal from "@app/components/organisms/Match/Modal/PokemonSpriteModal";
 
 import { PokemonSpriteType, DeckPokemonSpriteType } from "@app/types/pokemon_sprite";

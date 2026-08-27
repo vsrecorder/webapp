@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import {
-  Modal,
   ModalContent,
   ModalHeader,
   ModalBody,
@@ -35,6 +34,7 @@ import {
   ANDROID_SHARE_IMAGES_ONLY,
   type ShareImage,
 } from "@app/utils/saveImage";
+import { Modal } from "@app/components/atoms/AppModal";
 import { shareImagesWithText } from "@app/utils/shareWithText";
 import { isAndroid } from "@app/utils/platform";
 import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";

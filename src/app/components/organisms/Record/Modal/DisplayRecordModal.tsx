@@ -7,7 +7,6 @@ import { SetStateAction, Dispatch } from "react";
 import { useRouter } from "next/navigation";
 
 import {
-  Modal,
   ModalContent,
   ModalHeader,
   ModalBody,
@@ -26,6 +25,7 @@ import {
   LuShare2,
 } from "react-icons/lu";
 
+import { Modal } from "@app/components/atoms/AppModal";
 import RecordHero from "@app/components/organisms/Record/Hero/RecordHero";
 import BoardPanel from "@app/components/organisms/Record/BoardPanel";
 import RecordSettingList from "@app/components/organisms/Record/RecordSettingList";

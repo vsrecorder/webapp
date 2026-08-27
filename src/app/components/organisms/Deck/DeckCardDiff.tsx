@@ -6,8 +6,9 @@ import { Chip } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
 import { Image } from "@heroui/react";
 
-import { Modal, ModalContent, ModalBody, useDisclosure } from "@heroui/react";
+import { ModalContent, ModalBody, useDisclosure } from "@heroui/react";
 
+import { Modal } from "@app/components/atoms/AppModal";
 import FetchError from "@app/components/molecules/FetchError";
 
 import { fetchDeckCardList } from "@app/utils/deckcard";

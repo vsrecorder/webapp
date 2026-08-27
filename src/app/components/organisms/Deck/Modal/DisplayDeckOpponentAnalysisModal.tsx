@@ -1,5 +1,6 @@
-import { Modal, ModalContent, ModalHeader, ModalBody } from "@heroui/react";
+import { ModalContent, ModalHeader, ModalBody } from "@heroui/react";
 
+import { Modal } from "@app/components/atoms/AppModal";
 import DeckOpponentAnalysisPanel from "@app/components/organisms/Deck/DeckOpponentAnalysisPanel";
 
 import { DeckGetByIdResponseType } from "@app/types/deck";

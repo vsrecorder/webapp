@@ -4,7 +4,6 @@ import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import type { Dispatch, SetStateAction, RefObject } from "react";
 
 import {
-  Modal,
   ModalContent,
   ModalHeader,
   ModalBody,
@@ -27,6 +26,7 @@ import {
 
 import { sendGAEvent } from "@next/third-parties/google";
 
+import { Modal } from "@app/components/atoms/AppModal";
 import RecordHero from "@app/components/organisms/Record/Hero/RecordHero";
 import Matches from "@app/components/organisms/Match/Matches";
 

@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   Button,
-  Modal,
   ModalBody,
   ModalContent,
   ModalHeader,
@@ -13,6 +12,7 @@ import {
 } from "@heroui/react";
 import { LuDownload, LuInfo } from "react-icons/lu";
 
+import { Modal } from "@app/components/atoms/AppModal";
 import KizunaHeaderCard from "@app/components/organisms/Kizuna/KizunaHeaderCard";
 import { captureThemedPng } from "@app/utils/captureImage";
 import { saveGeneratedImage } from "@app/utils/saveImage";

@@ -2,7 +2,7 @@
 
 import { memo, useEffect, useState } from "react";
 
-import { Modal, ModalContent, ModalHeader, ModalBody, Chip } from "@heroui/react";
+import { ModalContent, ModalHeader, ModalBody, Chip } from "@heroui/react";
 
 import {
   LuClipboardList,
@@ -14,6 +14,7 @@ import {
   LuClock,
 } from "react-icons/lu";
 
+import { Modal } from "@app/components/atoms/AppModal";
 import { CalendarEvent } from "@app/types/calendar";
 import { DeckPokemonSpriteType, MatchPokemonSpriteType } from "@app/types/pokemon_sprite";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";

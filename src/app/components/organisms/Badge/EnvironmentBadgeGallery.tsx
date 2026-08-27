@@ -6,7 +6,6 @@ import {
   Card,
   CardBody,
   Image,
-  Modal,
   ModalContent,
   ModalHeader,
   ModalBody,
@@ -14,6 +13,7 @@ import {
 } from "@heroui/react";
 import { LuLock, LuChevronDown, LuChevronUp } from "react-icons/lu";
 
+import { Modal } from "@app/components/atoms/AppModal";
 import FetchError from "@app/components/molecules/FetchError";
 
 import { UserEnvironmentBadgeType } from "@app/types/environment_badge";

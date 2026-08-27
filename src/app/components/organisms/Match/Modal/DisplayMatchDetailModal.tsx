@@ -3,7 +3,6 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import {
-  Modal,
   ModalContent,
   ModalHeader,
   ModalBody,
@@ -16,6 +15,7 @@ import useSWR from "swr";
 
 import { LuStickyNote, LuSwords, LuTags } from "react-icons/lu";
 
+import { Modal } from "@app/components/atoms/AppModal";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import TagChips from "@app/components/molecules/TagChips";
 import { getSpriteBySlot } from "@app/utils/spriteSlot";

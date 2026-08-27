@@ -2,6 +2,8 @@
 
 import { useEffect } from "react";
 
+import { isChunkLoadError } from "@app/utils/chunkLoadError";
+
 // ルートレイアウトを丸ごと置き換えるため、layout.tsx のCSS importは効かない。
 // Tailwindのユーティリティクラスを使うにはここで明示的に読み込む必要がある。
 import "./globals.css";
@@ -37,9 +39,10 @@ export default function GlobalError({
             </p>
 
             <div className="flex gap-3 mt-2">
+              {/* チャンク取得失敗(デプロイ跨ぎ)は reset() では復旧しないため、ページごと読み込み直す */}
               <button
                 type="button"
-                onClick={() => reset()}
+                onClick={() => (isChunkLoadError(error) ? window.location.reload() : reset())}
                 className="rounded-full px-4 py-1.5 text-sm font-bold text-white"
                 style={{ backgroundColor: "#2563EB" }}
               >

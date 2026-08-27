@@ -7,10 +7,11 @@ import { Image } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
 import { Tabs, Tab } from "@heroui/tabs";
 
-import { Modal, ModalContent, ModalBody, useDisclosure } from "@heroui/react";
+import { ModalContent, ModalBody, useDisclosure } from "@heroui/react";
 
 import { LuImage, LuTags } from "react-icons/lu";
 
+import { Modal } from "@app/components/atoms/AppModal";
 import FetchError from "@app/components/molecules/FetchError";
 
 import { fetchDeckCardDetail } from "@app/utils/deckcard";

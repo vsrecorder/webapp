@@ -2,13 +2,14 @@ import useSWR from "swr";
 
 import { useEffect, useState, SetStateAction, Dispatch } from "react";
 
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
+import { ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
 import { Button } from "@heroui/react";
 import { Input } from "@heroui/react";
 //import { Checkbox } from "@heroui/react";
 import { addToast, closeToast } from "@heroui/react";
 import { useDisclosure } from "@heroui/react";
 
+import { Modal } from "@app/components/atoms/AppModal";
 import PokemonSpriteModal from "@app/components/organisms/Match/Modal/PokemonSpriteModal";
 
 import { PokemonSpriteType, DeckPokemonSpriteType } from "@app/types/pokemon_sprite";

@@ -13,7 +13,7 @@ import {
 } from "@heroui/dropdown";
 
 import { addToast, useDisclosure } from "@heroui/react";
-import { Modal, ModalContent, ModalBody, ModalFooter } from "@heroui/modal";
+import { ModalContent, ModalBody, ModalFooter } from "@heroui/modal";
 import { useRouter } from "next/navigation";
 import {
   LuLayoutDashboard,
@@ -29,6 +29,7 @@ import {
 } from "react-icons/lu";
 import { FaXTwitter } from "react-icons/fa6";
 
+import { Modal } from "@app/components/atoms/AppModal";
 import { handleSignOut } from "@app/handlers/handleSignOut";
 
 import { Button } from "@heroui/react";

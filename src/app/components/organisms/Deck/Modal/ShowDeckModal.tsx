@@ -6,7 +6,6 @@ import { SetStateAction, Dispatch } from "react";
 import Link from "next/link";
 
 import {
-  Modal,
   ModalContent,
   ModalHeader,
   ModalBody,
@@ -15,6 +14,7 @@ import {
 } from "@heroui/react";
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/dropdown";
 
+import { Modal } from "@app/components/atoms/AppModal";
 import UpdateDeckModal from "@app/components/organisms/Deck/Modal/UpdateDeckModal";
 import CreateDeckCodeModal from "@app/components/organisms/Deck/Modal/CreateDeckCodeModal";
 import DeleteDeckModal from "@app/components/organisms/Deck/Modal/DeleteDeckModal";

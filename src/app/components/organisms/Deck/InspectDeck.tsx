@@ -8,10 +8,11 @@ import { Card, CardBody } from "@heroui/react";
 
 import { Button } from "@heroui/react";
 
-import { Modal, ModalContent, ModalBody, useDisclosure } from "@heroui/react";
+import { ModalContent, ModalBody, useDisclosure } from "@heroui/react";
 
 import { LuRepeat } from "react-icons/lu";
 
+import { Modal } from "@app/components/atoms/AppModal";
 import FetchError from "@app/components/molecules/FetchError";
 
 import { fetchDeckCardList } from "@app/utils/deckcard";

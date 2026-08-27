@@ -1,12 +1,13 @@
 import { useState, SetStateAction, Dispatch } from "react";
 
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
+import { ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
 import { Alert } from "@heroui/react";
 import { Checkbox } from "@heroui/react";
 import { Button } from "@heroui/react";
 
 import { addToast, closeToast } from "@heroui/react";
 
+import { Modal } from "@app/components/atoms/AppModal";
 import { MatchGetResponseType } from "@app/types/match";
 
 type Props = {

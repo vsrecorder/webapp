@@ -4,7 +4,6 @@ import { ReactNode, useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Button,
-  Modal,
   ModalContent,
   ModalHeader,
   ModalBody,
@@ -14,6 +13,7 @@ import {
 } from "@heroui/react";
 import { LuChevronUp, LuChevronDown } from "react-icons/lu";
 
+import { Modal } from "@app/components/atoms/AppModal";
 import { UserBadgesType } from "@app/types/badge";
 
 // ヘッダーのユーザメニュー「ダッシュボード表示設定」から遷移してきた際に付与されるクエリパラメータ

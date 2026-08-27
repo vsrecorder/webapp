@@ -11,7 +11,6 @@ import { Button } from "@heroui/react";
 import { Link } from "@heroui/react";
 
 import {
-  Modal,
   ModalContent,
   ModalHeader,
   ModalBody,
@@ -22,6 +21,7 @@ import {
 import { LuLayers } from "react-icons/lu";
 import { LuUser } from "react-icons/lu";
 
+import { Modal } from "@app/components/atoms/AppModal";
 import CreateDeckModal from "@app/components/organisms/Deck/Modal/CreateDeckModal";
 import CardListAccordion from "@app/components/organisms/Deck/CardListAccordion";
 import CopyableDeckCode from "@app/components/atoms/CopyableDeckCode";

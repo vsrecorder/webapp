@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import { SetStateAction, Dispatch } from "react";
 
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
+import { ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
 
 import { Button } from "@heroui/react";
 
+import { Modal } from "@app/components/atoms/AppModal";
 import SpritePickerPanel from "@app/components/molecules/SpritePickerPanel";
 import type { SpriteSlot } from "@app/components/molecules/SpritePickerPanel";
 import { PokemonSpriteType } from "@app/types/pokemon_sprite";

@@ -1,4 +1,6 @@
-import { Modal, ModalContent, ModalHeader, ModalBody } from "@heroui/react";
+import { ModalContent, ModalHeader, ModalBody } from "@heroui/react";
+
+import { Modal } from "@app/components/atoms/AppModal";
 
 type Props = {
   isOpen: boolean;

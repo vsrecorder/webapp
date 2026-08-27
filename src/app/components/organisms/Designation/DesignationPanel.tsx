@@ -6,7 +6,6 @@ import Link from "next/link";
 import {
   Card,
   CardBody,
-  Modal,
   ModalContent,
   ModalHeader,
   ModalBody,
@@ -14,6 +13,7 @@ import {
 } from "@heroui/react";
 import { LuLock, LuTriangleAlert } from "react-icons/lu";
 
+import { Modal } from "@app/components/atoms/AppModal";
 import FetchError from "@app/components/molecules/FetchError";
 import PlayerCityleagueResults from "@app/components/organisms/Cityleague/PlayerCityleagueResults";
 

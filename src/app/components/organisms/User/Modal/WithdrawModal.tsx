@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import {
-  Modal,
   ModalContent,
   ModalHeader,
   ModalBody,
@@ -14,6 +13,7 @@ import {
 } from "@heroui/react";
 import { LuTriangleAlert } from "react-icons/lu";
 
+import { Modal } from "@app/components/atoms/AppModal";
 import { handleWithdraw } from "@app/handlers/handleWithdraw";
 
 type Props = {

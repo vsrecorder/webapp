@@ -19,7 +19,6 @@ import { DatePicker } from "@heroui/react";
 import { Input } from "@heroui/react";
 import { Switch } from "@heroui/react";
 import {
-  Modal,
   ModalContent,
   ModalHeader,
   ModalBody,
@@ -38,6 +37,7 @@ import { Card, CardBody } from "@heroui/react";
 import { CgSearch } from "react-icons/cg";
 
 import Select, { components } from "react-select";
+import { Modal } from "@app/components/atoms/AppModal";
 import { useReactSelectTheme } from "@app/components/molecules/Select/useReactSelectTheme";
 import { Image } from "@heroui/react";
 import { Button } from "@heroui/react";

@@ -1,6 +1,6 @@
 "use client";
 
-import { Modal, ModalContent, ModalHeader, ModalBody } from "@heroui/react";
+import { ModalContent, ModalHeader, ModalBody } from "@heroui/react";
 import {
   LuClipboardList,
   LuTrophy,
@@ -12,6 +12,7 @@ import {
   LuUser,
 } from "react-icons/lu";
 
+import { Modal } from "@app/components/atoms/AppModal";
 import { UserBadgeType } from "@app/types/badge";
 
 // BadgeGallery(バッジ) と OnboardingBadgePanel(はじめの一歩) で共通して使う

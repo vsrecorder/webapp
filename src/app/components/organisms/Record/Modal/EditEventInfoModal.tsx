@@ -13,7 +13,6 @@ import {
   Button,
   DatePicker,
   Input,
-  Modal,
   ModalBody,
   ModalContent,
   ModalFooter,
@@ -27,6 +26,7 @@ import {
 
 import { CalendarDate, getLocalTimeZone, today } from "@internationalized/date";
 
+import { Modal } from "@app/components/atoms/AppModal";
 import OfficialEventSelect from "@app/components/organisms/Record/OfficialEventSelect";
 import TonamelEventInput from "@app/components/organisms/Record/TonamelEventInput";
 

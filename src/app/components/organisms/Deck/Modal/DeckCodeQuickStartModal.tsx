@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Modal,
   ModalContent,
   ModalHeader,
   ModalBody,
@@ -20,6 +19,7 @@ import {
 import { LuLayers } from "react-icons/lu";
 import { sendGAEvent } from "@next/third-parties/google";
 
+import { Modal } from "@app/components/atoms/AppModal";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import PokemonSpriteModal from "@app/components/organisms/Match/Modal/PokemonSpriteModal";
 

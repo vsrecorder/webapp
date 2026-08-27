@@ -6,7 +6,6 @@ import { SetStateAction, Dispatch } from "react";
 import useSWR from "swr";
 
 import {
-  Modal,
   ModalContent,
   ModalHeader,
   ModalBody,
@@ -25,6 +24,7 @@ import { Textarea } from "@heroui/react";
 import { Card, CardHeader, CardBody } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
 
+import { Modal } from "@app/components/atoms/AppModal";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import HScrollRow from "@app/components/atoms/HScrollRow";
 import ChoiceButtonGroup from "@app/components/molecules/ChoiceButtonGroup";

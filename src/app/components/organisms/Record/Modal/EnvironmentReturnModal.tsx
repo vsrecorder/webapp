@@ -1,8 +1,9 @@
 "use client";
 
-import { Modal, ModalContent, ModalBody, Button } from "@heroui/react";
+import { ModalContent, ModalBody, Button } from "@heroui/react";
 import { LuFilePen } from "react-icons/lu";
 
+import { Modal } from "@app/components/atoms/AppModal";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
 import { MatchPokemonSpriteType } from "@app/types/pokemon_sprite";

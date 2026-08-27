@@ -1,3 +1,5 @@
+import { TagType } from "@app/types/tag";
+
 type Data = {
   id: string;
   created_at: Date;
@@ -15,6 +17,9 @@ type Data = {
   // 自由形式イベント用。開催日(ISO文字列)と unofficial_events のID
   event_date: string;
   unofficial_event_id: string;
+  // 付与されているタグ(付与順)。記録に付けたラベルで、大会順位のプリセット
+  // (優勝・ベスト4 など)も同じ配列に入る。
+  tags: TagType[];
 };
 
 export type RecordType = {
@@ -42,6 +47,8 @@ export type RecordCreateRequestType = {
   memo: string;
   event_date: string;
   unofficial_event_id: string;
+  // 付与するタグID(この配列の集合に置き換わる)。並びがそのまま表示順になる。
+  tag_ids: string[];
 };
 
 export type RecordUpdateRequestType = {
@@ -57,6 +64,8 @@ export type RecordUpdateRequestType = {
   memo: string;
   event_date: string;
   unofficial_event_id: string;
+  // 付与するタグID(この配列の集合に置き換わる)。並びがそのまま表示順になる。
+  tag_ids: string[];
 };
 
 export type RecordGetByIdResponseType = Data;

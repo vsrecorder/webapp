@@ -23,15 +23,12 @@ import {
   LuExternalLink,
   LuTrash2,
   LuLayers,
-  LuChartNoAxesColumn,
-  LuScrollText,
   LuShare2,
 } from "react-icons/lu";
 
 import RecordHero from "@app/components/organisms/Record/Hero/RecordHero";
 import BoardPanel from "@app/components/organisms/Record/BoardPanel";
-import IgnoreStatsFlgSetting from "@app/components/organisms/Record/IgnoreStatsFlgSetting";
-import RegulationSetting from "@app/components/organisms/Record/RegulationSetting";
+import RecordSettingList from "@app/components/organisms/Record/RecordSettingList";
 import Matches from "@app/components/organisms/Match/Matches";
 import UsedDeckById from "@app/components/organisms/Deck/UsedDeckById";
 
@@ -136,10 +133,11 @@ export default function DisplayRecordModal({
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  // 記録の設定(レギュレーション / 戦績集計の有効・無効)を切り替えるAPIの実行中かどうか。
-  // 実行中に閉じられると、更新結果(集計対象外バナーの出現/消失)や失敗トーストを
-  // 確認できないまま画面から消えてしまうため、この間は閉じる操作を受け付けない。
-  const [isSettingUpdating, setIsSettingUpdating] = useState(false);
+  // 記録の設定(レギュレーション / タグ / 戦績集計)を触っている最中かどうか。
+  // 変更シートを開いている間と、切り替えAPIの実行中が該当する。
+  // この間に閉じられると、シートごと消えたり、更新結果(集計対象外バナーの出現/消失)や
+  // 失敗トーストを確認できないまま画面から消えてしまうため、閉じる操作を受け付けない。
+  const [isSettingBusy, setIsSettingBusy] = useState(false);
 
   // 戦績パネルの裏面(貢献度)の表示状態。シェア画像は画面外に別の RecordHero を
   // 描画して撮るため、画面と同じ面を撮れるよう状態はここで持ちシェア側にも渡す。
@@ -231,11 +229,11 @@ export default function DisplayRecordModal({
     });
   }, [record]);
 
-  const attachHeader = useModalDragToClose(onClose, { disabled: isSettingUpdating });
+  const attachHeader = useModalDragToClose(onClose, { disabled: isSettingBusy });
 
-  // Escキーなど HeroUI 側からの閉じる要求も、集計切り替え中は無視する。
+  // Escキーなど HeroUI 側からの閉じる要求も、設定の操作中は無視する。
   const handleOpenChange = () => {
-    if (isSettingUpdating) return;
+    if (isSettingBusy) return;
     onOpenChange();
   };
 
@@ -276,7 +274,7 @@ export default function DisplayRecordModal({
         hideCloseButton
         backdrop={nestedInModal ? "transparent" : "opaque"}
         isDismissable={false}
-        isKeyboardDismissDisabled={isSettingUpdating}
+        isKeyboardDismissDisabled={isSettingBusy}
         className="z-20 h-[calc(100dvh-104px)] max-h-[calc(100dvh-104px)] mt-26 my-0 rounded-b-none overscroll-contain"
         classNames={{
           base: "sm:max-w-full lg:max-w-2xl",
@@ -302,7 +300,7 @@ export default function DisplayRecordModal({
               <ModalHeader
                 ref={attachHeader}
                 className={`px-3 py-3 flex flex-col gap-1 touch-none ${
-                  isSettingUpdating ? "cursor-not-allowed" : "cursor-grab"
+                  isSettingBusy ? "cursor-not-allowed" : "cursor-grab"
                 }`}
               >
                 {/* スワイプバー */}
@@ -430,11 +428,13 @@ export default function DisplayRecordModal({
                   />
                 </div>
 
-                {/* ボード：デッキコード・レギュレーション・戦績集計を1枚のカードにまとめる */}
-                <div className="px-1">
+                {/* ボード：使用デッキ(見るもの)と、設定(変えるもの)をカードで分ける。
+                    モーダルは画面の高さが端末に固定されているため、設定はコントロールを
+                    開いたままにせず、現在値だけの行にして変更はシートで行う。 */}
+                <div className="flex flex-col gap-4 px-1">
                   <Card shadow="sm" className="w-full overflow-hidden">
                     <CardBody className="p-0">
-                      <BoardPanel icon={<LuLayers />} label="デッキ情報">
+                      <BoardPanel icon={<LuLayers />} label="使用デッキ">
                         <div ref={deckCardRef}>
                           <UsedDeckById
                             record={record}
@@ -446,26 +446,14 @@ export default function DisplayRecordModal({
                           />
                         </div>
                       </BoardPanel>
-
-                      <BoardPanel icon={<LuScrollText />} label="レギュレーション">
-                        <RegulationSetting
-                          record={record}
-                          setRecord={setRecord}
-                          flat={true}
-                          onUpdatingChange={setIsSettingUpdating}
-                        />
-                      </BoardPanel>
-
-                      <BoardPanel icon={<LuChartNoAxesColumn />} label="戦績集計">
-                        <IgnoreStatsFlgSetting
-                          record={record}
-                          setRecord={setRecord}
-                          flat={true}
-                          onUpdatingChange={setIsSettingUpdating}
-                        />
-                      </BoardPanel>
                     </CardBody>
                   </Card>
+
+                  <RecordSettingList
+                    record={record}
+                    setRecord={setRecord}
+                    onBlockCloseChange={setIsSettingBusy}
+                  />
                 </div>
               </ModalBody>
             </>

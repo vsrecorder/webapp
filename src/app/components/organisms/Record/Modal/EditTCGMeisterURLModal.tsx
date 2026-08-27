@@ -95,6 +95,8 @@ export default function UpdateUsedDeckModal({
       memo: record.memo,
       event_date: record.event_date,
       unofficial_event_id: record.unofficial_event_id,
+      // tag_ids は送った集合に置き換わるため、変更しない場合も現在の付与を送り直す。
+      tag_ids: (record.tags ?? []).map((tag) => tag.id),
     };
 
     try {

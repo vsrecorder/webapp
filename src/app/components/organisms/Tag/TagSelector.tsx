@@ -6,18 +6,35 @@ import { Button, Chip, Input, addToast } from "@heroui/react";
 import { LuPlus, LuTag } from "react-icons/lu";
 
 import { useTags } from "@app/hooks/useTags";
-import { TagType } from "@app/types/tag";
+import { TagType, TagPresetCategory } from "@app/types/tag";
 import { katakanaToHiragana } from "@app/utils/kana";
+import { tagTextColor } from "@app/utils/tagColor";
 
-// 検索照合用の正規化。カタカナをひらがなに畳み込み、英字は小文字化する。
-// これで ACE SPEC 等のカタカナ名のタグを、ひらがな入力でも検索できる。
+// 検索照合用の正規化。カタカナをひらがなに畳み込み、英字は小文字化し、絵文字を落とす。
+// カタカナ名のタグをひらがな入力で検索できるようにするのと、大会順位のプリセット
+// (「🥇 優勝」のようにメダルを名前へ含めている)を「優勝」と打つだけで
+// 同名扱いにするため。同名扱いにしないと、プリセットがあるのに
+// 「『優勝』を作成して追加」が出てしまい、色の付かない重複タグを作れてしまう。
 function normalizeForSearch(s: string): string {
-  return katakanaToHiragana(s).toLowerCase();
+  return katakanaToHiragana(s)
+    .replace(/\p{Extended_Pictographic}/gu, "")
+    .trim()
+    .toLowerCase();
 }
 
 const MAX_TAG_NAME_LENGTH = 32;
-// 1つのデッキ/デッキコードに付与できるタグ数の上限（バックエンドの MaxTagsPerEntity と揃える）。
+// 1つの付与先に付けられるタグ数の上限（バックエンドの MaxTagsPerEntity と揃える）。
 const MAX_TAGS_PER_ENTITY = 20;
+
+// プリセット候補の見出し。群ごとに何のプリセットかが分かる文言にする。
+const PRESET_SECTION_LABEL: Record<TagPresetCategory, string> = {
+  acespec: "ACE SPEC・プリセット",
+  placement: "大会順位・プリセット",
+};
+
+// プリセットは必ず色を持つが、色未設定で投入された場合に備えた保険。
+// プリセットだと分かる見た目を保つため、無彩色ではなく既定色を当てる。
+const PRESET_FALLBACK_COLOR = "#6E7175";
 
 type Props = {
   // 現在付与しているタグID。
@@ -26,12 +43,15 @@ type Props = {
   label?: string;
   // 見出し(ラベル)を出すか。アコーディオン等、外側に見出しがある場合は false。
   showLabel?: boolean;
+  // 別枠で見せるプリセットタグの群。付与先ごとに関係のあるものだけを出す
+  // (デッキ・対戦結果は ACE SPEC、記録は大会順位)。
+  presetCategory?: TagPresetCategory;
   // 管理モードの ON/OFF が変わったときに呼ぶ。親モーダルが「閉じる/保存/作成」ボタンを
   // 管理中は無効化するために使う。
   onManageModeChange?: (managing: boolean) => void;
 };
 
-// デッキ/デッキコードに付与するタグを選ぶコントロール。
+// デッキ/デッキコード/記録/対戦結果に付与するタグを選ぶコントロール。
 // 既存タグからの選択と、入力した名前での新規作成(find-or-create)に対応する。
 // タグの実体(マスタ)は /api/tags 経由で管理し、ここでは付与するIDの集合だけを扱う。
 export default function TagSelector({
@@ -39,9 +59,11 @@ export default function TagSelector({
   onChange,
   label = "タグ",
   showLabel = true,
+  presetCategory = "acespec",
   onManageModeChange,
 }: Props) {
-  const { tags, presetTags, isLoading, createTag, deleteTag } = useTags();
+  const { tags, presetTags, isLoading, createTag, deleteTag } =
+    useTags(presetCategory);
   const [query, setQuery] = useState("");
   const [creating, setCreating] = useState(false);
   // 管理モード。ONの間だけ自分のタグに削除(×)を出す。プリセットは対象外。
@@ -79,7 +101,7 @@ export default function TagSelector({
     (tag) => !selectedTagIds.includes(tag.id) && matchesQuery(tag),
   );
 
-  // プリセット(ACE SPEC など)の候補。自分のタグとは別枠で見せる。
+  // プリセット(ACE SPEC / 大会順位)の候補。自分のタグとは別枠で見せる。
   const presetSuggestions = (presetTags ?? []).filter(
     (tag) => !selectedTagIds.includes(tag.id) && matchesQuery(tag),
   );
@@ -139,10 +161,10 @@ export default function TagSelector({
     }
   }
 
-  // タグ(自分のもの)をマスタから削除する。付与されている全デッキ・バージョンからも外れる。
+  // タグ(自分のもの)をマスタから削除する。付与されている全ての対象からも外れる。
   async function handleDelete(tag: TagType) {
     const ok = window.confirm(
-      `タグ「${tag.name}」を削除しますか？\n付与されている全デッキ・バージョンからも外れます。`,
+      `タグ「${tag.name}」を削除しますか？\n付与されている全てのデッキ・バージョン・記録・対戦結果からも外れます。`,
     );
     if (!ok) return;
 
@@ -201,12 +223,16 @@ export default function TagSelector({
               size="sm"
               variant="flat"
               className="h-6 cursor-pointer text-[11px]"
-              style={tag.color ? { backgroundColor: tag.color } : undefined}
-              classNames={
+              // 文字色はチップ本体に置けば中身も×も継承する。
+              style={
                 tag.color
-                  ? { content: "font-bold text-white", closeButton: "text-white" }
+                  ? {
+                      backgroundColor: tag.color,
+                      color: tagTextColor(tag.color, tag.text_color),
+                    }
                   : undefined
               }
+              classNames={tag.color ? { content: "font-bold" } : undefined}
               onClick={() => removeTag(tag.id)}
               onClose={() => removeTag(tag.id)}
             >
@@ -237,7 +263,7 @@ export default function TagSelector({
         /* 管理モード: 自分のタグ一覧に削除(×)を出す。プリセットは対象外。 */
         <div className="flex flex-col gap-1">
           <p className="text-[11px] text-default-400">
-            × で削除できます。削除すると、そのタグが付いた全デッキ・バージョンからも外れます。
+            × で削除できます。削除すると、そのタグが付いた全ての対象からも外れます。
           </p>
           {manageTags.length > 0 ? (
             <div className="flex flex-wrap items-center gap-1">
@@ -247,15 +273,15 @@ export default function TagSelector({
                   size="sm"
                   variant="flat"
                   className="h-6 text-[11px]"
-                  style={tag.color ? { backgroundColor: tag.color } : undefined}
-                  classNames={
+                  style={
                     tag.color
                       ? {
-                          content: "font-bold text-white",
-                          closeButton: "text-white",
+                          backgroundColor: tag.color,
+                          color: tagTextColor(tag.color, tag.text_color),
                         }
                       : undefined
                   }
+                  classNames={tag.color ? { content: "font-bold" } : undefined}
                   onClose={() => handleDelete(tag)}
                 >
                   {tag.name}
@@ -283,10 +309,15 @@ export default function TagSelector({
                   size="sm"
                   variant={tag.color ? "flat" : "bordered"}
                   className="h-6 shrink-0 cursor-pointer whitespace-nowrap text-[11px]"
-                  style={tag.color ? { backgroundColor: tag.color } : undefined}
-                  classNames={
-                    tag.color ? { content: "font-bold text-white" } : undefined
+                  style={
+                    tag.color
+                      ? {
+                          backgroundColor: tag.color,
+                          color: tagTextColor(tag.color, tag.text_color),
+                        }
+                      : undefined
                   }
+                  classNames={tag.color ? { content: "font-bold" } : undefined}
                   onClick={() => addTag(tag.id)}
                 >
                   {tag.name}
@@ -295,28 +326,35 @@ export default function TagSelector({
             </div>
           )}
 
-          {/* プリセット候補（ACE SPEC など、運営が用意した全ユーザー共通タグ）。
+          {/* プリセット候補（運営が用意した全ユーザー共通タグ）。付与先に関係する群だけを出す。
               折り返さず横1列に並べ、収まらない分は横スクロールで見せる。 */}
           {presetSuggestions.length > 0 && (
             <div className="flex flex-col gap-1">
               <span className="text-[11px] font-semibold text-default-500">
-                ACE SPEC・プリセット
+                {PRESET_SECTION_LABEL[presetCategory]}
               </span>
               <div className="flex flex-nowrap items-center gap-1 overflow-x-auto pb-1 [scrollbar-width:thin]">
-                {presetSuggestions.slice(0, 40).map((tag) => (
-                  <Chip
-                    key={tag.id}
-                    as="button"
-                    size="sm"
-                    variant="flat"
-                    className="h-6 shrink-0 cursor-pointer whitespace-nowrap text-[11px]"
-                    style={{ backgroundColor: tag.color || "#FF007F" }}
-                    classNames={{ content: "font-bold text-white" }}
-                    onClick={() => addTag(tag.id)}
-                  >
-                    {tag.name}
-                  </Chip>
-                ))}
+                {presetSuggestions.slice(0, 40).map((tag) => {
+                  const color = tag.color || PRESET_FALLBACK_COLOR;
+
+                  return (
+                    <Chip
+                      key={tag.id}
+                      as="button"
+                      size="sm"
+                      variant="flat"
+                      className="h-6 shrink-0 cursor-pointer whitespace-nowrap text-[11px]"
+                      style={{
+                        backgroundColor: color,
+                        color: tagTextColor(color, tag.text_color),
+                      }}
+                      classNames={{ content: "font-bold" }}
+                      onClick={() => addTag(tag.id)}
+                    >
+                      {tag.name}
+                    </Chip>
+                  );
+                })}
               </div>
             </div>
           )}

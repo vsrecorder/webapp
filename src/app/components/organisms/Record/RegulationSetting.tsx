@@ -11,12 +11,15 @@ import { RecordGetByIdResponseType } from "@app/types/record";
 import { useRegulations } from "@app/hooks/useRegulations";
 import RegulationSegmentedControl from "@app/components/molecules/RegulationSegmentedControl";
 import { updateRegulation } from "@app/components/organisms/Record/updateRegulation";
+import { RECORD_SETTING_DESCRIPTIONS } from "@app/components/organisms/Record/recordSettings";
 
 type Props = {
   record: RecordGetByIdResponseType;
   setRecord: Dispatch<SetStateAction<RecordGetByIdResponseType | null>>;
   // ボードのパネル内に置く場合は true。外側のカード枠(border/bg/影/余白)を外す。
   flat?: boolean;
+  // 説明文を出すか。パネルの見出し(「?」の吹き出し)や編集シート側に説明を置く場合は false。
+  showDescription?: boolean;
   // 切り替えAPIの実行中かどうかを親へ通知する。
   // モーダル内で使う場合、更新中に閉じられて結果が見えなくなるのを防ぐために使う。
   onUpdatingChange?: (isUpdating: boolean) => void;
@@ -31,6 +34,7 @@ export default function RegulationSetting({
   record,
   setRecord,
   flat = false,
+  showDescription = true,
   onUpdatingChange,
 }: Props) {
   const [isUpdating, setIsUpdating] = useState(false);
@@ -103,9 +107,11 @@ export default function RegulationSetting({
         </div>
       )}
 
-      <p className={`mb-2.5 text-tiny text-default-500 ${flat ? "" : "mt-1"}`}>
-        この対戦で使用できたカードの範囲です。
-      </p>
+      {showDescription && (
+        <p className={`mb-2.5 text-tiny text-default-500 ${flat ? "" : "mt-1"}`}>
+          {RECORD_SETTING_DESCRIPTIONS.regulation}
+        </p>
+      )}
 
       <RegulationSegmentedControl
         regulationId={record.regulation_id}

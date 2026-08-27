@@ -347,6 +347,9 @@ export default function TemplateQuickRecordCreate({
           memo: "",
           event_date: eventDateISO,
           unofficial_event_id: "",
+          // タグは大会順位のように結果が出てから付けるものが多いため、
+          // 作成時は空にして記録詳細から付けてもらう。
+          tag_ids: [],
         };
       } else if (eventType === "tonamel") {
         recordReq = {
@@ -362,6 +365,9 @@ export default function TemplateQuickRecordCreate({
           memo: "",
           event_date: eventDateISO,
           unofficial_event_id: "",
+          // タグは大会順位のように結果が出てから付けるものが多いため、
+          // 作成時は空にして記録詳細から付けてもらう。
+          tag_ids: [],
         };
       } else {
         const unofficialEventReq: UnofficialEventCreateRequestType = {
@@ -391,6 +397,9 @@ export default function TemplateQuickRecordCreate({
           memo: "",
           event_date: eventDateISO,
           unofficial_event_id: unofficialEvent.id,
+          // タグは大会順位のように結果が出てから付けるものが多いため、
+          // 作成時は空にして記録詳細から付けてもらう。
+          tag_ids: [],
         };
       }
 

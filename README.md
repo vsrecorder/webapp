@@ -13,14 +13,14 @@ VSRecorder は、ポケモンカードゲームの対戦記録を残すための
 - **デッキ登録**: 公式サイトで発行したデッキコードを使ってデッキを登録
 - **対戦記録の作成**: ジムバトル・トレーナーズリーグ・シティリーグなどの公式イベントに紐づく対戦記録を作成
 - **勝敗の記録**: 使用デッキ・対戦相手のデッキ情報・勝敗を記録
-- **シティリーグ結果 / デッキ環境（メタ）の閲覧**
+- **シティリーグ結果 / 対戦環境分析（β機能）の閲覧**
 - **統計・グラフ表示**: 戦績を可視化
 
 ## 技術スタック
 
 | 分類           | 使用技術                                                                                  |
 | -------------- | ----------------------------------------------------------------------------------------- |
-| フレームワーク | [Next.js 16](https://nextjs.org)（App Router / standalone 出力 / バンドラは webpack）      |
+| フレームワーク | [Next.js 16](https://nextjs.org)（App Router / standalone 出力 / バンドラは webpack）     |
 | 言語           | TypeScript / React 19                                                                     |
 | UI             | HeroUI, Tailwind CSS 4, Framer Motion, Swiper                                             |
 | 認証           | NextAuth (Auth.js) v5 + Firebase Authentication（Credentials プロバイダ, IDトークン検証） |
@@ -44,7 +44,7 @@ src/
 │   ├── auth.ts         # NextAuth 設定
 │   ├── records/        # 対戦記録ページ
 │   ├── decks/          # デッキページ
-│   ├── deck_meta/      # デッキ環境（メタ）ページ
+│   ├── deck_meta/      # 対戦環境分析（β機能）ページ
 │   ├── cityleague_results/  # シティリーグ結果ページ
 │   ├── users/          # ユーザーページ
 │   └── ...             # terms / privacy / policy / credits など
@@ -98,12 +98,12 @@ npm run build   # make build
 
 ## スクリプト
 
-| コマンド        | 説明                                             |
-| --------------- | ------------------------------------------------ |
-| `npm run dev`   | 開発サーバの起動                                 |
-| `npm run build` | 本番ビルド                                       |
-| `npm run start` | ビルド済みの standalone 出力をローカルで起動     |
-| `npm run lint`  | Lint 実行                                        |
+| コマンド        | 説明                                         |
+| --------------- | -------------------------------------------- |
+| `npm run dev`   | 開発サーバの起動                             |
+| `npm run build` | 本番ビルド                                   |
+| `npm run start` | ビルド済みの standalone 出力をローカルで起動 |
+| `npm run lint`  | Lint 実行                                    |
 
 `npm run start` は `next start` ではなく `.next/standalone/server.js` を直接起動する。
 `output: "standalone"` を使っている場合 `next start` は動作せず、Next.js 16 は

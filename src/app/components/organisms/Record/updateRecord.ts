@@ -28,6 +28,9 @@ export async function updateRecordFields(
     memo: record.memo,
     event_date: record.event_date,
     unofficial_event_id: record.unofficial_event_id,
+    // tag_ids は「送った集合に置き換える」ため、変更しない場合も現在の付与を
+    // そのまま送り直す必要がある(送り漏らすと付与済みのタグが全て外れる)。
+    tag_ids: (record.tags ?? []).map((tag) => tag.id),
     ...patch,
   };
 

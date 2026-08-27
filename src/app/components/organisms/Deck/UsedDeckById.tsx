@@ -136,6 +136,8 @@ export default function UsedDeckById({
       memo: targetRecord.memo,
       event_date: targetRecord.event_date,
       unofficial_event_id: targetRecord.unofficial_event_id,
+      // tag_ids は送った集合に置き換わるため、変更しない場合も現在の付与を送り直す。
+      tag_ids: (targetRecord.tags ?? []).map((tag) => tag.id),
     };
 
     try {

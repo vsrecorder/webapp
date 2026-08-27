@@ -65,7 +65,7 @@ export default async function Footer() {
                 href="/deck_meta"
                 className="text-sm hover:text-white transition-colors duration-150"
               >
-                デッキ環境
+                対戦環境分析（β機能）
               </Link>
             </div>
 

@@ -323,6 +323,8 @@ export default function EditEventInfoModal({
         memo: record.memo,
         event_date: eventDateISO,
         unofficial_event_id: unofficialEventId,
+        // tag_ids は送った集合に置き換わるため、変更しない場合も現在の付与を送り直す。
+        tag_ids: (record.tags ?? []).map((tag) => tag.id),
       };
 
       const res = await fetch(`/api/records/${record.id}`, {

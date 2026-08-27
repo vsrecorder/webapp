@@ -6,7 +6,9 @@ import { Popover, PopoverTrigger, PopoverContent } from "@heroui/react";
 import ScrollingText from "@app/components/molecules/ScrollingText";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import { RecordDeckRowSkeleton } from "@app/components/organisms/Record/Skeleton/RecordCardSkeleton";
+import TagChips from "@app/components/molecules/TagChips";
 import { DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
+import { TagType } from "@app/types/tag";
 import { getSpriteBySlot } from "@app/utils/spriteSlot";
 import { regulationDisplay } from "@app/types/regulation";
 
@@ -26,6 +28,8 @@ type Props = {
   chips: React.ReactNode;
   // 2段目のチップ(会場名など)。渡さないカードは行ごと省略する
   chipsSecondRow?: React.ReactNode;
+  // 記録に付けたタグ。無い(空)なら行ごと省略する
+  tags?: TagType[];
   // アイコン枠(8x8)の中身。種別アイコン/ブランドロゴ/記号など
   icon: React.ReactNode;
   // デッキ名
@@ -66,6 +70,7 @@ export default function RecordCardBase({
   titleFallback = "無題のイベント",
   chips,
   chipsSecondRow,
+  tags,
   icon,
   deckName,
   deckSprites,
@@ -81,6 +86,11 @@ export default function RecordCardBase({
   regulationId,
 }: Props) {
   const regulation = regulationDisplay(regulationId);
+
+  // 右上のバッジ(チーム戦/BO3)は absolute で最上段の行に重なるため、タグや
+  // 「集計対象外」がその下へ潜り込まないよう、バッジの有無に応じて右側を空けておく。
+  const topBadgeReserveClass =
+    hasGroupMatch && hasBo3 ? "pr-24" : hasGroupMatch || hasBo3 ? "pr-14" : "";
 
   const hasMatchResult =
     (winCount ?? 0) + (lossCount ?? 0) + (drawCount ?? 0) > 0;
@@ -136,17 +146,28 @@ export default function RecordCardBase({
             <div className={`w-1 shrink-0 ${accentColorClass}`} />
 
             <div className="flex-1 px-4 py-3.5 min-w-0">
-              {/* レギュレーションと集計対象外のマーク。日付の上に表示する。
-                  レギュレーションは全ての記録に付くため、この行は常に描画する */}
-              <div className="flex h-5 items-center gap-1.5 mb-1">
+              {/* レギュレーション → タグ → 集計対象外のマーク。日付の上に表示する。
+                  レギュレーションは全ての記録に付くため、この行は常に描画する。
+                  「集計対象外」は例外を示す印なので、常に行の最後に置く */}
+              <div className={`flex h-5 items-center gap-1.5 mb-1 ${topBadgeReserveClass}`}>
                 <Chip
                   size="sm"
                   variant="flat"
                   color={regulation.chipColor}
-                  className="h-5 text-[10px] font-bold"
+                  className="h-5 shrink-0 text-[10px] font-bold"
                 >
                   {regulation.name}
                 </Chip>
+
+                {/* タグ。タグが多いときはここが縮んで横スクロールになり、
+                    後ろの「集計対象外」は押し出されずに残る。
+                    行を増やすとタグ数でカードの高さが変わって一覧がガタつくため、
+                    この行の高さ(h-5)は保ったままにする。 */}
+                {tags && tags.length > 0 && (
+                  <div className="min-w-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    <TagChips tags={tags} nowrap />
+                  </div>
+                )}
 
                 {ignoreStatsFlg && (
                   <Popover placement="bottom-start">
@@ -155,7 +176,7 @@ export default function RecordCardBase({
                           20px でも、ボタン自身の行送りで隣のチップと base がずれる。 */}
                       <button
                         type="button"
-                        className="flex h-5 items-center"
+                        className="flex h-5 shrink-0 items-center"
                         onClick={(e) => e.stopPropagation()}
                         aria-label="集計対象外の詳細を表示"
                       >

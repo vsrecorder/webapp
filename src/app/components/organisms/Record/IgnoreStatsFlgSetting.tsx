@@ -9,6 +9,7 @@ import { LuChartNoAxesColumn, LuCheck, LuTriangleAlert } from "react-icons/lu";
 
 import { RecordGetByIdResponseType } from "@app/types/record";
 import { updateIgnoreStatsFlg } from "@app/components/organisms/Record/updateIgnoreStatsFlg";
+import { RECORD_SETTING_DESCRIPTIONS } from "@app/components/organisms/Record/recordSettings";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 import {
   applyWithScrollCompensation,
@@ -21,6 +22,8 @@ type Props = {
   setRecord: Dispatch<SetStateAction<RecordGetByIdResponseType | null>>;
   // ボードのパネル内に置く場合は true。外側のカード枠(border/bg/影/余白)を外す。
   flat?: boolean;
+  // 説明文を出すか。パネルの見出し(「?」の吹き出し)や編集シート側に説明を置く場合は false。
+  showDescription?: boolean;
   // 切り替えAPIの実行中かどうかを親へ通知する。
   // モーダル内で使う場合、更新中に閉じられて結果が見えなくなるのを防ぐために使う。
   onUpdatingChange?: (isUpdating: boolean) => void;
@@ -36,6 +39,7 @@ export default function IgnoreStatsFlgSetting({
   record,
   setRecord,
   flat = false,
+  showDescription = true,
   onUpdatingChange,
 }: Props) {
   const [isUpdating, setIsUpdating] = useState(false);
@@ -141,9 +145,11 @@ export default function IgnoreStatsFlgSetting({
         </div>
       )}
 
-      <p className={`mb-2.5 text-tiny text-default-500 ${flat ? "" : "mt-1"}`}>
-        除外すると、勝率・使用デッキ分析・相手デッキ分布・週次レポートの対象外になります。
-      </p>
+      {showDescription && (
+        <p className={`mb-2.5 text-tiny text-default-500 ${flat ? "" : "mt-1"}`}>
+          {RECORD_SETTING_DESCRIPTIONS.ignoreStats}
+        </p>
+      )}
 
       {/* 二択セグメントコントロール */}
       <div

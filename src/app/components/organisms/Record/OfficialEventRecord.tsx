@@ -323,6 +323,7 @@ export default function OfficialEventRecord({
             </Chip>
           ) : undefined
         }
+        tags={record.tags}
         ignoreStatsFlg={record.ignore_stats_flg}
         regulationId={record.regulation_id}
         icon={

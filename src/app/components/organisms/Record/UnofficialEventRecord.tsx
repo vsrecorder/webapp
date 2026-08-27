@@ -291,6 +291,7 @@ export default function UnofficialEventRecord({
             </Chip>
           </>
         }
+        tags={record.tags}
         ignoreStatsFlg={record.ignore_stats_flg}
         regulationId={record.regulation_id}
         icon={<LuPencilLine className="w-4 h-4 text-default-500" />}

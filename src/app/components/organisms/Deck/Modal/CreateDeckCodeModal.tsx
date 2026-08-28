@@ -250,6 +250,7 @@ export default function CreateDeckCodeModal({
 
                 {/*
                 <Checkbox
+                  name="create-deck-code-private"
                   isDisabled={newdeckcode == "" || isDisabled}
                   //isDisabled={newdeckcode == "" || !isValidedDeckCode || isDisabled}
                   defaultSelected={false}

@@ -305,6 +305,7 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
 
           <div className="relative flex-1">
             <select
+              name="weekly-deck-usage-week"
               value={week}
               onChange={(e) => setWeek(e.target.value)}
               className="w-full appearance-none rounded-xl border border-default-200 bg-default-100 px-4 py-2.5 pr-10 text-sm font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"

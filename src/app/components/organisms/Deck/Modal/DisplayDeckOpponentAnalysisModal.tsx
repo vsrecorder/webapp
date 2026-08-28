@@ -6,6 +6,7 @@ import DeckOpponentAnalysisPanel from "@app/components/organisms/Deck/DeckOppone
 import { DeckGetByIdResponseType } from "@app/types/deck";
 
 import { useModalDragToClose } from "@app/hooks/useModalDragToClose";
+import { useModalEntered } from "@app/hooks/useModalEntered";
 import { closingPassthroughClassNames } from "@app/utils/modal";
 
 type Props = {
@@ -22,6 +23,10 @@ export default function DisplayDeckOpponentAnalysisModal({
   onClose,
 }: Props) {
   const attachHeader = useModalDragToClose(onClose);
+
+  // 入場アニメーションが着地するまでチャート・凡例の実体化を遅らせる
+  // (着地前に大きなコミットが走るとシートの動きが止まるため)。
+  const entered = useModalEntered(isOpen);
 
   if (!deck) {
     return null;
@@ -57,7 +62,7 @@ export default function DisplayDeckOpponentAnalysisModal({
               <div>対戦相手の分析</div>
             </ModalHeader>
             <ModalBody className="px-2 pt-2 pb-6 flex flex-col overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none">
-              <DeckOpponentAnalysisPanel deckId={deck.id} inModal />
+              <DeckOpponentAnalysisPanel deckId={deck.id} inModal holdSkeleton={!entered} />
             </ModalBody>
           </>
         )}

@@ -608,6 +608,7 @@ export default function DeckUsagePanel({
           {/* セレクタ */}
           <div className="relative">
             <select
+              name="deck-usage-period"
               value={
                 filterMode === "month"
                   ? yearMonth

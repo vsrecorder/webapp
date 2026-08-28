@@ -9,6 +9,7 @@ import Records from "@app/components/organisms/Record/Records";
 import { DeckGetByIdResponseType } from "@app/types/deck";
 
 import { useModalDragToClose } from "@app/hooks/useModalDragToClose";
+import { useModalEntered } from "@app/hooks/useModalEntered";
 import { closingPassthroughClassNames } from "@app/utils/modal";
 
 type TabKey = "all" | "official" | "tonamel" | "unofficial";
@@ -122,15 +123,9 @@ export default function DisplayRecordsModal({
   // 再開時に記録カードのモーダルを開く際、このモーダルがまだアニメーション中だと
   // HeroUI（react-aria）のフォーカス管理と競合して記録カードのモーダルが
   // 表示されないため、アニメーション完了後（parentReady=true）まで待ってから開く。
-  const [parentReady, setParentReady] = useState(false);
-  useEffect(() => {
-    if (!isOpen) {
-      setParentReady(false);
-      return;
-    }
-    const timer = setTimeout(() => setParentReady(true), 400);
-    return () => clearTimeout(timer);
-  }, [isOpen]);
+  // あわせて、着地までは Records にスケルトンを出させ、カード一覧の実体化
+  // (大きなコミット)が入場アニメーション中に走ってシートが引っかかるのを防ぐ。
+  const parentReady = useModalEntered(isOpen);
 
   return (
     <Modal
@@ -189,48 +184,63 @@ export default function DisplayRecordsModal({
               ref={bodyRef}
               className="px-2 py-2 flex flex-col overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none"
             >
+              {/* 非表示タブの Records は着地(parentReady)後にマウントする。
+                  4タブ分のスケルトン群を一度にマウントすると、そのコミットの重さで
+                  入場アニメーションが引っかかるため(見えないタブは遅らせても体験が変わらない)。 */}
               <div hidden={selectedKey !== "all"} className="pt-12">
-                <Records
-                  event_type={"all"}
-                  deck_id={deck ? deck.id : ""}
-                  isActive={selectedKey === "all"}
-                  parentReady={parentReady}
-                  nestedInModal
-                  scrollContainerRef={bodyRef}
-                />
+                {(parentReady || selectedKey === "all") && (
+                  <Records
+                    event_type={"all"}
+                    deck_id={deck ? deck.id : ""}
+                    isActive={selectedKey === "all"}
+                    parentReady={parentReady}
+                    holdSkeleton={!parentReady}
+                    nestedInModal
+                    scrollContainerRef={bodyRef}
+                  />
+                )}
               </div>
 
               <div hidden={selectedKey !== "official"} className="pt-12">
-                <Records
-                  event_type={"official"}
-                  deck_id={deck ? deck.id : ""}
-                  isActive={selectedKey === "official"}
-                  parentReady={parentReady}
-                  nestedInModal
-                  scrollContainerRef={bodyRef}
-                />
+                {(parentReady || selectedKey === "official") && (
+                  <Records
+                    event_type={"official"}
+                    deck_id={deck ? deck.id : ""}
+                    isActive={selectedKey === "official"}
+                    parentReady={parentReady}
+                    holdSkeleton={!parentReady}
+                    nestedInModal
+                    scrollContainerRef={bodyRef}
+                  />
+                )}
               </div>
 
               <div hidden={selectedKey !== "tonamel"} className="pt-12">
-                <Records
-                  event_type={"tonamel"}
-                  deck_id={deck ? deck.id : ""}
-                  isActive={selectedKey === "tonamel"}
-                  parentReady={parentReady}
-                  nestedInModal
-                  scrollContainerRef={bodyRef}
-                />
+                {(parentReady || selectedKey === "tonamel") && (
+                  <Records
+                    event_type={"tonamel"}
+                    deck_id={deck ? deck.id : ""}
+                    isActive={selectedKey === "tonamel"}
+                    parentReady={parentReady}
+                    holdSkeleton={!parentReady}
+                    nestedInModal
+                    scrollContainerRef={bodyRef}
+                  />
+                )}
               </div>
 
               <div hidden={selectedKey !== "unofficial"} className="pt-12">
-                <Records
-                  event_type={"unofficial"}
-                  deck_id={deck ? deck.id : ""}
-                  isActive={selectedKey === "unofficial"}
-                  parentReady={parentReady}
-                  nestedInModal
-                  scrollContainerRef={bodyRef}
-                />
+                {(parentReady || selectedKey === "unofficial") && (
+                  <Records
+                    event_type={"unofficial"}
+                    deck_id={deck ? deck.id : ""}
+                    isActive={selectedKey === "unofficial"}
+                    parentReady={parentReady}
+                    holdSkeleton={!parentReady}
+                    nestedInModal
+                    scrollContainerRef={bodyRef}
+                  />
+                )}
               </div>
             </ModalBody>
           </>

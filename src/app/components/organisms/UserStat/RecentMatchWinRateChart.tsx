@@ -376,6 +376,7 @@ export default function RecentMatchWinRateChart({ userId }: Props) {
           <span className="text-xs font-bold text-default-700">直近N戦の勝率推移</span>
           <div className="relative">
             <select
+              name="recent-match-win-rate-count"
               value={countMode}
               onChange={(e) => setCountMode(e.target.value as CountMode)}
               className="appearance-none rounded-lg border border-default-200 bg-default-100 pl-3 pr-7 py-1.5 text-xs font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"

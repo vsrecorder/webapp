@@ -16,10 +16,14 @@ export default function Loading() {
   return (
     <>
       <div className="pt-12 w-full">
-        {/* タブ(オープン/シニア/ジュニア)。実体(TemplateCityleagueResults)の Tabs と同じ位置に置く */}
+        {/* タブ(オープン/シニア/ジュニア)。実体(TemplateCityleagueResults)の Tabs と
+            同じ位置・同じ背景に置く。実体は「ヘッダー下端(top-14)から始めて pt-1 で
+            タブを 60px に置き、地色を不透明に敷く」形にしてある(ヘッダーとの 4px の
+            すき間から本文が透けて流れるのを塞ぐため)。ここが食い違うと、骨格から
+            実体に切り替わった瞬間にタブが 4px 跳ねて背景も変わる。 */}
         <FixedTabBarSkeleton
           count={3}
-          positionClassName="top-15 left-0 right-0 lg:top-28"
+          positionClassName="top-14 left-0 right-0 lg:top-28 pt-1 lg:pt-0 app-dot-bg-plain"
         />
       </div>
 

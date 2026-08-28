@@ -211,6 +211,7 @@ function WinRateBadge({
             抑止はこの要素自身の属性のみに効き、<option>の不一致は従来どおり検出される。 */}
         <select
           suppressHydrationWarning
+          name="user-profile-year-month"
           value={yearMonth}
           onChange={(e) => onYearMonthChange(e.target.value)}
           aria-label="表示する年月を選択"

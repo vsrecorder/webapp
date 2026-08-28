@@ -117,6 +117,7 @@ export default function DeleteDeckModal({ deck, isOpen, onOpenChange, onRemove }
             <ModalBody className="px-2 py-1">
               <Alert color="danger">
                 <Checkbox
+                  name="delete-deck-confirm"
                   size={"sm"}
                   color="danger"
                   isDisabled={isDisabled}

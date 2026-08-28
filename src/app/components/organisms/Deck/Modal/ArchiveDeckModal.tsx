@@ -118,6 +118,7 @@ export default function ArchiveDeckModal({
             <ModalBody className="px-2 py-1">
               <Alert color="danger">
                 <Checkbox
+                  name="archive-deck-confirm"
                   size={"sm"}
                   color="danger"
                   isDisabled={isDisabled}

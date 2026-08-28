@@ -155,10 +155,12 @@ export default function BO3GamesInput({ games, onChange, isDisabled }: Props) {
     <>
       <Card shadow="md" className="w-full">
         <CardHeader className="pb-0 text-tiny">
-          <label className="flex items-center gap-1">
+          {/* 単一のフォーム部品ではなく下のゲーム行全体の見出しなので <label> は使わない
+              (紐付け先の無い <label> はブラウザに不正な関連付けとして警告される) */}
+          <span className="flex items-center gap-1">
             ゲームごとの結果
             <span className="text-red-500 text-sm">*</span>
-          </label>
+          </span>
         </CardHeader>
         <CardBody className="overflow-visible flex flex-col gap-1.5">
           {renderGame(0)}

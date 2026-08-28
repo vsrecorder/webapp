@@ -127,6 +127,7 @@ export default function WithdrawModal({ userId, isOpen, onOpenChange }: Props) {
                 <p className="font-semibold">本当に退会してもよろしいですか？</p>
                 <p className="font-semibold">この操作は取り消せません。</p>
                 <Checkbox
+                  name="withdraw-confirm"
                   isSelected={isChecked}
                   onValueChange={setIsChecked}
                   isDisabled={isDisabled}

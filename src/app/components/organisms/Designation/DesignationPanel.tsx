@@ -293,6 +293,7 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
         <div className="flex items-center justify-end">
           <div className="relative inline-block">
             <select
+              name="designation-season"
               value={season}
               onChange={(e) => setSeason(e.target.value)}
               className="appearance-none rounded-xl border border-default-200 bg-default-100 pl-3 pr-7 py-1.5 text-xs font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"

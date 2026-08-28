@@ -49,6 +49,7 @@ import {
 } from "@app/types/deck_code";
 
 import { useModalDragToClose } from "@app/hooks/useModalDragToClose";
+import { useModalEntered } from "@app/hooks/useModalEntered";
 import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
 import { closingPassthroughClassNames } from "@app/utils/modal";
 
@@ -133,6 +134,10 @@ export default function DisplayDeckCodesModal({
   const [isTagManaging, setIsTagManaging] = useState<boolean>(false);
 
   const attachHeader = useModalDragToClose(onClose);
+
+  // 入場アニメーションが着地するまでバージョン一覧の実体化を遅らせる
+  // (着地前に大きなコミットが走るとシートの動きが止まるため)。
+  const entered = useModalEntered(isOpen);
 
   // 一覧のスクロールコンテナ（ModalBody）。新バージョン追加時に最上部へ戻すために使う
   const bodyRef = useRef<HTMLDivElement | null>(null);
@@ -516,6 +521,7 @@ export default function DisplayDeckCodesModal({
               <ModalBody className="px-2 py-1">
                 <Alert color="danger">
                   <Checkbox
+                    name="delete-deck-code-confirm"
                     size={"sm"}
                     color="danger"
                     isDisabled={isDisabled}
@@ -737,7 +743,7 @@ export default function DisplayDeckCodesModal({
                 className="px-1 py-3 flex flex-col overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none"
               >
                 <>
-                  {loading ? (
+                  {loading || !entered ? (
                     <Spinner size="lg" className="pt-32" />
                   ) : !error ? (
                     <ol className="relative">

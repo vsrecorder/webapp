@@ -81,7 +81,15 @@ export default function TemplateCityleagueResults({
           size="md"
           selectedKey={selectedKey}
           onSelectionChange={handleSelectionChange}
-          className="fixed z-50 top-15 left-0 right-0 lg:top-28 pl-1 pr-1"
+          /*
+            上端をヘッダーの下端に合わせ(top-14=56px)、タブ自体は pt-1 で元の 60px に置く。
+            以前は top-15(60px)から始まっていたため、ヘッダー下端との間に 4px の透明な帯が
+            残り、そこと tabList の角丸のすき間から本文が透けて流れていた
+            (実測でこの帯のピクセルが 12px スクロールごとに 7.68% 変化)。
+            背景をページと同じ地色で不透明に敷いて塞ぐ。
+            lg はヘッダーが h-28 でタブの top-28 と一致するため隙間が無く、pt は 0 に戻す。
+          */
+          className="fixed z-50 top-14 left-0 right-0 lg:top-28 pt-1 lg:pt-0 pl-1 pr-1 app-dot-bg-plain"
           classNames={{
             cursor: "",
             tab: "h-8",

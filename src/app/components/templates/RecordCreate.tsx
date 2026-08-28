@@ -512,6 +512,7 @@ function IgnoreStatsOption({
           </span>
         </div>
         <Switch
+          name="record-create-ignore-stats"
           size="sm"
           isSelected={ignoreStatsFlg}
           onValueChange={setIgnoreStatsFlg}
@@ -1473,6 +1474,7 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                   </div>
 
                   <DatePicker
+                    name="record-create-official-event-date"
                     aria-label="開催日"
                     radius="none"
                     size="sm"
@@ -1795,11 +1797,17 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
 
                 <div className="pb-1.5 flex flex-col gap-1">
                   <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium">バージョン</label>
+                    <label
+                      className="text-sm font-medium"
+                      htmlFor="record-create-official-deck-version"
+                    >
+                      バージョン
+                    </label>
                     {isDeckVersionRequired && <RequiredBadge />}
                   </div>
                   <div>
                     <Select
+                      inputId="record-create-official-deck-version"
                       theme={reactSelectTheme}
                       // menuPosition="fixed" 時、react-selectは menuPlacement="bottom" を
                       // 指定していても下方向のスペースが minMenuHeight 未満だと上に反転してしまう。
@@ -1960,6 +1968,7 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                   </div>
 
                   <DatePicker
+                    name="record-create-tonamel-event-date"
                     aria-label="開催日"
                     radius="none"
                     size="sm"
@@ -2144,11 +2153,17 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
 
                 <div className="pb-1.5 flex flex-col gap-1">
                   <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium">バージョン</label>
+                    <label
+                      className="text-sm font-medium"
+                      htmlFor="record-create-tonamel-deck-version"
+                    >
+                      バージョン
+                    </label>
                     {isDeckVersionRequired && <RequiredBadge />}
                   </div>
                   <div>
                     <Select
+                      inputId="record-create-tonamel-deck-version"
                       theme={reactSelectTheme}
                       // menuPosition="fixed" 時、react-selectは menuPlacement="bottom" を
                       // 指定していても下方向のスペースが minMenuHeight 未満だと上に反転してしまう。
@@ -2311,6 +2326,7 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                   </div>
 
                   <DatePicker
+                    name="record-create-unofficial-event-date"
                     aria-label="開催日"
                     radius="none"
                     size="sm"
@@ -2463,11 +2479,17 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
 
                 <div className="pb-1.5 flex flex-col gap-1">
                   <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium">バージョン</label>
+                    <label
+                      className="text-sm font-medium"
+                      htmlFor="record-create-unofficial-deck-version"
+                    >
+                      バージョン
+                    </label>
                     {isDeckVersionRequired && <RequiredBadge />}
                   </div>
                   <div>
                     <Select
+                      inputId="record-create-unofficial-deck-version"
                       theme={reactSelectTheme}
                       // menuPosition="fixed" 時、react-selectは menuPlacement="bottom" を
                       // 指定していても下方向のスペースが minMenuHeight 未満だと上に反転してしまう。

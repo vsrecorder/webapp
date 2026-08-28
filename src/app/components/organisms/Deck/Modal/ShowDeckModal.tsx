@@ -43,6 +43,7 @@ import { LuSquarePen } from "react-icons/lu";
 import { LuEllipsis } from "react-icons/lu";
 import { LuChartPie } from "react-icons/lu";
 import { LuStar } from "react-icons/lu";
+import { LuShuffle } from "react-icons/lu";
 
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
@@ -128,6 +129,7 @@ export default function ShowDeckModal({
 
   const {
     isOpen: isOpenForInspectDeckModal,
+    onOpen: onOpenForInspectDeckModal,
     onOpenChange: onOpenChangeForInspectDeckModal,
     onClose: onCloseForInspectDeckModal,
   } = useDisclosure();
@@ -429,6 +431,19 @@ export default function ShowDeckModal({
                                 {isFavorited
                                   ? "お気に入りを解除する"
                                   : "お気に入りに設定する"}
+                              </DropdownItem>,
+                            ]
+                          : []),
+                        /* 初動チェックはデッキコードのカード一覧が必要なため、
+                           デッキコード未登録では項目を出さない(バージョン履歴と同じ扱い)。 */
+                        ...(deckcode?.code
+                          ? [
+                              <DropdownItem
+                                key="inspect"
+                                startContent={<LuShuffle />}
+                                onPress={onOpenForInspectDeckModal}
+                              >
+                                初動チェックをする
                               </DropdownItem>,
                             ]
                           : []),

@@ -76,6 +76,7 @@ export default function TonamelEventInput({
           開催日<span className="text-danger ml-0.5">*</span>
         </span>
         <DatePicker
+          name="tonamel-event-date"
           isRequired
           aria-label="開催日"
           radius="none"

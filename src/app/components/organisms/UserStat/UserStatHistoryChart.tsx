@@ -342,6 +342,7 @@ export default function UserStatHistoryChart({ userId, championshipSeries }: Pro
             {periodMode === "select_season" && (
               <div className="relative">
                 <select
+                  name="user-stat-history-season"
                   value={seasonYear}
                   onChange={(e) => setSeasonYear(e.target.value)}
                   className="appearance-none rounded-lg border border-default-200 bg-default-100 pl-3 pr-7 py-1.5 text-xs font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
@@ -359,6 +360,7 @@ export default function UserStatHistoryChart({ userId, championshipSeries }: Pro
             )}
             <div className="relative">
               <select
+                name="user-stat-history-period"
                 value={periodMode}
                 onChange={(e) => setPeriodMode(e.target.value as PeriodMode)}
                 className="appearance-none rounded-lg border border-default-200 bg-default-100 pl-3 pr-7 py-1.5 text-xs font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
@@ -387,6 +389,7 @@ export default function UserStatHistoryChart({ userId, championshipSeries }: Pro
           )}
           <div className="relative flex-1 min-w-0">
             <select
+              name="user-stat-history-deck"
               value={deckId}
               onChange={(e) => setDeckId(e.target.value)}
               className="w-full appearance-none rounded-lg border border-default-200 bg-default-100 pl-3 pr-7 py-1.5 text-xs font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"

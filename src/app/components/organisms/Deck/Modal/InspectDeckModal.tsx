@@ -13,6 +13,7 @@ import ZoomableDeckImage from "@app/components/atoms/ZoomableDeckImage";
 import { DeckCodeType } from "@app/types/deck_code";
 
 import { useModalDragToClose } from "@app/hooks/useModalDragToClose";
+import { useModalEntered } from "@app/hooks/useModalEntered";
 import { closingPassthroughClassNames } from "@app/utils/modal";
 
 type Props = {
@@ -31,6 +32,10 @@ export default function InspectDeckModal({
   const [imageLoaded, setImageLoaded] = useState(false);
 
   const attachHeader = useModalDragToClose(onClose);
+
+  // 入場アニメーションが着地するまでカード一覧の実体化を遅らせる
+  // (着地前に大きなコミットが走るとシートの動きが止まるため)。
+  const entered = useModalEntered(isOpen);
 
   return (
     <Modal
@@ -62,7 +67,10 @@ export default function InspectDeckModal({
               <div className="px-2">初動チェック</div>
             </ModalHeader>
 
-            <ModalBody className="px-1">
+            {/* 既定(scrollBehavior="normal")ではボディがスクロールしないため、
+                背の低い端末で下部のボタンに届くよう明示的にスクロール可能にする
+                (他の bottom シートと同じ指定) */}
+            <ModalBody className="px-1 pb-5 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none">
               <div className="flex flex-col gap-5">
                 {/* デッキコード欄は他画面（DeckCodeCard など）と同じ共通部品にする */}
                 <div className="px-2 pt-5">
@@ -90,7 +98,7 @@ export default function InspectDeckModal({
               </div>
 
               <div className="px-1 pt-1">
-                <InspectDeck deckcode={deckcode} />
+                <InspectDeck deckcode={deckcode} holdSkeleton={!entered} />
               </div>
             </ModalBody>
           </>

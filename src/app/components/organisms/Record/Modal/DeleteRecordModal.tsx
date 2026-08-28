@@ -124,6 +124,7 @@ export default function DeleteRecordModal({
             <ModalBody className="px-2 py-1">
               <Alert color="danger">
                 <Checkbox
+                  name="delete-record-confirm"
                   size={"sm"}
                   color="danger"
                   isDisabled={isDisabled}

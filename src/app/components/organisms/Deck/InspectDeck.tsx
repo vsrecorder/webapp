@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 //import { Skeleton } from "@heroui/react";
 import { Image } from "@heroui/react";
@@ -14,6 +14,8 @@ import { LuRepeat } from "react-icons/lu";
 
 import { Modal } from "@app/components/atoms/AppModal";
 import FetchError from "@app/components/molecules/FetchError";
+
+import { closingPassthroughClassNames } from "@app/utils/modal";
 
 import { fetchDeckCardList } from "@app/utils/deckcard";
 
@@ -42,9 +44,13 @@ function shuffleArray<T>(array: T[]): T[] {
 
 type Props = {
   deckcode: DeckCodeType | null;
+  // true の間はデータが揃っていてもローディング表示(裏向きカード)を出し続ける。
+  // モーダルの入場アニメーション中にカード一覧の実体化(大きなコミット)が走ると
+  // シートの動きが止まるため、着地までの間これを立てて実体化を遅延させる。
+  holdSkeleton?: boolean;
 };
 
-export default function InspectDeck({ deckcode }: Props) {
+export default function InspectDeck({ deckcode, holdSkeleton = false }: Props) {
   const [cardList, setCardList] = useState<DeckCardListType | null>(null);
   const [handcardList, setHandCardList] = useState<DeckCardListType>([]);
   const [prizecardList, setPrizeCardList] = useState<DeckCardListType>([]);
@@ -63,14 +69,45 @@ export default function InspectDeck({ deckcode }: Props) {
 
   const handScrollRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    if (!handScrollRef.current) return;
+  // 手札の行が実際に横へ溢れているときだけ overflow-x-auto にする。
+  // 溢れていないのに overflow を持つ要素から始まるスワイプは、iOS のモーダル内で
+  // react-aria に殺されてスクロールできなくなるため(HScrollRow と同じ対策。
+  // この行は自動スクロール用の ref を使うため、共通部品ではなく同じ判定を持つ)。
+  // 手札はドローで増えるため、毎レンダー後に測り直す。
+  //
+  // 判定(scrollWidth > clientWidth)が成り立つのは、この行自身が親の幅に固定される
+  // ブロック要素のときだけ。かつてはこの行を `flex justify-center` で包んで中央寄せしており、
+  // overflow-x-visible の間は行が「中身なりの幅」まで広がる(フレックス項目の min-width:auto)ため
+  // scrollWidth === clientWidth のまま溢れを検知できず、ドローで増えた手札が
+  // overflow-x-visible のまま Card(overflow-hidden)に左右で切られていた。
+  // 中央寄せは包む要素ではなく、この行自身の justify-center で行うこと。
+  const [isHandOverflowing, setIsHandOverflowing] = useState(true);
+  useLayoutEffect(() => {
+    const el = handScrollRef.current;
+    if (!el) return;
 
-    handScrollRef.current.scrollTo({
-      left: handScrollRef.current.scrollWidth,
-      behavior: "smooth",
-    });
-  }, [handcardList]);
+    const update = () => setIsHandOverflowing(el.scrollWidth > el.clientWidth);
+    update();
+
+    // 画面回転やモーダル幅の変化に追従する
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  });
+
+  // ドローしたカード(末尾)が見えるよう、手札が増えるたび右端まで送る。
+  //
+  // isHandOverflowing も依存に入れる。ドローで初めて溢れた回は、この effect が走る時点では
+  // 行がまだ overflow-x-visible(スクロールコンテナではない)で、scrollTo が何もせずに終わる。
+  // handcardList はもう変わらないので、依存が枚数だけだと二度と送られず
+  // 「1回目のドローだけ引いたカードが見えない」状態になる。
+  // overflow-x-auto が当たったコミットの後にもう一度走らせて送り直す。
+  useEffect(() => {
+    const el = handScrollRef.current;
+    if (!el) return;
+
+    el.scrollTo({ left: el.scrollWidth, behavior: "smooth" });
+  }, [handcardList, isHandOverflowing]);
 
   // デッキのカード一覧だけを取得（失敗時のリロードから再利用）
   const loadDeckCardList = useCallback(async () => {
@@ -132,15 +169,13 @@ export default function InspectDeck({ deckcode }: Props) {
 
     setDeckCardList(newDeck);
     setHandCardList((prev) => [...prev, drawnCard]);
-
-    console.log(handcardList.length);
   };
 
   if (!deckcode) {
     return <></>;
   }
 
-  if (loading) {
+  if (loading || holdSkeleton) {
     return (
       <div className="flex flex-col gap-3">
         <div className="px-6 flex justify-between w-full">
@@ -152,7 +187,7 @@ export default function InspectDeck({ deckcode }: Props) {
                   {Array.from({ length: 6 }).map((_, index) => (
                     <div
                       key={index}
-                      className="-ml-7 first:ml-0 w-12 aspect-686/1212 shrink-0"
+                      className="-ml-7 first:ml-0 w-12 aspect-686/1212 shrink-0 flex items-center justify-center"
                     >
                       <Image
                         radius="none"
@@ -174,7 +209,7 @@ export default function InspectDeck({ deckcode }: Props) {
               <CardBody className="">
                 <div className="flex justify-center items-center gap-1">
                   {Array.from({ length: 1 }).map((_, index) => (
-                    <div key={index} className="w-12 aspect-686/1212 shrink-0">
+                    <div key={index} className="w-12 aspect-686/1212 shrink-0 flex items-center justify-center">
                       <Image
                         radius="none"
                         shadow="none"
@@ -196,7 +231,7 @@ export default function InspectDeck({ deckcode }: Props) {
             <CardBody className="px-2.5">
               <div className="flex justify-center items-center gap-1">
                 {Array.from({ length: 7 }).map((_, index) => (
-                  <div key={index} className="w-12 aspect-686/1212 shrink-0">
+                  <div key={index} className="w-12 aspect-686/1212 shrink-0 flex items-center justify-center">
                     <Image
                       radius="none"
                       shadow="none"
@@ -249,7 +284,7 @@ export default function InspectDeck({ deckcode }: Props) {
                     {prizecardList.map((prizecard, index) => (
                       <div
                         key={index}
-                        className="-ml-7 first:ml-0 w-12 aspect-686/1212 shrink-0"
+                        className="-ml-7 first:ml-0 w-12 aspect-686/1212 shrink-0 flex items-center justify-center"
                       >
                         <Image
                           radius="none"
@@ -270,7 +305,7 @@ export default function InspectDeck({ deckcode }: Props) {
                     {Array.from({ length: 6 }).map((_, index) => (
                       <div
                         key={index}
-                        className="-ml-7 first:ml-0 w-12 aspect-686/1212 shrink-0"
+                        className="-ml-7 first:ml-0 w-12 aspect-686/1212 shrink-0 flex items-center justify-center"
                       >
                         <Image
                           radius="none"
@@ -296,7 +331,7 @@ export default function InspectDeck({ deckcode }: Props) {
               <CardBody className="">
                 <div className="flex justify-center items-center gap-1">
                   {deckcardList.length === 0 && (
-                    <div className="w-12 aspect-686/1212 shrink-0">
+                    <div className="w-12 aspect-686/1212 shrink-0 flex items-center justify-center">
                       <div className="w-12 h-17.5" />
                     </div>
                   )}
@@ -304,7 +339,7 @@ export default function InspectDeck({ deckcode }: Props) {
                   {deckcardList.slice(0, 1).map((deckcard, index) => (
                     <div
                       key={`${deckcard.card_id}-${index}`}
-                      className="w-12 aspect-686/1212 shrink-0"
+                      className="w-12 aspect-686/1212 shrink-0 flex items-center justify-center"
                     >
                       {/* 裏面 */}
                       <Image
@@ -326,30 +361,37 @@ export default function InspectDeck({ deckcode }: Props) {
           <div className="px-3 font-bold text-tiny">手札：{handcardList.length}</div>
           <Card shadow="md">
             <CardBody className="px-2.5">
-              <div className="flex justify-center">
-                <div
-                  ref={handScrollRef}
-                  className="flex overflow-x-scroll gap-1 whitespace-nowrap"
-                >
-                  {handcardList.map((handcard, index) => (
-                    <div
-                      key={`${handcard.card_id}-${index}`}
-                      onClick={() => {
-                        setCard(handcard);
-                        onOpenForShowCardModal();
-                      }}
-                      className="w-12 aspect-686/1212 shrink-0"
-                    >
-                      <Image
-                        radius="none"
-                        shadow="none"
-                        alt={handcard.card_name}
-                        src={handcard.image_url}
-                        className="w-12 h-17.5 rounded-xs object-cover"
-                      />
-                    </div>
-                  ))}
-                </div>
+              <div
+                ref={handScrollRef}
+                className={`flex gap-1 whitespace-nowrap ${
+                  isHandOverflowing
+                    ? // 溢れているときに justify-center のままだと、はみ出した左側が
+                      // スクロールで辿り着けない位置に固定されてしまう
+                      "justify-start overflow-x-auto"
+                    : "justify-center overflow-x-visible"
+                }`}
+              >
+                {handcardList.map((handcard, index) => (
+                  // 枠は実物の縦横比(aspect-686/1212 → 48x84.8)で取り、画像は上下を詰めた
+                  // 48x70(h-17.5)で描くため、枠内で中央に置く
+                  // (置かないと画像が上端に寄り、Card の下側だけ余白が残る)
+                  <div
+                    key={`${handcard.card_id}-${index}`}
+                    onClick={() => {
+                      setCard(handcard);
+                      onOpenForShowCardModal();
+                    }}
+                    className="w-12 aspect-686/1212 shrink-0 flex items-center justify-center"
+                  >
+                    <Image
+                      radius="none"
+                      shadow="none"
+                      alt={handcard.card_name}
+                      src={handcard.image_url}
+                      className="w-12 h-17.5 rounded-xs object-cover"
+                    />
+                  </div>
+                ))}
               </div>
             </CardBody>
           </Card>
@@ -375,6 +417,9 @@ export default function InspectDeck({ deckcode }: Props) {
         onOpenChange={onOpenChangeForShowCardModal}
         classNames={{
           base: "sm:max-w-full bg-transparent shadow-none border-none",
+          // 閉じるアニメーション中の wrapper がタップを塞ぎ、
+          // 閉じた直後に手札の別カードを開けなくなるのを防ぐ
+          ...closingPassthroughClassNames(isOpenForShowCardModal),
         }}
       >
         <ModalContent>

@@ -587,9 +587,15 @@ export default function UpdateUsedDeckModal({
             <ModalBody className="px-3 py-1 gap-3">
               <>
                 <div className="flex flex-col gap-1">
-                  <label className="text-sm font-medium">デッキ</label>
+                  <label
+                    className="text-sm font-medium"
+                    htmlFor="update-used-deck-deck"
+                  >
+                    デッキ
+                  </label>
                   <div>
                     <WindowedSelect
+                      inputId="update-used-deck-deck"
                       theme={reactSelectTheme}
                       windowThreshold={50}
                       minMenuHeight={330}
@@ -688,9 +694,15 @@ export default function UpdateUsedDeckModal({
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-medium">バージョン</label>
+                  <label
+                    className="text-sm font-medium"
+                    htmlFor="update-used-deck-version"
+                  >
+                    バージョン
+                  </label>
                   <div>
                     <Select
+                      inputId="update-used-deck-version"
                       theme={reactSelectTheme}
                       minMenuHeight={270}
                       maxMenuHeight={270}

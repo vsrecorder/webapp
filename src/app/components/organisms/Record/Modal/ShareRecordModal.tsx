@@ -714,6 +714,7 @@ export default function ShareRecordModal({
                           </div>
                         </div>
                         <Switch
+                          name="share-record-show-venue"
                           size="sm"
                           isSelected={showVenue}
                           isDisabled={optionsDisabled}
@@ -741,6 +742,7 @@ export default function ShareRecordModal({
                             </div>
                           </div>
                           <Switch
+                            name="share-record-show-deck"
                             size="sm"
                             isSelected={showDeck}
                             isDisabled={optionsDisabled}
@@ -779,6 +781,7 @@ export default function ShareRecordModal({
                             </div>
                           </div>
                           <Switch
+                            name="share-record-include-deck-image"
                             size="sm"
                             isSelected={includeDeck}
                             isDisabled={!showDeck || optionsDisabled}
@@ -796,6 +799,7 @@ export default function ShareRecordModal({
                   <div className="flex items-center gap-2 py-2.5">
                     <span className="flex-1 text-sm">対戦結果をポスト文に含める</span>
                     <Switch
+                      name="share-record-include-post-matches"
                       size="sm"
                       isSelected={includePostMatches}
                       onValueChange={setIncludePostMatches}
@@ -814,6 +818,7 @@ export default function ShareRecordModal({
                           使用デッキをポスト文に含める
                         </span>
                         <Switch
+                          name="share-record-include-post-deck"
                           size="sm"
                           isSelected={includePostDeck}
                           isDisabled={!showDeck}

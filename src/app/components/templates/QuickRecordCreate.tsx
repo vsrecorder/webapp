@@ -898,6 +898,7 @@ export default function TemplateQuickRecordCreate({
                       </span>
                       {/* 記録作成ページと同じ DatePicker */}
                       <DatePicker
+                        name="quick-record-event-date"
                         isRequired
                         aria-label="開催日"
                         radius="none"

@@ -699,6 +699,7 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
                 </div>
               </div>
               <Switch
+                name="kizuna-share-include-breakdown"
                 size="sm"
                 isSelected={includeBreakdown}
                 onValueChange={setIncludeBreakdown}

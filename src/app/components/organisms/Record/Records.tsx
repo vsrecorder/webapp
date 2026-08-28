@@ -93,6 +93,11 @@ type Props = {
   // 初回ロードが終わり1件も無い状態になったかを親へ通知する。
   // 記録一覧ページの「すべて」タブでフローティング表示の切り替えに使う。
   onEmptyChange?: (isEmpty: boolean) => void;
+  // true の間はデータが揃っていてもスケルトンを出し続ける。
+  // 親モーダルの入場アニメーション中にカード一覧の実体化(大きなコミット)が走ると
+  // シートの動きが止まるため、着地までの間これを立てて実体化を遅延させる。
+  // 取得はマウント直後から並行して走る。モーダル外(記録一覧ページ等)では常に false。
+  holdSkeleton?: boolean;
 };
 
 export default function Records({
@@ -106,6 +111,7 @@ export default function Records({
   scrollContainerRef,
   desktopColumns = 2,
   onEmptyChange,
+  holdSkeleton = false,
 }: Props) {
   // desktopColumns=3 のときは lg(1024px〜)で2列、xl(1280px〜)で3列と段階的に増やす。
   // 画面幅が狭まった際にカードが窮屈にならないようにするため。
@@ -318,7 +324,7 @@ export default function Records({
           （デッキ一覧の再開時と同じ部品・同じ見え方に揃えている）。 */}
       {isReopening && <ScreenLockLoading label="記録情報を開いています" />}
       {/* 空状態 */}
-      {isInitialLoaded && !isLoading && !hasMore && items.length === 0 && (
+      {!holdSkeleton && isInitialLoaded && !isLoading && !hasMore && items.length === 0 && (
         <div className="flex flex-col items-center justify-center py-10 px-4 gap-6">
           <div className="flex flex-col items-center gap-3 text-center">
             <div className="p-4 rounded-full bg-primary/10">
@@ -397,7 +403,8 @@ export default function Records({
       )}
 
       <div className={`grid grid-cols-1 w-full gap-3 ${gridColsClass}`}>
-        {items.map((recordData, index) => {
+        {!holdSkeleton &&
+          items.map((recordData, index) => {
           const monthKey = getMonthKey(recordData.data);
           const prevMonthKey = index > 0 ? getMonthKey(items[index - 1].data) : null;
 
@@ -453,14 +460,16 @@ export default function Records({
             </Fragment>
           );
         })}
-        {/* ローディング表示 */}
-        {!isInitialLoaded && <RecordCardSkeletons desktopColumns={desktopColumns} />}
-        {isInitialLoaded && isLoading && (
+        {/* ローディング表示(実体化を遅らせている間もスケルトンを出す) */}
+        {(!isInitialLoaded || holdSkeleton) && (
+          <RecordCardSkeletons desktopColumns={desktopColumns} />
+        )}
+        {!holdSkeleton && isInitialLoaded && isLoading && (
           <div className={`flex justify-center col-span-1 ${colSpanClass}`}>
             <Spinner size="lg" className="pt-0" />
           </div>
         )}
-        {!disable_more_load && isInitialLoaded && !isLoading && hasMore && (
+        {!holdSkeleton && !disable_more_load && isInitialLoaded && !isLoading && hasMore && (
           <div className={`flex justify-center col-span-1 ${colSpanClass}`}>
             <Button
               size="sm"

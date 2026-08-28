@@ -24,9 +24,7 @@ import { LuChevronDown } from "react-icons/lu";
 import { LuSwords } from "react-icons/lu";
 import { LuStar } from "react-icons/lu";
 
-import DeckImageZoomOverlay, {
-  deckImageUrl,
-} from "@app/components/atoms/DeckImageZoomOverlay";
+import { deckImageUrl } from "@app/components/atoms/DeckImageZoomOverlay";
 import DeckCodeCard from "@app/components/organisms/Deck/DeckCodeCard";
 import { createLazyModal } from "@app/utils/lazyModal";
 
@@ -134,9 +132,6 @@ export default function DeckCard({
 
   // ギャラリー表示のヒーロー画像の読み込み状態
   const [heroImageLoaded, setHeroImageLoaded] = useState(false);
-
-  // ヒーロー画像タップで開く全画面（横向き）表示のオープン状態
-  const [isHeroZoomOpen, setIsHeroZoomOpen] = useState(false);
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
@@ -561,17 +556,11 @@ export default function DeckCard({
             {/* ヒーロー：デッキ画像を主役に大きく表示。
               重ね文字は置かず、画像だけを見せる。 */}
             {deckcode?.code && (
-              /* 画像そのものへのタップは全画面表示にあてる。カード全体のタップ
-                （＝デッキ詳細を開く）と役割が衝突しないよう伝播を止める。 */
-              <button
-                type="button"
-                aria-label="デッキ画像を拡大表示する"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsHeroZoomOpen(true);
-                }}
-                className="relative block w-full aspect-2/1 cursor-zoom-in bg-default-100 active:opacity-90"
-              >
+              /* 画像もカードの一部として扱い、タップはカード全体と同じくデッキ詳細を開く。
+                カードの中で一番大きく目を引く領域なので、ここだけ別の挙動（拡大表示）に
+                すると「デッキを開こうとしたのに開かない」になるため、伝播は止めない。
+                画像の拡大表示はデッキ詳細モーダル内のデッキ画像から行える。 */
+              <div className="relative block w-full aspect-2/1 bg-default-100">
                 {!heroImageLoaded && <Skeleton className="absolute inset-0" />}
                 <Image
                   removeWrapper
@@ -581,7 +570,7 @@ export default function DeckCard({
                   onLoad={() => setHeroImageLoaded(true)}
                   className="absolute inset-0 h-full w-full object-cover"
                 />
-              </button>
+              </div>
             )}
 
             {/* ヒーロー画像より下の情報（デッキコード・戦績・先攻/後攻）はアコーディオンに畳む。
@@ -692,14 +681,6 @@ export default function DeckCard({
             )}
           </Card>
         </div>
-      )}
-
-      {deckcode?.code && (
-        <DeckImageZoomOverlay
-          code={deckcode.code}
-          isOpen={isHeroZoomOpen}
-          onClose={() => setIsHeroZoomOpen(false)}
-        />
       )}
 
       {enableShowDeckModal && (

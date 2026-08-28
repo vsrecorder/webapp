@@ -340,6 +340,7 @@ export default function OpponentDeckUsagePanel({
           {/* セレクタ */}
           <div className="relative">
             <select
+              name="opponent-deck-usage-period"
               value={
                 filterMode === "month"
                   ? yearMonth
@@ -404,6 +405,7 @@ export default function OpponentDeckUsagePanel({
             {/* 期間セレクタより一段小さくし、月毎の勝率推移パネルのデッキセレクタと寸法を揃える */}
             <div className="relative flex-1 min-w-0">
               <select
+                name="opponent-deck-usage-own-deck"
                 value={ownDeckId}
                 onChange={(e) => setOwnDeckId(e.target.value)}
                 className="w-full appearance-none rounded-lg border border-default-200 bg-default-100 pl-3 pr-7 py-1.5 text-xs font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"

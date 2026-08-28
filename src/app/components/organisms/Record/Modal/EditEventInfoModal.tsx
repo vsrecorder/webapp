@@ -425,6 +425,7 @@ export default function EditEventInfoModal({
         開催日<span className="text-danger ml-0.5">*</span>
       </span>
       <DatePicker
+        name="edit-event-date"
         isRequired
         aria-label="開催日"
         radius="none"

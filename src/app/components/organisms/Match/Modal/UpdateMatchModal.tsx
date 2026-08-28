@@ -728,6 +728,7 @@ export default function UpdateMatchModal({
               }}
             >
               <Checkbox
+                name="update-match-round-type"
                 value="qualifying_round"
                 color="warning"
                 isSelected={qualifyingRoundFlg}
@@ -744,6 +745,7 @@ export default function UpdateMatchModal({
                 🎯 予選
               </Checkbox>
               <Checkbox
+                name="update-match-round-type"
                 value="final_tournament"
                 color="warning"
                 isSelected={finalTournamentFlg}
@@ -764,10 +766,13 @@ export default function UpdateMatchModal({
 
         <Card data-opponents-deck-field shadow="md" className="w-full">
           <CardHeader className="pb-0 flex flex-col items-start text-tiny">
-            <label className="flex items-center gap-1">
+            {/* 以降のカード見出しは、単一のフォーム部品ではなく入力群・ボタン群全体の
+                見出しなので <label> は使わない(紐付け先の無い <label> はブラウザに
+                不正な関連付けとして警告される) */}
+            <span className="flex items-center gap-1">
               <span>相手のデッキ</span>
               <span className="text-sm text-red-500">*</span>
-            </label>
+            </span>
             {/* アイコン枠がタップできることに気づかれにくいため、常に案内を出す */}
             <span className="text-default-400">
               アイコン枠をタップするとポケモンを選べます（任意）
@@ -888,10 +893,10 @@ export default function UpdateMatchModal({
             <div className="flex items-center gap-6">
               <Card shadow="md" className="w-full">
                 <CardHeader className="pb-0 text-tiny">
-                  <label className="flex items-center gap-1">
+                  <span className="flex items-center gap-1">
                     先攻/後攻
                     <span className="text-red-500 text-sm">*</span>
-                  </label>
+                  </span>
                 </CardHeader>
                 <CardBody className="overflow-visible">
                   <ChoiceButtonGroup
@@ -908,10 +913,10 @@ export default function UpdateMatchModal({
 
               <Card shadow="md" className="w-full">
                 <CardHeader className="pb-0 text-tiny">
-                  <label className="flex items-center gap-1">
+                  <span className="flex items-center gap-1">
                     {showGroupMatch ? "自分の勝敗" : "勝ち/負け"}
                     <span className="text-red-500 text-sm">*</span>
-                  </label>
+                  </span>
                 </CardHeader>
                 <CardBody className="overflow-visible">
                   <ChoiceButtonGroup
@@ -947,10 +952,10 @@ export default function UpdateMatchModal({
         {showGroupMatch && (
           <Card shadow="md" className="w-full">
             <CardHeader className="pb-0 text-tiny">
-              <label className="flex items-center gap-1">
+              <span className="flex items-center gap-1">
                 チームの勝敗
                 <span className="text-red-500 text-sm">*</span>
-              </label>
+              </span>
             </CardHeader>
             <CardBody className="overflow-visible">
               <ChoiceButtonGroup
@@ -1146,6 +1151,7 @@ export default function UpdateMatchModal({
                 <div className="w-full">
                   <div className="flex items-center gap-6">
                     <Switch
+                      name="update-match-default-victory"
                       size="md"
                       isDisabled={isDisabled && isDefaultDefeat}
                       isSelected={isDefaultVictory}
@@ -1158,6 +1164,7 @@ export default function UpdateMatchModal({
                       不戦勝
                     </Switch>
                     <Switch
+                      name="update-match-default-defeat"
                       size="md"
                       isDisabled={isDisabled && isDefaultVictory}
                       isSelected={isDefaultDefeat}

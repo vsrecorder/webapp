@@ -296,6 +296,7 @@ export default function DashboardSections({
                         <LuChevronDown className="w-4 h-4" />
                       </Button>
                       <Switch
+                        name={`dashboard-section-visible-${s.id}`}
                         size="sm"
                         isSelected={!isHidden(s.id)}
                         onValueChange={() => toggleVisibility(s.id)}

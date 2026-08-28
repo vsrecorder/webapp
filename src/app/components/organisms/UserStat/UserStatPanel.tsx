@@ -237,6 +237,7 @@ export default function UserStatPanel({
           {/* セレクタ */}
           <div className="relative">
             <select
+              name="user-stat-period"
               value={
                 filterMode === "month"
                   ? yearMonth

@@ -121,6 +121,7 @@ export default function DeleteMatchModal({
             <ModalBody className="px-2 py-1">
               <Alert color="danger">
                 <Checkbox
+                  name="delete-match-confirm"
                   size={"sm"}
                   color="danger"
                   isDisabled={isDisabled}

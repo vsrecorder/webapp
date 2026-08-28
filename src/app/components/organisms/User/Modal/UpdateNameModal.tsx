@@ -255,6 +255,7 @@ export default function UpdateNameModal({
                   </div>
                   <input
                     ref={fileInputRef}
+                    name="user-icon-file"
                     type="file"
                     accept="image/*"
                     className="hidden"
@@ -320,6 +321,7 @@ export default function UpdateNameModal({
                   {/* ズームスライダー */}
                   <div className="px-4 pt-2 pb-1">
                     <input
+                      name="user-icon-zoom"
                       type="range"
                       min={1}
                       max={3}

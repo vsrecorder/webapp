@@ -29,12 +29,20 @@ type Props = {
   // モーダル内で表示する場合のみ true。円グラフの入場アニメを開き切ってから再生し直す。
   // ページ内（デッキ詳細のインライン表示）では不要なので既定 false。
   inModal?: boolean;
+  // true の間はデータが揃っていてもローディング表示を出し続ける。
+  // モーダルの入場アニメーション中にチャート・凡例の実体化(大きなコミット)が走ると
+  // シートの動きが止まるため、着地までの間これを立てて実体化を遅延させる。
+  holdSkeleton?: boolean;
 };
 
 // 「登録デッキの詳細」から、そのデッキで対戦した相手のデッキ分布・勝率を確認するための分析パネル。
 // ダッシュボードの分析(OpponentDeckUsagePanel)と同じ期間フィルタ(月次/環境/シーズン/レギュレーション)に加え、
 // デッキ単位ならではの「全期間」も用意する。
-export default function DeckOpponentAnalysisPanel({ deckId, inModal = false }: Props) {
+export default function DeckOpponentAnalysisPanel({
+  deckId,
+  inModal = false,
+  holdSkeleton = false,
+}: Props) {
   const { data: session } = useSession();
   const userId = session?.user?.id;
 
@@ -280,6 +288,7 @@ export default function DeckOpponentAnalysisPanel({ deckId, inModal = false }: P
         {periodMode === "month" && (
           <div className="relative">
             <select
+              name="deck-opponent-year-month"
               value={yearMonth}
               onChange={(e) => setYearMonth(e.target.value)}
               className="w-full appearance-none rounded-xl border border-default-200 bg-default-100 px-4 py-2.5 pr-10 text-sm font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
@@ -299,6 +308,7 @@ export default function DeckOpponentAnalysisPanel({ deckId, inModal = false }: P
         {periodMode === "environment" && (
           <div className="relative">
             <select
+              name="deck-opponent-environment"
               value={environmentId}
               onChange={(e) => setEnvironmentId(e.target.value)}
               className="w-full appearance-none rounded-xl border border-default-200 bg-default-100 px-4 py-2.5 pr-10 text-sm font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
@@ -318,6 +328,7 @@ export default function DeckOpponentAnalysisPanel({ deckId, inModal = false }: P
         {periodMode === "season" && (
           <div className="relative">
             <select
+              name="deck-opponent-season"
               value={season}
               onChange={(e) => setSeason(e.target.value)}
               className="w-full appearance-none rounded-xl border border-default-200 bg-default-100 px-4 py-2.5 pr-10 text-sm font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
@@ -337,6 +348,7 @@ export default function DeckOpponentAnalysisPanel({ deckId, inModal = false }: P
         {periodMode === "regulation" && (
           <div className="relative">
             <select
+              name="deck-opponent-regulation"
               value={standardRegulationId}
               onChange={(e) => setStandardRegulationId(e.target.value)}
               className="w-full appearance-none rounded-xl border border-default-200 bg-default-100 px-4 py-2.5 pr-10 text-sm font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
@@ -368,9 +380,9 @@ export default function DeckOpponentAnalysisPanel({ deckId, inModal = false }: P
         </p>
 
         <OpponentDeckDistributionChart
-          decks={decks}
-          isLoading={isLoading}
-          hasData={stat !== null}
+          decks={holdSkeleton ? [] : decks}
+          isLoading={isLoading || holdSkeleton}
+          hasData={!holdSkeleton && stat !== null}
           emptyMessage={
             "この期間の対戦記録がまだありません。\n記録を作成すると対戦相手のデッキ分布が表示されます。"
           }

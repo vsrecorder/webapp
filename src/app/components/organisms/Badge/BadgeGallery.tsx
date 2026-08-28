@@ -213,6 +213,7 @@ export default function BadgeGallery({ userId, championshipSeries }: Props) {
           </span>
           <div className="relative inline-block shrink-0">
             <select
+              name="badge-season"
               value={season}
               onChange={(e) => setSeason(e.target.value)}
               className="appearance-none rounded-xl border border-default-200 bg-default-100 pl-3 pr-7 py-1.5 text-xs font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"

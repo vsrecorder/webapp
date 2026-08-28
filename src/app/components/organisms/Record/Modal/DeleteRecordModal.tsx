@@ -10,7 +10,6 @@ import { addToast, closeToast } from "@heroui/react";
 import { Modal } from "@app/components/atoms/AppModal";
 import { RecordGetByIdResponseType } from "@app/types/record";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
-import { navigateAfterModalClose } from "@app/utils/modalHistory";
 
 type Props = {
   record: RecordGetByIdResponseType;
@@ -18,8 +17,8 @@ type Props = {
   isOpen: boolean;
   onOpenChange: () => void;
   // 削除完了後に別ページへ移りたいときの遷移処理(記録詳細ページ → 記録一覧など)。
-  // 渡された場合は setRecord(null) を行わない。遷移が終わるまでの一瞬、
-  // 中身の消えたページが見えてしまうため。
+  // モーダルを閉じたあとに呼ぶので、遷移は navigateAfterModalClose を通すこと。
+  // 渡された場合は setRecord(null) を行わない。
   onDeleted?: () => void;
 };
 
@@ -78,9 +77,9 @@ export default function DeleteRecordModal({
       setIsDisabled(false);
 
       if (onDeleted) {
-        // 閉じる操作で巻き戻る履歴(useCloseModalOnBack が積んだ戻り先)が
-        // 落ち着いてから遷移する。先に遷移させると打ち消されて元のページに残る。
-        navigateAfterModalClose(onDeleted);
+        // 遷移そのものは呼び出し側に任せる(履歴の作法は navigateAfterModalClose 参照)。
+        // ここで record を消すと、遷移までの一瞬、中身の無いページが見えてしまう
+        onDeleted();
       } else {
         // 一覧のカードから開いた場合。カード自身を消して、削除済みの記録を残さない
         setRecord(null);

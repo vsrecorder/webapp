@@ -63,3 +63,18 @@ export function useReopenFlagsOnBack(keys: readonly string[]) {
     };
   }, [keysKey]);
 }
+
+/*
+ * 戻り遷移でのモーダル再開を取りやめる。退避中のキーと元のキーの両方を消す。
+ *
+ * デッキを削除・アーカイブしたときのように、戻り先で開き直しても意味がない
+ * (あるいは開いてはいけない)場合に、遷移の前に呼ぶ。とくに router.replace で移る場合は
+ * pushState が呼ばれず、上のフックの「リンク遷移だからフラグを捨てる」判定が
+ * 働かないため、ここで明示的に消しておかないとフラグが戻り先まで生き残る。
+ */
+export function clearReopenFlagsOnBack(keys: readonly string[]): void {
+  for (const key of keys) {
+    sessionStorage.removeItem(key);
+    sessionStorage.removeItem(`${PENDING_PREFIX}${key}`);
+  }
+}

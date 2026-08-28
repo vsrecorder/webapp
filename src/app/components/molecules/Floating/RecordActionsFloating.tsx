@@ -28,6 +28,8 @@ import { DeckGetByIdResponseType } from "@app/types/deck";
 import { MatchGetResponseType } from "@app/types/match";
 
 import { MatchStats } from "@app/utils/matchStats";
+import { navigateAfterModalClose } from "@app/utils/modalHistory";
+import { clearRecordDetailReopenFlags } from "@app/utils/recordModalReopen";
 
 // シェアのポスト文組み立てに必要なイベント・デッキ情報の取得
 
@@ -229,7 +231,19 @@ export default function RecordActionsFloating({
         setRecord={setRecord}
         isOpen={isOpenForDeleteRecordModal}
         onOpenChange={onOpenChangeForDeleteRecordModal}
-        onDeleted={() => router.push("/records")}
+        onDeleted={() =>
+          // モーダルを閉じるときの履歴の巻き戻しを待ってから移る(待たずに遷移すると
+          // 打ち消される)。replace なのは、戻ったときに削除済みのこのページへ
+          // 着地させないため。あわせて、戻り先でこの記録のモーダルが開き直さないよう
+          // 再開フラグを捨てる(replace では pushState 由来の破棄が働かない)。
+          navigateAfterModalClose(
+            () => {
+              clearRecordDetailReopenFlags();
+              router.replace("/records");
+            },
+            { fallbackHref: "/records" },
+          )
+        }
       />
 
       {/* ドロップダウン表示中の背景オーバーレイ */}

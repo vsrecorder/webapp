@@ -30,7 +30,10 @@ import { LuShare2 } from "react-icons/lu";
 import { LuCirclePlus } from "react-icons/lu";
 
 import { useKizunaDeck } from "@app/hooks/useKizunaLevels";
-import { useReopenFlagsOnBack } from "@app/hooks/useReopenFlagsOnBack";
+import {
+  useReopenFlagsOnBack,
+  clearReopenFlagsOnBack,
+} from "@app/hooks/useReopenFlagsOnBack";
 import { DECK_MODAL_REOPEN_KEYS } from "@app/utils/deckModalReopen";
 import { navigateAfterModalClose } from "@app/utils/modalHistory";
 import DeckKizunaPanel from "@app/components/organisms/Deck/DeckKizunaPanel";
@@ -267,10 +270,20 @@ export default function DeckById({ id, valueMeterEnabled = false }: Props) {
   }, [valueMeterEnabled, deck]);
 
   // 削除・アーカイブ操作の完了後はデッキ一覧へ戻す（このデッキはもう表示できないため）。
-  // モーダルを閉じるときの履歴の巻き戻しを待ってから遷移する。待たずに push すると
+  // モーダルを閉じるときの履歴の巻き戻しを待ってから遷移する。待たずに遷移すると
   // 打ち消されてこのページに残ってしまう（navigateAfterModalClose のコメントを参照）。
+  // replace なのは、戻ったときに削除済みのこのページへ着地させないため。あわせて、
+  // 戻り先でこのデッキのモーダルが開き直さないよう再開フラグを捨てる
+  // （replace では pushState 由来の破棄が働かないので、アーカイブしたデッキの
+  //   モーダルがデッキ一覧で勝手に開いてしまう）。
   const handleRemove = useCallback(() => {
-    navigateAfterModalClose(() => router.push("/decks"));
+    navigateAfterModalClose(
+      () => {
+        clearReopenFlagsOnBack(DECK_MODAL_REOPEN_KEYS);
+        router.replace("/decks");
+      },
+      { fallbackHref: "/decks" },
+    );
   }, [router]);
 
   // このデッキ詳細ページの絶対URLを組み立てる（クエリは含めず正規のパスにする）。

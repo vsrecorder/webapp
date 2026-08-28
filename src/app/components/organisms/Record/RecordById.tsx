@@ -12,6 +12,20 @@ import FetchError from "@app/components/molecules/FetchError";
 import { RecordGetByIdResponseType } from "@app/types/record";
 
 import { isModalHistoryPushState } from "@app/utils/modalHistory";
+import {
+  REOPEN_DECK_MODAL_DECK_ID,
+  REOPEN_DECK_MODAL_ARCHIVED,
+  REOPEN_DECK_MODAL_WITH_RECORDS,
+} from "@app/utils/deckModalReopen";
+import {
+  REOPEN_MODAL_RECORD_ID,
+  REOPEN_MODAL_EVENT_TYPE,
+  PENDING_REOPEN_RECORD_ID,
+  PENDING_REOPEN_EVENT_TYPE,
+  PENDING_REOPEN_DECK_ID,
+  PENDING_REOPEN_ARCHIVED,
+  PENDING_REOPEN_WITH_RECORDS,
+} from "@app/utils/recordModalReopen";
 
 async function fetchRecordById(id: string) {
   try {
@@ -72,39 +86,36 @@ export default function RecordById({ id }: Props) {
   // キーはそのまま残り、cleanup 時に reopenModalRecordId として復元することで
   // バック遷移時のみモーダルを再開する。
   useEffect(() => {
-    const pendingId = sessionStorage.getItem("reopenModalRecordId");
-    const pendingEventType = sessionStorage.getItem("reopenModalEventType");
+    const pendingId = sessionStorage.getItem(REOPEN_MODAL_RECORD_ID);
+    const pendingEventType = sessionStorage.getItem(REOPEN_MODAL_EVENT_TYPE);
     // デッキの記録一覧モーダルから遷移してきた場合の再開対象 deck.id。
     // record 系キーと同じライフサイクル（バック遷移時のみ復元）で扱う。
-    const pendingDeckId = sessionStorage.getItem("reopenDeckModalDeckId");
+    const pendingDeckId = sessionStorage.getItem(REOPEN_DECK_MODAL_DECK_ID);
     // 対象デッキがアーカイブ済みか（戻り時のデッキページのタブ切り替え用）。
-    const pendingDeckArchived = sessionStorage.getItem("reopenDeckModalArchived");
+    const pendingDeckArchived = sessionStorage.getItem(REOPEN_DECK_MODAL_ARCHIVED);
     // 記録一覧モーダルまで開き直すか。deck 系キーと必ず同じライフサイクルで扱う
     // （取り残すと、後のデッキモーダル発の遷移で誤って記録一覧モーダルが開く）。
-    const pendingDeckWithRecords = sessionStorage.getItem("reopenDeckModalWithRecords");
+    const pendingDeckWithRecords = sessionStorage.getItem(REOPEN_DECK_MODAL_WITH_RECORDS);
 
     if (pendingId && pendingId === id) {
-      sessionStorage.setItem("detailPagePendingReopenRecordId", pendingId);
+      sessionStorage.setItem(PENDING_REOPEN_RECORD_ID, pendingId);
       if (pendingEventType) {
-        sessionStorage.setItem("detailPagePendingReopenEventType", pendingEventType);
+        sessionStorage.setItem(PENDING_REOPEN_EVENT_TYPE, pendingEventType);
       }
       if (pendingDeckId) {
-        sessionStorage.setItem("detailPagePendingReopenDeckId", pendingDeckId);
+        sessionStorage.setItem(PENDING_REOPEN_DECK_ID, pendingDeckId);
       }
       if (pendingDeckArchived) {
-        sessionStorage.setItem("detailPagePendingReopenArchived", pendingDeckArchived);
+        sessionStorage.setItem(PENDING_REOPEN_ARCHIVED, pendingDeckArchived);
       }
       if (pendingDeckWithRecords) {
-        sessionStorage.setItem(
-          "detailPagePendingReopenWithRecords",
-          pendingDeckWithRecords,
-        );
+        sessionStorage.setItem(PENDING_REOPEN_WITH_RECORDS, pendingDeckWithRecords);
       }
-      sessionStorage.removeItem("reopenModalRecordId");
-      sessionStorage.removeItem("reopenModalEventType");
-      sessionStorage.removeItem("reopenDeckModalDeckId");
-      sessionStorage.removeItem("reopenDeckModalArchived");
-      sessionStorage.removeItem("reopenDeckModalWithRecords");
+      sessionStorage.removeItem(REOPEN_MODAL_RECORD_ID);
+      sessionStorage.removeItem(REOPEN_MODAL_EVENT_TYPE);
+      sessionStorage.removeItem(REOPEN_DECK_MODAL_DECK_ID);
+      sessionStorage.removeItem(REOPEN_DECK_MODAL_ARCHIVED);
+      sessionStorage.removeItem(REOPEN_DECK_MODAL_WITH_RECORDS);
     }
 
     const originalPushState = window.history.pushState;
@@ -112,11 +123,11 @@ export default function RecordById({ id }: Props) {
       // モーダル表示中のバック対策（useCloseModalOnBack）が積む戻り先は
       // ページ遷移ではないため、モーダルを開いただけでフラグを捨てないよう除外する
       if (!isModalHistoryPushState(args[0])) {
-        sessionStorage.removeItem("detailPagePendingReopenRecordId");
-        sessionStorage.removeItem("detailPagePendingReopenEventType");
-        sessionStorage.removeItem("detailPagePendingReopenDeckId");
-        sessionStorage.removeItem("detailPagePendingReopenArchived");
-        sessionStorage.removeItem("detailPagePendingReopenWithRecords");
+        sessionStorage.removeItem(PENDING_REOPEN_RECORD_ID);
+        sessionStorage.removeItem(PENDING_REOPEN_EVENT_TYPE);
+        sessionStorage.removeItem(PENDING_REOPEN_DECK_ID);
+        sessionStorage.removeItem(PENDING_REOPEN_ARCHIVED);
+        sessionStorage.removeItem(PENDING_REOPEN_WITH_RECORDS);
       }
       return originalPushState.apply(window.history, args);
     };
@@ -124,33 +135,31 @@ export default function RecordById({ id }: Props) {
     return () => {
       window.history.pushState = originalPushState;
 
-      const savedId = sessionStorage.getItem("detailPagePendingReopenRecordId");
-      const savedEventType = sessionStorage.getItem("detailPagePendingReopenEventType");
-      const savedDeckId = sessionStorage.getItem("detailPagePendingReopenDeckId");
-      const savedDeckArchived = sessionStorage.getItem("detailPagePendingReopenArchived");
-      const savedDeckWithRecords = sessionStorage.getItem(
-        "detailPagePendingReopenWithRecords",
-      );
+      const savedId = sessionStorage.getItem(PENDING_REOPEN_RECORD_ID);
+      const savedEventType = sessionStorage.getItem(PENDING_REOPEN_EVENT_TYPE);
+      const savedDeckId = sessionStorage.getItem(PENDING_REOPEN_DECK_ID);
+      const savedDeckArchived = sessionStorage.getItem(PENDING_REOPEN_ARCHIVED);
+      const savedDeckWithRecords = sessionStorage.getItem(PENDING_REOPEN_WITH_RECORDS);
       if (savedId) {
         // pushState が発生しなかった（バック遷移）場合のみここに来る
-        sessionStorage.setItem("reopenModalRecordId", savedId);
+        sessionStorage.setItem(REOPEN_MODAL_RECORD_ID, savedId);
         if (savedEventType) {
-          sessionStorage.setItem("reopenModalEventType", savedEventType);
+          sessionStorage.setItem(REOPEN_MODAL_EVENT_TYPE, savedEventType);
         }
         if (savedDeckId) {
-          sessionStorage.setItem("reopenDeckModalDeckId", savedDeckId);
+          sessionStorage.setItem(REOPEN_DECK_MODAL_DECK_ID, savedDeckId);
         }
         if (savedDeckArchived) {
-          sessionStorage.setItem("reopenDeckModalArchived", savedDeckArchived);
+          sessionStorage.setItem(REOPEN_DECK_MODAL_ARCHIVED, savedDeckArchived);
         }
         if (savedDeckWithRecords) {
-          sessionStorage.setItem("reopenDeckModalWithRecords", savedDeckWithRecords);
+          sessionStorage.setItem(REOPEN_DECK_MODAL_WITH_RECORDS, savedDeckWithRecords);
         }
-        sessionStorage.removeItem("detailPagePendingReopenRecordId");
-        sessionStorage.removeItem("detailPagePendingReopenEventType");
-        sessionStorage.removeItem("detailPagePendingReopenDeckId");
-        sessionStorage.removeItem("detailPagePendingReopenArchived");
-        sessionStorage.removeItem("detailPagePendingReopenWithRecords");
+        sessionStorage.removeItem(PENDING_REOPEN_RECORD_ID);
+        sessionStorage.removeItem(PENDING_REOPEN_EVENT_TYPE);
+        sessionStorage.removeItem(PENDING_REOPEN_DECK_ID);
+        sessionStorage.removeItem(PENDING_REOPEN_ARCHIVED);
+        sessionStorage.removeItem(PENDING_REOPEN_WITH_RECORDS);
       }
     };
   }, [id]);

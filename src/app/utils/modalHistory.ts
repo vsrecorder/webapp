@@ -7,6 +7,9 @@
  * 「モーダルの開閉に伴う履歴操作」を通常のページ遷移と取り違えないようにするため。
  */
 
+// 遷移を投げてから、移れていなければハードナビゲーションに切り替えるまでの待ち時間。
+const NAVIGATE_FALLBACK_MS = 3000;
+
 // モーダル表示のために積んだ履歴エントリであることを示す history.state のキー。
 // 値はそのエントリの時点で開いているモーダルの枚数(入れ子を数える)。
 export const MODAL_HISTORY_DEPTH_KEY = "vsrModalDepth";
@@ -79,11 +82,39 @@ export function isModalHistoryPop(event: Event): boolean {
  * 巻き戻しが起きるかどうかは、閉じる直前の履歴エントリに戻り先の目印(深さ)が
  * あるかで決まる。目印が無ければ待たずに遷移する。目印があるのに popstate が
  * 来ない場合に備え、タイムアウトでも遷移する(待ち続けて遷移しないよりはよい)。
+ *
+ * fallbackHref を渡すと、遷移を投げたあともそのページに留まっていた場合に
+ * ハードナビゲーションで移る。削除したものを映したままページに残さないための保険。
  */
-export function navigateAfterModalClose(navigate: () => void, timeoutMs = 1000): void {
+export function navigateAfterModalClose(
+  navigate: () => void,
+  options: { fallbackHref?: string; timeoutMs?: number } = {},
+): void {
+  const { fallbackHref, timeoutMs = 1000 } = options;
+
+  const runNavigate = () => {
+    // 遷移を投げる前の場所。これが変わらないままなら、遷移が始まらなかったとみなす
+    const from = window.location.pathname;
+
+    navigate();
+
+    if (!fallbackHref) return;
+
+    // 通常の遷移では起こりえない時間だけ待ってから、まだ移れていなければ強制的に移る。
+    // 短くすると、単に遅い(RSCの取得待ち)だけの遷移を余計なリロードで潰してしまう。
+    setTimeout(() => {
+      // どこかへ移れているなら何もしない。遷移先とは限らず、この間に利用者が別のページへ
+      // 移っていることもあるため、「遷移先に居るか」ではなく「元の場所を離れたか」で見る
+      // (遷移先で判定すると、自分で移動した先から引き戻してしまう)
+      if (window.location.pathname !== from) return;
+
+      window.location.replace(new URL(fallbackHref, window.location.origin).toString());
+    }, NAVIGATE_FALLBACK_MS);
+  };
+
   // 戻り先が積まれていない = 巻き戻しは起きない。待つ理由がない
   if (readModalHistoryDepth(window.history.state) === 0) {
-    navigate();
+    runNavigate();
     return;
   }
 
@@ -96,7 +127,7 @@ export function navigateAfterModalClose(navigate: () => void, timeoutMs = 1000):
     window.removeEventListener("popstate", handlePopState);
     clearTimeout(timer);
 
-    navigate();
+    runNavigate();
   };
 
   const handlePopState = () => {

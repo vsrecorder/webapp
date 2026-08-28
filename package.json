@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1003.0",
+    "@heroui/dom-animation": "^2.1.10",
     "@heroui/react": "^2.8.9",
     "@next/third-parties": "^16.3.3",
     "chart.js": "^4.5.1",

@@ -2,23 +2,20 @@
 
 import { ComponentType, useEffect, useRef, useState } from "react";
 
-import dynamic from "next/dynamic";
-
 import ChartPanelFallback from "@app/components/organisms/Dashboard/ChartPanelFallback";
 
 /*
  * chart.js を抱えるパネルを初期JSから切り離すためのラッパー。
  *
- * ssr: false はサーバコンポーネントでは使えず、指定しないとチャートが初期ツリーで
- * SSRされてハイドレーションにJSが必要になり、結局 First Load JS から外れない。
- * そのため dynamic() の呼び出しをこのクライアントコンポーネント側に置き、
- * ssr: false でチャンクを完全に遅延させる。
+ * チャートを初期ツリーでSSRするとハイドレーションにJSが必要になり、結局
+ * First Load JS から外れない。そのため import() をこのクライアントコンポーネント側に
+ * 置き、サーバでは常にプレースホルダを返してチャンクを完全に遅延させる。
  * ダッシュボードは認証済みユーザー向けでSEO対象外のため、SSRしなくても問題ない。
  *
  * DashboardSections は非表示設定されたセクションを描画しないので、
  * チャートを非表示にしているユーザーはチャンク自体を読み込まずに済む。
  *
- * さらに、画面に近づくまでマウント自体を遅らせている。dynamic import で初期JSからは
+ * さらに、画面に近づくまでマウント自体を遅らせている。import() で初期JSからは
  * 外れていても、マウントすれば chart.js のモジュール評価とチャートの初期化は走る。
  * 4つのパネルはいずれも初期表示では画面外にあるのに、ハイドレーション直後に他のセクション
  * もろとも一斉にマウントされるため、ページで最も忙しい時間帯をさらに押し上げていた。
@@ -33,12 +30,49 @@ import ChartPanelFallback from "@app/components/organisms/Dashboard/ChartPanelFa
 // 先読みして、差し替えを画面外で終わらせる。
 const ROOT_MARGIN = "600px";
 
+/*
+ * 読み込みは next/dynamic ではなく自前で持つ。dynamic(ssr:false) の中身は
+ * React.lazy + Suspense 境界で、チャンクの取得が済んでいても初回レンダーでは
+ * 必ずサスペンドし、fallback を出した直後のコミットは FALLBACK_THROTTLE_MS
+ * (300ms, react-dom)ぶん遅延する(詳細は utils/lazyModal.tsx を参照)。
+ * ここでは画面接近でマウントするため、その300msがそのまま実体表示の遅れに乗っていた。
+ * 読み込み済みモジュールを自前で持てば、到着したその場で同期的に差し替えられる。
+ * サーバでは常にプレースホルダを返すので SSR もしない(ssr:false と同じ)。
+ */
 function deferUntilVisible<P extends object>(
-  Component: ComponentType<P>,
+  loader: () => Promise<{ default: ComponentType<P> }>,
   { withHeading = false }: { withHeading?: boolean } = {},
 ) {
+  // 読み込みが済んだコンポーネント。モジュールにつき1つ。
+  let Loaded: ComponentType<P> | null = null;
+  let loading: Promise<void> | null = null;
+
+  function load() {
+    if (!loading) {
+      loading = loader().then(
+        (mod) => {
+          Loaded = mod.default;
+        },
+        (err) => {
+          // 失敗をキャッシュしない。デプロイ跨ぎでチャンクが消えた等の取得失敗は、
+          // 次の load()（エラーバウンダリの reset 後）で取り直せるようにする。
+          loading = null;
+          throw err;
+        },
+      );
+    }
+
+    return loading;
+  }
+
   return function DeferredChartPanel(props: P) {
     const [isVisible, setIsVisible] = useState(false);
+    // 読み込みの完了で描き直すためだけの state。
+    const [, forceRender] = useState(0);
+    // 読み込みに失敗した場合のエラー。レンダーで投げ直してエラーバウンダリ
+    // (error.tsx)へ届ける。ChunkLoadError なら「再読み込み」が location.reload に
+    // 切り替わる、既存の復旧フローに乗せるため(スケルトンのまま黙って固まらせない)。
+    const [loadError, setLoadError] = useState<unknown>(null);
     const ref = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -59,6 +93,41 @@ function deferUntilVisible<P extends object>(
       return () => observer.disconnect();
     }, []);
 
+    // 直前のレンダーが実体(Loaded)込みで描かれたか。レンダーと effect の隙間で
+    // 読み込みが完了した場合、effect が「もう Loaded がある」と早期リターンすると
+    // プレースホルダのまま固まるため、食い違いを検出して描き直す。
+    const renderedLoadedRef = useRef(false);
+
+    // 画面に近づいたら読み込みを始め、届いたら実体へ差し替える。
+    // チャートを非表示にしているユーザーや、パネルまでスクロールしない閲覧では
+    // ここに来ないので、チャンク自体を読み込まない性質は保たれる。
+    useEffect(() => {
+      if (!isVisible) return;
+
+      if (Loaded) {
+        if (!renderedLoadedRef.current) forceRender((n) => n + 1);
+        return;
+      }
+
+      let cancelled = false;
+      load().then(
+        () => {
+          if (!cancelled) forceRender((n) => n + 1);
+        },
+        (err) => {
+          if (!cancelled) setLoadError(err);
+        },
+      );
+
+      return () => {
+        cancelled = true;
+      };
+    }, [isVisible]);
+
+    if (loadError) throw loadError;
+
+    renderedLoadedRef.current = isVisible && Loaded !== null;
+
     // この div は「画面内に入ったか」を観測するための箱。display:contents だと
     // レイアウトボックスを持たず IntersectionObserver が働かないため、実体を包む。
     // 見出し行とカードを返すパネル（DeckUsagePanel など）は、これまで親セクションの
@@ -68,8 +137,8 @@ function deferUntilVisible<P extends object>(
     // 遅延がまったく効かなくなる。
     return (
       <div ref={ref} className="flex flex-col gap-2">
-        {isVisible ? (
-          <Component {...props} />
+        {isVisible && Loaded ? (
+          <Loaded {...props} />
         ) : (
           <ChartPanelFallback withHeading={withHeading} />
         )}
@@ -79,33 +148,21 @@ function deferUntilVisible<P extends object>(
 }
 
 export const UserStatHistoryChart = deferUntilVisible(
-  dynamic(() => import("@app/components/organisms/UserStat/UserStatHistoryChart"), {
-    ssr: false,
-    loading: () => <ChartPanelFallback />,
-  }),
+  () => import("@app/components/organisms/UserStat/UserStatHistoryChart"),
 );
 
 export const RecentMatchWinRateChart = deferUntilVisible(
-  dynamic(() => import("@app/components/organisms/UserStat/RecentMatchWinRateChart"), {
-    ssr: false,
-    loading: () => <ChartPanelFallback />,
-  }),
+  () => import("@app/components/organisms/UserStat/RecentMatchWinRateChart"),
 );
 
 // 見出し行はパネル自身が描く（Dashboard 側に h2 が無い）ため、
 // プレースホルダにも見出し行を持たせる。
 export const DeckUsagePanel = deferUntilVisible(
-  dynamic(() => import("@app/components/organisms/DeckUsage/DeckUsagePanel"), {
-    ssr: false,
-    loading: () => <ChartPanelFallback withHeading />,
-  }),
+  () => import("@app/components/organisms/DeckUsage/DeckUsagePanel"),
   { withHeading: true },
 );
 
 export const OpponentDeckUsagePanel = deferUntilVisible(
-  dynamic(() => import("@app/components/organisms/DeckUsage/OpponentDeckUsagePanel"), {
-    ssr: false,
-    loading: () => <ChartPanelFallback withHeading />,
-  }),
+  () => import("@app/components/organisms/DeckUsage/OpponentDeckUsagePanel"),
   { withHeading: true },
 );

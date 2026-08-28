@@ -103,7 +103,12 @@ function Logo({ iconUrl }: { iconUrl: string }) {
           // テキスト主体のページではこのロゴが唯一の画像＝LCP要素になるため、
           // 遅延読み込みさせず優先的に取りに行かせる。
           preload
-          sizes="(min-width: 1024px) 40px, 32px"
+          // sizes はビューポート幅に依存させない。lg(1024px)を境に候補が変わると、
+          // <head>のpreloadを評価した時点と<img>のレイアウト時点で幅が違った場合
+          // (DevToolsの開閉やウィンドウのリサイズ)に別の候補が選ばれ、
+          // 先読みした画像が捨てられる(preloaded but not used)。
+          // 40px固定なら候補はDPRだけで決まるので必ず一致する。
+          sizes="40px"
           className="object-contain rounded-lg"
         />
       </div>

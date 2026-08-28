@@ -367,7 +367,9 @@ export default function TemplateHome() {
             alt="バトレコ"
             fill
             preload
-            sizes="(min-width: 1024px) 112px, 80px"
+            // ヘッダーのロゴと同じ理由で、sizes はビューポート幅に依存させない。
+            // lg を境に候補が変わると読み込み中のリサイズで先読みが無駄になる。
+            sizes="112px"
             className="object-contain rounded-2xl shadow-lg"
           />
         </div>

@@ -39,11 +39,13 @@ const CSP = [
   // tonamel.com はイベントのog:image(core-apiserverが競技ページから抽出した値)を
   // そのまま<img>で表示するため。カバー画像がサブドメインのCDNから配信される場合に
   // 備えてワイルドカードも許可する。
-  `img-src 'self' data: blob: ${CDN_ORIGIN} https://lh3.googleusercontent.com https://pbs.twimg.com https://www.pokemon-card.com https://players.pokemon-card.com https://tonamel.com https://*.tonamel.com https://s3.isk01.sakurastorage.jp https://www.googletagmanager.com https://*.google-analytics.com`,
+  `img-src 'self' data: blob: ${CDN_ORIGIN} https://lh3.googleusercontent.com https://pbs.twimg.com https://www.pokemon-card.com https://players.pokemon-card.com https://tonamel.com https://*.tonamel.com https://s3.isk01.sakurastorage.jp https://www.googletagmanager.com https://*.google-analytics.com https://*.google.com https://*.g.doubleclick.net`,
   // Firebase Authentication(identitytoolkit/securetoken)、GA、スプライトCDNへのfetch。
   // GAの計測ビーコンは region1.google-analytics.com や analytics.google.com にも飛ぶ。
+  // さらにGoogleシグナル有効時は www.google.com/g/collect や *.g.doubleclick.net にも
+  // ビーコンが飛ぶ(Google公式CSPガイドの推奨に従い両ディレクティブへ許可)。
   // pokemon-card.com はデッキコードの有効性チェック(deckIDCheck.php)をブラウザから直接叩くため。
-  `connect-src 'self' ${CDN_ORIGIN} https://www.pokemon-card.com https://*.googleapis.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com`,
+  `connect-src 'self' ${CDN_ORIGIN} https://www.pokemon-card.com https://*.googleapis.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://*.google.com https://*.g.doubleclick.net`,
   // Firebase Authenticationのログインポップアップ/iframe
   `frame-src 'self' https://*.firebaseapp.com https://accounts.google.com https://apis.google.com`,
   `object-src 'none'`,

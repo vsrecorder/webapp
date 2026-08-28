@@ -75,6 +75,10 @@ type Props = {
   compact?: boolean;
   // デッキコードの下に、展開でカード内訳を見られるカードリストのアコーディオンを置く
   enableCardList?: boolean;
+  // true の間はデータが揃っていてもスケルトンを出し続ける。
+  // モーダルの入場アニメーション中に実データへの差し替え(大きなコミット)が走ると
+  // シートの動きが止まるため、着地までの間これを立てて差し替えを遅延させる。
+  holdSkeleton?: boolean;
 };
 
 export default function UsedDeckById({
@@ -84,6 +88,7 @@ export default function UsedDeckById({
   enableUpdateUsedDeckModal,
   compact = false,
   enableCardList = false,
+  holdSkeleton = false,
 }: Props) {
   const [deck, setDeck] = useState<DeckGetByIdResponseType | null>(null);
   const [deckcode, setDeckCode] = useState<DeckCodeType | null>(null);
@@ -219,7 +224,7 @@ export default function UsedDeckById({
     loadDeckCode();
   }, [loadDeck, loadDeckCode]);
 
-  if (loading1 || loading2) {
+  if (loading1 || loading2 || holdSkeleton) {
     return <DeckCardSkeleton compact={compact} enableCardList={enableCardList} />;
   }
 

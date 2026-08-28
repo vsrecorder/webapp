@@ -20,15 +20,16 @@ export default async function Footer() {
           {/* ブランドエリア */}
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 relative shrink-0">
-                <Image
-                  src={iconUrl}
-                  alt="バトレコ"
-                  fill
-                  sizes="32px"
-                  className="object-contain rounded-lg"
-                />
-              </div>
+              {/* 表示サイズが32px固定なので fill ではなく実寸で渡す。fill だと
+                  <img> に width/height が付かず、遅延読み込み時に枠を確保できない
+                  画像として扱われる(このロゴはページ末尾なので必ず遅延読み込みになる)。 */}
+              <Image
+                src={iconUrl}
+                alt="バトレコ"
+                width={32}
+                height={32}
+                className="w-8 h-8 shrink-0 object-contain rounded-lg"
+              />
               <span className="text-white font-bold text-md">バトレコ</span>
             </div>
             <p className="text-xs leading-relaxed">

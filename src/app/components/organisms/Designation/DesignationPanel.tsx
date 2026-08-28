@@ -580,12 +580,16 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
                           : "bg-warning/10"
                       }`}
                     >
+                      {/* fill ではなく実寸を渡し、枠いっぱいに広げるのはCSSで行う。
+                          fill だと <img> 自身に width/height 属性が付かないため、
+                          遅延読み込み時に寸法未指定の画像として警告される。 */}
                       <Image
                         src={r.info.image}
                         alt={r.info.name}
-                        fill
+                        width={32}
+                        height={32}
                         unoptimized
-                        className="object-contain"
+                        className="absolute inset-0 h-full w-full object-contain"
                       />
                     </div>
                     <div
@@ -634,9 +638,10 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
                       <Image
                         src={r.info.image}
                         alt={r.info.name}
-                        fill
+                        width={28}
+                        height={28}
                         unoptimized
-                        className="object-contain"
+                        className="absolute inset-0 h-full w-full object-contain"
                       />
                     </div>
                     <div className="flex flex-col items-start shrink-0">

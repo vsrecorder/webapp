@@ -31,12 +31,16 @@ export default function PhoneMock({
         className={`${sizeClass} shrink-0 cursor-pointer rounded-4xl border-[6px] border-neutral-800 bg-neutral-800 shadow-2xl overflow-hidden dark:border-neutral-700 dark:bg-neutral-700 transition-transform hover:scale-105 ${rotateClass} lg:rotate-0`}
       >
         <div className="relative aspect-864/1920 w-full overflow-hidden rounded-3xl bg-white">
+          {/* fill ではなく実寸(864x1920)を渡し、枠いっぱいに広げるのはCSSで行う。
+              fill だと <img> 自身に width/height 属性が付かないため、遅延読み込み時に
+              「寸法未指定の画像」としてブラウザ(DevTools)に警告される。 */}
           <Image
             src={src}
             alt={alt}
-            fill
+            width={864}
+            height={1920}
             unoptimized
-            className="object-cover object-top"
+            className="absolute inset-0 h-full w-full object-cover object-top"
           />
         </div>
       </button>
@@ -59,9 +63,10 @@ export default function PhoneMock({
               <Image
                 src={src}
                 alt={alt}
-                fill
+                width={864}
+                height={1920}
                 unoptimized
-                className="object-contain"
+                className="absolute inset-0 h-full w-full object-contain"
               />
             </div>
           )}

@@ -329,6 +329,10 @@ type Props = {
   // 値が変わるとイベント情報を取り直す。自由形式イベントの編集は参照先IDが
   // 変わらないため、record の変化だけでは新しいイベント名を取得できない。
   eventRefreshKey?: number;
+  // true の間はデータが揃っていてもスケルトンを出し続ける。
+  // モーダルの入場アニメーション中に実データへの差し替え(大きなコミット)が走ると
+  // シートの動きが止まるため、着地までの間これを立てて差し替えを遅延させる。
+  holdSkeleton?: boolean;
 };
 
 /*
@@ -350,6 +354,7 @@ export default function RecordHero({
   hideDeck = false,
   hideVenue = false,
   eventRefreshKey = 0,
+  holdSkeleton = false,
 }: Props) {
   const [officialEvent, setOfficialEvent] =
     useState<OfficialEventGetByIdResponseType | null>(null);
@@ -478,7 +483,7 @@ export default function RecordHero({
     return <FetchError onRetry={loadEvent} />;
   }
 
-  if (loadingEvent) {
+  if (loadingEvent || holdSkeleton) {
     return <RecordHeroSkeleton />;
   }
 

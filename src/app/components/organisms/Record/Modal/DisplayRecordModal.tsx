@@ -44,6 +44,7 @@ import { MatchGetResponseType } from "@app/types/match";
 
 import { fetchMatchesByRecordId, summarizeMatches } from "@app/utils/matchStats";
 import { useModalDragToClose } from "@app/hooks/useModalDragToClose";
+import { useModalEntered } from "@app/hooks/useModalEntered";
 import { closingPassthroughClassNames } from "@app/utils/modal";
 
 // シェアのポスト文組み立てに必要なイベント・デッキ情報の取得
@@ -231,6 +232,11 @@ export default function DisplayRecordModal({
 
   const attachHeader = useModalDragToClose(onClose, { disabled: isSettingBusy });
 
+  // 入場アニメーションが着地するまで true にならない。着地前に実データの差し替え
+  // (大きなコミット)が走るとシートの動きが止まるため、それまで重い子には
+  // スケルトンを出し続けさせる(取得自体はマウント直後から並行して走る)。
+  const entered = useModalEntered(isOpen);
+
   // Escキーなど HeroUI 側からの閉じる要求も、設定の操作中は無視する。
   const handleOpenChange = () => {
     if (isSettingBusy) return;
@@ -412,6 +418,7 @@ export default function DisplayRecordModal({
                     record={record}
                     setRecord={setRecord}
                     stats={stats}
+                    holdSkeleton={!entered}
                     showSynergy={showSynergy}
                     onToggleSynergy={() => setShowSynergy((prev) => !prev)}
                     matchesSlot={
@@ -443,6 +450,7 @@ export default function DisplayRecordModal({
                             enableUpdateUsedDeckModal={false}
                             compact={true}
                             enableCardList={true}
+                            holdSkeleton={!entered}
                           />
                         </div>
                       </BoardPanel>

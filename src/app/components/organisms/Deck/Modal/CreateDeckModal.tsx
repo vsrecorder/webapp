@@ -88,6 +88,15 @@ export default function CreateDeckModal({
     デッキコードが有効かどうかチェック
   */
   useEffect(() => {
+    /*
+     * 閉じている間は検証しない。このモーダルは CityleagueResultCard のように
+     * 実コード付き・閉じたままで大量に(結果スライドごとに)マウントされるため、
+     * マウント時に検証すると一覧ページを開くだけで外部API(deckIDCheck.php)へ
+     * 数百本のPOSTが飛ぶ(/cityleague_results で実測 約290本/表示)。
+     * 開いた時点で isOpen が deps にあるのでここが再実行され、検証が走る。
+     */
+    if (!isOpen) return;
+
     if (!deckcode) {
       setIsValidatedDeckCode(true);
       return;
@@ -131,7 +140,7 @@ export default function CreateDeckModal({
       cancelled = true;
       clearTimeout(timerId);
     };
-  }, [deckcode]);
+  }, [isOpen, deckcode]);
 
   const resetState = () => {
     setIsDisabled(false);

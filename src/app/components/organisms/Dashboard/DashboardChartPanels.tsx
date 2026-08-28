@@ -93,11 +93,6 @@ function deferUntilVisible<P extends object>(
       return () => observer.disconnect();
     }, []);
 
-    // 直前のレンダーが実体(Loaded)込みで描かれたか。レンダーと effect の隙間で
-    // 読み込みが完了した場合、effect が「もう Loaded がある」と早期リターンすると
-    // プレースホルダのまま固まるため、食い違いを検出して描き直す。
-    const renderedLoadedRef = useRef(false);
-
     // 画面に近づいたら読み込みを始め、届いたら実体へ差し替える。
     // チャートを非表示にしているユーザーや、パネルまでスクロールしない閲覧では
     // ここに来ないので、チャンク自体を読み込まない性質は保たれる。
@@ -105,7 +100,9 @@ function deferUntilVisible<P extends object>(
       if (!isVisible) return;
 
       if (Loaded) {
-        if (!renderedLoadedRef.current) forceRender((n) => n + 1);
+        // レンダーと effect の隙間で読み込みが完了していた場合を取りこぼさない
+        // よう、無条件に描き直す。isVisible の変化時に高々1回しか走らない。
+        forceRender((n) => n + 1);
         return;
       }
 
@@ -125,8 +122,6 @@ function deferUntilVisible<P extends object>(
     }, [isVisible]);
 
     if (loadError) throw loadError;
-
-    renderedLoadedRef.current = isVisible && Loaded !== null;
 
     // この div は「画面内に入ったか」を観測するための箱。display:contents だと
     // レイアウトボックスを持たず IntersectionObserver が働かないため、実体を包む。

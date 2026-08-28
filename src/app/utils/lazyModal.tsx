@@ -1,6 +1,6 @@
 "use client";
 
-import { ComponentType, useEffect, useRef, useState } from "react";
+import { ComponentType, useEffect, useState } from "react";
 
 /*
  * 一覧カードにぶら下がる重量級モーダルを、初期表示から切り離すためのラッパー。
@@ -116,18 +116,15 @@ export function createLazyModal<P extends { isOpen: boolean }>(loader: Loader<P>
       });
     }, []);
 
-    // 直前のレンダーが実体(Loaded)込みで描かれたか。レンダーと effect の隙間で
-    // 読み込みが完了した場合(先読みの解決と開くタップが重なった等)、effect が
-    // 「もう Loaded がある」と早期リターンすると null のまま固まるため、
-    // 「描いた内容」と「現在の Loaded」の食い違いを検出して描き直す。
-    const renderedLoadedRef = useRef(false);
-
     // 先読みが間に合わないうちに開かれた場合。読み込みを始め、届いたら描き直す。
     useEffect(() => {
       if (!hasOpened) return;
 
       if (Loaded) {
-        if (!renderedLoadedRef.current) forceRender((n) => n + 1);
+        // レンダー(null)と effect の隙間で読み込みが完了していた場合を取りこぼさない
+        // よう、無条件に描き直す。hasOpened の変化時に高々1回しか走らないので、
+        // 既に実体を描いていても無駄なコミットが1回増えるだけで済む。
+        forceRender((n) => n + 1);
         return;
       }
 
@@ -150,8 +147,6 @@ export function createLazyModal<P extends { isOpen: boolean }>(loader: Loader<P>
     }, [hasOpened]);
 
     if (loadError) throw loadError;
-
-    renderedLoadedRef.current = hasOpened && Loaded !== null;
 
     if (!hasOpened || !Loaded) return null;
 

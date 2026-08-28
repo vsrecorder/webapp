@@ -299,6 +299,9 @@ export default function DisplayRecordModal({
                 <div
                   className="absolute inset-0 z-40 bg-black/40 backdrop-blur-[1px] transition-opacity duration-200"
                   onClick={() => setIsDropdownOpen(false)}
+                  // メニュー表示中のオーバーレイ上のドラッグでモーダルごと閉じないようにする
+                  // (タップでメニューを閉じる操作だけにする。useModalDragToClose の除外属性)
+                  data-sheet-drag="ignore"
                 />
               )}
 

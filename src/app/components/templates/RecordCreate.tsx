@@ -643,10 +643,15 @@ const MenuListScrollToSelected = ({ innerRef, ...props }: any) => {
   return (
     <components.MenuList
       {...props}
+      /* eslint-disable-next-line react-hooks/immutability --
+         ref コールバックの中での ref 代入は React の正規の書き方で、render 中の
+         書き換えではない(React が DOM の生成・破棄時に呼ぶ)。ルールが JSX の中に
+         書かれたクロージャを render の一部と見なして誤検知している。 */
       innerRef={(node: HTMLDivElement | null) => {
         nodeRef.current = node;
         // react-select 内部の innerRef も維持する
         if (typeof innerRef === "function") innerRef(node);
+        // eslint-disable-next-line react-hooks/immutability -- 上と同じ理由(ref コールバック内の代入)
         else if (innerRef) innerRef.current = node;
       }}
       innerProps={{

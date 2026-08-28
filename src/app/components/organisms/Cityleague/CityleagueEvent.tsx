@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { SetStateAction, Dispatch } from "react";
 
@@ -120,9 +120,25 @@ export default function CityleagueEvent({ league_type, setLeagueTypeCount }: Pro
     });
   }, [cityleague, cityleagueResults]);
 
+  /*
+   * 取得中かどうかの二重起動ガード。
+   *
+   * 以前は isLoading1/isLoading2(state)を見ていたが、これらは deps に入っていないため
+   * effect が捕まえるのは実行時点の古い値だった。deps に足すと「取得完了で false に戻る
+   * → deps が変わって再実行 → また取得」というループになるので入れられない、という
+   * 行き詰まりになっていた(そのため exhaustive-deps の警告が出ていた)。
+   * ガードは描画に使う値ではないので ref に移す。これで deps を正しく埋められる。
+   *
+   * あわせて deps から isInitialLoaded を外した。これは「初回の取得が済んだか」を
+   * 表示側へ伝えるだけのフラグで、取得のきっかけではない。deps に居たせいで
+   * 取得完了→true化→再実行、という余計な2回目の実行が起きていた。
+   */
+  const isLoadingRef = useRef(false);
+
   useEffect(() => {
     const load = async () => {
-      if (isLoading1 || isLoading2) return;
+      if (isLoadingRef.current) return;
+      isLoadingRef.current = true;
 
       setIsLoading1(true);
       setIsLoading2(true);
@@ -142,10 +158,7 @@ export default function CityleagueEvent({ league_type, setLeagueTypeCount }: Pro
           console.error("Error loading items:", error);
         } finally {
           setIsLoading1(false);
-
-          if (!isInitialLoaded) {
-            setIsInitialLoaded(true);
-          }
+          setIsInitialLoaded(true);
         }
       };
 
@@ -163,12 +176,16 @@ export default function CityleagueEvent({ league_type, setLeagueTypeCount }: Pro
         }
       };
 
-      fetchfetchCityleagueInfoData();
-      fetchfetchCityleagueResultsData();
+      // どちらも失敗しても reject しない作りなので、両方の完了でガードを解く
+      await Promise.all([
+        fetchfetchCityleagueInfoData(),
+        fetchfetchCityleagueResultsData(),
+      ]);
+      isLoadingRef.current = false;
     };
 
     load();
-  }, [league_type, isInitialLoaded]);
+  }, [league_type, setLeagueTypeCount]);
 
   return (
     <>

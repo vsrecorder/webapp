@@ -72,9 +72,11 @@ export default function OfficialEventInfo({
     onOpenChange: onOpenChangeForTCGMeisterURLModal,
   } = useDisclosure();
 
+  const officialEventId = record?.official_event_id;
+
   // 公式イベント情報だけを取得（失敗時のリロードから再利用）
   const loadOfficialEvent = useCallback(async () => {
-    if (!record?.official_event_id) {
+    if (!officialEventId) {
       setLoadingOfficialEvent(false);
       return;
     }
@@ -83,7 +85,7 @@ export default function OfficialEventInfo({
     setLoadingOfficialEvent(true);
 
     try {
-      const data = await fetchOfficialEventById(record.official_event_id);
+      const data = await fetchOfficialEventById(officialEventId);
 
       data.title = cleanOfficialEventTitle(data.title);
 
@@ -94,7 +96,7 @@ export default function OfficialEventInfo({
     } finally {
       setLoadingOfficialEvent(false);
     }
-  }, [record?.official_event_id]);
+  }, [officialEventId]);
 
   useEffect(() => {
     loadOfficialEvent();

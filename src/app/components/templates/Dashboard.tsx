@@ -43,6 +43,7 @@ import {
 import { upstreamUrl } from "@app/utils/upstream";
 
 import * as jwt from "jsonwebtoken";
+import { getJstNow } from "@app/utils/calendar";
 
 // マスタデータ（対戦環境・スタンダードレギュレーション・チャンピオンシップシリーズ）の
 // キャッシュ期間（秒）。滅多に増えないため長めに取る。
@@ -189,7 +190,7 @@ async function getAllChampionshipSeries(): Promise<ChampionshipSeriesType[]> {
 }
 
 export default async function TemplateDashboard({ userId }: Props) {
-  const date = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  const date = getJstNow();
 
   // 施策0-6: 記録0件のユーザーにだけ「最初の記録を作成する」CTAを出す。
   // 施策E-2: 同じく記録0件のユーザーに「環境の窓」カードを出す。

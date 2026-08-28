@@ -135,14 +135,15 @@ export default function UnofficialEventRecord({
   } = useDisclosure();
 
   // マウント時に対象 record か判定だけ行う
+  const recordId = recordData.data.id;
   useEffect(() => {
     if (!enableReopen) return;
     const pendingId = sessionStorage.getItem("reopenModalRecordId");
-    if (pendingId && pendingId === recordData.data.id) {
+    if (pendingId && pendingId === recordId) {
       sessionStorage.removeItem("reopenModalRecordId");
       setShouldReopen(true);
     }
-  }, [enableReopen]);
+  }, [enableReopen, recordId]);
 
   // データロード完了後にスクロール通知 + モーダルオープン
   // 親モーダルが落ち着く（reopenReady）まで待ってから開く。
@@ -151,7 +152,7 @@ export default function UnofficialEventRecord({
     setShouldReopen(false);
     onReopenCompleteRef.current?.();
     onOpenForDisplayRecordModal();
-  }, [shouldReopen, loadingUnofficialEvent, reopenReady]);
+  }, [shouldReopen, loadingUnofficialEvent, reopenReady, onOpenForDisplayRecordModal]);
 
   // 自由形式イベント情報だけを取得（失敗時のリロードから再利用）
   const loadUnofficialEvent = useCallback(async () => {
@@ -178,9 +179,11 @@ export default function UnofficialEventRecord({
     loadUnofficialEvent();
   }, [loadUnofficialEvent]);
 
+  const deckId = record?.deck_id;
+
   // 使用デッキだけを取得
   const loadDeck = useCallback(async () => {
-    if (!record?.deck_id) {
+    if (!deckId) {
       setLoadingDeck(false);
       return;
     }
@@ -189,7 +192,7 @@ export default function UnofficialEventRecord({
     setLoadingDeck(true);
 
     try {
-      const data = await fetchDeckById(record.deck_id);
+      const data = await fetchDeckById(deckId);
       setDeck(data);
     } catch (err) {
       console.log(err);
@@ -197,7 +200,7 @@ export default function UnofficialEventRecord({
     } finally {
       setLoadingDeck(false);
     }
-  }, [record?.deck_id]);
+  }, [deckId]);
 
   useEffect(() => {
     loadDeck();

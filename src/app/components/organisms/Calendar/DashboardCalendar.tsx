@@ -49,7 +49,9 @@ export default function DashboardCalendar({ userId }: Props) {
   const today = useMemo(() => getJstNow(), []);
   const todayYear = today.getUTCFullYear();
   const todayMonth = today.getUTCMonth();
-  const todayKey = useMemo(() => toDateKey(Date.now()), []);
+  // today と同じ時刻から導く。別々に現在時刻を取ると、日付の変わり目をまたいだ場合に
+  // today と todayKey が食い違いうる。
+  const todayKey = useMemo(() => toDateKey(today), [today]);
 
   const [currentYear, setCurrentYear] = useState(todayYear);
   const [currentMonth, setCurrentMonth] = useState(todayMonth);

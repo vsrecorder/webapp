@@ -138,14 +138,15 @@ export default function TonamelEventRecord({
   } = useDisclosure();
 
   // マウント時に対象 record か判定だけ行う
+  const recordId = recordData.data.id;
   useEffect(() => {
     if (!enableReopen) return;
     const pendingId = sessionStorage.getItem("reopenModalRecordId");
-    if (pendingId && pendingId === recordData.data.id) {
+    if (pendingId && pendingId === recordId) {
       sessionStorage.removeItem("reopenModalRecordId");
       setShouldReopen(true);
     }
-  }, [enableReopen]);
+  }, [enableReopen, recordId]);
 
   // データロード完了後にスクロール通知 + モーダルオープン
   // 親モーダルが落ち着く（reopenReady）まで待ってから開く。
@@ -154,7 +155,7 @@ export default function TonamelEventRecord({
     setShouldReopen(false);
     onReopenCompleteRef.current?.();
     onOpenForDisplayRecordModal();
-  }, [shouldReopen, loadingTonamelEvent, reopenReady]);
+  }, [shouldReopen, loadingTonamelEvent, reopenReady, onOpenForDisplayRecordModal]);
 
   // Tonamelイベント情報だけを取得（失敗時のリロードから再利用）
   const loadTonamelEvent = useCallback(async () => {
@@ -181,9 +182,11 @@ export default function TonamelEventRecord({
     loadTonamelEvent();
   }, [loadTonamelEvent]);
 
+  const deckId = record?.deck_id;
+
   // 使用デッキだけを取得
   const loadDeck = useCallback(async () => {
-    if (!record?.deck_id) {
+    if (!deckId) {
       setLoadingDeck(false);
       return;
     }
@@ -192,7 +195,7 @@ export default function TonamelEventRecord({
     setLoadingDeck(true);
 
     try {
-      const data = await fetchDeckById(record.deck_id);
+      const data = await fetchDeckById(deckId);
       setDeck(data);
     } catch (err) {
       console.log(err);
@@ -200,7 +203,7 @@ export default function TonamelEventRecord({
     } finally {
       setLoadingDeck(false);
     }
-  }, [record?.deck_id]);
+  }, [deckId]);
 
   useEffect(() => {
     loadDeck();

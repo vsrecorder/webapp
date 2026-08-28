@@ -31,7 +31,7 @@ export default async function TemplateLayout({
   const homeScreenIconUrl = isDevEnv() ? "/icon_dev-192x192.png" : "/icon-192x192.png";
 
   return (
-    <Providers>
+    <Providers session={session}>
       <div className="flex">
         <Navigation />
 

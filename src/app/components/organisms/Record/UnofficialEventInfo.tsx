@@ -62,9 +62,11 @@ export default function UnofficialEventInfo({ record }: Props) {
 
   const [error, setError] = useState(false);
 
+  const unofficialEventId = record?.unofficial_event_id;
+
   // 自由形式イベント情報だけを取得（失敗時のリロードから再利用）
   const loadUnofficialEvent = useCallback(async () => {
-    if (!record?.unofficial_event_id) {
+    if (!unofficialEventId) {
       setLoadingUnofficialEvent(false);
       return;
     }
@@ -73,7 +75,7 @@ export default function UnofficialEventInfo({ record }: Props) {
     setLoadingUnofficialEvent(true);
 
     try {
-      const data = await fetchUnofficialEventById(record.unofficial_event_id);
+      const data = await fetchUnofficialEventById(unofficialEventId);
       setUnofficialEvent(data);
     } catch (err) {
       console.log(err);
@@ -81,7 +83,7 @@ export default function UnofficialEventInfo({ record }: Props) {
     } finally {
       setLoadingUnofficialEvent(false);
     }
-  }, [record?.unofficial_event_id]);
+  }, [unofficialEventId]);
 
   useEffect(() => {
     loadUnofficialEvent();

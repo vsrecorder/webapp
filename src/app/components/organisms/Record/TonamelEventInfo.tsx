@@ -67,9 +67,11 @@ export default function TonamelEventInfo({ record }: Props) {
 
   const [error, setError] = useState(false);
 
+  const tonamelEventId = record?.tonamel_event_id;
+
   // Tonamelイベント情報だけを取得（失敗時のリロードから再利用）
   const loadTonamelEvent = useCallback(async () => {
-    if (!record?.tonamel_event_id) {
+    if (!tonamelEventId) {
       setLoadingTonamelEvent(false);
       return;
     }
@@ -78,7 +80,7 @@ export default function TonamelEventInfo({ record }: Props) {
     setLoadingTonamelEvent(true);
 
     try {
-      const data = await fetchTonamelEventById(record.tonamel_event_id);
+      const data = await fetchTonamelEventById(tonamelEventId);
       setTonamelEvent(data);
     } catch (err) {
       console.log(err);
@@ -86,7 +88,7 @@ export default function TonamelEventInfo({ record }: Props) {
     } finally {
       setLoadingTonamelEvent(false);
     }
-  }, [record?.tonamel_event_id]);
+  }, [tonamelEventId]);
 
   useEffect(() => {
     loadTonamelEvent();

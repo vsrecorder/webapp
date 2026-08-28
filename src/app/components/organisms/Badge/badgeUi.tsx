@@ -105,6 +105,11 @@ export function BadgeTile({
             : "bg-default-200 text-default-400"
         }`}
       >
+        {/* eslint-disable-next-line react-hooks/static-components --
+            Icon は描画のたびに作るコンポーネントではなく、iconForKey が返す
+            react-icons の実体(モジュールスコープの定数)。型の同一性は保たれるので
+            再マウントは起きない。ルールが「render 中に定義された大文字の変数を
+            コンポーネントとして描画している」形だけを見て誤検知している。 */}
         <Icon className="w-5 h-5" />
       </div>
       <span

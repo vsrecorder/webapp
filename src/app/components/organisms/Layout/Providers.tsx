@@ -1,5 +1,6 @@
 "use client";
 
+import type { Session } from "next-auth";
 import { SessionProvider } from "next-auth/react";
 import { HeroUIProvider } from "@heroui/react";
 import { ToastProvider } from "@heroui/toast";
@@ -14,17 +15,30 @@ import ScrollResetOnNavigation from "@app/components/organisms/Layout/ScrollRese
 
 export default function Providers({
   children,
+  session,
 }: Readonly<{
   children: React.ReactNode;
+  // ルートレイアウトが auth() で取得済みのセッション。下記の理由で必ず渡すこと。
+  session: Session | null;
 }>) {
   return (
+    // session: サーバで取得済みの値を渡して、初回の /api/auth/session 取得を無くす。
+    // 渡さないと SessionProvider はマウント時に取得しにいくが、その際 next-auth の
+    // getSession() は「毎回 new BroadcastChannel して postMessage する」実装のため
+    // (react.js の getNewBroadcastChannel)、自分が張っているリスナ側の
+    // チャンネルにも配信されてしまい、storage イベント扱いでもう1回取得が走る。
+    // 結果、1回のページ表示につき /api/auth/session が2本出ていた(実測)。
+    // 値を渡せば「初期セッションあり」と判定されてマウント時の取得自体が起きず、
+    // 2本とも消える。status も loading を経ずに確定するのでちらつきも減る。
+    // ルートレイアウトは auth() を呼ぶため元々リクエストごとの動的描画で、
+    // ここで渡す値はクライアントが取りに行くのと同じ鮮度になる。
     // refetchInterval: 他端末での退会等によるセッション失効を
     // 画面を開いたままでも検知できるよう、5分ごとにセッションを再検証する。
     // これより短くしてもバックエンドへの疎通確認自体はauth.tsのUSER_CHECK_CACHE_MS(30分)
     // でキャッシュされるため、退会の反映が早くなるわけではない。
     // refetchWhenOffline: 未指定だとオフライン中もポーリングし続けて必ず失敗するため、
     // 明示的にfalseを指定してオフライン時は問い合わせないようにする。
-    <SessionProvider refetchInterval={300} refetchWhenOffline={false}>
+    <SessionProvider session={session} refetchInterval={300} refetchWhenOffline={false}>
       <SessionWatcher />
       <DailyActivityBeacon />
       <VisualViewportOffsetSync />

@@ -33,7 +33,9 @@ export default function CityleagueEventCard({ event, results }: Props) {
     weekday: "short",
   });
 
-  event.shop_name = event.shop_name.replace(/ポケモンカードステーション・/g, "");
+  // 受け取ったイベント情報は書き換えない。CityleagueResults が日単位でまとめて取得した
+  // 一覧をカード間で共有しているため、書き換えると共有しているオブジェクトを壊す。
+  const shopName = event.shop_name.replace(/ポケモンカードステーション・/g, "");
 
   return (
     <>
@@ -75,7 +77,7 @@ export default function CityleagueEventCard({ event, results }: Props) {
                   {event.title}
                 </small>
                 <div className="font-bold text-tiny text-default-500">{date}</div>
-                <div className="pt-1 pb-1 font-bold text-[13px]">{event.shop_name}</div>
+                <div className="pt-1 pb-1 font-bold text-[13px]">{shopName}</div>
                 <div>
                   <div className="flex flex-wrap items-start gap-1 pt-0.5">
                     <Chip size="sm" radius="md" variant="bordered">

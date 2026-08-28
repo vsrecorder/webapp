@@ -177,9 +177,11 @@ export default function UsedDeckById({
     }
   };
 
+  const deckId = record?.deck_id;
+
   // デッキ本体だけを取得（失敗時のリロードから再利用）
   const loadDeck = useCallback(async () => {
-    if (!record?.deck_id) {
+    if (!deckId) {
       setLoading1(false);
       return;
     }
@@ -188,7 +190,7 @@ export default function UsedDeckById({
     setLoading1(true);
 
     try {
-      const data = await fetchDeckById(record.deck_id);
+      const data = await fetchDeckById(deckId);
       setDeck(data);
     } catch (err) {
       console.log(err);
@@ -196,11 +198,13 @@ export default function UsedDeckById({
     } finally {
       setLoading1(false);
     }
-  }, [record?.deck_id]);
+  }, [deckId]);
+
+  const deckCodeId = record?.deck_code_id;
 
   // デッキコードだけを取得
   const loadDeckCode = useCallback(async () => {
-    if (!record?.deck_code_id) {
+    if (!deckCodeId) {
       setLoading2(false);
       return;
     }
@@ -209,7 +213,7 @@ export default function UsedDeckById({
     setLoading2(true);
 
     try {
-      const data = await fetchDeckCodeById(record.deck_code_id);
+      const data = await fetchDeckCodeById(deckCodeId);
       setDeckCode(data);
     } catch (err) {
       console.log(err);
@@ -217,7 +221,7 @@ export default function UsedDeckById({
     } finally {
       setLoading2(false);
     }
-  }, [record?.deck_code_id]);
+  }, [deckCodeId]);
 
   useEffect(() => {
     loadDeck();

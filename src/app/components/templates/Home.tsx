@@ -25,6 +25,7 @@ import { CityleagueScheduleType } from "@app/types/cityleague_schedule";
 import { isDevEnv } from "@app/utils/appIcon";
 
 import { upstreamUrl } from "@app/utils/upstream";
+import { getJstNow } from "@app/utils/calendar";
 
 const GRAFANA_DASHBOARD_UID = "55c83543db74465b895ff8301f4b9d5d";
 
@@ -303,7 +304,7 @@ function StatsSectionFallback() {
 // 本日のシティリーグ。開催がない日は丸ごと出ないセクションなので、
 // 取得待ちの枠は作らず(作ると開催なしの日に空白が残る)、揃ってから差し込む。
 async function TodayCityleagueSection() {
-  const date = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  const date = getJstNow();
   // 失敗しても描画を止めないよう、undefinedにフォールバックする。
   const cs = await getCityleagueScheduleByDate(date).catch(() => undefined);
 

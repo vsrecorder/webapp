@@ -224,12 +224,20 @@ export const handleSignIn = async (
       // (既存アカウントのためロールバックは実質no-op)
       await rollbackNewFirebaseUser(credential);
       await signOutFromFirebase();
+      /* eslint-disable-next-line @next/next/no-location-assign-relative-destination --
+         router.push ではなく意図的にフルロードする。直前に Firebase のサインイン状態を
+         触っており、サーバ側のセッション Cookie を読み直させる必要があるため
+         (成功時の遷移も同じ理由で window.location.href を使っている)。 */
       window.location.href = "/?notice=withdrawn";
       return result;
     }
 
     if (result.code === "backend_unavailable" || result.code === "registration_failed") {
       await rollbackNewFirebaseUser(credential);
+      /* eslint-disable-next-line @next/next/no-location-assign-relative-destination --
+         router.push ではなく意図的にフルロードする。直前に Firebase のサインイン状態を
+         触っており、サーバ側のセッション Cookie を読み直させる必要があるため
+         (成功時の遷移も同じ理由で window.location.href を使っている)。 */
       window.location.href = `/auth/error?code=${result.code}`;
       return result;
     }

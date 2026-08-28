@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 
 import { Spinner } from "@heroui/spinner";
@@ -19,6 +19,7 @@ import {
 import { CityleagueScheduleType } from "@app/types/cityleague_schedule";
 import { OfficialEventResponseType, OfficialEventType } from "@app/types/official_event";
 import { toJSTDate, toJSTDateString } from "@app/utils/date";
+import { getJstNow } from "@app/utils/calendar";
 
 async function fetchCityleagueResultsByTerm(
   league_type: number,
@@ -108,7 +109,9 @@ type Props = {
 };
 
 export default function CityleagueResults({ league_type }: Props) {
-  const now = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  // JST の現在時刻。マウント時に確定させる(描画のたびに取り直すと、
+  // 開催中かどうかの判定が描画ごとに変わりうる)。
+  const now = useMemo(() => getJstNow(), []);
 
   const [items, setItems] = useState<CityleagueResultType[]>([]);
   // official_event_id → イベント情報。日単位の一覧APIでまとめて取得したものを

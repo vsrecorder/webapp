@@ -32,6 +32,7 @@ import { LuCirclePlus } from "react-icons/lu";
 import { useKizunaDeck } from "@app/hooks/useKizunaLevels";
 import { useReopenFlagsOnBack } from "@app/hooks/useReopenFlagsOnBack";
 import { DECK_MODAL_REOPEN_KEYS } from "@app/utils/deckModalReopen";
+import { navigateAfterModalClose } from "@app/utils/modalHistory";
 import DeckKizunaPanel from "@app/components/organisms/Deck/DeckKizunaPanel";
 import DeckValueMeter from "@app/components/organisms/Deck/DeckValueMeter";
 import { fetchDeckEnv } from "@app/utils/deckEnv";
@@ -266,8 +267,10 @@ export default function DeckById({ id, valueMeterEnabled = false }: Props) {
   }, [valueMeterEnabled, deck]);
 
   // 削除・アーカイブ操作の完了後はデッキ一覧へ戻す（このデッキはもう表示できないため）。
+  // モーダルを閉じるときの履歴の巻き戻しを待ってから遷移する。待たずに push すると
+  // 打ち消されてこのページに残ってしまう（navigateAfterModalClose のコメントを参照）。
   const handleRemove = useCallback(() => {
-    router.push("/decks");
+    navigateAfterModalClose(() => router.push("/decks"));
   }, [router]);
 
   // このデッキ詳細ページの絶対URLを組み立てる（クエリは含めず正規のパスにする）。

@@ -61,3 +61,49 @@ export function markModalHistoryPop(event: Event): void {
 export function isModalHistoryPop(event: Event): boolean {
   return (event as MarkedPopStateEvent).__vsrModalHistoryPop === true;
 }
+
+/*
+ * モーダルを閉じた直後にページ遷移するときは、遷移をこの関数に渡す。
+ *
+ * モーダルを閉じると useCloseModalOnBack が、開くときに積んだ戻り先エントリを
+ * history.go(-1) で取り除く。この巻き戻しを待たずに router.push すると遷移が
+ * 打ち消され、元のページに残ってしまう。
+ *
+ *   実測(記録の削除モーダル → /records へ push):
+ *     push:/devtest-... → go(-1) → popstate → replace  ← push した URL が履歴に現れない
+ *
+ * 巻き戻しは popstate で着地するので、それを受けてから遷移する。
+ * useCloseModalOnBack は capture フェーズで着地を処理するため、こちらは
+ * bubble フェーズで受け、さらに次のタスクへ回して後始末の後ろに並ぶようにする。
+ *
+ * 巻き戻しが起きるかどうかは、閉じる直前の履歴エントリに戻り先の目印(深さ)が
+ * あるかで決まる。目印が無ければ待たずに遷移する。目印があるのに popstate が
+ * 来ない場合に備え、タイムアウトでも遷移する(待ち続けて遷移しないよりはよい)。
+ */
+export function navigateAfterModalClose(navigate: () => void, timeoutMs = 1000): void {
+  // 戻り先が積まれていない = 巻き戻しは起きない。待つ理由がない
+  if (readModalHistoryDepth(window.history.state) === 0) {
+    navigate();
+    return;
+  }
+
+  let navigated = false;
+
+  const run = () => {
+    if (navigated) return;
+    navigated = true;
+
+    window.removeEventListener("popstate", handlePopState);
+    clearTimeout(timer);
+
+    navigate();
+  };
+
+  const handlePopState = () => {
+    setTimeout(run, 0);
+  };
+
+  window.addEventListener("popstate", handlePopState);
+
+  const timer = setTimeout(run, timeoutMs);
+}

@@ -10,12 +10,16 @@ import { addToast, closeToast } from "@heroui/react";
 import { Modal } from "@app/components/atoms/AppModal";
 import { RecordGetByIdResponseType } from "@app/types/record";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
+import { navigateAfterModalClose } from "@app/utils/modalHistory";
 
 type Props = {
   record: RecordGetByIdResponseType;
   setRecord: Dispatch<SetStateAction<RecordGetByIdResponseType | null>>;
   isOpen: boolean;
   onOpenChange: () => void;
+  // 削除完了後に別ページへ移りたいときの遷移処理(記録詳細ページ → 記録一覧など)。
+  // 渡された場合は setRecord(null) を行わない。遷移が終わるまでの一瞬、
+  // 中身の消えたページが見えてしまうため。
   onDeleted?: () => void;
 };
 
@@ -63,18 +67,24 @@ export default function DeleteRecordModal({
         timeout: 3000,
       });
 
-      // 記録の削除は称号のtierを下げうる(称号は永続化せず都度ライブ判定するため)。
-      // サーバはこのDELETEの中で称号喪失・ランクダウンの通知を作るので、ポーリング(60秒)を
-      // 待たずその場で通知ベルを再取得させる。
+      // 記録の削除は称号のtierを下げ、ストリークの連続週数も減らしうる(どちらも永続化せず
+      // 都度ライブ判定するため)。サーバはこのDELETEの中で称号喪失・ランクダウンの通知を作り、
+      // 連続週数が届かなくなったストリーク通知を取り消すので、ポーリング(60秒)を待たず
+      // その場で通知ベルを再取得させる。
       triggerNotificationsRefresh();
-
-      onDeleted?.();
-
-      setRecord(null);
 
       onClose();
       setIsSelected(false);
       setIsDisabled(false);
+
+      if (onDeleted) {
+        // 閉じる操作で巻き戻る履歴(useCloseModalOnBack が積んだ戻り先)が
+        // 落ち着いてから遷移する。先に遷移させると打ち消されて元のページに残る。
+        navigateAfterModalClose(onDeleted);
+      } else {
+        // 一覧のカードから開いた場合。カード自身を消して、削除済みの記録を残さない
+        setRecord(null);
+      }
     } catch (error) {
       console.error(error);
 

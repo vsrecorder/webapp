@@ -5,6 +5,7 @@ import { LuChevronRight } from "react-icons/lu";
 import CityleagueEventLinkList from "@app/components/organisms/Cityleague/CityleagueEventLinkList";
 
 import { getLatestCityleagueEvents } from "@app/utils/cityleague";
+import { getCityleagueWinners } from "@app/utils/cityleagueWinner";
 
 // 一覧のタブ（CityleagueResults）は結果そのものをクライアント側で展開する作りで、
 // 個別ページへのリンクを1本も持たない。そのため個別ページは開催月ハブ経由でしか
@@ -19,6 +20,9 @@ export default async function CityleagueLatestSection() {
 
   if (events.length === 0) return null;
 
+  // 各行に添える優勝デッキの要約。付随情報なので、取れなくてもリンク集は出す。
+  const winners = await getCityleagueWinners(events).catch(() => ({}));
+
   return (
     <section className="mx-auto flex w-full max-w-2xl flex-col gap-3 px-3 pt-10 pb-6">
       <div className="flex flex-col gap-1">
@@ -27,11 +31,11 @@ export default async function CityleagueLatestSection() {
           最近開催されたシティリーグ
         </h2>
         <p className="text-tiny text-default-500">
-          店舗ごとの結果ページで、入賞者のデッキコードをまとめて確認できます。
+          店舗ごとの結果ページで、入賞者のデッキコードとカードリストをまとめて確認できます。
         </p>
       </div>
 
-      <CityleagueEventLinkList events={events} />
+      <CityleagueEventLinkList events={events} winners={winners} />
 
       <Link
         href="/cityleague_results/months"

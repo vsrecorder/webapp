@@ -17,7 +17,7 @@ const DETAIL_CARD_KEYS = [
   "card_ene",
 ] as const;
 
-function isDeckCardDetail(value: unknown): value is DeckCardDetailType {
+export function isDeckCardDetail(value: unknown): value is DeckCardDetailType {
   if (typeof value !== "object" || value === null) {
     return false;
   }

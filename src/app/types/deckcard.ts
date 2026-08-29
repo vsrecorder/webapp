@@ -51,3 +51,27 @@ export type DeckCardDetailType = {
 };
 
 export type DeckCardListType = CardType[];
+
+// デッキの中身をテキストで扱うための要約。
+// deckcard-api の詳細(印刷違いも別カード)を、カード名で畳んで枚数順に並べたもの。
+export type DeckSummaryCardType = {
+  name: string;
+  count: number;
+};
+
+export type DeckSummaryGroupType = {
+  // ポケモン / グッズ / ポケモンのどうぐ / サポート / スタジアム / エネルギー
+  label: string;
+  count: number;
+  cards: DeckSummaryCardType[];
+};
+
+export type DeckSummaryType = {
+  code: string;
+  // 合計枚数(通常は60)
+  total: number;
+  // デッキの種類の目安になるポケモン名(最大2つ)。選び方は utils/deckSummary.ts
+  mainPokemon: string[];
+  aceSpec: string | null;
+  groups: DeckSummaryGroupType[];
+};

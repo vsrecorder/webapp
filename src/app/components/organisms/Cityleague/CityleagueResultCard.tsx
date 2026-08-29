@@ -29,20 +29,28 @@ import ZoomableDeckImage from "@app/components/atoms/ZoomableDeckImage";
 import BoardPanel from "@app/components/organisms/Record/BoardPanel";
 
 import { Result } from "@app/types/cityleague_result";
+import { DeckSummaryType } from "@app/types/deckcard";
 import {
   cityleagueRankBadgeClass,
   cityleagueRankBorderClass,
   cityleagueRankLabel,
 } from "@app/utils/cityleagueRank";
+import { formatMainPokemon } from "@app/utils/deckSummary";
 
 type Props = {
   result: Result;
   date: Date;
   // 個別ページのように順位ごとの見出しがある場所では、カード側のラベルが冗長になるため隠す。
   showRankLabel?: boolean;
+  // デッキのカード内訳の要約(サーバ側で取得済み)。渡されたときだけ主なポケモンとカードリストを出す。
+  deckSummary?: DeckSummaryType;
 };
 
-export default function CityleagueResultCard({ result, showRankLabel = true }: Props) {
+export default function CityleagueResultCard({
+  result,
+  showRankLabel = true,
+  deckSummary,
+}: Props) {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [imageLoaded, setImageLoaded] = useState(false);
 
@@ -145,6 +153,15 @@ export default function CityleagueResultCard({ result, showRankLabel = true }: P
   const getBorderColor = cityleagueRankBorderClass;
   const getRankBadgeClass = cityleagueRankBadgeClass;
 
+  const mainPokemon = formatMainPokemon(deckSummary?.mainPokemon ?? []);
+
+  // 画像の alt。デッキコードだけでは何の画像か伝わらないため、順位・選手・主なポケモンを入れる。
+  const rankText = cityleagueRankLabel(result.rank, false) || `${result.rank}位`;
+  const deckImageAlt =
+    `${rankText} ${result.player_name}選手のデッキ` +
+    (mainPokemon ? `（${mainPokemon}）` : "") +
+    ` デッキコード ${result.deck_code}`;
+
   return (
     <>
       <CreateDeckModal
@@ -197,14 +214,57 @@ export default function CityleagueResultCard({ result, showRankLabel = true }: P
             {result.deck_code ? (
               <>
                 {/* カード内ではタップで詳細モーダルを開くため、画像タップのZoomは無効化する */}
-                <ZoomableDeckImage code={result.deck_code} disableZoom />
-
-                {/* デッキコードはこれまでモーダルの中にしか無く、閉じている間は
-                    HTMLにも載っていなかった。カード表面にも出すことで、開かずに
-                    読めるようにする（デッキの中身はCDNの画像で、文字では追えないため）。 */}
-                <span className="pt-1.5 text-center text-tiny text-default-400">
+                <ZoomableDeckImage
+                  code={result.deck_code}
+                  alt={deckImageAlt}
+                  disableZoom
+                />
+                {/* デッキの中身は CDN の画像で文字では追えないため、主なポケモン・デッキコード・
+                    カードリストをテキストでも出す。カードリストは閉じたままでも HTML に載るので、
+                    検索エンジンはモーダルを開かずに「何のデッキか」を読める。 */}
+                {mainPokemon && (
+                  <span className="pt-1.5 text-center font-bold text-tiny text-default-600">
+                    主なポケモン：{mainPokemon}
+                  </span>
+                )}
+                <span
+                  className={`${mainPokemon ? "pt-0.5" : "pt-1.5"} text-center text-tiny text-default-400`}
+                >
                   デッキコード {result.deck_code}
                 </span>
+                {deckSummary && (
+                  // 開閉のタップで親のモーダルが開かないよう伝播を止める
+                  <details
+                    className="mt-1.5 rounded-lg bg-default-100 px-3 py-1.5 text-tiny"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <summary className="cursor-pointer font-bold text-default-600">
+                      カードリスト（{deckSummary.total}枚）
+                    </summary>
+                    <dl className="flex flex-col gap-1 pt-1.5 text-default-500">
+                      {deckSummary.groups.map((group) => (
+                        <div key={group.label}>
+                          <dt className="inline font-bold text-default-600">
+                            {group.label}（{group.count}）：
+                          </dt>
+                          <dd className="inline">
+                            {group.cards
+                              .map((card) => `${card.name} ×${card.count}`)
+                              .join("、")}
+                          </dd>
+                        </div>
+                      ))}
+                      {deckSummary.aceSpec && (
+                        <div>
+                          <dt className="inline font-bold text-default-600">
+                            ACE SPEC：
+                          </dt>
+                          <dd className="inline">{deckSummary.aceSpec}</dd>
+                        </div>
+                      )}
+                    </dl>
+                  </details>
+                )}
               </>
             ) : (
               <div className="relative w-full aspect-2/1">

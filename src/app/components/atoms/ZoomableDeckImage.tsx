@@ -14,12 +14,14 @@ type Props = {
   code: string;
   // タップでの全画面表示を無効化する場合に true。
   disableZoom?: boolean;
+  // 画像の代替テキスト。省略時はデッキコード。
+  alt?: string;
 };
 
 // デッキ画像（2:1の横長）を表示し、タップで縦画面いっぱいの横向き全画面表示にする
 // 共通コンポーネント。デッキモーダル(DeckCodeCard)とバージョン一覧(DisplayDeckCodes)で
 // 同一の拡大挙動を共有する。拡大表示そのものは DeckImageZoomOverlay が担う。
-export default function ZoomableDeckImage({ code, disableZoom = false }: Props) {
+export default function ZoomableDeckImage({ code, disableZoom = false, alt }: Props) {
   const [imageLoaded, setImageLoaded] = useState(false);
   // デッキ画像タップで開く全画面（横向き）表示のオープン状態
   const [isZoomOpen, setIsZoomOpen] = useState(false);
@@ -31,7 +33,7 @@ export default function ZoomableDeckImage({ code, disableZoom = false }: Props) 
       <Image
         radius="sm"
         shadow="none"
-        alt={code}
+        alt={alt ?? code}
         src={deckImageUrl(code)}
         className=""
         onLoad={() => setImageLoaded(true)}

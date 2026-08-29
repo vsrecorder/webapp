@@ -8,6 +8,7 @@ import Layout from "@app/components/templates/Layout";
 import { isDevEnv } from "@app/utils/appIcon";
 import { OG_SIZE, renderSiteOgImage } from "@app/utils/ogImage";
 import { ensureOgImage } from "@app/utils/ogStorage";
+import { SITE_DESCRIPTION, SITE_TITLE } from "@app/utils/siteMeta";
 
 const domain = process.env.VSRECORDER_DOMAIN;
 
@@ -17,8 +18,8 @@ const domain = process.env.VSRECORDER_DOMAIN;
 // gtag('config','') まで実行してしまい、無駄なリクエストとコンソールエラーになる。
 const gaId = process.env.FIREBASE_MEASUREMENT_ID ?? "";
 
-const title = "バトレコ - ポケカプレイヤーのための対戦記録サービス";
-const description = "ポケカプレイヤーのための対戦記録サービス";
+const title = SITE_TITLE;
+const description = SITE_DESCRIPTION;
 
 export async function generateMetadata(): Promise<Metadata> {
   // 固有のOGP画像を持たないページは、この画像を引き継ぐ。

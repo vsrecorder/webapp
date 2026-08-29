@@ -30,6 +30,13 @@ export type CityleagueResultEventType = {
   date: Date;
 };
 
+// 一覧・ハブで各イベントの優勝者をひと言で示すための要約
+export type CityleagueWinnerType = {
+  playerName: string;
+  // 優勝デッキの主なポケモン。デッキの内訳が取れなかったときは空
+  mainPokemon: string[];
+};
+
 export type CityleagueResultGetEventsResponseType = {
   count: number;
   events: CityleagueResultEventType[];

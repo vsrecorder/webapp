@@ -2,16 +2,29 @@ import Link from "next/link";
 
 import { LuChevronRight } from "react-icons/lu";
 
+import { CityleagueWinnerType } from "@app/types/cityleague_result";
 import { OfficialEventType } from "@app/types/official_event";
 import { formatEventDate } from "@app/utils/cityleague";
+import { formatMainPokemon } from "@app/utils/deckSummary";
 
 type Props = {
   events: OfficialEventType[];
+  // イベントIDごとの優勝者。渡された行にだけ「優勝：…」を添える。
+  // 店舗名の羅列だけでは「何のデッキが勝ったか」がハブに一文字も載らないため。
+  winners?: Record<number, CityleagueWinnerType>;
 };
+
+function formatWinner(winner: CityleagueWinnerType): string {
+  const mainPokemon = formatMainPokemon(winner.mainPokemon);
+
+  return mainPokemon
+    ? `${mainPokemon}（${winner.playerName}選手）`
+    : `${winner.playerName}選手`;
+}
 
 // 1ページに最大700件ほど並ぶため、HeroUI ではなく素のリンクで描画してJSの負荷を抑える。
 // サーバコンポーネントのままにすることで、リンクがそのままHTMLに載りクローラから辿れる。
-export default function CityleagueEventLinkList({ events }: Props) {
+export default function CityleagueEventLinkList({ events, winners }: Props) {
   if (events.length === 0) {
     return (
       <p className="py-10 text-center text-small text-default-400">
@@ -52,6 +65,11 @@ export default function CityleagueEventLinkList({ events }: Props) {
                     <span className="text-tiny text-default-400">
                       {event.prefecture_name} / {event.league_title}リーグ
                     </span>
+                    {winners?.[event.id] && (
+                      <span className="truncate text-tiny text-default-500">
+                        優勝：{formatWinner(winners[event.id])}
+                      </span>
+                    )}
                   </span>
                   <LuChevronRight className="shrink-0 text-default-300" />
                 </Link>

@@ -9,8 +9,9 @@ import WithdrawnNotice from "@app/components/molecules/WithdrawnNotice";
 
 import { getAppIconUrl } from "@app/utils/appIcon";
 import { serializeJsonLd } from "@app/utils/breadcrumb";
+import { SITE_DESCRIPTION } from "@app/utils/siteMeta";
 
-const description = "ポケカプレイヤーのための対戦記録サービス";
+const description = SITE_DESCRIPTION;
 
 // 非会員向けのランディングにのみ出力する構造化データ。
 // 検索エンジンにサービスの実体（サイト・アプリ・運営者）を伝える。

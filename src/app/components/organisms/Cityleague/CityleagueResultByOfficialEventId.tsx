@@ -14,13 +14,17 @@ import ScrollUpFloating from "@app/components/atoms/Floating/ScrollUpFloating";
 import CityleagueResultCard from "@app/components/organisms/Cityleague/CityleagueResultCard";
 
 import { CityleagueResultType, Result } from "@app/types/cityleague_result";
+import { DeckSummaryType } from "@app/types/deckcard";
 import { OfficialEventType } from "@app/types/official_event";
 
+import { formatMainPokemon } from "@app/utils/deckSummary";
 import { safeExternalUrl } from "@app/utils/url";
 
 type Props = {
   event: OfficialEventType;
   cityleagueResult: CityleagueResultType;
+  // デッキコードごとのカード内訳の要約(サーバ側で取得済み)。無いデッキは画像とコードだけを出す。
+  deckSummaries?: Record<string, DeckSummaryType>;
   // 同じ月の他会場・各ハブへのリンク。サーバコンポーネントのまま受け取るため props で差し込む。
   relatedSection?: React.ReactNode;
 };
@@ -78,6 +82,7 @@ function buildSections(results: Result[]): Section[] {
 export default function CityleagueResultByOfficialEventId({
   event,
   cityleagueResult,
+  deckSummaries = {},
   relatedSection,
 }: Props) {
   const date = new Date(event.date).toLocaleString("ja-JP", {
@@ -94,6 +99,22 @@ export default function CityleagueResultByOfficialEventId({
   ).length;
 
   const winner = cityleagueResult.results.find((result) => result.rank === 1);
+  const winnerMainPokemon = winner
+    ? formatMainPokemon(deckSummaries[winner.deck_code]?.mainPokemon ?? [])
+    : "";
+
+  // 順位ごとの「主なポケモン」。検索結果から来た人が最初に知りたい「何のデッキが勝ったか」を
+  // 冒頭で答える。要約が取れなかったデッキは省き、1つも無い順位は行ごと出さない。
+  const deckOverview = sections
+    .map((section) => ({
+      label: section.label,
+      decks: section.results
+        .map((result) =>
+          formatMainPokemon(deckSummaries[result.deck_code]?.mainPokemon ?? []),
+        )
+        .filter((text) => text !== ""),
+    }))
+    .filter(({ decks }) => decks.length > 0);
 
   // 検索結果から直接開かれたとき、何のページなのかを冒頭の1文で伝える。
   // 会場・日付・優勝者・件数が入るためページごとに内容が変わり、
@@ -101,7 +122,9 @@ export default function CityleagueResultByOfficialEventId({
   const summary =
     `${date}に${event.prefecture_name}の${event.shop_name}で開催された` +
     `${event.title}（${event.league_title}リーグ / 環境『${event.environment_title}』）の結果です。` +
-    (winner ? `優勝は${winner.player_name}選手。` : "") +
+    (winner
+      ? `優勝は${winner.player_name}選手${winnerMainPokemon ? `（${winnerMainPokemon}）` : ""}。`
+      : "") +
     `入賞${cityleagueResult.results.length}名のうち、${deckCodeCount}名のデッキコードを掲載しています。`;
 
   return (
@@ -133,13 +156,17 @@ export default function CityleagueResultByOfficialEventId({
           {/* 両端配置 */}
           <div className="flex w-full items-start justify-between gap-3">
             <div className="flex min-w-0 flex-col gap-0.5">
-              <small className="font-bold text-tiny text-default-400">
-                {event.title}
-              </small>
-              <div className="font-bold text-tiny text-default-500">{date}</div>
-              <h1 className="pt-0.5 font-bold text-medium leading-snug">
-                {event.shop_name}
+              {/* h1 は大会名＋店舗名。店舗名だけでは「どの大会の結果か」が見出しに載らない */}
+              <h1 className="flex flex-col gap-0.5">
+                <span className="font-bold text-tiny text-default-400">
+                  {event.title}
+                </span>
+                {/* 見出しの文字列として読んだとき大会名と店舗名が繋がらないよう空白を挟む(flex では描画されない) */}{" "}
+                <span className="pt-0.5 font-bold text-medium leading-snug">
+                  {event.shop_name}
+                </span>
               </h1>
+              <div className="font-bold text-tiny text-default-500">{date}</div>
             </div>
 
             <HeroLink
@@ -185,6 +212,17 @@ export default function CityleagueResultByOfficialEventId({
 
           <p className="text-tiny leading-relaxed text-default-500">{summary}</p>
 
+          {deckOverview.length > 0 && (
+            <dl className="flex flex-col gap-0.5 rounded-lg bg-default-100 px-3 py-2 text-tiny">
+              {deckOverview.map(({ label, decks }) => (
+                <div key={label} className="flex gap-1.5">
+                  <dt className="shrink-0 font-bold text-default-600">{label}</dt>
+                  <dd className="text-default-500">{decks.join(" / ")}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+
           <HeroLink
             isExternal
             showAnchorIcon
@@ -213,6 +251,7 @@ export default function CityleagueResultByOfficialEventId({
                 result={result}
                 date={cityleagueResult.date}
                 showRankLabel={false}
+                deckSummary={deckSummaries[result.deck_code]}
               />
             ))}
           </div>

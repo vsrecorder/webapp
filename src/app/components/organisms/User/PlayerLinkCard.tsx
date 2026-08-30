@@ -6,26 +6,31 @@ import { LuTriangleAlert, LuIdCard } from "react-icons/lu";
 
 import LinkPlayerIdModal from "@app/components/organisms/User/Modal/LinkPlayerIdModal";
 import { UserPlayerType } from "@app/types/user_player";
+import { savePlayerLinkedCache, usePlayerLinkedHint } from "@app/utils/playerLinkCache";
 
 export default function PlayerLinkCard() {
   const [userPlayer, setUserPlayer] = useState<UserPlayerType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isFeatureDisabled, setIsFeatureDisabled] = useState(false);
+  // 前回の連携状態(スケルトンの高さを決めるためだけに使う)
+  const linkedHint = usePlayerLinkedHint();
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   useEffect(() => {
     setIsLoading(true);
     fetch("/api/usersplayers", { cache: "no-store" })
-      .then((r) => {
+      .then(async (r) => {
         if (r.status === 503) {
           setIsFeatureDisabled(true);
-          return null;
+          // 機能停止中は連携の有無が分からないので、キャッシュは触らない
+          return { data: null, known: false };
         }
-        return r.ok ? r.json() : null;
+        return { data: r.ok ? ((await r.json()) as UserPlayerType | null) : null, known: r.ok };
       })
-      .then((data) => {
+      .then(({ data, known }) => {
         setUserPlayer(data);
         setIsLoading(false);
+        if (known) savePlayerLinkedCache(data != null);
       })
       .catch(() => setIsLoading(false));
   }, []);
@@ -46,10 +51,9 @@ export default function PlayerLinkCard() {
   }, [isLoading, isFeatureDisabled, userPlayer, onOpen]);
 
   // 読み込み中のスケルトン。実カードは「見出し行(アイコン + ラベル)＋本文＋ボタン」の3段構成なので、
-  // 同じ骨格・同じ余白で組む。各ブロックの高さはブラウザで実測した行ボックスに合わせてあり、
-  // 未連携(カード高 120px)の実カードに入れ替わってもカードの高さが変わらない。
-  // 本文は連携済みだとプレイヤーIDのチップ(32px)になるが、未連携と機能停止中はどちらも
-  // text-xs の1行(16px)なので、多数派である1行の方に合わせている。
+  // 同じ骨格・同じ余白で組む。各ブロックの高さはブラウザで実測した行ボックスに合わせてある。
+  // 本文は未連携・機能停止中が text-xs の1行(16px)、連携済みはプレイヤーIDのチップ(32px)で
+  // 16px 変わるため、前回の連携状態(linkedHint)で出し分ける。
   if (isLoading) {
     return (
       <Card className="shadow-md">
@@ -59,10 +63,15 @@ export default function PlayerLinkCard() {
             <div className="w-4 h-4 shrink-0 rounded-md bg-default-100 animate-pulse" />
             <div className="h-2.5 w-32 rounded-full bg-default-100 animate-pulse" />
           </div>
-          {/* 本文(text-xs の1行 = 16px) */}
-          <div className="h-4 flex items-center">
-            <div className="h-3 w-33 rounded-full bg-default-100 animate-pulse" />
-          </div>
+          {linkedHint ? (
+            /* プレイヤーIDのチップ(px-3 py-2 + text-xs の1行 = 32px) */
+            <div className="w-full h-8 rounded-xl bg-default-100 animate-pulse" />
+          ) : (
+            /* 「まだ連携されていません」(text-xs の1行 = 16px) */
+            <div className="h-4 flex items-center">
+              <div className="h-3 w-33 rounded-full bg-default-100 animate-pulse" />
+            </div>
+          )}
           {/* Button size="sm"(h-8 = 32px, rounded-small = 8px) */}
           <div className="w-full h-8 rounded-lg bg-default-100 animate-pulse" />
         </CardBody>
@@ -138,7 +147,10 @@ export default function PlayerLinkCard() {
       <LinkPlayerIdModal
         isOpen={isOpen}
         onOpenChange={onOpenChange}
-        onLinked={(linked) => setUserPlayer(linked)}
+        onLinked={(linked) => {
+          setUserPlayer(linked);
+          savePlayerLinkedCache(linked != null);
+        }}
       />
     </>
   );

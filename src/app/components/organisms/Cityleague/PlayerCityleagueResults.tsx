@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import NextLink from "next/link";
 
@@ -18,6 +18,10 @@ import {
   UserPlayerCityleagueResultType,
   UserPlayerCityleagueResultsGetResponseType,
 } from "@app/types/user_player";
+import {
+  saveCityleagueResultsHeight,
+  useCityleagueResultsHeight,
+} from "@app/utils/cityleagueResultsHeightCache";
 import {
   cityleagueLeagueTitle,
   cityleagueRankBadgeClass,
@@ -147,6 +151,9 @@ export default function PlayerCityleagueResults({ season, seasonLabel }: Props) 
   const [results, setResults] = useState<UserPlayerCityleagueResultType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(false);
+  // 読み込み中に確保する高さ。前回このシーズンで描画できた高さを使う(初回は既定値)
+  const placeholderHeight = useCityleagueResultsHeight(season);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const loadResults = useCallback(async () => {
     setError(false);
@@ -180,6 +187,20 @@ export default function PlayerCityleagueResults({ season, seasonLabel }: Props) 
     loadResults();
   }, [loadResults]);
 
+  // 描画できた高さを次回のために覚えておく。Swiper は autoHeight で描画後に高さが
+  // 決まるので、1フレーム待ってから測る(デッキ画像は aspect-2/1 なので読み込み前でも
+  // 高さは確定している)。エラー時は本来の高さではないので保存しない。
+  useEffect(() => {
+    if (isLoading || error) return;
+
+    const frame = requestAnimationFrame(() => {
+      const height = contentRef.current?.getBoundingClientRect().height ?? 0;
+      saveCityleagueResultsHeight(season, Math.round(height));
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [isLoading, error, season, results]);
+
   return (
     // min-w-0: Swiper のスライド幅は親の幅から決まるが、flex の子は既定で
     // min-width:auto(=中身の最大幅)まで伸びる。デッキ画像やデッキコードの長い行が
@@ -203,47 +224,53 @@ export default function PlayerCityleagueResults({ season, seasonLabel }: Props) 
         )}
       </div>
 
-      {isLoading ? (
-        <div className={`h-52 animate-pulse rounded-xl bg-default-100 ${BLEED}`} />
-      ) : error ? (
-        <FetchError
-          message="入賞したシティリーグの取得に失敗しました"
-          onRetry={loadResults}
-          compact
-        />
-      ) : results.length === 0 ? (
-        <div className="rounded-xl bg-default-50 px-3 py-6 text-center text-xs text-default-400">
-          このシーズンの入賞はまだありません
-        </div>
-      ) : (
-        <div className={BLEED}>
-          <Swiper
-            modules={[A11y, Pagination]}
-            // 一覧側(CityleagueResult)は slidesPerView="auto" だが、あちらは Swiper が
-            // ブロック要素の中にいて幅が確定する。ここは flex の中に置くため auto だと
-            // スライド幅が中身依存になりカードからはみ出す。1枚固定で幅を親から取る。
-            slidesPerView={1}
-            // デッキコードが登録されていない入賞は画像のぶんカードが短くなる。既定では
-            // 一番高いスライドに全体の高さが揃い、短いカードの下に大きな空白が残るため、
-            // スライドごとの高さに追従させる(デッキ画像は aspect-2/1 で読み込み前から
-            // 高さが決まるので、画像の読み込みで高さが飛ぶことはない)。
-            autoHeight={true}
-            loop={false}
-            speed={500}
-            pagination={{ clickable: true }}
-            className="w-full"
-          >
-            {results.map((result) => (
-              <SwiperSlide
-                key={`${result.official_event_id}-${result.rank}`}
-                className="px-1.5 pt-1 pb-8"
-              >
-                <ResultCard result={result} />
-              </SwiperSlide>
-            ))}
-          </Swiper>
-        </div>
-      )}
+      {/* 読み込み中の高さを実体に合わせるため、描画後の高さをここで測る */}
+      <div ref={contentRef}>
+        {isLoading ? (
+          <div
+            style={{ height: placeholderHeight }}
+            className={`animate-pulse rounded-xl bg-default-100 ${BLEED}`}
+          />
+        ) : error ? (
+          <FetchError
+            message="入賞したシティリーグの取得に失敗しました"
+            onRetry={loadResults}
+            compact
+          />
+        ) : results.length === 0 ? (
+          <div className="rounded-xl bg-default-50 px-3 py-6 text-center text-xs text-default-400">
+            このシーズンの入賞はまだありません
+          </div>
+        ) : (
+          <div className={BLEED}>
+            <Swiper
+              modules={[A11y, Pagination]}
+              // 一覧側(CityleagueResult)は slidesPerView="auto" だが、あちらは Swiper が
+              // ブロック要素の中にいて幅が確定する。ここは flex の中に置くため auto だと
+              // スライド幅が中身依存になりカードからはみ出す。1枚固定で幅を親から取る。
+              slidesPerView={1}
+              // デッキコードが登録されていない入賞は画像のぶんカードが短くなる。既定では
+              // 一番高いスライドに全体の高さが揃い、短いカードの下に大きな空白が残るため、
+              // スライドごとの高さに追従させる(デッキ画像は aspect-2/1 で読み込み前から
+              // 高さが決まるので、画像の読み込みで高さが飛ぶことはない)。
+              autoHeight={true}
+              loop={false}
+              speed={500}
+              pagination={{ clickable: true }}
+              className="w-full"
+            >
+              {results.map((result) => (
+                <SwiperSlide
+                  key={`${result.official_event_id}-${result.rank}`}
+                  className="px-1.5 pt-1 pb-8"
+                >
+                  <ResultCard result={result} />
+                </SwiperSlide>
+              ))}
+            </Swiper>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

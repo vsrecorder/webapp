@@ -91,13 +91,14 @@ function BadgeFlowRow({
 
 // BadgeFlowRow と同じ構造(タイル+"▶"区切り)のプレースホルダー。
 // マイルストーン・週次ストリークは実際は▶で繋がる横並びのため、区切り分の幅もスケルトンに反映する。
-function BadgeFlowRowSkeleton({ count }: { count: number }) {
+// 行の高さは一番背の高いタイル(=一番長いバッジ名)で決まるので、その名前を nameSample に渡す。
+function BadgeFlowRowSkeleton({ count, nameSample }: { count: number; nameSample: string }) {
   return (
     <div className="flex items-stretch gap-1">
       {Array.from({ length: count }).map((_, i) => (
         <Fragment key={i}>
           <div className="flex-1 min-w-0">
-            <BadgeTileSkeleton />
+            <BadgeTileSkeleton nameSample={nameSample} />
           </div>
           {i < count - 1 && (
             <span className="self-center shrink-0 text-default-300 font-black text-xs">
@@ -163,25 +164,37 @@ export default function BadgeGallery({ userId, championshipSeries }: Props) {
     return (
       <Card className="shadow-md">
         <CardBody className="p-4 flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <div className="w-20 h-3 rounded-full bg-default-100 animate-pulse" />
-            <div className="w-24 h-8 rounded-xl bg-default-100 animate-pulse" />
+          {/* 獲得数(text-xs = 16px の行)とシーズン選択(border + py-1.5 + text-xs = 30px) */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="h-4 flex items-center">
+              <div className="w-20 h-3 rounded-full bg-default-100 animate-pulse" />
+            </div>
+            <div className="w-24 h-7.5 rounded-xl bg-default-100 animate-pulse" />
           </div>
 
           {CATEGORY_ORDER.map((category) => (
             <div key={category} className="flex flex-col gap-2">
-              <div className="w-24 h-2.5 rounded-full bg-default-100 animate-pulse" />
+              {/* カテゴリ名(text-[11px] の行 = 16.5px) */}
+              <div className="h-[16.5px] flex items-center">
+                <div className="w-24 h-2.5 rounded-full bg-default-100 animate-pulse" />
+              </div>
               {category === "milestone" ? (
                 <div className="flex flex-col gap-3">
                   {Array.from({ length: 3 }).map((_, subIndex) => (
                     <div key={subIndex} className="flex flex-col gap-1.5">
-                      <div className="w-14 h-2 rounded-full bg-default-100 animate-pulse" />
-                      <BadgeFlowRowSkeleton count={4} />
+                      {/* 系統名(text-[10px] の行 = 15px) */}
+                      <div className="h-[15px] flex items-center">
+                        <div className="w-14 h-2 rounded-full bg-default-100 animate-pulse" />
+                      </div>
+                      {/* マイルストーンは「駆け出し/熟練/達人/伝説の」×「ユーザー/ビルダー/バトラー」。
+                          一番長いのは前半4文字の「駆け出し◯◯◯◯」 */}
+                      <BadgeFlowRowSkeleton count={4} nameSample="駆け出しユーザー" />
                     </div>
                   ))}
                 </div>
               ) : (
-                <BadgeFlowRowSkeleton count={4} />
+                // 週次ストリークは「週次記録◯週連続」。週数が2桁のものが一番背が高くなる
+                <BadgeFlowRowSkeleton count={4} nameSample="週次記録20週連続" />
               )}
             </div>
           ))}

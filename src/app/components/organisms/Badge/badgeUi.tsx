@@ -142,24 +142,37 @@ export function BadgeTile({
 
 // BadgeTile と同じ構造(アイコン円+テキスト+進捗バー+件数)のプレースホルダー。
 // 高さがBadgeTileの実サイズとズレるとロード完了時にガタつくため、内訳を揃えている。
+//
+// バッジ名の行数はタイル幅で変わる(320px 幅では4行、412px 以上では2行になる)ので、
+// 高さを px で固定すると特定の画面幅でしか合わない。代表的なバッジ名を実タイルと同じ
+// 文字サイズ・行間で invisible に置き、折り返しの計算をブラウザに任せて高さを決める。
+// nameSample には、その行に並ぶバッジのうち一番背が高くなる名前を渡すこと
+// (行の高さは一番背の高いタイルで決まるため)。
 export function BadgeTileSkeleton({
-  singleLineName = false,
+  nameSample = "駆け出しユーザー",
 }: {
-  singleLineName?: boolean;
+  nameSample?: string;
 }) {
   return (
     <div className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-default-100">
       <div className="w-11 h-11 rounded-full bg-default-200 animate-pulse" />
-      {singleLineName ? (
-        <div className="w-3/5 h-2.5 rounded-full bg-default-200 animate-pulse" />
-      ) : (
-        <div className="flex flex-col items-center gap-1 w-full">
+      <div className="relative w-full">
+        <span
+          aria-hidden="true"
+          className="invisible block text-center text-[11px] font-bold leading-tight"
+        >
+          {renderBadgeName(nameSample)}
+        </span>
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
           <div className="w-3/4 h-2.5 rounded-full bg-default-200 animate-pulse" />
           <div className="w-1/2 h-2.5 rounded-full bg-default-200 animate-pulse" />
         </div>
-      )}
+      </div>
       <div className="w-full h-1 rounded-full bg-default-200 animate-pulse" />
-      <div className="w-8 h-2 rounded-full bg-default-200 animate-pulse" />
+      {/* 「達成」/「N/M」(text-[9px] の行 = 13.5px) */}
+      <div className="h-[13.5px] flex items-center">
+        <div className="w-8 h-2 rounded-full bg-default-200 animate-pulse" />
+      </div>
     </div>
   );
 }

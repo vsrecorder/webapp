@@ -66,13 +66,19 @@ export default function UserIdentityCard({ userId }: Props) {
       <Card className="overflow-hidden shadow-md">
         <div className="bg-linear-to-br from-primary via-primary to-secondary px-3 pt-4 pb-5 flex items-center gap-3.5">
           <div className="w-14 h-14 rounded-full bg-white/20 animate-pulse shrink-0" />
-          <div className="flex flex-col gap-1.5">
-            <div className="w-28 h-3.5 rounded-full bg-white/20 animate-pulse" />
-            <div className="w-36 h-2.5 rounded-full bg-white/20 animate-pulse" />
+          {/* 名前(text-base leading-tight = 20px の行) / 利用開始日(text-[10px] = 15px の行) */}
+          <div className="flex flex-col gap-1">
+            <div className="h-5 flex items-center">
+              <div className="w-28 h-3.5 rounded-full bg-white/20 animate-pulse" />
+            </div>
+            <div className="h-[15px] flex items-center">
+              <div className="w-36 h-2.5 rounded-full bg-white/20 animate-pulse" />
+            </div>
           </div>
         </div>
         <CardBody className="p-3 -mt-2 bg-content1 rounded-t-2xl relative z-10">
-          <div className="w-full h-9 rounded-xl bg-default-100 animate-pulse" />
+          {/* ユーザIDのコピーボタン(px-3 py-2 + text-xs の1行 = 32px) */}
+          <div className="w-full h-8 rounded-xl bg-default-100 animate-pulse" />
         </CardBody>
       </Card>
     );

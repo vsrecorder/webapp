@@ -30,7 +30,6 @@ import DashboardSections, {
 import { CityleagueScheduleType } from "@app/types/cityleague_schedule";
 import { EnvironmentType } from "@app/types/environment";
 import { StandardRegulationType } from "@app/types/standard_regulation";
-import { ChampionshipSeriesType } from "@app/types/championship_series";
 import { UserType } from "@app/types/user";
 import { RecordGetResponseType } from "@app/types/record";
 import { isDevEnv } from "@app/utils/appIcon";
@@ -41,6 +40,7 @@ import {
 } from "@app/utils/featureFlags";
 
 import { upstreamUrl } from "@app/utils/upstream";
+import { getAllChampionshipSeries } from "@app/utils/championshipSeriesServer";
 
 import * as jwt from "jsonwebtoken";
 import { getJstNow } from "@app/utils/calendar";
@@ -169,17 +169,6 @@ async function getAllEnvironments(): Promise<EnvironmentType[]> {
 
 async function getAllStandardRegulations(): Promise<StandardRegulationType[]> {
   const res = await fetch(upstreamUrl`/api/v1beta/standard_regulations`, {
-    next: { revalidate: MASTER_DATA_REVALIDATE_SEC },
-    method: "GET",
-    headers: { Accept: "application/json" },
-  });
-
-  if (res.status === 200) return res.json();
-  return [];
-}
-
-async function getAllChampionshipSeries(): Promise<ChampionshipSeriesType[]> {
-  const res = await fetch(upstreamUrl`/api/v1beta/championship_series`, {
     next: { revalidate: MASTER_DATA_REVALIDATE_SEC },
     method: "GET",
     headers: { Accept: "application/json" },

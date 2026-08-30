@@ -115,7 +115,11 @@ export default function BadgeGallery({ userId, championshipSeries }: Props) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(false);
   const [selectedBadge, setSelectedBadge] = useState<UserBadgeType | null>(null);
-  const [season, setSeason] = useState(() => currentSeasonValue(championshipSeries));
+  // ユーザーが select で明示的に選んだシーズン。未選択("")の間は一覧から決めた現在シーズンを使う。
+  // useState の初期化子で決めてしまうと、championshipSeries が後から届いた場合に選び直されないため、
+  // 描画のたびに派生させる(一覧は高々数件なのでコストは無視できる)。
+  const [selectedSeason, setSelectedSeason] = useState("");
+  const season = selectedSeason || currentSeasonValue(championshipSeries);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   const seasonOptions = seasonOptionsFromChampionshipSeries(championshipSeries);
@@ -215,7 +219,7 @@ export default function BadgeGallery({ userId, championshipSeries }: Props) {
             <select
               name="badge-season"
               value={season}
-              onChange={(e) => setSeason(e.target.value)}
+              onChange={(e) => setSelectedSeason(e.target.value)}
               className="appearance-none rounded-xl border border-default-200 bg-default-100 pl-3 pr-7 py-1.5 text-xs font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
             >
               {seasonOptions.map((opt) => (

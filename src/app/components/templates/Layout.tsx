@@ -6,8 +6,7 @@ import Providers from "@app/components/organisms/Layout/Providers";
 
 import Header from "@app/components/organisms/Layout/Header";
 import Navigation from "@app/components/organisms/Layout/Navigation";
-import AddToHomeScreenBanner from "@app/components/molecules/PWA/AddToHomeScreenBanner";
-import PushPermissionPrompt from "@app/components/molecules/PWA/PushPermissionPrompt";
+import PwaBanners from "@app/components/molecules/PWA/PwaBanners";
 import ServiceWorkerRegister from "@app/components/molecules/PWA/ServiceWorkerRegister";
 import { isDevEnv } from "@app/utils/appIcon";
 
@@ -52,9 +51,9 @@ export default async function TemplateLayout({
         </div>
       </div>
 
-      <AddToHomeScreenBanner iconUrl={homeScreenIconUrl} />
-      {/* Web Push の soft ask(B-1)。記録作成直後とストリーク2週以上のホームでだけ出る */}
-      <PushPermissionPrompt userId={session?.user.id ?? null} />
+      {/* 画面下部のバナー2枚(ホーム画面に追加 / Web Push の soft ask)。
+          同じ位置に出るので、重ねずにどちらを出すかは PwaBanners が決める */}
+      <PwaBanners iconUrl={homeScreenIconUrl} userId={session?.user.id ?? null} />
       <ServiceWorkerRegister />
       {DevToolsDragFix && <DevToolsDragFix />}
     </Providers>

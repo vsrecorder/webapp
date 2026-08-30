@@ -5,11 +5,27 @@ import { Button } from "@heroui/react";
 import { LuX } from "react-icons/lu";
 import { useSession } from "next-auth/react";
 
-import { useInstallPrompt } from "@app/hooks/useInstallPrompt";
+import { InstallState } from "@app/hooks/useInstallPrompt";
 
-export default function AddToHomeScreenBanner({ iconUrl }: { iconUrl: string }) {
+/*
+ * インストール状態は PwaBanners が useInstallPrompt を1つだけ持って渡す。
+ * ここで自前に useInstallPrompt を呼ぶと状態が2つに分かれ、
+ * このバナーを閉じても push 側は「まだ出ている」と誤認する。
+ */
+type Props = {
+  iconUrl: string;
+  installState: InstallState;
+  onInstall: () => void;
+  onDismiss: () => void;
+};
+
+export default function AddToHomeScreenBanner({
+  iconUrl,
+  installState,
+  onInstall,
+  onDismiss,
+}: Props) {
   const { status } = useSession();
-  const { installState, install, dismiss } = useInstallPrompt();
 
   if (status !== "authenticated") return null;
   if (installState === "idle") return null;
@@ -46,7 +62,7 @@ export default function AddToHomeScreenBanner({ iconUrl }: { iconUrl: string }) 
             color="primary"
             radius="full"
             className="shrink-0 font-semibold"
-            onPress={install}
+            onPress={onInstall}
           >
             追加
           </Button>
@@ -59,7 +75,7 @@ export default function AddToHomeScreenBanner({ iconUrl }: { iconUrl: string }) 
           radius="full"
           aria-label="バナーを閉じる"
           className="shrink-0 text-default-400 hover:text-default-600"
-          onPress={dismiss}
+          onPress={onDismiss}
         >
           <LuX className="w-4 h-4" />
         </Button>

@@ -24,6 +24,7 @@ import {
   LuMegaphone,
   LuFileChartColumn,
   LuBellRing,
+  LuChartColumn,
 } from "react-icons/lu";
 
 import { NotificationType, NotificationCategory } from "@app/types/notification";
@@ -47,6 +48,7 @@ const CATEGORY_ICON: Record<
   announcement: LuMegaphone,
   weekly_report: LuFileChartColumn,
   reminder: LuBellRing,
+  env_news: LuChartColumn,
 };
 
 // 通知本文の「モンスターボール級」のような「」内のランク名を抜き出す
@@ -282,7 +284,9 @@ export default function NotificationBell({ userId }: Props) {
             </DropdownItem>
           ) : (
             notifications.map((notification, index) => {
-              const Icon = CATEGORY_ICON[notification.category];
+              // サーバ側に新しいカテゴリが増えても、対応表の更新が届く前のクライアントで
+              // ベルごと落ちないよう、未知のカテゴリは汎用のベルアイコンで表示する
+              const Icon = CATEGORY_ICON[notification.category] ?? LuBell;
               const isLast = index === notifications.length - 1;
               const rankImage =
                 notification.category === "rank"

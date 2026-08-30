@@ -13,6 +13,11 @@ interface BeforeInstallPromptEvent extends Event {
 const DISMISS_KEY = "pwa_install_dismissed_at";
 const DISMISS_DURATION_MS = 3 * 24 * 60 * 60 * 1000;
 
+// beforeinstallprompt はページ読み込みの少しあとに非同期で飛んでくる。
+// 発火を待たずに同じ位置の別バナー(Web Push の soft ask)を出すと、直後に
+// 追加バナーへ入れ替わってちらつくため、発火するかどうかが分かるまでの猶予を持つ。
+const INSTALL_EVENT_GRACE_MS = 1500;
+
 export type InstallState = "idle" | "android" | "ios";
 
 function isRecentlyDismissed(): boolean {
@@ -24,6 +29,8 @@ function isRecentlyDismissed(): boolean {
 export function useInstallPrompt() {
   const [installState, setInstallState] = useState<InstallState>("idle");
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  // beforeinstallprompt が飛んでくるかどうかを待っている最中か(PwaBanners が参照する)
+  const [awaitingInstallEvent, setAwaitingInstallEvent] = useState(false);
 
   useEffect(() => {
     // スタンドアロン（インストール済み）なら非表示
@@ -48,8 +55,12 @@ export function useInstallPrompt() {
     }
 
     // Android / Chrome: beforeinstallprompt を待つ
+    setAwaitingInstallEvent(true);
+    const graceTimer = setTimeout(() => setAwaitingInstallEvent(false), INSTALL_EVENT_GRACE_MS);
+
     const handler = (e: Event) => {
       e.preventDefault();
+      setAwaitingInstallEvent(false);
       // ナビゲーション後に再発火した場合に備えてここでも確認
       if (isRecentlyDismissed()) return;
       setDeferredPrompt(e as BeforeInstallPromptEvent);
@@ -57,7 +68,10 @@ export function useInstallPrompt() {
     };
 
     window.addEventListener("beforeinstallprompt", handler);
-    return () => window.removeEventListener("beforeinstallprompt", handler);
+    return () => {
+      clearTimeout(graceTimer);
+      window.removeEventListener("beforeinstallprompt", handler);
+    };
   }, []);
 
   const install = async () => {
@@ -73,5 +87,5 @@ export function useInstallPrompt() {
     setInstallState("idle");
   };
 
-  return { installState, install, dismiss };
+  return { installState, install, dismiss, awaitingInstallEvent };
 }

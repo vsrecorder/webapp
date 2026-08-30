@@ -6,7 +6,8 @@ export type NotificationCategory =
   | "official_event"
   | "announcement"
   | "weekly_report"
-  | "reminder";
+  | "reminder"
+  | "env_news";
 
 export type NotificationType = {
   id: string;

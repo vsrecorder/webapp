@@ -24,6 +24,11 @@ import OpponentDeckDistributionChart from "@app/components/organisms/DeckUsage/O
 
 type PeriodMode = "all" | "month" | "environment" | "season" | "regulation";
 
+// 期間セレクター(月次/環境/シーズン/レギュ)と「全期間」の枠で共通のスタイル。
+// 「全期間」だけ選択肢が無いが、ここを揃えないとその分だけグラフの描画位置が上へずれる。
+const PERIOD_FIELD_CLASS =
+  "w-full rounded-xl border border-default-200 bg-default-100 px-4 py-2.5 text-sm font-bold leading-5";
+
 type Props = {
   deckId: string;
   // モーダル内で表示する場合のみ true。円グラフの入場アニメを開き切ってから再生し直す。
@@ -285,13 +290,21 @@ export default function DeckOpponentAnalysisPanel({
       </div>
 
       <div className="flex flex-col gap-3 px-1">
+        {periodMode === "all" && (
+          // 「全期間」は絞り込む対象が無いためセレクターを持たない。
+          // 他タブと同じ位置にグラフを描くため、同じ寸法の枠だけを置く（操作できないので▼は出さない）。
+          <div className={`${PERIOD_FIELD_CLASS} text-center text-default-500`}>
+            全期間
+          </div>
+        )}
+
         {periodMode === "month" && (
           <div className="relative">
             <select
               name="deck-opponent-year-month"
               value={yearMonth}
               onChange={(e) => setYearMonth(e.target.value)}
-              className="w-full appearance-none rounded-xl border border-default-200 bg-default-100 px-4 py-2.5 pr-10 text-sm font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className={`${PERIOD_FIELD_CLASS} appearance-none pr-10 text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50`}
             >
               {yearMonthOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -311,7 +324,7 @@ export default function DeckOpponentAnalysisPanel({
               name="deck-opponent-environment"
               value={environmentId}
               onChange={(e) => setEnvironmentId(e.target.value)}
-              className="w-full appearance-none rounded-xl border border-default-200 bg-default-100 px-4 py-2.5 pr-10 text-sm font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className={`${PERIOD_FIELD_CLASS} appearance-none pr-10 text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50`}
             >
               {environments.map((env) => (
                 <option key={env.id} value={env.id}>
@@ -331,7 +344,7 @@ export default function DeckOpponentAnalysisPanel({
               name="deck-opponent-season"
               value={season}
               onChange={(e) => setSeason(e.target.value)}
-              className="w-full appearance-none rounded-xl border border-default-200 bg-default-100 px-4 py-2.5 pr-10 text-sm font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className={`${PERIOD_FIELD_CLASS} appearance-none pr-10 text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50`}
             >
               {seasonOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -351,7 +364,7 @@ export default function DeckOpponentAnalysisPanel({
               name="deck-opponent-regulation"
               value={standardRegulationId}
               onChange={(e) => setStandardRegulationId(e.target.value)}
-              className="w-full appearance-none rounded-xl border border-default-200 bg-default-100 px-4 py-2.5 pr-10 text-sm font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className={`${PERIOD_FIELD_CLASS} appearance-none pr-10 text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50`}
             >
               {standardRegulations.map((reg) => (
                 <option key={reg.id} value={reg.id}>

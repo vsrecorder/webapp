@@ -137,13 +137,13 @@ export default function PushPermissionPrompt({ userId }: Props) {
         </div>
 
         <div className="flex-1 min-w-0">
+          {/* 導線(記録直後 / ホーム)によらず、訴求は「先週のバトルレポートが届く」に揃える。
+              途切れ防止や週末リマインドは付随する効用として説明文に置く */}
           <p className="text-sm font-semibold text-default-900 leading-tight">
-            {source === "record_created"
-              ? "先週のバトルレポートを通知で受け取る"
-              : "連続記録がとぎれそうなときにお知らせ"}
+            先週のバトルレポートを通知で受け取る
           </p>
           <p className="text-xs text-default-500 leading-snug mt-0.5">
-            週次レポート・週末リマインド・連続記録の途切れ防止をお知らせします
+            毎週月曜に先週の戦績が届きます（週末リマインド・連続記録のお知らせも）
           </p>
         </div>
 

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import {
   Badge,
   Button,
@@ -21,6 +22,8 @@ import {
   LuTrendingUp,
   LuCalendarDays,
   LuMegaphone,
+  LuFileChartColumn,
+  LuBellRing,
 } from "react-icons/lu";
 
 import { NotificationType, NotificationCategory } from "@app/types/notification";
@@ -42,6 +45,8 @@ const CATEGORY_ICON: Record<
   rank: LuTrendingUp,
   official_event: LuCalendarDays,
   announcement: LuMegaphone,
+  weekly_report: LuFileChartColumn,
+  reminder: LuBellRing,
 };
 
 // 通知本文の「モンスターボール級」のような「」内のランク名を抜き出す
@@ -98,6 +103,7 @@ type Props = {
 };
 
 export default function NotificationBell({ userId }: Props) {
+  const router = useRouter();
   const [notifications, setNotifications] = useState<NotificationType[]>([]);
   const [environmentBadges, setEnvironmentBadges] = useState<UserEnvironmentBadgeType[]>(
     [],
@@ -180,6 +186,13 @@ export default function NotificationBell({ userId }: Props) {
 
   const handleSelect = (notification: NotificationType) => {
     if (!notification.is_read) markAsRead(notification.id);
+
+    // リンク先を持つ通知(週次レポート・ストリークの途切れ防止など)はタップでそのページへ移動する。
+    // core-apiserver が作る link_url はサイト内パスだけなので、それ以外は無視する
+    // ("//example.com" のようなプロトコル相対URLも外部遷移になるため通さない)。
+    if (notification.link_url && /^\/(?!\/)/.test(notification.link_url)) {
+      router.push(notification.link_url);
+    }
   };
 
   return (

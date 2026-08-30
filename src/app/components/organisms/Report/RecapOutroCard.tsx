@@ -1,8 +1,9 @@
 "use client";
 
 import RecapCardFrame, { TONE } from "@app/components/organisms/Report/RecapCardFrame";
-import { addMonths, monthOnlyLabel } from "@app/utils/yearMonth";
-import { type RecapPeriod } from "@app/utils/recapPeriod";
+import { monthOnlyLabel } from "@app/utils/yearMonth";
+import { weekRangeLabel } from "@app/utils/week";
+import { periodNextLabel, type RecapPeriod } from "@app/utils/recapPeriod";
 
 type Props = {
   period: RecapPeriod;
@@ -26,11 +27,8 @@ export default function RecapOutroCard({ period, totalMatches }: Props) {
   const breaksAfterEnvironmentName =
     period.kind === "environment" && [...period.environment.title].length > 8;
 
-  // 月なら翌月を名指しし、環境は次が何になるか分からないので「次の環境」に留める
-  const nextLabel =
-    period.kind === "month"
-      ? `${monthOnlyLabel(addMonths(period.yearMonth, 1))}も、`
-      : "次の環境も、";
+  // 「今週も、」「9月も、」「次の環境も、」(言い回しの選び方は periodNextLabel)
+  const nextLabel = `${periodNextLabel(period)}も、`;
 
   return (
     <RecapCardFrame
@@ -89,6 +87,8 @@ export default function RecapOutroCard({ period, totalMatches }: Props) {
               {breaksAfterEnvironmentName && <br />}
               環境で記録した{" "}
             </>
+          ) : period.kind === "week" ? (
+            <>{weekRangeLabel(period.week)}の週に記録した{" "}</>
           ) : (
             <>{monthOnlyLabel(period.yearMonth)}に記録した{" "}</>
           )}

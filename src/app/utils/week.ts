@@ -34,7 +34,7 @@ export function lastWeekValue(): string {
 
 // JSTの暦日 "YYYY-MM-DD" が属する週の月曜日を "YYYY-MM-DD" で返す。
 // 暦日の文字列をUTCとして扱って計算するため、端末のタイムゾーンに影響されない。
-function mondayOfJSTDateString(ymd: string): string {
+export function mondayOfJSTDateString(ymd: string): string {
   const d = new Date(`${ymd}T00:00:00Z`);
   // getUTCDay: 日曜=0 ... 土曜=6。月曜始まりの経過日数へ変換する。
   const offset = (d.getUTCDay() + 6) % 7;
@@ -79,4 +79,40 @@ export function generateWeekOptions(count = 12): { value: string; label: string 
   }
 
   return options;
+}
+
+const WEEK_VALUE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+// "YYYY-MM-DD" かつ月曜日か。週次レポートのURL(/users/report/weeks/[week])の検証に使う。
+// 週の値は必ず月曜日で表す約束にしているため、月曜以外の日付は不正として扱う
+// （正規化して受け入れると同じ週に7つのURLができてしまう）。
+export function isValidWeekValue(value: string): boolean {
+  if (!WEEK_VALUE_PATTERN.test(value)) return false;
+  const d = new Date(`${value}T00:00:00Z`);
+  if (Number.isNaN(d.getTime())) return false;
+  // "2026-02-30" のような存在しない日付は Date が繰り上げるので、往復して一致するかで弾く
+  if (d.toISOString().slice(0, 10) !== value) return false;
+  // getUTCDay: 日曜=0 ... 土曜=6
+  return d.getUTCDay() === 1;
+}
+
+// 週(月曜)の "YYYY-MM-DD" から、その週の日曜日を "YYYY-MM-DD" で返す。
+export function sundayOfWeekValue(week: string): string {
+  const d = new Date(`${week}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 6);
+  return d.toISOString().slice(0, 10);
+}
+
+// "2026-08-17" → "8/17〜8/23"（generateWeekOptions のラベルと同じ言い回し）
+export function weekRangeLabel(week: string): string {
+  const [, m1, d1] = week.split("-").map(Number);
+  const [, m2, d2] = sundayOfWeekValue(week).split("-").map(Number);
+  return `${m1}/${d1}〜${m2}/${d2}`;
+}
+
+// "2026-08-17" → "08.17 - 08.23"（シェア画像の隅に置く短い表記。月次の "2026.08" と揃える）
+export function shortWeekRangeLabel(week: string): string {
+  const [, m1, d1] = week.split("-");
+  const [, m2, d2] = sundayOfWeekValue(week).split("-");
+  return `${m1}.${d1} - ${m2}.${d2}`;
 }

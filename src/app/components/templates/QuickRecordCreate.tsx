@@ -45,6 +45,7 @@ import { MatchCreateRequestType, MatchGetResponseType } from "@app/types/match";
 import { MatchPokemonSpriteType, PokemonSpriteType } from "@app/types/pokemon_sprite";
 import { DeckData, isFavoritedDeck } from "@app/types/deck";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
+import { markRecordCreatedForPushPrompt } from "@app/utils/pushPrompt";
 import { getSpriteBySlot } from "@app/utils/spriteSlot";
 import {
   MAX_EVENT_TITLE_LENGTH,
@@ -472,6 +473,8 @@ export default function TemplateQuickRecordCreate({
         with_deck: selectedDeckId !== "",
       });
       triggerNotificationsRefresh();
+      // 価値を体験した直後に通知の許諾を求める(遷移先で PushPermissionPrompt が出す)
+      markRecordCreatedForPushPrompt();
 
       // 施策E-1: 相手が先週ランキングに載っていれば、記録直後に環境ベンチマークを返す。
       // 載っていない/スプライト無し/無効時は従来どおり成功トースト＋記録詳細へ即遷移する。

@@ -6,6 +6,7 @@ import { UserStatType } from "@app/types/user_stat";
 
 async function getUserStat(
   userId: string,
+  week: string,
   yearMonth: string,
   environmentId: string,
   season: string,
@@ -13,6 +14,7 @@ async function getUserStat(
   regulationId: string,
 ): Promise<UserStatType> {
   const params = new URLSearchParams();
+  if (week) params.set("week", week);
   if (yearMonth) params.set("year_month", yearMonth);
   if (environmentId) params.set("environment_id", environmentId);
   if (season) params.set("season", season);
@@ -42,6 +44,7 @@ export async function GET(
 ) {
   const { id } = await params;
   const { searchParams } = new URL(request.url);
+  const week = searchParams.get("week") ?? "";
   const yearMonth = searchParams.get("year_month") ?? "";
   const environmentId = searchParams.get("environment_id") ?? "";
   const season = searchParams.get("season") ?? "";
@@ -50,6 +53,7 @@ export async function GET(
 
   const stat = await getUserStat(
     id,
+    week,
     yearMonth,
     environmentId,
     season,

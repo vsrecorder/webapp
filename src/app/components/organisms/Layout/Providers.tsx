@@ -8,6 +8,7 @@ import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { UserAvatarProvider } from "@app/contexts/UserAvatarContext";
 import SessionWatcher from "@app/components/organisms/Layout/SessionWatcher";
 import DailyActivityBeacon from "@app/components/organisms/Layout/DailyActivityBeacon";
+import PushClickTracker from "@app/components/organisms/Layout/PushClickTracker";
 import VisualViewportOffsetSync from "@app/components/organisms/Layout/VisualViewportOffsetSync";
 import ModalBackgroundScrollLock from "@app/components/organisms/Layout/ModalBackgroundScrollLock";
 import CloseModalOnBack from "@app/components/organisms/Layout/CloseModalOnBack";
@@ -41,6 +42,7 @@ export default function Providers({
     <SessionProvider session={session} refetchInterval={300} refetchWhenOffline={false}>
       <SessionWatcher />
       <DailyActivityBeacon />
+      <PushClickTracker />
       <VisualViewportOffsetSync />
       <ModalBackgroundScrollLock />
       <CloseModalOnBack />

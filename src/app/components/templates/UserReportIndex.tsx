@@ -17,6 +17,7 @@ import { UserStatHistoryType, UserStatMonthlyType } from "@app/types/user_stat_h
 
 import { environmentBadgeImageUrl } from "@app/utils/badgeImage";
 import { selectableEnvironments } from "@app/utils/recapPeriod";
+import { lastWeekValue, weekRangeLabel } from "@app/utils/week";
 import { currentYearMonth, daysInMonth, yearMonthLabel } from "@app/utils/yearMonth";
 
 // 月・環境それぞれの表示上限。古い期間まで無制限に並べても選ぶ意味がないため区切る。
@@ -60,6 +61,8 @@ type TimelineItem = {
 export default function TemplateUserReportIndex({ userId }: Props) {
   const [history, setHistory] = useState<UserStatMonthlyType[]>([]);
   const [environmentStats, setEnvironmentStats] = useState<EnvironmentStat[]>([]);
+  // 先週の戦績。先週に記録があるときだけ、グリッドの先頭に週次のタイルを出す
+  const [lastWeekStat, setLastWeekStat] = useState<UserStatType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
@@ -73,12 +76,15 @@ export default function TemplateUserReportIndex({ userId }: Props) {
       // シーズン側が数ヶ月しか無い。両方引いて和集合にすると、どちらの時期でも埋まる。
       // レギュレーションは絞らない（レポート本体の periodQuery と揃えている）。
       // ここを片方だけ絞るとタイルの戦数・勝率が開いたレポートと食い違う。
-      const [seasonRes, recentRes, environmentsRes, oldestRes] = await Promise.all([
-        fetch(`/api/users/${userId}/stat/history?period=season`, { cache: "no-store" }),
-        fetch(`/api/users/${userId}/stat/history?period=6months`, { cache: "no-store" }),
-        fetch(`/api/environments`, { cache: "no-store" }),
-        fetch(`/api/users/${userId}/oldest-record-event-date`, { cache: "no-store" }),
-      ]);
+      const [seasonRes, recentRes, environmentsRes, oldestRes, lastWeekRes] =
+        await Promise.all([
+          fetch(`/api/users/${userId}/stat/history?period=season`, { cache: "no-store" }),
+          fetch(`/api/users/${userId}/stat/history?period=6months`, { cache: "no-store" }),
+          fetch(`/api/environments`, { cache: "no-store" }),
+          fetch(`/api/users/${userId}/oldest-record-event-date`, { cache: "no-store" }),
+          // 先週(月〜日)の戦績。週次レポート通知(P-2)の入口をここにも置く
+          fetch(`/api/users/${userId}/stat?week=${lastWeekValue()}`, { cache: "no-store" }),
+        ]);
 
       if (!seasonRes.ok && !recentRes.ok) {
         throw new Error("failed to fetch stat history");
@@ -96,6 +102,9 @@ export default function TemplateUserReportIndex({ userId }: Props) {
       const oldest: OldestRecordEventDateType | null = oldestRes.ok
         ? await oldestRes.json()
         : null;
+
+      // 先週の戦績が引けなくても他のタイルは出す
+      setLastWeekStat(lastWeekRes.ok ? await lastWeekRes.json() : null);
 
       // 同じ月が両方に出るので年月をキーに畳む
       const byMonth = new Map<string, UserStatMonthlyType>();
@@ -202,7 +211,13 @@ export default function TemplateUserReportIndex({ userId }: Props) {
     [timeline],
   );
 
-  const hasAnything = (thisMonthRow?.total_matches ?? 0) > 0 || timeline.length > 0;
+  // 先週に1戦以上あるときだけ出す（記録の無い週のタイルを開いても空になるだけのため）
+  const lastWeek = lastWeekValue();
+  const lastWeekTile =
+    lastWeekStat && lastWeekStat.total_matches > 0 ? lastWeekStat : null;
+
+  const hasAnything =
+    (thisMonthRow?.total_matches ?? 0) > 0 || timeline.length > 0 || lastWeekTile !== null;
 
   return (
     <div className="mx-auto flex w-full max-w-md flex-col gap-6 pt-4 pb-6">
@@ -230,7 +245,7 @@ export default function TemplateUserReportIndex({ userId }: Props) {
                 バトルレポート
               </h1>
               <p className="text-xs leading-relaxed text-default-400">
-                月毎・環境毎の戦績を、画像にしてシェアできます
+                週毎・月毎・環境毎の戦績を、画像にしてシェアできます
               </p>
             </div>
 
@@ -249,14 +264,26 @@ export default function TemplateUserReportIndex({ userId }: Props) {
             />
           </div>
 
-          {timeline.length > 0 && (
+          {(timeline.length > 0 || lastWeekTile) && (
             <div className="grid grid-cols-2 gap-3">
+              {/* 先週は月や環境より新しいので、並びの先頭に横長で置く */}
+              {lastWeekTile && (
+                <RecapPeriodTile
+                  href={`/users/report/weeks/${lastWeek}`}
+                  variant="wide"
+                  colorIndex={gridTileColorIndex(0)}
+                  kindLabel="WEEKLY REPORT"
+                  title={`${weekRangeLabel(lastWeek)}の週`}
+                  subtitle={`先週 ・ ${lastWeekTile.total_matches}戦 ・ 勝率 ${(lastWeekTile.win_rate * 100).toFixed(1)}%`}
+                />
+              )}
               {timeline.map((item, index) => (
                 <RecapPeriodTile
                   key={item.key}
                   href={item.href}
                   variant={item.isWide ? "wide" : "tile"}
-                  colorIndex={gridTileColorIndex(index)}
+                  // 先週のタイルがあるときは1つずらし、隣り合う面が同じ色にならないようにする
+                  colorIndex={gridTileColorIndex(index + (lastWeekTile ? 1 : 0))}
                   kindLabel={item.kindLabel}
                   title={item.title}
                   titleSuffix={item.titleSuffix}

@@ -57,6 +57,7 @@ import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
 import { cleanOfficialEventTitle } from "@app/components/organisms/Record/officialEventHelpers";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
+import { markRecordCreatedForPushPrompt } from "@app/utils/pushPrompt";
 import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
 import { MAX_EVENT_TITLE_LENGTH, exceedsTextLength } from "@app/utils/textLength";
 
@@ -1129,6 +1130,8 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
       });
 
       triggerNotificationsRefresh();
+      // 価値を体験した直後に通知の許諾を求める(遷移先で PushPermissionPrompt が出す)
+      markRecordCreatedForPushPrompt();
 
       router.push("/records/" + ret.id);
     } catch (error) {
@@ -1247,6 +1250,8 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
       });
 
       triggerNotificationsRefresh();
+      // 価値を体験した直後に通知の許諾を求める(遷移先で PushPermissionPrompt が出す)
+      markRecordCreatedForPushPrompt();
 
       router.push("/records/" + ret.id);
     } catch (error) {
@@ -1392,6 +1397,8 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
       });
 
       triggerNotificationsRefresh();
+      // 価値を体験した直後に通知の許諾を求める(遷移先で PushPermissionPrompt が出す)
+      markRecordCreatedForPushPrompt();
 
       router.push("/records/" + ret.id);
     } catch (error) {

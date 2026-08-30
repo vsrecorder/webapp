@@ -1,5 +1,7 @@
 export type UserStatType = {
   user_id: string;
+  // 週(月曜始まり)で絞ったときだけ入る。値は週内の指定日 "YYYY-MM-DD"
+  week?: string;
   year_month: string;
   environment_id: string;
   season: string;

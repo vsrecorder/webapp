@@ -4,7 +4,9 @@ export type NotificationCategory =
   | "designation"
   | "rank"
   | "official_event"
-  | "announcement";
+  | "announcement"
+  | "weekly_report"
+  | "reminder";
 
 export type NotificationType = {
   id: string;

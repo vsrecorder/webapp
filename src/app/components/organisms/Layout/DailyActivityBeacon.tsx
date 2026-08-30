@@ -30,7 +30,15 @@ const CATEGORY_RULES: { category: string; patterns: RegExp[] }[] = [
       /^\/users$/,
       /^\/decks$/,
       /^\/decks\/[^/]+$/,
+      /^\/users\/report(\/.*)?$/,
     ],
+  },
+  {
+    // バトルレポート(週次・月次・環境別)を開いた。review の部分集合として別に数え、
+    // 週次レポート通知(P-2)の閲覧率を「通知した人のうち何人がレポートまで来たか」で測る。
+    // カテゴリ名は core-apiserver の UserDailyActivityCategoryReport と一致させている。
+    category: "report",
+    patterns: [/^\/users\/report(\/.*)?$/],
   },
   // 例）将来 /calendar を独立したカテゴリにする場合:
   // { category: "event", patterns: [/^\/calendar$/] },

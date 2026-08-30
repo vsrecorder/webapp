@@ -1,8 +1,9 @@
 // ふりかえりレポートの対象期間。
 //
-// 月次(/users/report/[yearMonth])と環境別(/users/report/environments/[id])で
-// 集計APIに渡すパラメータもカードの言い回しも変わるため、期間の種類をここに畳んで
-// 各カードは「期間の見出し」「集計クエリ」だけを見ればよい形にする。
+// 週次(/users/report/weeks/[week])・月次(/users/report/[yearMonth])・
+// 環境別(/users/report/environments/[id])で集計APIに渡すパラメータもカードの言い回しも
+// 変わるため、期間の種類をここに畳んで各カードは「期間の見出し」「集計クエリ」だけを
+// 見ればよい形にする。
 //
 // 対象にできる期間は意図的に絞ってある（→ selectableMonths / selectableEnvironments）。
 // 記録の無い月や、まだ記録を始める前の環境まで並べても選ぶ意味がないため。
@@ -11,12 +12,21 @@ import { EnvironmentType } from "@app/types/environment";
 import { UserStatMonthlyType } from "@app/types/user_stat_history";
 import { toJSTDate } from "@app/utils/date";
 import {
+  lastWeekValue,
+  shortWeekRangeLabel,
+  sundayOfWeekValue,
+  weekRangeLabel,
+} from "@app/utils/week";
+import {
+  addMonths,
   monthOnlyLabel,
   shortYearMonthLabel,
   yearMonthLabel,
 } from "@app/utils/yearMonth";
 
 export type RecapPeriod =
+  // week は週の月曜日 "YYYY-MM-DD"（core-api の week パラメータ・utils/week.ts と同じ形式）
+  | { kind: "week"; week: string }
   | { kind: "month"; yearMonth: string }
   | { kind: "environment"; environment: EnvironmentType };
 
@@ -31,13 +41,16 @@ export type RecapPeriod =
  *   カード側では環境の数字がスタンダード基準であることを明記している。
  */
 export function periodQuery(period: RecapPeriod): string {
+  if (period.kind === "week") return `week=${period.week}`;
   return period.kind === "month"
     ? `year_month=${period.yearMonth}`
     : `environment_id=${period.environment.id}`;
 }
 
-// URL のパス。月は /users/report/2026-08、環境は /users/report/environments/{id}
+// URL のパス。週は /users/report/weeks/2026-08-17、月は /users/report/2026-08、
+// 環境は /users/report/environments/{id}
 export function periodHref(period: RecapPeriod): string {
+  if (period.kind === "week") return `/users/report/weeks/${period.week}`;
   return period.kind === "month"
     ? `/users/report/${period.yearMonth}`
     : `/users/report/environments/${period.environment.id}`;
@@ -45,11 +58,13 @@ export function periodHref(period: RecapPeriod): string {
 
 // 同じ期間か（セレクタの選択状態の判定に使う）
 export function periodValue(period: RecapPeriod): string {
+  if (period.kind === "week") return `week:${period.week}`;
   return period.kind === "month" ? period.yearMonth : `env:${period.environment.id}`;
 }
 
 // レポート上部の英字ラベル。一覧のタイルと同じ呼び方に揃えてある
 export function periodKindLabel(period: RecapPeriod): string {
+  if (period.kind === "week") return "WEEKLY REPORT";
   return period.kind === "month" ? "MONTHLY REPORT" : "ENVIRONMENT REPORT";
 }
 
@@ -57,8 +72,10 @@ function jstYearMonth(date: Date | string): string {
   return toJSTDate(date).toISOString().slice(0, 7);
 }
 
-// カード右上の短いラベル。月は "2026.08"、環境は "2026.03 - 06"（年をまたぐなら両方に年を出す）
+// カード右上の短いラベル。週は "08.17 - 08.23"、月は "2026.08"、
+// 環境は "2026.03 - 06"（年をまたぐなら両方に年を出す）
 export function periodShortLabel(period: RecapPeriod): string {
+  if (period.kind === "week") return shortWeekRangeLabel(period.week);
   if (period.kind === "month") return shortYearMonthLabel(period.yearMonth);
 
   const from = jstYearMonth(period.environment.from_date);
@@ -71,17 +88,21 @@ export function periodShortLabel(period: RecapPeriod): string {
     : `${from.replace("-", ".")} - ${toYear}.${toMonth}`;
 }
 
-// 一覧やページタイトルで使う名前。月は "2026年8月"、環境は "『メガリザードンex』環境"
+// 一覧やページタイトルで使う名前。週は "8/17〜8/23の週"、月は "2026年8月"、
+// 環境は "『メガリザードンex』環境"
 export function periodTitle(period: RecapPeriod): string {
+  if (period.kind === "week") return `${weekRangeLabel(period.week)}の週`;
   return period.kind === "month"
     ? yearMonthLabel(period.yearMonth)
     : `『${period.environment.title}』環境`;
 }
 
-// 本文で主語の前に置く言い回し。月は「8月、」、環境は「『メガリザードンex』環境で、」。
+// 本文で主語の前に置く言い回し。週は「8/17〜8/23の週、」、月は「8月、」、
+// 環境は「『メガリザードンex』環境で、」。
 // 環境名は長くなりうるが、どの環境のレポートかは本文で名指しする方が伝わるため、
 // 折り返す前提で入れている（受け側は行の折り返しを許容すること）。
 export function periodSubjectPrefix(period: RecapPeriod): string {
+  if (period.kind === "week") return `${weekRangeLabel(period.week)}の週、`;
   return period.kind === "month"
     ? `${monthOnlyLabel(period.yearMonth)}、`
     : `『${period.environment.title}』環境で、`;
@@ -90,6 +111,7 @@ export function periodSubjectPrefix(period: RecapPeriod): string {
 // 「8月の相棒デッキは」「『アビスアイ』環境の相棒デッキは」のような連体修飾。
 // periodSubjectPrefix と同じく環境名を名指しする（受け側は行の折り返しを許容すること）。
 export function periodPossessive(period: RecapPeriod): string {
+  if (period.kind === "week") return `${weekRangeLabel(period.week)}の週`;
   return period.kind === "month"
     ? monthOnlyLabel(period.yearMonth)
     : `『${period.environment.title}』環境`;
@@ -111,8 +133,29 @@ export function periodHeadingFontSize(period: RecapPeriod, base: number): number
   return Math.round(base * 0.6);
 }
 
+// 締めのカードで「次はいつ」と呼びかける言い回し。
+// 週は、先週のレポートなら「今週も」、それより前の週を後から開いたときは「次の週も」
+// (通知の履歴から数週後に開いても「今週」と言わないように)。
+// 月は翌月を名指しし、環境は次が何になるか分からないので「次の環境」に留める。
+export function periodNextLabel(period: RecapPeriod): string {
+  switch (period.kind) {
+    case "week":
+      return period.week === lastWeekValue() ? "今週" : "次の週";
+    case "month":
+      return monthOnlyLabel(addMonths(period.yearMonth, 1));
+    case "environment":
+      return "次の環境";
+  }
+}
+
 // 集計に使う日付の範囲（環境データの突き合わせで、対象の週を割り出すのに使う）
 export function periodDateRange(period: RecapPeriod): { from: Date; to: Date } {
+  if (period.kind === "week") {
+    const [y1, m1, d1] = period.week.split("-").map(Number);
+    const [y2, m2, d2] = sundayOfWeekValue(period.week).split("-").map(Number);
+    return { from: new Date(y1, m1 - 1, d1), to: new Date(y2, m2 - 1, d2) };
+  }
+
   if (period.kind === "month") {
     const [year, month] = period.yearMonth.split("-").map(Number);
     return { from: new Date(year, month - 1, 1), to: new Date(year, month, 0) };

@@ -179,7 +179,7 @@ export default function UserMenu({ user, iconUrl, isDevEnv }: Props) {
               key="battle-report"
               color="default"
               startContent={<LuSparkles className="w-4 h-4" />}
-              description="月毎・環境毎の戦績をまとめて見返す"
+              description="週毎・月毎・環境毎の戦績をまとめて見返す"
               onPress={() => {
                 router.push("/users/report");
               }}

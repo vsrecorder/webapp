@@ -9,8 +9,7 @@ import { DeckUsageItemType } from "@app/types/deck_usage_stat";
 import { OpponentDeckUsageItemType } from "@app/types/opponent_deck_usage_stat";
 import { UserStreakType } from "@app/types/streak";
 import { drawCount } from "@app/components/molecules/UserStat/UserStatSummary";
-import { periodTitle, type RecapPeriod } from "@app/utils/recapPeriod";
-import { addMonths, monthOnlyLabel } from "@app/utils/yearMonth";
+import { periodNextLabel, periodTitle, type RecapPeriod } from "@app/utils/recapPeriod";
 
 const HASHTAG = "#バトレコ";
 
@@ -57,8 +56,8 @@ export function buildRecapAllPostText(ctx: RecapPostContext): string {
       `いちばん当たったのは『${ctx.opponent.deck_info.trim() || "デッキ名の記録なし"}』`,
     );
   }
-  // 連続記録は月次のレポートにしか出ない（→ TemplateUserReport のカード組み立て）
-  if (ctx.period.kind === "month" && ctx.streak && ctx.streak.current_weeks > 0) {
+  // 連続記録は環境別のレポートには出ない（→ TemplateUserReport のカード組み立て）
+  if (ctx.period.kind !== "environment" && ctx.streak && ctx.streak.current_weeks > 0) {
     lines.push(`${ctx.streak.current_weeks}週連続で記録中`);
   }
 
@@ -131,11 +130,8 @@ export function buildRecapPostText(kind: RecapCardKind, ctx: RecapPostContext): 
     }
 
     case "outro": {
-      // 月なら翌月を名指しし、環境は次が何になるか分からないので「次の環境」に留める
-      const next =
-        ctx.period.kind === "month"
-          ? `${monthOnlyLabel(addMonths(ctx.period.yearMonth, 1))}も1戦ずつ`
-          : "次の環境も1戦ずつ";
+      // 「今週も1戦ずつ」「9月も1戦ずつ」「次の環境も1戦ずつ」(言い回しの選び方は periodNextLabel)
+      const next = `${periodNextLabel(ctx.period)}も1戦ずつ`;
       lines.push(`${title}、${stat.total_matches}戦を記録しました`, "", next);
       break;
     }

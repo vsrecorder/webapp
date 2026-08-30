@@ -56,7 +56,8 @@ type RecapCard = {
 };
 
 /*
- * ふりかえり（/users/report/[yearMonth]、/users/report/environments/[id]）。
+ * ふりかえり（/users/report/weeks/[week]、/users/report/[yearMonth]、
+ * /users/report/environments/[id]）。
  *
  * その期間の記録から「1枚1メッセージ」のカードを組み立て、縦に流して読ませる。
  * カードは画面に入ったところで下からふわりと現れ、1枚ずつ画像としてシェアできる。
@@ -197,9 +198,10 @@ export default function TemplateUserReport({ userId, period }: Props) {
     }
 
     // 連続記録は「いま何週続いているか」であって期間の集計ではない。
-    // 過去の環境のふりかえりに現在値を混ぜると読み違えるため、月次のときだけ出す。
+    // 過去の環境のふりかえりに現在値を混ぜると読み違えるため、環境別では出さない
+    // （週次・月次は「直近」のふりかえりなので現在値と噛み合う）。
     // 途切れている人に「0週連続」を見せても意味がないので、続いている人だけ。
-    if (period.kind === "month" && streak && streak.current_weeks > 0) {
+    if (period.kind !== "environment" && streak && streak.current_weeks > 0) {
       list.push({
         kind: "streak",
         node: <RecapStreakCard period={period} streak={streak} />,

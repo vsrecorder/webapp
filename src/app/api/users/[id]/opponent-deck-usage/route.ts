@@ -36,6 +36,7 @@ export async function GET(
     }
 
     const { searchParams } = new URL(request.url);
+    const week = searchParams.get("week") ?? "";
     const yearMonth = searchParams.get("year_month") ?? "";
     const environmentId = searchParams.get("environment_id") ?? "";
     const season = searchParams.get("season") ?? "";
@@ -44,6 +45,7 @@ export async function GET(
     const deckId = searchParams.get("deck_id") ?? "";
 
     const queryParams = new URLSearchParams();
+    if (week) queryParams.set("week", week);
     if (yearMonth) queryParams.set("year_month", yearMonth);
     if (environmentId) queryParams.set("environment_id", environmentId);
     if (season) queryParams.set("season", season);

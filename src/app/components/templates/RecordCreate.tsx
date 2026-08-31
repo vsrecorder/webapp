@@ -52,6 +52,7 @@ import { DECK_MODAL_REOPEN_KEYS } from "@app/utils/deckModalReopen";
 
 import ScrollingText from "@app/components/molecules/ScrollingText";
 import RegulationSegmentedControl from "@app/components/molecules/RegulationSegmentedControl";
+import OfficialEventGuideNote from "@app/components/molecules/OfficialEventGuideNote";
 
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
@@ -60,6 +61,7 @@ import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 import { markRecordCreatedForPushPrompt } from "@app/utils/pushPrompt";
 import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
 import { MAX_EVENT_TITLE_LENGTH, exceedsTextLength } from "@app/utils/textLength";
+import { detectOfficialEventKeyword } from "@app/utils/officialEventGuide";
 
 import { OfficialEventResponseType, OfficialEventType } from "@app/types/official_event";
 import { DEFAULT_REGULATION_ID } from "@app/types/regulation";
@@ -991,6 +993,20 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
     unofficialEventTitle,
     MAX_EVENT_TITLE_LENGTH,
   );
+
+  // イベント名に公式イベントのキーワード(ジムバトル等)が含まれる場合、
+  // 公式イベントに紐づく記録を作成できることを伝えて誘導する
+  const unofficialTitleOfficialKeyword =
+    detectOfficialEventKeyword(unofficialEventTitle);
+
+  // 誘導パネルから公式イベントタブへ切り替える。入力済みの開催日を公式タブへ
+  // 引き継ぎ、その日の公式イベント候補をすぐ選べる状態にする
+  const handleGuideToOfficialTab = () => {
+    setSelectedDate(unofficialEventDate);
+    setSelectedOfficialEventOption(null);
+    handleTabSelectionChange("official");
+    sendGAEvent("event", "official_event_guide_click", { source: "record_create" });
+  };
 
   // 自由形式はイベント名が入力されていれば作成可能（デッキは任意）
   useEffect(() => {
@@ -2371,6 +2387,13 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                     isInvalid={isUnofficialEventTitleTooLong}
                     errorMessage={`イベント名は${MAX_EVENT_TITLE_LENGTH}文字以内で入力してください`}
                   />
+
+                  {unofficialTitleOfficialKeyword && (
+                    <OfficialEventGuideNote
+                      keyword={unofficialTitleOfficialKeyword}
+                      onSelectOfficial={handleGuideToOfficialTab}
+                    />
+                  )}
                 </div>
 
                 <div className="flex flex-col gap-1 pt-1.5">

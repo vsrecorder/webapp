@@ -29,6 +29,7 @@ import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import HScrollRow from "@app/components/atoms/HScrollRow";
 import KizunaDeckSprites from "@app/components/molecules/KizunaDeckSprites";
 import ChoiceButtonGroup from "@app/components/molecules/ChoiceButtonGroup";
+import OfficialEventGuideNote from "@app/components/molecules/OfficialEventGuideNote";
 import PokemonSpriteSelectButton from "@app/components/molecules/PokemonSpriteSelectButton";
 import PokemonSpriteModal from "@app/components/organisms/Match/Modal/PokemonSpriteModal";
 import OfficialEventSelect from "@app/components/organisms/Record/OfficialEventSelect";
@@ -52,6 +53,7 @@ import {
   MAX_OPPONENTS_DECK_INFO_LENGTH,
   exceedsTextLength,
 } from "@app/utils/textLength";
+import { detectOfficialEventKeyword } from "@app/utils/officialEventGuide";
 import {
   fetchOpponentEnv,
   isEnvReturnTargetDate,
@@ -276,6 +278,10 @@ export default function TemplateQuickRecordCreate({
     MAX_OPPONENTS_DECK_INFO_LENGTH,
   );
   const isEventTitleTooLong = exceedsTextLength(eventTitle, MAX_EVENT_TITLE_LENGTH);
+
+  // イベント名に公式イベントのキーワード(ジムバトル等)が含まれる場合、
+  // イベント種別を「公式イベント」に切り替えて記録できることを伝えて誘導する
+  const eventTitleOfficialKeyword = detectOfficialEventKeyword(eventTitle);
 
   const canSubmit =
     opponentsDeckInfo.trim() !== "" &&
@@ -929,18 +935,34 @@ export default function TemplateQuickRecordCreate({
                         />
                       </div>
                     ) : (
-                      <Input
-                        type="text"
-                        label="イベント名"
-                        labelPlacement="outside"
-                        placeholder="例）〇〇自主大会（未入力なら「対戦記録」）"
-                        value={eventTitle}
-                        onChange={(e) => setEventTitle(e.target.value)}
-                        isInvalid={isEventTitleTooLong}
-                        errorMessage={`イベント名は${MAX_EVENT_TITLE_LENGTH}文字以内で入力してください`}
-                        // iOSズーム対策(入力を16pxに)
-                        classNames={{ input: "text-base" }}
-                      />
+                      <div className="flex flex-col gap-2">
+                        <Input
+                          type="text"
+                          label="イベント名"
+                          labelPlacement="outside"
+                          placeholder="例）〇〇自主大会（未入力なら「対戦記録」）"
+                          value={eventTitle}
+                          onChange={(e) => setEventTitle(e.target.value)}
+                          isInvalid={isEventTitleTooLong}
+                          errorMessage={`イベント名は${MAX_EVENT_TITLE_LENGTH}文字以内で入力してください`}
+                          // iOSズーム対策(入力を16pxに)
+                          classNames={{ input: "text-base" }}
+                        />
+
+                        {eventTitleOfficialKeyword && (
+                          <OfficialEventGuideNote
+                            keyword={eventTitleOfficialKeyword}
+                            onSelectOfficial={() => {
+                              // 開催日は種別間で共有しているため、切り替えるだけで
+                              // 入力済みの開催日の公式イベント候補から選べる
+                              setEventType("official");
+                              sendGAEvent("event", "official_event_guide_click", {
+                                source: "quick_record",
+                              });
+                            }}
+                          />
+                        )}
+                      </div>
                     )}
                   </>
                 )}

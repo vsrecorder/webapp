@@ -35,7 +35,9 @@ class WithdrawnAccountError extends CredentialsSignin {
   code = "withdrawn";
 }
 
-type Credential = Partial<Record<"callbackUrl" | "idToken" | "csrfToken", unknown>>;
+type Credential = Partial<
+  Record<"callbackUrl" | "idToken" | "csrfToken" | "attribution", unknown>
+>;
 
 declare module "next-auth" {
   interface Session {
@@ -216,6 +218,58 @@ async function fetchBackend(url: string, init?: RequestInit): Promise<Response> 
   }
 }
 
+// 流入元の記録(施策0-4 / utm-attribution-plan.md)の1回あたりのタイムアウト。
+// 計測のためにログインを待たせる価値はないので短く切る。
+const ACQUISITION_TIMEOUT_MS = 3000;
+
+// 登録が成功した直後に、着地時の流入元を core-apiserver へ送る。
+//
+// ★この関数は絶対に例外を投げてはならない。authorize() の try ブロックは
+// 「失敗したら Firebase ユーザごと削除してロールバックする」設計になっており、
+// ここで throw すると計測の失敗が登録の失敗として扱われ、登録できているのに
+// Firebase の認証ユーザが消される。photoURL の初期化と同じく fire-and-forget にする。
+//
+// attribution は handleSignIn が Cookie(vsr_attr)から載せた
+// encodeURIComponent 済みの JSON 文字列。中身の検証・丸めは core-apiserver 側で行う。
+async function recordAcquisition(
+  domain: string | undefined,
+  uid: string,
+  attribution: unknown,
+): Promise<void> {
+  try {
+    const raw = typeof attribution === "string" ? attribution : "";
+    if (!raw) {
+      // UTM もリファラも無い着地(直接流入)では Cookie 自体が発行されていない
+      return;
+    }
+
+    const jwtSecret = process.env.VSRECORDER_JWT_SECRET;
+    if (!jwtSecret) {
+      return;
+    }
+
+    const token = jwt.sign({ iss: "vsrecorder-webapp", uid }, jwtSecret, {
+      algorithm: "HS256",
+      expiresIn: "10s",
+    });
+
+    await fetch(`https://` + domain + `/api/v1beta/users/acquisition`, {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer " + token,
+        "Content-Type": "application/json",
+      },
+      // Cookie の中身をそのまま渡す。キー名は core-apiserver の
+      // dto.UserAcquisitionCreateRequest と揃えてある。
+      body: decodeURIComponent(raw),
+      signal: AbortSignal.timeout(ACQUISITION_TIMEOUT_MS),
+    });
+  } catch (error) {
+    // 記録できなかった流入元は復元できないが、登録を巻き戻すよりはるかに軽い損失
+    console.error("Failed to record acquisition:", error);
+  }
+}
+
 const {
   handlers,
   signIn,
@@ -228,9 +282,11 @@ const {
         callbackUrl: { label: "callbackUrl", type: "text" },
         idToken: { label: "idToken", type: "text" },
         csrfToken: { label: "csrfToken", type: "text" },
+        // 流入元(施策0-4)。handleSignIn が Cookie(vsr_attr)から載せる
+        attribution: { label: "attribution", type: "text" },
       },
       async authorize(credentials) {
-        const { idToken }: Credential = credentials;
+        const { idToken, attribution }: Credential = credentials;
         if (!idToken) {
           return null;
         }
@@ -312,6 +368,12 @@ const {
               } catch (error) {
                 console.error("Failed to update firebase user photoURL:", error);
               }
+
+              // 流入元を記録する(施策0-4)。
+              // 流入元は「登録の瞬間」にしか記録できず、取り逃すと二度と復元できないため
+              // ここで送るしかない。next-auth の events.createUser は DBアダプタ経由の
+              // 作成でしか発火せず、この構成(Credentials + JWT)では永久に呼ばれない。
+              await recordAcquisition(domain, user.id, attribution);
             } else if (createRet.status === 409) {
               // 同時ログインなどの競合により、別リクエストが先に登録済み。
               // ユーザ自体は正常に存在するためエラー扱いにしない。

@@ -42,6 +42,9 @@ const ROLLBACK_CHECK_TIMEOUT_MS = 5000;
 const ROLLBACK_CHECK_COUNT = 3;
 const ROLLBACK_CHECK_INTERVAL_MS = 1000;
 
+// 流入元の Cookie 名。発行しているのは src/proxy.ts。
+const ATTRIBUTION_COOKIE_NAME = "vsr_attr";
+
 const sleep = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -107,6 +110,21 @@ const rollbackNewFirebaseUser = async (credential: UserCredential) => {
     // 消し残した場合はサーバ側の登録処理か cmd/check-firebase-users での回収に委ねる
     console.error("Failed to roll back firebase user:", error);
   }
+};
+
+// 着地時に proxy.ts が発行した流入元の Cookie(施策0-4)を読む。
+// ブラウザは Cookie 値をデコードしないため、値は percent-encoded の JSON 文字列のまま
+// 取れる。そのまま signIn() に載せ、サーバ側(auth.ts)でデコードして送る。
+// Cookie が無ければ空文字を返し、計測なしで進む。
+//
+// この Cookie は httpOnly ではないため、クライアントから読める前提で設計されている
+// (Safari ITP 対策でサーバー発行にしているだけで、秘匿情報は入っていない)。
+const readAttributionCookie = (): string => {
+  const entry = document.cookie
+    .split("; ")
+    .find((cookie) => cookie.startsWith(`${ATTRIBUTION_COOKIE_NAME}=`));
+
+  return entry?.slice(ATTRIBUTION_COOKIE_NAME.length + 1) ?? "";
 };
 
 // Firebase 側のサインイン状態を解除する。
@@ -178,6 +196,9 @@ export const handleSignIn = async (
     const result = await signIn("credentials", {
       callbackUrl: redirectPathname,
       idToken,
+      // 流入元(施策0-4)。新規登録だったときだけ、サーバ側で core-apiserver へ送られる。
+      // 既存ユーザのログインでは読み捨てられる。
+      attribution: readAttributionCookie(),
       redirect: false,
     });
 

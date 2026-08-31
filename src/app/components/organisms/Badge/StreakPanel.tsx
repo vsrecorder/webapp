@@ -1,13 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import {
-  Card,
-  CardBody,
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@heroui/react";
+import { Card, CardBody, Popover, PopoverContent, PopoverTrigger } from "@heroui/react";
 import { LuFlame, LuInfo, LuSnowflake } from "react-icons/lu";
 
 import FetchError from "@app/components/molecules/FetchError";
@@ -17,6 +11,69 @@ import { UserStreakType } from "@app/types/streak";
 type Props = {
   userId: string;
 };
+
+// テキスト列は「週数 / 最長記録・フリーズ枠 / フリーズ復活の案内」の3行構成だが、
+// 3行目はフリーズを消費しているときしか出ない。出るときだけ高さが増えると、データ到着で
+// カードが伸びて下のセクションごと押し下がる(スケルトンとの差もそのまま揺れになる)ため、
+// 3行ぶんの高さを常に確保しておく。内訳は 週数26px + gap4 + 16.5px + gap4 + 16.5px = 67px。
+// 3行目が無いときは justify-center で上下中央に置き、余白が下だけに溜まらないようにする。
+const TEXT_COLUMN_CLASS =
+  "flex flex-col justify-center gap-1 min-h-[67px] min-w-0 flex-1";
+
+// フリーズ復活の案内。2行に折り返すと高さが変わってしまうので1行に収める
+// (週数が2桁でも収まる長さの文言。念のため truncate も掛けている)。
+function FreezeRegenLine({ weeks }: { weeks: number }) {
+  return (
+    <span className="inline-flex items-center gap-0.5 text-[11px] text-primary font-medium">
+      <LuSnowflake className="w-3 h-3 shrink-0" />
+      <span className="truncate">あと{weeks}週でフリーズが1つ復活</span>
+    </span>
+  );
+}
+
+// info ボタン(-m-1.5 + p-2.5 + w-4 = 36px 角)の場所取り。読み込み中とフリーズ非表示のとき、
+// 右端を空けたままにして列幅を揺らさないために置く。読み込み中だけ骨格として見せる。
+function InfoButtonPlaceholder({ pulse = false }: { pulse?: boolean }) {
+  return (
+    <div
+      aria-hidden
+      className="-m-1.5 flex shrink-0 items-center justify-center self-start p-2.5"
+    >
+      <div
+        className={`w-4 h-4 rounded-full ${pulse ? "bg-default-100 animate-pulse" : ""}`}
+      />
+    </div>
+  );
+}
+
+// 実体と同じ行の高さで置くスケルトン。3行目(フリーズ復活の案内)は出ない方が既定なので
+// 骨格も2行にする。列の min-h が同じなので、案内が出る場合もカードの高さは動かない。
+function StreakPanelSkeleton() {
+  return (
+    <Card className="shadow-md">
+      <CardBody className="flex flex-row items-center gap-4 p-4">
+        <div className="flex items-center justify-center w-14 h-14 rounded-2xl shrink-0 bg-default-100 text-default-200">
+          <LuFlame className="w-7 h-7" />
+        </div>
+
+        <div className={TEXT_COLUMN_CLASS}>
+          {/* 週数の行。text-2xl(leading-none)の中に text-sm を含むので行の高さは 26px */}
+          <div className="h-[26px] flex items-center">
+            {/* 「12週連続記録中」で実測 102〜116px */}
+            <div className="w-28 max-w-full h-4 rounded-full bg-default-100 animate-pulse" />
+          </div>
+          {/* 最長記録・フリーズ枠(text-[11px] の行 = 16.5px) */}
+          <div className="h-[16.5px] flex items-center">
+            {/* 「最長記録 20週 · ❄❄ 残り2」で実測 141〜148px */}
+            <div className="w-36 max-w-full h-2.5 rounded-full bg-default-100 animate-pulse" />
+          </div>
+        </div>
+
+        <InfoButtonPlaceholder pulse />
+      </CardBody>
+    </Card>
+  );
+}
 
 export default function StreakPanel({ userId }: Props) {
   const [streak, setStreak] = useState<UserStreakType | null>(null);
@@ -51,6 +108,10 @@ export default function StreakPanel({ userId }: Props) {
     loadStreak();
   }, [loadStreak]);
 
+  if (isLoading) {
+    return <StreakPanelSkeleton />;
+  }
+
   if (error) {
     return (
       <FetchError message="連続記録の取得に失敗しました" onRetry={loadStreak} compact />
@@ -64,7 +125,7 @@ export default function StreakPanel({ userId }: Props) {
   const freezeRemaining = maxFreezeCount - freezeUsedCount;
   const freezeRegenRemainingWeeks = streak?.freeze_regen_remaining_weeks ?? 0;
   const freezeRegenWeeks = streak?.freeze_regen_weeks ?? 0;
-  const isActive = !isLoading && currentWeeks > 0;
+  const isActive = currentWeeks > 0;
   // フリーズ枠を持つのは記録継続中だけなので、その時だけフリーズ関連の表示を出す
   const showFreeze = isActive && maxFreezeCount > 0;
   // フリーズを消費している間だけ、あと何週の連続記録で1枠戻るかを案内する
@@ -82,30 +143,25 @@ export default function StreakPanel({ userId }: Props) {
           <LuFlame className="w-7 h-7" />
         </div>
 
-        <div className="flex flex-col gap-1 min-w-0 flex-1">
-          {isLoading ? (
-            <span className="text-2xl font-black text-default-300 animate-pulse leading-none">
-              —
-            </span>
-          ) : (
-            <span className="text-2xl font-black leading-none tabular-nums">
-              {currentWeeks}
-              <span className="text-sm font-bold text-default-500 ml-1">
-                週連続記録中
-              </span>
-            </span>
-          )}
+        <div className={TEXT_COLUMN_CLASS}>
+          <span className="text-2xl font-black leading-none tabular-nums">
+            {currentWeeks}
+            <span className="text-sm font-bold text-default-500 ml-1">週連続記録中</span>
+          </span>
 
+          {/* この行が折り返すと3行ぶんの確保(min-h)を超えてカードが伸びるので、
+              子は全て shrink-0 にして折り返させない。極端に狭い端末では溢れた分を
+              カードの overflow-hidden に任せる。 */}
           <div className="flex items-center gap-1.5 w-full text-[11px] text-default-400 font-medium">
-            <span>最長記録 {longestWeeks}週</span>
+            <span className="shrink-0">最長記録 {longestWeeks}週</span>
             {showFreeze && (
               <>
-                <span className="text-default-300" aria-hidden>
+                <span className="shrink-0 text-default-300" aria-hidden>
                   ·
                 </span>
                 {/* フリーズ枠を雪アイコンで可視化(残り=プライマリ色 / 使用済み=淡色) */}
                 <span
-                  className="inline-flex items-center gap-1"
+                  className="inline-flex shrink-0 items-center gap-1"
                   aria-label={`フリーズ 残り${freezeRemaining} / 最大${maxFreezeCount}`}
                 >
                   <span className="inline-flex items-center gap-0.5">
@@ -118,10 +174,12 @@ export default function StreakPanel({ userId }: Props) {
                       />
                     ))}
                   </span>
+                  {/* 360px 未満では雪アイコンだけ残して桁を落とす(残数は aria-label が持つ)。
+                      文字まで並べると行が溢れて折り返し、カードの高さが変わってしまう。 */}
                   <span
-                    className={
+                    className={`max-[359px]:hidden ${
                       freezeRemaining > 0 ? "text-default-500" : "text-default-300"
-                    }
+                    }`}
                   >
                     残り{freezeRemaining}
                   </span>
@@ -130,12 +188,7 @@ export default function StreakPanel({ userId }: Props) {
             )}
           </div>
 
-          {showFreezeRegen && (
-            <span className="inline-flex items-center gap-0.5 text-[11px] text-primary font-medium">
-              <LuSnowflake className="w-3 h-3" />
-              あと{freezeRegenRemainingWeeks}週の連続記録でフリーズが1つ復活します
-            </span>
-          )}
+          {showFreezeRegen && <FreezeRegenLine weeks={freezeRegenRemainingWeeks} />}
         </div>
 
         {/*
@@ -147,7 +200,7 @@ export default function StreakPanel({ userId }: Props) {
             disableAnimation … 閉→即再オープンの死に窓を消す(理由は CurrentEnvironment 参照)
           StreakPanel はページ直下(モーダル外)かつカード自体は無反応なので、この構成で問題ない。
         */}
-        {showFreeze && (
+        {showFreeze ? (
           <Popover
             placement="bottom-end"
             offset={8}
@@ -173,9 +226,7 @@ export default function StreakPanel({ userId }: Props) {
                   フリーズとは
                 </span>
                 <p className="text-tiny leading-relaxed text-default-600">
-                  {
-                    "記録できない週があっても、ストリークを止めずに守ってくれる予備です。"
-                  }
+                  {"記録できない週があっても、ストリークを止めずに守ってくれる予備です。"}
                 </p>
                 <p className="text-tiny leading-relaxed text-default-600">
                   {`1週の空白ごとに1つ使い、最大${maxFreezeCount}個までためられます。フリーズを使わずに${freezeRegenWeeks}週続けて記録するごとに、使った枠が1つ戻ります。`}
@@ -183,6 +234,8 @@ export default function StreakPanel({ userId }: Props) {
               </div>
             </PopoverContent>
           </Popover>
+        ) : (
+          <InfoButtonPlaceholder />
         )}
       </CardBody>
     </Card>

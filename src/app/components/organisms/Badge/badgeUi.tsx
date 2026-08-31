@@ -43,23 +43,11 @@ export function formatAchievedAt(dateStr: string): string {
   return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日に獲得`;
 }
 
-// 週次ストリークバッジ(例:「週次記録3週連続」)・マイルストーンバッジ
-// (例:「駆け出しユーザー」「駆け出しビルダー」「駆け出しバトラー」)はタイル幅が狭く
-// 折り返しが不格好になるため、決まった区切り位置で明示的に改行して2行で見せる。
+// マイルストーンバッジ(例:「駆け出しユーザー」「駆け出しビルダー」「駆け出しバトラー」)は
+// タイル幅が狭く折り返しが不格好になるため、決まった区切り位置で明示的に改行して2行で見せる。
 const BADGE_NAME_SUFFIXES = ["ユーザー", "ビルダー", "バトラー"];
 
 export function renderBadgeName(name: string) {
-  const prefix = "週次記録";
-  if (name.startsWith(prefix)) {
-    return (
-      <>
-        {prefix}
-        <br />
-        {name.slice(prefix.length)}
-      </>
-    );
-  }
-
   const suffix = BADGE_NAME_SUFFIXES.find((s) => name.endsWith(s));
   if (suffix) {
     return (

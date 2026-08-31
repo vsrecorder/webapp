@@ -24,10 +24,9 @@ type Props = {
 
 const CATEGORY_LABELS: Record<string, string> = {
   milestone: "マイルストーン",
-  streak: "週次ストリーク",
 };
 
-const CATEGORY_ORDER = ["milestone", "streak"];
+const CATEGORY_ORDER = ["milestone"];
 
 // マイルストーンは記録数・デッキコード数・対戦数の3系統がそれぞれ独立した昇格トラックのため、
 // criteria_type ごとに分けて1系統=1行の「左→右」の流れとして見せる。
@@ -61,7 +60,7 @@ function subgroupByCriteriaType(
   }));
 }
 
-// マイルストーン・週次ストリークのように「易→難」の順で1本道になっているバッジ群を、
+// マイルストーンのように「易→難」の順で1本道になっているバッジ群を、
 // 左から右へ">"でつないで昇格の流れを表現する行。DesignationPanelの称号ロードマップと
 // 同じ区切り記号を使い、見た目の統一感を揃えている。
 function BadgeFlowRow({
@@ -90,7 +89,7 @@ function BadgeFlowRow({
 }
 
 // BadgeFlowRow と同じ構造(タイル+"▶"区切り)のプレースホルダー。
-// マイルストーン・週次ストリークは実際は▶で繋がる横並びのため、区切り分の幅もスケルトンに反映する。
+// マイルストーンは実際は▶で繋がる横並びのため、区切り分の幅もスケルトンに反映する。
 // 行の高さは一番背の高いタイル(=一番長いバッジ名)で決まるので、その名前を nameSample に渡す。
 function BadgeFlowRowSkeleton({ count, nameSample }: { count: number; nameSample: string }) {
   return (
@@ -178,24 +177,19 @@ export default function BadgeGallery({ userId, championshipSeries }: Props) {
               <div className="h-[16.5px] flex items-center">
                 <div className="w-24 h-2.5 rounded-full bg-default-100 animate-pulse" />
               </div>
-              {category === "milestone" ? (
-                <div className="flex flex-col gap-3">
-                  {Array.from({ length: 3 }).map((_, subIndex) => (
-                    <div key={subIndex} className="flex flex-col gap-1.5">
-                      {/* 系統名(text-[10px] の行 = 15px) */}
-                      <div className="h-[15px] flex items-center">
-                        <div className="w-14 h-2 rounded-full bg-default-100 animate-pulse" />
-                      </div>
-                      {/* マイルストーンは「駆け出し/熟練/達人/伝説の」×「ユーザー/ビルダー/バトラー」。
-                          一番長いのは前半4文字の「駆け出し◯◯◯◯」 */}
-                      <BadgeFlowRowSkeleton count={4} nameSample="駆け出しユーザー" />
+              <div className="flex flex-col gap-3">
+                {Array.from({ length: 3 }).map((_, subIndex) => (
+                  <div key={subIndex} className="flex flex-col gap-1.5">
+                    {/* 系統名(text-[10px] の行 = 15px) */}
+                    <div className="h-[15px] flex items-center">
+                      <div className="w-14 h-2 rounded-full bg-default-100 animate-pulse" />
                     </div>
-                  ))}
-                </div>
-              ) : (
-                // 週次ストリークは「週次記録◯週連続」。週数が2桁のものが一番背が高くなる
-                <BadgeFlowRowSkeleton count={4} nameSample="週次記録20週連続" />
-              )}
+                    {/* マイルストーンは「駆け出し/熟練/達人/伝説の」×「ユーザー/ビルダー/バトラー」。
+                        一番長いのは前半4文字の「駆け出し◯◯◯◯」 */}
+                    <BadgeFlowRowSkeleton count={4} nameSample="駆け出しユーザー" />
+                  </div>
+                ))}
+              </div>
             </div>
           ))}
         </CardBody>
@@ -250,20 +244,16 @@ export default function BadgeGallery({ userId, championshipSeries }: Props) {
         {grouped.map((group) => (
           <div key={group.category} className="flex flex-col gap-2">
             <span className="text-[11px] font-bold text-default-400">{group.label}</span>
-            {group.category === "milestone" ? (
-              <div className="flex flex-col gap-3">
-                {subgroupByCriteriaType(group.badges).map((sub) => (
-                  <div key={sub.key} className="flex flex-col gap-1.5">
-                    <span className="text-[10px] font-bold text-default-300">
-                      {sub.label}
-                    </span>
-                    <BadgeFlowRow badges={sub.badges} onSelect={handleSelect} />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <BadgeFlowRow badges={group.badges} onSelect={handleSelect} />
-            )}
+            <div className="flex flex-col gap-3">
+              {subgroupByCriteriaType(group.badges).map((sub) => (
+                <div key={sub.key} className="flex flex-col gap-1.5">
+                  <span className="text-[10px] font-bold text-default-300">
+                    {sub.label}
+                  </span>
+                  <BadgeFlowRow badges={sub.badges} onSelect={handleSelect} />
+                </div>
+              ))}
+            </div>
           </div>
         ))}
       </CardBody>

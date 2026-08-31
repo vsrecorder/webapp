@@ -3,6 +3,7 @@ import LinkButton from "@app/components/molecules/LinkButton";
 import Footer from "@app/components/organisms/Layout/Footer";
 import CityleagueEvents from "@app/components/organisms/Cityleague/CityleagueEvents";
 import DashboardCalendar from "@app/components/organisms/Calendar/DashboardCalendar";
+import MyGymPanel from "@app/components/organisms/MyGym/MyGymPanel";
 import Records from "@app/components/organisms/Record/Records";
 import UserStatPanel from "@app/components/organisms/UserStat/UserStatPanel";
 import WeeklyDeckUsagePanel from "@app/components/organisms/DeckMeta/WeeklyDeckUsagePanel";
@@ -281,6 +282,18 @@ export default async function TemplateDashboard({ userId }: Props) {
       ),
     });
   }
+
+  // Myジム(登録した店舗のイベント予定)
+  sections.push({
+    id: "my_gyms",
+    label: "Myジム",
+    node: (
+      <section key="my_gyms" className="flex flex-col gap-2">
+        <h2 className="text-sm font-bold text-default-700">Myジムのイベント</h2>
+        <MyGymPanel />
+      </section>
+    ),
+  });
 
   // 称号とランク
   sections.push({

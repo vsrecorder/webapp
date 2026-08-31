@@ -1,12 +1,35 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button, addToast } from "@heroui/react";
 
 import { LuTriangleAlert, LuExternalLink, LuCopy } from "react-icons/lu";
 
+import { sendGAEvent } from "@next/third-parties/google";
+
+import { attributionUtmParams } from "@app/utils/attribution";
 import { canOpenInExternalBrowser, openInExternalBrowser } from "@app/utils/platform";
+
+// 外部ブラウザへ渡すURL。アプリ内ブラウザの Cookie は外部ブラウザへ引き継がれないため、
+// 保存済みの流入元(vsr_attr)をURLの utm_* に復元して渡し、外部ブラウザ側の proxy に
+// Cookie を発行し直させる(施策0-4 §3.7 の「Cookie断絶」対策)。
+// 着地直後ならURLに utm_* が残っているのでそのまま使う。
+function handoffUrl(): string {
+  const url = new URL(window.location.href);
+  if (url.searchParams.has("utm_source")) {
+    return url.toString();
+  }
+
+  const params = attributionUtmParams();
+  if (params) {
+    for (const [key, value] of Object.entries(params)) {
+      url.searchParams.set(key, value);
+    }
+  }
+
+  return url.toString();
+}
 
 type Props = {
   // "ログイン" または "登録"
@@ -23,9 +46,16 @@ export default function InAppBrowserNotice({ actionLabel, onCopied }: Props) {
   // マウント後にのみ描画されるため、初期化時にUserAgentを参照して問題ない。
   const [canOpen] = useState(canOpenInExternalBrowser);
 
+  // アプリ内ブラウザで登録・ログインが止められた回数 = 施策0-4 §3.7 の
+  // 「取りこぼし規模」の実測値。sign_up との比率でどれだけ失っているかを読む。
+  useEffect(() => {
+    sendGAEvent("event", "inapp_notice_impression", { action: actionLabel });
+  }, [actionLabel]);
+
   async function copyUrl() {
     try {
-      await navigator.clipboard.writeText(window.location.href);
+      await navigator.clipboard.writeText(handoffUrl());
+      sendGAEvent("event", "inapp_notice_copy_url", { action: actionLabel });
       addToast({
         title: "URLをコピーしました",
         description: "Safariなどのブラウザに貼り付けて開いてください",
@@ -43,8 +73,9 @@ export default function InAppBrowserNotice({ actionLabel, onCopied }: Props) {
   }
 
   function openExternally() {
+    sendGAEvent("event", "inapp_notice_open_browser", { action: actionLabel });
     // 起動手段がない環境にフォールバックした場合はURLコピーに切り替える
-    if (!openInExternalBrowser(window.location.href)) {
+    if (!openInExternalBrowser(handoffUrl())) {
       void copyUrl();
     }
   }

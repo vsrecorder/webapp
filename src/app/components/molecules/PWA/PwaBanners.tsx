@@ -3,14 +3,21 @@
 import { useSyncExternalStore } from "react";
 import { useSession } from "next-auth/react";
 
+import { useState } from "react";
+
 import { useInstallPrompt } from "@app/hooks/useInstallPrompt";
+import AcquisitionSurveyPrompt from "@app/components/molecules/PWA/AcquisitionSurveyPrompt";
 import AddToHomeScreenBanner from "@app/components/molecules/PWA/AddToHomeScreenBanner";
 import PushPermissionPrompt, {
   type InstallBannerState,
 } from "@app/components/molecules/PWA/PushPermissionPrompt";
 
 /*
- * 画面下部に出る2枚のバナー(ホーム画面に追加 / Web Push の soft ask)の交通整理。
+ * 画面下部に出るバナー(登録時アンケート / ホーム画面に追加 / Web Push の soft ask)の交通整理。
+ *
+ * 登録時アンケート(施策0-4 S4)は最優先で出す。新規登録の直後しか訊けない
+ * 時限性があり(記憶が薄れる)、1タップで消える最も軽いバナーでもあるため。
+ * アンケートが出ている間は他の2枚を出さない。
  *
  * どちらも同じ位置・同じ幅に fixed で出るため、条件が同時に揃うと重なる
  * (Android の Chrome タブで起きる。iOS は support 判定で排他になっている)。
@@ -49,6 +56,7 @@ export default function PwaBanners({ iconUrl, userId }: Props) {
   const { status } = useSession();
   const { installState, install, dismiss, awaitingInstallEvent } = useInstallPrompt();
   const isLgUp = useIsLgUp();
+  const [surveyOpen, setSurveyOpen] = useState(false);
 
   // 追加バナーが実際に見えるか。lg 以上は lg:hidden で出ないので "none" 扱いにする
   // (デスクトップの Chrome / Edge でも push は受け取れるため、そちらは止めない)。
@@ -66,14 +74,21 @@ export default function PwaBanners({ iconUrl, userId }: Props) {
 
   return (
     <>
-      <AddToHomeScreenBanner
-        iconUrl={iconUrl}
-        installState={installState}
-        onInstall={install}
-        onDismiss={dismiss}
-      />
-      {/* Web Push の soft ask(B-1)。記録作成直後とストリーク2週以上のホームでだけ出る */}
-      <PushPermissionPrompt userId={userId} installBannerState={installBannerState} />
+      {/* 登録時アンケート(施策0-4 S4)。新規登録直後のフラグがある間だけ出る */}
+      <AcquisitionSurveyPrompt userId={userId} onOpenChange={setSurveyOpen} />
+      {!surveyOpen && (
+        <AddToHomeScreenBanner
+          iconUrl={iconUrl}
+          installState={installState}
+          onInstall={install}
+          onDismiss={dismiss}
+        />
+      )}
+      {/* Web Push の soft ask(B-1)。記録作成直後とストリーク2週以上のホームでだけ出る。
+          アンケート表示中はマウントしない(マウントすると記録作成のトリガーを消費してしまう) */}
+      {!surveyOpen && (
+        <PushPermissionPrompt userId={userId} installBannerState={installBannerState} />
+      )}
     </>
   );
 }

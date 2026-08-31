@@ -6,6 +6,9 @@ import { sendGAEvent } from "@next/third-parties/google";
 
 import { firebaseClientAuth } from "@firebase/client";
 
+import { markAcquisitionSurveyPending } from "@app/utils/acquisitionSurvey";
+import { readAttributionCookie } from "@app/utils/attribution";
+
 // ユーザ自身の操作でポップアップを閉じた／認可を拒否した場合に発生するエラーコード
 const CANCELLED_ERROR_CODES = [
   "auth/popup-closed-by-user",
@@ -41,9 +44,6 @@ const ROLLBACK_CHECK_TIMEOUT_MS = 5000;
 // 間隔を空けて複数回確認する(サーバ側 auth.ts の checkUserExistence と同じ考え方)。
 const ROLLBACK_CHECK_COUNT = 3;
 const ROLLBACK_CHECK_INTERVAL_MS = 1000;
-
-// 流入元の Cookie 名。発行しているのは src/proxy.ts。
-const ATTRIBUTION_COOKIE_NAME = "vsr_attr";
 
 const sleep = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
@@ -110,21 +110,6 @@ const rollbackNewFirebaseUser = async (credential: UserCredential) => {
     // 消し残した場合はサーバ側の登録処理か cmd/check-firebase-users での回収に委ねる
     console.error("Failed to roll back firebase user:", error);
   }
-};
-
-// 着地時に proxy.ts が発行した流入元の Cookie(施策0-4)を読む。
-// ブラウザは Cookie 値をデコードしないため、値は percent-encoded の JSON 文字列のまま
-// 取れる。そのまま signIn() に載せ、サーバ側(auth.ts)でデコードして送る。
-// Cookie が無ければ空文字を返し、計測なしで進む。
-//
-// この Cookie は httpOnly ではないため、クライアントから読める前提で設計されている
-// (Safari ITP 対策でサーバー発行にしているだけで、秘匿情報は入っていない)。
-const readAttributionCookie = (): string => {
-  const entry = document.cookie
-    .split("; ")
-    .find((cookie) => cookie.startsWith(`${ATTRIBUTION_COOKIE_NAME}=`));
-
-  return entry?.slice(ATTRIBUTION_COOKIE_NAME.length + 1) ?? "";
 };
 
 // Firebase 側のサインイン状態を解除する。
@@ -220,6 +205,12 @@ export const handleSignIn = async (
         // GA4推奨の method パラメータ。値は "google.com" / "twitter.com" 等
         method: additionalUserInfo?.providerId ?? "unknown",
       });
+
+      // 新規登録なら、遷移先で「どこで知ったか」の1問アンケートを出す(施策0-4 S4)。
+      // localStorage への書き込みは同期なので、直後のページ遷移に間に合う。
+      if (additionalUserInfo?.isNewUser) {
+        markAcquisitionSurveyPending();
+      }
 
       // 成功。サーバ側で発行されたセッションを読み込ませるため画面ごと遷移する
       window.location.href = result.url ?? redirectPathname;

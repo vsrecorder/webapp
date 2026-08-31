@@ -11,6 +11,9 @@
  * 一致のとり方。略語は短く他の語に埋もれやすいため、単純な部分一致だと誤検出する。
  *
  * - substring : 単純な部分一致。正式名称のように長く、他の語に埋もれない表記に使う。
+ *               "ジムバ" のような略語も、店舗名と続けて書かれる(カードラボジムバ /
+ *               ジムバカードラボ)ため前後どちらも境界にならない。境界では判定できず、
+ *               別の語を拾ってしまう分は excludes で個別に除外する。
  * - latinWord : 前後が英字でないときだけ一致とみなす。"CL" を単純一致にすると
  *               CIRCLE / CLUB / CLOSE / CLASSIC / MIRACLE などの英単語を拾ってしまう。
  *               数字は区切りとみなすため "CL2026京都" は一致する。
@@ -24,6 +27,10 @@ type MatchRule = "substring" | "latinWord" | "kanaWord";
 type OfficialEventPattern = {
   text: string;
   rule?: MatchRule; // 省略時は substring
+  // 略語がその語の先頭として現れたときに一致とみなさないための除外語。
+  // 例: "ジムバ" は「ジムバッジ」の先頭にも現れるが、イベント名としては別物。
+  // 略語で始まる語だけを列挙する(略語の前に別の語が付くケースは店舗名と区別できない)。
+  excludes?: string[];
 };
 
 type OfficialEventKeywordDef = {
@@ -36,11 +43,17 @@ type OfficialEventKeywordDef = {
 const OFFICIAL_EVENT_KEYWORDS: OfficialEventKeywordDef[] = [
   {
     label: "ジムバトル",
-    patterns: [{ text: "ジムバトル" }, { text: "ジムバ", rule: "kanaWord" }],
+    patterns: [
+      { text: "ジムバトル" },
+      { text: "ジムバ", excludes: ["ジムバッジ", "ジムバッグ"] },
+    ],
   },
   {
     label: "トレーナーズリーグ",
-    patterns: [{ text: "トレーナーズリーグ" }, { text: "トレリ", rule: "kanaWord" }],
+    patterns: [
+      { text: "トレーナーズリーグ" },
+      { text: "トレリ", excludes: ["トレリス"] },
+    ],
   },
   {
     label: "シティリーグ",
@@ -61,7 +74,7 @@ const OFFICIAL_EVENT_KEYWORDS: OfficialEventKeywordDef[] = [
   { label: "スクランブルバトル", patterns: [{ text: "スクランブルバトル" }] },
   {
     label: "エクストラバトルの日",
-    patterns: [{ text: "エクストラバトルの日" }, { text: "エクバ", rule: "kanaWord" }],
+    patterns: [{ text: "エクストラバトルの日" }, { text: "エクバ" }],
   },
   { label: "MEGAウインターリーグ", patterns: [{ text: "MEGAウインターリーグ" }] },
   { label: "マイジムNo.1決定戦", patterns: [{ text: "マイジムNo.1決定戦" }] },
@@ -82,20 +95,39 @@ function normalize(str: string): string {
 const LATIN_BOUNDARY = /[A-Z]/;
 const KATAKANA_BOUNDARY = /[ァ-ヶー]/;
 
-function includesPattern(haystack: string, needle: string, rule: MatchRule): boolean {
-  if (rule === "substring") return haystack.includes(needle);
+// haystack の index 位置に現れた needle を、一致とみなしてよいか判定する
+function isMatchAt(
+  haystack: string,
+  needle: string,
+  index: number,
+  rule: MatchRule,
+  excludes: string[],
+): boolean {
+  // 略語が別の語(ジムバ→ジムバッジ)の先頭になっている出現は一致とみなさない
+  if (excludes.some((word) => haystack.startsWith(word, index))) return false;
+
+  if (rule === "substring") return true;
 
   const boundary = rule === "latinWord" ? LATIN_BOUNDARY : KATAKANA_BOUNDARY;
 
-  // 同じ略語が複数回現れることがあるため、境界条件を満たす出現が1つでもあれば一致とする
+  // charAt は範囲外で空文字を返すため、文字列の端も境界として扱える
+  const before = index === 0 ? "" : haystack.charAt(index - 1);
+  const after = haystack.charAt(index + needle.length);
+  return !boundary.test(before) && !boundary.test(after);
+}
+
+function includesPattern(
+  haystack: string,
+  needle: string,
+  rule: MatchRule,
+  excludes: string[],
+): boolean {
+  // 同じ略語が複数回現れることがあるため、条件を満たす出現が1つでもあれば一致とする
   for (let from = 0; from <= haystack.length; ) {
     const index = haystack.indexOf(needle, from);
     if (index === -1) return false;
 
-    // charAt は範囲外で空文字を返すため、文字列の端も境界として扱える
-    const before = index === 0 ? "" : haystack.charAt(index - 1);
-    const after = haystack.charAt(index + needle.length);
-    if (!boundary.test(before) && !boundary.test(after)) return true;
+    if (isMatchAt(haystack, needle, index, rule, excludes)) return true;
 
     from = index + 1;
   }
@@ -106,12 +138,13 @@ function includesPattern(haystack: string, needle: string, rule: MatchRule): boo
 // 検出は入力のたびに走るため、毎回パターン側を正規化し直さない。
 const NORMALIZED_KEYWORDS: {
   label: string;
-  patterns: { text: string; rule: MatchRule }[];
+  patterns: { text: string; rule: MatchRule; excludes: string[] }[];
 }[] = OFFICIAL_EVENT_KEYWORDS.map(({ label, patterns }) => ({
   label,
-  patterns: patterns.map(({ text, rule }) => ({
+  patterns: patterns.map(({ text, rule, excludes }) => ({
     text: normalize(text),
     rule: rule ?? "substring",
+    excludes: (excludes ?? []).map(normalize),
   })),
 }));
 
@@ -122,7 +155,10 @@ export function detectOfficialEventKeyword(title: string): string | null {
 
   const normalizedTitle = normalize(title);
   for (const { label, patterns } of NORMALIZED_KEYWORDS) {
-    if (patterns.some(({ text, rule }) => includesPattern(normalizedTitle, text, rule))) {
+    const matched = patterns.some(({ text, rule, excludes }) =>
+      includesPattern(normalizedTitle, text, rule, excludes),
+    );
+    if (matched) {
       return label;
     }
   }

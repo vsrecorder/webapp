@@ -72,14 +72,15 @@ export default function RootLayout({
     <html lang="ja" suppressHydrationWarning data-env={isDevEnv() ? "dev" : "prod"}>
       <body className="overflow-x-hidden bg-white text-foreground dark:bg-neutral-950">
         {/*
-          描画前に iOS の standalone PWA かどうかを判定し、<html> に data-ios-pwa を付与する。
+          描画前に iOS の standalone PWA かどうか / Android かどうかを判定し、
+          <html> に data-ios-pwa / data-android を付与する。
           下部ナビ(MobileNavigation)のレイアウトを CSS 側で切り替えるための目印で、
           クライアント判定を useEffect で行うと初回描画後にガタつくため、ペイント前の
           インラインスクリプトで先に確定させてちらつきを防ぐ。
         */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var ua=navigator.userAgent;var isIOS=(/iPad|iPhone|iPod/.test(ua)&&!('MSStream' in window))||(ua.indexOf('Mac')>-1&&navigator.maxTouchPoints>1);var isStandalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;if(isIOS&&isStandalone){document.documentElement.setAttribute('data-ios-pwa','true');}}catch(e){}})();`,
+            __html: `(function(){try{var ua=navigator.userAgent;var isIOS=(/iPad|iPhone|iPod/.test(ua)&&!('MSStream' in window))||(ua.indexOf('Mac')>-1&&navigator.maxTouchPoints>1);var isStandalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;if(isIOS&&isStandalone){document.documentElement.setAttribute('data-ios-pwa','true');}if(!isIOS&&/Android/i.test(ua)){document.documentElement.setAttribute('data-android','true');}}catch(e){}})();`,
           }}
         />
         {/*

@@ -147,7 +147,26 @@
 }
 
 /*
+ * 下部ナビ(MobileNavigation)の高さ。
+ * ナビ本体だけでなく、<main> が下に確保する余白や、ナビの上へ浮かせる要素
+ * (フローティングボタン / PWAバナー) もこの値を参照する。変えるときはここだけを直す。
+ *
+ * Android は画面下端に OS のナビゲーションバー(ジェスチャーバー)が居座るぶん
+ * 下部が厚く見えるため、Android のときだけ少し低くする。
+ */
+:root {
+  --mobile-nav-height: 4.25rem;
+}
+
+:root[data-android="true"] {
+  --mobile-nav-height: 3.75rem;
+}
+
+/*
  * 下部ナビ(MobileNavigation)の項目の上パディング。
+ * 項目の中身は アイコン枠 24px + gap 4px + ラベル 10px = 38px なので、
+ * (ナビの高さ - 38px) / 2 がおおよそ中央に見える値。
+ *
  * iOS の standalone PWA では下端に safe-area-inset-bottom の余白が入り、
  * 項目が自然に上寄りになるため現状のレイアウト(pt-1 相当)を維持する。
  * それ以外(iOS Safari ブラウザ / Android / PC 等、data-ios-pwa 未設定)では
@@ -159,6 +178,11 @@
 
 :root[data-ios-pwa="true"] .mobile-nav-item {
   padding-top: 0.25rem;
+}
+
+/* Android はナビ自体が低いぶん、上パディングも詰めて中身を中央に置く */
+:root[data-android="true"] .mobile-nav-item {
+  padding-top: 0.6875rem;
 }
 
 /*

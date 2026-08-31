@@ -256,9 +256,9 @@ export default function RecordActionsFloating({
 
       {/* 右下のフローティング操作群。シェアは独立したフローティングに分離し、
           3点メニューには削除など低頻度の操作を残す。
-          bottom-21 は下部ナビ(h-17)の上に 16px の間隔を空ける値。lg以上は下部ナビが
-          消えるため、従来どおり画面下から 80px に戻す。 */}
-      <div className="fixed z-30 bottom-21 lg:bottom-20 right-3 flex flex-col items-center gap-3">
+          下部ナビ(--mobile-nav-height)の上に 16px の間隔を空ける位置に置く。lg以上は
+          下部ナビが消えるため、従来どおり画面下から 80px に戻す。 */}
+      <div className="fixed z-30 bottom-[calc(var(--mobile-nav-height)+1rem)] lg:bottom-20 right-3 flex flex-col items-center gap-3">
         {/* シェア用フローティング。メニューは上向きに開くため、展開中は
             重なりを避けてシェアボタンを隠す。 */}
         {!isDropdownOpen && (

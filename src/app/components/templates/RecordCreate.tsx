@@ -61,7 +61,7 @@ import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 import { markRecordCreatedForPushPrompt } from "@app/utils/pushPrompt";
 import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
 import { MAX_EVENT_TITLE_LENGTH, exceedsTextLength } from "@app/utils/textLength";
-import { detectOfficialEventKeyword } from "@app/utils/officialEventGuide";
+import { useOfficialEventGuide } from "@app/hooks/useOfficialEventGuide";
 
 import { OfficialEventResponseType, OfficialEventType } from "@app/types/official_event";
 import { DEFAULT_REGULATION_ID } from "@app/types/regulation";
@@ -994,10 +994,17 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
     MAX_EVENT_TITLE_LENGTH,
   );
 
-  // イベント名に公式イベントのキーワード(ジムバトル等)が含まれる場合、
-  // 公式イベントに紐づく記録を作成できることを伝えて誘導する
-  const unofficialTitleOfficialKeyword =
-    detectOfficialEventKeyword(unofficialEventTitle);
+  // イベント名に公式イベントのキーワード(ジムバトル等)が含まれ、かつ その開催日に
+  // 該当する公式イベントが実在するときだけ、公式イベントに紐づけられることを伝えて誘導する。
+  // 自由形式タブを開いている間だけ判定する(他タブでは入力欄自体が無く、取得も不要)。
+  const unofficialEventYmd = `${unofficialEventDate.year}-${String(
+    unofficialEventDate.month,
+  ).padStart(2, "0")}-${String(unofficialEventDate.day).padStart(2, "0")}`;
+  const unofficialTitleOfficialKeyword = useOfficialEventGuide(
+    unofficialEventTitle,
+    unofficialEventYmd,
+    selectedTab === "unofficial",
+  );
 
   // 誘導パネルから公式イベントタブへ切り替える。入力済みの開催日を公式タブへ
   // 引き継ぎ、その日の公式イベント候補をすぐ選べる状態にする
@@ -2388,11 +2395,14 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                     errorMessage={`イベント名は${MAX_EVENT_TITLE_LENGTH}文字以内で入力してください`}
                   />
 
+                  {/* 親が gap-1 のため、通知だけは入力欄との間隔を明示的に空ける */}
                   {unofficialTitleOfficialKeyword && (
-                    <OfficialEventGuideNote
-                      keyword={unofficialTitleOfficialKeyword}
-                      onSelectOfficial={handleGuideToOfficialTab}
-                    />
+                    <div className="pt-1">
+                      <OfficialEventGuideNote
+                        keyword={unofficialTitleOfficialKeyword}
+                        onSelectOfficial={handleGuideToOfficialTab}
+                      />
+                    </div>
                   )}
                 </div>
 

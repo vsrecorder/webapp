@@ -53,7 +53,7 @@ import {
   MAX_OPPONENTS_DECK_INFO_LENGTH,
   exceedsTextLength,
 } from "@app/utils/textLength";
-import { detectOfficialEventKeyword } from "@app/utils/officialEventGuide";
+import { useOfficialEventGuide } from "@app/hooks/useOfficialEventGuide";
 import {
   fetchOpponentEnv,
   isEnvReturnTargetDate,
@@ -279,9 +279,14 @@ export default function TemplateQuickRecordCreate({
   );
   const isEventTitleTooLong = exceedsTextLength(eventTitle, MAX_EVENT_TITLE_LENGTH);
 
-  // イベント名に公式イベントのキーワード(ジムバトル等)が含まれる場合、
-  // イベント種別を「公式イベント」に切り替えて記録できることを伝えて誘導する
-  const eventTitleOfficialKeyword = detectOfficialEventKeyword(eventTitle);
+  // イベント名に公式イベントのキーワード(ジムバトル等)が含まれ、かつ その開催日に
+  // 該当する公式イベントが実在するときだけ、種別を「公式イベント」へ切り替えられることを
+  // 伝えて誘導する。自由形式を選んでいる間だけ判定する(他種別では入力欄自体が無い)。
+  const eventTitleOfficialKeyword = useOfficialEventGuide(
+    eventTitle,
+    calendarDateToYmd(eventDate),
+    eventType === "unofficial",
+  );
 
   const canSubmit =
     opponentsDeckInfo.trim() !== "" &&

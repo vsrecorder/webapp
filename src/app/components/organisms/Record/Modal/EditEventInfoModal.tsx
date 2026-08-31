@@ -26,7 +26,10 @@ import {
 
 import { CalendarDate, getLocalTimeZone, today } from "@internationalized/date";
 
+import { sendGAEvent } from "@next/third-parties/google";
+
 import { Modal } from "@app/components/atoms/AppModal";
+import OfficialEventGuideNote from "@app/components/molecules/OfficialEventGuideNote";
 import OfficialEventSelect from "@app/components/organisms/Record/OfficialEventSelect";
 import TonamelEventInput from "@app/components/organisms/Record/TonamelEventInput";
 
@@ -44,6 +47,7 @@ import {
 } from "@app/types/unofficial_event";
 
 import { MAX_EVENT_TITLE_LENGTH, exceedsTextLength } from "@app/utils/textLength";
+import { useOfficialEventGuide } from "@app/hooks/useOfficialEventGuide";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 
 type EventType = "official" | "tonamel" | "unofficial";
@@ -195,6 +199,16 @@ export default function EditEventInfoModal({
   }, [isOpen, record]);
 
   const isEventTitleTooLong = exceedsTextLength(eventTitle, MAX_EVENT_TITLE_LENGTH);
+
+  // 記録作成時と同じく、イベント名に公式イベントのキーワードが含まれ、かつ その開催日に
+  // 該当する公式イベントが実在するときだけ公式イベントへの切り替えを促す。
+  // このモーダルは記録詳細に常時マウントされているため、開いていて自由形式を
+  // 選んでいる間だけ判定する(閉じている間に候補を取りに行かない)。
+  const eventTitleOfficialKeyword = useOfficialEventGuide(
+    eventTitle,
+    calendarDateToYmd(eventDate),
+    isOpen && eventType === "unofficial",
+  );
   const isDateChanged =
     !!initialDate && calendarDateToYmd(eventDate) !== calendarDateToYmd(initialDate);
 
@@ -545,6 +559,20 @@ export default function EditEventInfoModal({
                             // iOSズーム対策(入力を16pxに)
                             classNames={{ input: "text-base" }}
                           />
+
+                          {eventTitleOfficialKeyword && !isUpdating && (
+                            <OfficialEventGuideNote
+                              keyword={eventTitleOfficialKeyword}
+                              onSelectOfficial={() => {
+                                // 開催日は種別をまたいで引き継がれるため、種別を切り替えるだけで
+                                // 同じ開催日の公式イベント候補から選べる
+                                setEventType("official");
+                                sendGAEvent("event", "official_event_guide_click", {
+                                  source: "edit_event_info",
+                                });
+                              }}
+                            />
+                          )}
                         </div>
                       </Tab>
                     </Tabs>

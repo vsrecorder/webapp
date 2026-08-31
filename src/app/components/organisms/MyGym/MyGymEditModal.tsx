@@ -17,6 +17,7 @@ import { Modal } from "@app/components/atoms/AppModal";
 import MyGymShopRow from "@app/components/organisms/MyGym/MyGymShopRow";
 
 import { ShopGetResponseType, ShopType } from "@app/types/shop";
+import { scrollToTopAfterKeyboard } from "@app/utils/keyboard";
 import { UserGymType } from "@app/types/user_gym";
 
 type Props = {
@@ -48,6 +49,9 @@ export default function MyGymEditModal({
 
   // 検索の世代。古い応答が新しい応答を上書きしないように使う。
   const searchSeq = useRef(0);
+  // 入力を終えたときにフォーカスを引き受ける要素
+  // (フォーカストラップを満たしつつキーボードを閉じるために使う)
+  const focusSinkRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -207,7 +211,12 @@ export default function MyGymEditModal({
               </span>
             </ModalHeader>
 
-            <ModalBody className="px-3 py-1 flex flex-col gap-4">
+            <ModalBody
+              // キーボード表示時にどこをスクロールさせるかを scrollToTopAfterKeyboard へ伝える。
+              // 指定が無いと overflow-y が auto に計算された別の要素を誤って掴むことがある。
+              data-keyboard-scroll-container
+              className="px-3 py-1 flex flex-col gap-4"
+            >
               {/* 登録済みの枠 */}
               <div className="flex flex-col gap-2">
                 <span className="text-[9px] font-bold text-default-400 uppercase tracking-widest">
@@ -243,7 +252,7 @@ export default function MyGymEditModal({
               </div>
 
               {/* 店舗の検索 */}
-              <div className="flex flex-col gap-2">
+              <div data-my-gym-search className="flex flex-col gap-2">
                 <span className="text-[9px] font-bold text-default-400 uppercase tracking-widest">
                   店舗を探す
                 </span>
@@ -257,6 +266,32 @@ export default function MyGymEditModal({
                   startContent={<LuSearch className="w-4 h-4 text-default-400" />}
                   isClearable
                   onClear={() => setKeyword("")}
+                  // 【Android】キーボードが出ると react-aria は入力欄が「見える最小限」しか
+                  // スクロールしないため、入力欄がキーボードのすぐ上に貼り付き、その下に出る
+                  // 検索結果がキーボードの裏に隠れる。検索ブロックごと可視領域の上端へ
+                  // 引き上げて、結果まで見えるようにする(CreateMatchModal の履歴候補と同じ)。
+                  onFocus={(e) =>
+                    scrollToTopAfterKeyboard(
+                      e.currentTarget.closest("[data-my-gym-search]"),
+                    )
+                  }
+                  // 入力を終えた合図の Enter で、モバイルのソフトウェアキーボードを引っ込める。
+                  // 検索は入力のたびに走っているので、Enter は「打ち終わった」以上の意味を持たない。
+                  //
+                  // isComposing 中(IMEの変換候補を確定する Enter)では閉じない。ここで閉じると
+                  // 「まちだ」を変換した瞬間にキーボードが消え、続きを打てなくなる。
+                  //
+                  // blur() ではなくモーダル内の受け皿へフォーカスを移すのは、モーダルが
+                  // フォーカストラップを張っているため。blur で外へ抜けると、トラップが
+                  // モーダル内へフォーカスを戻し、入力欄が再フォーカスされてキーボードが
+                  // 開き直してしまう(Android で顕著)。同じ理由で EditEventInfoModal も
+                  // セレクターを閉じるときに受け皿へ逃がしている。
+                  onKeyDown={(e) => {
+                    if (e.key !== "Enter" || e.nativeEvent.isComposing) return;
+
+                    e.preventDefault();
+                    focusSinkRef.current?.focus();
+                  }}
                 />
 
                 {isSearching ? (
@@ -303,6 +338,14 @@ export default function MyGymEditModal({
                     店舗名や住所の一部を入力してください
                   </span>
                 )}
+
+                {/* 入力を終えたときのフォーカス受け皿(キーボードを閉じるために使う) */}
+                <div
+                  ref={focusSinkRef}
+                  tabIndex={-1}
+                  className="sr-only"
+                  aria-hidden="true"
+                />
 
                 {isFull && (
                   <span className="text-[11px] text-warning">

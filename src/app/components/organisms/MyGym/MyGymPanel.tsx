@@ -39,7 +39,7 @@ async function fetcher(url: string): Promise<UserGymOfficialEventGetResponseType
 function MyGymPanelSkeleton() {
   return (
     <Card className="w-full shadow-md">
-      <CardBody className="flex flex-col gap-3 p-4">
+      <CardBody className="flex flex-col gap-2.5 p-3">
         <div className="h-7 w-full animate-pulse rounded-lg bg-default-100" />
         <div className="h-4 w-24 animate-pulse rounded-full bg-default-100" />
         <div className="h-12 w-full animate-pulse rounded-xl bg-default-100" />
@@ -63,7 +63,7 @@ function MyGymEventRow({ event }: { event: OfficialEventType }) {
     <div className="flex overflow-hidden rounded-xl bg-default-50">
       <div className={`w-1 shrink-0 ${getEventAccentColor(event)}`} />
 
-      <div className="flex min-w-0 flex-1 items-center gap-2.5 px-3 py-2">
+      <div className="flex min-w-0 flex-1 items-center gap-2.5 px-3 py-1.5">
         <Image
           src={getEventIconUrl(event)}
           alt=""
@@ -180,7 +180,7 @@ export default function MyGymPanel() {
   return (
     <>
       <Card className="w-full shadow-md">
-        <CardBody className="flex flex-col gap-3 p-4">
+        <CardBody className="flex flex-col gap-2.5 p-3">
           {/* 登録中の店舗と編集への導線。
               店舗の見せ方(家アイコン + 店舗名 + 都道府県・住所)は設定モーダルの
               「登録中のMyジム」と揃えてある。同じ店舗を2つの画面で別の形に見せると、
@@ -244,7 +244,9 @@ export default function MyGymPanel() {
                 tabIndex={0}
                 role="group"
                 aria-label="Myジムの予定"
-                className="flex max-h-96 flex-col gap-3 overflow-y-auto"
+                // overscroll-contain は、一覧を端まで送ってもページ側へスクロールを
+                // 伝播させないため(指を離さず続けるとホームごと動いてしまう)
+                className="flex max-h-62 flex-col gap-3 overflow-y-auto overscroll-contain"
               >
                 {groups.map((group) => (
                   <div key={group.dateKey} className="flex flex-col gap-1.5">

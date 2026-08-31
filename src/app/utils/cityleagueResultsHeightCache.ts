@@ -16,6 +16,10 @@ const KEY = "cityleague_results_height_v1";
 const MAX_ENTRIES = 8;
 // キャッシュが無いときの高さ(従来の h-52)
 export const DEFAULT_CITYLEAGUE_RESULTS_HEIGHT = 208;
+// 場所取りの上限。Swiper は1枚ずつ表示(slidesPerView=1)なので、入賞が何件あっても
+// 実際の高さはカード1枚ぶん(実測で最大500px程度)にしかならない。壊れた値が入っていても
+// 画面が巨大な空白で埋まらないように頭を抑える。
+const MAX_CITYLEAGUE_RESULTS_HEIGHT = 1200;
 
 type HeightMap = Record<string, number>;
 
@@ -32,9 +36,11 @@ function readMap(): HeightMap {
 
 export function loadCityleagueResultsHeight(season: string): number {
   const height = readMap()[season];
-  return typeof height === "number" && height > 0
-    ? height
-    : DEFAULT_CITYLEAGUE_RESULTS_HEIGHT;
+  if (typeof height !== "number" || !(height > 0)) {
+    return DEFAULT_CITYLEAGUE_RESULTS_HEIGHT;
+  }
+
+  return Math.min(height, MAX_CITYLEAGUE_RESULTS_HEIGHT);
 }
 
 export function saveCityleagueResultsHeight(season: string, height: number): void {

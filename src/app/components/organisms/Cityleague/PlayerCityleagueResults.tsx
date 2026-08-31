@@ -224,8 +224,9 @@ export default function PlayerCityleagueResults({ season, seasonLabel }: Props) 
         )}
       </div>
 
-      {/* 読み込み中の高さを実体に合わせるため、描画後の高さをここで測る */}
-      <div ref={contentRef}>
+      {/* 読み込み中の高さを実体に合わせるため、描画後の高さをここで測る。
+          min-w-0 は上の親と同じ理由(Swiper が中身の幅まで広がってはみ出すのを防ぐ) */}
+      <div ref={contentRef} className="min-w-0">
         {isLoading ? (
           <div
             style={{ height: placeholderHeight }}

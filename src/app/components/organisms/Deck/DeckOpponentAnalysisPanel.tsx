@@ -293,7 +293,9 @@ export default function DeckOpponentAnalysisPanel({
         {periodMode === "all" && (
           // 「全期間」は絞り込む対象が無いためセレクターを持たない。
           // 他タブと同じ位置にグラフを描くため、同じ寸法の枠だけを置く（操作できないので▼は出さない）。
-          <div className={`${PERIOD_FIELD_CLASS} text-center text-default-500`}>
+          <div
+            className={`${PERIOD_FIELD_CLASS} cursor-default select-none text-center text-default-500`}
+          >
             全期間
           </div>
         )}

@@ -74,30 +74,3 @@ export function formatEventTime(event: OfficialEventType): string {
 
   return `${startedAt} ~ ${endedAt}`;
 }
-
-// パネルが既定で見せるイベントの件数。
-//
-// 2週間ぶんは数店舗も登録すれば20件を超えることがあり、そのまま並べるとパネルだけで
-// 画面が何枚分にもなる。ホームは他の節と並ぶ場所なので、既定は直近ぶんに留めて
-// 残りは開いて見てもらう。
-export const MY_GYM_VISIBLE_EVENT_COUNT = 5;
-
-// グループの並び順を保ったまま、合計が max 件になるところで打ち切る。
-// 日付グループの途中で切れてもよい(続きは展開すれば出る)。
-export function limitEventGroups(
-  groups: MyGymEventGroup[],
-  max: number,
-): MyGymEventGroup[] {
-  const ret: MyGymEventGroup[] = [];
-  let count = 0;
-
-  for (const group of groups) {
-    if (count >= max) break;
-
-    const events = group.events.slice(0, max - count);
-    ret.push({ ...group, events });
-    count += events.length;
-  }
-
-  return ret;
-}

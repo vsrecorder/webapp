@@ -113,8 +113,17 @@ export default function MyGymEditModal({
       });
 
       if (!res.ok) {
-        // 上限(409)は「3件登録済み」以外にありえないため、どれを外すかを促す
+        // 上流は「上限に達した」と「その店舗は登録済み」の両方を409で返すため、
+        // 本文で見分ける。登録済みは、一覧を取り直す前に押したときなどに起こりうる
+        // (登録済みの店舗はボタンを無効にしているが、同時操作までは防げない)。
         if (res.status === 409) {
+          const body = await res.json().catch(() => null);
+          const message = typeof body?.message === "string" ? body.message : "";
+
+          if (message.includes("already exists")) {
+            throw new Error("この店舗はすでにMyジムに登録されています。");
+          }
+
           throw new Error(
             `Myジムは${limit}件までです。登録済みの店舗を解除してから追加してください。`,
           );

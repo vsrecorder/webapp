@@ -12,9 +12,7 @@ import {
   formatEventTime,
   getMyGymEventRange,
   groupEventsByDate,
-  limitEventGroups,
   MY_GYM_EVENT_RANGE_DAYS,
-  MY_GYM_VISIBLE_EVENT_COUNT,
 } from "@app/components/organisms/MyGym/myGymHelpers";
 import {
   cleanOfficialEventTitle,
@@ -112,10 +110,8 @@ export default function MyGymPanel() {
   // 表示されるのは常に未来のイベントで、実害は末尾が1日短くなることだけ。
   const [{ startDate, endDate }] = useState(getMyGymEventRange);
   // 登録店舗の一覧は既定で畳んでおく。日々見たいのは予定の方で、
-  // 「どこを登録しているか」は畳んだ見出しの要約で足りることが多い。
+  // 「どこを登録しているか」は畳んだ見出しの件数で足りることが多い。
   const [gymsExpanded, setGymsExpanded] = useState(false);
-  // イベントを全件出すか。既定は直近ぶんだけ。
-  const [eventsExpanded, setEventsExpanded] = useState(false);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   const { data, error, isLoading, mutate } = useSWR<UserGymOfficialEventGetResponseType>(
@@ -125,12 +121,6 @@ export default function MyGymPanel() {
 
   const events = useMemo(() => data?.official_events ?? [], [data]);
   const groups = useMemo(() => groupEventsByDate(events), [events]);
-  const visibleGroups = useMemo(
-    () =>
-      eventsExpanded ? groups : limitEventGroups(groups, MY_GYM_VISIBLE_EVENT_COUNT),
-    [groups, eventsExpanded],
-  );
-  const hiddenCount = events.length - MY_GYM_VISIBLE_EVENT_COUNT;
 
   if (isLoading) return <MyGymPanelSkeleton />;
 
@@ -246,8 +236,17 @@ export default function MyGymPanel() {
             </span>
           ) : (
             <>
-              <div className="flex flex-col gap-3">
-                {visibleGroups.map((group) => (
+              {/* 予定は全件描く。2週間ぶんは20件を超えることがあるため、
+                  パネルごと縦に伸ばさずこの中だけをスクロールさせる。
+                  中にフォーカスできる要素が無いため、tabIndex を与えないと
+                  キーボードだけの操作でここをスクロールできない。 */}
+              <div
+                tabIndex={0}
+                role="group"
+                aria-label="Myジムの予定"
+                className="flex max-h-96 flex-col gap-3 overflow-y-auto"
+              >
+                {groups.map((group) => (
                   <div key={group.dateKey} className="flex flex-col gap-1.5">
                     <span className="text-[11px] font-bold text-default-500">
                       {group.label}
@@ -258,22 +257,6 @@ export default function MyGymPanel() {
                   </div>
                 ))}
               </div>
-
-              {hiddenCount > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setEventsExpanded((v) => !v)}
-                  aria-expanded={eventsExpanded}
-                  className="flex items-center justify-center gap-1 py-1.5 text-[11px] font-bold text-default-500 hover:text-default-600"
-                >
-                  <LuChevronDown
-                    className={`h-3.5 w-3.5 transition-transform ${
-                      eventsExpanded ? "rotate-180" : ""
-                    }`}
-                  />
-                  {eventsExpanded ? "閉じる" : `すべて見る（あと${hiddenCount}件）`}
-                </button>
-              )}
             </>
           )}
         </CardBody>

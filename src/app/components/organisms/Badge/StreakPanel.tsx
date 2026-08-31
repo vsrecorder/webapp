@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { ReactNode, useCallback, useEffect, useState } from "react";
 import { Card, CardBody, Popover, PopoverContent, PopoverTrigger } from "@heroui/react";
 import { LuFlame, LuInfo, LuSnowflake } from "react-icons/lu";
 
@@ -15,13 +15,36 @@ type Props = {
 // テキスト列は「週数 / 最長記録・フリーズ枠 / フリーズ復活の案内」の3行構成だが、
 // 3行目はフリーズを消費しているときしか出ない。出るときだけ高さが増えると、データ到着で
 // カードが伸びて下のセクションごと押し下がる(スケルトンとの差もそのまま揺れになる)ため、
-// 3行ぶんの高さを常に確保しておく。内訳は 週数26px + gap4 + 16.5px + gap4 + 16.5px = 67px。
-// 3行目が無いときは justify-center で上下中央に置き、余白が下だけに溜まらないようにする。
-const TEXT_COLUMN_CLASS =
-  "flex flex-col justify-center gap-1 min-h-[67px] min-w-0 flex-1";
+// 常に3行ぶんの高さを確保しておく。
+//
+// 確保の仕方は px の決め打ちではなく、同じ字送りの見えない3行(サイザー)を実内容と
+// グリッドの同じセルへ重ねる方式にしている。週数の行は text-2xl(leading-none)の中に
+// text-sm を含むぶん行の高さがフォントのメトリクス次第で、実測でも 25px / 26px と環境で
+// 変わる(Noto Sans CJK JP は 26px、DejaVu Sans / Liberation Sans は 25px)。px で固定すると
+// 端末によっては1px ぶんの揺れが戻ってしまう。
+// 3行に満たないときは justify-center で上下中央に置き、余白が下だけに溜まらないようにする。
+function TextColumn({ children }: { children: ReactNode }) {
+  return (
+    <div className="grid min-w-0 flex-1">
+      <div
+        aria-hidden
+        className="invisible col-start-1 row-start-1 flex w-0 flex-col gap-1 overflow-hidden whitespace-nowrap"
+      >
+        <span className="text-2xl font-black leading-none">
+          0<span className="ml-1 text-sm font-bold">週</span>
+        </span>
+        <span className="text-[11px] font-medium">0</span>
+        <span className="text-[11px] font-medium">0</span>
+      </div>
+      <div className="col-start-1 row-start-1 flex min-w-0 flex-col justify-center gap-1">
+        {children}
+      </div>
+    </div>
+  );
+}
 
-// フリーズ復活の案内。2行に折り返すと高さが変わってしまうので1行に収める
-// (週数が2桁でも収まる長さの文言。念のため truncate も掛けている)。
+// フリーズ復活の案内。2行に折り返すと確保した高さを超えてしまうので1行に収める
+// (週数が2桁でも収まる長さの文言。狭い端末向けの保険として truncate も掛けている)。
 function FreezeRegenLine({ weeks }: { weeks: number }) {
   return (
     <span className="inline-flex items-center gap-0.5 text-[11px] text-primary font-medium">
@@ -46,8 +69,32 @@ function InfoButtonPlaceholder({ pulse = false }: { pulse?: boolean }) {
   );
 }
 
+// 骨格の1行。行の高さは実体と同じ字送りの見えないテキストから取り、その上にバーを重ねる。
+// sampleClassName は必ず実体の行と同じ文字サイズにすること。見えないテキストを素の span で
+// 包むと、行ボックスが親の strut(16px × 1.5 = 24px)まで膨らんで実体より高くなる。
+function SkeletonLine({
+  sampleClassName,
+  sample,
+  barClassName,
+}: {
+  sampleClassName: string;
+  sample: ReactNode;
+  barClassName: string;
+}) {
+  return (
+    <span className="relative flex items-center">
+      <span aria-hidden className={`invisible ${sampleClassName}`}>
+        {sample}
+      </span>
+      <span
+        className={`absolute left-0 rounded-full bg-default-100 animate-pulse ${barClassName}`}
+      />
+    </span>
+  );
+}
+
 // 実体と同じ行の高さで置くスケルトン。3行目(フリーズ復活の案内)は出ない方が既定なので
-// 骨格も2行にする。列の min-h が同じなので、案内が出る場合もカードの高さは動かない。
+// 骨格も2行にする。TextColumn が3行ぶんを確保するので、案内が出る場合も高さは動かない。
 function StreakPanelSkeleton() {
   return (
     <Card className="shadow-md">
@@ -56,18 +103,23 @@ function StreakPanelSkeleton() {
           <LuFlame className="w-7 h-7" />
         </div>
 
-        <div className={TEXT_COLUMN_CLASS}>
-          {/* 週数の行。text-2xl(leading-none)の中に text-sm を含むので行の高さは 26px */}
-          <div className="h-[26px] flex items-center">
-            {/* 「12週連続記録中」で実測 102〜116px */}
-            <div className="w-28 max-w-full h-4 rounded-full bg-default-100 animate-pulse" />
-          </div>
-          {/* 最長記録・フリーズ枠(text-[11px] の行 = 16.5px) */}
-          <div className="h-[16.5px] flex items-center">
-            {/* 「最長記録 20週 · ❄❄ 残り2」で実測 141〜148px */}
-            <div className="w-36 max-w-full h-2.5 rounded-full bg-default-100 animate-pulse" />
-          </div>
-        </div>
+        <TextColumn>
+          {/* バー幅は実データで実測した値(週数の行 102〜116px / 最長記録の行 141〜148px) */}
+          <SkeletonLine
+            sampleClassName="text-2xl font-black leading-none"
+            sample={
+              <>
+                0<span className="ml-1 text-sm font-bold">週連続記録中</span>
+              </>
+            }
+            barClassName="w-28 max-w-full h-4"
+          />
+          <SkeletonLine
+            sampleClassName="text-[11px] font-medium"
+            sample="最長記録 0週"
+            barClassName="w-36 max-w-full h-2.5"
+          />
+        </TextColumn>
 
         <InfoButtonPlaceholder pulse />
       </CardBody>
@@ -122,7 +174,8 @@ export default function StreakPanel({ userId }: Props) {
   const longestWeeks = streak?.longest_weeks ?? 0;
   const freezeUsedCount = streak?.freeze_used_count ?? 0;
   const maxFreezeCount = streak?.max_freeze_count ?? 0;
-  const freezeRemaining = maxFreezeCount - freezeUsedCount;
+  // 使用済みが上限を超えた値で返ってきても「残り-1」を出さないよう 0 で止める
+  const freezeRemaining = Math.max(maxFreezeCount - freezeUsedCount, 0);
   const freezeRegenRemainingWeeks = streak?.freeze_regen_remaining_weeks ?? 0;
   const freezeRegenWeeks = streak?.freeze_regen_weeks ?? 0;
   const isActive = currentWeeks > 0;
@@ -143,15 +196,15 @@ export default function StreakPanel({ userId }: Props) {
           <LuFlame className="w-7 h-7" />
         </div>
 
-        <div className={TEXT_COLUMN_CLASS}>
+        <TextColumn>
           <span className="text-2xl font-black leading-none tabular-nums">
             {currentWeeks}
             <span className="text-sm font-bold text-default-500 ml-1">週連続記録中</span>
           </span>
 
-          {/* この行が折り返すと3行ぶんの確保(min-h)を超えてカードが伸びるので、
-              子は全て shrink-0 にして折り返させない。極端に狭い端末では溢れた分を
-              カードの overflow-hidden に任せる。 */}
+          {/* この行が折り返すと確保した3行ぶんを超えてカードが伸びるので、子は全て
+              shrink-0 にして折り返させない。極端に狭い端末では溢れた分をカードの
+              overflow-hidden に任せる。 */}
           <div className="flex items-center gap-1.5 w-full text-[11px] text-default-400 font-medium">
             <span className="shrink-0">最長記録 {longestWeeks}週</span>
             {showFreeze && (
@@ -189,7 +242,7 @@ export default function StreakPanel({ userId }: Props) {
           </div>
 
           {showFreezeRegen && <FreezeRegenLine weeks={freezeRegenRemainingWeeks} />}
-        </div>
+        </TextColumn>
 
         {/*
           フリーズの仕組みは初見だと分かりにくいので、右上に説明の入口を1つ置く。

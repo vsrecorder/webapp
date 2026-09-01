@@ -65,7 +65,7 @@ export function shouldShowEnvironmentChip(
 }
 
 /*
- * 公式イベントの種別アイコン/アクセント色/チップ表記を判定するヘルパー。
+ * 公式イベントの種別アイコン/アクセント色を判定するヘルパー。
  * 一覧カード(OfficialEventRecord)と詳細カード(OfficialEventInfo)で共有する。
  */
 export function getEventIconUrl(officialEvent: OfficialEventGetByIdResponseType): string {
@@ -145,25 +145,6 @@ export function getEventAccentColor(
   return "bg-default-300";
 }
 
-export type ChipColor =
-  | "default"
-  | "primary"
-  | "secondary"
-  | "success"
-  | "warning"
-  | "danger";
-
-export function getChipColor(officialEvent: OfficialEventGetByIdResponseType): ChipColor {
-  if (officialEvent.type_id === 1) return "warning";
-  if (officialEvent.type_id === 2) return "secondary";
-  if (officialEvent.type_id === 3) return "primary";
-  if (officialEvent.type_id === 4) {
-    if (officialEvent.title.includes("ジムバトル")) return "success";
-    return "default";
-  }
-  return "default";
-}
-
 // 主催店舗名(会場)の表示ラベル。shop_name を優先し、無ければ venue を使う。
 // 記録カード各所(TweetButton等)と同じフォールバック規約。
 export function getEventVenueLabel(
@@ -172,6 +153,8 @@ export function getEventVenueLabel(
   return officialEvent.shop_name?.trim() || officialEvent.venue?.trim() || "";
 }
 
+// イベントの種別名。種別チップの表示は廃止したため、現在は公式イベントガイド
+// (useOfficialEventGuide)のキーワード判定にだけ使う。
 export function getEventTypeName(
   officialEvent: OfficialEventGetByIdResponseType,
 ): string {

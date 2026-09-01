@@ -24,8 +24,8 @@ type Props = {
   title: string;
   loadingTitle: boolean;
   titleFallback?: string;
-  // 1段目のチップ(種別・対戦環境名など。複数可)
-  chips: React.ReactNode;
+  // 1段目のチップ(対戦環境名など。複数可)。無いカードは行ごと省略する
+  chips?: React.ReactNode;
   // 2段目のチップ(会場名など)。渡さないカードは行ごと省略する
   chipsSecondRow?: React.ReactNode;
   // 記録に付けたタグ。無い(空)なら行ごと省略する
@@ -221,8 +221,11 @@ export default function RecordCardBase({
                 />
               )}
 
-              {/* チップ1段目(種別・対戦環境名) */}
-              <div className="flex items-center gap-2 mt-1.5 flex-wrap">{chips}</div>
+              {/* チップ1段目(対戦環境名など)。チップが無いカードには余白を出さないため、
+                  渡されたときだけ行ごと描画する */}
+              {chips && (
+                <div className="flex items-center gap-2 mt-1.5 flex-wrap">{chips}</div>
+              )}
 
               {/* チップ2段目(会場名)。2段目が無いカードには余白を出さないため、
                   渡されたときだけ行ごと描画する */}

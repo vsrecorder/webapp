@@ -19,8 +19,6 @@ import EditTCGMeisterURLModal from "@app/components/organisms/Record/Modal/EditT
 import UpdateUsedDeckModal from "@app/components/organisms/Deck/Modal/UpdateUsedDeckModal";
 import {
   getEventIconUrl,
-  getChipColor,
-  getEventTypeName,
   getEventVenueLabel,
   getEventAccentColor,
   cleanOfficialEventTitle,
@@ -262,7 +260,10 @@ function HeroShell({
                 return <div className="mt-1 flex items-center gap-2.5">{iconTitle}</div>;
               })()}
 
-              <div className="mt-2 flex flex-wrap items-center gap-1.5">{chips}</div>
+              {/* チップが1つも無いときは行ごと消して、上の mt-2 ぶんの余白を残さない */}
+              <div className="mt-2 flex flex-wrap items-center gap-1.5 empty:hidden">
+                {chips}
+              </div>
 
               {/* 使用デッキ(登録済みの場合のみ)。mt-auto で左カラムの最下部へ寄せ、
                 右の戦績パネルと下端を揃える */}
@@ -629,25 +630,18 @@ export default function RecordHero({
           date={formatEventDate(dateStr)}
           chips={
             <>
-              <Chip
-                size="sm"
-                variant="flat"
-                color={getChipColor(officialEvent)}
-                className="h-5 text-[0.625rem] font-bold"
-              >
-                {getEventTypeName(officialEvent)}
-              </Chip>
-              {officialEvent.environment_title && shouldShowEnvironmentChip(officialEvent) && (
-                <Chip
-                  size="sm"
-                  variant="flat"
-                  color="default"
-                  className="h-5 max-w-30"
-                  classNames={{ content: "text-[0.625rem] truncate min-w-0" }}
-                >
-                  {`『${officialEvent.environment_title}』`}
-                </Chip>
-              )}
+              {officialEvent.environment_title &&
+                shouldShowEnvironmentChip(officialEvent) && (
+                  <Chip
+                    size="sm"
+                    variant="flat"
+                    color="default"
+                    className="h-5 max-w-30"
+                    classNames={{ content: "text-[0.625rem] truncate min-w-0" }}
+                  >
+                    {`『${officialEvent.environment_title}』`}
+                  </Chip>
+                )}
               {venue && (
                 <Chip
                   size="sm"

@@ -13,7 +13,7 @@ type Props = {
   iconBoxClassName?: string;
   // ヒーローアイコンの中身(種別アイコン画像 / ブランドマーク / 記号)
   icon: React.ReactNode;
-  // 種別/ブランドチップ(複数可)
+  // 対戦環境名/会場などのチップ(複数可)
   chips: React.ReactNode;
   // イベント名
   title: string;
@@ -64,7 +64,8 @@ export default function RecordInfoCardBase({
               <span>{date}</span>
             </div>
             <h3 className="font-bold text-lg leading-snug wrap-break-word">{title}</h3>
-            <div className="flex items-center justify-center gap-1.5 flex-wrap">
+            {/* チップが1つも無いときは行ごと消して、親の gap ぶんの余白を残さない */}
+            <div className="flex items-center justify-center gap-1.5 flex-wrap empty:hidden">
               {chips}
             </div>
           </div>

@@ -13,8 +13,6 @@ import { RecordCardSkeleton } from "@app/components/organisms/Record/Skeleton/Re
 import {
   getEventIconUrl,
   getEventAccentColor,
-  getChipColor,
-  getEventTypeName,
   cleanOfficialEventTitle,
   shouldShowEnvironmentChip,
 } from "@app/components/organisms/Record/officialEventHelpers";
@@ -292,27 +290,16 @@ export default function OfficialEventRecord({
         title={officialEvent.title}
         loadingTitle={false}
         chips={
-          <>
+          officialEvent.environment_title && shouldShowEnvironmentChip(officialEvent) ? (
             <Chip
               size="sm"
               variant="flat"
-              color={getChipColor(officialEvent)}
+              color="default"
               className="h-5 text-[0.625rem] font-bold"
             >
-              {getEventTypeName(officialEvent)}
+              {`『${officialEvent.environment_title}』`}
             </Chip>
-            {officialEvent.environment_title &&
-              shouldShowEnvironmentChip(officialEvent) && (
-                <Chip
-                  size="sm"
-                  variant="flat"
-                  color="default"
-                  className="h-5 text-[0.625rem] font-bold"
-                >
-                  {`『${officialEvent.environment_title}』`}
-                </Chip>
-              )}
-          </>
+          ) : null
         }
         chipsSecondRow={
           officialEvent.shop_name ? (

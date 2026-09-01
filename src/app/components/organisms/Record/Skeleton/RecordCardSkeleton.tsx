@@ -57,10 +57,9 @@ export function RecordCardSkeleton({ className = "" }: { className?: string }) {
                 <Skeleton className="h-3.5 w-18 rounded-md" />
               </div>
 
-              {/* チップ1段目（種別＋対戦環境の2個が最も一般的な構成。
-                  幅は「ジムバトル」66px ＋『ストームエメラルダ』126px の実測に合わせる） */}
+              {/* チップ1段目（対戦環境の1個が最も一般的な構成。
+                  幅は『ストームエメラルダ』126px の実測に合わせる） */}
               <div className="flex items-center gap-2 mt-1.5">
-                <Skeleton className="h-5 w-16 rounded-full" />
                 <Skeleton className="h-5 w-32 rounded-full" />
               </div>
 

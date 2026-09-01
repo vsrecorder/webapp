@@ -17,8 +17,6 @@ import RecordInfoCardSkeleton from "@app/components/organisms/Record/Skeleton/Re
 import {
   cleanOfficialEventTitle,
   getEventIconUrl,
-  getChipColor,
-  getEventTypeName,
   shouldShowEnvironmentChip,
 } from "@app/components/organisms/Record/officialEventHelpers";
 import EditTCGMeisterURLModal from "@app/components/organisms/Record/Modal//EditTCGMeisterURLModal";
@@ -146,14 +144,6 @@ export default function OfficialEventInfo({
         }
         chips={
           <>
-            <Chip
-              size="sm"
-              variant="flat"
-              color={getChipColor(officialEvent)}
-              className="h-5 text-[0.625rem] font-bold"
-            >
-              {getEventTypeName(officialEvent)}
-            </Chip>
             {officialEvent.environment_title &&
               shouldShowEnvironmentChip(officialEvent) && (
                 <Chip

@@ -9,8 +9,6 @@ import { DeckPokemonSpriteType, MatchPokemonSpriteType } from "@app/types/pokemo
 import {
   cleanOfficialEventTitle,
   getEventAccentColor,
-  getChipColor,
-  getEventTypeName,
   getEventVenueLabel,
 } from "@app/components/organisms/Record/officialEventHelpers";
 
@@ -133,7 +131,7 @@ function buildOfficialEventDisplay(
   if (!event.title) {
     return {
       title: UNKNOWN_TITLE,
-      chip_label: "公式",
+      chip_label: "公式イベント",
       chip_color: "default",
       accent_color_class: "bg-default-300",
       venue_label: "",
@@ -142,8 +140,10 @@ function buildOfficialEventDisplay(
 
   return {
     title: cleanOfficialEventTitle(event.title),
-    chip_label: getEventTypeName(event),
-    chip_color: getChipColor(event),
+    // 種別名(シティリーグ/ジムバトル等)は出さず、Tonamel・自由形式と同じ粒度の
+    // ソース種別ラベルに揃える
+    chip_label: "公式イベント",
+    chip_color: "default",
     accent_color_class: getEventAccentColor(event),
     venue_label: getEventVenueLabel(event),
   };

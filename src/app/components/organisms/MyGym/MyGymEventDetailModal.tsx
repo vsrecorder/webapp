@@ -25,8 +25,6 @@ import { Modal } from "@app/components/atoms/AppModal";
 import { formatEventTime } from "@app/components/organisms/MyGym/myGymHelpers";
 import {
   cleanOfficialEventTitle,
-  getChipColor,
-  getEventTypeName,
   getEventIconUrl,
   getEventVenueLabel,
   shouldShowEnvironmentChip,
@@ -155,15 +153,7 @@ export default function MyGymEventDetailModal({ isOpen, onOpenChange, event }: P
                     {cleanOfficialEventTitle(event.title)}
                   </span>
 
-                  <div className="flex flex-wrap items-center gap-1">
-                    <Chip
-                      size="sm"
-                      variant="flat"
-                      color={getChipColor(event)}
-                      className="h-5 text-[0.625rem] font-bold"
-                    >
-                      {getEventTypeName(event)}
-                    </Chip>
+                  <div className="flex flex-wrap items-center gap-1 empty:hidden">
                     {event.environment_title && shouldShowEnvironmentChip(event) && (
                       <Chip
                         size="sm"

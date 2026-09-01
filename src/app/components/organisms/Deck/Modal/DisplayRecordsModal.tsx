@@ -149,7 +149,7 @@ export default function DisplayRecordsModal({
             {/* スワイプ検知 */}
             <ModalHeader
               ref={attachHeader}
-              className="px-3 py-3 pb-0 flex flex-col gap-1.5 cursor-grab touch-none"
+              className="relative px-3 py-3 pb-0 flex flex-col gap-1.5 cursor-grab touch-none"
             >
               {/* スワイプバー */}
               <div className="mx-auto h-1 w-32 mb-1.5 rounded-full bg-default-300" />
@@ -162,7 +162,12 @@ export default function DisplayRecordsModal({
                   size="md"
                   selectedKey={selectedKey}
                   onSelectionChange={handleSelectionChange}
-                  className="fixed z-50 left-0 right-0 pl-1 pr-1"
+                  // タブはヘッダーの通常フローから浮かせ、ModalBody 側の pt-12 で
+                  // その分の余白を確保している。基準は fixed(ビューポート)ではなく
+                  // absolute(relative なヘッダー = モーダル幅)にすること。
+                  // fixed だと画面幅いっぱいに広がるため、モーダルが画面より狭くなる
+                  // タブレット以上(base の sm:mx-6 / lg:max-w-2xl)ではみ出していた
+                  className="absolute z-50 left-0 right-0"
                   classNames={{
                     cursor: "",
                     tab: "h-8",

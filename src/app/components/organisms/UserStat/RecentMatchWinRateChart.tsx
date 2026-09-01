@@ -30,10 +30,26 @@ ChartJS.register(
   Filler,
 );
 
-type CountMode = "20" | "30" | "40" | "50" | "100";
+// 「直近N戦」の選択肢。20〜100戦を10戦刻み
+// (バックエンドが受け付ける範囲と揃えること: validation/user_stat_recent.go)。
+const COUNT_OPTIONS = [20, 30, 40, 50, 60, 70, 80, 90, 100] as const;
+
+type CountMode = `${(typeof COUNT_OPTIONS)[number]}`;
 
 // ツールチップ内スプライトの枠(px)。他のリスト行と揃えた最小サイズ。
 const SPRITE_SIZE = 28;
+
+// 点の数に応じたマーカー半径。勝敗の色分け(緑=勝ち/赤=負け/グレー=引き分け)を
+// 残したまま、隣の点と重なって帯状に潰れるのを防ぐ。
+// マーカーの直径(半径×2)が点の間隔を超えると重なり始めるため、超えない段階にしている。
+// 間隔は幅440pxの端末で実測したプロット領域(約325px)を N-1 で割った値。
+// 20〜30戦は従来どおり半径4のままで、増やした高い件数だけが小さくなる。
+function pointRadiusFor(pointCount: number): number {
+  if (pointCount <= 30) return 4; // 30戦で間隔約11px
+  if (pointCount <= 50) return 3; // 50戦で間隔約6.6px
+  if (pointCount <= 80) return 2; // 80戦で間隔約4.1px
+  return 1.5; // 100戦で間隔約3.3px
+}
 
 type Props = {
   userId: string;
@@ -304,6 +320,8 @@ export default function RecentMatchWinRateChart({ userId }: Props) {
     yMax = Math.min(100, Math.ceil((center + 10) / 5) * 5);
   }
 
+  const pointRadius = pointRadiusFor(chartData.length);
+
   const data = {
     labels,
     datasets: [
@@ -318,8 +336,9 @@ export default function RecentMatchWinRateChart({ userId }: Props) {
           if (d?.draw) return "#A1A1AA";
           return d?.victory ? "#17C964" : "#F31260";
         },
-        pointRadius: 4,
-        pointHoverRadius: 6,
+        pointRadius,
+        // ホバー(タップ)時は必ず一回り大きくして、どの点を見ているか分かるようにする
+        pointHoverRadius: pointRadius + 2,
         pointHitRadius: 24,
         fill: true,
         tension: 0.3,
@@ -381,11 +400,11 @@ export default function RecentMatchWinRateChart({ userId }: Props) {
               onChange={(e) => setCountMode(e.target.value as CountMode)}
               className="appearance-none rounded-lg border border-default-200 bg-default-100 pl-3 pr-7 py-1.5 text-xs font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
             >
-              <option value="20">直近20戦</option>
-              <option value="30">直近30戦</option>
-              <option value="40">直近40戦</option>
-              <option value="50">直近50戦</option>
-              <option value="100">直近100戦</option>
+              {COUNT_OPTIONS.map((count) => (
+                <option key={count} value={count}>
+                  直近{count}戦
+                </option>
+              ))}
             </select>
             <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-default-400 text-[0.625rem]">
               ▼

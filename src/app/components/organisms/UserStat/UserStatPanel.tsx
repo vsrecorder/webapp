@@ -18,6 +18,10 @@ import RegulationSegmentedControl from "@app/components/molecules/RegulationSegm
 import { ChampionshipSeriesType } from "@app/types/championship_series";
 import { UserStatType } from "@app/types/user_stat";
 import {
+  getCurrentYearMonth,
+  generateYearMonthOptions,
+} from "@app/utils/yearMonthOptions";
+import {
   seasonOptionsFromChampionshipSeries,
   currentSeasonValue,
 } from "@app/utils/season";
@@ -34,27 +38,6 @@ type Props = {
   // セクション見出し。パネル自身が見出し行を描画し、その右端にシェアボタンを置く。
   sectionTitle: string;
 };
-
-function getCurrentYearMonth(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-}
-
-function generateYearMonthOptions(createdAt?: Date) {
-  const options: { value: string; label: string }[] = [];
-  const now = new Date();
-  const start = createdAt
-    ? new Date(createdAt.getFullYear(), createdAt.getMonth(), 1)
-    : new Date(now.getFullYear(), now.getMonth() - 11, 1);
-  let d = new Date(now.getFullYear(), now.getMonth(), 1);
-  while (d >= start) {
-    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    const label = `${d.getFullYear()}年${d.getMonth() + 1}月`;
-    options.push({ value, label });
-    d = new Date(d.getFullYear(), d.getMonth() - 1, 1);
-  }
-  return options;
-}
 
 export default function UserStatPanel({
   userId,
@@ -85,8 +68,7 @@ export default function UserStatPanel({
   // シェアモーダルの開閉
   const [shareOpen, setShareOpen] = useState(false);
 
-  const createdAtDate = userCreatedAt != null ? new Date(userCreatedAt) : undefined;
-  const yearMonthOptions = generateYearMonthOptions(createdAtDate);
+  const yearMonthOptions = generateYearMonthOptions(userCreatedAt);
   const seasonOptions = seasonOptionsFromChampionshipSeries(championshipSeries);
 
   useEffect(() => {

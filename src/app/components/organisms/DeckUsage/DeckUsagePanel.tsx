@@ -38,6 +38,10 @@ import {
   currentSeasonValue,
 } from "@app/utils/season";
 import { lighten } from "@app/utils/color";
+import {
+  getCurrentYearMonth,
+  generateYearMonthOptions,
+} from "@app/utils/yearMonthOptions";
 import { roundToSignificantDigits } from "@app/utils/number";
 import { groupIntoOther } from "@app/utils/deckUsageOther";
 import {
@@ -139,11 +143,6 @@ function deckSpriteUrls(sprites: { id: string }[] | undefined): string[] {
   return [s1 ? spriteUrl(s1.id) : unknown, s2 ? spriteUrl(s2.id) : unknown];
 }
 
-function getCurrentYearMonth(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-}
-
 // 勝率に応じた色分け（OpponentDeckUsagePanelの勝率表示と同じ閾値に合わせる）
 function winRateChipColor(rate: number): "success" | "default" | "warning" | "danger" {
   if (rate >= 0.55) return "success";
@@ -157,22 +156,6 @@ function winRateTextColor(rate: number): string {
   if (rate >= 0.45) return "text-default-500";
   if (rate >= 0.4) return "text-warning";
   return "text-danger";
-}
-
-function generateYearMonthOptions(createdAt?: Date) {
-  const options: { value: string; label: string }[] = [];
-  const now = new Date();
-  const start = createdAt
-    ? new Date(createdAt.getFullYear(), createdAt.getMonth(), 1)
-    : new Date(now.getFullYear(), now.getMonth() - 11, 1);
-  let d = new Date(now.getFullYear(), now.getMonth(), 1);
-  while (d >= start) {
-    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    const label = `${d.getFullYear()}年${d.getMonth() + 1}月`;
-    options.push({ value, label });
-    d = new Date(d.getFullYear(), d.getMonth() - 1, 1);
-  }
-  return options;
 }
 
 type TooltipState = {
@@ -227,8 +210,7 @@ export default function DeckUsagePanel({
   // 詳細カードの開閉に合わせて幅・高さがCSSのtransitionで変化する、キャンバスの入れ物
   const chartContainerRef = useRef<HTMLDivElement>(null);
 
-  const createdAtDate = userCreatedAt != null ? new Date(userCreatedAt) : undefined;
-  const yearMonthOptions = generateYearMonthOptions(createdAtDate);
+  const yearMonthOptions = generateYearMonthOptions(userCreatedAt);
   const seasonOptions = seasonOptionsFromChampionshipSeries(championshipSeries);
 
   useEffect(() => {

@@ -19,6 +19,10 @@ import FetchError from "@app/components/molecules/FetchError";
 
 import { UserType } from "@app/types/user";
 import { UserStatType } from "@app/types/user_stat";
+import {
+  getCurrentYearMonth,
+  generateYearMonthOptions,
+} from "@app/utils/yearMonthOptions";
 import { UserPlayerType } from "@app/types/user_player";
 
 type Props = {
@@ -26,49 +30,6 @@ type Props = {
   isDevEnv?: boolean;
   userCreatedAt?: string;
 };
-
-// 年月を「年 * 12 + (月 - 1)」の通し番号に変換する。基準は常にJST。
-//
-// Date の getFullYear/getMonth は端末のタイムゾーンで解釈されるため、これで年月を
-// 組み立てるとサーバ(TZ=Asia/Tokyo)とJST以外の端末とで月替わりの瞬間に食い違い、
-// ハイドレーション不一致や「選択中の年月が選択肢に無い」状態を招く。+9時間ずらして
-// UTCとして読むことでJSTに固定する。
-//
-// 月の加減算も Date ではなくこの通し番号の整数演算で行う(年跨ぎを自前で扱わずに済む)。
-function jstYearMonthIndex(date: Date): number {
-  const jst = new Date(date.getTime() + 9 * 60 * 60 * 1000);
-  return jst.getUTCFullYear() * 12 + jst.getUTCMonth();
-}
-
-function yearMonthValue(index: number): string {
-  const year = Math.floor(index / 12);
-  const month = (index % 12) + 1;
-  return `${year}-${String(month).padStart(2, "0")}`;
-}
-
-// JST で現在の年月("YYYY-MM")を返す
-function getCurrentYearMonthValue(): string {
-  return yearMonthValue(jstYearMonthIndex(new Date()));
-}
-
-function yearMonthLabel(yearMonth: string): string {
-  const [year, month] = yearMonth.split("-");
-  return `${year}年${Number(month)}月`;
-}
-
-// 登録月(なければ直近12ヶ月)〜当月までの年月選択肢を新しい順で生成する
-function generateYearMonthOptions(createdAt?: Date) {
-  const currentIndex = jstYearMonthIndex(new Date());
-  const startIndex = createdAt ? jstYearMonthIndex(createdAt) : currentIndex - 11;
-
-  const options: { value: string; label: string }[] = [];
-  for (let index = currentIndex; index >= startIndex; index--) {
-    const value = yearMonthValue(index);
-    options.push({ value, label: yearMonthLabel(value) });
-  }
-
-  return options;
-}
 
 // フレームがこの間隔以内で描けていれば「滑らかに描ける状態」とみなす(およそ25fps以上)。
 const SMOOTH_FRAME_MS = 40;
@@ -362,11 +323,10 @@ export default function UserProfileCard({
   const [isPlayersClubFeatureDisabled, setIsPlayersClubFeatureDisabled] = useState(false);
   const [profile, setProfile] = useState({ name: user.name, imageUrl: user.image_url });
   const [statsVisible, setStatsVisible] = useState(true);
-  const [yearMonth, setYearMonth] = useState<string>(getCurrentYearMonthValue);
+  const [yearMonth, setYearMonth] = useState<string>(getCurrentYearMonth);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
-  const createdAtDate = userCreatedAt != null ? new Date(userCreatedAt) : undefined;
-  const yearMonthOptions = generateYearMonthOptions(createdAtDate);
+  const yearMonthOptions = generateYearMonthOptions(userCreatedAt);
 
   useEffect(() => {
     const stored = localStorage.getItem(STATS_VISIBLE_KEY);

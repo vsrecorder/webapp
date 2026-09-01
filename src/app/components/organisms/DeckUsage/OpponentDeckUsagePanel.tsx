@@ -84,13 +84,9 @@ export default function OpponentDeckUsagePanel({
 
   // 「月次」の選択肢は、実際に記録されている最も古い対戦のevent_dateを起点にする。
   // 取得前・取得失敗時はユーザー登録日、それも無ければ直近12ヶ月にフォールバックする。
-  const createdAtDate =
-    oldestEventDate != null
-      ? new Date(oldestEventDate)
-      : userCreatedAt != null
-        ? new Date(userCreatedAt)
-        : undefined;
-  const yearMonthOptions = generateYearMonthOptions(createdAtDate);
+  const yearMonthOptions = generateYearMonthOptions(
+    oldestEventDate ?? userCreatedAt ?? undefined,
+  );
   const seasonOptions = seasonOptionsFromChampionshipSeries(championshipSeries);
 
   useEffect(() => {

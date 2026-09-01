@@ -75,8 +75,7 @@ export default function DeckOpponentAnalysisPanel({
 
   // 「月次」の選択肢は、このデッキで実際に記録されている最も古い対戦のevent_dateを起点にする。
   // 取得前・取得失敗時は直近12ヶ月にフォールバックする。
-  const createdAtDate = oldestEventDate != null ? new Date(oldestEventDate) : undefined;
-  const yearMonthOptions = generateYearMonthOptions(createdAtDate);
+  const yearMonthOptions = generateYearMonthOptions(oldestEventDate ?? undefined);
 
   useEffect(() => {
     if (!userId || !deckId) return;

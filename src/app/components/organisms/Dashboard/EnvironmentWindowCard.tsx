@@ -13,7 +13,7 @@ import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
 import { fingerprintKey } from "@app/utils/fingerprint";
 import { rankableDecks, exclOtherTotalOf } from "@app/utils/deckEnv";
 import { lastWeekValue } from "@app/utils/week";
-import { DeckData, DeckGetResponseType, isFavoritedDeck } from "@app/types/deck";
+import { DeckData, DeckGetAllType, isFavoritedDeck } from "@app/types/deck";
 import { DeckUsageItemType, DeckUsageStatType } from "@app/types/deck_usage_stat";
 import {
   WeeklyDeckUsageItemType,
@@ -801,7 +801,11 @@ export default function EnvironmentWindowCard({
           fetch(`/api/deck_meta/weekly_usage?week=${lastWeekValue()}`, {
             cache: "no-store",
           }),
-          fetch(`/api/decks?archived=false&cursor=`, { cache: "no-store" }),
+          // デッキ選択の候補は「持っているデッキ全部」でなければならない。
+          // ページングの /api/decks は1ページ10件で、11個目以降が候補から
+          // 落ちる(スプライト付きのデッキが全て溢れると識別不能扱いにもなる)ため、
+          // アーカイブ済みを除いた全件を返す /api/decks/all を使う。
+          fetch(`/api/decks/all`, { cache: "no-store" }),
           // deck-usage は「あなたの実勝率」を出すための補助。失敗しても本体は出すため寛容に。
           fetch(`/api/users/${userId}/deck-usage?all_time=true`, {
             cache: "no-store",
@@ -811,11 +815,11 @@ export default function EnvironmentWindowCard({
         if (!statRes.ok || !decksRes.ok) throw new Error("fetch failed");
 
         const statData: WeeklyDeckUsageStatType = await statRes.json();
-        const decksData: DeckGetResponseType = await decksRes.json();
+        const decksData: DeckGetAllType = await decksRes.json();
 
         if (cancelled) return;
         setStat(statData);
-        setUserDecks(decksData.decks.map((d) => d.data));
+        setUserDecks(decksData);
 
         if (usageRes && usageRes.ok) {
           const usageData: DeckUsageStatType = await usageRes.json();

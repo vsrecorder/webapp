@@ -15,7 +15,6 @@ import { Card, CardBody } from "@heroui/react";
 
 import { UserStatHistoryType, UserStatMonthlyType } from "@app/types/user_stat_history";
 import { DeckUsageItemType, DeckUsageStatType } from "@app/types/deck_usage_stat";
-import { DeckGetResponseType } from "@app/types/deck";
 import { ChampionshipSeriesType } from "@app/types/championship_series";
 import { seasonOptionsFromChampionshipSeries, currentSeasonValue } from "@app/utils/season";
 import { todayJSTDateString } from "@app/utils/date";
@@ -83,7 +82,6 @@ export default function UserStatHistoryChart({ userId, championshipSeries }: Pro
   // レギュレーション区分(スタンダード/エクストラ/殿堂/その他)。既定はスタンダード。
   const [regulationId, setRegulationId] = useState<number>(DEFAULT_REGULATION_ID);
   const [ownDecks, setOwnDecks] = useState<DeckUsageItemType[]>([]);
-  const [activeDeckIds, setActiveDeckIds] = useState<Set<string> | null>(null);
   const [history, setHistory] = useState<UserStatHistoryType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -141,6 +139,11 @@ export default function UserStatHistoryChart({ userId, championshipSeries }: Pro
   // グラフに出している期間・レギュレーションで実際に使用したデッキ一覧を取得し、
   // デッキセレクタの選択肢にする（対戦相手のデッキ分布パネルと同様、
   // 「使用したすべてのデッキで集計」をデフォルトにした単一パネル構成）。
+  //
+  // アーカイブ済みのデッキも選択肢に含める。過去の戦績を振り返るパネルであり、
+  // 「もう使っていないデッキの当時の勝率推移を見る」ことに意味があるため
+  // （集計側もアーカイブでは除外していない: バックエンドの勝率集計は records 基準で、
+  // decks.archived_at を条件に含めていない）。
   //
   // 期間セレクタと無関係に season（＝現在シーズン）で引いてはならない。
   // シーズンはチャンピオンシップシリーズ基準で9月に切り替わるため、
@@ -205,66 +208,19 @@ export default function UserStatHistoryChart({ userId, championshipSeries }: Pro
     };
   }, [userId, periodMode, seasonYear, currentSeason, regulationId]);
 
-  // デッキセレクタにはアーカイブされていないデッキのみを表示する
-  // （「使用したすべてのデッキで集計」を選んだ場合の勝率計算はアーカイブ済みデッキも含めるため、
-  // ここでの絞り込みは表示上の選択肢のみに影響する）
-  useEffect(() => {
-    let cancelled = false;
-
-    async function fetchActiveDeckIds() {
-      try {
-        const ids = new Set<string>();
-        let cursor = "";
-
-        for (;;) {
-          const res = await fetch(`/api/decks?archived=false&cursor=${cursor}`, {
-            cache: "no-store",
-          });
-          if (!res.ok) break;
-
-          const data: DeckGetResponseType = await res.json();
-          if (data.decks.length === 0) break;
-
-          for (const deck of data.decks) ids.add(deck.data.id);
-
-          const lastItem = data.decks[data.decks.length - 1];
-          if (!lastItem.cursor || lastItem.cursor === cursor) break;
-          cursor = lastItem.cursor;
-        }
-
-        if (!cancelled) setActiveDeckIds(ids);
-      } catch (e) {
-        console.error(e);
-      }
-    }
-
-    fetchActiveDeckIds();
-    return () => {
-      cancelled = true;
-    };
-  }, [userId]);
-
-  // 選択中のデッキが選択肢から消えた場合は「使用したすべてのデッキで集計」に戻す。
-  // デッキがアーカイブされた場合と、期間を変えてその期間には使っていなかった場合の両方。
-  // 放置すると select の表示だけが空になり、グラフは前の絞り込みのまま残ってしまう。
+  // 期間を変えて、選択中のデッキがその期間の選択肢から消えた場合は
+  // 「使用したすべてのデッキで集計」に戻す。放置すると select の表示だけが空になり、
+  // グラフは前の絞り込みのまま残ってしまう。
   useEffect(() => {
     if (!deckId) return;
-
-    const isArchived = activeDeckIds != null && !activeDeckIds.has(deckId);
-    const isUnusedInPeriod = !ownDecks.some((deck) => deck.deck_id === deckId);
-
-    if (isArchived || isUnusedInPeriod) setDeckId("");
-  }, [deckId, activeDeckIds, ownDecks]);
-
-  const selectableDecks = activeDeckIds
-    ? ownDecks.filter((deck) => activeDeckIds.has(deck.deck_id))
-    : ownDecks;
+    if (!ownDecks.some((deck) => deck.deck_id === deckId)) setDeckId("");
+  }, [deckId, ownDecks]);
 
   // デッキを絞り込んでいるときは、どのデッキを選んでいるかスプライトでも示す。
   // 1体でも登録があれば position でスロットを固定して2枠表示し、1体も無いデッキでは
   // 何も出さない(モンスターボール2つはデッキの手掛かりにならないため)。
   const selectedDeck = deckId
-    ? selectableDecks.find((deck) => deck.deck_id === deckId)
+    ? ownDecks.find((deck) => deck.deck_id === deckId)
     : undefined;
   const deckSprite1 = getDeckSpriteBySlot(selectedDeck?.pokemon_sprites, 1);
   const deckSprite2 = getDeckSpriteBySlot(selectedDeck?.pokemon_sprites, 2);
@@ -452,7 +408,7 @@ export default function UserStatHistoryChart({ userId, championshipSeries }: Pro
               className="w-full appearance-none rounded-lg border border-default-200 bg-default-100 pl-3 pr-7 py-1.5 text-xs font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
             >
               <option value="">使用したすべてのデッキで集計</option>
-              {selectableDecks.map((deck) => (
+              {ownDecks.map((deck) => (
                 <option key={deck.deck_id} value={deck.deck_id}>
                   {deck.name}
                 </option>

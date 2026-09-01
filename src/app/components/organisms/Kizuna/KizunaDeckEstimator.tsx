@@ -39,7 +39,7 @@ import { spriteImageUrl } from "@app/utils/sprite";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import { getDeckSpriteBySlot, sortedDeckSprites } from "@app/utils/deckSprite";
 
-import { DeckGetResponseType, DeckType } from "@app/types/deck";
+import { DeckData, DeckGetAllType } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
 import { DeckUsageItemType, DeckUsageStatType } from "@app/types/deck_usage_stat";
 import { RecordGetResponseType, RecordType } from "@app/types/record";
@@ -164,7 +164,7 @@ type Props = {
  * （算出ロジックは utils/kizuna.ts。既存APIだけで求まる6指標を使う簡易版）
  */
 export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
-  const [decks, setDecks] = useState<DeckType[] | null>(null);
+  const [decks, setDecks] = useState<DeckData[] | null>(null);
   const [usages, setUsages] = useState<DeckUsageItemType[]>([]);
   const [spriteMaster, setSpriteMaster] = useState<Map<string, PokemonSpriteType>>(
     new Map(),
@@ -204,14 +204,17 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
     (async () => {
       try {
         const [deckRes, usageRes, sprites] = await Promise.all([
-          fetchJson<DeckGetResponseType>("/api/decks?archived=false&cursor="),
+          // 何十個もデッキを持つユーザーを想定した一覧なので、全件を返す
+          // /api/decks/all を使う。ページングの /api/decks は1ページ10件で、
+          // 「さらに読み込む」を押しても11個目以降に辿り着けない。
+          fetchJson<DeckGetAllType>("/api/decks/all"),
           fetchJson<DeckUsageStatType>(`/api/users/${userId}/deck-usage?all_time=true`),
           fetchJson<PokemonSpriteType[]>("/api/pokemon-sprites").catch(() => []),
         ]);
 
         if (cancelled) return;
 
-        const deckList = deckRes.decks ?? [];
+        const deckList = deckRes ?? [];
         setDecks(deckList);
         setUsages(usageRes.decks ?? []);
         setSpriteMaster(new Map(sprites.map((s) => [s.id, s])));
@@ -231,17 +234,17 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
   const orderedDecks = useMemo(() => {
     if (!decks) return [];
     const countOf = (id: string) => usages.find((u) => u.deck_id === id)?.count ?? 0;
-    return [...decks].sort((a, b) => countOf(b.data.id) - countOf(a.data.id));
+    return [...decks].sort((a, b) => countOf(b.id) - countOf(a.id));
   }, [decks, usages]);
 
   const visibleDecks = orderedDecks.slice(0, visibleCount);
   const hiddenDeckCount = orderedDecks.length - visibleDecks.length;
 
-  const selectedDeck = orderedDecks.find((d) => d.data.id === selectedDeckId) ?? null;
+  const selectedDeck = orderedDecks.find((d) => d.id === selectedDeckId) ?? null;
 
   const spritesOf = useCallback(
-    (deck: DeckType): PokemonSpriteType[] =>
-      sortedDeckSprites(deck.data.pokemon_sprites).map(
+    (deck: DeckData): PokemonSpriteType[] =>
+      sortedDeckSprites(deck.pokemon_sprites).map(
         (s) =>
           spriteMaster.get(s.id) ?? {
             id: s.id,
@@ -323,7 +326,7 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
       return;
     }
 
-    const deck = selectedDeck!.data;
+    const deck = selectedDeck!;
     const usage = usages.find((u) => u.deck_id === deck.id);
 
     // position でスロットを固定した2枠(空スロットは"")。両枠空なら空配列にして
@@ -415,7 +418,7 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
       ? [
           // デッキ名が長いと1行に収まらないため、数値の前で改行する。
           // 数値だけを1行に立たせたいので、「でした。」もさらに次の行へ送る。
-          `${selectedDeck.data.name}とのきずなLv.は`,
+          `${selectedDeck.name}とのきずなLv.は`,
           `【${estimate.score} / 255】`,
           "でした。",
           "",
@@ -560,15 +563,15 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
 
         <ul className="flex flex-col gap-2">
           {visibleDecks.map((deck, index) => {
-            const isSelected = selectedDeckId === deck.data.id;
-            const count = usages.find((u) => u.deck_id === deck.data.id)?.count ?? 0;
+            const isSelected = selectedDeckId === deck.id;
+            const count = usages.find((u) => u.deck_id === deck.id)?.count ?? 0;
 
             return (
-              <li key={deck.data.id} className="min-w-0">
+              <li key={deck.id} className="min-w-0">
                 <button
                   type="button"
                   aria-pressed={isSelected}
-                  onClick={() => handleSelectDeck(deck.data.id)}
+                  onClick={() => handleSelectDeck(deck.id)}
                   className={`group relative flex w-full items-center gap-4 overflow-hidden rounded-2xl border px-4 py-3 text-left transition-all ${
                     isSelected
                       ? "border-amber-400/70 bg-amber-500/10 shadow-[0_16px_40px_-24px_rgba(251,191,36,0.9)]"
@@ -595,7 +598,7 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
                       {([1, 2] as const).map((slot) => (
                         <PokemonSprite
                           key={slot}
-                          id={getDeckSpriteBySlot(deck.data.pokemon_sprites, slot)?.id}
+                          id={getDeckSpriteBySlot(deck.pokemon_sprites, slot)?.id}
                           size={44}
                         />
                       ))}
@@ -605,7 +608,7 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
                   <span className="flex min-w-0 flex-1 flex-col gap-1">
                     <span className="flex min-w-0 items-center gap-2">
                       <span className="truncate text-sm font-bold lg:text-base">
-                        {deck.data.name}
+                        {deck.name}
                       </span>
                       {/* 記録が最も多いデッキ＝いちばん長く歩いてきた相手。最初に目を留めさせる */}
                       {index === 0 && count > 0 && (
@@ -696,7 +699,7 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
           <div className="flex flex-col gap-4">
             <KizunaShareCard
               sprites={spritesOf(selectedDeck!)}
-              deckName={selectedDeck!.data.name}
+              deckName={selectedDeck!.name}
               score={estimate!.score}
               tierName={tier.name}
               tierMessage={tier.message}
@@ -705,7 +708,7 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
             {/* 算出の内訳。自動で出した数値だからこそ、根拠を見せる。
               画面のこのカードが、そのまま2枚目のシェア画像になる。 */}
             <KizunaBreakdownCard
-              deckName={selectedDeck!.data.name}
+              deckName={selectedDeck!.name}
               score={estimate!.score}
               tierName={tier.name}
               metrics={estimate!.metrics}
@@ -840,7 +843,7 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
               isOpen={headerModalOpen}
               onClose={() => setHeaderModalOpen(false)}
               sprites={spritesOf(selectedDeck!)}
-              deckName={selectedDeck!.data.name}
+              deckName={selectedDeck!.name}
               score={estimate!.score}
               tierName={tier.name}
               tierMessage={tier.message}
@@ -858,7 +861,7 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
           <div ref={shareCardRef} style={{ width: captureWidth }}>
             <KizunaShareCard
               sprites={spritesOf(selectedDeck!)}
-              deckName={selectedDeck!.data.name}
+              deckName={selectedDeck!.name}
               score={estimate!.score}
               tierName={tier.name}
               tierMessage={tier.message}
@@ -868,7 +871,7 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
           {/* 2枚目：内訳カード。トグルOFFでも描画しておく（ONに切り替えた瞬間に撮れるように） */}
           <div ref={breakdownCardRef} style={{ width: captureWidth }}>
             <KizunaBreakdownCard
-              deckName={selectedDeck!.data.name}
+              deckName={selectedDeck!.name}
               score={estimate!.score}
               tierName={tier.name}
               metrics={estimate!.metrics}

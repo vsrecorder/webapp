@@ -1,6 +1,6 @@
 "use client";
 
-import { Modal as HeroUIModal, type ModalProps } from "@heroui/react";
+import { cn, Modal as HeroUIModal, type ModalProps } from "@heroui/react";
 import { useReducedMotion, type Variants } from "framer-motion";
 
 /*
@@ -89,6 +89,19 @@ const reducedMotion: Variants = {
   exit: { opacity: 0, transition: { duration: 0.1, ease: EASE_IN } },
 };
 
+/*
+ * 下寄せシート(placement: bottom)を画面下端に貼り付けるための打ち消し。
+ *
+ * HeroUI の base スロットは `my-1 sm:my-16` を持つ。呼び出し側はモバイル向けに
+ * `my-0` を指定しているが、`sm:my-16` は別ブレークポイントなので tailwind-merge では
+ * 消えず、sm(640px)以上——タブレットやデスクトップ——でだけ上下に 64px の余白が残る。
+ * シートは下端に貼り付く前提(rounded-b-none)なので、下に隙間が空くと浮いて見える。
+ *
+ * classNames.base は className より前に連結される(cn(classNames.base, className))ため、
+ * 個別に上下マージンを持たせたいモーダルは className 側で上書きできる。
+ */
+const BOTTOM_SHEET_BASE = "sm:my-0";
+
 function getMotionVariants(placement: ModalProps["placement"], shouldReduceMotion: boolean) {
   if (shouldReduceMotion) return reducedMotion;
 
@@ -98,7 +111,7 @@ function getMotionVariants(placement: ModalProps["placement"], shouldReduceMotio
   return placement === "bottom" ? sheetMotion : dialogMotion;
 }
 
-export function Modal({ motionProps, placement, ...props }: ModalProps) {
+export function Modal({ motionProps, placement, classNames, ...props }: ModalProps) {
   // 端末の設定を尊重する。SSR 時は null(= 視差効果あり)になる
   const shouldReduceMotion = useReducedMotion() ?? false;
 
@@ -106,6 +119,11 @@ export function Modal({ motionProps, placement, ...props }: ModalProps) {
     <HeroUIModal
       {...props}
       placement={placement}
+      classNames={
+        placement === "bottom"
+          ? { ...classNames, base: cn(BOTTOM_SHEET_BASE, classNames?.base) }
+          : classNames
+      }
       // 呼び出し側が明示した motionProps があればそちらを優先する
       motionProps={motionProps ?? { variants: getMotionVariants(placement, shouldReduceMotion) }}
     />

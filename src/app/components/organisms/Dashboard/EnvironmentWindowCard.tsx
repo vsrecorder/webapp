@@ -88,15 +88,22 @@ function formatDeltaPt(pt: number): string {
 function DeckSprites({
   sprites,
   size = 32,
+  loading,
 }: {
   sprites: { id: string; position?: number }[] | undefined;
   size?: number;
+  loading?: "lazy" | "eager";
 }) {
   const list = sprites ?? [];
   return (
     <div className="flex items-center gap-0 shrink-0">
       {([1, 2] as const).map((slot) => (
-        <PokemonSprite key={slot} id={getDeckSpriteBySlot(list, slot)?.id} size={size} />
+        <PokemonSprite
+          key={slot}
+          id={getDeckSpriteBySlot(list, slot)?.id}
+          size={size}
+          loading={loading}
+        />
       ))}
     </div>
   );
@@ -314,7 +321,10 @@ function DeckSelector({
                 : "border-default-200 bg-default-50 hover:bg-default-100"
             }`}
           >
-            <DeckSprites sprites={p.deck.pokemon_sprites} size={22} />
+            {/* 登録デッキの数だけチップが並び、横スクロールで見えているのは数個。
+                全部を即時読み込みすると初回のリクエストがデッキ数に比例して増えるため、
+                この行だけ遅延読み込みにする。 */}
+            <DeckSprites sprites={p.deck.pokemon_sprites} size={22} loading="lazy" />
             <span
               className={`text-[0.6875rem] font-bold max-w-26 truncate ${
                 active ? "text-primary" : "text-default-600"

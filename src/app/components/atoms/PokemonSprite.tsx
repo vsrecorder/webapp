@@ -30,6 +30,13 @@ type Props = {
   className?: string;
   /** 画像書き出し用に素の <img> で描画する */
   raw?: boolean;
+  /**
+   * <img loading> をそのまま指定する。既定(未指定)は即時読み込み。
+   * 一度に何十枚も並べる一覧(横スクロールのデッキ選択など)でだけ "lazy" を渡し、
+   * 画面外のスプライトを初回リクエストから外す。
+   * 書き出し(raw / captureThemedPng)では読み込み済みである必要があるため渡さないこと。
+   */
+  loading?: "lazy" | "eager";
 };
 
 export default function PokemonSprite({
@@ -37,6 +44,7 @@ export default function PokemonSprite({
   size = 44,
   className = "",
   raw = false,
+  loading,
 }: Props) {
   const alt = id ? id.replace(/^0+(?!$)/, "") : "unknown";
   const src = spriteImageUrl(id);
@@ -49,9 +57,9 @@ export default function PokemonSprite({
     >
       {raw ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img alt={alt} src={src} style={style} />
+        <img alt={alt} src={src} style={style} loading={loading} />
       ) : (
-        <Image removeWrapper alt={alt} src={src} style={style} />
+        <Image removeWrapper alt={alt} src={src} style={style} loading={loading} />
       )}
     </div>
   );

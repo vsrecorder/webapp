@@ -349,44 +349,46 @@ export default function UserStatHistoryChart({ userId, championshipSeries }: Pro
         />
 
         {/* ヘッダー */}
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-bold text-default-700"></span>
-          <div className="flex items-center gap-2">
-            {periodMode === "select_season" && (
-              <div className="relative">
-                <select
-                  name="user-stat-history-season"
-                  value={seasonYear}
-                  onChange={(e) => setSeasonYear(e.target.value)}
-                  className="appearance-none rounded-lg border border-default-200 bg-default-100 pl-3 pr-7 py-1.5 text-xs font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
-                >
-                  {seasonOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-                <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-default-400 text-[0.625rem]">
-                  ▼
-                </span>
-              </div>
-            )}
-            <div className="relative">
+        {/* 期間セレクタ。「シーズン選択」のときだけ左にシーズンセレクタが並ぶ。
+            シーズン名は「チャンピオンシップシリーズ2027」と長く、素の幅で2つ並べると
+            狭い端末(360px幅)でカードからはみ出して期間セレクタが切れてしまう。
+            シーズン側を可変(flex-1 min-w-0)にして余りを吸わせ、行を横いっぱいに使う。
+            期間セレクタは選択肢で文字数が変わらないので固定幅(shrink-0)のままにする。 */}
+        <div className="flex items-center justify-end gap-2">
+          {periodMode === "select_season" && (
+            <div className="relative flex-1 min-w-0">
               <select
-                name="user-stat-history-period"
-                value={periodMode}
-                onChange={(e) => setPeriodMode(e.target.value as PeriodMode)}
-                className="appearance-none rounded-lg border border-default-200 bg-default-100 pl-3 pr-7 py-1.5 text-xs font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                name="user-stat-history-season"
+                value={seasonYear}
+                onChange={(e) => setSeasonYear(e.target.value)}
+                className="w-full appearance-none truncate rounded-lg border border-default-200 bg-default-100 pl-3 pr-7 py-1.5 text-xs font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
               >
-                <option value="3months">直近3ヶ月</option>
-                <option value="6months">直近6ヶ月</option>
-                <option value="current_season">今シーズン</option>
-                <option value="select_season">シーズン選択</option>
+                {seasonOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
               </select>
               <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-default-400 text-[0.625rem]">
                 ▼
               </span>
             </div>
+          )}
+          <div className="relative shrink-0">
+            <select
+              name="user-stat-history-period"
+              value={periodMode}
+              onChange={(e) => setPeriodMode(e.target.value as PeriodMode)}
+              className="appearance-none rounded-lg border border-default-200 bg-default-100 pl-3 pr-7 py-1.5 text-xs font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
+            >
+              <option value="3months">直近3ヶ月</option>
+              <option value="6months">直近6ヶ月</option>
+              <option value="current_season">今シーズン</option>
+              <option value="select_season">シーズン選択</option>
+            </select>
+            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-default-400 text-[0.625rem]">
+              ▼
+            </span>
           </div>
         </div>
 

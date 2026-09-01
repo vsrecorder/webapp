@@ -10,7 +10,7 @@ import MyGymEditModal from "@app/components/organisms/MyGym/MyGymEditModal";
 import MyGymEventDetailModal from "@app/components/organisms/MyGym/MyGymEventDetailModal";
 import MyGymShopRow from "@app/components/organisms/MyGym/MyGymShopRow";
 import {
-  formatEventTime,
+  getEventTimeRange,
   getMyGymEventRange,
   groupEventsByDate,
   MY_GYM_EVENT_RANGE_DAYS,
@@ -66,7 +66,7 @@ function MyGymEventRow({
   event: OfficialEventType;
   onSelect: (event: OfficialEventType) => void;
 }) {
-  const time = formatEventTime(event);
+  const time = getEventTimeRange(event);
   const venue = getEventVenueLabel(event);
 
   return (
@@ -95,7 +95,15 @@ function MyGymEventRow({
           <div className="flex min-w-0 items-center gap-1.5">
             {time && (
               <span className="shrink-0 text-[0.6875rem] font-bold tabular-nums text-default-500">
-                {time}
+                {time.start} ~{" "}
+                {time.end ?? (
+                  // 終了時刻が無いイベントも「HH:MM ~ HH:MM」ぶんの幅を取る。
+                  // 見えない時刻を同じ書体で置いて幅だけを借りることで、隣の会場チップが
+                  // 行ごとに左右へずれない(固定幅を決め打ちすると書体依存でずれる)。
+                  <span aria-hidden className="invisible">
+                    00:00
+                  </span>
+                )}
               </span>
             )}
             {venue && (

@@ -55,9 +55,16 @@ export function groupEventsByDate(events: OfficialEventType[]): MyGymEventGroup[
   return groups;
 }
 
-// イベントの開催時刻。started_at / ended_at が 00:00 のものは時刻未設定として出さない
-// (公式サイト側で時刻が入っていないイベントがある)。
-export function formatEventTime(event: OfficialEventType): string {
+export type MyGymEventTimeRange = {
+  start: string;
+  // 終了時刻が無いイベントは null。書式は呼び出し側に任せる(パネルは幅を揃えるために
+  // 開始・終了を別々に描くので、整形済みの文字列だけでは足りない)。
+  end: string | null;
+};
+
+// イベントの開催時刻。started_at / ended_at が 00:00 のものは時刻未設定として扱う
+// (公式サイト側で時刻が入っていないイベントがある)。開始時刻も無ければ null。
+export function getEventTimeRange(event: OfficialEventType): MyGymEventTimeRange | null {
   const format = (value: OfficialEventType["started_at"]) => {
     const d = new Date(value);
     const hh = String(d.getHours()).padStart(2, "0");
@@ -69,8 +76,18 @@ export function formatEventTime(event: OfficialEventType): string {
   const startedAt = format(event.started_at);
   const endedAt = format(event.ended_at);
 
-  if (startedAt === "00:00") return "";
-  if (endedAt === "00:00") return startedAt;
+  if (startedAt === "00:00") return null;
 
-  return `${startedAt} ~ ${endedAt}`;
+  return { start: startedAt, end: endedAt === "00:00" ? null : endedAt };
+}
+
+// 「10:00 ~ 12:00」。終了時刻が無いイベントは「10:00 ~」と末尾の波線まで出す。
+// 開始時刻だけを裸で置くと開催時点に読めてしまうため、記録作成の公式イベント選択
+// (OfficialEventSelect)と同じく「ここから始まる」と分かる形に揃える。
+export function formatEventTime(event: OfficialEventType): string {
+  const time = getEventTimeRange(event);
+
+  if (!time) return "";
+
+  return time.end ? `${time.start} ~ ${time.end}` : `${time.start} ~`;
 }

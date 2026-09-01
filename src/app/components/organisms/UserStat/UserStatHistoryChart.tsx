@@ -18,6 +18,7 @@ import { DeckUsageItemType, DeckUsageStatType } from "@app/types/deck_usage_stat
 import { DeckGetResponseType } from "@app/types/deck";
 import { ChampionshipSeriesType } from "@app/types/championship_series";
 import { seasonOptionsFromChampionshipSeries, currentSeasonValue } from "@app/utils/season";
+import { todayJSTDateString } from "@app/utils/date";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import RegulationSegmentedControl from "@app/components/molecules/RegulationSegmentedControl";
 import { DEFAULT_REGULATION_ID } from "@app/types/regulation";
@@ -55,11 +56,28 @@ function formatTooltipMonth(ym: string): string {
   return `${year}年${parseInt(month)}月`;
 }
 
+// 当月を含む直近 count ヶ月の年月("YYYY-MM")を古い順に返す。
+// バックエンドの user_stat_history が period=3months/6months で見る範囲
+// (当月の1日〜翌月1日を上限とした直近Nヶ月)と同じ月に揃えている。
+// 月の境目はJST基準で判断する(端末のタイムゾーンで1ヶ月ずれるのを避ける)。
+function recentYearMonths(count: number): string[] {
+  const [year, month] = todayJSTDateString().split("-").map(Number);
+
+  return Array.from({ length: count }, (_, i) => {
+    // 月の繰り下がり(0→前年12月)は Date に任せる。JSTの暦日を数値で渡すだけなので
+    // 実時刻は関係なく、UTCゲッターで読み戻せばタイムゾーンの影響も受けない。
+    const d = new Date(Date.UTC(year, month - 1 - (count - 1 - i), 1));
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+  });
+}
+
 export default function UserStatHistoryChart({ userId, championshipSeries }: Props) {
+  // 今シーズンの season 識別子。「今シーズン」表示のときに、グラフ(period=season で
+  // バックエンドが現在シーズンを解決する)とデッキ一覧の期間を揃えるために使う。
+  const currentSeason = currentSeasonValue(championshipSeries);
+
   const [periodMode, setPeriodMode] = useState<PeriodMode>("3months");
-  const [seasonYear, setSeasonYear] = useState<string>(() =>
-    currentSeasonValue(championshipSeries),
-  );
+  const [seasonYear, setSeasonYear] = useState<string>(currentSeason);
   const [deckId, setDeckId] = useState<string>("");
 
   // レギュレーション区分(スタンダード/エクストラ/殿堂/その他)。既定はスタンダード。
@@ -120,25 +138,59 @@ export default function UserStatHistoryChart({ userId, championshipSeries }: Pro
     };
   }, [userId, periodMode, seasonYear, deckId, regulationId]);
 
-  // 選択中シーズンで実際に使用したデッキ一覧を取得し、デッキセレクタの選択肢にする
-  // （対戦相手のデッキ分布パネルと同様、「使用したすべてのデッキで集計」をデフォルトにした単一パネル構成）
+  // グラフに出している期間・レギュレーションで実際に使用したデッキ一覧を取得し、
+  // デッキセレクタの選択肢にする（対戦相手のデッキ分布パネルと同様、
+  // 「使用したすべてのデッキで集計」をデフォルトにした単一パネル構成）。
+  //
+  // 期間セレクタと無関係に season（＝現在シーズン）で引いてはならない。
+  // シーズンはチャンピオンシップシリーズ基準で9月に切り替わるため、
+  // 例えば9月上旬は「新シーズンの記録はまだ0件」＝選択肢が1つも出ない一方で、
+  // グラフ側の既定（直近3ヶ月）には前シーズンの記録が並ぶ、という食い違いが起きる。
   useEffect(() => {
     let cancelled = false;
 
+    // 期間の指定は deck-usage API の受け口に合わせる。単月(year_month)かシーズン(season)
+    // しか無く「直近Nヶ月」は渡せないため、そのモードでは月ごとに引いて束ねる。
+    async function fetchDeckUsage(periodParams: Record<string, string>) {
+      const params = new URLSearchParams(periodParams);
+      params.set("regulation_id", String(regulationId));
+
+      const res = await fetch(`/api/users/${userId}/deck-usage?${params.toString()}`, {
+        cache: "no-store",
+      });
+
+      // 取得できなかった月を空扱いにすると選択肢がごっそり消えるため、
+      // 呼び出し側の catch まで投げて「前回の一覧を残す」に倒す。
+      if (!res.ok) throw new Error(`failed to fetch deck usage: ${res.status}`);
+
+      const data: DeckUsageStatType = await res.json();
+
+      return data.decks ?? [];
+    }
+
     async function fetchOwnDecks() {
       try {
-        const params = new URLSearchParams();
-        params.set("season", seasonYear);
+        const decks =
+          periodMode === "3months" || periodMode === "6months"
+            ? (
+                await Promise.all(
+                  recentYearMonths(periodMode === "3months" ? 3 : 6).map((yearMonth) =>
+                    fetchDeckUsage({ year_month: yearMonth }),
+                  ),
+                )
+              ).flat()
+            : await fetchDeckUsage({
+                season: periodMode === "current_season" ? currentSeason : seasonYear,
+              });
 
-        const res = await fetch(`/api/users/${userId}/deck-usage?${params.toString()}`, {
-          cache: "no-store",
-        });
+        // 月ごとに引くと複数月で使ったデッキが重複するため deck_id で1件に畳む
+        const byDeckId = new Map<string, DeckUsageItemType>();
+        for (const deck of decks) {
+          if (!byDeckId.has(deck.deck_id)) byDeckId.set(deck.deck_id, deck);
+        }
 
-        if (!res.ok) return;
-
-        const data: DeckUsageStatType = await res.json();
         // deck_id は ULID のため文字列降順に並べると新しいデッキが先頭にくる
-        const sortedDecks = [...(data.decks ?? [])].sort((a, b) =>
+        const sortedDecks = [...byDeckId.values()].sort((a, b) =>
           a.deck_id < b.deck_id ? 1 : a.deck_id > b.deck_id ? -1 : 0,
         );
         if (!cancelled) setOwnDecks(sortedDecks);
@@ -151,7 +203,7 @@ export default function UserStatHistoryChart({ userId, championshipSeries }: Pro
     return () => {
       cancelled = true;
     };
-  }, [userId, seasonYear]);
+  }, [userId, periodMode, seasonYear, currentSeason, regulationId]);
 
   // デッキセレクタにはアーカイブされていないデッキのみを表示する
   // （「使用したすべてのデッキで集計」を選んだ場合の勝率計算はアーカイブ済みデッキも含めるため、
@@ -192,12 +244,17 @@ export default function UserStatHistoryChart({ userId, championshipSeries }: Pro
     };
   }, [userId]);
 
-  // 選択中のデッキがアーカイブされた場合は「使用したすべてのデッキで集計」に戻す
+  // 選択中のデッキが選択肢から消えた場合は「使用したすべてのデッキで集計」に戻す。
+  // デッキがアーカイブされた場合と、期間を変えてその期間には使っていなかった場合の両方。
+  // 放置すると select の表示だけが空になり、グラフは前の絞り込みのまま残ってしまう。
   useEffect(() => {
-    if (deckId && activeDeckIds != null && !activeDeckIds.has(deckId)) {
-      setDeckId("");
-    }
-  }, [deckId, activeDeckIds]);
+    if (!deckId) return;
+
+    const isArchived = activeDeckIds != null && !activeDeckIds.has(deckId);
+    const isUnusedInPeriod = !ownDecks.some((deck) => deck.deck_id === deckId);
+
+    if (isArchived || isUnusedInPeriod) setDeckId("");
+  }, [deckId, activeDeckIds, ownDecks]);
 
   const selectableDecks = activeDeckIds
     ? ownDecks.filter((deck) => activeDeckIds.has(deck.deck_id))

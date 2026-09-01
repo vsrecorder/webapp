@@ -7,6 +7,7 @@ import { LuChevronDown, LuHouse, LuPencil, LuPlus } from "react-icons/lu";
 
 import FetchError from "@app/components/molecules/FetchError";
 import MyGymEditModal from "@app/components/organisms/MyGym/MyGymEditModal";
+import MyGymEventDetailModal from "@app/components/organisms/MyGym/MyGymEventDetailModal";
 import MyGymShopRow from "@app/components/organisms/MyGym/MyGymShopRow";
 import {
   formatEventTime,
@@ -55,12 +56,25 @@ function MyGymPanelSkeleton() {
 // 会場名を flat なチップで出す形はアプリ共通の語彙で、同じ「公式イベント」を
 // 別の場所で違う見え方にしないためにここでも踏襲する。
 // アイコン・アクセント色・会場名の判定も記録カードと同じヘルパーに委ねる。
-function MyGymEventRow({ event }: { event: OfficialEventType }) {
+//
+// 行全体が詳細モーダルを開くボタン。行に収まるのはタイトル・時刻・会場だけなので、
+// 住所や定員、記録作成への導線はモーダル側で見せる。
+function MyGymEventRow({
+  event,
+  onSelect,
+}: {
+  event: OfficialEventType;
+  onSelect: (event: OfficialEventType) => void;
+}) {
   const time = formatEventTime(event);
   const venue = getEventVenueLabel(event);
 
   return (
-    <div className="flex overflow-hidden rounded-xl bg-default-50">
+    <button
+      type="button"
+      onClick={() => onSelect(event)}
+      className="flex w-full overflow-hidden rounded-xl bg-default-50 text-left transition-colors active:bg-default-100"
+    >
       <div className={`w-1 shrink-0 ${getEventAccentColor(event)}`} />
 
       <div className="flex min-w-0 flex-1 items-center gap-2.5 px-3 py-1.5">
@@ -100,7 +114,7 @@ function MyGymEventRow({ event }: { event: OfficialEventType }) {
           </div>
         </div>
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -113,6 +127,19 @@ export default function MyGymPanel() {
   // 「どこを登録しているか」は畳んだ見出しの件数で足りることが多い。
   const [gymsExpanded, setGymsExpanded] = useState(false);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  // タップされたイベント。閉じるアニメーションの間も中身を描き続けたいので、
+  // 閉じるときには null に戻さず、次に開くまで最後のイベントを持ち続ける。
+  const [selectedEvent, setSelectedEvent] = useState<OfficialEventType | null>(null);
+  const {
+    isOpen: isEventOpen,
+    onOpen: onEventOpen,
+    onOpenChange: onEventOpenChange,
+  } = useDisclosure();
+
+  const handleSelectEvent = (event: OfficialEventType) => {
+    setSelectedEvent(event);
+    onEventOpen();
+  };
 
   const { data, error, isLoading, mutate } = useSWR<UserGymOfficialEventGetResponseType>(
     `/api/users/my_gyms/official_events?start_date=${startDate}&end_date=${endDate}`,
@@ -193,7 +220,10 @@ export default function MyGymPanel() {
                 type="button"
                 onClick={() => setGymsExpanded((v) => !v)}
                 aria-expanded={gymsExpanded}
-                className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
+                // タップ対象は見出しの文字とシェブロンの範囲だけにする。行いっぱいに
+                // 広げると、右側の何も無いところを触っただけで開閉してしまう。
+                // 縦は押しやすさのぶん広げ、負のマージンで行の高さは変えない。
+                className="-my-1 flex shrink-0 items-center gap-1.5 py-1 text-left"
               >
                 <LuChevronDown
                   className={`h-3.5 w-3.5 shrink-0 text-default-400 transition-transform ${
@@ -254,7 +284,11 @@ export default function MyGymPanel() {
                       {group.label}
                     </span>
                     {group.events.map((event) => (
-                      <MyGymEventRow key={event.id} event={event} />
+                      <MyGymEventRow
+                        key={event.id}
+                        event={event}
+                        onSelect={handleSelectEvent}
+                      />
                     ))}
                   </div>
                 ))}
@@ -264,6 +298,11 @@ export default function MyGymPanel() {
         </CardBody>
       </Card>
       {editModal}
+      <MyGymEventDetailModal
+        isOpen={isEventOpen}
+        onOpenChange={onEventOpenChange}
+        event={selectedEvent}
+      />
     </>
   );
 }

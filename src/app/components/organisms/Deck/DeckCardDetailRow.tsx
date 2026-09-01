@@ -62,9 +62,49 @@ function ChipSkelton() {
   );
 }
 
-// カード画像1枚分の幅。画面(行の内容幅)にちょうど5枚収まるよう、gap-2(8px)×4 を
+// カード画像1枚分の幅。基本は行の内容幅にちょうど5枚収まるよう、gap-2(8px)×4 を
 // 引いた残りを5等分する。固定幅にすると画面幅ごとに収まる枚数が変わってしまう。
-const CARD_WIDTH_CLASS = "w-[calc((100%-2rem)/5)]";
+//
+// ただし幅だけで決めてはいけない。カードの高さは幅×88/63 で決まるのに対し、
+// カードを収めるタブパネルの高さは外枠の h-50 で固定されている。タブレットのように
+// 行が広い画面では 5等分した幅からくる高さがパネルを超え、panel の overflow-hidden で
+// カード画像の下側と枚数表示が見切れる（実測: iPad Air 820px 幅で 76px はみ出し）。
+// そこで「行の高さに収まる最大の幅」を上限として掛ける。行をサイズコンテナ
+// (container-type: size)にしているため、100cqh が行の内容高さ（padding を除いた高さ）
+// を指す。そこから画像の下に積まれる分＝gap-1(4px)と枚数表示(16px)を引き、
+// カード比 63:88 で幅へ換算したものが上限になる（引く 1.25rem がその 4px+16px）。
+// 高さ側の指定（h-50 やタブバーの高さ）を変えても、この上限は自動で追従する。
+// Tailwind はクラス名を静的な文字列としてしか拾えないため、値の組み立てに変数を使わない。
+const CARD_WIDTH_CLASS =
+  "w-[min(calc((100%-2rem)/5),calc((100cqh-1.25rem)*63/88))]";
+
+// カード行をサイズコンテナにするための指定。上の CARD_WIDTH_CLASS が参照する
+// 100cqh（＝行の内容高さ）を成立させる。h-full は、高さの決まったタブパネルから
+// 行の高さを確定させるために必須（内容依存の高さのままでは cqh が引けない）。
+const CARD_ROW_CONTAINER_CLASS = "h-full [container-type:size]";
+
+// カードリスト全体（表示モード切替＋タブ＋カード行）の高さ。カテゴリータブを
+// 切り替えても、カード名⇔カード画像を切り替えても高さが跳ねないよう、
+// 内容ではなく固定値で持ち、両方の表示モードで同じ値を使う。
+//
+// sm 以上で一段高くするのはカード画像表示のため。カードの高さは幅×88/63 で決まり、
+// タブレットでは行の幅がスマホの2倍近くになるため、12.5rem のままだと上限幅
+// （CARD_WIDTH_CLASS）が頭打ちになり、小さなカードが左に寄って右側が大きく空いてしまう。
+// dvh でのクランプは、sm 以上でも縦が短い場合（横向きのスマホなど）に
+// カードリストだけで画面を埋めてしまわないようにするため。
+const CARD_DETAIL_HEIGHT_CLASS = "h-50 sm:h-[clamp(12.5rem,45dvh,18rem)]";
+
+// カテゴリータブの見た目。読み込み中の骨格と実体で必ず同じものを使う。
+// panel を flex-1 にして高さを確定させるのが要点で、これが無いとパネルの高さが
+// 内容依存になり、h-full で高さを引くカード行（CARD_ROW_CONTAINER_CLASS）が潰れる。
+const TABS_CLASS_NAMES = {
+  base: "flex flex-col",
+  // タブバーの縦幅を詰める。既定の余白(p-1)と各タブ高さ(h-8)を一段小さくする
+  tabList: "shrink-0 bg-content1 shadow-sm p-0.5",
+  tab: "h-6",
+  // カード画像1枚分の高さを確保するため、パネルの上下余白は既定より詰める
+  panel: "flex-1 overflow-hidden py-2",
+} as const;
 
 // カード画像の角丸。タップで開くカードモーダルの画像（幅約336pxに対して20px＝約6%）と
 // 見た目の比率を揃える。サムネイルは幅約56pxなのでその6%にあたる4pxを使う。
@@ -73,7 +113,9 @@ const CARD_RADIUS_CLASS = "rounded-[4px]";
 
 function CardSkelton() {
   return (
-    <div className="pt-2.5 pl-1 flex gap-2 overflow-hidden">
+    <div
+      className={`pt-2.5 pl-1 flex gap-2 overflow-hidden ${CARD_ROW_CONTAINER_CLASS}`}
+    >
       {Array.from({ length: 5 }).map((_, index) => (
         <div
           key={index}
@@ -175,7 +217,9 @@ function CardRow<T extends { card_name: string; card_count: number; image_url: s
   // overscroll-x-contain は横スクロールを端まで送っても背面へ伝播させないため。
   // items-start は、行の高さ変動時に子が縦へ引き伸ばされないよう上詰めで固定する。
   return (
-    <div className="pt-2.5 pl-1 flex items-start gap-2 overflow-x-auto overflow-y-hidden overscroll-x-contain scrollbar-hide">
+    <div
+      className={`pt-2.5 pl-1 flex items-start gap-2 overflow-x-auto overflow-y-hidden overscroll-x-contain scrollbar-hide ${CARD_ROW_CONTAINER_CLASS}`}
+    >
       {cards.map((deckcard, index) => (
         <button
           key={index}
@@ -397,13 +441,9 @@ export default function DeckCardDetailRow({ code }: Props) {
     const skelton = view === "chip" ? <ChipSkelton /> : <CardSkelton />;
 
     return (
-      <div className="h-50 w-full flex flex-col gap-1.5">
+      <div className={`w-full flex flex-col gap-1.5 ${CARD_DETAIL_HEIGHT_CLASS}`}>
         <ViewToggle view={view} onChange={handleChangeView} />
-        <Tabs
-          fullWidth
-          size="sm"
-          classNames={{ tabList: "bg-content1 shadow-sm p-0.5", tab: "h-6" }}
-        >
+        <Tabs fullWidth size="sm" className="flex flex-col" classNames={TABS_CLASS_NAMES}>
           <Tab key="card_pke" title={`ポケモン：??`}>
             {skelton}
           </Tab>
@@ -440,21 +480,9 @@ export default function DeckCardDetailRow({ code }: Props) {
 
   return (
     <>
-      <div className="h-50 w-full flex flex-col gap-1.5">
+      <div className={`w-full flex flex-col gap-1.5 ${CARD_DETAIL_HEIGHT_CLASS}`}>
         <ViewToggle view={view} onChange={handleChangeView} />
-        <Tabs
-          fullWidth
-          size="sm"
-          className="flex flex-col"
-          classNames={{
-            base: "flex flex-col",
-            // タブバーの縦幅を詰める。既定の余白(p-1)と各タブ高さ(h-8)を一段小さくする
-            tabList: "shrink-0 bg-content1 shadow-sm p-0.5",
-            tab: "h-6",
-            // カード画像1枚分の高さを確保するため、パネルの上下余白は既定より詰める
-            panel: "flex-1 overflow-hidden py-2",
-          }}
-        >
+        <Tabs fullWidth size="sm" className="flex flex-col" classNames={TABS_CLASS_NAMES}>
           <Tab key="card_pke" title={`ポケモン：${deckcardDetail.card_pke_count}`}>
             <CategoryCardRow
               view={view}

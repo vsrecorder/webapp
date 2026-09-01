@@ -10,7 +10,7 @@ import { useRef } from "react";
 
 import useSWR from "swr";
 
-import { today, getLocalTimeZone } from "@internationalized/date";
+import { today, getLocalTimeZone, parseDate } from "@internationalized/date";
 
 import { CalendarDate } from "@internationalized/date";
 
@@ -594,7 +594,24 @@ type Props = {
   deck_code_id: string;
   // URL の event_type による明示指定。未指定時はセッション内で最後に選択していたタブを復元する。
   tab?: TabKey;
+  // 公式イベントの指定(Myジムのイベント詳細などからの遷移)。開催日を選択し、
+  // その日の候補が届いたらこのイベントを選択済みにする。
+  official_event_id?: string;
+  // 指定された開催日("YYYY-MM-DD")。
+  event_date?: string;
 };
+
+// URL で指定された開催日を CalendarDate にする。壊れた値や未指定は null
+// (呼び出し側で今日にフォールバックする)。
+function parsePresetDate(value?: string): CalendarDate | null {
+  if (!value) return null;
+
+  try {
+    return parseDate(value);
+  } catch {
+    return null;
+  }
+}
 
 // メニューを開いたとき、選択済みオプションがリストの先頭に来るようにスクロールする
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -668,7 +685,13 @@ const MenuListScrollToSelected = ({ innerRef, ...props }: any) => {
   );
 };
 
-export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Props) {
+export default function TemplateRecordCreate({
+  deck_id,
+  deck_code_id,
+  tab,
+  official_event_id,
+  event_date,
+}: Props) {
   const router = useRouter();
 
   // デッキモーダルの「記録する」から遷移してきた場合、バック遷移で戻ったときだけ
@@ -716,10 +739,14 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
     useState(true);
 
   const [selectedDate, setSelectedDate] = useState<CalendarDate>(
-    today(getLocalTimeZone()),
+    () => parsePresetDate(event_date) ?? today(getLocalTimeZone()),
   );
   const [selectedOfficialEventOption, setSelectedOfficialEventOption] =
     useState<OfficialEventOption | null>(null);
+
+  // URL で指定された公式イベント。候補が揃うまで選べないため、選択できるまで持ち越す。
+  // 適用したら 0 に戻し、以後の再取得や利用者の選び直しを上書きしないようにする。
+  const presetOfficialEventIdRef = useRef(Number(official_event_id) || 0);
 
   const [tonamelEventId, setTonamelEventId] = useState<string>("");
   const [tonamelEventTitle, setTonamelEventTitle] = useState<string>("");
@@ -978,6 +1005,21 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
       setIsDisabledCreateOfficialEventRecord(true);
     }
   }, [selectedOfficialEventOption]);
+
+  // 指定された公式イベントを、その日の候補が届いたときに1度だけ選択する。
+  // 候補に無い(日付違い・開催終了で消えた等)場合は何もしない。利用者が
+  // 開催日を変えたときは指定を捨てる(DatePicker の onChange)。
+  useEffect(() => {
+    if (!presetOfficialEventIdRef.current) return;
+
+    const preset = officialEventOptions.find(
+      (option) => option.id === presetOfficialEventIdRef.current,
+    );
+    if (!preset) return;
+
+    presetOfficialEventIdRef.current = 0;
+    setSelectedOfficialEventOption(preset);
+  }, [officialEventOptions]);
 
   // Tonamelは開催日(常に既定値あり)とイベントIDが必須。デッキは任意のため必須にしない
   useEffect(() => {
@@ -1519,6 +1561,8 @@ export default function TemplateRecordCreate({ deck_id, deck_code_id, tab }: Pro
                     onChange={(value) => {
                       setSelectedDate(value == null ? today(getLocalTimeZone()) : value);
                       setSelectedOfficialEventOption(null);
+                      // 別の日を選んだ時点で、URL 指定のイベントは選び直しになる
+                      presetOfficialEventIdRef.current = 0;
                     }}
                   />
                 </div>

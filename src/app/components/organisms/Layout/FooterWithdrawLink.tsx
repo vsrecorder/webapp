@@ -16,7 +16,7 @@ export default function FooterWithdrawLink({ userId }: Props) {
       <button
         type="button"
         onClick={onOpen}
-        className="text-left text-[11px] text-neutral-700 hover:text-neutral-500 transition-colors duration-150"
+        className="text-left text-[0.6875rem] text-neutral-700 hover:text-neutral-500 transition-colors duration-150"
       >
         退会する
       </button>

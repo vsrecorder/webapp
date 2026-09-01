@@ -62,7 +62,7 @@ export default function DeckSummaryShareCard({ deckName, sprites, stat }: Props)
           <>
             {/* 勝率＋戦績 */}
             <div className="flex flex-col items-center gap-0.5">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-default-400">
+              <span className="text-[0.625rem] font-bold uppercase tracking-wider text-default-400">
                 勝率
               </span>
               <span
@@ -92,7 +92,7 @@ export default function DeckSummaryShareCard({ deckName, sprites, stat }: Props)
             <div className="text-tiny font-bold text-default-600">
               まだ対戦記録がありません
             </div>
-            <div className="text-[10px] text-default-400">
+            <div className="text-[0.625rem] text-default-400">
               対戦を記録すると勝率や先攻・後攻の成績が載ります
             </div>
           </div>

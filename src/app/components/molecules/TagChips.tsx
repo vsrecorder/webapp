@@ -40,7 +40,7 @@ export default function TagChips({
           key={tag.id}
           size={size}
           variant="flat"
-          className="h-5 text-[11px]"
+          className="h-5 text-[0.6875rem]"
           // 文字色はチップ本体に置く。中身(content)も×(closeButton)も
           // 色を継承するので、スロットごとに指定しなくて済む。
           style={

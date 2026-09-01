@@ -30,14 +30,14 @@ export default function KizunaBreakdownCard({
     <div className="flex flex-col gap-4 rounded-2xl border border-amber-500/30 bg-linear-to-br from-indigo-950 via-slate-900 to-neutral-950 px-6 py-6 text-white">
       <div className="flex items-baseline justify-between gap-3">
         <div className="flex min-w-0 flex-col">
-          <span className="text-[10px] font-bold tracking-[0.28em] text-white/50">
+          <span className="text-[0.625rem] font-bold tracking-[0.28em] text-white/50">
             きずなLv.の内訳
           </span>
           <span className="truncate text-base font-bold">{deckName}</span>
         </div>
         {/* 何の数値かを明示する。内訳だけを見た人に「255満点の何か」と読ませない */}
         <div className="flex shrink-0 flex-col items-end">
-          <span className="text-[9px] font-bold tracking-[0.22em] text-white/45">
+          <span className="text-[0.5625rem] font-bold tracking-[0.22em] text-white/45">
             きずなLv.
           </span>
           <div className="flex items-baseline gap-1">
@@ -55,7 +55,7 @@ export default function KizunaBreakdownCard({
       <div className="flex flex-col gap-2.5">
         {/* 数字の意味を先に言う。ここが「獲得点」だと分かれば、
             6行の合計がきずなLv.になることが読める。 */}
-        <div className="flex items-baseline gap-2.5 text-[9px] text-white/35">
+        <div className="flex items-baseline gap-2.5 text-[0.5625rem] text-white/35">
           <span className="w-23 shrink-0" />
           <span className="w-11 shrink-0 text-right">獲得点</span>
           <span className="min-w-0 flex-1">この点になった理由</span>
@@ -64,7 +64,7 @@ export default function KizunaBreakdownCard({
         {metrics.map((metric) => (
           <div key={metric.key} className="flex items-baseline gap-2.5">
             {/* ラベル列は「逆境ロイヤルティ」(8文字)が折り返さない幅にする */}
-            <span className="w-23 shrink-0 whitespace-nowrap text-right text-[10px] font-bold text-white/85">
+            <span className="w-23 shrink-0 whitespace-nowrap text-right text-[0.625rem] font-bold text-white/85">
               {metric.label}
             </span>
             <span className="flex w-11 shrink-0 items-baseline justify-end">
@@ -73,7 +73,7 @@ export default function KizunaBreakdownCard({
               </span>
             </span>
             {/* 評価文は必ず1行。折り返すと6行の並びが崩れ、内訳が読みにくくなる */}
-            <span className="min-w-0 flex-1 truncate text-[11px] text-white/55">
+            <span className="min-w-0 flex-1 truncate text-[0.6875rem] text-white/55">
               {metric.detail}
             </span>
           </div>
@@ -84,16 +84,16 @@ export default function KizunaBreakdownCard({
         <span className="text-xs font-bold text-white/80">
           「{tierName}」<span className="text-white/40"> ｜ 6指標の合計 = {score}</span>
         </span>
-        <span className="text-[10px] leading-relaxed text-white/40">
+        <span className="text-[0.625rem] leading-relaxed text-white/40">
           対戦記録・デッキの組み直し履歴・メモから算出（勝率は含みません）
         </span>
         {/* 内訳＝算出方法そのものを見せる画像なので、確定でないことをここで断る */}
-        <span className="text-[10px] leading-relaxed text-white/30">
+        <span className="text-[0.625rem] leading-relaxed text-white/30">
           きずなはβ版です。指標や重み付けは今後変更される場合があります
         </span>
       </div>
 
-      <span className="text-[10px] tracking-widest text-white/35">
+      <span className="text-[0.625rem] tracking-widest text-white/35">
         きずな試算 ｜ vsrecorder.mobi/kizuna
       </span>
     </div>

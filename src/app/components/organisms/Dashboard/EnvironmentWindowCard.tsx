@@ -115,7 +115,7 @@ function RankBadge({ rank }: { rank: number }) {
 
   return (
     <span
-      className={`flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-black shrink-0 ${style}`}
+      className={`flex items-center justify-center w-6 h-6 rounded-full text-[0.6875rem] font-black shrink-0 ${style}`}
     >
       {rank}
     </span>
@@ -157,7 +157,7 @@ function DeckRankRow({
               size="sm"
               color="primary"
               variant="flat"
-              classNames={{ base: "h-5 px-0.5", content: "text-[10px] font-bold px-1.5" }}
+              classNames={{ base: "h-5 px-0.5", content: "text-[0.625rem] font-bold px-1.5" }}
             >
               あなたのデッキ
             </Chip>
@@ -183,7 +183,7 @@ function DeckRankRow({
           color={winRateChipColor(item.win_rate)}
           classNames={{
             base: "h-5 px-0.5 shrink-0",
-            content: "text-[10px] font-bold tabular-nums px-1.5",
+            content: "text-[0.625rem] font-bold tabular-nums px-1.5",
           }}
         >
           勝率 {(item.win_rate * 100).toFixed(1)}%
@@ -275,7 +275,7 @@ function UsageRankingSection({
             type="button"
             onClick={() => setExpanded((v) => !v)}
             aria-expanded={expanded}
-            className="flex items-center justify-center gap-1 py-1.5 text-[11px] font-bold text-default-500 hover:text-default-600"
+            className="flex items-center justify-center gap-1 py-1.5 text-[0.6875rem] font-bold text-default-500 hover:text-default-600"
           >
             <LuChevronDown
               className={`w-3.5 h-3.5 transition-transform ${expanded ? "rotate-180" : ""}`}
@@ -316,14 +316,14 @@ function DeckSelector({
           >
             <DeckSprites sprites={p.deck.pokemon_sprites} size={22} />
             <span
-              className={`text-[11px] font-bold max-w-26 truncate ${
+              className={`text-[0.6875rem] font-bold max-w-26 truncate ${
                 active ? "text-primary" : "text-default-600"
               }`}
             >
               {p.deck.name}
             </span>
             <span
-              className={`text-[10px] font-black tabular-nums ${
+              className={`text-[0.625rem] font-black tabular-nums ${
                 p.rank != null
                   ? active
                     ? "text-primary"
@@ -366,7 +366,7 @@ function YourVsEnv({
       <div className="flex items-stretch gap-2">
         {/* 環境平均（借り物） */}
         <div className="flex-1 rounded-lg bg-default-100 px-3 py-2">
-          <div className="text-[10px] font-bold text-default-400">
+          <div className="text-[0.625rem] font-bold text-default-400">
             このデッキの環境平均勝率
           </div>
           <span
@@ -377,7 +377,7 @@ function YourVsEnv({
         </div>
         {/* あなたの勝率（実データ or 予約席） */}
         <div className="flex-1 rounded-lg bg-default-100 px-3 py-2">
-          <div className="text-[10px] font-bold text-default-400">あなたの勝率</div>
+          <div className="text-[0.625rem] font-bold text-default-400">あなたの勝率</div>
           {hasOwn ? (
             <div className="flex items-baseline gap-1">
               <span
@@ -385,7 +385,7 @@ function YourVsEnv({
               >
                 {(ownStat!.winRate * 100).toFixed(1)}%
               </span>
-              <span className="text-[10px] font-bold text-default-400">
+              <span className="text-[0.625rem] font-bold text-default-400">
                 n={ownStat!.count}
               </span>
             </div>
@@ -398,13 +398,13 @@ function YourVsEnv({
       </div>
       {hasOwn ? (
         <div className="flex items-center justify-center gap-1.5 rounded-lg bg-default-100/60 py-1.5">
-          <span className="text-[11px] font-bold text-default-500">環境平均より</span>
+          <span className="text-[0.6875rem] font-bold text-default-500">環境平均より</span>
           <span className={`text-sm font-black tabular-nums ${deltaColor}`}>
             {formatDeltaPt(deltaPt)}pt
           </span>
         </div>
       ) : (
-        <div className="flex items-center gap-1.5 text-[11px] font-bold text-primary leading-snug">
+        <div className="flex items-center gap-1.5 text-[0.6875rem] font-bold text-primary leading-snug">
           <LuLock className="w-3 h-3 shrink-0" />
           {hint}
         </div>
@@ -434,7 +434,7 @@ function RankedHero({
             <div className="pt-1.5 text-md font-bold truncate">{deck.name}</div>
           </span>
 
-          <span className="text-[11px] text-default-500 tabular-nums">
+          <span className="text-[0.6875rem] text-default-500 tabular-nums">
             使用率 {(row.usage_rate * 100).toFixed(1)}% ・ {row.count}件
           </span>
         </div>
@@ -451,7 +451,7 @@ function RankedOutHero({ deck }: { deck: DeckData }) {
       <div className="min-w-0 flex-1">
         <div className="font-bold text-sm truncate">{deck.name}</div>
         <div className="text-sm font-bold text-default-500 mt-1">今週はまだランク外</div>
-        <div className="text-[11px] text-default-400 mt-0.5 leading-snug">
+        <div className="text-[0.6875rem] text-default-400 mt-0.5 leading-snug">
           出現が少なく、まだ集計対象に届いていません
         </div>
       </div>
@@ -477,8 +477,8 @@ function RankHeader({
 }) {
   return (
     <div className="flex items-center justify-between px-1 -mb-1">
-      <span className="text-[11px] font-black text-default-500">{title}</span>
-      <span className="text-[10px] text-default-400">{subtitle}</span>
+      <span className="text-[0.6875rem] font-black text-default-500">{title}</span>
+      <span className="text-[0.625rem] text-default-400">{subtitle}</span>
     </div>
   );
 }
@@ -550,12 +550,12 @@ function BetaHeader({ stat }: { stat: WeeklyDeckUsageStatType }) {
         variant="flat"
         classNames={{
           base: "h-5 px-0.5 shrink-0",
-          content: "text-[10px] font-black px-1.5",
+          content: "text-[0.625rem] font-black px-1.5",
         }}
       >
         β機能
       </Chip>
-      <span className="text-[11px] text-default-400 leading-snug">
+      <span className="text-[0.6875rem] text-default-400 leading-snug">
         プラットフォーム全体の週次デッキ使用率
         {period && (
           <>

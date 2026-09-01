@@ -127,13 +127,13 @@ export default function RecordCardBase({
           <div className="absolute right-4 top-2 z-10 flex items-center gap-1.5">
             {/* チーム戦が1つでも含まれる場合に表示(文字色は対戦結果一覧のチーム戦タグと統一) */}
             {hasGroupMatch && (
-              <span className="text-[10px] font-bold shrink-0 rounded-md border px-1.5 py-0.5 text-secondary border-secondary/40 bg-secondary/10">
+              <span className="text-[0.625rem] font-bold shrink-0 rounded-md border px-1.5 py-0.5 text-secondary border-secondary/40 bg-secondary/10">
                 チーム戦
               </span>
             )}
             {/* BO3が1つでも含まれる場合に表示(色は対戦結果一覧のBO3チップと統一) */}
             {hasBo3 && (
-              <span className="text-[10px] font-bold shrink-0 rounded-md border px-1.5 py-0.5 text-primary border-primary/40 bg-primary/10">
+              <span className="text-[0.625rem] font-bold shrink-0 rounded-md border px-1.5 py-0.5 text-primary border-primary/40 bg-primary/10">
                 BO3
               </span>
             )}
@@ -154,7 +154,7 @@ export default function RecordCardBase({
                   size="sm"
                   variant="flat"
                   color={regulation.chipColor}
-                  className="h-5 shrink-0 text-[10px] font-bold"
+                  className="h-5 shrink-0 text-[0.625rem] font-bold"
                 >
                   {regulation.name}
                 </Chip>
@@ -187,7 +187,7 @@ export default function RecordCardBase({
                           size="sm"
                           variant="solid"
                           color="warning"
-                          className="h-5 text-[10px] font-bold"
+                          className="h-5 text-[0.625rem] font-bold"
                         >
                           ⚠ 集計対象外
                         </Chip>

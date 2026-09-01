@@ -80,7 +80,7 @@ function MyGymEventRow({ event }: { event: OfficialEventType }) {
           {/* 時刻と会場。時刻は tabular-nums で桁を揃え、行ごとに数字が踊らないようにする */}
           <div className="flex min-w-0 items-center gap-1.5">
             {time && (
-              <span className="shrink-0 text-[11px] font-bold tabular-nums text-default-500">
+              <span className="shrink-0 text-[0.6875rem] font-bold tabular-nums text-default-500">
                 {time}
               </span>
             )}
@@ -92,7 +92,7 @@ function MyGymEventRow({ event }: { event: OfficialEventType }) {
                 // base の min-w-min を打ち消して、狭い行でもチップ側が縮めるようにする
                 // (打ち消さないと店舗名の全幅が確保され、タイトルの方が潰れる)
                 className="h-5 min-w-0"
-                classNames={{ content: "truncate text-[10px] font-bold" }}
+                classNames={{ content: "truncate text-[0.625rem] font-bold" }}
               >
                 {venue}
               </Chip>
@@ -200,11 +200,11 @@ export default function MyGymPanel() {
                     gymsExpanded ? "rotate-180" : ""
                   }`}
                 />
-                <span className="shrink-0 text-[9px] font-bold uppercase tracking-widest text-default-400">
+                <span className="shrink-0 text-[0.5625rem] font-bold uppercase tracking-widest text-default-400">
                   登録中のMyジム
                 </span>
                 {!gymsExpanded && (
-                  <span className="shrink-0 text-[11px] font-bold text-default-500">
+                  <span className="shrink-0 text-[0.6875rem] font-bold text-default-500">
                     {userGyms.length}店舗
                   </span>
                 )}
@@ -250,7 +250,7 @@ export default function MyGymPanel() {
               >
                 {groups.map((group) => (
                   <div key={group.dateKey} className="flex flex-col gap-1.5">
-                    <span className="text-[11px] font-bold text-default-500">
+                    <span className="text-[0.6875rem] font-bold text-default-500">
                       {group.label}
                     </span>
                     {group.events.map((event) => (

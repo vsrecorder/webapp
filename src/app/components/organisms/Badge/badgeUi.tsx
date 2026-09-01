@@ -101,7 +101,7 @@ export function BadgeTile({
         <Icon className="w-5 h-5" />
       </div>
       <span
-        className={`text-[11px] font-bold leading-tight ${
+        className={`text-[0.6875rem] font-bold leading-tight ${
           badge.achieved ? "text-default-700" : "text-default-400"
         }`}
       >
@@ -114,7 +114,7 @@ export function BadgeTile({
         />
       </div>
       <span
-        className={`text-[9px] tabular-nums ${
+        className={`text-[0.5625rem] tabular-nums ${
           badge.achieved ? "font-bold text-warning" : "text-default-400"
         }`}
       >
@@ -147,7 +147,7 @@ export function BadgeTileSkeleton({
       <div className="relative w-full">
         <span
           aria-hidden="true"
-          className="invisible block text-center text-[11px] font-bold leading-tight"
+          className="invisible block text-center text-[0.6875rem] font-bold leading-tight"
         >
           {renderBadgeName(nameSample)}
         </span>
@@ -157,8 +157,8 @@ export function BadgeTileSkeleton({
         </div>
       </div>
       <div className="w-full h-1 rounded-full bg-default-200 animate-pulse" />
-      {/* 「達成」/「N/M」(text-[9px] の行 = 13.5px) */}
-      <div className="h-[13.5px] flex items-center">
+      {/* 「達成」/「N/M」(text-[0.5625rem] の行 = 13.5px。px はルート16px時) */}
+      <div className="h-[0.84375rem] flex items-center">
         <div className="w-8 h-2 rounded-full bg-default-200 animate-pulse" />
       </div>
     </div>

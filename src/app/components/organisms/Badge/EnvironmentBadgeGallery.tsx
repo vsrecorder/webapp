@@ -79,7 +79,7 @@ function EnvironmentBadgeTile({
         )}
       </div>
       <span
-        className={`text-[11px] font-bold leading-tight ${
+        className={`text-[0.6875rem] font-bold leading-tight ${
           badge.achieved ? "text-default-700" : "text-default-400"
         }`}
       >
@@ -115,7 +115,7 @@ function EnvironmentBadgeTileSkeleton({ titleSample }: { titleSample: string }) 
       <div className="relative w-full">
         <span
           aria-hidden="true"
-          className="invisible block text-center text-[11px] font-bold leading-tight"
+          className="invisible block text-center text-[0.6875rem] font-bold leading-tight"
         >
           {renderEnvironmentBadgeTitle(titleSample)}
         </span>

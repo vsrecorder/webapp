@@ -32,10 +32,10 @@ export function CityleagueResultSkeleton() {
                 <Skeleton className="h-3 w-26 rounded-md" />
               </div>
 
-              {/* 店舗名。実体は pt-1 pb-1 + text-[13px] の行(13px×1.5 = 19.5px)で 27.5px。
-                  幅は実データの中央値 143px */}
+              {/* 店舗名。実体は pt-1 pb-1 + text-[0.8125rem] の行(13px×1.5 = 19.5px)で 27.5px。
+                  幅は実データの中央値 143px。px はルート16px時 */}
               <div className="pt-1 pb-1">
-                <div className="h-[19.5px] flex items-center">
+                <div className="h-[1.21875rem] flex items-center">
                   <Skeleton className="h-3.5 w-36 rounded-md" />
                 </div>
               </div>

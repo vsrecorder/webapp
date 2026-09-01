@@ -97,7 +97,7 @@ export default function CurrentEnvironment({ environment }: Props) {
               吹き出しが画面幅いっぱいまで広がらないよう、折り返し幅を決めておく */}
           <div className="flex flex-col gap-2 min-w-0 max-w-48">
             <div className="flex flex-col">
-              <span className="text-[10px] font-bold text-default-400">
+              <span className="text-[0.625rem] font-bold text-default-400">
                 現在の対戦環境
               </span>
               <span className="text-sm font-bold text-default-700 leading-tight">
@@ -106,7 +106,7 @@ export default function CurrentEnvironment({ environment }: Props) {
             </div>
 
             <div className="flex flex-col">
-              <span className="text-[10px] font-bold text-default-400">対象期間</span>
+              <span className="text-[0.625rem] font-bold text-default-400">対象期間</span>
               <span className="text-xs text-default-600 leading-tight">
                 {formatDate(environment.from_date)}
                 <br />〜 {formatDate(environment.to_date)}

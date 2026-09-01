@@ -416,7 +416,7 @@ export default function Decks({
               という一点を、灯（KizunaMark）の視覚言語で伝え、詳細は /kizuna のLPへ送る。 */}
           <div className="w-full max-w-sm overflow-hidden rounded-2xl border border-amber-300/50 bg-linear-to-br from-amber-50 to-rose-50 dark:border-amber-400/20 dark:from-amber-950/40 dark:to-rose-950/30">
             <div className="flex flex-col items-center gap-4 px-3 py-6 text-center">
-              <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/40 bg-amber-400/10 px-3 py-1 text-[11px] font-bold tracking-wider text-amber-700 dark:text-amber-300">
+              <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/40 bg-amber-400/10 px-3 py-1 text-[0.6875rem] font-bold tracking-wider text-amber-700 dark:text-amber-300">
                 <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-amber-500" />
                 新機能「きずな」β版公開中
               </span>

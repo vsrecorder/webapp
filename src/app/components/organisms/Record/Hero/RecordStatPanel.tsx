@@ -44,7 +44,7 @@ function LegendRow({ label, wins, losses, color }: LegendRowProps) {
         className="h-2 w-2 shrink-0 rounded-sm"
         style={{ backgroundColor: color }}
       />
-      <span className="text-[10px] font-bold text-default-500">{label}</span>
+      <span className="text-[0.625rem] font-bold text-default-500">{label}</span>
       <span className="ml-auto text-xs font-bold tabular-nums">
         <span className="text-success">{wins}</span>
         <span className="mx-px text-default-400">-</span>
@@ -140,14 +140,14 @@ export default function RecordStatPanel({
                   <span className="text-lg font-bold tabular-nums text-success">
                     {stats.wins}
                   </span>
-                  <span className="mt-1 text-[9px] font-bold text-default-500">勝</span>
+                  <span className="mt-1 text-[0.5625rem] font-bold text-default-500">勝</span>
                 </div>
                 <span aria-hidden className="w-px self-stretch bg-divider" />
                 <div className="flex flex-1 flex-col items-center leading-none">
                   <span className="text-lg font-bold tabular-nums text-danger">
                     {stats.losses}
                   </span>
-                  <span className="mt-1 text-[9px] font-bold text-default-500">敗</span>
+                  <span className="mt-1 text-[0.5625rem] font-bold text-default-500">敗</span>
                 </div>
                 {stats.draws > 0 && (
                   <>
@@ -156,7 +156,7 @@ export default function RecordStatPanel({
                       <span className="text-lg font-bold tabular-nums text-default-500">
                         {stats.draws}
                       </span>
-                      <span className="mt-1 text-[9px] font-bold text-default-500">
+                      <span className="mt-1 text-[0.5625rem] font-bold text-default-500">
                         分
                       </span>
                     </div>

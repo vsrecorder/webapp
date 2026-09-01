@@ -41,11 +41,15 @@ export default async function TemplateLayout({
         <div className={`flex flex-col flex-1 min-w-0 ${session ? "lg:pl-56" : ""}`}>
           <Header />
 
-          {/* デスクトップ(lg以上)はタブレット(md)より左右余白を絞り、コンテンツ側で幅を広く使えるようにする。
+          {/* 左右余白は画面が広がるほど増やす。かつて md(768px〜)だけ px-32(128px)にしていたが、
+              各ページのコンテンツは lg 未満で max-w-2xl(672px)に制限されるため、
+              768〜1023px では「余白128px + 上限672px」が二重にかかって実効幅が512〜578pxまで潰れ、
+              それより狭い iPad mini(744px・余白8px→実効672px)を下回っていた
+              (画面が広いほどコンテンツが狭くなる逆転)。md も lg と同じ px-12 に揃えて解消する。
               下余白は下部ナビ(MobileNavigation)の実寸に合わせる: 本体(--mobile-nav-height) +
               safe-area の下端余白。lg以上は下部ナビが消えるので lg:pb-6 に戻す。
               ナビの高さは globals.css の --mobile-nav-height で決まる(Androidのみ低い) */}
-          <main className={`app-dot-bg flex-1 p-2 pt-14 lg:pt-28 lg:pb-6 min-h-svh w-full ${session ? "md:px-32 lg:px-12 xl:px-20 2xl:px-32 pb-[calc(var(--mobile-nav-height)+env(safe-area-inset-bottom))]" : "pb-2"}`}>
+          <main className={`app-dot-bg flex-1 p-2 pt-14 lg:pt-28 lg:pb-6 min-h-svh w-full ${session ? "md:px-12 xl:px-20 2xl:px-32 pb-[calc(var(--mobile-nav-height)+env(safe-area-inset-bottom))]" : "pb-2"}`}>
             {children}
           </main>
         </div>

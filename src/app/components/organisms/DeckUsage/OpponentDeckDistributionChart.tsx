@@ -214,7 +214,7 @@ function OpponentDeckLegendRow({ deck }: { deck: OpponentDeckUsageItemType }) {
         {deck.deck_info}
       </span>
       <div className="flex flex-col items-end gap-1 shrink-0 pl-2 border-l border-default-200">
-        <span className="text-[10px] text-default-400 tabular-nums">
+        <span className="text-[0.625rem] text-default-400 tabular-nums">
           対面率 {(deck.usage_rate * 100).toFixed(1)}% ({deck.count}件)
         </span>
         <Chip
@@ -223,7 +223,7 @@ function OpponentDeckLegendRow({ deck }: { deck: OpponentDeckUsageItemType }) {
           color={winRateChipColor(deck.win_rate)}
           classNames={{
             base: "h-5 px-0.5",
-            content: "text-[11px] font-black tabular-nums px-1.5",
+            content: "text-[0.6875rem] font-black tabular-nums px-1.5",
           }}
         >
           勝率 {(deck.win_rate * 100).toFixed(1)}%
@@ -538,21 +538,21 @@ export default function OpponentDeckDistributionChart({
                 {tooltip.deck.deck_info}
               </p>
               <div className="flex flex-col items-center gap-0.5">
-                <span className="text-[10px] font-bold text-default-400">対面率</span>
+                <span className="text-[0.625rem] font-bold text-default-400">対面率</span>
                 <span className="text-lg font-black tabular-nums leading-none text-default-700">
                   {(tooltip.deck.usage_rate * 100).toFixed(1)}
                   <span className="text-xs font-bold">%</span>
                 </span>
-                <span className="text-[10px] text-default-400">({tooltip.deck.count}件)</span>
+                <span className="text-[0.625rem] text-default-400">({tooltip.deck.count}件)</span>
               </div>
               <div className="flex flex-col items-center gap-0.5 mt-1.5 pt-3 border-t border-default-200 w-full">
-                <span className="text-[10px] font-bold text-default-400">勝率</span>
+                <span className="text-[0.625rem] font-bold text-default-400">勝率</span>
                 <span
                   className={`text-base font-black tabular-nums ${winRateTextColor(tooltip.deck.win_rate)}`}
                 >
                   {(tooltip.deck.win_rate * 100).toFixed(1)}%
                 </span>
-                <span className="text-[9px] text-default-400">
+                <span className="text-[0.5625rem] text-default-400">
                   {tooltip.deck.wins}勝{tooltip.deck.losses}敗
                 </span>
               </div>

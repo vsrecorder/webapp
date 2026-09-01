@@ -173,15 +173,15 @@ export default function BadgeGallery({ userId, championshipSeries }: Props) {
 
           {CATEGORY_ORDER.map((category) => (
             <div key={category} className="flex flex-col gap-2">
-              {/* カテゴリ名(text-[11px] の行 = 16.5px) */}
-              <div className="h-[16.5px] flex items-center">
+              {/* カテゴリ名(text-[0.6875rem] の行 = 16.5px。px はルート16px時) */}
+              <div className="h-[1.03125rem] flex items-center">
                 <div className="w-24 h-2.5 rounded-full bg-default-100 animate-pulse" />
               </div>
               <div className="flex flex-col gap-3">
                 {Array.from({ length: 3 }).map((_, subIndex) => (
                   <div key={subIndex} className="flex flex-col gap-1.5">
-                    {/* 系統名(text-[10px] の行 = 15px) */}
-                    <div className="h-[15px] flex items-center">
+                    {/* 系統名(text-[0.625rem] の行 = 15px。px はルート16px時) */}
+                    <div className="h-[0.9375rem] flex items-center">
                       <div className="w-14 h-2 rounded-full bg-default-100 animate-pulse" />
                     </div>
                     {/* マイルストーンは「駆け出し/熟練/達人/伝説の」×「ユーザー/ビルダー/バトラー」。
@@ -235,7 +235,7 @@ export default function BadgeGallery({ userId, championshipSeries }: Props) {
                 </option>
               ))}
             </select>
-            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-default-400 text-[10px]">
+            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-default-400 text-[0.625rem]">
               ▼
             </span>
           </div>
@@ -243,11 +243,11 @@ export default function BadgeGallery({ userId, championshipSeries }: Props) {
 
         {grouped.map((group) => (
           <div key={group.category} className="flex flex-col gap-2">
-            <span className="text-[11px] font-bold text-default-400">{group.label}</span>
+            <span className="text-[0.6875rem] font-bold text-default-400">{group.label}</span>
             <div className="flex flex-col gap-3">
               {subgroupByCriteriaType(group.badges).map((sub) => (
                 <div key={sub.key} className="flex flex-col gap-1.5">
-                  <span className="text-[10px] font-bold text-default-300">
+                  <span className="text-[0.625rem] font-bold text-default-300">
                     {sub.label}
                   </span>
                   <BadgeFlowRow badges={sub.badges} onSelect={handleSelect} />

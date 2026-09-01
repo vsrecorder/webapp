@@ -44,8 +44,8 @@ export default function UserProfileCardSkeleton({ isDevEnv = false }: Props) {
             <div className="h-3.5 w-20 rounded-md bg-white/20 animate-pulse" />
           </div>
           {/* WIN RATE ラベル（13.5px の行 + pb-1） */}
-          <div className="h-[17.5px] flex items-center pb-1">
-            <div className="h-[13.5px] w-16 rounded-md bg-white/20 animate-pulse" />
+          <div className="h-[1.09375rem] flex items-center pb-1">
+            <div className="h-[0.84375rem] w-16 rounded-md bg-white/20 animate-pulse" />
           </div>
           {/* 勝率（text-3xl leading-none = 30px の行 + pb-0.5） */}
           <div className="h-8.5 flex items-center pb-0.5">
@@ -65,7 +65,7 @@ export default function UserProfileCardSkeleton({ isDevEnv = false }: Props) {
               {/* アイコン(14px) / 数値(text-lg leading-none = 18px) / ラベル(9px の行 = 13.5px) */}
               <div className="w-3.5 h-3.5 rounded-sm bg-default-300 animate-pulse" />
               <div className="h-4.5 w-10 rounded-md bg-default-300 animate-pulse" />
-              <div className="h-[13.5px] w-9 rounded-md bg-default-300 animate-pulse" />
+              <div className="h-[0.84375rem] w-9 rounded-md bg-default-300 animate-pulse" />
             </div>
           ))}
         </div>

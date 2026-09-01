@@ -113,7 +113,7 @@ export default function DeckDistributionShareCard({
                 {row.name}
               </span>
               <div className="flex shrink-0 flex-col items-end gap-1 border-l border-default-200 pl-2">
-                <span className="text-[10px] tabular-nums text-default-400">
+                <span className="text-[0.625rem] tabular-nums text-default-400">
                   {usageLabel} {(row.usageRate * 100).toFixed(1)}% ({row.count}件)
                 </span>
                 <Chip
@@ -122,7 +122,7 @@ export default function DeckDistributionShareCard({
                   color={winRateChipColor(row.winRate)}
                   classNames={{
                     base: "h-5 px-0.5",
-                    content: "text-[11px] font-black tabular-nums px-1.5",
+                    content: "text-[0.6875rem] font-black tabular-nums px-1.5",
                   }}
                 >
                   勝率 {(row.winRate * 100).toFixed(1)}%

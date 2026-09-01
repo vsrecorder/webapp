@@ -286,7 +286,7 @@ export default function TonamelEventRecord({
             <Chip
               size="sm"
               variant="flat"
-              className="h-5 text-[10px] font-bold bg-orange-100 text-orange-500"
+              className="h-5 text-[0.625rem] font-bold bg-orange-100 text-orange-500"
             >
               Tonamel
             </Chip>

@@ -33,8 +33,8 @@ function TextColumn({ children }: { children: ReactNode }) {
         <span className="text-2xl font-black leading-none">
           0<span className="ml-1 text-sm font-bold">週</span>
         </span>
-        <span className="text-[11px] font-medium">0</span>
-        <span className="text-[11px] font-medium">0</span>
+        <span className="text-[0.6875rem] font-medium">0</span>
+        <span className="text-[0.6875rem] font-medium">0</span>
       </div>
       <div className="col-start-1 row-start-1 flex min-w-0 flex-col justify-center gap-1">
         {children}
@@ -47,7 +47,7 @@ function TextColumn({ children }: { children: ReactNode }) {
 // (週数が2桁でも収まる長さの文言。狭い端末向けの保険として truncate も掛けている)。
 function FreezeRegenLine({ weeks }: { weeks: number }) {
   return (
-    <span className="inline-flex items-center gap-0.5 text-[11px] text-primary font-medium">
+    <span className="inline-flex items-center gap-0.5 text-[0.6875rem] text-primary font-medium">
       <LuSnowflake className="w-3 h-3 shrink-0" />
       <span className="truncate">あと{weeks}週でフリーズが1つ復活</span>
     </span>
@@ -115,7 +115,7 @@ function StreakPanelSkeleton() {
             barClassName="w-28 max-w-full h-4"
           />
           <SkeletonLine
-            sampleClassName="text-[11px] font-medium"
+            sampleClassName="text-[0.6875rem] font-medium"
             sample="最長記録 0週"
             barClassName="w-36 max-w-full h-2.5"
           />
@@ -205,7 +205,7 @@ export default function StreakPanel({ userId }: Props) {
           {/* この行が折り返すと確保した3行ぶんを超えてカードが伸びるので、子は全て
               shrink-0 にして折り返させない。極端に狭い端末では溢れた分をカードの
               overflow-hidden に任せる。 */}
-          <div className="flex items-center gap-1.5 w-full text-[11px] text-default-400 font-medium">
+          <div className="flex items-center gap-1.5 w-full text-[0.6875rem] text-default-400 font-medium">
             <span className="shrink-0">最長記録 {longestWeeks}週</span>
             {showFreeze && (
               <>

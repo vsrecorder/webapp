@@ -297,7 +297,7 @@ export default function OfficialEventRecord({
               size="sm"
               variant="flat"
               color={getChipColor(officialEvent)}
-              className="h-5 text-[10px] font-bold"
+              className="h-5 text-[0.625rem] font-bold"
             >
               {getEventTypeName(officialEvent)}
             </Chip>
@@ -307,7 +307,7 @@ export default function OfficialEventRecord({
                   size="sm"
                   variant="flat"
                   color="default"
-                  className="h-5 text-[10px] font-bold"
+                  className="h-5 text-[0.625rem] font-bold"
                 >
                   {`『${officialEvent.environment_title}』`}
                 </Chip>
@@ -320,7 +320,7 @@ export default function OfficialEventRecord({
               size="sm"
               variant="flat"
               color="default"
-              className="h-5 text-[10px] font-bold max-w-40 truncate"
+              className="h-5 text-[0.625rem] font-bold max-w-40 truncate"
             >
               {officialEvent.shop_name}
             </Chip>

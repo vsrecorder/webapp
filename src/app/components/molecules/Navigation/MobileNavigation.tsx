@@ -43,7 +43,7 @@ export default function MobileNavigation() {
               <div className="flex items-center justify-center w-10 h-6">
                 <Icon className="w-5 h-5" />
               </div>
-              <span className="text-[10px] leading-none font-medium">{label}</span>
+              <span className="text-[0.625rem] leading-none font-medium">{label}</span>
             </Link>
           );
         })}

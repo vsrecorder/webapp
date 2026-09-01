@@ -715,23 +715,23 @@ export default function DeckUsagePanel({
                         {tooltip.deck.name}
                       </p>
                       <div className="flex flex-col items-center gap-0.5">
-                        <span className="text-[10px] font-bold text-default-400">使用率</span>
+                        <span className="text-[0.625rem] font-bold text-default-400">使用率</span>
                         <span className="text-lg font-black tabular-nums leading-none text-default-700">
                           {(tooltip.deck.usage_rate * 100).toFixed(1)}
                           <span className="text-xs font-bold">%</span>
                         </span>
-                        <span className="text-[10px] text-default-400">
+                        <span className="text-[0.625rem] text-default-400">
                           ({tooltip.deck.count}件)
                         </span>
                       </div>
                       <div className="flex flex-col items-center gap-0.5 mt-1.5 pt-3 border-t border-default-200 w-full">
-                        <span className="text-[10px] font-bold text-default-400">勝率</span>
+                        <span className="text-[0.625rem] font-bold text-default-400">勝率</span>
                         <span
                           className={`text-base font-black tabular-nums ${winRateTextColor(tooltip.deck.win_rate)}`}
                         >
                           {(tooltip.deck.win_rate * 100).toFixed(1)}%
                         </span>
-                        <span className="text-[9px] text-default-400">
+                        <span className="text-[0.5625rem] text-default-400">
                           {tooltip.deck.wins}勝{tooltip.deck.losses}敗
                         </span>
                       </div>
@@ -772,7 +772,7 @@ export default function DeckUsagePanel({
                         color={winRateChipColor(deck.win_rate)}
                         classNames={{
                           base: "h-4 px-0.5",
-                          content: "text-[9px] font-black tabular-nums px-1",
+                          content: "text-[0.5625rem] font-black tabular-nums px-1",
                         }}
                       >
                         勝率 {(deck.win_rate * 100).toFixed(1)}%

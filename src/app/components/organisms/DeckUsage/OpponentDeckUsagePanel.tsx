@@ -417,7 +417,7 @@ export default function OpponentDeckUsagePanel({
                   </option>
                 ))}
               </select>
-              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-default-400 text-[10px]">
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-default-400 text-[0.625rem]">
                 ▼
               </span>
             </div>

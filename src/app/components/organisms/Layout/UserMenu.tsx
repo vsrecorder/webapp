@@ -136,7 +136,7 @@ export default function UserMenu({ user, iconUrl, isDevEnv }: Props) {
                   className="-mx-2 flex w-[calc(100%+1rem)] items-center gap-2 rounded-lg bg-default-100 px-4 py-2 cursor-pointer text-default-400 hover:bg-default-200 hover:text-default-600 transition-colors"
                   aria-label="ユーザIDをコピー"
                 >
-                  <span className="text-[9px] font-bold text-default-400 uppercase tracking-widest shrink-0">
+                  <span className="text-[0.5625rem] font-bold text-default-400 uppercase tracking-widest shrink-0">
                     ユーザID
                   </span>
                   <span className="flex-1 text-left text-xs font-mono text-default-600 break-all whitespace-normal">

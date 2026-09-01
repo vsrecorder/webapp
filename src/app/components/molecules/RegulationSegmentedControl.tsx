@@ -53,7 +53,7 @@ export default function RegulationSegmentedControl({
             disabled={isDisabled}
             onClick={() => onChange(regulation.id)}
             className={`flex items-center justify-center whitespace-nowrap rounded-lg py-2 font-bold transition-colors ${
-              isCompact ? "px-1 text-[11px]" : "px-2 text-xs"
+              isCompact ? "px-1 text-[0.6875rem]" : "px-2 text-xs"
             } ${
               selected
                 ? "bg-content1 text-primary shadow-sm"

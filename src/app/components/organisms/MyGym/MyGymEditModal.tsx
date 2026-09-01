@@ -65,6 +65,13 @@ export default function MyGymEditModal({
   // キーワードが変わったら検索し直す。空なら検索しない
   // (上流はキーワードの無いリクエストを400で弾く)。
   useEffect(() => {
+    // このエフェクトが動き直した時点で、進行中のリクエストはすべて古い。
+    // 早期 return するどの経路よりも先に世代を進めておく。ここを検索を始める側だけに
+    // 置くと、キーワードを消した経路(下の trimmed 空)やモーダルを閉じた経路で世代が
+    // 据え置かれ、遅れて返ってきた応答が seq の一致判定を通ってしまう。その結果、
+    // 空にしたはずの検索欄の下に前の結果が入り直す。
+    const seq = ++searchSeq.current;
+
     if (!isOpen) return;
 
     const trimmed = keyword.trim();
@@ -75,7 +82,6 @@ export default function MyGymEditModal({
       return;
     }
 
-    const seq = ++searchSeq.current;
     setIsSearching(true);
 
     const timer = setTimeout(async () => {
@@ -219,7 +225,7 @@ export default function MyGymEditModal({
             >
               {/* 登録済みの枠 */}
               <div className="flex flex-col gap-2">
-                <span className="text-[9px] font-bold text-default-400 uppercase tracking-widest">
+                <span className="text-[0.5625rem] font-bold text-default-400 uppercase tracking-widest">
                   登録中のMyジム
                 </span>
 
@@ -253,7 +259,7 @@ export default function MyGymEditModal({
 
               {/* 店舗の検索 */}
               <div data-my-gym-search className="flex flex-col gap-2">
-                <span className="text-[9px] font-bold text-default-400 uppercase tracking-widest">
+                <span className="text-[0.5625rem] font-bold text-default-400 uppercase tracking-widest">
                   店舗を探す
                 </span>
 
@@ -348,7 +354,7 @@ export default function MyGymEditModal({
                 />
 
                 {isFull && (
-                  <span className="text-[11px] text-warning">
+                  <span className="text-[0.6875rem] text-warning">
                     登録できるのは{limit}
                     件までです。
                     <br />

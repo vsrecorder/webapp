@@ -866,7 +866,7 @@ export default function DisplayDeckCodesModal({
                                   }`}
                                 >
                                   <div className="flex items-center gap-1 h-4">
-                                    <LuClock className="text-[11px] text-default-300 shrink-0" />
+                                    <LuClock className="text-[0.6875rem] text-default-300 shrink-0" />
                                     <span className="text-tiny text-default-500">
                                       作成日時：
                                       {date}

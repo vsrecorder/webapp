@@ -231,7 +231,7 @@ export default function TemplateUserReportIndex({ userId }: Props) {
       ) : isLoading ? (
         <div className="flex flex-col items-center justify-center gap-2 py-24">
           <Spinner size="sm" />
-          <span className="text-[11px] text-default-400">
+          <span className="text-[0.6875rem] text-default-400">
             バトルレポートを集めています
           </span>
         </div>
@@ -302,7 +302,7 @@ export default function TemplateUserReportIndex({ userId }: Props) {
                   <span className="text-sm font-black text-foreground">
                     レポートにする記録がまだありません
                   </span>
-                  <span className="text-[11px] leading-relaxed text-default-500">
+                  <span className="text-[0.6875rem] leading-relaxed text-default-500">
                     勝敗と相手デッキだけなら10秒で残せます。1戦記録すると、その月の
                     レポートが作られます。
                   </span>

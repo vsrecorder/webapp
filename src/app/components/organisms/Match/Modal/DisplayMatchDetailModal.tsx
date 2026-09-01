@@ -171,7 +171,7 @@ export default function DisplayMatchDetailModal({
                         ))}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="text-[10px] font-bold tracking-wide text-default-400">
+                        <div className="text-[0.625rem] font-bold tracking-wide text-default-400">
                           対戦相手のデッキ
                         </div>
                         <div className="text-sm font-bold leading-tight wrap-break-word mt-0.5">
@@ -186,7 +186,7 @@ export default function DisplayMatchDetailModal({
                       {match.group_match_flg ? (
                         <div className="flex shrink-0 items-end gap-1.5">
                           <div className="flex flex-col items-center gap-0.5">
-                            <span className="text-[9px] leading-none text-default-400">
+                            <span className="text-[0.5625rem] leading-none text-default-400">
                               チーム
                             </span>
                             <span
@@ -200,7 +200,7 @@ export default function DisplayMatchDetailModal({
                             </span>
                           </div>
                           <div className="flex flex-col items-center gap-0.5">
-                            <span className="text-[9px] leading-none text-default-400">
+                            <span className="text-[0.5625rem] leading-none text-default-400">
                               個人
                             </span>
                             <span
@@ -242,7 +242,7 @@ export default function DisplayMatchDetailModal({
                                 {i + 1}本目
                               </span>
                               <span
-                                className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-[10px] font-bold ${
+                                className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-[0.625rem] font-bold ${
                                   game.winnging_flg
                                     ? "bg-success/15 text-success"
                                     : "bg-danger/15 text-danger"
@@ -277,7 +277,7 @@ export default function DisplayMatchDetailModal({
                         )}
                         {/* 引き分け(BO3のみ): 1勝1敗のまま決着しなかった対戦 */}
                         {match.draw_flg && (
-                          <div className="text-[11px] text-default-400">
+                          <div className="text-[0.6875rem] text-default-400">
                             この対戦は両者引き分けです
                           </div>
                         )}
@@ -289,17 +289,17 @@ export default function DisplayMatchDetailModal({
                   {!isDefaultMatch && (
                     <div className="flex flex-col gap-2.5 rounded-2xl bg-default-50 border border-default-100 p-3">
                       <div className="flex items-baseline justify-between gap-2">
-                        <span className="text-[10px] font-bold tracking-wide text-default-400">
+                        <span className="text-[0.625rem] font-bold tracking-wide text-default-400">
                           対戦環境での立ち位置
                         </span>
-                        <span className="text-[10px] text-default-400 whitespace-nowrap">
+                        <span className="text-[0.625rem] text-default-400 whitespace-nowrap">
                           {weekRangeLabel(week)} の週のデータ
                         </span>
                       </div>
 
                       {fingerprint === "" ? (
                         // スプライト未設定は環境データと突合できない(指紋が「その他」と同値になるため)
-                        <span className="text-[11px] text-default-400 leading-snug">
+                        <span className="text-[0.6875rem] text-default-400 leading-snug">
                           相手のポケモンが未設定のため、環境データと照合できません
                         </span>
                       ) : envLoading ? (
@@ -309,37 +309,37 @@ export default function DisplayMatchDetailModal({
                           ))}
                         </div>
                       ) : envError || !envStat ? (
-                        <span className="text-[11px] text-default-400 leading-snug">
+                        <span className="text-[0.6875rem] text-default-400 leading-snug">
                           環境データを取得できませんでした
                         </span>
                       ) : !hasEnvData ? (
-                        <span className="text-[11px] text-default-400 leading-snug">
+                        <span className="text-[0.6875rem] text-default-400 leading-snug">
                           この週の環境データはありません
                         </span>
                       ) : position ? (
                         <div className="grid grid-cols-3">
                           <div className="flex flex-col gap-1 px-0.5 min-w-0">
-                            <span className="text-[10px] font-bold text-default-400">
+                            <span className="text-[0.625rem] font-bold text-default-400">
                               環境順位
                             </span>
-                            <span className="text-[17px] font-black tabular-nums leading-none whitespace-nowrap">
+                            <span className="text-[1.0625rem] font-black tabular-nums leading-none whitespace-nowrap">
                               {medal && <span className="mr-0.5">{medal}</span>}
                               {rank}位
                             </span>
                           </div>
                           <div className="flex flex-col gap-1 pl-3 border-l border-default-200 min-w-0">
-                            <span className="text-[10px] font-bold text-default-400">
+                            <span className="text-[0.625rem] font-bold text-default-400">
                               使用率
                             </span>
-                            <span className="text-[17px] font-black tabular-nums leading-none">
+                            <span className="text-[1.0625rem] font-black tabular-nums leading-none">
                               {((usageRate ?? 0) * 100).toFixed(1)}%
                             </span>
                           </div>
                           <div className="flex flex-col gap-1 pl-3 border-l border-default-200 min-w-0">
-                            <span className="text-[10px] font-bold text-default-400">
+                            <span className="text-[0.625rem] font-bold text-default-400">
                               全体勝率
                             </span>
-                            <span className="text-[17px] font-black tabular-nums leading-none">
+                            <span className="text-[1.0625rem] font-black tabular-nums leading-none">
                               {(position.row.win_rate * 100).toFixed(1)}%
                             </span>
                           </div>
@@ -350,7 +350,7 @@ export default function DisplayMatchDetailModal({
                           <span className="text-sm font-black text-default-600">
                             環境ランキング外
                           </span>
-                          <span className="text-[11px] text-default-400 leading-snug">
+                          <span className="text-[0.6875rem] text-default-400 leading-snug">
                             この週の出現が少ない、珍しい相手です
                           </span>
                         </div>
@@ -361,7 +361,7 @@ export default function DisplayMatchDetailModal({
                   {/* 付与タグ */}
                   {match.tags && match.tags.length > 0 && (
                     <div className="flex flex-col gap-1.5 px-0.5">
-                      <div className="flex items-center gap-1 text-[10px] font-bold tracking-wide text-default-400">
+                      <div className="flex items-center gap-1 text-[0.625rem] font-bold tracking-wide text-default-400">
                         <LuTags className="text-sm" />
                         タグ
                       </div>
@@ -372,7 +372,7 @@ export default function DisplayMatchDetailModal({
                   {/* メモ */}
                   {match.memo && match.memo !== "" && (
                     <div className="flex flex-col gap-1.5 px-0.5">
-                      <div className="flex items-center gap-1 text-[10px] font-bold tracking-wide text-default-400">
+                      <div className="flex items-center gap-1 text-[0.625rem] font-bold tracking-wide text-default-400">
                         <LuStickyNote className="text-sm" />
                         メモ
                       </div>

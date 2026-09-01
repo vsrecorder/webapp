@@ -291,7 +291,7 @@ export default function DeckCard({
         <div className="text-tiny font-bold text-default-600">
           まだ対戦記録がありません
         </div>
-        <div className="text-[10px] text-default-400">
+        <div className="text-[0.625rem] text-default-400">
           対戦を記録すると勝率や先攻・後攻の成績が見られます
         </div>
       </div>
@@ -307,11 +307,11 @@ export default function DeckCard({
           size="sm"
           variant="solid"
           color="warning"
-          className="h-5 text-[10px] font-bold"
+          className="h-5 text-[0.625rem] font-bold"
         >
           ⚠ 集計対象外 {ignoredCount}件
         </Chip>
-        <span className="text-[10px] text-default-400">勝率などの集計に未反映</span>
+        <span className="text-[0.625rem] text-default-400">勝率などの集計に未反映</span>
       </div>
     ) : null;
 
@@ -426,7 +426,7 @@ export default function DeckCard({
                   </span>
                 ) : (
                   <span className="flex min-w-0 items-center gap-1 text-default-400">
-                    <LuSwords className="text-[11px] shrink-0" />
+                    <LuSwords className="text-[0.6875rem] shrink-0" />
                     対戦記録なし
                   </span>
                 )}
@@ -654,7 +654,7 @@ export default function DeckCard({
                       <div className="text-tiny font-bold text-warning-700">
                         集計対象外の記録が{ignoredCount}件あります
                       </div>
-                      <div className="text-[10px] text-warning-600/80">
+                      <div className="text-[0.625rem] text-warning-600/80">
                         勝率・先攻/後攻などの集計には含まれていません
                       </div>
                     </div>

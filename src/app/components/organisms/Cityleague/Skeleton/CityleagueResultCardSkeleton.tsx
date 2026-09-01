@@ -32,11 +32,11 @@ export default function CityleagueResultCardSkeleton({ showRankLabel = true }: P
             gap で近似すると 30px になり 2.5px 縮むので、行ごと高さを合わせる。
           */}
           <div className="flex min-w-0 flex-col">
-            <div className="h-[17.5px] flex items-center">
+            <div className="h-[1.09375rem] flex items-center">
               {/* プレイヤー名の幅は実データの中央値(842件で 42px)に合わせる */}
               <Skeleton className="h-3.5 w-12 rounded-md" />
             </div>
-            <div className="h-[15px] flex items-center">
+            <div className="h-[0.9375rem] flex items-center">
               {/* ID は「ID: 0006983309」固定桁で常に 87.8px */}
               <Skeleton className="h-3 w-22 rounded-md" />
             </div>

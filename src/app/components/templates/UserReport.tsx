@@ -253,7 +253,7 @@ export default function TemplateUserReport({ userId, period }: Props) {
       ) : isLoading ? (
         <div className="flex flex-col items-center justify-center gap-2 py-24">
           <Spinner size="sm" />
-          <span className="text-[11px] text-default-400">
+          <span className="text-[0.6875rem] text-default-400">
             バトルレポートを作っています
           </span>
         </div>
@@ -395,7 +395,7 @@ function EmptyPeriod({ period }: { period: RecapPeriod }) {
           <span className="text-sm font-black text-foreground">
             {periodTitle(period)}の記録はまだありません
           </span>
-          <span className="text-[11px] leading-relaxed text-default-500">
+          <span className="text-[0.6875rem] leading-relaxed text-default-500">
             勝敗と相手デッキだけなら10秒で残せます。1戦記録すると、この期間の
             レポートが作られます。
           </span>

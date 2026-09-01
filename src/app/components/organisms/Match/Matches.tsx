@@ -356,7 +356,7 @@ export default function Matches({
                                     >
                                       <div className="flex items-center gap-2">
                                         <div className="flex-1 h-px bg-default-200" />
-                                        <span className="text-[10px] font-bold text-default-400">
+                                        <span className="text-[0.625rem] font-bold text-default-400">
                                           {item.label}
                                         </span>
                                         <div className="flex-1 h-px bg-default-200" />
@@ -443,7 +443,7 @@ export default function Matches({
                                             // チーム戦はチーム/個人の2勝敗をラベル付きバッジで並べる
                                             <div className="flex shrink-0 items-end gap-1.5">
                                               <div className="flex flex-col items-center gap-0.5">
-                                                <span className="text-[9px] leading-none text-default-400">
+                                                <span className="text-[0.5625rem] leading-none text-default-400">
                                                   チーム
                                                 </span>
                                                 <span
@@ -459,7 +459,7 @@ export default function Matches({
                                                 </span>
                                               </div>
                                               <div className="flex flex-col items-center gap-0.5">
-                                                <span className="text-[9px] leading-none text-default-400">
+                                                <span className="text-[0.5625rem] leading-none text-default-400">
                                                   個人
                                                 </span>
                                                 <span
@@ -520,7 +520,7 @@ export default function Matches({
                                                           classNames={{
                                                             base: "h-4 px-1",
                                                             content:
-                                                              "px-1 text-[8px] font-bold",
+                                                              "px-1 text-[0.5rem] font-bold",
                                                           }}
                                                         >
                                                           チーム戦
@@ -536,7 +536,7 @@ export default function Matches({
                                                           classNames={{
                                                             base: "h-4 px-1",
                                                             content:
-                                                              "px-1 text-[8px] font-bold",
+                                                              "px-1 text-[0.5rem] font-bold",
                                                           }}
                                                         >
                                                           BO3
@@ -591,7 +591,7 @@ export default function Matches({
                                                           classNames={{
                                                             base: "h-4 px-1",
                                                             content:
-                                                              "px-1 text-[8px] font-bold",
+                                                              "px-1 text-[0.5rem] font-bold",
                                                           }}
                                                         >
                                                           チーム戦
@@ -607,7 +607,7 @@ export default function Matches({
                                                           classNames={{
                                                             base: "h-4 px-1",
                                                             content:
-                                                              "px-1 text-[8px] font-bold",
+                                                              "px-1 text-[0.5rem] font-bold",
                                                           }}
                                                         >
                                                           BO3
@@ -642,7 +642,7 @@ export default function Matches({
                                                             classNames={{
                                                               base: "h-4 px-1",
                                                               content:
-                                                                "px-1 text-[8px] font-bold",
+                                                                "px-1 text-[0.5rem] font-bold",
                                                             }}
                                                           >
                                                             {match.games[0]?.go_first
@@ -658,7 +658,7 @@ export default function Matches({
                                                               classNames={{
                                                                 base: "h-4 px-1",
                                                                 content:
-                                                                  "px-1 text-[8px] font-bold",
+                                                                  "px-1 text-[0.5rem] font-bold",
                                                               }}
                                                             >
                                                               {match.games[0]
@@ -690,8 +690,8 @@ export default function Matches({
                                                           classNames={{
                                                             base: "h-4 px-1",
                                                             content: tag.color
-                                                              ? "px-1 text-[8px] font-bold text-white"
-                                                              : "px-1 text-[8px] font-bold",
+                                                              ? "px-1 text-[0.5rem] font-bold text-white"
+                                                              : "px-1 text-[0.5rem] font-bold",
                                                           }}
                                                         >
                                                           {tag.name}

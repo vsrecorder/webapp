@@ -177,7 +177,7 @@ export default function SpritePickerPanel({
   const spriteButtonContent = (sprite: PokemonSpriteType) => (
     <>
       <PokemonSprite id={sprite.id} size={40} />
-      <span className="w-full truncate px-0.5 text-center text-[10px] leading-tight text-default-500">
+      <span className="w-full truncate px-0.5 text-center text-[0.625rem] leading-tight text-default-500">
         {sprite.name}
       </span>
     </>
@@ -286,7 +286,7 @@ export default function SpritePickerPanel({
                   className={`flex h-full w-full flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-default-300 px-2 py-2 text-default-500 transition-colors ${colors.moreButton}`}
                 >
                   <CgSearch className="text-xl" />
-                  <span className="text-[10px] leading-tight">
+                  <span className="text-[0.625rem] leading-tight">
                     ほか{matched.length - MAX_VISIBLE}体は
                     <br />
                     検索から

@@ -159,7 +159,7 @@ export default function KizunaHeaderShareModal({
         <ModalContent>
           <ModalHeader className="flex flex-col gap-0.5">
             <span className="text-base font-bold">X ヘッダー画像</span>
-            <span className="text-[11px] font-normal text-default-400">
+            <span className="text-[0.6875rem] font-normal text-default-400">
               1500×500・プロフィールのヘッダーにそのまま設定できます
             </span>
           </ModalHeader>
@@ -195,7 +195,7 @@ export default function KizunaHeaderShareModal({
             {/* 使い方:保存 → X のプロフィール編集でヘッダーに設定 */}
             <div className="flex items-start gap-2.5 rounded-xl bg-default-100 px-4 py-3">
               <LuInfo className="mt-0.5 h-4 w-4 shrink-0 text-default-400" />
-              <p className="text-[11px] leading-relaxed text-default-500">
+              <p className="text-[0.6875rem] leading-relaxed text-default-500">
                 画像を保存し、X の「プロフィールを編集」からヘッダー画像に設定してください。
                 表示位置は X の編集画面で微調整できます。
               </p>

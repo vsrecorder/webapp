@@ -331,7 +331,7 @@ export default function CityleagueResults({ league_type }: Props) {
             {isOngoing && (
               <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse shrink-0" />
             )}
-            <span className="text-[10px] font-bold text-primary uppercase tracking-widest">
+            <span className="text-[0.625rem] font-bold text-primary uppercase tracking-widest">
               {isOngoing ? "開催中" : "直近の結果"}
             </span>
           </div>

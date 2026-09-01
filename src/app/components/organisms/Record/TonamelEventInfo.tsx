@@ -149,7 +149,7 @@ export default function TonamelEventInfo({ record }: Props) {
             <Chip
               size="sm"
               variant="flat"
-              className="h-5 text-[10px] font-bold bg-orange-100 text-orange-500"
+              className="h-5 text-[0.625rem] font-bold bg-orange-100 text-orange-500"
             >
               Tonamel
             </Chip>
@@ -159,7 +159,7 @@ export default function TonamelEventInfo({ record }: Props) {
                 variant="flat"
                 color="default"
                 className="h-5 max-w-30"
-                classNames={{ content: "text-[10px] truncate" }}
+                classNames={{ content: "text-[0.625rem] truncate" }}
               >
                 {`『${environment.title}』`}
               </Chip>
@@ -169,7 +169,7 @@ export default function TonamelEventInfo({ record }: Props) {
                 size="sm"
                 variant="solid"
                 color="warning"
-                className="h-5 text-[10px] font-bold"
+                className="h-5 text-[0.625rem] font-bold"
               >
                 ⚠ 集計対象外
               </Chip>

@@ -328,7 +328,7 @@ export default function KizunaDeckCardPreview() {
       <div className="grid justify-items-center gap-10 lg:grid-cols-2 lg:gap-8">
         <div className="flex w-full min-w-0 max-w-sm flex-col gap-3">
           <div className="flex flex-col gap-1">
-            <span className="text-[11px] font-bold tracking-widest text-amber-600 lg:text-xs dark:text-amber-400">
+            <span className="text-[0.6875rem] font-bold tracking-widest text-amber-600 lg:text-xs dark:text-amber-400">
               リスト形式
             </span>
             <span className="text-xs leading-relaxed text-default-500">
@@ -340,7 +340,7 @@ export default function KizunaDeckCardPreview() {
 
         <div className="flex w-full min-w-0 max-w-sm flex-col gap-3">
           <div className="flex flex-col gap-1">
-            <span className="text-[11px] font-bold tracking-widest text-amber-600 lg:text-xs dark:text-amber-400">
+            <span className="text-[0.6875rem] font-bold tracking-widest text-amber-600 lg:text-xs dark:text-amber-400">
               ギャラリー形式
             </span>
             <span className="text-xs leading-relaxed text-default-500">

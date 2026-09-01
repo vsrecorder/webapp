@@ -68,18 +68,18 @@ function CompareRow({
     <div className="flex flex-col gap-2">
       <div className="flex items-stretch gap-2">
         <div className="flex-1 rounded-xl bg-default-100 px-3 py-2">
-          <div className="text-[10px] font-bold text-default-400">あなたの勝率</div>
+          <div className="text-[0.625rem] font-bold text-default-400">あなたの勝率</div>
           <div className="flex items-baseline gap-1">
             <span
               className={`text-xl font-black tabular-nums leading-tight ${winRateColorClass(winRate)}`}
             >
               {formatPercent(winRate)}
             </span>
-            <span className="text-[10px] font-bold text-default-400">n={count}</span>
+            <span className="text-[0.625rem] font-bold text-default-400">n={count}</span>
           </div>
         </div>
         <div className="flex-1 rounded-xl bg-default-100 px-3 py-2">
-          <div className="text-[10px] font-bold text-default-400">{anchorLabel}</div>
+          <div className="text-[0.625rem] font-bold text-default-400">{anchorLabel}</div>
           <span className="text-xl font-black tabular-nums leading-tight text-default-500">
             {formatPercent(anchorRate)}
           </span>
@@ -87,7 +87,7 @@ function CompareRow({
       </div>
       {/* 差分（このカードの主役＝あなたの実データが基準をどれだけ上回ったか） */}
       <div className="flex items-center justify-center gap-1.5 rounded-lg bg-default-50 py-1.5">
-        <span className="text-[11px] font-bold text-default-500">{anchorLabel}より</span>
+        <span className="text-[0.6875rem] font-bold text-default-500">{anchorLabel}より</span>
         <span className={`text-sm font-black tabular-nums ${deltaColor}`}>
           {formatDeltaPt(deltaPt)}pt
         </span>
@@ -145,7 +145,7 @@ export default function DeckValueMeter({ count, winRate, envWinRate }: Props) {
                 anchorLabel="同デッキの環境平均勝率"
                 anchorRate={envWinRate}
               />
-              <p className="text-[10px] leading-relaxed text-default-400">
+              <p className="text-[0.625rem] leading-relaxed text-default-400">
                 {winRate - envWinRate > 0.001
                   ? "環境平均を上回る勝率を、あなた自身の対戦で積み上げました。"
                   : winRate - envWinRate < -0.001
@@ -162,7 +162,7 @@ export default function DeckValueMeter({ count, winRate, envWinRate }: Props) {
                 anchorLabel="勝ち越しライン"
                 anchorRate={BREAK_EVEN}
               />
-              <p className="text-[10px] leading-relaxed text-default-400">
+              <p className="text-[0.625rem] leading-relaxed text-default-400">
                 同デッキの環境平均勝率は今週分がまだ揃っていません。
                 <br />
                 揃うと、勝ち越しラインに代えて環境平均との比較を表示します。
@@ -182,7 +182,7 @@ export default function DeckValueMeter({ count, winRate, envWinRate }: Props) {
             環境平均が引けない（圏外・データ薄）ときは、個人の暫定勝率のみを控えめに見せる。 */}
         <div className="flex items-stretch gap-2">
           <div className="flex-1 rounded-xl bg-default-100 px-3 py-2">
-            <div className="text-[10px] font-bold text-default-400">あなたの暫定勝率</div>
+            <div className="text-[0.625rem] font-bold text-default-400">あなたの暫定勝率</div>
             <div className="flex items-baseline gap-1">
               <span
                 className={`text-lg font-black tabular-nums leading-tight ${
@@ -192,13 +192,13 @@ export default function DeckValueMeter({ count, winRate, envWinRate }: Props) {
                 {hasOwn ? formatPercent(winRate) : "—"}
               </span>
               {hasOwn && (
-                <span className="text-[10px] font-bold text-default-400">n={count}</span>
+                <span className="text-[0.625rem] font-bold text-default-400">n={count}</span>
               )}
             </div>
           </div>
           {hasEnv && (
             <div className="flex-1 rounded-xl border border-primary/15 bg-primary/5 px-3 py-2">
-              <div className="text-[10px] font-bold text-primary/70">
+              <div className="text-[0.625rem] font-bold text-primary/70">
                 同デッキの環境平均勝率
               </div>
               <span className="text-lg font-black tabular-nums leading-tight text-primary">
@@ -209,7 +209,7 @@ export default function DeckValueMeter({ count, winRate, envWinRate }: Props) {
         </div>
 
         {/* 対戦数が少ないうちの但し書き（環境の錨がある/ない、記録前/記録中で出し分け） */}
-        <p className="-mt-1 text-[10px] leading-relaxed text-default-400">
+        <p className="-mt-1 text-[0.625rem] leading-relaxed text-default-400">
           {hasEnv ? (
             hasOwn ? (
               <>
@@ -242,7 +242,7 @@ export default function DeckValueMeter({ count, winRate, envWinRate }: Props) {
               <LuGauge className="text-primary" />
               価値メーター
             </span>
-            <span className="text-[10px] font-bold tabular-nums text-default-400">
+            <span className="text-[0.625rem] font-bold tabular-nums text-default-400">
               {Math.min(count, MAGIC_DECK_MATCHES)} / {MAGIC_DECK_MATCHES} 戦
             </span>
           </div>
@@ -252,13 +252,13 @@ export default function DeckValueMeter({ count, winRate, envWinRate }: Props) {
               style={{ width: `${progress}%` }}
             />
           </div>
-          <p className="mt-2 text-[11px] font-semibold leading-relaxed text-default-500">
+          <p className="mt-2 text-[0.6875rem] font-semibold leading-relaxed text-default-500">
             あと <span className="font-bold text-primary">{remaining}戦</span> で、
             このデッキの勝率が
             <span className="font-bold text-primary">「参考になる」精度</span>
             に解錠されます
           </p>
-          <p className="mt-1 text-[10px] leading-relaxed text-default-400">
+          <p className="mt-1 text-[0.625rem] leading-relaxed text-default-400">
             ※ 解錠に必要な対戦数（{MAGIC_DECK_MATCHES}
             戦）は暫定基準です。継続者データの分析後に較正します。
           </p>

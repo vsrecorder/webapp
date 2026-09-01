@@ -547,7 +547,7 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
       {/* デッキ選択：質問は一切しない。選ぶだけ。 */}
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-1">
-          <span className="text-[11px] font-bold tracking-widest text-amber-600 lg:text-xs dark:text-amber-400">
+          <span className="text-[0.6875rem] font-bold tracking-widest text-amber-600 lg:text-xs dark:text-amber-400">
             登録済みのデッキから
           </span>
           <span className="text-base font-bold text-foreground lg:text-lg">
@@ -609,12 +609,12 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
                       </span>
                       {/* 記録が最も多いデッキ＝いちばん長く歩いてきた相手。最初に目を留めさせる */}
                       {index === 0 && count > 0 && (
-                        <span className="shrink-0 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold whitespace-nowrap text-amber-500 dark:text-amber-400">
+                        <span className="shrink-0 rounded-full bg-amber-500/15 px-2 py-0.5 text-[0.625rem] font-bold whitespace-nowrap text-amber-500 dark:text-amber-400">
                           最も記録が多い
                         </span>
                       )}
                     </span>
-                    <span className="flex items-center gap-1.5 text-[11px] text-default-500">
+                    <span className="flex items-center gap-1.5 text-[0.6875rem] text-default-500">
                       <LuSwords className="shrink-0 text-xs" />
                       {count > 0 ? (
                         <span>
@@ -711,7 +711,7 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
               metrics={estimate!.metrics}
             />
 
-            <p className="px-1 text-[11px] leading-relaxed text-default-400 lg:text-xs">
+            <p className="px-1 text-[0.6875rem] leading-relaxed text-default-400 lg:text-xs">
               これは対戦記録から6指標で算出したきずなLv.です。今後、指標を追加していく予定です。
               <br />
               きずなはβ版のため、指標や重み付けは変更される可能性があります（同じ記録でも数値が変わることがあります）。
@@ -721,7 +721,7 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
             <div className="flex items-center gap-3 rounded-xl border border-default-200 px-4 py-3">
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-bold">内訳カードも一緒にシェア</div>
-                <div className="text-[11px] text-default-400">
+                <div className="text-[0.6875rem] text-default-400">
                   きずなLv.の内訳を2枚目の画像として追加します
                 </div>
               </div>

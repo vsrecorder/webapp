@@ -55,14 +55,14 @@ export default function TeamSynergyPanel({ team }: Props) {
   return (
     <div className="flex w-full flex-col items-center">
       {/* ベータ表示。指標の性格上、確定した数字だと受け取られないよう先頭に置く */}
-      <span className="rounded-sm bg-warning/15 px-1 py-px text-[8px] font-bold leading-tight text-warning">
+      <span className="rounded-sm bg-warning/15 px-1 py-px text-[0.5rem] font-bold leading-tight text-warning">
         BETA
       </span>
 
       {/* 指標名。数値だけでは単位が伝わらないため、記号を添えて「φ係数」だと分かるようにする */}
       <div className="mt-1.5 flex items-center gap-1">
-        <span className="text-[9px] font-bold tracking-wide text-default-400">貢献度</span>
-        <span className="text-[10px] font-bold italic text-default-400">φ</span>
+        <span className="text-[0.5625rem] font-bold tracking-wide text-default-400">貢献度</span>
+        <span className="text-[0.625rem] font-bold italic text-default-400">φ</span>
       </div>
 
       {/* φの値 */}
@@ -85,7 +85,7 @@ export default function TeamSynergyPanel({ team }: Props) {
             />
           )}
         </div>
-        <div className="mt-1 flex justify-between text-[8px] font-bold tabular-nums text-default-400">
+        <div className="mt-1 flex justify-between text-[0.5rem] font-bold tabular-nums text-default-400">
           <span>-1</span>
           <span>0</span>
           <span>+1</span>

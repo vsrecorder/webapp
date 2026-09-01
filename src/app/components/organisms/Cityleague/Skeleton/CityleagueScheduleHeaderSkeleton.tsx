@@ -12,8 +12,8 @@ import { Skeleton } from "@heroui/react";
 export default function CityleagueScheduleHeaderSkeleton() {
   return (
     <div className="w-full rounded-2xl bg-default-100 border border-transparent px-4 py-4 flex flex-col items-center gap-1.5">
-      {/* 「開催中」/「直近の結果」ラベル(text-[10px] の行 = 15px、実測幅 55px) */}
-      <div className="h-[15px] flex items-center">
+      {/* 「開催中」/「直近の結果」ラベル(text-[0.625rem] の行 = 15px、実測幅 55px。px はルート16px時) */}
+      <div className="h-[0.9375rem] flex items-center">
         <Skeleton className="h-3 w-14 rounded-full" />
       </div>
 

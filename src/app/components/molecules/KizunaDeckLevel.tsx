@@ -23,8 +23,8 @@ function ratioOf(level: number): number {
 export function KizunaLevelInline({ level }: { level: number }) {
   return (
     <span className="flex shrink-0 items-baseline gap-1">
-      <span className="text-[9px] text-default-400">きずなLv.</span>
-      <span className="text-[11px] font-bold tabular-nums text-amber-500 dark:text-amber-400">
+      <span className="text-[0.5625rem] text-default-400">きずなLv.</span>
+      <span className="text-[0.6875rem] font-bold tabular-nums text-amber-500 dark:text-amber-400">
         {level}
       </span>
     </span>
@@ -57,7 +57,7 @@ export function KizunaLevelBar({
       </div>
       {showTierName && (
         <div className="flex items-center justify-between gap-1">
-          <span className="truncate text-[11px] font-bold text-default-600">
+          <span className="truncate text-[0.6875rem] font-bold text-default-600">
             {kizunaTierOf(level).name}
           </span>
           {trailing}

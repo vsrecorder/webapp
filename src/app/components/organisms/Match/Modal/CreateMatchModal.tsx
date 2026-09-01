@@ -92,13 +92,13 @@ function CardDeckName({ text }: { text: string }) {
   return (
     <div className="w-full overflow-hidden flex items-center">
       {shouldMarquee ? (
-        <span className="text-[10px] leading-snug whitespace-nowrap inline-block animate-marquee-card">
+        <span className="text-[0.625rem] leading-snug whitespace-nowrap inline-block animate-marquee-card">
           {text}&nbsp;&nbsp;&nbsp;{text}&nbsp;&nbsp;&nbsp;
         </span>
       ) : (
         <span
           ref={spanRef}
-          className="text-[10px] leading-snug whitespace-nowrap flex-1 min-w-0 text-center"
+          className="text-[0.625rem] leading-snug whitespace-nowrap flex-1 min-w-0 text-center"
         >
           {text}
         </span>
@@ -812,7 +812,7 @@ export default function CreateMatchModal({
                       <PokemonSprite size={36} />
                       <PokemonSprite size={36} />
                     </div>
-                    <span className="text-[10px] leading-snug w-full text-center whitespace-nowrap">
+                    <span className="text-[0.625rem] leading-snug w-full text-center whitespace-nowrap">
                       候補なし
                     </span>
                   </div>

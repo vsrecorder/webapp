@@ -109,7 +109,7 @@ export default function RecapPeriodTile({
 
       <span
         style={{ color: color.sub }}
-        className={`relative font-bold ${isHero || isWide ? "text-[10px] tracking-[0.2em]" : "text-[9px] tracking-[0.16em]"}`}
+        className={`relative font-bold ${isHero || isWide ? "text-[0.625rem] tracking-[0.2em]" : "text-[0.5625rem] tracking-[0.16em]"}`}
       >
         {kindLabel}
       </span>
@@ -145,7 +145,7 @@ export default function RecapPeriodTile({
         </span>
         <span
           style={{ color: color.sub }}
-          className={`font-bold tabular-nums ${isHero || isWide ? "text-xs" : "text-[10px]"}`}
+          className={`font-bold tabular-nums ${isHero || isWide ? "text-xs" : "text-[0.625rem]"}`}
         >
           {subtitle}
         </span>

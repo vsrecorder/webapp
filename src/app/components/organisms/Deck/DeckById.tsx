@@ -374,7 +374,7 @@ export default function DeckById({ id, valueMeterEnabled = false }: Props) {
             type="button"
             onClick={() => setShareOpen(true)}
             aria-label="このデッキをシェアする"
-            className="flex items-center gap-0.5 rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-bold text-primary active:opacity-70"
+            className="flex items-center gap-0.5 rounded-full bg-primary/10 px-2.5 py-1 text-[0.6875rem] font-bold text-primary active:opacity-70"
           >
             <LuShare2 className="text-xs" />
             シェア
@@ -404,7 +404,7 @@ export default function DeckById({ id, valueMeterEnabled = false }: Props) {
                 size="sm"
                 variant="flat"
                 color="warning"
-                className="h-5 text-[10px] font-bold"
+                className="h-5 text-[0.625rem] font-bold"
               >
                 アーカイブ済み
               </Chip>
@@ -501,7 +501,7 @@ export default function DeckById({ id, valueMeterEnabled = false }: Props) {
         </div>
         <div className="min-w-0 flex-1">
           <div className="text-tiny font-bold text-default-600">ページのURLをコピー</div>
-          <div className="truncate text-[10px] text-default-400">
+          <div className="truncate text-[0.625rem] text-default-400">
             {pageUrl || `/decks/${deck.id}`}
           </div>
         </div>
@@ -512,7 +512,7 @@ export default function DeckById({ id, valueMeterEnabled = false }: Props) {
         )}
       </button>
       {/* NFC活用のヒント */}
-      <p className="-mt-1.5 px-1 text-[10px] text-default-400">
+      <p className="-mt-1.5 px-1 text-[0.625rem] text-default-400">
         NFCタグに書き込むと、かざすだけでこのページを開いて素早く記録を追加できます。
       </p>
 
@@ -559,7 +559,7 @@ export default function DeckById({ id, valueMeterEnabled = false }: Props) {
                     <span className="text-medium font-black leading-none tabular-nums">
                       {formatPercent(winRate)}
                     </span>
-                    <span className="text-[9px] font-bold opacity-80">勝率</span>
+                    <span className="text-[0.5625rem] font-bold opacity-80">勝率</span>
                   </div>
                 </div>
 
@@ -579,7 +579,7 @@ export default function DeckById({ id, valueMeterEnabled = false }: Props) {
                 <div className="grid grid-cols-2 gap-2">
                   <div className="rounded-lg bg-default-100 px-2.5 py-2">
                     <div className="text-tiny font-bold text-default-600 mb-1">先攻</div>
-                    <div className="grid grid-cols-[auto_1fr] items-baseline gap-x-2 gap-y-0.5 text-[11px] tabular-nums">
+                    <div className="grid grid-cols-[auto_1fr] items-baseline gap-x-2 gap-y-0.5 text-[0.6875rem] tabular-nums">
                       <span className="text-default-400">割合</span>
                       <span className="text-right text-default-600">
                         {usageStat!.go_first_count > 0 ? (
@@ -602,7 +602,7 @@ export default function DeckById({ id, valueMeterEnabled = false }: Props) {
                           : "-"}
                         {goFirstDeviation && (
                           <span
-                            className={`ml-1 text-[10px] font-semibold ${goFirstDeviation.colorClass}`}
+                            className={`ml-1 text-[0.625rem] font-semibold ${goFirstDeviation.colorClass}`}
                           >
                             （全体差 {goFirstDeviation.label}）
                           </span>
@@ -612,7 +612,7 @@ export default function DeckById({ id, valueMeterEnabled = false }: Props) {
                   </div>
                   <div className="rounded-lg bg-default-100 px-2.5 py-2">
                     <div className="text-tiny font-bold text-default-600 mb-1">後攻</div>
-                    <div className="grid grid-cols-[auto_1fr] items-baseline gap-x-2 gap-y-0.5 text-[11px] tabular-nums">
+                    <div className="grid grid-cols-[auto_1fr] items-baseline gap-x-2 gap-y-0.5 text-[0.6875rem] tabular-nums">
                       <span className="text-default-400">割合</span>
                       <span className="text-right text-default-600">
                         {usageStat!.go_second_count > 0 ? (
@@ -635,7 +635,7 @@ export default function DeckById({ id, valueMeterEnabled = false }: Props) {
                           : "-"}
                         {goSecondDeviation && (
                           <span
-                            className={`ml-1 text-[10px] font-semibold ${goSecondDeviation.colorClass}`}
+                            className={`ml-1 text-[0.625rem] font-semibold ${goSecondDeviation.colorClass}`}
                           >
                             （全体差 {goSecondDeviation.label}）
                           </span>
@@ -653,11 +653,11 @@ export default function DeckById({ id, valueMeterEnabled = false }: Props) {
                     size="sm"
                     variant="solid"
                     color="warning"
-                    className="h-5 text-[10px] font-bold"
+                    className="h-5 text-[0.625rem] font-bold"
                   >
                     ⚠ 集計対象外 {ignoredCount}件
                   </Chip>
-                  <span className="text-[10px] text-default-400">
+                  <span className="text-[0.625rem] text-default-400">
                     勝率などの集計に未反映
                   </span>
                 </div>
@@ -673,7 +673,7 @@ export default function DeckById({ id, valueMeterEnabled = false }: Props) {
               <div className="text-tiny font-bold text-warning-700">
                 集計対象外の記録が{ignoredCount}件あります
               </div>
-              <div className="text-[10px] text-warning-600/80">
+              <div className="text-[0.625rem] text-warning-600/80">
                 勝率・先攻/後攻などの集計には含まれていません
               </div>
             </div>
@@ -685,7 +685,7 @@ export default function DeckById({ id, valueMeterEnabled = false }: Props) {
               <div className="text-tiny font-bold text-default-600">
                 まだ対戦記録がありません
               </div>
-              <div className="text-[10px] text-default-400">
+              <div className="text-[0.625rem] text-default-400">
                 対戦を記録すると勝率や先攻・後攻の成績が見られます
               </div>
             </div>
@@ -764,7 +764,7 @@ export default function DeckById({ id, valueMeterEnabled = false }: Props) {
                             size="sm"
                             variant="flat"
                             color="primary"
-                            className="h-5 text-[10px] font-bold"
+                            className="h-5 text-[0.625rem] font-bold"
                           >
                             最新
                           </Chip>

@@ -403,7 +403,7 @@ function FavoriteStar() {
 // 必須項目であることを示すバッジ
 function RequiredBadge() {
   return (
-    <span className="text-[10px] font-bold text-danger border border-danger rounded px-1 leading-tight">
+    <span className="text-[0.625rem] font-bold text-danger border border-danger rounded px-1 leading-tight">
       必須
     </span>
   );
@@ -420,7 +420,7 @@ function StepLabel({
 }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary text-white text-[10px] font-bold shrink-0">
+      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary text-white text-[0.625rem] font-bold shrink-0">
         {num}
       </span>
       <span className="text-sm font-semibold">{children}</span>

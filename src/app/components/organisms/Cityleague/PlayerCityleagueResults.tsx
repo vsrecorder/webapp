@@ -208,7 +208,7 @@ export default function PlayerCityleagueResults({ season, seasonLabel }: Props) 
     <div className="flex min-w-0 flex-col gap-2">
       <div className="flex items-end justify-between gap-2">
         <div className="flex min-w-0 flex-col">
-          <h3 className="text-[10px] font-bold uppercase tracking-wide text-default-400">
+          <h3 className="text-[0.625rem] font-bold uppercase tracking-wide text-default-400">
             入賞したシティリーグ
           </h3>
           {seasonLabel && (
@@ -218,7 +218,7 @@ export default function PlayerCityleagueResults({ season, seasonLabel }: Props) 
           )}
         </div>
         {!isLoading && !error && results.length > 0 && (
-          <span className="shrink-0 text-[10px] font-bold text-default-400 tabular-nums">
+          <span className="shrink-0 text-[0.625rem] font-bold text-default-400 tabular-nums">
             {results.length}件
           </span>
         )}

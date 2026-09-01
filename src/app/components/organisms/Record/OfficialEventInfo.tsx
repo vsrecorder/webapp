@@ -150,7 +150,7 @@ export default function OfficialEventInfo({
               size="sm"
               variant="flat"
               color={getChipColor(officialEvent)}
-              className="h-5 text-[10px] font-bold"
+              className="h-5 text-[0.625rem] font-bold"
             >
               {getEventTypeName(officialEvent)}
             </Chip>
@@ -161,7 +161,7 @@ export default function OfficialEventInfo({
                   variant="flat"
                   color="default"
                   className="h-5 max-w-30"
-                  classNames={{ content: "text-[10px] truncate min-w-0" }}
+                  classNames={{ content: "text-[0.625rem] truncate min-w-0" }}
                 >
                   {`『${officialEvent.environment_title}』`}
                 </Chip>
@@ -172,7 +172,7 @@ export default function OfficialEventInfo({
                 variant="flat"
                 color="default"
                 className="h-5 max-w-30"
-                classNames={{ content: "text-[10px] truncate min-w-0" }}
+                classNames={{ content: "text-[0.625rem] truncate min-w-0" }}
               >
                 {officialEvent.shop_name?.trim() || officialEvent.venue?.trim()}
               </Chip>
@@ -182,7 +182,7 @@ export default function OfficialEventInfo({
                 size="sm"
                 variant="solid"
                 color="warning"
-                className="h-5 text-[10px] font-bold"
+                className="h-5 text-[0.625rem] font-bold"
               >
                 ⚠ 集計対象外
               </Chip>

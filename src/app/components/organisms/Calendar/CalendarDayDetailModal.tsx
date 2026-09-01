@@ -122,7 +122,7 @@ function EventContent({ event }: { event: CalendarEvent }) {
                 size="sm"
                 variant="flat"
                 color={event.chip_color}
-                className="h-5 text-[10px] font-bold"
+                className="h-5 text-[0.625rem] font-bold"
               >
                 {event.chip_label}
               </Chip>
@@ -131,7 +131,7 @@ function EventContent({ event }: { event: CalendarEvent }) {
                   size="sm"
                   variant="flat"
                   color="default"
-                  className="h-5 text-[10px] font-bold max-w-40 truncate"
+                  className="h-5 text-[0.625rem] font-bold max-w-40 truncate"
                 >
                   {event.venue_label}
                 </Chip>
@@ -186,7 +186,7 @@ function EventContent({ event }: { event: CalendarEvent }) {
                 size="sm"
                 variant="flat"
                 color={event.chip_color}
-                className="h-5 text-[10px] font-bold"
+                className="h-5 text-[0.625rem] font-bold"
               >
                 {event.chip_label}
               </Chip>
@@ -195,7 +195,7 @@ function EventContent({ event }: { event: CalendarEvent }) {
                   size="sm"
                   variant="flat"
                   color="default"
-                  className="h-5 text-[10px] font-bold max-w-40 truncate"
+                  className="h-5 text-[0.625rem] font-bold max-w-40 truncate"
                 >
                   {event.venue_label}
                 </Chip>
@@ -234,7 +234,7 @@ function EventContent({ event }: { event: CalendarEvent }) {
               variant="flat"
               radius="sm"
               color={resultColor}
-              className="h-5 text-[10px] font-bold"
+              className="h-5 text-[0.625rem] font-bold"
             >
               {resultLabel}
             </Chip>
@@ -243,7 +243,7 @@ function EventContent({ event }: { event: CalendarEvent }) {
                 size="sm"
                 variant="flat"
                 radius="sm"
-                className="h-5 text-[10px] font-bold"
+                className="h-5 text-[0.625rem] font-bold"
               >
                 {event.go_first ? "先攻" : "後攻"}
               </Chip>
@@ -253,7 +253,7 @@ function EventContent({ event }: { event: CalendarEvent }) {
                 size="sm"
                 variant="flat"
                 radius="sm"
-                className="h-5 text-[10px] font-bold"
+                className="h-5 text-[0.625rem] font-bold"
               >
                 {event.your_prize_cards} - {event.opponents_prize_cards}
               </Chip>
@@ -356,7 +356,7 @@ const EventRow = memo(function EventRow({
       </div>
       <div className={`min-w-0 flex-1 ${isLast ? "pb-1" : "pb-5"}`}>
         <div className="flex items-center gap-1 h-4">
-          <LuClock className="text-[11px] text-default-300 shrink-0" />
+          <LuClock className="text-[0.6875rem] text-default-300 shrink-0" />
           <span className="text-tiny font-bold text-default-400">
             {formatTimeLabel(event.created_at)}
           </span>

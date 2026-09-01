@@ -21,7 +21,7 @@ function WinRateDisplay({ winRate, isLoading }: { winRate: number; isLoading: bo
 
   return (
     <div className="flex flex-col items-center gap-0.5">
-      <span className="text-[10px] font-bold text-default-400 uppercase tracking-wider">
+      <span className="text-[0.625rem] font-bold text-default-400 uppercase tracking-wider">
         勝率
       </span>
       <span
@@ -48,7 +48,7 @@ function StatCell({
 }) {
   return (
     <div className="flex flex-col items-center gap-0.5 p-3 rounded-xl bg-default-100">
-      <span className="text-[10px] font-bold text-default-400 uppercase tracking-wider">
+      <span className="text-[0.625rem] font-bold text-default-400 uppercase tracking-wider">
         {label}
       </span>
       <span className="flex items-baseline gap-0.5">
@@ -107,7 +107,7 @@ export default function UserStatSummary({ stat, isLoading }: Props) {
           // 引き分け数を右隣に「（N分）」で表示し、内訳が分かるようにする
           suffix={
             draws > 0 ? (
-              <span title="引き分け" className="text-[10px] font-bold text-default-400">
+              <span title="引き分け" className="text-[0.625rem] font-bold text-default-400">
                 （{draws}分）
               </span>
             ) : null

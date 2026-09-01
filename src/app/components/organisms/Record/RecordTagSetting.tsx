@@ -149,7 +149,7 @@ export default function RecordTagSetting({
             <span />
           )}
           {isSaving && (
-            <span className="shrink-0 text-[10px] text-default-400">保存中…</span>
+            <span className="shrink-0 text-[0.625rem] text-default-400">保存中…</span>
           )}
         </div>
       )}

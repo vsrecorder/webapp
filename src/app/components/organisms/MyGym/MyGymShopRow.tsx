@@ -37,7 +37,7 @@ export default function MyGymShopRow({
       <Icon className="h-4 w-4 shrink-0 text-default-400" />
       <div className="flex min-w-0 flex-1 flex-col">
         <span className="truncate text-xs font-bold text-default-700">{shop.name}</span>
-        <span className="truncate text-[11px] text-default-500">
+        <span className="truncate text-[0.6875rem] text-default-500">
           {shop.prefecture_name}
           {shop.address}
         </span>

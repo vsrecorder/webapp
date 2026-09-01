@@ -39,7 +39,7 @@ export function RecordCardSkeleton({ className = "" }: { className?: string }) {
             <div className="flex-1 px-4 py-3.5 min-w-0">
               {/* レギュレーションのチップ行(全ての記録に付くため常に枠を確保する。
                   集計対象外マークは大半の記録に無いのでスケルトンには出さない)。
-                  幅は「スタンダード」のチップ(text-[10px] font-bold + 左右padding)に合わせる */}
+                  幅は「スタンダード」のチップ(text-[0.625rem] font-bold + 左右padding)に合わせる */}
               <div className="flex h-5 items-center mb-1">
                 <Skeleton className="h-5 w-20 rounded-full" />
               </div>
@@ -53,7 +53,7 @@ export function RecordCardSkeleton({ className = "" }: { className?: string }) {
 
               {/* イベント名(実体は ScrollingText の text-sm leading-snug = 19.25px)。
                   幅は公式イベント名の中央値(整形後の「ジムバトル」= 70px)に合わせる */}
-              <div className="h-[19.25px] flex items-center mt-0.5">
+              <div className="h-[1.203125rem] flex items-center mt-0.5">
                 <Skeleton className="h-3.5 w-18 rounded-md" />
               </div>
 

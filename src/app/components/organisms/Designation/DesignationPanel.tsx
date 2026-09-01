@@ -132,12 +132,12 @@ function DesignationTile({
       aria-label={`${item.name}の詳細を見る`}
     >
       {isCurrent && (
-        <span className="absolute -top-2 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded-full bg-warning text-white text-[7px] font-bold whitespace-nowrap shadow-sm">
+        <span className="absolute -top-2 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded-full bg-warning text-white text-[0.4375rem] font-bold whitespace-nowrap shadow-sm">
           現在地
         </span>
       )}
       <span
-        className={`absolute top-0.5 left-0.5 flex items-center justify-center w-4 h-4 rounded-full text-[8px] font-bold ${
+        className={`absolute top-0.5 left-0.5 flex items-center justify-center w-4 h-4 rounded-full text-[0.5rem] font-bold ${
           item.achieved ? "bg-warning/20 text-warning" : "bg-default-200 text-default-400"
         }`}
       >
@@ -149,7 +149,7 @@ function DesignationTile({
         <LuLock className="w-5 h-5 text-default-300" />
       )}
       <span
-        className={`w-full truncate text-[8px] font-bold leading-tight ${
+        className={`w-full truncate text-[0.5rem] font-bold leading-tight ${
           item.achieved ? "text-default-600" : "text-default-300"
         }`}
       >
@@ -292,10 +292,11 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
 
           <div className="flex flex-col items-center gap-2">
             <div className="w-20 h-20 rounded-2xl bg-default-100 animate-pulse" />
-            {/* 「ランク」(text-[10px] = 15px) / ランク名(text-lg = 28px) /
-                「称号: …」(text-xs = 16px, mt-0.5)。実カードは gap 無しで積む */}
+            {/* 「ランク」(text-[0.625rem] = 15px) / ランク名(text-lg = 28px) /
+                「称号: …」(text-xs = 16px, mt-0.5)。実カードは gap 無しで積む。
+                px はいずれもルート16px時の値 */}
             <div className="flex flex-col items-center">
-              <div className="h-[15px] flex items-center">
+              <div className="h-[0.9375rem] flex items-center">
                 <div className="w-14 h-2.5 rounded-full bg-default-100 animate-pulse" />
               </div>
               <div className="h-7 flex items-center">
@@ -308,7 +309,7 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
           </div>
 
           {/* 称号ラダー。実カードは「5枚の行 → 折り返しの▼ → 5枚の行」で、
-              タイルは p-2 + 絵文字(20px) + gap-1 + 名前(text-[8px] = 10px) の 50px。
+              タイルは p-2 + 絵文字(20px) + gap-1 + 名前(text-[0.5rem] = 10px) の 50px(px はルート16px時)。
               グリッドで並べると▼の行が抜けて高さがズレるので、同じ行構成で組む */}
           <div className="flex flex-col gap-1">
             <DesignationLadderRowSkeleton />
@@ -332,7 +333,7 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
             <div className="border-t border-default-100 pt-4">
               <div className="flex flex-col gap-2">
                 <div className="flex flex-col">
-                  <div className="h-[15px] flex items-center">
+                  <div className="h-[0.9375rem] flex items-center">
                     <div className="w-28 h-2.5 rounded-full bg-default-100 animate-pulse" />
                   </div>
                   <div className="h-4 flex items-center">
@@ -380,7 +381,7 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
                 </option>
               ))}
             </select>
-            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-default-400 text-[10px]">
+            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-default-400 text-[0.625rem]">
               ▼
             </span>
           </div>
@@ -403,7 +404,7 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
             />
           </button>
           <div className="flex flex-col items-center">
-            <span className="text-[10px] font-bold text-default-400 uppercase tracking-wide">
+            <span className="text-[0.625rem] font-bold text-default-400 uppercase tracking-wide">
               ランク
             </span>
             <span className="text-lg font-black text-default-700">
@@ -506,7 +507,7 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
                   return (
                     <div className="flex flex-col items-stretch gap-1.5 w-full">
                       {parsed && (
-                        <div className="flex items-center justify-center gap-1.5 self-center rounded-full bg-default-100 px-3 py-1 text-[11px] font-bold text-default-500">
+                        <div className="flex items-center justify-center gap-1.5 self-center rounded-full bg-default-100 px-3 py-1 text-[0.6875rem] font-bold text-default-500">
                           <span>前提条件：</span>
                           <span className="text-warning">
                             {parsed.prerequisiteEmoji} {parsed.prerequisiteName}
@@ -527,7 +528,7 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
                 ) : selected.criteria_type === "official_city_league_record" ? (
                   <div className="flex flex-col items-center gap-1.5 w-full mt-1">
                     <div className="flex flex-col items-center gap-1.5 w-full rounded-xl bg-default-50 p-2">
-                      <span className="text-[10px] font-bold text-default-400">
+                      <span className="text-[0.625rem] font-bold text-default-400">
                         前シーズンに引き続き記録した場合
                       </span>
                       <ProgressBar
@@ -541,9 +542,9 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
                         max={selected.criteria_value}
                       />
                     </div>
-                    <span className="text-[10px] font-bold text-default-300">または</span>
+                    <span className="text-[0.625rem] font-bold text-default-300">または</span>
                     <div className="flex flex-col items-center gap-1.5 w-full rounded-xl bg-default-50 p-2">
-                      <span className="text-[10px] font-bold text-default-400">
+                      <span className="text-[0.625rem] font-bold text-default-400">
                         今シーズン単独で{selected.standalone_threshold}件以上記録した場合
                       </span>
                       <ProgressBar
@@ -596,7 +597,7 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
                   // 優勝は1回以上で達成のため上限1で頭打ち(複数回優勝でも 1/1 表示)。
                   // 入賞(優勝含む・記録と公式結果がそろったもの)を、参加数(シティリーグ記録数)で割って表示する。
                   <div className="flex flex-col items-center gap-1.5 w-full mt-1 rounded-xl bg-default-50 p-2">
-                    <span className="text-[10px] font-bold text-default-400">
+                    <span className="text-[0.625rem] font-bold text-default-400">
                       優勝を1回以上、かつ参加した全大会で入賞
                     </span>
                     <ProgressBar
@@ -682,10 +683,10 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
 
             {/* ランクの詳細リスト(画像の階段とは別に、名称・対応称号を一覧表示) */}
             <div className="flex items-baseline justify-between px-1 mb-1">
-              <span className="text-[11px] font-black text-default-500">
+              <span className="text-[0.6875rem] font-black text-default-500">
                 ランク別の在籍割合
               </span>
-              <span className="text-[9px] text-default-300">
+              <span className="text-[0.5625rem] text-default-300">
                 モンスターボール級以上のユーザーが対象
               </span>
             </div>
@@ -707,7 +708,7 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
                     }`}
                   >
                     {isCurrentRank && (
-                      <span className="absolute -top-1.5 left-7 px-1.5 py-0.5 rounded-full bg-warning text-white text-[7px] font-bold whitespace-nowrap shadow-sm">
+                      <span className="absolute -top-1.5 left-7 px-1.5 py-0.5 rounded-full bg-warning text-white text-[0.4375rem] font-bold whitespace-nowrap shadow-sm">
                         現在地
                       </span>
                     )}
@@ -742,7 +743,7 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
                           return (
                             <Fragment key={item.id}>
                               <span
-                                className={`text-[9px] truncate text-left ${
+                                className={`text-[0.5625rem] truncate text-left ${
                                   isCurrentTier
                                     ? "font-bold text-warning"
                                     : "text-default-400"
@@ -751,7 +752,7 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
                                 {item.emoji} {item.name}
                               </span>
                               <span
-                                className={`text-[9px] font-bold tabular-nums text-right ${
+                                className={`text-[0.5625rem] font-bold tabular-nums text-right ${
                                   isCurrentTier ? "text-warning" : "text-default-400"
                                 }`}
                               >
@@ -764,7 +765,7 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
                         })}
                       </div>
                     ) : (
-                      <span className="text-[10px] text-default-400 truncate ml-auto w-36 text-right">
+                      <span className="text-[0.625rem] text-default-400 truncate ml-auto w-36 text-right">
                         {`Tier ${r.minTier}〜${r.maxTier}`}
                       </span>
                     )}

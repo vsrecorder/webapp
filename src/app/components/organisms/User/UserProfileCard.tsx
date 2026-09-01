@@ -215,7 +215,7 @@ function WinRateBadge({
           value={yearMonth}
           onChange={(e) => onYearMonthChange(e.target.value)}
           aria-label="表示する年月を選択"
-          className="appearance-none bg-transparent text-white/90 text-[12px] font-semibold text-right pr-3.5 focus:outline-none [&>option]:text-default-700"
+          className="appearance-none bg-transparent text-white/90 text-[0.75rem] font-semibold text-right pr-3.5 focus:outline-none [&>option]:text-default-700"
         >
           {yearMonthOptions.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -223,7 +223,7 @@ function WinRateBadge({
             </option>
           ))}
         </select>
-        <span className="pointer-events-none absolute right-0 text-white/70 text-[8px]">
+        <span className="pointer-events-none absolute right-0 text-white/70 text-[0.5rem]">
           ▼
         </span>
       </div>
@@ -232,7 +232,7 @@ function WinRateBadge({
         className="flex items-center gap-1 text-white/70 hover:text-white/90 transition-colors pb-1"
         aria-label={hidden ? "戦績を表示する" : "戦績を非表示にする"}
       >
-        <span className="text-[9px] font-bold uppercase tracking-widest">WIN RATE</span>
+        <span className="text-[0.5625rem] font-bold uppercase tracking-widest">WIN RATE</span>
         {hidden ? (
           <LuEyeOff className="w-3 h-3 shrink-0" />
         ) : (
@@ -307,7 +307,7 @@ function StatChip({
           {suffix}
         </span>
       )}
-      <span className="text-[9px] font-bold text-default-400 uppercase tracking-wide">
+      <span className="text-[0.5625rem] font-bold text-default-400 uppercase tracking-wide">
         {label}
       </span>
     </div>
@@ -329,7 +329,7 @@ function PlayersClubBadge({ isLoading, userPlayer }: PlayersClubBadgeProps) {
 
   if (userPlayer) {
     return (
-      <span className="flex items-center gap-1 text-white/80 text-[10px] font-medium">
+      <span className="flex items-center gap-1 text-white/80 text-[0.625rem] font-medium">
         <LuCircleCheck className="w-3 h-3 shrink-0" />
         プレイヤーズクラブ連携済み
       </span>
@@ -339,7 +339,7 @@ function PlayersClubBadge({ isLoading, userPlayer }: PlayersClubBadgeProps) {
   return (
     <Link
       href="/users?link_player=1"
-      className="flex items-center gap-1 text-white/80 hover:text-white text-[10px] font-medium underline underline-offset-2"
+      className="flex items-center gap-1 text-white/80 hover:text-white text-[0.625rem] font-medium underline underline-offset-2"
     >
       <LuIdCard className="w-3 h-3 shrink-0" />
       プレイヤーズクラブと連携する
@@ -513,7 +513,7 @@ export default function UserProfileCard({
                     return draws > 0 ? (
                       <span
                         title="引き分け"
-                        className="text-[10px] font-bold text-default-400"
+                        className="text-[0.625rem] font-bold text-default-400"
                       >
                         （{draws}分）
                       </span>

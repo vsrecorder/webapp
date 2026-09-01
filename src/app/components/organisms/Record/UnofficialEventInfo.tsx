@@ -151,7 +151,7 @@ export default function UnofficialEventInfo({ record }: Props) {
             <Chip
               size="sm"
               variant="flat"
-              className="h-5 text-[10px] font-bold gap-0.5 pl-1.5 bg-default-200 text-default-600"
+              className="h-5 text-[0.625rem] font-bold gap-0.5 pl-1.5 bg-default-200 text-default-600"
             >
               自由形式
             </Chip>
@@ -161,7 +161,7 @@ export default function UnofficialEventInfo({ record }: Props) {
                 variant="flat"
                 color="default"
                 className="h-5 max-w-30"
-                classNames={{ content: "text-[10px] truncate" }}
+                classNames={{ content: "text-[0.625rem] truncate" }}
               >
                 {`『${environment.title}』`}
               </Chip>
@@ -171,7 +171,7 @@ export default function UnofficialEventInfo({ record }: Props) {
                 size="sm"
                 variant="solid"
                 color="warning"
-                className="h-5 text-[10px] font-bold"
+                className="h-5 text-[0.625rem] font-bold"
               >
                 ⚠ 集計対象外
               </Chip>

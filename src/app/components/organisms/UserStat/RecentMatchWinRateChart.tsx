@@ -248,7 +248,7 @@ export default function RecentMatchWinRateChart({ userId }: Props) {
         : d.victory
           ? "勝ち"
           : "負け";
-      tooltipResultRef.current.className = `font-black text-[11px] ${
+      tooltipResultRef.current.className = `font-black text-[0.6875rem] ${
         d.draw ? "text-default-500" : d.victory ? "text-success" : "text-danger"
       }`;
     }
@@ -387,7 +387,7 @@ export default function RecentMatchWinRateChart({ userId }: Props) {
               <option value="50">直近50戦</option>
               <option value="100">直近100戦</option>
             </select>
-            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-default-400 text-[10px]">
+            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-default-400 text-[0.625rem]">
               ▼
             </span>
           </div>
@@ -410,7 +410,7 @@ export default function RecentMatchWinRateChart({ userId }: Props) {
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
-            <span className="text-[10px] text-default-400 tabular-nums">
+            <span className="text-[0.625rem] text-default-400 tabular-nums">
               {totalMatches} / {requiredCount} 戦
             </span>
           </div>

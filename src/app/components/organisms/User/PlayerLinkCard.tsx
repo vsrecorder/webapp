@@ -58,7 +58,7 @@ export default function PlayerLinkCard() {
     return (
       <Card className="shadow-md">
         <CardBody className="p-4 flex flex-col gap-3">
-          {/* 見出し行(アイコン 16px + text-[9px] のラベル。行の高さはアイコンで決まる) */}
+          {/* 見出し行(アイコン 16px + text-[0.5625rem] のラベル。行の高さはアイコンで決まる) */}
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 shrink-0 rounded-md bg-default-100 animate-pulse" />
             <div className="h-2.5 w-32 rounded-full bg-default-100 animate-pulse" />
@@ -85,7 +85,7 @@ export default function PlayerLinkCard() {
         <CardBody className="p-4 flex flex-col gap-3">
           <div className="flex items-center gap-2">
             <LuIdCard className="w-4 h-4 text-default-400 shrink-0" />
-            <span className="text-[9px] font-bold text-default-400 uppercase tracking-widest">
+            <span className="text-[0.5625rem] font-bold text-default-400 uppercase tracking-widest">
               プレイヤーズクラブとの連携
             </span>
           </div>
@@ -105,7 +105,7 @@ export default function PlayerLinkCard() {
         <CardBody className="p-4 flex flex-col gap-3">
           <div className="flex items-center gap-2">
             <LuIdCard className="w-4 h-4 text-default-400 shrink-0" />
-            <span className="text-[9px] font-bold text-default-400 uppercase tracking-widest">
+            <span className="text-[0.5625rem] font-bold text-default-400 uppercase tracking-widest">
               プレイヤーズクラブとの連携
             </span>
           </div>

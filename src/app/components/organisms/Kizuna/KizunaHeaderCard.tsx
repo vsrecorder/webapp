@@ -67,10 +67,10 @@ export default function KizunaHeaderCard({
       {/* 上辺:左に呼び名、右にサービス表記。
           下辺は X のプロフィールアイコン/表示名が重なるため、文字を置かず空ける。 */}
       <div className="absolute inset-x-0 top-0 flex items-start justify-between px-16 pt-10">
-        <span className="max-w-215 truncate text-[19px] font-bold tracking-[0.3em] text-white/55">
+        <span className="max-w-215 truncate text-[1.1875rem] font-bold tracking-[0.3em] text-white/55">
           {title}
         </span>
-        <span className="shrink-0 pt-1 text-[15px] tracking-[0.18em] text-white/35">
+        <span className="shrink-0 pt-1 text-[0.9375rem] tracking-[0.18em] text-white/35">
           vsrecorder.mobi/kizuna
         </span>
       </div>
@@ -99,15 +99,15 @@ export default function KizunaHeaderCard({
 
       {/* 右:きずなLv.(主役) */}
       <div className="relative flex h-full w-150 shrink-0 flex-col justify-center gap-4 pr-20">
-        <span className="text-[19px] font-bold tracking-[0.3em] text-white/50">
+        <span className="text-[1.1875rem] font-bold tracking-[0.3em] text-white/50">
           きずなLv.
         </span>
 
         <div className="flex items-baseline gap-3">
-          <span className="text-[150px] font-black leading-none tabular-nums text-amber-400 drop-shadow-[0_0_44px_rgba(251,191,36,0.45)]">
+          <span className="text-[9.375rem] font-black leading-none tabular-nums text-amber-400 drop-shadow-[0_0_44px_rgba(251,191,36,0.45)]">
             {score}
           </span>
-          <span className="text-[40px] font-bold text-white/40">/ 255</span>
+          <span className="text-[2.5rem] font-bold text-white/40">/ 255</span>
         </div>
 
         {/* きずなLv.のバー(rose→amber)。結果カードと同じ配色 */}
@@ -119,8 +119,8 @@ export default function KizunaHeaderCard({
         </div>
 
         <div className="flex flex-col gap-1.5 pt-1">
-          <span className="text-[38px] font-bold leading-tight">「{tierName}」</span>
-          <span className="text-[21px] leading-relaxed text-white/70">{tierMessage}</span>
+          <span className="text-[2.375rem] font-bold leading-tight">「{tierName}」</span>
+          <span className="text-[1.3125rem] leading-relaxed text-white/70">{tierMessage}</span>
         </div>
       </div>
     </div>

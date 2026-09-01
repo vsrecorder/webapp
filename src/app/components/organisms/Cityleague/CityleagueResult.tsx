@@ -132,7 +132,7 @@ export default function CityleagueResult({ event_result, official_event }: Props
             <div>
               <small className="font-bold text-default-400">{event.title}</small>
               <div className="font-bold text-tiny text-default-500">{date}</div>
-              <div className="pt-1 pb-1 font-bold text-[13px]">{shopName}</div>
+              <div className="pt-1 pb-1 font-bold text-[0.8125rem]">{shopName}</div>
               <div>
                 <div className="flex flex-wrap items-start gap-1 pt-0.5">
                   <Chip size="sm" radius="md" variant="bordered">

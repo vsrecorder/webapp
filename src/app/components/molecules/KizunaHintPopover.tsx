@@ -89,7 +89,7 @@ export default function KizunaHintPopover() {
 
           {/* 算出方法は暫定であり、同じ記録でも数値が変わりうる。
               数値に触れる画面には必ず明記する（DeckKizunaPanel と同じ）。 */}
-          <p className="text-[10px] leading-relaxed text-default-400">
+          <p className="text-[0.625rem] leading-relaxed text-default-400">
             きずなはβ版のため、算出方法は今後変更される場合があります。
           </p>
         </div>

@@ -467,7 +467,7 @@ export default function KizunaSimulator() {
             横に広がってしまうため、明示的に解除する。 */}
         <fieldset className="flex min-w-0 flex-col gap-4">
           <legend className="flex flex-col gap-1 pb-1">
-            <span className="text-[11px] font-bold tracking-widest text-amber-600 lg:text-xs dark:text-amber-400">
+            <span className="text-[0.6875rem] font-bold tracking-widest text-amber-600 lg:text-xs dark:text-amber-400">
               Q0／相棒デッキ
             </span>
             <span className="text-base font-bold text-foreground lg:text-lg">
@@ -517,7 +517,7 @@ export default function KizunaSimulator() {
             className="flex min-w-0 scroll-mt-20 flex-col gap-3"
           >
             <legend className="flex flex-col gap-1 pb-1">
-              <span className="text-[11px] font-bold tracking-widest text-amber-600 lg:text-xs dark:text-amber-400">
+              <span className="text-[0.6875rem] font-bold tracking-widest text-amber-600 lg:text-xs dark:text-amber-400">
                 Q{index + 1}／{q.metric}
               </span>
               <span className="text-base font-bold text-foreground lg:text-lg">

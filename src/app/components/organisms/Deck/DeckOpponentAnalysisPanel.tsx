@@ -280,7 +280,7 @@ export default function DeckOpponentAnalysisPanel({
             base: "w-full",
             tabList: "w-full",
             tab: "h-9 px-0.5",
-            tabContent: "font-bold text-[11px] leading-tight",
+            tabContent: "font-bold text-[0.6875rem] leading-tight",
           }}
         >
           {periodTabs.map((tab) => (

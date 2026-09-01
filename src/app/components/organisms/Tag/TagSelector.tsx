@@ -222,7 +222,7 @@ export default function TagSelector({
               key={tag.id}
               size="sm"
               variant="flat"
-              className="h-6 cursor-pointer text-[11px]"
+              className="h-6 cursor-pointer text-[0.6875rem]"
               // 文字色はチップ本体に置けば中身も×も継承する。
               style={
                 tag.color
@@ -262,7 +262,7 @@ export default function TagSelector({
       {manageMode ? (
         /* 管理モード: 自分のタグ一覧に削除(×)を出す。プリセットは対象外。 */
         <div className="flex flex-col gap-1">
-          <p className="text-[11px] text-default-400">
+          <p className="text-[0.6875rem] text-default-400">
             × で削除できます。削除すると、そのタグが付いた全ての対象からも外れます。
           </p>
           {manageTags.length > 0 ? (
@@ -272,7 +272,7 @@ export default function TagSelector({
                   key={tag.id}
                   size="sm"
                   variant="flat"
-                  className="h-6 text-[11px]"
+                  className="h-6 text-[0.6875rem]"
                   style={
                     tag.color
                       ? {
@@ -308,7 +308,7 @@ export default function TagSelector({
                   as="button"
                   size="sm"
                   variant={tag.color ? "flat" : "bordered"}
-                  className="h-6 shrink-0 cursor-pointer whitespace-nowrap text-[11px]"
+                  className="h-6 shrink-0 cursor-pointer whitespace-nowrap text-[0.6875rem]"
                   style={
                     tag.color
                       ? {
@@ -330,7 +330,7 @@ export default function TagSelector({
               折り返さず横1列に並べ、収まらない分は横スクロールで見せる。 */}
           {presetSuggestions.length > 0 && (
             <div className="flex flex-col gap-1">
-              <span className="text-[11px] font-semibold text-default-500">
+              <span className="text-[0.6875rem] font-semibold text-default-500">
                 {PRESET_SECTION_LABEL[presetCategory]}
               </span>
               <div className="flex flex-nowrap items-center gap-1 overflow-x-auto pb-1 [scrollbar-width:thin]">
@@ -343,7 +343,7 @@ export default function TagSelector({
                       as="button"
                       size="sm"
                       variant="flat"
-                      className="h-6 shrink-0 cursor-pointer whitespace-nowrap text-[11px]"
+                      className="h-6 shrink-0 cursor-pointer whitespace-nowrap text-[0.6875rem]"
                       style={{
                         backgroundColor: color,
                         color: tagTextColor(color, tag.text_color),

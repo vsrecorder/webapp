@@ -40,7 +40,7 @@ export default function Loading() {
               <Skeleton className="h-4 w-44 rounded-md" />
               <Skeleton className="h-4 w-36 rounded-md" />
               <div className="pt-0.5">
-                <Skeleton className="h-[22px] w-52 rounded-md" />
+                <Skeleton className="h-[1.375rem] w-52 rounded-md" />
               </div>
             </div>
 

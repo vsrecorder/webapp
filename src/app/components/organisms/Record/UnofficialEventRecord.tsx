@@ -288,7 +288,7 @@ export default function UnofficialEventRecord({
             <Chip
               size="sm"
               variant="flat"
-              className="h-5 text-[10px] font-bold gap-0.5 pl-1.5 bg-default-200 text-default-600"
+              className="h-5 text-[0.625rem] font-bold gap-0.5 pl-1.5 bg-default-200 text-default-600"
             >
               自由形式
             </Chip>

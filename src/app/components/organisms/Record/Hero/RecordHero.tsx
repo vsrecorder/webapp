@@ -215,7 +215,7 @@ function HeroShell({
             {/* 左：イベント情報(上)＋使用デッキ(下) */}
             <div className={`${HERO_INFO_COL_CLASS} flex flex-col`}>
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[11px] font-medium text-default-400">{date}</span>
+                <span className="text-[0.6875rem] font-medium text-default-400">{date}</span>
                 {action}
               </div>
 
@@ -282,7 +282,7 @@ function HeroShell({
           {/* 対戦結果(親から受け取る)。かつて「勝敗の推移」があった位置に配置する */}
           {matchesSlot && (
             <div className="mt-3.5 flex w-full flex-col gap-1.5 border-t border-divider pt-3">
-              <span className="text-[9px] font-bold tracking-wide text-default-400">
+              <span className="text-[0.5625rem] font-bold tracking-wide text-default-400">
                 対戦結果
               </span>
               {/* 戦績カードのグラデーションと各行の勝敗グラデーションが干渉して
@@ -495,7 +495,7 @@ export default function RecordHero({
     <>
       {/* 見出しは日付・対戦結果と統一感を出すため左上に配置する */}
       <div className="flex items-center gap-1">
-        <span className="text-[9px] font-bold tracking-wide text-default-400">
+        <span className="text-[0.5625rem] font-bold tracking-wide text-default-400">
           使用デッキ
         </span>
         {enableEditUsedDeck && <LuPencilLine className="h-2.5 w-2.5 text-default-400" />}
@@ -546,7 +546,7 @@ export default function RecordHero({
   const deckHiddenRow = (
     <div className={deckRowClass}>
       <div className="flex items-center gap-1">
-        <span className="text-[9px] font-bold tracking-wide text-default-400">
+        <span className="text-[0.5625rem] font-bold tracking-wide text-default-400">
           使用デッキ
         </span>
       </div>
@@ -633,7 +633,7 @@ export default function RecordHero({
                 size="sm"
                 variant="flat"
                 color={getChipColor(officialEvent)}
-                className="h-5 text-[10px] font-bold"
+                className="h-5 text-[0.625rem] font-bold"
               >
                 {getEventTypeName(officialEvent)}
               </Chip>
@@ -643,7 +643,7 @@ export default function RecordHero({
                   variant="flat"
                   color="default"
                   className="h-5 max-w-30"
-                  classNames={{ content: "text-[10px] truncate min-w-0" }}
+                  classNames={{ content: "text-[0.625rem] truncate min-w-0" }}
                 >
                   {`『${officialEvent.environment_title}』`}
                 </Chip>
@@ -654,7 +654,7 @@ export default function RecordHero({
                   variant="flat"
                   color="default"
                   className="h-5 max-w-30"
-                  classNames={{ content: "text-[10px] truncate min-w-0" }}
+                  classNames={{ content: "text-[0.625rem] truncate min-w-0" }}
                 >
                   {venue}
                 </Chip>
@@ -692,7 +692,7 @@ export default function RecordHero({
             <Chip
               size="sm"
               variant="flat"
-              className="h-5 bg-orange-100 text-[10px] font-bold text-orange-500"
+              className="h-5 bg-orange-100 text-[0.625rem] font-bold text-orange-500"
             >
               Tonamel
             </Chip>
@@ -702,7 +702,7 @@ export default function RecordHero({
                 variant="flat"
                 color="default"
                 className="h-5 max-w-30"
-                classNames={{ content: "text-[10px] truncate" }}
+                classNames={{ content: "text-[0.625rem] truncate" }}
               >
                 {`『${environment.title}』`}
               </Chip>
@@ -740,7 +740,7 @@ export default function RecordHero({
             <Chip
               size="sm"
               variant="flat"
-              className="h-5 gap-0.5 bg-default-200 pl-1.5 text-[10px] font-bold text-default-600"
+              className="h-5 gap-0.5 bg-default-200 pl-1.5 text-[0.625rem] font-bold text-default-600"
             >
               自由形式
             </Chip>
@@ -750,7 +750,7 @@ export default function RecordHero({
                 variant="flat"
                 color="default"
                 className="h-5 max-w-30"
-                classNames={{ content: "text-[10px] truncate" }}
+                classNames={{ content: "text-[0.625rem] truncate" }}
               >
                 {`『${environment.title}』`}
               </Chip>

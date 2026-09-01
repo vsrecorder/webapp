@@ -89,7 +89,7 @@ export default function BO3GamesInput({ games, onChange, isDisabled }: Props) {
           {/* min-h を固定し、「引き分けに戻す」ボタンの表示/非表示で行の高さが
               変わって下の要素がずれないようにする */}
           <div className="flex min-h-6 items-center justify-between gap-2">
-            <span className="w-fit rounded-md bg-default-200 px-1.5 py-0.5 text-[10px] font-bold text-default-600">
+            <span className="w-fit rounded-md bg-default-200 px-1.5 py-0.5 text-[0.625rem] font-bold text-default-600">
               {index + 1}本目
             </span>
             {topSlot}
@@ -179,13 +179,13 @@ export default function BO3GamesInput({ games, onChange, isDisabled }: Props) {
                     radius="lg"
                     isDisabled={isDisabled}
                     onPress={clearThirdGame}
-                    className="h-6 shrink-0 px-2 text-[10px] font-bold text-default-500"
+                    className="h-6 shrink-0 px-2 text-[0.625rem] font-bold text-default-500"
                   >
                     引き分けに戻す
                   </Button>
                 ),
               )}
-              <span className="px-1 text-[10px] text-default-500">
+              <span className="px-1 text-[0.625rem] text-default-500">
                 3本目を行わず時間切れになった場合は空欄のままにすると「引き分け」になります
               </span>
             </>
@@ -196,10 +196,10 @@ export default function BO3GamesInput({ games, onChange, isDisabled }: Props) {
             >
               <CardBody className="overflow-visible py-2">
                 <div className="flex items-center gap-2">
-                  <span className="rounded-md bg-default-200 px-1.5 py-0.5 text-[10px] font-bold text-default-600">
+                  <span className="rounded-md bg-default-200 px-1.5 py-0.5 text-[0.625rem] font-bold text-default-600">
                     3本目
                   </span>
-                  <span className="text-[10px] text-default-500">
+                  <span className="text-[0.625rem] text-default-500">
                     {thirdGameLockedNote}
                   </span>
                 </div>
@@ -214,7 +214,7 @@ export default function BO3GamesInput({ games, onChange, isDisabled }: Props) {
       <Card shadow="none" className={`w-full ${resultBgClass}`}>
         <CardBody className="overflow-visible py-3">
           <div className="flex flex-col items-center gap-1 text-center">
-            <span className="text-[10px] font-bold text-default-500">
+            <span className="text-[0.625rem] font-bold text-default-500">
               対戦結果 ・ 自動で判定
             </span>
 
@@ -227,7 +227,7 @@ export default function BO3GamesInput({ games, onChange, isDisabled }: Props) {
                 </span>
                 {/* 結果は確定しているが、登録には各ゲームの先攻/後攻の入力も必要 */}
                 {!isFilled && (
-                  <span className="text-[10px] font-bold text-warning">
+                  <span className="text-[0.625rem] font-bold text-warning">
                     先攻/後攻も入力すると登録できます
                   </span>
                 )}

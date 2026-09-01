@@ -80,11 +80,11 @@ export default function EnvironmentReturnModal({
               <span className="text-sm font-bold tracking-tight">
                 対戦環境の中の重要な1戦
               </span>
-              <span className="text-[10px] text-default-400 leading-none">
+              <span className="text-[0.625rem] text-default-400 leading-none">
                 先週の対戦環境データより
               </span>
             </div>
-            <span className="text-[10.5px] font-bold text-success-600 rounded-full bg-success/15 px-2.5 py-1 whitespace-nowrap shrink-0">
+            <span className="text-[0.65625rem] font-bold text-success-600 rounded-full bg-success/15 px-2.5 py-1 whitespace-nowrap shrink-0">
               ✓ {savedLabel}
             </span>
           </div>
@@ -102,7 +102,7 @@ export default function EnvironmentReturnModal({
                 ))}
               </div>
               <div className="min-w-0 flex-1">
-                <div className="text-[10px] font-bold tracking-wide text-default-400">
+                <div className="text-[0.625rem] font-bold tracking-wide text-default-400">
                   対戦相手のデッキ
                 </div>
                 <div className="text-base font-bold leading-tight truncate mt-0.5">
@@ -114,21 +114,21 @@ export default function EnvironmentReturnModal({
             {position ? (
               <div className="grid grid-cols-3">
                 <div className="flex flex-col gap-1 px-0.5 min-w-0">
-                  <span className="text-[10px] font-bold text-default-400">環境順位</span>
-                  <span className="text-[17px] font-black tabular-nums leading-none whitespace-nowrap">
+                  <span className="text-[0.625rem] font-bold text-default-400">環境順位</span>
+                  <span className="text-[1.0625rem] font-black tabular-nums leading-none whitespace-nowrap">
                     {medal && <span className="mr-0.5">{medal}</span>}
                     {rank}位
                   </span>
                 </div>
                 <div className="flex flex-col gap-1 pl-3 border-l border-default-200 min-w-0">
-                  <span className="text-[10px] font-bold text-default-400">使用率</span>
-                  <span className="text-[17px] font-black tabular-nums leading-none">
+                  <span className="text-[0.625rem] font-bold text-default-400">使用率</span>
+                  <span className="text-[1.0625rem] font-black tabular-nums leading-none">
                     {((usageRate ?? 0) * 100).toFixed(1)}%
                   </span>
                 </div>
                 <div className="flex flex-col gap-1 pl-3 border-l border-default-200 min-w-0">
-                  <span className="text-[10px] font-bold text-default-400">全体勝率</span>
-                  <span className="text-[17px] font-black tabular-nums leading-none">
+                  <span className="text-[0.625rem] font-bold text-default-400">全体勝率</span>
+                  <span className="text-[1.0625rem] font-black tabular-nums leading-none">
                     {(position.row.win_rate * 100).toFixed(1)}%
                   </span>
                 </div>
@@ -139,7 +139,7 @@ export default function EnvironmentReturnModal({
                 <span className="text-sm font-black text-default-600">
                   先週は環境ランキング外
                 </span>
-                <span className="text-[11px] text-default-400 leading-snug">
+                <span className="text-[0.6875rem] text-default-400 leading-snug">
                   先週の出現が少ない、珍しい相手です
                 </span>
               </div>
@@ -160,7 +160,7 @@ export default function EnvironmentReturnModal({
               {verdictIcon}
             </span>
             <span
-              className={`text-[13.5px] font-bold leading-snug ${
+              className={`text-[0.84375rem] font-bold leading-snug ${
                 victory ? "text-success-600" : "text-warning-700"
               }`}
             >
@@ -169,7 +169,7 @@ export default function EnvironmentReturnModal({
           </div>
 
           {/* 次への一言 */}
-          <p className="text-[11.5px] leading-relaxed text-default-500 text-center px-1">
+          <p className="text-[0.71875rem] leading-relaxed text-default-500 text-center px-1">
             記録を続けることで、対戦相手のデッキとの
             <br />
             <span className="font-bold text-default-700">

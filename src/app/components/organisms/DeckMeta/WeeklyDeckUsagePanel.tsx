@@ -34,7 +34,7 @@ function winRateChipColor(rate: number): "success" | "default" | "warning" | "da
 function RankBadge({ rank, isOther }: { rank: number; isOther: boolean }) {
   if (isOther) {
     return (
-      <span className="flex items-center justify-center w-6 h-6 rounded-full bg-default-100 text-default-400 text-[10px] font-black shrink-0">
+      <span className="flex items-center justify-center w-6 h-6 rounded-full bg-default-100 text-default-400 text-[0.625rem] font-black shrink-0">
         ―
       </span>
     );
@@ -51,7 +51,7 @@ function RankBadge({ rank, isOther }: { rank: number; isOther: boolean }) {
 
   return (
     <span
-      className={`flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-black shrink-0 ${style}`}
+      className={`flex items-center justify-center w-6 h-6 rounded-full text-[0.6875rem] font-black shrink-0 ${style}`}
     >
       {rank}
     </span>
@@ -62,19 +62,19 @@ function RankBadge({ rank, isOther }: { rank: number; isOther: boolean }) {
 function RankDelta({ rank, previousRank }: { rank: number; previousRank?: number }) {
   if (previousRank == null) {
     return (
-      <span className="text-[8px] font-black text-warning-500 leading-none">NEW</span>
+      <span className="text-[0.5rem] font-black text-warning-500 leading-none">NEW</span>
     );
   }
 
   const diff = previousRank - rank;
   if (diff === 0) {
-    return <span className="text-[9px] font-bold text-default-300 leading-none">－</span>;
+    return <span className="text-[0.5625rem] font-bold text-default-300 leading-none">－</span>;
   }
 
   const up = diff > 0;
   return (
     <span
-      className={`text-[9px] font-black tabular-nums leading-none ${
+      className={`text-[0.5625rem] font-black tabular-nums leading-none ${
         up ? "text-success-600" : "text-danger-500"
       }`}
     >
@@ -100,7 +100,7 @@ function DeltaPoints({
   const diff = (current - previous) * 100;
   if (Math.abs(diff) < 0.05) {
     return (
-      <span className="text-[9px] font-bold tabular-nums text-default-300">
+      <span className="text-[0.5625rem] font-bold tabular-nums text-default-300">
         ±0.0{unit}
       </span>
     );
@@ -109,7 +109,7 @@ function DeltaPoints({
   const up = diff > 0;
   return (
     <span
-      className={`text-[9px] font-bold tabular-nums ${
+      className={`text-[0.5625rem] font-bold tabular-nums ${
         up ? "text-success-600" : "text-danger-500"
       }`}
     >
@@ -279,11 +279,11 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
             size="sm"
             color="warning"
             variant="flat"
-            classNames={{ base: "h-5 px-0.5", content: "text-[10px] font-black px-1.5" }}
+            classNames={{ base: "h-5 px-0.5", content: "text-[0.625rem] font-black px-1.5" }}
           >
             β機能
           </Chip>
-          <span className="text-[11px] text-default-400 leading-snug">
+          <span className="text-[0.6875rem] text-default-400 leading-snug">
             プラットフォーム全体の週次デッキ使用率
             <br />
             (集計方法や表示仕様は今後変わる可能性があります)
@@ -358,7 +358,7 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
                 <LuUsers className="w-3.5 h-3.5 text-default-400 shrink-0" />
                 <span className="text-xs font-black text-default-600 tabular-nums">
                   {stat.contributor_count}
-                  <span className="text-[10px] font-medium text-default-400 ml-0.5">
+                  <span className="text-[0.625rem] font-medium text-default-400 ml-0.5">
                     人
                   </span>
                 </span>
@@ -368,13 +368,13 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
                 <LuSwords className="w-3.5 h-3.5 text-default-400 shrink-0" />
                 <span className="text-xs font-black text-default-600 tabular-nums">
                   のべ{stat.total_votes}
-                  <span className="text-[10px] font-medium text-default-400 ml-0.5">
+                  <span className="text-[0.625rem] font-medium text-default-400 ml-0.5">
                     件
                   </span>
                 </span>
               </div>
             </div>
-            <span className="text-[10px] text-default-300 leading-snug text-center">
+            <span className="text-[0.625rem] text-default-300 leading-snug text-center">
               ※スタンダードの記録のみを集計しています
               <br />
               ※自分・相手それぞれのデッキを1件として
@@ -409,7 +409,7 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
               <Tab key="all" title="全体の中の割合" />
               <Tab key="excl_other" title="その他を除いた割合" />
             </Tabs>
-            <span className="text-[10px] text-default-400 leading-snug text-center">
+            <span className="text-[0.625rem] text-default-400 leading-snug text-center">
               {rateMode === "all"
                 ? "「その他」を含む全体件数を分母に算出しています"
                 : `「その他」(${otherCount}件)を除いた${exclOtherTotal}件を分母に算出しています`}
@@ -420,10 +420,10 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
         {/* ランキングの並び順を明示（読み込み中もレイアウトが動かないよう表示しておく） */}
         {(isLoading || displayDecks.length > 0) && (
           <div className="flex items-center justify-between px-1 -mb-2">
-            <span className="text-[11px] font-black text-default-500">
+            <span className="text-[0.6875rem] font-black text-default-500">
               使用率ランキング
             </span>
-            <span className="text-[10px] text-default-400">
+            <span className="text-[0.625rem] text-default-400">
               使用率が高い順（同率は勝率順）
             </span>
           </div>
@@ -513,7 +513,7 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
                           />
                         )}
                       </span>
-                      <span className="text-[9px] text-default-400 tabular-nums">
+                      <span className="text-[0.5625rem] text-default-400 tabular-nums">
                         ({deck.count}件)
                       </span>
                     </span>
@@ -536,7 +536,7 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
                       classNames={{
                         base: "h-5 w-full max-w-none px-0",
                         content:
-                          "w-full text-center text-[9px] font-bold tabular-nums px-0",
+                          "w-full text-center text-[0.5625rem] font-bold tabular-nums px-0",
                       }}
                     >
                       勝率 {(deck.win_rate * 100).toFixed(1)}%
@@ -559,7 +559,7 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
                         type="button"
                         onClick={() => setOtherExpanded((v) => !v)}
                         aria-expanded={otherExpanded}
-                        className="flex items-center justify-center gap-1 py-1 text-[10px] font-bold text-default-500 hover:text-default-600"
+                        className="flex items-center justify-center gap-1 py-1 text-[0.625rem] font-bold text-default-500 hover:text-default-600"
                       >
                         <LuChevronDown
                           className={`w-3.5 h-3.5 transition-transform ${
@@ -579,18 +579,18 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
                               className="flex items-center gap-2 rounded-lg bg-default-50 px-2 py-1.5"
                             >
                               {/* 「その他」に畳まれる前の順位を引き継ぐ（その他行の次の順位から連番） */}
-                              <span className="w-6 text-center text-[10px] font-black tabular-nums text-default-400 shrink-0">
+                              <span className="w-6 text-center text-[0.625rem] font-black tabular-nums text-default-400 shrink-0">
                                 {idx + 1 + mIdx}
                               </span>
                               <DeckSprites deck={member} />
                               <div className="ml-auto flex flex-col items-end shrink-0 leading-none">
                                 <span className="text-sm font-black tabular-nums text-default-600">
                                   {(member.usage_rate * 100).toFixed(1)}
-                                  <span className="text-[10px] font-bold text-default-400">
+                                  <span className="text-[0.625rem] font-bold text-default-400">
                                     %
                                   </span>
                                 </span>
-                                <span className="text-[9px] text-default-400 tabular-nums mt-0.5">
+                                <span className="text-[0.5625rem] text-default-400 tabular-nums mt-0.5">
                                   {member.count}件・全体比
                                 </span>
                               </div>
@@ -600,7 +600,7 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
                                 color={winRateChipColor(member.win_rate)}
                                 classNames={{
                                   base: "h-5 px-0.5 shrink-0",
-                                  content: "text-[10px] font-bold tabular-nums px-1.5",
+                                  content: "text-[0.625rem] font-bold tabular-nums px-1.5",
                                 }}
                               >
                                 勝率 {(member.win_rate * 100).toFixed(1)}%

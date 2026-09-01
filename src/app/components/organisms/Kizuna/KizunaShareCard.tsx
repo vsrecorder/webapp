@@ -43,7 +43,7 @@ export default function KizunaShareCard({
   return (
     <div className="flex flex-col items-center gap-5 rounded-2xl border border-amber-500/30 bg-linear-to-br from-indigo-950 via-slate-900 to-neutral-950 px-6 py-7 text-center text-white">
       {/* いちばん上に立つのは数値ではなく、連れて行ったポケモンの名前 */}
-      <span className="text-[11px] font-bold tracking-[0.28em] text-white/50">
+      <span className="text-[0.6875rem] font-bold tracking-[0.28em] text-white/50">
         {spriteNames || title}
       </span>
 
@@ -82,7 +82,7 @@ export default function KizunaShareCard({
 
       <div className="flex w-full flex-col gap-3">
         <div className="flex flex-col items-center gap-1">
-          <span className="text-[11px] font-bold tracking-[0.28em] text-white/50">
+          <span className="text-[0.6875rem] font-bold tracking-[0.28em] text-white/50">
             きずなLv.
           </span>
           <div className="flex items-baseline justify-center gap-2">
@@ -114,10 +114,10 @@ export default function KizunaShareCard({
 
       {/* シェア画像は単体で出回るため、算出方法が確定でないことをカード自体に持たせる */}
       <div className="flex flex-col items-center gap-1">
-        <span className="text-[10px] tracking-widest text-white/35">
+        <span className="text-[0.625rem] tracking-widest text-white/35">
           きずな試算 ｜ vsrecorder.mobi/kizuna
         </span>
-        <span className="text-[9px] leading-relaxed text-white/25">
+        <span className="text-[0.5625rem] leading-relaxed text-white/25">
           きずなはβ版です。算出方法は今後変更される場合があります
         </span>
       </div>

@@ -65,7 +65,7 @@ function GoBox({
   return (
     <div className="rounded-lg bg-default-100 px-2.5 py-2">
       <div className="text-tiny font-bold text-default-600 mb-1">{label}</div>
-      <div className="grid grid-cols-[auto_1fr] items-baseline gap-x-2 gap-y-0.5 text-[11px] tabular-nums">
+      <div className="grid grid-cols-[auto_1fr] items-baseline gap-x-2 gap-y-0.5 text-[0.6875rem] tabular-nums">
         <span className="text-default-400">割合</span>
         <span className="text-right text-default-600">
           {count > 0 ? (
@@ -85,7 +85,7 @@ function GoBox({
         >
           {hasStats ? formatPercent(winRate) : "-"}
           {deviation && (
-            <span className={`ml-1 text-[10px] font-semibold ${deviation.colorClass}`}>
+            <span className={`ml-1 text-[0.625rem] font-semibold ${deviation.colorClass}`}>
               （全体差 {deviation.label}）
             </span>
           )}

@@ -66,12 +66,12 @@ export default function UserIdentityCard({ userId }: Props) {
       <Card className="overflow-hidden shadow-md">
         <div className="bg-linear-to-br from-primary via-primary to-secondary px-3 pt-4 pb-5 flex items-center gap-3.5">
           <div className="w-14 h-14 rounded-full bg-white/20 animate-pulse shrink-0" />
-          {/* 名前(text-base leading-tight = 20px の行) / 利用開始日(text-[10px] = 15px の行) */}
+          {/* 名前(text-base leading-tight = 20px の行) / 利用開始日(text-[0.625rem] = 15px の行)。px はルート16px時 */}
           <div className="flex flex-col gap-1">
             <div className="h-5 flex items-center">
               <div className="w-28 h-3.5 rounded-full bg-white/20 animate-pulse" />
             </div>
-            <div className="h-[15px] flex items-center">
+            <div className="h-[0.9375rem] flex items-center">
               <div className="w-36 h-2.5 rounded-full bg-white/20 animate-pulse" />
             </div>
           </div>
@@ -125,7 +125,7 @@ export default function UserIdentityCard({ userId }: Props) {
               </div>
             </button>
             {user?.created_at && (
-              <span className="flex items-center gap-1 text-white/80 text-[10px] font-medium">
+              <span className="flex items-center gap-1 text-white/80 text-[0.625rem] font-medium">
                 <LuCalendar className="w-3 h-3 shrink-0" />
                 {formatJoinDate(String(user.created_at))}
               </span>
@@ -140,7 +140,7 @@ export default function UserIdentityCard({ userId }: Props) {
             className="flex items-center gap-2 w-full px-3 py-2 rounded-xl bg-default-100 hover:bg-default-200 transition-colors"
             aria-label="ユーザIDをコピー"
           >
-            <span className="text-[9px] font-bold text-default-400 uppercase tracking-widest shrink-0">
+            <span className="text-[0.5625rem] font-bold text-default-400 uppercase tracking-widest shrink-0">
               ユーザID
             </span>
             <span className="flex-1 text-left text-xs font-mono text-default-600 break-all">

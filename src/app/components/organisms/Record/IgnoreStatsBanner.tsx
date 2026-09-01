@@ -25,7 +25,7 @@ export default function IgnoreStatsBanner() {
         <span className="text-xs font-bold text-warning-700">
           この記録は戦績集計に含まれていません
         </span>
-        <span className="mt-0.5 text-[10px] text-warning-600/80">
+        <span className="mt-0.5 text-[0.625rem] text-warning-600/80">
           勝率・デッキ別成績などの集計対象外です。
         </span>
       </div>

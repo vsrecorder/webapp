@@ -353,7 +353,7 @@ export default function UserStatHistoryChart({ userId, championshipSeries }: Pro
                     </option>
                   ))}
                 </select>
-                <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-default-400 text-[10px]">
+                <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-default-400 text-[0.625rem]">
                   ▼
                 </span>
               </div>
@@ -370,7 +370,7 @@ export default function UserStatHistoryChart({ userId, championshipSeries }: Pro
                 <option value="current_season">今シーズン</option>
                 <option value="select_season">シーズン選択</option>
               </select>
-              <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-default-400 text-[10px]">
+              <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-default-400 text-[0.625rem]">
                 ▼
               </span>
             </div>
@@ -401,7 +401,7 @@ export default function UserStatHistoryChart({ userId, championshipSeries }: Pro
                 </option>
               ))}
             </select>
-            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-default-400 text-[10px]">
+            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-default-400 text-[0.625rem]">
               ▼
             </span>
           </div>

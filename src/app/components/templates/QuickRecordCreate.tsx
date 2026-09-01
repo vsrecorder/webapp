@@ -668,7 +668,7 @@ export default function TemplateQuickRecordCreate({
                     <div className="flex items-center justify-center w-full h-9">
                       <LuCircleSlash className="w-5 h-5 text-default-400" />
                     </div>
-                    <span className="block w-full text-[10px] leading-snug text-center truncate">
+                    <span className="block w-full text-[0.625rem] leading-snug text-center truncate">
                       指定しない
                     </span>
                   </button>
@@ -700,7 +700,7 @@ export default function TemplateQuickRecordCreate({
                             size={36}
                           />
                         </div>
-                        <span className="flex w-full items-center justify-center gap-0.5 text-[10px] leading-snug">
+                        <span className="flex w-full items-center justify-center gap-0.5 text-[0.625rem] leading-snug">
                           {isFavorited && (
                             <LuStar
                               aria-label="お気に入り"
@@ -785,7 +785,7 @@ export default function TemplateQuickRecordCreate({
                           <PokemonSprite id={history.sprite1?.id} size={36} />
                           <PokemonSprite id={history.sprite2?.id} size={36} />
                         </div>
-                        <span className="block w-full text-[10px] leading-snug text-center truncate">
+                        <span className="block w-full text-[0.625rem] leading-snug text-center truncate">
                           {history.deckInfo}
                         </span>
                       </button>
@@ -796,7 +796,7 @@ export default function TemplateQuickRecordCreate({
                     <div className="flex items-end justify-center w-full h-9">
                       <PokemonSprite size={36} />
                     </div>
-                    <span className="text-[10px] leading-snug w-full text-center">
+                    <span className="text-[0.625rem] leading-snug w-full text-center">
                       候補なし
                     </span>
                   </div>

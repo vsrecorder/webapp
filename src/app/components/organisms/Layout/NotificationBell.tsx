@@ -248,7 +248,7 @@ export default function NotificationBell({ userId }: Props) {
                   variant="flat"
                   classNames={{
                     base: "h-5 px-0.5",
-                    content: "text-[10px] font-black px-1.5",
+                    content: "text-[0.625rem] font-black px-1.5",
                   }}
                 >
                   β機能

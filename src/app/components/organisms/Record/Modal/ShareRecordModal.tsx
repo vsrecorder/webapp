@@ -686,7 +686,7 @@ export default function ShareRecordModal({
                         <Spinner size="sm" className="shrink-0" />
                         <div
                           role="status"
-                          className="min-w-0 flex-1 text-[11px] leading-relaxed text-default-500"
+                          className="min-w-0 flex-1 text-[0.6875rem] leading-relaxed text-default-500"
                         >
                           画像を生成しています。
                           <br />
@@ -709,7 +709,7 @@ export default function ShareRecordModal({
                           <div className="text-sm font-bold">
                             {venueTermName}を表示する
                           </div>
-                          <div className="text-[11px] text-default-400">
+                          <div className="text-[0.6875rem] text-default-400">
                             戦績画像とポスト文に{venueTermName}を表示します
                           </div>
                         </div>
@@ -737,7 +737,7 @@ export default function ShareRecordModal({
                           </span>
                           <div className="min-w-0 flex-1">
                             <div className="text-sm font-bold">使用デッキを表示する</div>
-                            <div className="text-[11px] text-default-400">
+                            <div className="text-[0.6875rem] text-default-400">
                               戦績画像に使用デッキを表示します
                             </div>
                           </div>
@@ -774,7 +774,7 @@ export default function ShareRecordModal({
                             <div className="text-sm font-bold">
                               使用デッキの画像も一緒にシェア
                             </div>
-                            <div className="text-[11px] text-default-400">
+                            <div className="text-[0.6875rem] text-default-400">
                               {showDeck
                                 ? "デッキ画像を2枚目として追加します"
                                 : "使用デッキを表示するとONにできます"}
@@ -858,7 +858,7 @@ export default function ShareRecordModal({
                   {androidImagesOnly && (
                     <div className="flex items-start gap-2.5 rounded-xl border border-warning-200 bg-warning-50 px-3 py-2.5">
                       <LuTriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-warning-600" />
-                      <p className="min-w-0 flex-1 text-[11px] leading-relaxed text-warning-700">
+                      <p className="min-w-0 flex-1 text-[0.6875rem] leading-relaxed text-warning-700">
                         Android
                         では画像とポスト文を一緒に共有できないため、画像のみ共有します。
                         上の「コピー」でポスト文をコピーし、X
@@ -892,7 +892,7 @@ export default function ShareRecordModal({
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-bold">プレビュー</span>
                     {images && images.length > 1 && (
-                      <span className="rounded-full bg-default-200 px-2 py-0.5 text-[11px] text-default-500">
+                      <span className="rounded-full bg-default-200 px-2 py-0.5 text-[0.6875rem] text-default-500">
                         {images.length}枚
                       </span>
                     )}
@@ -907,7 +907,7 @@ export default function ShareRecordModal({
                       <LuTriangleAlert className="h-4 w-4 shrink-0 text-warning-600" />
                       <div
                         role="alert"
-                        className="min-w-0 flex-1 text-[11px] leading-relaxed text-warning-700"
+                        className="min-w-0 flex-1 text-[0.6875rem] leading-relaxed text-warning-700"
                       >
                         画像を読み込めなかったため、ポケモンのアイコンが欠けています
                       </div>
@@ -932,7 +932,7 @@ export default function ShareRecordModal({
                       <LuImageOff className="h-6 w-6 text-default-400" />
                       <p
                         role="alert"
-                        className="text-center text-[11px] text-default-500"
+                        className="text-center text-[0.6875rem] text-default-500"
                       >
                         画像を生成できませんでした
                         <br />
@@ -951,7 +951,7 @@ export default function ShareRecordModal({
                     // 生成中は枠内にスピナーを表示(画像の縦横比は不定なので固定高さの枠にする)
                     <div className="flex h-56 flex-col items-center justify-center gap-2 rounded-xl border border-divider bg-content2">
                       <Spinner size="sm" />
-                      <span className="text-[11px] text-default-400">
+                      <span className="text-[0.6875rem] text-default-400">
                         画像を生成しています
                       </span>
                     </div>

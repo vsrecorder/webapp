@@ -30,6 +30,9 @@ import {
   ANDROID_SHARE_IMAGES_ONLY,
   type ShareImage,
 } from "@app/utils/saveImage";
+import { sendGAEvent } from "@next/third-parties/google";
+
+import { shareUrlWithUtm } from "@app/utils/attribution";
 import { isAndroid } from "@app/utils/platform";
 import { estimateKizuna, kizunaTierOf, type KizunaEstimate } from "@app/utils/kizuna";
 import { spriteImageUrl } from "@app/utils/sprite";
@@ -400,7 +403,14 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasResult, estimate?.score, selectedDeckId, captureWidth, includeBreakdown]);
 
-  const shareText =
+  // 共有からの流入を計測するため、URLにはUTMを付ける(P-5 柱1)。
+  // utm_content で実データ式(estimator)か質問式(simulator)かを区別する。
+  const shareUrl = shareUrlWithUtm("/kizuna", "kizuna", "estimator");
+  const shareHashtags = "#バトレコ #きずなLv";
+
+  // 本文とURL・ハッシュタグを分けて持つ。X インテント(下の xIntentHref)では
+  // URL を text に埋めず url= で渡すため、URL 抜きの本文を再利用する。
+  const shareTextLines =
     selectedDeck && estimate && tier
       ? [
           // デッキ名が長いと1行に収まらないため、数値の前で改行する。
@@ -415,11 +425,12 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
           "",
           "勝率では測れない、デッキとのきずなを数値化する",
           "バトレコの新機能「きずな」で試算しました👇",
-          "https://vsrecorder.mobi/kizuna",
-          "",
-          "#バトレコ #きずなLv",
-        ].join("\n")
-      : "";
+        ]
+      : null;
+
+  const shareText = shareTextLines
+    ? [...shareTextLines, shareUrl, "", shareHashtags].join("\n")
+    : "";
 
   const canShare = hasResult && images !== null;
 
@@ -438,6 +449,9 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
     try {
       await navigator.clipboard.writeText(shareText);
       setTextCopied(true);
+      // Android では画像だけを共有してポスト文はコピーで補ってもらうため、
+      // コピーも共有導線の一部として同じイベントで数える(method で区別する)。
+      sendGAEvent("event", "share", { method: "copy", content_type: "kizuna", item_id: "estimator" });
       addToast({ title: "ポスト文をコピーしました", color: "success", timeout: 2000 });
       setTimeout(() => setTextCopied(false), 1500);
     } catch {
@@ -452,6 +466,14 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
     try {
       const result = await shareRecord(images, shareText, {
         imagesOnlyOnAndroid: androidImagesOnly,
+      });
+
+      // GA4推奨のshareイベント（記録・分析パネルの共有と同じ形で送る）
+      sendGAEvent("event", "share", {
+        method: "web_share",
+        content_type: "kizuna",
+        item_id: "estimator",
+        share_result: result,
       });
 
       if (result === "images-only") {
@@ -497,7 +519,12 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
     }
   };
 
-  const xIntentHref = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`;
+  // URL は text に埋めず url= で渡す。X が投稿末尾のリンクとして扱い、/kizuna の OGP が
+  // リンクカード(画像付き)として展開される(画像を添えた通常の共有ではカードは出ない)。
+  const xIntentHref = shareTextLines
+    ? `https://twitter.com/intent/tweet?text=${encodeURIComponent([...shareTextLines, "", shareHashtags].join("\n"))}` +
+      `&url=${encodeURIComponent(shareUrl)}`
+    : "";
 
   if (loadError) {
     return (
@@ -756,6 +783,13 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
                   size="lg"
                   className="bg-amber-400 font-bold text-neutral-900"
                   startContent={<LuShare2 className="text-lg" />}
+                  onPress={() =>
+                    sendGAEvent("event", "share", {
+                      method: "x_intent",
+                      content_type: "kizuna",
+                      item_id: "estimator",
+                    })
+                  }
                 >
                   テキストだけでシェア
                 </Button>

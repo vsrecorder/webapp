@@ -52,3 +52,24 @@ export const attributionUtmParams = (): Record<string, string> | null => {
     return null;
   }
 };
+
+// ユーザー自身の共有に付けるUTM(P-5 柱1 / P5_ACQUISITION_PLAN.md §4.1)。
+// utm_source=share により、運営者のX発信(utm_source=x)とは source の層で分かれる。
+//
+// campaign は core-apiserver の entity.acquisitionCampaigns に登録済みの値だけを使うこと
+// (未知の値は (other) に丸められ、共有経由の内訳が読めなくなる)。登録済み: recap / record / kizuna。
+// content は「どの導線からの共有か」の識別子。[a-z0-9_-]・64文字以内に収めること
+// (範囲外はサーバ側の正規化で捨てられる)。
+export function shareUrlWithUtm(path: string, campaign: string, content?: string): string {
+  // 共有文はクライアントで組み立てるため、ホスト名は本番のものを直書きする。
+  // window.location.origin にすると開発環境で localhost のリンクを共有してしまう。
+  const url = new URL(path, "https://vsrecorder.mobi");
+  url.searchParams.set("utm_source", "share");
+  url.searchParams.set("utm_medium", "social");
+  url.searchParams.set("utm_campaign", campaign);
+  if (content) {
+    url.searchParams.set("utm_content", content);
+  }
+
+  return url.toString();
+}

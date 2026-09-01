@@ -30,6 +30,7 @@ import {
   ANDROID_SHARE_IMAGES_ONLY,
   type ShareImage,
 } from "@app/utils/saveImage";
+import { shareUrlWithUtm } from "@app/utils/attribution";
 import { isAndroid } from "@app/utils/platform";
 
 import { kizunaTierOf } from "@app/utils/kizuna";
@@ -222,7 +223,13 @@ export default function KizunaSimulator() {
     });
   }, [isComplete, partnerLabel, sprite1Id, sprite2Id, score, setPreviewDeck]);
 
-  const shareText = [
+  // 共有からの流入を計測するため、URLにはUTMを付ける(P-5 柱1)。
+  // utm_content で質問式(simulator)か実データ式(estimator)かを区別する。
+  const shareUrl = shareUrlWithUtm("/kizuna", "kizuna", "simulator");
+
+  // 本文とURL・ハッシュタグを分けて持つ。X インテント(下の xIntentHref)では
+  // URL を text に埋めず url= で渡すため、URL 抜きの本文を再利用する。
+  const shareTextLines = [
     // デッキ名（ポケモン名）が長いと1行に収まらないため、数値の前で改行する。
     // 数値だけを1行に立たせたいので、「でした。」もさらに次の行へ送る。
     `${partnerLabel}とのきずなLv.は`,
@@ -235,10 +242,10 @@ export default function KizunaSimulator() {
     "",
     "勝率では測れない、デッキとのきずなを数値化する",
     "バトレコの新機能「きずな」を試算しました👇",
-    "https://vsrecorder.mobi/kizuna",
-    "",
-    "#バトレコ #きずなLv",
-  ].join("\n");
+  ];
+  const shareHashtags = "#バトレコ #きずなLv";
+
+  const shareText = [...shareTextLines, shareUrl, "", shareHashtags].join("\n");
 
   // ── シェア画像の生成 ────────────────────────────────────────────
   // 画面外に結果カードを実寸で描画し、PNGに書き出しておく。
@@ -315,7 +322,14 @@ export default function KizunaSimulator() {
   const canShare = isComplete && images !== null;
 
   // 画像なしでシェアするときの退避先。X のポスト画面をテキストだけで開く。
-  const xIntentHref = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`;
+  //
+  // URL は text に埋めず url= で渡す。X が投稿末尾のリンクとして扱い、/kizuna の OGP が
+  // リンクカード(画像付き)として展開される。なお画像を添えた通常の共有では X の仕様で
+  // リンクカードは出ない(画像とカードは排他)ため、カードが効くのはこの退避経路と、
+  // コピーしたポスト文を画像なしで貼った場合。
+  const xIntentHref =
+    `https://twitter.com/intent/tweet?text=${encodeURIComponent([...shareTextLines, "", shareHashtags].join("\n"))}` +
+    `&url=${encodeURIComponent(shareUrl)}`;
 
   // ポスト文をコピーしたか(コピーボタンの見た目を一時的に切り替えるのに使う)
   const [textCopied, setTextCopied] = useState(false);
@@ -334,7 +348,7 @@ export default function KizunaSimulator() {
       setTextCopied(true);
       // Android では画像だけを共有してポスト文はコピーで補ってもらうため、
       // コピーも共有導線の一部として同じイベントで数える(method で区別する)。
-      sendGAEvent("event", "share", { method: "copy", content_type: "kizuna" });
+      sendGAEvent("event", "share", { method: "copy", content_type: "kizuna", item_id: "simulator" });
       addToast({ title: "ポスト文をコピーしました", color: "success", timeout: 2000 });
       setTimeout(() => setTextCopied(false), 1500);
     } catch {
@@ -357,6 +371,7 @@ export default function KizunaSimulator() {
       sendGAEvent("event", "share", {
         method: "web_share",
         content_type: "kizuna",
+        item_id: "simulator",
         share_result: result,
       });
 
@@ -603,6 +618,13 @@ export default function KizunaSimulator() {
                   size="lg"
                   className="bg-amber-400 font-bold text-neutral-900"
                   startContent={<LuShare2 className="text-lg" />}
+                  onPress={() =>
+                    sendGAEvent("event", "share", {
+                      method: "x_intent",
+                      content_type: "kizuna",
+                      item_id: "simulator",
+                    })
+                  }
                 >
                   テキストだけでシェア
                 </Button>

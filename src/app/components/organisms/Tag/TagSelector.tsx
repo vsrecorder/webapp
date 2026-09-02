@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { Button, Chip, Input, addToast } from "@heroui/react";
-import { LuPlus, LuTag } from "react-icons/lu";
+import { LuPlus, LuTag, LuX } from "react-icons/lu";
 
 import { useTags } from "@app/hooks/useTags";
 import { TagType, TagPresetCategory } from "@app/types/tag";
@@ -216,8 +216,17 @@ export default function TagSelector({
       {!manageMode && selectedTags.length > 0 && (
         <div className="flex flex-wrap items-center gap-1">
           {selectedTags.map((tag) => (
-            // ×だけでなくチップ全体をタップで解除できるようにする。
-            // タッチだと小さな×を外して本体を押しがちで「解除が効かない」ことがあるため。
+            /*
+             * 解除はチップ全体のタップだけで受ける。×は「押せば外れる」と分かるための
+             * 目印で、それ自体はハンドラを持たない。
+             *
+             * Chip の onClose を使わない理由: onClose は HeroUI 内部で react-aria の
+             * usePress として実装されており、押下中に pointercancel が届くと(タッチの
+             * ぶれでシートのドラッグ判定が入る、ブラウザがスクロールを始める など)
+             * onPress を発火しないまま click を stopPropagation する。すると×のハンドラも
+             * チップ本体の onClick も呼ばれず、タップしたのに何も起きない。
+             * ハンドラを本体の1つに寄せておけば、この経路で解除が消えることがない。
+             */
             <Chip
               key={tag.id}
               size="sm"
@@ -233,8 +242,8 @@ export default function TagSelector({
                   : undefined
               }
               classNames={tag.color ? { content: "font-bold" } : undefined}
+              endContent={<LuX className="mr-0.5 shrink-0 opacity-70" size={12} />}
               onClick={() => removeTag(tag.id)}
-              onClose={() => removeTag(tag.id)}
             >
               {tag.name}
             </Chip>

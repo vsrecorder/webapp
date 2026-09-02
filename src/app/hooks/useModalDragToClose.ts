@@ -28,6 +28,18 @@ const SHEET_CLOSE_THRESHOLD = 90;
  */
 const DIRECTION_SLOP = 5;
 
+/*
+ * 「タップの指ぶれ」と「意図したドラッグ」を分ける下方向の移動量(px)。
+ * ここを超えて初めて押下(press)を取り消し、指を離したときの click も止める。
+ *
+ * 方向判定(DIRECTION_SLOP)と同時に取り消してはいけない。DIRECTION_SLOP は
+ * Chrome(Android)のタッチスロップより小さく、最初の touchmove が届いた時点で既に
+ * 超えていることがある。そこで押下を消すと、チップやボタンを普通にタップしただけでも
+ * 「押したのに何も起きない」ことになる。閉じる判定(SHEET_CLOSE_THRESHOLD)まで
+ * 引き延ばすのも駄目で、そこに届かなかったドラッグが最後にタップとして発火してしまう。
+ */
+const TAP_SLOP = 16;
+
 // 先頭とみなすスクロール位置の上限(px)。ラバーバンド戻りの端数を先頭扱いにする
 const SCROLL_TOP_EPSILON = 1;
 
@@ -48,6 +60,8 @@ type SheetGesture = {
   target: Element;
   // pending: 方向未確定 / drag: 下ドラッグ確定(以降の touchmove は preventDefault する)
   mode: "pending" | "drag";
+  // TAP_SLOP を超えて「タップではない」と判断し、押下と click を取り消したか
+  cancelled: boolean;
 };
 
 /*
@@ -221,6 +235,11 @@ function isInsideSelection(target: Element) {
  * 届かず指を離したとき、指がまだ要素上にあれば onPress が発火して「ドラッグしただけで
  * 開く」ことになる。usePress は document の pointercancel で押下を取り消すので、
  * 同等の合成イベントを流して従来(スクロール横取り時)と同じ結果にそろえる。
+ *
+ * ただしこれを呼ぶのは「もうタップではない」と言い切れてから(TAP_SLOP)にする。
+ * usePress は押下を取り消されたあとに来た click に対して、onPress を発火しないまま
+ * stopPropagation() だけを実行する。早く呼びすぎると、指ぶれ程度のタップで
+ * 押下も click も消え、祖先に置いた onClick まで巻き添えで届かなくなる。
  */
 function cancelPress(target: Element) {
   if (typeof PointerEvent !== "function") return;
@@ -231,6 +250,38 @@ function cancelPress(target: Element) {
       pointerType: "touch",
     }),
   );
+}
+
+/*
+ * 指を離したときに発火する click を1回だけ握りつぶす。
+ *
+ * cancelPress() が効くのは react-aria の usePress を使う要素だけで、素の onClick を
+ * 持つ要素(タグのチップなど)には効かない。下ドラッグ中は touchmove を preventDefault()
+ * していてブラウザがスクロールを始めないため、そのままだと引っ張って戻しただけで
+ * click が発火し「ドラッグしたのに押された」ことになる。
+ *
+ * capture フェーズで止めるので React のハンドラには届かない。次の操作(touchstart)が
+ * 始まれば、このジェスチャの click はもう来ないので直ちに手を引く。時間切れは
+ * ブラウザがタップと見なさず click を出さなかった場合の後始末。
+ */
+function suppressNextClick(doc: Document) {
+  let timer = 0;
+
+  function cleanup() {
+    doc.removeEventListener("click", onClick, true);
+    doc.removeEventListener("touchstart", cleanup, true);
+    window.clearTimeout(timer);
+  }
+
+  function onClick(e: MouseEvent) {
+    e.stopPropagation();
+    e.preventDefault();
+    cleanup();
+  }
+
+  doc.addEventListener("click", onClick, true);
+  doc.addEventListener("touchstart", cleanup, true);
+  timer = window.setTimeout(cleanup, 400);
 }
 
 function attachSheetDrag(
@@ -268,6 +319,7 @@ function attachSheetDrag(
       y: e.touches[0].clientY,
       target,
       mode: "pending",
+      cancelled: false,
     };
   };
 
@@ -294,10 +346,20 @@ function attachSheetDrag(
       }
 
       gesture.mode = "drag";
-      cancelPress(gesture.target);
     }
 
     e.preventDefault();
+
+    /*
+     * ここまで動いたらタップではないので、押下と、指を離したときの click を取り消す。
+     * 方向を確定した時点(DIRECTION_SLOP)ではまだ取り消さない。そこはタップの指ぶれと
+     * 区別が付かず、押しただけのチップやボタンが無反応になるため(TAP_SLOP のコメント参照)。
+     */
+    if (!gesture.cancelled && dy > TAP_SLOP) {
+      gesture.cancelled = true;
+      cancelPress(gesture.target);
+      suppressNextClick(gesture.target.ownerDocument);
+    }
 
     if (dy > SHEET_CLOSE_THRESHOLD) {
       gesture = null;

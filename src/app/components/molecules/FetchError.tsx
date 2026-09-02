@@ -12,6 +12,8 @@ type Props = {
   isRetrying?: boolean;
   /* カード内に埋め込む場合など、余白を詰める */
   compact?: boolean;
+  /* カードに足すクラス。読み込み中の骨格と高さを揃えたい場合に使う */
+  className?: string;
 };
 
 // データ取得に失敗した箇所で共通して表示するエラーカード。
@@ -21,9 +23,10 @@ export default function FetchError({
   onRetry,
   isRetrying = false,
   compact = false,
+  className = "",
 }: Props) {
   return (
-    <Card shadow="sm" className="w-full border border-default-200">
+    <Card shadow="sm" className={`w-full border border-default-200 ${className}`}>
       <CardBody
         className={`flex flex-col items-center justify-center gap-3 text-center ${
           compact ? "py-5 px-3" : "py-8 px-4"

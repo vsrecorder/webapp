@@ -8,7 +8,10 @@ import { Card, CardHeader, CardBody, Button, useDisclosure } from "@heroui/react
 import { LuChevronLeft, LuChevronRight } from "react-icons/lu";
 
 import CalendarDayDetailModal from "@app/components/organisms/Calendar/CalendarDayDetailModal";
-import { DashboardCalendarSkeleton } from "@app/components/organisms/Calendar/Skeleton/DashboardCalendarSkeleton";
+import {
+  DashboardCalendarError,
+  DashboardCalendarSkeleton,
+} from "@app/components/organisms/Calendar/Skeleton/DashboardCalendarSkeleton";
 
 import { CalendarGetResponseType, CalendarEventType } from "@app/types/calendar";
 import { getCalendarGrid, getJstNow, toDateKey } from "@app/utils/calendar";
@@ -41,7 +44,7 @@ type Props = {
 };
 
 export default function DashboardCalendar({ userId }: Props) {
-  const { data, error, isLoading } = useSWR<CalendarGetResponseType, Error>(
+  const { data, isLoading } = useSWR<CalendarGetResponseType, Error>(
     `/api/users/${userId}/calendar`,
     fetcher,
   );
@@ -97,18 +100,16 @@ export default function DashboardCalendar({ userId }: Props) {
     onOpen();
   };
 
-  if (isLoading) {
-    return <DashboardCalendarSkeleton />;
-  }
+  // 出し分けは「表示できるデータがあるか」で決める。error だけを見て差し替えると、
+  // 一度描けたカレンダーが再検証(タブ復帰・再接続・失敗時の自動リトライ)の失敗で
+  // 消えてしまう。SWR は既定でそれらの再検証をすべて行う。
+  // 骨格と失敗表示は同じ寸法の器に載せてあるので、行き来しても高さは変わらない。
+  if (!data) {
+    if (isLoading) {
+      return <DashboardCalendarSkeleton />;
+    }
 
-  if (error || !data) {
-    return (
-      <Card shadow="none" className="border border-divider">
-        <CardBody className="py-8 text-center text-sm text-default-400">
-          カレンダーの読み込みに失敗しました
-        </CardBody>
-      </Card>
-    );
+    return <DashboardCalendarError message="カレンダーの読み込みに失敗しました" />;
   }
 
   return (

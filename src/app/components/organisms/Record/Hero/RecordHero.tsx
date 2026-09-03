@@ -263,7 +263,7 @@ function HeroShell({
               「左＝イベント / 右＝戦績」の対になった2枚として読ませる。
               グローは戦績パネル(右上・勝率色)と対称になるよう左上からアクセント色を差す。 */}
             <div
-              className={`${HERO_INFO_COL_CLASS} relative flex flex-col overflow-hidden rounded-2xl border border-divider bg-content1/60 px-2.5 py-2.5`}
+              className={`${HERO_INFO_COL_CLASS} relative flex flex-col overflow-hidden rounded-2xl border border-divider bg-content1/60 px-2 py-2.5`}
             >
               {/* アクセントのグロー(パネル背景)。中身は relative なラッパーで前面に置く */}
               <span
@@ -315,17 +315,20 @@ function HeroShell({
                   const iconTitle = (
                     <>
                       <div
-                        className={`flex h-11.25 w-11.25 shrink-0 items-center justify-center overflow-hidden rounded-xl ring-1 ring-inset ring-black/5 ${iconBoxClassName}`}
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl ring-1 ring-inset ring-black/5 ${iconBoxClassName}`}
                       >
                         {iconNode}
                       </div>
-                      <h3 className="min-w-0 text-base font-bold leading-tight wrap-break-word">
+                      {/* イベント名。1行に入る文字数を1文字増やすため、パネルの左右余白(10→8px)・
+                        アイコン(45→40px)・アイコンとの間隔(10→8px)を詰めて 11px ぶん幅を稼いでいる。
+                        2行までならアイコンが行の高さを決めるので、パネルの寸法は変わらない */}
+                      <h3 className="min-w-0 text-[0.9375rem] leading-tight font-bold wrap-break-word">
                         {renderEventTitle(title)}
                       </h3>
                     </>
                   );
                   const rowClass =
-                    "mt-1 flex items-center gap-2.5 transition-opacity hover:opacity-80";
+                    "mt-1 flex items-center gap-2 transition-opacity hover:opacity-80";
 
                   if (titleHref) {
                     return (
@@ -350,9 +353,7 @@ function HeroShell({
                       </button>
                     );
                   }
-                  return (
-                    <div className="mt-1 flex items-center gap-2.5">{iconTitle}</div>
-                  );
+                  return <div className="mt-1 flex items-center gap-2">{iconTitle}</div>;
                 })()}
 
                 {/* イベントの事実(会場・時刻・対戦環境)。記録一覧のカードと同じ部品を使う */}
@@ -709,10 +710,13 @@ export default function RecordHero({
     const startLabel = formatEventTime(officialEvent.started_at);
     const capacityLabel =
       officialEvent.capacity > 0 ? `定員 ${officialEvent.capacity}人` : "";
-    // 開始時刻は「10:00 〜」の形にする(終了時刻は出さない)
-    const scheduleText = [startLabel && `${startLabel} 〜`, capacityLabel]
-      .filter(Boolean)
-      .join(" ・ ");
+    // 開始時刻は「10:00 〜」の形にする(終了時刻は出さない)。
+    // 会場を伏せるとき(シェア画像で「会場を表示する」OFF)はこの行も出さない。
+    // 開催日・開始時刻・定員が揃うと、公式イベントの一覧から会場を絞り込めてしまい、
+    // 店舗名を伏せた意味が無くなるため。
+    const scheduleText = hideVenue
+      ? ""
+      : [startLabel && `${startLabel} 〜`, capacityLabel].filter(Boolean).join(" ・ ");
 
     const officialMeta: RecordMetaRow[] = [
       venue ? { icon: <LuMapPin className="h-3 w-3" />, text: venue } : null,

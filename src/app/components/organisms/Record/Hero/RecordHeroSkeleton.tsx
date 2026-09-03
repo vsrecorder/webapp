@@ -66,7 +66,7 @@ export default function RecordHeroSkeleton({
         <div className="flex items-stretch" style={heroColRowStyle}>
           {/* イベント情報。実表示と同じく、戦績パネルと対になる枠線つきの面にする */}
           <div
-            className={`${HERO_INFO_COL_CLASS} flex flex-col rounded-2xl border border-divider px-2.5 py-2.5`}
+            className={`${HERO_INFO_COL_CLASS} flex flex-col rounded-2xl border border-divider px-2 py-2.5`}
           >
             {/* 日付(実体は text-[0.6875rem] の1行 = 16.5px) */}
             <div className="relative flex items-center">
@@ -77,9 +77,9 @@ export default function RecordHeroSkeleton({
             {/* 実表示と同じく、イベント名から下の塊は残りの高さの中央へ置く
                 (my-auto。ここが揃っていないと実データへの差し替えで行が跳ねる) */}
             <div className="my-auto">
-              {/* イベント名(実体は mt-1 + 45px のアイコン枠が行の高さを決める) */}
-              <div className="mt-1 flex items-center gap-2.5">
-                <Skeleton className="h-11.25 w-11.25 shrink-0 rounded-xl" />
+              {/* イベント名(実体は mt-1 + 40px のアイコン枠が行の高さを決める) */}
+              <div className="mt-1 flex items-center gap-2">
+                <Skeleton className="h-10 w-10 shrink-0 rounded-xl" />
                 <Skeleton className="h-5 w-32 max-w-full rounded-md" />
               </div>
 

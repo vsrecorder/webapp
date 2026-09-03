@@ -16,7 +16,7 @@ const cdnUrl = process.env.SAKURA_OBJECTSTORAGE_CDN_URL;
 // 画像のデザインを変更したら、この値を上げる。
 // オブジェクトキーに含めているため、値を変えると別オブジェクトとして再生成・再アップロードされ、
 // CDN に残った古い画像を参照し続けることがなくなる。
-const OG_IMAGE_VERSION = "v1";
+const OG_IMAGE_VERSION = "v2";
 
 // 一度存在を確認できたキーは、プロセスが生きている間は再確認しない。
 // OGP画像はイベント確定後に変わらないため、リクエストのたびに HeadObject を投げる必要がない。

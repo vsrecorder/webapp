@@ -107,13 +107,18 @@ function Footer({ iconSrc }: { iconSrc: string }) {
   );
 }
 
+// X(Twitter)はカード画像の下端にタイトルの黒帯を重ねて表示する。
+// 実測では帯が画像高さの約14%(630px換算で約87px)を覆うため、下側だけ余白を厚くして
+// フッター(ロゴ・サービス名・ドメイン)が帯に隠れないようにしている。
+const X_CARD_OVERLAY_SAFE_AREA = 130;
+
 const canvasStyle = {
   width: "100%",
   height: "100%",
   display: "flex",
   flexDirection: "column" as const,
   justifyContent: "space-between" as const,
-  padding: "60px 72px",
+  padding: `60px 72px ${X_CARD_OVERLAY_SAFE_AREA}px`,
   backgroundColor: COLORS.background,
   color: COLORS.text,
 };

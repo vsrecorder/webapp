@@ -59,6 +59,28 @@
 }
 
 /*
+ * イベント情報パネル内の glow。勝率パネル(右上から勝率色)と対になるよう、
+ * こちらは左上からイベント種別のアクセント色を放射させる。上段の2枚が
+ * 「左＝イベント / 右＝戦績」の対として読めるようにするための対称配置。
+ * 色はカード側で設定済みの --hero-accent-rgb を使い、未設定なら従来の青へ倒す。
+ */
+.record-event-glow {
+  background: radial-gradient(
+    135% 130% at 0% 0%,
+    rgba(var(--hero-accent-rgb, 15, 111, 255), 0.22),
+    rgba(var(--hero-accent-rgb, 15, 111, 255), 0) 68%
+  );
+}
+
+.dark .record-event-glow:not(.light *) {
+  background: radial-gradient(
+    135% 130% at 0% 0%,
+    rgba(var(--hero-accent-rgb, 77, 155, 255), 0.18),
+    rgba(var(--hero-accent-rgb, 77, 155, 255), 0) 68%
+  );
+}
+
+/*
  * 勝率パネル内の glow。パネル右上から勝率色(勝ち越し=緑 / 負け越し=赤)を放射させ、
  * 勝率リングと同色にして戦績の良し悪しをパネル単位で読ませる。
  * ライト/ダークで色を切り替え、リング・数値の可読性を損なわない低不透明度に抑える。

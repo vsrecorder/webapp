@@ -421,6 +421,7 @@ export default function DisplayRecordModal({
                     record={record}
                     setRecord={setRecord}
                     stats={stats}
+                    loadingStats={loadingMatches}
                     holdSkeleton={!entered}
                     showSynergy={showSynergy}
                     onToggleSynergy={() => setShowSynergy((prev) => !prev)}
@@ -438,13 +439,15 @@ export default function DisplayRecordModal({
                   />
                 </div>
 
-                {/* ボード：使用デッキ(見るもの)と、設定(変えるもの)をカードで分ける。
+                {/* ボード：デッキリスト(見るもの)と、設定(変えるもの)をカードで分ける。
+                    デッキリストはヒーロー内の「使用デッキ」(デッキ名とスプライト)に対して、
+                    中身(デッキコード・カード一覧)を見るための区画なので名前で区別する。
                     モーダルは画面の高さが端末に固定されているため、設定はコントロールを
                     開いたままにせず、現在値だけの行にして変更はシートで行う。 */}
                 <div className="flex flex-col gap-4 px-1">
                   <Card shadow="sm" className="w-full overflow-hidden">
                     <CardBody className="p-0">
-                      <BoardPanel icon={<LuLayers />} label="使用デッキ">
+                      <BoardPanel icon={<LuLayers />} label="デッキリスト">
                         <div ref={deckCardRef}>
                           <UsedDeckById
                             record={record}

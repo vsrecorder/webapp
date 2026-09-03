@@ -44,48 +44,54 @@ export function RecordCardSkeleton({ className = "" }: { className?: string }) {
                 <Skeleton className="h-5 w-20 rounded-full" />
               </div>
 
-              {/* 開催日(実体は text-xs のインラインテキスト。行ボックスは親の strut ぶん
-                  24px 取るので、同じ高さの枠にバーを入れて実データ描画時のズレを防ぐ)。
+              {/* 開催日(実体は text-xs leading-snug のブロック = 16.5px)。
+                  バーに直接 h-* を置くと行ボックスぶんの高さが出ないため、実体と同じ
+                  文字サイズの見えないテキストで行の高さを取り、その上に重ねる。
                   幅は「2026年8月18日(火)」の実測 103px に合わせる */}
-              <div className="h-6 flex items-center">
-                <Skeleton className="h-3 w-26 rounded-md" />
+              <div className="relative flex items-center">
+                <span className="invisible text-xs leading-snug">&nbsp;</span>
+                <Skeleton className="absolute left-0 h-3 w-26 rounded-md" />
               </div>
 
-              {/* イベント名(実体は ScrollingText の text-sm leading-snug = 19.25px)。
-                  幅は公式イベント名の中央値(整形後の「ジムバトル」= 70px)に合わせる */}
-              <div className="h-[1.203125rem] flex items-center mt-0.5">
+              {/* イベントのアイコン + イベント名。実体と同じく 40px のアイコン枠が行の高さを決める。
+                  名前の幅は公式イベント名の中央値(整形後の「ジムバトル」= 70px)に合わせる */}
+              <div className="mt-1.5 flex items-center gap-2.5">
+                <Skeleton className="h-10 w-10 shrink-0 rounded-xl" />
                 <Skeleton className="h-3.5 w-18 rounded-md" />
               </div>
 
-              {/* チップ1段目（対戦環境の1個が最も一般的な構成。
-                  幅は『ストームエメラルダ』126px の実測に合わせる） */}
-              <div className="flex items-center gap-2 mt-1.5">
-                <Skeleton className="h-5 w-32 rounded-full" />
-              </div>
-
-              {/* チップ2段目（会場名）。RecordCardBase の2段目と同じ mt-1 で並べ、
-                  幅は会場名の中央値(12文字 = 136px)に合わせる */}
-              <div className="flex items-center gap-2 mt-1">
-                <Skeleton className="h-5 w-34 rounded-full" />
+              {/* 補足行(会場・対戦環境)。実体は RecordMetaRows の
+                  text-[0.6875rem] leading-snug = 15.125px の行を gap-0.5 で2本。
+                  バーに直接 h-* を置くと行ボックスぶんの高さが出ないため、実体と同じ
+                  文字サイズの見えないテキストで行の高さを取り、その上に重ねる。
+                  幅は会場名の中央値(12文字)と『ストームエメラルダ』の実測に合わせる */}
+              <div className="mt-2 flex flex-col gap-0.5">
+                {["w-33", "w-30"].map((width) => (
+                  <div key={width} className="relative flex items-center">
+                    <span className="invisible text-[0.6875rem] leading-snug">
+                      &nbsp;
+                    </span>
+                    <Skeleton className="absolute left-0 h-3 w-3 rounded-sm" />
+                    <Skeleton
+                      className={`absolute left-[1.125rem] h-2.5 ${width} max-w-full rounded`}
+                    />
+                  </div>
+                ))}
               </div>
 
               {/* 区切り線 */}
               <div className="border-t border-divider mt-3 mb-2.5" />
 
-              {/* 情報行(アイコン枠 + デッキ + 勝敗) */}
-              <div className="flex items-center gap-3">
-                <Skeleton className="w-8 h-8 rounded-lg shrink-0" />
-                <div className="flex items-center justify-between gap-2 flex-1 min-w-0">
-                  {/* RecordCardBase のデッキ行と同じだけ左に寄せる(情報行の gap-3 = 12px のうち 6px) */}
-                  <div className="min-w-0 flex-1 -ml-1.5">
-                    <RecordDeckRowSkeleton />
-                  </div>
-                  {/* 勝敗バッジ(text-xs + border + px-1.5 py-0.5 で 22px、「3勝1敗」で 52px)と
-                      高さ・幅を揃える。
-                      チーム戦/BO3はカード右上へ移動し読み込み後に出現するためここには置かない */}
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <Skeleton className="h-5.5 w-13 rounded-md" />
-                  </div>
+              {/* 情報行(デッキ + 勝敗)。イベントのアイコンはイベント名の横へ移したのでここには無い */}
+              <div className="flex min-w-0 items-center justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <RecordDeckRowSkeleton />
+                </div>
+                {/* 勝敗バッジ(text-xs + border + px-1.5 py-0.5 で 22px、「3勝1敗」で 52px)と
+                    高さ・幅を揃える。
+                    チーム戦/BO3はカード右上へ移動し読み込み後に出現するためここには置かない */}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <Skeleton className="h-5.5 w-13 rounded-md" />
                 </div>
               </div>
             </div>
@@ -110,7 +116,17 @@ function MonthHeaderSkeleton({
     <div
       className={`col-span-1 ${colSpanClass} ${display} items-center gap-3 pt-1 pb-0.5`}
     >
-      <Skeleton className="h-3.5 w-14 rounded-md shrink-0" />
+      {/* 年月ラベル。実体(Records の "YYYY年M月")は text-xs の1行で 16px × 60.4px。
+          バーに高さ・幅を直接置くと 14px × 56px になり、仕切りごとに 2px 低く・
+          罫線の始点が 4.4px 手前になって、実データ描画時に下の行がずれる。
+          実体と同じ文字サイズ・字送りの見えないテキストで枠を取り、その上にバーを重ねて
+          高さも幅も実体に一致させる(中身の文字列は寸法を取るためだけのもの)。 */}
+      <span className="relative flex shrink-0 items-center">
+        <span aria-hidden className="invisible text-xs font-bold tracking-wide">
+          2026年8月
+        </span>
+        <Skeleton className="absolute inset-0 rounded-md" />
+      </span>
       <div className="flex-1 h-px bg-divider" />
     </div>
   );

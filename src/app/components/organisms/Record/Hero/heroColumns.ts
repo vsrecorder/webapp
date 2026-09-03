@@ -3,14 +3,15 @@ import type { CSSProperties } from "react";
 /*
  * 戦績カード(RecordHero)上段2カラムのレイアウト定義。
  *
- *   左カラム = イベント情報(上) ＋ 使用デッキ(下)
+ *   左カラム = イベント情報パネル(日付・イベント名・補足行・チップ)
  *   右カラム = 戦績パネル(勝率リング ＋ 勝敗の内訳)
  *
  * ▼ 比率を変えたいときは HERO_COL_RATIO の2つの数字だけを書き換える。
- *   例: { left: 7, right: 3 } → { left: 13, right: 7 } など、任意の整数でよい。
+ *   例: { left: 7, right: 3 } → { left: 13, right: 7 } など、任意の数でよい
+ *   (calc() の割り算に渡すだけなので 7.5 のような小数も使える)。
  *   リング径・勝率の文字サイズはパネル幅に追従するため、他に直す箇所はない。
  */
-export const HERO_COL_RATIO = { left: 7, right: 3 };
+export const HERO_COL_RATIO = { left: 7.5, right: 2.5 };
 
 // 左右カラムの間隔。比率の計算に使うため、Tailwind の gap-* ではなくここで一元管理する。
 export const HERO_COL_GAP = "0.75rem";
@@ -46,3 +47,10 @@ export const heroStatColStyle: CSSProperties = {
 // 右カラム共通のクラス。min-w-0 は、中身(リング・勝敗タイル)の最小幅が
 // 割り当て幅を押し広げて比率を崩すのを防ぐ
 export const HERO_STAT_COL_CLASS = "min-w-0 shrink-0";
+
+/*
+ * 戦績パネルの面。実体(RecordStatPanel)と骨格(RecordStatPanelSkeleton)で共有する。
+ * 対戦一覧の取得中は骨格を同じ場所に置いて枠を先に確保するため、両者の外形が
+ * 1pxでもずれると、実データに変わった瞬間にカードが跳ねる。
+ */
+export const HERO_STAT_PANEL_CLASS = `${HERO_STAT_COL_CLASS} relative flex flex-col items-center justify-center overflow-hidden rounded-2xl border border-divider bg-content1/60 px-2 py-2.5`;

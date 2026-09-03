@@ -76,10 +76,12 @@ export default function DisplayRecordById({ recordData }: Props) {
             record={record}
             setRecord={setRecord}
             stats={stats}
+            loadingStats={loadingMatches}
             showSynergy={showSynergy}
             onToggleSynergy={() => setShowSynergy((prev) => !prev)}
             enableEditTCGMeisterURL={true}
             enableEditUsedDeck={true}
+            enableEditMatches={true}
             eventRefreshKey={eventRefreshKey}
             matchesSlot={
               <Matches
@@ -95,10 +97,12 @@ export default function DisplayRecordById({ recordData }: Props) {
           />
         )}
 
-        {/* 使用デッキ：この記録について「見るもの」。下の設定カードとは役割が違うので分ける */}
+        {/* デッキリスト：この記録について「見るもの」。下の設定カードとは役割が違うので分ける。
+          ヒーロー内の「使用デッキ」がデッキ名とスプライトを示すのに対し、
+          こちらは中身(デッキコード・カード一覧)を見るための区画なので名前で区別する。 */}
         <Card shadow="sm" className="w-full overflow-hidden">
           <CardBody className="p-0">
-            <BoardPanel icon={<LuLayers />} label="使用デッキ">
+            <BoardPanel icon={<LuLayers />} label="デッキリスト">
               <div ref={deckCardRef}>
                 <UsedDeckById
                   record={record}

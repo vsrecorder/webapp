@@ -5,16 +5,19 @@ import { SetStateAction, Dispatch } from "react";
 
 import { Card, Image, Link, Chip, Skeleton, useDisclosure } from "@heroui/react";
 
-import { LuEyeOff, LuPencilLine } from "react-icons/lu";
+import { LuClock, LuMapPin, LuPencilLine, LuScrollText, LuSwords } from "react-icons/lu";
 
 import FetchError from "@app/components/molecules/FetchError";
 import RecordStatPanel from "@app/components/organisms/Record/Hero/RecordStatPanel";
+import RecordStatPanelSkeleton from "@app/components/organisms/Record/Hero/RecordStatPanelSkeleton";
 import {
   HERO_INFO_COL_CLASS,
   heroColRowStyle,
 } from "@app/components/organisms/Record/Hero/heroColumns";
 import IgnoreStatsBanner from "@app/components/organisms/Record/IgnoreStatsBanner";
-import RecordHeroSkeleton from "@app/components/organisms/Record/Hero/RecordHeroSkeleton";
+import RecordHeroSkeleton, {
+  SectionLabelSkeleton,
+} from "@app/components/organisms/Record/Hero/RecordHeroSkeleton";
 import EditTCGMeisterURLModal from "@app/components/organisms/Record/Modal/EditTCGMeisterURLModal";
 import UpdateUsedDeckModal from "@app/components/organisms/Deck/Modal/UpdateUsedDeckModal";
 import {
@@ -25,6 +28,13 @@ import {
   shouldShowEnvironmentChip,
 } from "@app/components/organisms/Record/officialEventHelpers";
 
+import TagChips from "@app/components/molecules/TagChips";
+import RecordMetaRows, {
+  type RecordMetaRow,
+} from "@app/components/organisms/Record/RecordMetaRows";
+
+import { tagTextColor } from "@app/utils/tagColor";
+
 import { MatchStats } from "@app/utils/matchStats";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
@@ -33,8 +43,9 @@ import { RecordGetByIdResponseType } from "@app/types/record";
 import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
 import { TonamelEventGetByIdResponseType } from "@app/types/tonamel_event";
 import { UnofficialEventGetByIdResponseType } from "@app/types/unofficial_event";
-import { EnvironmentType } from "@app/types/environment";
 import { DeckGetByIdResponseType } from "@app/types/deck";
+import { TagType } from "@app/types/tag";
+import { REGULATION_ID_STANDARD, regulationDisplay } from "@app/types/regulation";
 
 import { safeExternalUrl } from "@app/utils/url";
 
@@ -80,16 +91,6 @@ async function fetchDeck(id: string): Promise<DeckGetByIdResponseType> {
   return res.json();
 }
 
-async function fetchEnvironment(date: string): Promise<EnvironmentType> {
-  const res = await fetch(`/api/environments?date=${date.split("T")[0]}`, {
-    cache: "no-store",
-    method: "GET",
-    headers: { Accept: "application/json" },
-  });
-  if (!res.ok) throw new Error("Failed to fetch");
-  return res.json();
-}
-
 // 開催日文字列を「YYYY年M月D日(曜)」へ整形する
 function formatEventDate(dateStr: string): string {
   return new Date(dateStr).toLocaleString("ja-JP", {
@@ -98,6 +99,21 @@ function formatEventDate(dateStr: string): string {
     day: "numeric",
     weekday: "short",
   });
+}
+
+// 開始時刻を「HH:MM」へ整形する。未設定(ゼロ値)・不正値のときは空文字を返し、
+// 呼び出し側でその行ごと落とせるようにする。
+function formatEventTime(value: Date | string | undefined | null): string {
+  if (!value) return "";
+
+  const str = String(value);
+  // APIは未設定の日時にゼロ値(0001-01-01)を返す
+  if (str.startsWith("0001-01-01")) return "";
+
+  const date = new Date(str);
+  if (Number.isNaN(date.getTime())) return "";
+
+  return date.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
 }
 
 // イベント名にスペースや空白(半角/全角スペース・タブ等)が含まれる場合、
@@ -127,6 +143,10 @@ const ACCENT_RGB: Record<string, string> = {
   "bg-default-300": "212, 212, 216",
 };
 
+// 補足行の上限。これを超えるとイベントパネルが戦績パネルより明らかに高くなり、
+// 上段が「対になった2枚」に見えなくなる(390px 幅で戦績パネルは約172px)。
+const HERO_META_MAX = 4;
+
 // ヒーロー内で共有する見た目の骨格。差分のみ props で受け取る。
 type ShellProps = {
   iconNode: React.ReactNode;
@@ -139,13 +159,22 @@ type ShellProps = {
   onTitleClick?: () => void;
   date: string;
   chips: React.ReactNode;
+  // イベントの事実(会場・開始時刻・リーグ・対戦環境など)。優先度の高い順に渡すと、
+  // 上から HERO_META_MAX 行までを補足行として並べる。
+  meta?: RecordMetaRow[];
+  // 記録に付与されたタグ。大会順位(優勝・ベスト4 など)はパネル右上のメダルバッジへ、
+  // それ以外はチップ行へ振り分ける。
+  tags?: TagType[];
   action?: React.ReactNode;
   stats: MatchStats;
+  // 対戦一覧をまだ取得中か。stats は対戦一覧から集計するため、取得中は total が 0 で
+  // 「対戦0件の記録」と見分けが付かない。取得中は戦績パネルの骨格を置いて枠を確保する。
+  loadingStats?: boolean;
   // 戦績パネルの裏面(貢献度)を表示するか / その切り替え
   showSynergy?: boolean;
   onToggleSynergy?: () => void;
   ignoreStatsFlg: boolean;
-  // 使用デッキ行(登録済みの場合のみ)。ヒーロー下段(対戦結果の上)に表示する
+  // 使用デッキ(登録済みの場合のみ)。上段2カラムの下に全幅の帯として表示する
   deckSlot?: React.ReactNode;
   // 対戦結果(対戦一覧)。ヒーロー最下段に表示する。
   // かつての「勝敗の推移」の位置を、より情報量のある対戦結果へ置き換える。
@@ -162,8 +191,11 @@ function HeroShell({
   onTitleClick,
   date,
   chips,
+  meta,
+  tags,
   action,
   stats,
+  loadingStats,
   showSynergy,
   onToggleSynergy,
   ignoreStatsFlg,
@@ -172,6 +204,23 @@ function HeroShell({
   accentColorClass,
 }: ShellProps) {
   const hasStats = stats.total > 0;
+
+  // 補足行は上限まで。行の取捨は組み立て側の優先順に委ね、ここでは切るだけにする。
+  const metaRows = (meta ?? []).slice(0, HERO_META_MAX);
+
+  /*
+   * 大会順位のタグはメダルバッジとしてパネル右上へ引き上げる。
+   * 「優勝」はその記録でいちばん誇らしい情報なのに、チップ行では「調整中」のような
+   * 自分用ラベルと同じ見た目で並んでしまい埋もれていた。
+   *
+   * 記録に付くプリセットタグは大会順位だけなので preset_flg で判別できる
+   * (もう一つのプリセット群 ACE SPEC はデッキ・デッキコード・対戦結果に付くもので、
+   *  記録の TagSelector は presetCategory="placement" しか出さない)。
+   * 順位は TagSelector 側で排他選択にしてあるので通常は1つだが、それ以前に付けた
+   * 記録は複数持ちうる。その場合はバッジを1つに絞り、残りはチップ行へ回す。
+   */
+  const placementTag = (tags ?? []).find((tag) => tag.preset_flg);
+  const chipTags = (tags ?? []).filter((tag) => tag !== placementTag);
 
   // 背景グラデ左下のグローを左サイドバーと同色にする。対応表に無い場合は
   // CSS側の従来色(青)へフォールバックさせるため変数を指定しない。
@@ -205,80 +254,141 @@ function HeroShell({
         />
 
         <div className="px-3 py-3">
-          {/* 上段は左右2カラム。左カラムは「上：イベント情報／下：使用デッキ」の縦積み、
-            右カラムは戦績パネル。items-stretch で両カラムの高さを揃え、低い方が
-            引き伸ばされることで左右のバランスが取れる。
+          {/* 上段は左右2カラム。左カラムはイベント情報、右カラムは戦績パネル。
+            items-stretch で両カラムの高さを揃え、低い方が引き伸ばされることで
+            左右のバランスが取れる。
             幅比と間隔は heroColumns.ts で一元管理する(比率の変更もそこだけでよい)。 */}
           <div className="flex items-stretch" style={heroColRowStyle}>
-            {/* 左：イベント情報(上)＋使用デッキ(下) */}
-            <div className={`${HERO_INFO_COL_CLASS} flex flex-col`}>
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[0.6875rem] font-medium text-default-400">{date}</span>
+            {/* 左：イベント情報。右の戦績パネルと同じ枠線・角丸・面にして、上段を
+              「左＝イベント / 右＝戦績」の対になった2枚として読ませる。
+              グローは戦績パネル(右上・勝率色)と対称になるよう左上からアクセント色を差す。 */}
+            <div
+              className={`${HERO_INFO_COL_CLASS} relative flex flex-col overflow-hidden rounded-2xl border border-divider bg-content1/60 px-2.5 py-2.5`}
+            >
+              {/* アクセントのグロー(パネル背景)。中身は relative なラッパーで前面に置く */}
+              <span
+                aria-hidden
+                className="record-event-glow pointer-events-none absolute inset-0"
+              />
+
+              {/* 大会順位のメダルバッジ。パネルの角に貼り付いたリボンとして見せる。
+                色はタグ自身が持つ配色(シティリーグ入賞バッジと揃えてサーバ側で決めている)を使い、
+                万一色を持たないプリセットが来ても既定色で成立させる。 */}
+              {placementTag && (
+                <span
+                  // 幅の上限はパネルの 45%。バッジは絶対配置で日付を押しのけないため、
+                  // 上限が無いと長い順位名(「予選抜けベスト16」など)が 320px 端末で
+                  // 日付に重なる。45% なら実在する順位名(最長「ベスト16」)は truncate されない。
+                  className={`absolute top-0 right-0 z-10 flex max-w-[45%] items-center rounded-tr-2xl rounded-bl-xl px-2.5 py-1.5 text-[0.8125rem] leading-none font-bold ${
+                    placementTag.color ? "" : "bg-default-200 text-default-700"
+                  }`}
+                  style={
+                    placementTag.color
+                      ? {
+                          backgroundColor: placementTag.color,
+                          color: tagTextColor(
+                            placementTag.color,
+                            placementTag.text_color,
+                          ),
+                        }
+                      : undefined
+                  }
+                >
+                  <span className="truncate">{placementTag.name}</span>
+                </span>
+              )}
+
+              <div className="relative flex items-center justify-between gap-2">
+                <span className="text-[0.6875rem] font-medium text-default-400">
+                  {date}
+                </span>
                 {action}
               </div>
 
-              {(() => {
-                // アイコン＋イベント名の中身は共通。リンク/タップ/静的で外側だけ切り替える
-                const iconTitle = (
-                  <>
-                    <div
-                      className={`flex h-11.25 w-11.25 shrink-0 items-center justify-center overflow-hidden rounded-xl ring-1 ring-inset ring-black/5 ${iconBoxClassName}`}
-                    >
-                      {iconNode}
-                    </div>
-                    <h3 className="min-w-0 text-base font-bold leading-tight wrap-break-word">
-                      {renderEventTitle(title)}
-                    </h3>
-                  </>
-                );
-                const rowClass =
-                  "mt-1 flex items-center gap-2.5 transition-opacity hover:opacity-80";
-
-                if (titleHref) {
-                  return (
-                    <Link
-                      isExternal
-                      href={titleHref}
-                      color="foreground"
-                      className={rowClass}
-                    >
-                      {iconTitle}
-                    </Link>
+              {/* 使用デッキを全幅の区画へ移したぶん、左カラムは戦績パネルより低くなりやすい。
+                日付はパネル上端に揃えたまま、イベント名とチップの塊だけを残りの高さの
+                中央へ置き、勝率リングとの視覚的な釣り合いを取る(my-auto)。
+                左カラムの方が高いときは余白が無いので、この指定は効かない。 */}
+              <div className="relative my-auto">
+                {(() => {
+                  // アイコン＋イベント名の中身は共通。リンク/タップ/静的で外側だけ切り替える
+                  const iconTitle = (
+                    <>
+                      <div
+                        className={`flex h-11.25 w-11.25 shrink-0 items-center justify-center overflow-hidden rounded-xl ring-1 ring-inset ring-black/5 ${iconBoxClassName}`}
+                      >
+                        {iconNode}
+                      </div>
+                      <h3 className="min-w-0 text-base font-bold leading-tight wrap-break-word">
+                        {renderEventTitle(title)}
+                      </h3>
+                    </>
                   );
-                }
-                if (onTitleClick) {
-                  return (
-                    <button
-                      type="button"
-                      onClick={onTitleClick}
-                      className={`${rowClass} w-full text-left`}
-                    >
-                      {iconTitle}
-                    </button>
-                  );
-                }
-                return <div className="mt-1 flex items-center gap-2.5">{iconTitle}</div>;
-              })()}
+                  const rowClass =
+                    "mt-1 flex items-center gap-2.5 transition-opacity hover:opacity-80";
 
-              {/* チップが1つも無いときは行ごと消して、上の mt-2 ぶんの余白を残さない */}
-              <div className="mt-2 flex flex-wrap items-center gap-1.5 empty:hidden">
-                {chips}
+                  if (titleHref) {
+                    return (
+                      <Link
+                        isExternal
+                        href={titleHref}
+                        color="foreground"
+                        className={rowClass}
+                      >
+                        {iconTitle}
+                      </Link>
+                    );
+                  }
+                  if (onTitleClick) {
+                    return (
+                      <button
+                        type="button"
+                        onClick={onTitleClick}
+                        className={`${rowClass} w-full text-left`}
+                      >
+                        {iconTitle}
+                      </button>
+                    );
+                  }
+                  return (
+                    <div className="mt-1 flex items-center gap-2.5">{iconTitle}</div>
+                  );
+                })()}
+
+                {/* イベントの事実(会場・時刻・対戦環境)。記録一覧のカードと同じ部品を使う */}
+                <RecordMetaRows rows={metaRows} className="mt-2 empty:hidden" />
+
+                {/* チップ行はラベル(イベント種別・自分用のタグ)だけにする。事実は上の補足行、
+                  大会順位は右上のメダルバッジが持つ。
+                  どちらも無ければ行ごと消えて mt-2 の余白も残らない(empty:hidden)。 */}
+                <div className="mt-2 flex flex-wrap items-center gap-1.5 empty:hidden">
+                  {chips}
+                  <TagChips tags={chipTags} />
+                </div>
               </div>
-
-              {/* 使用デッキ(登録済みの場合のみ)。mt-auto で左カラムの最下部へ寄せ、
-                右の戦績パネルと下端を揃える */}
-              {deckSlot && <div className="mt-auto pt-3.5">{deckSlot}</div>}
             </div>
 
-            {/* 右：戦績パネル(対戦がある場合のみ) */}
-            {hasStats && (
+            {/* 右：戦績パネル。対戦一覧の取得中は骨格を置いて枠を先に確保する
+              (取得できてから描くと、その間だけイベント欄が全幅になり、
+              届いた瞬間にパネルが割り込んでカードが組み替わる)。
+              取得が終わって対戦0件と確定した記録では、従来どおりパネルを出さない。 */}
+            {hasStats ? (
               <RecordStatPanel
                 stats={stats}
                 showSynergy={showSynergy}
                 onToggleSynergy={onToggleSynergy}
               />
-            )}
+            ) : loadingStats ? (
+              <RecordStatPanelSkeleton />
+            ) : null}
           </div>
+
+          {/* 使用デッキ(登録済みの場合のみ)。かつては左カラムの最下部に置いていたが、
+            左カラムは戦績パネルのぶん狭く、デッキ名がほぼ必ず省略されていた。
+            対戦結果と同じ全幅の区画として独立させ、カード幅いっぱいを名前に使わせる。 */}
+          {deckSlot && (
+            <div className="mt-3.5 w-full border-t border-divider pt-3">{deckSlot}</div>
+          )}
 
           {/* 対戦結果(親から受け取る)。かつて「勝敗の推移」があった位置に配置する */}
           {matchesSlot && (
@@ -305,6 +415,9 @@ type Props = {
   setRecord: Dispatch<SetStateAction<RecordGetByIdResponseType | null>>;
   // 対戦一覧から集計した戦績(親で管理し、対戦の追加・更新・削除に即追従させる)
   stats: MatchStats;
+  // 対戦一覧をまだ取得中か。戦績パネルの出現でカードが組み替わるのを防ぐために使う。
+  // シェア画像のキャプチャ用インスタンスでは渡さない(骨格を撮ってしまうため)。
+  loadingStats?: boolean;
   // 戦績パネルの裏面(貢献度)を表示するか。表示状態は親で管理する。
   // シェア画像は別インスタンスの RecordHero を画面外に描画して撮るため、
   // 状態を親で持たないと画面と同じ面を撮れない。
@@ -316,13 +429,17 @@ type Props = {
   enableEditTCGMeisterURL?: boolean;
   // 使用デッキ行のタップで使用デッキ編集モーダルを開けるようにするか(詳細ページのみ true)
   enableEditUsedDeck?: boolean;
+  // 対戦結果を編集できる画面か(詳細ページのみ true)。実体の対戦結果は matchesSlot として
+  // 親から渡ってくるのでここでは使わず、ローディング中の骨格の形を実体へ寄せるためだけに使う。
+  enableEditMatches?: boolean;
   // 対戦結果(対戦一覧)。ヒーロー最下段に融合して表示する。
   // 記録詳細ページ・記録情報モーダルから <Matches> を渡す。
   matchesSlot?: React.ReactNode;
   // イベント・使用デッキの取得が完了して実データを描画できる状態かを通知する。
   // シェア画像のキャプチャで、スケルトン状態のまま撮影されるのを防ぐために使う。
   onReadyChange?: (ready: boolean) => void;
-  // 使用デッキ行を描画しない(シェア画像で「使用デッキを表示する」オプションOFF時に使う)。
+  // 使用デッキの区画を描画しない(シェア画像で「使用デッキを表示する」オプションOFF時に使う)。
+  // 見出しごと消えるため、画像には使用デッキが「あったこと」自体が残らない。
   hideDeck?: boolean;
   // 公式イベントの会場(店舗名)チップを描画しない
   // (シェア画像で「会場を表示する」オプションOFF時に使う)。
@@ -346,10 +463,12 @@ export default function RecordHero({
   record,
   setRecord,
   stats,
+  loadingStats = false,
   showSynergy = false,
   onToggleSynergy,
   enableEditTCGMeisterURL = false,
   enableEditUsedDeck = false,
+  enableEditMatches = false,
   matchesSlot,
   onReadyChange,
   hideDeck = false,
@@ -363,7 +482,6 @@ export default function RecordHero({
     useState<TonamelEventGetByIdResponseType | null>(null);
   const [unofficialEvent, setUnofficialEvent] =
     useState<UnofficialEventGetByIdResponseType | null>(null);
-  const [environment, setEnvironment] = useState<EnvironmentType | null>(null);
   const [deck, setDeck] = useState<DeckGetByIdResponseType | null>(null);
   // 使用デッキの取得中フラグ。デッキ変更時に古いデッキが一瞬残らないよう、
   // 取得完了までデッキ行をローディング表示にするために使う。
@@ -447,29 +565,6 @@ export default function RecordHero({
     };
   }, [record.deck_id]);
 
-  // Tonamel/自由形式は開催日時点の対戦環境を別途取得する(公式はイベント側が保持)
-  useEffect(() => {
-    if (isOfficial) return;
-
-    const dateStr =
-      record.event_date && !record.event_date.startsWith("0001-01-01")
-        ? record.event_date
-        : unofficialEvent?.date && !unofficialEvent.date.startsWith("0001-01-01")
-          ? unofficialEvent.date
-          : record.created_at?.toString();
-    if (!dateStr) return;
-
-    let ignore = false;
-    fetchEnvironment(dateStr)
-      .then((data) => {
-        if (!ignore) setEnvironment(data);
-      })
-      .catch(() => {});
-    return () => {
-      ignore = true;
-    };
-  }, [isOfficial, record.event_date, record.created_at, unofficialEvent?.date]);
-
   // イベント・使用デッキの取得が完了したら親へ通知する(シェア画像のスケルトン撮影防止)。
   // 使用デッキは未登録なら取得不要。登録済みは現在の deck_id と一致するまで待つ。
   useEffect(() => {
@@ -485,23 +580,33 @@ export default function RecordHero({
   }
 
   if (loadingEvent || holdSkeleton) {
-    return <RecordHeroSkeleton />;
+    // 補足行はイベント側のデータから作るため、公式イベントだけ本数がある。
+    // 参照先IDは取得前から分かるので、骨格の行数を実体に寄せておく。
+    return (
+      <RecordHeroSkeleton
+        metaRows={isOfficial ? 3 : 0}
+        matchesEditable={enableEditMatches}
+      />
+    );
   }
 
-  // 使用デッキ行(各イベント種別で共通)。左カラムの最下部に置き、右の戦績パネルと
-  // 左右で釣り合わせる。左カラムの幅は戦績パネルのぶん狭いため、スプライトは h-10 w-10、
-  // 編集の鉛筆は見出し横の小アイコンに寄せて、デッキ名の横幅を最優先で確保する。
-  // 行全体がタップで編集モーダルを開ける(鉛筆はその見た目上の手がかり)。
+  // 使用デッキの中身を収める不透明パネル。対戦結果と同じ枠線・角丸・面にして、
+  // カード背景のグラデーションから切り離す。
+  const deckPanelClass =
+    "flex w-full items-center gap-2.5 rounded-xl border border-divider bg-content1 px-2.5 py-2";
+
+  // 使用デッキ行(各イベント種別で共通)。対戦結果と同じ「見出し＋不透明パネル」の
+  // 区画としてカード全幅に置く。左カラム内に畳んでいた頃はデッキ名の実効幅が
+  // 150px 程度しかなく、10文字前後でほぼ必ず省略されていた。
+  // 名前は2行まで折り返す(それでも収まらない極端な長さだけ省略)。
+  // 行全体がタップで編集モーダルを開ける(右端の鉛筆はその見た目上の手がかり)。
   const deckRowInner = deck ? (
     <>
       {/* 見出しは日付・対戦結果と統一感を出すため左上に配置する */}
-      <div className="flex items-center gap-1">
-        <span className="text-[0.5625rem] font-bold tracking-wide text-default-400">
-          使用デッキ
-        </span>
-        {enableEditUsedDeck && <LuPencilLine className="h-2.5 w-2.5 text-default-400" />}
-      </div>
-      <div className="flex w-full items-center gap-2">
+      <span className="text-[0.5625rem] font-bold tracking-wide text-default-400">
+        使用デッキ
+      </span>
+      <div className={deckPanelClass}>
         {/* スプライト(2枚は隣接) */}
         <div className="flex shrink-0 items-center">
           <PokemonSprite
@@ -514,12 +619,17 @@ export default function RecordHero({
           />
         </div>
         {/* デッキ名 */}
-        <div className="min-w-0 flex-1 truncate text-sm font-bold">{deck.name}</div>
+        <span className="line-clamp-2 min-w-0 flex-1 text-sm font-bold leading-snug wrap-break-word">
+          {deck.name}
+        </span>
+        {enableEditUsedDeck && (
+          <LuPencilLine className="h-3.5 w-3.5 shrink-0 text-default-400" />
+        )}
       </div>
     </>
   ) : null;
 
-  const deckRowClass = "flex w-full flex-col gap-1";
+  const deckRowClass = "flex w-full flex-col gap-1.5";
 
   // 取得中、または保持しているデッキが record の現在の deck_id と一致しない
   // (＝変更直後でまだ新しいデッキを取得できていない)場合はローディング表示にする。
@@ -528,70 +638,62 @@ export default function RecordHero({
   // 使用デッキ取得中のローディング行(実表示と同じ骨格でガタつきを抑える)
   const deckLoadingRow = (
     <div className={deckRowClass}>
-      <Skeleton className="h-2.5 w-12 rounded" />
-      <div className="flex w-full items-center gap-2">
-        <div className="flex shrink-0 items-center">
-          <Skeleton className="h-10 w-10 rounded-lg" />
-          <Skeleton className="h-10 w-10 rounded-lg" />
+      {/* 見出しは実体と同じ行の高さ(13.5px)にする。h-2.5 のバーだけだと 3.5px 低くなる */}
+      <SectionLabelSkeleton text="使用デッキ" />
+      <div className={deckPanelClass}>
+        {/* スプライト2枚の間隔は対戦結果の骨格(MatchSkeleton)と同じ gap-1.5 にする */}
+        <div className="flex shrink-0 items-center gap-1.5">
+          <Skeleton className="h-11 w-11 rounded-lg" />
+          <Skeleton className="h-11 w-11 rounded-lg" />
         </div>
         <div className="min-w-0 flex-1">
-          <Skeleton className="h-4 w-24 max-w-full rounded-md" />
+          <Skeleton className="h-4 w-32 max-w-full rounded-md" />
         </div>
       </div>
     </div>
   );
 
-  // 「使用デッキを表示する」OFF時の行。使用デッキの部分を単に消すと、その記録に
-  // そもそもデッキが登録されていないのか、意図的に伏せているのかが伝わらないため、
-  // 同じ場所に「非公開」であることを明示する(デッキ名・スプライトは出さない)。
-  const deckHiddenRow = (
-    <div className={deckRowClass}>
-      <div className="flex items-center gap-1">
-        <span className="text-[0.5625rem] font-bold tracking-wide text-default-400">
-          使用デッキ
-        </span>
-      </div>
-      <div className="flex w-full items-center gap-2">
-        {/* スプライト2枚(40px × 2)と同じ幅・高さの枠にして、実表示との行の高さを揃える */}
-        <div className="flex h-10 w-20 shrink-0 items-center justify-center rounded-lg bg-default-100">
-          <LuEyeOff className="h-4 w-4 text-default-400" />
-        </div>
-        <div className="min-w-0 flex-1 truncate text-sm font-bold text-default-400">
-          非公開
-        </div>
-      </div>
-    </div>
-  );
+  // 「使用デッキを表示する」OFF時は区画ごと描画しない。かつては同じ場所に
+  // 「非公開」の行を出していたが、シェア画像では伏せたこと自体を写したくないため、
+  // 見出しごと消して他の区画が詰まるようにする。
+  const deckNode =
+    !record.deck_id || hideDeck ? null : (
+      <>
+        {enableEditUsedDeck && (
+          <UpdateUsedDeckModal
+            record={record}
+            setRecord={setRecord}
+            isOpen={isOpenForUsedDeckModal}
+            onOpenChange={onOpenChangeForUsedDeckModal}
+          />
+        )}
+        {isDeckLoading ? (
+          deckLoadingRow
+        ) : deck ? (
+          enableEditUsedDeck ? (
+            <button
+              type="button"
+              onClick={onOpenForUsedDeckModal}
+              className={`${deckRowClass} text-left transition-opacity hover:opacity-80`}
+            >
+              {deckRowInner}
+            </button>
+          ) : (
+            <div className={deckRowClass}>{deckRowInner}</div>
+          )
+        ) : null}
+      </>
+    );
 
-  const deckNode = !record.deck_id ? null : hideDeck ? (
-    deckHiddenRow
-  ) : (
-    <>
-      {enableEditUsedDeck && (
-        <UpdateUsedDeckModal
-          record={record}
-          setRecord={setRecord}
-          isOpen={isOpenForUsedDeckModal}
-          onOpenChange={onOpenChangeForUsedDeckModal}
-        />
-      )}
-      {isDeckLoading ? (
-        deckLoadingRow
-      ) : deck ? (
-        enableEditUsedDeck ? (
-          <button
-            type="button"
-            onClick={onOpenForUsedDeckModal}
-            className={`${deckRowClass} text-left transition-opacity hover:opacity-80`}
-          >
-            {deckRowInner}
-          </button>
-        ) : (
-          <div className={deckRowClass}>{deckRowInner}</div>
-        )
-      ) : null}
-    </>
-  );
+  // 記録側のレギュレーション。大半の記録がスタンダードで、毎回出しても情報にならないため、
+  // それ以外(エクストラ・殿堂・その他)のときだけ行にする。
+  const regulationRow: RecordMetaRow | null =
+    record.regulation_id && record.regulation_id !== REGULATION_ID_STANDARD
+      ? {
+          icon: <LuScrollText className="h-3 w-3" />,
+          text: regulationDisplay(record.regulation_id).name,
+        }
+      : null;
 
   // ---- 公式イベント ----
   if (isOfficial && officialEvent) {
@@ -600,6 +702,29 @@ export default function RecordHero({
         ? record.event_date
         : record.created_at.toString();
     const venue = hideVenue ? "" : getEventVenueLabel(officialEvent);
+
+    // 補足行の候補を優先度順に積む。上限(HERO_META_MAX)は HeroShell 側で切るので、
+    // ここでは「値があるものを優先度順に並べる」ことだけを考えればよい。
+    // 会場を伏せる(シェア画像)ときは1行目が落ち、後ろの行が繰り上がる。
+    const startLabel = formatEventTime(officialEvent.started_at);
+    const capacityLabel =
+      officialEvent.capacity > 0 ? `定員 ${officialEvent.capacity}人` : "";
+    // 開始時刻は「10:00 〜」の形にする(終了時刻は出さない)
+    const scheduleText = [startLabel && `${startLabel} 〜`, capacityLabel]
+      .filter(Boolean)
+      .join(" ・ ");
+
+    const officialMeta: RecordMetaRow[] = [
+      venue ? { icon: <LuMapPin className="h-3 w-3" />, text: venue } : null,
+      scheduleText ? { icon: <LuClock className="h-3 w-3" />, text: scheduleText } : null,
+      officialEvent.environment_title && shouldShowEnvironmentChip(officialEvent)
+        ? {
+            icon: <LuSwords className="h-3 w-3" />,
+            text: `『${officialEvent.environment_title}』`,
+          }
+        : null,
+      regulationRow,
+    ].filter((row): row is RecordMetaRow => row !== null);
 
     return (
       <>
@@ -628,34 +753,13 @@ export default function RecordHero({
             !enableEditTCGMeisterURL ? safeExternalUrl(record.tcg_meister_url) : undefined
           }
           date={formatEventDate(dateStr)}
-          chips={
-            <>
-              {officialEvent.environment_title &&
-                shouldShowEnvironmentChip(officialEvent) && (
-                  <Chip
-                    size="sm"
-                    variant="flat"
-                    color="default"
-                    className="h-5 max-w-30"
-                    classNames={{ content: "text-[0.625rem] truncate min-w-0" }}
-                  >
-                    {`『${officialEvent.environment_title}』`}
-                  </Chip>
-                )}
-              {venue && (
-                <Chip
-                  size="sm"
-                  variant="flat"
-                  color="default"
-                  className="h-5 max-w-30"
-                  classNames={{ content: "text-[0.625rem] truncate min-w-0" }}
-                >
-                  {venue}
-                </Chip>
-              )}
-            </>
-          }
+          // 公式イベントは種別チップを持たないため、チップ行はタグだけになる
+          // (会場・対戦環境は補足行へ移した)
+          chips={null}
+          meta={officialMeta}
+          tags={record.tags}
           stats={stats}
+          loadingStats={loadingStats}
           showSynergy={showSynergy}
           onToggleSynergy={onToggleSynergy}
           ignoreStatsFlg={record.ignore_stats_flg}
@@ -682,28 +786,18 @@ export default function RecordHero({
         titleHref={`https://tonamel.com/competition/${record.tonamel_event_id}`}
         date={formatEventDate(dateStr)}
         chips={
-          <>
-            <Chip
-              size="sm"
-              variant="flat"
-              className="h-5 bg-orange-100 text-[0.625rem] font-bold text-orange-500"
-            >
-              Tonamel
-            </Chip>
-            {environment?.title && (
-              <Chip
-                size="sm"
-                variant="flat"
-                color="default"
-                className="h-5 max-w-30"
-                classNames={{ content: "text-[0.625rem] truncate" }}
-              >
-                {`『${environment.title}』`}
-              </Chip>
-            )}
-          </>
+          <Chip
+            size="sm"
+            variant="flat"
+            className="h-5 bg-orange-100 text-[0.625rem] font-bold text-orange-500"
+          >
+            Tonamel
+          </Chip>
         }
+        meta={[regulationRow].filter((row): row is RecordMetaRow => row !== null)}
+        tags={record.tags}
         stats={stats}
+        loadingStats={loadingStats}
         showSynergy={showSynergy}
         onToggleSynergy={onToggleSynergy}
         ignoreStatsFlg={record.ignore_stats_flg}
@@ -730,28 +824,18 @@ export default function RecordHero({
         title={unofficialEvent?.title ?? "無題のイベント"}
         date={formatEventDate(dateStr)}
         chips={
-          <>
-            <Chip
-              size="sm"
-              variant="flat"
-              className="h-5 gap-0.5 bg-default-200 pl-1.5 text-[0.625rem] font-bold text-default-600"
-            >
-              自由形式
-            </Chip>
-            {environment?.title && (
-              <Chip
-                size="sm"
-                variant="flat"
-                color="default"
-                className="h-5 max-w-30"
-                classNames={{ content: "text-[0.625rem] truncate" }}
-              >
-                {`『${environment.title}』`}
-              </Chip>
-            )}
-          </>
+          <Chip
+            size="sm"
+            variant="flat"
+            className="h-5 gap-0.5 bg-default-200 pl-1.5 text-[0.625rem] font-bold text-default-600"
+          >
+            自由形式
+          </Chip>
         }
+        meta={[regulationRow].filter((row): row is RecordMetaRow => row !== null)}
+        tags={record.tags}
         stats={stats}
+        loadingStats={loadingStats}
         showSynergy={showSynergy}
         onToggleSynergy={onToggleSynergy}
         ignoreStatsFlg={record.ignore_stats_flg}

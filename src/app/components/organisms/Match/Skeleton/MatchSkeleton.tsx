@@ -28,10 +28,12 @@ function Rows({
           // 素の div に py-6 を付けると中身の高さが加算されて実態の倍近くになるため、
           // ここは固定高さで実態の行高さに合わせる。
           // 編集可能(詳細ページ)では左に並び替えガター(上下ボタン)が入り実態の行が
-          // 高くなる(約62px)ため、その場合は h-16 に広げる。
-          className={`flex w-full items-center gap-1.5 pl-1.5 pr-0.5 ${
-            enableUpdateMatchModalButton ? "h-16" : "h-12"
-          } ${i > 0 ? "border-t border-divider" : ""}`}
+          // 高くなるため、その場合は実測どおり 62px に広げる(h-16 の 64px では2px高い)。
+          // 行間は実態と同じく my-0.5(上下2pxずつ=行間4px)で取る。実態は区切り線をやめて
+          // 余白で粒を分けているので、ここでも線は引かない。
+          className={`my-0.5 flex w-full items-center gap-1.5 pl-1.5 pr-0.5 ${
+            enableUpdateMatchModalButton ? "h-[62px]" : "h-12"
+          }`}
         >
           {/* 並び替えボタンのガター(編集可能なときのみ) */}
           {enableUpdateMatchModalButton && (
@@ -69,15 +71,16 @@ export default function MatchSkeleton({
   flat = false,
 }: Props) {
   const content = (
-    <div className="flex w-full flex-col gap-1.5">
+    // 実体は CardBody(px-0 py-0.5)の内側に表がある。この 4px が無いとパネルが低くなる
+    <div className="flex w-full flex-col gap-1.5 py-0.5">
       {/* 対戦行。実態は Table の wrapper(px-1 py-1) で内側に余白があるため合わせる */}
-      <div className="px-1 py-1">
+      <div className="px-1 py-0">
         <Rows enableUpdateMatchModalButton={enableUpdateMatchModalButton} />
       </div>
       {/* 「対戦結果を追加する」ボタン。実態は横幅いっぱい・h-10・pill 型で
           px-1 pb-3 の余白を持つ(CreateMatchModalButton + Matches のラッパー) */}
       {enableCreateMatchModalButton && (
-        <div className="px-1 pb-3">
+        <div className="px-1 pt-1 pb-1">
           <Skeleton className="h-10 w-full rounded-full" />
         </div>
       )}

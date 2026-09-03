@@ -32,6 +32,15 @@ const PRESET_SECTION_LABEL: Record<TagPresetCategory, string> = {
   placement: "大会順位・プリセット",
 };
 
+/*
+ * 1つの付与先に1つしか成立しないプリセット群。
+ * 大会順位は「優勝かつベスト4」がありえないため、既に順位が付いているところへ
+ * 別の順位を選んだら、弾くのではなく差し替える(順位の付け直しは「選び直す」操作で済む)。
+ * ACE SPEC は1デッキ1枚だが、デッキコードの版ごとに違うカードを記録したい場合が
+ * あるので排他にはしない。
+ */
+const EXCLUSIVE_PRESET_CATEGORIES: readonly TagPresetCategory[] = ["placement"];
+
 // プリセットは必ず色を持つが、色未設定で投入された場合に備えた保険。
 // プリセットだと分かる見た目を保つため、無彩色ではなく既定色を当てる。
 const PRESET_FALLBACK_COLOR = "#6E7175";
@@ -115,16 +124,28 @@ export default function TagSelector({
 
   const atLimit = selectedTagIds.length >= MAX_TAGS_PER_ENTITY;
 
+  // この群のプリセットは同時に1つしか付けられない(大会順位など)
+  const isExclusivePreset = EXCLUSIVE_PRESET_CATEGORIES.includes(presetCategory);
+  const presetIds = new Set((presetTags ?? []).map((tag) => tag.id));
+
   function addTag(id: string) {
     if (selectedTagIds.includes(id)) return;
-    if (atLimit) {
+
+    // 排他群のプリセットを選んだときは、既に付いている同群のプリセットと入れ替える。
+    // 入れ替えでは総数が増えないので、上限の判定も入れ替え後の集合で行う。
+    const replacesPreset = isExclusivePreset && presetIds.has(id);
+    const kept = replacesPreset
+      ? selectedTagIds.filter((tagId) => !presetIds.has(tagId))
+      : selectedTagIds;
+
+    if (kept.length >= MAX_TAGS_PER_ENTITY) {
       addToast({
         title: `タグは最大${MAX_TAGS_PER_ENTITY}個までです`,
         color: "warning",
       });
       return;
     }
-    onChange([...selectedTagIds, id]);
+    onChange([...kept, id]);
     setQuery("");
   }
 

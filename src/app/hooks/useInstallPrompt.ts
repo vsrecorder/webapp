@@ -9,9 +9,9 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
-// 3日間は再表示しない
+// 7日間は再表示しない
 const DISMISS_KEY = "pwa_install_dismissed_at";
-const DISMISS_DURATION_MS = 3 * 24 * 60 * 60 * 1000;
+const DISMISS_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
 
 // beforeinstallprompt はページ読み込みの少しあとに非同期で飛んでくる。
 // 発火を待たずに同じ位置の別バナー(Web Push の soft ask)を出すと、直後に

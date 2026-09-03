@@ -297,7 +297,7 @@ export default function TonamelEventRecord({
         regulationId={record.regulation_id}
         icon={
           <div className="w-full h-full bg-orange-500 flex items-center justify-center">
-            <span className="text-xs font-black text-white">T</span>
+            <span className="text-sm font-black text-white">T</span>
           </div>
         }
         deckName={deck ? deck.name : null}

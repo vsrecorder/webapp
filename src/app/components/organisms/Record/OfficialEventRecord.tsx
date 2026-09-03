@@ -2,12 +2,14 @@
 
 import { useCallback, useEffect, useState, useRef } from "react";
 
-import { Chip } from "@heroui/react";
 import { Image } from "@heroui/react";
 import { useDisclosure } from "@heroui/react";
 
+import { LuMapPin, LuSwords } from "react-icons/lu";
+
 import FetchError from "@app/components/molecules/FetchError";
 import RecordCardBase from "@app/components/organisms/Record/RecordCardBase";
+import { type RecordMetaRow } from "@app/components/organisms/Record/RecordMetaRows";
 import { createLazyModal } from "@app/utils/lazyModal";
 import { RecordCardSkeleton } from "@app/components/organisms/Record/Skeleton/RecordCardSkeleton";
 import {
@@ -269,6 +271,20 @@ export default function OfficialEventRecord({
     weekday: "short",
   });
 
+  // 補足行。会場 → 対戦環境の順で、記録詳細のヒーローと同じ並び・同じアイコンにする
+  const metaCandidates: (RecordMetaRow | null)[] = [
+    officialEvent.shop_name
+      ? { icon: <LuMapPin className="h-3 w-3" />, text: officialEvent.shop_name }
+      : null,
+    officialEvent.environment_title && shouldShowEnvironmentChip(officialEvent)
+      ? {
+          icon: <LuSwords className="h-3 w-3" />,
+          text: `『${officialEvent.environment_title}』`,
+        }
+      : null,
+  ];
+  const meta = metaCandidates.filter((row): row is RecordMetaRow => row !== null);
+
   return (
     <>
       {enableDisplayRecordModal && (
@@ -289,30 +305,7 @@ export default function OfficialEventRecord({
         date={date}
         title={officialEvent.title}
         loadingTitle={false}
-        chips={
-          officialEvent.environment_title && shouldShowEnvironmentChip(officialEvent) ? (
-            <Chip
-              size="sm"
-              variant="flat"
-              color="default"
-              className="h-5 text-[0.625rem] font-bold"
-            >
-              {`『${officialEvent.environment_title}』`}
-            </Chip>
-          ) : null
-        }
-        chipsSecondRow={
-          officialEvent.shop_name ? (
-            <Chip
-              size="sm"
-              variant="flat"
-              color="default"
-              className="h-5 text-[0.625rem] font-bold max-w-40 truncate"
-            >
-              {officialEvent.shop_name}
-            </Chip>
-          ) : undefined
-        }
+        meta={meta}
         tags={record.tags}
         ignoreStatsFlg={record.ignore_stats_flg}
         regulationId={record.regulation_id}
@@ -321,7 +314,7 @@ export default function OfficialEventRecord({
             alt={officialEvent.title}
             src={getEventIconUrl(officialEvent)}
             radius="none"
-            className="w-6 h-6 object-contain"
+            className="w-7 h-7 object-contain"
           />
         }
         deckName={deck ? deck.name : null}

@@ -297,7 +297,7 @@ export default function UnofficialEventRecord({
         tags={record.tags}
         ignoreStatsFlg={record.ignore_stats_flg}
         regulationId={record.regulation_id}
-        icon={<LuPencilLine className="w-4 h-4 text-default-500" />}
+        icon={<LuPencilLine className="w-5 h-5 text-default-500" />}
         deckName={deck ? deck.name : null}
         deckSprites={deck?.pokemon_sprites}
         loadingDeck={loadingDeck}

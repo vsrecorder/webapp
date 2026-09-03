@@ -334,7 +334,7 @@ export default function Matches({
                           aria-label="対戦結果"
                           className=""
                           classNames={{
-                            wrapper: "px-1 py-1 shadow-none overflow-x-hidden",
+                            wrapper: "px-1 py-0 shadow-none overflow-x-hidden",
                             table: "",
                             th: "px-0 py-0",
                             td: "px-0 py-0",
@@ -367,20 +367,18 @@ export default function Matches({
                               }
 
                               const { match, canMoveUp, canMoveDown } = item;
-                              // 連続する対戦行の間だけ区切り線を引く(先頭・見出し直後は引かない)
-                              const showDivider =
-                                index > 0 && orderedItems[index - 1].kind === "match";
                               return (
                                 <TableRow key={match.id}>
-                                  <TableCell
-                                    className={
-                                      showDivider ? "border-t border-divider" : ""
-                                    }
-                                  >
+                                  <TableCell>
                                     {/* 勝敗でグラデ(勝ち=緑・負け=赤)。通常戦は左から敷いて右へフェード、
-                                        チーム戦は左=チーム勝敗・右=個人勝敗の2色で表す。 */}
+                                        チーム戦は左=チーム勝敗・右=個人勝敗の2色で表す。
+                                        行同士は my-0.5 の余白で分ける。各行が勝敗の地色と角丸を
+                                        持っているので、区切り線を引かなくても粒が分かれて見える
+                                        (線を残すと余白の中に線が浮いて見える)。
+                                        パネルとの間は四辺とも 4px。行の角丸(8px)はパネルの角丸(12px)から
+                                        その 4px を引いた値で、内側と外側の丸みが同心になる。 */}
                                     <div
-                                      className={`flex w-full items-center gap-1 rounded-lg ${matchRowGradientClass(
+                                      className={`my-0.5 flex w-full items-center gap-1 rounded-lg ${matchRowGradientClass(
                                         match,
                                       )}`}
                                     >
@@ -511,22 +509,8 @@ export default function Matches({
                                                         : "不戦敗"}
                                                     </div>
                                                     <div className="mt-0.5 flex flex-wrap items-center gap-1">
-                                                      {match.group_match_flg && (
-                                                        <Chip
-                                                          size="sm"
-                                                          variant="flat"
-                                                          radius="sm"
-                                                          color="secondary"
-                                                          classNames={{
-                                                            base: "h-4 px-1",
-                                                            content:
-                                                              "px-1 text-[0.5rem] font-bold",
-                                                          }}
-                                                        >
-                                                          チーム戦
-                                                        </Chip>
-                                                      )}
-                                                      {/* BO3はチーム戦チップと同様に独立したチップで示す */}
+                                                      {/* BO3は独立したチップで示す
+                                                          (チーム戦は勝敗バッジの「チーム/個人」表記で判別できるためチップ不要) */}
                                                       {match.bo3_flg && (
                                                         <Chip
                                                           size="sm"
@@ -582,22 +566,8 @@ export default function Matches({
                                                         タグが多くても行が縦に伸びて情報が見切れないよう、
                                                         折り返さず1行で横スクロールさせる([&>*]:shrink-0 で各chipを潰さない)。 */}
                                                     <div className="mt-1 flex flex-nowrap items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0">
-                                                      {match.group_match_flg && (
-                                                        <Chip
-                                                          size="sm"
-                                                          variant="flat"
-                                                          radius="sm"
-                                                          color="secondary"
-                                                          classNames={{
-                                                            base: "h-4 px-1",
-                                                            content:
-                                                              "px-1 text-[0.5rem] font-bold",
-                                                          }}
-                                                        >
-                                                          チーム戦
-                                                        </Chip>
-                                                      )}
-                                                      {/* BO3はチーム戦チップと同様に独立したチップで示す */}
+                                                      {/* BO3は独立したチップで示す
+                                                          (チーム戦は勝敗バッジの「チーム/個人」表記で判別できるためチップ不要) */}
                                                       {match.bo3_flg && (
                                                         <Chip
                                                           size="sm"
@@ -746,10 +716,10 @@ export default function Matches({
               </div>
 
               {matches && matches.length !== 0 && enableCreateMatchModalButton && (
-                // flat(戦績カード内のパネル)ではパネル端に接しないよう、
-                // 左右はテーブルの px-1 インセットに合わせ、下は少し広めに余白を持たせる。
+                // flat(戦績カード内のパネル)では、対戦行と同じ 4px のインセットに揃える。
+                // 上は行の my-0.5 と合わせて 6px 空き、ボタンが行の一部に見えない程度に離れる。
                 // ボタンは横幅いっぱい＋縦を高めにして押しやすくする。
-                <div className={flat ? "px-1 pb-3" : ""}>
+                <div className={flat ? "px-1 pt-1 pb-1" : ""}>
                   <CreateMatchModalButton
                     record={record}
                     setMatches={setMatches}

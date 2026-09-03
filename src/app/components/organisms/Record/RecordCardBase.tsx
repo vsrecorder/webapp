@@ -7,6 +7,9 @@ import ScrollingText from "@app/components/molecules/ScrollingText";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import { RecordDeckRowSkeleton } from "@app/components/organisms/Record/Skeleton/RecordCardSkeleton";
 import TagChips from "@app/components/molecules/TagChips";
+import RecordMetaRows, {
+  type RecordMetaRow,
+} from "@app/components/organisms/Record/RecordMetaRows";
 import { DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
 import { TagType } from "@app/types/tag";
 import { getSpriteBySlot } from "@app/utils/spriteSlot";
@@ -24,10 +27,11 @@ type Props = {
   title: string;
   loadingTitle: boolean;
   titleFallback?: string;
-  // 1段目のチップ(対戦環境名など。複数可)。無いカードは行ごと省略する
+  // イベント種別のチップ(Tonamel / 自由形式)。持たないカードは行ごと省略する
   chips?: React.ReactNode;
-  // 2段目のチップ(会場名など)。渡さないカードは行ごと省略する
-  chipsSecondRow?: React.ReactNode;
+  // イベントの事実(会場・対戦環境)。記録詳細のヒーローと同じアイコン付きの行で出す。
+  // 空なら行ごと省略する
+  meta?: RecordMetaRow[];
   // 記録に付けたタグ。無い(空)なら行ごと省略する
   tags?: TagType[];
   // アイコン枠(8x8)の中身。種別アイコン/ブランドロゴ/記号など
@@ -37,8 +41,6 @@ type Props = {
   // デッキに紐付くポケモンスプライト(先頭2体を表示)
   deckSprites?: DeckPokemonSpriteType[];
   loadingDeck: boolean;
-  // デッキ行の上に差し込む情報行(公式の会場名など)。無いカードは省略
-  infoRowAboveDeck?: React.ReactNode;
   // 対戦の勝敗数(デッキ行の右端に表示)
   winCount?: number;
   lossCount?: number;
@@ -69,13 +71,12 @@ export default function RecordCardBase({
   loadingTitle,
   titleFallback = "無題のイベント",
   chips,
-  chipsSecondRow,
+  meta,
   tags,
   icon,
   deckName,
   deckSprites,
   loadingDeck,
-  infoRowAboveDeck,
   winCount,
   lossCount,
   drawCount,
@@ -207,99 +208,92 @@ export default function RecordCardBase({
                 )}
               </div>
 
-              {/* 開催日 */}
-              <span className="text-xs text-default-500">{date}</span>
+              {/* 開催日。インラインのままだと行ボックスが親の strut(24px)まで膨らんで
+                  イベント名との間が間延びするため、block + leading-snug で 16.5px に締める */}
+              <span className="block text-xs leading-snug text-default-500">{date}</span>
 
-              {/* イベント名 */}
-              {loadingTitle ? (
-                <Skeleton className="h-5 w-48 rounded mt-0.5" />
-              ) : (
-                <ScrollingText
-                  text={title || titleFallback}
-                  animationClass="animate-marquee-card-slow"
-                  className="font-bold text-sm leading-snug mt-0.5"
-                />
-              )}
-
-              {/* チップ1段目(対戦環境名など)。チップが無いカードには余白を出さないため、
-                  渡されたときだけ行ごと描画する */}
-              {chips && (
-                <div className="flex items-center gap-2 mt-1.5 flex-wrap">{chips}</div>
-              )}
-
-              {/* チップ2段目(会場名)。2段目が無いカードには余白を出さないため、
-                  渡されたときだけ行ごと描画する */}
-              {chipsSecondRow && (
-                <div className="flex items-center gap-2 mt-1 flex-wrap">
-                  {chipsSecondRow}
+              {/* イベントのアイコン + イベント名。
+                  アイコンはイベントを表すものなので、記録詳細のヒーローと同じく
+                  イベント名の横に置く(以前は区切り線の下、デッキ行の左に置いていたが、
+                  デッキの情報とイベントのアイコンが並んで見えて意味が繋がらなかった) */}
+              <div className="mt-1.5 flex items-center gap-2.5">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-default-100 ring-1 ring-black/5 ring-inset">
+                  {icon}
                 </div>
+                {loadingTitle ? (
+                  <Skeleton className="h-5 w-48 rounded" />
+                ) : (
+                  <ScrollingText
+                    text={title || titleFallback}
+                    animationClass="animate-marquee-card-slow"
+                    className="min-w-0 flex-1 text-sm leading-snug font-bold"
+                  />
+                )}
+              </div>
+
+              {/* イベントの事実(会場・対戦環境)。記録詳細のヒーローと同じ部品・同じ書式で出す。
+                  かつてはチップを2段並べていたが、チップは数が増えるほど同じ重さの札に見えて
+                  読み解く手間が増えるため、アイコン付きの行に変えた */}
+              <RecordMetaRows rows={meta ?? []} className="mt-2" />
+
+              {/* イベント種別のチップ(Tonamel / 自由形式)。持たないカードには
+                  余白を出さないため、渡されたときだけ行ごと描画する */}
+              {chips && (
+                <div className="mt-2 flex flex-wrap items-center gap-2">{chips}</div>
               )}
 
               {/* 区切り線 */}
               <div className="border-t border-divider mt-3 mb-2.5" />
 
-              {/* 情報行(アイコン枠 + 会場/デッキ) */}
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-default-100 flex items-center justify-center overflow-hidden shrink-0">
-                  {icon}
-                </div>
-
-                <div className="flex flex-col gap-1 min-w-0 flex-1">
-                  {infoRowAboveDeck}
-
-                  <div className="flex items-center justify-between gap-2 min-w-0">
-                    {/* デッキ行だけアイコン枠の側へ寄せる(情報行の gap-3 = 12px のうち 6px を
-                        打ち消し、上の会場行より左に出す)。読み込み中のスケルトン
-                        (RecordCardSkeleton)も同じ量ずらし、実データ描画時に横位置が飛ばないようにする */}
-                    <div className="min-w-0 flex-1 -ml-1.5">
-                      {loadingDeck ? (
-                        <RecordDeckRowSkeleton />
-                      ) : deckName ? (
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          {/* デッキの2枠スプライト。position でスロットを固定(無い枠はデフォルトを表示) */}
-                          <div className="flex items-center shrink-0">
-                            {([1, 2] as const).map((slot) => (
-                              <PokemonSprite
-                                key={slot}
-                                id={getSpriteBySlot(deckSprites, slot)?.id}
-                                size={32}
-                              />
-                            ))}
-                          </div>
-                          <span className="text-sm text-default-600 truncate">
-                            {deckName}
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1 min-w-0">
-                          <span className="text-sm text-default-600 truncate"></span>
-                        </div>
-                      )}
+              {/* 情報行(使用デッキ + 勝敗) */}
+              <div className="flex min-w-0 items-center justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  {loadingDeck ? (
+                    <RecordDeckRowSkeleton />
+                  ) : deckName ? (
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      {/* デッキの2枠スプライト。position でスロットを固定(無い枠はデフォルトを表示) */}
+                      <div className="flex items-center shrink-0">
+                        {([1, 2] as const).map((slot) => (
+                          <PokemonSprite
+                            key={slot}
+                            id={getSpriteBySlot(deckSprites, slot)?.id}
+                            size={32}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-sm text-default-600 truncate">
+                        {deckName}
+                      </span>
                     </div>
-
-                    {/* 対戦の勝敗数(対戦結果が無い場合は「対戦なし」を同じ位置に表示) */}
-                    {loadingMatches ? (
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <Skeleton className="h-5 w-12 rounded-md" />
-                      </div>
-                    ) : hasMatchResult ? (
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <span
-                          className={`text-xs font-bold shrink-0 rounded-md border px-1.5 py-0.5 ${matchResultColorClass} ${matchResultBorderColorClass} ${matchResultBgColorClass}`}
-                        >
-                          {winCount}勝{lossCount}敗
-                          {(drawCount ?? 0) > 0 && `${drawCount}分`}
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <span className="text-xs font-bold shrink-0 rounded-md border px-1.5 py-0.5 text-default-400 border-default-200 bg-default-50">
-                          対戦なし
-                        </span>
-                      </div>
-                    )}
-                  </div>
+                  ) : (
+                    <div className="flex items-center gap-1 min-w-0">
+                      <span className="text-sm text-default-600 truncate"></span>
+                    </div>
+                  )}
                 </div>
+
+                {/* 対戦の勝敗数(対戦結果が無い場合は「対戦なし」を同じ位置に表示) */}
+                {loadingMatches ? (
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <Skeleton className="h-5 w-12 rounded-md" />
+                  </div>
+                ) : hasMatchResult ? (
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span
+                      className={`text-xs font-bold shrink-0 rounded-md border px-1.5 py-0.5 ${matchResultColorClass} ${matchResultBorderColorClass} ${matchResultBgColorClass}`}
+                    >
+                      {winCount}勝{lossCount}敗
+                      {(drawCount ?? 0) > 0 && `${drawCount}分`}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className="text-xs font-bold shrink-0 rounded-md border px-1.5 py-0.5 text-default-400 border-default-200 bg-default-50">
+                      対戦なし
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>

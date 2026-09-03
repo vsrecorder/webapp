@@ -9,7 +9,7 @@
 const RECORD_CREATED_TRIGGER_KEY = "vsrec:push-prompt:record-created";
 
 // 「あとで」を押した時刻。14日間は再表示しない。
-// ホーム画面追加バナー(useInstallPrompt)の3日より長くしているのは、
+// ホーム画面追加バナー(useInstallPrompt)の7日より長くしているのは、
 // 通知の再勧誘はインストールより嫌われやすいため。
 const DISMISSED_AT_KEY = "vsrec:push-prompt:dismissed-at";
 const DISMISS_DURATION_MS = 14 * 24 * 60 * 60 * 1000;

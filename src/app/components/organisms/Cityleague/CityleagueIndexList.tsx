@@ -11,10 +11,12 @@ export type CityleagueIndexItem = {
 
 type Props = {
   items: CityleagueIndexItem[];
+  // 件数の単位。既定は「件」。大型大会の索引ではリーグ区分を数えるため「区分」を渡す。
+  countUnit?: string;
 };
 
 // シーズン／環境／年月の索引ページで共通に使う一覧。
-export default function CityleagueIndexList({ items }: Props) {
+export default function CityleagueIndexList({ items, countUnit = "件" }: Props) {
   return (
     <ul className="flex flex-col divide-y divide-default-100 overflow-hidden rounded-2xl border border-default-100 bg-content1">
       {items.map((item) => (
@@ -30,7 +32,10 @@ export default function CityleagueIndexList({ items }: Props) {
               )}
             </span>
             <span className="flex shrink-0 items-center gap-1">
-              <span className="font-bold text-tiny text-default-500">{item.count}件</span>
+              <span className="font-bold text-tiny text-default-500">
+                {item.count}
+                {countUnit}
+              </span>
               <LuChevronRight className="text-default-300" />
             </span>
           </Link>

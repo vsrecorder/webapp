@@ -3,37 +3,10 @@ import { CityleagueResultType } from "@app/types/cityleague_result";
 import { CityleagueScheduleType } from "@app/types/cityleague_schedule";
 import { EnvironmentType } from "@app/types/environment";
 import { OfficialEventResponseType, OfficialEventType } from "@app/types/official_event";
-
-// 過去イベントの結果は確定後に変わらないため、長めにキャッシュする。
-const REVALIDATE_SECONDS = 60 * 60 * 24;
+import { getJson } from "@app/utils/coreApi";
 
 // 公式イベント種別のうち「シティリーグ」を指すID。
 const OFFICIAL_EVENT_TYPE_ID_CITYLEAGUE = 2;
-
-function coreApiUrl(path: string): string {
-  return `https://${process.env.VSRECORDER_DOMAIN}${path}`;
-}
-
-async function getJson<T>(path: string): Promise<T | null> {
-  const res = await fetch(coreApiUrl(path), {
-    method: "GET",
-    headers: { Accept: "application/json" },
-    next: { revalidate: REVALIDATE_SECONDS },
-  });
-
-  // 404 は「本当に存在しない」ので null を返し、呼び出し元の notFound() に流す。
-  if (res.status === 404) return null;
-
-  // それ以外の失敗は一時的な障害の可能性がある。ここで null を返すと notFound() に
-  // 流れ、生きているページが noindex 付きで返る。noindex は 404 や 500 と違って
-  // 「意図的にインデックスするな」という指示なので、障害中にクロールされた分だけ
-  // 検索結果から外れてしまう。例外にして 500 を返し、クローラに再訪させる。
-  if (!res.ok) {
-    throw new Error(`core-apiserver responded ${res.status}: ${path}`);
-  }
-
-  return res.json();
-}
 
 export async function getOfficialEventById(
   id: number,

@@ -1,6 +1,10 @@
 import { MetadataRoute } from "next";
 
 import {
+  getChampionsleagueLeagueRefs,
+  getChampionsleagueScheduleSummaries,
+} from "@app/utils/championsleague";
+import {
   findTermByDate,
   getAllCityleagueEventRefs,
   getCityleagueSeasons,
@@ -32,6 +36,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: url + "/cityleague_results/seasons", changeFrequency: "weekly" },
     { url: url + "/cityleague_results/environments", changeFrequency: "weekly" },
     { url: url + "/cityleague_results/months", changeFrequency: "weekly" },
+    { url: url + "/cityleague_results/championsleagues", changeFrequency: "weekly" },
     { url: url + "/deck_meta", changeFrequency: "weekly" },
     { url: url + "/kizuna", changeFrequency: "weekly" },
     { url: url + "/terms", changeFrequency: "monthly" },
@@ -39,10 +44,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: url + "/policy", changeFrequency: "monthly" },
   ];
 
-  const [eventRefs, seasons, environments] = await Promise.all([
+  const [
+    eventRefs,
+    seasons,
+    environments,
+    championsleagueSummaries,
+    championsleagueLeagueRefs,
+  ] = await Promise.all([
     getAllCityleagueEventRefs(),
     getCityleagueSeasons(),
     getEnvironments(),
+    getChampionsleagueScheduleSummaries(),
+    getChampionsleagueLeagueRefs(),
   ]);
 
   // 結果が1件も無いシーズン・環境・月はページ自体を出さないため、sitemap にも載せない。
@@ -82,6 +95,27 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "yearly",
     }));
 
+  // 大型大会は大会ページ(区分の索引)とリーグ区分ごとの結果ページに分かれる。
+  // 全期間でも合わせて100ページ弱しかないため、シティリーグの個別ページと違い
+  // 直近だけに絞らず全件を載せる。結果が確定した過去の大会は内容が変わらないので
+  // lastModified に会期の最終日を入れて再クロールの必要が無いことを伝える。
+  const scheduleToDate = new Map(
+    championsleagueSummaries.map(({ schedule }) => [schedule.id, schedule.to_date]),
+  );
+
+  const championsleaguePages: MetadataRoute.Sitemap = [
+    ...championsleagueSummaries.map(({ schedule }) => ({
+      url: `${url}/cityleague_results/championsleagues/${schedule.id}`,
+      lastModified: new Date(schedule.to_date),
+      changeFrequency: "yearly" as const,
+    })),
+    ...championsleagueLeagueRefs.map((ref) => ({
+      url: `${url}/cityleague_results/championsleagues/${ref.scheduleId}/${ref.slug}`,
+      lastModified: new Date(scheduleToDate.get(ref.scheduleId) ?? Date.now()),
+      changeFrequency: "yearly" as const,
+    })),
+  ];
+
   const hubPages: MetadataRoute.Sitemap = [
     ...[...seasonIds].map((id) => ({
       url: `${url}/cityleague_results/seasons/${id}`,
@@ -97,5 +131,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
   ];
 
-  return [...staticPages, ...hubPages, ...eventPages];
+  return [...staticPages, ...hubPages, ...championsleaguePages, ...eventPages];
 }

@@ -23,7 +23,7 @@ function resolveRestoredTab(): TabKey {
 }
 
 type Props = {
-  // 過去の結果を探す導線。サーバコンポーネントのまま受け取るため、props で差し込む。
+  // 過去の結果を探す軸チップ。サーバコンポーネントのまま受け取るため、props で差し込む。
   // タブが fixed で画面上部に固定されているため、タブの下（スクロール領域の先頭）に置く。
   browseSection?: React.ReactNode;
   // 個別ページへのリンク集。上のタブは結果をその場に展開するだけでリンクを持たないため、

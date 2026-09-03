@@ -13,10 +13,11 @@ import ScrollUpFloating from "@app/components/atoms/Floating/ScrollUpFloating";
 
 import CityleagueResultCard from "@app/components/organisms/Cityleague/CityleagueResultCard";
 
-import { CityleagueResultType, Result } from "@app/types/cityleague_result";
+import { CityleagueResultType } from "@app/types/cityleague_result";
 import { DeckSummaryType } from "@app/types/deckcard";
 import { OfficialEventType } from "@app/types/official_event";
 
+import { buildRankSections } from "@app/utils/cityleagueRank";
 import { formatMainPokemon } from "@app/utils/deckSummary";
 import { safeExternalUrl } from "@app/utils/url";
 
@@ -28,54 +29,6 @@ type Props = {
   // 同じ月の他会場・各ハブへのリンク。サーバコンポーネントのまま受け取るため props で差し込む。
   relatedSection?: React.ReactNode;
 };
-
-// 順位ごとのセクション定義。accentはカード枠線の色（CityleagueResultCard）と揃える。
-const RANK_SECTIONS: { rank: number; label: string; accent: string }[] = [
-  { rank: 1, label: "🥇 優勝", accent: "bg-amber-400" },
-  { rank: 2, label: "🥈 準優勝", accent: "bg-default-400" },
-  { rank: 3, label: "🥉 ベスト4", accent: "bg-orange-700" },
-  { rank: 5, label: "ベスト8", accent: "bg-blue-500" },
-  { rank: 9, label: "ベスト16", accent: "bg-emerald-500" },
-];
-
-type Section = {
-  key: string;
-  label: string;
-  accent: string;
-  results: Result[];
-};
-
-// 結果を順位ごとのセクションに畳む。定義外の順位も取りこぼさず「N位」として扱う。
-function buildSections(results: Result[]): Section[] {
-  const rest = new Map<number, Result[]>();
-
-  for (const result of results) {
-    const list = rest.get(result.rank) ?? [];
-    list.push(result);
-    rest.set(result.rank, list);
-  }
-
-  const sections: Section[] = [];
-
-  for (const { rank, label, accent } of RANK_SECTIONS) {
-    const matched = rest.get(rank);
-    if (!matched?.length) continue;
-
-    sections.push({ key: String(rank), label, accent, results: matched });
-    rest.delete(rank);
-  }
-
-  for (const [rank, matched] of [...rest.entries()].sort((a, b) => a[0] - b[0])) {
-    sections.push({
-      key: String(rank),
-      label: `${rank}位`,
-      accent: "bg-default-300",
-      results: matched,
-    });
-  }
-
-  return sections;
-}
 
 // データはサーバコンポーネント側で取得済みのものを受け取る。
 // ここで fetch しないことで、検索エンジンに結果本文が入ったHTMLが渡る。
@@ -93,7 +46,7 @@ export default function CityleagueResultByOfficialEventId({
     weekday: "short",
   });
 
-  const sections = buildSections(cityleagueResult.results);
+  const sections = buildRankSections(cityleagueResult.results);
   const deckCodeCount = cityleagueResult.results.filter(
     (result) => !!result.deck_code,
   ).length;

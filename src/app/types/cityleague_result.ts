@@ -6,6 +6,11 @@ export type Result = {
   deck_code: string;
 };
 
+// 入賞カード(CityleagueResultCard)が表示に使うフィールドだけを抜き出したもの。
+// point は使わないため、point を持たない大型大会の入賞(ChampionsleagueResult)も
+// そのまま同じカードで描画できる。
+export type ResultCardEntry = Omit<Result, "point">;
+
 export type CityleagueResultType = {
   cityleague_schedule_id: string;
   official_event_id: number;

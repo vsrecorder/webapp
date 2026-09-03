@@ -3,7 +3,7 @@
 import { useFixedBarAlignment } from "@app/hooks/useFixedBarAlignment";
 
 /*
- * 「過去の結果を探す」バーの入れ物。
+ * 過去の結果を探す軸チップ(シーズン/環境/開催月/大型大会)のバーの入れ物。
  *
  * 以前は sticky top-25 ＋ bg-white/90 backdrop-blur-md だったが、これは
  * /decks の切り替えバーで潰したのと同じ「スクロール中に揺らぐ」問題を抱えていた。

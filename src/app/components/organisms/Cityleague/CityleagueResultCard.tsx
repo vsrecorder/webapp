@@ -28,7 +28,7 @@ import CopyableDeckCode from "@app/components/atoms/CopyableDeckCode";
 import ZoomableDeckImage from "@app/components/atoms/ZoomableDeckImage";
 import BoardPanel from "@app/components/organisms/Record/BoardPanel";
 
-import { Result } from "@app/types/cityleague_result";
+import { ResultCardEntry } from "@app/types/cityleague_result";
 import { DeckSummaryType } from "@app/types/deckcard";
 import {
   cityleagueRankBadgeClass,
@@ -38,7 +38,9 @@ import {
 import { formatMainPokemon } from "@app/utils/deckSummary";
 
 type Props = {
-  result: Result;
+  // point を含まない最小の形で受ける。大型大会(championsleague_results)の入賞も
+  // 同じカードで描画するため。
+  result: ResultCardEntry;
   date: Date;
   // 個別ページのように順位ごとの見出しがある場所では、カード側のラベルが冗長になるため隠す。
   showRankLabel?: boolean;

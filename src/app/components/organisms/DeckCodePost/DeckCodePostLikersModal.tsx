@@ -8,6 +8,7 @@ import { Avatar, Button, ModalBody, ModalContent, ModalHeader, Spinner } from "@
 
 import { Modal } from "@app/components/atoms/AppModal";
 import DesignationChip from "@app/components/molecules/DesignationChip";
+import { FILTER_SHEET_LIST_HEIGHT_PX } from "@app/components/organisms/DeckCodePost/FilterSheet";
 
 import { useOffsetPagination } from "@app/hooks/useOffsetPagination";
 import { DeckCodePostLikerType, DeckCodePostType } from "@app/types/deck_code_post";
@@ -58,39 +59,52 @@ export default function DeckCodePostLikersModal({ post, isOpen, onOpenChange }: 
               {post && <span className="text-sm font-normal text-default-500">{post.like_count}人</span>}
             </ModalHeader>
             <ModalBody className="pb-6">
-              {likers.length === 0 && !isLoading && !error && (
-                <div className="py-6 text-center text-sm text-default-400">まだいいねはありません</div>
-              )}
-              {error && (
-                <div className="py-6 text-center text-sm text-danger">読み込めませんでした</div>
-              )}
-              <ul className="flex flex-col divide-y divide-default-200">
-                {likers.map((liker) => (
-                  <li key={liker.user.id} className="flex items-center gap-3 py-2">
-                    <NextLink
-                      href={deckCodePostUserPath(liker.user.id)}
-                      className="flex min-w-0 flex-1 items-center gap-3 active:opacity-70"
-                    >
-                      <Avatar src={liker.user.image_url || undefined} name={liker.user.name} size="sm" className="shrink-0" />
-                      <span className="flex min-w-0 flex-wrap items-center gap-1.5">
-                        <span className="truncate text-sm font-bold">{liker.user.name}</span>
-                        <DesignationChip tier={liker.user.designation_tier} />
-                      </span>
-                    </NextLink>
-                    <span className="shrink-0 text-tiny text-default-400">{formatRelativeTime(liker.created_at)}</span>
-                  </li>
-                ))}
-              </ul>
-              {(isLoading || isLoadingMore) && (
-                <div className="flex justify-center py-3">
-                  <Spinner size="sm" />
-                </div>
-              )}
-              {hasMore && !isLoadingMore && (
-                <Button size="sm" variant="flat" onPress={loadMore}>
-                  もっと見る
-                </Button>
-              )}
+              {/* 高さは絞り込みシート(環境・ACE SPEC)と同じ値で固定し、収まらない分はこの中だけを
+                  スクロールして見る。いいねの人数や読み込み状態でシートの大きさが変わらないようにする */}
+              <div className="overflow-y-auto" style={{ height: FILTER_SHEET_LIST_HEIGHT_PX }}>
+                {isLoading && likers.length === 0 && (
+                  <div className="flex h-full items-center justify-center">
+                    <Spinner size="sm" />
+                  </div>
+                )}
+                {error && (
+                  <div className="flex h-full items-center justify-center text-sm text-danger">
+                    読み込めませんでした
+                  </div>
+                )}
+                {likers.length === 0 && !isLoading && !error && (
+                  <div className="flex h-full items-center justify-center text-sm text-default-400">
+                    まだいいねはありません
+                  </div>
+                )}
+                <ul className="flex flex-col divide-y divide-default-200">
+                  {likers.map((liker) => (
+                    <li key={liker.user.id} className="flex items-center gap-3 py-2">
+                      <NextLink
+                        href={deckCodePostUserPath(liker.user.id)}
+                        className="flex min-w-0 flex-1 items-center gap-3 active:opacity-70"
+                      >
+                        <Avatar src={liker.user.image_url || undefined} name={liker.user.name} size="sm" className="shrink-0" />
+                        <span className="flex min-w-0 flex-wrap items-center gap-1.5">
+                          <span className="truncate text-sm font-bold">{liker.user.name}</span>
+                          <DesignationChip tier={liker.user.designation_tier} />
+                        </span>
+                      </NextLink>
+                      <span className="shrink-0 text-tiny text-default-400">{formatRelativeTime(liker.created_at)}</span>
+                    </li>
+                  ))}
+                </ul>
+                {isLoadingMore && (
+                  <div className="flex justify-center py-3">
+                    <Spinner size="sm" />
+                  </div>
+                )}
+                {hasMore && !isLoadingMore && (
+                  <Button size="sm" variant="flat" onPress={loadMore} className="mt-2 w-full">
+                    もっと見る
+                  </Button>
+                )}
+              </div>
             </ModalBody>
           </>
         )}

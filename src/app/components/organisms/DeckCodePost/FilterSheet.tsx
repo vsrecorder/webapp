@@ -33,7 +33,7 @@ type SheetProps = {
   isLoading?: boolean;
   hasError?: boolean;
   // 候補が1件も無いときの文言。渡さなければ何も出さない
-  emptyMessage?: string;
+  emptyMessage?: ReactNode;
   isEmpty?: boolean;
   // 候補の行(FilterSheetRow)。onClose を受けて選択後にシートを閉じる
   children: (onClose: () => void) => ReactNode;

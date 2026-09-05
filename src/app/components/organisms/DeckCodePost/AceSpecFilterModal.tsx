@@ -55,7 +55,13 @@ export default function AceSpecFilterModal({
       isLoading={isLoading}
       hasError={!!error}
       isEmpty={aceSpecs.length === 0}
-      emptyMessage="ACE SPEC が判定できた公開デッキはまだありません"
+      emptyMessage={
+        <>
+          ACE SPEC が判定できた
+          <br />
+          公開デッキはまだありません
+        </>
+      }
     >
       {(onClose) =>
         aceSpecs.map((aceSpec) => {

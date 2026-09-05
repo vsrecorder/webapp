@@ -20,6 +20,7 @@ import { LuCheck, LuExternalLink, LuUsers, LuX } from "react-icons/lu";
 import { Modal } from "@app/components/atoms/AppModal";
 
 import { useDeckActivePosts } from "@app/hooks/useDeckActivePosts";
+import { useModalDragToClose } from "@app/hooks/useModalDragToClose";
 import {
   DeckCodePostApiError,
   deckCodePostPath,
@@ -162,6 +163,7 @@ export default function DeckCodePostPublishRow({
       <ConfirmSheet
         isOpen={publishModal.isOpen}
         onOpenChange={publishModal.onOpenChange}
+        onClose={publishModal.onClose}
         title="みんなの公開デッキに載せる"
         confirmLabel="公開する"
         confirmColor="primary"
@@ -192,6 +194,7 @@ export default function DeckCodePostPublishRow({
       <ConfirmSheet
         isOpen={unpublishModal.isOpen}
         onOpenChange={unpublishModal.onOpenChange}
+        onClose={unpublishModal.onClose}
         title="公開をやめますか？"
         confirmLabel="公開をやめる"
         confirmColor="danger"
@@ -218,6 +221,7 @@ export default function DeckCodePostPublishRow({
 function ConfirmSheet({
   isOpen,
   onOpenChange,
+  onClose: onCloseSheet,
   title,
   confirmLabel,
   confirmColor,
@@ -228,6 +232,7 @@ function ConfirmSheet({
 }: {
   isOpen: boolean;
   onOpenChange: () => void;
+  onClose: () => void;
   title: string;
   confirmLabel: string;
   confirmColor: "primary" | "danger";
@@ -237,19 +242,30 @@ function ConfirmSheet({
   onConfirm: (onClose: () => void) => void;
   children: ReactNode;
 }) {
+  // 実行中(pending)は閉じられない指定と揃えて、ドラッグでも閉じないようにする
+  const attachHeader = useModalDragToClose(onCloseSheet, { disabled: pending });
+
   return (
     <Modal
       isOpen={isOpen}
       onOpenChange={onOpenChange}
+      onClose={onCloseSheet}
       placement="bottom"
       scrollBehavior="inside"
       isDismissable={!pending}
       isKeyboardDismissDisabled={pending}
+      hideCloseButton
     >
       <ModalContent>
         {(onClose) => (
           <>
-            <ModalHeader className="text-base">{title}</ModalHeader>
+            {/* スワイプ検知 */}
+            <ModalHeader ref={attachHeader} className="flex flex-col gap-1 cursor-grab touch-none">
+              {/* スワイプバー */}
+              <div className="mx-auto h-1 w-32 mb-1.5 rounded-full bg-default-300" />
+
+              <div>{title}</div>
+            </ModalHeader>
             <ModalBody className="gap-4 text-sm">{children}</ModalBody>
             <ModalFooter className="flex-col gap-2 pb-6">
               <Button color={confirmColor} fullWidth isLoading={pending} onPress={() => onConfirm(onClose)}>

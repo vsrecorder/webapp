@@ -21,6 +21,7 @@ import {
 } from "react-icons/lu";
 
 import { Modal } from "@app/components/atoms/AppModal";
+import { useModalDragToClose } from "@app/hooks/useModalDragToClose";
 import TagChips from "@app/components/molecules/TagChips";
 import IgnoreStatsFlgSetting from "@app/components/organisms/Record/IgnoreStatsFlgSetting";
 import RegulationSetting from "@app/components/organisms/Record/RegulationSetting";
@@ -84,6 +85,10 @@ export default function RecordSettingList({
     if (isUpdating) return;
     setOpenKey(null);
   }
+
+  // 他のボトムシートと同じく、ヘッダーを下へドラッグしても閉じられるようにする
+  // (保存中は isDismissable={false} と揃えて受け付けない)
+  const attachHeader = useModalDragToClose(closeSheet, { disabled: isUpdating });
 
   return (
     <>
@@ -153,6 +158,7 @@ export default function RecordSettingList({
       <Modal
         isOpen={openKey !== null}
         onOpenChange={closeSheet}
+        onClose={closeSheet}
         placement="bottom"
         size="md"
         hideCloseButton
@@ -164,8 +170,15 @@ export default function RecordSettingList({
         <ModalContent>
           {() => (
             <>
-              <ModalHeader className="pb-2 text-medium">
-                {openKey ? SETTING_LABELS[openKey] : ""}
+              {/* スワイプ検知 */}
+              <ModalHeader
+                ref={attachHeader}
+                className="flex flex-col gap-1 pb-2 cursor-grab touch-none"
+              >
+                {/* スワイプバー */}
+                <div className="mx-auto h-1 w-32 mb-1.5 rounded-full bg-default-300" />
+
+                <div>{openKey ? SETTING_LABELS[openKey] : ""}</div>
               </ModalHeader>
 
               <ModalBody className="pt-0 pb-2">

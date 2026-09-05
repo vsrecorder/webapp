@@ -15,6 +15,7 @@ import { swrFetcher } from "@app/utils/deckCodePost";
 type Props = {
   isOpen: boolean;
   onOpenChange: () => void;
+  onClose: () => void;
   // 一覧と同じ環境(空は現在の環境)
   environmentId: string;
   // 選択中の ACE SPEC のカード名(空は絞り込みなし)
@@ -32,6 +33,7 @@ const fetcher = (url: string) => swrFetcher<DeckCodePostGetAceSpecsResponseType>
 export default function AceSpecFilterModal({
   isOpen,
   onOpenChange,
+  onClose,
   environmentId,
   selectedName,
   onSelect,
@@ -50,6 +52,7 @@ export default function AceSpecFilterModal({
     <FilterSheet
       isOpen={isOpen}
       onOpenChange={onOpenChange}
+      onClose={onClose}
       title="ACE SPEC で絞り込む"
       onClear={selectedName ? () => onSelect(null) : undefined}
       isLoading={isLoading}

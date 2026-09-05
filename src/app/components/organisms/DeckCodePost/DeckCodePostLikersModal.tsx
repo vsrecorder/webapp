@@ -10,6 +10,7 @@ import { Modal } from "@app/components/atoms/AppModal";
 import DesignationChip from "@app/components/molecules/DesignationChip";
 import { FILTER_SHEET_LIST_HEIGHT_PX } from "@app/components/organisms/DeckCodePost/FilterSheet";
 
+import { useModalDragToClose } from "@app/hooks/useModalDragToClose";
 import { useOffsetPagination } from "@app/hooks/useOffsetPagination";
 import { DeckCodePostLikerType, DeckCodePostType } from "@app/types/deck_code_post";
 import { deckCodePostUserPath, fetchDeckCodePostLikers, formatRelativeTime } from "@app/utils/deckCodePost";
@@ -22,14 +23,17 @@ type Props = {
   post: DeckCodePostType | null;
   isOpen: boolean;
   onOpenChange: () => void;
+  // ヘッダー(または先頭までスクロールした一覧)を下へドラッグして閉じるために使う
+  onClose: () => void;
 };
 
 /*
  * 投稿にいいねした人の一覧シート。アイコン・名前・称号・押した時刻を新しい順に並べ、
  * 30人ずつ読み足す。開くたびに先頭から取り直す(閉じている間に増えたいいねを反映する)。
  */
-export default function DeckCodePostLikersModal({ post, isOpen, onOpenChange }: Props) {
+export default function DeckCodePostLikersModal({ post, isOpen, onOpenChange, onClose }: Props) {
   const postId = post?.id ?? null;
+  const attachHeader = useModalDragToClose(onClose);
 
   const fetchPage = useCallback(
     async (offset: number) => {
@@ -50,13 +54,26 @@ export default function DeckCodePostLikersModal({ post, isOpen, onOpenChange }: 
     });
 
   return (
-    <Modal isOpen={isOpen} onOpenChange={onOpenChange} placement="bottom" scrollBehavior="inside">
+    <Modal
+      isOpen={isOpen}
+      onOpenChange={onOpenChange}
+      onClose={onClose}
+      placement="bottom"
+      scrollBehavior="inside"
+      hideCloseButton
+    >
       <ModalContent>
         {() => (
           <>
-            <ModalHeader className="flex items-center gap-2 text-base">
-              いいねした人
-              {post && <span className="text-sm font-normal text-default-500">{post.like_count}人</span>}
+            {/* スワイプ検知 */}
+            <ModalHeader ref={attachHeader} className="flex flex-col gap-1 cursor-grab touch-none">
+              {/* スワイプバー */}
+              <div className="mx-auto h-1 w-32 mb-1.5 rounded-full bg-default-300" />
+
+              <div className="flex items-center gap-2">
+                いいねした人
+                {post && <span className="text-sm font-normal text-default-500">{post.like_count}人</span>}
+              </div>
             </ModalHeader>
             <ModalBody className="pb-6">
               {/* 高さは絞り込みシート(環境・ACE SPEC)と同じ値で固定し、収まらない分はこの中だけを

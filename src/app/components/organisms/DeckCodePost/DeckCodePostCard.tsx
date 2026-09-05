@@ -287,6 +287,7 @@ function DeckCodePostCard({
         post={post}
         isOpen={likersModal.isOpen}
         onOpenChange={likersModal.onOpenChange}
+        onClose={likersModal.onClose}
       />
 
       {/* 取り込む: コード・デッキ名・スプライトを入れた状態でデッキ作成モーダルを開く

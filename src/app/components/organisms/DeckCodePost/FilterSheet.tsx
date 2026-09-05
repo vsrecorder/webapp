@@ -8,6 +8,8 @@ import { LuCheck } from "react-icons/lu";
 
 import { Modal } from "@app/components/atoms/AppModal";
 
+import { useModalDragToClose } from "@app/hooks/useModalDragToClose";
+
 /*
  * みんなの公開デッキの絞り込みシート(環境・ACE SPEC)の共通部分。
  *
@@ -26,6 +28,9 @@ export const FILTER_SHEET_LIST_HEIGHT_PX = 7 * 60 + 6 * 6;
 type SheetProps = {
   isOpen: boolean;
   onOpenChange: () => void;
+  // 記録情報・バージョン一覧と同じく、ヘッダー(または先頭までスクロールした本文)を
+  // 下へドラッグして閉じるために使う
+  onClose: () => void;
   // 見出し(「環境を選ぶ」「ACE SPEC で絞り込む」)
   title: string;
   // 解除できる絞り込みでだけ渡す。渡すと見出しの右に「絞り込みを解除」を出す
@@ -42,6 +47,7 @@ type SheetProps = {
 export default function FilterSheet({
   isOpen,
   onOpenChange,
+  onClose: onCloseSheet,
   title,
   onClear,
   isLoading = false,
@@ -50,27 +56,40 @@ export default function FilterSheet({
   isEmpty = false,
   children,
 }: SheetProps) {
+  const attachHeader = useModalDragToClose(onCloseSheet);
+
   return (
-    <Modal isOpen={isOpen} onOpenChange={onOpenChange} placement="bottom" scrollBehavior="inside">
+    <Modal
+      isOpen={isOpen}
+      onOpenChange={onOpenChange}
+      onClose={onCloseSheet}
+      placement="bottom"
+      scrollBehavior="inside"
+      hideCloseButton
+    >
       <ModalContent>
         {(onClose) => (
           <>
-            {/* 右上の閉じる(×)は見出しの上に重なって置かれるため、その幅ぶん(pr-12)を空ける。
-                空けないと「絞り込みを解除」が×の下に潜り込み、誤って閉じてしまう */}
-            <ModalHeader className="flex items-center justify-between gap-2 pr-12 text-base">
-              <span>{title}</span>
-              {onClear && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    onClear();
-                    onClose();
-                  }}
-                  className="shrink-0 rounded-full bg-default-100 px-3 py-1 text-tiny font-bold text-default-600 active:opacity-70"
-                >
-                  絞り込みを解除
-                </button>
-              )}
+            {/* スワイプ検知 */}
+            <ModalHeader ref={attachHeader} className="flex flex-col gap-1 cursor-grab touch-none">
+              {/* スワイプバー */}
+              <div className="mx-auto h-1 w-32 mb-1.5 rounded-full bg-default-300" />
+
+              <div className="flex items-center justify-between gap-2">
+                <span>{title}</span>
+                {onClear && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClear();
+                      onClose();
+                    }}
+                    className="shrink-0 rounded-full bg-default-100 px-3 py-1 text-tiny font-bold text-default-600 active:opacity-70"
+                  >
+                    絞り込みを解除
+                  </button>
+                )}
+              </div>
             </ModalHeader>
             <ModalBody className="pb-6">
               {/* 高さを固定し、収まらない候補はこの中だけをスクロールして見る */}

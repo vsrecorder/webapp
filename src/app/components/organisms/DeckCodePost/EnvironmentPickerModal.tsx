@@ -13,6 +13,7 @@ import { swrFetcher } from "@app/utils/deckCodePost";
 type Props = {
   isOpen: boolean;
   onOpenChange: () => void;
+  onClose: () => void;
   // 選択中の環境ID(空なら現在の環境)
   selectedId: string;
   onSelect: (environment: EnvironmentType) => void;
@@ -28,6 +29,7 @@ const fetcher = (url: string) => swrFetcher<EnvironmentType[]>(url);
 export default function EnvironmentPickerModal({
   isOpen,
   onOpenChange,
+  onClose,
   selectedId,
   onSelect,
 }: Props) {
@@ -49,6 +51,7 @@ export default function EnvironmentPickerModal({
     <FilterSheet
       isOpen={isOpen}
       onOpenChange={onOpenChange}
+      onClose={onClose}
       title="環境を選ぶ"
       isLoading={isLoading}
       hasError={!!error}

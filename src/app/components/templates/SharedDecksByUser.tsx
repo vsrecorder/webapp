@@ -2,6 +2,8 @@
 
 import { useCallback, useState } from "react";
 
+import NextLink from "next/link";
+
 import { Avatar, Button, useDisclosure } from "@heroui/react";
 
 import DesignationChip from "@app/components/molecules/DesignationChip";
@@ -112,8 +114,17 @@ export default function TemplateSharedDecksByUser({ userId, viewerId, initial }:
         </div>
 
         {posts.length === 0 && (
-          <div className="rounded-large bg-content1 p-6 text-center text-sm text-default-500">
+          <div className="flex flex-col items-center gap-3 rounded-large bg-content1 p-6 text-center text-sm text-default-500">
             公開中のデッキはありません。
+            {/* 自分のページなら公開のしかたへ案内する(全部取り下げた直後にここへ来るため) */}
+            {viewerId === userId && (
+              <NextLink
+                href="/decks"
+                className="rounded-full bg-primary/10 px-4 py-2 font-bold text-primary active:opacity-70"
+              >
+                マイデッキから公開する
+              </NextLink>
+            )}
           </div>
         )}
 

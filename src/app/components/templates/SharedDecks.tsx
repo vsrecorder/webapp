@@ -129,6 +129,7 @@ export default function TemplateSharedDecks({ viewerId, initial }: Props) {
       <EnvironmentPickerModal
         isOpen={environmentModal.isOpen}
         onOpenChange={environmentModal.onOpenChange}
+        onClose={environmentModal.onClose}
         selectedId={environmentId}
         onSelect={(env) => {
           setSelectedEnvironment(env);
@@ -137,6 +138,7 @@ export default function TemplateSharedDecks({ viewerId, initial }: Props) {
       <AceSpecFilterModal
         isOpen={aceSpecModal.isOpen}
         onOpenChange={aceSpecModal.onOpenChange}
+        onClose={aceSpecModal.onClose}
         environmentId={environmentId}
         selectedName={aceSpecFilter?.card_name ?? ""}
         onSelect={setAceSpecFilter}

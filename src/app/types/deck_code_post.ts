@@ -32,6 +32,8 @@ export type DeckCodePostType = {
   ace_spec_image_url: string;
   like_count: number;
   liked_by_me: boolean;
+  // 「デッキ登録」で自分のデッキとして取り込んだ人数。同じ人が何度登録しても1と数える。
+  import_count: number;
   // 直近にいいねした人(最大5人)。アイコンを重ねて出す。
   recent_likers: DeckCodePostUserType[];
 };

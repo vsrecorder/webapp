@@ -231,6 +231,21 @@ function DeckCodePostCard({
             </span>
           </button>
 
+          {/* このデッキを自分のデッキとして登録した人数。0人のときは出さない
+              (公開直後は必ず0で、並ぶと「誰にも使われていない」ばかりが目立つため) */}
+          {post.import_count > 0 && (
+            <span
+              className="ml-auto flex shrink-0 items-center gap-1 text-[0.625rem] text-default-500"
+              aria-label={`${post.import_count}人がデッキ登録しました`}
+            >
+              <LuLayers className="shrink-0 text-default-400" aria-hidden />
+              {/* 数字と「人が登録」を1つの span にまとめる(分けると gap の分だけ数字の後ろが空く) */}
+              <span>
+                <span className="tabular-nums font-bold">{post.import_count}</span>人が登録
+              </span>
+            </span>
+          )}
+
         </div>
 
         {/* 操作。アイコンだけでは何をするか分からないため、名前を添えた同じ幅のボタンを3つ並べる。

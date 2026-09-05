@@ -140,7 +140,7 @@ export function deckCodePostShareUrl(post: DeckCodePostType, origin: string): st
   const intent = new URL("https://x.com/intent/post");
   intent.searchParams.set(
     "text",
-    `${post.deck_name} をバトレコで公開しました\n#バトレコ`,
+    `『${post.deck_name}』 をバトレコで公開しました\n#バトレコ`,
   );
   intent.searchParams.set("url", url.toString());
 

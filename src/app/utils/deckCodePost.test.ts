@@ -39,7 +39,9 @@ describe("formatPublishedDate", () => {
 describe("paths", () => {
   it("みんなの公開デッキの URL は /shared_decks 配下", () => {
     expect(sharedDecksPath).toBe("/shared_decks");
-    expect(deckCodePostPath("01M1P6585WZKD7W2EWXYRXFETH")).toBe("/shared_decks/01M1P6585WZKD7W2EWXYRXFETH");
+    expect(deckCodePostPath("01M1P6585WZKD7W2EWXYRXFETH")).toBe(
+      "/shared_decks/01M1P6585WZKD7W2EWXYRXFETH",
+    );
     expect(deckCodePostUserPath("uid")).toBe("/shared_decks/users/uid");
     expect(officialDeckUrl("pypypM-MqpNAJ-UyXRpR")).toBe(
       "https://www.pokemon-card.com/deck/deck.html?deckID=pypypM-MqpNAJ-UyXRpR",
@@ -49,14 +51,21 @@ describe("paths", () => {
 
 describe("deckCodePostShareUrl", () => {
   it("X の投稿画面へ、utm 付きの個別ページ URL とデッキ名を渡す", () => {
-    const post = { id: "01M1P6585WZKD7W2EWXYRXFETH", deck_name: "オーロンゲ" } as DeckCodePostType;
+    const post = {
+      id: "01M1P6585WZKD7W2EWXYRXFETH",
+      deck_name: "オーロンゲ",
+    } as DeckCodePostType;
     const share = new URL(deckCodePostShareUrl(post, "https://vsrecorder.mobi"));
 
     expect(share.origin + share.pathname).toBe("https://x.com/intent/post");
-    expect(share.searchParams.get("text")).toBe("オーロンゲ をバトレコで公開しました\n#バトレコ");
+    expect(share.searchParams.get("text")).toBe(
+      "『オーロンゲ』 をバトレコで公開しました\n#バトレコ",
+    );
 
     const url = new URL(share.searchParams.get("url") ?? "");
-    expect(url.origin + url.pathname).toBe("https://vsrecorder.mobi/shared_decks/01M1P6585WZKD7W2EWXYRXFETH");
+    expect(url.origin + url.pathname).toBe(
+      "https://vsrecorder.mobi/shared_decks/01M1P6585WZKD7W2EWXYRXFETH",
+    );
     expect(url.searchParams.get("utm_source")).toBe("x");
     expect(url.searchParams.get("utm_medium")).toBe("share");
     expect(url.searchParams.get("utm_campaign")).toBe("deck_code_post");
@@ -78,13 +87,19 @@ describe("swrFetcher", () => {
   });
 
   it("204(本文なし)は null を返す", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(null, { status: 204 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(null, { status: 204 })),
+    );
 
     await expect(swrFetcher<unknown>("/api/x")).resolves.toBeNull();
   });
 
   it("失敗はステータス付きの DeckCodePostApiError にする", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response("", { status: 429 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("", { status: 429 })),
+    );
 
     const error = await swrFetcher("/api/x").catch((e: unknown) => e);
     expect(error).toBeInstanceOf(DeckCodePostApiError);

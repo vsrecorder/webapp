@@ -25,6 +25,7 @@ import { RecordGetByIdResponseType } from "@app/types/record";
 
 import { safeExternalUrl } from "@app/utils/url";
 import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
+import { isZeroDate } from "@app/utils/date";
 
 async function fetchOfficialEventById(id: number) {
   try {
@@ -113,7 +114,7 @@ export default function OfficialEventInfo({
   }
 
   const dateStr =
-    record.event_date && !record.event_date.startsWith("0001-01-01")
+    !isZeroDate(record.event_date)
       ? record.event_date
       : record.created_at;
   const date = new Date(dateStr).toLocaleString("ja-JP", {

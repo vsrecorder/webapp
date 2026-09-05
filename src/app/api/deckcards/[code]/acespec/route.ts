@@ -25,12 +25,15 @@ export async function GET(
 
     const acespec = await getAcespec(code);
 
+    // デッキコードの ACE SPEC は変わらないので、ブラウザ側にも1日持たせる(再訪時の呼び出しを減らす)
+    const headers = { "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800" };
+
     // 上流が204（該当カードなし）を返した場合は、そのまま「中身なし」として返す
     if (acespec === null) {
-      return new NextResponse(null, { status: 204 });
+      return new NextResponse(null, { status: 204, headers });
     }
 
-    return NextResponse.json(acespec, { status: 200 });
+    return NextResponse.json(acespec, { status: 200, headers });
   } catch (error) {
     return upstreamErrorResponse(error);
   }

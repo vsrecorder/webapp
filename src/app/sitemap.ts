@@ -11,6 +11,8 @@ import {
   getEnvironments,
   toMonthKey,
 } from "@app/utils/cityleague";
+import { deckCodePostPath, sharedDecksPath } from "@app/utils/deckCodePost";
+import { getRecentDeckCodePostRefs } from "@app/utils/deckCodePostServer";
 
 // sitemap.ts はデフォルトでビルド時に静的生成される。しかし VSRECORDER_DOMAIN は
 // docker-compose が実行時にのみ与えるため、静的生成すると URL に "https://undefined" が
@@ -27,12 +29,17 @@ export const dynamic = "force-dynamic";
 // 載せないからといって索引から外れるわけではない)。
 const SITEMAP_EVENT_SEASON_COUNT = 2;
 
+// みんなの公開デッキの個別ページを sitemap に載せる件数(現在の環境の新着順)。
+// 一覧ページからのリンクでも辿れるが、公開直後のページを早く見つけてもらうために直近ぶんを載せる。
+const SITEMAP_DECK_CODE_POST_COUNT = 200;
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const url = "https://" + process.env.VSRECORDER_DOMAIN;
 
   const staticPages: MetadataRoute.Sitemap = [
     { url: url, changeFrequency: "always" },
     { url: url + "/cityleague_results", changeFrequency: "daily" },
+    { url: url + sharedDecksPath, changeFrequency: "hourly" },
     { url: url + "/cityleague_results/seasons", changeFrequency: "weekly" },
     { url: url + "/cityleague_results/environments", changeFrequency: "weekly" },
     { url: url + "/cityleague_results/months", changeFrequency: "weekly" },
@@ -50,13 +57,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     environments,
     championsleagueSummaries,
     championsleagueLeagueRefs,
+    deckCodePostRefs,
   ] = await Promise.all([
     getAllCityleagueEventRefs(),
     getCityleagueSeasons(),
     getEnvironments(),
     getChampionsleagueScheduleSummaries(),
     getChampionsleagueLeagueRefs(),
+    getRecentDeckCodePostRefs(SITEMAP_DECK_CODE_POST_COUNT),
   ]);
+
+  const deckCodePostPages: MetadataRoute.Sitemap = deckCodePostRefs.map((ref) => ({
+    url: url + deckCodePostPath(ref.id),
+    lastModified: new Date(ref.publishedAt),
+    changeFrequency: "weekly",
+  }));
 
   // 結果が1件も無いシーズン・環境・月はページ自体を出さないため、sitemap にも載せない。
   const seasonIds = new Set<string>();
@@ -131,5 +146,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
   ];
 
-  return [...staticPages, ...hubPages, ...championsleaguePages, ...eventPages];
+  return [...staticPages, ...deckCodePostPages, ...hubPages, ...championsleaguePages, ...eventPages];
 }

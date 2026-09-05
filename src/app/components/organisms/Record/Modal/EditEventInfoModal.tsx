@@ -49,6 +49,7 @@ import {
 import { MAX_EVENT_TITLE_LENGTH, exceedsTextLength } from "@app/utils/textLength";
 import { useOfficialEventGuide } from "@app/hooks/useOfficialEventGuide";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
+import { isZeroDate } from "@app/utils/date";
 
 type EventType = "official" | "tonamel" | "unofficial";
 
@@ -65,7 +66,7 @@ function toCalendarDate(value?: string | Date | null): CalendarDate | null {
   if (!value) return null;
 
   const str = typeof value === "string" ? value : value.toString();
-  if (str.startsWith("0001-01-01")) return null;
+  if (isZeroDate(str)) return null;
 
   const date = new Date(str);
   if (Number.isNaN(date.getTime())) return null;

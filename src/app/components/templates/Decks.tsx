@@ -1,5 +1,6 @@
 "use client";
 
+
 import { useState, useCallback, useEffect } from "react";
 
 import ScreenLockLoading from "@app/components/atoms/ScreenLockLoading";
@@ -7,11 +8,17 @@ import ScrollUpFloating from "@app/components/atoms/Floating/ScrollUpFloating";
 import FloatingButtonClearance from "@app/components/atoms/Floating/FloatingButtonClearance";
 import CreateDeckFloating from "@app/components/molecules/Floating/CreateDeckFloating";
 
-import Decks from "@app/components/organisms/Deck/Decks";
+import Decks, { DeckListLoadState } from "@app/components/organisms/Deck/Decks";
+import { DeckViewToggleSkeleton } from "@app/components/organisms/Deck/Skeleton/DeckCardSkeleton";
 
 import { useScreenLockLoading } from "@app/hooks/useScreenLockLoading";
 
-import { Tabs, Tab } from "@heroui/react";
+
+import DeckSegmentedControl from "@app/components/molecules/DeckSegmentedControl";
+import DeckStatusToggle from "@app/components/molecules/DeckStatusToggle";
+import DeckViewToggle from "@app/components/molecules/DeckViewToggle";
+
+const INITIAL_LOAD_STATE: DeckListLoadState = { isInitialLoaded: false, isEmpty: false, hasItems: false };
 
 type TabKey = "inuse" | "archived";
 
@@ -25,10 +32,16 @@ export default function TemplateDecks({ userId }: Props) {
   const [refreshKey, setRefreshKey] = useState(0);
   // SSR と一致させるため初期値は "inuse" で固定し、クライアント側でのみ復元する。
   const [selectedKey, setSelectedKey] = useState<"inuse" | "archived">("inuse");
+  // 表示中の一覧(Decks)の読み込み状態。ヘッダー(状態切替・表示切替)の出し分けに使う。
+  const [loadState, setLoadState] = useState<DeckListLoadState>(INITIAL_LOAD_STATE);
   // 利用中タブが空か（null=未判定）。デッキが1つも無い新規ユーザーの検出に使う。
   const [inUseEmpty, setInUseEmpty] = useState<boolean | null>(null);
-  // アーカイブ済みにデッキがあるか（null=未確認）。利用中が空のときだけ確認する。
-  const [hasArchivedDecks, setHasArchivedDecks] = useState<boolean | null>(null);
+  // 利用中が空になった回数。空になるたびにアーカイブ済みの有無を確認し直すための番号で、
+  // 確認結果(archivedCheck)はこの番号と一致するものだけを有効とみなす。
+  const [emptyToken, setEmptyToken] = useState(0);
+  // アーカイブ済みにデッキがあるかの確認結果。利用中が空のときだけ確認する。
+  const [archivedCheck, setArchivedCheck] = useState<{ token: number; has: boolean } | null>(null);
+  const hasArchivedDecks = archivedCheck?.token === emptyToken ? archivedCheck.has : null;
   // 戻り遷移でデッキモーダルを再開する対象デッキが、アーカイブ済みタブ側か
   // （null=再開対象なし）。対象タブの Decks にだけ自動追加読み込みを担わせる。
   const [reopenTargetArchived, setReopenTargetArchived] = useState<boolean | null>(null);
@@ -81,10 +94,17 @@ export default function TemplateDecks({ userId }: Props) {
     setSelectedKey(key as TabKey);
   };
 
-  // 利用中タブの空判定を受け取る（アーカイブ済みタブの通知は渡さないので混ざらない）。
-  const handleInUseEmptyChange = useCallback((isEmpty: boolean) => {
-    setInUseEmpty(isEmpty);
-  }, []);
+  // 一覧の読み込み状態を受け取る。空判定は利用中タブのときだけ使う
+  // （アーカイブ済みの空はタブ表示に使わない）。
+  const handleLoadStateChange = useCallback(
+    (state: DeckListLoadState) => {
+      setLoadState(state);
+      if (selectedKey !== "inuse") return;
+      setInUseEmpty(state.isEmpty);
+      if (state.isEmpty) setEmptyToken((token) => token + 1);
+    },
+    [selectedKey],
+  );
 
   // 再開処理（自動追加読み込み→自動スクロール）が終わったら覆いを外す。
   // 対象デッキへスクロールした直後にデッキモーダルが開くため、すぐ外すと
@@ -96,13 +116,12 @@ export default function TemplateDecks({ userId }: Props) {
 
   // 利用中が空になったときだけ、アーカイブ済みデッキの有無を一度確認する。
   // これで「デッキが1つも無い（新規ユーザー）」と「利用中は空だがアーカイブ済みはある」を区別する。
+  // 空になるたび(emptyToken が進むたび)に確認する。利用中に1件でもあれば確認しない
+  // (古い確認結果は番号が合わなくなるので自然に無効になる)。
   useEffect(() => {
-    if (inUseEmpty !== true) {
-      // 利用中に1件でもあれば判定不要。次に空になったとき再確認するため未確認へ戻す。
-      setHasArchivedDecks(null);
-      return;
-    }
+    if (inUseEmpty !== true) return;
 
+    const token = emptyToken;
     let cancelled = false;
     (async () => {
       try {
@@ -112,37 +131,66 @@ export default function TemplateDecks({ userId }: Props) {
         });
         if (!res.ok) {
           // 判定できないときはタブを残す側に倒し、アーカイブ済みへ辿れなくなるのを防ぐ。
-          if (!cancelled) setHasArchivedDecks(true);
+          if (!cancelled) setArchivedCheck({ token, has: true });
           return;
         }
         const data = await res.json();
         if (!cancelled) {
-          setHasArchivedDecks(Array.isArray(data?.decks) && data.decks.length > 0);
+          setArchivedCheck({ token, has: Array.isArray(data?.decks) && data.decks.length > 0 });
         }
       } catch {
-        if (!cancelled) setHasArchivedDecks(true);
+        if (!cancelled) setArchivedCheck({ token, has: true });
       }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [inUseEmpty]);
+  }, [inUseEmpty, emptyToken]);
 
   // デッキが1つも無い（新規ユーザー）ときはタブを隠す。判定中は隠す側に倒し、
   // アーカイブ済みにデッキがあると分かった場合のみタブを残す（common caseのちらつき回避）。
   const hideTabs = inUseEmpty === true && hasArchivedDecks !== true;
 
+  // 一覧ヘッダー(左: 利用中／アーカイブ済み、右: リスト／ギャラリー)。
+  //   - 初回ロード中はスケルトン
+  //   - 1件以上あるか、状態切替を出す(デッキが1つでもある)ならヘッダーを出す
+  //     (一覧が空でも、空の利用中からアーカイブ済みへ移れるようにする)
+  //   - デッキが1つも無い新規ユーザーには出さない
+  const showHeader = !loadState.isInitialLoaded || loadState.hasItems || !hideTabs;
+  const header = !showHeader ? undefined : !loadState.isInitialLoaded ? (
+    <DeckViewToggleSkeleton />
+  ) : (
+    <div className="grid w-full grid-cols-2 items-center gap-1.5">
+      {/* 左右を同じ幅(2列グリッド)にし、状態切替と表示切替を同じ大きさで揃える
+          (文字の大きさ・余白・折り返し禁止は SegmentedButtons が持つ) */}
+      <div className="min-w-0">
+        {!hideTabs && <DeckStatusToggle value={selectedKey} onChange={handleSelectionChange} />}
+      </div>
+      {loadState.hasItems && <DeckViewToggle />}
+    </div>
+  );
+
   // 空状態のページは1画面に収め、余白へのスクロールを止める。
+  // ただし背の低い端末で案内カードが1画面に収まらないときは止めない
+  // (止めると下の「デッキを登録する」ボタンに届かなくなる)。
   useEffect(() => {
     if (!hideTabs) return;
     const html = document.documentElement;
     const body = document.body;
     const prevHtml = html.style.overflow;
     const prevBody = body.style.overflow;
-    html.style.overflow = "hidden";
-    body.style.overflow = "hidden";
+
+    const apply = () => {
+      const fits = html.scrollHeight <= window.innerHeight + 1;
+      html.style.overflow = fits ? "hidden" : prevHtml;
+      body.style.overflow = fits ? "hidden" : prevBody;
+    };
+    apply();
+    window.addEventListener("resize", apply);
+
     return () => {
+      window.removeEventListener("resize", apply);
       html.style.overflow = prevHtml;
       body.style.overflow = prevBody;
     };
@@ -162,28 +210,10 @@ export default function TemplateDecks({ userId }: Props) {
           <CreateDeckFloating onCreated={handleCreatedDeck} />
         </>
       )}
-      <div className={`${hideTabs ? "" : "pt-12"} w-full`}>
-        {/* デッキが1つも無いときはタブを隠す（新規ユーザーには一覧の切り替えは不要なため）。 */}
-        {!hideTabs && (
-          <Tabs
-            fullWidth
-            size="md"
-            selectedKey={selectedKey}
-            onSelectionChange={handleSelectionChange}
-            // 背景が固定のパステル色のため、ダークモードでも文字色などを
-            // ライトモードの見た目に固定する（light クラスでテーマをライトに再スコープ）
-            className="light fixed z-50 top-15 left-0 right-0 lg:left-56 pl-1 pr-1"
-            classNames={{
-              cursor: selectedKey === "inuse" ? "bg-green-200" : "bg-red-200",
-              tab: "h-8",
-              tabList: selectedKey === "inuse" ? "bg-red-100" : "bg-green-100",
-              tabContent: "font-bold",
-            }}
-          >
-            <Tab key="inuse" title="利用中" />
-            <Tab key="archived" title="アーカイブ済み" />
-          </Tabs>
-        )}
+      <div className="pt-12 w-full">
+        {/* 「マイデッキ｜みんなの公開デッキ」はデッキの有無によらず常に最上部に出す */}
+        <DeckSegmentedControl selected="mine" viewerId={userId} />
+
         {/* 最下部のカードがフローティングボタン（＋/トップへ戻る）と重ならないよう余白を確保するが、
             末尾がボタンに掛からないときは余白を出さず、空白へスクロールできてしまうのを防ぐ
             （FloatingButtonClearance が不足分だけ余白を出し分ける）。 */}
@@ -193,8 +223,8 @@ export default function TemplateDecks({ userId }: Props) {
             userId={userId}
             isArchived={selectedKey === "archived"}
             onCreated={handleCreatedDeck}
-            // 利用中タブのときだけ空通知を受け取る（アーカイブ済みの空はタブ表示に使わない）。
-            onEmptyChange={selectedKey === "inuse" ? handleInUseEmptyChange : undefined}
+            onLoadStateChange={handleLoadStateChange}
+            header={header}
             isReopenTargetTab={
               reopenTargetArchived !== null &&
               reopenTargetArchived === (selectedKey === "archived")

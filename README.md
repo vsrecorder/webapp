@@ -104,6 +104,8 @@ npm run build   # make build
 | `npm run build` | 本番ビルド                                   |
 | `npm run start` | ビルド済みの standalone 出力をローカルで起動 |
 | `npm run lint`  | Lint 実行                                    |
+| `npm test`      | テスト実行(vitest)                           |
+| `npm run test:watch` | テストを監視モードで実行                |
 
 `npm run start` は `next start` ではなく `.next/standalone/server.js` を直接起動する。
 `output: "standalone"` を使っている場合 `next start` は動作せず、Next.js 16 は
@@ -113,6 +115,23 @@ standalone 出力には `.next/static` が含まれず、`public/` もビルド�
 一部のファイルしか入らない。Dockerfile が両方を別途コピーしているのと同じ理由で、
 このスクリプトも起動前に `public/` と `.next/static` をコピーしている。
 コピー内容を変えるときは Dockerfile 側と揃えること。
+
+
+## テスト
+
+テストランナーは vitest(`vitest.config.ts`)。テストは実装ファイルの隣に `*.test.ts` / `*.test.tsx`
+で置く(`src/app/utils/date.test.ts` など)。既定の実行環境は node で、フックやコンポーネントの
+テストはファイル先頭に `// @vitest-environment jsdom` を書いて jsdom に切り替える
+(`@testing-library/react` の `renderHook` / `render` が使える)。
+
+対象にしているのは、純粋関数(日付・スプライトの枠解決・みんなの公開デッキの表示ヘルパー)と、
+状態機械を持つフック(`useOffsetPagination`)、見た目を共通化した小さな部品(`SegmentedButtons`)。
+ページ全体の描画やログイン必須の画面は対象外で、そこは `tsc` / `next build` と手動確認で見る。
+
+```
+npm test              # 一度だけ実行
+npm run test:watch    # 変更を監視して再実行
+```
 
 ## Docker / デプロイ
 

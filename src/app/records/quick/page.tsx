@@ -6,8 +6,7 @@ import { DeckData } from "@app/types/deck";
 import { RecordGetResponseType } from "@app/types/record";
 import { isEnvReturnEnabled } from "@app/utils/featureFlags";
 import { upstreamUrl } from "@app/utils/upstream";
-
-import * as jwt from "jsonwebtoken";
+import { signUpstreamToken } from "@app/utils/upstreamToken";
 
 type Props = {
   searchParams: Promise<{
@@ -25,11 +24,7 @@ type Props = {
 // 短命 JWT を署名して呼ぶ。直前に作ったデッキを必ず含めたいのでキャッシュしない。
 // 失敗時は null を返し、クライアント側の取得に委ねる(「デッキ0件」と区別する)。
 async function getDecks(userId: string): Promise<DeckData[] | null> {
-  const jwtSecret = process.env.VSRECORDER_JWT_SECRET as jwt.Secret;
-  const token = jwt.sign({ iss: "vsrecorder-webapp", uid: userId }, jwtSecret, {
-    algorithm: "HS256",
-    expiresIn: "10s",
-  });
+  const token = signUpstreamToken(userId);
 
   const res = await fetch(upstreamUrl`/api/v1beta/decks/all`, {
     cache: "no-store",
@@ -59,11 +54,7 @@ async function getDecks(userId: string): Promise<DeckData[] | null> {
 // （このページは記録0件ユーザーがW0＝最初の1件へ到達する主導線であり、
 // 判定できないことを理由に塞ぐ損失のほうが、簡素化フォームを使えてしまう損失より大きい）。
 async function hasAnyRecord(userId: string): Promise<boolean | null> {
-  const jwtSecret = process.env.VSRECORDER_JWT_SECRET as jwt.Secret;
-  const token = jwt.sign({ iss: "vsrecorder-webapp", uid: userId }, jwtSecret, {
-    algorithm: "HS256",
-    expiresIn: "10s",
-  });
+  const token = signUpstreamToken(userId);
 
   const res = await fetch(upstreamUrl`/api/v1beta/records?limit=1`, {
     cache: "no-store",

@@ -7,3 +7,8 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+## テスト
+
+`npm test`(vitest)。テストは実装の隣に `*.test.ts(x)` で置き、純粋関数・フック・小さな部品を対象にする。
+ロジックを変えたら対応するテストを足すか直す。詳細は README の「テスト」の節を参照。

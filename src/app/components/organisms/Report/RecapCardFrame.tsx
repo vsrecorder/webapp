@@ -144,7 +144,7 @@ export default function RecapCardFrame({
  * bare 書き出しでは captureImage 側のフッターが付かないため、カードが自前で持つ。
  * アイコンは素の <img>(next/image でも HeroUI の <Image> でもない)にする。
  * 書き出しはDOMを複製して描画するため、読み込み完了まで透明になる実装だと
- * 複製時点で写らないことがある(PokemonSprite の raw と同じ理由)。
+ * 複製時点で写らないことがある(PokemonSprite が素の <img> を使うのと同じ理由)。
  */
 export function RecapServiceMark({ tone }: { tone: RecapTone }) {
   const t = TONE[tone];

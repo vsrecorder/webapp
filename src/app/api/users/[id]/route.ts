@@ -5,22 +5,8 @@ import { deleteFirebaseUserWithRetry, getFirebaseAdmin } from "@firebase/admin";
 
 import { UserGetByIdResponseType, UserUpdateRequestType, UserUpdateResponseType } from "@app/types/user";
 
-import * as jwt from "jsonwebtoken";
-
 import { upstreamUrl } from "@app/utils/upstream";
-
-function makeToken(uid: string): string {
-  const jwtSecret: jwt.Secret = process.env.VSRECORDER_JWT_SECRET as string;
-  const jwtSignOptions: jwt.SignOptions = {
-    algorithm: "HS256",
-    expiresIn: "10s",
-  };
-  const jwtPayload = {
-    iss: "vsrecorder-webapp",
-    uid,
-  };
-  return jwt.sign(jwtPayload, jwtSecret, jwtSignOptions);
-}
+import { signUpstreamToken } from "@app/utils/upstreamToken";
 
 export async function GET(
   _request: NextRequest,
@@ -71,7 +57,7 @@ export async function PUT(
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
-  const token = makeToken(session.user.id);
+  const token = signUpstreamToken(session.user.id);
   const body: UserUpdateRequestType = await request.json();
 
   const res = await fetch(upstreamUrl`/api/v1beta/users/${id}`, {
@@ -106,7 +92,7 @@ export async function DELETE(
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
-  const token = makeToken(session.user.id);
+  const token = signUpstreamToken(session.user.id);
   const res = await fetch(upstreamUrl`/api/v1beta/users/${id}`, {
     method: "DELETE",
     headers: {

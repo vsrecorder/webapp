@@ -48,6 +48,7 @@ import { TagType } from "@app/types/tag";
 import { REGULATION_ID_STANDARD, regulationDisplay } from "@app/types/regulation";
 
 import { safeExternalUrl } from "@app/utils/url";
+import { isZeroDate, nonZeroDate } from "@app/utils/date";
 
 async function fetchOfficialEvent(id: number): Promise<OfficialEventGetByIdResponseType> {
   const res = await fetch(`/api/official_events/${id}`, {
@@ -108,7 +109,7 @@ function formatEventTime(value: Date | string | undefined | null): string {
 
   const str = String(value);
   // APIは未設定の日時にゼロ値(0001-01-01)を返す
-  if (str.startsWith("0001-01-01")) return "";
+  if (isZeroDate(str)) return "";
 
   const date = new Date(str);
   if (Number.isNaN(date.getTime())) return "";
@@ -699,7 +700,7 @@ export default function RecordHero({
   // ---- 公式イベント ----
   if (isOfficial && officialEvent) {
     const dateStr =
-      record.event_date && !record.event_date.startsWith("0001-01-01")
+      !isZeroDate(record.event_date)
         ? record.event_date
         : record.created_at.toString();
     const venue = hideVenue ? "" : getEventVenueLabel(officialEvent);
@@ -777,7 +778,7 @@ export default function RecordHero({
   // ---- Tonamel ----
   if (isTonamel && tonamelEvent) {
     const dateStr =
-      record.event_date && !record.event_date.startsWith("0001-01-01")
+      !isZeroDate(record.event_date)
         ? record.event_date
         : record.created_at.toString();
 
@@ -814,11 +815,9 @@ export default function RecordHero({
   // ---- 自由形式 ----
   if (isUnofficial) {
     const dateStr =
-      record.event_date && !record.event_date.startsWith("0001-01-01")
-        ? record.event_date
-        : unofficialEvent?.date && !unofficialEvent.date.startsWith("0001-01-01")
-          ? unofficialEvent.date
-          : record.created_at.toString();
+      nonZeroDate(record.event_date) ??
+      nonZeroDate(unofficialEvent?.date) ??
+      record.created_at.toString();
 
     return (
       <HeroShell

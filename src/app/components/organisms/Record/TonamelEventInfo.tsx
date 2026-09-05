@@ -12,6 +12,7 @@ import RecordInfoCardSkeleton from "@app/components/organisms/Record/Skeleton/Re
 import { RecordGetByIdResponseType } from "@app/types/record";
 import { TonamelEventGetByIdResponseType } from "@app/types/tonamel_event";
 import { EnvironmentType } from "@app/types/environment";
+import { isZeroDate, nonZeroDate } from "@app/utils/date";
 
 async function fetchTonamelEventById(id: string) {
   try {
@@ -96,10 +97,7 @@ export default function TonamelEventInfo({ record }: Props) {
 
   // 開催日(event_date 優先、ゼロ値なら created_at)を基に対戦環境を取得する
   useEffect(() => {
-    const dateStr =
-      record?.event_date && !record.event_date.startsWith("0001-01-01")
-        ? record.event_date
-        : record?.created_at;
+    const dateStr = nonZeroDate(record?.event_date) ?? record?.created_at;
     if (!dateStr) {
       return;
     }
@@ -129,7 +127,7 @@ export default function TonamelEventInfo({ record }: Props) {
   }
 
   const dateStr =
-    record.event_date && !record.event_date.startsWith("0001-01-01")
+    !isZeroDate(record.event_date)
       ? record.event_date
       : record.created_at;
   const date = new Date(dateStr).toLocaleString("ja-JP", {

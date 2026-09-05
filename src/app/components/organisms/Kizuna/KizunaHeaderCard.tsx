@@ -90,7 +90,6 @@ export default function KizunaHeaderCard({
               key={sprite.id}
               id={sprite.id}
               size={spriteSize}
-              raw
               className={`relative ${bob}`}
             />
           ))}

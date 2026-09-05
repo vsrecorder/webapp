@@ -16,6 +16,7 @@ import { DeckGetByIdResponseType } from "@app/types/deck";
 import { UnofficialEventGetByIdResponseType } from "@app/types/unofficial_event";
 import { MatchGetResponseType } from "@app/types/match";
 import { countMatchResults, hasGroupMatch, hasBo3Match } from "@app/utils/match";
+import { nonZeroDate } from "@app/utils/date";
 
 // 記録詳細モーダルは使用デッキ編集(react-select)とシェア(画像書き出し)を抱える。
 // 初期JSと初期マウントから外すため、開くまで読み込まない(理由は createLazyModal を参照)。
@@ -250,11 +251,7 @@ export default function UnofficialEventRecord({
   // 開催日は records.event_date(ユーザ入力値)を優先し、
   // 未設定(ゼロ値)の場合は unofficial_events.date または記録の作成日へフォールバックする。
   const eventDateSource =
-    record.event_date && !record.event_date.startsWith("0001-01-01")
-      ? record.event_date
-      : unofficialEvent?.date && !unofficialEvent.date.startsWith("0001-01-01")
-        ? unofficialEvent.date
-        : record.created_at;
+    nonZeroDate(record.event_date) ?? nonZeroDate(unofficialEvent?.date) ?? record.created_at;
 
   const date = new Date(eventDateSource).toLocaleString("ja-JP", {
     year: "numeric",

@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { Button, Card, CardBody, Spinner } from "@heroui/react";
-import { LuChevronLeft, LuImages, LuShare2 } from "react-icons/lu";
+import { LuImages, LuShare2 } from "react-icons/lu";
 import { motion, useReducedMotion } from "framer-motion";
 
 import FetchError from "@app/components/molecules/FetchError";
+import BackLink from "@app/components/molecules/BackLink";
 import LinkButton from "@app/components/molecules/LinkButton";
 import PanelShareModal from "@app/components/organisms/Share/PanelShareModal";
 
@@ -232,17 +233,7 @@ export default function TemplateUserReport({ userId, period }: Props) {
     <div className="mx-auto flex w-full max-w-md flex-col gap-3 pt-3 pb-6">
       {/* 期間はここでは切り替えない。入口の一覧へ戻す導線と、いま見ている期間の名前だけ置く。
           期間名までを1つのリンクにして、矢印だけでなく名前をタップしても戻れるようにする。 */}
-      <LinkButton
-        href="/users/report"
-        size="sm"
-        variant="light"
-        aria-label="バトルレポートの一覧へ戻る"
-        // -ml-2 はボタン自身の余白ぶんを引き戻して、下に続く内容と左端を揃えるため
-        className="-ml-2 h-11 max-w-full self-start gap-1 px-2 text-sm font-bold text-default-700"
-        startContent={<LuChevronLeft className="h-4 w-4 shrink-0" />}
-      >
-        <span className="min-w-0 truncate">{periodTitle(period)}</span>
-      </LinkButton>
+      <BackLink href="/users/report" label={periodTitle(period)} ariaLabel="バトルレポートの一覧へ戻る" />
 
       {hasError ? (
         <Card className="shadow-md">

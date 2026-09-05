@@ -26,7 +26,7 @@ export default function RecapSprites({ sprites, size }: Props) {
       {([1, 2] as const).map((slot) => {
         const id = getSpriteBySlot(sprites, slot)?.id;
         if (!id) return null;
-        return <PokemonSprite key={slot} raw id={id} size={size} />;
+        return <PokemonSprite key={slot} id={id} size={size} />;
       })}
     </div>
   );

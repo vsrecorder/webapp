@@ -255,7 +255,7 @@ export default function SharePieChart({ slices, width }: Props) {
           >
             <div className="flex items-center">
               {badge.spriteIds.map((id, i) => (
-                <PokemonSprite key={i} id={id} size={spriteSize} raw />
+                <PokemonSprite key={i} id={id} size={spriteSize} />
               ))}
             </div>
             {badge.percentText && (

@@ -1,41 +1,15 @@
 import { NextResponse } from "next/server";
 
-import { auth } from "@app/auth";
-
-import * as jwt from "jsonwebtoken";
-
 /*
  * Web Push(B-1)の BFF 共通処理。
  *
  * 4本(subscribe / unsubscribe / delivered / clicked)はいずれも
- * 「NextAuth のセッションを確認 → 10秒 JWT を署名 → core-apiserver へ中継」で、
- * activity/route.ts と同じ型。上流のステータスをそのまま返し、ボディは読まない
- * (すべて 204 No Content で返る)。
+ * 「NextAuth のセッションを確認 → 10秒 JWT を署名(utils/upstreamToken の
+ * requireUpstreamToken) → core-apiserver へ中継」で、上流のステータスをそのまま返し、
+ * ボディは読まない(すべて 204 No Content で返る)。
  *
  * ファイル名を _ 始まりにしているのは、App Router のルートとして解決させないため。
  */
-
-// セッションが無ければ 401 を返し、あれば上流用の署名済みトークンを返す。
-export async function signUpstreamToken(): Promise<
-  { token: string; response?: undefined } | { token?: undefined; response: NextResponse }
-> {
-  const session = await auth();
-  if (!session) {
-    return { response: NextResponse.json({ error: "unauthorized" }, { status: 401 }) };
-  }
-
-  const jwtSecret: jwt.Secret = process.env.VSRECORDER_JWT_SECRET as string;
-  const jwtSignOptions: jwt.SignOptions = {
-    algorithm: "HS256",
-    expiresIn: "10s",
-  };
-  const jwtPayload = {
-    iss: "vsrecorder-webapp",
-    uid: session.user.id,
-  };
-
-  return { token: jwt.sign(jwtPayload, jwtSecret, jwtSignOptions) };
-}
 
 // 上流へ中継し、ステータスだけを返す(上流はボディ無しの 204 か、エラー JSON)。
 export async function relay(

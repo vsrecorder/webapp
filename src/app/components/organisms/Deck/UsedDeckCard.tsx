@@ -24,6 +24,7 @@ import { useDeckCodes } from "@app/hooks/useDeckCodes";
 
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
+import { isZeroDate } from "@app/utils/date";
 
 // デッキ詳細モーダルは子モーダル9個と chart.js などを抱える。
 // 初期JSと初期マウントから外すため、開くまで読み込まない(理由は createLazyModal を参照)。
@@ -124,7 +125,7 @@ export default function UsedDeckCard({
   });
 
   // archived_atがゼロ値(年が1)なら未アーカイブ
-  const isArchived = new Date(deck.archived_at).getFullYear() !== 1;
+  const isArchived = !isZeroDate(deck.archived_at);
 
   return (
     <>

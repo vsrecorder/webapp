@@ -2,14 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { upstreamUrl } from "@app/utils/upstream";
 
-import { signUpstreamToken } from "../_shared";
+import { requireUpstreamToken } from "@app/utils/upstreamToken";
 
 // Myジムの解除。上流は 204 を返す(登録が無い場合も同じ)。
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ shopId: string }> },
 ) {
-  const { token, response } = await signUpstreamToken();
+  const { token, response } = await requireUpstreamToken();
   if (response) return response;
 
   const { shopId } = await params;

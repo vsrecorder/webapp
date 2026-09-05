@@ -11,6 +11,7 @@ import { DeckGetByIdResponseType } from "@app/types/deck";
 import { useModalDragToClose } from "@app/hooks/useModalDragToClose";
 import { useModalEntered } from "@app/hooks/useModalEntered";
 import { closingPassthroughClassNames } from "@app/utils/modal";
+import { isZeroDate } from "@app/utils/date";
 
 type TabKey = "all" | "official" | "tonamel" | "unofficial";
 
@@ -106,7 +107,7 @@ export default function DisplayRecordsModal({
       sessionStorage.setItem("activeDeckRecordsModalDeckId", deck.id);
       // アーカイブ済みデッキかどうかも記録する（archived_at がゼロ値=未アーカイブ）。
       // 戻り時にデッキページのタブ（利用中/アーカイブ済み）を切り替えるために使う。
-      const archived = new Date(deck.archived_at).getFullYear() !== 1;
+      const archived = !isZeroDate(deck.archived_at);
       sessionStorage.setItem("activeDeckRecordsModalArchived", archived ? "1" : "0");
     } else {
       sessionStorage.removeItem("activeDeckRecordsModalDeckId");

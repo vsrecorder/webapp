@@ -31,6 +31,8 @@ const SESSION_COOKIE_NAMES = ["__Secure-authjs.session-token", "authjs.session-t
 // 以前は config.matcher でこの範囲だけを対象にしていたが、UTM の着地はトップページや
 // /deck_meta など未ログインのページで起きるため、matcher は全ページに広げ、
 // 「どこをガードするか」はこの配列で持つようにした。
+// みんなの公開デッキ(/shared_decks)はログイン不要の公開ページなので、この配下には置いていない
+// (置くとここで弾く例外や robots の除外が要る)。
 const PROTECTED_PATHS = ["/decks", "/records", "/users", "/calendar"];
 
 function hasSessionCookie(request: NextRequest): boolean {

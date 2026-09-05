@@ -4,9 +4,8 @@ import { auth } from "@app/auth";
 
 import { OpponentDeckUsageStatType } from "@app/types/opponent_deck_usage_stat";
 
-import * as jwt from "jsonwebtoken";
-
 import { upstreamUrl } from "@app/utils/upstream";
+import { signUpstreamToken } from "@app/utils/upstreamToken";
 
 export async function GET(
   request: NextRequest,
@@ -17,16 +16,7 @@ export async function GET(
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const jwtSecret: jwt.Secret = process.env.VSRECORDER_JWT_SECRET as string;
-  const jwtSignOptions: jwt.SignOptions = {
-    algorithm: "HS256",
-    expiresIn: "10s",
-  };
-  const jwtPayload = {
-    iss: "vsrecorder-webapp",
-    uid: session.user.id,
-  };
-  const token = jwt.sign(jwtPayload, jwtSecret, jwtSignOptions);
+  const token = signUpstreamToken(session.user.id);
 
   try {
     const { id } = await params;

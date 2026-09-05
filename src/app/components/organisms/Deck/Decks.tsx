@@ -10,23 +10,13 @@ import { addToast } from "@heroui/react";
 
 import DeckCard from "@app/components/organisms/Deck/DeckCard";
 import KizunaMark from "@app/components/atoms/Kizuna/KizunaMark";
-import {
-  DeckCardSkeletons,
-  DeckViewToggleSkeleton,
-} from "@app/components/organisms/Deck/Skeleton/DeckCardSkeleton";
+import { DeckCardSkeletons } from "@app/components/organisms/Deck/Skeleton/DeckCardSkeleton";
 import DeckViewToggleBar from "@app/components/organisms/Deck/DeckViewToggleBar";
 import CreateDeckModal from "@app/components/organisms/Deck/Modal/CreateDeckModal";
 import FetchError from "@app/components/molecules/FetchError";
-import { useDeckListView, setDeckListView } from "@app/hooks/useDeckListView";
+import { useDeckListView } from "@app/hooks/useDeckListView";
 
-import {
-  LuCirclePlus,
-  LuPlus,
-  LuLayoutGrid,
-  LuArchive,
-  LuList,
-  LuChevronRight,
-} from "react-icons/lu";
+import { LuCirclePlus, LuPlus, LuArchive, LuChevronRight } from "react-icons/lu";
 
 import {
   DeckType,
@@ -41,6 +31,7 @@ import {
   REOPEN_DECK_MODAL_DECK_ID,
   REOPEN_DECK_MODAL_WITH_RECORDS,
 } from "@app/utils/deckModalReopen";
+import { ZERO_DATE } from "@app/utils/date";
 
 // 再開時のスクロール位置。画面上部に固定されたヘッダー＋タブの分だけ手前で止め、
 // 対象デッキのカードがそれらに隠れないようにする。
@@ -48,7 +39,6 @@ const REOPEN_SCROLL_OFFSET = 100;
 
 // APIが「未設定」を表すために返す日時のゼロ値(Goのtime.Timeのゼロ値)。
 // お気に入りの解除を再取得を待たずに画面へ反映するとき、この値を入れる。
-const ZERO_DATE = "0001-01-01T00:00:00Z";
 
 async function fetchDecks(isArchived: boolean, cursor: string) {
   const res = await fetch(`/api/decks?archived=${isArchived}&cursor=${cursor}`, {
@@ -97,13 +87,23 @@ async function fetchDeckUsageStats(
   }
 }
 
+// 一覧の読み込み状態。親(TemplateDecks)がヘッダー(状態切替・表示切替)の出し分けと、
+// デッキが1つも無い新規ユーザーの判定に使う。
+export type DeckListLoadState = {
+  // 初回の読み込みが終わったか(終わるまでヘッダーはスケルトン)
+  isInitialLoaded: boolean;
+  // 初回ロードが終わり、追加読み込みも無く、1件も無い
+  isEmpty: boolean;
+  // 1件以上表示している
+  hasItems: boolean;
+};
+
 type Props = {
   userId: string;
   isArchived: boolean;
   onCreated?: () => void;
-  // 初回ロードが終わり1件も無い状態になったかを親へ通知する。
-  // 親（TemplateDecks）はこれを使ってタブ表示・スクロール可否を切り替える。
-  onEmptyChange?: (isEmpty: boolean) => void;
+  // 読み込み状態が変わるたびに親へ通知する(マウント直後にも一度呼ぶ)。
+  onLoadStateChange?: (state: DeckListLoadState) => void;
   // 戻り遷移でデッキモーダルを再開する対象タブか。
   // 対象デッキが2ページ目以降にいると「更に読み込む」まで DeckCard が
   // マウントされず再開できないため、このタブでだけ自動で追加読み込みする。
@@ -113,15 +113,19 @@ type Props = {
   // 終わったことを親へ一度だけ通知する。見つからなかった場合・取得に失敗した場合も
   // 「これ以上は待たない」ことを伝えるために呼ぶ（親はこれで画面の覆いを外す）。
   onReopenSettled?: () => void;
+  // 一覧ヘッダー(状態切替・表示切替)の中身。undefined ならヘッダーの行ごと出さない。
+  // 何を出すか(スケルトン・切替・非表示)は親が読み込み状態(onLoadStateChange)から決める。
+  header?: React.ReactNode;
 };
 
 export default function Decks({
   userId,
   isArchived,
   onCreated,
-  onEmptyChange,
+  onLoadStateChange,
   isReopenTargetTab = false,
   onReopenSettled,
+  header,
 }: Props) {
   const [items, setItems] = useState<DeckType[]>([]);
   const [deckUsageStats, setDeckUsageStats] = useState<Map<string, DeckUsageItemType>>(
@@ -400,14 +404,23 @@ export default function Decks({
     settleReopen,
   ]);
 
-  // 初回ロードが終わり、追加読み込みも無く、1件も無い状態を「空」として親へ通知する。
+  // 読み込み状態を親へ通知する(ヘッダーの出し分けと、デッキが1つも無い判定に使う)。
   const isEmpty = isInitialLoaded && !isLoading && !hasMore && items.length === 0;
+  const hasItems = items.length > 0;
   useEffect(() => {
-    onEmptyChange?.(isEmpty);
-  }, [isEmpty, onEmptyChange]);
+    onLoadStateChange?.({ isInitialLoaded, isEmpty, hasItems });
+  }, [isInitialLoaded, isEmpty, hasItems, onLoadStateChange]);
 
   return (
     <div className="flex flex-col items-center space-y-3 pb-3">
+      {/* 一覧ヘッダー(状態切替・表示切替)。中身は親が決め、ここは位置だけを受け持つ。
+          固定セグメント（マイデッキ｜みんなの公開デッキ。top-15＋高さ≒100px）の直下に、
+          それと同じ position:fixed で貼り付ける（sticky だとスクロール中に間隔が揺れて見えるため。
+          詳細は DeckViewToggleBar のコメント）。
+          空状態の表示より前に置く: 固定バーの空き枠(useFixedBarAlignment)は「一覧の最初の要素」として
+          位置を測るので、後ろに置くと空状態の高さぶん計算がずれてバーが浮く。 */}
+      {header !== undefined && <DeckViewToggleBar>{header}</DeckViewToggleBar>}
+
       {/* 空状態：利用中 */}
       {isInitialLoaded && !isLoading && !hasMore && items.length === 0 && !isArchived && (
         <div className="flex flex-col items-center justify-center py-10 px-2.5 gap-6">
@@ -524,53 +537,6 @@ export default function Decks({
           </div>
           <p className="font-bold text-default-500">アーカイブ済みのデッキはありません</p>
         </div>
-      )}
-
-      {/* 表示モード切り替え：一覧ヘッダー右上にセグメントコントロールを配置。
-          リスト＝素早く探す、ギャラリー＝画像で見て探す、を用途で使い分ける。
-          固定タブ（top-15＋タブ高さ≒100px）の直下に、そのタブと同じ position:fixed で
-          貼り付ける（sticky だとスクロール中にタブとの間隔が揺れて見えるため。
-          詳細は DeckViewToggleBar のコメント）。
-          初回ロード中はトグルのスケルトンを表示する。 */}
-      {(!isInitialLoaded || items.length > 0) && (
-        <DeckViewToggleBar>
-          {!isInitialLoaded ? (
-            <DeckViewToggleSkeleton />
-          ) : (
-            <div
-              role="group"
-              aria-label="表示モード"
-              className="flex w-full items-center gap-0.5 rounded-lg bg-default-100 p-0.5"
-            >
-              <button
-                type="button"
-                aria-pressed={view === "list"}
-                onClick={() => setDeckListView("list")}
-                className={`flex flex-1 items-center justify-center gap-1 rounded-md px-2.5 py-1.5 text-tiny font-bold transition-colors ${
-                  view === "list"
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-default-500"
-                }`}
-              >
-                <LuList className="text-sm" />
-                リスト
-              </button>
-              <button
-                type="button"
-                aria-pressed={view === "gallery"}
-                onClick={() => setDeckListView("gallery")}
-                className={`flex flex-1 items-center justify-center gap-1 rounded-md px-2.5 py-1.5 text-tiny font-bold transition-colors ${
-                  view === "gallery"
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-default-500"
-                }`}
-              >
-                <LuLayoutGrid className="text-sm" />
-                ギャラリー
-              </button>
-            </div>
-          )}
-        </DeckViewToggleBar>
       )}
 
       <div

@@ -1,10 +1,9 @@
-import Link from "next/link";
-
 import { Card, CardBody, CardHeader, Chip, Link as HeroLink } from "@heroui/react";
 
-import { LuChevronLeft, LuLayers, LuUsers } from "react-icons/lu";
+import { LuLayers, LuUsers } from "react-icons/lu";
 
 import ScrollUpFloating from "@app/components/atoms/Floating/ScrollUpFloating";
+import BackLink from "@app/components/molecules/BackLink";
 import CityleagueResultCard from "@app/components/organisms/Cityleague/CityleagueResultCard";
 
 import {
@@ -138,16 +137,10 @@ export default function ChampionsleagueResultByLeague({
       <div className="sticky top-14 z-40 -mx-2 lg:top-28">
         {/* デッキ画像が裏を流れても文字が埋もれないよう、不透明度を上げ、下端に境界線を引く */}
         <div className="absolute inset-0 border-b border-default-200/60 bg-white/90 backdrop-blur-md dark:bg-neutral-950/90" />
-        {/* HeroUI の Link に as={NextLink} を渡すとサーバコンポーネントから
-            「関数はクライアントコンポーネントへ渡せない」で描画に失敗するため、
-            ここは素の next/link を同じ見た目のクラスで使う。 */}
-        <Link
-          href={`/cityleague_results/championsleagues/${schedule.id}`}
-          className="relative flex w-fit items-center gap-0.5 px-2.5 py-2 font-bold text-tiny text-primary"
-        >
-          <LuChevronLeft />
-          <span className="truncate">{scheduleTitle}</span>
-        </Link>
+        {/* BackLink はサーバコンポーネントから使えるよう next/link で組んである */}
+        <div className="relative w-fit max-w-full px-2 py-2">
+          <BackLink href={`/cityleague_results/championsleagues/${schedule.id}`} label={scheduleTitle} />
+        </div>
       </div>
 
       <Card className="w-full">

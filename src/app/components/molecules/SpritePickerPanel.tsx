@@ -143,7 +143,8 @@ export default function SpritePickerPanel({
     observer.observe(el);
 
     return () => observer.disconnect();
-  }, [candidates.length, isSearching, error, isLoading]);
+    // 件数が同じでも候補の中身（名前の長さ）が変われば溢れは変わるため query も見る
+  }, [candidates.length, query, isSearching, error, isLoading]);
 
   // 検索語が変わると候補は総入れ替えになる。前の検索でスクロールした位置が残っていると
   // 新しい候補の先頭が画面外から始まってしまうため、行の頭に戻す。
@@ -173,6 +174,41 @@ export default function SpritePickerPanel({
       isSelected ? colors.optionSelected : colors.optionIdle
     }`;
   };
+
+  // 候補エリア下段に出す補足文。どの状態でも2行以内に収まる文言にしておき、
+  // 高さは下段の min-h-8（2行ぶん）で揃える。
+  const listHint = error ? (
+    "時間をおいて再度お試しください。"
+  ) : isLoading ? null : candidates.length === 0 ? (
+    isSearching ? "ひらがな・カタカナのどちらでも探せます。" : null
+  ) : isSearching ? (
+    hasMore ? (
+      <>
+        {matched.length}体が該当（先頭{MAX_VISIBLE}体を表示）。
+        <br />
+        {/* 幅の狭い端末（320px）でも2行目が折り返さない長さにする。3行になると
+            他の状態と高さが揃わず、候補が入れ替わるたびに枠が伸び縮みしてしまう。 */}
+        {canScrollList
+          ? "横スクロールで選ぶか、絞り込んでください。"
+          : "もう少し入力すると絞り込めます。"}
+      </>
+    ) : (
+      <>
+        {matched.length}体が該当しました。
+        {canScrollList && "横にスクロールして選べます。"}
+      </>
+    )
+  ) : (
+    <>
+      {canScrollList && (
+        <>
+          横にスクロールして選べます。
+          <br />
+        </>
+      )}
+      ほかのポケモンは検索から探してください。
+    </>
+  );
 
   const spriteButtonContent = (sprite: PokemonSpriteType) => (
     <>
@@ -246,23 +282,38 @@ export default function SpritePickerPanel({
         classNames={{ input: "text-base" }}
       />
 
-      {error ? (
-        <p className="py-4 text-center text-sm text-danger">
-          ポケモンの取得に失敗しました。時間をおいて再度お試しください。
-        </p>
-      ) : isLoading ? (
-        <p className="py-4 text-center text-sm text-default-500">読み込んでいます...</p>
-      ) : candidates.length === 0 ? (
-        <p className="py-4 text-center text-sm text-default-500">
-          「{query}」に一致するポケモンはいませんでした。
-        </p>
-      ) : (
-        // 検索中かどうかに関わらず1列。横スクロールで MAX_VISIBLE 体まで辿れる。
-        // (検索結果をグリッドで積むと縦に伸びて、キーボード表示中に候補が隠れる)
-        <div className="flex flex-col gap-2">
+      {/* 候補エリア。取得失敗・読み込み中・0件・候補ありのどの状態でも高さが変わらないよう、
+          上段（候補列）と下段（補足文）それぞれに最低高さを持たせている。ここが縮むと、
+          モーダル（placement="center"）では全体が上下に跳ね、きずな試算のページでは
+          下のデッキ名入力がせり上がってしまう。 */}
+      <div className="flex flex-col gap-2">
+        {/* 上段: 候補列と、候補を出せないときの案内。min-h-20（80px）は
+            候補ボタン1列ぶんの実測値（79px）に合わせた高さで、ul 側にも同じ値を入れて揃える。 */}
+        {error ? (
+          <p className="flex min-h-20 items-center justify-center text-center text-sm text-danger">
+            <span>ポケモンの取得に失敗しました。</span>
+          </p>
+        ) : isLoading ? (
+          <p className="flex min-h-20 items-center justify-center text-center text-sm text-default-500">
+            <span>読み込んでいます...</span>
+          </p>
+        ) : candidates.length === 0 ? (
+          <p className="flex min-h-20 items-center justify-center text-center text-sm text-default-500">
+            {isSearching ? (
+              // 長い検索語をそのまま出すと枠からはみ出して高さが動くため、2行で打ち切る
+              <span className="line-clamp-2 break-all">
+                「{query.trim()}」に一致するポケモンはいませんでした。
+              </span>
+            ) : (
+              <span>選べるポケモンが見つかりませんでした。</span>
+            )}
+          </p>
+        ) : (
+          // 検索中かどうかに関わらず1列。横スクロールで MAX_VISIBLE 体まで辿れる。
+          // (検索結果をグリッドで積むと縦に伸びて、キーボード表示中に候補が隠れる)
           <ul
             ref={listRef}
-            className="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-1"
+            className="-mx-1 flex min-h-20 snap-x gap-2 overflow-x-auto px-1 pb-1"
           >
             {candidates.map((sprite) => (
               <li key={sprite.id} className="w-20 shrink-0 snap-start">
@@ -295,36 +346,14 @@ export default function SpritePickerPanel({
               </li>
             )}
           </ul>
+        )}
 
-          {isSearching ? (
-            <p className="text-center text-xs text-default-500">
-              {hasMore ? (
-                <>
-                  {matched.length}体が該当（先頭{MAX_VISIBLE}体を表示）。
-                  <br />
-                  {canScrollList && "横スクロールで選べます。"}
-                  もう少し入力すると絞り込めます。
-                </>
-              ) : (
-                <>
-                  {matched.length}体が該当しました。
-                  {canScrollList && "横にスクロールして選べます。"}
-                </>
-              )}
-            </p>
-          ) : (
-            <p className="text-center text-xs text-default-500">
-              {canScrollList && (
-                <>
-                  横にスクロールして選べます。
-                  <br />
-                </>
-              )}
-              ほかのポケモンは検索から探してください。
-            </p>
-          )}
-        </div>
-      )}
+        {/* 下段: 補足文。<br /> を効かせるため、中身は必ず1つの span にまとめる
+            （flex の直下ではテキストノードごとに項目が分かれて改行が無視される）。 */}
+        <p className="flex min-h-8 items-center justify-center text-center text-xs text-default-500">
+          <span>{listHint}</span>
+        </p>
+      </div>
     </div>
   );
 }

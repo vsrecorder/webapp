@@ -1,15 +1,14 @@
 "use client";
 
-import NextLink from "next/link";
-
 import { Card, CardHeader, CardBody } from "@heroui/react";
 import { Chip } from "@heroui/react";
 import { Link as HeroLink } from "@heroui/react";
 import { Image } from "@heroui/react";
 
-import { LuChevronLeft, LuLayers, LuUsers } from "react-icons/lu";
+import { LuLayers, LuUsers } from "react-icons/lu";
 
 import ScrollUpFloating from "@app/components/atoms/Floating/ScrollUpFloating";
+import BackLink from "@app/components/molecules/BackLink";
 
 import CityleagueResultCard from "@app/components/organisms/Cityleague/CityleagueResultCard";
 
@@ -94,14 +93,9 @@ export default function CityleagueResultByOfficialEventId({
       <div className="sticky top-14 z-40 -mx-2 lg:top-28">
         {/* デッキ画像が裏を流れても文字が埋もれないよう、不透明度を上げ、下端に境界線を引く */}
         <div className="absolute inset-0 border-b border-default-200/60 bg-white/90 backdrop-blur-md dark:bg-neutral-950/90" />
-        <HeroLink
-          as={NextLink}
-          href="/cityleague_results"
-          className="relative w-fit gap-0.5 px-2.5 py-2 font-bold text-tiny text-default-600"
-        >
-          <LuChevronLeft />
-          <span>シティリーグ結果一覧</span>
-        </HeroLink>
+        <div className="relative w-fit px-2 py-2">
+          <BackLink href="/cityleague_results" label="シティリーグ結果一覧" />
+        </div>
       </div>
 
       <Card className="w-full">

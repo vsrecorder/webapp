@@ -9,8 +9,7 @@ import {
 } from "@app/types/unofficial_event";
 
 import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/upstream";
-
-import * as jwt from "jsonwebtoken";
+import { signUpstreamToken } from "@app/utils/upstreamToken";
 
 async function getUnofficialEventById(
   id: string,
@@ -61,16 +60,7 @@ export async function PUT(
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const jwtSecret: jwt.Secret = process.env.VSRECORDER_JWT_SECRET as string;
-  const jwtSignOptions: jwt.SignOptions = {
-    algorithm: "HS256",
-    expiresIn: "10s",
-  };
-  const jwtPayload = {
-    iss: "vsrecorder-webapp",
-    uid: session.user.id,
-  };
-  const token = jwt.sign(jwtPayload, jwtSecret, jwtSignOptions);
+  const token = signUpstreamToken(session.user.id);
 
   try {
     const { id } = await params;
@@ -103,16 +93,7 @@ export async function DELETE(
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const jwtSecret: jwt.Secret = process.env.VSRECORDER_JWT_SECRET as string;
-  const jwtSignOptions: jwt.SignOptions = {
-    algorithm: "HS256",
-    expiresIn: "10s",
-  };
-  const jwtPayload = {
-    iss: "vsrecorder-webapp",
-    uid: session.user.id,
-  };
-  const token = jwt.sign(jwtPayload, jwtSecret, jwtSignOptions);
+  const token = signUpstreamToken(session.user.id);
 
   try {
     const { id } = await params;

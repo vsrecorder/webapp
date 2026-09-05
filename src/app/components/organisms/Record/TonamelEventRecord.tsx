@@ -14,6 +14,7 @@ import { TonamelEventGetByIdResponseType } from "@app/types/tonamel_event";
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { MatchGetResponseType } from "@app/types/match";
 import { countMatchResults, hasGroupMatch, hasBo3Match } from "@app/utils/match";
+import { isZeroDate } from "@app/utils/date";
 
 // 記録詳細モーダルは使用デッキ編集(react-select)とシェア(画像書き出し)を抱える。
 // 初期JSと初期マウントから外すため、開くまで読み込まない(理由は createLazyModal を参照)。
@@ -251,7 +252,7 @@ export default function TonamelEventRecord({
   const { wins, losses, draws } = countMatchResults(matches);
 
   const dateStr =
-    record?.event_date && !record.event_date.startsWith("0001-01-01")
+    !isZeroDate(record.event_date)
       ? record.event_date
       : record?.created_at;
   const date = new Date(dateStr).toLocaleString("ja-JP", {

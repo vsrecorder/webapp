@@ -41,9 +41,9 @@ import {
 } from "@app/utils/featureFlags";
 
 import { upstreamUrl } from "@app/utils/upstream";
+import { signUpstreamToken } from "@app/utils/upstreamToken";
 import { getAllChampionshipSeries } from "@app/utils/championshipSeriesServer";
 
-import * as jwt from "jsonwebtoken";
 import { getJstNow } from "@app/utils/calendar";
 
 // マスタデータ（対戦環境・スタンダードレギュレーション・チャンピオンシップシリーズ）の
@@ -110,11 +110,7 @@ async function getUser(userId: string): Promise<UserType | null> {
 // 短命 JWT を署名して呼ぶ（userId は page.tsx で session.user.id を渡しており本人のみ）。
 // 失敗時は null を返し、CTA・カードは「出さない」側に倒す（誤表示より非表示を優先）。
 async function getCappedRecordCount(userId: string): Promise<number | null> {
-  const jwtSecret = process.env.VSRECORDER_JWT_SECRET as jwt.Secret;
-  const token = jwt.sign({ iss: "vsrecorder-webapp", uid: userId }, jwtSecret, {
-    algorithm: "HS256",
-    expiresIn: "10s",
-  });
+  const token = signUpstreamToken(userId);
 
   const res = await fetch(upstreamUrl`/api/v1beta/records?limit=3`, {
     cache: "no-store",

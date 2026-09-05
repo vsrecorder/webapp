@@ -7,7 +7,9 @@ export type NotificationCategory =
   | "announcement"
   | "weekly_report"
   | "reminder"
-  | "env_news";
+  | "env_news"
+  // みんなの公開デッキの投稿へのいいね(日次のまとめ)
+  | "like";
 
 export type NotificationType = {
   id: string;

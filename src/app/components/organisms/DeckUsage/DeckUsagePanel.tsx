@@ -29,8 +29,8 @@ import { EnvironmentType } from "@app/types/environment";
 import { StandardRegulationType } from "@app/types/standard_regulation";
 import { DEFAULT_REGULATION_ID, regulationDisplay } from "@app/types/regulation";
 import RegulationSegmentedControl from "@app/components/molecules/RegulationSegmentedControl";
+import DeckSprites from "@app/components/molecules/DeckSprites";
 import { ChampionshipSeriesType } from "@app/types/championship_series";
-import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
 import { DeckUsageItemType, DeckUsageStatType } from "@app/types/deck_usage_stat";
 import {
@@ -163,17 +163,6 @@ type TooltipState = {
   color: string;
 };
 
-function DeckSprites({ deck }: { deck: DeckUsageItemType }) {
-  const sprites = deck.pokemon_sprites ?? [];
-
-  // position でスロットを固定して表示(PokemonSprite)。無い枠は unknown。
-  return (
-    <div className="flex items-center gap-0 shrink-0">
-      <PokemonSprite id={getDeckSpriteBySlot(sprites, 1)?.id} size={32} />
-      <PokemonSprite id={getDeckSpriteBySlot(sprites, 2)?.id} size={32} />
-    </div>
-  );
-}
 
 export default function DeckUsagePanel({
   userId,
@@ -692,7 +681,7 @@ export default function DeckUsagePanel({
                       className="flex-1 min-w-0 flex flex-col items-center justify-center gap-1.5 rounded-xl border border-default-200 bg-content1 px-2 py-3 shadow-sm cursor-pointer"
                       style={{ borderLeftColor: tooltip.color, borderLeftWidth: 4 }}
                     >
-                      <DeckSprites deck={tooltip.deck} />
+                      <DeckSprites sprites={tooltip.deck.pokemon_sprites} size={32} />
                       <p className="text-xs font-bold text-default-700 text-center truncate w-full">
                         {tooltip.deck.name}
                       </p>
@@ -739,7 +728,7 @@ export default function DeckUsagePanel({
                       style={{ backgroundColor: deckColors[idx] }}
                     />
                     <div className="w-16 flex justify-center shrink-0">
-                      <DeckSprites deck={deck} />
+                      <DeckSprites sprites={deck.pokemon_sprites} size={32} />
                     </div>
                     <span className="font-bold text-xs text-default-700 truncate flex-1 min-w-0">
                       {deck.name}

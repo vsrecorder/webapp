@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { upstreamUrl } from "@app/utils/upstream";
 
-import { relay, signUpstreamToken } from "../_shared";
+import { relay } from "../_shared";
+import { requireUpstreamToken } from "@app/utils/upstreamToken";
 
 /*
  * Web Push の購読登録(B-1)。ブラウザの PushSubscription.toJSON() に platform を添えて受け、
@@ -17,7 +18,7 @@ type SubscribeRequest = {
 };
 
 export async function POST(request: NextRequest) {
-  const { token, response } = await signUpstreamToken();
+  const { token, response } = await requireUpstreamToken();
   if (response) return response;
 
   const body = (await request.json().catch(() => null)) as SubscribeRequest | null;

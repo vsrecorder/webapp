@@ -4,12 +4,13 @@ import { DeckViewToggleSkeleton } from "@app/components/organisms/Deck/Skeleton/
 import DeckViewToggleBar from "@app/components/organisms/Deck/DeckViewToggleBar";
 import DeckListSkeleton from "@app/components/organisms/Deck/Skeleton/DeckListSkeleton";
 
-// /decks の Suspense 境界。実ページ(TemplateDecks)と同じ「上部固定タブ＋表示切替＋デッキ一覧」の
+// /decks の Suspense 境界。実ページ(TemplateDecks)と同じ「上部固定セグメント＋(状態切替＋表示切替)＋デッキ一覧」の
 // 枠を即座に見せ、サーバレンダリング待ちの間に画面が固まって見えるのを防ぐ。
 export default function Loading() {
   return (
     <div className="pt-12 w-full">
-      {/* タブ(利用中/アーカイブ済み) */}
+      {/* マイデッキ｜みんなの公開デッキ(DeckSegmentedControl と同じ位置)。
+          利用中/アーカイブ済みは固定タブではなく、下の表示切替バーの中に入る */}
       <FixedTabBarSkeleton
         count={2}
         positionClassName="top-15 left-0 right-0 lg:left-56"

@@ -1,6 +1,7 @@
 import { DeckCodeType } from "@app/types/deck_code";
 import { DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
 import { TagType } from "@app/types/tag";
+import { isZeroDate } from "@app/utils/date";
 
 export type DeckData = {
   id: string;
@@ -67,5 +68,5 @@ export type DeckUnfavoriteResponse = DeckData;
 export function isFavoritedDeck(deck: { favorited_at?: Date } | null): boolean {
   if (!deck?.favorited_at) return false;
 
-  return new Date(deck.favorited_at).getFullYear() !== 1;
+  return !isZeroDate(deck.favorited_at);
 }

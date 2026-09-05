@@ -25,6 +25,7 @@ import {
   LuFileChartColumn,
   LuBellRing,
   LuChartColumn,
+  LuHeart,
 } from "react-icons/lu";
 
 import { NotificationType, NotificationCategory } from "@app/types/notification";
@@ -49,6 +50,7 @@ const CATEGORY_ICON: Record<
   weekly_report: LuFileChartColumn,
   reminder: LuBellRing,
   env_news: LuChartColumn,
+  like: LuHeart,
 };
 
 // 通知本文の「モンスターボール級」のような「」内のランク名を抜き出す

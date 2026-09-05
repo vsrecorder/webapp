@@ -11,6 +11,7 @@ import RecordInfoCardSkeleton from "@app/components/organisms/Record/Skeleton/Re
 import { RecordGetByIdResponseType } from "@app/types/record";
 import { UnofficialEventGetByIdResponseType } from "@app/types/unofficial_event";
 import { EnvironmentType } from "@app/types/environment";
+import { nonZeroDate } from "@app/utils/date";
 
 async function fetchUnofficialEventById(
   id: string,
@@ -93,11 +94,7 @@ export default function UnofficialEventInfo({ record }: Props) {
   // 対戦環境を取得する
   useEffect(() => {
     const dateStr =
-      record?.event_date && !record.event_date.startsWith("0001-01-01")
-        ? record.event_date
-        : unofficialEvent?.date && !unofficialEvent.date.startsWith("0001-01-01")
-          ? unofficialEvent.date
-          : record?.created_at;
+      nonZeroDate(record?.event_date) ?? nonZeroDate(unofficialEvent?.date) ?? record?.created_at;
     if (!dateStr) {
       return;
     }
@@ -129,11 +126,7 @@ export default function UnofficialEventInfo({ record }: Props) {
   // 開催日は records.event_date(ユーザ入力値)を優先し、
   // 未設定(ゼロ値)の場合は unofficial_events.date または記録の作成日へフォールバックする。
   const eventDateSource =
-    record.event_date && !record.event_date.startsWith("0001-01-01")
-      ? record.event_date
-      : unofficialEvent?.date && !unofficialEvent.date.startsWith("0001-01-01")
-        ? unofficialEvent.date
-        : record.created_at;
+    nonZeroDate(record.event_date) ?? nonZeroDate(unofficialEvent?.date) ?? record.created_at;
 
   const date = new Date(eventDateSource).toLocaleString("ja-JP", {
     year: "numeric",

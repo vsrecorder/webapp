@@ -15,10 +15,8 @@ import {
 } from "react-icons/lu";
 
 import { Modal } from "@app/components/atoms/AppModal";
+import DeckSprites from "@app/components/molecules/DeckSprites";
 import { CalendarEvent } from "@app/types/calendar";
-import { DeckPokemonSpriteType, MatchPokemonSpriteType } from "@app/types/pokemon_sprite";
-import PokemonSprite from "@app/components/atoms/PokemonSprite";
-import { getSpriteBySlot } from "@app/utils/spriteSlot";
 import ZoomableDeckImage from "@app/components/atoms/ZoomableDeckImage";
 import DeckCardDiff from "@app/components/organisms/Deck/DeckCardDiff";
 import { useModalDragToClose } from "@app/hooks/useModalDragToClose";
@@ -70,31 +68,7 @@ function eventKey(event: CalendarEvent): string {
   return `deck_archived-${event.deck_id}`;
 }
 
-// デッキにスプライトが登録されている場合のみ、先頭2体を表示する。
-// サイズ・間隔はデッキ使用率分析・相手デッキ分布のリスト(size=32 / gap-0)と揃える
-function DeckSprites({ sprites }: { sprites: DeckPokemonSpriteType[] }) {
-  if (sprites.length === 0) return null;
 
-  // position でスロット(1枠目/2枠目)を固定して表示する(DeckCard 等と同じ配置)
-  return (
-    <div className="flex items-center gap-0 shrink-0">
-      {([1, 2] as const).map((slot) => (
-        <PokemonSprite key={slot} id={getSpriteBySlot(sprites, slot)?.id} size={32} />
-      ))}
-    </div>
-  );
-}
-
-// 対戦相手のデッキスプライト。未登録の枠は unknown.png で埋め、常に2体分のスペースを確保する
-function OpponentSprites({ sprites }: { sprites: MatchPokemonSpriteType[] }) {
-  return (
-    <div className="flex items-center gap-0 shrink-0">
-      {([1, 2] as const).map((slot) => (
-        <PokemonSprite key={slot} id={getSpriteBySlot(sprites, slot)?.id} size={32} />
-      ))}
-    </div>
-  );
-}
 
 // デッキ画像。表示・スケルトン・タップ全画面表示は共通コンポーネントに委譲する
 function DeckCodeThumbnail({ code }: { code: string }) {
@@ -145,7 +119,7 @@ function EventContent({ event }: { event: CalendarEvent }) {
         <div className="flex flex-col gap-1.5">
           <span className="text-tiny font-bold text-default-400">使用デッキ</span>
           <div className="flex items-center gap-2 pl-3">
-            <DeckSprites sprites={event.deck_pokemon_sprites} />
+            <DeckSprites sprites={event.deck_pokemon_sprites} hideWhenEmpty />
             <span className="text-sm font-bold text-default-600">
               {event.deck_name ? `『${event.deck_name}』` : "なし"}
             </span>
@@ -209,7 +183,7 @@ function EventContent({ event }: { event: CalendarEvent }) {
         <div className="flex flex-col gap-1.5">
           <span className="text-tiny font-bold text-default-400">使用デッキ</span>
           <div className="flex items-center gap-2 pl-3">
-            <DeckSprites sprites={event.deck_pokemon_sprites} />
+            <DeckSprites sprites={event.deck_pokemon_sprites} hideWhenEmpty />
             <span className="text-sm font-bold text-default-600 truncate">
               {event.deck_name ? `『${event.deck_name}』` : "なし"}
             </span>
@@ -221,7 +195,7 @@ function EventContent({ event }: { event: CalendarEvent }) {
         <div className="flex flex-col gap-1.5">
           <span className="text-tiny font-bold text-default-400">対戦相手</span>
           <div className="flex items-center gap-2 pl-3">
-            <OpponentSprites sprites={event.opponents_pokemon_sprites} />
+            <DeckSprites sprites={event.opponents_pokemon_sprites} />
             <span className="text-sm font-bold text-default-600 truncate">
               {event.opponents_deck_info
                 ? `『${event.opponents_deck_info}』`
@@ -282,7 +256,7 @@ function EventContent({ event }: { event: CalendarEvent }) {
       <div className="flex flex-col gap-3 rounded-xl bg-default-100 px-4 py-3">
         <div className="flex items-center gap-3">
           <LuLayers className="text-xl text-success shrink-0" />
-          {event.code && <DeckSprites sprites={event.pokemon_sprites} />}
+          {event.code && <DeckSprites sprites={event.pokemon_sprites} hideWhenEmpty />}
           <div className="text-sm min-w-0">
             <span className="font-bold">{event.deck_name}</span>
             <span className="text-xs text-default-500"> を登録</span>
@@ -298,7 +272,7 @@ function EventContent({ event }: { event: CalendarEvent }) {
       <div className="flex flex-col gap-3 rounded-xl bg-default-100 px-4 py-3">
         <div className="flex items-center gap-3">
           <LuBookPlus className="text-xl text-secondary shrink-0" />
-          <DeckSprites sprites={event.pokemon_sprites} />
+          <DeckSprites sprites={event.pokemon_sprites} hideWhenEmpty />
           <div className="text-sm min-w-0">
             <span className="font-bold">{event.deck_name}</span>
             <br />
@@ -319,7 +293,7 @@ function EventContent({ event }: { event: CalendarEvent }) {
   return (
     <div className="flex items-center gap-3 rounded-xl bg-default-100 px-4 py-3">
       <LuArchive className="text-xl text-default-400 shrink-0" />
-      <DeckSprites sprites={event.pokemon_sprites} />
+      <DeckSprites sprites={event.pokemon_sprites} hideWhenEmpty />
       <div className="text-sm min-w-0">
         <span className="font-bold">{event.deck_name}</span>
         <span className="text-xs text-default-500"> をアーカイブ</span>

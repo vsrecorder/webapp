@@ -3,10 +3,9 @@ import { NextResponse } from "next/server";
 import { auth } from "@app/auth";
 
 import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/upstream";
+import { signUpstreamToken } from "@app/utils/upstreamToken";
 
 import { DeckGetAllType } from "@app/types/deck";
-
-import * as jwt from "jsonwebtoken";
 
 async function getAllDecks(token: string): Promise<DeckGetAllType> {
   return await fetchUpstream<DeckGetAllType>(upstreamUrl`/api/v1beta/decks/all`, {
@@ -24,19 +23,7 @@ export async function GET() {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const jwtSecret: jwt.Secret = process.env.VSRECORDER_JWT_SECRET as string;
-
-  const jwtSignOptions: jwt.SignOptions = {
-    algorithm: "HS256",
-    expiresIn: "10s",
-  };
-
-  const jwtPayload = {
-    iss: "vsrecorder-webapp",
-    uid: session.user.id,
-  };
-
-  const token = jwt.sign(jwtPayload, jwtSecret, jwtSignOptions);
+  const token = signUpstreamToken(session.user.id);
 
   try {
     const decks = await getAllDecks(token);

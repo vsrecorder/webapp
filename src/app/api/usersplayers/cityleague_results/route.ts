@@ -4,22 +4,8 @@ import { auth } from "@app/auth";
 
 import { UserPlayerCityleagueResultsGetResponseType } from "@app/types/user_player";
 
-import * as jwt from "jsonwebtoken";
-
 import { upstreamUrl } from "@app/utils/upstream";
-
-function makeToken(uid: string): string {
-  const jwtSecret: jwt.Secret = process.env.VSRECORDER_JWT_SECRET as string;
-  const jwtSignOptions: jwt.SignOptions = {
-    algorithm: "HS256",
-    expiresIn: "10s",
-  };
-  const jwtPayload = {
-    iss: "vsrecorder-webapp",
-    uid,
-  };
-  return jwt.sign(jwtPayload, jwtSecret, jwtSignOptions);
-}
+import { signUpstreamToken } from "@app/utils/upstreamToken";
 
 // 上流はトークンの uid に紐付いたプレイヤーIDでしか引かないため、ここは
 // セッションを確認して中継するだけでよい(プレイヤーIDを受け取る余地を作らない)。
@@ -49,7 +35,7 @@ export async function GET(request: NextRequest) {
   const season = searchParams.get("season");
   if (season) query.set("season", season);
 
-  const token = makeToken(session.user.id);
+  const token = signUpstreamToken(session.user.id);
   const res = await fetch(
     upstreamUrl`/api/v1beta/usersplayers/cityleague_results?${query}`,
     {

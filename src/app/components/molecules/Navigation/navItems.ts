@@ -48,5 +48,7 @@ export function isActiveRoute(pathname: string, href: string): boolean {
   if (href === "/") return pathname === "/";
   if (href === "/records")
     return pathname.startsWith("/records") && !pathname.startsWith("/records/create");
+  // みんなの公開デッキ(/shared_decks)はデッキ一覧のセグメントから入るので、デッキ一覧を選択中にする
+  if (href === "/decks") return pathname.startsWith("/decks") || pathname.startsWith("/shared_decks");
   return pathname.startsWith(href);
 }

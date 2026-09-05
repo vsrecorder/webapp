@@ -2,9 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { auth } from "@app/auth";
 
-import * as jwt from "jsonwebtoken";
-
 import { upstreamUrl } from "@app/utils/upstream";
+import { signUpstreamToken } from "@app/utils/upstreamToken";
 
 /*
  * 登録時アンケート「どこでバトレコを知りましたか？」(施策0-4 S4)の BFF。
@@ -29,16 +28,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "bad request" }, { status: 400 });
   }
 
-  const jwtSecret: jwt.Secret = process.env.VSRECORDER_JWT_SECRET as string;
-  const jwtSignOptions: jwt.SignOptions = {
-    algorithm: "HS256",
-    expiresIn: "10s",
-  };
-  const jwtPayload = {
-    iss: "vsrecorder-webapp",
-    uid: session.user.id,
-  };
-  const token = jwt.sign(jwtPayload, jwtSecret, jwtSignOptions);
+  const token = signUpstreamToken(session.user.id);
 
   const res = await fetch(upstreamUrl`/api/v1beta/users/acquisition/survey`, {
     method: "POST",

@@ -3,8 +3,6 @@ import { cache } from "react";
 import NextAuth, { CredentialsSignin } from "next-auth";
 import "next-auth/jwt";
 
-import * as jwt from "jsonwebtoken";
-
 import Credentials from "next-auth/providers/credentials";
 
 import { deleteFirebaseUserWithRetry, getFirebaseAdmin } from "@firebase/admin";
@@ -13,6 +11,7 @@ import { getAuth } from "firebase-admin/auth";
 import type { DecodedIdToken } from "firebase-admin/auth";
 
 import { MAX_USER_NAME_LENGTH, exceedsTextLength } from "@app/utils/textLength";
+import { signUpstreamToken } from "@app/utils/upstreamToken";
 
 // バックエンド(core-apiserver)に疎通できない場合に投げるエラー。
 // CredentialsSigninを継承することで /auth/error?code=backend_unavailable にリダイレクトされ、
@@ -243,15 +242,11 @@ async function recordAcquisition(
       return;
     }
 
-    const jwtSecret = process.env.VSRECORDER_JWT_SECRET;
-    if (!jwtSecret) {
+    if (!process.env.VSRECORDER_JWT_SECRET) {
       return;
     }
 
-    const token = jwt.sign({ iss: "vsrecorder-webapp", uid }, jwtSecret, {
-      algorithm: "HS256",
-      expiresIn: "10s",
-    });
+    const token = signUpstreamToken(uid);
 
     await fetch(`https://` + domain + `/api/v1beta/users/acquisition`, {
       method: "POST",
@@ -327,22 +322,11 @@ const {
                 "https://xx8nnpgt.user.webaccel.jp/images/users/default_icon.png",
             };
 
-            const jwtSecret = process.env.VSRECORDER_JWT_SECRET;
-            if (!jwtSecret) {
+            if (!process.env.VSRECORDER_JWT_SECRET) {
               throw new Error("VSRECORDER_JWT_SECRET is not set");
             }
 
-            const jwtSignOptions: jwt.SignOptions = {
-              algorithm: "HS256",
-              expiresIn: "10s",
-            };
-
-            const jwtPayload = {
-              iss: "vsrecorder-webapp",
-              uid: user.id,
-            };
-
-            const token = jwt.sign(jwtPayload, jwtSecret, jwtSignOptions);
+            const token = signUpstreamToken(user.id);
 
             // ユーザを登録
             const createRet = await fetchBackend(

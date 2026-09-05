@@ -105,9 +105,8 @@ export default function DeckDistributionShareCard({
                 style={{ backgroundColor: colors[idx] }}
               />
               <div className="flex w-16 shrink-0 justify-center">
-                {/* 書き出し専用のカードなので、確実に写る素の <img>(raw) で描く */}
-                <PokemonSprite id={row.spriteIds[0]} size={32} raw />
-                <PokemonSprite id={row.spriteIds[1]} size={32} raw />
+                <PokemonSprite id={row.spriteIds[0]} size={32} />
+                <PokemonSprite id={row.spriteIds[1]} size={32} />
               </div>
               <span className="min-w-0 flex-1 truncate text-xs font-bold text-default-700">
                 {row.name}

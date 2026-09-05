@@ -22,6 +22,11 @@ const OG_IMAGE_VERSION = "v2";
 // OGP画像はイベント確定後に変わらないため、リクエストのたびに HeadObject を投げる必要がない。
 const ensuredKeys = new Set<string>();
 
+// 生成・アップロードに失敗したキーと、再試行してよい時刻。投稿者のアイコン URL が切れている
+// などで毎回失敗する画像を、ページを開くたびに描画し直さないための短い記憶。
+const failedKeys = new Map<string, number>();
+const FAILED_KEY_RETRY_MS = 10 * 60 * 1000;
+
 function buildS3Client(): S3Client {
   return new S3Client({
     region,
@@ -95,6 +100,11 @@ export async function ensureOgImage(
     return url;
   }
 
+  const retryAt = failedKeys.get(key);
+  if (retryAt !== undefined && retryAt > Date.now()) {
+    return null;
+  }
+
   try {
     const s3Client = buildS3Client();
 
@@ -120,10 +130,12 @@ export async function ensureOgImage(
     );
 
     ensuredKeys.add(key);
+    failedKeys.delete(key);
 
     return url;
   } catch (error) {
     console.error("failed to ensure ogp image", { key, error });
+    failedKeys.set(key, Date.now() + FAILED_KEY_RETRY_MS);
     return null;
   }
 }

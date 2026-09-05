@@ -3,17 +3,14 @@
 import { useCallback, useEffect, useState } from "react";
 
 import Link from "next/link";
-import NextLink from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 
 import { Button, Card, CardBody, CardHeader } from "@heroui/react";
 import { Chip, Tabs, Tab, useDisclosure, addToast } from "@heroui/react";
-import { Link as HeroLink } from "@heroui/react";
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/dropdown";
 
 import { LuCalendar } from "react-icons/lu";
-import { LuChevronLeft } from "react-icons/lu";
 import { LuSwords } from "react-icons/lu";
 import { LuFilePen } from "react-icons/lu";
 import { LuBookPlus } from "react-icons/lu";
@@ -37,6 +34,7 @@ import {
 import { DECK_MODAL_REOPEN_KEYS } from "@app/utils/deckModalReopen";
 import { navigateAfterModalClose } from "@app/utils/modalHistory";
 import DeckKizunaPanel from "@app/components/organisms/Deck/DeckKizunaPanel";
+import BackLink from "@app/components/molecules/BackLink";
 import DeckValueMeter from "@app/components/organisms/Deck/DeckValueMeter";
 import { fetchDeckEnv } from "@app/utils/deckEnv";
 import CopyableDeckCode from "@app/components/atoms/CopyableDeckCode";
@@ -62,6 +60,7 @@ import { useDeckCodes, getDeckCodeVersionNumber } from "@app/hooks/useDeckCodes"
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
 import { DeckUsageItemType, DeckUsageStatType } from "@app/types/deck_usage_stat";
+import { isZeroDate } from "@app/utils/date";
 
 type RecordTabKey = "all" | "official" | "tonamel" | "unofficial";
 
@@ -327,7 +326,7 @@ export default function DeckById({ id, valueMeterEnabled = false }: Props) {
   });
 
   // archived_atがゼロ値(年が1)なら未アーカイブ
-  const isArchived = new Date(deck.archived_at).getFullYear() !== 1;
+  const isArchived = !isZeroDate(deck.archived_at);
 
   // 対戦成績の各種指標
   const hasStats = !!usageStat && usageStat.count > 0;
@@ -360,15 +359,8 @@ export default function DeckById({ id, valueMeterEnabled = false }: Props) {
           （z-40）にスクロール時に覆われて隠れてしまうため（常時タップできる位置にする）。 */}
       <div className="sticky top-14 z-40 -mx-2 lg:top-28">
         <div className="absolute inset-0 border-b border-default-200/60 bg-white/90 backdrop-blur-md dark:bg-neutral-950/90" />
-        <div className="relative flex items-center justify-between pr-2">
-          <HeroLink
-            as={NextLink}
-            href="/decks"
-            className="w-fit gap-0.5 px-2.5 py-2 font-bold text-tiny text-default-600"
-          >
-            <LuChevronLeft />
-            <span>デッキ一覧</span>
-          </HeroLink>
+        <div className="relative flex items-center justify-between px-2 py-2">
+          <BackLink href="/decks" label="デッキ一覧" />
           {/* シェア：記録情報のシェアと同じく、プライマリ色で強調した独立ボタン */}
           <button
             type="button"

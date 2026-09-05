@@ -12,21 +12,10 @@ import {
   TagUpdateRequestType,
   TagUpdateResponseType,
 } from "@app/types/tag";
-
-import * as jwt from "jsonwebtoken";
+import { signUpstreamToken } from "@app/utils/upstreamToken";
 
 function signToken(uid: string): string {
-  const jwtSecret: jwt.Secret = process.env.VSRECORDER_JWT_SECRET as string;
-  const jwtSignOptions: jwt.SignOptions = {
-    algorithm: "HS256",
-    expiresIn: "10s",
-  };
-  const jwtPayload = {
-    iss: "vsrecorder-webapp",
-    uid,
-  };
-
-  return jwt.sign(jwtPayload, jwtSecret, jwtSignOptions);
+  return signUpstreamToken(uid);
 }
 
 export async function PUT(

@@ -15,6 +15,7 @@ import { RecordCardSkeletons } from "@app/components/organisms/Record/Skeleton/R
 import { LuCirclePlus, LuFilePen, LuClipboardList } from "react-icons/lu";
 
 import { RecordType, RecordGetResponseType } from "@app/types/record";
+import { isZeroDate } from "@app/utils/date";
 
 // レコードのデータから種別（公式 / Tonamel / 自由形式）を判定する。
 // すべて表示("all")のとき、各カードをどのコンポーネントで描画するか決めるために使う。
@@ -29,7 +30,7 @@ function resolveEventType(
 
 // 月見出しの判定に使う日付（開催日が無ければ作成日）を取得する。
 function getRawDate(data: RecordType["data"]): string {
-  return data.event_date && !data.event_date.startsWith("0001-01-01")
+  return !isZeroDate(data.event_date)
     ? data.event_date
     : (data.created_at as unknown as string);
 }

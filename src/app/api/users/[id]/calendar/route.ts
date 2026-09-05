@@ -14,9 +14,8 @@ import {
 
 import { toDateKey } from "@app/utils/calendar";
 
-import * as jwt from "jsonwebtoken";
-
 import { upstreamUrl } from "@app/utils/upstream";
+import { signUpstreamToken } from "@app/utils/upstreamToken";
 
 // core-apiserver の GET /users/{id}/calendar が返す形。
 // 記録・対戦結果・デッキ・デッキコードと、参照先のイベント情報がまとめて入っている。
@@ -82,19 +81,6 @@ type CalendarApiResponse = {
 // カレンダーは記録・デッキを丸ごと集計するため、バックエンドの処理時間が
 // 単純な取得系より長くなりうる。トークンが処理の途中で切れないよう長めに取る。
 const TOKEN_EXPIRES_IN = "60s";
-
-function makeToken(uid: string): string {
-  const jwtSecret: jwt.Secret = process.env.VSRECORDER_JWT_SECRET as string;
-  const jwtSignOptions: jwt.SignOptions = {
-    algorithm: "HS256",
-    expiresIn: TOKEN_EXPIRES_IN,
-  };
-  const jwtPayload = {
-    iss: "vsrecorder-webapp",
-    uid,
-  };
-  return jwt.sign(jwtPayload, jwtSecret, jwtSignOptions);
-}
 
 function resolveEventKind(
   record: CalendarApiRecord,
@@ -237,7 +223,7 @@ export async function GET(
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
-  const token = makeToken(session.user.id);
+  const token = signUpstreamToken(session.user.id, { expiresIn: TOKEN_EXPIRES_IN });
 
   try {
     // カレンダーの組み立てに必要なデータは、バックエンドの集計エンドポイントが

@@ -1,6 +1,4 @@
-import Link from "next/link";
-
-import { LuChevronLeft } from "react-icons/lu";
+import BackLink from "@app/components/molecules/BackLink";
 
 type Props = {
   backHref: string;
@@ -26,13 +24,7 @@ export default function CityleagueHubHeader({
   return (
     <div className="flex flex-col gap-2">
       {/* 検索から直接開かれるページなので、上位階層への導線を先頭に置く */}
-      <Link
-        href={backHref}
-        className="flex w-fit items-center gap-0.5 pl-0.5 font-bold text-tiny text-default-500 hover:text-default-700"
-      >
-        <LuChevronLeft />
-        <span>{backLabel}</span>
-      </Link>
+      <BackLink href={backHref} label={backLabel} />
 
       <div className="flex flex-col gap-1">
         <span className="font-bold text-tiny text-primary">{eyebrow}</span>

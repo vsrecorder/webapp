@@ -4,11 +4,11 @@ import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/up
 
 import { UserGymCreateResponseType, UserGymGetResponseType } from "@app/types/user_gym";
 
-import { signUpstreamToken } from "./_shared";
+import { requireUpstreamToken } from "@app/utils/upstreamToken";
 
 // 本人のMyジム一覧。上流は uid をトークンから取るため、パスにユーザIDは載せない。
 export async function GET() {
-  const { token, response } = await signUpstreamToken();
+  const { token, response } = await requireUpstreamToken();
   if (response) return response;
 
   try {
@@ -31,7 +31,7 @@ export async function GET() {
 
 // Myジムの登録。上限超過(409)・店舗が実在しない(404)の判定は上流に一元化する。
 export async function POST(request: NextRequest) {
-  const { token, response } = await signUpstreamToken();
+  const { token, response } = await requireUpstreamToken();
   if (response) return response;
 
   const body = (await request.json().catch(() => null)) as { shop_id?: unknown } | null;

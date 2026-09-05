@@ -24,3 +24,27 @@ export function todayJSTDateString(): string {
 export function diffInDays(fromDateString: string, toDateString: string): number {
   return (Date.parse(toDateString) - Date.parse(fromDateString)) / (1000 * 60 * 60 * 24);
 }
+
+// バックエンド(Go)は未設定の日時をゼロ値(0001-01-01T00:00:00Z)で返す。
+// 画面側でその値を入れ直したいとき(お気に入り解除など)に使う。
+export const ZERO_DATE = "0001-01-01T00:00:00Z";
+
+// 未設定(ゼロ値)か。null / undefined / 空文字も未設定として扱う。
+// Date の年(getFullYear() === 1)で見ると、UTC より西のタイムゾーンでは年が 0 になって
+// 判定を誤るため、ISO 文字列の先頭で見る。
+export function isZeroDate(value: Date | string | null | undefined): boolean {
+  if (!value) return true;
+
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) return true;
+    return value.toISOString().startsWith("0001-01-01");
+  }
+
+  return String(value).startsWith("0001-01-01");
+}
+
+// 未設定(ゼロ値)なら null、そうでなければその値をそのまま返す。
+// 「開催日が無ければ作成日」のような優先順位を ?? でつなぐために使う。
+export function nonZeroDate<T extends Date | string>(value: T | null | undefined): T | null {
+  return isZeroDate(value) ? null : (value as T);
+}

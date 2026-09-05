@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 
-import { addToast } from "@heroui/react";
-
 import { LuCheck, LuCopy } from "react-icons/lu";
+
+import { copyDeckCode } from "@app/utils/deckCodeClipboard";
 
 // 枠の地色。デッキコード欄を置く場所の背景に合わせて選ぶ。
 //   default : 通常の面（カード・モーダル本体）の上
@@ -42,14 +42,9 @@ export default function CopyableDeckCode({
   const [copied, setCopied] = useState(false);
 
   async function handleCopy(value: string) {
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopied(true);
-      addToast({ title: "デッキコードをコピーしました", color: "success", timeout: 2000 });
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      addToast({ title: "コピーに失敗しました", color: "danger", timeout: 3000 });
-    }
+    if (!(await copyDeckCode(value))) return;
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
   }
 
   const baseClass =

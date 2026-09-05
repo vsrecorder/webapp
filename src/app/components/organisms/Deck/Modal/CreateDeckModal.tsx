@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+import useSWR from "swr";
+
 import { ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
 import { Image, Button } from "@heroui/react";
 import { Input } from "@heroui/react";
@@ -26,12 +28,19 @@ import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
 import { MAX_DECK_NAME_LENGTH, countTextLength } from "@app/utils/textLength";
 import { normalizeDeckCode } from "@app/utils/deckCode";
+import { swrFetcher } from "@app/utils/deckCodePost";
+import { spriteImageUrl } from "@app/utils/sprite";
+import { getSpriteBySlot } from "@app/utils/spriteSlot";
 
 const DECK_CODE_LENGTH = 20;
 const DECK_CODE_CHECK_DEBOUNCE_MS = 500;
 
 type Props = {
   deck_code: string;
+  // 開いたときにデッキ名・アイコンへ入れておく初期値。みんなの公開デッキの「取り込む」が、
+  // 元の投稿のデッキ名とスプライトを引き継ぐために使う。無ければ空で始まる
+  initialName?: string;
+  initialSprites?: DeckPokemonSpriteType[];
   isOpen: boolean;
   onOpenChange: () => void;
   onCreated: () => void;
@@ -39,12 +48,14 @@ type Props = {
 
 export default function CreateDeckModal({
   deck_code,
+  initialName = "",
+  initialSprites,
   isOpen,
   onOpenChange,
   onCreated,
 }: Props) {
   const [imageLoaded, setImageLoaded] = useState(false);
-  const [deckname, setDeckName] = useState<string>("");
+  const [deckname, setDeckName] = useState<string>(initialName);
   const [deckcode, setDeckCode] = useState<string>(deck_code);
   //const [isSelectedPrivateCode, setIsSelectedPrivateCode] = useState<boolean>(false);
   const [isValidatedDeckCode, setIsValidatedDeckCode] = useState<boolean>(true);
@@ -54,6 +65,55 @@ export default function CreateDeckModal({
   const [sprite1, setSprite1] = useState<PokemonSpriteType | null>(null);
   const [sprite2, setSprite2] = useState<PokemonSpriteType | null>(null);
   const [activeSpriteSlot, setActiveSpriteSlot] = useState<1 | 2>(1);
+
+  // 初期スプライトは id と枠しか持たないため、名前と画像はポケモンのアイコン一覧から引く。
+  // 一覧はアイコン選択モーダル(SpritePickerPanel)と同じ URL なので SWR のキャッシュを共有する。
+  // 初期スプライトが無いモーダル(デッキ一覧の＋ボタンなど)では取りに行かない
+  const hasInitialSprites = (initialSprites?.length ?? 0) > 0;
+  const { data: spriteMaster } = useSWR<PokemonSpriteType[], Error>(
+    hasInitialSprites ? "/api/pokemon-sprites" : null,
+    (url: string) => swrFetcher<PokemonSpriteType[]>(url),
+    { revalidateOnFocus: false },
+  );
+
+  // 初期スプライトを枠(1/2)ごとに PokemonSpriteType へ解決する。一覧がまだ無ければ id だけの
+  // 仮の値にし(画像は id から組める)、一覧が届いた時点で名前を入れ直す
+  const resolveInitialSprite = (slot: 1 | 2): PokemonSpriteType | null => {
+    const sprite = getSpriteBySlot(initialSprites, slot);
+    if (!sprite) return null;
+
+    return (
+      spriteMaster?.find((s) => s.id === sprite.id) ?? {
+        id: sprite.id,
+        name: sprite.id,
+        image_url: spriteImageUrl(sprite.id),
+      }
+    );
+  };
+
+  // 開くたびに初期値(デッキ名・アイコン)を入れ直す。閉じたときの resetState だけだと、
+  // 別の投稿から同じモーダルを開き直したときに前回の初期値が残るため
+  const initialSpriteKey = (initialSprites ?? []).map((s) => `${s.position ?? ""}:${s.id}`).join(",");
+  useEffect(() => {
+    if (!isOpen) return;
+    setDeckName(initialName);
+    setSprite1(resolveInitialSprite(1));
+    setSprite2(resolveInitialSprite(2));
+    // initialSpriteKey は initialSprites の中身を文字列にしたもの(配列の参照ではなく中身で比較する)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, initialName, initialSpriteKey]);
+
+  // アイコン一覧が後から届いたら、名前が仮(id のまま)のスプライトだけ本物に入れ替える。
+  // 利用者が選び直したスプライトには触れない
+  useEffect(() => {
+    if (!spriteMaster) return;
+    const upgrade = (current: PokemonSpriteType | null) => {
+      if (!current || current.name !== current.id) return current;
+      return spriteMaster.find((s) => s.id === current.id) ?? current;
+    };
+    setSprite1(upgrade);
+    setSprite2(upgrade);
+  }, [spriteMaster]);
 
   const [tagIds, setTagIds] = useState<string[]>([]);
   // タグ管理中は「閉じる」「登録」やモーダルのクローズを無効化する
@@ -145,10 +205,10 @@ export default function CreateDeckModal({
   const resetState = () => {
     setIsDisabled(false);
     setIsValidatedDeckCode(true);
-    setDeckName("");
+    setDeckName(initialName);
     setDeckCode(deck_code);
-    setSprite1(null);
-    setSprite2(null);
+    setSprite1(resolveInitialSprite(1));
+    setSprite2(resolveInitialSprite(2));
     setTagIds([]);
     setIsTagManaging(false);
     //setIsSelectedPrivateCode(false);

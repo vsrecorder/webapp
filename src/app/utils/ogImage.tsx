@@ -4,6 +4,12 @@ import { join } from "node:path";
 import { ImageResponse } from "next/og";
 
 import { OfficialEventType } from "@app/types/official_event";
+import { DeckCodePostType } from "@app/types/deck_code_post";
+import { designationForTier } from "@app/utils/designationTier";
+import { rankForTier } from "@app/utils/designationRank";
+import { getSpriteBySlot } from "@app/utils/spriteSlot";
+import { spriteImageUrl } from "@app/utils/sprite";
+import { spriteFitBox } from "@app/utils/spriteFit";
 import { formatEventDate } from "@app/utils/cityleague";
 
 // OGP画像の規定サイズ。X(Twitter)の summary_large_image と Facebook の推奨に合わせる。
@@ -32,15 +38,35 @@ type OgAssets = {
     style: "normal";
   }[];
   iconSrc: string;
+  // スプライトが1体だけの投稿で、空いた枠に置くモンスターボール(白)。
+  // 配信元(CDN)の unknown.png は黒のシルエットで、OGPの濃紺の背景では沈んで見えないため、
+  // 色だけ反転した白版を同梱して使う(public/ogp-sprite-unknown.png)。
+  unknownSpriteSrc: string;
 };
 
 // satori は TTF/OTF しか読めないため、可変フォントではなく静的インスタンスを置いている。
 // 店舗名には任意の漢字が現れるため、グリフのサブセット化はできない。
-async function loadOgAssets(): Promise<OgAssets> {
-  const [fontRegular, fontBold, icon] = await Promise.all([
+let ogAssetsPromise: Promise<OgAssets> | null = null;
+
+// フォント(約 11MB)と アイコンはプロセス内で1回だけ読む。みんなの公開デッキの投稿ごとに描画が走るため、
+// 毎回ディスクから読み直すと個別ページの初回表示が遅くなる。
+function loadOgAssets(): Promise<OgAssets> {
+  if (!ogAssetsPromise) {
+    ogAssetsPromise = readOgAssets().catch((error) => {
+      ogAssetsPromise = null;
+      throw error;
+    });
+  }
+
+  return ogAssetsPromise;
+}
+
+async function readOgAssets(): Promise<OgAssets> {
+  const [fontRegular, fontBold, icon, unknownSprite] = await Promise.all([
     readFile(join(process.cwd(), "assets", "fonts", "NotoSansJP-Regular.ttf")),
     readFile(join(process.cwd(), "assets", "fonts", "NotoSansJP-Bold.ttf")),
     readFile(join(process.cwd(), "public", "icon-512x512.png")),
+    readFile(join(process.cwd(), "public", "ogp-sprite-unknown.png")),
   ]);
 
   return {
@@ -49,6 +75,7 @@ async function loadOgAssets(): Promise<OgAssets> {
       { name: "Noto Sans JP", data: fontBold, weight: 700, style: "normal" },
     ],
     iconSrc: `data:image/png;base64,${icon.toString("base64")}`,
+    unknownSpriteSrc: `data:image/png;base64,${unknownSprite.toString("base64")}`,
   };
 }
 
@@ -111,6 +138,11 @@ function Footer({ iconSrc }: { iconSrc: string }) {
 // 実測では帯が画像高さの約14%(630px換算で約87px)を覆うため、下側だけ余白を厚くして
 // フッター(ロゴ・サービス名・ドメイン)が帯に隠れないようにしている。
 const X_CARD_OVERLAY_SAFE_AREA = 130;
+
+// みんなの公開デッキのOGPで、スプライト1体に与える正方形の枠(px)。
+// 枠自体は描かず、この大きさを基準にキャラを正規化して置く。
+// 2体で 400px。左の本文(x=72 から 560 幅 → 632 まで)と重ならない位置に収まる。
+const OG_SPRITE_FRAME = 200;
 
 const canvasStyle = {
   width: "100%",
@@ -253,6 +285,161 @@ export async function renderCityleagueEventOgImage(
       </div>
 
       <Footer iconSrc={assets.iconSrc} />
+    </div>,
+    assets,
+  );
+}
+
+// 外部の画像(投稿者のアイコンなど)を短いタイムアウトで取り、data URI にして返す。
+// satori は描画中に <img> の取得に失敗すると画像全体の生成が失敗するため、
+// 信頼できない URL は先に取っておき、取れなければ null(その要素を出さない)にする。
+async function fetchImageAsDataUri(url: string, timeoutMs: number): Promise<string | null> {
+  if (!url) return null;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { signal: controller.signal, cache: "no-store" });
+    const contentType = res.headers.get("content-type") ?? "";
+    if (!res.ok || !contentType.startsWith("image/")) return null;
+
+    const body = Buffer.from(await res.arrayBuffer());
+    return `data:${contentType.split(";")[0]};base64,${body.toString("base64")}`;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/*
+ * みんなの公開デッキの個別ページ(公開したデッキコード)のOGP画像。
+ *
+ * 左にデッキ名・投稿者(アイコン・名前・ランクと称号)・ACE SPEC、右にデッキのスプライト2体を
+ * 横に揃えて置く。背景は他のOGPと同じ紺の単色(PNGの圧縮を効かせる)。
+ * スプライトが未登録の投稿は右側を空けず、デッキ名を1段大きくする。
+ * 称号の絵文字は satori が絵文字フォントを持たないため画像には載せず、名前だけを出す。
+ */
+
+export async function renderDeckCodePostOgImage(post: DeckCodePostType): Promise<Buffer> {
+  const assets = await loadOgAssets();
+  // 投稿者のアイコンは外部(Google / X)の URL なので、切れていても画像全体が失敗しないよう先に取る
+  const avatarSrc = await fetchImageAsDataUri(post.user.image_url, 2000);
+
+  const designation = designationForTier(post.user.designation_tier);
+  const rank = rankForTier(post.user.designation_tier);
+
+  const first = getSpriteBySlot(post.pokemon_sprites, 1);
+  const second = getSpriteBySlot(post.pokemon_sprites, 2);
+  // 1体だけなら2体目は unknown(id が無い枠。画像は同梱の白いモンスターボールを使う)
+  const spriteIds: (string | undefined)[] = first ? [first.id, second?.id] : [];
+
+  const titleFontSize = spriteIds.length === 0 ? 64 : post.deck_name.length > 12 ? 44 : 52;
+
+  return toPngBuffer(
+    <div style={{ ...canvasStyle, justifyContent: "flex-start", position: "relative" }}>
+      {/* 左列の幅: 右のスプライト2体(220px×2＋間隔24)は right:72 から 464px を占めるので、
+          左の余白72から 664 に届かない 560 に収めて文字がスプライトの下に潜らないようにする */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 18, width: spriteIds.length === 0 ? 1056 : 560 }}>
+        <Chip>みんなの公開デッキ</Chip>
+
+        <div
+          style={{
+            display: "flex",
+            fontSize: titleFontSize,
+            fontWeight: 700,
+            lineHeight: 1.2,
+            lineClamp: 2,
+          }}
+        >
+          {post.deck_name}
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          {avatarSrc ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={avatarSrc} alt="" width={56} height={56} style={{ borderRadius: 28 }} />
+          ) : null}
+          <div style={{ display: "flex", fontSize: 30, fontWeight: 700 }}>{post.user.name}</div>
+          {designation ? (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                fontSize: 22,
+                fontWeight: 700,
+                padding: "4px 14px",
+                borderRadius: 999,
+                backgroundColor: "rgba(255,255,255,0.12)",
+              }}
+            >
+              {rank ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={rank.image} alt="" width={26} height={26} />
+              ) : null}
+              <span>{designation.name}</span>
+            </div>
+          ) : null}
+        </div>
+
+        {post.ace_spec_card_name ? (
+          <div
+            style={{
+              display: "flex",
+              alignSelf: "flex-start",
+              padding: "8px 22px",
+              borderRadius: 999,
+              border: "1px solid rgba(244,114,182,0.5)",
+              backgroundColor: "rgba(236,72,153,0.16)",
+              fontSize: 24,
+              fontWeight: 700,
+              color: "#f9a8d4",
+            }}
+          >
+            ACE SPEC · {post.ace_spec_card_name}
+          </div>
+        ) : null}
+      </div>
+
+      {/* スプライトは枠(背景・角丸)を出さず、キャラだけを大きく置く。
+          元画像はキャラの周りに余白があり大きさもまちまちなので、アプリ内と同じ正規化
+          (spriteFitBox: 身長に応じた枠占有率・水平中央・下端接地)で枠いっぱいに揃える。
+          左の本文(x=72 から 560 幅)に被らないよう、2体で 400 に収めて右端 72 に寄せる。 */}
+      {spriteIds.length > 0 ? (
+        <div style={{ position: "absolute", right: 72, top: 84, display: "flex" }}>
+          {spriteIds.map((id, index) => {
+            const fit = spriteFitBox(id, OG_SPRITE_FRAME);
+            return (
+              <div
+                key={index}
+                style={{
+                  position: "relative",
+                  overflow: "hidden",
+                  display: "flex",
+                  width: OG_SPRITE_FRAME,
+                  height: OG_SPRITE_FRAME,
+                }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={id ? spriteImageUrl(id) : assets.unknownSpriteSrc}
+                  alt=""
+                  width={fit.width}
+                  height={fit.height}
+                  style={{ position: "absolute", left: fit.left, top: fit.top }}
+                />
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
+
+      <div style={{ position: "absolute", left: 72, right: 72, bottom: X_CARD_OVERLAY_SAFE_AREA, display: "flex" }}>
+        <div style={{ display: "flex", flex: 1 }}>
+          <Footer iconSrc={assets.iconSrc} />
+        </div>
+      </div>
     </div>,
     assets,
   );

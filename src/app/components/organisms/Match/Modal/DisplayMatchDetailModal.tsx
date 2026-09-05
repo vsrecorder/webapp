@@ -27,6 +27,7 @@ import { closingPassthroughClassNames } from "@app/utils/modal";
 import { MatchGetResponseType } from "@app/types/match";
 import { RecordGetByIdResponseType } from "@app/types/record";
 import { WeeklyDeckUsageStatType } from "@app/types/weekly_deck_usage_stat";
+import { isZeroDate } from "@app/utils/date";
 
 // 記録情報モーダル(閲覧モード)で対戦結果をタップしたときに開く詳細モーダル。
 // その1戦を振り返るための情報をまとめて表示する:
@@ -84,7 +85,7 @@ export default function DisplayMatchDetailModal({
   const week = useMemo(() => {
     if (!record) return lastWeekValue();
     const eventDate =
-      record.event_date && !record.event_date.startsWith("0001-01-01")
+      !isZeroDate(record.event_date)
         ? record.event_date
         : record.created_at;
     if (!eventDate || isInCurrentWeekJST(eventDate)) return lastWeekValue();

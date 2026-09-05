@@ -115,6 +115,38 @@ export function spriteFitStyle(
   };
 }
 
+// OGP画像(satori)用: spriteFitStyle と同じ正規化を、transform を使わない
+// 「枠の中で img を絶対配置する」形の数値で返す。
+//
+// satori は CSS の一部しか解釈せず transform/transformOrigin に頼れないため、
+// 拡大後の実寸(width/height)と左上位置(left/top)を先に計算して渡す。
+// 枠側は position:relative + overflow:hidden + width/height=frame にすること。
+export function spriteFitBox(
+  id: string | undefined | null,
+  frame: number,
+): { width: number; height: number; left: number; top: number } {
+  const b = (id && SPRITE_BOUNDS[id]) || SPRITE_BOUNDS["unknown"];
+  const [cw, ch, bx, by, bw, bh] = b;
+
+  const isUnknown = isUnknownBounds(b);
+  const targetRatio = isUnknown
+    ? UNKNOWN_TARGET_RATIO
+    : heightTargetRatio(id ? SPRITE_HEIGHTS[id] : undefined);
+  const pad = frame * BOTTOM_PAD_RATIO;
+  const scale = fitScale(bw, bh, frame, targetRatio);
+
+  return {
+    width: cw * scale,
+    height: ch * scale,
+    // 水平: キャラ中心を枠中心に
+    left: frame / 2 - (bx + bw / 2) * scale,
+    // 垂直: 実ポケモンは下端接地、unknown は枠の中央
+    top: isUnknown
+      ? frame / 2 - (by + bh / 2) * scale
+      : frame - pad - (by + bh) * scale,
+  };
+}
+
 // スプライトURLのファイル名(先頭ゼロ除去済み)から bbox を引くための逆引き表。
 // SPRITE_BOUNDS のキーは padded("0006")なので、URL側の "6" 形に変換して対応付ける。
 const BOUNDS_BY_FILE: Record<

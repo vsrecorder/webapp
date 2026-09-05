@@ -18,7 +18,7 @@ type Props = {
  * 画面に表示するカードと、シェア画像として書き出すカードで同じコンポーネントを使う
  * （見えているものがそのまま画像になる）。幅は親要素に委ねる。
  *
- * ポケモンの画像は素の <img> で描く(PokemonSprite の raw)。
+ * ポケモンの画像は素の <img> で描く(PokemonSprite は常に素の <img>)。
  * HeroUI の <Image> は基底クラスに opacity-0 を持ち、読み込み完了後に React が
  * data-loaded="true" を付けて初めて表示される。captureThemedPng は cloneNode で
  * DOM の静的スナップショットを取るため、表示前に複製すると、クローンには React が
@@ -67,7 +67,6 @@ export default function KizunaShareCard({
                 key={sprite.id}
                 id={sprite.id}
                 size={96}
-                raw
                 className={bob}
               />
             ))}

@@ -35,6 +35,7 @@ import {
 import { Modal } from "@app/components/atoms/AppModal";
 import DeckCardDiff from "@app/components/organisms/Deck/DeckCardDiff";
 import CardListAccordion from "@app/components/organisms/Deck/CardListAccordion";
+import DeckCodePostPublishRow from "@app/components/organisms/DeckCodePost/DeckCodePostPublishRow";
 import FetchError from "@app/components/molecules/FetchError";
 import CopyableDeckCode from "@app/components/atoms/CopyableDeckCode";
 import ZoomableDeckImage from "@app/components/atoms/ZoomableDeckImage";
@@ -52,6 +53,7 @@ import { useModalDragToClose } from "@app/hooks/useModalDragToClose";
 import { useModalEntered } from "@app/hooks/useModalEntered";
 import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
 import { closingPassthroughClassNames } from "@app/utils/modal";
+import { isZeroDate } from "@app/utils/date";
 
 async function fetchDeckCodesByDeckId(deck_id: string) {
   try {
@@ -483,7 +485,7 @@ export default function DisplayDeckCodesModal({
     }
   };
 
-  const isArchived = deck ? new Date(deck.archived_at).getFullYear() !== 1 : false;
+  const isArchived = deck ? !isZeroDate(deck.archived_at) : false;
 
   // バージョンが1件のときは、タイムラインの続きとして次バージョン作成を促す（アーカイブ済みは非表示）
   const showNextVersionPrompt =
@@ -927,6 +929,17 @@ export default function DisplayDeckCodesModal({
                                           code={deckcode.code}
                                           background="content1"
                                         />
+
+                                        {/* みんなの公開デッキの公開スイッチ。バージョンごとに公開できる */}
+                                        {deck && (
+                                          <DeckCodePostPublishRow
+                                            deckId={deck.id}
+                                            deckCodeId={deckcode.id}
+                                            background="content1"
+                                            isArchived={isArchived}
+                                            versionLabel={index === 0 ? "最新バージョン" : undefined}
+                                          />
+                                        )}
 
                                         {(index !== displayDeckCodes.length - 1 ||
                                           deckcode.memo ||

@@ -14,13 +14,9 @@ import {
   LuUsers,
 } from "react-icons/lu";
 
-import PokemonSprite from "@app/components/atoms/PokemonSprite";
-import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
+import DeckSprites from "@app/components/molecules/DeckSprites";
 import { generateWeekOptions, lastWeekValue } from "@app/utils/week";
-import {
-  WeeklyDeckUsageItemType,
-  WeeklyDeckUsageStatType,
-} from "@app/types/weekly_deck_usage_stat";
+import { WeeklyDeckUsageStatType } from "@app/types/weekly_deck_usage_stat";
 
 // 勝率に応じた色分け（既存の統計表示と同じ閾値に合わせる）
 function winRateChipColor(rate: number): "success" | "default" | "warning" | "danger" {
@@ -120,20 +116,6 @@ function DeltaPoints({
   );
 }
 
-// デッキ変種のスプライトを最大2体まで横並び表示する。不足分は unknown で埋める。
-function DeckSprites({ deck }: { deck: WeeklyDeckUsageItemType }) {
-  const sprites = deck.pokemon_sprites ?? [];
-
-  // position でスロットを固定して常に2枠表示。無い枠は unknown。
-  // サイズはデッキ使用率分析・相手デッキ分布のリスト(size=32)と揃える
-  return (
-    <div className="flex items-center gap-0 shrink-0">
-      {([1, 2] as const).map((slot) => (
-        <PokemonSprite key={slot} id={getDeckSpriteBySlot(sprites, slot)?.id} size={32} />
-      ))}
-    </div>
-  );
-}
 
 // 実際の行と同じグリッド構成([可変|3.5rem|2.5rem])・同じ要素サイズで骨格を組み、
 // 読み込み完了時のレイアウトシフトを防ぐ。実レイアウトを変えたらここも追従させること。
@@ -481,7 +463,7 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
                           <RankDelta rank={idx + 1} previousRank={deck.previous_rank} />
                         )}
                       </div>
-                      <DeckSprites deck={deck} />
+                      <DeckSprites sprites={deck.pokemon_sprites} size={32} />
                       {isOther && (
                         <span className="font-bold text-xs text-default-500 truncate">
                           その他
@@ -582,7 +564,7 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
                               <span className="w-6 text-center text-[0.625rem] font-black tabular-nums text-default-400 shrink-0">
                                 {idx + 1 + mIdx}
                               </span>
-                              <DeckSprites deck={member} />
+                              <DeckSprites sprites={member.pokemon_sprites} size={32} />
                               <div className="ml-auto flex flex-col items-end shrink-0 leading-none">
                                 <span className="text-sm font-black tabular-nums text-default-600">
                                   {(member.usage_rate * 100).toFixed(1)}

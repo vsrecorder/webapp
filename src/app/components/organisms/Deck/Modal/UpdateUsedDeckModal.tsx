@@ -3,6 +3,7 @@ import useSWR from "swr";
 import WindowedSelect from "react-windowed-select";
 import Select from "react-select";
 import { Modal } from "@app/components/atoms/AppModal";
+import DeckSprites from "@app/components/molecules/DeckSprites";
 import { useReactSelectTheme } from "@app/components/molecules/Select/useReactSelectTheme";
 
 import { SetStateAction, Dispatch } from "react";
@@ -26,8 +27,6 @@ import { DeckGetAllType, DeckData, isFavoritedDeck } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
 import { DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
 
-import PokemonSprite from "@app/components/atoms/PokemonSprite";
-import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 
 // 失敗レスポンスのボディをそのまま返すと、選択肢を組み立てるmap/forEachがレンダー中に
@@ -92,25 +91,6 @@ function convertToDeckOption(data: DeckData): DeckOption {
   };
 }
 
-// デッキの先頭2匹のポケモンスプライトを表示する。
-// スプライトが未設定のスロットは unknown 画像で補完し、記録作成画面と同じ見た目を踏襲する。
-function DeckSprites({
-  sprites,
-  size = 36,
-}: {
-  sprites: DeckPokemonSpriteType[];
-  size?: number;
-}) {
-  const slots = [getDeckSpriteBySlot(sprites, 1), getDeckSpriteBySlot(sprites, 2)];
-
-  return (
-    <div className="flex items-center gap-0 shrink-0">
-      {slots.map((sprite, i) => (
-        <PokemonSprite key={i} id={sprite?.id} size={size} />
-      ))}
-    </div>
-  );
-}
 
 async function fetcherForDeckCode(url: string) {
   const res = await fetch(url, {

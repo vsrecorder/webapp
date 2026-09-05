@@ -7,9 +7,8 @@ import { Button, Card, CardBody, Chip, useDisclosure } from "@heroui/react";
 import { LuChevronDown, LuChevronRight, LuFilePen, LuLock } from "react-icons/lu";
 import { sendGAEvent } from "@next/third-parties/google";
 
-import PokemonSprite from "@app/components/atoms/PokemonSprite";
+import DeckSprites from "@app/components/molecules/DeckSprites";
 import DeckCodeQuickStartModal from "@app/components/organisms/Deck/Modal/DeckCodeQuickStartModal";
-import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
 import { fingerprintKey } from "@app/utils/fingerprint";
 import { rankableDecks, exclOtherTotalOf } from "@app/utils/deckEnv";
 import { lastWeekValue } from "@app/utils/week";
@@ -84,30 +83,6 @@ function formatDeltaPt(pt: number): string {
   return pt === 0 ? "±0" : pt > 0 ? `+${trimmed}` : `-${trimmed}`;
 }
 
-// デッキ変種のスプライトを2枠固定で表示する（WeeklyDeckUsagePanel の DeckSprites と同じ流儀）。
-function DeckSprites({
-  sprites,
-  size = 32,
-  loading,
-}: {
-  sprites: { id: string; position?: number }[] | undefined;
-  size?: number;
-  loading?: "lazy" | "eager";
-}) {
-  const list = sprites ?? [];
-  return (
-    <div className="flex items-center gap-0 shrink-0">
-      {([1, 2] as const).map((slot) => (
-        <PokemonSprite
-          key={slot}
-          id={getDeckSpriteBySlot(list, slot)?.id}
-          size={size}
-          loading={loading}
-        />
-      ))}
-    </div>
-  );
-}
 
 // 上位3件をメダル配色で強調する（WeeklyDeckUsagePanel の RankBadge と同じ）。
 function RankBadge({ rank }: { rank: number }) {

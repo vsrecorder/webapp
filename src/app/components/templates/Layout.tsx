@@ -38,7 +38,9 @@ export default async function TemplateLayout({
         {/* min-w-0: 横方向flex内の子はデフォルトで内容量ぶんの最小幅を持つため、
             ページ内に横方向へはみ出すコンテンツ（横スクロールリストなど）があると
             この幅がページ全体を押し広げてレイアウトが崩れる。min-w-0で明示的に解除する */}
-        <div className={`flex flex-col flex-1 min-w-0 ${session ? "lg:pl-56" : ""}`}>
+        {/* --sidebar-width: 固定バー(DeckSegmentedControl など)が左端をサイドバーの幅に合わせるための変数。
+            サイドバーはログイン時の PC 幅でしか出ないので、その条件でだけ 14rem(w-56)にする */}
+        <div className={`flex flex-col flex-1 min-w-0 [--sidebar-width:0px] ${session ? "lg:pl-56 lg:[--sidebar-width:14rem]" : ""}`}>
           <Header />
 
           {/* 左右余白は画面が広がるほど増やす。かつて md(768px〜)だけ px-32(128px)にしていたが、

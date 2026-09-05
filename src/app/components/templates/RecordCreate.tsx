@@ -38,6 +38,7 @@ import { CgSearch } from "react-icons/cg";
 
 import Select, { components } from "react-select";
 import { Modal } from "@app/components/atoms/AppModal";
+import DeckSprites from "@app/components/molecules/DeckSprites";
 import { useReactSelectTheme } from "@app/components/molecules/Select/useReactSelectTheme";
 import { Image } from "@heroui/react";
 import { Button } from "@heroui/react";
@@ -54,8 +55,6 @@ import ScrollingText from "@app/components/molecules/ScrollingText";
 import RegulationSegmentedControl from "@app/components/molecules/RegulationSegmentedControl";
 import OfficialEventGuideNote from "@app/components/molecules/OfficialEventGuideNote";
 
-import PokemonSprite from "@app/components/atoms/PokemonSprite";
-import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
 import { cleanOfficialEventTitle } from "@app/components/organisms/Record/officialEventHelpers";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 import { markRecordCreatedForPushPrompt } from "@app/utils/pushPrompt";
@@ -364,25 +363,6 @@ function convertToDeckCodeOption(
   };
 }
 
-// デッキの先頭2匹のポケモンスプライトを表示する。
-// スプライトが未設定のスロットは unknown 画像で補完し、UsedDeckCard と同じ見た目を踏襲する。
-function DeckSprites({
-  sprites,
-  size = 36,
-}: {
-  sprites: DeckPokemonSpriteType[];
-  size?: number;
-}) {
-  const slots = [getDeckSpriteBySlot(sprites, 1), getDeckSpriteBySlot(sprites, 2)];
-
-  return (
-    <div className="flex items-center gap-0 shrink-0">
-      {slots.map((sprite, i) => (
-        <PokemonSprite key={i} id={sprite?.id} size={size} />
-      ))}
-    </div>
-  );
-}
 
 /*
  * お気に入りのデッキに添える★。

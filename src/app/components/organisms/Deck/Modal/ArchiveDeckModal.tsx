@@ -1,5 +1,9 @@
 import { useState } from "react";
 
+import { mutate } from "swr";
+
+import { deckActivePostsKey } from "@app/hooks/useDeckActivePosts";
+
 import { ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
 import { Alert } from "@heroui/react";
 import { Checkbox } from "@heroui/react";
@@ -63,6 +67,10 @@ export default function ArchiveDeckModal({
         color: "success",
         timeout: 3000,
       });
+
+      // アーカイブでみんなの公開デッキの投稿は取り下がるので、公開スイッチの表示(SWR)も空にしておく
+      // (バックエンドの連動と画面が食い違い、開き直すまで「公開中」に見えるのを防ぐ)
+      mutate(deckActivePostsKey(deck.id), [], { revalidate: false });
 
       onRemove(deck.id);
 

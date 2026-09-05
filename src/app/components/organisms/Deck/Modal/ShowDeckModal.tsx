@@ -27,6 +27,7 @@ import DisplayDeckOpponentAnalysisModal from "@app/components/organisms/Deck/Mod
 
 import DeckCodeCard from "@app/components/organisms/Deck/DeckCodeCard";
 import CardListAccordion from "@app/components/organisms/Deck/CardListAccordion";
+import DeckCodePostPublishRow from "@app/components/organisms/DeckCodePost/DeckCodePostPublishRow";
 import { useKizunaLevel } from "@app/hooks/useKizunaLevels";
 import KizunaDeckSprites from "@app/components/molecules/KizunaDeckSprites";
 import { useDeckCodes } from "@app/hooks/useDeckCodes";
@@ -50,6 +51,7 @@ import { DeckCodeType } from "@app/types/deck_code";
 
 import { closingPassthroughClassNames } from "@app/utils/modal";
 import { markDeckModalReopen } from "@app/utils/deckModalReopen";
+import { isZeroDate } from "@app/utils/date";
 
 type Props = {
   deck: DeckGetByIdResponseType | null;
@@ -230,7 +232,7 @@ export default function ShowDeckModal({
   }
 
   // archived_atがゼロ値(年が1)なら未アーカイブ
-  const isArchived = new Date(deck.archived_at).getFullYear() !== 1;
+  const isArchived = !isZeroDate(deck.archived_at);
 
   return (
     <>
@@ -315,6 +317,15 @@ export default function ShowDeckModal({
                     <DeckCodeCard deckcode={deckcode} hideImage />
 
                     <CardListAccordion code={deckcode.code} />
+
+                    {/* みんなの公開デッキの公開スイッチ(対象は表示中の最新バージョン)。
+                        別のバージョンを公開したいときはバージョン履歴の各行から行う */}
+                    <DeckCodePostPublishRow
+                      deckId={deck.id}
+                      deckCodeId={deckcode.id}
+                      versionLabel="最新バージョン"
+                      isArchived={isArchived}
+                    />
                   </>
                 )}
               </ModalBody>

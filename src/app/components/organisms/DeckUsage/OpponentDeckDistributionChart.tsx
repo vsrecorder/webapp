@@ -13,7 +13,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Accordion, AccordionItem, Chip } from "@heroui/react";
 
 import { OpponentDeckUsageItemType } from "@app/types/opponent_deck_usage_stat";
-import PokemonSprite from "@app/components/atoms/PokemonSprite";
+import DeckSprites from "@app/components/molecules/DeckSprites";
 import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
 import { lighten } from "@app/utils/color";
 import { roundToSignificantDigits } from "@app/utils/number";
@@ -190,17 +190,6 @@ export function buildOpponentDeckDisplay(decks: OpponentDeckUsageItemType[]): {
   };
 }
 
-function DeckSprites({ deck }: { deck: OpponentDeckUsageItemType }) {
-  const sprites = deck.pokemon_sprites ?? [];
-
-  // 凡例のスロットを position で固定して表示(PokemonSprite)。無い枠は unknown。
-  return (
-    <div className="flex items-center gap-0 shrink-0">
-      <PokemonSprite id={getDeckSpriteBySlot(sprites, 1)?.id} size={32} />
-      <PokemonSprite id={getDeckSpriteBySlot(sprites, 2)?.id} size={32} />
-    </div>
-  );
-}
 
 // 凡例1行分の中身（スプライト・デッキ名・対面率・勝率）。
 // 通常の凡例行と、「その他」を展開した内訳行の両方で使い回す。
@@ -208,7 +197,7 @@ function OpponentDeckLegendRow({ deck }: { deck: OpponentDeckUsageItemType }) {
   return (
     <>
       <div className="w-16 flex justify-center shrink-0">
-        <DeckSprites deck={deck} />
+        <DeckSprites sprites={deck.pokemon_sprites} size={32} />
       </div>
       <span className="font-bold text-xs text-default-700 truncate flex-1 min-w-0">
         {deck.deck_info}
@@ -533,7 +522,7 @@ export default function OpponentDeckDistributionChart({
               className="flex-1 min-w-0 flex flex-col items-center justify-center gap-1.5 rounded-xl border border-default-200 bg-content1 px-2 py-3 shadow-sm cursor-pointer"
               style={{ borderLeftColor: tooltip.color, borderLeftWidth: 4 }}
             >
-              <DeckSprites deck={tooltip.deck} />
+              <DeckSprites sprites={tooltip.deck.pokemon_sprites} size={32} />
               <p className="text-xs font-bold text-default-700 text-center truncate w-full">
                 {tooltip.deck.deck_info}
               </p>

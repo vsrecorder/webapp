@@ -18,8 +18,9 @@ export default function Loading() {
       {/* 一覧への戻り導線（実体と同じくヘッダー直下に sticky で置く） */}
       <div className="sticky top-14 z-40 -mx-2 lg:top-28">
         <div className="absolute inset-0 border-b border-default-200/60 bg-white/90 backdrop-blur-md dark:bg-neutral-950/90" />
-        <div className="relative w-fit px-2.5 py-2">
-          <Skeleton className="h-4 w-32 rounded-md" />
+        <div className="relative w-fit px-2 py-2">
+          {/* 実体の戻るリンク(BackLink、ピル型・高さ 2rem)と同じ大きさ */}
+          <Skeleton className="h-8 w-32 rounded-full" />
         </div>
       </div>
 

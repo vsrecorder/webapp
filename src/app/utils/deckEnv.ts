@@ -8,6 +8,7 @@ import {
   WeeklyDeckUsageItemType,
   WeeklyDeckUsageStatType,
 } from "@app/types/weekly_deck_usage_stat";
+import { isZeroDate } from "@app/utils/date";
 
 // 「ランキング対象」= 「その他」(空指紋)を除いたデッキ変種を、使用率(count)降順・
 // 同率は勝率降順に整列して返す。順位はこの並びの index+1。
@@ -55,7 +56,7 @@ export function isEnvReturnTargetDate(
   createdAt?: string | Date,
 ): boolean {
   const isSet = (date?: string): date is string =>
-    !!date && !date.startsWith("0001-01-01");
+    !isZeroDate(date);
   const dateStr = isSet(eventDate) ? eventDate : createdAt?.toString();
   if (!dateStr) return false;
   return isInCurrentWeekJST(dateStr);

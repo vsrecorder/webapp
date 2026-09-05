@@ -8,22 +8,8 @@ import {
   UserPlayerCreateResponseType,
 } from "@app/types/user_player";
 
-import * as jwt from "jsonwebtoken";
-
 import { upstreamUrl } from "@app/utils/upstream";
-
-function makeToken(uid: string): string {
-  const jwtSecret: jwt.Secret = process.env.VSRECORDER_JWT_SECRET as string;
-  const jwtSignOptions: jwt.SignOptions = {
-    algorithm: "HS256",
-    expiresIn: "10s",
-  };
-  const jwtPayload = {
-    iss: "vsrecorder-webapp",
-    uid,
-  };
-  return jwt.sign(jwtPayload, jwtSecret, jwtSignOptions);
-}
+import { signUpstreamToken } from "@app/utils/upstreamToken";
 
 // 未連携(上流404)は null を200で返す。「まだ連携していない」は大多数のユーザにとっての
 // 通常状態であって異常ではなく、404で返すとブラウザが画面を開くたびにアクセスログへ4xxを積む。
@@ -43,7 +29,7 @@ export async function GET() {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const token = makeToken(session.user.id);
+  const token = signUpstreamToken(session.user.id);
   const res = await fetch(upstreamUrl`/api/v1beta/usersplayers`, {
     cache: "no-store",
     method: "GET",
@@ -74,7 +60,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const token = makeToken(session.user.id);
+  const token = signUpstreamToken(session.user.id);
   const body: UserPlayerCreateRequestType = await request.json();
 
   const res = await fetch(upstreamUrl`/api/v1beta/usersplayers`, {

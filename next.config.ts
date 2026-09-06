@@ -150,6 +150,9 @@ const nextConfig: NextConfig = {
   },
   reactStrictMode: false,
   output: "standalone",
+  // undici はサーバ起動時(src/instrumentation.ts)に fetch の keep-alive を延ばすために使う。
+  // Node 専用の内部モジュールを含むため、バンドルせず node_modules から読む
+  serverExternalPackages: ["undici"],
   async headers() {
     return [
       {

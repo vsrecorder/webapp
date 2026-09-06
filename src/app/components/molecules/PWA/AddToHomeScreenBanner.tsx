@@ -11,6 +11,9 @@ import { InstallState } from "@app/hooks/useInstallPrompt";
  * インストール状態は PwaBanners が useInstallPrompt を1つだけ持って渡す。
  * ここで自前に useInstallPrompt を呼ぶと状態が2つに分かれ、
  * このバナーを閉じても push 側は「まだ出ている」と誤認する。
+ *
+ * デスクトップ幅(lg 以上)で出さない判定も PwaBanners が持つ(下部バナー3枚で共通)。
+ * ここに lg:hidden は置かない。
  */
 type Props = {
   iconUrl: string;
@@ -31,7 +34,7 @@ export default function AddToHomeScreenBanner({
   if (installState === "idle") return null;
 
   return (
-    <div className="lg:hidden fixed z-50 bottom-[calc(var(--mobile-nav-height)+env(safe-area-inset-bottom)+0.5rem)] left-2 right-2 rounded-2xl bg-content1/95 backdrop-blur-md shadow-xl border border-divider">
+    <div className="fixed z-50 bottom-[calc(var(--mobile-nav-height)+env(safe-area-inset-bottom)+0.5rem)] left-2 right-2 rounded-2xl bg-content1/95 backdrop-blur-md shadow-xl border border-divider">
       <div className="flex items-center gap-3 px-4 py-3">
         <Image
           src={iconUrl}

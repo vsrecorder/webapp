@@ -7,8 +7,9 @@ import type { DeckCardView } from "@app/components/organisms/Deck/DeckCard";
 // 上段に★ボタンと登録日、コンテンツ行にスプライト2体・勝率リング・デッキ名/戦績＋きずなLv.・
 // きずなLv.の線＋段階名、その下にギャラリー表示と同じ開閉ボタンの骨格を並べる。
 //
-// 各行の高さは実物のカードを実測した値に合わせてある（幅390pxで★ボタンありは合計193px、
-// なしは173px。枠線1px×2を含む）。骨格が1本でも欠けると、データが入った瞬間に行が伸びて一覧全体が飛ぶ。
+// 各行の高さは実物のカードを実測した値に合わせてある（幅390pxで合計193px。枠線1px×2を含む。
+// ★ボタンの有無で高さは変わらない＝利用中とアーカイブ済みで同じ）。
+// 骨格が1本でも欠けると、データが入った瞬間に行が伸びて一覧全体が飛ぶ。
 // タグ行は含めない: タグは任意で付けるもので、付いていないデッキのほうが多い前提。
 // 実体側は1行に収めているので、付いていても差は 24px に留まる。
 export function DeckListRowSkeleton({
@@ -19,18 +20,12 @@ export function DeckListRowSkeleton({
     <Card className="w-full border border-transparent">
       <div className="flex flex-col gap-1.5 px-3 pt-3 pb-2">
         {/* 上段：左に★ボタン（36pxの丸）、右に登録日。
-            ★ボタンが出るのは利用中のデッキだけで、そのとき上段は36pxになる。
-            アーカイブ済みでは出ないため、登録日だけの16px行のままにする。 */}
-        {withFavorite ? (
-          <div className="flex h-9 items-center justify-between gap-2">
-            <Skeleton className="h-9 w-9 rounded-full shrink-0" />
-            <Skeleton className="h-3.5 w-28 rounded-lg" />
-          </div>
-        ) : (
-          <div className="flex h-4 justify-end">
-            <Skeleton className="h-3.5 w-28 rounded-lg" />
-          </div>
-        )}
+            ★ボタンが出るのは利用中のデッキだけだが、実体はアーカイブ済みでも
+            36pxの枠を空けて高さを揃えているので、骨格も常に36pxにする。 */}
+        <div className="flex h-9 items-center justify-between gap-2">
+          {withFavorite ? <Skeleton className="h-9 w-9 rounded-full shrink-0" /> : <span />}
+          <Skeleton className="h-3.5 w-28 rounded-lg" />
+        </div>
 
         {/* コンテンツ行 */}
         <div className="flex items-center gap-3">
@@ -112,25 +107,19 @@ export function DeckCardSkeleton({
   // 「デッキコード・戦績を見る」開閉ボタンの骨格を並べる。
   // デッキコード・戦績・先攻/後攻は開いたときだけ出るためここには含めない。
   //
-  // 各要素の高さは実物のカードを実測した値に合わせてある（幅390pxで★ボタンありは
-  // 合計416px、なしは396px）。
+  // 各要素の高さは実物のカードを実測した値に合わせてある（幅390pxで合計416px。
+  // ★ボタンの有無で高さは変わらない＝利用中とアーカイブ済みで同じ）。
   return (
     <Card className="w-full overflow-hidden border border-default-200 shadow-sm">
       <CardHeader className="flex flex-col gap-1.5 px-3 pt-3 pb-2">
         {/* 上段：左に★ボタン（36pxの丸）、右に登録日。リスト表示と同じ扱いで、
-            ★ボタンが出る利用中のデッキでは36px、出ないアーカイブ済みでは16pxになる。 */}
-        {withFavorite ? (
-          <div className="flex h-9 w-full items-center justify-between gap-2">
-            <Skeleton className="h-9 w-9 rounded-full shrink-0" />
-            <Skeleton className="h-3.5 w-28 rounded-lg" />
-          </div>
-        ) : (
-          /* CardHeader が items-center のため、w-full を付けないと登録日が
-             右端ではなくカード中央に寄ってしまう。 */
-          <div className="flex h-4 w-full justify-end">
-            <Skeleton className="h-3.5 w-28 rounded-lg" />
-          </div>
-        )}
+            ★ボタンが出ないアーカイブ済みでも36pxの枠を空けて高さを揃える。
+            CardHeader が items-center のため、w-full を付けないと登録日が
+            右端ではなくカード中央に寄ってしまう。 */}
+        <div className="flex h-9 w-full items-center justify-between gap-2">
+          {withFavorite ? <Skeleton className="h-9 w-9 rounded-full shrink-0" /> : <span />}
+          <Skeleton className="h-3.5 w-28 rounded-lg" />
+        </div>
         {/* スプライトを上、デッキ名ときずなLv.を下に配置（中央揃え）。
             スプライト骨格は実物の PokemonSprite（48px スロットを隙間なく2つ）に合わせ、
             中の丸はキャラ位置（やや小さめ・下端中央寄り）に合わせて下端中央へ配置する。 */}
@@ -174,8 +163,7 @@ export function DeckCardSkeleton({
 
 export function DeckCardSkeletons({
   view = "gallery",
-  // ★ボタンが出るかどうか。骨格の高さが実物と20pxずれると、
-  // 読み込みが終わった瞬間に一覧全体が飛ぶため、呼び出し側の状況を渡してもらう。
+  // ★ボタンが出るかどうか（見た目のみ。高さは有無によらず同じ）。
   withFavorite = false,
 }: { view?: DeckCardView; withFavorite?: boolean } = {}) {
   if (view === "list") {

@@ -27,8 +27,8 @@ export default function DeckListSkeleton({ initialTab }: { initialTab?: DecksTab
       }`}
     >
       {/* ★ボタンは利用中のデッキにだけ出る(アーカイブ済みでは出ない)。
-          直前のタブがアーカイブ済みなら★なしの骨格にし、実体へ切り替わった瞬間に
-          カードが 20px ずつ縮むのを防ぐ */}
+          直前のタブがアーカイブ済みなら★なしの骨格にする。
+          高さは★の有無によらず同じなので、外しても一覧は跳ねない */}
       <DeckCardSkeletons view={view} withFavorite={tab === "inuse"} />
     </div>
   );

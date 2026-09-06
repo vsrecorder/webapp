@@ -4,8 +4,11 @@
 // 過去イベントの結果は確定後に変わらないため、長めにキャッシュする。
 const DEFAULT_REVALIDATE_SECONDS = 60 * 60 * 24;
 
+import { upstreamOrigin } from "@app/utils/upstream";
+
+// 向き先は utils/upstream と同じ(VSRECORDER_UPSTREAM_ORIGIN があれば直接、無ければ公開ドメイン経由)
 export function coreApiUrl(path: string): string {
-  return `https://${process.env.VSRECORDER_DOMAIN}${path}`;
+  return `${upstreamOrigin()}${path}`;
 }
 
 export async function getJson<T>(

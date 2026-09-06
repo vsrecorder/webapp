@@ -93,7 +93,9 @@ export default function AcquisitionSurveyPrompt({ userId, onOpenChange }: Props)
   };
 
   return (
-    // 位置・見た目は PushPermissionPrompt に合わせる(同じ場所に出る仲間として認知させる)
+    // 見た目は PushPermissionPrompt に合わせる(同じ場所に出る仲間として認知させる)。
+    // このバナーは lg 以上でも出る(PwaBanners 参照)ため、下部ナビが無いデスクトップでは
+    // 全幅に伸ばさず右下に寄せる
     <div className="fixed z-50 bottom-[calc(var(--mobile-nav-height)+env(safe-area-inset-bottom)+0.5rem)] left-2 right-2 lg:bottom-6 lg:left-auto lg:right-6 lg:w-[26rem] rounded-2xl bg-content1/95 backdrop-blur-md shadow-xl border border-divider">
       <div className="relative px-4 py-2.5">
         <Button

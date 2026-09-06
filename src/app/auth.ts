@@ -11,6 +11,7 @@ import { getAuth } from "firebase-admin/auth";
 import type { DecodedIdToken } from "firebase-admin/auth";
 
 import { MAX_USER_NAME_LENGTH, exceedsTextLength } from "@app/utils/textLength";
+import { upstreamOrigin } from "@app/utils/upstream";
 import { signUpstreamToken } from "@app/utils/upstreamToken";
 
 // バックエンド(core-apiserver)に疎通できない場合に投げるエラー。
@@ -101,9 +102,9 @@ function sleep(ms: number): Promise<void> {
 // 一時的な404が返っただけで退会済みと誤判定しないよう、404を検知した場合は
 // 間隔を空けて最大NOT_FOUND_RETRY_COUNT回まで再確認し、
 // 全て404だった場合にのみ退会済みと判定する。
-async function isUserDeletedOnBackend(domain: string, uid: string): Promise<boolean> {
+async function isUserDeletedOnBackend(uid: string): Promise<boolean> {
   for (let attempt = 1; attempt <= NOT_FOUND_RETRY_COUNT; attempt++) {
-    const ret = await fetch(`https://` + domain + `/api/v1beta/users/` + uid, {
+    const ret = await fetch(upstreamOrigin() + `/api/v1beta/users/` + uid, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -155,10 +156,7 @@ type UserExistence = "exists" | "absent" | "unknown";
 // バックエンドの再起動などの一時的な断で即unknownに倒すと、
 // 「実は登録に成功していた」ケースを救済(exists判定でサインイン継続)できないため、
 // できる限りexists/absentまで確定させてからunknownに落とす。
-async function checkUserExistence(
-  domain: string | undefined,
-  uid: string,
-): Promise<UserExistence> {
+async function checkUserExistence(uid: string): Promise<UserExistence> {
   // 全attemptがJSON形式の404だったときだけtrueのまま残り、absentが確定する
   let sawOnlyBackendNotFound = true;
 
@@ -166,7 +164,7 @@ async function checkUserExistence(
     let ret: Response | undefined;
 
     try {
-      ret = await fetch(`https://` + domain + `/api/v1beta/users/` + uid, {
+      ret = await fetch(upstreamOrigin() + `/api/v1beta/users/` + uid, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -230,11 +228,7 @@ const ACQUISITION_TIMEOUT_MS = 3000;
 //
 // attribution は handleSignIn が Cookie(vsr_attr)から載せた
 // encodeURIComponent 済みの JSON 文字列。中身の検証・丸めは core-apiserver 側で行う。
-async function recordAcquisition(
-  domain: string | undefined,
-  uid: string,
-  attribution: unknown,
-): Promise<void> {
+async function recordAcquisition(uid: string, attribution: unknown): Promise<void> {
   try {
     const raw = typeof attribution === "string" ? attribution : "";
     if (!raw) {
@@ -248,7 +242,7 @@ async function recordAcquisition(
 
     const token = signUpstreamToken(uid);
 
-    await fetch(`https://` + domain + `/api/v1beta/users/acquisition`, {
+    await fetch(upstreamOrigin() + `/api/v1beta/users/acquisition`, {
       method: "POST",
       headers: {
         Authorization: "Bearer " + token,
@@ -300,12 +294,11 @@ const {
           ユーザを登録する処理
         */
         const user = { id: decoded.uid };
-        const domain = process.env.VSRECORDER_DOMAIN;
 
         try {
           // ユーザが既に登録されているか確認
           const ret = await fetchBackend(
-            `https://` + domain + `/api/v1beta/users/` + user.id,
+            upstreamOrigin() + `/api/v1beta/users/` + user.id,
             {
               method: "GET",
               headers: {
@@ -330,7 +323,7 @@ const {
 
             // ユーザを登録
             const createRet = await fetchBackend(
-              `https://` + domain + `/api/v1beta/users`,
+              upstreamOrigin() + `/api/v1beta/users`,
               {
                 method: "POST",
                 headers: {
@@ -357,7 +350,7 @@ const {
               // 流入元は「登録の瞬間」にしか記録できず、取り逃すと二度と復元できないため
               // ここで送るしかない。next-auth の events.createUser は DBアダプタ経由の
               // 作成でしか発火せず、この構成(Credentials + JWT)では永久に呼ばれない。
-              await recordAcquisition(domain, user.id, attribution);
+              await recordAcquisition(user.id, attribution);
             } else if (createRet.status === 409) {
               // 同時ログインなどの競合により、別リクエストが先に登録済み。
               // ユーザ自体は正常に存在するためエラー扱いにしない。
@@ -393,7 +386,7 @@ const {
           const existence =
             error instanceof WithdrawnAccountError
               ? "absent"
-              : await checkUserExistence(domain, user.id);
+              : await checkUserExistence(user.id);
 
           if (existence === "exists") {
             // 登録POSTのレスポンスを受け取れなかっただけで、DBには登録できていた。
@@ -451,8 +444,7 @@ const {
 
       if (isCacheExpired && token.uid) {
         try {
-          const domain = process.env.VSRECORDER_DOMAIN;
-          if (await isUserDeletedOnBackend(domain!, token.uid)) {
+          if (await isUserDeletedOnBackend(token.uid)) {
             return null;
           }
         } catch (error) {

@@ -153,10 +153,9 @@ export default function PushPermissionPrompt({
   };
 
   return (
-    // モバイルでの位置はホーム画面追加バナーと同じ(同時には出ない。PwaBanners 参照)。
-    // ホーム画面追加バナーと違いデスクトップ(Chrome/Edge)でも push は受け取れるので隠さず、
-    // 下部ナビが無い lg 以上では右下に寄せる。
-    <div className="fixed z-50 bottom-[calc(var(--mobile-nav-height)+env(safe-area-inset-bottom)+0.5rem)] left-2 right-2 lg:bottom-6 lg:left-auto lg:right-6 lg:w-[26rem] rounded-2xl bg-content1/95 backdrop-blur-md shadow-xl border border-divider">
+    // 位置はホーム画面追加バナーと同じ(同時には出ない。PwaBanners 参照)。
+    // デスクトップ幅(lg 以上)では PwaBanners がマウントしないので、モバイルの位置だけ持つ。
+    <div className="fixed z-50 bottom-[calc(var(--mobile-nav-height)+env(safe-area-inset-bottom)+0.5rem)] left-2 right-2 rounded-2xl bg-content1/95 backdrop-blur-md shadow-xl border border-divider">
       {/* 高さを抑えるため、CTA は独立した行にせずリストの右へ回す(右下の位置は保つ)。
           左カラムが「何がいつ届くか」、右下が操作、という2ブロックだけの構成 */}
       <div className="relative px-4 py-2.5">

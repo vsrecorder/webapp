@@ -141,8 +141,16 @@ const X_CARD_OVERLAY_SAFE_AREA = 130;
 
 // みんなの公開デッキのOGPで、スプライト1体に与える正方形の枠(px)。
 // 枠自体は描かず、この大きさを基準にキャラを正規化して置く。
-// 2体で 400px。左の本文(x=72 から 560 幅 → 632 まで)と重ならない位置に収まる。
-const OG_SPRITE_FRAME = 200;
+//
+// タイムラインで最初に目に入るのはデッキのスプライトなので、OGPでも主役として大きく置く。
+// 2体を少し重ねて並べ、占める横幅を抑えたまま1体ずつを大きくしている
+// (正規化後のキャラは枠の中で上下に余白を持つため、重ねてもキャラ同士は重ならない)。
+const OG_SPRITE_FRAME = 280;
+// 2体目を左に食い込ませる量(px)。2体で 280×2−36 = 524px を占める。
+const OG_SPRITE_OVERLAP = 36;
+// スプライトが1体だけのときに2枠目へ出すプレースホルダ(白いモンスターボール)の枠の割合。
+// キャラと同じ大きさで置くと「無い方」が主役に見えてしまうため、一回り小さくする。
+const OG_UNKNOWN_FRAME_RATIO = 0.65;
 
 const canvasStyle = {
   width: "100%",
@@ -338,9 +346,9 @@ export async function renderDeckCodePostOgImage(post: DeckCodePostType): Promise
 
   return toPngBuffer(
     <div style={{ ...canvasStyle, justifyContent: "flex-start", position: "relative" }}>
-      {/* 左列の幅: 右のスプライト2体(220px×2＋間隔24)は right:72 から 464px を占めるので、
-          左の余白72から 664 に届かない 560 に収めて文字がスプライトの下に潜らないようにする */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 18, width: spriteIds.length === 0 ? 1056 : 560 }}>
+      {/* 左列の幅: 右のスプライトは x=616 から始まるので、左の余白72から 572 までに収めて
+          文字がスプライトの下に潜らないようにする */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 18, width: spriteIds.length === 0 ? 1056 : 500 }}>
         <Chip>みんなの公開デッキ</Chip>
 
         <div
@@ -405,11 +413,15 @@ export async function renderDeckCodePostOgImage(post: DeckCodePostType): Promise
       {/* スプライトは枠(背景・角丸)を出さず、キャラだけを大きく置く。
           元画像はキャラの周りに余白があり大きさもまちまちなので、アプリ内と同じ正規化
           (spriteFitBox: 身長に応じた枠占有率・水平中央・下端接地)で枠いっぱいに揃える。
-          左の本文(x=72 から 560 幅)に被らないよう、2体で 400 に収めて右端 72 に寄せる。 */}
+          左の本文(x=72 から 500 幅 → 572 まで)に被らないよう、2体で 524 に収めて右端 60 に寄せる
+          (左端は 1200−60−524 = 616)。 */}
       {spriteIds.length > 0 ? (
-        <div style={{ position: "absolute", right: 72, top: 84, display: "flex" }}>
+        <div style={{ position: "absolute", right: 60, top: 110, display: "flex" }}>
           {spriteIds.map((id, index) => {
-            const fit = spriteFitBox(id, OG_SPRITE_FRAME);
+            // プレースホルダは小さい枠で正規化し、その枠を大枠の中央に置く
+            const inner = id ? OG_SPRITE_FRAME : Math.round(OG_SPRITE_FRAME * OG_UNKNOWN_FRAME_RATIO);
+            const inset = (OG_SPRITE_FRAME - inner) / 2;
+            const fit = spriteFitBox(id, inner);
             return (
               <div
                 key={index}
@@ -419,6 +431,7 @@ export async function renderDeckCodePostOgImage(post: DeckCodePostType): Promise
                   display: "flex",
                   width: OG_SPRITE_FRAME,
                   height: OG_SPRITE_FRAME,
+                  marginLeft: index === 0 ? 0 : -OG_SPRITE_OVERLAP,
                 }}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -427,7 +440,7 @@ export async function renderDeckCodePostOgImage(post: DeckCodePostType): Promise
                   alt=""
                   width={fit.width}
                   height={fit.height}
-                  style={{ position: "absolute", left: fit.left, top: fit.top }}
+                  style={{ position: "absolute", left: fit.left + inset, top: fit.top + inset }}
                 />
               </div>
             );

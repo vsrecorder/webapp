@@ -21,7 +21,6 @@ import { useDeckCodePosts } from "@app/hooks/useDeckCodePosts";
 import {
   DeckCodePostAceSpecCountType,
   DeckCodePostGetResponseType,
-  DeckCodePostSort,
 } from "@app/types/deck_code_post";
 import { EnvironmentType } from "@app/types/environment";
 import { PokemonSpriteType } from "@app/types/pokemon_sprite";
@@ -41,7 +40,6 @@ type Props = {
  * (未ログインならログイン案内)。
  */
 export default function TemplateSharedDecks({ viewerId, initial }: Props) {
-  const [sort, setSort] = useState<DeckCodePostSort>("new");
   // 選んだ環境。null は「現在の環境」(バックエンドが今日から決める)
   const [selectedEnvironment, setSelectedEnvironment] = useState<EnvironmentType | null>(
     null,
@@ -93,7 +91,6 @@ export default function TemplateSharedDecks({ viewerId, initial }: Props) {
     loadMore,
     updatePost,
   } = useDeckCodePosts({
-    sort,
     environmentId,
     pokemonSpriteIds: spriteFilters.map((s) => s.id),
     acespecCardName: aceSpecFilter?.card_name ?? "",
@@ -165,32 +162,12 @@ export default function TemplateSharedDecks({ viewerId, initial }: Props) {
             下余白: 最後のカードや「もっと見る」が画面の下端(会員は下部ナビの直上)に貼り付いて
             見切れて見えないよう、一覧の下に少し余白を置く */}
         <div className="flex flex-col gap-3 pt-2 pb-6 lg:max-w-4xl lg:mx-auto">
-          {/* 並び順と環境。上部のセグメント(マイデッキ｜みんなの公開デッキ)の直下に固定する。
+          {/* 絞り込みの条件。上部のセグメント(マイデッキ｜みんなの公開デッキ)の直下に固定する。
               デッキ一覧のリスト/ギャラリー切替と同じ入れ物(DeckViewToggleBar)を使い、
               固定位置・横幅の合わせ方・スクロール時の挙動を揃える(詳細はそのコメント)。
               上の余白(pt-12 / pt-2)もデッキ一覧と同じにしてあるので、空き枠の計算がそのまま合う。 */}
           <DeckViewToggleBar>
             <div className="flex items-center gap-1.5 overflow-x-auto px-0.5 [scrollbar-width:none]">
-              {(
-                [
-                  ["new", "新着"],
-                  ["popular", "人気"],
-                ] as const
-              ).map(([key, label]) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setSort(key)}
-                  aria-pressed={sort === key}
-                  className={`shrink-0 rounded-full border px-3 py-1 text-xs font-bold ${
-                    sort === key
-                      ? "border-foreground bg-foreground text-background"
-                      : "border-default-200 bg-content1 text-default-500"
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
               <button
                 type="button"
                 onClick={environmentModal.onOpen}

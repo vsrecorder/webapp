@@ -21,6 +21,19 @@ import { NextResponse } from "next/server";
  *   }
  */
 
+/*
+ * 上流(core-apiserver)のオリジン。
+ *
+ * 既定は公開ドメイン経由(https://VSRECORDER_DOMAIN → nginx → core-apiserver)。同じホストの中で
+ * TLS と nginx を往復する形で、接続の張り直しが入ると 1 回あたり数十 ms かかる
+ * (keep-alive は src/instrumentation.ts で延ばしている)。
+ * VSRECORDER_UPSTREAM_ORIGIN を設定すると(例: 同じ docker network 上の http://core-apiserver:8940)、
+ * TLS と nginx を通さず直接つなぐ。設定が無ければ従来どおり。
+ */
+export function upstreamOrigin(): string {
+  return process.env.VSRECORDER_UPSTREAM_ORIGIN || `https://${process.env.VSRECORDER_DOMAIN}`;
+}
+
 // 上流APIのURLを組み立てるタグ付きテンプレート。埋め込んだ値は自動でencodeURIComponentされる。
 //
 //   upstreamUrl`/api/v1beta/records/${id}`
@@ -36,7 +49,7 @@ export function upstreamUrl(
   strings: TemplateStringsArray,
   ...values: (string | number | boolean | URLSearchParams | undefined | null)[]
 ): string {
-  let url = `https://${process.env.VSRECORDER_DOMAIN}`;
+  let url = upstreamOrigin();
 
   strings.forEach((str, index) => {
     url += str;

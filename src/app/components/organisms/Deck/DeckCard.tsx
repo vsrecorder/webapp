@@ -345,7 +345,7 @@ export default function DeckCard({
       <Card
         className={`w-full transition-transform active:scale-[0.985] ${
           // お気に入りの枠線(1px)で高さが変わらないよう、それ以外も透明の枠線を持つ。
-          // 骨格(DeckListRowSkeleton)も同じ枠線を持ち、193px で揃う
+          // 骨格(DeckListRowSkeleton)も同じ枠線を持ち、193px で揃う(★の有無によらず)
           favoriteCardClass || "border border-transparent"
         }`}
       >
@@ -355,8 +355,11 @@ export default function DeckCard({
           className="flex flex-col gap-1.5 px-3 pt-3 pb-2 cursor-pointer"
           onClick={onOpen}
         >
-          {/* 上段：左に★ボタン、右に登録日（見切れ防止のため独立した行にする） */}
-          <div className="flex items-center justify-between gap-2">
+          {/* 上段：左に★ボタン、右に登録日（見切れ防止のため独立した行にする）。
+              ★ボタンが出ない（アーカイブ済み）ときも 36px の枠を空けたままにする:
+              出る/出ないで上段が 36px と 16px に分かれると、利用中とアーカイブ済みで
+              カードの高さが 20px 食い違い、タブを切り替えたときに大きさが揃わない */}
+          <div className="flex h-9 items-center justify-between gap-2">
             {favoriteButton ?? <span />}
             <span className="flex items-center gap-1 text-tiny text-default-400 whitespace-nowrap">
               <LuCalendar className="text-xs" />
@@ -534,8 +537,9 @@ export default function DeckCard({
               デッキ画像は明るい場合が多く重ね文字が読みづらいため、名前とスプライトは
               画像上ではなくここに置く。日付を別行にしてデッキ名の幅を確保する。 */}
             <CardHeader className="flex flex-col gap-1.5 px-3 pt-3 pb-2">
-              {/* 上段：左に★ボタン、右に登録日 */}
-              <div className="flex w-full items-center justify-between gap-2">
+              {/* 上段：左に★ボタン、右に登録日。リスト表示と同じく、★ボタンが
+                出ないアーカイブ済みでも 36px の枠を空けて高さを揃える */}
+              <div className="flex h-9 w-full items-center justify-between gap-2">
                 {favoriteButton ?? <span />}
                 <span className="flex items-center gap-1 whitespace-nowrap text-tiny text-default-400">
                   <LuCalendar className="text-xs" />

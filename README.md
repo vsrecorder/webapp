@@ -65,6 +65,7 @@ src/
 | 変数                                                                     | 説明                                               |
 | ------------------------------------------------------------------------ | -------------------------------------------------- |
 | `VSRECORDER_DOMAIN` / `VSRECORDER_JWT_SECRET`                            | バックエンド（core-apiserver）連携用               |
+| `VSRECORDER_UPSTREAM_ORIGIN`                                             | サーバ側から core-apiserver へ直接つなぐオリジン（任意。未設定なら `https://VSRECORDER_DOMAIN` 経由） |
 | `AUTH_URL` / `AUTH_SECRET` / `AUTH_TRUST_HOST`                           | NextAuth (Auth.js) 設定                            |
 | `FIREBASE_PROJECT_ID` / `FIREBASE_CLIENT_EMAIL` / `FIREBASE_PRIVATE_KEY` | Firebase Admin SDK（サービスアカウント）           |
 | `NEXT_PUBLIC_FIREBASE_*`                                                 | クライアント用 Firebase 設定                       |

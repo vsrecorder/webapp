@@ -13,7 +13,7 @@ import { ensureOgImage } from "@app/utils/ogStorage";
 //
 // ogStorage の OG_IMAGE_VERSION は全ページのOGP画像で共通なので、そちらを上げると
 // シティリーグ結果など無関係な画像まで作り直しになる。ここだけの変更はこの版で扱う。
-const OG_LAYOUT_VERSION = "4";
+const OG_LAYOUT_VERSION = "5";
 
 // 画像に描く内容の指紋。画像は CDN に不変として置くため、デッキ名・スプライト・投稿者の
 // 表示名やアイコン・称号、そしてレイアウトの版が変わったら別のキー(別の画像)にする。

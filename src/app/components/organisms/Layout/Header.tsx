@@ -2,8 +2,7 @@ import { auth } from "@app/auth";
 
 import Image from "next/image";
 
-import SignUp from "./SignUp";
-import SignIn from "./SignIn";
+import GuestAuthButtons from "./GuestAuthButtons";
 import UserMenu from "./UserMenu";
 import NotificationBell from "./NotificationBell";
 import CurrentEnvironment from "./CurrentEnvironment";
@@ -159,8 +158,8 @@ export default async function Header() {
         <div className="flex items-center gap-1">
           <ReloadButton />
           <ThemeSwitcher />
-          <SignUp iconUrl={iconUrl} isDevEnv={isDev} />
-          <SignIn iconUrl={iconUrl} isDevEnv={isDev} />
+          {/* Firebase を引く部品は未ログインのときだけ読む(GuestAuthButtons 参照) */}
+          <GuestAuthButtons iconUrl={iconUrl} isDevEnv={isDev} />
         </div>
       </HeaderShell>
     );

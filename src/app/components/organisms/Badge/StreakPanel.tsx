@@ -49,7 +49,7 @@ function FreezeRegenLine({ weeks }: { weeks: number }) {
   return (
     <span className="inline-flex items-center gap-0.5 text-[0.6875rem] text-primary font-medium">
       <LuSnowflake className="w-3 h-3 shrink-0" />
-      <span className="truncate">あと{weeks}週でフリーズが1つ復活</span>
+      <span className="truncate">あと{weeks}週連続記録でフリーズが1つ復活</span>
     </span>
   );
 }

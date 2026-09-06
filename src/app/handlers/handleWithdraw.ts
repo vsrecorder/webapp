@@ -1,6 +1,6 @@
 import { signOut } from "next-auth/react";
 
-import { firebaseClientAuth } from "@firebase/client";
+import { signOutFromFirebase } from "@app/handlers/handleSignOut";
 
 export const handleWithdraw = async (userId: string): Promise<void> => {
   const res = await fetch(`/api/users/${userId}`, {
@@ -11,6 +11,7 @@ export const handleWithdraw = async (userId: string): Promise<void> => {
     throw new Error(`退会処理に失敗しました: ${res.status}`);
   }
 
-  await firebaseClientAuth.signOut();
+  // Firebase のクライアント SDK は退会の実行時にだけ読む。読めなくてもセッションの側は終える
+  await signOutFromFirebase();
   await signOut({ redirect: true, callbackUrl: "/" });
 };

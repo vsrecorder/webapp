@@ -1,4 +1,6 @@
-const SPRITE_BASE = "https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites";
+import { CDN_ORIGIN } from "@app/utils/cdn";
+
+const SPRITE_BASE = `${CDN_ORIGIN}/images/pokemon-sprites`;
 
 // ポケモンスプライト画像のURLを返す。
 // id が未指定/空の場合はデフォルト(unknown)のスプライトを返す。

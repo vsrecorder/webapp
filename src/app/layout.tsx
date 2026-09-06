@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
+import { preconnect } from "react-dom";
 
 import "./globals.css";
 
-import { GoogleAnalytics } from "@next/third-parties/google";
+import LazyGoogleAnalytics from "@app/components/atoms/LazyGoogleAnalytics";
 
 import Layout from "@app/components/templates/Layout";
 import { isDevEnv } from "@app/utils/appIcon";
 import { OG_SIZE, renderSiteOgImage } from "@app/utils/ogImage";
 import { ensureOgImage } from "@app/utils/ogStorage";
+import { CDN_ORIGIN } from "@app/utils/cdn";
 import { SITE_DESCRIPTION, SITE_TITLE } from "@app/utils/siteMeta";
 
 const domain = process.env.VSRECORDER_DOMAIN;
@@ -68,6 +70,11 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // 画像 CDN へ先に接続しておく(<head> に <link rel="preconnect"> が入る)。
+  // ほぼ全ページがスプライトかデッキ画像をこの CDN から読み、最初の1枚で DNS と TLS の確立を
+  // 待っていた(モバイル回線で 100〜300ms)。画像は CORS 無しの <img> なので crossOrigin は付けない。
+  preconnect(CDN_ORIGIN);
+
   return (
     <html lang="ja" suppressHydrationWarning data-env={isDevEnv() ? "dev" : "prod"}>
       <body className="overflow-x-hidden bg-white text-foreground dark:bg-neutral-950">
@@ -87,7 +94,7 @@ export default function RootLayout({
           dev環境では debugMode を有効にし、GA4のDebugViewでイベントを即時検証できるようにする。
           (gtag('config') に debug_mode を渡すだけで、本番の計測には影響しない)
         */}
-        {gaId ? <GoogleAnalytics gaId={gaId} debugMode={isDevEnv()} /> : null}
+        {gaId ? <LazyGoogleAnalytics gaId={gaId} debugMode={isDevEnv()} /> : null}
         <Layout>{children}</Layout>
       </body>
     </html>

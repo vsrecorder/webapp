@@ -168,6 +168,17 @@ const nextConfig: NextConfig = {
             value: "camera=(), microphone=(), geolocation=(), payment=()",
           },
           { key: "Content-Security-Policy", value: CSP },
+          /*
+           * 前段の nginx に応答をバッファさせない(nginx はこのヘッダーを見て proxy_buffering を
+           * その応答だけ切る。本番・ローカルとも proxy_ignore_headers は無く、proxy_http_version 1.1)。
+           *
+           * App Router はまずレイアウト(ヘッダー・下部ナビ)と loading.tsx の骨格を送り、
+           * ページのデータ取得が終わってから本体を流す。バッファされると、ページ側の上流待ち
+           * (デッキ一覧はきずな・戦績など3本で p50 70ms、p90 0.2秒)が終わるまで 1 バイトも
+           * ブラウザへ届かず、その間は前のページか白い画面のままになる。
+           * 実測(ローカル nginx 経由・ページに 2.5 秒の待ちを入れて): 先頭バイトが 2.65 秒 → 0.05 秒。
+           */
+          { key: "X-Accel-Buffering", value: "no" },
         ],
       },
     ];

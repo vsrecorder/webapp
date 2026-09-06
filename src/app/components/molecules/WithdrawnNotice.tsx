@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { Button, Card, CardBody } from "@heroui/react";
 import { LuInfo, LuX } from "react-icons/lu";
 
-import { firebaseClientAuth } from "@firebase/client";
 
 // 退会済みのアカウントでサインインしようとした場合に、トップページで理由を伝える通知。
 //
@@ -18,9 +17,12 @@ export default function WithdrawnNotice() {
   useEffect(() => {
     // 認証ユーザ自体はサーバ側で削除済みだが、ブラウザにはサインイン状態が
     // 残ったままなので明示的にサインアウトさせる。
-    void firebaseClientAuth.signOut().catch((error) => {
-      console.error("Failed to sign out from firebase:", error);
-    });
+    // Firebase のクライアント SDK はこの通知を出すときだけ読む(トップページの初期JSに載せない)
+    void import("@firebase/client")
+      .then(({ firebaseClientAuth }) => firebaseClientAuth.signOut())
+      .catch((error) => {
+        console.error("Failed to sign out from firebase:", error);
+      });
 
     // リロードやURLの共有で通知が再表示されないようクエリを取り除く。
     // router.replace()だと再描画でこの通知自体が消えてしまうため、

@@ -12,7 +12,6 @@ import DeckCard from "@app/components/organisms/Deck/DeckCard";
 import KizunaMark from "@app/components/atoms/Kizuna/KizunaMark";
 import { DeckCardSkeletons } from "@app/components/organisms/Deck/Skeleton/DeckCardSkeleton";
 import DeckViewToggleBar from "@app/components/organisms/Deck/DeckViewToggleBar";
-import CreateDeckModal from "@app/components/organisms/Deck/Modal/CreateDeckModal";
 import FetchError from "@app/components/molecules/FetchError";
 import { useDeckListView } from "@app/hooks/useDeckListView";
 
@@ -24,8 +23,18 @@ import {
   DeckGetResponseType,
   isFavoritedDeck,
 } from "@app/types/deck";
-import { DeckUsageItemType, DeckUsageStatType } from "@app/types/deck_usage_stat";
-import { useKizunaDecks } from "@app/hooks/useKizunaLevels";
+import { DeckUsageStatType } from "@app/types/deck_usage_stat";
+import { KizunaType } from "@app/types/kizuna";
+import { useDeckUsageAllTime } from "@app/hooks/useDeckUsageStats";
+import { useKizunaDecksState } from "@app/hooks/useKizunaLevels";
+import { stepDeckPage } from "@app/utils/deckListPage";
+import { createLazyModal } from "@app/utils/lazyModal";
+
+// デッキ登録モーダルはスプライト選択・タグ選択を抱えて重いので、開くまで読まない
+// (理由と仕組みは createLazyModal を参照。デッキ詳細モーダルと同じ扱い)
+const CreateDeckModal = createLazyModal(
+  () => import("@app/components/organisms/Deck/Modal/CreateDeckModal"),
+);
 import {
   deckAnchorId,
   REOPEN_DECK_MODAL_DECK_ID,
@@ -63,30 +72,6 @@ async function fetchDecks(isArchived: boolean, cursor: string) {
   return ret;
 }
 
-// デッキ一覧カードに表示する、デッキごとの全期間の対戦数・勝率・先攻/後攻情報を取得する。
-// 対戦記録が無いデッキは結果に含まれない。
-async function fetchDeckUsageStats(
-  userId: string,
-): Promise<Map<string, DeckUsageItemType>> {
-  try {
-    const res = await fetch(`/api/users/${userId}/deck-usage?all_time=true`, {
-      cache: "no-store",
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
-    });
-
-    if (!res.ok) return new Map();
-
-    const stat: DeckUsageStatType = await res.json();
-
-    return new Map(stat.decks.map((deck) => [deck.deck_id, deck]));
-  } catch {
-    return new Map();
-  }
-}
-
 // 一覧の読み込み状態。親(TemplateDecks)がヘッダー(状態切替・表示切替)の出し分けと、
 // デッキが1つも無い新規ユーザーの判定に使う。
 export type DeckListLoadState = {
@@ -101,6 +86,12 @@ export type DeckListLoadState = {
 type Props = {
   userId: string;
   isArchived: boolean;
+  // サーバで取った1ページ目(BFF /api/decks と同じ形)。渡されたときは初回の取得を省き、
+  // 最初の描画からカードを出す(サーバ描画の HTML にもカードが載る)
+  initialDecks?: DeckGetResponseType;
+  // サーバで取ったきずな・戦績。無ければクライアントで取る
+  initialKizuna?: KizunaType | null;
+  initialUsage?: DeckUsageStatType | null;
   onCreated?: () => void;
   // 読み込み状態が変わるたびに親へ通知する(マウント直後にも一度呼ぶ)。
   onLoadStateChange?: (state: DeckListLoadState) => void;
@@ -121,20 +112,38 @@ type Props = {
 export default function Decks({
   userId,
   isArchived,
+  initialDecks,
+  initialKizuna,
+  initialUsage,
   onCreated,
   onLoadStateChange,
   isReopenTargetTab = false,
   onReopenSettled,
   header,
 }: Props) {
-  const [items, setItems] = useState<DeckType[]>([]);
-  const [deckUsageStats, setDeckUsageStats] = useState<Map<string, DeckUsageItemType>>(
-    new Map(),
+  // サーバで取った1ページ目を、クライアントで取った場合と同じ手順(stepDeckPage)で初期状態にする
+  const [initialStep] = useState(() =>
+    initialDecks ? stepDeckPage(initialDecks, new Set(), "") : null,
   );
-  const [nextCursor, setNextCursor] = useState<string>("");
+  const [items, setItems] = useState<DeckType[]>(() => initialStep?.appended ?? []);
+  // デッキごとの全期間の戦績(対戦記録が無いデッキは含まれない)。
+  // SWR で持ち、タブ切替や戻り遷移で Decks が作り直されても取り直しを待たずに出す
+  const deckUsageStats = useDeckUsageAllTime(userId, initialUsage);
+  const [nextCursor, setNextCursor] = useState<string>(() => initialStep?.nextCursor ?? "");
   const [isLoading, setIsLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [isInitialLoaded, setIsInitialLoaded] = useState(false);
+  const [hasMore, setHasMore] = useState(() => initialStep?.hasNext ?? true);
+  const [isInitialLoaded, setIsInitialLoaded] = useState(initialStep !== null);
+  /*
+   * サーバで取った1ページ目を裏で取り直している間。
+   *
+   * ブラウザの「戻る」ではサーバ描画の結果(RSC)がそのまま再利用され、ページは再描画されない
+   * (実測で確認)。記録を付けたりデッキ詳細でアーカイブしたりして戻ると initialDecks は古い。
+   * 以前はマウントのたびに取り直していたので常に最新だった。同じ鮮度を保つため、初期値は
+   * 最初の描画にだけ使い、マウント直後に1ページ目を取り直して差し替える。
+   * 取り直しの間は骨格を出さず(カードは既に出ている)、追加読み込みだけ待たせる
+   * (差し替えと2ページ目の追記が交錯しないように)。
+   */
+  const [isRefreshing, setIsRefreshing] = useState(initialStep !== null);
   // デッキ一覧の取得に失敗したか。失敗した位置（初回か追加読み込みか）に関わらず、
   // 一覧の末尾にエラーと再読み込みボタンを出す。
   const [error, setError] = useState(false);
@@ -142,12 +151,15 @@ export default function Decks({
   const view = useDeckListView();
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
-  // deck_id → きずなの算出結果。灯の濃さ・揺れ方・きずなLv.の表示に使う
-  const kizunaDecks = useKizunaDecks(userId);
-
-  useEffect(() => {
-    fetchDeckUsageStats(userId).then(setDeckUsageStats);
-  }, [userId]);
+  // deck_id → きずなの算出結果。灯の濃さ・揺れ方・きずなLv.の表示に使う。
+  // 取得が終わるまで(kizunaLoading)はカードを出さず骨格のままにする。デッキだけ先に出すと、
+  // きずな行(リスト29px/ギャラリー34px)が後から足されて一覧全体が伸びる二段ジャンプになる。
+  // デッキ一覧ときずなは並行して取り、応答時間もほぼ同じ(本番 p50 でともに 30ms 台)なので、
+  // 待つことで遅れる時間はごくわずか
+  const { decks: kizunaDecks, isLoading: kizunaLoading } = useKizunaDecksState(
+    userId,
+    initialKizuna,
+  );
 
   const handleRemove = (id: string) => {
     setItems((prev) => prev.filter((d) => d.data.id !== id));
@@ -233,63 +245,56 @@ export default function Decks({
    * 先読みしたページを件数だけで判定すると、中身が取得済みのお気に入り1件でも
    * 「まだある」と誤判定し、押しても1件も増えない「更に読み込む」が出てしまう。
    */
-  const loadedDeckIdsRef = useRef<Set<string>>(new Set());
+  const loadedDeckIdsRef = useRef<Set<string>>(
+    new Set(initialStep?.appended.map((d) => d.data.id)),
+  );
 
   const loadMore = useCallback(async () => {
-    if (isLoading || !hasMore) return;
+    if (isLoading || isRefreshing || !hasMore) return;
 
     setError(false);
     setIsLoading(true);
 
     try {
-      const newItems: DeckGetResponseType = await fetchDecks(isArchived, nextCursor);
-
-      if (newItems.decks.length === 0) {
-        setHasMore(false);
-        return;
-      }
-
-      // 失敗後の再読み込みやお気に入りの繰り上げで同じデッキが再び返ることがあるため、
-      // 既に取得済みのデッキは足さない（重複表示を防ぐ）
       const loadedDeckIds = loadedDeckIdsRef.current;
-      const appended = newItems.decks.filter((d) => !loadedDeckIds.has(d.data.id));
-      appended.forEach((d) => loadedDeckIds.add(d.data.id));
+      let cursor = nextCursor;
+      let hasNext = true;
+      let appendedCount = 0;
 
-      if (appended.length > 0) {
-        setItems((prev) => [...prev, ...appended]);
-      }
+      /*
+       * 1ページ取って、未取得のデッキだけを足す(足す・続きの有無・カーソルの進め方は stepDeckPage)。
+       * 「更に読み込む」を出すかは、BFF(/api/decks)が1件多く取って返す has_next で決める。
+       * 以前は次のページを先読みして判定していたが、その往復が終わるまで骨格が消えず、
+       * 初回表示が1往復ぶん遅れていた。
+       *
+       * 続けて次のページも読むのは、次のどちらかのときだけ:
+       *   - 未取得のデッキが1件も増えなかった(取得済みのお気に入りだけのページだった)
+       *   - 次ページの先頭が取得済みのデッキで、続きに未取得があるか読まないと分からない
+       * 利用中タブの1ページ目では先頭へ繰り上げられたお気に入りのデッキが、本来の位置
+       * (＝より後ろのページ)でも再び返るためこうなる。お気に入りが1件だけの現状では
+       * 最終ページでしか起こらないためほぼ回らないが、繰り上げ対象が増えたときに
+       * 一覧が途中で黙って止まったり、押しても増えない「更に読み込む」が出たりするのを防ぐ。
+       * ページ数は有限で、カーソルが進まないときは打ち切るので必ず終わる。
+       */
+      for (;;) {
+        const page: DeckGetResponseType = await fetchDecks(isArchived, cursor);
+        const step = stepDeckPage(page, loadedDeckIds, cursor);
 
-      const lastItem = newItems.decks[newItems.decks.length - 1];
-      if (lastItem && lastItem.cursor) {
-        // 次のページを先読みして「更に読み込む」を出すかどうかを決める。
-        // 件数ではなく未取得のデッキが含まれるかで判定する。
-        //
-        // 全件が取得済みだったページは、そこで打ち切らずカーソルを進めて次を見る。
-        // 「1ページ全部が取得済み」は、お気に入りが1件だけの現状では最終ページでしか
-        // 起こらないためループは実際には回らないが、繰り上げ対象が増えたときに
-        // 一覧が途中で黙って止まるのを防ぐ。ページ数は有限なので必ず終わる。
-        const hasUnloaded = (page: DeckGetResponseType) =>
-          page.decks.some((d) => !loadedDeckIds.has(d.data.id));
-
-        let cursor = lastItem.cursor;
-        let nextItems: DeckGetResponseType = await fetchDecks(isArchived, cursor);
-
-        while (nextItems.decks.length > 0 && !hasUnloaded(nextItems)) {
-          const nextLast = nextItems.decks[nextItems.decks.length - 1];
-
-          // カーソルが進まないとき（サーバが同じページを返し続ける等）は
-          // 無限に取得し続けてしまうため、ここで打ち切る。
-          if (!nextLast?.cursor || nextLast.cursor === cursor) break;
-
-          cursor = nextLast.cursor;
-          nextItems = await fetchDecks(isArchived, cursor);
+        step.appended.forEach((d) => loadedDeckIds.add(d.data.id));
+        if (step.appended.length > 0) {
+          appendedCount += step.appended.length;
+          setItems((prev) => [...prev, ...step.appended]);
         }
 
-        setHasMore(hasUnloaded(nextItems));
-        setNextCursor(cursor);
-      } else {
-        setHasMore(false);
+        hasNext = step.hasNext;
+        cursor = step.nextCursor;
+
+        if (!hasNext) break;
+        if (appendedCount > 0 && !step.peekLoaded) break;
       }
+
+      setHasMore(hasNext);
+      setNextCursor(cursor);
     } catch (err) {
       console.error("Error loading items:", err);
       // hasMoreはtrueのまま残す。再読み込みボタンから同じcursorで取り直せるようにするため。
@@ -300,12 +305,42 @@ export default function Decks({
         setIsInitialLoaded(true);
       }
     }
-  }, [isArchived, nextCursor, isLoading, hasMore, isInitialLoaded]);
+  }, [isArchived, nextCursor, isLoading, isRefreshing, hasMore, isInitialLoaded]);
 
   useEffect(() => {
     if (isInitialLoaded) return;
     loadMore();
   }, [isInitialLoaded, loadMore]);
+
+  // サーバで取った1ページ目の取り直し(理由は isRefreshing のコメント)。マウント時に一度だけ
+  useEffect(() => {
+    if (initialStep === null) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const page = await fetchDecks(isArchived, "");
+        if (cancelled) return;
+
+        const step = stepDeckPage(page, new Set(), "");
+        const loadedDeckIds = loadedDeckIdsRef.current;
+        loadedDeckIds.clear();
+        step.appended.forEach((d) => loadedDeckIds.add(d.data.id));
+        setItems(step.appended);
+        setNextCursor(step.nextCursor);
+        setHasMore(step.hasNext);
+      } catch (err) {
+        // 取れなくても初期値の一覧は出ているので、そのまま使う
+        console.error("Error refreshing decks:", err);
+      } finally {
+        if (!cancelled) setIsRefreshing(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [initialStep, isArchived]);
 
   // 戻り遷移で再開する対象デッキ。一覧に現れるまで自動で追加読み込みする。
   const [pendingReopenDeckId, setPendingReopenDeckId] = useState<string | null>(null);
@@ -343,6 +378,8 @@ export default function Decks({
   // 記録されてしまうため、瞬間移動(auto)にする。
   useLayoutEffect(() => {
     if (!pendingReopenDeckId) return;
+    // きずな待ちの間はカードが描画されていない(骨格のまま)ので、描画されてから測る
+    if (kizunaLoading) return;
     if (!items.some((item) => item.data.id === pendingReopenDeckId)) return;
 
     const el = document.getElementById(deckAnchorId(pendingReopenDeckId));
@@ -355,13 +392,13 @@ export default function Decks({
     // 追加読み込みの完了（次ページの先読み）まで待つと、その間ずっと覆いが残って
     // 開いたばかりのデッキモーダルまで隠してしまうため、ここで通知する。
     settleReopen();
-  }, [pendingReopenDeckId, items, settleReopen]);
+  }, [pendingReopenDeckId, items, kizunaLoading, settleReopen]);
 
   // 対象デッキが描画されるまで自動ロードする。
   // 見つかった後の再開（モーダルを開く・フラグの削除）は DeckCard 側が担う。
   useEffect(() => {
     if (!pendingReopenDeckId) return;
-    if (!isInitialLoaded || isLoading) return;
+    if (!isInitialLoaded || isLoading || isRefreshing || kizunaLoading) return;
 
     const found = items.some((item) => item.data.id === pendingReopenDeckId);
     if (found) {
@@ -397,6 +434,8 @@ export default function Decks({
     pendingReopenDeckId,
     isInitialLoaded,
     isLoading,
+    isRefreshing,
+    kizunaLoading,
     items,
     hasMore,
     error,
@@ -404,12 +443,20 @@ export default function Decks({
     settleReopen,
   ]);
 
+  // 初回の読み込み(デッキ一覧ときずな)が済み、カードを出せる状態か。
+  // 親へ通知する読み込み状態や、空状態・「更に読み込む」の出し分けはこれを基準にする
+  const settled = isInitialLoaded && !kizunaLoading;
+  // 初回読み込み中(サーバ描画を含む)と追加読み込み中は骨格を出す。
+  // isLoading の初期値は false なので、settled を見ないとサーバ描画の HTML に骨格が入らず、
+  // ハイドレーションまで一覧が空のままになる(PWA 起動やリロードで目立つ)
+  const showSkeletons = !settled || isLoading;
+
   // 読み込み状態を親へ通知する(ヘッダーの出し分けと、デッキが1つも無い判定に使う)。
-  const isEmpty = isInitialLoaded && !isLoading && !hasMore && items.length === 0;
+  const isEmpty = settled && !isLoading && !hasMore && items.length === 0;
   const hasItems = items.length > 0;
   useEffect(() => {
-    onLoadStateChange?.({ isInitialLoaded, isEmpty, hasItems });
-  }, [isInitialLoaded, isEmpty, hasItems, onLoadStateChange]);
+    onLoadStateChange?.({ isInitialLoaded: settled, isEmpty, hasItems });
+  }, [settled, isEmpty, hasItems, onLoadStateChange]);
 
   return (
     <div className="flex flex-col items-center space-y-3 pb-3">
@@ -422,7 +469,7 @@ export default function Decks({
       {header !== undefined && <DeckViewToggleBar>{header}</DeckViewToggleBar>}
 
       {/* 空状態：利用中 */}
-      {isInitialLoaded && !isLoading && !hasMore && items.length === 0 && !isArchived && (
+      {isEmpty && !isArchived && (
         <div className="flex flex-col items-center justify-center py-10 px-2.5 gap-6">
           {/* きずな訴求：デッキ登録を「対戦記録の管理」ではなく「デッキとのきずなを育てる第一歩」
               として動機づける。きずなLv.は過去の記録から算出されるため、早く始めるほど深くなる——
@@ -530,7 +577,7 @@ export default function Decks({
       )}
 
       {/* 空状態：アーカイブ済み */}
-      {isInitialLoaded && !isLoading && !hasMore && items.length === 0 && isArchived && (
+      {isEmpty && isArchived && (
         <div className="flex flex-col items-center justify-center py-10 px-4 gap-3">
           <div className="p-4 rounded-full bg-default-100">
             <LuArchive className="w-10 h-10 text-default-400" />
@@ -546,9 +593,12 @@ export default function Decks({
             : "gap-3 grid-cols-1"
         }`}
       >
-        {items.map((deck) => (
+        {settled &&
+          items.map((deck, index) => (
           <DeckCard
             key={deck.data.id}
+            // ギャラリー表示の先頭2枚は最初の画面に入り LCP になるので、遅延させず優先して読む
+            priorityImage={view === "gallery" && index < 2}
             deckData={deck.data}
             deckcodeData={deck.data.latest_deck_code}
             deckUsageStat={deckUsageStats.get(deck.data.id) ?? null}
@@ -564,8 +614,8 @@ export default function Decks({
 
         {/* ローディング表示 */}
         {/* ★ボタンは利用中のデッキにだけ出るため、骨格もタブに合わせる */}
-        {isLoading && <DeckCardSkeletons view={view} withFavorite={!isArchived} />}
-        {isInitialLoaded && isLoading && (
+        {showSkeletons && <DeckCardSkeletons view={view} withFavorite={!isArchived} />}
+        {settled && isLoading && (
           <div className="flex justify-center col-span-1 lg:col-span-2">
             <Spinner size="lg" className="pt-0" />
           </div>
@@ -573,7 +623,7 @@ export default function Decks({
 
         {/* 取得に失敗したときは、空の一覧を装わずに理由を出し、その場で取り直せるようにする。
             既に読み込めているデッキはそのまま残し、続きの取得だけをやり直す。 */}
-        {error && !isLoading && (
+        {settled && error && !isLoading && (
           <div className="col-span-1 lg:col-span-2">
             <FetchError
               message={
@@ -586,12 +636,14 @@ export default function Decks({
           </div>
         )}
 
-        {isInitialLoaded && !isLoading && !error && hasMore && (
+        {settled && !isLoading && !error && hasMore && (
           <div className="flex justify-center col-span-1 lg:col-span-2">
             <Button
               size="sm"
               radius="full"
               onPress={loadMore}
+              // 1ページ目の取り直し中は押せない(押しても何も起きないより、待つことが分かるほうがよい)
+              isDisabled={isRefreshing}
               className="w-48 max-w-full"
             >
               <div className="flex items-center gap-1">

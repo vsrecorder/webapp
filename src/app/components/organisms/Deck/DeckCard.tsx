@@ -76,6 +76,9 @@ type Props = {
   onToggleFavorite?: (id: string, next: boolean) => void;
   // 切り替えの通信中。二重タップを防ぐためボタンを無効化する。
   isFavoritePending?: boolean;
+  // ギャラリー表示のデッキ画像を優先して読むか(最初の画面に入る先頭のカードだけ true)。
+  // それ以外は近づくまで読まない
+  priorityImage?: boolean;
 };
 
 // 勝率に応じた色分け（UserStatPanel/RecentMatchWinRateChartの勝率表示と同じ閾値に合わせる）
@@ -114,6 +117,7 @@ export default function DeckCard({
   isFavorited = false,
   onToggleFavorite,
   isFavoritePending = false,
+  priorityImage = false,
 }: Props) {
   const [deck, setDeck] = useState<DeckGetByIdResponseType | null>(deckData);
   const [deckcode, setDeckCode] = useState<DeckCodeType | null>(deckcodeData);
@@ -136,8 +140,11 @@ export default function DeckCard({
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
-  // このデッキの全バージョン（デッキコード）。件数バッジと通し番号の算出に使う。
-  const { deckcodes } = useDeckCodes(deck?.id, deckcode?.id);
+  // このデッキの全バージョン（デッキコード）。開閉部のデッキコードカードに出す件数バッジに使う。
+  // 開くまで取らない: 畳んだ状態では使わないのに一覧のマウント時にカードごとの往復が走り、
+  // 本番ログでは一覧取得の4倍の件数になっていた。
+  const isExpanded = listExpanded || galleryExpanded;
+  const { deckcodes } = useDeckCodes(isExpanded ? deck?.id : null, deckcode?.id);
   const versionCount = deckcodes?.length ?? null;
 
   // バッジタップ時、デッキ詳細を開くと同時にバージョン履歴も自動で開く
@@ -336,7 +343,11 @@ export default function DeckCard({
     // 戻り遷移でデッキモーダルを再開する際、この id を目印にスクロールする
     <div id={deckAnchorId(deck.id)} className="w-full">
       <Card
-        className={`w-full transition-transform active:scale-[0.985] ${favoriteCardClass}`}
+        className={`w-full transition-transform active:scale-[0.985] ${
+          // お気に入りの枠線(1px)で高さが変わらないよう、それ以外も透明の枠線を持つ。
+          // 骨格(DeckListRowSkeleton)も同じ枠線を持ち、193px で揃う
+          favoriteCardClass || "border border-transparent"
+        }`}
       >
         {/* ヘッダー：タップでデッキ詳細（ShowDeckModal）を開く。
             下の余白は開閉ボタンの枠(pt-2)と分け合うため、ギャラリー表示と同じ pb-2 にする */}
@@ -403,7 +414,9 @@ export default function DeckCard({
               詳しい案内は展開時にギャラリー表示と同じパネルで見せる。 */}
             <div className="flex-1 min-w-0 flex flex-col gap-1">
               <div className="font-bold text-medium truncate">{deck.name}</div>
-              <TagChips tags={deck.tags} />
+              {/* タグは1行に収め、溢れた分は見せない。折り返すとタグの数でカードの高さが
+                  変わり、骨格(タグ行なし)との差が2行ぶん(48px)まで広がる */}
+              <TagChips tags={deck.tags} nowrap className="min-w-0 overflow-hidden" />
               {/* 戦績ときずなLv.を同じ行に置く。「強かったか」と「どう歩んできたか」が
                 左右に並ぶことで、カードの中でも対比がそのまま読める。 */}
               <div className="flex items-baseline justify-between gap-2 text-tiny">
@@ -426,8 +439,11 @@ export default function DeckCard({
                     />
                   </span>
                 ) : (
-                  <span className="flex min-w-0 items-center gap-1 text-default-400">
-                    <LuSwords className="text-[0.6875rem] shrink-0" />
+                  /* 行は items-baseline で並ぶ。アイコンが先頭だと、この span の baseline が
+                     アイコンの下端から決まって行が 18.5px に膨らむ(戦績ありは 17px)。
+                     アイコンを baseline 揃えから外し(self-center)、文字の baseline で揃える */
+                  <span className="flex min-w-0 items-baseline gap-1 text-default-400">
+                    <LuSwords className="self-center text-[0.6875rem] shrink-0" />
                     対戦記録なし
                   </span>
                 )}
@@ -568,6 +584,10 @@ export default function DeckCard({
                   radius="none"
                   alt={deckcode.code}
                   src={deckImageUrl(deckcode.code)}
+                  // 1枚 120KB(1024×512)あり、1ページ10件で 1.2MB になる。画面外の分は近づくまで取らず、
+                  // 最初の画面に入る先頭のカードだけは優先して取る(ギャラリー表示の LCP になる)
+                  loading={priorityImage ? "eager" : "lazy"}
+                  fetchPriority={priorityImage ? "high" : undefined}
                   onLoad={() => setHeroImageLoaded(true)}
                   className="absolute inset-0 h-full w-full object-cover"
                 />

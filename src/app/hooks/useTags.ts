@@ -21,7 +21,15 @@ async function fetcher(url: string): Promise<TagType[]> {
     throw new Error("Failed to fetch");
   }
 
-  return res.json();
+  const data: unknown = await res.json();
+
+  // 想定外の形（配列でない）で返ってきた場合も「取得失敗」として扱う。
+  // そのまま返すと TagSelector の forEach / filter が落ちて、モーダルごと描けなくなる
+  if (!Array.isArray(data)) {
+    throw new Error("Unexpected tags response");
+  }
+
+  return data as TagType[];
 }
 
 // ログインユーザーが作成したタグの一覧を取得する（オートコンプリート候補・付与UI用）。

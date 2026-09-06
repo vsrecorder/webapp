@@ -3,7 +3,13 @@
 import { Button, useDisclosure } from "@heroui/react";
 import { LuPlus } from "react-icons/lu";
 
-import CreateDeckModal from "@app/components/organisms/Deck/Modal/CreateDeckModal";
+import { createLazyModal } from "@app/utils/lazyModal";
+
+// 登録モーダルは開くまで読まない(手が空いた時点で先読みするので、＋を押したときは待たない)。
+// 静的に import すると、スプライト選択・タグ選択ごとデッキ一覧の初期JSに載る
+const CreateDeckModal = createLazyModal(
+  () => import("@app/components/organisms/Deck/Modal/CreateDeckModal"),
+);
 
 type Props = {
   onCreated: () => void;

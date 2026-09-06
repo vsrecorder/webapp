@@ -26,6 +26,9 @@ type Props<K extends string> = {
  * 「利用中／アーカイブ済み」と「リスト／ギャラリー」が同じ大きさ・同じ見た目で並ぶように、
  * 文字の大きさ(0.6875rem)・余白・折り返し禁止をここで1か所に持つ
  * (狭い端末(360px幅)でも「ギャラリー」「アーカイブ済み」が折り返さない値)。
+ *
+ * 行の高さ(leading-4)も明示する。素の line-height 1.5 だと 16.5px になって全体が 32.5px になり、
+ * 読み込み中の骨格(h-8=32px)と 0.5px ずれて、実体に切り替わった瞬間に一覧が 1px 下がる。
  */
 export default function SegmentedButtons<K extends string>({
   options,
@@ -54,7 +57,7 @@ export default function SegmentedButtons<K extends string>({
             aria-pressed={role === "group" ? selected : undefined}
             title={option.title}
             onClick={() => onChange(option.key)}
-            className={`flex flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-md px-1.5 py-1.5 text-[0.6875rem] font-bold transition-colors ${
+            className={`flex flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-md px-1.5 py-1.5 text-[0.6875rem] leading-4 font-bold transition-colors ${
               selected ? selectedClassName : "text-default-500"
             }`}
           >

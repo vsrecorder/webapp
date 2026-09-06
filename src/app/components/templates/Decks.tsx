@@ -18,20 +18,39 @@ import DeckSegmentedControl from "@app/components/molecules/DeckSegmentedControl
 import DeckStatusToggle from "@app/components/molecules/DeckStatusToggle";
 import DeckViewToggle from "@app/components/molecules/DeckViewToggle";
 
+import { DecksInitialDataType } from "@app/types/deck";
+import {
+  DecksTab,
+  readDecksInitialTab,
+  writeDecksSelectedTab,
+} from "@app/utils/decksSelectedTab";
+
 const INITIAL_LOAD_STATE: DeckListLoadState = { isInitialLoaded: false, isEmpty: false, hasItems: false };
 
 type TabKey = "inuse" | "archived";
 
-const SELECTED_TAB_STORAGE_KEY = "decksSelectedTab";
-
 type Props = {
   userId: string;
+  // サーバで取った初期データ(initialTab のタブの1ページ目・きずな・戦績)。無ければクライアントで取る
+  initial?: DecksInitialDataType;
+  // サーバが cookie から読んだ選択中タブ。initial.decks はこのタブの一覧
+  initialTab?: DecksTab;
 };
 
-export default function TemplateDecks({ userId }: Props) {
+export default function TemplateDecks({ userId, initial, initialTab }: Props) {
   const [refreshKey, setRefreshKey] = useState(0);
-  // SSR と一致させるため初期値は "inuse" で固定し、クライアント側でのみ復元する。
-  const [selectedKey, setSelectedKey] = useState<"inuse" | "archived">("inuse");
+  // サーバ描画と同じタブから始める(cookie に無ければ利用中)。マウント後に再開フラグを見て決め直す
+  const serverTab: DecksTab = initialTab ?? "inuse";
+  /*
+   * サーバで取ったデッキの1ページ目(serverTab のタブ)。最初に表示する Decks にだけ渡す。
+   *
+   * タブの切り替えや登録で Decks が作り直されるときは渡さない。作り直す時点では
+   * アーカイブや削除で一覧が変わっている可能性があり、ページを開いた時点の値を
+   * 出し直すと消したはずのデッキが戻ってしまう。きずな・戦績はこの画面で変わらないので、
+   * 作り直しても同じ値を渡してよい。
+   */
+  const [initialDecks, setInitialDecks] = useState(initial?.decks ?? undefined);
+  const [selectedKey, setSelectedKey] = useState<TabKey>(serverTab);
   // 表示中の一覧(Decks)の読み込み状態。ヘッダー(状態切替・表示切替)の出し分けに使う。
   const [loadState, setLoadState] = useState<DeckListLoadState>(INITIAL_LOAD_STATE);
   // 利用中タブが空か（null=未判定）。デッキが1つも無い新規ユーザーの検出に使う。
@@ -59,17 +78,13 @@ export default function TemplateDecks({ userId }: Props) {
     release: releaseScreen,
   } = useScreenLockLoading();
 
-  // マウント後（クライアント専用）にタブを復元する。
+  // マウント後（クライアント専用）にタブを決め直す。
   // 遷移再開フラグ（reopenDeckModalArchived）が立っていればそちらを優先し、
-  // なければ sessionStorage に保存済みのタブを復元する。
+  // なければ cookie に保存済みのタブ(通常はサーバ描画と同じ)。
   useEffect(() => {
     const archivedFlag = sessionStorage.getItem("reopenDeckModalArchived");
-    if (archivedFlag === "1") {
-      setSelectedKey("archived");
-    } else {
-      const saved = sessionStorage.getItem(SELECTED_TAB_STORAGE_KEY);
-      if (saved === "archived") setSelectedKey("archived");
-    }
+    // 骨格(DeckListSkeleton)と同じ規則で決める(食い違うと骨格→実体でカードの高さが変わる)
+    setSelectedKey(readDecksInitialTab());
     // 再開対象のデッキがどちらのタブに属するかを控えておく。
     // 対象デッキが2ページ目以降にいる場合に、そのタブでだけ自動で追加読み込みさせる。
     if (sessionStorage.getItem("reopenDeckModalDeckId") !== null) {
@@ -80,17 +95,19 @@ export default function TemplateDecks({ userId }: Props) {
     sessionStorage.removeItem("reopenDeckModalArchived");
   }, [lockScreen]);
 
-  // 選択タブを sessionStorage に保存し、リロード後も復元できるようにする。
+  // 選択タブを cookie に保存し、リロード後はサーバ描画の時点から同じタブで描けるようにする。
   useEffect(() => {
-    sessionStorage.setItem(SELECTED_TAB_STORAGE_KEY, selectedKey);
+    writeDecksSelectedTab(selectedKey);
   }, [selectedKey]);
 
   const handleCreatedDeck = useCallback(() => {
+    setInitialDecks(undefined);
     setRefreshKey((prev) => prev + 1);
     setSelectedKey("inuse");
   }, []);
 
   const handleSelectionChange = (key: React.Key) => {
+    setInitialDecks(undefined);
     setSelectedKey(key as TabKey);
   };
 
@@ -222,6 +239,9 @@ export default function TemplateDecks({ userId }: Props) {
             key={`${selectedKey}-${refreshKey}`}
             userId={userId}
             isArchived={selectedKey === "archived"}
+            initialDecks={selectedKey === serverTab ? initialDecks : undefined}
+            initialKizuna={initial?.kizuna}
+            initialUsage={initial?.usage}
             onCreated={handleCreatedDeck}
             onLoadStateChange={handleLoadStateChange}
             header={header}

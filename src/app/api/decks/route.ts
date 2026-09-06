@@ -4,6 +4,7 @@ import { auth } from "@app/auth";
 
 import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/upstream";
 import { signUpstreamToken } from "@app/utils/upstreamToken";
+import { DECK_PAGE_LIMIT, toDeckPage } from "@app/utils/deckListPage";
 
 import {
   DeckGetResponseType,
@@ -16,8 +17,10 @@ async function getDecks(
   archived: boolean,
   cursor: string,
 ): Promise<DeckGetResponseType> {
-  return await fetchUpstream<DeckGetResponseType>(
-    upstreamUrl`/api/v1beta/decks?limit=10&archived=${archived}&cursor=${cursor}`,
+  // バックエンドは次ページの有無を返さないので、1件多く取ってはみ出しの有無で決める。
+  // クライアントが次ページを先読みして判定していた頃は、その往復ぶん初回表示が遅れていた
+  const fetched = await fetchUpstream<DeckGetResponseType>(
+    upstreamUrl`/api/v1beta/decks?limit=${DECK_PAGE_LIMIT + 1}&archived=${archived}&cursor=${cursor}`,
     {
       method: "GET",
       headers: {
@@ -26,6 +29,8 @@ async function getDecks(
       },
     },
   );
+
+  return toDeckPage(fetched);
 }
 
 export async function GET(request: NextRequest) {

@@ -7,13 +7,16 @@ import type { DeckCardView } from "@app/components/organisms/Deck/DeckCard";
 // 上段に★ボタンと登録日、コンテンツ行にスプライト2体・勝率リング・デッキ名/戦績＋きずなLv.・
 // きずなLv.の線＋段階名、その下にギャラリー表示と同じ開閉ボタンの骨格を並べる。
 //
-// 各行の高さは実物のカードを実測した値に合わせてある（幅390pxで★ボタンありは合計191px、
-// なしは171px）。骨格が1本でも欠けると、データが入った瞬間に行が伸びて一覧全体が飛ぶ。
+// 各行の高さは実物のカードを実測した値に合わせてある（幅390pxで★ボタンありは合計193px、
+// なしは173px。枠線1px×2を含む）。骨格が1本でも欠けると、データが入った瞬間に行が伸びて一覧全体が飛ぶ。
+// タグ行は含めない: タグは任意で付けるもので、付いていないデッキのほうが多い前提。
+// 実体側は1行に収めているので、付いていても差は 24px に留まる。
 export function DeckListRowSkeleton({
   withFavorite = false,
 }: { withFavorite?: boolean } = {}) {
   return (
-    <Card className="w-full">
+    // 実体はお気に入りの枠線(1px)で高さが変わらないよう常に枠線を持つ。骨格も同じにする
+    <Card className="w-full border border-transparent">
       <div className="flex flex-col gap-1.5 px-3 pt-3 pb-2">
         {/* 上段：左に★ボタン（36pxの丸）、右に登録日。
             ★ボタンが出るのは利用中のデッキだけで、そのとき上段は36pxになる。

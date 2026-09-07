@@ -30,8 +30,19 @@ function formatDate(date: Date | string): string {
 export default function CurrentEnvironment({ environment }: Props) {
   const [logoLoaded, setLogoLoaded] = useState(false);
 
-  // トリガー（ヘッダー内の文字列）は header 自体より背が低いため、既定のオフセットだと
-  // 吹き出しがヘッダーに潜り込んで矢印が隠れる。ヘッダー下端を抜ける量まで広げる。
+  // トリガー(button)は self-stretch でヘッダーの行の高さ(h-14=56px)いっぱいに広げる。
+  // 中身の文字は text-xs で行高 16px しかなく、以前はこれがそのまま当たり判定だった
+  // (ヘッダー 56px のうち縦 16px の帯だけが反応する状態。Playwright webkit の実測で
+  // 文字中心から上下 6px を外れるとタップが header の div に落ちて何も起きなかった)。
+  // 親指のタップは文字の上下に十数px ずれるのが普通なので、これが
+  // 「タップしても吹き出しが出ないことがある」の主因だった。行の高さ全体を
+  // 当たり判定にすれば、ヘッダーの文字付近のどこを押しても開く。
+  // 見た目は変えない(ボタンに背景は無く、active の不透明度変化は中身にだけ効く)。
+  //
+  // offset はトリガー下端(=ヘッダー下端)から矢印の分(+3)を除いて 10px。
+  // 以前は 16px のトリガーがヘッダー下端より 20px 上にあったため、ヘッダーに
+  // 潜り込まないよう 30px にしていた。トリガーがヘッダー下端まで届くようになったので
+  // 同じ 20px ぶんを差し引き、吹き出しの見た目の位置(ヘッダー下端から約 9px)は変えない。
   return (
     // 表示中は背面を操作させない。3つとも役割が違うので揃って必要:
     //   backdrop         … 全面を覆う層でタップ/クリックを受け止める（層タップで閉じる）
@@ -50,7 +61,7 @@ export default function CurrentEnvironment({ environment }: Props) {
     // overlay は isOpen=false で即アンマウントされ backdrop が残らないため、死に窓が消える。
     <Popover
       placement="bottom"
-      offset={30}
+      offset={10}
       showArrow
       backdrop="opaque"
       shouldBlockScroll
@@ -61,7 +72,7 @@ export default function CurrentEnvironment({ environment }: Props) {
         <button
           type="button"
           aria-label={`現在の対戦環境『${environment.title}』の詳細を表示`}
-          className="flex flex-1 items-center gap-1.5 min-w-0 mx-3 rounded-md transition-opacity active:opacity-60"
+          className="flex flex-1 self-stretch items-center gap-1.5 min-w-0 mx-3 rounded-md transition-opacity active:opacity-60"
         >
           <span
             className={`w-1.5 h-1.5 rounded-full ${getEnvDotColor(environment.to_date)} animate-pulse shrink-0`}

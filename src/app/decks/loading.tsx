@@ -25,33 +25,33 @@ export default async function Loading() {
 
   return (
     <DeckListViewProvider initialView={view}>
-    <div className="pt-12 w-full">
-      {/* マイデッキ｜みんなの公開デッキ(DeckSegmentedControl と同じ位置)。
+      <div className="pt-12 w-full">
+        {/* マイデッキ｜みんなの公開デッキ(DeckSegmentedControl と同じ位置)。
           利用中/アーカイブ済みは固定タブではなく、下の表示切替バーの中に入る */}
-      <FixedTabBarSkeleton
-        count={2}
-        positionClassName="light top-15 left-(--sidebar-width) right-0"
-        barClassName="bg-blue-100"
-      />
+        <FixedTabBarSkeleton
+          count={2}
+          positionClassName="light top-15 left-(--sidebar-width) right-0"
+          barClassName="bg-blue-100"
+        />
 
-      <div className="pt-2 lg:pb-6 lg:max-w-4xl lg:mx-auto">
-        {/* 実体(Decks)と同じ骨格で包む。space-y-3 と pb-3 まで揃えないと、
+        <div className="pt-2 lg:pb-6 lg:max-w-4xl lg:mx-auto">
+          {/* 実体(Decks)と同じ骨格で包む。space-y-3 と pb-3 まで揃えないと、
             実データに切り替わった瞬間に一覧全体が縦へずれる。 */}
-        <div className="flex flex-col items-center space-y-3 pb-3">
-          {/* リスト/ギャラリー表示の切り替えトグル。実体と同じ「固定バー＋空き枠」の
+          <div className="flex flex-col items-center space-y-3 pb-3">
+            {/* リスト/ギャラリー表示の切り替えトグル。実体と同じ「固定バー＋空き枠」の
               骨格(DeckViewToggleBar)を共有し、切り替え時にバーが跳ばないようにする。 */}
-          <DeckViewToggleBar>
-            <DeckViewToggleSkeleton />
-          </DeckViewToggleBar>
+            <DeckViewToggleBar>
+              <DeckViewToggleSkeleton />
+            </DeckViewToggleBar>
 
-          {/* デッキカード一覧（保存済みの表示モードとタブに追従） */}
-          <DeckListSkeleton initialTab={tab} />
+            {/* デッキカード一覧（保存済みの表示モードとタブに追従） */}
+            <DeckListSkeleton initialTab={tab} />
+          </div>
+
+          {/* 実ページと同じく、溢れたときだけ下部クリアランスを出す */}
+          <FloatingButtonClearance />
         </div>
-
-        {/* 実ページと同じく、溢れたときだけ下部クリアランスを出す */}
-        <FloatingButtonClearance />
       </div>
-    </div>
     </DeckListViewProvider>
   );
 }

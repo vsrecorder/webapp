@@ -746,7 +746,6 @@ export default function TemplateQuickRecordCreate({
                 errorMessage={`${MAX_OPPONENTS_DECK_INFO_LENGTH}文字以内で入力してください`}
                 // iOS はフォント16px未満の入力にフォーカスすると画面が拡大するため、
                 // 入力文字を16px(text-base)にしてズームを防ぐ(既存の対処と同じ流儀)。
-                classNames={{ input: "text-base" }}
               />
             </div>
 
@@ -952,7 +951,6 @@ export default function TemplateQuickRecordCreate({
                           isInvalid={isEventTitleTooLong}
                           errorMessage={`イベント名は${MAX_EVENT_TITLE_LENGTH}文字以内で入力してください`}
                           // iOSズーム対策(入力を16pxに)
-                          classNames={{ input: "text-base" }}
                         />
 
                         {eventTitleOfficialKeyword && (
@@ -982,7 +980,6 @@ export default function TemplateQuickRecordCreate({
                     value={yourPrizeCards}
                     onValueChange={(v) => setYourPrizeCards(Number.isNaN(v) ? 0 : v)}
                     // iOSズーム対策(入力を16pxに)
-                    classNames={{ input: "text-base" }}
                   />
                   <NumberInput
                     label="サイド(相手)"
@@ -992,7 +989,6 @@ export default function TemplateQuickRecordCreate({
                     value={opponentsPrizeCards}
                     onValueChange={(v) => setOpponentsPrizeCards(Number.isNaN(v) ? 0 : v)}
                     // iOSズーム対策(入力を16pxに)
-                    classNames={{ input: "text-base" }}
                   />
                 </div>
                 <Textarea
@@ -1002,7 +998,6 @@ export default function TemplateQuickRecordCreate({
                   value={memo}
                   onChange={(e) => setMemo(e.target.value)}
                   // iOSズーム対策(入力を16pxに)
-                  classNames={{ input: "text-base" }}
                 />
               </div>
             </AccordionItem>

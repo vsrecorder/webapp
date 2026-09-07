@@ -403,7 +403,7 @@ export default function PanelShareModal({
                     onFocus={(e) => scrollIntoViewAfterKeyboard(e.currentTarget)}
                     minRows={5}
                     maxRows={999}
-                    classNames={{ input: "text-sm overflow-hidden" }}
+                    classNames={{ input: "overflow-hidden" }}
                   />
                 </div>
 

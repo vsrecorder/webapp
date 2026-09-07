@@ -279,7 +279,6 @@ export default function SpritePickerPanel({
         isClearable
         onClear={() => setQuery("")}
         aria-label="ポケモンを検索"
-        classNames={{ input: "text-base" }}
       />
 
       {/* 候補エリア。取得失敗・読み込み中・0件・候補ありのどの状態でも高さが変わらないよう、

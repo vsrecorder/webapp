@@ -562,7 +562,6 @@ export default function EditEventInfoModal({
                             isInvalid={isEventTitleTooLong}
                             errorMessage={`イベント名は${MAX_EVENT_TITLE_LENGTH}文字以内で入力してください`}
                             // iOSズーム対策(入力を16pxに)
-                            classNames={{ input: "text-base" }}
                           />
 
                           {eventTitleOfficialKeyword && !isUpdating && (

@@ -430,3 +430,52 @@ body {
 [data-slot="wrapper"].fixed {
   translate: 0 var(--vv-offset-top, 0px);
 }
+
+/*
+ * iOS のフォーカス時オートズーム対策。
+ *
+ * iOS(Safari だけでなく iOS 上の全ブラウザ = WebKit)は、文字サイズが 16px 未満の
+ * 入力欄にフォーカスすると「読めるように」ページごと拡大する。この拡大は
+ * フォーカスを外しても自動では戻らず、以降は横スクロールが出たまま操作することに
+ * なるため体験を大きく損なう。
+ *
+ * 拡大させない手段は実質「入力欄の文字を 16px 以上にする」の一つだけである。
+ * viewport meta の maximum-scale=1 / user-scalable=no でも抑えられるが、
+ * ページ全体のピンチズームまで奪う(WCAG 1.4.4 に反する)ので採らない。
+ *
+ * HeroUI の Input / Textarea は size="sm" も "md" も input スロットが
+ * text-small(0.875rem = 14px)のため、既定のままだと全部が拡大の対象になる。
+ * これまでは使う側で classNames={{ input: "text-base" }} を足して回っていたが、
+ * 新しい入力欄を足すたびに漏れるので、ここで一括して底上げする。
+ *
+ * このルールはカスケードレイヤーの外にあるので、@layer utilities に入る
+ * Tailwind の text-* より常に優先される。個別に別サイズを当てたいときは
+ * !text-* (important) を使うこと。
+ *
+ * 1rem にしているのは、小型タブレット向けにルート文字サイズを 112.5% へ
+ * 上げている帯(上記メディアクエリ)でも入力欄だけ取り残されないようにするため。
+ * どちらの場合も 16px 以上なので拡大は起きない。
+ *
+ * 対象外:
+ *  - <select>: iOS はキーボードではなくピッカーを出すため拡大しない。
+ *    期間セレクタなど 12px 前提の小さなピルが崩れるので触らない。
+ *  - checkbox / radio / range / file: 文字を持たず、font-size は見た目にしか
+ *    影響しない(range のつまみ位置などが動くのを避ける)。
+ */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+textarea {
+  font-size: 1rem;
+}
+
+/*
+ * 同じくオートズーム対策の、HeroUI の DatePicker(DateInput)側。
+ *
+ * 日付の各セグメント(年/月/日)は <input> ではなく contenteditable な <div> で、
+ * iOS ではこれをタップしてもキーボードが出る = 16px 未満なら拡大される。
+ * セグメント自身ではなく、それらを束ねる input-field スロットに当てているのは、
+ * 編集できない区切りの「/」も一緒に揃えるため(セグメントだけ大きくすると
+ * 区切りだけ小さく残る)。input-field は HeroUI では date-input 専用のスロット。
+ */
+[data-slot="input-field"] {
+  font-size: 1rem;
+}

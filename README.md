@@ -134,6 +134,29 @@ npm test              # 一度だけ実行
 npm run test:watch    # 変更を監視して再実行
 ```
 
+## UI の決まり
+
+### 入力欄の文字サイズは 16px 以上
+
+iOS(Safari だけでなく iOS 上の全ブラウザ = WebKit)は、文字サイズが 16px 未満の入力欄に
+フォーカスするとページごと拡大する。拡大はフォーカスを外しても戻らず、以降は横スクロールが
+出たまま操作することになる。拡大させない手段は実質「入力欄の文字を 16px 以上にする」だけで、
+viewport の `maximum-scale=1` / `user-scalable=no` はページ全体のピンチズームまで奪う
+(WCAG 1.4.4 に反する)ため採らない。
+
+HeroUI の Input / Textarea は `size="sm"` も `"md"` も入力部が `text-small`(14px)、
+DatePicker の日付セグメント(contenteditable な div)も同じく 14px なので、既定のままでは
+すべて拡大の対象になる。個々の画面で `text-base` を足して回ると必ず漏れるため、
+`globals.css` の末尾で一括して底上げしている(カスケードレイヤーの外に置いてあるので、
+`@layer utilities` に入る Tailwind の `text-*` より常に優先される)。
+
+したがって新しい入力欄では**何も指定しなくてよい**。`classNames={{ input: "text-sm" }}` の
+ような指定で 16px を下回らせないこと。`src/app/utils/inputFontSize.test.ts` が
+「底上げが消えていないか」と「入力欄に 16px 未満のクラスを当てていないか」を機械的に見ている。
+
+`<select>` は対象外。iOS はキーボードではなくピッカーを出すため拡大せず、含めると
+期間セレクタなど 12px 前提の小さなピルが崩れる。
+
 ## Docker / デプロイ
 
 Docker イメージのビルドと Docker Compose によるデプロイに対応しています。

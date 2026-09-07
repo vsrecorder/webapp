@@ -880,7 +880,7 @@ export default function ShareRecordModal({
                     minRows={5}
                     // 内容を隠さない(＝テキストエリア内スクロールを発生させない)ための上限
                     maxRows={999}
-                    classNames={{ input: "text-sm overflow-hidden" }}
+                    classNames={{ input: "overflow-hidden" }}
                   />
                 </div>
 

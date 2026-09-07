@@ -503,7 +503,6 @@ export default function KizunaSimulator() {
               description={`${deckName.length} / ${DECK_NAME_MAX_LENGTH}文字（Enterで次へ）`}
               isClearable
               onClear={() => setDeckName("")}
-              classNames={{ input: "text-base" }}
             />
           </div>
         </fieldset>

@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Card, CardHeader, CardBody } from "@heroui/react";
-import { Image, Skeleton, Chip } from "@heroui/react";
+import { Skeleton, Chip } from "@heroui/react";
 
 import KizunaDeckSprites from "@app/components/molecules/KizunaDeckSprites";
 import KizunaHintPopover from "@app/components/molecules/KizunaHintPopover";
@@ -137,6 +137,7 @@ export default function DeckCard({
 
   // ギャラリー表示のヒーロー画像の読み込み状態
   const [heroImageLoaded, setHeroImageLoaded] = useState(false);
+  const heroImageRef = useRef<HTMLImageElement | null>(null);
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
@@ -175,8 +176,12 @@ export default function DeckCard({
   }, [enableShowDeckModal, deck?.id]);
 
   // 表示中のデッキコード（画像）が変わったらヒーロー画像の読み込み状態をリセットする。
+  // あわせて、その時点で既に読み込み済みかどうかも見る。画像がブラウザのキャッシュに
+  // あると React が onLoad を張る前に読み込みが終わっていることがあり、その場合
+  // load は二度と飛ばずスケルトンが乗ったまま残る（ZoomableDeckImage と同じ理由）。
   useEffect(() => {
-    setHeroImageLoaded(false);
+    const img = heroImageRef.current;
+    setHeroImageLoaded(!!img?.complete && img.naturalWidth > 0);
   }, [deckcode?.code]);
 
   if (!deck) {
@@ -571,9 +576,16 @@ export default function DeckCard({
                 画像の拡大表示はデッキ詳細モーダル内のデッキ画像から行える。 */
               <div className="relative block w-full aspect-2/1 bg-default-100">
                 {!heroImageLoaded && <Skeleton className="absolute inset-0" />}
-                <Image
-                  removeWrapper
-                  radius="none"
+                {/* HeroUI の <Image> は使わない。あちらは表示用の <img> とは別に
+                  detached な new Image() を作って読み込みを監視し、完了するまで
+                  表示用の <img> を opacity-0 で伏せる作りになっている。detached な
+                  要素の loading="lazy" は交差判定が永久に来ず読み込みが始まらないため、
+                  表示用の <img> が読み終わっても伏せられたままになる
+                  （実測: complete=true / naturalWidth>0 なのに opacity:0）。
+                  素の <img> なら表示と読み込み判定が同じ要素になり、この食い違いが起きない。 */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  ref={heroImageRef}
                   alt={deckcode.code}
                   src={deckImageUrl(deckcode.code)}
                   // 1枚 120KB(1024×512)あり、1ページ10件で 1.2MB になる。画面外の分は近づくまで取らず、

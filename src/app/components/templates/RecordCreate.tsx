@@ -380,16 +380,14 @@ function RegulationOption({
   setRegulationId: (value: number) => void;
 }) {
   return (
-    <>
-      <div className="flex flex-col gap-2">
-        <StepLabel num={4}>レギュレーション</StepLabel>
-      </div>
+    <div className="flex flex-col gap-1 pt-1">
+      <StepLabel num={4}>レギュレーション</StepLabel>
 
       <RegulationSegmentedControl
         regulationId={regulationId}
         onChange={setRegulationId}
       />
-    </>
+    </div>
   );
 }
 
@@ -412,10 +410,8 @@ function IgnoreStatsOption({
   setIgnoreStatsFlg: (value: boolean) => void;
 }) {
   return (
-    <>
-      <div className="flex flex-col gap-2">
-        <StepLabel num={5}>集計オプション</StepLabel>
-      </div>
+    <div className="flex flex-col gap-1 pt-1">
+      <StepLabel num={5}>集計オプション</StepLabel>
 
       <div
         className={`flex items-center justify-between gap-4 rounded-lg border px-3 py-2.5 transition-colors ${
@@ -461,7 +457,7 @@ function IgnoreStatsOption({
           aria-label="戦績集計から除外する"
         />
       </div>
-    </>
+    </div>
   );
 }
 
@@ -637,8 +633,15 @@ export default function TemplateRecordCreate({
   const [tonamelEventId, setTonamelEventId] = useState<string>("");
   const [tonamelEventTitle, setTonamelEventTitle] = useState<string>("");
   const [tonamelEventImage, setTonamelEventImage] = useState<string>("");
+  /*
+   * Tonamel のイベントIDが妥当かどうか。未入力は「無効」ではないので true から始める。
+   *
+   * false で始めると、サーバレンダリングされた HTML の時点で入力欄が赤くなり
+   * 「無効なイベントIDです」の行(24px)が入る。直後の useEffect が未入力を見て true に
+   * 戻すため、ハイドレーションが済んだ瞬間にその行が消えて下のブロックが跳ね上がる。
+   */
   const [isValidatedTonamelEventId, setIsValidatedTonamelEventId] =
-    useState<boolean>(false);
+    useState<boolean>(true);
   const [tonamelEventDate, setTonamelEventDate] = useState<CalendarDate>(
     today(JST_TIME_ZONE),
   );
@@ -1458,11 +1461,9 @@ export default function TemplateRecordCreate({
           <Tab key="official" title="公式イベント" isDisabled={false}>
             <div className="pt-9 pb-1.5 flex flex-col gap-2">
               <div className="flex flex-col gap-1 pt-1">
-                <div className="flex flex-col gap-2">
-                  <StepLabel num={1} required>
-                    開催日
-                  </StepLabel>
-                </div>
+                <StepLabel num={1} required>
+                  開催日
+                </StepLabel>
 
                 <DatePicker
                   name="record-create-official-event-date"
@@ -1482,11 +1483,9 @@ export default function TemplateRecordCreate({
               </div>
 
               <div className="flex flex-col gap-1 pt-1">
-                <div className="flex flex-col gap-2">
-                  <StepLabel num={2} required>
-                    イベント
-                  </StepLabel>
-                </div>
+                <StepLabel num={2} required>
+                  イベント
+                </StepLabel>
 
                 <WindowedSelect
                   theme={reactSelectTheme}
@@ -1670,10 +1669,8 @@ export default function TemplateRecordCreate({
                 </Card>
               </div>
 
-              <div className="flex flex-col gap-1 pt-1.5">
-                <div className="flex flex-col gap-2">
-                  <StepLabel num={3}>デッキ</StepLabel>
-                </div>
+              <div className="flex flex-col gap-1 pt-1">
+                <StepLabel num={3}>デッキ</StepLabel>
 
                 <div ref={deckSelectRef}>
                   <Select
@@ -1946,11 +1943,9 @@ export default function TemplateRecordCreate({
           <Tab key="tonamel" title="Tonamel" isDisabled={false}>
             <div className="pt-9 pb-1.5 flex flex-col gap-2">
               <div className="flex flex-col gap-1 pt-1">
-                <div className="flex flex-col gap-2">
-                  <StepLabel num={1} required>
-                    開催日
-                  </StepLabel>
-                </div>
+                <StepLabel num={1} required>
+                  開催日
+                </StepLabel>
 
                 <DatePicker
                   name="record-create-tonamel-event-date"
@@ -1969,16 +1964,15 @@ export default function TemplateRecordCreate({
               </div>
 
               <div className="flex flex-col gap-1 pt-1">
-                <div className="flex flex-col gap-2">
-                  <StepLabel num={2} required>
-                    イベントID
-                  </StepLabel>
-                </div>
+                <StepLabel num={2} required>
+                  イベントID
+                </StepLabel>
 
                 <Input
                   isRequired
                   type="text"
-                  placeholder="例) YFUVY"
+                  radius="none"
+                  placeholder="例）YFUVY"
                   isInvalid={!isValidatedTonamelEventId}
                   errorMessage="無効なイベントIDです"
                   value={tonamelEventId}
@@ -2010,16 +2004,13 @@ export default function TemplateRecordCreate({
                           ? tonamelEventImage
                           : "https://tonamel.com/nuxt/6421c0babd-048e71d12e-3c73406b87-f5f712130f/_nuxt/assets/images/figures/logo/cover.3df31ff29b40f8d4032c417f126b9713.jpg"
                       }
-                      onLoad={() => {}}
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="flex flex-col gap-1">
-                <div className="flex flex-col gap-2">
-                  <StepLabel num={3}>デッキ</StepLabel>
-                </div>
+              <div className="flex flex-col gap-1 pt-1">
+                <StepLabel num={3}>デッキ</StepLabel>
 
                 <div ref={deckSelectRef}>
                   <Select
@@ -2294,11 +2285,9 @@ export default function TemplateRecordCreate({
           <Tab key="unofficial" title="自由形式" isDisabled={false}>
             <div className="pt-9 pb-1.5 flex flex-col gap-2">
               <div className="flex flex-col gap-1 pt-1">
-                <div className="flex flex-col gap-2">
-                  <StepLabel num={1} required>
-                    開催日
-                  </StepLabel>
-                </div>
+                <StepLabel num={1} required>
+                  開催日
+                </StepLabel>
 
                 <DatePicker
                   name="record-create-unofficial-event-date"
@@ -2317,11 +2306,9 @@ export default function TemplateRecordCreate({
               </div>
 
               <div className="flex flex-col gap-1 pt-1">
-                <div className="flex flex-col gap-2">
-                  <StepLabel num={2} required>
-                    イベント名など
-                  </StepLabel>
-                </div>
+                <StepLabel num={2} required>
+                  イベント名など
+                </StepLabel>
 
                 <Input
                   isRequired
@@ -2346,10 +2333,8 @@ export default function TemplateRecordCreate({
                 )}
               </div>
 
-              <div className="flex flex-col gap-1 pt-1.5">
-                <div className="flex flex-col gap-2">
-                  <StepLabel num={3}>デッキ</StepLabel>
-                </div>
+              <div className="flex flex-col gap-1 pt-1">
+                <StepLabel num={3}>デッキ</StepLabel>
 
                 <div ref={deckSelectRef}>
                   <Select

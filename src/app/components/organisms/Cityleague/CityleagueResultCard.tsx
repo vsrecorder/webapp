@@ -2,10 +2,9 @@
 
 import { useSession } from "next-auth/react";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { Card, CardHeader, CardBody } from "@heroui/react";
-import { Image } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
 import { Button } from "@heroui/react";
 import { Link } from "@heroui/react";
@@ -72,13 +71,52 @@ const CreateDeckModal = createLazyModal(
   () => import("@app/components/organisms/Deck/Modal/CreateDeckModal"),
 );
 
+// デッキコードを持たない結果で出す「空のデッキ台紙」。公式のデッキ画像URLは deckID が
+// 空でもデッキ画像と同じ寸法(1024×512)の台紙を返すので、それをそのまま置く。
+const NO_DECK_CODE_IMAGE_URL = "https://www.pokemon-card.com/deck/deckView.php/deckID/";
+
+/*
+ * デッキコードなしのときのデッキ画像。枠と読み込み中の見せ方は、デッキコードがあるときに
+ * 使う ZoomableDeckImage に揃えてある。
+ *
+ * HeroUI の <Image> は使わない。あちらは表示用の <img> とは別に detached な new Image() を
+ * 作って読み込みを監視し、完了するまで表示用の <img> を opacity-0 で伏せる作りになっている。
+ * detached な要素の loading="lazy" は交差判定が永久に来ず読み込みが始まらないため、
+ * 表示用の <img> が読み終わっても伏せられたままスケルトンが残り続ける。
+ */
+function NoDeckCodeImage() {
+  const [loaded, setLoaded] = useState(false);
+
+  /*
+   * 画像がブラウザのキャッシュにあると、React が onLoad を張る前に読み込みが終わってしまい、
+   * その後 load が飛ばないことがある。要素が挿さった時点で読み込み済みかどうかも見る。
+   */
+  const imageRef = useCallback((img: HTMLImageElement | null) => {
+    if (img?.complete && img.naturalWidth > 0) setLoaded(true);
+  }, []);
+
+  return (
+    <div className="relative w-full aspect-2/1">
+      {!loaded && <Skeleton className="absolute inset-0 rounded-lg" />}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        ref={imageRef}
+        alt="デッキコードなし"
+        src={NO_DECK_CODE_IMAGE_URL}
+        loading="lazy"
+        onLoad={() => setLoaded(true)}
+        className="h-full w-full rounded-md object-cover"
+      />
+    </div>
+  );
+}
+
 export default function CityleagueResultCard({
   result,
   showRankLabel = true,
   deckSummary,
 }: Props) {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
-  const [imageLoaded, setImageLoaded] = useState(false);
 
   const {
     isOpen: isOpenForCreateDeckModal,
@@ -294,20 +332,7 @@ export default function CityleagueResultCard({
                 )}
               </>
             ) : (
-              <div className="relative w-full aspect-2/1">
-                {!imageLoaded && (
-                  <Skeleton className="absolute inset-0 rounded-lg" />
-                )}
-                <Image
-                  radius="sm"
-                  shadow="none"
-                  loading="lazy"
-                  alt="デッキコードなし"
-                  src={"https://www.pokemon-card.com/deck/deckView.php/deckID/"}
-                  className=""
-                  onLoad={() => setImageLoaded(true)}
-                />
-              </div>
+              <NoDeckCodeImage />
             )}
           </CardBody>
         </Card>
@@ -389,22 +414,7 @@ export default function CityleagueResultCard({
                             </div>
                           </>
                         ) : (
-                          <div className="relative w-full aspect-2/1">
-                            {!imageLoaded && (
-                              <Skeleton className="absolute inset-0 rounded-lg" />
-                            )}
-                            <Image
-                              radius="sm"
-                              shadow="none"
-                              loading="lazy"
-                              alt="デッキコードなし"
-                              src={
-                                "https://www.pokemon-card.com/deck/deckView.php/deckID/"
-                              }
-                              className=""
-                              onLoad={() => setImageLoaded(true)}
-                            />
-                          </div>
+                          <NoDeckCodeImage />
                         )}
                       </div>
                     </BoardPanel>

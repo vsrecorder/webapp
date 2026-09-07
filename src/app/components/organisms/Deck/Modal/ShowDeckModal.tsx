@@ -31,12 +31,14 @@ import DeckCodePostPublishRow from "@app/components/organisms/DeckCodePost/DeckC
 import { useKizunaLevel } from "@app/hooks/useKizunaLevels";
 import KizunaDeckSprites from "@app/components/molecules/KizunaDeckSprites";
 import { useDeckCodes } from "@app/hooks/useDeckCodes";
+import { useDeckActivePosts } from "@app/hooks/useDeckActivePosts";
 
 import { LuExternalLink } from "react-icons/lu";
 import { LuFolderInput } from "react-icons/lu";
 import { LuFolderOutput } from "react-icons/lu";
 import { LuFileText } from "react-icons/lu";
 import { LuLayers } from "react-icons/lu";
+import { LuUsers } from "react-icons/lu";
 import { LuBookPlus } from "react-icons/lu";
 import { LuTrash2 } from "react-icons/lu";
 import { LuFilePen } from "react-icons/lu";
@@ -215,6 +217,15 @@ export default function ShowDeckModal({
   const { deckcodes } = useDeckCodes(deck?.id, deckcode?.id);
   const versionCount = deckcodes?.length ?? null;
 
+  // みんなの公開デッキに載っているバージョンの数。バージョン履歴のボタンに印を出す。
+  // 運営により非表示のものは「公開中」と言えないので数えない(履歴の各行で分かる)。
+  // 公開スイッチ(DeckCodePostPublishRow)と同じ SWR キャッシュなので取得は増えず、
+  // 履歴側で公開・取り下げすればこの数も揃う。
+  const { byDeckCodeId: activePostsByDeckCodeId } = useDeckActivePosts(deck?.id);
+  const publishedCount = Array.from(activePostsByDeckCodeId.values()).filter(
+    (post) => !post.hidden,
+  ).length;
+
   // 新バージョン作成時のベース（差分・プレースホルダの基準）にするバージョン。
   // 「バージョン履歴」の各バージョンから作成する場合に、そのバージョンを基準にする。
   // 未指定(null)のときは現在表示中の最新バージョン(deckcode)を基準にする。
@@ -347,9 +358,20 @@ export default function ShowDeckModal({
                       >
                         <LuLayers className="text-base shrink-0" />
                         <span className="font-bold text-small">バージョン履歴</span>
-                        <span className="ml-auto bg-white/15 rounded-full px-2 py-0.5 text-tiny font-bold shrink-0">
-                          {versionCount ?? "…"}件
-                        </span>
+                        <div className="ml-auto flex shrink-0 items-center gap-1">
+                          {/* みんなの公開デッキに載せているバージョンがあることの印。
+                              どのバージョンかは履歴を開けば各行の公開スイッチで分かる */}
+                          {publishedCount > 0 && (
+                            <span className="flex items-center gap-0.5 bg-white text-primary rounded-full px-2 py-0.5 text-tiny font-bold">
+                              <LuUsers className="text-[0.6875rem]" />
+                              {publishedCount}
+                              <span className="sr-only">件を公開中</span>
+                            </span>
+                          )}
+                          <span className="bg-white/15 rounded-full px-2 py-0.5 text-tiny font-bold">
+                            {versionCount ?? "…"}件
+                          </span>
+                        </div>
                       </button>
 
                       {isArchived ? (

@@ -56,16 +56,20 @@ export default function RegulationSegmentedControl({
              * 高さを決め打ちしないぶん、行の高さ(leading-4)と枠(border)は明示する。
              *
              * ・leading を省くと text-[0.6875rem] の行が 16.5px になり、骨格と 0.5px ずれる。
-             * ・枠を持たない要素には globals.css の `.dark .bg-content1` が 1px の枠を足すため、
-             *   選択中のセグメントだけダークで 2px 高くなっていた(格子は伸びる方に揃うので
-             *   コントロール全体が 42.5px → 44.5px に変わる)。透明な枠を常に持たせて場所を
-             *   先に確保し、ダークの枠線はここで明示する。
+             * ・`border-transparent` は見た目のためではなく、globals.css の
+             *   `.dark .bg-content1:not([class*="border"])` から外れるために要る。この規則は
+             *   カード用の補助枠だが、選択色に bg-content1 を使うこのセグメントにも当たり、
+             *   ダークのときだけ選択中の1つが 1px の枠ぶん高くなっていた(格子は高い方に
+             *   揃うのでコントロール全体が 42.5px → 44.5px に変わる)。
+             *   なお枠が出ていたのはカードの外に置いたときだけで、カードの中では
+             *   入れ子用の `border: none` が効いて出ていなかった(=大半の画面では枠なし)。
+             *   透明な枠に統一して、置き場所とテーマによらず 34px にする。
              */
             className={`flex items-center justify-center whitespace-nowrap rounded-lg border border-transparent py-2 font-bold leading-4 transition-colors ${
               isCompact ? "px-1 text-[0.6875rem]" : "px-2 text-xs"
             } ${
               selected
-                ? "bg-content1 text-primary shadow-sm dark:border-white/30"
+                ? "bg-content1 text-primary shadow-sm"
                 : "text-default-500 hover:text-default-700"
             }`}
           >

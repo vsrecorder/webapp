@@ -55,6 +55,8 @@ type Props = {
   ignoreStatsFlg?: boolean;
   // レギュレーション(regulations テーブルのID)。全ての記録でチップを表示する
   regulationId: number;
+  // カード背景に敷くレイヤー(Tonamelイベント画像など)。任意
+  bgMedia?: React.ReactNode;
 };
 
 /*
@@ -85,6 +87,7 @@ export default function RecordCardBase({
   loadingMatches,
   ignoreStatsFlg,
   regulationId,
+  bgMedia,
 }: Props) {
   const regulation = regulationDisplay(regulationId);
 
@@ -122,6 +125,9 @@ export default function RecordCardBase({
         shadow="none"
         className="relative border border-divider overflow-hidden hover:border-primary/50 transition-colors duration-200"
       >
+        {/* イベント画像の背景レイヤー(Tonamel)。中身(CardBody)は relative で前面に置く */}
+        {bgMedia}
+
         {/* カード右上のバッジ群(チーム戦/BO3)。対戦結果の集計後に確定するものを横並びで表示。
             右端は勝敗マーク(デッキ行の px-4)と同じ 16px ガターに揃える */}
         {(hasGroupMatch || hasBo3) && (
@@ -141,7 +147,7 @@ export default function RecordCardBase({
           </div>
         )}
 
-        <CardBody className="p-0">
+        <CardBody className="relative p-0">
           <div className="flex">
             {/* イベント種別/ブランドごとの左アクセントバー */}
             <div className={`w-1 shrink-0 ${accentColorClass}`} />

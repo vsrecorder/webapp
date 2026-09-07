@@ -4,6 +4,7 @@ import { Chip } from "@heroui/react";
 
 import FetchError from "@app/components/molecules/FetchError";
 import RecordCardBase from "@app/components/organisms/Record/RecordCardBase";
+import TonamelCardBg from "@app/components/organisms/Record/TonamelCardBg";
 import { RecordCardSkeleton } from "@app/components/organisms/Record/Skeleton/RecordCardSkeleton";
 import {
   RecordCardProps,
@@ -71,6 +72,7 @@ export default function TonamelEventRecord(props: RecordCardProps) {
         cardId={`record-card-${recordData.data.id}`}
         onClick={disclosure.onOpen}
         accentColorClass="bg-orange-500"
+        bgMedia={<TonamelCardBg image={tonamelEvent.image} />}
         date={date}
         title={tonamelEvent.title}
         loadingTitle={false}

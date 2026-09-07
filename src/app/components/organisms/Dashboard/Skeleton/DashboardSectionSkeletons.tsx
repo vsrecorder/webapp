@@ -239,7 +239,10 @@ export default function DashboardBlockSkeleton({ id, isDevEnv = false }: Props):
       return (
         <Section>
           <SectionHeading label="最近の記録" action="すべて見る" />
-          <RecordCardSkeletons desktopColumns={3} />
+          {/* 外枠は Records の一覧グリッド(desktopColumns=3)と同じ指定 */}
+          <div className="grid grid-cols-1 w-full gap-3 lg:grid-cols-2 xl:grid-cols-3 lg:gap-x-6">
+            <RecordCardSkeletons desktopColumns={3} />
+          </div>
         </Section>
       );
   }

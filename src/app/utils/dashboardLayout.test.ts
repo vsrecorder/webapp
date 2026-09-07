@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   DEFAULT_DASHBOARD_LAYOUT,
+  initialSectionStateFromLayout,
   isDashboardBlockId,
+  sectionIdOfBlock,
   parseDashboardLayout,
   serializeDashboardLayout,
   splitDashboardLayout,
@@ -119,5 +121,45 @@ describe("DEFAULT_DASHBOARD_LAYOUT", () => {
     expect(DEFAULT_DASHBOARD_LAYOUT).not.toContain("designation_linked");
     expect(DEFAULT_DASHBOARD_LAYOUT).toContain("environment_meta");
     expect(DEFAULT_DASHBOARD_LAYOUT).not.toContain("environment_meta_window");
+  });
+});
+
+describe("sectionIdOfBlock", () => {
+  it("中身が2種類ある節だけ設定のキーへ戻す", () => {
+    expect(sectionIdOfBlock("environment_meta_window")).toBe("environment_meta");
+    expect(sectionIdOfBlock("designation_linked")).toBe("designation");
+    expect(sectionIdOfBlock("streak")).toBe("streak");
+  });
+});
+
+describe("initialSectionStateFromLayout", () => {
+  const sectionIds = ["onboarding_badges", "streak", "designation", "environment_meta", "calendar"];
+
+  it("cookie が無ければ null(骨格で繋ぐ)", () => {
+    expect(initialSectionStateFromLayout(undefined, sectionIds)).toBeNull();
+    expect(initialSectionStateFromLayout([], sectionIds)).toBeNull();
+  });
+
+  it("cookie の順序を order にし、cookie に無い節は末尾に置いて非表示で始める", () => {
+    const state = initialSectionStateFromLayout(
+      ["calendar", "designation_linked", "streak"],
+      sectionIds,
+    );
+
+    expect(state).toEqual({
+      order: ["calendar", "designation", "streak", "onboarding_badges", "environment_meta"],
+      hidden: ["onboarding_badges", "environment_meta"],
+    });
+  });
+
+  // 今回サーバが描かない節(開催日以外のシティリーグなど)や pinned のブロックは無視する
+  it("今回の節に無いIDは無視する", () => {
+    const state = initialSectionStateFromLayout(
+      ["profile", "cityleague", "streak", "recent_records"],
+      sectionIds,
+    );
+
+    expect(state?.order[0]).toBe("streak");
+    expect(state?.hidden).toEqual(["onboarding_badges", "designation", "environment_meta", "calendar"]);
   });
 });

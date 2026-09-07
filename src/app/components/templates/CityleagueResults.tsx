@@ -9,7 +9,6 @@ import ScrollUpFloating from "@app/components/atoms/Floating/ScrollUpFloating";
 import CityleagueResults from "@app/components/organisms/Cityleague/CityleagueResults";
 
 import {
-  CITYLEAGUE_TABS,
   CityleagueTab,
   DEFAULT_CITYLEAGUE_TAB,
   cityleagueTabToLeagueType,
@@ -81,6 +80,19 @@ export default function TemplateCityleagueResults({
     setMountedTabs((prev) => (prev.has(tab) ? prev : new Set(prev).add(tab)));
   };
 
+  // 一覧の本体。マウント済みのタブだけを出し、選択されていないものは hidden で残す。
+  // 3つで固定なので、配列にせず並べて置く。
+  const renderTab = (tab: CityleagueTab) =>
+    mountedTabs.has(tab) ? (
+      <div className="w-full" hidden={selectedKey !== tab}>
+        <CityleagueResults
+          league_type={cityleagueTabToLeagueType(tab)}
+          initial={tab === initialTab ? initial : undefined}
+          scheduleContext={initial}
+        />
+      </div>
+    ) : null;
+
   // タブ切り替え後にスクロール復元
   useEffect(() => {
     window.scrollTo({
@@ -113,13 +125,13 @@ export default function TemplateCityleagueResults({
             tabList: "",
             tabContent: "font-bold",
           }}
+          /*
+            HeroUI(React Aria)の Tabs は children をコレクションとして読み、<Tab> を
+            そのままは描画しない。そのため開発時に「Each child in a list should have a
+            unique key prop」が出るが、これはこの改修より前から出ているもので
+            (改修前の HEAD を dev で動かして同じ警告を確認済み)、map をやめても消えない。
+          */
         >
-          {/*
-            HeroUI(React Aria)の Tabs は children をコレクションとして読むため、
-            map で組み立てると key を item のキーとして拾えず
-            「Each child in a list should have a unique key prop」になる。
-            3つで固定なのでそのまま並べる。
-          */}
           <Tab key="league_type_1" title={TAB_TITLES.league_type_1} />
           <Tab key="league_type_3" title={TAB_TITLES.league_type_3} />
           <Tab key="league_type_2" title={TAB_TITLES.league_type_2} />
@@ -128,17 +140,9 @@ export default function TemplateCityleagueResults({
 
       {browseSection}
 
-      {CITYLEAGUE_TABS.map((tab) =>
-        mountedTabs.has(tab) ? (
-          <div key={tab} className="w-full" hidden={selectedKey !== tab}>
-            <CityleagueResults
-              league_type={cityleagueTabToLeagueType(tab)}
-              initial={tab === initialTab ? initial : undefined}
-              scheduleContext={initial}
-            />
-          </div>
-        ) : null,
-      )}
+      {renderTab("league_type_1")}
+      {renderTab("league_type_3")}
+      {renderTab("league_type_2")}
 
       {latestSection}
     </>

@@ -11,10 +11,10 @@ import MyGymEventDetailModal from "@app/components/organisms/MyGym/MyGymEventDet
 import MyGymShopRow from "@app/components/organisms/MyGym/MyGymShopRow";
 import {
   getEventTimeRange,
-  getMyGymEventRange,
   groupEventsByDate,
   MY_GYM_EVENT_RANGE_DAYS,
 } from "@app/components/organisms/MyGym/myGymHelpers";
+import { MyGymEventRange, getMyGymEventRange } from "@app/utils/myGymEventRange";
 import {
   cleanOfficialEventTitle,
   getEventAccentColor,
@@ -117,11 +117,18 @@ function MyGymEventRow({
   );
 }
 
-export default function MyGymPanel() {
+type Props = {
+  // サーバ描画(dashboardServer)で取った値。あればこれを出し、取りに行かない
+  initialEvents?: UserGymOfficialEventGetResponseType;
+  // その期間。初期値があるときはこの期間で描く(自分で決め直すと日付境界でずれて初期値が無駄になる)
+  initialRange?: MyGymEventRange;
+};
+
+export default function MyGymPanel({ initialEvents, initialRange }: Props) {
   // 期間は描画のたびに作り直すとキーが変わって再取得が走るため、初回に1度だけ決める。
   // 日付が変わっても再マウントまで前日の範囲を使うが、開始日は「今日」なので
   // 表示されるのは常に未来のイベントで、実害は末尾が1日短くなることだけ。
-  const [{ startDate, endDate }] = useState(getMyGymEventRange);
+  const [{ startDate, endDate }] = useState(() => initialRange ?? getMyGymEventRange());
   // 登録店舗の一覧は既定で畳んでおく。日々見たいのは予定の方で、
   // 「どこを登録しているか」は畳んだ見出しの件数で足りることが多い。
   const [gymsExpanded, setGymsExpanded] = useState(false);
@@ -143,6 +150,12 @@ export default function MyGymPanel() {
   const { data, isLoading, mutate } = useSWR<UserGymOfficialEventGetResponseType>(
     `/api/users/my_gyms/official_events?start_date=${startDate}&end_date=${endDate}`,
     fetcher,
+    {
+      // サーバで取れていればそれを出し、マウント時には取り直さない(他のパネルと同じ扱い)。
+      // 店舗の登録・解除(MyGymEditModal)は mutate() で取り直すので、その経路は変わらない
+      fallbackData: initialEvents,
+      revalidateOnMount: initialEvents == null,
+    },
   );
 
   const events = useMemo(() => data?.official_events ?? [], [data]);

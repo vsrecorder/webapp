@@ -155,3 +155,47 @@ export function splitDashboardLayout(ids: readonly DashboardBlockId[]): {
 
   return { pinned, sections, trailing };
 }
+
+/*
+ * 骨格用のブロックIDから、DashboardSections の節のID(並べ替え・非表示設定のキー)へ戻す。
+ * 中身が2種類ある節だけIDを分けている(DashboardSection.skeletonId 参照)。
+ */
+export function sectionIdOfBlock(block: DashboardBlockId): string {
+  if (block === "environment_meta_window") return "environment_meta";
+  if (block === "designation_linked") return "designation";
+  return block;
+}
+
+/*
+ * 前回描いた並び(cookie)から、DashboardSections の初期状態(order / hidden)を作る。
+ *
+ * 表示設定は localStorage にあってサーバでは読めないため、以前はハイドレーション後に
+ * 読み終わるまで節の本体を描かず骨格で繋いでいた。本番ビルド・CPU 4x の実測(2026-09-08)では、
+ * ホームの本体がハイドレーションを終えて骨格が実体に置き換わるのが 6.8 秒で、これが
+ * 「ホームが開くまで」の大半だった。cookie に前回の並びがあれば、それを初期状態にして
+ * サーバ描画の時点から実体を出す(localStorage と食い違うのは別端末で設定を変えた場合などに限られ、
+ * その場合も読み終えた時点で並び直る)。
+ *
+ * cookie に無い節は非表示扱いで始める(前回描いていないので、非表示設定か自動非表示のどちらか)。
+ * 今回サーバが描かない節(開催日以外のシティリーグなど)は sectionIds に無いので無視する。
+ * cookie が無ければ null(従来どおり骨格で繋ぐ)。
+ */
+export function initialSectionStateFromLayout(
+  blocks: readonly DashboardBlockId[] | undefined,
+  sectionIds: readonly string[],
+): { order: string[]; hidden: string[] } | null {
+  if (!blocks || blocks.length === 0) return null;
+
+  const known = new Set(sectionIds);
+  const order: string[] = [];
+
+  for (const block of blocks) {
+    const id = sectionIdOfBlock(block);
+    if (known.has(id) && !order.includes(id)) order.push(id);
+  }
+
+  // 前回描いていない節は末尾に置いて非表示で始める
+  const missing = sectionIds.filter((id) => !order.includes(id));
+
+  return { order: [...order, ...missing], hidden: missing };
+}

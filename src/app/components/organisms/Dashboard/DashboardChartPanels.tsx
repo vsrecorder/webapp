@@ -3,6 +3,7 @@
 import { ComponentType, useEffect, useRef, useState } from "react";
 
 import ChartPanelFallback from "@app/components/organisms/Dashboard/ChartPanelFallback";
+import { DEFER_ROOT_MARGIN } from "@app/components/organisms/Dashboard/DeferUntilVisible";
 
 /*
  * chart.js を抱えるパネルを初期JSから切り離すためのラッパー。
@@ -27,8 +28,8 @@ import ChartPanelFallback from "@app/components/organisms/Dashboard/ChartPanelFa
 // 画面に入るどれくらい手前でマウントを始めるか。
 // プレースホルダと実体の高さは完全には一致しない（実体の高さはデータ量で変わる）ため、
 // 画面内で差し替わるとその差のぶんだけ下の内容がずれる。モバイルの画面高（約840px）に近い距離を
-// 先読みして、差し替えを画面外で終わらせる。
-const ROOT_MARGIN = "600px";
+// 先読みして、差し替えを画面外で終わらせる。マウントだけを遅らせる DeferUntilVisible と同じ値
+const ROOT_MARGIN = DEFER_ROOT_MARGIN;
 
 /*
  * 読み込みは next/dynamic ではなく自前で持つ。dynamic(ssr:false) の中身は

@@ -55,7 +55,11 @@ export default function CityleagueEventCard({ event, results }: Props) {
                 </ModalHeader>
                 <ModalBody className="px-1.5">
                   {/* このカード自身が event を持っているので、モーダル内での再取得を省く */}
-                  <CityleagueResult event_result={matchedResult} official_event={event} />
+                  <CityleagueResult
+                    event_result={matchedResult}
+                    official_event={event}
+                    eagerAllSlides
+                  />
                 </ModalBody>
               </>
             )}

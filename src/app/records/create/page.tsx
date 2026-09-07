@@ -8,6 +8,7 @@ import { DeckGetAllType } from "@app/types/deck";
 import { todayJSTDateString } from "@app/utils/date";
 import { upstreamUrl } from "@app/utils/upstream";
 import { signUpstreamToken } from "@app/utils/upstreamToken";
+import { toRecordCreateOfficialEvent } from "@app/types/official_event";
 import { toOfficialEventDateKey } from "@app/utils/officialEventList";
 import { getOfficialEventList } from "@app/utils/officialEventListServer";
 import {
@@ -117,7 +118,8 @@ export default async function Page({ searchParams }: Props) {
   const [officialEvents, decks] = await Promise.all([
     tab === "official"
       ? getOfficialEventList("", "", officialEventDate)
-          .then((res) => res.official_events)
+          // フォームが使うフィールドだけを HTML に載せる(RecordCreateOfficialEventType 参照)
+          .then((res) => res.official_events.map(toRecordCreateOfficialEvent))
           .catch(() => null)
       : null,
     getDecks(session.user.id).catch(() => null),

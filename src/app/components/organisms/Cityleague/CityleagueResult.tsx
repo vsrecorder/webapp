@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import NextLink from "next/link";
 
@@ -59,9 +59,32 @@ type Props = {
    * CityleagueResults 側が日単位の一覧APIでまとめて取得して配ってくる。
    */
   official_event?: OfficialEventListItemType;
+  /*
+   * 入賞スライドを最初から全部描くか。
+   *
+   * 一覧では画面に近づくまで2位以下を描かない(下の showAllSlides)。一方モーダルのように
+   * 「開いた時点で見るために出すもの」では待つ意味が無く、ページネーションの点の数が
+   * 開いた直後に 1 個から 8 個へ変わって見えてしまう。そこでは最初から全部描く。
+   */
+  eagerAllSlides?: boolean;
 };
 
-export default function CityleagueResult({ event_result, official_event }: Props) {
+/*
+ * 入賞カードのうち、最初から描くのは何枚か。
+ *
+ * Swiper は1枚目(優勝)しか画面に映さないので、初期表示に要るのはここまで。
+ */
+const EAGER_SLIDE_COUNT = 1;
+
+// 何ピクセル手前で残りのスライドを用意し始めるか。スクロールで近づいてから
+// 描き始めても間に合うよう、画面の高さ程度は先回りする。
+const SLIDE_PRELOAD_MARGIN = "600px";
+
+export default function CityleagueResult({
+  event_result,
+  official_event,
+  eagerAllSlides = false,
+}: Props) {
   const [fetchedEvent, setFetchedEvent] = useState<OfficialEventGetByIdResponseType | null>(null);
   const [loading, setLoading] = useState(!official_event);
   const [error, setError] = useState(false);
@@ -95,6 +118,48 @@ export default function CityleagueResult({ event_result, official_event }: Props
 
   const event = official_event ?? fetchedEvent;
 
+  /*
+   * 2位以下のスライドを描くかどうか。カードが画面に近づいてから true にする。
+   *
+   * 1イベントに最大8人分の入賞カードが入り、1日ぶんの一覧では 21×8=168 枚になる。
+   * 全部を最初から描くと DOM が 5,072 ノードに膨らみ、ハイドレーションが終わって
+   * 操作できるようになるまで 3.9 秒かかっていた(本番ビルド・CPU4倍の実測)。
+   * 最初に見えるのは各カードの優勝ぶん1枚だけなので、残りは近づいてから足す
+   * (実測: ハイドレーション完了 3.9秒 → 1.6秒、DOM 5,072 → 2,257、HTML 987KB → 529KB)。
+   *
+   * 初期値は呼び出し側と揃うので(サーバ・ブラウザとも eagerAllSlides)、
+   * ハイドレーションの不一致は起きない。
+   */
+  const [showAllSlides, setShowAllSlides] = useState(eagerAllSlides);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (showAllSlides) return;
+
+    const el = cardRef.current;
+    if (!el) return;
+
+    // 対応していない環境では出し惜しみせず全部描く(表示が欠けるより遅い方がまし)
+    if (typeof IntersectionObserver === "undefined") {
+      setShowAllSlides(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return;
+
+        setShowAllSlides(true);
+        observer.disconnect();
+      },
+      { rootMargin: SLIDE_PRELOAD_MARGIN },
+    );
+
+    observer.observe(el);
+
+    return () => observer.disconnect();
+  }, [showAllSlides]);
+
   const isNew = (date: Date) => {
     const now = new Date();
 
@@ -118,12 +183,18 @@ export default function CityleagueResult({ event_result, official_event }: Props
 
   const date = formatJSTDateWithWeekday(event.date);
 
+  // 9位以下は一覧に載せない(個別ページで見せる)。近づくまでは先頭だけ描く
+  const rankedResults = event_result.results.filter((result) => result.rank < 9);
+  const slideResults = showAllSlides
+    ? rankedResults
+    : rankedResults.slice(0, EAGER_SLIDE_COUNT);
+
   // 受け取ったイベント情報は書き換えない。CityleagueResults が日単位でまとめて取得した
   // 一覧をカード間で共有しているため、書き換えると共有しているオブジェクトを壊す。
   const shopName = event.shop_name.replace(/ポケモンカードステーション・/g, "");
 
   return (
-    <div className="">
+    <div className="" ref={cardRef}>
       <Card className="pt-3 w-full">
         <CardHeader className="pt-0 pb-0 px-3 flex-col items-start gap-0.5">
           {/* 両端配置 */}
@@ -187,14 +258,11 @@ export default function CityleagueResult({ event_result, official_event }: Props
                 clickable: true,
               }}
             >
-              {event_result.results.map(
-                (result, index) =>
-                  result.rank < 9 && (
-                    <SwiperSlide key={index} className="px-2 pt-2 pb-10">
-                      <CityleagueResultCard result={result} date={event_result.date} />
-                    </SwiperSlide>
-                  ),
-              )}
+              {slideResults.map((result, index) => (
+                <SwiperSlide key={index} className="px-2 pt-2 pb-10">
+                  <CityleagueResultCard result={result} date={event_result.date} />
+                </SwiperSlide>
+              ))}
             </Swiper>
           </div>
         </CardBody>

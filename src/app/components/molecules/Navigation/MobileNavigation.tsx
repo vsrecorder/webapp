@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { navItems, isActiveRoute } from "./navItems";
+import { useNavPendingHref } from "./useNavPendingHref";
 
 // 下部ナビを出さないページ。
 // /kizuna は新機能のプロモーションページで、1枚の縦長LPとして最後まで読ませたいため、
@@ -12,6 +13,8 @@ const HIDDEN_PATHNAMES = ["/kizuna"];
 
 export default function MobileNavigation() {
   const pathname = usePathname();
+  // タップした項目を遷移先が描かれるまで選択中の見た目にする(useNavPendingHref 参照)
+  const { pending, markPending } = useNavPendingHref(pathname);
 
   if (HIDDEN_PATHNAMES.includes(pathname)) return null;
 
@@ -25,7 +28,8 @@ export default function MobileNavigation() {
         style={{ gridTemplateColumns: `repeat(${navItems.length}, minmax(0, 1fr))` }}
       >
         {navItems.map(({ href, label, icon: Icon, prefetch }) => {
-          const active = isActiveRoute(pathname, href);
+          const current = isActiveRoute(pathname, href);
+          const active = current || pending === href;
           return (
             <Link
               key={href}
@@ -33,7 +37,8 @@ export default function MobileNavigation() {
               // ホームのみ true。理由は navItems.ts の NavItem.prefetch を参照
               prefetch={prefetch}
               aria-label={label}
-              aria-current={active ? "page" : undefined}
+              aria-current={current ? "page" : undefined}
+              onClick={() => markPending(href)}
               className={`mobile-nav-item flex flex-col items-center justify-start gap-1 transition-all duration-150 active:scale-90 ${
                 active
                   ? "text-primary bg-primary/10"

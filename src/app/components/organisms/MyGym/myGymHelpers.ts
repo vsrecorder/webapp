@@ -2,22 +2,9 @@ import { OfficialEventType } from "@app/types/official_event";
 import { toDateKey } from "@app/utils/calendar";
 import { formatJSTTime } from "@app/utils/date";
 
-// パネルに出す期間の日数(今日を含めて2週間)。
-// ジムイベントは週次開催が多く、2週間あれば「次にいつ行けるか」が一通り見える。
-// 伸ばすと登録店舗ぶんの件数がそのまま増えてパネルが読めなくなるため、既定はここで止める。
-export const MY_GYM_EVENT_RANGE_DAYS = 14;
-
-// 期間の開始日(今日)と終了日を JST の "YYYY-MM-DD" で返す。
-// 上流は date カラム(日付のみ)と突き合わせるため、時刻は持たせない。
-export function getMyGymEventRange(): { startDate: string; endDate: string } {
-  const now = Date.now();
-  const dayMs = 24 * 60 * 60 * 1000;
-
-  return {
-    startDate: toDateKey(now),
-    endDate: toDateKey(now + (MY_GYM_EVENT_RANGE_DAYS - 1) * dayMs),
-  };
-}
+// 期間の規則は utils/myGymEventRange に移した(サーバ側の初期取得と共有するため)。
+// 既存の呼び出し元のためにここからも出す
+export { MY_GYM_EVENT_RANGE_DAYS, getMyGymEventRange } from "@app/utils/myGymEventRange";
 
 export type MyGymEventGroup = {
   dateKey: string;

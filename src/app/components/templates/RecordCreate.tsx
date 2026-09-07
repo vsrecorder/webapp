@@ -71,7 +71,7 @@ import { RecordCreateTab, parseRecordCreateTab } from "@app/utils/recordCreatePr
 import { writeRecordCreateSelectedTab } from "@app/utils/recordCreateSelectedTab";
 
 import {
-  OfficialEventListItemType,
+  RecordCreateOfficialEventType,
   OfficialEventResponseType,
 } from "@app/types/official_event";
 import { DEFAULT_REGULATION_ID } from "@app/types/regulation";
@@ -188,7 +188,7 @@ function katakanaToHiragana(str: string): string {
 }
 
 function convertToOfficialEventOption(
-  officialEvent: OfficialEventListItemType,
+  officialEvent: RecordCreateOfficialEventType,
 ): OfficialEventOption {
   // 時刻はJST固定で読む(端末のタイムゾーンで読むと海外の端末で開催時刻がずれる)。
   // formatJSTTime は書式を作り置きしているので、件数が多くても toLocaleString ほど遅くならない。
@@ -486,7 +486,8 @@ type Props = {
    * 先読みに失敗した場合や、公式イベントタブ以外で開いた場合は undefined。
    */
   initial_official_event_date?: string;
-  initial_official_events?: OfficialEventListItemType[];
+  // サーバで先読みした候補。使うフィールドだけに絞ってある(types/official_event 参照)
+  initial_official_events?: RecordCreateOfficialEventType[];
   /*
    * サーバ側で先読みした「使用デッキ」の選択肢。ブラウザから取りに行くと
    * 欄が後から現れる(ポップイン)ため、初回描画に間に合わせる。
@@ -699,7 +700,7 @@ export default function TemplateRecordCreate({
     data: officialEventData,
     error: officialEventError,
     isLoading: officialEventLoading,
-  } = useSWR<OfficialEventListItemType[], Error>(
+  } = useSWR<RecordCreateOfficialEventType[], Error>(
     shouldFetchOfficialEvents ? officialEventUrl : null,
     fetcherForOfficialEvent,
     {

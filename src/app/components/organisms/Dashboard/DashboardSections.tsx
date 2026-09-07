@@ -21,6 +21,7 @@ import {
   DASHBOARD_LAYOUT_COOKIE,
   DASHBOARD_LAYOUT_COOKIE_MAX_AGE,
   DashboardBlockId,
+  initialSectionStateFromLayout,
   isDashboardBlockId,
   serializeDashboardLayout,
 } from "@app/utils/dashboardLayout";
@@ -134,8 +135,17 @@ export default function DashboardSections({
     .map((s) => s.skeletonId ?? s.id)
     .filter(isDashboardBlockId);
 
-  const [order, setOrder] = useState<string[]>(defaultOrder);
-  const [hidden, setHidden] = useState<Set<string>>(new Set());
+  /*
+   * 前回描いた並び(cookie)があれば、それを初期状態にしてサーバ描画の時点から節の本体を出す。
+   * 無ければ localStorage を読み終わるまで骨格で繋ぐ(initialSectionStateFromLayout 参照)。
+   * useState の初期化子はサーバとハイドレーションで同じ値になる(props からしか決めない)。
+   */
+  const [initialFromCookie] = useState(() =>
+    initialSectionStateFromLayout(initialSectionLayout, defaultOrder),
+  );
+
+  const [order, setOrder] = useState<string[]>(initialFromCookie?.order ?? defaultOrder);
+  const [hidden, setHidden] = useState<Set<string>>(new Set(initialFromCookie?.hidden ?? []));
   // ユーザーが「既定は非表示」の節(全達成した「はじめの一歩」)を明示的にONにした記録。
   const [shown, setShown] = useState<Set<string>>(new Set());
   // 「はじめの一歩」を全達成済みか。全達成なら onboarding_badges を既定で非表示にする。
@@ -143,8 +153,9 @@ export default function DashboardSections({
   // 保存済みのカスタムレイアウトは localStorage からしか読めずSSR/初回描画時点では
   // 分からないため、読み込み前にデフォルト順で描画してしまうとその直後に保存済みの
   // 順序へ切り替わり一瞬ちらつく。読み込みが終わるまではセクション本体を描画せず、
-  // ちらつきを回避する。
-  const [isLayoutReady, setIsLayoutReady] = useState(false);
+  // ちらつきを回避する。ただし cookie に前回の並びがあるときは、それが保存済みの設定と
+  // 同じ結果になる(同じ端末で毎回書き替えている)ので、最初から本体を描く。
+  const [isLayoutReady, setIsLayoutReady] = useState(initialFromCookie != null);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   const router = useRouter();

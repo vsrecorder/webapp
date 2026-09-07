@@ -4,21 +4,26 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { navItems, isActiveRoute } from "./navItems";
+import { useNavPendingHref } from "./useNavPendingHref";
 
 export default function DesktopNavigation() {
   const pathname = usePathname();
+  // タップした項目を遷移先が描かれるまで選択中の見た目にする(useNavPendingHref 参照)
+  const { pending, markPending } = useNavPendingHref(pathname);
 
   return (
     <nav className="hidden lg:flex flex-col fixed z-40 top-28 left-0 bottom-0 w-56 py-4 px-3 gap-1 bg-white/80 backdrop-blur-md dark:bg-neutral-900/80 border-r border-default-200/50 dark:border-neutral-800/80">
       {navItems.map(({ href, label, icon: Icon, prefetch }) => {
-        const active = isActiveRoute(pathname, href);
+        const current = isActiveRoute(pathname, href);
+        const active = current || pending === href;
         return (
           <Link
             key={href}
             href={href}
             // ホームのみ true。理由は navItems.ts の NavItem.prefetch を参照
             prefetch={prefetch}
-            aria-current={active ? "page" : undefined}
+            aria-current={current ? "page" : undefined}
+            onClick={() => markPending(href)}
             className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
               active
                 ? "text-primary bg-primary/10"

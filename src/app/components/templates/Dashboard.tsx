@@ -27,6 +27,11 @@ import DesignationPanel from "@app/components/organisms/Designation/DesignationP
 import DashboardSections, {
   DashboardSection,
 } from "@app/components/organisms/Dashboard/DashboardSections";
+import DeferUntilVisible from "@app/components/organisms/Dashboard/DeferUntilVisible";
+import { DashboardCalendarSkeleton } from "@app/components/organisms/Calendar/Skeleton/DashboardCalendarSkeleton";
+import WeeklyDeckUsagePanelSkeleton from "@app/components/organisms/DeckMeta/Skeleton/WeeklyDeckUsagePanelSkeleton";
+import EnvironmentWindowCardSkeleton from "@app/components/organisms/Dashboard/Skeleton/EnvironmentWindowCardSkeleton";
+import { RecordCardSkeletons } from "@app/components/organisms/Record/Skeleton/RecordCardSkeleton";
 import {
   DashboardBlockId,
   splitDashboardLayout,
@@ -310,7 +315,7 @@ export default async function TemplateDashboard({ userId, storedLayout }: Props)
     node: (
       <section key="my_gyms" className="flex flex-col gap-2">
         <h2 className="text-sm font-bold text-default-700">Myジムのイベント</h2>
-        <MyGymPanel />
+        <MyGymPanel initialEvents={panels.myGymEvents} initialRange={panels.myGymRange} />
       </section>
     ),
   });
@@ -480,18 +485,24 @@ export default async function TemplateDashboard({ userId, storedLayout }: Props)
               </LinkButton>
             )}
           </div>
+          {/* この節は初期表示では画面外。近づくまでマウントせず、取得(週次使用率・自分のデッキ)を
+              ハイドレーション直後に走らせない(DeferUntilVisible 参照) */}
           {combinedAtSection ? (
             /* 見出し(「対戦環境データ」)はここで描画しているため、環境データが無い週でも
                カードを消さず空状態を出させる(showEmptyState)。消すと見出しだけが残る。 */
-            <EnvironmentWindowCard
-              userId={userId}
-              totalRecords={totalRecords ?? 0}
-              cohortWeek={cohort.cohortWeek}
-              daysSinceSignup={cohort.daysSinceSignup}
-              showEmptyState
-            />
+            <DeferUntilVisible fallback={<EnvironmentWindowCardSkeleton />}>
+              <EnvironmentWindowCard
+                userId={userId}
+                totalRecords={totalRecords ?? 0}
+                cohortWeek={cohort.cohortWeek}
+                daysSinceSignup={cohort.daysSinceSignup}
+                showEmptyState
+              />
+            </DeferUntilVisible>
           ) : (
-            <WeeklyDeckUsagePanel limit={5} />
+            <DeferUntilVisible fallback={<WeeklyDeckUsagePanelSkeleton />}>
+              <WeeklyDeckUsagePanel limit={5} />
+            </DeferUntilVisible>
           )}
         </section>
       ),
@@ -505,7 +516,10 @@ export default async function TemplateDashboard({ userId, storedLayout }: Props)
     node: (
       <section key="calendar" className="flex flex-col gap-2">
         <h2 className="text-sm font-bold text-default-700">活動ログのカレンダー</h2>
-        <DashboardCalendar userId={userId} />
+        {/* 画面外。近づくまでマウントしない(DeferUntilVisible 参照) */}
+        <DeferUntilVisible fallback={<DashboardCalendarSkeleton />}>
+          <DashboardCalendar userId={userId} />
+        </DeferUntilVisible>
       </section>
     ),
   });
@@ -538,7 +552,17 @@ export default async function TemplateDashboard({ userId, storedLayout }: Props)
           すべて見る
         </LinkButton>
       </div>
-      <Records event_type="all" disable_more_load={true} limit={10} desktopColumns={3} />
+      {/* ページ末尾。近づくまでマウントせず、記録 10 件とその周辺情報の取得を初期表示から外す。
+          骨格の外枠は Records の一覧グリッド(desktopColumns=3)と同じ指定にする */}
+      <DeferUntilVisible
+        fallback={
+          <div className="grid grid-cols-1 w-full gap-3 lg:grid-cols-2 xl:grid-cols-3 lg:gap-x-6">
+            <RecordCardSkeletons desktopColumns={3} />
+          </div>
+        }
+      >
+        <Records event_type="all" disable_more_load={true} limit={10} desktopColumns={3} />
+      </DeferUntilVisible>
     </section>
   );
 

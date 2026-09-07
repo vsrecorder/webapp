@@ -25,6 +25,16 @@ import { Modal } from "@app/components/atoms/AppModal";
 import CardListAccordion from "@app/components/organisms/Deck/CardListAccordion";
 import CopyableDeckCode from "@app/components/atoms/CopyableDeckCode";
 import ZoomableDeckImage from "@app/components/atoms/ZoomableDeckImage";
+
+/*
+ * デッキ画像は loading="lazy"。
+ *
+ * 一覧(/cityleague_results)は結果カードを 20 枚超まとめて描き、各カードが外部 CDN の
+ * デッキ画像を持つ。素の <img> は HTML の解析と同時に全部要求されるため、本番ビルド・
+ * CPU 4x・4Mbps の実測(2026-09-08)では 24 枚が 4 秒以内に流れて帯域を占め、ページ固有の
+ * JS 13 本の取得開始が 3.9 秒まで押し出されていた(ハイドレーション完了 5.3 秒。
+ * 他ページは 1.7〜2.0 秒)。画面に近いカードだけ先に読み、残りはスクロールに合わせる。
+ */
 import BoardPanel from "@app/components/organisms/Record/BoardPanel";
 
 import { createLazyModal } from "@app/utils/lazyModal";
@@ -231,6 +241,7 @@ export default function CityleagueResultCard({
               <>
                 {/* カード内ではタップで詳細モーダルを開くため、画像タップのZoomは無効化する */}
                 <ZoomableDeckImage
+                  loading="lazy"
                   code={result.deck_code}
                   alt={deckImageAlt}
                   disableZoom
@@ -290,6 +301,7 @@ export default function CityleagueResultCard({
                 <Image
                   radius="sm"
                   shadow="none"
+                  loading="lazy"
                   alt="デッキコードなし"
                   src={"https://www.pokemon-card.com/deck/deckView.php/deckID/"}
                   className=""
@@ -355,7 +367,7 @@ export default function CityleagueResultCard({
                         {result.deck_code ? (
                           <>
                             {/* デッキ画像の表示・タップ全画面表示は共通コンポーネントに委譲する */}
-                            <ZoomableDeckImage code={result.deck_code} />
+                            <ZoomableDeckImage code={result.deck_code} loading="lazy" />
 
                             {/* デッキコード欄：記録側 DeckCodeCard と同じ共通部品 */}
                             <CopyableDeckCode code={result.deck_code} />
@@ -384,6 +396,7 @@ export default function CityleagueResultCard({
                             <Image
                               radius="sm"
                               shadow="none"
+                              loading="lazy"
                               alt="デッキコードなし"
                               src={
                                 "https://www.pokemon-card.com/deck/deckView.php/deckID/"

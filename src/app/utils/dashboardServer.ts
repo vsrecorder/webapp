@@ -7,7 +7,9 @@ import { UserEnvironmentBadgesResponseType } from "@app/types/environment_badge"
 import { DEFAULT_REGULATION_ID } from "@app/types/regulation";
 import { UserStreakType } from "@app/types/streak";
 import { UserPlayerType } from "@app/types/user_player";
+import { UserGymOfficialEventGetResponseType } from "@app/types/user_gym";
 import { UserStatType } from "@app/types/user_stat";
+import { MyGymEventRange, getMyGymEventRange } from "@app/utils/myGymEventRange";
 import { currentSeasonValue } from "@app/utils/season";
 import { fetchUpstream, upstreamUrl } from "@app/utils/upstream";
 import { signUpstreamToken } from "@app/utils/upstreamToken";
@@ -94,6 +96,14 @@ export type DashboardInitialDataType = {
   monthlyStat?: UserStatType;
   // その当月("YYYY-MM")
   yearMonth: string;
+  /*
+   * Myジムのイベント(登録店舗の今後 2 週間)。
+   * このパネルは初期表示で見えている位置にあるのに、以前はブラウザで取っていたため
+   * 他のパネルの取得と並んで最後に出ていた(本番ビルド・CPU 4x の実測で 5.9 秒)。
+   */
+  myGymEvents?: UserGymOfficialEventGetResponseType;
+  // その期間。パネル側はこの期間で描く(自分で決めると日付境界でずれて初期値が無駄になる)
+  myGymRange: MyGymEventRange;
 };
 
 /*
@@ -115,6 +125,7 @@ export const getDashboardInitialData = cache(
   ): Promise<DashboardInitialDataType> => {
     const season = currentSeasonValue(championshipSeries);
     const yearMonth = getCurrentYearMonth();
+    const myGymRange = getMyGymEventRange();
 
     const headers: HeadersInit = { Accept: "application/json" };
     const authHeaders: HeadersInit = {
@@ -135,6 +146,7 @@ export const getDashboardInitialData = cache(
       userPlayer,
       stat,
       monthlyStat,
+      myGymEvents,
     ] = await Promise.all([
       getPanel<UserBadgesType>(
         "badges",
@@ -177,6 +189,14 @@ export const getDashboardInitialData = cache(
         statUrl(userId, { year_month: yearMonth }),
         headers,
       ),
+      getPanel<UserGymOfficialEventGetResponseType>(
+        "my gym events",
+        upstreamUrl`/api/v1beta/users/my_gyms/official_events?${new URLSearchParams({
+          start_date: myGymRange.startDate,
+          end_date: myGymRange.endDate,
+        })}`,
+        authHeaders,
+      ),
     ]);
 
     return {
@@ -191,6 +211,8 @@ export const getDashboardInitialData = cache(
       statEnvironmentId: environmentId,
       monthlyStat,
       yearMonth,
+      myGymEvents,
+      myGymRange,
     };
   },
 );

@@ -64,6 +64,40 @@ export type OfficialEventListItemType = Pick<
   (typeof OFFICIAL_EVENT_LIST_FIELDS)[number]
 >;
 
+/*
+ * 記録の作成フォーム(templates/RecordCreate)が公式イベントの候補として使うフィールド。
+ *
+ * 一覧(OFFICIAL_EVENT_LIST_FIELDS)は全消費者の和集合だが、記録作成の選択肢が参照するのは
+ * この 9 つだけ(convertToOfficialEventOption)。records/create/page.tsx はこの候補を
+ * サーバで先読みして HTML(RSC)に載せるため、使わない prefecture_name / league_title /
+ * environment_title を落として転送量を減らす。土日は 1,400 件を超えるので 3 フィールドでも効く。
+ */
+export const RECORD_CREATE_OFFICIAL_EVENT_FIELDS = [
+  "id",
+  "title",
+  "address",
+  "venue",
+  "date",
+  "started_at",
+  "ended_at",
+  "type_id",
+  "shop_name",
+] as const satisfies readonly (typeof OFFICIAL_EVENT_LIST_FIELDS)[number][];
+
+export type RecordCreateOfficialEventType = Pick<
+  OfficialEventListItemType,
+  (typeof RECORD_CREATE_OFFICIAL_EVENT_FIELDS)[number]
+>;
+
+// 一覧の 1 件から、記録作成が使うフィールドだけを取り出す
+export function toRecordCreateOfficialEvent(
+  item: OfficialEventListItemType,
+): RecordCreateOfficialEventType {
+  const picked = {} as Record<string, unknown>;
+  for (const key of RECORD_CREATE_OFFICIAL_EVENT_FIELDS) picked[key] = item[key];
+  return picked as RecordCreateOfficialEventType;
+}
+
 export type OfficialEventType = {
   id: number;
   title: string;

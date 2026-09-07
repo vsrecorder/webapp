@@ -37,6 +37,9 @@ import { formatJSTDateNumeric } from "@app/utils/date";
 
 const NOTIFICATIONS_LIMIT = 30;
 const POLL_INTERVAL_MS = 60 * 1000;
+// 初回取得を待つ上限(アイドルが来なくてもこの時間で取る)と、requestIdleCallback が無い環境での待ち時間
+const INITIAL_FETCH_TIMEOUT_MS = 3000;
+const INITIAL_FETCH_DELAY_MS = 2000;
 
 const CATEGORY_ICON: Record<
   NotificationCategory,
@@ -135,9 +138,6 @@ export default function NotificationBell({ userId }: Props) {
     }
   }, [userId]);
 
-  useEffect(() => {
-    fetchEnvironmentBadges();
-  }, [fetchEnvironmentBadges]);
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -154,7 +154,28 @@ export default function NotificationBell({ userId }: Props) {
   }, []);
 
   useEffect(() => {
-    fetchNotifications();
+    /*
+     * 初回の取得は、ページ自身の描画が落ち着くまで待つ。
+     *
+     * ヘッダーは全ページ共通なので、マウント直後に取ると、どのページを開いても
+     * ハイドレーション直後に通知と環境バッジの 2 本が飛び、そのページ自身の取得
+     * (一覧・パネル)と CPU・帯域を取り合う。本番ビルド・CPU 4x の実測では、ホームは
+     * ハイドレーション後に 11 本の API が並んで最後のパネルが出るまで 5.9 秒かかっていた。
+     * 通知の件数バッジは数秒遅れても差し支えないので、アイドルまで待つ
+     * (requestIdleCallback が無い WebKit では時間で待つ)。
+     * 記録直後の再取得(onNotificationsRefreshRequested)とポーリングはこれまでどおり。
+     */
+    let cancelled = false;
+    const fetchAll = () => {
+      if (cancelled) return;
+      fetchNotifications();
+      fetchEnvironmentBadges();
+    };
+    const idleId =
+      typeof requestIdleCallback === "function"
+        ? requestIdleCallback(fetchAll, { timeout: INITIAL_FETCH_TIMEOUT_MS })
+        : null;
+    const timeoutId = idleId == null ? setTimeout(fetchAll, INITIAL_FETCH_DELAY_MS) : null;
 
     const timer = setInterval(fetchNotifications, POLL_INTERVAL_MS);
     // 記録/対戦/デッキ登録の直後はポーリングを待たずその場で再取得する
@@ -166,6 +187,9 @@ export default function NotificationBell({ userId }: Props) {
     });
 
     return () => {
+      cancelled = true;
+      if (idleId != null) cancelIdleCallback(idleId);
+      if (timeoutId != null) clearTimeout(timeoutId);
       clearInterval(timer);
       unsubscribe();
     };

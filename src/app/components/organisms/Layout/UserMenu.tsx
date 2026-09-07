@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useRef, useState } from "react";
 import Image from "next/image";
 
 import { Avatar } from "@heroui/avatar";
@@ -68,7 +68,21 @@ export default function UserMenu({ user, iconUrl, isDevEnv }: Props) {
     }
   }
 
-  useEffect(() => {
+  /*
+   * ランクはメニューを初めて開いたときに取る。
+   *
+   * 以前はマウント時に取っていたが、ヘッダーは全ページ共通なので、どのページを開いても
+   * ハイドレーション直後に 1 本飛び、そのページ自身の取得と CPU・帯域を取り合っていた
+   * (本番ビルド・CPU 4x の実測で、ホームはハイドレーション後に 11 本の API が並び、
+   * 最後のパネルが出るまで 5.9 秒)。メニューを開かない閲覧では無駄でもある。
+   * 開いた瞬間は「ランク取得中…」が一拍出るが、上流は p50 20ms 台なのですぐ置き換わる。
+   */
+  const rankRequested = useRef(false);
+
+  function loadRank() {
+    if (rankRequested.current) return;
+    rankRequested.current = true;
+
     fetch(`/api/users/${user.id}/designation`, {
       cache: "no-store",
     })
@@ -79,13 +93,20 @@ export default function UserMenu({ user, iconUrl, isDevEnv }: Props) {
         setRankName(rank?.name ?? "ランクなし");
         setRankImage(rank?.image ?? NO_RANK_IMAGE);
       })
-      .catch(() => setRankName("ランクなし"));
-  }, [user.id]);
+      .catch(() => {
+        setRankName("ランクなし");
+        // 失敗したら次に開いたときに取り直す
+        rankRequested.current = false;
+      });
+  }
 
   return (
     <>
       <Dropdown
         backdrop="opaque"
+        onOpenChange={(open) => {
+          if (open) loadRank();
+        }}
         classNames={{
           content:
             "min-w-72 p-1.5 rounded-2xl shadow-xl border border-default-100 dark:border-default-50",

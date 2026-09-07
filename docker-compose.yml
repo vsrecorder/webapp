@@ -50,3 +50,41 @@ services:
       - SAKURA_OBJECTSTORAGE_REGION=${SAKURA_OBJECTSTORAGE_REGION}
       - SAKURA_OBJECTSTORAGE_BUCKET_NAME=${SAKURA_OBJECTSTORAGE_BUCKET_NAME}
       - SAKURA_OBJECTSTORAGE_CDN_URL=${SAKURA_OBJECTSTORAGE_CDN_URL}
+    volumes:
+      #
+      # Next のサーバキャッシュを、デプロイ(コンテナの作り直し)をまたいで残す。
+      #
+      # ここには revalidate 付きの fetch の結果が入る。シティリーグの結果ページは
+      # 1ページに16人分のデッキコードが並び、その中身を deckcard-api 経由で公式サイトから
+      # 取りに行くため(1件 p50 270ms)、初回表示に 1 秒以上かかる。デッキコードの中身は
+      # 不変なので 30 日キャッシュしている(utils/deckSummaryServer)が、コンテナ内の
+      # 使い捨ての領域に置かれていたため、デプロイのたびに全部消えていた
+      # (2026-09-07 の本番実測: 溜まっていたのは 240 件・7.1MB だけ)。
+      # 結果、デプロイ後に各ページを最初に開いた人が毎回 1〜5 秒待たされていた。
+      #
+      # キャッシュキーは URL とリクエスト内容のハッシュだけで、ビルドIDを含まない
+      # (next/dist/server/lib/incremental-cache/index.js の generateCacheKey で確認)。
+      # そのため作り直したコンテナでも前のキャッシュがそのまま当たる。
+      # 全ルートが動的レンダリング(next build の一覧が全て ƒ)なのでページ単位のキャッシュは
+      # 入らず、ここに残るのは fetch の結果と next/image の最適化結果だけ。
+      #
+      # 容量: Next はここを自動で掃除しない。デッキコードは 2 ヶ月で約 8.4 万種なので
+      # 年 1〜2GB 程度の増加を見込む(2026-09-07 時点のディスク空き 84GB)。
+      # 増えすぎたら、最長の revalidate(30日)を超えて触られていないものは
+      # どのみち再取得されるので、次のように消してよい:
+      #   docker exec webapp-webapp-1 find .next/cache/fetch-cache -type f -mtime +35 -delete
+      #
+      # 【重要】この volume は Dockerfile 側で .next/cache を nextjs 所有で作ってあることが前提。
+      # イメージにそのディレクトリが無い状態で volume を割り当てると docker が root 所有で作り、
+      # アプリ(uid 1001)が書けずキャッシュが黙って一切効かなくなる(実測で確認済み)。
+      # しかも **一度 root 所有で作られた volume は、正しいイメージに入れ替えても直らない**
+      # (docker が中身を初期化するのは volume を最初に使ったときだけ)。
+      # 順序を誤った・キャッシュが溜まらない場合は volume を消してから作り直すこと:
+      #   docker compose down && docker volume rm webapp_webapp-next-cache && docker compose up -d
+      # 溜まっているかの確認:
+      #   docker exec webapp-webapp-1 sh -c 'ls -ld .next/cache/fetch-cache; ls .next/cache/fetch-cache | wc -l'
+      #
+      - webapp-next-cache:/app/.next/cache
+
+volumes:
+  webapp-next-cache:

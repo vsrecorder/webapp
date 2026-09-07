@@ -1,7 +1,10 @@
+import { Suspense } from "react";
+
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import CityleagueRelatedSection from "@app/components/organisms/Cityleague/CityleagueRelatedSection";
+import CityleagueResultDetailSkeleton from "@app/components/organisms/Cityleague/Skeleton/CityleagueResultDetailSkeleton";
 import TemplateCityleagueResultByOfficialEventId from "@app/components/templates/CityleagueResultByOfficialEventId";
 
 import { CityleagueResultType, CityleagueWinnerType } from "@app/types/cityleague_result";
@@ -127,18 +130,17 @@ export default async function Page({ params }: Props) {
     notFound();
   }
 
-  // 入賞デッキのカード内訳。デッキの中身は CDN の画像で文字では追えないため、
-  // ここで取得して主なポケモン・カードリストをテキストとして HTML に載せる。
-  const deckSummaries = await getDeckSummaries(
-    cityleagueResult.results.map((result) => result.deck_code),
-  );
+  /*
+   * 構造化データ(と description)に載せる優勝デッキだけ、ここで待つ。
+   *
+   * generateMetadata が同じデッキコードで同じ取得をしているので、1回の描画の中では
+   * fetch がまとめられ、上流への往復は増えない。入賞16件を全部待つのとは桁が違う。
+   */
   const winnerDeckCode = cityleagueResult.results.find(
     (result) => result.rank === 1,
   )?.deck_code;
-  const winner = toWinner(
-    cityleagueResult,
-    winnerDeckCode ? (deckSummaries[winnerDeckCode]?.mainPokemon ?? []) : [],
-  );
+  const winnerSummary = winnerDeckCode ? await getDeckSummary(winnerDeckCode) : null;
+  const winner = toWinner(cityleagueResult, winnerSummary?.mainPokemon ?? []);
 
   const domain = process.env.VSRECORDER_DOMAIN;
   const pageUrl = `https://${domain}/cityleague_results/${event.id}`;
@@ -201,12 +203,44 @@ export default async function Page({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
-      <TemplateCityleagueResultByOfficialEventId
-        event={event}
-        cityleagueResult={cityleagueResult}
-        deckSummaries={deckSummaries}
-        relatedSection={<CityleagueRelatedSection event={event} />}
-      />
+      {/*
+       * 入賞デッキのカード内訳は待たずに流す。
+       *
+       * 内訳は deckcard-api がデッキコードごとに引くもので、キャッシュに無いものは
+       * 公式サイトへ取りに行く(1件 0.4秒前後)。1ページに16件並ぶため、これを待ってから
+       * HTML を返すと本番で平均1.0秒・最大8.4秒かかっていた(nginx ログ7日ぶん、
+       * 他のページは0.04〜0.13秒)。
+       *
+       * ここで区切ると、戻り導線・イベント情報・順位・選手名・デッキ画像は先に届き、
+       * カード内訳は後から流れて差し替わる。内訳は本文の付随物なので、
+       * 先に出せるものを止めておく理由が無い。検索エンジンもストリーミングされた
+       * 最終的な HTML を読むため、テキストは従来どおり載る。
+       */}
+      <Suspense fallback={<CityleagueResultDetailSkeleton />}>
+        <ResultsWithDeckSummaries event={event} cityleagueResult={cityleagueResult} />
+      </Suspense>
     </>
+  );
+}
+
+// 入賞デッキのカード内訳を待ってから、結果本体を描く
+async function ResultsWithDeckSummaries({
+  event,
+  cityleagueResult,
+}: {
+  event: OfficialEventType;
+  cityleagueResult: CityleagueResultType;
+}) {
+  const deckSummaries = await getDeckSummaries(
+    cityleagueResult.results.map((result) => result.deck_code),
+  );
+
+  return (
+    <TemplateCityleagueResultByOfficialEventId
+      event={event}
+      cityleagueResult={cityleagueResult}
+      deckSummaries={deckSummaries}
+      relatedSection={<CityleagueRelatedSection event={event} />}
+    />
   );
 }

@@ -77,6 +77,19 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --chown=nextjs:nodejs ecosystem.config.cjs ./
 
+#
+# Next のサーバキャッシュ(.next/cache)の置き場所を、所有者付きで先に作っておく。
+#
+# ここには fetch の結果(revalidate 付きで取った上流の応答)と、next/image の最適化結果が入る。
+# 中身はアプリが実行時に作るため、イメージにこのディレクトリが無いまま docker の
+# named volume を割り当てると、docker がマウント先を root 所有で作ってしまい、
+# nextjs ユーザ(uid 1001)が書けずキャッシュが一切効かなくなる。
+# イメージ側に正しい所有者で存在させておくと、volume の初期化時にその所有者が引き継がれる。
+#
+# 永続化する理由は docker-compose.yml の volumes を参照。
+#
+RUN mkdir -p .next/cache && chown -R nextjs:nodejs .next/cache
+
 USER nextjs
 
 EXPOSE 3003

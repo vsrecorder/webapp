@@ -1,20 +1,18 @@
-import { useCallback, useEffect, useState, useRef } from "react";
+"use client";
 
 import { Chip } from "@heroui/react";
 
-import { useDisclosure } from "@heroui/react";
-
 import FetchError from "@app/components/molecules/FetchError";
 import RecordCardBase from "@app/components/organisms/Record/RecordCardBase";
-import { createLazyModal } from "@app/utils/lazyModal";
 import { RecordCardSkeleton } from "@app/components/organisms/Record/Skeleton/RecordCardSkeleton";
-
-import { RecordType, RecordGetByIdResponseType } from "@app/types/record";
-import { TonamelEventGetByIdResponseType } from "@app/types/tonamel_event";
-import { DeckGetByIdResponseType } from "@app/types/deck";
-import { MatchGetResponseType } from "@app/types/match";
-import { countMatchResults, hasGroupMatch, hasBo3Match } from "@app/utils/match";
-import { isZeroDate } from "@app/utils/date";
+import {
+  RecordCardProps,
+  fetchTonamelEventById,
+  useRecordCard,
+} from "@app/components/organisms/Record/useRecordCard";
+import { useRecordCardResource } from "@app/hooks/useRecordCardResource";
+import { createLazyModal } from "@app/utils/lazyModal";
+import { formatJSTDateWithWeekday, nonZeroDate } from "@app/utils/date";
 
 // 記録詳細モーダルは使用デッキ編集(react-select)とシェア(画像書き出し)を抱える。
 // 初期JSと初期マウントから外すため、開くまで読み込まない(理由は createLazyModal を参照)。
@@ -22,226 +20,31 @@ const DisplayRecordModal = createLazyModal(
   () => import("@app/components/organisms/Record/Modal/DisplayRecordModal"),
 );
 
-async function fetchTonamelEventById(id: string) {
-  try {
-    const res = await fetch(`/api/tonamel_events/${id}`, {
-      cache: "no-store",
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
-    });
+export default function TonamelEventRecord(props: RecordCardProps) {
+  const { recordData, enableDisplayRecordModal, nestedInModal = false } = props;
 
-    if (!res.ok) {
-      throw new Error("Failed to fetch");
-    }
+  // Tonamel イベント情報。一覧 API が付けていればそれを使い、無ければ自分で取る
+  const event = useRecordCardResource(
+    recordData.data.tonamel_event_id,
+    fetchTonamelEventById,
+    recordData.details?.tonamel_event,
+  );
+  const tonamelEvent = event.data;
 
-    const ret: TonamelEventGetByIdResponseType = await res.json();
+  const { record, setRecord, deck, matchSummary, loadingMatches, disclosure } = useRecordCard({
+    ...props,
+    eventLoading: event.loading,
+  });
 
-    return ret;
-  } catch (error) {
-    throw error;
-  }
-}
-
-async function fetchDeckById(id: string) {
-  try {
-    const res = await fetch(`/api/decks/${id}`, {
-      cache: "no-store",
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
-    });
-
-    if (!res.ok) {
-      throw new Error("Failed to fetch");
-    }
-
-    const ret: DeckGetByIdResponseType = await res.json();
-
-    return ret;
-  } catch (error) {
-    throw error;
-  }
-}
-
-async function fetchMatchesByRecordId(record_id: string) {
-  try {
-    const res = await fetch(`/api/records/${record_id}/matches`, {
-      cache: "no-store",
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
-    });
-
-    if (!res.ok) {
-      throw new Error("Failed to fetch");
-    }
-
-    const ret: MatchGetResponseType[] = await res.json();
-
-    return ret;
-  } catch (error) {
-    throw error;
-  }
-}
-
-type Props = {
-  recordData: RecordType;
-  enableDisplayRecordModal: boolean;
-  onReopenComplete?: () => void;
-  // 再開対象として reopenModalRecordId を消費してよいか。
-  // 記録一覧では「すべて」タブと種別タブで同じ記録が重複マウントされるため、
-  // アクティブなタブのインスタンスだけ true にしてキーの奪い合いを防ぐ。
-  enableReopen?: boolean;
-  // 親モーダルが落ち着き、記録モーダルを開いてよい状態か。
-  // 親モーダル（デッキの記録一覧モーダル）が無い場合は常に true。
-  reopenReady?: boolean;
-  // デッキの記録一覧モーダル内で表示されているか（記録モーダルのバックドロップ調整用）。
-  nestedInModal?: boolean;
-};
-
-export default function TonamelEventRecord({
-  recordData,
-  enableDisplayRecordModal,
-  onReopenComplete,
-  enableReopen = true,
-  reopenReady = true,
-  nestedInModal = false,
-}: Props) {
-  const [deck, setDeck] = useState<DeckGetByIdResponseType | null>(null);
-  const [loadingDeck, setLoadingDeck] = useState(true);
-
-  const [matches, setMatches] = useState<MatchGetResponseType[]>([]);
-  const [loadingMatches, setLoadingMatches] = useState(true);
-
-
-  const [tonamelEvent, setTonamelEvent] =
-    useState<TonamelEventGetByIdResponseType | null>(null);
-  const [loadingTonamelEvent, setLoadingTonamelEvent] = useState(true);
-
-  const [eventError, setEventError] = useState(false);
-  const [deckError, setDeckError] = useState(false);
-
-  const [record, setRecord] = useState<RecordGetByIdResponseType | null>(recordData.data);
-
-  const [shouldReopen, setShouldReopen] = useState(false);
-  const onReopenCompleteRef = useRef(onReopenComplete);
-  onReopenCompleteRef.current = onReopenComplete;
-
-  const {
-    isOpen: isOpenForDisplayRecordModal,
-    onOpen: onOpenForDisplayRecordModal,
-    onOpenChange: onOpenChangeForDisplayRecordModal,
-    onClose: onCloseForDisplayRecordModal,
-  } = useDisclosure();
-
-  // マウント時に対象 record か判定だけ行う
-  const recordId = recordData.data.id;
-  useEffect(() => {
-    if (!enableReopen) return;
-    const pendingId = sessionStorage.getItem("reopenModalRecordId");
-    if (pendingId && pendingId === recordId) {
-      sessionStorage.removeItem("reopenModalRecordId");
-      setShouldReopen(true);
-    }
-  }, [enableReopen, recordId]);
-
-  // データロード完了後にスクロール通知 + モーダルオープン
-  // 親モーダルが落ち着く（reopenReady）まで待ってから開く。
-  useEffect(() => {
-    if (!shouldReopen || loadingTonamelEvent || !reopenReady) return;
-    setShouldReopen(false);
-    onReopenCompleteRef.current?.();
-    onOpenForDisplayRecordModal();
-  }, [shouldReopen, loadingTonamelEvent, reopenReady, onOpenForDisplayRecordModal]);
-
-  // Tonamelイベント情報だけを取得（失敗時のリロードから再利用）
-  const loadTonamelEvent = useCallback(async () => {
-    if (!recordData.data.tonamel_event_id) {
-      setLoadingTonamelEvent(false);
-      return;
-    }
-
-    setEventError(false);
-    setLoadingTonamelEvent(true);
-
-    try {
-      const data = await fetchTonamelEventById(recordData.data.tonamel_event_id);
-      setTonamelEvent(data);
-    } catch (err) {
-      console.log(err);
-      setEventError(true);
-    } finally {
-      setLoadingTonamelEvent(false);
-    }
-  }, [recordData.data.tonamel_event_id]);
-
-  useEffect(() => {
-    loadTonamelEvent();
-  }, [loadTonamelEvent]);
-
-  const deckId = record?.deck_id;
-
-  // 使用デッキだけを取得
-  const loadDeck = useCallback(async () => {
-    if (!deckId) {
-      setLoadingDeck(false);
-      return;
-    }
-
-    setDeckError(false);
-    setLoadingDeck(true);
-
-    try {
-      const data = await fetchDeckById(deckId);
-      setDeck(data);
-    } catch (err) {
-      console.log(err);
-      setDeckError(true);
-    } finally {
-      setLoadingDeck(false);
-    }
-  }, [deckId]);
-
-  useEffect(() => {
-    loadDeck();
-  }, [loadDeck]);
-
-  useEffect(() => {
-    if (!record?.id) {
-      setLoadingMatches(false);
-      return;
-    }
-
-    setLoadingMatches(true);
-
-    const fetchData = async () => {
-      try {
-        setLoadingMatches(true);
-        const data = await fetchMatchesByRecordId(record.id);
-        setMatches(data);
-      } catch (err) {
-        console.log(err);
-      } finally {
-        setLoadingMatches(false);
-      }
-    };
-
-    fetchData();
-  }, [record?.id]);
-
-  if (eventError) {
-    return <FetchError onRetry={loadTonamelEvent} compact />;
+  if (event.error) {
+    return <FetchError onRetry={event.retry} compact />;
   }
 
-  if (deckError) {
-    return <FetchError onRetry={loadDeck} compact />;
+  if (deck.error) {
+    return <FetchError onRetry={deck.retry} compact />;
   }
 
-  if (loadingTonamelEvent || !tonamelEvent) {
+  if (event.loading || !tonamelEvent) {
     return <RecordCardSkeleton />;
   }
 
@@ -249,18 +52,7 @@ export default function TonamelEventRecord({
     return;
   }
 
-  const { wins, losses, draws } = countMatchResults(matches);
-
-  const dateStr =
-    !isZeroDate(record.event_date)
-      ? record.event_date
-      : record?.created_at;
-  const date = new Date(dateStr).toLocaleString("ja-JP", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    weekday: "short",
-  });
+  const date = formatJSTDateWithWeekday(nonZeroDate(record.event_date) ?? record.created_at);
 
   return (
     <>
@@ -268,16 +60,16 @@ export default function TonamelEventRecord({
         <DisplayRecordModal
           record={record}
           setRecord={setRecord}
-          isOpen={isOpenForDisplayRecordModal}
-          onOpenChange={onOpenChangeForDisplayRecordModal}
-          onClose={onCloseForDisplayRecordModal}
+          isOpen={disclosure.isOpen}
+          onOpenChange={disclosure.onOpenChange}
+          onClose={disclosure.onClose}
           nestedInModal={nestedInModal}
         />
       )}
 
       <RecordCardBase
         cardId={`record-card-${recordData.data.id}`}
-        onClick={onOpenForDisplayRecordModal}
+        onClick={disclosure.onOpen}
         accentColorClass="bg-orange-500"
         date={date}
         title={tonamelEvent.title}
@@ -301,14 +93,14 @@ export default function TonamelEventRecord({
             <span className="text-sm font-black text-white">T</span>
           </div>
         }
-        deckName={deck ? deck.name : null}
-        deckSprites={deck?.pokemon_sprites}
-        loadingDeck={loadingDeck}
-        winCount={wins}
-        lossCount={losses}
-        drawCount={draws}
-        hasGroupMatch={hasGroupMatch(matches)}
-        hasBo3={hasBo3Match(matches)}
+        deckName={deck.data ? deck.data.name : null}
+        deckSprites={deck.data?.pokemon_sprites}
+        loadingDeck={deck.loading}
+        winCount={matchSummary.wins}
+        lossCount={matchSummary.losses}
+        drawCount={matchSummary.draws}
+        hasGroupMatch={matchSummary.has_group_match}
+        hasBo3={matchSummary.has_bo3}
         loadingMatches={loadingMatches}
       />
     </>

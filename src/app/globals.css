@@ -5,6 +5,13 @@
 /* dark バリアントは .light 配下では無効化する（画像書き出し領域を常にライト表示にするため） */
 @custom-variant dark (&:is(.dark *):not(.light *));
 
+/*
+ * 背の低い画面(可視高 600px 以下。iPhone SE 系の Safari でツールバー表示中など)向けの variant。
+ * 1画面に収めたい案内(デッキ0件の空状態など)で、装飾的な要素を畳むのに使う。
+ * 600px は「ヘッダー・固定タブ 112px ＋ 空状態カード約 408px ＋ 下部ナビ 68px」が収まる下限。
+ */
+@custom-variant short (@media (max-height: 600px));
+
 /* メイン領域のドット背景: ライト/ダークでドット色と地色を切り替える */
 .app-dot-bg {
   background-color: #fafcff;

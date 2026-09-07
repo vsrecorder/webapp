@@ -48,3 +48,40 @@ export function isZeroDate(value: Date | string | null | undefined): boolean {
 export function nonZeroDate<T extends Date | string>(value: T | null | undefined): T | null {
   return isZeroDate(value) ? null : (value as T);
 }
+
+/*
+ * 日本の暦日で見せる日付の書式。
+ *
+ * Intl.DateTimeFormat は作るのが重く、toLocaleString は呼ぶたびに内部で作り直すので、
+ * 一覧のカードのように件数ぶん呼ぶ場所ではここで作った書式を使い回す。
+ *
+ * timeZone を明示するのは、サーバ描画(本番のコンテナは JST だが環境に依らず)とブラウザ
+ * (利用者の端末のタイムゾーン)で同じ文字列になるようにするため。食い違うと
+ * ハイドレーションの不一致になる。バックエンドの開催日は JST の 0:00 を表すので、
+ * JST で読むのが元の意味とも一致する。
+ */
+const JST_DATE_WITH_WEEKDAY = new Intl.DateTimeFormat("ja-JP", {
+  timeZone: "Asia/Tokyo",
+  year: "numeric",
+  month: "long",
+  day: "numeric",
+  weekday: "short",
+});
+
+const JST_YEAR_MONTH = new Intl.DateTimeFormat("ja-JP", {
+  timeZone: "Asia/Tokyo",
+  year: "numeric",
+  month: "long",
+});
+
+// 「2026年8月18日(火)」。読めない値は空文字
+export function formatJSTDateWithWeekday(value: Date | string): string {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : JST_DATE_WITH_WEEKDAY.format(date);
+}
+
+// 「2026年8月」(一覧の月見出し)。読めない値は空文字
+export function formatJSTYearMonth(value: Date | string): string {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : JST_YEAR_MONTH.format(date);
+}

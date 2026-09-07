@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback, Fragment } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback, Fragment } from "react";
 
 import { Spinner } from "@heroui/spinner";
 import { Button, Link } from "@heroui/react";
 
 import ScreenLockLoading from "@app/components/atoms/ScreenLockLoading";
+import FetchError from "@app/components/molecules/FetchError";
 import { useScreenLockLoading } from "@app/hooks/useScreenLockLoading";
 import OfficialEventRecord from "@app/components/organisms/Record/OfficialEventRecord";
 import TonamelEventRecord from "@app/components/organisms/Record/TonamelEventRecord";
@@ -15,55 +16,42 @@ import { RecordCardSkeletons } from "@app/components/organisms/Record/Skeleton/R
 import { LuCirclePlus, LuFilePen, LuClipboardList } from "react-icons/lu";
 
 import { RecordType, RecordGetResponseType } from "@app/types/record";
-import { isZeroDate } from "@app/utils/date";
+import { formatJSTYearMonth, nonZeroDate } from "@app/utils/date";
+import { resolveRecordEventType, stepRecordPage } from "@app/utils/recordListPage";
+import { REOPEN_MODAL_EVENT_TYPE, REOPEN_MODAL_RECORD_ID } from "@app/utils/recordModalReopen";
 
-// レコードのデータから種別（公式 / Tonamel / 自由形式）を判定する。
-// すべて表示("all")のとき、各カードをどのコンポーネントで描画するか決めるために使う。
-function resolveEventType(
-  data: RecordType["data"],
-): "official" | "tonamel" | "unofficial" | null {
-  if (data.official_event_id && data.official_event_id !== 0) return "official";
-  if (data.tonamel_event_id) return "tonamel";
-  if (data.unofficial_event_id) return "unofficial";
-  return null;
-}
-
-// 月見出しの判定に使う日付（開催日が無ければ作成日）を取得する。
-function getRawDate(data: RecordType["data"]): string {
-  return !isZeroDate(data.event_date)
-    ? data.event_date
-    : (data.created_at as unknown as string);
-}
-
-// "YYYY年M月" 形式の月キーを生成する。
+// 月見出し("YYYY年M月")の判定に使う日付（開催日が無ければ作成日）。
+// JST の暦日で決める(サーバ描画とブラウザで同じ見出しになるように。utils/date 参照)
 function getMonthKey(data: RecordType["data"]): string {
-  const d = new Date(getRawDate(data));
-  return `${d.getFullYear()}年${d.getMonth() + 1}月`;
+  return formatJSTYearMonth(nonZeroDate(data.event_date) ?? data.created_at);
 }
 
-async function fetchRecords(event_type: string, deck_id: string, cursor: string) {
-  try {
-    const res = await fetch(
-      `/api/records?event_type=${event_type}&deck_id=${deck_id}&cursor=${cursor}`,
-      {
-        cache: "no-store",
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-        },
-      },
-    );
+async function fetchRecords(
+  event_type: string,
+  deck_id: string,
+  cursor: string,
+): Promise<RecordGetResponseType> {
+  const params = new URLSearchParams({ event_type, deck_id, cursor });
+  const res = await fetch(`/api/records?${params}`, {
+    cache: "no-store",
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+    },
+  });
 
-    if (!res.ok) {
-      throw new Error("Failed to fetch");
-    }
-
-    const ret: RecordGetResponseType = await res.json();
-
-    return ret;
-  } catch (error) {
-    throw error;
+  if (!res.ok) {
+    throw new Error("Failed to fetch");
   }
+
+  const ret: RecordGetResponseType = await res.json();
+
+  // 想定外の形（records が配列でない）で返ってきた場合も「取得失敗」として扱う
+  if (!Array.isArray(ret?.records)) {
+    throw new Error("Unexpected records response");
+  }
+
+  return ret;
 }
 
 type Props = {
@@ -71,6 +59,9 @@ type Props = {
   deck_id?: string;
   disable_more_load?: boolean;
   limit?: number;
+  // サーバで取った1ページ目(BFF /api/records と同じ形。カードの周辺情報 details も付いている)。
+  // 渡されたときは初回の取得を省き、最初の描画からカードを出す(サーバ描画の HTML にもカードが載る)
+  initialPage?: RecordGetResponseType;
   // このインスタンスが現在表示中（アクティブ）のタブか。
   // 記録一覧では「すべて」タブと種別タブの両インスタンスが同時にマウントされ、
   // 同一記録が重複するため、アクティブなインスタンスだけが
@@ -106,6 +97,7 @@ export default function Records({
   deck_id = "",
   disable_more_load = false,
   limit = 0,
+  initialPage,
   isActive = true,
   parentReady = true,
   nestedInModal = false,
@@ -129,14 +121,42 @@ export default function Records({
   // "all"(すべて)のときはバックエンドの event_type フィルタを掛けずに全件取得する。
   const apiEventType = event_type === "all" ? "" : event_type;
 
-  const [items, setItems] = useState<RecordType[]>([]);
-  const [nextCursor, setNextCursor] = useState<string>("");
+  // サーバで取った1ページ目を、クライアントで取った場合と同じ手順(stepRecordPage)で初期状態にする
+  const [initialStep] = useState(() =>
+    initialPage ? stepRecordPage(initialPage, new Set(), "") : null,
+  );
+  const [items, setItems] = useState<RecordType[]>(() => {
+    const appended = initialStep?.appended ?? [];
+    return limit !== 0 ? appended.slice(0, limit) : appended;
+  });
+  const [nextCursor, setNextCursor] = useState<string>(() => initialStep?.nextCursor ?? "");
   const [isLoading, setIsLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [isInitialLoaded, setIsInitialLoaded] = useState(false);
+  const [hasMore, setHasMore] = useState(() => {
+    if (!initialStep) return true;
+    if (limit !== 0 && initialStep.appended.length >= limit) return false;
+    return initialStep.hasNext;
+  });
+  const [isInitialLoaded, setIsInitialLoaded] = useState(initialStep !== null);
+  /*
+   * サーバで取った1ページ目を裏で取り直している間。
+   *
+   * ブラウザの「戻る」ではサーバ描画の結果(RSC)がそのまま再利用され、ページは再描画されない。
+   * 記録を付けたり詳細ページで対戦を足したりして戻ると initialPage は古い。以前はマウントの
+   * たびに取り直していたので常に最新だった。同じ鮮度を保つため、初期値は最初の描画にだけ使い、
+   * マウント直後に1ページ目を取り直して差し替える(デッキ一覧と同じ)。
+   * 取り直しの間は骨格を出さず(カードは既に出ている)、追加読み込みだけ待たせる。
+   */
+  const [isRefreshing, setIsRefreshing] = useState(initialStep !== null);
+  // 一覧の取得に失敗したか。失敗した位置(初回か追加読み込みか)に関わらず、
+  // 一覧の末尾にエラーと再読み込みボタンを出す
+  const [error, setError] = useState(false);
   const [pendingReopenId, setPendingReopenId] = useState<string | null>(null);
   // この一覧インスタンスの描画範囲。再開時に対象カードを探す起点にする。
   const listRef = useRef<HTMLDivElement>(null);
+  // 取得済みの記録 ID。失敗後の再読み込みなどで同じ記録が再び返っても重複させない
+  const loadedIdsRef = useRef<Set<string>>(
+    new Set(initialStep?.appended.map((r) => r.data.id)),
+  );
   /*
    * 再開が済むまで画面全体をローディングで覆う（デッキ一覧の再開時と同じ共通フック）。
    *
@@ -198,73 +218,77 @@ export default function Records({
     [scrollToCard, releaseScreen],
   );
 
+  /*
+   * 次のページを取って一覧に足す。
+   *
+   * 続きの有無は BFF が付ける has_next で決める(以前は2ページ目を先読みして判定していたので、
+   * 表示のたびに往復が1つ余計に走っていた)。limit(ダッシュボードの「最近の記録」)が
+   * あるときはその件数で打ち切る。
+   */
   const loadMore = useCallback(async () => {
-    if (isLoading || !hasMore) return;
+    if (isLoading || isRefreshing || !hasMore) return;
 
+    setError(false);
     setIsLoading(true);
 
     try {
-      const newItems: RecordGetResponseType = await fetchRecords(
-        apiEventType,
-        deck_id,
-        nextCursor,
-      );
+      const page = await fetchRecords(apiEventType, deck_id, nextCursor);
+      const step = stepRecordPage(page, loadedIdsRef.current, nextCursor);
 
-      if (newItems.records.length === 0) {
-        setHasMore(false);
-        return;
+      let appended = step.appended;
+      let more = step.hasNext;
+      if (limit !== 0 && items.length + appended.length >= limit) {
+        appended = appended.slice(0, Math.max(0, limit - items.length));
+        more = false;
       }
 
-      setItems((prev) => {
-        const next = [...prev, ...newItems.records];
-        return limit != 0 ? next.slice(0, limit) : next;
-      });
-
-      const lastItem = newItems.records[newItems.records.length - 1];
-
-      if (limit != 0 && items.length + newItems.records.length >= limit) {
-        setHasMore(false);
-      } else if (lastItem && lastItem.cursor) {
-        const nextItems: RecordGetResponseType = await fetchRecords(
-          apiEventType,
-          deck_id,
-          lastItem.cursor,
-        );
-
-        if (nextItems.records.length === 0) {
-          setHasMore(false);
-        } else {
-          setNextCursor(lastItem.cursor);
-        }
-
-        setNextCursor(lastItem.cursor);
-      } else {
-        setHasMore(false);
-      }
+      for (const record of appended) loadedIdsRef.current.add(record.data.id);
+      setItems((prev) => [...prev, ...appended]);
+      setNextCursor(step.nextCursor);
+      setHasMore(more);
     } catch (error) {
       console.error("Error loading items:", error);
-      setHasMore(false);
+      setError(true);
     } finally {
       setIsLoading(false);
-      if (!isInitialLoaded) {
-        setIsInitialLoaded(true);
-      }
+      setIsInitialLoaded(true);
     }
-  }, [
-    apiEventType,
-    deck_id,
-    nextCursor,
-    isLoading,
-    hasMore,
-    isInitialLoaded,
-    items.length,
-    limit,
-  ]);
+  }, [apiEventType, deck_id, nextCursor, isLoading, isRefreshing, hasMore, items.length, limit]);
 
   useEffect(() => {
     if (isInitialLoaded) return;
     loadMore();
   }, [isInitialLoaded, loadMore]);
+
+  // サーバで取った1ページ目を、マウント直後に裏で取り直して差し替える(理由は isRefreshing を参照)
+  useEffect(() => {
+    if (!isRefreshing) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const page = await fetchRecords(apiEventType, deck_id, "");
+        if (cancelled) return;
+
+        const step = stepRecordPage(page, new Set(), "");
+        const appended = limit !== 0 ? step.appended.slice(0, limit) : step.appended;
+        loadedIdsRef.current = new Set(appended.map((r) => r.data.id));
+        setItems(appended);
+        setNextCursor(step.nextCursor);
+        setHasMore(limit !== 0 && appended.length >= limit ? false : step.hasNext);
+        setError(false);
+      } catch (error) {
+        // 取り直しに失敗しても、サーバで取った1ページ目は出ているのでそのまま残す
+        console.error("Error refreshing items:", error);
+      } finally {
+        if (!cancelled) setIsRefreshing(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isRefreshing, apiEventType, deck_id, limit]);
 
   // 戻り遷移時に対象 record の event_type が一致する場合だけ ID を保持
   useEffect(() => {
@@ -275,8 +299,8 @@ export default function Records({
       releaseScreen();
       return;
     }
-    const id = sessionStorage.getItem("reopenModalRecordId");
-    const storedType = sessionStorage.getItem("reopenModalEventType");
+    const id = sessionStorage.getItem(REOPEN_MODAL_RECORD_ID);
+    const storedType = sessionStorage.getItem(REOPEN_MODAL_EVENT_TYPE);
     // すべて表示では全種別を含むため、保存された種別に関わらず再開対象とする。
     if (id && (event_type === "all" || storedType === event_type)) {
       setPendingReopenId(id);
@@ -289,14 +313,14 @@ export default function Records({
   // found になったときは何もしない（カード側の handleReopenComplete が pendingReopenId を null にする）
   useEffect(() => {
     if (!pendingReopenId) return;
-    if (!isInitialLoaded || isLoading) return;
+    if (!isInitialLoaded || isLoading || isRefreshing) return;
 
     const found = items.some((item) => item.data.id === pendingReopenId);
     if (!found) {
-      if (hasMore) {
+      if (hasMore && !error) {
         loadMore();
       } else {
-        // 全件読み込んでも見つからなかった（削除済み等）。
+        // 全件読み込んでも見つからなかった（削除済み等）、または取得に失敗した。
         // スクロールする対象も無いので、覆いもここで外す。
         setPendingReopenId(null);
         releaseScreen();
@@ -306,17 +330,22 @@ export default function Records({
     pendingReopenId,
     isInitialLoaded,
     isLoading,
+    isRefreshing,
     items,
     hasMore,
+    error,
     loadMore,
     releaseScreen,
   ]);
 
   // 初回ロードが終わり、追加読み込みも無く、1件も無い状態を「空」として親へ通知する。
-  const isEmpty = isInitialLoaded && !isLoading && !hasMore && items.length === 0;
+  const isEmpty = isInitialLoaded && !isLoading && !hasMore && !error && items.length === 0;
   useEffect(() => {
     onEmptyChange?.(isEmpty);
   }, [isEmpty, onEmptyChange]);
+
+  // 月見出しの判定に使うキー(件数ぶんの日付整形を描画ごとに繰り返さない)
+  const monthKeys = useMemo(() => items.map((record) => getMonthKey(record.data)), [items]);
 
   return (
     <div ref={listRef} className="flex flex-col items-center space-y-3 pb-3">
@@ -325,7 +354,7 @@ export default function Records({
           （デッキ一覧の再開時と同じ部品・同じ見え方に揃えている）。 */}
       {isReopening && <ScreenLockLoading label="記録情報を開いています" />}
       {/* 空状態 */}
-      {!holdSkeleton && isInitialLoaded && !isLoading && !hasMore && items.length === 0 && (
+      {!holdSkeleton && isEmpty && (
         <div className="flex flex-col items-center justify-center py-10 px-4 gap-6">
           <div className="flex flex-col items-center gap-3 text-center">
             <div className="p-4 rounded-full bg-primary/10">
@@ -406,12 +435,12 @@ export default function Records({
       <div className={`grid grid-cols-1 w-full gap-3 ${gridColsClass}`}>
         {!holdSkeleton &&
           items.map((recordData, index) => {
-          const monthKey = getMonthKey(recordData.data);
-          const prevMonthKey = index > 0 ? getMonthKey(items[index - 1].data) : null;
+          const monthKey = monthKeys[index];
+          const prevMonthKey = index > 0 ? monthKeys[index - 1] : null;
 
           // "all" のときはレコードごとに種別を判定し、それ以外は固定の event_type を使う。
           const recordType =
-            event_type === "all" ? resolveEventType(recordData.data) : event_type;
+            event_type === "all" ? resolveRecordEventType(recordData.data) : event_type;
 
           const onReopenComplete =
             recordData.data.id === pendingReopenId
@@ -470,7 +499,18 @@ export default function Records({
             <Spinner size="lg" className="pt-0" />
           </div>
         )}
-        {!holdSkeleton && !disable_more_load && isInitialLoaded && !isLoading && hasMore && (
+        {/* 取得に失敗したら一覧の末尾に出す(初回の失敗でも空状態ではなくこちら) */}
+        {!holdSkeleton && error && !isLoading && (
+          <div className={`col-span-1 ${colSpanClass}`}>
+            <FetchError message="記録の取得に失敗しました" onRetry={loadMore} compact />
+          </div>
+        )}
+        {!holdSkeleton &&
+          !disable_more_load &&
+          isInitialLoaded &&
+          !isLoading &&
+          !error &&
+          hasMore && (
           <div className={`flex justify-center col-span-1 ${colSpanClass}`}>
             <Button
               size="sm"

@@ -84,3 +84,16 @@ export type MatchOrderItemType = {
 export type MatchReorderRequestType = {
   matches: MatchOrderItemType[];
 };
+
+// 記録カードに出す対戦の集計。対戦一覧そのもの(games やスプライトを含み大きい)ではなく、
+// カードの描画に要る数だけを持つ。BFF(/api/records)がサーバ側で集計して記録に付ける
+export type MatchSummaryType = {
+  total: number;
+  wins: number;
+  losses: number;
+  // 両者引き分け(BO3のみ)
+  draws: number;
+  // チーム戦 / BO3 が1つでも含まれるか(カード右上のバッジ)
+  has_group_match: boolean;
+  has_bo3: boolean;
+};

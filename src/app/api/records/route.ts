@@ -2,48 +2,34 @@ import { NextResponse, NextRequest } from "next/server";
 
 import { auth } from "@app/auth";
 
+import { fetchRecordsPageWithDetails } from "@app/utils/recordListServer";
 import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/upstream";
 import { signUpstreamToken } from "@app/utils/upstreamToken";
 
-import {
-  RecordGetResponseType,
-  RecordCreateRequestType,
-  RecordCreateResponseType,
-} from "@app/types/record";
+import { RecordCreateRequestType, RecordCreateResponseType } from "@app/types/record";
 
-async function getRecords(
-  token: string,
-  event_type: string,
-  deck_id: string,
-  cursor: string,
-): Promise<RecordGetResponseType> {
-  return await fetchUpstream<RecordGetResponseType>(
-    upstreamUrl`/api/v1beta/records?event_type=${event_type}&deck_id=${deck_id}&cursor=${cursor}`,
-    {
-      method: "GET",
-      headers: {
-        Authorization: "Bearer " + token,
-        Accept: "application/json",
-      },
-    },
-  );
-}
-
+/*
+ * 記録一覧の1ページ。上流の生の一覧に加えて、次ページの有無(has_next)と各カードの周辺情報
+ * (デッキ・イベント・対戦の集計 = details)を付けて返す。サーバ描画(records/page.tsx)と同じ
+ * 組み立て(recordListServer)なので、初期表示とクライアントの取り直しで形が変わらない。
+ */
 export async function GET(request: NextRequest) {
   const session = await auth();
   if (!session) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const token = signUpstreamToken(session.user.id);
-
   try {
     const { searchParams } = new URL(request.url);
-    const deck_id = searchParams.get("deck_id") ?? "";
-    const event_type = searchParams.get("event_type") ?? "";
+    const deckId = searchParams.get("deck_id") ?? "";
+    const eventType = searchParams.get("event_type") ?? "";
     const cursor = searchParams.get("cursor") ?? "";
 
-    const records = await getRecords(token, event_type, deck_id, cursor);
+    const records = await fetchRecordsPageWithDetails(session.user.id, {
+      eventType,
+      deckId,
+      cursor,
+    });
 
     return NextResponse.json(records, { status: 200 });
   } catch (error) {

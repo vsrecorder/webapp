@@ -1,4 +1,4 @@
-import { MatchGetResponseType } from "@app/types/match";
+import { MatchGetResponseType, MatchSummaryType } from "@app/types/match";
 
 // 対戦一覧から勝敗数を集計する。
 // 両者引き分け(BO3のみ)は勝ちでも負けでもないため、draws として分けて数える。
@@ -17,4 +17,19 @@ export function hasGroupMatch(matches: MatchGetResponseType[]) {
 // 対戦一覧にBO3(bo3_flg)が1つでも含まれるか判定する
 export function hasBo3Match(matches: MatchGetResponseType[]) {
   return matches.some((m) => m.bo3_flg);
+}
+
+// 対戦一覧を記録カード向けの集計(勝敗数・チーム戦/BO3の有無)にまとめる。
+// カードごとに対戦一覧を丸ごと持たず、サーバ側(BFF)でこの形に落としてから渡す
+export function summarizeMatches(matches: MatchGetResponseType[]): MatchSummaryType {
+  const { wins, losses, draws, total } = countMatchResults(matches);
+
+  return {
+    total,
+    wins,
+    losses,
+    draws,
+    has_group_match: hasGroupMatch(matches),
+    has_bo3: hasBo3Match(matches),
+  };
 }

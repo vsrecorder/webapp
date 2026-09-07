@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { ZERO_DATE, diffInDays, isZeroDate, nonZeroDate, toJSTDateString } from "@app/utils/date";
+import {
+  ZERO_DATE,
+  diffInDays,
+  formatJSTDateWithWeekday,
+  formatJSTYearMonth,
+  isZeroDate,
+  nonZeroDate,
+  toJSTDateString,
+} from "@app/utils/date";
 
 describe("isZeroDate", () => {
   it("バックエンドのゼロ値(0001-01-01)は未設定として扱う", () => {
@@ -43,5 +51,21 @@ describe("toJSTDateString / diffInDays", () => {
   it("暦日どうしの差を日数で返す", () => {
     expect(diffInDays("2026-09-01", "2026-09-05")).toBe(4);
     expect(diffInDays("2026-09-05", "2026-09-01")).toBe(-4);
+  });
+});
+
+describe("formatJSTDateWithWeekday / formatJSTYearMonth", () => {
+  it("JST の暦日で整形する(バックエンドの開催日は JST 0:00 を UTC で表す)", () => {
+    // 2026-08-18 JST 0:00 = 2026-08-17T15:00:00Z。UTC で読むと前日になる
+    expect(formatJSTDateWithWeekday("2026-08-17T15:00:00Z")).toBe("2026年8月18日(火)");
+    expect(formatJSTDateWithWeekday(new Date("2026-08-18T00:00:00+09:00"))).toBe("2026年8月18日(火)");
+    expect(formatJSTYearMonth("2026-08-17T15:00:00Z")).toBe("2026年8月");
+    // 月の境目も JST で決める
+    expect(formatJSTYearMonth("2026-08-31T15:00:00Z")).toBe("2026年9月");
+  });
+
+  it("読めない値は空文字(Invalid Date を出さない)", () => {
+    expect(formatJSTDateWithWeekday("not a date")).toBe("");
+    expect(formatJSTYearMonth("")).toBe("");
   });
 });

@@ -191,6 +191,8 @@ export default function TemplateDecks({ userId, initial, initialTab }: Props) {
   // 空状態のページは1画面に収め、余白へのスクロールを止める。
   // ただし背の低い端末で案内カードが1画面に収まらないときは止めない
   // (止めると下の「デッキを登録する」ボタンに届かなくなる)。
+  // 収まるかはフォントや画像の到着で後から変わるので、リサイズだけでなく
+  // 文書の高さの変化(ResizeObserver)にも追従して判定し直す。
   useEffect(() => {
     if (!hideTabs) return;
     const html = document.documentElement;
@@ -205,8 +207,11 @@ export default function TemplateDecks({ userId, initial, initialTab }: Props) {
     };
     apply();
     window.addEventListener("resize", apply);
+    const observer = new ResizeObserver(apply);
+    observer.observe(body);
 
     return () => {
+      observer.disconnect();
       window.removeEventListener("resize", apply);
       html.style.overflow = prevHtml;
       body.style.overflow = prevBody;
@@ -233,7 +238,9 @@ export default function TemplateDecks({ userId, initial, initialTab }: Props) {
 
         {/* 最下部のカードがフローティングボタン（＋/トップへ戻る）と重ならないよう余白を確保するが、
             末尾がボタンに掛からないときは余白を出さず、空白へスクロールできてしまうのを防ぐ
-            （FloatingButtonClearance が不足分だけ余白を出し分ける）。 */}
+            （FloatingButtonClearance が不足分だけ余白を出し分ける）。
+            デッキが1つも無いときはフローティング自体を隠す(上記)ので余白も出さない。
+            出すと案内カードの直下に最大200pxの空白が付き、そこへスクロールできてしまう。 */}
         <div className="pt-2 lg:pb-6 lg:max-w-4xl lg:mx-auto">
           <Decks
             key={`${selectedKey}-${refreshKey}`}
@@ -251,7 +258,7 @@ export default function TemplateDecks({ userId, initial, initialTab }: Props) {
             }
             onReopenSettled={handleReopenSettled}
           />
-          <FloatingButtonClearance />
+          {!hideTabs && <FloatingButtonClearance />}
         </div>
       </div>
     </>

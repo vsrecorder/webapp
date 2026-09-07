@@ -10,28 +10,40 @@ import CreateRecordFloating from "@app/components/atoms/Floating/CreateRecordFlo
 
 import Records from "@app/components/organisms/Record/Records";
 
-type TabKey = "all" | "official" | "tonamel" | "unofficial";
+import { RecordGetResponseType } from "@app/types/record";
+import { RECORDS_TABS, RecordsTab } from "@app/utils/recordListPrefs";
+import { writeRecordsSelectedTab } from "@app/utils/recordsSelectedTab";
 
-// マウント後に復元すべきタブを算出する。
-// 必ずクライアント側（useEffect 内）からのみ呼ぶ。
-//
-// リロード・戻り遷移のいずれの場合も「ユーザが実際に選択していたタブ」を
-// recordsSelectedTab から復元する。カードの種別（eventType）ではなく
-// 選択タブを基準にすることで、「すべて」タブで個別種別のカードを開いて
-// 戻った際に個別タブへ切り替わってしまう問題を防ぐ。
-// モーダルの再開自体は Records 子コンポーネントが reopenModalRecordId を
-// 独立して処理するため、親はタブ選択だけを正しく復元すればよい。
-function resolveRestoredTab(): TabKey {
-  const savedTab = sessionStorage.getItem("recordsSelectedTab");
-  if (savedTab === "official" || savedTab === "tonamel" || savedTab === "unofficial")
-    return savedTab;
-  return "all";
-}
+const TAB_TITLES: Record<RecordsTab, string> = {
+  all: "すべて",
+  official: "公式イベント",
+  tonamel: "Tonamel",
+  unofficial: "自由形式",
+};
 
-export default function TemplateRecords() {
-  // SSR と初回クライアントレンダリングを一致させるため、初期値は必ず "all" にする。
-  // 実際の復元はマウント後の useEffect で行う（ハイドレーション不整合の回避）。
-  const [selectedKey, setSelectedKey] = useState<TabKey>("all");
+type Props = {
+  // サーバで取った initialTab のタブの1ページ目。無ければクライアントで取る
+  initial?: RecordGetResponseType | null;
+  // サーバが cookie から読んだ選択中タブ(recordListPrefs)。initial はこのタブの一覧
+  initialTab?: RecordsTab;
+};
+
+export default function TemplateRecords({ initial, initialTab = "all" }: Props) {
+  // サーバ描画と同じタブから始める(cookie に無ければ「すべて」)。
+  // 以前は sessionStorage からマウント後に復元していたので、別のタブを選んでいた人には
+  // 「すべて」の一覧が一瞬出てから切り替わって見えていた
+  const [selectedKey, setSelectedKey] = useState<RecordsTab>(initialTab);
+  /*
+   * 一度でも選んだタブ。選んだタブの一覧(Records)だけをマウントし、以後は hidden で残す。
+   *
+   * 以前は4タブぶんを最初から全部マウントしていたので、見ていないタブの取得
+   * (一覧＋カードごとの周辺情報)が初回表示に同時に走っていた。開いたタブだけ取れば
+   * 初回は1タブぶんで済み、一度開いたタブは残すので切り替えの体感は変わらない
+   * (スクロール位置・読み込んだページも保たれる)。
+   */
+  const [mountedTabs, setMountedTabs] = useState<ReadonlySet<RecordsTab>>(
+    () => new Set([initialTab]),
+  );
   // 「すべて」タブが空か（null=未判定）。全種別を含むため、これが空＝記録が1件も無い。
   const [allEmpty, setAllEmpty] = useState<boolean | null>(null);
 
@@ -44,18 +56,8 @@ export default function TemplateRecords() {
   // 作成は空状態カード内の「記録を作成する」ボタンから行える。
   const hideFloating = allEmpty === true;
 
-  // マウント後に保存済みタブを復元する。
-  // 初回 "all" からの state 遷移により通常の再レンダリングが走り、
-  // 各タブ内容の hidden 属性も正しく更新される。
-  useEffect(() => {
-    const restored = resolveRestoredTab();
-    if (restored !== "all") {
-      setSelectedKey(restored);
-    }
-  }, []);
-
   // タブごとのスクロール位置を保存
-  const scrollPositions = useRef<Record<TabKey, number>>({
+  const scrollPositions = useRef<Record<RecordsTab, number>>({
     all: 0,
     official: 0,
     tonamel: 0,
@@ -63,13 +65,16 @@ export default function TemplateRecords() {
   });
 
   const handleSelectionChange = (key: React.Key) => {
+    const tab = key as RecordsTab;
+
     // 切り替え前のスクロール位置を保存
     scrollPositions.current[selectedKey] = window.scrollY;
 
-    // リロード時の復元用に選択タブを保存
-    sessionStorage.setItem("recordsSelectedTab", key as string);
+    // リロード後もサーバ描画の時点から同じタブで描けるように保存する
+    writeRecordsSelectedTab(tab);
 
-    setSelectedKey(key as TabKey);
+    setSelectedKey(tab);
+    setMountedTabs((prev) => (prev.has(tab) ? prev : new Set(prev).add(tab)));
   };
 
   // タブ切り替え後にスクロール復元
@@ -102,44 +107,29 @@ export default function TemplateRecords() {
             tabContent: "font-bold",
           }}
         >
-          <Tab key="all" title="すべて" />
-          <Tab key="official" title="公式イベント" />
-          <Tab key="tonamel" title="Tonamel" />
-          <Tab key="unofficial" title="自由形式" />
+          {RECORDS_TABS.map((tab) => (
+            <Tab key={tab} title={TAB_TITLES[tab]} />
+          ))}
         </Tabs>
       </div>
 
-      <div
-        className="w-full pt-2 lg:pb-6 lg:max-w-4xl lg:mx-auto"
-        hidden={selectedKey !== "all"}
-      >
-        <Records
-          event_type={"all"}
-          isActive={selectedKey === "all"}
-          onEmptyChange={handleAllEmptyChange}
-        />
-      </div>
-
-      <div
-        className="w-full pt-2 lg:pb-6 lg:max-w-4xl lg:mx-auto"
-        hidden={selectedKey !== "official"}
-      >
-        <Records event_type={"official"} isActive={selectedKey === "official"} />
-      </div>
-
-      <div
-        className="w-full pt-2 lg:pb-6 lg:max-w-4xl lg:mx-auto"
-        hidden={selectedKey !== "tonamel"}
-      >
-        <Records event_type={"tonamel"} isActive={selectedKey === "tonamel"} />
-      </div>
-
-      <div
-        className="w-full pt-2 lg:pb-6 lg:max-w-4xl lg:mx-auto"
-        hidden={selectedKey !== "unofficial"}
-      >
-        <Records event_type={"unofficial"} isActive={selectedKey === "unofficial"} />
-      </div>
+      {RECORDS_TABS.map((tab) => (
+        <div
+          key={tab}
+          className="w-full pt-2 lg:pb-6 lg:max-w-4xl lg:mx-auto"
+          hidden={selectedKey !== tab}
+        >
+          {mountedTabs.has(tab) && (
+            <Records
+              event_type={tab}
+              isActive={selectedKey === tab}
+              // サーバで取った1ページ目は、そのタブの一覧にだけ渡す
+              initialPage={tab === initialTab ? (initial ?? undefined) : undefined}
+              onEmptyChange={tab === "all" ? handleAllEmptyChange : undefined}
+            />
+          )}
+        </div>
+      ))}
 
       {/* 表示中のパネル以外は hidden(display:none)で高さを持たないため、
           クリアランスは4パネルの後に1つ置けば表示中パネル末尾に付く。

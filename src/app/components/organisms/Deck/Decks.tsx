@@ -470,38 +470,49 @@ export default function Decks({
 
       {/* 空状態：利用中 */}
       {isEmpty && !isArchived && (
-        <div className="flex flex-col items-center justify-center py-10 px-2.5 gap-6">
+        /*
+         * デッキが1つも無いときの案内は1画面に収める。
+         * この状態ではフローティング(＋/トップへ戻る)も隠れ、下に続くカードも無いので、
+         * 縦に余ると画面下の空白へスクロールできるだけの画面になる(templates/Decks が
+         * 収まるときは overflow を止める)。以前は py-10・段落2つ・2行の手順で約730pxあり、
+         * iPhone 14 の Safari(可視高 664px)でも1.5画面ぶん溢れていた。
+         * 余白と文字を詰め、灯と見出しを横に並べ、手順は1行ずつにして約400pxに収める。
+         */
+        <div className="flex w-full flex-col items-center justify-center gap-3 px-2.5 py-2 short:gap-2 short:py-1">
           {/* きずな訴求：デッキ登録を「対戦記録の管理」ではなく「デッキとのきずなを育てる第一歩」
               として動機づける。きずなLv.は過去の記録から算出されるため、早く始めるほど深くなる——
               という一点を、灯（KizunaMark）の視覚言語で伝え、詳細は /kizuna のLPへ送る。 */}
           <div className="w-full max-w-sm overflow-hidden rounded-2xl border border-amber-300/50 bg-linear-to-br from-amber-50 to-rose-50 dark:border-amber-400/20 dark:from-amber-950/40 dark:to-rose-950/30">
-            <div className="flex flex-col items-center gap-4 px-3 py-6 text-center">
-              <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/40 bg-amber-400/10 px-3 py-1 text-[0.6875rem] font-bold tracking-wider text-amber-700 dark:text-amber-300">
+            <div className="flex flex-col items-center gap-2.5 px-3 py-3.5 text-center">
+              {/* 背の低い画面(short: 可視高600px以下)ではバッジと下の導入の一文を畳み、
+                  iPhone SE の Safari(可視高約553px)でも案内全体が1画面に収まるようにする */}
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-400/10 px-2.5 py-0.5 text-[0.6875rem] font-bold tracking-wider text-amber-700 dark:text-amber-300 short:hidden">
                 <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-amber-500" />
                 新機能「きずな」β版公開中
               </span>
 
-              <div className="flex flex-col items-center gap-2">
+              {/* 灯と見出しは縦積みだと約110px取るので、横に並べて見出し2行ぶん(約44px)に収める */}
+              <div className="flex items-center gap-2.5">
                 <KizunaMark
-                  size={44}
-                  className="drop-shadow-[0_0_18px_rgba(251,191,36,0.55)]"
+                  size={36}
+                  className="shrink-0 drop-shadow-[0_0_14px_rgba(251,191,36,0.55)]"
                 />
-                <p className="text-lg font-black leading-snug text-foreground">
+                <p className="text-left text-base font-black leading-snug text-foreground">
                   最初のデッキと
                   <br />
                   きずなを育てよう
                 </p>
               </div>
 
+              {/* 「早く始めるほど深くなる」は別枠の帯にせず、同じ段落の中で強調して高さを抑える */}
               <p className="text-xs leading-relaxed text-default-600 dark:text-default-400">
-                負けても握り続けた回数、組み直した夜、連れて行った大会。
+                <span className="short:hidden">
+                  負けても握り続けた回数、組み直した夜、連れて行った大会。
+                </span>
                 勝率では測れないデッキとの歩みが「きずなLv.」になります。
-              </p>
-
-              <p className="w-full rounded-xl bg-amber-500/10 px-3 py-2 text-xs font-bold leading-relaxed text-amber-800 dark:text-amber-200">
-                きずなLv.は過去の記録から算出されます。
-                <br />
-                1日でも早く始めるほど、深くなります。
+                <span className="font-bold text-amber-800 dark:text-amber-200">
+                  1日でも早く始めるほど、深くなります。
+                </span>
               </p>
 
               <NextLink
@@ -514,43 +525,37 @@ export default function Decks({
             </div>
           </div>
 
-          <div className="w-full max-w-sm flex flex-col gap-3">
-            <p className="text-xs font-bold text-center text-default-400 uppercase tracking-wider">
+          {/* 登録手順。見出し＋説明の2段だと1項目で約70px取るので、番号＋1文の1段にする。
+              以前は「右下の「＋」ボタン」も案内していたが、デッキが1つも無い間はその
+              フローティングを出さない(templates/Decks)ため、下のボタンだけを指す。 */}
+          <div className="flex w-full max-w-sm flex-col gap-1.5">
+            <p className="text-center text-[0.6875rem] font-bold uppercase tracking-wider text-default-400">
               デッキの登録方法
             </p>
-            <div className="flex flex-col gap-2">
-              <div className="flex items-start gap-3 p-3 rounded-xl bg-default-100">
-                <div className="shrink-0 w-6 h-6 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center">
-                  1
-                </div>
-                <div className="flex flex-col gap-0.5">
-                  <p className="text-sm font-bold">デッキコードを準備する</p>
-                  <p className="text-xs text-default-500">
-                    <Link
-                      isExternal
-                      href="https://www.pokemon-card.com/deck/"
-                      className="text-xs text-primary"
-                      underline="always"
-                    >
-                      トレーナーズウェブサイト
-                    </Link>
-                    でデッキを作成し、<br></br>デッキコードを取得してください
-                  </p>
-                </div>
+            <div className="flex items-center gap-2.5 rounded-xl bg-default-100 px-3 py-2">
+              <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[0.6875rem] font-bold text-white">
+                1
               </div>
-              <div className="flex items-start gap-3 p-3 rounded-xl bg-default-100">
-                <div className="shrink-0 w-6 h-6 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center">
-                  2
-                </div>
-                <div className="flex flex-col gap-0.5">
-                  <p className="text-sm font-bold">デッキを登録する</p>
-                  <p className="text-xs text-default-500">
-                    下のボタンまたは右下の
-                    <span className="font-bold">「＋」ボタン</span>
-                    をタップして、<br></br>デッキ名とデッキコードを貼り付けてください
-                  </p>
-                </div>
+              <p className="text-xs leading-snug text-default-600">
+                <Link
+                  isExternal
+                  href="https://www.pokemon-card.com/deck/"
+                  className="text-xs text-primary"
+                  underline="always"
+                >
+                  トレーナーズウェブサイト
+                </Link>
+                でデッキを作り、デッキコードを取得する
+              </p>
+            </div>
+            <div className="flex items-center gap-2.5 rounded-xl bg-default-100 px-3 py-2">
+              <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[0.6875rem] font-bold text-white">
+                2
               </div>
+              <p className="text-xs leading-snug text-default-600">
+                下の<span className="font-bold text-foreground">「デッキを登録する」</span>
+                から、デッキ名とデッキコードを貼り付ける
+              </p>
             </div>
           </div>
 
@@ -586,6 +591,10 @@ export default function Decks({
         </div>
       )}
 
+      {/* 一覧が空(isEmpty)のときはグリッドごと描かない。中身は無くても親の space-y-3 が
+          空状態カードとの間に 12px の余白を作り、背の低い端末で1画面に収まらなくなる。
+          取得失敗(error)は hasMore が残るので isEmpty にならず、FetchError はこの中で出せる */}
+      {!isEmpty && (
       <div
         className={`grid w-full ${
           view === "gallery"
@@ -656,6 +665,7 @@ export default function Decks({
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }

@@ -52,6 +52,17 @@ export default function DisplayRecordsModal({
     const isReopen = sessionStorage.getItem("reopenModalRecordId") !== null;
     return isReopen ? resolveRestoredTab() : "all";
   });
+  /*
+   * 一度でも選んだタブ。選んだタブの一覧(Records)だけをマウントし、以後は hidden で残す。
+   *
+   * 以前は着地(parentReady)後に4タブぶんを全部マウントしていた。一覧 API はカードの周辺情報を
+   * サーバ側でまとめて取るようになった(recordListServer)ため、1タブのマウントが上流への
+   * 20〜30本の取得を伴う。見ていないタブまで開くと、それが4倍になる。
+   * 開いたタブだけ取れば1タブぶんで済み、一度開いたタブは残すので切り替えの体感は変わらない。
+   */
+  const [mountedTabs, setMountedTabs] = useState<ReadonlySet<TabKey>>(
+    () => new Set<TabKey>([selectedKey]),
+  );
   const bodyRef = useRef<HTMLDivElement | null>(null);
 
   // 現在の選択タブを保存しておき、次回の再開時に遷移前のタブを復元できるようにする。
@@ -68,6 +79,9 @@ export default function DisplayRecordsModal({
   useEffect(() => {
     if (prevIsOpenRef.current && !isOpen) {
       setSelectedKey("all");
+      // 次に開いたときは「すべて」から始まるので、マウント済みの記憶もそこへ戻す
+      // (残したままだと閉じている間も4タブぶんの一覧を抱え続ける)
+      setMountedTabs(new Set<TabKey>(["all"]));
     }
     prevIsOpenRef.current = isOpen;
   }, [isOpen]);
@@ -86,7 +100,9 @@ export default function DisplayRecordsModal({
       scrollPositions.current[selectedKey] = bodyRef.current.scrollTop;
     }
 
-    setSelectedKey(key as TabKey);
+    const tab = key as TabKey;
+    setSelectedKey(tab);
+    setMountedTabs((prev) => (prev.has(tab) ? prev : new Set(prev).add(tab)));
   };
 
   // タブ切り替え後にスクロール復元
@@ -190,11 +206,11 @@ export default function DisplayRecordsModal({
               ref={bodyRef}
               className="px-2 py-2 flex flex-col overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none"
             >
-              {/* 非表示タブの Records は着地(parentReady)後にマウントする。
-                  4タブ分のスケルトン群を一度にマウントすると、そのコミットの重さで
-                  入場アニメーションが引っかかるため(見えないタブは遅らせても体験が変わらない)。 */}
+              {/* 表示中のタブだけをマウントする(mountedTabs)。4タブ分を一度にマウントすると、
+                  そのコミットの重さで入場アニメーションが引っかかり、一覧 API も4本走る。
+                  着地(parentReady)までは holdSkeleton で実体化を待たせ、入場を妨げない。 */}
               <div hidden={selectedKey !== "all"} className="pt-12">
-                {(parentReady || selectedKey === "all") && (
+                {mountedTabs.has("all") && (
                   <Records
                     event_type={"all"}
                     deck_id={deck ? deck.id : ""}
@@ -208,7 +224,7 @@ export default function DisplayRecordsModal({
               </div>
 
               <div hidden={selectedKey !== "official"} className="pt-12">
-                {(parentReady || selectedKey === "official") && (
+                {mountedTabs.has("official") && (
                   <Records
                     event_type={"official"}
                     deck_id={deck ? deck.id : ""}
@@ -222,7 +238,7 @@ export default function DisplayRecordsModal({
               </div>
 
               <div hidden={selectedKey !== "tonamel"} className="pt-12">
-                {(parentReady || selectedKey === "tonamel") && (
+                {mountedTabs.has("tonamel") && (
                   <Records
                     event_type={"tonamel"}
                     deck_id={deck ? deck.id : ""}
@@ -236,7 +252,7 @@ export default function DisplayRecordsModal({
               </div>
 
               <div hidden={selectedKey !== "unofficial"} className="pt-12">
-                {(parentReady || selectedKey === "unofficial") && (
+                {mountedTabs.has("unofficial") && (
                   <Records
                     event_type={"unofficial"}
                     deck_id={deck ? deck.id : ""}

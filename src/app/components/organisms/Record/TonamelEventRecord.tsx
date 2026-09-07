@@ -10,7 +10,7 @@ import {
   fetchTonamelEventById,
   useRecordCard,
 } from "@app/components/organisms/Record/useRecordCard";
-import { useRecordCardResource } from "@app/hooks/useRecordCardResource";
+import { useSeededResource } from "@app/hooks/useSeededResource";
 import { createLazyModal } from "@app/utils/lazyModal";
 import { formatJSTDateWithWeekday, nonZeroDate } from "@app/utils/date";
 
@@ -24,7 +24,7 @@ export default function TonamelEventRecord(props: RecordCardProps) {
   const { recordData, enableDisplayRecordModal, nestedInModal = false } = props;
 
   // Tonamel イベント情報。一覧 API が付けていればそれを使い、無ければ自分で取る
-  const event = useRecordCardResource(
+  const event = useSeededResource(
     recordData.data.tonamel_event_id,
     fetchTonamelEventById,
     recordData.details?.tonamel_event,

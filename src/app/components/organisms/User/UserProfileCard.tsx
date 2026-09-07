@@ -18,6 +18,7 @@ import UpdateNameModal from "@app/components/organisms/User/Modal/UpdateNameModa
 import FetchError from "@app/components/molecules/FetchError";
 
 import { UserType } from "@app/types/user";
+import { useSeededResource } from "@app/hooks/useSeededResource";
 import { UserStatType } from "@app/types/user_stat";
 import {
   getCurrentYearMonth,
@@ -29,6 +30,18 @@ type Props = {
   user: UserType;
   isDevEnv?: boolean;
   userCreatedAt?: string;
+  /*
+   * サーバ描画(dashboardServer)で取った当月の戦績と、その当月。
+   * 表示中の月と一致するときだけ初期値として使う(月を選び直せば取り直す)。
+   */
+  initialStat?: UserStatType;
+  initialYearMonth?: string;
+  /*
+   * サーバ描画で取った、連携済みのプレイヤーID。
+   *   undefined … サーバでは取れなかった(このカードが自分で取る。機能停止 503 の判定もそこで行う)
+   *   null      … 未連携(取れた上で「無い」)
+   */
+  initialUserPlayer?: UserPlayerType | null;
 };
 
 // フレームがこの間隔以内で描けていれば「滑らかに描ける状態」とみなす(およそ25fps以上)。
@@ -314,12 +327,16 @@ export default function UserProfileCard({
   user,
   isDevEnv = false,
   userCreatedAt,
+  initialStat,
+  initialYearMonth,
+  initialUserPlayer,
 }: Props) {
-  const [stat, setStat] = useState<UserStatType | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [statError, setStatError] = useState(false);
-  const [userPlayer, setUserPlayer] = useState<UserPlayerType | null>(null);
-  const [isUserPlayerLoading, setIsUserPlayerLoading] = useState(true);
+  const [userPlayer, setUserPlayer] = useState<UserPlayerType | null>(
+    initialUserPlayer ?? null,
+  );
+  const [isUserPlayerLoading, setIsUserPlayerLoading] = useState(
+    initialUserPlayer === undefined,
+  );
   const [isPlayersClubFeatureDisabled, setIsPlayersClubFeatureDisabled] = useState(false);
   const [profile, setProfile] = useState({ name: user.name, imageUrl: user.image_url });
   const [statsVisible, setStatsVisible] = useState(true);
@@ -343,12 +360,10 @@ export default function UserProfileCard({
 
   // 取得に失敗したことを「勝率0.0% / 0戦0勝0敗」の表示で覆い隠さないよう、
   // 失敗はエラーとして扱い、戦績の部分だけで取り直せるようにする。
-  const loadStat = useCallback(async () => {
-    setStatError(false);
-    setIsLoading(true);
-
-    try {
-      const res = await fetch(`/api/users/${user.id}/stat?year_month=${yearMonth}`, {
+  // 鍵は表示中の月(user.id はこのカードでは変わらない)。
+  const fetchStat = useCallback(
+    async (targetYearMonth: string): Promise<UserStatType> => {
+      const res = await fetch(`/api/users/${user.id}/stat?year_month=${targetYearMonth}`, {
         cache: "no-store",
       });
 
@@ -356,22 +371,31 @@ export default function UserProfileCard({
         throw new Error("Failed to fetch");
       }
 
-      const data: UserStatType = await res.json();
+      return (await res.json()) as UserStatType;
+    },
+    [user.id],
+  );
 
-      setStat(data);
-    } catch (err) {
-      console.log(err);
-      setStatError(true);
-    } finally {
-      setIsLoading(false);
+  const {
+    data: stat,
+    loading: isLoading,
+    error: statError,
+    retry: loadStat,
+  } = useSeededResource(
+    yearMonth,
+    fetchStat,
+    initialYearMonth === yearMonth ? initialStat : undefined,
+  );
+
+  // プレイヤーズクラブの連携状態。サーバで取れていればその値を使い、取りに行かない
+  // (機能停止の 503 はサーバ側で undefined になるため、その場合はここで取って判定する)
+  useEffect(() => {
+    if (initialUserPlayer !== undefined) {
+      setUserPlayer(initialUserPlayer);
+      setIsUserPlayerLoading(false);
+      return;
     }
-  }, [user.id, yearMonth]);
 
-  useEffect(() => {
-    loadStat();
-  }, [loadStat]);
-
-  useEffect(() => {
     setIsUserPlayerLoading(true);
     fetch("/api/usersplayers", { cache: "no-store" })
       .then((r) => {
@@ -386,7 +410,7 @@ export default function UserProfileCard({
         setIsUserPlayerLoading(false);
       })
       .catch(() => setIsUserPlayerLoading(false));
-  }, []);
+  }, [initialUserPlayer]);
 
   return (
     <>

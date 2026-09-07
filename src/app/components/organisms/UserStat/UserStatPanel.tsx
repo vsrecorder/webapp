@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { Button, Card, CardBody, Tabs, Tab } from "@heroui/react";
 import { LuShare2 } from "react-icons/lu";
@@ -16,6 +16,7 @@ import { StandardRegulationType } from "@app/types/standard_regulation";
 import { DEFAULT_REGULATION_ID, regulationDisplay } from "@app/types/regulation";
 import RegulationSegmentedControl from "@app/components/molecules/RegulationSegmentedControl";
 import { ChampionshipSeriesType } from "@app/types/championship_series";
+import { useSeededResource } from "@app/hooks/useSeededResource";
 import { UserStatType } from "@app/types/user_stat";
 import {
   getCurrentYearMonth,
@@ -37,6 +38,13 @@ type Props = {
   userCreatedAt?: string;
   // セクション見出し。パネル自身が見出し行を描画し、その右端にシェアボタンを置く。
   sectionTitle: string;
+  /*
+   * サーバ描画(dashboardServer)で取った戦績と、それを取ったときの対戦環境。
+   * 初期表示の絞り込み(対戦環境 × 既定レギュレーション)と一致するときだけ初期値として使う。
+   * 絞り込みを変えれば通常どおり取り直す。
+   */
+  initialStat?: UserStatType;
+  initialStatEnvironmentId?: string;
 };
 
 export default function UserStatPanel({
@@ -47,6 +55,8 @@ export default function UserStatPanel({
   championshipSeries,
   userCreatedAt,
   sectionTitle,
+  initialStat,
+  initialStatEnvironmentId,
 }: Props) {
   const [filterMode, setFilterMode] = useState<FilterMode>("environment");
   const [yearMonth, setYearMonth] = useState<string>(getCurrentYearMonth);
@@ -63,52 +73,57 @@ export default function UserStatPanel({
   // レギュレーション区分(スタンダード/エクストラ/殿堂/その他)。期間の絞り込みとは直交する軸で、
   // 既定はスタンダード(レギュレーションが混ざった数字を初期表示しない)。
   const [regulationId, setRegulationId] = useState<number>(DEFAULT_REGULATION_ID);
-  const [stat, setStat] = useState<UserStatType | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   // シェアモーダルの開閉
   const [shareOpen, setShareOpen] = useState(false);
 
   const yearMonthOptions = generateYearMonthOptions(userCreatedAt);
   const seasonOptions = seasonOptionsFromChampionshipSeries(championshipSeries);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function fetchStat() {
-      setIsLoading(true);
-      try {
-        const params = new URLSearchParams();
-        params.set("regulation_id", String(regulationId));
-        if (filterMode === "month" && yearMonth) {
-          params.set("year_month", yearMonth);
-        } else if (filterMode === "environment" && environmentId) {
-          params.set("environment_id", environmentId);
-        } else if (filterMode === "season" && season) {
-          params.set("season", season);
-        } else if (filterMode === "regulation" && standardRegulationId) {
-          params.set("standard_regulation_id", standardRegulationId);
-        }
-
-        const res = await fetch(`/api/users/${userId}/stat?${params.toString()}`, {
-          cache: "no-store",
-        });
-
-        if (!res.ok) return;
-
-        const data: UserStatType = await res.json();
-        if (!cancelled) setStat(data);
-      } catch (e) {
-        console.error(e);
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
+  /*
+   * 取得の鍵は絞り込みそのもの(クエリ文字列)。絞り込みを変えれば鍵が変わり、取り直される。
+   * 同じ絞り込みに戻したときは、直前に取った値がそのまま出る。
+   */
+  const query = useMemo(() => {
+    const params = new URLSearchParams();
+    params.set("regulation_id", String(regulationId));
+    if (filterMode === "month" && yearMonth) {
+      params.set("year_month", yearMonth);
+    } else if (filterMode === "environment" && environmentId) {
+      params.set("environment_id", environmentId);
+    } else if (filterMode === "season" && season) {
+      params.set("season", season);
+    } else if (filterMode === "regulation" && standardRegulationId) {
+      params.set("standard_regulation_id", standardRegulationId);
     }
+    return params.toString();
+  }, [filterMode, yearMonth, environmentId, season, standardRegulationId, regulationId]);
 
-    fetchStat();
-    return () => {
-      cancelled = true;
-    };
-  }, [userId, filterMode, yearMonth, environmentId, season, standardRegulationId, regulationId]);
+  const fetchStat = useCallback(
+    async (key: string): Promise<UserStatType> => {
+      const res = await fetch(`/api/users/${userId}/stat?${key}`, { cache: "no-store" });
+
+      if (!res.ok) {
+        throw new Error("Failed to fetch");
+      }
+
+      return (await res.json()) as UserStatType;
+    },
+    [userId],
+  );
+
+  // サーバ値が使えるのは「初期表示の絞り込みのまま」のときだけ。
+  // 対戦環境で絞り、レギュレーションが既定で、環境がサーバの取得時と同じ場合に限る。
+  const canUseInitialStat =
+    filterMode === "environment" &&
+    regulationId === DEFAULT_REGULATION_ID &&
+    environmentId !== "" &&
+    environmentId === initialStatEnvironmentId;
+
+  const { data: stat, loading: isLoading } = useSeededResource(
+    query,
+    fetchStat,
+    canUseInitialStat ? initialStat : undefined,
+  );
 
 
   // 「環境」と「レギュレーションマーク」はスタンダードのカードプールを前提にした区切りのため、

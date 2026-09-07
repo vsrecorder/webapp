@@ -3,11 +3,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 /*
- * 記録カードが出す周辺情報(イベント・デッキ・対戦の集計)を1つ持つ。
+ * 「サーバが用意してくれた値があればそれを使い、無ければ自分で取りに行く」部品ひとつぶんの状態。
  *
- * 一覧 API(BFF /api/records)が details として付けてくれた値(initial)があれば、それを
- * そのまま使って取得しない。無い(サーバで取れなかった・古い形の応答)ときだけ、
- * 従来どおりカードが自分で取る。key(取得の鍵になる id)が無ければ何もしない。
+ * サーバ描画(RSC)や一覧 API がすでに持っている値を initial として渡せば、その部品は
+ * ハイドレーション後に取りに行かず、最初の描画から中身を出せる。渡されなかったとき
+ * (サーバ側で取れなかった・古い形の応答)だけ、従来どおりクライアントが取る。
+ * key(取得の鍵になる id など)が無ければ何もしない。
+ *
+ * 使っているところ: 記録カードの周辺情報(イベント・デッキ・対戦の集計)、
+ * ダッシュボードの各パネル(バッジ・ストリーク・称号・戦績)。
  *
  * initial は一覧の取り直し(記録一覧はマウント直後に1ページ目を裏で取り直す)で新しい
  * オブジェクトになるので、内容が変わったときは取り直した値に差し替える。内容が同じなら
@@ -33,16 +37,16 @@ type State<T> = {
   error: boolean;
 };
 
-export type RecordCardResource<T> = State<T> & {
+export type SeededResource<T> = State<T> & {
   // 失敗したときの再取得(FetchError の onRetry に渡す)
   retry: () => void;
 };
 
-export function useRecordCardResource<K extends string | number, T>(
+export function useSeededResource<K extends string | number, T>(
   key: K | null | undefined,
   fetcher: (key: K) => Promise<T>,
   initial?: T,
-): RecordCardResource<T> {
+): SeededResource<T> {
   const hasKey = key !== null && key !== undefined && key !== "" && key !== 0;
   const [state, setState] = useState<State<T>>(() => ({
     data: initial ?? null,

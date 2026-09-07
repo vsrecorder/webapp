@@ -1,15 +1,28 @@
 "use client";
 
-import { ReactNode, useCallback, useEffect, useState } from "react";
+import { ReactNode } from "react";
 import { Card, CardBody, Popover, PopoverContent, PopoverTrigger } from "@heroui/react";
 import { LuFlame, LuInfo, LuSnowflake } from "react-icons/lu";
 
 import FetchError from "@app/components/molecules/FetchError";
 
+import { useSeededResource } from "@app/hooks/useSeededResource";
 import { UserStreakType } from "@app/types/streak";
+
+async function fetchStreak(userId: string): Promise<UserStreakType> {
+  const res = await fetch(`/api/users/${userId}/streak`, { cache: "no-store" });
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch");
+  }
+
+  return (await res.json()) as UserStreakType;
+}
 
 type Props = {
   userId: string;
+  // サーバ描画(dashboardServer)で取った値。あればこれを出し、取りに行かない
+  initialStreak?: UserStreakType;
 };
 
 // テキスト列は「週数 / 最長記録・フリーズ枠 / フリーズ復活の案内」の3行構成だが、
@@ -127,38 +140,15 @@ function StreakPanelSkeleton() {
   );
 }
 
-export default function StreakPanel({ userId }: Props) {
-  const [streak, setStreak] = useState<UserStreakType | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(false);
-
+export default function StreakPanel({ userId, initialStreak }: Props) {
   // 取得に失敗したことを「0週連続記録中」の表示で覆い隠さないよう、
   // 失敗はエラーとして扱い、この場だけで取り直せるようにする。
-  const loadStreak = useCallback(async () => {
-    setError(false);
-    setIsLoading(true);
-
-    try {
-      const res = await fetch(`/api/users/${userId}/streak`, { cache: "no-store" });
-
-      if (!res.ok) {
-        throw new Error("Failed to fetch");
-      }
-
-      const data: UserStreakType = await res.json();
-
-      setStreak(data);
-    } catch (err) {
-      console.log(err);
-      setError(true);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [userId]);
-
-  useEffect(() => {
-    loadStreak();
-  }, [loadStreak]);
+  const {
+    data: streak,
+    loading: isLoading,
+    error,
+    retry: loadStreak,
+  } = useSeededResource(userId, fetchStreak, initialStreak);
 
   if (isLoading) {
     return <StreakPanelSkeleton />;

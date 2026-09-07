@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import {
   Button,
   Card,
@@ -16,12 +16,32 @@ import { LuLock, LuChevronDown, LuChevronUp } from "react-icons/lu";
 import { Modal } from "@app/components/atoms/AppModal";
 import FetchError from "@app/components/molecules/FetchError";
 
-import { UserEnvironmentBadgeType } from "@app/types/environment_badge";
+import { useSeededResource } from "@app/hooks/useSeededResource";
+import {
+  UserEnvironmentBadgeType,
+  UserEnvironmentBadgesResponseType,
+} from "@app/types/environment_badge";
+
+async function fetchEnvironmentBadges(
+  userId: string,
+): Promise<UserEnvironmentBadgesResponseType> {
+  const res = await fetch(`/api/users/${userId}/environment_badges`, {
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch");
+  }
+
+  return (await res.json()) as UserEnvironmentBadgesResponseType;
+}
 import { environmentBadgeImageUrl } from "@app/utils/badgeImage";
 import { formatAchievedAt } from "@app/components/organisms/Badge/badgeUi";
 
 type Props = {
   userId: string;
+  // サーバ描画(dashboardServer)で取った値。あればこれを出し、取りに行かない
+  initialBadges?: UserEnvironmentBadgesResponseType;
 };
 
 // 対戦環境(environments)ごとに、初めて対戦結果を追加したことを表すバッジパネル。
@@ -128,10 +148,16 @@ function EnvironmentBadgeTileSkeleton({ titleSample }: { titleSample: string }) 
   );
 }
 
-export default function EnvironmentBadgeGallery({ userId }: Props) {
-  const [badges, setBadges] = useState<UserEnvironmentBadgeType[] | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(false);
+export default function EnvironmentBadgeGallery({ userId, initialBadges }: Props) {
+  // 取得に失敗したことを「獲得数 0 / 0」の空表示で覆い隠さないよう、
+  // 失敗はエラーとして扱い、この場だけで取り直せるようにする。
+  const {
+    data,
+    loading: isLoading,
+    error,
+    retry: loadBadges,
+  } = useSeededResource(userId, fetchEnvironmentBadges, initialBadges);
+  const badges = useMemo(() => (data ? (data.badges ?? []) : null), [data]);
   const [selectedBadge, setSelectedBadge] = useState<UserEnvironmentBadgeType | null>(
     null,
   );
@@ -142,36 +168,6 @@ export default function EnvironmentBadgeGallery({ userId }: Props) {
     setSelectedBadge(badge);
     onOpen();
   }
-
-  // 取得に失敗したことを「獲得数 0 / 0」の空表示で覆い隠さないよう、
-  // 失敗はエラーとして扱い、この場だけで取り直せるようにする。
-  const loadBadges = useCallback(async () => {
-    setError(false);
-    setIsLoading(true);
-
-    try {
-      const res = await fetch(`/api/users/${userId}/environment_badges`, {
-        cache: "no-store",
-      });
-
-      if (!res.ok) {
-        throw new Error("Failed to fetch");
-      }
-
-      const data = await res.json();
-
-      setBadges(data?.badges ?? []);
-    } catch (err) {
-      console.log(err);
-      setError(true);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [userId]);
-
-  useEffect(() => {
-    loadBadges();
-  }, [loadBadges]);
 
   if (isLoading) {
     return (

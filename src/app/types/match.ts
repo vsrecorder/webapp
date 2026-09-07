@@ -85,6 +85,16 @@ export type MatchReorderRequestType = {
   matches: MatchOrderItemType[];
 };
 
+// 上流(GET /api/v1beta/matches/summary)がまとめて返す、記録ごとの対戦集計。
+// record_id 付きで、記録一覧の1ページぶんを1回の呼び出しで取れる
+export type MatchSummaryByRecordType = MatchSummaryType & {
+  record_id: string;
+};
+
+export type MatchSummariesGetResponseType = {
+  summaries: MatchSummaryByRecordType[];
+};
+
 // 記録カードに出す対戦の集計。対戦一覧そのもの(games やスプライトを含み大きい)ではなく、
 // カードの描画に要る数だけを持つ。BFF(/api/records)がサーバ側で集計して記録に付ける
 export type MatchSummaryType = {

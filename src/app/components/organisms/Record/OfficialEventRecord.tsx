@@ -21,7 +21,7 @@ import {
   fetchOfficialEventById,
   useRecordCard,
 } from "@app/components/organisms/Record/useRecordCard";
-import { useRecordCardResource } from "@app/hooks/useRecordCardResource";
+import { useSeededResource } from "@app/hooks/useSeededResource";
 import { createLazyModal } from "@app/utils/lazyModal";
 import { formatJSTDateWithWeekday, nonZeroDate } from "@app/utils/date";
 
@@ -35,7 +35,7 @@ export default function OfficialEventRecord(props: RecordCardProps) {
   const { recordData, enableDisplayRecordModal, nestedInModal = false } = props;
 
   // 公式イベント情報。一覧 API が付けていればそれを使い、無ければ自分で取る
-  const event = useRecordCardResource(
+  const event = useSeededResource(
     recordData.data.official_event_id,
     fetchOfficialEventById,
     recordData.details?.official_event,

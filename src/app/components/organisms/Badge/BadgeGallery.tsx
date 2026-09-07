@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState, Fragment } from "react";
+import { useCallback, useMemo, useState, Fragment } from "react";
 import { Card, CardBody, useDisclosure } from "@heroui/react";
 
 import FetchError from "@app/components/molecules/FetchError";
 
-import { UserBadgeType } from "@app/types/badge";
+import { useSeededResource } from "@app/hooks/useSeededResource";
+import { UserBadgeType, UserBadgesType } from "@app/types/badge";
 import { ChampionshipSeriesType } from "@app/types/championship_series";
 import {
   BadgeDetailModal,
@@ -20,6 +21,10 @@ import {
 type Props = {
   userId: string;
   championshipSeries: ChampionshipSeriesType[];
+  // サーバ描画(dashboardServer)で取ったバッジと、それを取ったときのシーズン。
+  // 今表示しているシーズンと一致するときだけ初期値として使う(別シーズンを選べば取り直す)
+  initialBadges?: UserBadgesType;
+  initialSeason?: string;
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -110,10 +115,12 @@ function BadgeFlowRowSkeleton({ count, nameSample }: { count: number; nameSample
   );
 }
 
-export default function BadgeGallery({ userId, championshipSeries }: Props) {
-  const [badges, setBadges] = useState<UserBadgeType[] | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(false);
+export default function BadgeGallery({
+  userId,
+  championshipSeries,
+  initialBadges,
+  initialSeason,
+}: Props) {
   const [selectedBadge, setSelectedBadge] = useState<UserBadgeType | null>(null);
   // ユーザーが select で明示的に選んだシーズン。未選択("")の間は一覧から決めた現在シーズンを使う。
   // useState の初期化子で決めてしまうと、championshipSeries が後から届いた場合に選び直されないため、
@@ -131,12 +138,10 @@ export default function BadgeGallery({ userId, championshipSeries }: Props) {
 
   // 取得に失敗したことを空のバッジ一覧で覆い隠さないよう、
   // 失敗はエラーとして扱い、この場だけで取り直せるようにする。
-  const loadBadges = useCallback(async () => {
-    setError(false);
-    setIsLoading(true);
-
-    try {
-      const res = await fetch(`/api/users/${userId}/badges?season=${season}`, {
+  // 鍵はシーズン(userId はこの画面では変わらない)。シーズンを選び直せば取り直す。
+  const fetchBadges = useCallback(
+    async (targetSeason: string): Promise<UserBadgesType> => {
+      const res = await fetch(`/api/users/${userId}/badges?season=${targetSeason}`, {
         cache: "no-store",
       });
 
@@ -144,20 +149,22 @@ export default function BadgeGallery({ userId, championshipSeries }: Props) {
         throw new Error("Failed to fetch");
       }
 
-      const data = await res.json();
+      return (await res.json()) as UserBadgesType;
+    },
+    [userId],
+  );
 
-      setBadges(data?.badges ?? []);
-    } catch (err) {
-      console.log(err);
-      setError(true);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [userId, season]);
-
-  useEffect(() => {
-    loadBadges();
-  }, [loadBadges]);
+  const {
+    data,
+    loading: isLoading,
+    error,
+    retry: loadBadges,
+  } = useSeededResource(
+    season,
+    fetchBadges,
+    initialSeason === season ? initialBadges : undefined,
+  );
+  const badges = useMemo(() => (data ? (data.badges ?? []) : null), [data]);
 
   if (isLoading) {
     return (

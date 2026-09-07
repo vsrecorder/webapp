@@ -17,7 +17,7 @@ import { isInAppBrowser } from "@app/utils/platform";
 
 import InAppBrowserNotice from "./InAppBrowserNotice";
 
-type Props = {
+export type SocialSignInProps = {
   mode?: "signin" | "signup";
   // ログイン処理中（成功後のリダイレクト待ちを含む）かどうかを親に通知する
   onLoadingChange?: (isLoading: boolean) => void;
@@ -26,7 +26,11 @@ type Props = {
   onClose?: () => void;
 };
 
-export default function SocialSignIn({ mode = "signin", onLoadingChange, onClose }: Props) {
+export default function SocialSignIn({
+  mode = "signin",
+  onLoadingChange,
+  onClose,
+}: SocialSignInProps) {
   const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
   const [isLoadingX, setIsLoadingX] = useState(false);
   const [errorStatus, setErrorStatus] = useState<SignInErrorStatus | null>(null);

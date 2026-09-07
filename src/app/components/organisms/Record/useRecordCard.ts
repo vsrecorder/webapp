@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { useDisclosure } from "@heroui/react";
 
-import { useRecordCardResource } from "@app/hooks/useRecordCardResource";
+import { useSeededResource } from "@app/hooks/useSeededResource";
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { MatchGetResponseType, MatchSummaryType } from "@app/types/match";
 import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
@@ -18,7 +18,7 @@ import { REOPEN_MODAL_RECORD_ID } from "@app/utils/recordModalReopen";
  * 記録カード(公式 / Tonamel / 自由形式)で共通の状態。
  *
  * 一覧 API が各記録に付ける周辺情報(details: デッキ・対戦の集計・イベント)を初期値にし、
- * 無いときだけカードが自分で取る(useRecordCardResource)。イベントの取得は種別ごとに違うので
+ * 無いときだけカードが自分で取る(useSeededResource)。イベントの取得は種別ごとに違うので
  * 各カードが持ち、ここでは共通のデッキ・対戦・記録本体・モーダル再開を扱う。
  */
 
@@ -104,8 +104,8 @@ export function useRecordCard({
     setRecord(recordData.data);
   }, [recordData.data]);
 
-  const deck = useRecordCardResource(record?.deck_id, fetchDeckById, recordData.details?.deck);
-  const matches = useRecordCardResource(
+  const deck = useSeededResource(record?.deck_id, fetchDeckById, recordData.details?.deck);
+  const matches = useSeededResource(
     record?.id,
     fetchMatchSummary,
     recordData.details?.matches,

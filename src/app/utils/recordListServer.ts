@@ -1,7 +1,11 @@
 import { cache } from "react";
 
 import { DeckGetByIdResponseType } from "@app/types/deck";
-import { MatchGetResponseType, MatchSummaryType } from "@app/types/match";
+import {
+  MatchGetResponseType,
+  MatchSummariesGetResponseType,
+  MatchSummaryType,
+} from "@app/types/match";
 import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
 import { RecordCardDeckType, RecordGetResponseType } from "@app/types/record";
 import { TonamelEventGetByIdResponseType } from "@app/types/tonamel_event";
@@ -63,6 +67,38 @@ async function fetchMap<K, T>(
     if (result) map.set(ids[index], result);
   });
   return map;
+}
+
+/*
+ * 1ページぶんの記録の対戦集計を、上流の一括取得で1回に済ませる。
+ *
+ * 以前は記録ごとに /records/:id/matches を呼んでいたので、1ページ(10件)で10本の
+ * 上流呼び出しになっていた。上流に /matches/summary(record_ids をまとめて渡す)を
+ * 足したのでそれを使う。応答に無い記録は「自分のものでない/存在しない」を意味する。
+ *
+ * 上流がまだ古くてこのエンドポイントが無い場合(デプロイの順序で起こりうる)は
+ * null を返し、呼び出し側が従来どおり記録ごとに取り直す。
+ */
+async function fetchMatchSummaries(
+  recordIds: string[],
+  headers: HeadersInit,
+): Promise<Map<string, MatchSummaryType> | null> {
+  if (recordIds.length === 0) return new Map();
+
+  try {
+    const query = new URLSearchParams({ record_ids: recordIds.join(",") });
+    const res = await fetchUpstream<MatchSummariesGetResponseType>(
+      upstreamUrl`/api/v1beta/matches/summary?${query}`,
+      { method: "GET", headers, signal: AbortSignal.timeout(DETAIL_TIMEOUT_MS) },
+    );
+
+    if (!Array.isArray(res?.summaries)) return null;
+
+    return new Map(res.summaries.map((summary) => [summary.record_id, summary]));
+  } catch (error) {
+    console.error("failed to fetch match summaries for the records page", error);
+    return null;
+  }
 }
 
 // カードに要るデッキの項目だけに絞る(一覧の応答を無駄に大きくしない)
@@ -132,17 +168,21 @@ export async function fetchRecordsPageWithDetails(
         detailHeaders,
       ),
     ),
-    fetchMap(
-      page.records.map((record) => record.data.id),
-      async (id): Promise<MatchSummaryType | null> => {
+    // 対戦の集計はまとめて1回。取れなければ記録ごとに取り直す(上流が古い場合)
+    (async () => {
+      const recordIds = page.records.map((record) => record.data.id);
+      const batched = await fetchMatchSummaries(recordIds, detailHeaders);
+      if (batched) return batched;
+
+      return fetchMap(recordIds, async (id): Promise<MatchSummaryType | null> => {
         const list = await getOptional<MatchGetResponseType[]>(
           "matches",
           upstreamUrl`/api/v1beta/records/${id}/matches`,
           detailHeaders,
         );
         return Array.isArray(list) ? summarizeMatches(list) : null;
-      },
-    ),
+      });
+    })(),
   ]);
 
   return {

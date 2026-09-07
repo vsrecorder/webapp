@@ -1,11 +1,22 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardBody, useDisclosure } from "@heroui/react";
 
 import FetchError from "@app/components/molecules/FetchError";
 
-import { UserBadgeType } from "@app/types/badge";
+import { useSeededResource } from "@app/hooks/useSeededResource";
+import { UserBadgeType, UserBadgesType } from "@app/types/badge";
+
+async function fetchBadges(userId: string): Promise<UserBadgesType> {
+  const res = await fetch(`/api/users/${userId}/badges`, { cache: "no-store" });
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch");
+  }
+
+  return (await res.json()) as UserBadgesType;
+}
 import {
   BadgeDetailModal,
   BadgeTile,
@@ -14,15 +25,26 @@ import {
 
 type Props = {
   userId: string;
+  // サーバ描画(dashboardServer)で取った全バッジ。あればこれを使い、取りに行かない
+  initialBadges?: UserBadgesType;
 };
 
 // 「はじめの一歩」(category="onboarding")はシーズンに依存せず一度達成したら永久に
 // 保持されるため、シーズン切り替えの効く BadgeGallery(バッジ)とは別パネル
 // として独立させている。season は問わないため固定値のクエリで取得する。
-export default function OnboardingBadgePanel({ userId }: Props) {
-  const [badges, setBadges] = useState<UserBadgeType[] | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(false);
+export default function OnboardingBadgePanel({ userId, initialBadges }: Props) {
+  // 取得に失敗したことを空のバッジ一覧で覆い隠さないよう、
+  // 失敗はエラーとして扱い、この場だけで取り直せるようにする。
+  const {
+    data,
+    loading: isLoading,
+    error,
+    retry: loadBadges,
+  } = useSeededResource(userId, fetchBadges, initialBadges);
+  const badges = useMemo(
+    () => (data ? (data.badges ?? []).filter((b) => b.category === "onboarding") : null),
+    [data],
+  );
   const [selectedBadge, setSelectedBadge] = useState<UserBadgeType | null>(null);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
@@ -30,35 +52,6 @@ export default function OnboardingBadgePanel({ userId }: Props) {
     setSelectedBadge(badge);
     onOpen();
   }
-
-  // 取得に失敗したことを空のバッジ一覧で覆い隠さないよう、
-  // 失敗はエラーとして扱い、この場だけで取り直せるようにする。
-  const loadBadges = useCallback(async () => {
-    setError(false);
-    setIsLoading(true);
-
-    try {
-      const res = await fetch(`/api/users/${userId}/badges`, { cache: "no-store" });
-
-      if (!res.ok) {
-        throw new Error("Failed to fetch");
-      }
-
-      const data = await res.json();
-      const allBadges: UserBadgeType[] = data?.badges ?? [];
-
-      setBadges(allBadges.filter((b) => b.category === "onboarding"));
-    } catch (err) {
-      console.log(err);
-      setError(true);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [userId]);
-
-  useEffect(() => {
-    loadBadges();
-  }, [loadBadges]);
 
   if (isLoading) {
     return (

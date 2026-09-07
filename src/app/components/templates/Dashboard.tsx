@@ -43,6 +43,7 @@ import {
 import { upstreamUrl } from "@app/utils/upstream";
 import { signUpstreamToken } from "@app/utils/upstreamToken";
 import { getAllChampionshipSeries } from "@app/utils/championshipSeriesServer";
+import { getDashboardInitialData } from "@app/utils/dashboardServer";
 
 import { getJstNow } from "@app/utils/calendar";
 
@@ -211,6 +212,20 @@ export default async function TemplateDashboard({ userId }: Props) {
       : Promise.resolve<number | null>(null),
   ]);
 
+  /*
+   * 各パネル(バッジ・ストリーク・称号・戦績・プロフィール)が最初に出す値を、ここでまとめて取る。
+   *
+   * 上の取得のあとに置いているのは、シーズン(championshipSeries)と当日の対戦環境(env)が
+   * 決まらないと同じクエリを投げられないため。どちらもキャッシュ付き(マスタ/日次)なので、
+   * 直列にしても実質の待ちはほとんど無い。
+   * 対戦環境は UserStatPanel の初期値と同じ「今日の環境、無ければ一覧の先頭」に揃えること。
+   */
+  const panels = await getDashboardInitialData(
+    userId,
+    championshipSeries,
+    env?.id ?? environments[0]?.id ?? "",
+  );
+
   // totalRecords は「全期間の記録件数（0〜3にキャップ）」。3 は「3件以上」の意味。
   // 「最初の記録」CTAは記録0件のときだけ。取得失敗(null)時は非表示に倒す。
   const showFirstRecordCta = ctaEnabled && totalRecords === 0;
@@ -236,7 +251,7 @@ export default async function TemplateDashboard({ userId }: Props) {
     node: (
       <section key="onboarding_badges" className="flex flex-col gap-2">
         <h2 className="text-sm font-bold text-default-700">はじめの一歩</h2>
-        <OnboardingBadgePanel userId={userId} />
+        <OnboardingBadgePanel userId={userId} initialBadges={panels.badges} />
       </section>
     ),
   });
@@ -248,7 +263,7 @@ export default async function TemplateDashboard({ userId }: Props) {
     node: (
       <section key="streak" className="flex flex-col gap-2">
         <h2 className="text-sm font-bold text-default-700">ストリーク</h2>
-        <StreakPanel userId={userId} />
+        <StreakPanel userId={userId} initialStreak={panels.streak} />
       </section>
     ),
   });
@@ -298,7 +313,13 @@ export default async function TemplateDashboard({ userId }: Props) {
     node: (
       <section key="designation" className="flex flex-col gap-2">
         <h2 className="text-sm font-bold text-default-700">称号とランク</h2>
-        <DesignationPanel userId={userId} championshipSeries={championshipSeries} />
+        <DesignationPanel
+          userId={userId}
+          championshipSeries={championshipSeries}
+          initialDesignation={panels.designation}
+          initialSeason={panels.season}
+          initialUserPlayer={panels.userPlayer}
+        />
       </section>
     ),
   });
@@ -310,7 +331,12 @@ export default async function TemplateDashboard({ userId }: Props) {
     node: (
       <section key="badges" className="flex flex-col gap-2">
         <h2 className="text-sm font-bold text-default-700">バッジ</h2>
-        <BadgeGallery userId={userId} championshipSeries={championshipSeries} />
+        <BadgeGallery
+          userId={userId}
+          championshipSeries={championshipSeries}
+          initialBadges={panels.seasonBadges}
+          initialSeason={panels.season}
+        />
       </section>
     ),
   });
@@ -322,7 +348,10 @@ export default async function TemplateDashboard({ userId }: Props) {
     node: (
       <section key="environment_badges" className="flex flex-col gap-2">
         <h2 className="text-sm font-bold text-default-700">対戦環境バッジ</h2>
-        <EnvironmentBadgeGallery userId={userId} />
+        <EnvironmentBadgeGallery
+          userId={userId}
+          initialBadges={panels.environmentBadges}
+        />
       </section>
     ),
   });
@@ -341,6 +370,8 @@ export default async function TemplateDashboard({ userId }: Props) {
           standardRegulations={standardRegulations}
           championshipSeries={championshipSeries}
           userCreatedAt={user?.created_at != null ? String(user.created_at) : undefined}
+          initialStat={panels.stat}
+          initialStatEnvironmentId={panels.statEnvironmentId}
         />
       </section>
     ),
@@ -489,6 +520,7 @@ export default async function TemplateDashboard({ userId }: Props) {
       <div className="pt-3 lg:pt-9 xl:pt-9 max-w-2xl lg:max-w-6xl xl:max-w-7xl mx-auto w-full">
         <DashboardSections
           userId={userId}
+          initialBadges={panels.badges}
           pinned={
             user ? (
               <div className="flex flex-col gap-3 lg:gap-6">
@@ -499,6 +531,9 @@ export default async function TemplateDashboard({ userId }: Props) {
                   userCreatedAt={
                     user.created_at != null ? String(user.created_at) : undefined
                   }
+                  initialStat={panels.monthlyStat}
+                  initialYearMonth={panels.yearMonth}
+                  initialUserPlayer={panels.userPlayer}
                 />
                 {/*
                   施策0-6 止血: 記録0件のユーザーにだけ、プロフィールカードの直後に

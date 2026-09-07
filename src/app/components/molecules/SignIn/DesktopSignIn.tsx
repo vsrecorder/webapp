@@ -10,7 +10,7 @@ import { ModalContent, ModalBody, ModalFooter } from "@heroui/react";
 
 import { Modal } from "@app/components/atoms/AppModal";
 
-import SocialSignIn from "./SocialSingIn";
+import SocialSignIn, { preloadSocialSignIn } from "./LazySocialSignIn";
 
 type Props = {
   iconUrl: string;
@@ -27,6 +27,9 @@ export default function DesktopSignIn({ iconUrl, isDevEnv }: Props) {
         size="sm"
         variant="bordered"
         onPress={onOpen}
+        // 押し始めた時点でログインボタン群(Firebase を含む)を読み始める。
+        // 指を離してモーダルが開く頃には読み終わっている
+        onPressStart={preloadSocialSignIn}
         className="border-white/60 text-white font-medium"
       >
         ログイン

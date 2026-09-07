@@ -4,6 +4,7 @@ import Image from "next/image";
 
 import { Button, useDisclosure } from "@heroui/react";
 
+import { preloadSocialSignIn } from "./LazySocialSignIn";
 import SignInModal from "./SignInModal";
 
 type Props = {
@@ -20,6 +21,8 @@ export default function MobileSignIn({ iconUrl, isDevEnv }: Props) {
         size="sm"
         variant="bordered"
         onPress={onOpen}
+        // 押し始めた時点でログインボタン群(Firebase を含む)を読み始める
+        onPressStart={preloadSocialSignIn}
         className="border-white/60 text-white font-medium"
       >
         ログイン

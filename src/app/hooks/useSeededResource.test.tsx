@@ -2,13 +2,13 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import { useRecordCardResource } from "@app/hooks/useRecordCardResource";
+import { useSeededResource } from "@app/hooks/useSeededResource";
 
-describe("useRecordCardResource", () => {
+describe("useSeededResource", () => {
   it("初期値があれば取得せず、そのまま返す", () => {
     const fetcher = vi.fn(async () => ({ name: "fetched" }));
     const initial = { name: "initial" };
-    const { result } = renderHook(() => useRecordCardResource("d1", fetcher, initial));
+    const { result } = renderHook(() => useSeededResource("d1", fetcher, initial));
 
     expect(result.current.data).toEqual({ name: "initial" });
     expect(result.current.loading).toBe(false);
@@ -20,7 +20,7 @@ describe("useRecordCardResource", () => {
     let renders = 0;
     const { result, rerender } = renderHook(() => {
       renders++;
-      return useRecordCardResource("d1", fetcher, { name: "initial" });
+      return useSeededResource("d1", fetcher, { name: "initial" });
     });
 
     rerender();
@@ -31,7 +31,7 @@ describe("useRecordCardResource", () => {
 
   it("初期値が無ければ key で取得する", async () => {
     const fetcher = vi.fn(async (id: string) => ({ id }));
-    const { result } = renderHook(() => useRecordCardResource("d1", fetcher));
+    const { result } = renderHook(() => useSeededResource("d1", fetcher));
 
     expect(result.current.loading).toBe(true);
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -43,8 +43,8 @@ describe("useRecordCardResource", () => {
 
   it("key が無ければ何もしない(読み込み中にもならない)", () => {
     const fetcher = vi.fn(async () => ({}));
-    const { result: empty } = renderHook(() => useRecordCardResource("", fetcher));
-    const { result: zero } = renderHook(() => useRecordCardResource(0, fetcher));
+    const { result: empty } = renderHook(() => useSeededResource("", fetcher));
+    const { result: zero } = renderHook(() => useSeededResource(0, fetcher));
 
     expect(empty.current.loading).toBe(false);
     expect(zero.current.loading).toBe(false);
@@ -57,7 +57,7 @@ describe("useRecordCardResource", () => {
       .mockRejectedValueOnce(new Error("boom"))
       .mockResolvedValueOnce({ id: "ok" });
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
-    const { result } = renderHook(() => useRecordCardResource("d1", fetcher));
+    const { result } = renderHook(() => useSeededResource("d1", fetcher));
 
     await waitFor(() => expect(result.current.error).toBe(true));
     expect(result.current.loading).toBe(false);
@@ -72,7 +72,7 @@ describe("useRecordCardResource", () => {
   it("初期値があっても retry では取得する", async () => {
     const fetcher = vi.fn(async () => ({ name: "fetched" }));
     const initial = { name: "initial" };
-    const { result } = renderHook(() => useRecordCardResource("d1", fetcher, initial));
+    const { result } = renderHook(() => useSeededResource("d1", fetcher, initial));
 
     act(() => result.current.retry());
     await waitFor(() => expect(result.current.data).toEqual({ name: "fetched" }));
@@ -82,7 +82,7 @@ describe("useRecordCardResource", () => {
     const fetcher = vi.fn(async () => ({ name: "fetched" }));
     const { result, rerender } = renderHook(
       ({ initial }: { initial: { name: string } }) =>
-        useRecordCardResource("d1", fetcher, initial),
+        useSeededResource("d1", fetcher, initial),
       { initialProps: { initial: { name: "first" } } },
     );
 
@@ -94,7 +94,7 @@ describe("useRecordCardResource", () => {
   it("fetcher がインラインの関数でも取得を繰り返さない", async () => {
     const calls = vi.fn(async (id: string) => ({ id }));
     const { result, rerender } = renderHook(() =>
-      useRecordCardResource("d1", (id: string) => calls(id)),
+      useSeededResource("d1", (id: string) => calls(id)),
     );
 
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -104,12 +104,12 @@ describe("useRecordCardResource", () => {
   });
 });
 
-describe("useRecordCardResource: 鍵の変更", () => {
+describe("useSeededResource: 鍵の変更", () => {
   it("初期値があっても key が変わったら取り直す", async () => {
     const fetcher = vi.fn(async (id: string) => ({ name: `fetched-${id}` }));
     const initial = { name: "initial" };
     const { result, rerender } = renderHook(
-      ({ key }: { key: string }) => useRecordCardResource(key, fetcher, initial),
+      ({ key }: { key: string }) => useSeededResource(key, fetcher, initial),
       { initialProps: { key: "d1" } },
     );
     expect(fetcher).not.toHaveBeenCalled();

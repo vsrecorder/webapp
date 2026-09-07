@@ -30,6 +30,8 @@ type Props = {
   pinned?: ReactNode;
   sections: DashboardSection[];
   trailing?: ReactNode;
+  // サーバ描画(dashboardServer)で取った全バッジ。あればこれで達成判定し、取りに行かない
+  initialBadges?: UserBadgesType;
 };
 
 const STORAGE_KEY = "dashboard_layout_v1";
@@ -95,6 +97,7 @@ export default function DashboardSections({
   pinned,
   sections,
   trailing,
+  initialBadges,
 }: Props) {
   const defaultOrder = sections.map((s) => s.id);
 
@@ -133,21 +136,28 @@ export default function DashboardSections({
   useEffect(() => {
     let cancelled = false;
 
+    // 全達成かどうかを、バッジ一覧から決めて次回訪問のために覚えておく
+    const settle = (data: UserBadgesType) => {
+      const onboarding = (data?.badges ?? []).filter((b) => b.category === "onboarding");
+      const complete = onboarding.length > 0 && onboarding.every((b) => b.achieved);
+
+      if (cancelled) return;
+      setOnboardingComplete(complete);
+      saveOnboardingComplete(complete);
+    };
+
+    // サーバ描画で取れていればそれで判定する(取りに行かない)
+    if (initialBadges) {
+      settle(initialBadges);
+      return;
+    }
+
     (async () => {
       try {
         const res = await fetch(`/api/users/${userId}/badges`, { cache: "no-store" });
         if (!res.ok) return;
 
-        const data: UserBadgesType = await res.json();
-        const onboarding = (data?.badges ?? []).filter(
-          (b) => b.category === "onboarding",
-        );
-        const complete =
-          onboarding.length > 0 && onboarding.every((b) => b.achieved);
-
-        if (cancelled) return;
-        setOnboardingComplete(complete);
-        saveOnboardingComplete(complete);
+        settle((await res.json()) as UserBadgesType);
       } catch {
         // ネットワークエラー時は判定を変えない
       }
@@ -156,7 +166,7 @@ export default function DashboardSections({
     return () => {
       cancelled = true;
     };
-  }, [userId]);
+  }, [userId, initialBadges]);
 
   // ヘッダーのユーザメニューから ?customize=1 付きで遷移してきたらモーダルを開く
   useEffect(() => {

@@ -6,7 +6,7 @@ import { ModalBody, ModalContent, ModalFooter } from "@heroui/react";
 
 import { Modal } from "@app/components/atoms/AppModal";
 
-import SocialSignIn from "./SocialSingIn";
+import SocialSignIn from "./LazySocialSignIn";
 
 type Props = {
   isOpen: boolean;

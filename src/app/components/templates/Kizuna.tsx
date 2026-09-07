@@ -16,7 +16,7 @@ import KizunaDeckCardPreview from "@app/components/organisms/Kizuna/KizunaDeckCa
 import KizunaEstimatorSection from "@app/components/organisms/Kizuna/KizunaEstimatorSection";
 import { KizunaPreviewProvider } from "@app/components/organisms/Kizuna/KizunaPreviewContext";
 import KizunaScrollLink from "@app/components/molecules/Kizuna/KizunaScrollLink";
-import SocialSignIn from "@app/components/molecules/SignIn/SocialSingIn";
+import SocialSignIn from "@app/components/molecules/SignIn/LazySocialSignIn";
 
 // 「きずな」を構成する指標の抜粋。いずれも勝率を含まないことが重要で、
 // 逆境ロイヤルティに至っては負けるほど値が上がる。

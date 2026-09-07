@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState, Fragment } from "react";
+
+import { useSeededResource } from "@app/hooks/useSeededResource";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -70,6 +72,16 @@ function parseDescription(description: string): {
 type Props = {
   userId: string;
   championshipSeries: ChampionshipSeriesType[];
+  // サーバ描画(dashboardServer)で取った称号と、それを取ったときのシーズン。
+  // 今表示しているシーズンと一致するときだけ初期値として使う
+  initialDesignation?: UserDesignationType;
+  initialSeason?: string;
+  /*
+   * サーバ描画で取った、連携済みのプレイヤーID。
+   *   undefined … サーバでは取れなかった(このパネルが自分で取る)
+   *   null      … 未連携(取れた上で「無い」)
+   */
+  initialUserPlayer?: UserPlayerType | null;
 };
 
 // 称号ロードマップの1行あたりの表示数。この数を境に折り返し、蛇行(スネーク)状に並べる。
@@ -180,10 +192,13 @@ function DesignationLadderRowSkeleton() {
   );
 }
 
-export default function DesignationPanel({ userId, championshipSeries }: Props) {
-  const [data, setData] = useState<UserDesignationType | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(false);
+export default function DesignationPanel({
+  userId,
+  championshipSeries,
+  initialDesignation,
+  initialSeason,
+  initialUserPlayer,
+}: Props) {
   const [selected, setSelected] = useState<DesignationLadderItemType | null>(null);
   // ユーザーが select で明示的に選んだシーズン。未選択("")の間は一覧から決めた現在シーズンを使う。
   // useState の初期化子で決めてしまうと、championshipSeries が後から届いた場合に選び直されないため、
@@ -210,12 +225,10 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
 
   // 取得に失敗したことを「称号なし」の表示で覆い隠さないよう、
   // 失敗はエラーとして扱い、この場だけで取り直せるようにする。
-  const loadDesignation = useCallback(async () => {
-    setError(false);
-    setIsLoading(true);
-
-    try {
-      const res = await fetch(`/api/users/${userId}/designation?season=${season}`, {
+  // 鍵はシーズン(userId はこの画面では変わらない)。シーズンを選び直せば取り直す。
+  const fetchDesignation = useCallback(
+    async (targetSeason: string): Promise<UserDesignationType> => {
+      const res = await fetch(`/api/users/${userId}/designation?season=${targetSeason}`, {
         cache: "no-store",
       });
 
@@ -223,27 +236,34 @@ export default function DesignationPanel({ userId, championshipSeries }: Props) 
         throw new Error("Failed to fetch");
       }
 
-      const designation: UserDesignationType = await res.json();
+      return (await res.json()) as UserDesignationType;
+    },
+    [userId],
+  );
 
-      setData(designation);
-    } catch (err) {
-      console.log(err);
-      setError(true);
-    } finally {
-      setIsLoading(false);
+  const {
+    data,
+    loading: isLoading,
+    error,
+    retry: loadDesignation,
+  } = useSeededResource(
+    season,
+    fetchDesignation,
+    initialSeason === season ? initialDesignation : undefined,
+  );
+
+  // プレイヤーズクラブの連携状態。サーバで取れていればその値を使い、取りに行かない
+  useEffect(() => {
+    if (initialUserPlayer !== undefined) {
+      setIsPlayerLinked(initialUserPlayer != null);
+      return;
     }
-  }, [userId, season]);
 
-  useEffect(() => {
-    loadDesignation();
-  }, [loadDesignation]);
-
-  useEffect(() => {
     fetch("/api/usersplayers", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((data: UserPlayerType | null) => setIsPlayerLinked(data != null))
       .catch(() => setIsPlayerLinked(false));
-  }, []);
+  }, [initialUserPlayer]);
 
   useEffect(() => {
     // ランク一覧モーダルを開いたときだけ取得する(通常表示では不要な集計クエリのため)

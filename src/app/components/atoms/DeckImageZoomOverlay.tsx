@@ -5,14 +5,7 @@ import { createPortal } from "react-dom";
 
 import { LuX } from "react-icons/lu";
 
-import { CDN_ORIGIN } from "@app/utils/cdn";
-
-// デッキ画像（2:1の横長）の配信元
-export const DECK_IMAGE_BASE = `${CDN_ORIGIN}/images/decks`;
-
-export function deckImageUrl(code: string): string {
-  return `${DECK_IMAGE_BASE}/${code}.jpg`;
-}
+import { deckImageUrl } from "@app/utils/deckImage";
 
 type Props = {
   // デッキコード（画像URLの生成に使う）

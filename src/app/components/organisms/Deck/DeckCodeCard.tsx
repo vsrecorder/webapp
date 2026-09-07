@@ -1,7 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
-
 import { LuLayers } from "react-icons/lu";
 
 import { DeckCodeType } from "@app/types/deck_code";
@@ -38,12 +36,6 @@ export default function DeckCodeCard({
   hideCode = false,
   isArchived = false,
 }: Props) {
-  useEffect(() => {
-    if (!deckcode?.code) return;
-    const img = new window.Image();
-    img.src = `https://xx8nnpgt.user.webaccel.jp/images/decks/${deckcode.code}.jpg`;
-  }, [deckcode?.code]);
-
   if (!deckcode || !deckcode.code) {
     // デッキ自体には既にバージョンが存在する（＝このdeckcode欄が未選択なだけ）場合は、
     // 新規作成ではなく既存バージョンの登録を促す

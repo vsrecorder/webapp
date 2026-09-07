@@ -29,6 +29,7 @@ import { DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
 
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 import { formatJSTDateWithWeekday } from "@app/utils/date";
+import { deckImageUrl } from "@app/utils/deckImage";
 
 // 失敗レスポンスのボディをそのまま返すと、選択肢を組み立てるmap/forEachがレンダー中に
 // 例外になりページ全体が落ちる。取得できなかったことはSWRのerrorとして扱う。
@@ -635,7 +636,7 @@ export default function UpdateUsedDeckModal({
                                       }
                                       src={
                                         opt.latest_deck_code?.code
-                                          ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${opt.latest_deck_code.code}.jpg`
+                                          ? deckImageUrl(opt.latest_deck_code.code)
                                           : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
                                       }
                                       className="w-full h-full object-cover"
@@ -725,7 +726,7 @@ export default function UpdateUsedDeckModal({
                                       radius="none"
                                       shadow="none"
                                       alt={option.code}
-                                      src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${option.code}.jpg`}
+                                      src={deckImageUrl(option.code)}
                                       className=""
                                       onLoad={() => setImageLoadedForDeckCode(true)}
                                     />
@@ -762,7 +763,7 @@ export default function UpdateUsedDeckModal({
                     }
                     src={
                       selectedDeckCodeOption
-                        ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${selectedDeckCodeOption.code}.jpg`
+                        ? deckImageUrl(selectedDeckCodeOption.code)
                         : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
                     }
                     className="z-0"

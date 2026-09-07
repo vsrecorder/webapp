@@ -170,6 +170,32 @@ const nextConfig: NextConfig = {
         port: "",
         pathname: "/**",
       },
+      /*
+       * Tonamelイベントのカバー画像(競技ページの og:image)。
+       * 記録詳細のイベント情報パネルへ背景として敷く。
+       *
+       * 直リンクではなく最適化API(/_next/image)を通すのは、
+       *   - 元画像が 1280x720 の PNG で 1.4MB に達することがある
+       *   - img.tonamel.com は Access-Control-Allow-Origin を返さないため、
+       *     シェア画像の書き出し(html-to-image / modern-screenshot が画像を
+       *     取得して data URL 化する)で読めず、書き出し画像から消える
+       * の2点による。同一オリジンから配信すれば両方とも解消する。
+       *
+       * カバー未設定のイベントは tonamel.com 直下、主催者アップロードは
+       * img.tonamel.com から配信されるため、apex とサブドメインの両方を許可する。
+       */
+      {
+        protocol: "https",
+        hostname: "tonamel.com",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "**.tonamel.com",
+        port: "",
+        pathname: "/**",
+      },
     ],
   },
   reactStrictMode: false,

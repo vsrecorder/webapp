@@ -1,5 +1,7 @@
 "use client";
 
+import { useCallback, useState } from "react";
+
 import { spriteImageUrl } from "@app/utils/sprite";
 import { spriteFitStyle } from "@app/utils/spriteFit";
 
@@ -41,9 +43,34 @@ export default function PokemonSprite({
   className = "",
   loading,
 }: Props) {
-  const alt = id ? id.replace(/^0+(?!$)/, "") : "unknown";
-  const src = spriteImageUrl(id);
-  const style = spriteFitStyle(id, size);
+  /*
+   * 画像を取れなかった id。CDN に無いスプライト(未登録のフォームなど)を指していると
+   * 404 になり、そのままではブラウザ既定の壊れた画像アイコンが出る。読めなかったと
+   * 分かった時点で unknown へ落とす。枠内の位置・大きさ(spriteFitStyle)も unknown 基準に
+   * 戻るので、最初から id 無しで描いたのと同じ見た目になる。
+   *
+   * 「失敗したか」ではなく「どの id で失敗したか」を持つ。id が変われば比較が外れて
+   * ひとりでに元へ戻るため、差し替えのたびにリセットしなくてよい。
+   */
+  const [failedId, setFailedId] = useState<string | null>(null);
+  const effectiveId = id && failedId === id ? null : id;
+
+  /*
+   * onError だけでは足りない。サーバ描画されたスプライトはハイドレーションより先に
+   * 読み込みが決着することがあり、そうなると error は二度と飛ばない(実測: 404 の id が
+   * naturalWidth 0 のまま残った)。要素が挿さった時点で決着済みかどうかも見る。
+   * complete かつ naturalWidth が 0 なら失敗。id が変われば張り直されて再判定になる。
+   */
+  const imageRef = useCallback(
+    (img: HTMLImageElement | null) => {
+      if (id && img?.complete && img.naturalWidth === 0) setFailedId(id);
+    },
+    [id],
+  );
+
+  const alt = effectiveId ? effectiveId.replace(/^0+(?!$)/, "") : "unknown";
+  const src = spriteImageUrl(effectiveId);
+  const style = spriteFitStyle(effectiveId, size);
 
   return (
     <div
@@ -51,7 +78,14 @@ export default function PokemonSprite({
       style={{ width: size, height: size }}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img alt={alt} src={src} style={style} loading={loading} />
+      <img
+        ref={imageRef}
+        alt={alt}
+        src={src}
+        style={style}
+        loading={loading}
+        onError={() => id && setFailedId(id)}
+      />
     </div>
   );
 }

@@ -82,8 +82,13 @@ export default async function Page() {
       // loading.tsx の骨格からタブ・一覧へ切り替わるのがまるごと遅れる。
       // ページ末尾のリンク集で初期表示に要らないので、後から流し込む。
       // events が0件のとき自身が null を返す作りなので、fallback も同じく何も出さない。
+      //
+      // key はこの Suspense を配列の要素として識別させるためのもの。クライアント
+      // コンポーネントへ props で渡した Suspense は、遅れて解決したぶんが key の無い
+      // 配列として差し込まれ「Each child in a list should have a unique key prop」が
+      // 開発時に出る(実測で発生源をここまで絞った。Tabs は無関係)。付けると出なくなる。
       latestSection={
-        <Suspense fallback={null}>
+        <Suspense key="latest" fallback={null}>
           <CityleagueLatestSection />
         </Suspense>
       }

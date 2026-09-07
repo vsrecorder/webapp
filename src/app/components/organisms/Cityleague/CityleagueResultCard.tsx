@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 
 import { Card, CardHeader, CardBody } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
@@ -33,6 +33,10 @@ import ZoomableDeckImage from "@app/components/atoms/ZoomableDeckImage";
  * CPU 4x・4Mbps の実測(2026-09-08)では 24 枚が 4 秒以内に流れて帯域を占め、ページ固有の
  * JS 13 本の取得開始が 3.9 秒まで押し出されていた(ハイドレーション完了 5.3 秒。
  * 他ページは 1.7〜2.0 秒)。画面に近いカードだけ先に読み、残りはスクロールに合わせる。
+ *
+ * カードのマウント時に new Image() でデッキ画像を先読みする useEffect も置いていたが、
+ * それだと並んだカードぶんが即座に飛んで lazy が打ち消される(実測 2026-09-08: 一覧の
+ * 初回リクエストが 42 本。外すと画面内の 10 本で収まる)。先読みは足さないこと。
  */
 import BoardPanel from "@app/components/organisms/Record/BoardPanel";
 
@@ -125,15 +129,6 @@ export default function CityleagueResultCard({
   } = useDisclosure();
 
   const { status } = useSession();
-
-  useEffect(() => {
-    if (!result.deck_code) {
-      return;
-    }
-
-    const img = new window.Image();
-    img.src = `https://xx8nnpgt.user.webaccel.jp/images/decks/${result.deck_code}.jpg`;
-  }, [result.deck_code]);
 
   {
     /*

@@ -15,6 +15,7 @@ import {
   heroColRowStyle,
 } from "@app/components/organisms/Record/Hero/heroColumns";
 import IgnoreStatsBanner from "@app/components/organisms/Record/IgnoreStatsBanner";
+import TonamelEventBg from "@app/components/organisms/Record/Hero/TonamelEventBg";
 import RecordHeroSkeleton, {
   SectionLabelSkeleton,
 } from "@app/components/organisms/Record/Hero/RecordHeroSkeleton";
@@ -171,6 +172,8 @@ type ShellProps = {
   matchesSlot?: React.ReactNode;
   // 記録一覧カードの左サイドバーと同じ、種別ごとのアクセント色(bg-*)
   accentColorClass: string;
+  // イベント情報パネルの背景に敷くレイヤー(Tonamelイベント画像など)。任意
+  infoBg?: React.ReactNode;
 };
 
 function HeroShell({
@@ -192,6 +195,7 @@ function HeroShell({
   deckSlot,
   matchesSlot,
   accentColorClass,
+  infoBg,
 }: ShellProps) {
   const hasStats = stats.total > 0;
 
@@ -255,6 +259,9 @@ function HeroShell({
             <div
               className={`${HERO_INFO_COL_CLASS} relative flex flex-col overflow-hidden rounded-2xl border border-divider bg-content1/60 px-2 py-2.5`}
             >
+              {/* イベント画像の背景レイヤー(Tonamel)。グローより下に敷く */}
+              {infoBg}
+
               {/* アクセントのグロー(パネル背景)。中身は relative なラッパーで前面に置く */}
               <span
                 aria-hidden
@@ -797,6 +804,7 @@ export default function RecordHero({
         ignoreStatsFlg={record.ignore_stats_flg}
         deckSlot={deckNode}
         matchesSlot={matchesSlot}
+        infoBg={<TonamelEventBg image={tonamelEvent.image} />}
       />
     );
   }

@@ -65,6 +65,7 @@ import {
   toOfficialEventDateKey,
 } from "@app/utils/officialEventList";
 import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
+import { deckImageUrl } from "@app/utils/deckImage";
 import { MAX_EVENT_TITLE_LENGTH, exceedsTextLength } from "@app/utils/textLength";
 import { useOfficialEventGuide } from "@app/hooks/useOfficialEventGuide";
 import { RecordCreateTab, parseRecordCreateTab } from "@app/utils/recordCreatePrefs";
@@ -1757,7 +1758,7 @@ export default function TemplateRecordCreate({
                                     }
                                     src={
                                       option.latest_deck_code?.code
-                                        ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${option.latest_deck_code.code}.jpg`
+                                        ? deckImageUrl(option.latest_deck_code.code)
                                         : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
                                     }
                                     className="w-full h-full object-cover"
@@ -1857,7 +1858,7 @@ export default function TemplateRecordCreate({
                                     radius="none"
                                     shadow="none"
                                     alt={option.code}
-                                    src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${option.code}.jpg`}
+                                    src={deckImageUrl(option.code)}
                                     className="w-full h-full object-cover"
                                     onLoad={() => setImageLoadedForDeckCode(true)}
                                   />
@@ -1891,7 +1892,7 @@ export default function TemplateRecordCreate({
                     alt={selectedDeckCodeOption?.code || "デッキコードなし"}
                     src={
                       selectedDeckCodeOption?.code
-                        ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${selectedDeckCodeOption.code}.jpg`
+                        ? deckImageUrl(selectedDeckCodeOption.code)
                         : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
                     }
                     className="z-0 w-full h-full object-cover"
@@ -1980,6 +1981,20 @@ export default function TemplateRecordCreate({
                   onFocus={(e) => scrollIntoViewAfterKeyboard(e.currentTarget)}
                 />
               </div>
+              {/*
+               * イベントのプレビュー。
+               *
+               * 「3 デッキ」以降がタブを切り替えても動かないよう、公式イベントの
+               * 「2 の入力欄＋プレビュー」と高さの合計を揃えている。
+               *
+               *   公式イベント : 検索セレクト 38px ＋ プレビューカード 116px = 154px
+               *   Tonamel     : イベントID欄 40px ＋ ここ           114px = 154px
+               *                 (イベント名 24px + gap 6px + 画像 72px + pb-3 12px)
+               *
+               * 画像の枠を w-2/5 のような幅比にすると高さが端末幅で変わり、揃うのが
+               * 特定の幅のときだけになる。公式イベントのサムネイル(h-18 = 72px)と
+               * 同じ高さになるよう w-32(128px)× aspect-video で固定する。
+               */}
               <div className="flex flex-col items-center gap-1.5">
                 <div className="flex justify-center w-4/5">
                   <span>『</span>
@@ -1988,7 +2003,7 @@ export default function TemplateRecordCreate({
                   </span>
                   <span>』</span>
                 </div>
-                <div className="w-2/5 pb-3">
+                <div className="w-32 pb-3">
                   <div className="relative w-full aspect-video overflow-hidden rounded-lg">
                     {!isValidatedTonamelEventId && (
                       <Skeleton className="absolute inset-0" />
@@ -2097,7 +2112,7 @@ export default function TemplateRecordCreate({
                                     }
                                     src={
                                       option.latest_deck_code?.code
-                                        ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${option.latest_deck_code.code}.jpg`
+                                        ? deckImageUrl(option.latest_deck_code.code)
                                         : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
                                     }
                                     className="w-full h-full object-cover"
@@ -2197,7 +2212,7 @@ export default function TemplateRecordCreate({
                                     radius="none"
                                     shadow="none"
                                     alt={option.code}
-                                    src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${option.code}.jpg`}
+                                    src={deckImageUrl(option.code)}
                                     className="w-full h-full object-cover"
                                     onLoad={() => setImageLoadedForDeckCode(true)}
                                   />
@@ -2231,7 +2246,7 @@ export default function TemplateRecordCreate({
                     alt={selectedDeckCodeOption?.code || "デッキコードなし"}
                     src={
                       selectedDeckCodeOption?.code
-                        ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${selectedDeckCodeOption.code}.jpg`
+                        ? deckImageUrl(selectedDeckCodeOption.code)
                         : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
                     }
                     className="z-0 w-full h-full object-cover"
@@ -2419,7 +2434,7 @@ export default function TemplateRecordCreate({
                                     }
                                     src={
                                       option.latest_deck_code?.code
-                                        ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${option.latest_deck_code.code}.jpg`
+                                        ? deckImageUrl(option.latest_deck_code.code)
                                         : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
                                     }
                                     className="w-full h-full object-cover"
@@ -2519,7 +2534,7 @@ export default function TemplateRecordCreate({
                                     radius="none"
                                     shadow="none"
                                     alt={option.code}
-                                    src={`https://xx8nnpgt.user.webaccel.jp/images/decks/${option.code}.jpg`}
+                                    src={deckImageUrl(option.code)}
                                     className="w-full h-full object-cover"
                                     onLoad={() => setImageLoadedForDeckCode(true)}
                                   />
@@ -2553,7 +2568,7 @@ export default function TemplateRecordCreate({
                     alt={selectedDeckCodeOption?.code || "デッキコードなし"}
                     src={
                       selectedDeckCodeOption?.code
-                        ? `https://xx8nnpgt.user.webaccel.jp/images/decks/${selectedDeckCodeOption.code}.jpg`
+                        ? deckImageUrl(selectedDeckCodeOption.code)
                         : "https://www.pokemon-card.com/deck/deckView.php/deckID/"
                     }
                     className="z-0 w-full h-full object-cover"

@@ -249,7 +249,8 @@ async function ResultsWithDeckSummaries({
        * 遅くなりうる。ページ末尾にあり初期表示に要らないので、後から流し込む。
        */
       relatedSection={
-        <Suspense fallback={null}>
+        // props で渡す Suspense には key を付ける(理由は一覧ページ側のコメント)
+        <Suspense key="related" fallback={null}>
           <CityleagueRelatedSection event={event} />
         </Suspense>
       }

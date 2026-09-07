@@ -147,6 +147,8 @@ function OfficialEventFieldSkeleton() {
 /*
  * Tonamel: イベントIDの入力＋『イベント名』とカバー画像。
  * 『イベント名』の行も実体と同じ文言をそのまま置く(バーにすると行が 24px→20px に縮む)。
+ * カバー画像の枠は実体と同じ w-32(128px)× aspect-video = 72px 固定
+ * (公式イベントのタブと「3 デッキ」の位置を揃えるため。実体のコメント参照)。
  */
 function TonamelEventFieldSkeleton() {
   return (
@@ -165,7 +167,7 @@ function TonamelEventFieldSkeleton() {
           <span className="truncate">イベント名</span>
           <span>』</span>
         </div>
-        <div className="w-2/5 pb-3">
+        <div className="w-32 pb-3">
           <Skeleton className="w-full aspect-video rounded-lg" />
         </div>
       </div>

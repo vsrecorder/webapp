@@ -24,7 +24,7 @@ import { LuChevronDown } from "react-icons/lu";
 import { LuSwords } from "react-icons/lu";
 import { LuStar } from "react-icons/lu";
 
-import { deckImageUrl } from "@app/components/atoms/DeckImageZoomOverlay";
+import { deckImageUrl } from "@app/utils/deckImage";
 import DeckCodeCard from "@app/components/organisms/Deck/DeckCodeCard";
 import { createLazyModal } from "@app/utils/lazyModal";
 
@@ -137,6 +137,9 @@ export default function DeckCard({
 
   // ギャラリー表示のヒーロー画像の読み込み状態
   const [heroImageLoaded, setHeroImageLoaded] = useState(false);
+  // 画像を読めなかった(CDN にまだ無い・消えている等で 404)。スケルトンを止め、
+  // ブラウザ既定の壊れた画像アイコンと alt(デッキコードの文字列)を出さないために使う。
+  const [heroImageFailed, setHeroImageFailed] = useState(false);
   const heroImageRef = useRef<HTMLImageElement | null>(null);
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
@@ -176,12 +179,15 @@ export default function DeckCard({
   }, [enableShowDeckModal, deck?.id]);
 
   // 表示中のデッキコード（画像）が変わったらヒーロー画像の読み込み状態をリセットする。
-  // あわせて、その時点で既に読み込み済みかどうかも見る。画像がブラウザのキャッシュに
-  // あると React が onLoad を張る前に読み込みが終わっていることがあり、その場合
-  // load は二度と飛ばずスケルトンが乗ったまま残る（ZoomableDeckImage と同じ理由）。
+  // あわせて、その時点で既に決着が付いているかどうかも見る。React が onLoad / onError を
+  // 張る前に読み込みが終わっていることがあり（キャッシュ済み、あるいはサーバ描画された
+  // 画像がハイドレーションより先に読み終わる場合）、その場合 load も error も二度と
+  // 飛ばずスケルトンが乗ったまま残る。complete かつ naturalWidth が 0 なら失敗。
   useEffect(() => {
     const img = heroImageRef.current;
-    setHeroImageLoaded(!!img?.complete && img.naturalWidth > 0);
+    const settled = !!img?.complete;
+    setHeroImageLoaded(settled && img.naturalWidth > 0);
+    setHeroImageFailed(settled && img.naturalWidth === 0);
   }, [deckcode?.code]);
 
   if (!deck) {
@@ -575,7 +581,9 @@ export default function DeckCard({
                 すると「デッキを開こうとしたのに開かない」になるため、伝播は止めない。
                 画像の拡大表示はデッキ詳細モーダル内のデッキ画像から行える。 */
               <div className="relative block w-full aspect-2/1 bg-default-100">
-                {!heroImageLoaded && <Skeleton className="absolute inset-0" />}
+                {!heroImageLoaded && !heroImageFailed && (
+                  <Skeleton className="absolute inset-0" />
+                )}
                 {/* HeroUI の <Image> は使わない。あちらは表示用の <img> とは別に
                   detached な new Image() を作って読み込みを監視し、完了するまで
                   表示用の <img> を opacity-0 で伏せる作りになっている。detached な
@@ -593,7 +601,10 @@ export default function DeckCard({
                   loading={priorityImage ? "eager" : "lazy"}
                   fetchPriority={priorityImage ? "high" : undefined}
                   onLoad={() => setHeroImageLoaded(true)}
-                  className="absolute inset-0 h-full w-full object-cover"
+                  onError={() => setHeroImageFailed(true)}
+                  className={`absolute inset-0 h-full w-full object-cover ${
+                    heroImageFailed ? "opacity-0" : ""
+                  }`}
                 />
               </div>
             )}

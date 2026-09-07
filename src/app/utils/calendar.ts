@@ -1,11 +1,20 @@
+import { formatJSTYearMonth } from "@app/utils/date";
+
 const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
 
-// 日付をJST基準の "YYYY-MM-DD" キーに丸める。引数には実時刻(未加工)を渡すこと
+// 日付をJST基準の "YYYY-MM-DD" キーに丸める。引数には実時刻(未加工)を渡すこと。
+// getJstNow() などのJST基準に丸め済みのDateを渡すとオフセットが二重に乗るので、
+// その場合は toJstDateKey() を使うこと。
 export function toDateKey(d: Date | string | number): string {
-  const jst = new Date(new Date(d).getTime() + JST_OFFSET_MS);
-  const year = jst.getUTCFullYear();
-  const month = String(jst.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(jst.getUTCDate()).padStart(2, "0");
+  return toJstDateKey(new Date(new Date(d).getTime() + JST_OFFSET_MS));
+}
+
+// JST基準に丸め済みのDate(getJstNow() や Date.UTC() で組んだ日付)から
+// "YYYY-MM-DD" キーを作る。実時刻を渡すとJSTとずれるので toDateKey() を使うこと
+export function toJstDateKey(d: Date): string {
+  const year = d.getUTCFullYear();
+  const month = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(d.getUTCDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
 
@@ -14,18 +23,15 @@ export function getJstNow(): Date {
   return new Date(Date.now() + JST_OFFSET_MS);
 }
 
-// 「YYYY年M月からバトレコを利用」形式の利用開始表示文字列を返す。
+// 「YYYY年M月からバトレコを利用」形式の利用開始表示文字列を返す。年月はJST基準。
 export function formatJoinDate(dateStr: string): string {
-  const d = new Date(dateStr);
-  return `${d.getFullYear()}年${d.getMonth() + 1}月からバトレコを利用`;
+  return `${formatJSTYearMonth(dateStr)}からバトレコを利用`;
 }
 
-// 「YYYY年MM月DD日」形式の日付文字列を返す。
+// 「YYYY年MM月DD日」形式の日付文字列を返す。暦日はJST基準。
 export function formatDateJa(dateStr: string): string {
-  const d = new Date(dateStr);
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${d.getFullYear()}年${month}月${day}日`;
+  const [year, month, day] = toDateKey(dateStr).split("-");
+  return `${year}年${month}月${day}日`;
 }
 
 export type CalendarGridCell = {
@@ -51,7 +57,7 @@ export function getCalendarGrid(year: number, month: number): CalendarGridCell[]
     const date = new Date(cursor);
     cells.push({
       date,
-      dateKey: toDateKey(date),
+      dateKey: toJstDateKey(date),
       inCurrentMonth: date.getUTCMonth() === month,
     });
     cursor.setUTCDate(cursor.getUTCDate() + 1);

@@ -20,6 +20,7 @@ import {
   seasonOptionsFromChampionshipSeries,
   currentSeasonValue,
 } from "@app/utils/season";
+import { todayJSTDateString } from "@app/utils/date";
 import OpponentDeckDistributionChart from "@app/components/organisms/DeckUsage/OpponentDeckDistributionChart";
 
 type PeriodMode = "all" | "month" | "environment" | "season" | "regulation";
@@ -109,7 +110,9 @@ export default function DeckOpponentAnalysisPanel({
 
     async function fetchEnvironments() {
       try {
-        const today = new Date().toISOString().split("T")[0];
+        // JSTの暦日で問い合わせる。toISOString() で切るとUTCへ寄るため、
+        // JSTの0:00〜9:00に開いたときだけ前日の環境が初期選択されてしまう。
+        const today = todayJSTDateString();
         const [listRes, currentRes] = await Promise.all([
           fetch("/api/environments", { cache: "no-store" }),
           fetch(`/api/environments?date=${today}`, { cache: "no-store" }),

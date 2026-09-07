@@ -60,7 +60,7 @@ import { useDeckCodes, getDeckCodeVersionNumber } from "@app/hooks/useDeckCodes"
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
 import { DeckUsageItemType, DeckUsageStatType } from "@app/types/deck_usage_stat";
-import { isZeroDate } from "@app/utils/date";
+import { formatJSTDate, formatJSTDateWithWeekday, isZeroDate } from "@app/utils/date";
 
 type RecordTabKey = "all" | "official" | "tonamel" | "unofficial";
 
@@ -318,12 +318,7 @@ export default function DeckById({ id, valueMeterEnabled = false }: Props) {
     return null;
   }
 
-  const createdDate = new Date(deck.created_at).toLocaleDateString("ja-JP", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    weekday: "short",
-  });
+  const createdDate = formatJSTDateWithWeekday(deck.created_at);
 
   // archived_atがゼロ値(年が1)なら未アーカイブ
   const isArchived = !isZeroDate(deck.archived_at);
@@ -734,11 +729,7 @@ export default function DeckById({ id, valueMeterEnabled = false }: Props) {
             <ol className="flex flex-col gap-2">
               {deckcodes.slice(0, visibleVersionCount).map((dc) => {
                 const versionNo = getDeckCodeVersionNumber(deckcodes, dc.id);
-                const dcDate = new Date(dc.created_at).toLocaleDateString("ja-JP", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                });
+                const dcDate = formatJSTDate(dc.created_at);
                 const isCurrent = dc.id === deckcode?.id;
 
                 return (

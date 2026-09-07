@@ -4,7 +4,7 @@ import { UnofficialEventGetByIdResponseType } from "@app/types/unofficial_event"
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { MatchGetResponseType } from "@app/types/match";
 import { cleanOfficialEventTitle } from "@app/components/organisms/Record/officialEventHelpers";
-import { isZeroDate } from "@app/utils/date";
+import { formatJSTDateWithWeekday, isZeroDate } from "@app/utils/date";
 
 export type PostTextOptions = {
   // 対戦結果をポスト文に含めるか(既定: true)
@@ -32,12 +32,7 @@ export function formatEventDateLabel(
     : isSet(unofficialEventDate)
       ? unofficialEventDate
       : createdAt.toString();
-  return new Date(dateStr).toLocaleString("ja-JP", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    weekday: "short",
-  });
+  return formatJSTDateWithWeekday(dateStr);
 }
 
 /*

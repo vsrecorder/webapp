@@ -4,6 +4,7 @@ import {
   DeckCodePostLikeResponseType,
   DeckCodePostType,
 } from "@app/types/deck_code_post";
+import { toJSTDateString } from "@app/utils/date";
 
 // みんなの公開デッキ関連の BFF 呼び出しと、表示用の小さなヘルパー。
 
@@ -106,11 +107,15 @@ export function formatRelativeTime(iso: string, now: Date = new Date()): string 
   const days = Math.floor(hours / 24);
   if (days < 7) return `${days}日前`;
 
-  if (date.getFullYear() === now.getFullYear()) {
-    return `${date.getMonth() + 1}月${date.getDate()}日`;
+  // 暦日はJST基準で組み立てる(端末のタイムゾーンで読むと海外の端末で前日に寄る)
+  const [year, month, day] = toJSTDateString(date).split("-").map(Number);
+  const [nowYear] = toJSTDateString(now).split("-").map(Number);
+
+  if (year === nowYear) {
+    return `${month}月${day}日`;
   }
 
-  return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+  return `${year}年${month}月${day}日`;
 }
 
 // 個別ページの URL(シェア用)。

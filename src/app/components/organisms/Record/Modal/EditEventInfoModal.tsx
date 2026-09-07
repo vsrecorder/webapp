@@ -24,7 +24,7 @@ import {
   closeToast,
 } from "@heroui/react";
 
-import { CalendarDate, getLocalTimeZone, today } from "@internationalized/date";
+import { CalendarDate, today } from "@internationalized/date";
 
 import { sendGAEvent } from "@next/third-parties/google";
 
@@ -49,7 +49,7 @@ import {
 import { MAX_EVENT_TITLE_LENGTH, exceedsTextLength } from "@app/utils/textLength";
 import { useOfficialEventGuide } from "@app/hooks/useOfficialEventGuide";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
-import { isZeroDate } from "@app/utils/date";
+import { JST_TIME_ZONE, isZeroDate, toJSTDateString } from "@app/utils/date";
 
 type EventType = "official" | "tonamel" | "unofficial";
 
@@ -71,7 +71,11 @@ function toCalendarDate(value?: string | Date | null): CalendarDate | null {
   const date = new Date(str);
   if (Number.isNaN(date.getTime())) return null;
 
-  return new CalendarDate(date.getFullYear(), date.getMonth() + 1, date.getDate());
+  // CalendarDate はタイムゾーンを持たない暦日。端末のタイムゾーンで読むと
+  // UTCより西の端末で前日になるため、JSTの暦日から組み立てる。
+  const [year, month, day] = toJSTDateString(date).split("-").map(Number);
+
+  return new CalendarDate(year, month, day);
 }
 
 function calendarDateToYmd(date: CalendarDate): string {
@@ -121,7 +125,7 @@ export default function EditEventInfoModal({
 
   const [eventType, setEventType] = useState<EventType>(currentEventType);
   // 開催日は種別をまたいで引き継ぐ(種別だけ付け替えたい場合に入れ直さずに済む)
-  const [eventDate, setEventDate] = useState<CalendarDate>(today(getLocalTimeZone()));
+  const [eventDate, setEventDate] = useState<CalendarDate>(today(JST_TIME_ZONE));
   const [officialEventId, setOfficialEventId] = useState<number | null>(null);
   const [tonamelEventId, setTonamelEventId] = useState<string>("");
   const [isValidTonamelEventId, setIsValidTonamelEventId] = useState<boolean>(false);
@@ -158,7 +162,7 @@ export default function EditEventInfoModal({
 
     if (type !== "unofficial" || !record.unofficial_event_id) {
       const date =
-        recordDate ?? toCalendarDate(record.created_at) ?? today(getLocalTimeZone());
+        recordDate ?? toCalendarDate(record.created_at) ?? today(JST_TIME_ZONE);
       setEventDate(date);
       setInitialDate(date);
       setIsLoading(false);
@@ -176,7 +180,7 @@ export default function EditEventInfoModal({
           recordDate ??
           toCalendarDate(data.date) ??
           toCalendarDate(record.created_at) ??
-          today(getLocalTimeZone());
+          today(JST_TIME_ZONE);
         setEventDate(date);
         setInitialDate(date);
         setEventTitle(data.title);
@@ -186,7 +190,7 @@ export default function EditEventInfoModal({
         console.error(error);
         if (ignore) return;
         const date =
-          recordDate ?? toCalendarDate(record.created_at) ?? today(getLocalTimeZone());
+          recordDate ?? toCalendarDate(record.created_at) ?? today(JST_TIME_ZONE);
         setEventDate(date);
         setInitialDate(date);
       })
@@ -238,7 +242,7 @@ export default function EditEventInfoModal({
   const canSubmit = !isLoading && !isUpdating && isFilled && isChanged;
 
   const handleDateChange = useCallback((value: CalendarDate | null) => {
-    setEventDate(value == null ? today(getLocalTimeZone()) : value);
+    setEventDate(value == null ? today(JST_TIME_ZONE) : value);
     // 開催日が変わるとその日の公式イベント候補も変わるため、選択をリセットする
     setOfficialEventId(null);
   }, []);

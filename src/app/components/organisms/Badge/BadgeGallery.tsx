@@ -11,8 +11,10 @@ import { ChampionshipSeriesType } from "@app/types/championship_series";
 import {
   BadgeDetailModal,
   BadgeTile,
-  BadgeTileSkeleton,
 } from "@app/components/organisms/Badge/badgeUi";
+import BadgeGallerySkeleton, {
+  BADGE_CATEGORY_ORDER,
+} from "@app/components/organisms/Badge/Skeleton/BadgeGallerySkeleton";
 import {
   seasonOptionsFromChampionshipSeries,
   currentSeasonValue,
@@ -30,8 +32,6 @@ type Props = {
 const CATEGORY_LABELS: Record<string, string> = {
   milestone: "マイルストーン",
 };
-
-const CATEGORY_ORDER = ["milestone"];
 
 // マイルストーンは記録数・デッキコード数・対戦数の3系統がそれぞれ独立した昇格トラックのため、
 // criteria_type ごとに分けて1系統=1行の「左→右」の流れとして見せる。
@@ -93,28 +93,6 @@ function BadgeFlowRow({
   );
 }
 
-// BadgeFlowRow と同じ構造(タイル+"▶"区切り)のプレースホルダー。
-// マイルストーンは実際は▶で繋がる横並びのため、区切り分の幅もスケルトンに反映する。
-// 行の高さは一番背の高いタイル(=一番長いバッジ名)で決まるので、その名前を nameSample に渡す。
-function BadgeFlowRowSkeleton({ count, nameSample }: { count: number; nameSample: string }) {
-  return (
-    <div className="flex items-stretch gap-1">
-      {Array.from({ length: count }).map((_, i) => (
-        <Fragment key={i}>
-          <div className="flex-1 min-w-0">
-            <BadgeTileSkeleton nameSample={nameSample} />
-          </div>
-          {i < count - 1 && (
-            <span className="self-center shrink-0 text-default-300 font-black text-xs">
-              ▶
-            </span>
-          )}
-        </Fragment>
-      ))}
-    </div>
-  );
-}
-
 export default function BadgeGallery({
   userId,
   championshipSeries,
@@ -167,48 +145,14 @@ export default function BadgeGallery({
   const badges = useMemo(() => (data ? (data.badges ?? []) : null), [data]);
 
   if (isLoading) {
-    return (
-      <Card className="shadow-md">
-        <CardBody className="p-4 flex flex-col gap-4">
-          {/* 獲得数(text-xs = 16px の行)とシーズン選択(border + py-1.5 + text-xs = 30px) */}
-          <div className="flex items-center justify-between gap-2">
-            <div className="h-4 flex items-center">
-              <div className="w-20 h-3 rounded-full bg-default-100 animate-pulse" />
-            </div>
-            <div className="w-24 h-7.5 rounded-xl bg-default-100 animate-pulse" />
-          </div>
-
-          {CATEGORY_ORDER.map((category) => (
-            <div key={category} className="flex flex-col gap-2">
-              {/* カテゴリ名(text-[0.6875rem] の行 = 16.5px。px はルート16px時) */}
-              <div className="h-[1.03125rem] flex items-center">
-                <div className="w-24 h-2.5 rounded-full bg-default-100 animate-pulse" />
-              </div>
-              <div className="flex flex-col gap-3">
-                {Array.from({ length: 3 }).map((_, subIndex) => (
-                  <div key={subIndex} className="flex flex-col gap-1.5">
-                    {/* 系統名(text-[0.625rem] の行 = 15px。px はルート16px時) */}
-                    <div className="h-[0.9375rem] flex items-center">
-                      <div className="w-14 h-2 rounded-full bg-default-100 animate-pulse" />
-                    </div>
-                    {/* マイルストーンは「駆け出し/熟練/達人/伝説の」×「ユーザー/ビルダー/バトラー」。
-                        一番長いのは前半4文字の「駆け出し◯◯◯◯」 */}
-                    <BadgeFlowRowSkeleton count={4} nameSample="駆け出しユーザー" />
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </CardBody>
-      </Card>
-    );
+    return <BadgeGallerySkeleton />;
   }
 
   if (error) {
     return <FetchError message="バッジの取得に失敗しました" onRetry={loadBadges} />;
   }
 
-  const grouped = CATEGORY_ORDER.map((category) => ({
+  const grouped = BADGE_CATEGORY_ORDER.map((category) => ({
     category,
     label: CATEGORY_LABELS[category] ?? category,
     badges: (badges ?? [])

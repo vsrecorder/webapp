@@ -23,7 +23,7 @@ import {
 } from "@heroui/react";
 import { LuFilePen, LuSlidersHorizontal, LuCircleSlash, LuStar } from "react-icons/lu";
 import { sendGAEvent } from "@next/third-parties/google";
-import { CalendarDate, today, getLocalTimeZone } from "@internationalized/date";
+import { CalendarDate, today } from "@internationalized/date";
 
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import HScrollRow from "@app/components/atoms/HScrollRow";
@@ -59,6 +59,7 @@ import {
   isEnvReturnTargetDate,
   DeckEnvPosition,
 } from "@app/utils/deckEnv";
+import { JST_TIME_ZONE } from "@app/utils/date";
 
 const SPRITE_BASE_URL = "https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites";
 
@@ -210,7 +211,7 @@ export default function TemplateQuickRecordCreate({
 
   // 詳細(任意)。開催日は記録作成ページと同じ DatePicker(CalendarDate)で全種別共通に扱う。
   const [eventType, setEventType] = useState<EventType>("unofficial");
-  const [eventDate, setEventDate] = useState<CalendarDate>(today(getLocalTimeZone()));
+  const [eventDate, setEventDate] = useState<CalendarDate>(today(JST_TIME_ZONE));
   const [eventTitle, setEventTitle] = useState("");
   const [officialEventId, setOfficialEventId] = useState<number | null>(null);
   const [tonamelEventId, setTonamelEventId] = useState("");
@@ -920,7 +921,7 @@ export default function TemplateQuickRecordCreate({
                         firstDayOfWeek="sun"
                         value={eventDate}
                         onChange={(value) => {
-                          setEventDate(value == null ? today(getLocalTimeZone()) : value);
+                          setEventDate(value == null ? today(JST_TIME_ZONE) : value);
                           // 開催日が変わると公式イベント候補も変わるため、選択をリセットする
                           setOfficialEventId(null);
                         }}

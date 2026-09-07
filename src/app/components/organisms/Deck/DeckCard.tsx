@@ -39,7 +39,7 @@ import {
   REOPEN_DECK_MODAL_DECK_ID,
   REOPEN_DECK_MODAL_WITH_RECORDS,
 } from "@app/utils/deckModalReopen";
-import { isZeroDate } from "@app/utils/date";
+import { formatJSTDateWithWeekday, isZeroDate } from "@app/utils/date";
 
 // デッキ詳細モーダルは子モーダル9個と chart.js などを抱える。
 // 初期JSと初期マウントから外すため、開くまで読み込まない(理由は createLazyModal を参照)。
@@ -224,20 +224,8 @@ export default function DeckCard({
     );
   }
 
-  const date = new Date(deck.created_at).toLocaleString("ja-JP", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    weekday: "short",
-  });
-
-  // リスト表示の右側に出す登録日（曜日付き）。例: 2026年7月9日(木)
-  const listDate = new Date(deck.created_at).toLocaleDateString("ja-JP", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    weekday: "short",
-  });
+  // 登録日（曜日付き）。例: 2026年7月9日(木)。カード表示とリスト表示の両方で使う
+  const date = formatJSTDateWithWeekday(deck.created_at);
 
   // archived_atがゼロ値(年が1)なら未アーカイブ
   const isArchived = !isZeroDate(deck.archived_at);
@@ -363,7 +351,7 @@ export default function DeckCard({
             {favoriteButton ?? <span />}
             <span className="flex items-center gap-1 text-tiny text-default-400 whitespace-nowrap">
               <LuCalendar className="text-xs" />
-              {listDate}
+              {date}
             </span>
           </div>
 

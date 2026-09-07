@@ -183,8 +183,10 @@ export default function CityleagueResults({ league_type }: Props) {
         const fromDate = new Date(nextFromDate);
         const toDate = new Date(nextToDate);
 
-        fromDate.setDate(fromDate.getDate() - i);
-        toDate.setDate(toDate.getDate() - i);
+        // nextFromDate/nextToDate は toJSTDate() 由来のズラした値。日の加減算も
+        // UTC系で行う(ローカル系だと夏時間のある端末で1時間ぶん日付が飛ぶ)。
+        fromDate.setUTCDate(fromDate.getUTCDate() - i);
+        toDate.setUTCDate(toDate.getUTCDate() - i);
 
         const fromDateStr = fromDate.toISOString().split("T")[0];
         const toDateStr = toDate.toISOString().split("T")[0];
@@ -219,8 +221,8 @@ export default function CityleagueResults({ league_type }: Props) {
 
           setItems((prev) => [...prev, ...newItems.event_results]);
 
-          fromDate.setDate(fromDate.getDate() - 1);
-          toDate.setDate(toDate.getDate() - 1);
+          fromDate.setUTCDate(fromDate.getUTCDate() - 1);
+          toDate.setUTCDate(toDate.getUTCDate() - 1);
 
           setNextFromDate(fromDate);
           setNextToDate(toDate);
@@ -301,10 +303,9 @@ export default function CityleagueResults({ league_type }: Props) {
     });
   }, [pendingScrollId]);
 
-  const formatDate = (date: Date | string) => {
-    const d = toJSTDate(date);
-    return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
-  };
+  // 「2026/09/07」。toJSTDate() の戻り値はUTCゲッターで読む前提のズラした値なので、
+  // getFullYear() 等(端末のタイムゾーン基準)で読むとUTCより西の端末で前日にずれる。
+  const formatDate = (date: Date | string) => toJSTDateString(date).replaceAll("-", "/");
 
   const isOngoing = schedule
     ? (() => {

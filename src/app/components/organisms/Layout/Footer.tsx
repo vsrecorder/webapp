@@ -5,6 +5,7 @@ import { LuExternalLink } from "react-icons/lu";
 import { auth } from "@app/auth";
 import FooterWithdrawLink from "@app/components/organisms/Layout/FooterWithdrawLink";
 import { getAppIconUrl } from "@app/utils/appIcon";
+import { todayJSTDateString } from "@app/utils/date";
 
 export default async function Footer() {
   const session = await auth();
@@ -120,7 +121,7 @@ export default async function Footer() {
 
         {/* コピーライト */}
         <div className="flex justify-center pt-5 text-xs text-neutral-400">
-          © {new Date().getFullYear()} バトレコ
+          © {todayJSTDateString().slice(0, 4)} バトレコ
         </div>
       </div>
     </footer>

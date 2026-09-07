@@ -4,6 +4,14 @@
 // 過去イベントの結果は確定後に変わらないため、長めにキャッシュする。
 const DEFAULT_REVALIDATE_SECONDS = 60 * 60 * 24;
 
+/*
+ * 新しい結果やイベントが増えていく一覧向け。
+ *
+ * 確定した個別ページと違い、ここが古いままだと新着が出てこない。結果の登録は
+ * 開催から数日遅れるので数分の遅れは実害にならないが、既定の1日は長すぎる。
+ */
+export const LIST_REVALIDATE_SECONDS = 300;
+
 import { upstreamOrigin } from "@app/utils/upstream";
 
 // 向き先は utils/upstream と同じ(VSRECORDER_UPSTREAM_ORIGIN があれば直接、無ければ公開ドメイン経由)
@@ -18,6 +26,16 @@ export async function getJson<T>(
   const res = await fetch(coreApiUrl(path), {
     method: "GET",
     headers: { Accept: "application/json" },
+    /*
+     * cache を明示しないと、ここで指定した revalidate が効かない。
+     *
+     * fetch の既定は "auto no cache" で、ルートが動的だとリクエストごとに上流へ行く。
+     * このアプリはルートレイアウト(TemplateLayout)が auth() を呼ぶため全ルートが動的なので、
+     * 常にその条件に当てはまっていた。本番の nginx ログでは、明示している
+     * /api/regulations がブラウザ82件に対し上流2件で済んでいるのに対し、
+     * ここを通るシティリーグ系はブラウザ30件に対し上流255件だった。
+     */
+    cache: "force-cache",
     next: { revalidate: revalidateSeconds },
   });
 

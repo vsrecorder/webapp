@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { DatePicker, Input, Image, Skeleton } from "@heroui/react";
-import { CalendarDate, today, getLocalTimeZone } from "@internationalized/date";
+import { CalendarDate, today } from "@internationalized/date";
 
 import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
+import { JST_TIME_ZONE } from "@app/utils/date";
 
 // 記録作成ページ(RecordCreate)のTonamelタブと同等のUI/挙動を提供する共有コンポーネント。
 // 開催日(DatePicker)＋イベントID(入力＋外部検証)＋イベント名/画像プレビュー。
@@ -84,7 +85,7 @@ export default function TonamelEventInput({
           firstDayOfWeek="sun"
           value={date}
           onChange={(value) =>
-            onDateChange(value == null ? today(getLocalTimeZone()) : value)
+            onDateChange(value == null ? today(JST_TIME_ZONE) : value)
           }
         />
       </div>

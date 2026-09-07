@@ -28,6 +28,7 @@ import {
   cityleagueRankBorderClass,
   cityleagueRankLabel,
 } from "@app/utils/cityleagueRank";
+import { formatJSTDateWithWeekday } from "@app/utils/date";
 
 type Props = {
   // 表示対象のシーズン識別子(championship_series.id から "series_" を除いたもの)。
@@ -49,12 +50,7 @@ type Props = {
 const BLEED = "-mx-4";
 
 function ResultCard({ result }: { result: UserPlayerCityleagueResultType }) {
-  const date = new Date(result.date).toLocaleString("ja-JP", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    weekday: "short",
-  });
+  const date = formatJSTDateWithWeekday(result.date);
 
   // 店舗名は「ポケモンカードステーション・」で始まるものが多く、そのまま出すと
   // 幅の大半を接頭辞が占めてしまうため、一覧側(CityleagueResult)と同じく落とす。

@@ -48,7 +48,7 @@ import { TagType } from "@app/types/tag";
 import { REGULATION_ID_STANDARD, regulationDisplay } from "@app/types/regulation";
 
 import { safeExternalUrl } from "@app/utils/url";
-import { isZeroDate, nonZeroDate } from "@app/utils/date";
+import { formatJSTDateWithWeekday, formatJSTTime, isZeroDate, nonZeroDate } from "@app/utils/date";
 
 async function fetchOfficialEvent(id: number): Promise<OfficialEventGetByIdResponseType> {
   const res = await fetch(`/api/official_events/${id}`, {
@@ -94,12 +94,7 @@ async function fetchDeck(id: string): Promise<DeckGetByIdResponseType> {
 
 // 開催日文字列を「YYYY年M月D日(曜)」へ整形する
 function formatEventDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleString("ja-JP", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    weekday: "short",
-  });
+  return formatJSTDateWithWeekday(dateStr);
 }
 
 // 開始時刻を「HH:MM」へ整形する。未設定(ゼロ値)・不正値のときは空文字を返し、
@@ -107,14 +102,8 @@ function formatEventDate(dateStr: string): string {
 function formatEventTime(value: Date | string | undefined | null): string {
   if (!value) return "";
 
-  const str = String(value);
-  // APIは未設定の日時にゼロ値(0001-01-01)を返す
-  if (isZeroDate(str)) return "";
-
-  const date = new Date(str);
-  if (Number.isNaN(date.getTime())) return "";
-
-  return date.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
+  // APIは未設定の日時にゼロ値(0001-01-01)を返す。formatJSTTime がゼロ値も不正値も空文字にする
+  return formatJSTTime(value);
 }
 
 // イベント名にスペースや空白(半角/全角スペース・タブ等)が含まれる場合、

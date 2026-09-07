@@ -14,7 +14,7 @@ import {
 } from "@app/components/organisms/Calendar/Skeleton/DashboardCalendarSkeleton";
 
 import { CalendarGetResponseType, CalendarEventType } from "@app/types/calendar";
-import { getCalendarGrid, getJstNow, toDateKey } from "@app/utils/calendar";
+import { getCalendarGrid, getJstNow, toJstDateKey } from "@app/utils/calendar";
 
 const WEEKDAY_LABELS = ["日", "月", "火", "水", "木", "金", "土"];
 
@@ -53,8 +53,9 @@ export default function DashboardCalendar({ userId }: Props) {
   const todayYear = today.getUTCFullYear();
   const todayMonth = today.getUTCMonth();
   // today と同じ時刻から導く。別々に現在時刻を取ると、日付の変わり目をまたいだ場合に
-  // today と todayKey が食い違いうる。
-  const todayKey = useMemo(() => toDateKey(today), [today]);
+  // today と todayKey が食い違いうる。today は JST 基準に丸め済みなので、
+  // 実時刻を受け取る toDateKey() ではなく toJstDateKey() で読むこと。
+  const todayKey = useMemo(() => toJstDateKey(today), [today]);
 
   const [currentYear, setCurrentYear] = useState(todayYear);
   const [currentMonth, setCurrentMonth] = useState(todayMonth);

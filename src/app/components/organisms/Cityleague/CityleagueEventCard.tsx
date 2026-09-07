@@ -11,6 +11,7 @@ import CityleagueResult from "@app/components/organisms/Cityleague/CityleagueRes
 
 import { OfficialEventListItemType } from "@app/types/official_event";
 import { CityleagueResultType } from "@app/types/cityleague_result";
+import { formatJSTDateWithWeekday } from "@app/utils/date";
 
 type Props = {
   event: OfficialEventListItemType;
@@ -26,12 +27,7 @@ export default function CityleagueEventCard({ event, results }: Props) {
   // resultを取得できている場合は大会が終了しており、シティリーグの結果が出ている
   const isFinished = !!matchedResult;
 
-  const date = new Date(event.date).toLocaleString("ja-JP", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    weekday: "short",
-  });
+  const date = formatJSTDateWithWeekday(event.date);
 
   // 受け取ったイベント情報は書き換えない。CityleagueResults が日単位でまとめて取得した
   // 一覧をカード間で共有しているため、書き換えると共有しているオブジェクトを壊す。

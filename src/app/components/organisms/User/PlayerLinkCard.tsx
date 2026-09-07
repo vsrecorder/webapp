@@ -7,6 +7,7 @@ import { LuTriangleAlert, LuIdCard } from "react-icons/lu";
 import LinkPlayerIdModal from "@app/components/organisms/User/Modal/LinkPlayerIdModal";
 import { UserPlayerType } from "@app/types/user_player";
 import { savePlayerLinkedCache, usePlayerLinkedHint } from "@app/utils/playerLinkCache";
+import { formatJSTDateNumeric } from "@app/utils/date";
 
 export default function PlayerLinkCard() {
   const [userPlayer, setUserPlayer] = useState<UserPlayerType | null>(null);
@@ -124,7 +125,7 @@ export default function PlayerLinkCard() {
               <span>
                 次に変更できるのは{" "}
                 <span className="font-bold">
-                  {new Date(userPlayer.locked_until).toLocaleDateString("ja-JP")}
+                  {formatJSTDateNumeric(userPlayer.locked_until)}
                 </span>{" "}
                 以降です。
               </span>

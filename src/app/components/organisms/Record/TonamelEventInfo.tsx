@@ -12,7 +12,7 @@ import RecordInfoCardSkeleton from "@app/components/organisms/Record/Skeleton/Re
 import { RecordGetByIdResponseType } from "@app/types/record";
 import { TonamelEventGetByIdResponseType } from "@app/types/tonamel_event";
 import { EnvironmentType } from "@app/types/environment";
-import { isZeroDate, nonZeroDate } from "@app/utils/date";
+import { formatJSTDateWithWeekday, isZeroDate, nonZeroDate } from "@app/utils/date";
 
 async function fetchTonamelEventById(id: string) {
   try {
@@ -130,12 +130,7 @@ export default function TonamelEventInfo({ record }: Props) {
     !isZeroDate(record.event_date)
       ? record.event_date
       : record.created_at;
-  const date = new Date(dateStr).toLocaleString("ja-JP", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    weekday: "short",
-  });
+  const date = formatJSTDateWithWeekday(dateStr);
 
   return (
     <>

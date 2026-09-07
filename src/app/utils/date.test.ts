@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  JST_TIME_ZONE,
   ZERO_DATE,
   diffInDays,
+  formatJSTDate,
+  formatJSTDateNumeric,
+  formatJSTDateTimeWithWeekday,
   formatJSTDateWithWeekday,
+  formatJSTTime,
   formatJSTYearMonth,
   isZeroDate,
   nonZeroDate,
@@ -67,5 +72,59 @@ describe("formatJSTDateWithWeekday / formatJSTYearMonth", () => {
   it("読めない値は空文字(Invalid Date を出さない)", () => {
     expect(formatJSTDateWithWeekday("not a date")).toBe("");
     expect(formatJSTYearMonth("")).toBe("");
+  });
+});
+
+/*
+ * 表示用の書式はすべて JST 固定。端末のタイムゾーンで読むと、UTCより西の端末で
+ * 日付が前日に寄り、サーバ描画(TZ=Asia/Tokyo)との間でハイドレーション不一致にもなる。
+ * ここでは「JSTの0時ちょうど」と「UTCの日付が変わる前後」を通して確かめる。
+ */
+describe("JST固定の表示書式", () => {
+  // バックエンドは日付を JST 0:00 として "+09:00" 付きで返す
+  const jstMidnight = "2026-08-18T00:00:00+09:00";
+  // UTCではまだ 8/17 の時刻(JSTでは 8/18 の朝)
+  const jstMorning = "2026-08-17T23:30:00Z";
+
+  it("formatJSTDateWithWeekday は「2026年8月18日(火)」", () => {
+    expect(formatJSTDateWithWeekday(jstMidnight)).toBe("2026年8月18日(火)");
+    expect(formatJSTDateWithWeekday(jstMorning)).toBe("2026年8月18日(火)");
+  });
+
+  it("formatJSTDate は曜日なしの「2026年8月18日」", () => {
+    expect(formatJSTDate(jstMidnight)).toBe("2026年8月18日");
+    expect(formatJSTDate(jstMorning)).toBe("2026年8月18日");
+  });
+
+  it("formatJSTDateNumeric は「2026/8/18」", () => {
+    expect(formatJSTDateNumeric(jstMidnight)).toBe("2026/8/18");
+    expect(formatJSTDateNumeric(jstMorning)).toBe("2026/8/18");
+  });
+
+  it("formatJSTDateTimeWithWeekday は日付と時刻を JST で出す", () => {
+    expect(formatJSTDateTimeWithWeekday(jstMidnight)).toBe("2026年8月18日(火) 00:00:00");
+  });
+
+  it("formatJSTTime は JST の時刻を「HH:MM」で出す", () => {
+    expect(formatJSTTime(jstMidnight)).toBe("00:00");
+    expect(formatJSTTime("2026-08-18T09:05:00+09:00")).toBe("09:05");
+    expect(formatJSTTime(jstMorning)).toBe("08:30");
+  });
+
+  it("formatJSTTime は未設定(ゼロ値)・null・不正値を空文字にする", () => {
+    expect(formatJSTTime(ZERO_DATE)).toBe("");
+    expect(formatJSTTime(null)).toBe("");
+    expect(formatJSTTime(undefined)).toBe("");
+    expect(formatJSTTime("これは日付ではない")).toBe("");
+  });
+
+  it("読めない値は空文字にする", () => {
+    expect(formatJSTDate("これは日付ではない")).toBe("");
+    expect(formatJSTDateNumeric("")).toBe("");
+    expect(formatJSTDateTimeWithWeekday("これは日付ではない")).toBe("");
+  });
+
+  it("JST_TIME_ZONE は IANA のタイムゾーン名", () => {
+    expect(JST_TIME_ZONE).toBe("Asia/Tokyo");
   });
 });

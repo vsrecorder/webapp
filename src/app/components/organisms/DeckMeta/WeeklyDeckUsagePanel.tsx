@@ -15,6 +15,8 @@ import {
 } from "react-icons/lu";
 
 import DeckSprites from "@app/components/molecules/DeckSprites";
+import { WeeklyDeckUsageSkeletonRow } from "@app/components/organisms/DeckMeta/Skeleton/WeeklyDeckUsagePanelSkeleton";
+
 import { generateWeekOptions, lastWeekValue } from "@app/utils/week";
 import { WeeklyDeckUsageStatType } from "@app/types/weekly_deck_usage_stat";
 
@@ -116,38 +118,6 @@ function DeltaPoints({
   );
 }
 
-
-// 実際の行と同じグリッド構成([可変|3.5rem|2.5rem])・同じ要素サイズで骨格を組み、
-// 読み込み完了時のレイアウトシフトを防ぐ。実レイアウトを変えたらここも追従させること。
-function SkeletonRow() {
-  return (
-    <div className="flex flex-col gap-1.5 rounded-xl bg-default-100 px-3 py-2 animate-pulse">
-      {/* 上段: 順位バッジ+変動 / スプライト2体 / 使用率 / 前週差・件数 */}
-      <div className="grid grid-cols-[minmax(0,1fr)_3.5rem_2.5rem] items-center gap-1">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="flex flex-col items-center gap-0.5 w-6 shrink-0">
-            <div className="w-6 h-6 rounded-full bg-default-200" />
-            <div className="w-4 h-2 rounded bg-default-200" />
-          </div>
-          <div className="w-16 h-8 rounded-lg bg-default-200 shrink-0" />
-        </div>
-        <div className="h-6 rounded-lg bg-default-200" />
-        <div className="flex flex-col items-end gap-0.5">
-          <div className="w-7 h-3 rounded bg-default-200" />
-          <div className="w-8 h-2.5 rounded bg-default-200" />
-        </div>
-      </div>
-      {/* 下段: 使用率バー / 勝率チップ / 勝率の前週差 */}
-      <div className="grid grid-cols-[minmax(0,1fr)_3.5rem_2.5rem] items-center gap-1">
-        <div className="h-1.5 rounded-full bg-default-200" />
-        <div className="h-5 rounded-full bg-default-200" />
-        <div className="flex justify-end">
-          <div className="w-7 h-3 rounded bg-default-200" />
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // 使用率の算出基準（全体件数を分母にするか、「その他」を除いた件数を分母にするか）
 type RateMode = "all" | "excl_other";
@@ -415,7 +385,7 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
         {isLoading && !stat ? (
           <div className="flex flex-col gap-1.5">
             {Array.from({ length: 5 }).map((_, i) => (
-              <SkeletonRow key={i} />
+              <WeeklyDeckUsageSkeletonRow key={i} />
             ))}
           </div>
         ) : displayDecks.length === 0 ? (

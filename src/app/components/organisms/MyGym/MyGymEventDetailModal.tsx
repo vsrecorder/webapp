@@ -33,6 +33,7 @@ import {
 import { OfficialEventType } from "@app/types/official_event";
 import { toDateKey } from "@app/utils/calendar";
 import { navigateAfterModalClose } from "@app/utils/modalHistory";
+import { formatJSTDateWithWeekday } from "@app/utils/date";
 
 type Props = {
   isOpen: boolean;
@@ -49,13 +50,8 @@ const NO_VALUE_LABEL = "その他";
 // 「2026年9月5日(金) 10:00 ~ 12:00」。パネルの日付見出しは月日だけだが、
 // こちらは1件だけを見る画面なので年も出す。時刻が未設定のイベントでは日付だけになる。
 function formatEventDateTime(event: OfficialEventType): string {
-  // date は上流がローカル時刻の0時で返すため、そのまま整形してよい(時刻も同じ規約)
-  const date = new Date(event.date).toLocaleDateString("ja-JP", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    weekday: "short",
-  });
+  // date は上流が JST の 0:00 を "+09:00" 付きで返すため、JST 固定で整形する
+  const date = formatJSTDateWithWeekday(event.date);
   const time = formatEventTime(event);
 
   return time ? `${date} ${time}` : date;

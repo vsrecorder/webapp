@@ -33,6 +33,7 @@ import { UserEnvironmentBadgeType } from "@app/types/environment_badge";
 import { onNotificationsRefreshRequested } from "@app/utils/notificationEvents";
 import { rankInfoForName } from "@app/utils/designationRank";
 import { environmentBadgeImageUrl } from "@app/utils/badgeImage";
+import { formatJSTDateNumeric } from "@app/utils/date";
 
 const NOTIFICATIONS_LIMIT = 30;
 const POLL_INTERVAL_MS = 60 * 1000;
@@ -95,11 +96,7 @@ function formatRelativeTime(iso: string): string {
   if (diffDay < 7) return rtf.format(-diffDay, "day");
 
   // 7日以上前は相対表示ではなく日付そのものを表示する
-  return date.toLocaleDateString("ja-JP", {
-    year: "numeric",
-    month: "numeric",
-    day: "numeric",
-  });
+  return formatJSTDateNumeric(date);
 }
 
 type Props = {

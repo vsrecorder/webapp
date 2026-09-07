@@ -28,6 +28,7 @@ import { DeckCodeType } from "@app/types/deck_code";
 import { DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
 
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
+import { formatJSTDateWithWeekday } from "@app/utils/date";
 
 // 失敗レスポンスのボディをそのまま返すと、選択肢を組み立てるmap/forEachがレンダー中に
 // 例外になりページ全体が落ちる。取得できなかったことはSWRのerrorとして扱う。
@@ -71,12 +72,7 @@ function katakanaToHiragana(str: string): string {
 }
 
 function convertToDeckOption(data: DeckData): DeckOption {
-  const created_at = new Date(data.created_at).toLocaleString("ja-JP", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    weekday: "short",
-  });
+  const created_at = formatJSTDateWithWeekday(data.created_at);
 
   return {
     label: data.name + " - " + katakanaToHiragana(data.name),
@@ -125,12 +121,7 @@ function convertToDeckCodeOption(
   data: DeckCodeType,
   versionNumber: number | null,
 ): DeckCodeOption {
-  const created_at = new Date(data.created_at).toLocaleString("ja-JP", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    weekday: "short",
-  });
+  const created_at = formatJSTDateWithWeekday(data.created_at);
 
   return {
     label: versionNumber !== null ? String(versionNumber) : "",

@@ -17,7 +17,7 @@ import {
   OfficialEventListItemType,
   OfficialEventResponseType,
 } from "@app/types/official_event";
-import { formatJSTDateWithWeekday } from "@app/utils/date";
+import { formatJSTDateWithWeekday, formatJSTTime } from "@app/utils/date";
 
 // 記録作成ページ(RecordCreate)の公式イベント選択と同等のUI/挙動を提供する共有コンポーネント。
 // アイコンは officialEventHelpers.getEventIconUrl を使うため、イベント種別アイコンの追加は
@@ -44,16 +44,10 @@ async function fetcher(url: string): Promise<OfficialEventListItemType[]> {
 
 // RecordCreate の convertToOfficialEventOption と同じ日時整形。アイコンだけ共有ヘルパーに委譲。
 function convertToOption(e: OfficialEventListItemType): OfficialEventOption {
-  const startedAtDate = new Date(e.started_at);
-  let startedAt =
-    startedAtDate.getHours().toString().padStart(2, "0") +
-    ":" +
-    startedAtDate.getMinutes().toString().padStart(2, "0");
-  const endedAtDate = new Date(e.ended_at);
-  let endedAt =
-    endedAtDate.getHours().toString().padStart(2, "0") +
-    ":" +
-    endedAtDate.getMinutes().toString().padStart(2, "0");
+  // 時刻はJST固定で読む(端末のタイムゾーンで読むと海外の端末で開催時刻がずれる)。
+  // formatJSTTime は書式を作り置きしているので、件数が多くても toLocaleString ほど遅くならない。
+  let startedAt = formatJSTTime(e.started_at);
+  let endedAt = formatJSTTime(e.ended_at);
   let eventTime = "";
   if (endedAt === "00:00") endedAt = "";
   if (startedAt === "00:00") startedAt = "";

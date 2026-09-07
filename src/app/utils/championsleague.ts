@@ -5,7 +5,7 @@ import {
 } from "@app/types/championsleague_result";
 import { ChampionsleagueScheduleType } from "@app/types/championsleague_schedule";
 import { OfficialEventType } from "@app/types/official_event";
-import { getJson } from "@app/utils/coreApi";
+import { LIST_REVALIDATE_SECONDS, getJson } from "@app/utils/coreApi";
 import { getOfficialEventById } from "@app/utils/cityleague";
 import { cityleagueLeagueTitle } from "@app/utils/cityleagueRank";
 
@@ -21,8 +21,10 @@ import { cityleagueLeagueTitle } from "@app/utils/cityleagueRank";
 export async function getChampionsleagueEventRefs(): Promise<
   ChampionsleagueResultEventType[]
 > {
+  // 新しい結果が登録されると増えるので、確定した個別ページより短く持つ
   const ret = await getJson<ChampionsleagueResultGetEventsResponseType>(
     `/api/v1beta/championsleague_results/events`,
+    LIST_REVALIDATE_SECONDS,
   );
 
   return ret?.events ?? [];

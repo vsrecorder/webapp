@@ -9,7 +9,7 @@
 //    として扱い、カード側でも母数(のべ件数)を必ず併記すること。
 
 import { fingerprintKey } from "@app/utils/fingerprint";
-import { currentWeekValue } from "@app/utils/week";
+import { addDays, currentWeekValue, mondayOfJSTDateString } from "@app/utils/week";
 import { periodDateRange, type RecapPeriod } from "@app/utils/recapPeriod";
 import { WeeklyDeckUsageStatType } from "@app/types/weekly_deck_usage_stat";
 
@@ -26,27 +26,21 @@ export type PeriodDeckEnv = {
   countByFingerprint: Map<string, number>;
 };
 
-function formatDate(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
-
 // 期間内に起点(月曜日)がある週を古い順に返す。今週より後の週は集計対象が無いため除く。
-function mondaysInRange(from: Date, to: Date): string[] {
+// from/to は JST の暦日 "YYYY-MM-DD"。文字列のまま扱い、端末のタイムゾーンを持ち込まない。
+function mondaysInRange(from: string, to: string): string[] {
   const limit = currentWeekValue();
   const mondays: string[] = [];
 
-  const cursor = new Date(from.getFullYear(), from.getMonth(), from.getDate());
-  // getDay: 日曜=0 ... 土曜=6。期間開始日以降の最初の月曜まで進める
-  while (cursor.getDay() !== 1) cursor.setDate(cursor.getDate() + 1);
+  // mondayOfJSTDateString は「その日が属する週の月曜」を返すので、期間開始日より
+  // 前へ戻ることがある。その場合は次の週の月曜を起点にする。
+  let cursor = mondayOfJSTDateString(from);
+  if (cursor < from) cursor = addDays(cursor, 7);
 
   while (cursor <= to) {
-    const value = formatDate(cursor);
-    if (value > limit) break;
-    mondays.push(value);
-    cursor.setDate(cursor.getDate() + 7);
+    if (cursor > limit) break;
+    mondays.push(cursor);
+    cursor = addDays(cursor, 7);
   }
 
   return mondays.slice(-MAX_WEEKS);

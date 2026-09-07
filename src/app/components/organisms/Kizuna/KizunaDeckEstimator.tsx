@@ -46,6 +46,7 @@ import { RecordGetResponseType, RecordType } from "@app/types/record";
 import { MatchType } from "@app/types/match";
 import { OfficialEventType } from "@app/types/official_event";
 import { PokemonSpriteType } from "@app/types/pokemon_sprite";
+import { formatJSTDateWithWeekday } from "@app/utils/date";
 
 // 結果カードの画像生成にかける上限時間。これを超えたら失敗として扱う。
 const CAPTURE_TIMEOUT_MS = 15000;
@@ -338,12 +339,7 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
       deckName: deck.name,
       spriteIds: slot1Id || slot2Id ? [slot1Id ?? "", slot2Id ?? ""] : [],
       kizunaLevel: estimate!.score,
-      registeredAt: new Date(deck.created_at).toLocaleDateString("ja-JP", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        weekday: "short",
-      }),
+      registeredAt: formatJSTDateWithWeekday(deck.created_at),
       // 戦績の集計が無いデッキ（記録が集計対象外のみ等）はサンプルの数字に任せる
       stats: usage
         ? {

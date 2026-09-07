@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Button,
@@ -14,7 +14,16 @@ import {
 import { LuChevronUp, LuChevronDown } from "react-icons/lu";
 
 import { Modal } from "@app/components/atoms/AppModal";
+import DashboardBlockSkeleton from "@app/components/organisms/Dashboard/Skeleton/DashboardSectionSkeletons";
 import { UserBadgesType } from "@app/types/badge";
+import { writeClientCookie } from "@app/utils/clientCookie";
+import {
+  DASHBOARD_LAYOUT_COOKIE,
+  DASHBOARD_LAYOUT_COOKIE_MAX_AGE,
+  DashboardBlockId,
+  isDashboardBlockId,
+  serializeDashboardLayout,
+} from "@app/utils/dashboardLayout";
 
 // ヘッダーのユーザメニュー「ダッシュボード表示設定」から遷移してきた際に付与されるクエリパラメータ
 export const CUSTOMIZE_QUERY_PARAM = "customize";
@@ -23,13 +32,30 @@ export type DashboardSection = {
   id: string;
   label: string;
   node: ReactNode;
+  /*
+   * 骨格(DashboardSkeleton)で使うブロックID。省略時は id をそのまま使う。
+   *
+   * 分けているのは「対戦環境データ」だけ。この節は記録件数で中身(従来パネル/組み合わせパネル)が
+   * 入れ替わるので骨格も2種類あるが、id は並べ替え・非表示設定(localStorage)のキーでもあり、
+   * 変えるとユーザーの設定が未知のID扱いになって並びが崩れる。
+   */
+  skeletonId?: DashboardBlockId;
 };
 
 type Props = {
   userId: string;
   pinned?: ReactNode;
+  // pinned に実際に並べたカードのID(骨格の並びを cookie に残すために使う)
+  pinnedIds?: readonly DashboardBlockId[];
   sections: DashboardSection[];
   trailing?: ReactNode;
+  // trailing のID(同上)
+  trailingId?: DashboardBlockId;
+  /*
+   * 前回このユーザーのホームが描いた並びのうち、多段組に入る節ぶん(cookie 由来)。
+   * 保存済みの表示設定を読むまでの繋ぎに、この構成で骨格を出す。
+   */
+  initialSectionLayout?: readonly DashboardBlockId[];
   // サーバ描画(dashboardServer)で取った全バッジ。あればこれで達成判定し、取りに行かない
   initialBadges?: UserBadgesType;
 };
@@ -95,11 +121,18 @@ function saveOnboardingComplete(complete: boolean) {
 export default function DashboardSections({
   userId,
   pinned,
+  pinnedIds,
   sections,
   trailing,
+  trailingId,
+  initialSectionLayout,
   initialBadges,
 }: Props) {
   const defaultOrder = sections.map((s) => s.id);
+  // cookie が無いときの繋ぎの骨格。今まさに描こうとしている節の並びをそのまま使う
+  const defaultSkeletonIds = sections
+    .map((s) => s.skeletonId ?? s.id)
+    .filter(isDashboardBlockId);
 
   const [order, setOrder] = useState<string[]>(defaultOrder);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
@@ -242,6 +275,35 @@ export default function DashboardSections({
   const orderedSections = order
     .map((id) => sectionMap.get(id))
     .filter((s): s is DashboardSection => !!s);
+  const visibleSections = orderedSections.filter((s) => !isHidden(s.id));
+
+  /*
+   * 次回のホームの骨格(DashboardSkeleton)を同じ構成で出せるよう、実際に描いた並びを cookie に残す。
+   *
+   * 並べ替え・非表示の設定(localStorage)はサーバから読めないので、骨格はこれが無いと
+   * 全員に同じ形しか出せない。覚えるのは「設定」ではなく「描いた結果」——そうすると、
+   * 本日のシティリーグや対戦環境データのようにサーバ側の取得結果で出方が変わる節も、
+   * 骨格側が理由を知らないまま同じ形で再現できる。
+   */
+  const savedLayoutRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    // 保存済みの並びを読む前(既定順のまま)に書くと、次回の骨格が既定順で固定されてしまう
+    if (!isLayoutReady) return;
+
+    const ids = [
+      ...(pinnedIds ?? []),
+      ...visibleSections.map((s) => s.skeletonId ?? s.id),
+      ...(trailing != null && trailingId != null ? [trailingId] : []),
+    ].filter(isDashboardBlockId);
+
+    const value = serializeDashboardLayout(ids);
+    // 中身が変わらない再描画で document.cookie を触らない
+    if (savedLayoutRef.current === value) return;
+
+    savedLayoutRef.current = value;
+    writeClientCookie(DASHBOARD_LAYOUT_COOKIE, value, DASHBOARD_LAYOUT_COOKIE_MAX_AGE);
+  });
 
   return (
     <>
@@ -251,18 +313,21 @@ export default function DashboardSections({
 
       <div className="lg:columns-2 lg:gap-6">
         {isLayoutReady
-          ? orderedSections
-              .filter((s) => !isHidden(s.id))
-              .map((s) => (
-                <div key={s.id} className="mb-3 lg:mb-6 lg:break-inside-avoid-column">
-                  {s.node}
-                </div>
-              ))
-          : sections.map((s) => (
-              <div
-                key={s.id}
-                className="mb-3 lg:mb-6 lg:break-inside-avoid-column h-24 rounded-2xl bg-default-100 animate-pulse"
-              />
+          ? visibleSections.map((s) => (
+              <div key={s.id} className="mb-3 lg:mb-6 lg:break-inside-avoid-column">
+                {s.node}
+              </div>
+            ))
+          : /*
+               保存済みの表示設定(localStorage)を読むまでの繋ぎ。ここは Suspense の骨格
+               (DashboardSkeleton)が消えた直後に出るので、同じ構成・同じ骨格を出して
+               形が変わらないようにする。並びは cookie 由来(initialSectionLayout)で、
+               無ければ既定順のまま出す。
+            */
+            (initialSectionLayout ?? defaultSkeletonIds).map((id) => (
+              <div key={id} className="mb-3 lg:mb-6 lg:break-inside-avoid-column">
+                <DashboardBlockSkeleton id={id} />
+              </div>
             ))}
       </div>
 

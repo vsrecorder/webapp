@@ -6,7 +6,8 @@ import {
   OfficialEventType,
   OfficialEventUpstreamResponseType,
 } from "@app/types/official_event";
-import { getJson } from "@app/utils/coreApi";
+import { LIST_REVALIDATE_SECONDS, getJson } from "@app/utils/coreApi";
+import { toJSTDateString } from "@app/utils/date";
 
 // 公式イベント種別のうち「シティリーグ」を指すID。
 const OFFICIAL_EVENT_TYPE_ID_CITYLEAGUE = 2;
@@ -39,8 +40,10 @@ export type CityleagueEventRef = {
 // 入賞者まで返す /cityleague_results は全期間で十数MBに達するため、イベント単位に畳んだ
 // /cityleague_results/events を使う。league_type を省略すると全リーグが対象になる。
 export async function getAllCityleagueEventRefs(): Promise<CityleagueEventRef[]> {
+  // 新しい結果が登録されると増えるので、確定した個別ページより短く持つ
   const ret = await getJson<CityleagueResultGetEventsResponseType>(
     `/api/v1beta/cityleague_results/events`,
+    LIST_REVALIDATE_SECONDS,
   );
 
   return (ret?.events ?? []).map((event) => ({
@@ -70,17 +73,21 @@ export async function getEnvironments(): Promise<CityleagueTerm[]> {
   return ret ?? [];
 }
 
+// バックエンドの日付は "2026-09-16T00:00:00+09:00" 形式で返る。
+// toISOString() でそのまま切り出すとUTCへ寄って前日になるため、JSTの暦日へ直してから切る。
 function toDateOnly(date: Date | string): string {
-  return new Date(date).toISOString().split("T")[0];
+  return toJSTDateString(date);
 }
 
 async function getOfficialEventsByTerm(
   fromDate: Date | string,
   toDate: Date | string,
 ): Promise<OfficialEventType[]> {
+  // 期間内のイベントは後から増えることがあるので短めに持つ
   const ret = await getJson<OfficialEventUpstreamResponseType>(
     `/api/v1beta/official_events?type_id=${OFFICIAL_EVENT_TYPE_ID_CITYLEAGUE}` +
       `&start_date=${toDateOnly(fromDate)}&end_date=${toDateOnly(toDate)}`,
+    LIST_REVALIDATE_SECONDS,
   );
 
   return ret?.official_events ?? [];
@@ -132,8 +139,9 @@ export async function getLatestCityleagueEvents(
   const latestDate = new Date(latestTime);
 
   // シティリーグは週末に集中するため、90日遡れば limit 件はまず満たせる。
+  // 日の加減算はUTC系で行う(ローカル系だと夏時間のある端末で1時間ぶんずれる)。
   const fromDate = new Date(latestTime);
-  fromDate.setDate(fromDate.getDate() - 90);
+  fromDate.setUTCDate(fromDate.getUTCDate() - 90);
 
   const events = await getCityleagueEventsInTerm(fromDate, latestDate);
 

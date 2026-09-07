@@ -11,7 +11,7 @@ import RecordInfoCardSkeleton from "@app/components/organisms/Record/Skeleton/Re
 import { RecordGetByIdResponseType } from "@app/types/record";
 import { UnofficialEventGetByIdResponseType } from "@app/types/unofficial_event";
 import { EnvironmentType } from "@app/types/environment";
-import { nonZeroDate } from "@app/utils/date";
+import { formatJSTDateWithWeekday, nonZeroDate } from "@app/utils/date";
 
 async function fetchUnofficialEventById(
   id: string,
@@ -128,12 +128,7 @@ export default function UnofficialEventInfo({ record }: Props) {
   const eventDateSource =
     nonZeroDate(record.event_date) ?? nonZeroDate(unofficialEvent?.date) ?? record.created_at;
 
-  const date = new Date(eventDateSource).toLocaleString("ja-JP", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    weekday: "short",
-  });
+  const date = formatJSTDateWithWeekday(eventDateSource);
 
   return (
     <>

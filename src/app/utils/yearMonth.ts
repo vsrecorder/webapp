@@ -37,8 +37,8 @@ export function monthOnlyLabel(yearMonth: string): string {
 export function addMonths(yearMonth: string, delta: number): string {
   const [year, month] = yearMonth.split("-").map(Number);
   // Date の月は 0 始まり。月末日を持たない月へまたぐと日付が繰り上がるため、常に1日で作る。
-  const d = new Date(year, month - 1 + delta, 1);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  const d = new Date(Date.UTC(year, month - 1 + delta, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
 // 当月より後（未来の月）かどうか。月セレクタで次の月へ進めるかの判定に使う。
@@ -50,7 +50,7 @@ export function isFutureYearMonth(yearMonth: string): boolean {
 export function daysInMonth(yearMonth: string): number {
   const [year, month] = yearMonth.split("-").map(Number);
   // 翌月の0日 = 当月の末日
-  return new Date(year, month, 0).getDate();
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
 }
 
 // "2026-08" → "08/01 - 08/31"

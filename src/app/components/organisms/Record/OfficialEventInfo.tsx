@@ -25,7 +25,7 @@ import { RecordGetByIdResponseType } from "@app/types/record";
 
 import { safeExternalUrl } from "@app/utils/url";
 import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
-import { isZeroDate } from "@app/utils/date";
+import { formatJSTDateWithWeekday, isZeroDate } from "@app/utils/date";
 
 async function fetchOfficialEventById(id: number) {
   try {
@@ -117,12 +117,7 @@ export default function OfficialEventInfo({
     !isZeroDate(record.event_date)
       ? record.event_date
       : record.created_at;
-  const date = new Date(dateStr).toLocaleString("ja-JP", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    weekday: "short",
-  });
+  const date = formatJSTDateWithWeekday(dateStr);
 
   return (
     <>

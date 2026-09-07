@@ -14,6 +14,7 @@ import {
 
 import { Modal } from "@app/components/atoms/AppModal";
 import { UserBadgeType } from "@app/types/badge";
+import { formatJSTDate } from "@app/utils/date";
 
 // BadgeGallery(バッジ) と OnboardingBadgePanel(はじめの一歩) で共通して使う
 // バッジ表示部品。両パネルは DashboardSections 上で独立して表示/非表示・並び替えできる
@@ -39,8 +40,7 @@ export function iconForKey(iconKey: string) {
 }
 
 export function formatAchievedAt(dateStr: string): string {
-  const d = new Date(dateStr);
-  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日に獲得`;
+  return `${formatJSTDate(dateStr)}に獲得`;
 }
 
 // マイルストーンバッジ(例:「駆け出しユーザー」「駆け出しビルダー」「駆け出しバトラー」)は

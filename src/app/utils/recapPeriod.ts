@@ -10,7 +10,7 @@
 
 import { EnvironmentType } from "@app/types/environment";
 import { UserStatMonthlyType } from "@app/types/user_stat_history";
-import { toJSTDate } from "@app/utils/date";
+import { toJSTDateString } from "@app/utils/date";
 import {
   lastWeekValue,
   shortWeekRangeLabel,
@@ -19,6 +19,7 @@ import {
 } from "@app/utils/week";
 import {
   addMonths,
+  daysInMonth,
   monthOnlyLabel,
   shortYearMonthLabel,
   yearMonthLabel,
@@ -69,7 +70,7 @@ export function periodKindLabel(period: RecapPeriod): string {
 }
 
 function jstYearMonth(date: Date | string): string {
-  return toJSTDate(date).toISOString().slice(0, 7);
+  return toJSTDateString(date).slice(0, 7);
 }
 
 // カード右上の短いラベル。週は "08.17 - 08.23"、月は "2026.08"、
@@ -148,25 +149,24 @@ export function periodNextLabel(period: RecapPeriod): string {
   }
 }
 
-// 集計に使う日付の範囲（環境データの突き合わせで、対象の週を割り出すのに使う）
-export function periodDateRange(period: RecapPeriod): { from: Date; to: Date } {
+// 集計に使う日付の範囲（環境データの突き合わせで、対象の週を割り出すのに使う）。
+// 端末のタイムゾーンを持ち込まないよう、JSTの暦日 "YYYY-MM-DD" で返す。
+export function periodDateRange(period: RecapPeriod): { from: string; to: string } {
   if (period.kind === "week") {
-    const [y1, m1, d1] = period.week.split("-").map(Number);
-    const [y2, m2, d2] = sundayOfWeekValue(period.week).split("-").map(Number);
-    return { from: new Date(y1, m1 - 1, d1), to: new Date(y2, m2 - 1, d2) };
+    return { from: period.week, to: sundayOfWeekValue(period.week) };
   }
 
   if (period.kind === "month") {
-    const [year, month] = period.yearMonth.split("-").map(Number);
-    return { from: new Date(year, month - 1, 1), to: new Date(year, month, 0) };
+    const lastDay = daysInMonth(period.yearMonth);
+    return {
+      from: `${period.yearMonth}-01`,
+      to: `${period.yearMonth}-${String(lastDay).padStart(2, "0")}`,
+    };
   }
 
-  const from = toJSTDate(period.environment.from_date);
-  const to = toJSTDate(period.environment.to_date);
-  // toJSTDate はUTCゲッターで読む前提のズラした値なので、暦日だけを取り出して作り直す
   return {
-    from: new Date(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate()),
-    to: new Date(to.getUTCFullYear(), to.getUTCMonth(), to.getUTCDate()),
+    from: toJSTDateString(period.environment.from_date),
+    to: toJSTDateString(period.environment.to_date),
   };
 }
 

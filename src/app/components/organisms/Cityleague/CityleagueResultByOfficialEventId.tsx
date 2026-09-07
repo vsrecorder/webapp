@@ -19,6 +19,7 @@ import { OfficialEventType } from "@app/types/official_event";
 import { buildRankSections } from "@app/utils/cityleagueRank";
 import { formatMainPokemon } from "@app/utils/deckSummary";
 import { safeExternalUrl } from "@app/utils/url";
+import { formatJSTDateWithWeekday } from "@app/utils/date";
 
 type Props = {
   event: OfficialEventType;
@@ -37,13 +38,7 @@ export default function CityleagueResultByOfficialEventId({
   deckSummaries = {},
   relatedSection,
 }: Props) {
-  const date = new Date(event.date).toLocaleString("ja-JP", {
-    timeZone: "Asia/Tokyo",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    weekday: "short",
-  });
+  const date = formatJSTDateWithWeekday(event.date);
 
   const sections = buildRankSections(cityleagueResult.results);
   const deckCodeCount = cityleagueResult.results.filter(

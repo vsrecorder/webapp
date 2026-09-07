@@ -53,7 +53,7 @@ import { useModalDragToClose } from "@app/hooks/useModalDragToClose";
 import { useModalEntered } from "@app/hooks/useModalEntered";
 import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
 import { closingPassthroughClassNames } from "@app/utils/modal";
-import { isZeroDate } from "@app/utils/date";
+import { formatJSTDateTimeWithWeekday, isZeroDate } from "@app/utils/date";
 
 async function fetchDeckCodesByDeckId(deck_id: string) {
   try {
@@ -826,17 +826,8 @@ export default function DisplayDeckCodesModal({
 
                         {displayDeckCodes?.map(
                           (deckcode: DeckCodeType, index: number) => {
-                            const date = new Date(deckcode.created_at).toLocaleString(
-                              "ja-JP",
-                              {
-                                year: "numeric",
-                                month: "long",
-                                day: "numeric",
-                                weekday: "short",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                                second: "2-digit",
-                              },
+                            const date = formatJSTDateTimeWithWeekday(
+                              deckcode.created_at,
                             );
 
                             const isLastCodeItem = index === displayDeckCodes.length - 1;

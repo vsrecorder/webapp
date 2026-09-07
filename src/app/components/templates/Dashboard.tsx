@@ -27,6 +27,10 @@ import DesignationPanel from "@app/components/organisms/Designation/DesignationP
 import DashboardSections, {
   DashboardSection,
 } from "@app/components/organisms/Dashboard/DashboardSections";
+import {
+  DashboardBlockId,
+  splitDashboardLayout,
+} from "@app/utils/dashboardLayout";
 
 import { CityleagueScheduleType } from "@app/types/cityleague_schedule";
 import { EnvironmentType } from "@app/types/environment";
@@ -86,6 +90,11 @@ async function getEnvironmentByDate(date: Date): Promise<EnvironmentType> {
 
 type Props = {
   userId: string;
+  /*
+   * このユーザーのホームが前回描いた並び(cookie 由来。page.tsx が読む)。
+   * DashboardSections が表示設定(localStorage)を読むまでの繋ぎに、この構成で骨格を出す。
+   */
+  storedLayout?: readonly DashboardBlockId[];
 };
 
 async function getUser(userId: string): Promise<UserType | null> {
@@ -176,7 +185,7 @@ async function getAllStandardRegulations(): Promise<StandardRegulationType[]> {
   return [];
 }
 
-export default async function TemplateDashboard({ userId }: Props) {
+export default async function TemplateDashboard({ userId, storedLayout }: Props) {
   const date = getJstNow();
 
   // 施策0-6: 記録0件のユーザーにだけ「最初の記録を作成する」CTAを出す。
@@ -447,6 +456,8 @@ export default async function TemplateDashboard({ userId }: Props) {
     sections.push({
       id: "environment_meta",
       label: "対戦環境データ",
+      // 中身が組み合わせパネルと従来パネルで入れ替わるので、骨格もそれぞれに合わせる
+      skeletonId: combinedAtSection ? "environment_meta_window" : "environment_meta",
       node: (
         <section key="environment_meta" className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
@@ -496,6 +507,19 @@ export default async function TemplateDashboard({ userId }: Props) {
     ),
   });
 
+  /*
+   * pinned に並べたカードのID。次回のホームの骨格を同じ構成で出すため、
+   * DashboardSections が実際に描いた並びとして cookie に残す(utils/dashboardLayout)。
+   * 下の pinned の中身と順序を揃えること。
+   */
+  const pinnedIds: DashboardBlockId[] = user
+    ? [
+        "profile",
+        ...(showFirstRecordCta ? (["first_record_cta"] as const) : []),
+        ...(combinedAtTop ? (["env_window"] as const) : []),
+      ]
+    : [];
+
   const recentRecords = (
     <section key="recent-records" className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
@@ -521,6 +545,11 @@ export default async function TemplateDashboard({ userId }: Props) {
         <DashboardSections
           userId={userId}
           initialBadges={panels.badges}
+          pinnedIds={pinnedIds}
+          trailingId="recent_records"
+          initialSectionLayout={
+            storedLayout ? splitDashboardLayout(storedLayout).sections : undefined
+          }
           pinned={
             user ? (
               <div className="flex flex-col gap-3 lg:gap-6">

@@ -1,3 +1,8 @@
+// このアプリの暦日・時刻はすべて JST で判定する。@internationalized/date の
+// today() など、IANA タイムゾーン名を受け取る API へはこの定数を渡すこと
+// (getLocalTimeZone() を使うと端末のタイムゾーンで「今日」が変わってしまう)。
+export const JST_TIME_ZONE = "Asia/Tokyo";
+
 // バックエンドは JST 0:00 を UTC 変換して返すため、+9h して JST 日付として扱う。
 //
 // 返る Date は「JSTの壁時計をUTCとして持つ」ズラした値であり、実時刻ではない。
@@ -84,4 +89,61 @@ export function formatJSTDateWithWeekday(value: Date | string): string {
 export function formatJSTYearMonth(value: Date | string): string {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? "" : JST_YEAR_MONTH.format(date);
+}
+
+// 「2026年8月18日」(曜日なし)。読めない値は空文字
+const JST_DATE = new Intl.DateTimeFormat("ja-JP", {
+  timeZone: "Asia/Tokyo",
+  year: "numeric",
+  month: "long",
+  day: "numeric",
+});
+
+export function formatJSTDate(value: Date | string): string {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : JST_DATE.format(date);
+}
+
+// 「2026/8/18」(通知の日付など、幅を取りたくない場所)。読めない値は空文字
+const JST_DATE_NUMERIC = new Intl.DateTimeFormat("ja-JP", {
+  timeZone: "Asia/Tokyo",
+  year: "numeric",
+  month: "numeric",
+  day: "numeric",
+});
+
+export function formatJSTDateNumeric(value: Date | string): string {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : JST_DATE_NUMERIC.format(date);
+}
+
+// 「2026年8月18日(火) 10:30:00」(デッキコードの登録日時)。読めない値は空文字
+const JST_DATETIME_WITH_WEEKDAY = new Intl.DateTimeFormat("ja-JP", {
+  timeZone: "Asia/Tokyo",
+  year: "numeric",
+  month: "long",
+  day: "numeric",
+  weekday: "short",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+});
+
+export function formatJSTDateTimeWithWeekday(value: Date | string): string {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : JST_DATETIME_WITH_WEEKDAY.format(date);
+}
+
+// 「10:30」。イベントの開始・終了時刻に使う。読めない値・未設定(ゼロ値)は空文字
+const JST_TIME = new Intl.DateTimeFormat("ja-JP", {
+  timeZone: "Asia/Tokyo",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+export function formatJSTTime(value: Date | string | null | undefined): string {
+  if (value == null || isZeroDate(value)) return "";
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : JST_TIME.format(date);
 }

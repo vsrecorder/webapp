@@ -10,7 +10,7 @@ import { useRef } from "react";
 
 import useSWR from "swr";
 
-import { today, getLocalTimeZone, parseDate } from "@internationalized/date";
+import { today, parseDate } from "@internationalized/date";
 
 import { CalendarDate } from "@internationalized/date";
 
@@ -59,7 +59,7 @@ import OfficialEventGuideNote from "@app/components/molecules/OfficialEventGuide
 import { cleanOfficialEventTitle } from "@app/components/organisms/Record/officialEventHelpers";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 import { markRecordCreatedForPushPrompt } from "@app/utils/pushPrompt";
-import { formatJSTDateWithWeekday } from "@app/utils/date";
+import { JST_TIME_ZONE, formatJSTDateWithWeekday, formatJSTTime, toJSTDateString } from "@app/utils/date";
 import {
   officialEventListUrl,
   toOfficialEventDateKey,
@@ -190,16 +190,10 @@ function katakanaToHiragana(str: string): string {
 function convertToOfficialEventOption(
   officialEvent: OfficialEventListItemType,
 ): OfficialEventOption {
-  const startedAtDate = new Date(officialEvent.started_at);
-  let startedAt =
-    startedAtDate.getHours().toString().padStart(2, "0") +
-    ":" +
-    startedAtDate.getMinutes().toString().padStart(2, "0");
-  const endedAtDate = new Date(officialEvent.ended_at);
-  let endedAt =
-    endedAtDate.getHours().toString().padStart(2, "0") +
-    ":" +
-    endedAtDate.getMinutes().toString().padStart(2, "0");
+  // 時刻はJST固定で読む(端末のタイムゾーンで読むと海外の端末で開催時刻がずれる)。
+  // formatJSTTime は書式を作り置きしているので、件数が多くても toLocaleString ほど遅くならない。
+  let startedAt = formatJSTTime(officialEvent.started_at);
+  let endedAt = formatJSTTime(officialEvent.ended_at);
   let eventTime = "";
 
   if (endedAt == "00:00") {
@@ -630,7 +624,7 @@ export default function TemplateRecordCreate({
     useState(true);
 
   const [selectedDate, setSelectedDate] = useState<CalendarDate>(
-    () => parsePresetDate(event_date) ?? today(getLocalTimeZone()),
+    () => parsePresetDate(event_date) ?? today(JST_TIME_ZONE),
   );
   const [selectedOfficialEventOption, setSelectedOfficialEventOption] =
     useState<OfficialEventOption | null>(null);
@@ -645,12 +639,12 @@ export default function TemplateRecordCreate({
   const [isValidatedTonamelEventId, setIsValidatedTonamelEventId] =
     useState<boolean>(false);
   const [tonamelEventDate, setTonamelEventDate] = useState<CalendarDate>(
-    today(getLocalTimeZone()),
+    today(JST_TIME_ZONE),
   );
 
   // 自由形式イベント用の状態。ユーザが任意に開催日とイベント名を入力する
   const [unofficialEventDate, setUnofficialEventDate] = useState<CalendarDate>(
-    today(getLocalTimeZone()),
+    today(JST_TIME_ZONE),
   );
   const [unofficialEventTitle, setUnofficialEventTitle] = useState<string>("");
   const [isDisabledCreateUnofficialRecord, setIsDisabledCreateUnofficialRecord] =
@@ -1053,12 +1047,9 @@ export default function TemplateRecordCreate({
     });
 
     // eventDate は JST オフセット付き(例: 2026-06-29T00:00:00+09:00)で渡される。
-    // toISOString() を使うと UTC に変換され日付が一日前へずれるため、
-    // Tonamel/自由形式と同様にローカル(壁時計)の年月日から組み立てる。
-    const yyyy = eventDate.getFullYear();
-    const mm = String(eventDate.getMonth() + 1).padStart(2, "0");
-    const dd = String(eventDate.getDate()).padStart(2, "0");
-    const eventDateISO = `${yyyy}-${mm}-${dd}T00:00:00Z`;
+    // toISOString() を使うと UTC に変換され日付が一日前へずれるため、JSTの暦日へ直して組み立てる
+    // (端末のタイムゾーンで読むと、UTCより西の端末で同じように前日へずれる)。
+    const eventDateISO = `${toJSTDateString(eventDate)}T00:00:00Z`;
 
     const record: RecordCreateRequestType = {
       official_event_id: officialEventId,
@@ -1481,7 +1472,7 @@ export default function TemplateRecordCreate({
                   defaultValue={selectedDate}
                   value={selectedDate}
                   onChange={(value) => {
-                    setSelectedDate(value == null ? today(getLocalTimeZone()) : value);
+                    setSelectedDate(value == null ? today(JST_TIME_ZONE) : value);
                     setSelectedOfficialEventOption(null);
                     // 別の日を選んだ時点で、URL 指定のイベントは選び直しになる
                     presetOfficialEventIdRef.current = 0;
@@ -1970,7 +1961,7 @@ export default function TemplateRecordCreate({
                   value={tonamelEventDate}
                   onChange={(value) => {
                     setTonamelEventDate(
-                      value == null ? today(getLocalTimeZone()) : value,
+                      value == null ? today(JST_TIME_ZONE) : value,
                     );
                   }}
                 />
@@ -2318,7 +2309,7 @@ export default function TemplateRecordCreate({
                   value={unofficialEventDate}
                   onChange={(value) => {
                     setUnofficialEventDate(
-                      value == null ? today(getLocalTimeZone()) : value,
+                      value == null ? today(JST_TIME_ZONE) : value,
                     );
                   }}
                 />

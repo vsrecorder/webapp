@@ -9,6 +9,7 @@ import { sendGAEvent } from "@next/third-parties/google";
 
 import DeckSprites from "@app/components/molecules/DeckSprites";
 import DeckCodeQuickStartModal from "@app/components/organisms/Deck/Modal/DeckCodeQuickStartModal";
+import EnvironmentWindowCardSkeleton from "@app/components/organisms/Dashboard/Skeleton/EnvironmentWindowCardSkeleton";
 import { fingerprintKey } from "@app/utils/fingerprint";
 import { rankableDecks, exclOtherTotalOf } from "@app/utils/deckEnv";
 import { lastWeekValue } from "@app/utils/week";
@@ -553,42 +554,6 @@ function BetaHeader({ stat }: { stat: WeeklyDeckUsageStatType }) {
   );
 }
 
-// 読み込み中のプレースホルダ。本体（βヘッダー → 見出し → デッキヒーロー → 予約席 →
-// ランキング見出し → ランキング行 → 記録CTA）と同じ骨格・順序・高さに合わせ、
-// 読み込み完了時のレイアウトシフトを抑える。
-function SkeletonCard() {
-  return (
-    <Card className="shadow-md">
-      <CardBody className="gap-3 p-4">
-        <div className="flex items-start gap-2">
-          <div className="h-5 w-11 rounded-full bg-default-100 animate-pulse shrink-0" />
-          <div className="flex flex-1 flex-col gap-1.5 pt-0.5">
-            <div className="h-3 w-40 rounded bg-default-100 animate-pulse" />
-            <div className="h-3 w-52 rounded bg-default-100 animate-pulse" />
-          </div>
-        </div>
-
-        <div className="h-4 w-56 rounded bg-default-100 animate-pulse" />
-        <div className="h-17 rounded-2xl bg-default-100 animate-pulse" />
-        <div className="h-31 rounded-xl bg-default-100 animate-pulse" />
-
-        <div className="flex items-center justify-between px-1 -mb-1">
-          <div className="h-3 w-44 rounded bg-default-100 animate-pulse" />
-          <div className="h-3 w-16 rounded bg-default-100 animate-pulse" />
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="h-16.5 rounded-xl bg-default-100 animate-pulse" />
-          ))}
-        </div>
-
-        <div className="h-10 rounded-full bg-default-100 animate-pulse" />
-      </CardBody>
-    </Card>
-  );
-}
-
 // 空状態で並べるダミー行。実データの行(DeckRankRow)と同じ骨格・高さで組み、
 // 「ここに使用率ランキングが入る」ことを形で伝える。
 function DummyRankRow({ rank, barWidth }: { rank: number; barWidth: number }) {
@@ -925,7 +890,7 @@ export default function EnvironmentWindowCard({
   // 見出し付きセクションに置かれている場合は、データが無くても空状態のカードを出す
   // (見出しだけが残るのを防ぐ)。プロフィール直下(pinned)は見出しが無いため従来どおり非表示。
   if (failed) return showEmptyState ? <EmptyStateCard stat={null} failed /> : null;
-  if (stat == null || userDecks == null) return <SkeletonCard />;
+  if (stat == null || userDecks == null) return <EnvironmentWindowCardSkeleton />;
   // ここに来る renderMode == null は「対戦環境データが無い週」(rankable が空)のみ。
   if (renderMode == null)
     return showEmptyState ? <EmptyStateCard stat={stat} failed={false} /> : null;

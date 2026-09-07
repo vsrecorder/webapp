@@ -1,5 +1,6 @@
 import { OfficialEventType } from "@app/types/official_event";
 import { toDateKey } from "@app/utils/calendar";
+import { formatJSTTime } from "@app/utils/date";
 
 // パネルに出す期間の日数(今日を含めて2週間)。
 // ジムイベントは週次開催が多く、2週間あれば「次にいつ行けるか」が一通り見える。
@@ -65,16 +66,9 @@ export type MyGymEventTimeRange = {
 // イベントの開催時刻。started_at / ended_at が 00:00 のものは時刻未設定として扱う
 // (公式サイト側で時刻が入っていないイベントがある)。開始時刻も無ければ null。
 export function getEventTimeRange(event: OfficialEventType): MyGymEventTimeRange | null {
-  const format = (value: OfficialEventType["started_at"]) => {
-    const d = new Date(value);
-    const hh = String(d.getHours()).padStart(2, "0");
-    const mm = String(d.getMinutes()).padStart(2, "0");
-
-    return `${hh}:${mm}`;
-  };
-
-  const startedAt = format(event.started_at);
-  const endedAt = format(event.ended_at);
+  // 上流は開催時刻を JST の "+09:00" 付きで返すため、JST 固定で読む
+  const startedAt = formatJSTTime(event.started_at);
+  const endedAt = formatJSTTime(event.ended_at);
 
   if (startedAt === "00:00") return null;
 

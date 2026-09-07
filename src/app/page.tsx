@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { cookies } from "next/headers";
 
 import { auth } from "@app/auth";
 
@@ -10,6 +11,11 @@ import WithdrawnNotice from "@app/components/molecules/WithdrawnNotice";
 import { getAppIconUrl } from "@app/utils/appIcon";
 import { serializeJsonLd } from "@app/utils/breadcrumb";
 import { SITE_DESCRIPTION } from "@app/utils/siteMeta";
+import {
+  DASHBOARD_LAYOUT_COOKIE,
+  DEFAULT_DASHBOARD_LAYOUT,
+  parseDashboardLayout,
+} from "@app/utils/dashboardLayout";
 
 const description = SITE_DESCRIPTION;
 
@@ -76,9 +82,21 @@ export default async function Home({ searchParams }: Props) {
   // セッションを見る前に表示が始まり、非会員のランディングでもダッシュボードの
   // スケルトンが一瞬映り込む。
   if (session) {
+    // 骨格はこのユーザーのホームが前回描いた構成で出す。並べ替え・非表示の設定は
+    // localStorage にあってサーバからは読めないため、実際に描いた並びを cookie 経由で受け取る
+    // (DashboardSections が書く)。初回訪問など cookie が無ければ既定の並び。
+    const store = await cookies();
+    const storedLayout = parseDashboardLayout(store.get(DASHBOARD_LAYOUT_COOKIE)?.value);
+
     return (
-      <Suspense fallback={<DashboardSkeleton />}>
-        <TemplateDashboard userId={session.user.id} />
+      <Suspense
+        fallback={<DashboardSkeleton layout={storedLayout ?? DEFAULT_DASHBOARD_LAYOUT} />}
+      >
+        {/* ダッシュボード側にも渡す。表示設定を読むまでの繋ぎに同じ構成の骨格を出すため */}
+        <TemplateDashboard
+          userId={session.user.id}
+          storedLayout={storedLayout ?? undefined}
+        />
       </Suspense>
     );
   }

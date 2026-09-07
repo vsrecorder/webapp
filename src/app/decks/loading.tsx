@@ -30,7 +30,8 @@ export default async function Loading() {
           利用中/アーカイブ済みは固定タブではなく、下の表示切替バーの中に入る */}
       <FixedTabBarSkeleton
         count={2}
-        positionClassName="top-15 left-0 right-0 lg:left-56"
+        positionClassName="light top-15 left-(--sidebar-width) right-0"
+        barClassName="bg-blue-100"
       />
 
       <div className="pt-2 lg:pb-6 lg:max-w-4xl lg:mx-auto">

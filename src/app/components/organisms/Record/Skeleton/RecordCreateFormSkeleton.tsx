@@ -36,6 +36,29 @@ function RegulationSkeleton() {
   );
 }
 
+/*
+ * 集計オプション(この記録を戦績集計に含めない)。
+ *
+ * 実体(IgnoreStatsOption)と同じ枠に、見出し1行と説明2行ぶんを置く。説明は
+ * ON/OFF どちらでも2行に揃うよう min-h-8 が入っているので、骨格でも同じ高さを取る。
+ */
+function IgnoreStatsSkeleton() {
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-lg border border-divider bg-default-50 px-3 py-2.5">
+      <div className="flex flex-col gap-0.5">
+        <Skeleton className="h-5 w-52 rounded-md" />
+        {/* 説明は実体でも2行に揃えてある(min-h-8) */}
+        <div className="min-h-8 flex flex-col gap-0.5">
+          <Skeleton className="h-3.5 w-64 max-w-full rounded-md" />
+          <Skeleton className="h-3.5 w-40 max-w-full rounded-md" />
+        </div>
+      </div>
+      {/* Switch size="sm" のつまみ(w-10 h-6 相当) */}
+      <Skeleton className="h-6 w-10 shrink-0 rounded-full" />
+    </div>
+  );
+}
+
 // 開催日。3タブとも DatePicker size="sm" radius="none"(実体は h-8 / 角丸なし)
 function EventDateSkeleton() {
   return (
@@ -167,6 +190,11 @@ export default function RecordCreateFormSkeleton({ tab }: { tab: RecordCreateTab
         <StepLabel num={4}>レギュレーション</StepLabel>
       </div>
       <RegulationSkeleton />
+
+      <div className="flex flex-col gap-2">
+        <StepLabel num={5}>集計オプション</StepLabel>
+      </div>
+      <IgnoreStatsSkeleton />
 
       <Skeleton className="h-10 w-full rounded-medium" />
     </div>

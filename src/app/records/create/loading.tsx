@@ -27,12 +27,25 @@ export default async function Loading() {
     parseRecordCreateTab(store.get(RECORD_CREATE_SELECTED_TAB_COOKIE)?.value) ??
     DEFAULT_RECORD_CREATE_TAB;
 
+  /*
+   * 実体(TemplateRecordCreate)の外側と同じ入れ物で包む。
+   *
+   *   <div className="flex flex-col pt-1 w-full">   ← 実ページのラッパー
+   *     <Tabs className="fixed ..." />              ← fixed なのでフローには乗らない
+   *     <div className="py-3 px-1">                 ← HeroUI が付けるタブパネルの余白
+   *
+   * ここを省くと、骨格だけフォームが上へ16px(pt-1 + py-3)ずれて固定タブバーに潜り込み、
+   * 左右も4px(px-1)広くなる。実体へ切り替わった瞬間にフォーム全体が跳ねて見える。
+   */
   return (
-    <>
+    <div className="flex flex-col pt-1 w-full">
       {/* タブ(公式イベント/Tonamel/自由形式) */}
       <FixedTabBarSkeleton count={3} positionClassName="top-15 left-0 right-0" />
 
-      <RecordCreateFormSkeleton tab={tab} />
-    </>
+      {/* HeroUI の Tab パネルと同じ余白 */}
+      <div className="py-3 px-1">
+        <RecordCreateFormSkeleton tab={tab} />
+      </div>
+    </div>
   );
 }

@@ -11,7 +11,11 @@ import DeckCodePostCardSkeleton from "@app/components/organisms/DeckCodePost/Dec
 export default function Loading() {
   return (
     <div className="w-full pt-12">
-      <FixedTabBarSkeleton count={2} positionClassName="top-15 left-(--sidebar-width) right-0" />
+      <FixedTabBarSkeleton
+        count={2}
+        positionClassName="light top-15 left-(--sidebar-width) right-0"
+        barClassName="bg-blue-100"
+      />
 
       <div className="flex flex-col gap-3 pt-2 pb-6 lg:max-w-4xl lg:mx-auto">
         <DeckViewToggleBar>

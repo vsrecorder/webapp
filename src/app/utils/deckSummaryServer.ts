@@ -13,9 +13,21 @@ import { buildDeckSummary } from "@app/utils/deckSummary";
 // deckcard-api 側でカード名の表記が直ることはあるため、無期限にはしない。
 const REVALIDATE_SECONDS = 60 * 60 * 24 * 30;
 
-// deckcard-api はキャッシュに無いデッキコードを公式サイトから取りに行く(1件 0.4秒前後)。
-// 1ページに16件並ぶため、一度に投げる数を絞って公式サイトへの同時要求を抑える。
-const CONCURRENCY = 6;
+/*
+ * 一度に投げる本数。
+ *
+ * 1ページに並ぶ入賞デッキは最大16件。以前は6本ずつに絞っていたが、その根拠だった
+ * 「公式サイトへの同時要求を抑える」は実態と食い違っていた。deckcard-api は
+ * まず自社CDNを見て、404 のときだけ公式サイトへ回る作りで、本番ログ(6時間)では
+ * CDN 65% / 公式サイト 35% だった。1ページあたりの本数は変わらず、時間的に詰まるだけになる。
+ *
+ * 一方で6本ずつだと16件が3往復ぶんに割れ、1件あたり平均0.3秒(本番実測)なので
+ * 内訳が揃うまで1秒近くかかっていた。16にすれば1往復で済む。
+ *
+ * 受け側の deckcard-api はコネクションプールを32本に広げてある
+ * (app/scraping/fetcher.py の POOL_SIZE)。ここを増やすときは向こうも併せて見ること。
+ */
+const CONCURRENCY = 16;
 
 function deckcardApiUrl(code: string): string {
   return `https://${process.env.VSRECORDER_DOMAIN}/api/v1beta/deckcards/${encodeURIComponent(code)}/detail`;

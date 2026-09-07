@@ -42,7 +42,10 @@ export const DASHBOARD_BLOCK_IDS = [
   "streak",
   "cityleague",
   "my_gyms",
+  // 称号とランク。プレイヤーズクラブ連携済みだと「入賞したシティリーグ」の節が増えるので、
+  // 骨格も2種類ある(節の有無で 200px 以上変わる)
   "designation",
+  "designation_linked",
   "badges",
   "environment_badges",
   "stats",

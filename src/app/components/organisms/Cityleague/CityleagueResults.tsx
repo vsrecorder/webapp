@@ -21,8 +21,12 @@ import {
   OfficialEventListItemType,
   OfficialEventResponseType,
 } from "@app/types/official_event";
-import { toJSTDate, toJSTDateString } from "@app/utils/date";
-import { getJstNow } from "@app/utils/calendar";
+import { buildSearchDates, shiftDateString } from "@app/utils/cityleagueListPage";
+import {
+  CityleagueListInitialData,
+  CityleagueScheduleContext,
+} from "@app/utils/cityleagueListServer";
+import { toJSTDateString, todayJSTDateString } from "@app/utils/date";
 
 async function fetchCityleagueResultsByTerm(
   league_type: number,
@@ -54,10 +58,9 @@ async function fetchCityleagueResultsByTerm(
 }
 
 /*
- * タブ(オープン/シニア/ジュニア)の3インスタンスが同時にマウントし、league_type に
- * よらない同じスケジュールAPIをそれぞれ叩くため(実測で同一URLが3本ずつ)、進行中の
- * Promise をモジュールスコープで共有して1本にまとめる。完了したら消すので、
- * マウントのたびに取り直す従来の鮮度は変わらない。
+ * タブを切り替えて別のリーグ区分を初めて開いたとき、league_type によらない同じ
+ * スケジュールAPIをそれぞれが叩く。進行中の Promise をモジュールスコープで共有して
+ * 1本にまとめる。完了したら消すので、マウントのたびに取り直す従来の鮮度は変わらない。
  */
 const inflightScheduleFetches = new Map<string, Promise<unknown>>();
 
@@ -111,41 +114,69 @@ async function fetchOfficialEventsByDate(
 
 type Props = {
   league_type: number;
+  /*
+   * サーバで取った1ページ目(cityleagueListServer)。
+   *
+   * 渡された場合はスケジュールも1ページ目も取りに行かない。ハイドレーション後に
+   * 直列4段の往復をしていたぶん、最初のカードが出るまでが丸ごと縮む。
+   * 渡されないタブ(切り替えて初めて開いたもの)と、サーバでの取得に失敗したときは
+   * 従来どおり自分で取る。
+   */
+  initial?: CityleagueListInitialData | null;
+  /*
+   * サーバで取ったスケジュール(開催期間)。league_type によらず共通なので、
+   * initial を持たないタブにも配る。これが渡っていればタブを切り替えて初めて開いても
+   * スケジュールAPI(開催中の確認 → 空振りなら全件)の2往復が要らない。
+   */
+  scheduleContext?: CityleagueScheduleContext | null;
 };
 
-export default function CityleagueResults({ league_type }: Props) {
-  // JST の現在時刻。マウント時に確定させる(描画のたびに取り直すと、
+export default function CityleagueResults({
+  league_type,
+  initial,
+  scheduleContext,
+}: Props) {
+  // JSTでの今日。マウント時に確定させる(描画のたびに取り直すと、
   // 開催中かどうかの判定が描画ごとに変わりうる)。
-  const now = useMemo(() => getJstNow(), []);
+  const today = useMemo(() => todayJSTDateString(), []);
 
-  const [items, setItems] = useState<CityleagueResultType[]>([]);
+  const [items, setItems] = useState<CityleagueResultType[]>(initial?.results ?? []);
   // official_event_id → イベント情報。日単位の一覧APIでまとめて取得したものを
   // 各カード(CityleagueResult)へ配り、カードごとの個別フェッチ(N+1)を避ける
-  const [eventsById, setEventsById] = useState<
-    ReadonlyMap<number, OfficialEventListItemType>
-  >(new Map());
-  const [nextFromDate, setNextFromDate] = useState<Date>(now);
-  const [nextToDate, setNextToDate] = useState<Date>(now);
+  const [events, setEvents] = useState<OfficialEventListItemType[]>(
+    initial?.events ?? [],
+  );
+  // 配列から組み直すのは、サーバから渡ってくる値が JSON 化できる必要があるため
+  const eventsById = useMemo(
+    () => new Map(events.map((event) => [event.id, event])),
+    [events],
+  );
+  // 続きを読み込むときの起点となる暦日("YYYY-MM-DD")
+  const [nextDate, setNextDate] = useState<string>(
+    initial?.nextFromDate ?? scheduleContext?.startDate ?? today,
+  );
   const [isLoading, setIsLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [isInitialLoaded, setIsInitialLoaded] = useState(false);
+  const [hasMore, setHasMore] = useState(initial ? initial.hasMore : true);
+  const [isInitialLoaded, setIsInitialLoaded] = useState(!!initial);
 
   // 個別ページから戻ってきたとき、対象カードまで自動スクロールするための状態
   const [pendingScrollId, setPendingScrollId] = useState<number | null>(null);
   const scrollToIdRef = useRef<number | null>(null);
 
   // スケジュール情報
-  const [schedule, setSchedule] = useState<CityleagueScheduleType | null>(null);
-  const [isScheduleInitialized, setIsScheduleInitialized] = useState(false);
+  const [schedule, setSchedule] = useState<CityleagueScheduleType | null>(
+    scheduleContext?.schedule ?? null,
+  );
+  const [isScheduleInitialized, setIsScheduleInitialized] = useState(!!scheduleContext);
 
-  // スケジュールを確認して開始日・終了日を設定
+  // スケジュールを確認して開始日を設定（サーバで取れていれば何もしない）
   useEffect(() => {
-    async function initSchedule() {
-      const todayStr = now.toISOString().split("T")[0];
+    if (scheduleContext) return;
 
+    async function initSchedule() {
       // 今日のスケジュールを確認（開催中かどうか）
-      let foundSchedule = await dedupeInflight(`by-date:${todayStr}`, () =>
-        fetchScheduleByDate(todayStr),
+      let foundSchedule = await dedupeInflight(`by-date:${today}`, () =>
+        fetchScheduleByDate(today),
       );
 
       if (!foundSchedule) {
@@ -153,17 +184,17 @@ export default function CityleagueResults({ league_type }: Props) {
         const allSchedules = await dedupeInflight("all", fetchAllSchedules);
 
         const pastSchedules = allSchedules
-          .filter((s) => toJSTDateString(s.to_date) < todayStr)
-          .sort((a, b) => toJSTDate(b.to_date).getTime() - toJSTDate(a.to_date).getTime());
+          .filter((s) => toJSTDateString(s.to_date) < today)
+          .sort((a, b) =>
+            toJSTDateString(a.to_date) < toJSTDateString(b.to_date) ? 1 : -1,
+          );
 
         foundSchedule = pastSchedules[0] ?? null;
       }
 
       if (foundSchedule) {
         setSchedule(foundSchedule);
-        const toDate = toJSTDate(foundSchedule.to_date);
-        setNextFromDate(toDate);
-        setNextToDate(toDate);
+        setNextDate(toJSTDateString(foundSchedule.to_date));
       }
 
       setIsScheduleInitialized(true);
@@ -179,56 +210,30 @@ export default function CityleagueResults({ league_type }: Props) {
     setIsLoading(true);
 
     try {
-      for (let i = 0; i < 14; i++) {
-        const fromDate = new Date(nextFromDate);
-        const toDate = new Date(nextToDate);
+      const scheduleFromDate = schedule ? toJSTDateString(schedule.from_date) : null;
 
-        // nextFromDate/nextToDate は toJSTDate() 由来のズラした値。日の加減算も
-        // UTC系で行う(ローカル系だと夏時間のある端末で1時間ぶん日付が飛ぶ)。
-        fromDate.setUTCDate(fromDate.getUTCDate() - i);
-        toDate.setUTCDate(toDate.getUTCDate() - i);
+      // 結果が登録されている最初の日を探す。スケジュールの開始日より前は遡らない
+      for (const date of buildSearchDates(nextDate, scheduleFromDate)) {
+        const newItems = await fetchCityleagueResultsByTerm(league_type, date, date);
 
-        const fromDateStr = fromDate.toISOString().split("T")[0];
-        const toDateStr = toDate.toISOString().split("T")[0];
+        if (newItems.count === 0) continue;
 
-        // スケジュールの from_date より前には遡らない
-        if (schedule) {
-          if (fromDateStr < toJSTDateString(schedule.from_date)) {
-            setHasMore(false);
-            return;
-          }
+        /*
+         * 同じ日の公式イベント一覧を1回で取得してから結果を出す。
+         * 一覧に無いidが混ざっていても、カード側が従来どおり個別に取得する
+         * フォールバックがあるので表示は壊れない。取得失敗時も同様。
+         */
+        const dayEvents = await fetchOfficialEventsByDate(league_type, date).catch(
+          () => null,
+        );
+        if (dayEvents?.official_events) {
+          setEvents((prev) => [...prev, ...dayEvents.official_events]);
         }
 
-        const newItems: CityleagueResultGetResponseType =
-          await fetchCityleagueResultsByTerm(league_type, fromDateStr, toDateStr);
+        setItems((prev) => [...prev, ...newItems.event_results]);
+        setNextDate(shiftDateString(date, -1));
 
-        if (newItems.count !== 0) {
-          /*
-           * 同じ日の公式イベント一覧を1回で取得してから結果を出す。
-           * 一覧に無いidが混ざっていても、カード側が従来どおり個別に取得する
-           * フォールバックがあるので表示は壊れない。取得失敗時も同様。
-           */
-          const dayEvents = await fetchOfficialEventsByDate(league_type, fromDateStr).catch(
-            () => null,
-          );
-          if (dayEvents?.official_events) {
-            setEventsById((prev) => {
-              const next = new Map(prev);
-              for (const ev of dayEvents.official_events) next.set(ev.id, ev);
-              return next;
-            });
-          }
-
-          setItems((prev) => [...prev, ...newItems.event_results]);
-
-          fromDate.setUTCDate(fromDate.getUTCDate() - 1);
-          toDate.setUTCDate(toDate.getUTCDate() - 1);
-
-          setNextFromDate(fromDate);
-          setNextToDate(toDate);
-
-          return;
-        }
+        return;
       }
 
       setHasMore(false);
@@ -244,8 +249,7 @@ export default function CityleagueResults({ league_type }: Props) {
     }
   }, [
     league_type,
-    nextFromDate,
-    nextToDate,
+    nextDate,
     isLoading,
     hasMore,
     isInitialLoaded,
@@ -307,12 +311,18 @@ export default function CityleagueResults({ league_type }: Props) {
   // getFullYear() 等(端末のタイムゾーン基準)で読むとUTCより西の端末で前日にずれる。
   const formatDate = (date: Date | string) => toJSTDateString(date).replaceAll("-", "/");
 
-  const isOngoing = schedule
-    ? (() => {
-        const todayStr = now.toISOString().split("T")[0];
-        return toJSTDateString(schedule.from_date) <= todayStr && todayStr <= toJSTDateString(schedule.to_date);
-      })()
-    : false;
+  /*
+   * 開催中かどうか。
+   *
+   * サーバで初期データを取れているときはその判定をそのまま使う。ブラウザ側で
+   * 「今日」を取り直すと、日付が変わる瞬間にサーバと食い違ってハイドレーションがずれる。
+   */
+  const isOngoing = scheduleContext
+    ? scheduleContext.isOngoing
+    : schedule
+      ? toJSTDateString(schedule.from_date) <= today &&
+        today <= toJSTDateString(schedule.to_date)
+      : false;
 
   return (
     <div className="flex flex-col items-center space-y-3 pb-3">

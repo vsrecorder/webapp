@@ -319,6 +319,9 @@ export default async function TemplateDashboard({ userId, storedLayout }: Props)
   sections.push({
     id: "designation",
     label: "称号とランク",
+    // 連携済みだと「入賞したシティリーグ」の節が増えるので、骨格もそちらに合わせる。
+    // 判定は panels.userPlayer(null は「取れた上で未連携」/ undefined は取得失敗)
+    skeletonId: panels.userPlayer != null ? "designation_linked" : "designation",
     node: (
       <section key="designation" className="flex flex-col gap-2">
         <h2 className="text-sm font-bold text-default-700">称号とランク</h2>

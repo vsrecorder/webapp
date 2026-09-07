@@ -240,7 +240,19 @@ async function ResultsWithDeckSummaries({
       event={event}
       cityleagueResult={cityleagueResult}
       deckSummaries={deckSummaries}
-      relatedSection={<CityleagueRelatedSection event={event} />}
+      /*
+       * 末尾の関連リンクも待たずに流す。
+       *
+       * 同じ Suspense の中に置くと、結果本文がカード内訳と関連リンクの「遅い方」に
+       * 律速される。関連リンクは結果が登録済みの全イベント(数千件)と同じ月の
+       * イベント一覧を突き合わせて作るもので、キャッシュが冷えていると本文より
+       * 遅くなりうる。ページ末尾にあり初期表示に要らないので、後から流し込む。
+       */
+      relatedSection={
+        <Suspense fallback={null}>
+          <CityleagueRelatedSection event={event} />
+        </Suspense>
+      }
     />
   );
 }

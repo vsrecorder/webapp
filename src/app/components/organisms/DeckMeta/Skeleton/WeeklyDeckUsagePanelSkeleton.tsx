@@ -12,8 +12,14 @@ import SkeletonTextLine from "@app/components/molecules/Skeleton/SkeletonTextLin
  * 実体のレイアウトを変えたらここも追従させること。
  */
 
-// 実際の行と同じグリッド構成([可変|3.5rem|2.5rem])・同じ要素サイズで骨格を組み、
-// 読み込み完了時のレイアウトシフトを防ぐ。実レイアウトを変えたらここも追従させること。
+/*
+ * 実際の行と同じグリッド構成([可変|3.5rem|2.5rem])・同じ要素サイズで骨格を組み、
+ * 読み込み完了時のレイアウトシフトを防ぐ。実レイアウトを変えたらここも追従させること。
+ *
+ * 行の高さは「順位バッジ(24px) + 前週からの順位変動の行」で決まる。変動の行は
+ * text-[0.5625rem] leading-none = 9px で、バーの高さ(8px)で代用すると1px 足りない。
+ * 文字の行は実体と同じ文字クラスから高さを取ること(SkeletonTextLine)。
+ */
 export function WeeklyDeckUsageSkeletonRow() {
   return (
     <div className="flex flex-col gap-1.5 rounded-xl bg-default-100 px-3 py-2 animate-pulse">
@@ -22,23 +28,35 @@ export function WeeklyDeckUsageSkeletonRow() {
         <div className="flex items-center gap-2 min-w-0">
           <div className="flex flex-col items-center gap-0.5 w-6 shrink-0">
             <div className="w-6 h-6 rounded-full bg-default-200" />
-            <div className="w-4 h-2 rounded bg-default-200" />
+            {/* 前週からの順位変動(▲2 / NEW)。この行が行全体の高さを決める */}
+            <SkeletonTextLine textClassName="text-[0.5625rem] leading-none" align="center">
+              <span className="w-4 h-2 rounded bg-default-200" />
+            </SkeletonTextLine>
           </div>
           <div className="w-16 h-8 rounded-lg bg-default-200 shrink-0" />
         </div>
-        <div className="h-6 rounded-lg bg-default-200" />
+        {/* 使用率(text-lg leading-none) */}
+        <SkeletonTextLine textClassName="text-lg leading-none" align="end">
+          <span className="w-10 h-4 rounded-lg bg-default-200" />
+        </SkeletonTextLine>
         <div className="flex flex-col items-end gap-0.5">
+          {/* 前週差(h-3 の枠)と件数(text-[0.5625rem]。親の leading-none を継ぐ) */}
           <div className="w-7 h-3 rounded bg-default-200" />
-          <div className="w-8 h-2.5 rounded bg-default-200" />
+          <SkeletonTextLine textClassName="text-[0.5625rem] leading-none" align="end">
+            <span className="w-8 h-2 rounded bg-default-200" />
+          </SkeletonTextLine>
         </div>
       </div>
-      {/* 下段: 使用率バー / 勝率チップ / 勝率の前週差 */}
+      {/* 下段: 使用率バー / 勝率チップ / 勝率の前週差。
+          高さを決めているのは3列目で、実体は leading 指定の無い素の span に数値を入れており、
+          行ボックスが親の strut(16px × 1.5 = 24px)まで伸びる。チップ(20px)ではなくこちらが
+          下段の高さになるので、骨格も同じ組み方にする(前週差が無い行だけは実体も20px になる)。 */}
       <div className="grid grid-cols-[minmax(0,1fr)_3.5rem_2.5rem] items-center gap-1">
         <div className="h-1.5 rounded-full bg-default-200" />
         <div className="h-5 rounded-full bg-default-200" />
-        <div className="flex justify-end">
-          <div className="w-7 h-3 rounded bg-default-200" />
-        </div>
+        <span className="text-right">
+          <span className="inline-block w-7 h-3 rounded bg-default-200 align-middle" />
+        </span>
       </div>
     </div>
   );

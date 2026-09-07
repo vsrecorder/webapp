@@ -140,8 +140,16 @@ export default function DashboardBlockSkeleton({ id, isDevEnv = false }: Props):
       return (
         <Section>
           <SectionHeading label="称号とランク" />
-          {/* プレイヤーズクラブ連携の有無はサーバでは分からないので未連携(多数派)で置く */}
           <DesignationPanelSkeleton />
+        </Section>
+      );
+
+    case "designation_linked":
+      return (
+        <Section>
+          <SectionHeading label="称号とランク" />
+          {/* プレイヤーズクラブ連携済み。「入賞したシティリーグ」の節ぶん背が高い */}
+          <DesignationPanelSkeleton linkedHint />
         </Section>
       );
 

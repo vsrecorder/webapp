@@ -87,6 +87,7 @@ describe("isDashboardBlockId", () => {
   it("骨格を持つIDだけを通す", () => {
     expect(isDashboardBlockId("streak")).toBe(true);
     expect(isDashboardBlockId("environment_meta_window")).toBe(true);
+    expect(isDashboardBlockId("designation_linked")).toBe(true);
     expect(isDashboardBlockId("nope")).toBe(false);
   });
 });
@@ -110,5 +111,13 @@ describe("DEFAULT_DASHBOARD_LAYOUT", () => {
     expect(DEFAULT_DASHBOARD_LAYOUT).not.toContain("cityleague");
     expect(DEFAULT_DASHBOARD_LAYOUT).not.toContain("first_record_cta");
     expect(DEFAULT_DASHBOARD_LAYOUT).not.toContain("env_window");
+  });
+
+  // 中身が2種類ある節は、背の低い方(多数派)を既定にする
+  it("称号は未連携の側、対戦環境データは従来パネルの側を使う", () => {
+    expect(DEFAULT_DASHBOARD_LAYOUT).toContain("designation");
+    expect(DEFAULT_DASHBOARD_LAYOUT).not.toContain("designation_linked");
+    expect(DEFAULT_DASHBOARD_LAYOUT).toContain("environment_meta");
+    expect(DEFAULT_DASHBOARD_LAYOUT).not.toContain("environment_meta_window");
   });
 });

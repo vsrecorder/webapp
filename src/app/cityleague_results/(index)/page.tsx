@@ -1,11 +1,19 @@
 import { Suspense } from "react";
 
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 
 import CityleagueBrowseSection from "@app/components/organisms/Cityleague/CityleagueBrowseSection";
 import CityleagueLatestSection from "@app/components/organisms/Cityleague/CityleagueLatestSection";
 import TemplateCityleagueResults from "@app/components/templates/CityleagueResults";
 
+import {
+  CITYLEAGUE_SELECTED_TAB_COOKIE,
+  DEFAULT_CITYLEAGUE_TAB,
+  cityleagueTabToLeagueType,
+  parseCityleagueTab,
+} from "@app/utils/cityleagueListPrefs";
+import { getCityleagueListInitialData } from "@app/utils/cityleagueListServer";
 import { OG_SIZE, renderCityleagueListOgImage } from "@app/utils/ogImage";
 import { ensureOgImage } from "@app/utils/ogStorage";
 
@@ -44,9 +52,30 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default function Page() {
+export default async function Page() {
+  /*
+   * 選択中タブは cookie に保存されている(cityleagueListPrefs)。サーバ描画の時点で
+   * そのタブで描き、ハイドレーション後に一覧が切り替わって見えないようにする。
+   */
+  const store = await cookies();
+  const tab =
+    parseCityleagueTab(store.get(CITYLEAGUE_SELECTED_TAB_COOKIE)?.value) ??
+    DEFAULT_CITYLEAGUE_TAB;
+
+  /*
+   * そのタブの1ページ目をサーバで取って HTML に載せる(記録一覧・デッキ一覧と同じ型)。
+   *
+   * これまではブラウザ側がハイドレーションを待ってから
+   * スケジュール →(開催期間外ならスケジュール全件)→ 結果 → その日の公式イベント と
+   * 直列に往復していたため、最初のカードが出るまで実測で 2.9 秒かかっていた。
+   * 取れなかった場合(null)は、これまでどおりブラウザ側が取り直す。
+   */
+  const initial = await getCityleagueListInitialData(cityleagueTabToLeagueType(tab));
+
   return (
     <TemplateCityleagueResults
+      initial={initial}
+      initialTab={tab}
       browseSection={<CityleagueBrowseSection />}
       // CityleagueLatestSection は core-apiserver へ2往復する（全イベント一覧 → 期間内のイベント）。
       // Suspense で包まないとこのページ全体がその往復を待ってから描画されるため、

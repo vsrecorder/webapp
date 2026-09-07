@@ -1,6 +1,8 @@
 import { Fragment } from "react";
 import { Card, CardBody } from "@heroui/react";
 
+import { DEFAULT_CITYLEAGUE_RESULTS_HEIGHT } from "@app/utils/cityleagueResultsHeightCache";
+
 /*
  * 称号とランクのパネルの骨格。パネル自身の読み込み中表示と、
  * ホームの Suspense 骨格(DashboardSkeleton)の両方から使う。
@@ -38,18 +40,22 @@ type Props = {
    * プレイヤーズクラブ連携済みか。連携済みだと「入賞したシティリーグ」の節が増える。
    *
    * パネル自身の読み込み中表示では前回の連携状態(usePlayerLinkedHint)を渡す。
-   * ホームの Suspense 骨格はサーバで描くのでその値を持てず、未連携(多数派)として扱う。
-   * 骨格が実物より高いと差し替わりで下がせり上がるため、分からないときは出さない側に倒す。
+   * ホームの Suspense 骨格はサーバで描くのでその値を持てないが、前回このユーザーのホームが
+   * どちらの形で描かれたかは cookie に残っている(utils/dashboardLayout の designation_linked)。
    */
   linkedHint?: boolean;
-  // 「入賞したシティリーグ」の節の高さ。PlayerCityleagueResults が前回描画できた高さを
-  // 覚えているので、骨格でも同じ値で場所を取る(両者がズレると入れ替わりで跳ねる)
+  /*
+   * 「入賞したシティリーグ」の節の高さ。PlayerCityleagueResults が前回描画できた高さを
+   * 覚えているので、骨格でも同じ値で場所を取る(両者がズレると入れ替わりで跳ねる)。
+   * サーバで描く骨格はそのキャッシュ(localStorage)を読めないため、既定値で場所を取る。
+   * 実体側もハイドレーション前は同じ既定値を使う(useCityleagueResultsHeight のサーバ値)。
+   */
   cityleagueHeight?: number | string;
 };
 
 export default function DesignationPanelSkeleton({
   linkedHint = false,
-  cityleagueHeight,
+  cityleagueHeight = DEFAULT_CITYLEAGUE_RESULTS_HEIGHT,
 }: Props) {
   return (
     <Card className="shadow-md">

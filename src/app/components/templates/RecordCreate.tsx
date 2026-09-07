@@ -58,11 +58,19 @@ import OfficialEventGuideNote from "@app/components/molecules/OfficialEventGuide
 import { cleanOfficialEventTitle } from "@app/components/organisms/Record/officialEventHelpers";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 import { markRecordCreatedForPushPrompt } from "@app/utils/pushPrompt";
+import { formatJSTDateWithWeekday } from "@app/utils/date";
+import {
+  officialEventListUrl,
+  toOfficialEventDateKey,
+} from "@app/utils/officialEventList";
 import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
 import { MAX_EVENT_TITLE_LENGTH, exceedsTextLength } from "@app/utils/textLength";
 import { useOfficialEventGuide } from "@app/hooks/useOfficialEventGuide";
 
-import { OfficialEventResponseType, OfficialEventType } from "@app/types/official_event";
+import {
+  OfficialEventListItemType,
+  OfficialEventResponseType,
+} from "@app/types/official_event";
 import { DEFAULT_REGULATION_ID } from "@app/types/regulation";
 import { DeckGetAllType, DeckData, isFavoritedDeck } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
@@ -177,7 +185,7 @@ function katakanaToHiragana(str: string): string {
 }
 
 function convertToOfficialEventOption(
-  officialEvent: OfficialEventType,
+  officialEvent: OfficialEventListItemType,
 ): OfficialEventOption {
   const startedAtDate = new Date(officialEvent.started_at);
   let startedAt =
@@ -204,28 +212,23 @@ function convertToOfficialEventOption(
     }
   }
 
-  const datetime =
-    new Date(officialEvent.date).toLocaleString("ja-JP", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      weekday: "short",
-    }) +
-    " " +
-    eventTime;
+  // toLocaleString は呼ぶたびに Intl.DateTimeFormat を作り直すため、1日ぶんの候補
+  // (土日は1,400件超)を整形すると桁違いに遅い。作り置きの書式を使う共通ヘルパへ委譲する。
+  const datetime = formatJSTDateWithWeekday(officialEvent.date) + " " + eventTime;
 
-  officialEvent.title = cleanOfficialEventTitle(officialEvent.title);
+  // SWR のキャッシュに入っている元データを書き換えないよう、整形結果はローカルに持つ
+  const title = cleanOfficialEventTitle(officialEvent.title);
 
   let image_alt = "";
   let image_src = "https://xx8nnpgt.user.webaccel.jp/images/icons/";
   if (officialEvent.type_id === 1) {
-    if (officialEvent.title.includes("ポケモンジャパンチャンピオンシップス")) {
+    if (title.includes("ポケモンジャパンチャンピオンシップス")) {
       image_alt = "ポケモンジャパンチャンピオンシップス";
       image_src += "jcs.png";
-    } else if (officialEvent.title.includes("チャンピオンズリーグ")) {
+    } else if (title.includes("チャンピオンズリーグ")) {
       image_alt = "チャンピオンズリーグ";
       image_src += "cl.png";
-    } else if (officialEvent.title.includes("スクランブルバトル")) {
+    } else if (title.includes("スクランブルバトル")) {
       image_alt = "スクランブルバトル";
       image_src += "sb.png";
     } else {
@@ -239,16 +242,16 @@ function convertToOfficialEventOption(
     image_alt = "トレーナーズリーグ";
     image_src += "trainers.png";
   } else if (officialEvent.type_id === 4) {
-    if (officialEvent.title.includes("ジムバトル")) {
+    if (title.includes("ジムバトル")) {
       image_alt = "ジムバトル";
       image_src += "gym.png";
-    } else if (officialEvent.title.includes("MEGAウインターリーグ")) {
+    } else if (title.includes("MEGAウインターリーグ")) {
       image_alt = "MEGAウインターリーグ";
       image_src += "mega_winter_league.png";
-    } else if (officialEvent.title.includes("スタートデッキ100　そのままバトル")) {
+    } else if (title.includes("スタートデッキ100　そのままバトル")) {
       image_alt = "スタートデッキ100　そのままバトル";
       image_src += "100_sonomama_battle.png";
-    } else if (officialEvent.title.includes("マイジムNo.1決定戦")) {
+    } else if (title.includes("マイジムNo.1決定戦")) {
       image_alt = "マイジムNo.1決定戦";
       image_src += "mygym_no1.png";
     } else {
@@ -259,22 +262,20 @@ function convertToOfficialEventOption(
     image_alt = "公認自主イベント";
     image_src += "organizer.png";
   } else if (officialEvent.type_id === 7) {
-    if (officialEvent.title.includes("ポケモンカードゲーム教室")) {
+    if (title.includes("ポケモンカードゲーム教室")) {
       image_alt = "ポケモンカードゲーム教室";
       image_src += "classroom.png";
-    } else if (officialEvent.title.includes("ビクティニBWR争奪戦")) {
+    } else if (title.includes("ビクティニBWR争奪戦")) {
       image_alt = "ビクティニBWR争奪戦";
       image_src += "victini_bwr.png";
-    } else if (officialEvent.title.includes("メガエルレイドexSARゲットバトル")) {
+    } else if (title.includes("メガエルレイドexSARゲットバトル")) {
       image_alt = "メガエルレイドexSARゲットバトル";
       image_src += "mega-gallade_ex_sar.png";
-    } else if (officialEvent.title.includes("スタートデッキ100　そのままバトル")) {
+    } else if (title.includes("スタートデッキ100　そのままバトル")) {
       image_alt = "スタートデッキ100　そのままバトル";
       image_src += "100_sonomama_battle.png";
     } else if (
-      officialEvent.title.includes(
-        "100人大集合でたとこバトル ～スタートデッキ100 バトルコレクション～",
-      )
+      title.includes("100人大集合でたとこバトル ～スタートデッキ100 バトルコレクション～")
     ) {
       image_alt = "100人大集合でたとこバトル ～スタートデッキ100 バトルコレクション～";
       image_src += "100_detatoko_battle.png";
@@ -291,9 +292,9 @@ function convertToOfficialEventOption(
 
   return {
     label:
-      officialEvent.title +
+      title +
       " - " +
-      katakanaToHiragana(officialEvent.title) +
+      katakanaToHiragana(title) +
       " " +
       officialEvent.shop_name +
       " " +
@@ -310,7 +311,7 @@ function convertToOfficialEventOption(
     type_id: officialEvent.type_id,
     event_time: eventTime,
     event_datetime: datetime,
-    title: officialEvent.title,
+    title: title,
     shop_name: officialEvent.shop_name ? officialEvent.shop_name : officialEvent.venue,
     address: officialEvent.address,
     image_alt: image_alt,
@@ -319,12 +320,7 @@ function convertToOfficialEventOption(
 }
 
 function convertToDeckOption(data: DeckData): DeckOption {
-  const created_at = new Date(data.created_at).toLocaleString("ja-JP", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    weekday: "short",
-  });
+  const created_at = formatJSTDateWithWeekday(data.created_at);
 
   return {
     label: data.name + " - " + katakanaToHiragana(data.name),
@@ -345,12 +341,7 @@ function convertToDeckCodeOption(
   data: DeckCodeType,
   versionNumber: number | null,
 ): DeckCodeOption {
-  const created_at = new Date(data.created_at).toLocaleString("ja-JP", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    weekday: "short",
-  });
+  const created_at = formatJSTDateWithWeekday(data.created_at);
 
   return {
     label: versionNumber !== null ? String(versionNumber) : "",
@@ -579,6 +570,15 @@ type Props = {
   official_event_id?: string;
   // 指定された開催日("YYYY-MM-DD")。
   event_date?: string;
+  /*
+   * サーバ側で先読みした公式イベントの候補と、その開催日("YYYY-MM-DD")。
+   *
+   * 開催日は SWR のキーを組み立てるのに使う。利用者が別の日を選んだら
+   * キーが変わり、この初期データは使われなくなる(その日を取り直す)。
+   * 先読みに失敗した場合や、公式イベントタブ以外で開いた場合は undefined。
+   */
+  initial_official_event_date?: string;
+  initial_official_events?: OfficialEventListItemType[];
 };
 
 // URL で指定された開催日を CalendarDate にする。壊れた値や未指定は null
@@ -671,6 +671,8 @@ export default function TemplateRecordCreate({
   tab,
   official_event_id,
   event_date,
+  initial_official_event_date,
+  initial_official_events,
 }: Props) {
   const router = useRouter();
 
@@ -760,18 +762,38 @@ export default function TemplateRecordCreate({
 
   const deckSelectRef = useRef<HTMLDivElement | null>(null);
 
-  const y = selectedDate.year;
-  const m = String(selectedDate.month).padStart(2, "0");
-  const d = String(selectedDate.day).padStart(2, "0");
+  // 先読み(page.tsx)と同じ規則でキーを組む。ずれると先読みが使われない
+  const officialEventUrl = officialEventListUrl(toOfficialEventDateKey(selectedDate));
 
-  const officialEventUrl = `/api/official_events?date=${y}-${m}-${d}`;
+  /*
+   * サーバ側で先読みした候補は、その開催日を見ている間だけ使う。
+   * fallbackData はキーに紐づかないので、日付を変えた直後に前の日の候補を
+   * 出してしまわないよう、キーが一致するときだけ渡す。
+   *
+   * revalidateIfStale を切るのは、初期データがあるのにマウント直後へ
+   * 同じ内容の取得(土日は1,400件超)を重ねないため。公式イベントの一覧は
+   * 上流でも5分キャッシュしている程度の更新頻度で、記録を作っている間に
+   * 変わることはまず無い。
+   */
+  const officialEventFallback =
+    initial_official_event_date &&
+    officialEventUrl === officialEventListUrl(initial_official_event_date)
+      ? initial_official_events
+      : undefined;
+
   const {
     data: officialEventData,
     error: officialEventError,
     isLoading: officialEventLoading,
-  } = useSWR<OfficialEventType[], Error>(officialEventUrl, fetcherForOfficialEvent, {
-    revalidateOnFocus: false,
-  });
+  } = useSWR<OfficialEventListItemType[], Error>(
+    officialEventUrl,
+    fetcherForOfficialEvent,
+    {
+      revalidateOnFocus: false,
+      revalidateIfStale: false,
+      fallbackData: officialEventFallback,
+    },
+  );
 
   // イベント一覧の整形(正規表現・日付ローカライズ)はコストが高いため、
   // データが更新されたときだけ再計算する。これを怠ると imageLoaded 等の

@@ -13,7 +13,11 @@ import {
   getEventIconUrl,
   cleanOfficialEventTitle,
 } from "@app/components/organisms/Record/officialEventHelpers";
-import { OfficialEventResponseType, OfficialEventType } from "@app/types/official_event";
+import {
+  OfficialEventListItemType,
+  OfficialEventResponseType,
+} from "@app/types/official_event";
+import { formatJSTDateWithWeekday } from "@app/utils/date";
 
 // 記録作成ページ(RecordCreate)の公式イベント選択と同等のUI/挙動を提供する共有コンポーネント。
 // アイコンは officialEventHelpers.getEventIconUrl を使うため、イベント種別アイコンの追加は
@@ -31,7 +35,7 @@ type OfficialEventOption = {
   image_src: string;
 };
 
-async function fetcher(url: string): Promise<OfficialEventType[]> {
+async function fetcher(url: string): Promise<OfficialEventListItemType[]> {
   const res = await fetch(url, { method: "GET", headers: { Accept: "application/json" } });
   if (!res.ok) throw new Error("Failed to fetch");
   const ret: OfficialEventResponseType = await res.json();
@@ -39,7 +43,7 @@ async function fetcher(url: string): Promise<OfficialEventType[]> {
 }
 
 // RecordCreate の convertToOfficialEventOption と同じ日時整形。アイコンだけ共有ヘルパーに委譲。
-function convertToOption(e: OfficialEventType): OfficialEventOption {
+function convertToOption(e: OfficialEventListItemType): OfficialEventOption {
   const startedAtDate = new Date(e.started_at);
   let startedAt =
     startedAtDate.getHours().toString().padStart(2, "0") +
@@ -58,15 +62,9 @@ function convertToOption(e: OfficialEventType): OfficialEventOption {
     if (endedAt !== "") eventTime += endedAt;
   }
 
-  const datetime =
-    new Date(e.date).toLocaleString("ja-JP", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      weekday: "short",
-    }) +
-    " " +
-    eventTime;
+  // 1日ぶんの候補(土日は1,400件超)を整形するため、書式を作り置きする共通ヘルパを使う。
+  // toLocaleString は呼ぶたびに Intl.DateTimeFormat を作り直すので桁違いに遅い。
+  const datetime = formatJSTDateWithWeekday(e.date) + " " + eventTime;
 
   // アイコンは元のタイトルで判定する(cleanOfficialEventTitle 前)ため e をそのまま渡す
   const image_src = getEventIconUrl(e);
@@ -103,7 +101,7 @@ export default function OfficialEventSelect({
 }: Props) {
   const reactSelectTheme = useReactSelectTheme();
 
-  const { data, isLoading, error } = useSWR<OfficialEventType[]>(
+  const { data, isLoading, error } = useSWR<OfficialEventListItemType[]>(
     `/api/official_events?date=${date}`,
     fetcher,
   );

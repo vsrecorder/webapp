@@ -41,6 +41,9 @@ export type DeckGetResponseType = {
 // デッキ一覧(/decks)の初期表示のためにサーバで取っておくデータ。
 // 取れなかったものは null(クライアントが取り直す)
 export type DecksInitialDataType = {
+  // このサーバ描画を識別する値。戻る操作でサーバ描画の結果が使い回されると同じ値が返るので、
+  // クライアントは「いま取られたデータか」を見分けられる(utils/serverRenderFreshness)
+  renderId: string;
   // 利用中のデッキの1ページ目(BFF /api/decks と同じ形)
   decks: DeckGetResponseType | null;
   // 全デッキのきずなLv.

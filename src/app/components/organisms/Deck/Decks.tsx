@@ -92,6 +92,9 @@ type Props = {
   // サーバで取ったきずな・戦績。無ければクライアントで取る
   initialKizuna?: KizunaType | null;
   initialUsage?: DeckUsageStatType | null;
+  // 上の初期データがこの描画で取られたものか(戻る操作で使い回された結果なら false)。
+  // 使い回しのときだけ、マウント後に取り直して最新へ差し替える
+  isInitialFresh?: boolean;
   onCreated?: () => void;
   // 読み込み状態が変わるたびに親へ通知する(マウント直後にも一度呼ぶ)。
   onLoadStateChange?: (state: DeckListLoadState) => void;
@@ -115,6 +118,7 @@ export default function Decks({
   initialDecks,
   initialKizuna,
   initialUsage,
+  isInitialFresh = false,
   onCreated,
   onLoadStateChange,
   isReopenTargetTab = false,
@@ -128,7 +132,7 @@ export default function Decks({
   const [items, setItems] = useState<DeckType[]>(() => initialStep?.appended ?? []);
   // デッキごとの全期間の戦績(対戦記録が無いデッキは含まれない)。
   // SWR で持ち、タブ切替や戻り遷移で Decks が作り直されても取り直しを待たずに出す
-  const deckUsageStats = useDeckUsageAllTime(userId, initialUsage);
+  const deckUsageStats = useDeckUsageAllTime(userId, initialUsage, isInitialFresh);
   const [nextCursor, setNextCursor] = useState<string>(() => initialStep?.nextCursor ?? "");
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(() => initialStep?.hasNext ?? true);
@@ -138,12 +142,13 @@ export default function Decks({
    *
    * ブラウザの「戻る」ではサーバ描画の結果(RSC)がそのまま再利用され、ページは再描画されない
    * (実測で確認)。記録を付けたりデッキ詳細でアーカイブしたりして戻ると initialDecks は古い。
-   * 以前はマウントのたびに取り直していたので常に最新だった。同じ鮮度を保つため、初期値は
-   * 最初の描画にだけ使い、マウント直後に1ページ目を取り直して差し替える。
+   * そこで**使い回しのときだけ**(isInitialFresh が false)、マウント直後に1ページ目を
+   * 取り直して差し替える。いま取られたものなら取り直さない(通常の遷移では通信が増えないうえ、
+   * 同時に飛ぶ他の要求とサーバ側で順番待ちを作らない)。
    * 取り直しの間は骨格を出さず(カードは既に出ている)、追加読み込みだけ待たせる
    * (差し替えと2ページ目の追記が交錯しないように)。
    */
-  const [isRefreshing, setIsRefreshing] = useState(initialStep !== null);
+  const [isRefreshing, setIsRefreshing] = useState(initialStep !== null && !isInitialFresh);
   // デッキ一覧の取得に失敗したか。失敗した位置（初回か追加読み込みか）に関わらず、
   // 一覧の末尾にエラーと再読み込みボタンを出す。
   const [error, setError] = useState(false);
@@ -159,6 +164,7 @@ export default function Decks({
   const { decks: kizunaDecks, isLoading: kizunaLoading } = useKizunaDecksState(
     userId,
     initialKizuna,
+    isInitialFresh,
   );
 
   const handleRemove = (id: string) => {
@@ -312,9 +318,10 @@ export default function Decks({
     loadMore();
   }, [isInitialLoaded, loadMore]);
 
-  // サーバで取った1ページ目の取り直し(理由は isRefreshing のコメント)。マウント時に一度だけ
+  // サーバで取った1ページ目の取り直し(理由は isRefreshing のコメント)。
+  // 使い回しの初期データを渡されたときだけ、マウント時に一度だけ走る
   useEffect(() => {
-    if (initialStep === null) return;
+    if (initialStep === null || isInitialFresh) return;
 
     let cancelled = false;
     (async () => {
@@ -340,7 +347,7 @@ export default function Decks({
     return () => {
       cancelled = true;
     };
-  }, [initialStep, isArchived]);
+  }, [initialStep, isInitialFresh, isArchived]);
 
   // 戻り遷移で再開する対象デッキ。一覧に現れるまで自動で追加読み込みする。
   const [pendingReopenDeckId, setPendingReopenDeckId] = useState<string | null>(null);

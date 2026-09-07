@@ -1,4 +1,14 @@
-import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
+import { OfficialEventType } from "@app/types/official_event";
+
+/*
+ * 判定に使うフィールドだけを要求する。
+ *
+ * 単品応答(OfficialEventGetByIdResponseType)を丸ごと要求すると、BFF が表示に使う
+ * ぶんだけへ絞っている一覧の要素(OfficialEventListItemType)を渡せない。実際に見るのは
+ * 種別とタイトル(会場ラベルだけ店舗名と会場名)なので、そこまで緩める。
+ */
+type OfficialEventKind = Pick<OfficialEventType, "title" | "type_id">;
+type OfficialEventVenue = Pick<OfficialEventType, "shop_name" | "venue">;
 
 const ICON_BASE = "https://xx8nnpgt.user.webaccel.jp/images/icons/";
 
@@ -28,7 +38,7 @@ export function cleanOfficialEventTitle(title: string): string {
 // PJCS(ポケモンジャパンチャンピオンシップス)かどうかを判定する。
 // タイトルは整形後もフルネーム(ポケモンジャパンチャンピオンシップス)を保持するが、
 // 過去データ等で「PJCS」表記のものも判定できるよう両方を見る。
-export function isPJCS(officialEvent: OfficialEventGetByIdResponseType): boolean {
+export function isPJCS(officialEvent: OfficialEventKind): boolean {
   return (
     officialEvent.title.includes("ポケモンジャパンチャンピオンシップス") ||
     officialEvent.title.includes("PJCS")
@@ -37,9 +47,7 @@ export function isPJCS(officialEvent: OfficialEventGetByIdResponseType): boolean
 
 // 対戦環境チップを表示する公式イベントかどうかを判定する。
 // ジムバトル・トレーナーズリーグ・シティリーグ・チャンピオンズリーグ・PJCS のみ表示する。
-export function shouldShowEnvironmentChip(
-  officialEvent: OfficialEventGetByIdResponseType,
-): boolean {
+export function shouldShowEnvironmentChip(officialEvent: OfficialEventKind): boolean {
   // 大型大会のうちチャンピオンズリーグ・PJCS・スクランブルバトル
   if (officialEvent.type_id === 1) {
     return (
@@ -68,7 +76,7 @@ export function shouldShowEnvironmentChip(
  * 公式イベントの種別アイコン/アクセント色を判定するヘルパー。
  * 一覧カード(OfficialEventRecord)と詳細カード(OfficialEventInfo)で共有する。
  */
-export function getEventIconUrl(officialEvent: OfficialEventGetByIdResponseType): string {
+export function getEventIconUrl(officialEvent: OfficialEventKind): string {
   if (officialEvent.type_id === 1) {
     if (isPJCS(officialEvent)) {
       return `${ICON_BASE}jcs.png`;
@@ -130,9 +138,7 @@ export function getEventIconUrl(officialEvent: OfficialEventGetByIdResponseType)
   return `${ICON_BASE}pokemon_card_game.png`;
 }
 
-export function getEventAccentColor(
-  officialEvent: OfficialEventGetByIdResponseType,
-): string {
+export function getEventAccentColor(officialEvent: OfficialEventKind): string {
   if (officialEvent.type_id === 1) return "bg-yellow-400";
   if (officialEvent.type_id === 2) return "bg-purple-500";
   if (officialEvent.type_id === 3) return "bg-blue-300";
@@ -147,17 +153,13 @@ export function getEventAccentColor(
 
 // 主催店舗名(会場)の表示ラベル。shop_name を優先し、無ければ venue を使う。
 // 記録カード各所(TweetButton等)と同じフォールバック規約。
-export function getEventVenueLabel(
-  officialEvent: OfficialEventGetByIdResponseType,
-): string {
+export function getEventVenueLabel(officialEvent: OfficialEventVenue): string {
   return officialEvent.shop_name?.trim() || officialEvent.venue?.trim() || "";
 }
 
 // イベントの種別名。種別チップの表示は廃止したため、現在は公式イベントガイド
 // (useOfficialEventGuide)のキーワード判定にだけ使う。
-export function getEventTypeName(
-  officialEvent: OfficialEventGetByIdResponseType,
-): string {
+export function getEventTypeName(officialEvent: OfficialEventKind): string {
   if (officialEvent.type_id === 1) {
     if (isPJCS(officialEvent)) return "PJCS";
     if (officialEvent.title.includes("チャンピオンズリーグ"))

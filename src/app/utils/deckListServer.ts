@@ -53,6 +53,8 @@ export const getDecksInitialData = cache(
   ]);
 
   return {
+    // 描画ごとに振る。戻る操作で使い回されたかをクライアントが見分けるために使う
+    renderId: crypto.randomUUID(),
     // 想定外の形(decks が配列でない)は使わない。クライアントが BFF から取り直して検査する
     decks: decks && Array.isArray(decks.decks) ? toDeckPage(decks) : null,
     kizuna,

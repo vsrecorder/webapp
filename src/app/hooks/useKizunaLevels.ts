@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 
 import useSWR from "swr";
 
@@ -60,15 +60,19 @@ const EMPTY = new Map<string, KizunaDeckType>();
 // isLoading は「まだ何も無い」間だけ true(SWR のキャッシュか initial があれば false)。
 // デッキ一覧はこれを見て、きずなが揃うまでカードを出さずに骨格を保つ。
 //
-// initial はサーバ描画(decks/page.tsx)で取った値。渡されたときは最初の描画からそれを使う。
-// ただしマウント時の取り直し(SWR の既定)は止めない: ブラウザの「戻る」ではサーバ描画の結果が
-// そのまま再利用され(実測で確認)、記録を付けてから戻ると initial が古い。取り直しは裏で走り、
-// 表示を待たせないので、初期値は「最初の描画を速くする」ためだけに使う。
+// initial はサーバ描画(decks/page.tsx)で取った値。isInitialFresh はそれが「いま取られたもの」か
+// (戻る操作でサーバ描画の結果が使い回された場合は false)。
+//   新しい … マウント時の取り直しをやめる。以前の訪問で残ったキャッシュより新しいので上書きする
+//   使い回し … 記録を付けてから戻ると古いので、既定どおりマウント時に取り直す
 export function useKizunaDecksState(
   userId: string | null | undefined,
   initial?: KizunaType | null,
+  isInitialFresh = false,
 ) {
-  const { data, isLoading } = useSWR<KizunaDeckType[], Error>(
+  const initialDecks = initial?.decks;
+  const canSkipRevalidation = isInitialFresh && initialDecks !== undefined;
+
+  const { data, isLoading, mutate } = useSWR<KizunaDeckType[], Error>(
     userId ? `/api/users/${userId}/kizuna` : null,
     fetcher,
     {
@@ -76,9 +80,18 @@ export function useKizunaDecksState(
       revalidateOnFocus: false,
       // 失敗しても演出が出ないだけなので、再試行で無駄に叩かない
       shouldRetryOnError: false,
-      fallbackData: initial?.decks,
+      fallbackData: initialDecks,
+      revalidateOnMount: canSkipRevalidation ? false : undefined,
     },
   );
+
+  // fallbackData が使われるのはキャッシュが空のときだけ。同じ文書で以前に開いていると
+  // そのときの値が残っているため、取り直しをやめる場合はサーバで取った値で上書きする
+  useEffect(() => {
+    if (!canSkipRevalidation || !initialDecks) return;
+
+    void mutate(initialDecks, { revalidate: false });
+  }, [canSkipRevalidation, initialDecks, mutate]);
 
   const decks = useMemo(() => (data ? toMap(data) : EMPTY), [data]);
 

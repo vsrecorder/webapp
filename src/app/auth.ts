@@ -12,6 +12,7 @@ import type { DecodedIdToken } from "firebase-admin/auth";
 
 import { MAX_USER_NAME_LENGTH, exceedsTextLength } from "@app/utils/textLength";
 import { upstreamOrigin } from "@app/utils/upstream";
+import { createUserCheckThrottle } from "@app/utils/userCheckThrottle";
 import { signUpstreamToken } from "@app/utils/upstreamToken";
 
 // バックエンド(core-apiserver)に疎通できない場合に投げるエラー。
@@ -80,6 +81,18 @@ function normalizeUserName(name: unknown): string {
 // 短くするとページ遷移のたびにバックエンドへの同期fetchが挟まって遷移が重くなるため、
 // 「退会が他端末へ反映されるまでの許容遅延」と「遷移速度」のバランスで長めに取る。
 const USER_CHECK_CACHE_MS = 30 * 60 * 1000;
+
+/*
+ * 退会チェックの間引き。
+ *
+ * 下の jwt コールバックは token.userCheckedAt で間隔を測るが、その更新が保存されるのは
+ * セッション Cookie を再発行する経路だけで、サーバコンポーネントやルートハンドラから呼ぶ
+ * auth() では書き戻されない。そのため実際には毎リクエスト問い合わせが走っていた
+ * (本番ログの実測: ページ 826 件に対し退会チェック 2217 件)。
+ * プロセス内に最終確認時刻を持って、意図どおり USER_CHECK_CACHE_MS に 1 回へ戻す。
+ * あわせて、並行するリクエスト(一覧・きずな・戦績など同時に飛ぶもの)の確認を 1 回にまとめる。
+ */
+const userCheckThrottle = createUserCheckThrottle({ ttlMs: USER_CHECK_CACHE_MS });
 
 // バックエンドのデプロイ中や一時的な障害などで偶発的に404が返るケースがあるため、
 // 1回の404だけで退会済みと断定せず、連続して404が返り続けた場合のみ退会済みと判定する
@@ -439,12 +452,14 @@ const {
       // 一定時間ごとにユーザーが退会済みでないかバックエンドに確認する。
       // 退会済みだった場合はnullを返してセッションを無効化し、
       // 他端末で退会した際にログイン済み状態が残り続けるのを防ぐ。
-      const isCacheExpired =
-        Date.now() - (token.userCheckedAt ?? 0) > USER_CHECK_CACHE_MS;
+      // 実際に問い合わせるかの判断(間隔・並行分のまとめ)は userCheckThrottle が持つ。
+      const uid = token.uid;
 
-      if (isCacheExpired && token.uid) {
+      if (uid) {
         try {
-          if (await isUserDeletedOnBackend(token.uid)) {
+          if (await userCheckThrottle.check(uid, token.userCheckedAt, () =>
+            isUserDeletedOnBackend(uid),
+          )) {
             return null;
           }
         } catch (error) {
@@ -455,6 +470,7 @@ const {
           // 失敗時に更新しないと、バックエンド障害中はページ遷移のたびに
           // タイムアウトするfetchが挟まり、全ての遷移が重くなってしまう。
           // フェイルオープン方針のため、次の間隔での再チェックに委ねる。
+          // (この値が保存されるのは Cookie を再発行する経路だけ。それ以外は上の間引きが効く)
           token.userCheckedAt = Date.now();
         }
       }

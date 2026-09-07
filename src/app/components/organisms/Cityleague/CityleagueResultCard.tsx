@@ -22,11 +22,12 @@ import { LuLayers } from "react-icons/lu";
 import { LuUser } from "react-icons/lu";
 
 import { Modal } from "@app/components/atoms/AppModal";
-import CreateDeckModal from "@app/components/organisms/Deck/Modal/CreateDeckModal";
 import CardListAccordion from "@app/components/organisms/Deck/CardListAccordion";
 import CopyableDeckCode from "@app/components/atoms/CopyableDeckCode";
 import ZoomableDeckImage from "@app/components/atoms/ZoomableDeckImage";
 import BoardPanel from "@app/components/organisms/Record/BoardPanel";
+
+import { createLazyModal } from "@app/utils/lazyModal";
 
 import { ResultCardEntry } from "@app/types/cityleague_result";
 import { DeckSummaryType } from "@app/types/deckcard";
@@ -47,6 +48,19 @@ type Props = {
   // デッキのカード内訳の要約(サーバ側で取得済み)。渡されたときだけ主なポケモンとカードリストを出す。
   deckSummary?: DeckSummaryType;
 };
+
+
+/*
+ * デッキ登録モーダルは開くまで読まない(仕組みと理由は createLazyModal を参照)。
+ *
+ * 静的に import していると、結果カードを出す大会結果のページだけでなく、規約ページのような
+ * デッキ機能と無関係なページの初期JSにまで載っていた(本番の実測で 6KB gzip。共有チャンクへ
+ * 入っていたため全ページで読まれていた)。あわせて、開いてもいないモーダルのツリーが
+ * 結果カードの枚数ぶんマウントされるのも避けられる。
+ */
+const CreateDeckModal = createLazyModal(
+  () => import("@app/components/organisms/Deck/Modal/CreateDeckModal"),
+);
 
 export default function CityleagueResultCard({
   result,

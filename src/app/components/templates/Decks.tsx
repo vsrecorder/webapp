@@ -19,6 +19,7 @@ import DeckStatusToggle from "@app/components/molecules/DeckStatusToggle";
 import DeckViewToggle from "@app/components/molecules/DeckViewToggle";
 
 import { DecksInitialDataType } from "@app/types/deck";
+import { useIsFreshServerRender } from "@app/utils/serverRenderFreshness";
 import {
   DecksTab,
   readDecksInitialTab,
@@ -38,6 +39,14 @@ type Props = {
 };
 
 export default function TemplateDecks({ userId, initial, initialTab }: Props) {
+  /*
+   * initial がこの描画で取られたものか(戻る操作で使い回された結果なら false)。
+   *
+   * 使い回しのときだけ、マウント後に一覧・きずな・戦績を取り直す。以前は毎回取り直していたが、
+   * 通常の遷移では取り直す必要がないうえ、同時に飛ぶ3本がサーバ側で順番待ちを作っていた
+   * (本番ログの実測で、3本のうち最後に始まったものが最も遅い組が 35 組中 24 組)。
+   */
+  const isInitialFresh = useIsFreshServerRender(initial?.renderId);
   const [refreshKey, setRefreshKey] = useState(0);
   // サーバ描画と同じタブから始める(cookie に無ければ利用中)。マウント後に再開フラグを見て決め直す
   const serverTab: DecksTab = initialTab ?? "inuse";
@@ -249,6 +258,7 @@ export default function TemplateDecks({ userId, initial, initialTab }: Props) {
             initialDecks={selectedKey === serverTab ? initialDecks : undefined}
             initialKizuna={initial?.kizuna}
             initialUsage={initial?.usage}
+            isInitialFresh={isInitialFresh}
             onCreated={handleCreatedDeck}
             onLoadStateChange={handleLoadStateChange}
             header={header}

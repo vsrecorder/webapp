@@ -17,7 +17,10 @@ import {
   CityleagueResultType,
 } from "@app/types/cityleague_result";
 import { CityleagueScheduleType } from "@app/types/cityleague_schedule";
-import { OfficialEventResponseType, OfficialEventType } from "@app/types/official_event";
+import {
+  OfficialEventListItemType,
+  OfficialEventResponseType,
+} from "@app/types/official_event";
 import { toJSTDate, toJSTDateString } from "@app/utils/date";
 import { getJstNow } from "@app/utils/calendar";
 
@@ -86,8 +89,10 @@ async function fetchAllSchedules(): Promise<CityleagueScheduleType[]> {
   return res.json();
 }
 
-// その日のシティリーグ(type_id=2)の公式イベント一覧。応答の要素は
-// /api/official_events/{id} の単品応答と同じ形(実データで全キー・全値の一致を確認済み)
+// その日のシティリーグ(type_id=2)の公式イベント一覧。応答の要素は単品応答
+// (/api/official_events/{id})の部分集合で、BFF が表示に使うフィールドだけへ絞っている。
+// カードが使う項目(開催日・店舗名・都道府県・リーグ・対戦環境)は含まれるため、
+// 一覧で配ったものと個別に取り直したものを同じ prop に流せる。
 async function fetchOfficialEventsByDate(
   league_type: number,
   date: string,
@@ -116,9 +121,9 @@ export default function CityleagueResults({ league_type }: Props) {
   const [items, setItems] = useState<CityleagueResultType[]>([]);
   // official_event_id → イベント情報。日単位の一覧APIでまとめて取得したものを
   // 各カード(CityleagueResult)へ配り、カードごとの個別フェッチ(N+1)を避ける
-  const [eventsById, setEventsById] = useState<ReadonlyMap<number, OfficialEventType>>(
-    new Map(),
-  );
+  const [eventsById, setEventsById] = useState<
+    ReadonlyMap<number, OfficialEventListItemType>
+  >(new Map());
   const [nextFromDate, setNextFromDate] = useState<Date>(now);
   const [nextToDate, setNextToDate] = useState<Date>(now);
   const [isLoading, setIsLoading] = useState(false);

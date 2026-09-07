@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 
 import useSWR from "swr";
 
@@ -43,22 +43,34 @@ function toMap(decks: DeckUsageItemType[]): Map<string, DeckUsageItemType> {
 const EMPTY = new Map<string, DeckUsageItemType>();
 
 // deck_id → 全期間の戦績。取得前・失敗時は空の Map。
-// initial はサーバ描画(decks/page.tsx)で取った値。最初の描画にだけ使い、マウント時の取り直しは
-// 止めない(「戻る」でサーバ描画の結果が再利用されると古いため。useKizunaDecksState と同じ)
+// initial / isInitialFresh の扱いは useKizunaDecksState と同じ
+// (いま取られたものならマウント時の取り直しをやめ、キャッシュを上書きする)
 export function useDeckUsageAllTime(
   userId: string | null | undefined,
   initial?: DeckUsageStatType | null,
+  isInitialFresh = false,
 ) {
-  const { data } = useSWR<DeckUsageItemType[], Error>(
+  const initialDecks = initial?.decks;
+  const canSkipRevalidation = isInitialFresh && initialDecks !== undefined;
+
+  const { data, mutate } = useSWR<DeckUsageItemType[], Error>(
     userId ? `/api/users/${userId}/deck-usage?all_time=true` : null,
     fetcher,
     {
       revalidateOnFocus: false,
       // 失敗しても「対戦記録なし」で出るだけなので、再試行で無駄に叩かない
       shouldRetryOnError: false,
-      fallbackData: initial?.decks,
+      fallbackData: initialDecks,
+      revalidateOnMount: canSkipRevalidation ? false : undefined,
     },
   );
+
+  // 取り直しをやめる場合は、以前の訪問で残ったキャッシュをサーバで取った値で上書きする
+  useEffect(() => {
+    if (!canSkipRevalidation || !initialDecks) return;
+
+    void mutate(initialDecks, { revalidate: false });
+  }, [canSkipRevalidation, initialDecks, mutate]);
 
   return useMemo(() => (data ? toMap(data) : EMPTY), [data]);
 }

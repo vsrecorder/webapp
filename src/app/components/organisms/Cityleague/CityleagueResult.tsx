@@ -22,7 +22,10 @@ import { CityleagueResultSkeleton } from "@app/components/organisms/Cityleague/S
 import FetchError from "@app/components/molecules/FetchError";
 
 import { CityleagueResultType } from "@app/types/cityleague_result";
-import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
+import {
+  OfficialEventGetByIdResponseType,
+  OfficialEventListItemType,
+} from "@app/types/official_event";
 
 async function fetchOfficialEventById(id: number) {
   try {
@@ -54,7 +57,7 @@ type Props = {
    * カードごとに個別フェッチするとN+1(1日分で数十本)になるため、
    * CityleagueResults 側が日単位の一覧APIでまとめて取得して配ってくる。
    */
-  official_event?: OfficialEventGetByIdResponseType;
+  official_event?: OfficialEventListItemType;
 };
 
 export default function CityleagueResult({ event_result, official_event }: Props) {

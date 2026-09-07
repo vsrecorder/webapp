@@ -4,10 +4,13 @@ import { useMemo } from "react";
 import useSWR from "swr";
 
 import { getEventTypeName } from "@app/components/organisms/Record/officialEventHelpers";
-import { OfficialEventResponseType, OfficialEventType } from "@app/types/official_event";
+import {
+  OfficialEventListItemType,
+  OfficialEventResponseType,
+} from "@app/types/official_event";
 import { detectOfficialEventKeyword } from "@app/utils/officialEventGuide";
 
-async function fetcher(url: string): Promise<OfficialEventType[]> {
+async function fetcher(url: string): Promise<OfficialEventListItemType[]> {
   const res = await fetch(url, {
     method: "GET",
     headers: { Accept: "application/json" },
@@ -43,7 +46,7 @@ export function useOfficialEventGuide(
 
   // キーワードを検出したときだけ取得する。URL は RecordCreate / OfficialEventSelect と
   // 同じ形式なので、同じ開催日を既に取得済みなら SWR のキャッシュを共有し再取得しない。
-  const { data } = useSWR<OfficialEventType[], Error>(
+  const { data } = useSWR<OfficialEventListItemType[], Error>(
     enabled && keyword ? `/api/official_events?date=${dateYmd}` : null,
     fetcher,
     { revalidateOnFocus: false },

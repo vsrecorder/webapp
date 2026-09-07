@@ -1,24 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/upstream";
+import { upstreamErrorResponse } from "@app/utils/upstream";
 
-import { OfficialEventResponseType } from "@app/types/official_event";
-
-async function getOfficialEventByDate(
-  type_id: string,
-  league_type: string,
-  date: string,
-): Promise<OfficialEventResponseType> {
-  return await fetchUpstream<OfficialEventResponseType>(
-    upstreamUrl`/api/v1beta/official_events?type_id=${type_id}&league_type=${league_type}&date=${date}`,
-    {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
-    },
-  );
-}
+import { getOfficialEventList } from "@app/utils/officialEventListServer";
 
 export async function GET(request: NextRequest) {
   try {
@@ -27,7 +11,7 @@ export async function GET(request: NextRequest) {
     const league_type = searchParams.get("league_type") ?? "";
     const date = searchParams.get("date") ?? "";
 
-    const officialEvents = await getOfficialEventByDate(type_id, league_type, date);
+    const officialEvents = await getOfficialEventList(type_id, league_type, date);
 
     return NextResponse.json(officialEvents, { status: 200 });
   } catch (error) {

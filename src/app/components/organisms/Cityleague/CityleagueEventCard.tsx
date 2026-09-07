@@ -9,11 +9,11 @@ import { Chip } from "@heroui/react";
 import { Modal } from "@app/components/atoms/AppModal";
 import CityleagueResult from "@app/components/organisms/Cityleague/CityleagueResult";
 
-import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
+import { OfficialEventListItemType } from "@app/types/official_event";
 import { CityleagueResultType } from "@app/types/cityleague_result";
 
 type Props = {
-  event: OfficialEventGetByIdResponseType;
+  event: OfficialEventListItemType;
   results: CityleagueResultType[];
 };
 

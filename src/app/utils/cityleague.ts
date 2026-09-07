@@ -2,7 +2,10 @@ import { CityleagueResultGetEventsResponseType } from "@app/types/cityleague_res
 import { CityleagueResultType } from "@app/types/cityleague_result";
 import { CityleagueScheduleType } from "@app/types/cityleague_schedule";
 import { EnvironmentType } from "@app/types/environment";
-import { OfficialEventResponseType, OfficialEventType } from "@app/types/official_event";
+import {
+  OfficialEventType,
+  OfficialEventUpstreamResponseType,
+} from "@app/types/official_event";
 import { getJson } from "@app/utils/coreApi";
 
 // 公式イベント種別のうち「シティリーグ」を指すID。
@@ -75,7 +78,7 @@ async function getOfficialEventsByTerm(
   fromDate: Date | string,
   toDate: Date | string,
 ): Promise<OfficialEventType[]> {
-  const ret = await getJson<OfficialEventResponseType>(
+  const ret = await getJson<OfficialEventUpstreamResponseType>(
     `/api/v1beta/official_events?type_id=${OFFICIAL_EVENT_TYPE_ID_CITYLEAGUE}` +
       `&start_date=${toDateOnly(fromDate)}&end_date=${toDateOnly(toDate)}`,
   );

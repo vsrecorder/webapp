@@ -206,12 +206,28 @@
  * ナビ本体だけでなく、<main> が下に確保する余白や、ナビの上へ浮かせる要素
  * (フローティングボタン / PWAバナー) もこの値を参照する。変えるときはここだけを直す。
  *
- * 値はナビの中身のぶんだけで、画面下端のセーフエリア(Android のジェスチャーバー、
- * iOS のホームインジケータ)は含まない。そちらは参照側が env(safe-area-inset-bottom) を
- * 別に足す(ナビ自身は padding-bottom、<main> やバナーは calc の中で)。
+ * 値はナビの中身のぶんだけで、画面下端のセーフエリア(iOS のホームインジケータ)は含まない。
+ * そちらは参照側が env(safe-area-inset-bottom) を別に足す
+ * (ナビ自身は padding-bottom、<main> やバナーは calc の中で)。
  */
 :root {
   --mobile-nav-height: 4.25rem;
+}
+
+/*
+ * Android だけはセーフエリアを当てにできないので、従来どおり実寸で詰める。
+ *
+ * viewport-fit=cover を入れても、**Android の PWA では env(safe-area-inset-*) が上下左右とも
+ * 0 のまま**だった(2026-09-09 に実機で実測。inset は全て 0px、innerHeight 844 に対し
+ * screen 915 = ウィンドウがセーフエリアの内側に収まっていて広げる先が無い)。
+ * ジェスチャーバーはビューポートの外にあり、そこはシステムが塗るのでこちらから背景を敷けない。
+ * 帯のぶん下部が厚く見えるので、ナビ本体を低くして釣り合いを取る。
+ *
+ * iOS は apple-mobile-web-app-status-bar-style: black-translucent で env が実値を返すため、
+ * この分岐には乗せない(ナビ本体 4.25rem + セーフエリアぶんの padding で下端まで背景が届く)。
+ */
+:root[data-android="true"] {
+  --mobile-nav-height: 3.75rem;
 }
 
 /*
@@ -258,20 +274,28 @@
   :root {
     --mobile-nav-height: 68px; /* 4.25rem @16px と同値 */
   }
+
+  :root[data-android="true"] {
+    --mobile-nav-height: 60px; /* 3.75rem @16px と同値 */
+  }
 }
 
 /*
  * 下部ナビ(MobileNavigation)の項目の上パディング。
  * 項目の中身は アイコン枠 24px + gap 4px + ラベル 10px = 38px なので、
- * (ナビの高さ - 38px) / 2 = 15px がおおよそ中央に見える値。
+ * (ナビの高さ - 38px) / 2 がおおよそ中央に見える値。
  *
- * 端末ごとの分岐は持たない。セーフエリア(Android のジェスチャーバー、iOS のホーム
- * インジケータ)のぶんはナビ自身の padding-bottom が別に確保していて、この
- * --mobile-nav-height の中は「項目だけが入る帯」になっているため、どの環境でも
- * 同じ値で中央に乗る。
+ * iOS / PC は --mobile-nav-height(4.25rem = 68px)の中で (68 - 38) / 2 = 15px。
+ * セーフエリアぶんはナビ自身の padding-bottom が別に確保しているので、この帯の中では
+ * 素直に中央へ置けばよい。
  */
 .mobile-nav-item {
   padding-top: 0.875rem;
+}
+
+/* Android はナビ自体が低いぶん、上パディングも詰めて中身を中央に置く((60 - 38) / 2 = 11px) */
+:root[data-android="true"] .mobile-nav-item {
+  padding-top: 0.6875rem;
 }
 
 /*

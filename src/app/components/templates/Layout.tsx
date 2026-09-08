@@ -8,7 +8,6 @@ import Header from "@app/components/organisms/Layout/Header";
 import Navigation from "@app/components/organisms/Layout/Navigation";
 import PwaBanners from "@app/components/molecules/PWA/PwaBanners";
 import ServiceWorkerRegister from "@app/components/molecules/PWA/ServiceWorkerRegister";
-import SafeAreaProbe from "@app/components/molecules/Debug/SafeAreaProbe";
 import { isDevEnv } from "@app/utils/appIcon";
 
 // dev ツールインジケーターをスマホでドラッグ可能にする回避策(開発時のみ)。
@@ -63,8 +62,6 @@ export default async function TemplateLayout({
           同じ位置に出るので、重ねずにどちらを出すかは PwaBanners が決める */}
       <PwaBanners iconUrl={homeScreenIconUrl} userId={session?.user.id ?? null} />
       <ServiceWorkerRegister />
-      {/* ?safearea を付けたときだけ出る、セーフエリアの実測値。切り分けが済んだら消す */}
-      <SafeAreaProbe />
       {DevToolsDragFix && <DevToolsDragFix />}
     </Providers>
   );

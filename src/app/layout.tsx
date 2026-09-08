@@ -130,6 +130,18 @@ export default function RootLayout({
     <html lang="ja" suppressHydrationWarning data-env={isDevEnv() ? "dev" : "prod"}>
       <body className="overflow-x-hidden bg-white text-foreground dark:bg-neutral-950">
         {/*
+          描画前に Android かどうかを判定し、<html> に data-android を付与する。
+          下部ナビの高さを CSS 側で切り替えるための目印(globals.css 参照)。Android の PWA だけは
+          viewport-fit=cover を入れても env(safe-area-inset-*) が 0 のままで、ジェスチャーバーの
+          ぶんを背景で覆えないため、その厚みを見越してナビ本体を低くしている。
+          useEffect で判定すると初回描画後にナビの高さが変わってガタつくので、ペイント前に確定させる。
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var ua=navigator.userAgent;if(/Android/i.test(ua)&&!/iPad|iPhone|iPod/.test(ua)){document.documentElement.setAttribute('data-android','true');}}catch(e){}})();`,
+          }}
+        />
+        {/*
           dev環境では debugMode を有効にし、GA4のDebugViewでイベントを即時検証できるようにする。
           (gtag('config') に debug_mode を渡すだけで、本番の計測には影響しない)
         */}

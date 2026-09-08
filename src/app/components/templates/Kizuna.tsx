@@ -110,11 +110,11 @@ export default function TemplateKizuna({ userId }: Props) {
      * （default-200 / content1 など）がダーク側に切り替わる。
      */
     <div
-      className={`dark mt-[calc(var(--header-height)*-1)] min-h-svh bg-neutral-950 px-2 pt-[var(--header-height)] text-foreground ${bleedClass}`}
+      className={`dark -mt-14 min-h-svh bg-neutral-950 px-2 pt-14 text-foreground lg:-mt-28 lg:pt-28 ${bleedClass}`}
     >
       {/* ヒーロー：OGP画像と同じ「黄昏に灯がともる」世界観。
           トップページの青系ヒーローとは意図的に色を変え、β版の新機能であることを視覚的に区別する。 */}
-      <section className="-mx-2 mt-[calc(var(--header-height)*-1)] relative overflow-hidden bg-linear-to-br from-indigo-950 via-slate-900 to-neutral-950 px-6 pt-[calc(var(--header-height)+2.5rem)] pb-16 lg:px-8 lg:pt-[calc(var(--header-height)+3rem)] lg:pb-24 text-white">
+      <section className="-mx-2 -mt-14 lg:-mt-28 relative overflow-hidden bg-linear-to-br from-indigo-950 via-slate-900 to-neutral-950 px-6 pt-24 pb-16 lg:px-8 lg:pt-40 lg:pb-24 text-white">
         {/* 焚き火の残光 */}
         <div
           aria-hidden="true"

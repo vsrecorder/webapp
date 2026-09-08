@@ -48,11 +48,10 @@ export default async function TemplateLayout({
               768〜1023px では「余白128px + 上限672px」が二重にかかって実効幅が512〜578pxまで潰れ、
               それより狭い iPad mini(744px・余白8px→実効672px)を下回っていた
               (画面が広いほどコンテンツが狭くなる逆転)。md も lg と同じ px-12 に揃えて解消する。
-              上余白は固定ヘッダーの実寸(--header-height。本体 + 上端の safe-area)に合わせる。
               下余白は下部ナビ(MobileNavigation)の実寸に合わせる: 本体(--mobile-nav-height) +
               safe-area の下端余白。lg以上は下部ナビが消えるので lg:pb-6 に戻す。
-              どちらの高さも globals.css で決まる */}
-          <main className={`app-dot-bg flex-1 p-2 pt-[var(--header-height)] lg:pb-6 min-h-svh w-full ${session ? "md:px-12 xl:px-20 2xl:px-32 pb-[calc(var(--mobile-nav-height)+env(safe-area-inset-bottom))]" : "pb-2"}`}>
+              ナビの高さは globals.css の --mobile-nav-height で決まる(Androidのみ低い) */}
+          <main className={`app-dot-bg flex-1 p-2 pt-14 lg:pt-28 lg:pb-6 min-h-svh w-full ${session ? "md:px-12 xl:px-20 2xl:px-32 pb-[calc(var(--mobile-nav-height)+env(safe-area-inset-bottom))]" : "pb-2"}`}>
             {children}
           </main>
         </div>

@@ -1,4 +1,4 @@
-import type { Metadata, Viewport } from "next";
+import type { Metadata } from "next";
 import { preconnect } from "react-dom";
 
 import "./globals.css";
@@ -22,51 +22,6 @@ const gaId = process.env.FIREBASE_MEASUREMENT_ID ?? "";
 
 const title = SITE_TITLE;
 const description = SITE_DESCRIPTION;
-
-/*
- * ステータスバー / システムバーまわりの指定。ENV で色が変わるので generateViewport で
- * リクエスト時に評価する(静的な viewport にすると manifest.ts と同じくビルド時に
- * 焼き込まれ、dev 環境でも本番の色が出る)。
- */
-export function generateViewport(): Viewport {
-  return {
-    /*
-     * viewport-fit=cover。ページの描画領域を画面いっぱいまで広げ、env(safe-area-inset-*) に
-     * 実際の値を返させるための指定。
-     *
-     * ただし**現状どちらの OS でも実効していない**(2026-09-09 実機実測):
-     *   - Android の PWA は Chrome の WebAPK がウィンドウをシステムバーの内側に収めており、
-     *     cover を付けても広げる先が無い(inset は上下左右とも 0px)
-     *   - iOS は apple-mobile-web-app-status-bar-style: black-translucent が要るが、
-     *     そちらは下記の理由で使わない
-     * 害は無く、ブラウザ側が対応すれば env を使っている箇所(下部ナビ・シート・
-     * フローティング・--header-height)がそのまま効くようになるので残してある。
-     */
-    viewportFit: "cover",
-    /*
-     * ライト / ダークの両対応であることをサーバ描画の時点で宣言する。
-     * 実際のテーマは next-themes がクライアントで `<html>` に付けるが、それはハイドレーション後。
-     * それまでブラウザは「ライトのページ」とみなし、自分が描くもの(スクロールバー、
-     * フォームコントロール)を明るい色で塗る。
-     */
-    colorScheme: "light dark",
-    /*
-     * ステータスバーの色。iOS のホーム画面に追加した PWA では、これがそのまま
-     * ステータスバーの地色になる(指定が無いと白のままで、青やオレンジのヘッダーの上に
-     * 白い帯が乗って見える)。値はヘッダーのグラデーション始点 = manifest の theme_color と
-     * 同じものを使う。片方だけ変えると PWA の起動直後と表示中で色が食い違う。
-     *
-     * 文字色は指定できず、iOS がこの地色の明暗から自動で決める。
-     *
-     * apple-mobile-web-app-status-bar-style: black-translucent は使わない。
-     * ステータスバーを透明にしてヘッダーの色を上まで届かせられる反面、文字色が
-     * 端末のライト / ダーク設定に従うため、ライト設定の端末では**濃い色のヘッダーに
-     * 黒文字**が乗って読めなくなる。描画領域が上へ広がるぶん起動直後にレイアウトが
-     * 動く(下部ナビが少し上がって見える)副作用もあった。
-     */
-    themeColor: isDevEnv() ? "#EA580C" : "#2563EB",
-  };
-}
 
 export async function generateMetadata(): Promise<Metadata> {
   // 固有のOGP画像を持たないページは、この画像を引き継ぐ。
@@ -125,14 +80,10 @@ export default function RootLayout({
       <body className="overflow-x-hidden bg-white text-foreground dark:bg-neutral-950">
         {/*
           描画前に iOS の standalone PWA かどうか / Android かどうかを判定し、
-          <html> に data-ios-pwa / data-android を付与する。下部ナビやシートの下端を
-          CSS 側で詰めるための目印(globals.css 参照)。
-
-          どちらの PWA も env(safe-area-inset-*) が 0 のままで、画面下端の帯
-          (Android のジェスチャーバー / iOS のホームインジケータ)はビューポートの外にある。
-          そこへ背景を敷けない代わりに、帯のぶんを見越して中身の位置を実寸で詰めている。
+          <html> に data-ios-pwa / data-android を付与する。
+          下部ナビ(MobileNavigation)のレイアウトを CSS 側で切り替えるための目印で、
           クライアント判定を useEffect で行うと初回描画後にガタつくため、ペイント前の
-          インラインスクリプトで先に確定させる。
+          インラインスクリプトで先に確定させてちらつきを防ぐ。
         */}
         <script
           dangerouslySetInnerHTML={{

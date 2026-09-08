@@ -176,56 +176,25 @@
 }
 
 /*
- * 固定ヘッダー(Header)の高さ。
- *
- * ヘッダー自身だけでなく、その下端を基準に置くものが全部この値を参照する:
- * <main> の上余白、ヘッダー直下に貼り付く固定バー(大会結果のタブなど)、
- * ヘッダー裏まで背景を伸ばすヒーロー(ホーム / きずな)の負マージン。変えるときはここだけを直す。
- *
- * env(safe-area-inset-top) を足しているのは viewport-fit=cover(layout.tsx の viewport)の
- * ぶん。cover ではビューポートがステータスバーの下まで広がるので、その高さを足しておかないと
- * ヘッダーの中身がステータスバーと重なる。cover でない環境や刻みの無い端末では 0 になり、
- * 素の 3.5rem / 7rem に戻る。
- *
- * 内訳は Header.tsx の HeaderShell と対応する:
- *   〜lg  … 本体 3.5rem(h-14)
- *   lg〜  … デスクトップ非対応の告知バー 2rem(h-8) + 本体 5rem(h-20) = 7rem
- */
-:root {
-  --header-height: calc(3.5rem + env(safe-area-inset-top));
-}
-
-@media (min-width: 64rem) {
-  :root {
-    --header-height: calc(7rem + env(safe-area-inset-top));
-  }
-}
-
-/*
  * 下部ナビ(MobileNavigation)の高さ。
  * ナビ本体だけでなく、<main> が下に確保する余白や、ナビの上へ浮かせる要素
  * (フローティングボタン / PWAバナー) もこの値を参照する。変えるときはここだけを直す。
  *
- * 値はナビの中身のぶんだけで、画面下端のセーフエリア(iOS のホームインジケータ)は含まない。
- * そちらは参照側が env(safe-area-inset-bottom) を別に足す
- * (ナビ自身は padding-bottom、<main> やバナーは calc の中で)。
+ * Android は画面下端に OS のナビゲーションバー(ジェスチャーバー)が居座るぶん
+ * 下部が厚く見えるため、Android のときだけ少し低くする。
+ *
+ * 逆に iOS の standalone PWA は、ホームインジケータの帯がビューポートの外にあって
+ * ナビの下端がそこに接するため、項目がインジケータに寄って窮屈に見える。
+ * 帯を上へ 0.25rem 広げて間を持たせる。
  */
 :root {
   --mobile-nav-height: 4.25rem;
 }
 
-/*
- * Android だけはセーフエリアを当てにできないので、従来どおり実寸で詰める。
- *
- * viewport-fit=cover を入れても、**Android の PWA では env(safe-area-inset-*) が上下左右とも
- * 0 のまま**だった(2026-09-09 に実機で実測。inset は全て 0px、innerHeight 844 に対し
- * screen 915 = ウィンドウがセーフエリアの内側に収まっていて広げる先が無い)。
- * ジェスチャーバーはビューポートの外にあり、そこはシステムが塗るのでこちらから背景を敷けない。
- * 帯のぶん下部が厚く見えるので、ナビ本体を低くして釣り合いを取る。
- *
- * iOS は apple-mobile-web-app-status-bar-style: black-translucent で env が実値を返すため、
- * この分岐には乗せない(ナビ本体 4.25rem + セーフエリアぶんの padding で下端まで背景が届く)。
- */
+:root[data-ios-pwa="true"] {
+  --mobile-nav-height: 4.5rem;
+}
+
 :root[data-android="true"] {
   --mobile-nav-height: 3.75rem;
 }
@@ -275,6 +244,10 @@
     --mobile-nav-height: 68px; /* 4.25rem @16px と同値 */
   }
 
+  :root[data-ios-pwa="true"] {
+    --mobile-nav-height: 72px; /* 4.5rem @16px と同値 */
+  }
+
   :root[data-android="true"] {
     --mobile-nav-height: 60px; /* 3.75rem @16px と同値 */
   }
@@ -285,35 +258,32 @@
  * 項目の中身は アイコン枠 24px + gap 4px + ラベル 10px = 38px なので、
  * (ナビの高さ - 38px) / 2 がおおよそ中央に見える値。
  *
- * iOS の standalone PWA では、ナビの下端がホームインジケータの帯に接しており、その帯が
- * ビューポートの外に余白として続く。項目は自然に上寄りに見えるので、こちらでは下げない
- * (pt-1 相当)。それ以外(iOS Safari ブラウザ / Android / PC 等)は下端の余白がなく
- * 項目が上に張り付いて見えるため、少し下げて見た目を揃える。
+ * iOS の standalone PWA はナビ自体を 4.5rem(72px)に広げてあるぶん、
+ * (72 - 38) / 2 = 17px より上に置いて 11px にする。下端のホームインジケータが
+ * ビューポートの外に続いていて、そのぶん重心が下に寄って見えるため。
+ * それ以外(iOS Safari ブラウザ / PC 等)は 4.25rem(68px)の中で (68 - 38) / 2 = 15px。
  */
 .mobile-nav-item {
   padding-top: 0.875rem;
 }
 
 :root[data-ios-pwa="true"] .mobile-nav-item {
-  padding-top: 0.25rem;
+  padding-top: 0.6875rem; /* 11px */
 }
 
-/* Android はナビ自体が低いぶん、上パディングも詰めて中身を中央に置く((60 - 38) / 2 = 11px) */
+/* Android はナビ自体が低いぶん、上パディングも詰めて中身を中央に置く */
 :root[data-android="true"] .mobile-nav-item {
   padding-top: 0.6875rem;
 }
 
 /*
  * シェアモーダル(記録・パネル/デッキ共通)の固定フッター。
- * iOS の standalone PWA では画面下端がホームインジケータに近く、「シェアする」ボタンの下に
- * 余白が欲しいため下パディングを足す(pb-6 相当)。それ以外は Tailwind の pb-3 のまま。
- *
- * env を引いているのは AppModal(placement: bottom の base に pb-[env(safe-area-inset-bottom)])
- * との二重取りを避けるため。いまはどの環境でも env が 0 なのでこの式は 1.5rem に解決されるが、
- * 将来ブラウザ側が実値を返すようになったら、あちらが確保するぶんこちらは引っ込む。
+ * iOS の standalone PWA では画面下端がホームインジケータ/セーフエリアに近く、
+ * 「シェアする」ボタンの下に余白が欲しいため下パディングを足す(pb-6 相当)。
+ * それ以外(data-ios-pwa 未設定)は Tailwind の pb-3 のままにする。
  */
 :root[data-ios-pwa="true"] .share-modal-footer {
-  padding-bottom: max(0.75rem, calc(1.5rem - env(safe-area-inset-bottom)));
+  padding-bottom: 1.5rem; /* pb-6 */
 }
 
 /* ヘッダーの環境テキストスクロールアニメーション */

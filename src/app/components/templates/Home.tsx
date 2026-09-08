@@ -333,12 +333,9 @@ async function TodayCityleagueSection() {
 export default function TemplateHome() {
   return (
     <>
-      {/* ヒーローセクション：グラデーション背景で全幅に広げる。
-          負マージンで main の上余白（--header-height）ぶんも覆い、ヘッダー裏の白背景を隠す。
-          中身はそのぶん下げ直すので、上パディングはヘッダーの高さ + 2rem。
-          ヘッダーは lg で高くなり、上端のセーフエリアぶんも伸びるが、どちらも変数が持つ */}
+      {/* ヒーローセクション：グラデーション背景で全幅に広げる（-mt-14でmainのpt-14分も覆い、ヘッダー裏の白背景を隠す。lg以上はヘッダーがh-28になる分-mt-28で揃える） */}
       <section
-        className={`relative overflow-hidden -mx-2 mt-[calc(var(--header-height)*-1)] text-white px-6 pt-[calc(var(--header-height)+2rem)] pb-14 lg:px-8 lg:pb-20 flex flex-col items-center gap-5 lg:gap-7 ${
+        className={`relative overflow-hidden -mx-2 -mt-14 lg:-mt-28 text-white px-6 pt-22 pb-14 lg:px-8 lg:pt-36 lg:pb-20 flex flex-col items-center gap-5 lg:gap-7 ${
           isDevEnv()
             ? "bg-linear-to-br from-orange-500 via-orange-600 to-amber-700"
             : "bg-linear-to-br from-blue-600 via-indigo-600 to-violet-700"

@@ -59,7 +59,7 @@ describe("deckCodePostShareUrl", () => {
 
     expect(share.origin + share.pathname).toBe("https://x.com/intent/post");
     expect(share.searchParams.get("text")).toBe(
-      "『オーロンゲ』 をバトレコで公開しました\n#バトレコ",
+      "『オーロンゲ』をバトレコで公開しました\n#バトレコ",
     );
 
     const url = new URL(share.searchParams.get("url") ?? "");

@@ -285,12 +285,17 @@
  * 項目の中身は アイコン枠 24px + gap 4px + ラベル 10px = 38px なので、
  * (ナビの高さ - 38px) / 2 がおおよそ中央に見える値。
  *
- * iOS / PC は --mobile-nav-height(4.25rem = 68px)の中で (68 - 38) / 2 = 15px。
- * セーフエリアぶんはナビ自身の padding-bottom が別に確保しているので、この帯の中では
- * 素直に中央へ置けばよい。
+ * iOS の standalone PWA では、ナビの下端がホームインジケータの帯に接しており、その帯が
+ * ビューポートの外に余白として続く。項目は自然に上寄りに見えるので、こちらでは下げない
+ * (pt-1 相当)。それ以外(iOS Safari ブラウザ / Android / PC 等)は下端の余白がなく
+ * 項目が上に張り付いて見えるため、少し下げて見た目を揃える。
  */
 .mobile-nav-item {
   padding-top: 0.875rem;
+}
+
+:root[data-ios-pwa="true"] .mobile-nav-item {
+  padding-top: 0.25rem;
 }
 
 /* Android はナビ自体が低いぶん、上パディングも詰めて中身を中央に置く((60 - 38) / 2 = 11px) */
@@ -299,11 +304,17 @@
 }
 
 /*
- * 下端シートのセーフエリア対策は AppModal(placement: bottom の base に
- * pb-[env(safe-area-inset-bottom)])へ移した。以前ここにあった .share-modal-footer は、
- * iOS の standalone PWA だけ下パディングを足す端末別の決め打ちだったが、
- * viewport-fit=cover を入れて env が実際の値を返すようになったため不要になった。
+ * シェアモーダル(記録・パネル/デッキ共通)の固定フッター。
+ * iOS の standalone PWA では画面下端がホームインジケータに近く、「シェアする」ボタンの下に
+ * 余白が欲しいため下パディングを足す(pb-6 相当)。それ以外は Tailwind の pb-3 のまま。
+ *
+ * env を引いているのは AppModal(placement: bottom の base に pb-[env(safe-area-inset-bottom)])
+ * との二重取りを避けるため。いまはどの環境でも env が 0 なのでこの式は 1.5rem に解決されるが、
+ * 将来ブラウザ側が実値を返すようになったら、あちらが確保するぶんこちらは引っ込む。
  */
+:root[data-ios-pwa="true"] .share-modal-footer {
+  padding-bottom: max(0.75rem, calc(1.5rem - env(safe-area-inset-bottom)));
+}
 
 /* ヘッダーの環境テキストスクロールアニメーション */
 @keyframes marquee {

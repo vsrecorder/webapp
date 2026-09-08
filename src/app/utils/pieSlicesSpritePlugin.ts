@@ -22,6 +22,7 @@ type ArcGeometry = {
   y: number;
   startAngle: number;
   endAngle: number;
+  circumference: number;
   outerRadius: number;
   innerRadius: number;
 };
@@ -49,8 +50,14 @@ type SliceGeometry = {
  * 一方で中心(x,y)と半径は現在値のままにする。これらは入場アニメでは変化せず、
  * 詳細カードの開閉などで円の大きさ・位置が変わるときだけ動くため、現在値を使った方が
  * 円の変化にバッジが追従する。
+ *
+ * 描画の進み具合(revealRatio)を返すのは、円弧が空から広がる入場アニメのときだけ
+ * (isEntering)。既に描かれているスライスが更新アニメで広がるだけの場合まで進捗を
+ * 不透明度に使うと、データが入れ替わるたびに「割合が増えたスライスのバッジだけが
+ * 薄くなって元に戻る」明滅になってしまう（実測: 使用率が上がったデッキのバッジが
+ * 不透明度0.72まで落ちて約0.7秒かけて戻る）。
  */
-function getSliceGeometry(el: ArcElement): SliceGeometry {
+function getSliceGeometry(el: ArcElement, isEntering: boolean): SliceGeometry {
   const final = el.getProps(["startAngle", "endAngle", "circumference"], true);
   const finalCircumference = final.circumference ?? 0;
   const drawnCircumference = el.circumference ?? 0;
@@ -61,11 +68,25 @@ function getSliceGeometry(el: ArcElement): SliceGeometry {
     outerRadius: el.outerRadius,
     midAngle: (final.startAngle + final.endAngle) / 2,
     revealRatio:
-      finalCircumference > 0
+      isEntering && finalCircumference > 0
         ? Math.min(1, Math.max(0, drawnCircumference / finalCircumference))
         : 1,
   };
 }
+
+/*
+ * スライスごとの「入場アニメの最中か」。
+ *
+ * chart.js は update() を呼んだ時点では要素の現在値を書き換えず、新しい値を
+ * アニメーションに積むだけなので、afterUpdate で読める circumference は
+ * 「そのアニメの開始値」になる。開始値が空(0)＝これから円弧が開くスライスだけを
+ * 入場とみなし、描き切ったところでフラグを下ろす。
+ * (入場アニメの途中で再レンダーによる update が挟まっても入場のまま扱えるよう、
+ *  開始値が0でない更新ではフラグを落とさない)
+ */
+const enteringSlices = new WeakMap<Chart, boolean[]>();
+// 円弧が「空」とみなす大きさ(ラジアン)。chart.js は入場時にちょうど0を入れる
+const EMPTY_CIRCUMFERENCE = 1e-6;
 
 // 画像はスライス間・呼び出し間で使い回すためモジュールスコープでキャッシュする
 const imageCache = new Map<string, HTMLImageElement>();
@@ -272,6 +293,8 @@ type ResizeWatch = {
   size: { w: number; h: number } | null;
   // 直近にバッジを描いたときの描画領域(chartArea)。余白の変更もここで検知する
   area: { w: number; h: number } | null;
+  // 直近の描画で外周バッジを隠していたか。切り替わりは「これから円の大きさが変わる」合図
+  badgesHidden: boolean | null;
   resizing: boolean;
   rafId: number;
   stableFrames: number;
@@ -318,6 +341,7 @@ function watchChartResize(chart: Chart) {
     target,
     size: null,
     area: null,
+    badgesHidden: null,
     resizing: false,
     rafId: 0,
     stableFrames: 0,
@@ -357,20 +381,39 @@ function watchChartResize(chart: Chart) {
  * リサイズ通知(ResizeObserver)だけでは、詳細カードを閉じた直後の1フレームに間に合わない。
  * このときキャンバスの幅はまだ縮んだままなのに余白だけが広い値に戻るため、描画領域が
  * 急に狭くなる。描画領域の変化そのものを合図にして、寸法が落ち着くまで描画を止める。
+ *
+ * さらに、外周バッジの表示/非表示が切り替わったフレームも「これから寸法が変わる」合図
+ * として扱う。表示の切り替えは詳細カードの開閉と連動していて、React の state はその場で
+ * 反映されるのに対し、キャンバスの幅と余白は CSS の transition(300ms)で遅れて追従する。
+ * このフレームは chartArea がまだ切り替え前のままなので上の変化検知には引っかからず、
+ * 「詳細カード表示中の小さい円」に合わせた位置・大きさのバッジが1フレームだけ現れ、
+ * 次のフレームで消えて、寸法が落ち着いてから本来の位置に出る（＝閉じるたびにちらつく）。
+ * 実測(390px・7デッキ): 閉じた直後の約37msだけ、スプライト28px・半径74pxのバッジ7個が
+ * 本来より最大90px内側に描かれ、左端のバッジはキャンバスから見切れていた。
  */
-function isLayoutInFlux(chart: Chart): boolean {
+function isLayoutInFlux(chart: Chart, badgesHidden: boolean): boolean {
   const watch = resizeWatches.get(chart);
   if (!watch) return false;
+
+  const visibilityChanged =
+    watch.badgesHidden !== null && watch.badgesHidden !== badgesHidden;
+  watch.badgesHidden = badgesHidden;
 
   const { chartArea } = chart;
   const w = chartArea.right - chartArea.left;
   const h = chartArea.bottom - chartArea.top;
-  const changed =
+  const areaChanged =
     !!watch.area &&
     (Math.abs(watch.area.w - w) >= 0.5 || Math.abs(watch.area.h - h) >= 0.5);
 
   watch.area = { w, h };
-  if (changed) {
+  if (visibilityChanged) {
+    // 実寸はまだ動き出していない。基準を捨てて、少なくとも寸法が動き出すまでは
+    // 「落ち着いた」と判定されないようにする
+    watch.size = null;
+    watch.area = null;
+  }
+  if (visibilityChanged || areaChanged) {
     watch.resizing = true;
     startSettleLoop(chart, watch);
   }
@@ -517,24 +560,44 @@ export function createPieSlicesSpritePlugin(
 
       watchChartResize(chart);
     },
+    /*
+     * どのスライスが「これから円弧を開く」入場アニメに入ったかを控える。
+     * このフックは chart.js が新しい値をアニメーションに積んだ直後・要素の現在値が
+     * まだ書き換わっていない段階で呼ばれるため、ここで読む circumference は
+     * そのアニメーションの開始値になる（enteringSlices のコメント参照）。
+     */
+    afterUpdate(chart: Chart<"pie">) {
+      const meta = chart.getDatasetMeta(0);
+      const entering = enteringSlices.get(chart) ?? [];
+      meta.data.forEach((el, index) => {
+        const start = (el as unknown as ArcGeometry).circumference ?? 0;
+        // 空から開くスライスだけが入場。既に描かれているスライスが広がる／狭まる
+        // だけの更新では、入場中のフラグを落とさないよう ??= で触れないでおく
+        if (start <= EMPTY_CIRCUMFERENCE) entering[index] = true;
+        else entering[index] ??= false;
+      });
+      entering.length = meta.data.length;
+      enteringSlices.set(chart, entering);
+    },
     beforeDestroy(chart: Chart<"pie">) {
       themeObservers.get(chart)?.disconnect();
       themeObservers.delete(chart);
 
       unwatchChartResize(chart);
+      enteringSlices.delete(chart);
       forgetImageWaiters(chart);
     },
     afterDatasetsDraw(chart: Chart<"pie">) {
+      const props = pieSpriteDatasetProps(chart);
       // 円の大きさがまだ変わっている途中（詳細カードの開閉など）は、はみ出しを避けるため
       // 描画を見送る。落ち着いたら startSettleLoop が改めて描き直す。
-      if (isLayoutInFlux(chart)) {
+      if (isLayoutInFlux(chart, !getSpriteUrls && !!props.hideSliceBadges)) {
         badgeHitAreas.set(chart, []);
         return;
       }
 
       const meta = chart.getDatasetMeta(0);
       const { ctx } = chart;
-      const props = pieSpriteDatasetProps(chart);
       const spriteUrlsAt = (index: number) =>
         getSpriteUrls ? getSpriteUrls(index) : props.hideSliceBadges ? [] : props.spriteUrls?.[index];
       const sliceColorAt = (index: number) =>
@@ -546,7 +609,15 @@ export function createPieSlicesSpritePlugin(
       // 決まらないと確定できない（外周に並びきらない件数なら縮める）ため、
       // ここではまだ寸法を求めない。
       const pending: PendingBadge[] = [];
+      const entering = enteringSlices.get(chart);
       meta.data.forEach((el, index) => {
+        const slice = getSliceGeometry(
+          el as unknown as ArcElement,
+          entering?.[index] ?? true,
+        );
+        // 円弧が開き切ったら入場は終わり。以降の更新では不透明度を動かさない
+        if (entering && slice.revealRatio >= 1) entering[index] = false;
+
         const urls = (spriteUrlsAt(index) ?? []).filter((u): u is string => !!u);
         if (urls.length === 0) return;
 
@@ -561,7 +632,7 @@ export function createPieSlicesSpritePlugin(
           index,
           spriteCount: urls.length,
           images: loaded ? (images as HTMLImageElement[]) : null,
-          slice: getSliceGeometry(el as unknown as ArcElement),
+          slice,
           percentText: percentTextAt(index) ?? null,
         });
       });

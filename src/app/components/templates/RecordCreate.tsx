@@ -37,6 +37,7 @@ import { Card, CardBody } from "@heroui/react";
 import { CgSearch } from "react-icons/cg";
 
 import Select, { components } from "react-select";
+import type { CSSObjectWithLabel } from "react-select";
 import { Modal } from "@app/components/atoms/AppModal";
 import DeckSprites from "@app/components/molecules/DeckSprites";
 import { useReactSelectTheme } from "@app/components/molecules/Select/useReactSelectTheme";
@@ -492,6 +493,26 @@ type Props = {
    */
   initial_decks?: DeckGetAllType;
 };
+
+/*
+ * react-select のコントロール(選択バー)の高さ。
+ *
+ * 既定では emotion が px(38px)で入れる。ところが globals.css には
+ * 「小型タブレット(幅 640〜767px)ではルートの文字サイズを 112.5% にして UI ごと拡大する」
+ * 帯があり、rem で書かれた HeroUI の入力欄(h-10 = 2.5rem)は拡大されるのに、
+ * ここだけ px のまま取り残されてタブ間・骨格との縦位置がずれる。
+ * さらに検索アイコン付きのプレースホルダを持つ選択バーは、拡大時だけ中身に押されて
+ * 38px を超える(実測 41px)ため、骨格が高さを決め打ちできない。
+ *
+ * 同じ 38px を rem で指定して、拡大帯でもフォーム全体が同じ比率で伸びるようにする。
+ * 骨格側の SELECT_HEIGHT(RecordCreateFormSkeleton)と必ず同じ値にすること。
+ */
+const REACT_SELECT_CONTROL_HEIGHT = "2.375rem"; // ルート16px時に 38px
+
+const reactSelectControlStyle = (base: CSSObjectWithLabel): CSSObjectWithLabel => ({
+  ...base,
+  minHeight: REACT_SELECT_CONTROL_HEIGHT,
+});
 
 // URL で指定された開催日を CalendarDate にする。壊れた値や未指定は null
 // (呼び出し側で今日にフォールバックする)。
@@ -1513,6 +1534,7 @@ export default function TemplateRecordCreate({
                     typeof document !== "undefined" ? document.body : null
                   }
                   styles={{
+                    control: reactSelectControlStyle,
                     menuPortal: (base) => ({ ...base, zIndex: 9999 }),
                     // メニューがコントロール幅を超えて横に広がりページ全体のレイアウトを
                     // 崩さないよう、明示的に横方向のはみ出しをクリップする
@@ -1712,6 +1734,7 @@ export default function TemplateRecordCreate({
                       typeof document !== "undefined" ? document.body : null
                     }
                     styles={{
+                      control: reactSelectControlStyle,
                       menuPortal: (base) => ({ ...base, zIndex: 9999 }),
                       // メニューがコントロール幅を超えて横に広がりページ全体のレイアウトを
                       // 崩さないよう、明示的に横方向のはみ出しをクリップする
@@ -1822,6 +1845,7 @@ export default function TemplateRecordCreate({
                       typeof document !== "undefined" ? document.body : null
                     }
                     styles={{
+                      control: reactSelectControlStyle,
                       menuPortal: (base) => ({ ...base, zIndex: 9999 }),
                       // メニューがコントロール幅を超えて横に広がりページ全体のレイアウトを
                       // 崩さないよう、明示的に横方向のはみ出しをクリップする
@@ -1991,9 +2015,10 @@ export default function TemplateRecordCreate({
                *   Tonamel     : イベントID欄 40px ＋ ここ           114px = 154px
                *                 (イベント名 24px + gap 6px + 画像 72px + pb-3 12px)
                *
-               * 画像の枠を w-2/5 のような幅比にすると高さが端末幅で変わり、揃うのが
-               * 特定の幅のときだけになる。公式イベントのサムネイル(h-18 = 72px)と
-               * 同じ高さになるよう w-32(128px)× aspect-video で固定する。
+               * 画像の枠を w-2/5 のような「画面幅に対する比」にすると高さが端末幅で変わり、
+               * 揃うのが特定の幅のときだけになる。w-36(9rem = 144px)× aspect-video で
+               * 81px に確定させ、余りの 3px を下余白(pb-0.75)で埋める。
+               * どれも rem なので、ルートの文字サイズを上げる帯でも比率のまま拡大される。
                */}
               <div className="flex flex-col items-center gap-1.5">
                 <div className="flex justify-center w-4/5">
@@ -2003,7 +2028,7 @@ export default function TemplateRecordCreate({
                   </span>
                   <span>』</span>
                 </div>
-                <div className="w-32 pb-3">
+                <div className="w-36 pb-0.75">
                   <div className="relative w-full aspect-video overflow-hidden rounded-lg">
                     {!isValidatedTonamelEventId && (
                       <Skeleton className="absolute inset-0" />
@@ -2066,6 +2091,7 @@ export default function TemplateRecordCreate({
                       typeof document !== "undefined" ? document.body : null
                     }
                     styles={{
+                      control: reactSelectControlStyle,
                       menuPortal: (base) => ({ ...base, zIndex: 9999 }),
                       // メニューがコントロール幅を超えて横に広がりページ全体のレイアウトを
                       // 崩さないよう、明示的に横方向のはみ出しをクリップする
@@ -2176,6 +2202,7 @@ export default function TemplateRecordCreate({
                       typeof document !== "undefined" ? document.body : null
                     }
                     styles={{
+                      control: reactSelectControlStyle,
                       menuPortal: (base) => ({ ...base, zIndex: 9999 }),
                       // メニューがコントロール幅を超えて横に広がりページ全体のレイアウトを
                       // 崩さないよう、明示的に横方向のはみ出しをクリップする
@@ -2389,6 +2416,7 @@ export default function TemplateRecordCreate({
                       typeof document !== "undefined" ? document.body : null
                     }
                     styles={{
+                      control: reactSelectControlStyle,
                       menuPortal: (base) => ({ ...base, zIndex: 9999 }),
                       // メニューがコントロール幅を超えて横に広がりページ全体のレイアウトを
                       // 崩さないよう、明示的に横方向のはみ出しをクリップする
@@ -2498,6 +2526,7 @@ export default function TemplateRecordCreate({
                       typeof document !== "undefined" ? document.body : null
                     }
                     styles={{
+                      control: reactSelectControlStyle,
                       menuPortal: (base) => ({ ...base, zIndex: 9999 }),
                       // メニューがコントロール幅を超えて横に広がりページ全体のレイアウトを
                       // 崩さないよう、明示的に横方向のはみ出しをクリップする

@@ -19,8 +19,8 @@ import { RecordCreateTab } from "@app/utils/recordCreatePrefs";
  * 寸法は実体を描いた HTML から採っている:
  *   DatePicker size="sm" radius="none" → h-8 / 角丸なし
  *   イベントID・イベント名の Input radius="none" → h-10 / 角丸なし
- *   react-select のコントロール → min-height 38px(emotion が注入)
- *   レギュレーションのセグメント → h-8.5(枠1px + py-2 + leading-4)
+ *   react-select のコントロール → 2.375rem(実体が styles.control で固定)
+ *   レギュレーションのセグメント → calc(2rem + 2px)(leading-4 + py-2 + 枠1px×2)
  *   作成ボタン(既定 md) → h-10 / rounded-medium
  *
  * タブによって違うのは2番目のブロック(イベントの指定)だけで、その下の
@@ -29,13 +29,19 @@ import { RecordCreateTab } from "@app/utils/recordCreatePrefs";
  * 手順ラベルの付いた5つの項目は、実体と同じく「flex flex-col gap-1 pt-1」で揃える。
  */
 
-// react-select のコントロール(既定 minHeight 38px)。Tailwind の刻みに無いので実寸で置く
-const SELECT_HEIGHT = "h-[38px]";
+/*
+ * react-select のコントロール。実体は styles.control で 2.375rem(=38px)に固定してある
+ * (templates/RecordCreate の REACT_SELECT_CONTROL_HEIGHT)。px で書くと、ルートの
+ * 文字サイズを上げる帯(小型タブレット)で実体だけ拡大されてズレるので rem で持つ。
+ */
+const SELECT_HEIGHT = "h-[2.375rem]";
 
 /*
  * レギュレーションのセグメント。実体(RegulationSegmentedControl)と同じ枠に、
  * 取得前のフォールバック(スタンダード/エクストラ/殿堂/その他)と同じ4つを置く。
- * セグメント1つの高さは leading-4(16px) + py-2(16px) + 枠(2px) = 34px。
+ * セグメント1つの高さは leading-4(1rem) + py-2(1rem) + 枠(2px) = calc(2rem + 2px) = 34px。
+ * 枠だけが rem ではないので、h-8.5(2.125rem)と書くとルートの文字サイズを上げる帯で
+ * 0.25px ずれる。calc でそのまま持つ。
  */
 function RegulationSkeleton() {
   return (
@@ -44,7 +50,7 @@ function RegulationSkeleton() {
 
       <div className="grid grid-cols-4 gap-1 rounded-xl border border-divider bg-default-100 p-1">
         {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-8.5 rounded-lg" />
+          <Skeleton key={i} className="h-[calc(2rem+2px)] rounded-lg" />
         ))}
       </div>
     </div>
@@ -147,7 +153,7 @@ function OfficialEventFieldSkeleton() {
 /*
  * Tonamel: イベントIDの入力＋『イベント名』とカバー画像。
  * 『イベント名』の行も実体と同じ文言をそのまま置く(バーにすると行が 24px→20px に縮む)。
- * カバー画像の枠は実体と同じ w-32(128px)× aspect-video = 72px 固定
+ * カバー画像の枠は実体と同じ w-36(144px)× aspect-video = 81px ＋ pb-0.75(3px)
  * (公式イベントのタブと「3 デッキ」の位置を揃えるため。実体のコメント参照)。
  */
 function TonamelEventFieldSkeleton() {
@@ -167,7 +173,7 @@ function TonamelEventFieldSkeleton() {
           <span className="truncate">イベント名</span>
           <span>』</span>
         </div>
-        <div className="w-32 pb-3">
+        <div className="w-36 pb-0.75">
           <Skeleton className="w-full aspect-video rounded-lg" />
         </div>
       </div>

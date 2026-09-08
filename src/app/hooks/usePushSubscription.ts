@@ -94,6 +94,32 @@ async function postSubscription(subscription: PushSubscription): Promise<boolean
   return res.ok;
 }
 
+/*
+ * 許諾済みなのに購読が消えている状態から、購読を作り直す。
+ *
+ * 購読はブラウザ側の都合(鍵のローテーション、プッシュサービスでの失効)で無くなることがある。
+ * 放っておくと通知だけが静かに止まり、permission は "granted" のままなので
+ * soft ask(PushPermissionPrompt は permission === "default" のときしか出ない)にも掛からず、
+ * プロフィールの「通知」から入れ直すまで戻らない。
+ *
+ * 許諾は済んでいるので subscribe() は許諾ダイアログを出さない = ユーザーの操作を伴わずに直せる。
+ * SW 側にも pushsubscriptionchange の受け口があるが、Chrome では発火しないことがあるため、
+ * アプリを開いたこちら側でも確実に拾う。
+ */
+async function resubscribe(
+  registration: ServiceWorkerRegistration,
+): Promise<PushSubscription | null> {
+  const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  if (!vapidPublicKey) return null;
+
+  return registration.pushManager
+    .subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+    })
+    .catch(() => null);
+}
+
 export function usePushSubscription() {
   const [ready, setReady] = useState(false);
   const [support, setSupport] = useState<PushSupport>("unsupported");
@@ -124,13 +150,33 @@ export function usePushSubscription() {
         setPermission(Notification.permission);
         setSubscribed(existing !== null && granted);
 
-        // 1日1回だけサーバへ再送して同期する(失敗しても表示には影響させない)
-        if (existing && granted) {
-          const today = todayJST();
-          if (localStorage.getItem(RESYNC_KEY) !== today) {
-            const ok = await postSubscription(existing).catch(() => false);
-            if (ok) localStorage.setItem(RESYNC_KEY, today);
+        if (!granted) return;
+
+        // 許諾済みなのに購読が無いのは、ブラウザ側で失効したということ。作り直して繋ぎ直す。
+        //
+        // 「自分で解除した」場合と区別する必要がある(区別しないと、通知をオフにした直後の
+        // リロードで勝手に購読が復活する)。unsubscribe() は RESYNC_KEY を消すので、
+        // **RESYNC_KEY が残っている = かつて購読していて、自分では解除していない**を条件にする。
+        let subscription = existing;
+        // 作り直した購読は endpoint が変わっているため、日次の間引きに関係なく送る
+        let mustPost = false;
+
+        if (!subscription && localStorage.getItem(RESYNC_KEY) !== null) {
+          subscription = await resubscribe(registration);
+          if (cancelled) return;
+          if (subscription) {
+            setSubscribed(true);
+            mustPost = true;
           }
+        }
+
+        if (!subscription) return;
+
+        // 1日1回だけサーバへ再送して同期する(失敗しても表示には影響させない)
+        const today = todayJST();
+        if (mustPost || localStorage.getItem(RESYNC_KEY) !== today) {
+          const ok = await postSubscription(subscription).catch(() => false);
+          if (ok) localStorage.setItem(RESYNC_KEY, today);
         }
       } catch {
         // SW が使えない(登録失敗・タイムアウト)なら購読もできないので非対応として扱う
@@ -205,6 +251,9 @@ export function usePushSubscription() {
         }).catch(() => {});
         await subscription.unsubscribe();
       }
+      // このキーは再同期の日付であると同時に「自分でオフにしたか」の印も兼ねる。
+      // 消しておかないと、次にこのページを開いたときの自動復旧(resubscribe)が
+      // ブラウザ都合の失効と区別できず、オフにしたはずの通知が復活する。
       localStorage.removeItem(RESYNC_KEY);
       setSubscribed(false);
       return true;

@@ -25,8 +25,8 @@ const isDev = process.env.NODE_ENV !== "production";
 
 // Content-Security-Policy。
 // script-src / style-src の 'unsafe-inline' は現状の作りでは外せない:
-//   - layout.tsx が iOS PWA 判定のインラインスクリプトをペイント前に実行している
 //   - GoogleAnalytics(@next/third-parties)がインラインスクリプトを出す
+//   - Next.js 自身が __next_f のブートストラップをインラインで出す
 //   - experimental.inlineCss で CSS を <style> として埋め込んでいる
 // nonce化にはリクエストごとの middleware が要るため、ここでは
 // 「どこへ通信できるか」「誰に埋め込ませるか」を絞ることを主眼に置く。

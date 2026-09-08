@@ -503,7 +503,7 @@ export default function PanelShareModal({
                   スクロール範囲の外へ押し出されて見えなくなるため、本文(スクロール領域)から
                   出してフッターに置き、常に見える・押せる状態にする。
                   画像の準備が終わるまではスピナー付きで無効化し、準備完了までシェアさせない。 */}
-              <ModalFooter className="share-modal-footer border-t border-divider px-4 pt-3 pb-3">
+              <ModalFooter className="border-t border-divider px-4 pt-3 pb-3">
                 <Button
                   className="w-full"
                   color="primary"

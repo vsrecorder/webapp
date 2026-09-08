@@ -60,7 +60,10 @@ function HeaderShell({
     : "bg-linear-to-br from-blue-600/90 via-indigo-600/90 to-violet-700/90";
 
   return (
-    <header className="fixed z-50 top-0 left-0 right-0 h-14 lg:h-28">
+    // 高さは globals.css の --header-height（本体 + 上端のセーフエリア）。
+    // 下端を基準に置くもの（<main> の上余白・ヘッダー直下の固定バー・ヒーローの負マージン）も
+    // 同じ変数を見ているので、高さを変えるときは変数側だけを直す。
+    <header className="fixed z-50 top-0 left-0 right-0 h-[var(--header-height)]">
       {/*
         iOS の standalone PWA では、position:fixed な要素に直接 backdrop-blur を
         かけると、その中の transform アニメーション（マーキー）が再描画されなく
@@ -71,20 +74,26 @@ function HeaderShell({
         レイヤーはパディングボックスまでしか広がらないため境界線の1pxだけ背景が
         抜け、白15%が背後のページ背景に乗って「ほぼ白い線」になる。利用規約など
         直下が濃色のページでは、それがヘッダーとの隙間に見えてしまう。
+
+        上端のセーフエリアぶんを下げるパディングを header 自身ではなく内側の器に持たせるのも
+        同じ理由。header に付けると inset-0 がパディングボックス止まりになり、
+        ステータスバーの下だけ色が抜けて素のページ背景が覗く。
       */}
       <div
         className={`absolute inset-0 border-b border-white/15 ${gradientClass} backdrop-blur-md`}
       />
-      {/* 本サービスはモバイル専用のため、デスクトップ幅（lg以上）でのみ非対応の旨を表示する */}
-      <div
-        className={`relative hidden lg:flex items-center justify-center h-8 bg-amber-400 text-amber-950 text-xs font-semibold ${hasSidebar ? "lg:pl-56" : ""}`}
-      >
-        本サービスはモバイル専用です。デスクトップでの動作は保証されません。
-      </div>
-      <div
-        className={`relative max-w-7xl mx-auto flex items-center justify-between px-4 h-14 lg:h-20 ${hasSidebar ? "lg:pl-56" : ""}`}
-      >
-        {children}
+      <div className="relative h-full pt-[env(safe-area-inset-top)]">
+        {/* 本サービスはモバイル専用のため、デスクトップ幅（lg以上）でのみ非対応の旨を表示する */}
+        <div
+          className={`hidden lg:flex items-center justify-center h-8 bg-amber-400 text-amber-950 text-xs font-semibold ${hasSidebar ? "lg:pl-56" : ""}`}
+        >
+          本サービスはモバイル専用です。デスクトップでの動作は保証されません。
+        </div>
+        <div
+          className={`max-w-7xl mx-auto flex items-center justify-between px-4 h-14 lg:h-20 ${hasSidebar ? "lg:pl-56" : ""}`}
+        >
+          {children}
+        </div>
       </div>
     </header>
   );

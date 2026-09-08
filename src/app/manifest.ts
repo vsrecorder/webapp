@@ -17,6 +17,11 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: env == "dev" ? "開発版バトレコ" : "バトレコ",
     description: "ポケカプレイヤーのための対戦記録サービス",
     start_url: "/",
+    // id はブラウザがインストール済みアプリを見分ける鍵。省略すると start_url が代わりに
+    // 使われるため、将来 start_url を変えた瞬間に「別のアプリ」と判定され、ホーム画面に
+    // 追加済みのものとは別のアイコンが増える(既存の WebAPK は更新されず取り残される)。
+    // start_url と独立させておけば、行き先を変えても同じアプリのままでいられる。
+    id: "/",
     display: "standalone",
     // background_color は PWA 起動スプラッシュの地色。**manifest 用アイコンの地色と完全に同じ値**
     // にすること。ここがズレると、アイコンの外形(OS スプラッシュでは直径 160dp の円、Chrome の

@@ -19,6 +19,18 @@ self.addEventListener("activate", (event) => {
 
 // ---- Web Push(B-1: B1_B2_PUSH_NOTIFICATION_PLAN.md §5.4a) ----
 //
+// 購読端末の種別。core-apiserver の entity.PushPlatform* と一致させる
+// (アプリ側の utils/platform.ts の detectPushPlatform と同じ分類)。
+// iOS はホーム画面に追加した PWA でしか Push が動かないので、iOS と分かれば ios-pwa でよい。
+// iPadOS が返す Mac の UserAgent は、SW から maxTouchPoints を見られないため区別できず
+// desktop になる。分類は計測用なので、この取りこぼしは許容する。
+function detectPushPlatform() {
+  const ua = navigator.userAgent;
+  if (/iPad|iPhone|iPod/.test(ua)) return "ios-pwa";
+  if (/Android/i.test(ua)) return "android";
+  return "desktop";
+}
+
 // push のペイロードは core-apiserver(infrastructure/push_sender.go の pushMessage)が作る
 // {title, body, url, deliveryId, tag} の JSON。キー名はあちらと一致させること。
 //
@@ -40,7 +52,10 @@ self.addEventListener("push", (event) => {
       await self.registration.showNotification(title, {
         body: data.body || "",
         icon: "/icon-192x192.png",
-        badge: "/icon-192x192.png",
+        // badge はステータスバーに出る小さな印。Android は**アルファチャンネルだけ**を
+        // 見てシルエットを作るため、icon-*.png のような不透明な画像を渡すと
+        // 塗りつぶされた四角になる。透過地に白のロゴマークだけを置いた専用画像を使う。
+        badge: "/notification-badge.png",
         data: { url: data.url || "/", deliveryId },
         // 同じキャンペーンの通知が溜まらないよう、種類ごとに置き換える
         tag: data.tag || "vsrecorder",
@@ -98,6 +113,47 @@ self.addEventListener("notificationclick", (event) => {
         // 下の openWindow に任せる
       }
       return self.clients.openWindow(target.href);
+    })(),
+  );
+});
+
+// ---- 購読の張り直し ----
+//
+// ブラウザ側の都合(鍵のローテーション、プッシュサービス側での失効)で購読が差し替わると
+// このイベントが飛ぶ。拾わないと endpoint が変わったことをサーバが知れず、
+// 通知だけが静かに止まる。
+//
+// Chrome はこのイベントを仕様どおりに発火しないことがあるため、これ単独には頼らない。
+// アプリを開いたときの復旧は hooks/usePushSubscription が別に持っていて、こちらは
+// 「アプリを開かなくても直せる」ぶんの上乗せ。
+self.addEventListener("pushsubscriptionchange", (event) => {
+  event.waitUntil(
+    (async () => {
+      // 新しい購読が渡ってくればそれを使う。無ければ古い購読と同じ鍵で作り直す。
+      // SW からは NEXT_PUBLIC_VAPID_PUBLIC_KEY を読めないので、鍵は oldSubscription から引き継ぐ
+      // (引き継げなければ諦める。アプリを開いたときにクライアント側が作り直す)。
+      const key = event.oldSubscription?.options?.applicationServerKey;
+      let subscription = event.newSubscription ?? null;
+
+      if (!subscription && key) {
+        subscription = await self.registration.pushManager
+          .subscribe({ userVisibleOnly: true, applicationServerKey: key })
+          .catch(() => null);
+      }
+
+      if (!subscription) return;
+
+      const json = subscription.toJSON();
+      await fetch("/api/users/push/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          endpoint: json.endpoint,
+          keys: json.keys,
+          platform: detectPushPlatform(),
+        }),
+        credentials: "include",
+      }).catch(() => {});
     })(),
   );
 });

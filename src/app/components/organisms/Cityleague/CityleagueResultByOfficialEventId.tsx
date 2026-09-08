@@ -81,11 +81,11 @@ export default function CityleagueResultByOfficialEventId({
       {/*
         SEO流入で直接開かれることが多いため、一覧への導線を先頭に置く。
         入賞者が16名並ぶと縦に長くなるので、スクロールしても常に戻れるよう sticky にする。
-        top はヘッダー（fixed / h-14・lg:h-28）の直下に合わせる。
+        top はヘッダー（fixed / --header-height）の直下に合わせる。
         Header と同様、iOS の standalone PWA で backdrop-blur が悪さをしないよう、
         ぼかし背景は別レイヤー（absolute）に分離する。
       */}
-      <div className="sticky top-14 z-40 -mx-2 lg:top-28">
+      <div className="sticky top-[var(--header-height)] z-40 -mx-2">
         {/* デッキ画像が裏を流れても文字が埋もれないよう、不透明度を上げ、下端に境界線を引く */}
         <div className="absolute inset-0 border-b border-default-200/60 bg-white/90 backdrop-blur-md dark:bg-neutral-950/90" />
         <div className="relative w-fit px-2 py-2">

@@ -90,17 +90,23 @@ const reducedMotion: Variants = {
 };
 
 /*
- * 下寄せシート(placement: bottom)を画面下端に貼り付けるための打ち消し。
+ * 下寄せシート(placement: bottom)を画面下端に貼り付けるための打ち消しと、下端の逃げ。
  *
- * HeroUI の base スロットは `my-1 sm:my-16` を持つ。呼び出し側はモバイル向けに
+ * sm:my-0 … HeroUI の base スロットは `my-1 sm:my-16` を持つ。呼び出し側はモバイル向けに
  * `my-0` を指定しているが、`sm:my-16` は別ブレークポイントなので tailwind-merge では
  * 消えず、sm(640px)以上——タブレットやデスクトップ——でだけ上下に 64px の余白が残る。
  * シートは下端に貼り付く前提(rounded-b-none)なので、下に隙間が空くと浮いて見える。
  *
+ * pb-[env(safe-area-inset-bottom)] … viewport-fit=cover(layout.tsx)により、シートの下端は
+ * Android のジェスチャーバー / iOS のホームインジケータの**下**まで伸びる。そのぶんを
+ * 内側に確保しないと、最下部のボタンや行がバーに隠れて押せなくなる。高さを指定している
+ * シート(h-[min(100dvh-…)])でも border-box なので、シート自体は伸びず中身が詰まるだけ。
+ * 刻みの無い端末では 0 になり、従来と同じ見た目に戻る。
+ *
  * classNames.base は className より前に連結される(cn(classNames.base, className))ため、
- * 個別に上下マージンを持たせたいモーダルは className 側で上書きできる。
+ * 個別に上下マージン・下パディングを持たせたいモーダルは className 側で上書きできる。
  */
-const BOTTOM_SHEET_BASE = "sm:my-0";
+const BOTTOM_SHEET_BASE = "sm:my-0 pb-[env(safe-area-inset-bottom)]";
 
 function getMotionVariants(placement: ModalProps["placement"], shouldReduceMotion: boolean) {
   if (shouldReduceMotion) return reducedMotion;

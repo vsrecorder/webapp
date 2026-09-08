@@ -36,12 +36,14 @@ export default function CityleagueBrowseBar({ children }: { children: React.Reac
 
           負の上マージンは、実測で入る marginTop（バーの貼り付き位置と、空き枠が
           流れの中で本来始まる位置との差）の既定値。これが無いとハイドレーションで
-          marginTop が入った瞬間に一覧が跳ねる。値は上の余白の合計から決まる:
-            〜lg : pt-14(56) + pt-12(48) = 104px → top-25(100)  - 104 =  -4px(-mt-1)
-            lg〜 : pt-28(112) + pt-12(48) = 160px → lg:top-38(152) - 160 = -8px(-mt-2)
+          marginTop が入った瞬間に一覧が跳ねる。値は上の余白の合計から決まる
+          （H = --header-height。ヘッダー本体 + 上端のセーフエリア）:
+            〜lg : H + pt-12(48) に対し、貼り付きは H + 2.75rem(44) → -4px(-mt-1)
+            lg〜 : H + pt-12(48) に対し、貼り付きは H + 2.5rem(40)  → -8px(-mt-2)
+          H は両辺に等しく乗るので、セーフエリアの有無で差は変わらない。
           実測値と一致することを確認済み。あくまで近似で、ハイドレーション後は
-          実測値が上書きする。上の余白（Layout の pt-14/lg:pt-28 や pt-12）や
-          top-25/lg:top-38 を変えるときはここも合わせること。 */}
+          実測値が上書きする。上の余白（Layout の pt-[--header-height] や pt-12）や
+          下のバーの top を変えるときはここも合わせること。 */}
       <div ref={slotRef} aria-hidden className="-mt-1 lg:-mt-2" style={{ height: slotHeight }} />
 
       {/* 背景は不透明にする（半透明だと下を流れるカードが透けて揺らぐ）。
@@ -49,11 +51,12 @@ export default function CityleagueBrowseBar({ children }: { children: React.Reac
           backdrop-blur を外したので、iOS の standalone PWA 対策で分けていた
           「絶対配置の背景レイヤー」も不要になり、バー自身に背景を持たせている。
           position は付けない。実測が入るまでは流れの中に置き、幅を親から決めさせる。
-          fixed 化は sync が行う。top-25/lg:top-38・z-40 は fixed になって初めて効く。
-          top はすぐ上のリーグ種別タブ（fixed）の下端に合わせた値。 */}
+          fixed 化は sync が行う。top・z-40 は fixed になって初めて効く。
+          top はすぐ上のリーグ種別タブ（fixed）の下端 = ヘッダー下端(--header-height) +
+          タブの pt-1(4px、lg では 0) + タブ本体 2.5rem(40px) に合わせた値。 */}
       <div
         ref={barRef}
-        className="app-dot-bg-plain top-25 z-40 border-b border-default-200/60 lg:top-38"
+        className="app-dot-bg-plain top-[calc(var(--header-height)+2.75rem)] z-40 border-b border-default-200/60 lg:top-[calc(var(--header-height)+2.5rem)]"
       >
         {children}
       </div>

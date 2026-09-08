@@ -18,7 +18,12 @@ export default function CityleagueIndexSkeleton({
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-3 pt-4 pb-8">
       {/* CityleagueHubHeader 相当 */}
       <div className="flex flex-col gap-2">
-        <Skeleton className="h-4 w-28 rounded-md" />
+        {/*
+         * 実体の戻るリンク(BackLink)。ピル型で高さ 2rem(py-1.5 + text-sm の行 20px)。
+         * ここを 1 行ぶんの高さで置くと、実体へ切り替わった瞬間に見出し以下が
+         * まとめて下へずれる。幅は索引ページの「シティリーグ結果」で実測 155px。
+         */}
+        <Skeleton className="h-8 w-40 rounded-full" />
 
         <div className="flex flex-col gap-1">
           <Skeleton className="h-3 w-16 rounded-md" />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { SetStateAction, Dispatch } from "react";
 
 import { ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
@@ -40,14 +40,16 @@ export default function PokemonSpriteModal({
   const [draft1, setDraft1] = useState<PokemonSpriteType | null>(null);
   const [draft2, setDraft2] = useState<PokemonSpriteType | null>(null);
 
-  // モーダルを開いた瞬間に、外部の選択状態(1枚目/2枚目)を下書きへ取り込む
-  useEffect(() => {
-    if (!isOpen) return;
-
-    setDraft1(pokemonSprite1);
-    setDraft2(pokemonSprite2);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
+  // モーダルを開いた瞬間に、外部の選択状態(1枚目/2枚目)を下書きへ取り込む。
+  // effect で取り込むと前回の下書きでの描画が一度挟まるので、前回の開閉を控えて描画中に取り込む
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (wasOpen !== isOpen) {
+    setWasOpen(isOpen);
+    if (isOpen) {
+      setDraft1(pokemonSprite1);
+      setDraft2(pokemonSprite2);
+    }
+  }
 
   const handleSelect = (slot: SpriteSlot, sprite: PokemonSpriteType | null) => {
     if (slot === 1) setDraft1(sprite);

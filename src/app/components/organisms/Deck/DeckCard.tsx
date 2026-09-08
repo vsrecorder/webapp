@@ -39,6 +39,7 @@ import {
   REOPEN_DECK_MODAL_DECK_ID,
   REOPEN_DECK_MODAL_WITH_RECORDS,
 } from "@app/utils/deckModalReopen";
+import { readSessionStorage, writeSessionStorage } from "@app/utils/sessionStorageStore";
 import { formatJSTDateWithWeekday, isZeroDate } from "@app/utils/date";
 
 // デッキ詳細モーダルは子モーダル9個と chart.js などを抱える。
@@ -130,10 +131,13 @@ export default function DeckCard({
   const [galleryExpanded, setGalleryExpanded] = useState(false);
 
   // 表示モードを切り替えたら、両方の開閉状態を初期化（閉じた状態）に戻す。
-  useEffect(() => {
+  // effect で戻すと開いたままの描画が一度挟まるので、前回の表示モードを控えて描画中に戻す
+  const [prevView, setPrevView] = useState(view);
+  if (prevView !== view) {
+    setPrevView(view);
     setListExpanded(false);
     setGalleryExpanded(false);
-  }, [view]);
+  }
 
   // ギャラリー表示のヒーロー画像の読み込み状態
   const [heroImageLoaded, setHeroImageLoaded] = useState(false);
@@ -160,14 +164,15 @@ export default function DeckCard({
   // 伝える（StrictMode の二重マウントで state 同期が壊れるのを避けるため）。
   useEffect(() => {
     if (!enableShowDeckModal || !deck) return;
-    const pendingDeckId = sessionStorage.getItem(REOPEN_DECK_MODAL_DECK_ID);
+    const pendingDeckId = readSessionStorage(REOPEN_DECK_MODAL_DECK_ID);
     if (pendingDeckId && pendingDeckId === deck.id) {
-      sessionStorage.removeItem(REOPEN_DECK_MODAL_DECK_ID);
+      // 消すと一覧(Decks)側の再開対象もその場で外れる
+      writeSessionStorage(REOPEN_DECK_MODAL_DECK_ID, null);
       // 記録一覧モーダル発の遷移だった場合のみ、記録一覧モーダルも開き直す。
       // デッキモーダルの「詳細」「記録する」発の遷移では立っておらず、
       // デッキモーダルだけが再開する。
-      const withRecords = sessionStorage.getItem(REOPEN_DECK_MODAL_WITH_RECORDS) === "1";
-      sessionStorage.removeItem(REOPEN_DECK_MODAL_WITH_RECORDS);
+      const withRecords = readSessionStorage(REOPEN_DECK_MODAL_WITH_RECORDS) === "1";
+      writeSessionStorage(REOPEN_DECK_MODAL_WITH_RECORDS, null);
       if (withRecords) {
         // ShowDeckModal が開いたときに記録一覧モーダルも開くための意図フラグ
         sessionStorage.setItem("reopenRecordsModalForDeckId", deck.id);

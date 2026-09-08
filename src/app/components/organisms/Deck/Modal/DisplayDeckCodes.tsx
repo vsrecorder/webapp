@@ -1,6 +1,6 @@
 import { SetStateAction, Dispatch } from "react";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   ModalContent,
@@ -50,6 +50,7 @@ import {
 } from "@app/types/deck_code";
 
 import { useModalDragToClose } from "@app/hooks/useModalDragToClose";
+import { useSeededResource } from "@app/hooks/useSeededResource";
 import { useModalEntered } from "@app/hooks/useModalEntered";
 import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
 import { closingPassthroughClassNames } from "@app/utils/modal";
@@ -98,9 +99,18 @@ export default function DisplayDeckCodesModal({
   onOpenCreateDeckCode,
 }: Props) {
   const [displayDeckCode, setDisplayDeckCode] = useState<DeckCodeType | null>(null);
-  const [displayDeckCodes, setDisplayDeckCodes] = useState<DeckCodeType[] | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  // バージョン一覧。開いている間だけ取り(閉じている間は鍵なし)、失敗時は retry で取り直す。
+  // 作成・削除・最新化の結果は setData で一覧へ反映する
+  const {
+    data: displayDeckCodes,
+    setData: setDisplayDeckCodes,
+    loading,
+    error,
+    retry: loadDeckCodes,
+  } = useSeededResource(
+    isOpen && deck?.id && deck.latest_deck_code?.id ? deck.id : null,
+    fetchDeckCodesByDeckId,
+  );
 
   const {
     isOpen: isOpenForDeleteDeckCodeModal,
@@ -143,60 +153,36 @@ export default function DisplayDeckCodesModal({
 
   // 一覧のスクロールコンテナ（ModalBody）。新バージョン追加時に最上部へ戻すために使う
   const bodyRef = useRef<HTMLDivElement | null>(null);
-  // 一覧の先頭に新バージョンを差し込んだことを次の描画へ伝えるフラグ
-  const shouldScrollToTopRef = useRef<boolean>(false);
+  // 一覧の先頭に新バージョンを差し込んだ回数。進むたびに描画後、最上部へ戻す
+  const [scrollToTopRequest, setScrollToTopRequest] = useState(0);
 
-  // バージョン一覧だけを取得（失敗時のリロードから再利用）
-  const loadDeckCodes = useCallback(async () => {
-    if (!isOpen || !deck || !deck.id || !deck.latest_deck_code.id) {
-      setLoading(false);
-      return;
-    }
-
-    setError(false);
-    setLoading(true);
-
-    try {
-      const data = await fetchDeckCodesByDeckId(deck.id);
-      setDisplayDeckCodes(data);
-    } catch (err) {
-      console.log(err);
-      setError(true);
-    } finally {
-      setLoading(false);
-    }
-  }, [isOpen, deck]);
-
-  useEffect(() => {
-    loadDeckCodes();
-  }, [loadDeckCodes]);
-
-  // 新しいバージョンが作成されたら、一覧の先頭に動的に追加する
-  useEffect(() => {
-    if (!isOpen || !deckcode?.id) return;
+  // 新しいバージョンが作成されたら、一覧の先頭に動的に追加する。
+  // effect で足すと古い一覧での描画が一度挟まるので、前回の deckcode を控えておき描画中に足す
+  const [seenDeckcode, setSeenDeckcode] = useState(deckcode);
+  if (seenDeckcode !== deckcode) {
+    setSeenDeckcode(deckcode);
 
     // すでに一覧に存在する場合は何もしない（重複防止。削除で表示中のバージョンが
     // 繰り上がったときに、下のスクロール処理を誤って走らせないためでもある）
-    if (displayDeckCodes?.some((dc) => dc.id === deckcode.id)) return;
+    if (isOpen && deckcode?.id && !displayDeckCodes?.some((dc) => dc.id === deckcode.id)) {
+      // まだ未取得（0件）の場合はそのまま先頭に
+      setDisplayDeckCodes((prev) => (prev ? [deckcode, ...prev] : [deckcode]));
 
-    // まだ未取得（0件）の場合はそのまま先頭に
-    setDisplayDeckCodes((prev) => (prev ? [deckcode, ...prev] : [deckcode]));
-
-    // 追加した新バージョンは一覧の先頭に入るため、描画後に最上部へ戻す。
-    // 「このバージョンから新しく作成」は一覧の途中から呼ばれるので、
-    // そのままだと作成した最新バージョンが画面外に残ってしまう
-    shouldScrollToTopRef.current = true;
-  }, [isOpen, deckcode, displayDeckCodes]);
+      // 追加した新バージョンは一覧の先頭に入るため、描画後に最上部へ戻す。
+      // 「このバージョンから新しく作成」は一覧の途中から呼ばれるので、
+      // そのままだと作成した最新バージョンが画面外に残ってしまう
+      setScrollToTopRequest((n) => n + 1);
+    }
+  }
 
   // 先頭に差し込んだ新バージョンが描画されてから最上部へスクロールする。
   // 先頭への挿入直後はスクロールアンカリングで位置が押し下げられるため、
   // 描画が反映されたこのタイミングで戻す
   useEffect(() => {
-    if (!shouldScrollToTopRef.current) return;
-    shouldScrollToTopRef.current = false;
+    if (scrollToTopRequest === 0) return;
 
     bodyRef.current?.scrollTo({ top: 0 });
-  }, [displayDeckCodes]);
+  }, [scrollToTopRequest]);
 
   if (!deck) {
     return;

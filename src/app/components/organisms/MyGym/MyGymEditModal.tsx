@@ -41,49 +41,52 @@ export default function MyGymEditModal({
   onChanged,
 }: Props) {
   const [keyword, setKeyword] = useState("");
-  const [shops, setShops] = useState<ShopType[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [hasSearched, setHasSearched] = useState(false);
+  /*
+   * 検索結果。どのキーワードの結果かも持ち、入力中のキーワードと一致するときだけ使う。
+   * こうすると「検索中か」「検索し終えたか」は入力と結果の突き合わせで決まり、
+   * 遅れて返ってきた古い応答も(キーワードが違うので)そのまま無視できる。
+   */
+  const [searchResult, setSearchResult] = useState<{ keyword: string; shops: ShopType[] } | null>(
+    null,
+  );
   // 送信中の店舗ID(登録・解除)。二重送信を防ぎ、押した行だけをローディングにする。
   const [pendingShopId, setPendingShopId] = useState<number | null>(null);
 
-  // 検索の世代。古い応答が新しい応答を上書きしないように使う。
-  const searchSeq = useRef(0);
   // 入力を終えたときにフォーカスを引き受ける要素
   // (フォーカストラップを満たしつつキーボードを閉じるために使う)
   const focusSinkRef = useRef<HTMLDivElement>(null);
 
+  // 開くたびに入力と結果を空に戻す。effect で戻すと前回の内容での描画が一度挟まるので、
+  // 前回の開閉を控えておき描画中に戻す
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (wasOpen !== isOpen) {
+    setWasOpen(isOpen);
+    if (isOpen) {
+      setKeyword("");
+      setSearchResult(null);
+      setPendingShopId(null);
+    }
+  }
+
+  // 空なら検索しない(上流はキーワードの無いリクエストを400で弾く)
+  const trimmed = keyword.trim();
+  const searchActive = isOpen && trimmed !== "";
+  const currentResult = searchActive && searchResult?.keyword === trimmed ? searchResult : null;
+  const shops = currentResult?.shops ?? [];
+  const hasSearched = currentResult !== null;
+  const isSearching = searchActive && !hasSearched;
+
+  // キーワードが変わったら検索し直す。
+  // 打ち終わりを待ってから投げ、返ってきた結果はそのときのキーワードと組で覚える
+  // (キーワードを消した・変えた・モーダルを閉じたあとに返ってきた古い応答は、
+  //  入力と一致しないので上の突き合わせで捨てられる)
   useEffect(() => {
-    if (!isOpen) return;
-
-    setKeyword("");
-    setShops([]);
-    setHasSearched(false);
-    setPendingShopId(null);
-  }, [isOpen]);
-
-  // キーワードが変わったら検索し直す。空なら検索しない
-  // (上流はキーワードの無いリクエストを400で弾く)。
-  useEffect(() => {
-    // このエフェクトが動き直した時点で、進行中のリクエストはすべて古い。
-    // 早期 return するどの経路よりも先に世代を進めておく。ここを検索を始める側だけに
-    // 置くと、キーワードを消した経路(下の trimmed 空)やモーダルを閉じた経路で世代が
-    // 据え置かれ、遅れて返ってきた応答が seq の一致判定を通ってしまう。その結果、
-    // 空にしたはずの検索欄の下に前の結果が入り直す。
-    const seq = ++searchSeq.current;
-
     if (!isOpen) return;
 
     const trimmed = keyword.trim();
-    if (!trimmed) {
-      setShops([]);
-      setHasSearched(false);
-      setIsSearching(false);
-      return;
-    }
+    if (!trimmed) return;
 
-    setIsSearching(true);
-
+    let cancelled = false;
     const timer = setTimeout(async () => {
       const params = new URLSearchParams({ keyword: trimmed });
 
@@ -92,21 +95,19 @@ export default function MyGymEditModal({
         if (!res.ok) throw new Error("failed to search shops");
 
         const data: ShopGetResponseType = await res.json();
-        if (seq !== searchSeq.current) return;
+        if (cancelled) return;
 
-        setShops(data.shops ?? []);
+        setSearchResult({ keyword: trimmed, shops: data.shops ?? [] });
       } catch {
-        if (seq !== searchSeq.current) return;
-        setShops([]);
-      } finally {
-        if (seq === searchSeq.current) {
-          setIsSearching(false);
-          setHasSearched(true);
-        }
+        if (cancelled) return;
+        setSearchResult({ keyword: trimmed, shops: [] });
       }
     }, SEARCH_DEBOUNCE_MS);
 
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [isOpen, keyword]);
 
   const registeredIds = new Set(userGyms.map((userGym) => userGym.shop.id));

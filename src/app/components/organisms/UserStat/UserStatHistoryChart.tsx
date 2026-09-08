@@ -87,7 +87,6 @@ export default function UserStatHistoryChart({ userId, championshipSeries }: Pro
 
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<ChartJS<"line">>(null);
-  const chartDataRef = useRef<UserStatMonthlyType[]>([]);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const tooltipTitleRef = useRef<HTMLParagraphElement>(null);
   const tooltipRateRef = useRef<HTMLParagraphElement>(null);
@@ -211,10 +210,12 @@ export default function UserStatHistoryChart({ userId, championshipSeries }: Pro
   // 期間を変えて、選択中のデッキがその期間の選択肢から消えた場合は
   // 「使用したすべてのデッキで集計」に戻す。放置すると select の表示だけが空になり、
   // グラフは前の絞り込みのまま残ってしまう。
-  useEffect(() => {
-    if (!deckId) return;
-    if (!ownDecks.some((deck) => deck.deck_id === deckId)) setDeckId("");
-  }, [deckId, ownDecks]);
+  // effect で戻すと空の select での描画が一度挟まるので、前回の選択肢を控えて描画中に戻す
+  const [prevOwnDecks, setPrevOwnDecks] = useState(ownDecks);
+  if (prevOwnDecks !== ownDecks) {
+    setPrevOwnDecks(ownDecks);
+    if (deckId && !ownDecks.some((deck) => deck.deck_id === deckId)) setDeckId("");
+  }
 
   // デッキを絞り込んでいるときは、どのデッキを選んでいるかスプライトでも示す。
   // 1体でも登録があれば position でスロットを固定して2枠表示し、1体も無いデッキでは
@@ -226,8 +227,8 @@ export default function UserStatHistoryChart({ userId, championshipSeries }: Pro
   const deckSprite2 = getDeckSpriteBySlot(selectedDeck?.pokemon_sprites, 2);
   const hasDeckSprite = Boolean(deckSprite1 || deckSprite2);
 
+  // 描画中の月次推移。ツールチップの計算は描画ごとに作り直す関数から参照する
   const chartData: UserStatMonthlyType[] = history?.history ?? [];
-  chartDataRef.current = chartData;
 
   const hasMultipleYears =
     new Set(chartData.map((d) => d.year_month.split("-")[0])).size > 1;
@@ -247,11 +248,8 @@ export default function UserStatHistoryChart({ userId, championshipSeries }: Pro
     const rawIdx = xScale.getValueForPixel(xOnCanvas);
     if (rawIdx == null) return;
 
-    const idx = Math.max(
-      0,
-      Math.min(chartDataRef.current.length - 1, Math.round(rawIdx)),
-    );
-    const d = chartDataRef.current[idx];
+    const idx = Math.max(0, Math.min(chartData.length - 1, Math.round(rawIdx)));
+    const d = chartData[idx];
     if (!d) return;
 
     if (tooltipTitleRef.current)

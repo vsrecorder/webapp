@@ -43,6 +43,7 @@ import { DeckGetByIdResponseType } from "@app/types/deck";
 import { MatchGetResponseType } from "@app/types/match";
 
 import { fetchMatchesByRecordId, summarizeMatches } from "@app/utils/matchStats";
+import { writeSessionStorage } from "@app/utils/sessionStorageStore";
 import { useModalDragToClose } from "@app/hooks/useModalDragToClose";
 import { useModalEntered } from "@app/hooks/useModalEntered";
 import { closingPassthroughClassNames } from "@app/utils/modal";
@@ -157,9 +158,16 @@ export default function DisplayRecordModal({
   const [loadingMatches, setLoadingMatches] = useState(true);
   const stats = summarizeMatches(matches ?? []);
 
+  // 記録が変わったら対戦一覧を取り直す(取得中の初期値は上の useState で立てている。
+  // 記録が差し替わったときは前回の値を控えておき、描画中に取得中へ戻す)
+  const [matchesRecordId, setMatchesRecordId] = useState(record.id);
+  if (matchesRecordId !== record.id) {
+    setMatchesRecordId(record.id);
+    setLoadingMatches(true);
+  }
+
   useEffect(() => {
     let ignore = false;
-    setLoadingMatches(true);
     fetchMatchesByRecordId(record.id)
       .then((data) => {
         if (!ignore) setMatches(data);
@@ -365,21 +373,21 @@ export default function DisplayRecordModal({
                                 : record.tonamel_event_id !== ""
                                   ? "tonamel"
                                   : "unofficial";
-                            sessionStorage.setItem("reopenModalRecordId", record.id);
-                            sessionStorage.setItem("reopenModalEventType", eventType);
+                            writeSessionStorage("reopenModalRecordId", record.id);
+                            writeSessionStorage("reopenModalEventType", eventType);
                             // デッキの記録一覧モーダル内から開いた場合は、戻り遷移で
                             // デッキモーダル＋記録一覧モーダルを再開するため deck.id も保存する。
                             const activeDeckId = sessionStorage.getItem(
                               "activeDeckRecordsModalDeckId",
                             );
                             if (activeDeckId) {
-                              sessionStorage.setItem(
+                              writeSessionStorage(
                                 "reopenDeckModalDeckId",
                                 activeDeckId,
                               );
                               // この経路は記録一覧モーダルまで開き直す
                               // （デッキモーダルの「詳細」「記録する」経路では立てない）
-                              sessionStorage.setItem(
+                              writeSessionStorage(
                                 "reopenDeckModalWithRecords",
                                 "1",
                               );
@@ -388,7 +396,7 @@ export default function DisplayRecordModal({
                                 "activeDeckRecordsModalArchived",
                               );
                               if (activeArchived) {
-                                sessionStorage.setItem(
+                                writeSessionStorage(
                                   "reopenDeckModalArchived",
                                   activeArchived,
                                 );

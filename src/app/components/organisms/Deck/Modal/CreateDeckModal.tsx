@@ -58,10 +58,14 @@ export default function CreateDeckModal({
   const [deckname, setDeckName] = useState<string>(initialName);
   const [deckcode, setDeckCode] = useState<string>(deck_code);
   //const [isSelectedPrivateCode, setIsSelectedPrivateCode] = useState<boolean>(false);
-  const [isValidatedDeckCode, setIsValidatedDeckCode] = useState<boolean>(true);
-  const [isInvalid, setIsInvalid] = useState<boolean>(true);
+  // 外部API(deckIDCheck.php)で確認した結果。どのコードの結果かも持ち、入力中のコードと
+  // 一致するときだけ使う(確認中は前回同様、有効扱いのまま待つ)
+  const [deckCodeCheck, setDeckCodeCheck] = useState<{ code: string; valid: boolean } | null>(
+    null,
+  );
   const [isDisabled, setIsDisabled] = useState<boolean>(false);
 
+  // 利用者が選んだスプライト。id と名前が同じものは一覧が届く前の仮の値(下の resolveSprite で本物にする)
   const [sprite1, setSprite1] = useState<PokemonSpriteType | null>(null);
   const [sprite2, setSprite2] = useState<PokemonSpriteType | null>(null);
   const [activeSpriteSlot, setActiveSpriteSlot] = useState<1 | 2>(1);
@@ -92,28 +96,32 @@ export default function CreateDeckModal({
   };
 
   // 開くたびに初期値(デッキ名・アイコン)を入れ直す。閉じたときの resetState だけだと、
-  // 別の投稿から同じモーダルを開き直したときに前回の初期値が残るため
+  // 別の投稿から同じモーダルを開き直したときに前回の初期値が残るため。
+  // initialSpriteKey は initialSprites の中身を文字列にしたもの(配列の参照ではなく中身で比較する)。
+  // effect で入れ直すと前回の値での描画が一度挟まるので、前回の初期値を控えて描画中に入れ直す
   const initialSpriteKey = (initialSprites ?? []).map((s) => `${s.position ?? ""}:${s.id}`).join(",");
-  useEffect(() => {
-    if (!isOpen) return;
-    setDeckName(initialName);
-    setSprite1(resolveInitialSprite(1));
-    setSprite2(resolveInitialSprite(2));
-    // initialSpriteKey は initialSprites の中身を文字列にしたもの(配列の参照ではなく中身で比較する)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, initialName, initialSpriteKey]);
+  const [initialSource, setInitialSource] = useState({ isOpen, initialName, initialSpriteKey });
+  if (
+    initialSource.isOpen !== isOpen ||
+    initialSource.initialName !== initialName ||
+    initialSource.initialSpriteKey !== initialSpriteKey
+  ) {
+    setInitialSource({ isOpen, initialName, initialSpriteKey });
+    if (isOpen) {
+      setDeckName(initialName);
+      setSprite1(resolveInitialSprite(1));
+      setSprite2(resolveInitialSprite(2));
+    }
+  }
 
-  // アイコン一覧が後から届いたら、名前が仮(id のまま)のスプライトだけ本物に入れ替える。
-  // 利用者が選び直したスプライトには触れない
-  useEffect(() => {
-    if (!spriteMaster) return;
-    const upgrade = (current: PokemonSpriteType | null) => {
-      if (!current || current.name !== current.id) return current;
-      return spriteMaster.find((s) => s.id === current.id) ?? current;
-    };
-    setSprite1(upgrade);
-    setSprite2(upgrade);
-  }, [spriteMaster]);
+  // アイコン一覧が後から届いたら、名前が仮(id のまま)のスプライトだけ本物で描く。
+  // 利用者が選び直したスプライト(名前が入っている)はそのまま
+  const resolveSprite = (current: PokemonSpriteType | null) => {
+    if (!current || !spriteMaster || current.name !== current.id) return current;
+    return spriteMaster.find((s) => s.id === current.id) ?? current;
+  };
+  const resolvedSprite1 = resolveSprite(sprite1);
+  const resolvedSprite2 = resolveSprite(sprite2);
 
   const [tagIds, setTagIds] = useState<string[]>([]);
   // タグ管理中は「閉じる」「登録」やモーダルのクローズを無効化する
@@ -129,6 +137,19 @@ export default function CreateDeckModal({
   const isDecknameTooLong = decknameLength > MAX_DECK_NAME_LENGTH;
 
   /*
+    デッキコードが有効かどうか。
+    未入力は有効(エラーを出さない)、デッキコードは必ず20桁なので桁数が違う時点で
+    問い合わせるまでもなく無効、20桁なら外部APIの確認結果に従う
+  */
+  const isValidatedDeckCode = !deckcode
+    ? true
+    : deckcode.length !== DECK_CODE_LENGTH
+      ? false
+      : deckCodeCheck?.code === deckcode
+        ? deckCodeCheck.valid
+        : true;
+
+  /*
     入力項目のチェック
     - デッキ名
       - 空でないか
@@ -136,16 +157,10 @@ export default function CreateDeckModal({
     - デッキコード
       - 有効なデッキコードかどうか
   */
-  useEffect(() => {
-    if (deckname != "" && !isDecknameTooLong && isValidatedDeckCode) {
-      setIsInvalid(false);
-    } else {
-      setIsInvalid(true);
-    }
-  }, [deckname, isDecknameTooLong, isValidatedDeckCode]);
+  const isInvalid = !(deckname != "" && !isDecknameTooLong && isValidatedDeckCode);
 
   /*
-    デッキコードが有効かどうかチェック
+    20桁のデッキコードを外部APIで確認する
   */
   useEffect(() => {
     /*
@@ -157,16 +172,7 @@ export default function CreateDeckModal({
      */
     if (!isOpen) return;
 
-    if (!deckcode) {
-      setIsValidatedDeckCode(true);
-      return;
-    }
-
-    // デッキコードは必ず20桁なので、桁数が違う時点で問い合わせるまでもなく無効
-    if (deckcode.length !== DECK_CODE_LENGTH) {
-      setIsValidatedDeckCode(false);
-      return;
-    }
+    if (!deckcode || deckcode.length !== DECK_CODE_LENGTH) return;
 
     let cancelled = false;
 
@@ -183,12 +189,12 @@ export default function CreateDeckModal({
 
         const data = await res.json();
         if (!cancelled) {
-          setIsValidatedDeckCode(data.result === 1);
+          setDeckCodeCheck({ code: deckcode, valid: data.result === 1 });
         }
       } catch (error) {
         console.error(error);
         if (!cancelled) {
-          setIsValidatedDeckCode(false);
+          setDeckCodeCheck({ code: deckcode, valid: false });
         }
       }
     };
@@ -204,7 +210,7 @@ export default function CreateDeckModal({
 
   const resetState = () => {
     setIsDisabled(false);
-    setIsValidatedDeckCode(true);
+    setDeckCodeCheck(null);
     setDeckName(initialName);
     setDeckCode(deck_code);
     setSprite1(resolveInitialSprite(1));
@@ -217,8 +223,8 @@ export default function CreateDeckModal({
   const createDeck = async (onClose: () => void) => {
     // position(1/2)を必ず付与してスロットを固定する(空スロットを詰めない)
     const pokemon_sprites: DeckPokemonSpriteType[] = [];
-    if (sprite1) pokemon_sprites.push({ id: sprite1.id, position: 1 });
-    if (sprite2) pokemon_sprites.push({ id: sprite2.id, position: 2 });
+    if (resolvedSprite1) pokemon_sprites.push({ id: resolvedSprite1.id, position: 1 });
+    if (resolvedSprite2) pokemon_sprites.push({ id: resolvedSprite2.id, position: 2 });
 
     const deck: DeckCreateRequestType = {
       name: deckname,
@@ -340,7 +346,7 @@ export default function CreateDeckModal({
                   </span>
                   <div className="flex items-center gap-0">
                     {([1, 2] as const).map((slot) => {
-                      const sprite = slot === 1 ? sprite1 : sprite2;
+                      const sprite = slot === 1 ? resolvedSprite1 : resolvedSprite2;
                       return (
                         <div
                           key={slot}
@@ -491,9 +497,9 @@ export default function CreateDeckModal({
       </Modal>
 
       <PokemonSpriteModal
-        pokemonSprite1={sprite1}
+        pokemonSprite1={resolvedSprite1}
         setPokemonSprite1={setSprite1}
-        pokemonSprite2={sprite2}
+        pokemonSprite2={resolvedSprite2}
         setPokemonSprite2={setSprite2}
         isOpen={isSpriteOpen}
         onOpenChange={onSpriteOpenChange}

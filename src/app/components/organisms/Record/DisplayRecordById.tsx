@@ -46,9 +46,16 @@ export default function DisplayRecordById({ recordData }: Props) {
 
   const deckCardRef = useRef<HTMLDivElement>(null);
 
+  // 記録が変わったら対戦一覧を取り直す(取得中の初期値は上の useState で立てている。
+  // 記録が差し替わったときは前回の値を控えておき、描画中に取得中へ戻す)
+  const [matchesRecordId, setMatchesRecordId] = useState(recordData.id);
+  if (matchesRecordId !== recordData.id) {
+    setMatchesRecordId(recordData.id);
+    setLoadingMatches(true);
+  }
+
   useEffect(() => {
     let ignore = false;
-    setLoadingMatches(true);
     fetchMatchesByRecordId(recordData.id)
       .then((data) => {
         if (!ignore) setMatches(data);

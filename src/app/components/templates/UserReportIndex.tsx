@@ -1,6 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
+
+import { useSeededResource } from "@app/hooks/useSeededResource";
 
 import { Card, CardBody, Spinner } from "@heroui/react";
 
@@ -50,6 +52,95 @@ type TimelineItem = {
   sortAt: number;
 };
 
+// 入口に並べる材料(月次履歴・環境ごとの戦績・先週の戦績)
+type ReportIndexData = {
+  history: UserStatMonthlyType[];
+  environmentStats: EnvironmentStat[];
+  lastWeekStat: UserStatType | null;
+};
+
+async function fetchReportIndexData(userId: string): Promise<ReportIndexData> {
+  // 月次履歴は期間を決め打ちでしか引けない(3months/6months/season)。
+  // 今月を hero に回すぶん 6ヶ月では6件に届かず、逆にシーズン開始直後は
+  // シーズン側が数ヶ月しか無い。両方引いて和集合にすると、どちらの時期でも埋まる。
+  // レギュレーションは絞らない（レポート本体の periodQuery と揃えている）。
+  // ここを片方だけ絞るとタイルの戦数・勝率が開いたレポートと食い違う。
+  const [seasonRes, recentRes, environmentsRes, oldestRes, lastWeekRes] =
+    await Promise.all([
+      fetch(`/api/users/${userId}/stat/history?period=season`, { cache: "no-store" }),
+      fetch(`/api/users/${userId}/stat/history?period=6months`, { cache: "no-store" }),
+      fetch(`/api/environments`, { cache: "no-store" }),
+      fetch(`/api/users/${userId}/oldest-record-event-date`, { cache: "no-store" }),
+      // 先週(月〜日)の戦績。週次レポート通知(P-2)の入口をここにも置く
+      fetch(`/api/users/${userId}/stat?week=${lastWeekValue()}`, { cache: "no-store" }),
+    ]);
+
+  if (!seasonRes.ok && !recentRes.ok) {
+    throw new Error("failed to fetch stat history");
+  }
+
+  const seasonData: UserStatHistoryType | null = seasonRes.ok
+    ? await seasonRes.json()
+    : null;
+  const recentData: UserStatHistoryType | null = recentRes.ok
+    ? await recentRes.json()
+    : null;
+  const allEnvironments: EnvironmentType[] = environmentsRes.ok
+    ? await environmentsRes.json()
+    : [];
+  const oldest: OldestRecordEventDateType | null = oldestRes.ok
+    ? await oldestRes.json()
+    : null;
+
+  // 先週の戦績が引けなくても他のタイルは出す
+  const lastWeekStat: UserStatType | null = lastWeekRes.ok ? await lastWeekRes.json() : null;
+
+  // 同じ月が両方に出るので年月をキーに畳む
+  const byMonth = new Map<string, UserStatMonthlyType>();
+  for (const row of [
+    ...(seasonData?.history ?? []),
+    ...(recentData?.history ?? []),
+  ]) {
+    byMonth.set(row.year_month, row);
+  }
+
+  const history = [...byMonth.values()];
+
+  /*
+   * 環境は「記録期間と重なるか」だけでは、その環境で1戦もしていない場合にも
+   * タイルが出てしまう（開くと空のレポートになる）。候補を絞ったうえで
+   * 環境ごとの戦績を引き、記録がある環境だけを残す。
+   * 月のタイルと同じ「N戦・勝率」を出すためにも、この集計が要る。
+   */
+  const candidates = selectableEnvironments(
+    allEnvironments,
+    oldest?.event_date ?? null,
+  ).slice(0, MAX_TILES_PER_KIND);
+
+  const stats = await Promise.all(
+    candidates.map(async (environment): Promise<EnvironmentStat | null> => {
+      try {
+        const res = await fetch(
+          `/api/users/${userId}/stat?environment_id=${environment.id}`,
+          { cache: "no-store" },
+        );
+        if (!res.ok) return null;
+        return { environment, stat: await res.json() };
+      } catch {
+        // 1つ引けなくても他のタイルは出す
+        return null;
+      }
+    }),
+  );
+
+  const environmentStats = stats.filter(
+    (entry): entry is EnvironmentStat =>
+      entry !== null && entry.stat.total_matches > 0,
+  );
+
+  return { history, environmentStats, lastWeekStat };
+}
+
 /*
  * バトルレポートの入口（/users/report）。
  *
@@ -59,108 +150,18 @@ type TimelineItem = {
  * 全期間を機械的に並べることはしない。
  */
 export default function TemplateUserReportIndex({ userId }: Props) {
-  const [history, setHistory] = useState<UserStatMonthlyType[]>([]);
-  const [environmentStats, setEnvironmentStats] = useState<EnvironmentStat[]>([]);
-  // 先週の戦績。先週に記録があるときだけ、グリッドの先頭に週次のタイルを出す
-  const [lastWeekStat, setLastWeekStat] = useState<UserStatType | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasError, setHasError] = useState(false);
+  // 先週の戦績は、先週に記録があるときだけグリッドの先頭に週次のタイルを出すのに使う
 
-  const load = useCallback(async () => {
-    setIsLoading(true);
-    setHasError(false);
-
-    try {
-      // 月次履歴は期間を決め打ちでしか引けない(3months/6months/season)。
-      // 今月を hero に回すぶん 6ヶ月では6件に届かず、逆にシーズン開始直後は
-      // シーズン側が数ヶ月しか無い。両方引いて和集合にすると、どちらの時期でも埋まる。
-      // レギュレーションは絞らない（レポート本体の periodQuery と揃えている）。
-      // ここを片方だけ絞るとタイルの戦数・勝率が開いたレポートと食い違う。
-      const [seasonRes, recentRes, environmentsRes, oldestRes, lastWeekRes] =
-        await Promise.all([
-          fetch(`/api/users/${userId}/stat/history?period=season`, { cache: "no-store" }),
-          fetch(`/api/users/${userId}/stat/history?period=6months`, { cache: "no-store" }),
-          fetch(`/api/environments`, { cache: "no-store" }),
-          fetch(`/api/users/${userId}/oldest-record-event-date`, { cache: "no-store" }),
-          // 先週(月〜日)の戦績。週次レポート通知(P-2)の入口をここにも置く
-          fetch(`/api/users/${userId}/stat?week=${lastWeekValue()}`, { cache: "no-store" }),
-        ]);
-
-      if (!seasonRes.ok && !recentRes.ok) {
-        throw new Error("failed to fetch stat history");
-      }
-
-      const seasonData: UserStatHistoryType | null = seasonRes.ok
-        ? await seasonRes.json()
-        : null;
-      const recentData: UserStatHistoryType | null = recentRes.ok
-        ? await recentRes.json()
-        : null;
-      const allEnvironments: EnvironmentType[] = environmentsRes.ok
-        ? await environmentsRes.json()
-        : [];
-      const oldest: OldestRecordEventDateType | null = oldestRes.ok
-        ? await oldestRes.json()
-        : null;
-
-      // 先週の戦績が引けなくても他のタイルは出す
-      setLastWeekStat(lastWeekRes.ok ? await lastWeekRes.json() : null);
-
-      // 同じ月が両方に出るので年月をキーに畳む
-      const byMonth = new Map<string, UserStatMonthlyType>();
-      for (const row of [
-        ...(seasonData?.history ?? []),
-        ...(recentData?.history ?? []),
-      ]) {
-        byMonth.set(row.year_month, row);
-      }
-
-      setHistory([...byMonth.values()]);
-
-      /*
-       * 環境は「記録期間と重なるか」だけでは、その環境で1戦もしていない場合にも
-       * タイルが出てしまう（開くと空のレポートになる）。候補を絞ったうえで
-       * 環境ごとの戦績を引き、記録がある環境だけを残す。
-       * 月のタイルと同じ「N戦・勝率」を出すためにも、この集計が要る。
-       */
-      const candidates = selectableEnvironments(
-        allEnvironments,
-        oldest?.event_date ?? null,
-      ).slice(0, MAX_TILES_PER_KIND);
-
-      const stats = await Promise.all(
-        candidates.map(async (environment): Promise<EnvironmentStat | null> => {
-          try {
-            const res = await fetch(
-              `/api/users/${userId}/stat?environment_id=${environment.id}`,
-              { cache: "no-store" },
-            );
-            if (!res.ok) return null;
-            return { environment, stat: await res.json() };
-          } catch {
-            // 1つ引けなくても他のタイルは出す
-            return null;
-          }
-        }),
-      );
-
-      setEnvironmentStats(
-        stats.filter(
-          (entry): entry is EnvironmentStat =>
-            entry !== null && entry.stat.total_matches > 0,
-        ),
-      );
-    } catch (e) {
-      console.error(e);
-      setHasError(true);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [userId]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+  // 入口の材料。失敗時は retry(load)で取り直す
+  const {
+    data: index,
+    loading: isLoading,
+    error: hasError,
+    retry: load,
+  } = useSeededResource(userId, fetchReportIndexData);
+  const history = useMemo(() => index?.history ?? [], [index]);
+  const environmentStats = useMemo(() => index?.environmentStats ?? [], [index]);
+  const lastWeekStat = index?.lastWeekStat ?? null;
 
   const thisMonth = currentYearMonth();
 

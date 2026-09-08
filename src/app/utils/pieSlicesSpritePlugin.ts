@@ -443,6 +443,36 @@ function drawBadgePercent(
   ctx.restore();
 }
 
+/*
+ * データセットに載せるスプライト表示の材料。
+ *
+ * react-chartjs-2 はマウント後に plugins prop を差し替えても反映しない(古いプラグインを
+ * 使い続ける)一方、data は描画のたびに同期してから update() する。そこでプラグイン自体は
+ * 固定にし、描くべき内容はデータセットの独自プロパティとして渡す。プラグインは描画時に
+ * chart.data.datasets[0] からこれを読むので、常に最新の state が反映される。
+ * (以前は ref 経由で最新値を読ませていたが、描画中の ref 書き換えになるため改めた)
+ */
+export type PieSpriteDatasetProps = {
+  // スライスごとのスプライト画像URL(最大2体)。空なら描かない
+  spriteUrls?: (string | null | undefined)[][];
+  // スライスごとのバッジの色
+  sliceColors?: string[];
+  // スライスごとのパーセント文字列。null なら描かない
+  percentTexts?: (string | null)[];
+  // 外周バッジを描かない(詳細カード表示中など、円の中心に情報をまとめるとき)
+  hideSliceBadges?: boolean;
+  // 円の中心に描くスプライト画像URL(空・null なら描かない)とパーセント文字列
+  centerSpriteUrls?: (string | null | undefined)[] | null;
+  centerPercentText?: string | null;
+};
+
+function pieSpriteDatasetProps(chart: Chart<"pie">): PieSpriteDatasetProps {
+  return (chart.data.datasets[0] ?? {}) as PieSpriteDatasetProps;
+}
+
+// バッジの色が渡されていないときの色(「その他」相当のグレー)
+const DEFAULT_SLICE_COLOR = "#A1A1AA";
+
 /**
  * 円グラフの各スライスのスプライト画像（デッキの組み合わせ最大2体）を、
  * 外周に沿った同心円上に統一サイズの色バッジ付きで描画するchart.jsプラグイン。
@@ -460,10 +490,13 @@ function drawBadgePercent(
  * バッジの位置はチャートインスタンスに記録され、getSpriteBadgeIndexAtでタップ判定に使える。
  * 呼び出し側では、バッジの分だけchart.jsの`layout.padding`と
  * キャンバスを囲むコンテナの高さの両方に同じ余白分を確保しておくこと。
+ *
+ * 描く内容は、引数の getter で渡す(内容が固定のダミー表示向け)か、省略して
+ * データセットの独自プロパティ(PieSpriteDatasetProps)で渡す(state に追従させる向け)。
  */
 export function createPieSlicesSpritePlugin(
-  getSpriteUrls: (index: number) => (string | null | undefined)[] | null | undefined,
-  getSliceColor: (index: number) => string,
+  getSpriteUrls?: (index: number) => (string | null | undefined)[] | null | undefined,
+  getSliceColor?: (index: number) => string,
   getPercentText?: (index: number) => string | null | undefined,
 ): Plugin<"pie"> {
   return {
@@ -501,13 +534,20 @@ export function createPieSlicesSpritePlugin(
 
       const meta = chart.getDatasetMeta(0);
       const { ctx } = chart;
+      const props = pieSpriteDatasetProps(chart);
+      const spriteUrlsAt = (index: number) =>
+        getSpriteUrls ? getSpriteUrls(index) : props.hideSliceBadges ? [] : props.spriteUrls?.[index];
+      const sliceColorAt = (index: number) =>
+        getSliceColor ? getSliceColor(index) : (props.sliceColors?.[index] ?? DEFAULT_SLICE_COLOR);
+      const percentTextAt = (index: number) =>
+        getPercentText ? getPercentText(index) : props.percentTexts?.[index];
 
       // まず描画対象のバッジを集める。スプライトの表示サイズはバッジの総数が
       // 決まらないと確定できない（外周に並びきらない件数なら縮める）ため、
       // ここではまだ寸法を求めない。
       const pending: PendingBadge[] = [];
       meta.data.forEach((el, index) => {
-        const urls = (getSpriteUrls(index) ?? []).filter((u): u is string => !!u);
+        const urls = (spriteUrlsAt(index) ?? []).filter((u): u is string => !!u);
         if (urls.length === 0) return;
 
         // 画像が揃っていないバッジも、枠だけはレイアウトに参加させる。
@@ -522,7 +562,7 @@ export function createPieSlicesSpritePlugin(
           spriteCount: urls.length,
           images: loaded ? (images as HTMLImageElement[]) : null,
           slice: getSliceGeometry(el as unknown as ArcElement),
-          percentText: getPercentText?.(index) ?? null,
+          percentText: percentTextAt(index) ?? null,
         });
       });
 
@@ -561,7 +601,7 @@ export function createPieSlicesSpritePlugin(
             width: badgeW,
             height: badgeH,
             boundRadius: badgeW / 2,
-            color: getSliceColor(index),
+            color: sliceColorAt(index),
             percentText,
             revealRatio: slice.revealRatio,
           };
@@ -631,10 +671,13 @@ const CENTER_PERCENT_GAP = 4;
 /**
  * 円グラフの中心にスプライト画像（と任意でパーセンテージ文字列）を描画するchart.jsプラグイン。
  * 詳細カード表示中など、選択中のデッキを円の中心に大きく表示したい場合に使う。
- * getSpriteUrlsがnull/空配列を返す間は何も描画しない。
+ * 画像URLがnull/空配列の間は何も描画しない。
+ *
+ * 描く内容は、引数の getter で渡すか、省略してデータセットの独自プロパティ
+ * (PieSpriteDatasetProps の centerSpriteUrls / centerPercentText)で渡す。
  */
 export function createPieCenterSpritePlugin(
-  getSpriteUrls: () => (string | null | undefined)[] | null | undefined,
+  getSpriteUrls?: () => (string | null | undefined)[] | null | undefined,
   getPercentText?: () => string | null | undefined,
 ): Plugin<"pie"> {
   return {
@@ -643,7 +686,10 @@ export function createPieCenterSpritePlugin(
       forgetImageWaiters(chart);
     },
     afterDatasetsDraw(chart: Chart<"pie">) {
-      const urls = (getSpriteUrls() ?? []).filter((u): u is string => !!u);
+      const props = pieSpriteDatasetProps(chart);
+      const urls = ((getSpriteUrls ? getSpriteUrls() : props.centerSpriteUrls) ?? []).filter(
+        (u): u is string => !!u,
+      );
       if (urls.length === 0) return;
 
       const meta = chart.getDatasetMeta(0);
@@ -663,7 +709,7 @@ export function createPieCenterSpritePlugin(
         loadedImages.length === 1
           ? size
           : size * loadedImages.length - overlap * (loadedImages.length - 1);
-      const percentText = getPercentText?.() ?? null;
+      const percentText = (getPercentText ? getPercentText() : props.centerPercentText) ?? null;
       // パーセンテージ表示分だけスプライトを上にずらし、その下の空きに文字を描画する
       const centerShift = percentText ? (CENTER_PERCENT_GAP + CENTER_PERCENT_FONT_SIZE) / 2 : 0;
       const spriteCy = cy - centerShift;

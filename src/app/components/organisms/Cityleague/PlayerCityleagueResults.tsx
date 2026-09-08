@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 import NextLink from "next/link";
 
@@ -29,6 +29,25 @@ import {
   cityleagueRankLabel,
 } from "@app/utils/cityleagueRank";
 import { formatJSTDateWithWeekday } from "@app/utils/date";
+import { useSeededResource } from "@app/hooks/useSeededResource";
+
+async function fetchResults(season: string): Promise<UserPlayerCityleagueResultType[]> {
+  const res = await fetch(
+    `/api/usersplayers/cityleague_results?season=${encodeURIComponent(season)}`,
+    { cache: "no-store" },
+  );
+
+  // 未連携・存在しないシーズンは、BFF(/api/usersplayers/cityleague_results)側で
+  // 0件の200に正規化済みなのでここでは分岐しない(fail2banの404カウント対策。
+  // 理由はそのルートハンドラのコメントを参照)。
+  if (!res.ok) {
+    throw new Error("Failed to fetch");
+  }
+
+  const data: UserPlayerCityleagueResultsGetResponseType = await res.json();
+
+  return data.results ?? [];
+}
 
 type Props = {
   // 表示対象のシーズン識別子(championship_series.id から "series_" を除いたもの)。
@@ -144,44 +163,18 @@ function ResultCard({ result }: { result: UserPlayerCityleagueResultType }) {
 // プレイヤーズクラブ連携済みユーザ向けに、選択中のシーズンで入賞したシティリーグの
 // デッキをスワイパーで表示する。連携の有無は呼び出し元で判定し、連携済みのときだけ描画する。
 export default function PlayerCityleagueResults({ season, seasonLabel }: Props) {
-  const [results, setResults] = useState<UserPlayerCityleagueResultType[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(false);
+  // 選択中シーズンの入賞結果。シーズンを変えると取り直し、失敗時は retry で取り直す
+  const {
+    data,
+    loading: isLoading,
+    error,
+    retry: loadResults,
+  } = useSeededResource(season, fetchResults);
+  // 取得前は空の一覧(参照を固定し、描画のたびに effect を走らせない)
+  const results = useMemo(() => data ?? [], [data]);
   // 読み込み中に確保する高さ。前回このシーズンで描画できた高さを使う(初回は既定値)
   const placeholderHeight = useCityleagueResultsHeight(season);
   const contentRef = useRef<HTMLDivElement>(null);
-
-  const loadResults = useCallback(async () => {
-    setError(false);
-    setIsLoading(true);
-
-    try {
-      const res = await fetch(
-        `/api/usersplayers/cityleague_results?season=${encodeURIComponent(season)}`,
-        { cache: "no-store" },
-      );
-
-      // 未連携・存在しないシーズンは、BFF(/api/usersplayers/cityleague_results)側で
-      // 0件の200に正規化済みなのでここでは分岐しない(fail2banの404カウント対策。
-      // 理由はそのルートハンドラのコメントを参照)。
-      if (!res.ok) {
-        throw new Error("Failed to fetch");
-      }
-
-      const data: UserPlayerCityleagueResultsGetResponseType = await res.json();
-
-      setResults(data.results ?? []);
-    } catch (err) {
-      console.log(err);
-      setError(true);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [season]);
-
-  useEffect(() => {
-    loadResults();
-  }, [loadResults]);
 
   // 描画できた高さを次回のために覚えておく。Swiper は autoHeight で描画後に高さが
   // 決まるので、1フレーム待ってから測る(デッキ画像は aspect-2/1 なので読み込み前でも

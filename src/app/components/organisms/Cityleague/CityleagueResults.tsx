@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { Spinner } from "@heroui/spinner";
@@ -27,6 +27,12 @@ import {
   CityleagueScheduleContext,
 } from "@app/utils/cityleagueListServer";
 import { toJSTDateString, todayJSTDateString } from "@app/utils/date";
+import {
+  CITYLEAGUE_SCROLL_TO_ID_KEY,
+  CITYLEAGUE_SCROLL_TO_LEAGUE_TYPE_KEY,
+  clearCityleagueResultScrollTarget,
+} from "@app/utils/cityleagueScrollRestore";
+import { useSessionStorageItem } from "@app/hooks/useSessionStorageItem";
 
 async function fetchCityleagueResultsByTerm(
   league_type: number,
@@ -155,13 +161,26 @@ export default function CityleagueResults({
   const [nextDate, setNextDate] = useState<string>(
     initial?.nextFromDate ?? scheduleContext?.startDate ?? today,
   );
-  const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(initial ? initial.hasMore : true);
   const [isInitialLoaded, setIsInitialLoaded] = useState(!!initial);
+  // 「更に読み込む」を押して、続きを待っている間
+  const [manualLoadPending, setManualLoadPending] = useState(false);
 
-  // 個別ページから戻ってきたとき、対象カードまで自動スクロールするための状態
-  const [pendingScrollId, setPendingScrollId] = useState<number | null>(null);
-  const scrollToIdRef = useRef<number | null>(null);
+  /*
+   * 個別ページから戻ってきたとき、対象カードまで自動スクロールするための対象。
+   * sessionStorage のフラグを「外部ストア」として描画中に読み(useSessionStorageItem)、
+   * リーグ種別が一致する場合だけ受け取る。見つかったら/諦めたら消し、その場で追随する
+   */
+  const savedScrollId = useSessionStorageItem(CITYLEAGUE_SCROLL_TO_ID_KEY);
+  const savedScrollLeagueType = useSessionStorageItem(CITYLEAGUE_SCROLL_TO_LEAGUE_TYPE_KEY);
+  const pendingScrollId =
+    savedScrollId && savedScrollLeagueType && Number(savedScrollLeagueType) === league_type
+      ? Number(savedScrollId)
+      : null;
+  const scrollTargetFound =
+    pendingScrollId !== null && items.some((item) => item.official_event_id === pendingScrollId);
+  // 対象カードが描画されるまで自動で続きを読む
+  const autoLoadPending = pendingScrollId !== null && !scrollTargetFound && hasMore;
 
   // スケジュール情報
   const [schedule, setSchedule] = useState<CityleagueScheduleType | null>(
@@ -204,108 +223,97 @@ export default function CityleagueResults({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const loadMore = useCallback(async () => {
-    if (isLoading || !hasMore || !isScheduleInitialized) return;
+  /*
+   * 続きを読み込んでいる最中か。読み込みの「要求」は state ではなく条件から導く:
+   * 初回の読み込み・対象カードを探すための自動読み込み・「更に読み込む」の押下のいずれかで、
+   * 読める続きがある(hasMore)間。下の effect はこれが立っている間、続きを取って一覧に足す。
+   * 足し終えると(nextDate が進むので)条件を見直し、まだ立っていれば次の続きを取る
+   */
+  const isLoading =
+    isScheduleInitialized && hasMore && (!isInitialLoaded || autoLoadPending || manualLoadPending);
 
-    setIsLoading(true);
+  useEffect(() => {
+    if (!isLoading) return;
 
-    try {
-      const scheduleFromDate = schedule ? toJSTDateString(schedule.from_date) : null;
+    let cancelled = false;
+    (async () => {
+      try {
+        const scheduleFromDate = schedule ? toJSTDateString(schedule.from_date) : null;
 
-      // 結果が登録されている最初の日を探す。スケジュールの開始日より前は遡らない
-      for (const date of buildSearchDates(nextDate, scheduleFromDate)) {
-        const newItems = await fetchCityleagueResultsByTerm(league_type, date, date);
+        // 結果が登録されている最初の日を探す。スケジュールの開始日より前は遡らない
+        for (const date of buildSearchDates(nextDate, scheduleFromDate)) {
+          const newItems = await fetchCityleagueResultsByTerm(league_type, date, date);
+          if (cancelled) return;
 
-        if (newItems.count === 0) continue;
+          if (newItems.count === 0) continue;
 
-        /*
-         * 同じ日の公式イベント一覧を1回で取得してから結果を出す。
-         * 一覧に無いidが混ざっていても、カード側が従来どおり個別に取得する
-         * フォールバックがあるので表示は壊れない。取得失敗時も同様。
-         */
-        const dayEvents = await fetchOfficialEventsByDate(league_type, date).catch(
-          () => null,
-        );
-        if (dayEvents?.official_events) {
-          setEvents((prev) => [...prev, ...dayEvents.official_events]);
+          /*
+           * 同じ日の公式イベント一覧を1回で取得してから結果を出す。
+           * 一覧に無いidが混ざっていても、カード側が従来どおり個別に取得する
+           * フォールバックがあるので表示は壊れない。取得失敗時も同様。
+           */
+          const dayEvents = await fetchOfficialEventsByDate(league_type, date).catch(
+            () => null,
+          );
+          if (cancelled) return;
+
+          if (dayEvents?.official_events) {
+            setEvents((prev) => [...prev, ...dayEvents.official_events]);
+          }
+
+          setItems((prev) => [...prev, ...newItems.event_results]);
+          setNextDate(shiftDateString(date, -1));
+
+          return;
         }
 
-        setItems((prev) => [...prev, ...newItems.event_results]);
-        setNextDate(shiftDateString(date, -1));
-
-        return;
+        setHasMore(false);
+      } catch (error) {
+        if (cancelled) return;
+        console.error("Error loading items:", error);
+        setHasMore(false);
+      } finally {
+        if (!cancelled) {
+          setIsInitialLoaded(true);
+          setManualLoadPending(false);
+        }
       }
+    })();
 
-      setHasMore(false);
-      return;
-    } catch (error) {
-      console.error("Error loading items:", error);
-      setHasMore(false);
-    } finally {
-      setIsLoading(false);
-      if (!isInitialLoaded) {
-        setIsInitialLoaded(true);
-      }
-    }
-  }, [
-    league_type,
-    nextDate,
-    isLoading,
-    hasMore,
-    isInitialLoaded,
-    isScheduleInitialized,
-    schedule,
-  ]);
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoading, nextDate, league_type, schedule]);
 
+  // 「更に読み込む」。読み込み中・続きが無いときは何もしない
+  const loadMore = () => {
+    if (isLoading || !hasMore || !isScheduleInitialized) return;
+    setManualLoadPending(true);
+  };
+
+  // 対象カードが見つかったら、スクロール対象を消して(覆いが外れる)その位置までスクロールする。
+  // このカードは描画済み(items にある)なので、フレームを1つ待ってから測る
   useEffect(() => {
-    if (!isScheduleInitialized || isInitialLoaded) return;
-    loadMore();
-  }, [isScheduleInitialized, isInitialLoaded, loadMore]);
+    if (pendingScrollId === null || !scrollTargetFound) return;
 
-  // 戻り遷移時に保存されたスクロール対象を、リーグ種別が一致する場合だけ受け取る
-  useEffect(() => {
-    const savedId = sessionStorage.getItem("cityleagueResultScrollToId");
-    const savedLeagueType = sessionStorage.getItem("cityleagueResultScrollToLeagueType");
-    if (savedId && savedLeagueType && Number(savedLeagueType) === league_type) {
-      setPendingScrollId(Number(savedId));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    clearCityleagueResultScrollTarget();
 
-  // 対象カードが描画されるまで自動ロードし、見つかったらスクロール対象として確定する
-  useEffect(() => {
-    if (pendingScrollId === null) return;
-    if (!isInitialLoaded || isLoading) return;
-
-    const found = items.some((item) => item.official_event_id === pendingScrollId);
-    if (found) {
-      scrollToIdRef.current = pendingScrollId;
-      setPendingScrollId(null);
-      sessionStorage.removeItem("cityleagueResultScrollToId");
-      sessionStorage.removeItem("cityleagueResultScrollToLeagueType");
-    } else if (hasMore) {
-      loadMore();
-    } else {
-      // 全件読み込んでも見つからなかった場合は諦める
-      setPendingScrollId(null);
-      sessionStorage.removeItem("cityleagueResultScrollToId");
-      sessionStorage.removeItem("cityleagueResultScrollToLeagueType");
-    }
-  }, [pendingScrollId, isInitialLoaded, isLoading, items, hasMore, loadMore]);
-
-  // 検索が終わった（pendingScrollId が null になった）後にスクロール実行
-  useEffect(() => {
-    if (pendingScrollId !== null) return;
-    const id = scrollToIdRef.current;
-    if (id === null) return;
-    scrollToIdRef.current = null;
+    const id = pendingScrollId;
     requestAnimationFrame(() => {
       const el = document.getElementById(`cityleague-result-${id}`);
       if (!el) return;
       const y = el.getBoundingClientRect().top + window.scrollY - 80;
       window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
     });
-  }, [pendingScrollId]);
+  }, [pendingScrollId, scrollTargetFound]);
+
+  // 全件読み込んでも見つからなかった場合は諦める(対象を消して覆いを外す)
+  useEffect(() => {
+    if (pendingScrollId === null || scrollTargetFound) return;
+    if (!isInitialLoaded || hasMore) return;
+
+    clearCityleagueResultScrollTarget();
+  }, [pendingScrollId, scrollTargetFound, isInitialLoaded, hasMore]);
 
   // 「2026/09/07」。toJSTDate() の戻り値はUTCゲッターで読む前提のズラした値なので、
   // getFullYear() 等(端末のタイムゾーン基準)で読むとUTCより西の端末で前日にずれる。

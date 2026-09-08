@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo, useLayoutEffect } from "react";
+import { useState, useRef, useMemo, useLayoutEffect } from "react";
 import { SetStateAction, Dispatch } from "react";
 
 import useSWR from "swr";
@@ -54,6 +54,7 @@ import {
 } from "@app/utils/keyboard";
 import { getSpriteBySlot } from "@app/utils/spriteSlot";
 import { isIOS } from "@app/utils/platform";
+import { useClientValue } from "@app/hooks/useClientValue";
 import { closingPassthroughClassNames } from "@app/utils/modal";
 import { MAX_OPPONENTS_DECK_INFO_LENGTH, exceedsTextLength } from "@app/utils/textLength";
 import {
@@ -75,10 +76,12 @@ function CardDeckName({ text }: { text: string }) {
   const spanRef = useRef<HTMLSpanElement>(null);
   const [shouldMarquee, setShouldMarquee] = useState(false);
 
-  // テキスト変更時はマーキー状態をリセット
-  useLayoutEffect(() => {
+  // テキスト変更時はマーキー状態をリセット(前回の文字列を控えておき、描画中に戻す)
+  const [prevText, setPrevText] = useState(text);
+  if (prevText !== text) {
+    setPrevText(text);
     setShouldMarquee(false);
-  }, [text]);
+  }
 
   // 非マーキー時にオーバーフローを検出（レンダー後に毎回確認）
   useLayoutEffect(() => {
@@ -202,7 +205,6 @@ export default function CreateMatchModal({
 
   const [qualifyingRoundFlg, setQualifyingRoundFlg] = useState(false);
   const [finalTournamentFlg, setFinalTournamentFlg] = useState(false);
-  const [isValidedFlg, setIsValidedFlg] = useState(true);
 
   const [opponentsDeckInfo, setOpponentsDeckInfo] = useState<string>("");
 
@@ -229,7 +231,6 @@ export default function CreateMatchModal({
   const [isTagManaging, setIsTagManaging] = useState<boolean>(false);
 
   const [isDisabled, setIsDisabled] = useState(false);
-  const [couldCreateFlg, setCouldCreateFlg] = useState(false);
 
   // 登録APIの実行中かどうか。実行中は登録ボタンを無効化し、Esc・ドラッグでも閉じられないようにする。
   // isDisabled は「不戦勝/不戦敗の選択中(相手情報の入力欄を無効化)」の意味であり、実行中フラグではない。
@@ -247,11 +248,8 @@ export default function CreateMatchModal({
   } | null>(null);
 
   // フッター下部の余白をOS別に切り替えるための判定。
-  // navigator参照のためSSRとのハイドレーション不整合を避け、マウント後に確定させる。
-  const [isIOSDevice, setIsIOSDevice] = useState(false);
-  useEffect(() => {
-    setIsIOSDevice(isIOS());
-  }, []);
+  // navigator参照のためSSRとのハイドレーション不整合を避け、ハイドレーション後に確定させる。
+  const isIOSDevice = useClientValue(isIOS, false);
 
   const [pokemonSprite1, setPokemonSprite1] = useState<PokemonSpriteType | null>(null);
   const [pokemonSprite2, setPokemonSprite2] = useState<PokemonSpriteType | null>(null);
@@ -352,7 +350,6 @@ export default function CreateMatchModal({
     setPokemonSprite2(null);
 
     setIsDisabled(false);
-    setCouldCreateFlg(false);
   };
 
   const attachHeader = useModalDragToClose(
@@ -365,52 +362,34 @@ export default function CreateMatchModal({
     { disabled: isSubmitting },
   );
 
-  useEffect(() => {
-    if (qualifyingRoundFlg && finalTournamentFlg) {
-      setIsValidedFlg(false);
-    } else {
-      setIsValidedFlg(true);
-    }
-  }, [qualifyingRoundFlg, finalTournamentFlg]);
+  // 予選と決勝トーナメントの両方は選べない
+  const isValidedFlg = !(qualifyingRoundFlg && finalTournamentFlg);
 
-  useEffect(() => {
+  const couldCreateFlg = (() => {
     // 不戦勝/不戦敗の場合は相手のデッキも勝敗も入力しないため、常に登録可能
-    if (isDefaultVictory || isDefaultDefeat) {
-      setCouldCreateFlg(true);
-      return;
-    }
+    if (isDefaultVictory || isDefaultDefeat) return true;
 
-    if (opponentsDeckInfo === "") {
-      setCouldCreateFlg(false);
-      return;
-    }
+    if (opponentsDeckInfo === "") return false;
 
     // BO3タブは各ゲームの先攻/後攻と勝敗がすべて入力されている必要がある
-    if (selectedTab === "bo3") {
-      setCouldCreateFlg(isBO3GamesFilled(bo3Games));
-      return;
-    }
+    if (selectedTab === "bo3") return isBO3GamesFilled(bo3Games);
 
-    if (isGoFirst === "-1" || isVictory === "-1") {
-      setCouldCreateFlg(false);
-      // チーム戦タブの場合はチームの勝敗（group_match_victory_flg）も必須
-    } else if (selectedTab === "team" && isGroupMatchVictory === "-1") {
-      setCouldCreateFlg(false);
-    } else {
-      setCouldCreateFlg(true);
-    }
-  }, [
-    opponentsDeckInfo,
-    isGoFirst,
-    isVictory,
-    isGroupMatchVictory,
-    selectedTab,
-    bo3Games,
-    isDefaultVictory,
-    isDefaultDefeat,
-  ]);
+    if (isGoFirst === "-1" || isVictory === "-1") return false;
+    // チーム戦タブの場合はチームの勝敗（group_match_victory_flg）も必須
+    if (selectedTab === "team" && isGroupMatchVictory === "-1") return false;
 
-  useEffect(() => {
+    return true;
+  })();
+
+  // 不戦勝/不戦敗の切り替えに合わせて相手情報・勝敗を整える。
+  // effect で整えると切り替え前の入力での描画が一度挟まるので、前回の値を控えて描画中に整える
+  const [prevDefault, setPrevDefault] = useState({ isDefaultVictory, isDefaultDefeat });
+  if (
+    prevDefault.isDefaultVictory !== isDefaultVictory ||
+    prevDefault.isDefaultDefeat !== isDefaultDefeat
+  ) {
+    setPrevDefault({ isDefaultVictory, isDefaultDefeat });
+
     // 不戦勝/不戦敗が選択された場合
     if (isDefaultVictory || isDefaultDefeat) {
       setIsDisabled(true);
@@ -434,13 +413,13 @@ export default function CreateMatchModal({
       }
 
       // どちらかが戻された場合
-    } else if (!isDefaultVictory && !isDefaultDefeat) {
+    } else {
       setIsDisabled(false);
 
       setIsVictory("-1");
       setIsGroupMatchVictory("-1");
     }
-  }, [isDefaultVictory, isDefaultDefeat]);
+  }
 
   const createMatch = async (onClose: () => void) => {
     // 連打による多重登録(同じ対戦結果が2件できる)を防ぐ。

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Chip } from "@heroui/react";
 import { Image } from "@heroui/react";
@@ -15,8 +15,10 @@ import { Modal } from "@app/components/atoms/AppModal";
 import FetchError from "@app/components/molecules/FetchError";
 
 import { fetchDeckCardDetail } from "@app/utils/deckcard";
+import { writeLocalStorage } from "@app/utils/localStorageStore";
+import { useLocalStorageItem } from "@app/hooks/useLocalStorageItem";
+import { useSeededResource } from "@app/hooks/useSeededResource";
 
-import { DeckCardDetailType } from "@app/types/deckcard";
 import { PkeCardType } from "@app/types/deckcard";
 import { CardType } from "@app/types/deckcard";
 
@@ -312,13 +314,18 @@ function CategoryCardRow<
 }
 
 export default function DeckCardDetailRow({ code }: Props) {
-  const [deckcardDetail, setDeckCardDetail] = useState<DeckCardDetailType | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  // デッキカード内訳。デッキコードが変わると取り直し、失敗時は retry で取り直す
+  const {
+    data: deckcardDetail,
+    loading,
+    error,
+    retry: loadDeckCardDetail,
+  } = useSeededResource(code, fetchDeckCardDetail);
 
-  // 表示モード。SSR とのハイドレーション不一致を避けるため初期値は固定（チップ）にし、
-  // マウント後に localStorage から復元する。
-  const [view, setView] = useState<DeckCardDetailView>("chip");
+  // 表示モード。保存先は localStorage で、SSR とハイドレーションでは読めないため固定（チップ）で描き、
+  // その後の描画で保存値になる(useLocalStorageItem)。切り替えは保存して読み手へ通知する
+  const savedView = useLocalStorageItem(DECK_CARD_VIEW_STORAGE_KEY);
+  const view: DeckCardDetailView = savedView === "image" ? "image" : "chip";
 
   const [pkecard, setPkeCard] = useState<PkeCardType>();
   const {
@@ -334,16 +341,8 @@ export default function DeckCardDetailRow({ code }: Props) {
     onOpenChange: onOpenChangeForShowCardModal,
   } = useDisclosure();
 
-  useEffect(() => {
-    const saved = localStorage.getItem(DECK_CARD_VIEW_STORAGE_KEY);
-    if (saved === "chip" || saved === "image") {
-      setView(saved);
-    }
-  }, []);
-
   const handleChangeView = (next: DeckCardDetailView) => {
-    setView(next);
-    localStorage.setItem(DECK_CARD_VIEW_STORAGE_KEY, next);
+    writeLocalStorage(DECK_CARD_VIEW_STORAGE_KEY, next);
   };
 
   // 他タブのカード画像を先読みしてタブ切替時の待ちを減らす。
@@ -409,31 +408,6 @@ export default function DeckCardDetailRow({ code }: Props) {
       timers.forEach(clearTimeout);
     };
   }, [deckcardDetail]);
-
-  // デッキカード内訳だけを取得（失敗時のリロードから再利用）
-  const loadDeckCardDetail = useCallback(async () => {
-    if (!code) {
-      setLoading(false);
-      return;
-    }
-
-    setError(false);
-    setLoading(true);
-
-    try {
-      const data = await fetchDeckCardDetail(code);
-      setDeckCardDetail(data);
-    } catch (err) {
-      console.log(err);
-      setError(true);
-    } finally {
-      setLoading(false);
-    }
-  }, [code]);
-
-  useEffect(() => {
-    loadDeckCardDetail();
-  }, [loadDeckCardDetail]);
 
   if (!code) return;
 

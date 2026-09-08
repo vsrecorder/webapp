@@ -147,30 +147,39 @@ export default function EditEventInfoModal({
    * モーダルを開いたときに、記録の内容で入力欄を初期化する。
    * 自由形式はイベント名が記録側に無いため、参照先の自由形式イベントを取得する。
    */
-  useEffect(() => {
-    if (!isOpen) return;
+  // 開くたびに記録の内容で入力欄を初期化する。effect で初期化すると前回の入力での描画が
+  // 一度挟まるので、開閉と記録を控えておき、変わったときに描画中に初期化する。
+  // 自由形式イベントの取得だけは下の effect で行う(取得中の表示はここで立てる)
+  const needsUnofficialFetch = currentEventType === "unofficial" && !!record.unofficial_event_id;
+  const [initSource, setInitSource] = useState({ isOpen, record });
+  if (initSource.isOpen !== isOpen || initSource.record !== record) {
+    setInitSource({ isOpen, record });
+    if (isOpen) {
+      const recordDate = toCalendarDate(record.event_date);
 
-    const type = getEventType(record);
+      setEventType(currentEventType);
+      setOfficialEventId(record.official_event_id !== 0 ? record.official_event_id : null);
+      setTonamelEventId(record.tonamel_event_id);
+      setIsValidTonamelEventId(record.tonamel_event_id !== "");
+      setEventTitle("");
+      setInitialEventTitle("");
+
+      if (!needsUnofficialFetch) {
+        const date =
+          recordDate ?? toCalendarDate(record.created_at) ?? today(JST_TIME_ZONE);
+        setEventDate(date);
+        setInitialDate(date);
+      }
+      setIsLoading(needsUnofficialFetch);
+    }
+  }
+
+  useEffect(() => {
+    if (!isOpen || !needsUnofficialFetch) return;
+
     const recordDate = toCalendarDate(record.event_date);
 
-    setEventType(type);
-    setOfficialEventId(record.official_event_id !== 0 ? record.official_event_id : null);
-    setTonamelEventId(record.tonamel_event_id);
-    setIsValidTonamelEventId(record.tonamel_event_id !== "");
-    setEventTitle("");
-    setInitialEventTitle("");
-
-    if (type !== "unofficial" || !record.unofficial_event_id) {
-      const date =
-        recordDate ?? toCalendarDate(record.created_at) ?? today(JST_TIME_ZONE);
-      setEventDate(date);
-      setInitialDate(date);
-      setIsLoading(false);
-      return;
-    }
-
     let ignore = false;
-    setIsLoading(true);
     fetchUnofficialEvent(record.unofficial_event_id)
       .then((data) => {
         if (ignore) return;
@@ -201,7 +210,7 @@ export default function EditEventInfoModal({
     return () => {
       ignore = true;
     };
-  }, [isOpen, record]);
+  }, [isOpen, needsUnofficialFetch, record]);
 
   const isEventTitleTooLong = exceedsTextLength(eventTitle, MAX_EVENT_TITLE_LENGTH);
 

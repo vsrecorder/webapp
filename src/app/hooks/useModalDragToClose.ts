@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback, useLayoutEffect, useRef } from "react";
 
 type Options = {
   // true の間はドラッグを受け付けない(処理中に閉じられると困るモーダル向け)
@@ -97,13 +97,17 @@ export function useModalDragToClose(
 ) {
   const startY = useRef<number | null>(null);
 
-  // リスナ内から常に最新の値を参照できるようにする(リスナの付け直しを避けるため)
+  // リスナ内から常に最新の値を参照できるようにする(リスナの付け直しを避けるため)。
+  // 描画中に ref へ書かず、コミット時(レイアウトエフェクト)に追随させる。リスナが呼ばれるのは
+  // コミット後のタッチ操作なので、読む時点では常に最新になっている
   const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
   const disabledRef = useRef(disabled);
-  disabledRef.current = disabled;
   const sheetEnabledRef = useRef(sheet);
-  sheetEnabledRef.current = sheet;
+  useLayoutEffect(() => {
+    onCloseRef.current = onClose;
+    disabledRef.current = disabled;
+    sheetEnabledRef.current = sheet;
+  });
 
   const detachRef = useRef<(() => void) | null>(null);
 

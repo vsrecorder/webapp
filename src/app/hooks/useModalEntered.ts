@@ -21,11 +21,16 @@ const ENTER_SETTLE_MS = 480;
 export function useModalEntered(isOpen: boolean): boolean {
   const [entered, setEntered] = useState(false);
 
+  // 閉じたら false に戻す。effect で戻すと「閉じたのに entered のまま」の描画が一度挟まるので、
+  // 前回の isOpen を控えておき、描画中に変化を見て戻す(React の「前回の描画の情報を保存する」パターン)
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (wasOpen !== isOpen) {
+    setWasOpen(isOpen);
+    if (!isOpen) setEntered(false);
+  }
+
   useEffect(() => {
-    if (!isOpen) {
-      setEntered(false);
-      return;
-    }
+    if (!isOpen) return;
     const id = setTimeout(() => setEntered(true), ENTER_SETTLE_MS);
     return () => clearTimeout(id);
   }, [isOpen]);

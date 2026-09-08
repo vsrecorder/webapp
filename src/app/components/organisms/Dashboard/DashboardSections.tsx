@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useEffect, useRef, useState } from "react";
+import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Button,
@@ -17,6 +17,9 @@ import { Modal } from "@app/components/atoms/AppModal";
 import DashboardBlockSkeleton from "@app/components/organisms/Dashboard/Skeleton/DashboardSectionSkeletons";
 import { UserBadgesType } from "@app/types/badge";
 import { writeClientCookie } from "@app/utils/clientCookie";
+import { writeLocalStorage } from "@app/utils/localStorageStore";
+import { useHydrated } from "@app/hooks/useHydrated";
+import { useLocalStorageItem } from "@app/hooks/useLocalStorageItem";
 import {
   DASHBOARD_LAYOUT_COOKIE,
   DASHBOARD_LAYOUT_COOKIE_MAX_AGE,
@@ -78,13 +81,13 @@ type StoredLayout = {
   shown?: string[];
 };
 
-function loadLayout(defaultOrder: string[]): Required<StoredLayout> {
+// 保存値(localStorage の生の JSON)を並び・非表示・明示表示へ戻す。
+// 未知のIDを除外しつつ、新しく増えたセクションは末尾に追加する
+function parseLayout(raw: string | null, defaultOrder: string[]): Required<StoredLayout> {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return { order: defaultOrder, hidden: [], shown: [] };
 
     const parsed = JSON.parse(raw) as StoredLayout;
-    // 未知のIDを除外しつつ、新しく増えたセクションは末尾に追加する
     const known = new Set(defaultOrder);
     const order = parsed.order.filter((id) => known.has(id));
     const missing = defaultOrder.filter((id) => !order.includes(id));
@@ -100,23 +103,18 @@ function loadLayout(defaultOrder: string[]): Required<StoredLayout> {
 }
 
 function saveLayout(layout: StoredLayout) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(layout));
+  writeLocalStorage(STORAGE_KEY, JSON.stringify(layout));
 }
 
-function loadOnboardingComplete(): boolean {
-  try {
-    return localStorage.getItem(ONBOARDING_COMPLETE_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
-
+// localStorage が使えない環境では自動非表示のキャッシュを諦める(致命的ではない)
 function saveOnboardingComplete(complete: boolean) {
-  try {
-    localStorage.setItem(ONBOARDING_COMPLETE_KEY, complete ? "1" : "0");
-  } catch {
-    // localStorage が使えない環境では自動非表示のキャッシュを諦める(致命的ではない)
-  }
+  writeLocalStorage(ONBOARDING_COMPLETE_KEY, complete ? "1" : "0");
+}
+
+// 「はじめの一歩」を全達成しているか(バッジ一覧から判定する)
+function isOnboardingComplete(data: UserBadgesType): boolean {
+  const onboarding = (data?.badges ?? []).filter((b) => b.category === "onboarding");
+  return onboarding.length > 0 && onboarding.every((b) => b.achieved);
 }
 
 export default function DashboardSections({
@@ -144,64 +142,67 @@ export default function DashboardSections({
     initialSectionStateFromLayout(initialSectionLayout, defaultOrder),
   );
 
-  const [order, setOrder] = useState<string[]>(initialFromCookie?.order ?? defaultOrder);
-  const [hidden, setHidden] = useState<Set<string>>(new Set(initialFromCookie?.hidden ?? []));
+  /*
+   * 保存済みのカスタムレイアウト(並び・非表示・明示表示)は localStorage からしか読めず、
+   * SSR/ハイドレーションの時点では分からない。読み込み前にデフォルト順で描画してしまうと
+   * その直後に保存済みの順序へ切り替わり一瞬ちらつく。そこでハイドレーションが済むまでは
+   * セクション本体を描画せず(骨格で繋ぎ)、ちらつきを回避する。ただし cookie に前回の並びが
+   * あるときは、それが保存済みの設定と同じ結果になる(同じ端末で毎回書き替えている)ので、
+   * 最初から本体を描く。
+   *
+   * 保存値は localStorage を「外部ストア」として描画中に読む(useLocalStorageItem)。
+   * 並べ替えや表示設定の変更はストアへ書き(saveLayout)、その通知で描画が追随する。
+   */
+  const hydrated = useHydrated();
+  const storedLayout = useLocalStorageItem(STORAGE_KEY);
+  const defaultOrderKey = defaultOrder.join(",");
+  const savedLayout = useMemo(
+    () => parseLayout(storedLayout, defaultOrderKey ? defaultOrderKey.split(",") : []),
+    [storedLayout, defaultOrderKey],
+  );
+  const isLayoutReady = hydrated || initialFromCookie != null;
+  // ハイドレーション前は cookie 由来の並び(無ければ既定順)で描く
+  const cookieLayout = useMemo<Required<StoredLayout>>(
+    () => ({
+      order: initialFromCookie?.order ?? (defaultOrderKey ? defaultOrderKey.split(",") : []),
+      hidden: initialFromCookie?.hidden ?? [],
+      shown: [],
+    }),
+    [initialFromCookie, defaultOrderKey],
+  );
+  const layout = hydrated ? savedLayout : cookieLayout;
+  const order = layout.order;
+  const hidden = useMemo(() => new Set(layout.hidden), [layout]);
   // ユーザーが「既定は非表示」の節(全達成した「はじめの一歩」)を明示的にONにした記録。
-  const [shown, setShown] = useState<Set<string>>(new Set());
+  const shown = useMemo(() => new Set(layout.shown), [layout]);
+
   // 「はじめの一歩」を全達成済みか。全達成なら onboarding_badges を既定で非表示にする。
-  const [onboardingComplete, setOnboardingComplete] = useState(false);
-  // 保存済みのカスタムレイアウトは localStorage からしか読めずSSR/初回描画時点では
-  // 分からないため、読み込み前にデフォルト順で描画してしまうとその直後に保存済みの
-  // 順序へ切り替わり一瞬ちらつく。読み込みが終わるまではセクション本体を描画せず、
-  // ちらつきを回避する。ただし cookie に前回の並びがあるときは、それが保存済みの設定と
-  // 同じ結果になる(同じ端末で毎回書き替えている)ので、最初から本体を描く。
-  const [isLayoutReady, setIsLayoutReady] = useState(initialFromCookie != null);
+  // 全達成は永続情報なので localStorage のキャッシュから即反映し、初回描画からちらつかせない。
+  // バッジ一覧(サーバ描画の initialBadges か、無ければここで取る)が届いたらその判定で上書きする
+  const cachedOnboardingComplete = useLocalStorageItem(ONBOARDING_COMPLETE_KEY) === "1";
+  const [fetchedBadges, setFetchedBadges] = useState<UserBadgesType | null>(null);
+  const badges = initialBadges ?? fetchedBadges;
+  const onboardingComplete = badges ? isOnboardingComplete(badges) : cachedOnboardingComplete;
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
+  // 「はじめの一歩」の全達成を判定するためのバッジ一覧。判定にはバッジ一覧が要るが、これは
+  // OnboardingBadgePanel の表示用取得とは独立(達成判定だけが目的)。サーバ描画で取れていれば
+  // 取りに行かない。失敗時は現状維持(勝手にパネルを消さない方が安全)。
   useEffect(() => {
-    const layout = loadLayout(sections.map((s) => s.id));
-    setOrder(layout.order);
-    setHidden(new Set(layout.hidden));
-    setShown(new Set(layout.shown));
-    // 全達成はキャッシュから即反映し、初回描画からちらつかせない。
-    setOnboardingComplete(loadOnboardingComplete());
-    setIsLayoutReady(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (initialBadges) return;
 
-  // 「はじめの一歩」の全達成を判定する。判定にはバッジ一覧が要るが、これは
-  // OnboardingBadgePanel の表示用取得とは独立(達成判定だけが目的)。取得できたら
-  // 真偽を確定し、次回訪問のためにキャッシュする。失敗時は現状維持(勝手にパネルを
-  // 消さない方が安全)。
-  useEffect(() => {
     let cancelled = false;
-
-    // 全達成かどうかを、バッジ一覧から決めて次回訪問のために覚えておく
-    const settle = (data: UserBadgesType) => {
-      const onboarding = (data?.badges ?? []).filter((b) => b.category === "onboarding");
-      const complete = onboarding.length > 0 && onboarding.every((b) => b.achieved);
-
-      if (cancelled) return;
-      setOnboardingComplete(complete);
-      saveOnboardingComplete(complete);
-    };
-
-    // サーバ描画で取れていればそれで判定する(取りに行かない)
-    if (initialBadges) {
-      settle(initialBadges);
-      return;
-    }
-
     (async () => {
       try {
         const res = await fetch(`/api/users/${userId}/badges`, { cache: "no-store" });
         if (!res.ok) return;
 
-        settle((await res.json()) as UserBadgesType);
+        const data = (await res.json()) as UserBadgesType;
+        if (!cancelled) setFetchedBadges(data);
       } catch {
         // ネットワークエラー時は判定を変えない
       }
@@ -211,6 +212,11 @@ export default function DashboardSections({
       cancelled = true;
     };
   }, [userId, initialBadges]);
+
+  // 判定が確定したら次回訪問のためにキャッシュする(別アカウントで false に戻るケースにも対応)
+  useEffect(() => {
+    if (badges) saveOnboardingComplete(isOnboardingComplete(badges));
+  }, [badges]);
 
   // ヘッダーのユーザメニューから ?customize=1 付きで遷移してきたらモーダルを開く
   useEffect(() => {
@@ -232,6 +238,7 @@ export default function DashboardSections({
   }
 
   // 表示設定のスイッチ。表示⇔非表示を、自動非表示を上書きできる形で明示選択として記録する。
+  // 保存すると(ストアの通知で)描画が追随する
   function toggleVisibility(id: string) {
     const nextHidden = new Set(hidden);
     const nextShown = new Set(shown);
@@ -249,8 +256,6 @@ export default function DashboardSections({
       nextHidden.add(id);
     }
 
-    setHidden(nextHidden);
-    setShown(nextShown);
     saveLayout({
       order,
       hidden: Array.from(nextHidden),
@@ -259,27 +264,21 @@ export default function DashboardSections({
   }
 
   function move(id: string, direction: -1 | 1) {
-    setOrder((prev) => {
-      const index = prev.indexOf(id);
-      const nextIndex = index + direction;
-      if (index === -1 || nextIndex < 0 || nextIndex >= prev.length) return prev;
+    const index = order.indexOf(id);
+    const nextIndex = index + direction;
+    if (index === -1 || nextIndex < 0 || nextIndex >= order.length) return;
 
-      const next = [...prev];
-      [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
-      saveLayout({
-        order: next,
-        hidden: Array.from(hidden),
-        shown: Array.from(shown),
-      });
-      return next;
+    const next = [...order];
+    [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
+    saveLayout({
+      order: next,
+      hidden: Array.from(hidden),
+      shown: Array.from(shown),
     });
   }
 
   function resetLayout() {
-    localStorage.removeItem(STORAGE_KEY);
-    setOrder(defaultOrder);
-    setHidden(new Set());
-    setShown(new Set());
+    writeLocalStorage(STORAGE_KEY, null);
   }
 
   const sectionMap = new Map(sections.map((s) => [s.id, s]));

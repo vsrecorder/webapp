@@ -58,8 +58,6 @@ export default function KizunaHeaderShareModal({
   tierMessage,
 }: Props) {
   const captureRef = useRef<HTMLDivElement>(null);
-  const [dataUrl, setDataUrl] = useState<string | null>(null);
-  const [captureFailed, setCaptureFailed] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // プレビューは実寸(1500px)を親要素の幅に合わせて縮小表示する。
@@ -82,18 +80,24 @@ export default function KizunaHeaderShareModal({
   // id を連結した安定なキーで依存を張る。
   const spriteKey = useMemo(() => sprites.map((s) => s.id).join(","), [sprites]);
 
-  // モーダルを開いたら書き出しておく(iOS 対策。理由は上のコメント)。
-  const seq = useRef(0);
-  useEffect(() => {
-    if (!isOpen) {
-      setDataUrl(null);
-      setCaptureFailed(false);
-      return;
-    }
+  /*
+   * 書き出した画像。どの条件(captureKey)で撮ったかも持ち、今の条件と一致するときだけ使う。
+   * 閉じている間は条件なし(=画像なし)で、開くたびに撮り直す。生成中に条件が変わった場合は
+   * 後から終わった古い生成結果も条件が合わないので捨てられる
+   */
+  const captureKey = isOpen ? [score, deckName, spriteKey].join("|") : null;
+  const [capture, setCapture] = useState<{
+    key: string;
+    dataUrl: string | null;
+    failed: boolean;
+  } | null>(null);
+  const currentCapture = captureKey !== null && capture?.key === captureKey ? capture : null;
+  const dataUrl = currentCapture?.dataUrl ?? null;
+  const captureFailed = currentCapture?.failed ?? false;
 
-    const current = ++seq.current;
-    setDataUrl(null);
-    setCaptureFailed(false);
+  // モーダルを開いたら書き出しておく(iOS 対策。理由は上のコメント)。
+  useEffect(() => {
+    if (captureKey === null) return;
 
     (async () => {
       try {
@@ -113,15 +117,13 @@ export default function KizunaHeaderShareModal({
           ),
         ]);
 
-        if (current !== seq.current) return;
-        setDataUrl(url);
+        setCapture({ key: captureKey, dataUrl: url, failed: false });
       } catch (e) {
         console.error(e);
-        if (current !== seq.current) return;
-        setCaptureFailed(true);
+        setCapture({ key: captureKey, dataUrl: null, failed: true });
       }
     })();
-  }, [isOpen, score, deckName, spriteKey]);
+  }, [captureKey]);
 
   const handleSave = async () => {
     if (!dataUrl) return;

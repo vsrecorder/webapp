@@ -2,7 +2,9 @@
 
 import { useSession } from "next-auth/react";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect } from "react";
+
+import { useSeededResource } from "@app/hooks/useSeededResource";
 
 import { Spinner } from "@heroui/spinner";
 
@@ -12,6 +14,7 @@ import FetchError from "@app/components/molecules/FetchError";
 import { RecordGetByIdResponseType } from "@app/types/record";
 
 import { isModalHistoryPushState } from "@app/utils/modalHistory";
+import { writeSessionStorage } from "@app/utils/sessionStorageStore";
 import {
   REOPEN_DECK_MODAL_DECK_ID,
   REOPEN_DECK_MODAL_ARCHIVED,
@@ -54,30 +57,13 @@ type Props = {
 };
 
 export default function RecordById({ id }: Props) {
-  const [record, setRecord] = useState<RecordGetByIdResponseType>();
-
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  // 記録本体。id が変わると取り直し、失敗時は retry(FetchError のリロード)で取り直す
+  const { data: record, loading, error, retry: loadRecord } = useSeededResource(
+    id,
+    fetchRecordById,
+  );
 
   const { data: session, status } = useSession();
-
-  // 記録データだけを取得（失敗時のリロードから再利用）
-  const loadRecord = useCallback(async () => {
-    if (!id) return;
-
-    setError(false);
-    setLoading(true);
-
-    try {
-      const record = await fetchRecordById(id);
-      setRecord(record);
-    } catch (err) {
-      console.log(err);
-      setError(true);
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
 
   // モーダルから遷移してきた場合のフラグ管理。
   // マウント時に reopenModalRecordId を詳細ページ専用キーへ移動しておき、
@@ -98,24 +84,24 @@ export default function RecordById({ id }: Props) {
     const pendingDeckWithRecords = sessionStorage.getItem(REOPEN_DECK_MODAL_WITH_RECORDS);
 
     if (pendingId && pendingId === id) {
-      sessionStorage.setItem(PENDING_REOPEN_RECORD_ID, pendingId);
+      writeSessionStorage(PENDING_REOPEN_RECORD_ID, pendingId);
       if (pendingEventType) {
-        sessionStorage.setItem(PENDING_REOPEN_EVENT_TYPE, pendingEventType);
+        writeSessionStorage(PENDING_REOPEN_EVENT_TYPE, pendingEventType);
       }
       if (pendingDeckId) {
-        sessionStorage.setItem(PENDING_REOPEN_DECK_ID, pendingDeckId);
+        writeSessionStorage(PENDING_REOPEN_DECK_ID, pendingDeckId);
       }
       if (pendingDeckArchived) {
-        sessionStorage.setItem(PENDING_REOPEN_ARCHIVED, pendingDeckArchived);
+        writeSessionStorage(PENDING_REOPEN_ARCHIVED, pendingDeckArchived);
       }
       if (pendingDeckWithRecords) {
-        sessionStorage.setItem(PENDING_REOPEN_WITH_RECORDS, pendingDeckWithRecords);
+        writeSessionStorage(PENDING_REOPEN_WITH_RECORDS, pendingDeckWithRecords);
       }
-      sessionStorage.removeItem(REOPEN_MODAL_RECORD_ID);
-      sessionStorage.removeItem(REOPEN_MODAL_EVENT_TYPE);
-      sessionStorage.removeItem(REOPEN_DECK_MODAL_DECK_ID);
-      sessionStorage.removeItem(REOPEN_DECK_MODAL_ARCHIVED);
-      sessionStorage.removeItem(REOPEN_DECK_MODAL_WITH_RECORDS);
+      writeSessionStorage(REOPEN_MODAL_RECORD_ID, null);
+      writeSessionStorage(REOPEN_MODAL_EVENT_TYPE, null);
+      writeSessionStorage(REOPEN_DECK_MODAL_DECK_ID, null);
+      writeSessionStorage(REOPEN_DECK_MODAL_ARCHIVED, null);
+      writeSessionStorage(REOPEN_DECK_MODAL_WITH_RECORDS, null);
     }
 
     const originalPushState = window.history.pushState;
@@ -123,11 +109,11 @@ export default function RecordById({ id }: Props) {
       // モーダル表示中のバック対策（useCloseModalOnBack）が積む戻り先は
       // ページ遷移ではないため、モーダルを開いただけでフラグを捨てないよう除外する
       if (!isModalHistoryPushState(args[0])) {
-        sessionStorage.removeItem(PENDING_REOPEN_RECORD_ID);
-        sessionStorage.removeItem(PENDING_REOPEN_EVENT_TYPE);
-        sessionStorage.removeItem(PENDING_REOPEN_DECK_ID);
-        sessionStorage.removeItem(PENDING_REOPEN_ARCHIVED);
-        sessionStorage.removeItem(PENDING_REOPEN_WITH_RECORDS);
+        writeSessionStorage(PENDING_REOPEN_RECORD_ID, null);
+        writeSessionStorage(PENDING_REOPEN_EVENT_TYPE, null);
+        writeSessionStorage(PENDING_REOPEN_DECK_ID, null);
+        writeSessionStorage(PENDING_REOPEN_ARCHIVED, null);
+        writeSessionStorage(PENDING_REOPEN_WITH_RECORDS, null);
       }
       return originalPushState.apply(window.history, args);
     };
@@ -142,31 +128,27 @@ export default function RecordById({ id }: Props) {
       const savedDeckWithRecords = sessionStorage.getItem(PENDING_REOPEN_WITH_RECORDS);
       if (savedId) {
         // pushState が発生しなかった（バック遷移）場合のみここに来る
-        sessionStorage.setItem(REOPEN_MODAL_RECORD_ID, savedId);
+        writeSessionStorage(REOPEN_MODAL_RECORD_ID, savedId);
         if (savedEventType) {
-          sessionStorage.setItem(REOPEN_MODAL_EVENT_TYPE, savedEventType);
+          writeSessionStorage(REOPEN_MODAL_EVENT_TYPE, savedEventType);
         }
         if (savedDeckId) {
-          sessionStorage.setItem(REOPEN_DECK_MODAL_DECK_ID, savedDeckId);
+          writeSessionStorage(REOPEN_DECK_MODAL_DECK_ID, savedDeckId);
         }
         if (savedDeckArchived) {
-          sessionStorage.setItem(REOPEN_DECK_MODAL_ARCHIVED, savedDeckArchived);
+          writeSessionStorage(REOPEN_DECK_MODAL_ARCHIVED, savedDeckArchived);
         }
         if (savedDeckWithRecords) {
-          sessionStorage.setItem(REOPEN_DECK_MODAL_WITH_RECORDS, savedDeckWithRecords);
+          writeSessionStorage(REOPEN_DECK_MODAL_WITH_RECORDS, savedDeckWithRecords);
         }
-        sessionStorage.removeItem(PENDING_REOPEN_RECORD_ID);
-        sessionStorage.removeItem(PENDING_REOPEN_EVENT_TYPE);
-        sessionStorage.removeItem(PENDING_REOPEN_DECK_ID);
-        sessionStorage.removeItem(PENDING_REOPEN_ARCHIVED);
-        sessionStorage.removeItem(PENDING_REOPEN_WITH_RECORDS);
+        writeSessionStorage(PENDING_REOPEN_RECORD_ID, null);
+        writeSessionStorage(PENDING_REOPEN_EVENT_TYPE, null);
+        writeSessionStorage(PENDING_REOPEN_DECK_ID, null);
+        writeSessionStorage(PENDING_REOPEN_ARCHIVED, null);
+        writeSessionStorage(PENDING_REOPEN_WITH_RECORDS, null);
       }
     };
   }, [id]);
-
-  useEffect(() => {
-    loadRecord();
-  }, [loadRecord]);
 
   if (status === "loading") {
     return (

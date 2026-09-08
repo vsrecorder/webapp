@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { Avatar, Card, CardBody, addToast, useDisclosure } from "@heroui/react";
 import { LuCopy, LuCheck, LuPencil, LuCalendar } from "react-icons/lu";
 
@@ -8,47 +8,38 @@ import UpdateNameModal from "@app/components/organisms/User/Modal/UpdateNameModa
 import FetchError from "@app/components/molecules/FetchError";
 import { UserType } from "@app/types/user";
 import { formatJoinDate } from "@app/utils/calendar";
+import { useSeededResource } from "@app/hooks/useSeededResource";
+
+async function fetchUser(userId: string): Promise<UserType> {
+  const res = await fetch(`/api/users/${userId}`, { cache: "no-store" });
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch");
+  }
+
+  return res.json();
+}
 
 type Props = {
   userId: string;
 };
 
 export default function UserIdentityCard({ userId }: Props) {
-  const [user, setUser] = useState<UserType | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [profile, setProfile] = useState({ name: "", imageUrl: "" });
-  const { isOpen, onOpen, onOpenChange } = useDisclosure();
-
   // 取得に失敗したことを名前空欄のカードで覆い隠さないよう、
   // 失敗はエラーとして扱い、この場だけで取り直せるようにする。
-  const loadUser = useCallback(async () => {
-    setError(false);
-    setIsLoading(true);
-
-    try {
-      const res = await fetch(`/api/users/${userId}`, { cache: "no-store" });
-
-      if (!res.ok) {
-        throw new Error("Failed to fetch");
-      }
-
-      const data: UserType = await res.json();
-
-      setUser(data);
-      if (data) setProfile({ name: data.name, imageUrl: data.image_url });
-    } catch (err) {
-      console.log(err);
-      setError(true);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [userId]);
-
-  useEffect(() => {
-    loadUser();
-  }, [loadUser]);
+  const { data: user, loading: isLoading, error, retry: loadUser } = useSeededResource(
+    userId,
+    fetchUser,
+  );
+  const [copied, setCopied] = useState(false);
+  // 表示中のプロフィール。取得した内容で始め、編集モーダルの結果(onUpdated)で差し替わる
+  const [profile, setProfile] = useState({ name: "", imageUrl: "" });
+  const [profileSource, setProfileSource] = useState<UserType | null>(null);
+  if (profileSource !== user) {
+    setProfileSource(user);
+    if (user) setProfile({ name: user.name, imageUrl: user.image_url });
+  }
+  const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   async function handleCopy() {
     try {

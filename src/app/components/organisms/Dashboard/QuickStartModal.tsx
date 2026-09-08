@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { ModalContent, ModalBody, Button } from "@heroui/react";
 import { LuFilePen, LuClipboardPaste, LuRocket } from "react-icons/lu";
 import { sendGAEvent } from "@next/third-parties/google";
 
 import { Modal } from "@app/components/atoms/AppModal";
 import DeckCodeQuickStartModal from "@app/components/organisms/Deck/Modal/DeckCodeQuickStartModal";
+import { useClientValue } from "@app/hooks/useClientValue";
+import { readLocalStorage, writeLocalStorage } from "@app/utils/localStorageStore";
 
 // 閉じてから再表示しない期間。PWAインストールバナー(useInstallPrompt)と同じ流儀・同じ長さ。
 const DISMISS_KEY = "quick_start_modal_dismissed_at";
@@ -19,6 +21,33 @@ type Props = {
   daysSinceSignup?: number;
 };
 
+// 「一度出したら3日空ける」の抑止中か
+function isRecentlyDismissed(): boolean {
+  const dismissedAt = readLocalStorage(DISMISS_KEY);
+  return !!dismissedAt && Date.now() - Number(dismissedAt) < DISMISS_DURATION_MS;
+}
+
+/*
+ * 出すかどうかは、このモーダルを開いた(マウントした)時点の抑止記録で決め、表示中は変えない
+ * (出した時点で抑止を記録するため、記録を購読して決めると出した瞬間に閉じてしまう)。
+ * 決めた結果はインスタンス(useId)ごとに覚えておき、描画のたびに同じ答えを返す。
+ * ページを開き直せば(別のインスタンスになるので)抑止記録から決め直す
+ */
+const decisions = new Map<string, boolean>();
+
+function useShouldShowQuickStart(): boolean {
+  const instanceId = useId();
+  // localStorage はサーバ描画では読めないので、ハイドレーション後に決まる
+  return useClientValue(() => {
+    let decided = decisions.get(instanceId);
+    if (decided === undefined) {
+      decided = !isRecentlyDismissed();
+      decisions.set(instanceId, decided);
+    }
+    return decided;
+  }, false);
+}
+
 // 記録がまだ0件のユーザーがホーム(ダッシュボード)を開いたときに、最初の1件への導線を
 // 自動で前に出すモーダル。中身は FirstRecordCtaCard と同じ2導線:
 //  ・主導線: 簡素化フォーム(/records/quick, 施策A-3)
@@ -28,7 +57,10 @@ type Props = {
 // 「表示すると決まったとき」だけ描画される。ここで見るのは再表示の間隔だけ。
 // カード(FirstRecordCtaCard)は常設の導線として残るので、モーダルを閉じても行き先は消えない。
 export default function QuickStartModal({ cohortWeek, daysSinceSignup }: Props) {
-  const [isOpen, setIsOpen] = useState(false);
+  const shouldShow = useShouldShowQuickStart();
+  // 閉じた(「あとで」「×」、またはデッキ登録へ入れ替えた)
+  const [closed, setClosed] = useState(false);
+  const isOpen = shouldShow && !closed;
   const [isDeckCodeOpen, setIsDeckCodeOpen] = useState(false);
 
   // GA イベントの共通パラメータ。効果をコホート別に見られるようにしておく。
@@ -37,28 +69,18 @@ export default function QuickStartModal({ cohortWeek, daysSinceSignup }: Props) 
     days_since_signup: daysSinceSignup ?? -1,
   };
 
+  // 出すと決まったら抑止を記録し、表示を計測する。
+  // 「一度出したら3日空ける」。閉じる操作を待たずに開いた時点で記録するのは、
+  // 閉じずにリロードした場合や別ページへ移って戻った場合に毎回出てしまうのを防ぐため。
+  // (書き込めない環境では抑止できないが、表示自体は妨げない)
   useEffect(() => {
-    let dismissedAt: string | null = null;
-    try {
-      dismissedAt = localStorage.getItem(DISMISS_KEY);
-    } catch {
-      // プライベートモード等で localStorage が読めない場合は抑止せず表示する
-    }
-    if (dismissedAt && Date.now() - Number(dismissedAt) < DISMISS_DURATION_MS) return;
+    if (!shouldShow) return;
 
-    // 「一度出したら3日空ける」。閉じる操作を待たずに開いた時点で記録するのは、
-    // 閉じずにリロードした場合や別ページへ移って戻った場合に毎回出てしまうのを防ぐため。
-    try {
-      localStorage.setItem(DISMISS_KEY, String(Date.now()));
-    } catch {
-      // 書き込めない環境では抑止できないが、表示自体は妨げない
-    }
-
-    setIsOpen(true);
+    writeLocalStorage(DISMISS_KEY, String(Date.now()));
     sendGAEvent("event", "quickstart_modal_impression", eventParams);
     // eventParams は cohortWeek/daysSinceSignup から導出しており、下記の依存で十分。
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cohortWeek, daysSinceSignup]);
+  }, [shouldShow, cohortWeek, daysSinceSignup]);
 
   // 主導線(簡素化フォームへ遷移)。遷移自体は Link に任せる。
   function handleRecordClick() {
@@ -68,13 +90,13 @@ export default function QuickStartModal({ cohortWeek, daysSinceSignup }: Props) 
   // 副導線。案内モーダルを閉じてからデッキ登録モーダルへ入れ替える(2枚重ねにしない)。
   function handleDeckCodeClick() {
     sendGAEvent("event", "quickstart_modal_deckcode_click", eventParams);
-    setIsOpen(false);
+    setClosed(true);
     setIsDeckCodeOpen(true);
   }
 
   function handleDismiss() {
     sendGAEvent("event", "quickstart_modal_dismiss", eventParams);
-    setIsOpen(false);
+    setClosed(true);
   }
 
   return (

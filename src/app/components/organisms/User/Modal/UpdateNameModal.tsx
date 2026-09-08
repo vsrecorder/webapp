@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, Dispatch, SetStateAction } from "react";
+import { useState, useRef, useCallback, Dispatch, SetStateAction } from "react";
 import {
   ModalContent,
   ModalHeader,
@@ -92,7 +92,11 @@ export default function UpdateNameModal({
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
 
-  useEffect(() => {
+  // 開くたび(と現在の名前が変わるたび)に入力を現在の内容へ戻す。effect で戻すと前回の
+  // 入力での描画が一度挟まるので、前回の値を控えておき描画中に戻す
+  const [resetSource, setResetSource] = useState({ isOpen, currentName });
+  if (resetSource.isOpen !== isOpen || resetSource.currentName !== currentName) {
+    setResetSource({ isOpen, currentName });
     if (isOpen) {
       setName(currentName);
       setModalState("edit");
@@ -103,7 +107,7 @@ export default function UpdateNameModal({
       setZoom(1);
       setIsDisabled(false);
     }
-  }, [isOpen, currentName]);
+  }
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

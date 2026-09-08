@@ -22,7 +22,9 @@ import type { SpriteSlot } from "@app/components/molecules/SpritePickerPanel";
 import KizunaShareCard from "@app/components/organisms/Kizuna/KizunaShareCard";
 import KizunaHeaderShareModal from "@app/components/organisms/Kizuna/KizunaHeaderShareModal";
 
-import { captureThemedPng, SIDE_PADDING } from "@app/utils/captureImage";
+import { captureThemedPng } from "@app/utils/captureImage";
+import { useCaptureWidth } from "@app/hooks/useCaptureWidth";
+import { useClientValue } from "@app/hooks/useClientValue";
 import {
   shareRecord,
   saveGeneratedImage,
@@ -254,36 +256,36 @@ export default function KizunaSimulator() {
   // タップハンドラ内で生成してはいけない。回答が揃った時点で先に作っておく。
   // （詳細は utils/saveImage.ts の shareRecord のコメントを参照）
   const shareCardRef = useRef<HTMLDivElement>(null);
-  const [images, setImages] = useState<ShareImage[] | null>(null);
   const [busy, setBusy] = useState<null | "share" | "save">(null);
-  // 画像の生成に失敗したか。スプライト画像の配信が一時的に落ちている場合などに起きる。
-  // 失敗を検知できないと「画像を準備しています」のまま永久に押せないボタンが残るため、
-  // 明示的に持ち、テキストのみのシェアへ退避できるようにする。
-  const [captureFailed, setCaptureFailed] = useState(false);
 
   // X ヘッダー画像モーダルの開閉
   const [headerModalOpen, setHeaderModalOpen] = useState(false);
 
-  // 書き出し画像の横幅が端末の画面幅いっぱいになるようキャプチャ対象の幅を決める。
-  // SSR時は window を参照できないため 360 で初期化する。
-  const [captureWidth, setCaptureWidth] = useState(360);
-  useEffect(() => {
-    const target = Math.round(window.innerWidth) - SIDE_PADDING * 2;
-    setCaptureWidth(Math.max(320, Math.min(target, 480)));
-  }, []);
+  // 書き出し画像の横幅が端末の画面幅いっぱいになるようキャプチャ対象の幅を決める
+  const captureWidth = useCaptureWidth();
 
-  // 生成中に条件が変わった場合、古い生成結果で上書きしないよう世代番号で確認する。
-  const captureSeq = useRef(0);
-  useEffect(() => {
-    if (!isComplete) {
-      setImages(null);
-      setCaptureFailed(false);
-      return;
-    }
+  /*
+   * 生成した画像。どの条件(captureKey)で撮ったかも持ち、今の条件と一致するときだけ使う。
+   * 条件が変わると(古い画像を出さずに)作り直しになり、生成中に条件が変わった場合は
+   * 後から終わった古い生成結果も条件が合わないので捨てられる。
+   * 画像の生成に失敗したか(failed)も持つ。スプライト画像の配信が一時的に落ちている場合などに
+   * 起きる。失敗を検知できないと「画像を準備しています」のまま永久に押せないボタンが残るため、
+   * 明示的に持ち、テキストのみのシェアへ退避できるようにする。
+   */
+  const captureKey = isComplete
+    ? [score, sprites.map((s) => s.id).join(","), deckName, captureWidth].join("|")
+    : null;
+  const [capture, setCapture] = useState<{
+    key: string;
+    images: ShareImage[] | null;
+    failed: boolean;
+  } | null>(null);
+  const currentCapture = captureKey !== null && capture?.key === captureKey ? capture : null;
+  const images = currentCapture?.images ?? null;
+  const captureFailed = currentCapture?.failed ?? false;
 
-    const seq = ++captureSeq.current;
-    setImages(null);
-    setCaptureFailed(false);
+  useEffect(() => {
+    if (captureKey === null) return;
 
     (async () => {
       try {
@@ -309,15 +311,15 @@ export default function KizunaSimulator() {
           file: await dataUrlToFile(dataUrl, filename),
         };
 
-        if (seq !== captureSeq.current) return;
-        setImages([image]);
+        setCapture({ key: captureKey, images: [image], failed: false });
       } catch (e) {
         console.error(e);
-        if (seq !== captureSeq.current) return;
-        setCaptureFailed(true);
+        setCapture({ key: captureKey, images: null, failed: true });
       }
     })();
-  }, [isComplete, score, sprites, deckName, captureWidth]);
+    // 撮る条件は captureKey にまとめてある(それ以外は撮る中身の参照に使うだけ)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [captureKey]);
 
   const canShare = isComplete && images !== null;
 
@@ -333,9 +335,8 @@ export default function KizunaSimulator() {
 
   // ポスト文をコピーしたか(コピーボタンの見た目を一時的に切り替えるのに使う)
   const [textCopied, setTextCopied] = useState(false);
-  // Android 端末か。SSR では navigator を参照できないため、マウント後に判定する。
-  const [isAndroidDevice, setIsAndroidDevice] = useState(false);
-  useEffect(() => setIsAndroidDevice(isAndroid()), []);
+  // Android 端末か。SSR では navigator を参照できないため、ハイドレーション後に判定する。
+  const isAndroidDevice = useClientValue(isAndroid, false);
   // Android の回避策(画像だけ共有し、ポスト文はコピーしてもらう)を使うか。
   // X の挙動が戻れば ANDROID_SHARE_IMAGES_ONLY を false にするだけで無効になる。
   const androidImagesOnly = ANDROID_SHARE_IMAGES_ONLY && isAndroidDevice;

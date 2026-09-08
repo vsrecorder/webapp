@@ -1,24 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@heroui/react";
 import { LuRefreshCw } from "react-icons/lu";
+
+import { useClientValue } from "@app/hooks/useClientValue";
+import { isIOSPWA as detectIOSPWA } from "@app/utils/platform";
 
 // 現在のページを再読み込みするボタン
 export default function ReloadButton() {
   const [isSpinning, setIsSpinning] = useState(false);
-  const [isIOSPWA, setIsIOSPWA] = useState(false);
-
-  useEffect(() => {
-    // iOS の PWA（ホーム画面から起動した standalone 表示）には pull-to-refresh が無いため、
-    // 画面幅に関わらずリロード手段を常設する。ブラウザ表示（Safari タブ）では対象外。
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !("MSStream" in window);
-    const isStandalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      ("standalone" in navigator &&
-        (navigator as Navigator & { standalone: boolean }).standalone === true);
-    setIsIOSPWA(isIOS && isStandalone);
-  }, []);
+  // iOS の PWA（ホーム画面から起動した standalone 表示）には pull-to-refresh が無いため、
+  // 画面幅に関わらずリロード手段を常設する。ブラウザ表示（Safari タブ）では対象外。
+  // サーバ描画では判定できないので、ハイドレーション後に実際の値へ差し替わる
+  const isIOSPWA = useClientValue(detectIOSPWA, false);
 
   return (
     <Button

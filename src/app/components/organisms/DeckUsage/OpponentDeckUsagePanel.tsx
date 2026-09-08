@@ -191,12 +191,20 @@ export default function OpponentDeckUsagePanel({
       }
     }
 
-    setOwnDeckId("");
     fetchOwnDecks();
     return () => {
       cancelled = true;
     };
   }, [userId, filterMode, yearMonth, environmentId, season, standardRegulationId, regulationId]);
+
+  // 期間フィルタが変わったら「自分のデッキ」の絞り込みは解除する(前の期間のデッキが残らないように)。
+  // effect で解除すると前の絞り込みでの描画が一度挟まるので、前回の条件を控えて描画中に解除する
+  const filterKey = [userId, filterMode, yearMonth, environmentId, season, standardRegulationId, regulationId].join("|");
+  const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
+  if (prevFilterKey !== filterKey) {
+    setPrevFilterKey(filterKey);
+    setOwnDeckId("");
+  }
 
   const decks = useMemo(() => stat?.decks ?? [], [stat]);
   // 使用デッキを絞り込んでいるときは、どのデッキを選んでいるかスプライトでも示す。

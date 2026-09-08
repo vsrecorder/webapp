@@ -103,10 +103,13 @@ export default function SpritePickerPanel({
 
   const colors = ACCENT_CLASSES[accent];
 
-  // 呼び出し側が「タップされた枠」を指定して開き直すことがあるため、変化に追従する
-  useEffect(() => {
+  // 呼び出し側が「タップされた枠」を指定して開き直すことがあるため、変化に追従する。
+  // effect で追従すると古い枠での描画が一度挟まるので、前回の指定を控えておき描画中に切り替える
+  const [prevInitialActiveSlot, setPrevInitialActiveSlot] = useState(initialActiveSlot);
+  if (prevInitialActiveSlot !== initialActiveSlot) {
+    setPrevInitialActiveSlot(initialActiveSlot);
     setActiveSlot(initialActiveSlot);
-  }, [initialActiveSlot]);
+  }
 
   // /api/pokemon-sprites は認証不要のため、非会員向けのページからも取得できる。
   const { data, error, isLoading } = useSWR<PokemonSpriteType[], Error>(

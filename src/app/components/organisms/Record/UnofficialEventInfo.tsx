@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+
+import { useSeededResource } from "@app/hooks/useSeededResource";
 
 import { Chip } from "@heroui/react";
 
@@ -55,40 +57,15 @@ type Props = {
 };
 
 export default function UnofficialEventInfo({ record }: Props) {
-  const [unofficialEvent, setUnofficialEvent] =
-    useState<UnofficialEventGetByIdResponseType | null>(null);
-  const [loadingUnofficialEvent, setLoadingUnofficialEvent] = useState(true);
+  // 自由形式イベント情報。参照先が変わると取り直し、失敗時は retry(FetchError のリロード)で取り直す
+  const {
+    data: unofficialEvent,
+    loading: loadingUnofficialEvent,
+    error,
+    retry: loadUnofficialEvent,
+  } = useSeededResource(record?.unofficial_event_id, fetchUnofficialEventById);
 
   const [environment, setEnvironment] = useState<EnvironmentType | null>(null);
-
-  const [error, setError] = useState(false);
-
-  const unofficialEventId = record?.unofficial_event_id;
-
-  // 自由形式イベント情報だけを取得（失敗時のリロードから再利用）
-  const loadUnofficialEvent = useCallback(async () => {
-    if (!unofficialEventId) {
-      setLoadingUnofficialEvent(false);
-      return;
-    }
-
-    setError(false);
-    setLoadingUnofficialEvent(true);
-
-    try {
-      const data = await fetchUnofficialEventById(unofficialEventId);
-      setUnofficialEvent(data);
-    } catch (err) {
-      console.log(err);
-      setError(true);
-    } finally {
-      setLoadingUnofficialEvent(false);
-    }
-  }, [unofficialEventId]);
-
-  useEffect(() => {
-    loadUnofficialEvent();
-  }, [loadUnofficialEvent]);
 
   // 開催日(event_date 優先、ゼロ値なら unofficial_events.date / created_at)を基に
   // 対戦環境を取得する

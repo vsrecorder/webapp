@@ -143,10 +143,16 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
   // 「その他」の内訳アコーディオンの開閉状態
   const [otherExpanded, setOtherExpanded] = useState(false);
 
+  // 週を切り替えたら内訳アコーディオンは畳んでおく（別週の展開状態を持ち越さない）。
+  // effect で畳むと開いたままの描画が一度挟まるので、前回の週を控えて描画中に畳む
+  const [prevWeek, setPrevWeek] = useState(week);
+  if (prevWeek !== week) {
+    setPrevWeek(week);
+    setOtherExpanded(false);
+  }
+
   useEffect(() => {
     let cancelled = false;
-    // 週を切り替えたら内訳アコーディオンは畳んでおく（別週の展開状態を持ち越さない）
-    setOtherExpanded(false);
 
     async function fetchStat() {
       setIsLoading(true);

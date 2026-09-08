@@ -16,14 +16,14 @@ const eslintConfig = defineConfig([
     // files は eslint-config-next 側で react-hooks プラグインを定義している
     // config オブジェクトと同じパターンに揃える。ここがずれると
     // 「plugin is not defined in your configuration file」で落ちる。
+    // (いまは上書きするルールが無いが、次に降格が要るときの置き場として残す)
     files: ["**/*.{js,jsx,mjs,ts,tsx,mts,cts}"],
     // eslint-config-next@16 が eslint-plugin-react-hooks を 5系→7系へ上げたことで、
     // React Compiler 由来のルール群が新たに error として有効になった。
     // 既存コードに対して165件出たが、いずれも「今まで通っていたものが壊れた」のではなく
-    // 「これまで検査されていなかった観点が増えた」もの。Next.js 16 化とは独立した
-    // リファクタ課題なので、ここで warning に落として lint を実用可能な状態に保っている。
+    // 「これまで検査されていなかった観点が増えた」もの。
     //
-    // 2026-08-28 に下記を個別に潰し、ここから外して error に戻した(再発防止):
+    // 2026-08-28 に下記を個別に潰した(再発防止のため error のまま):
     //   preserve-manual-memoization  8件 → deps の optional chaining をローカル定数に退避
     //   purity                       4件 → JST現在時刻の式を既存の getJstNow() に集約
     //   immutability                 4件 → props の書き換えを廃止(2件)/ ref コールバックは誤検知
@@ -32,21 +32,22 @@ const eslintConfig = defineConfig([
     //   no-location-assign-…         2件 → セッション確立のため意図的なフルロード(誤検知)
     // 誤検知だったものは該当行に理由付きの eslint-disable-next-line を置いてある。
     //
-    // 残り(2026-08-28時点):
-    //   set-state-in-effect        132件  effect内での同期的なsetState
-    //   refs                        23件  render中の ref.current 書き換え / 参照
-    //
-    // この2つは「非同期データ取得の結果を state に入れる」「最新の props を ref に
-    // 持たせてリスナから読む」というこのアプリ全体の作りそのもので、機械的には潰せない。
-    // 直すには読み込み処理を SWR などへ寄せる、ref を effect 代入に変える(反映が
-    // ペイント後にずれる)といった実挙動の変わる変更が要り、対象の大半は認証必須ページで
-    // 動作確認にも devtest ページ + API モックの用意が要る。腰を据えて着手すること。
+    // 2026-09-08 に残りも潰し、warning への降格をやめた(0件):
+    //   set-state-in-effect        116件
+    //     - マウント後のブラウザ判定(UA・PWA・画面幅)      → useClientValue(useSyncExternalStore)
+    //     - localStorage / sessionStorage の読み取り      → useLocalStorageItem / useSessionStorageItem
+    //                                                     (書き込みは utils/*StorageStore 経由で通知)
+    //     - props や取得結果が変わったときの state のリセット → 前回値を state に控えて描画中に更新する
+    //                                                     (React 公式の「前回の描画の情報を保存する」)
+    //     - key → fetch → data/loading/error のローダー      → useSeededResource
+    //     - 入力から導ける値(有効・無効の判定など)          → state をやめて描画中に計算
+    //     - 無限スクロールの「読み込み中」                  → 条件から導き、effect は取得だけを担う
+    //   refs                        21件
+    //     - 最新の props を ref に持たせる                  → 描画中ではなく effect で追随
+    //     - chart.js プラグインへ最新 state を渡す         → ref ではなくデータセットの独自プロパティ
     //
     // なお rules-of-hooks(本来のフック規則)の違反は0件。
-    rules: {
-      "react-hooks/set-state-in-effect": "warn",
-      "react-hooks/refs": "warn",
-    },
+    rules: {},
   },
 ]);
 

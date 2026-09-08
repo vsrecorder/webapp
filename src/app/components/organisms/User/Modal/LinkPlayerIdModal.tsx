@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   ModalContent,
   ModalHeader,
@@ -27,12 +27,16 @@ export default function LinkPlayerIdModal({ isOpen, onOpenChange, onLinked }: Pr
   const [playerId, setPlayerId] = useState("");
   const [isDisabled, setIsDisabled] = useState(false);
 
-  useEffect(() => {
+  // 開くたびに入力を空に戻す。effect で戻すと前回の入力での描画が一度挟まるので、
+  // 前回の開閉を控えておき描画中に戻す
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (wasOpen !== isOpen) {
+    setWasOpen(isOpen);
     if (isOpen) {
       setPlayerId("");
       setIsDisabled(false);
     }
-  }, [isOpen]);
+  }
 
   const handleRegister = async (onClose: () => void) => {
     const trimmed = playerId.trim();

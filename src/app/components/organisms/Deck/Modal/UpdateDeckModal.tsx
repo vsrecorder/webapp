@@ -1,6 +1,6 @@
 import useSWR from "swr";
 
-import { useEffect, useState, SetStateAction, Dispatch } from "react";
+import { useState, SetStateAction, Dispatch } from "react";
 
 import { ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
 import { Button } from "@heroui/react";
@@ -91,32 +91,42 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
   // 更新後(スプライト削除後)の再オープン時に、削除済みアイコンが残ったまま表示される。
   // また依存配列に isOpen を含めないと、deck の参照が変わらない再オープンでは
   // 同期が走らず、resetToDefaults が復元した古い状態が残ってしまう。
-  useEffect(() => {
-    if (!isOpen || !deck || !pokemonSpritesData) return;
-
-    setSprite1(
-      pokemonSpritesData.find(
-        (s) => s.id === getDeckSpriteBySlot(deck.pokemon_sprites, 1)?.id,
-      ) ?? null,
-    );
-    setSprite2(
-      pokemonSpritesData.find(
-        (s) => s.id === getDeckSpriteBySlot(deck.pokemon_sprites, 2)?.id,
-      ) ?? null,
-    );
-  }, [isOpen, deck, pokemonSpritesData]);
-
-  useEffect(() => {
-    if (deck) {
-      setNewDeckName(deck.name);
+  // effect で同期すると前回の値での描画が一度挟まるので、同期の元になった値を控えておき、
+  // 変わったときに描画中に同期する(React の「前回の描画の情報を保存する」パターン)
+  const [spriteSource, setSpriteSource] = useState({ isOpen, deck, pokemonSpritesData });
+  if (
+    spriteSource.isOpen !== isOpen ||
+    spriteSource.deck !== deck ||
+    spriteSource.pokemonSpritesData !== pokemonSpritesData
+  ) {
+    setSpriteSource({ isOpen, deck, pokemonSpritesData });
+    if (isOpen && deck && pokemonSpritesData) {
+      setSprite1(
+        pokemonSpritesData.find(
+          (s) => s.id === getDeckSpriteBySlot(deck.pokemon_sprites, 1)?.id,
+        ) ?? null,
+      );
+      setSprite2(
+        pokemonSpritesData.find(
+          (s) => s.id === getDeckSpriteBySlot(deck.pokemon_sprites, 2)?.id,
+        ) ?? null,
+      );
     }
-  }, [deck]);
+  }
+
+  // デッキ名は、デッキが差し替わったときにその名前へ同期する
+  const [nameSource, setNameSource] = useState(deck);
+  if (nameSource !== deck) {
+    setNameSource(deck);
+    if (deck) setNewDeckName(deck.name);
+  }
 
   // モーダルを開くたびに、デッキの現在の付与タグでタグ選択状態を同期する。
-  useEffect(() => {
-    if (!isOpen || !deck) return;
-    setTagIds((deck.tags ?? []).map((tag) => tag.id));
-  }, [isOpen, deck]);
+  const [tagSource, setTagSource] = useState({ isOpen, deck });
+  if (tagSource.isOpen !== isOpen || tagSource.deck !== deck) {
+    setTagSource({ isOpen, deck });
+    if (isOpen && deck) setTagIds((deck.tags ?? []).map((tag) => tag.id));
+  }
 
   if (!deck) {
     return;

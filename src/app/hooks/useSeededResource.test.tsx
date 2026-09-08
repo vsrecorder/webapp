@@ -118,4 +118,31 @@ describe("useSeededResource: 鍵の変更", () => {
     await waitFor(() => expect(result.current.data).toEqual({ name: "fetched-d2" }));
     expect(fetcher).toHaveBeenCalledWith("d2");
   });
+
+  it("setData で取得した値を差し替えられる(関数型の更新も受ける)", async () => {
+    const fetcher = vi.fn(async (id: string) => ({ id, name: "a" }));
+    const { result } = renderHook(() => useSeededResource("d1", fetcher));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    act(() => result.current.setData({ id: "d1", name: "b" }));
+    expect(result.current.data).toEqual({ id: "d1", name: "b" });
+
+    act(() => result.current.setData((prev) => (prev ? { ...prev, name: "c" } : prev)));
+    expect(result.current.data).toEqual({ id: "d1", name: "c" });
+    expect(result.current.error).toBe(false);
+  });
+
+  it("refreshKey が変わると同じ鍵でも取り直す(初期値があっても)", async () => {
+    const fetcher = vi.fn(async (id: string) => ({ id, name: "fetched" }));
+    const { result, rerender } = renderHook(
+      ({ refreshKey }) =>
+        useSeededResource("d1", fetcher, { id: "d1", name: "initial" }, { refreshKey }),
+      { initialProps: { refreshKey: 0 } },
+    );
+    expect(fetcher).not.toHaveBeenCalled();
+
+    rerender({ refreshKey: 1 });
+    await waitFor(() => expect(result.current.data).toEqual({ id: "d1", name: "fetched" }));
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
 });

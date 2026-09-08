@@ -29,10 +29,10 @@ vi.mock("@app/hooks/useInstallPrompt", () => ({
   }),
 }));
 
-const { consumeRecordCreatedTrigger } = vi.hoisted(() => ({
-  consumeRecordCreatedTrigger: vi.fn(),
+const { discardRecordCreatedTrigger } = vi.hoisted(() => ({
+  discardRecordCreatedTrigger: vi.fn(),
 }));
-vi.mock("@app/utils/pushPrompt", () => ({ consumeRecordCreatedTrigger }));
+vi.mock("@app/utils/pushPrompt", () => ({ discardRecordCreatedTrigger }));
 
 // jsdom には matchMedia が無い。lg 以上かどうかだけ答えるものを置く
 function stubViewport(isLgUp: boolean) {
@@ -46,7 +46,7 @@ function stubViewport(isLgUp: boolean) {
 
 describe("PwaBanners", () => {
   beforeEach(() => {
-    consumeRecordCreatedTrigger.mockClear();
+    discardRecordCreatedTrigger.mockClear();
   });
 
   // vitest の globals を使っていないので、testing-library の自動 cleanup は入らない。
@@ -69,7 +69,7 @@ describe("PwaBanners", () => {
     expect(screen.queryByTestId("install")).toBeNull();
     expect(screen.queryByTestId("push")).toBeNull();
     // 捨てないと、ウィンドウを縮めた瞬間に古い記録作成を根拠に soft ask が出てしまう
-    expect(consumeRecordCreatedTrigger).toHaveBeenCalled();
+    expect(discardRecordCreatedTrigger).toHaveBeenCalled();
   });
 
   it("登録時アンケートはデスクトップ幅でも出す(PC 登録者の回答を落とさない)", () => {

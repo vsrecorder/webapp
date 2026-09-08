@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Dispatch, SetStateAction, useCallback, useEffect, useRef, useState } from "react";
 
 /*
  * 「サーバが用意してくれた値があればそれを使い、無ければ自分で取りに行く」部品ひとつぶんの状態。
@@ -19,6 +19,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
  *
  * fetcher は最新のものを ref に持ち、依存に含めない(呼び出し側がインラインの関数を渡しても
  * 取得が繰り返されないように)。
+ *
+ * 取得した値を呼び出し側が書き換えたいとき(モーダルで編集した結果を反映する等)は setData を使う。
+ * 鍵は同じまま取り直させたいとき(参照先の内容だけが変わった等)は options.refreshKey を変える。
  */
 
 // JSON として同じ内容か(周辺情報は API の JSON なので、これで十分に比べられる)
@@ -40,12 +43,20 @@ type State<T> = {
 export type SeededResource<T> = State<T> & {
   // 失敗したときの再取得(FetchError の onRetry に渡す)
   retry: () => void;
+  // 取得した値を差し替える(取得中・失敗の状態はそのまま)
+  setData: Dispatch<SetStateAction<T | null>>;
+};
+
+type Options = {
+  // 変わると同じ鍵でも取り直す(参照先 id は同じまま中身だけ変わったときの取り直し用)
+  refreshKey?: number | string;
 };
 
 export function useSeededResource<K extends string | number, T>(
   key: K | null | undefined,
   fetcher: (key: K) => Promise<T>,
   initial?: T,
+  { refreshKey }: Options = {},
 ): SeededResource<T> {
   const hasKey = key !== null && key !== undefined && key !== "" && key !== 0;
   const [state, setState] = useState<State<T>>(() => ({
@@ -75,10 +86,21 @@ export function useSeededResource<K extends string | number, T>(
     if (changed) setState({ data: initial, loading: false, error: false });
   }, [initial]);
 
+  // マウント時の refreshKey。そこから変わっていれば、初期値があっても取り直す
+  const [initialRefreshKey] = useState(refreshKey);
+  const refreshed = refreshKey !== initialRefreshKey;
+
   useEffect(() => {
     if (!hasKey) return;
-    // 初期値があるなら最初の取得は省く(retry と鍵の変更では取る)
-    if (attempt === 0 && key === initialKeyRef.current && initialRef.current !== undefined) return;
+    // 初期値があるなら最初の取得は省く(retry・refreshKey・鍵の変更では取る)
+    if (
+      attempt === 0 &&
+      !refreshed &&
+      key === initialKeyRef.current &&
+      initialRef.current !== undefined
+    ) {
+      return;
+    }
 
     let cancelled = false;
     setState((prev) => ({ ...prev, loading: true, error: false }));
@@ -96,10 +118,20 @@ export function useSeededResource<K extends string | number, T>(
     return () => {
       cancelled = true;
     };
-  }, [hasKey, key, attempt]);
+  }, [hasKey, key, attempt, refreshKey, refreshed]);
 
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
 
+  const setData = useCallback<Dispatch<SetStateAction<T | null>>>((update) => {
+    setState((prev) => ({
+      ...prev,
+      data:
+        typeof update === "function"
+          ? (update as (prevData: T | null) => T | null)(prev.data)
+          : update,
+    }));
+  }, []);
+
   // 鍵が無い(紐付くものが無い)ときは取得中にしない(鍵が途中で消えた場合も含む)
-  return { ...state, loading: hasKey && state.loading, retry };
+  return { ...state, loading: hasKey && state.loading, retry, setData };
 }

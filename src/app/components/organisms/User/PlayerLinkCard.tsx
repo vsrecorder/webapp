@@ -17,8 +17,8 @@ export default function PlayerLinkCard() {
   const linkedHint = usePlayerLinkedHint();
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
+  // マウント時に一度だけ取る(取得中の初期値は上の useState で立てている)
   useEffect(() => {
-    setIsLoading(true);
     fetch("/api/usersplayers", { cache: "no-store" })
       .then(async (r) => {
         if (r.status === 503) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button, Card, CardBody, useDisclosure } from "@heroui/react";
 import { LuHouse } from "react-icons/lu";
 
@@ -8,7 +8,15 @@ import FetchError from "@app/components/molecules/FetchError";
 import MyGymEditModal from "@app/components/organisms/MyGym/MyGymEditModal";
 import MyGymShopRow from "@app/components/organisms/MyGym/MyGymShopRow";
 
-import { UserGymGetResponseType, UserGymType } from "@app/types/user_gym";
+import { UserGymGetResponseType } from "@app/types/user_gym";
+import { useSeededResource } from "@app/hooks/useSeededResource";
+
+async function fetchMyGyms(): Promise<UserGymGetResponseType> {
+  const res = await fetch("/api/users/my_gyms", { cache: "no-store" });
+  if (!res.ok) throw new Error("Failed to fetch");
+
+  return res.json();
+}
 
 /*
  * ユーザページ(/users)の設定カード。
@@ -18,48 +26,30 @@ import { UserGymGetResponseType, UserGymType } from "@app/types/user_gym";
  * イベント一覧を出さないのは、予定を見る場所はホームに1つあれば足りるため。
  */
 export default function MyGymCard() {
-  const [userGyms, setUserGyms] = useState<UserGymType[]>([]);
-  const [limit, setLimit] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  // 一度でも取得できたか。取得できていないと上限(limit)が初期値の0のままで、
-  // 編集モーダルの isFull(userGyms.length >= limit)が 0 >= 0 で成立してしまう。
-  // 登録ボタンが全て無効になり「登録できるのは0件までです(0/0)」と出て、
-  // 再読み込みするまで1件も登録できなくなる。登録済みの一覧も空に見えるので、
-  // 空状態として見せること自体が誤りになる。取得できるまでは編集へ入れない。
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [isRetrying, setIsRetrying] = useState(false);
+  /*
+   * Myジムの一覧と上限。登録・解除の後は load(retry)で取り直す。
+   *
+   * 失敗しても、一度取得できていればその内容を保つ(登録・解除後の再取得が
+   * 失敗しただけで、開いている編集モーダルまで消さないため)。初回から
+   * 取得できていない場合だけ、下で再取得のカードに切り替わる。
+   * 取得できていないと上限(limit)が初期値の0のままで、編集モーダルの
+   * isFull(userGyms.length >= limit)が 0 >= 0 で成立してしまう。登録ボタンが全て無効になり
+   * 「登録できるのは0件までです(0/0)」と出て、再読み込みするまで1件も登録できなくなる。
+   * 登録済みの一覧も空に見えるので、空状態として見せること自体が誤りになる。
+   * 取得できるまでは編集へ入れない。
+   */
+  const { data, loading, error, retry: load } = useSeededResource("my_gyms", fetchMyGyms);
+  const userGyms = data?.user_gyms ?? [];
+  const limit = data?.limit ?? 0;
+  // 一度でも取得できたか
+  const isLoaded = data !== null;
+  // 一度も取得できていないうちに失敗したか(再取得のカードに切り替える)
+  const [hasFailed, setHasFailed] = useState(false);
+  if (error && !isLoaded && !hasFailed) setHasFailed(true);
+  // 初回の読み込み中(失敗後の再取得は再取得のカードのボタン側でローディング表示にする)
+  const isLoading = loading && !isLoaded && !hasFailed;
+  const isRetrying = loading && hasFailed;
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
-
-  const load = async () => {
-    try {
-      const res = await fetch("/api/users/my_gyms", { cache: "no-store" });
-      if (!res.ok) return;
-
-      const data: UserGymGetResponseType = await res.json();
-      setUserGyms(data.user_gyms ?? []);
-      setLimit(data.limit);
-      setIsLoaded(true);
-    } catch {
-      // 失敗しても、一度取得できていればその内容を保つ(登録・解除後の再取得が
-      // 失敗しただけで、開いている編集モーダルまで消さないため)。初回から
-      // 取得できていない場合だけ、下で再取得のカードに切り替わる。
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    load();
-  }, []);
-
-  const retry = async () => {
-    setIsRetrying(true);
-    try {
-      await load();
-    } finally {
-      setIsRetrying(false);
-    }
-  };
 
   // 読み込み中のスケルトン。実カードと同じ「見出し行＋本文＋ボタン」の3段構成で組む。
   if (isLoading) {
@@ -83,7 +73,7 @@ export default function MyGymCard() {
     return (
       <FetchError
         message="Myジムの取得に失敗しました"
-        onRetry={retry}
+        onRetry={load}
         isRetrying={isRetrying}
         compact
       />

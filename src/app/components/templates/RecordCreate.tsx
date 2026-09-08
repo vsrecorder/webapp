@@ -637,10 +637,8 @@ export default function TemplateRecordCreate({
   const { isOpen, onOpen, onClose, onOpenChange } = useDisclosure();
 
   const [imageLoaded, setImageLoaded] = useState(false);
-  const [isDisabledCreateOfficialEventRecord, setIsDisabledCreateOfficialEventRecord] =
-    useState(true);
-  const [isDisabledCreateTonamelEventRecord, setIsDisabledCreateTonamelEventRecord] =
-    useState(true);
+  // 記録を作成中(作成ボタンを押せなくする。失敗したら戻す)
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [selectedDate, setSelectedDate] = useState<CalendarDate>(
     () => parsePresetDate(event_date) ?? today(JST_TIME_ZONE),
@@ -653,17 +651,26 @@ export default function TemplateRecordCreate({
   const presetOfficialEventIdRef = useRef(Number(official_event_id) || 0);
 
   const [tonamelEventId, setTonamelEventId] = useState<string>("");
-  const [tonamelEventTitle, setTonamelEventTitle] = useState<string>("");
-  const [tonamelEventImage, setTonamelEventImage] = useState<string>("");
   /*
-   * Tonamel のイベントIDが妥当かどうか。未入力は「無効」ではないので true から始める。
+   * Tonamel API での確認結果。どのイベントIDの結果かも持ち、入力中のIDと一致するときだけ使う
+   * (未入力・確認中は前回の結果を出さない)。valid が false なら存在しないID。
    *
-   * false で始めると、サーバレンダリングされた HTML の時点で入力欄が赤くなり
-   * 「無効なイベントIDです」の行(24px)が入る。直後の useEffect が未入力を見て true に
-   * 戻すため、ハイドレーションが済んだ瞬間にその行が消えて下のブロックが跳ね上がる。
+   * 妥当かどうか(isValidatedTonamelEventId)は、未入力・確認中は「無効」ではないので true。
+   * false にすると、サーバレンダリングされた HTML の時点で入力欄が赤くなり
+   * 「無効なイベントIDです」の行(24px)が入り、ハイドレーション直後にその行が消えて
+   * 下のブロックが跳ね上がる。
    */
-  const [isValidatedTonamelEventId, setIsValidatedTonamelEventId] =
-    useState<boolean>(true);
+  const [tonamelCheck, setTonamelCheck] = useState<{
+    eventId: string;
+    valid: boolean;
+    title: string;
+    image: string;
+  } | null>(null);
+  const currentTonamelCheck =
+    tonamelEventId && tonamelCheck?.eventId === tonamelEventId ? tonamelCheck : null;
+  const tonamelEventTitle = currentTonamelCheck?.title ?? "";
+  const tonamelEventImage = currentTonamelCheck?.image ?? "";
+  const isValidatedTonamelEventId = currentTonamelCheck ? currentTonamelCheck.valid : true;
   const [tonamelEventDate, setTonamelEventDate] = useState<CalendarDate>(
     today(JST_TIME_ZONE),
   );
@@ -673,8 +680,6 @@ export default function TemplateRecordCreate({
     today(JST_TIME_ZONE),
   );
   const [unofficialEventTitle, setUnofficialEventTitle] = useState<string>("");
-  const [isDisabledCreateUnofficialRecord, setIsDisabledCreateUnofficialRecord] =
-    useState(true);
 
   // この記録を戦績集計(勝率・デッキ使用率・週次レポートなど)から除外するかどうか。
   // タブ(公式/Tonamel/自由形式)を切り替えても保持される共通の設定として扱う。
@@ -804,14 +809,11 @@ export default function TemplateRecordCreate({
   );
 
   // deck_code_id から単体取得した直後は通し番号が不明(label: "")のため、
-  // 一覧(deckcodeOptions)が揃い次第、正しいバージョン番号に補正する
-  useEffect(() => {
-    setSelectedDeckCodeOption((prev) => {
-      if (!prev || prev.label !== "") return prev;
-      const match = deckcodeOptions.find((o) => o.id === prev.id);
-      return match ?? prev;
-    });
-  }, [deckcodeOptions]);
+  // 一覧(deckcodeOptions)が揃っていれば正しいバージョン番号で描く
+  const selectedDeckCodeOptionLabeled =
+    selectedDeckCodeOption && selectedDeckCodeOption.label === ""
+      ? (deckcodeOptions.find((o) => o.id === selectedDeckCodeOption.id) ?? selectedDeckCodeOption)
+      : selectedDeckCodeOption;
 
   let deckcodeOptionsMessage = "バージョンがありません";
   if (deckcodeError) {
@@ -834,14 +836,9 @@ export default function TemplateRecordCreate({
     TonamelのイベントIDが有効かどうかチェック
   */
   useEffect(() => {
-    if (!tonamelEventId) {
-      setTonamelEventTitle("");
-      setTonamelEventImage("");
-      setIsValidatedTonamelEventId(true);
-      setIsDisabledCreateTonamelEventRecord(false);
-      return;
-    }
+    if (!tonamelEventId) return;
 
+    let cancelled = false;
     const checkTonamelEventId = async () => {
       try {
         const res = await fetch(`/api/tonamel_events/${tonamelEventId}`, {
@@ -854,20 +851,19 @@ export default function TemplateRecordCreate({
         }
 
         const data = await res.json();
-        setTonamelEventTitle(data.title);
-        setTonamelEventImage(data.image);
-        setIsValidatedTonamelEventId(true);
-        setIsDisabledCreateTonamelEventRecord(false);
+        if (cancelled) return;
+        setTonamelCheck({ eventId: tonamelEventId, valid: true, title: data.title, image: data.image });
       } catch (error) {
         console.error(error);
-        setTonamelEventTitle("");
-        setTonamelEventImage("");
-        setIsValidatedTonamelEventId(false);
-        setIsDisabledCreateTonamelEventRecord(true);
+        if (cancelled) return;
+        setTonamelCheck({ eventId: tonamelEventId, valid: false, title: "", image: "" });
       }
     };
 
     checkTonamelEventId();
+    return () => {
+      cancelled = true;
+    };
   }, [tonamelEventId]);
 
   /*
@@ -943,13 +939,8 @@ export default function TemplateRecordCreate({
     setSelectedDeck();
   }, [deck_id, deck_code_id]);
 
-  useEffect(() => {
-    if (selectedOfficialEventOption) {
-      setIsDisabledCreateOfficialEventRecord(false);
-    } else {
-      setIsDisabledCreateOfficialEventRecord(true);
-    }
-  }, [selectedOfficialEventOption]);
+  // 公式イベントは候補を選んでいれば作成できる
+  const isDisabledCreateOfficialEventRecord = !selectedOfficialEventOption || isSubmitting;
 
   // 指定された公式イベントを、その日の候補が届いたときに1度だけ選択する。
   // 候補に無い(日付違い・開催終了で消えた等)場合は何もしない。利用者が
@@ -967,13 +958,8 @@ export default function TemplateRecordCreate({
   }, [officialEventOptions]);
 
   // Tonamelは開催日(常に既定値あり)とイベントIDが必須。デッキは任意のため必須にしない
-  useEffect(() => {
-    if (tonamelEventId && isValidatedTonamelEventId) {
-      setIsDisabledCreateTonamelEventRecord(false);
-    } else {
-      setIsDisabledCreateTonamelEventRecord(true);
-    }
-  }, [tonamelEventId, isValidatedTonamelEventId]);
+  const isDisabledCreateTonamelEventRecord =
+    !(tonamelEventId && isValidatedTonamelEventId) || isSubmitting;
 
   // 上限を超えたままではAPIが400を返すため、作成させない
   const isUnofficialEventTitleTooLong = exceedsTextLength(
@@ -1003,33 +989,35 @@ export default function TemplateRecordCreate({
   };
 
   // 自由形式はイベント名が入力されていれば作成可能（デッキは任意）
-  useEffect(() => {
-    if (unofficialEventTitle.trim() !== "" && !isUnofficialEventTitleTooLong) {
-      setIsDisabledCreateUnofficialRecord(false);
-    } else {
-      setIsDisabledCreateUnofficialRecord(true);
-    }
-  }, [unofficialEventTitle, isUnofficialEventTitleTooLong]);
+  const isDisabledCreateUnofficialRecord =
+    !(unofficialEventTitle.trim() !== "" && !isUnofficialEventTitleTooLong) || isSubmitting;
 
   /*
    * デッキが変更されたとき、SWR でデッキコードが取得され次第
-   * 最初のバージョンをデフォルトとして設定する
+   * 最初のバージョンをデフォルトとして設定する。
+   * effect で設定すると前の選択での描画が一度挟まるので、一覧と操作の有無を控えておき
+   * 変わったときに描画中に設定する
    */
-  useEffect(() => {
-    if (!isDeckChangedByUser) return;
-    // SWR がまだ取得中の場合は待つ（isDeckChangedByUser は true のまま）
-    if (deckcodeData === undefined) return;
+  const [deckcodeSource, setDeckcodeSource] = useState({ deckcodeData, isDeckChangedByUser });
+  if (
+    deckcodeSource.deckcodeData !== deckcodeData ||
+    deckcodeSource.isDeckChangedByUser !== isDeckChangedByUser
+  ) {
+    setDeckcodeSource({ deckcodeData, isDeckChangedByUser });
 
-    if (deckcodeData.length === 0) {
-      setSelectedDeckCodeOption(null);
-    } else {
-      setSelectedDeckCodeOption(
-        convertToDeckCodeOption(deckcodeData[0], deckcodeData.length),
-      );
+    // SWR がまだ取得中の場合は待つ（isDeckChangedByUser は true のまま）
+    if (isDeckChangedByUser && deckcodeData !== undefined) {
+      if (deckcodeData.length === 0) {
+        setSelectedDeckCodeOption(null);
+      } else {
+        setSelectedDeckCodeOption(
+          convertToDeckCodeOption(deckcodeData[0], deckcodeData.length),
+        );
+      }
+      setImageLoadedForDeckCode(false);
+      setIsDeckChangedByUser(false);
     }
-    setImageLoadedForDeckCode(false);
-    setIsDeckChangedByUser(false);
-  }, [deckcodeData, isDeckChangedByUser]);
+  }
 
   /*
    * デッキ選択セレクターのメニューを開いたときにキーボード上部へスクロールする
@@ -1063,7 +1051,7 @@ export default function TemplateRecordCreate({
     deckId: string,
     deckCodeId: string,
   ) {
-    setIsDisabledCreateOfficialEventRecord(true);
+    setIsSubmitting(true);
 
     const toastId = addToast({
       title: "記録作成中",
@@ -1164,7 +1152,7 @@ export default function TemplateRecordCreate({
         timeout: 5000,
       });
 
-      setIsDisabledCreateOfficialEventRecord(false);
+      setIsSubmitting(false);
 
       onClose();
     }
@@ -1183,7 +1171,7 @@ export default function TemplateRecordCreate({
     deckId: string,
     deckCodeId: string,
   ) {
-    setIsDisabledCreateTonamelEventRecord(true);
+    setIsSubmitting(true);
 
     const toastId = addToast({
       title: "記録作成中",
@@ -1284,7 +1272,7 @@ export default function TemplateRecordCreate({
         timeout: 5000,
       });
 
-      setIsDisabledCreateTonamelEventRecord(false);
+      setIsSubmitting(false);
 
       onClose();
     }
@@ -1305,7 +1293,7 @@ export default function TemplateRecordCreate({
     deckId: string,
     deckCodeId: string,
   ) {
-    setIsDisabledCreateUnofficialRecord(true);
+    setIsSubmitting(true);
 
     const toastId = addToast({
       title: "記録作成中",
@@ -1431,7 +1419,7 @@ export default function TemplateRecordCreate({
         timeout: 5000,
       });
 
-      setIsDisabledCreateUnofficialRecord(false);
+      setIsSubmitting(false);
 
       onClose();
     }
@@ -1835,7 +1823,7 @@ export default function TemplateRecordCreate({
                     isSearchable={false}
                     noOptionsMessage={() => deckcodeOptionsMessage}
                     options={deckcodeOptions}
-                    value={selectedDeckCodeOption}
+                    value={selectedDeckCodeOptionLabeled}
                     onChange={(option) => {
                       setSelectedDeckCodeOption(option);
                       setImageLoadedForDeckCode(false);
@@ -2192,7 +2180,7 @@ export default function TemplateRecordCreate({
                     isSearchable={false}
                     noOptionsMessage={() => deckcodeOptionsMessage}
                     options={deckcodeOptions}
-                    value={selectedDeckCodeOption}
+                    value={selectedDeckCodeOptionLabeled}
                     onChange={(option) => {
                       setSelectedDeckCodeOption(option);
                       setImageLoadedForDeckCode(false);
@@ -2516,7 +2504,7 @@ export default function TemplateRecordCreate({
                     isSearchable={false}
                     noOptionsMessage={() => deckcodeOptionsMessage}
                     options={deckcodeOptions}
-                    value={selectedDeckCodeOption}
+                    value={selectedDeckCodeOptionLabeled}
                     onChange={(option) => {
                       setSelectedDeckCodeOption(option);
                       setImageLoadedForDeckCode(false);

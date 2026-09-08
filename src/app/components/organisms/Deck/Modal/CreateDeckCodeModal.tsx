@@ -47,23 +47,31 @@ export default function CreateDeckCodeModal({
   // タグ管理中は「閉じる」「作成」やモーダルのクローズを無効化する
   const [isTagManaging, setIsTagManaging] = useState<boolean>(false);
   //const [isSelected, setIsSelected] = useState<boolean>(false);
-  const [isValidedDeckCode, setIsValidedDeckCode] = useState<boolean>(true);
+  // 外部API(deckIDCheck.php)で確認した結果。どのコードの結果かも持ち、入力中のコードと
+  // 一致するときだけ使う(確認中は前回同様、有効扱いのまま待つ)
+  const [deckCodeCheck, setDeckCodeCheck] = useState<{ code: string; valid: boolean } | null>(
+    null,
+  );
   const [isDisabled, setIsDisabled] = useState<boolean>(false);
 
   /*
-    デッキコードが有効かどうかチェック
+    デッキコードが有効かどうか。
+    未入力は有効(エラーを出さない)、デッキコードは必ず20桁なので桁数が違う時点で
+    問い合わせるまでもなく無効、20桁なら外部APIの確認結果に従う
+  */
+  const isValidedDeckCode = !newdeckcode
+    ? true
+    : newdeckcode.length !== DECK_CODE_LENGTH
+      ? false
+      : deckCodeCheck?.code === newdeckcode
+        ? deckCodeCheck.valid
+        : true;
+
+  /*
+    20桁のデッキコードを外部APIで確認する
   */
   useEffect(() => {
-    if (!newdeckcode) {
-      setIsValidedDeckCode(true);
-      return;
-    }
-
-    // デッキコードは必ず20桁なので、桁数が違う時点で問い合わせるまでもなく無効
-    if (newdeckcode.length !== DECK_CODE_LENGTH) {
-      setIsValidedDeckCode(false);
-      return;
-    }
+    if (!newdeckcode || newdeckcode.length !== DECK_CODE_LENGTH) return;
 
     let cancelled = false;
 
@@ -80,12 +88,12 @@ export default function CreateDeckCodeModal({
 
         const data = await res.json();
         if (!cancelled) {
-          setIsValidedDeckCode(data.result === 1);
+          setDeckCodeCheck({ code: newdeckcode, valid: data.result === 1 });
         }
       } catch (error) {
         console.error(error);
         if (!cancelled) {
-          setIsValidedDeckCode(false);
+          setDeckCodeCheck({ code: newdeckcode, valid: false });
         }
       }
     };
@@ -102,10 +110,12 @@ export default function CreateDeckCodeModal({
   // 新しいバージョンは、元にした(最新)バージョンのタグを引き継いで初期選択する。
   // モーダルを開くたびに、継承元 deckcode の付与タグでタグ選択状態を初期化する
   // (継承元が無い＝最初のバージョン作成時は空のまま)。
-  useEffect(() => {
-    if (!isOpen) return;
-    setTagIds((deckcode?.tags ?? []).map((tag) => tag.id));
-  }, [isOpen, deckcode]);
+  // effect で初期化すると前回の選択での描画が一度挟まるので、前回の値を控えて描画中に初期化する
+  const [tagIdsSource, setTagIdsSource] = useState({ isOpen, deckcode });
+  if (tagIdsSource.isOpen !== isOpen || tagIdsSource.deckcode !== deckcode) {
+    setTagIdsSource({ isOpen, deckcode });
+    if (isOpen) setTagIds((deckcode?.tags ?? []).map((tag) => tag.id));
+  }
 
   if (!deck) {
     return;
@@ -206,7 +216,7 @@ export default function CreateDeckCodeModal({
       isDismissable={false}
       onClose={() => {
         setIsDisabled(false);
-        setIsValidedDeckCode(true);
+        setDeckCodeCheck(null);
 
         setNewDeckCode("");
         setMemo("");

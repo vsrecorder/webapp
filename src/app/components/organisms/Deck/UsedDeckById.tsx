@@ -2,7 +2,7 @@
 
 import { SetStateAction, Dispatch } from "react";
 
-import { useCallback, useEffect, useState } from "react";
+import { useSeededResource } from "@app/hooks/useSeededResource";
 
 import { addToast, useDisclosure } from "@heroui/react";
 
@@ -90,12 +90,25 @@ export default function UsedDeckById({
   enableCardList = false,
   holdSkeleton = false,
 }: Props) {
-  const [deck, setDeck] = useState<DeckGetByIdResponseType | null>(null);
-  const [deckcode, setDeckCode] = useState<DeckCodeType | null>(null);
-  const [loading1, setLoading1] = useState(true);
-  const [loading2, setLoading2] = useState(true);
-  const [deckError, setDeckError] = useState(false);
-  const [codeError, setCodeError] = useState(false);
+  const deckId = record?.deck_id;
+  const deckCodeId = record?.deck_code_id;
+
+  // 使用デッキ本体とバージョン。失敗したほうだけ retry(FetchError のリロード)で取り直す。
+  // 新バージョンの作成やデッキ選択の結果は setData で差し替える
+  const {
+    data: deck,
+    setData: setDeck,
+    loading: loading1,
+    error: deckError,
+    retry: loadDeck,
+  } = useSeededResource(deckId, fetchDeckById);
+  const {
+    data: deckcode,
+    setData: setDeckCode,
+    loading: loading2,
+    error: codeError,
+    retry: loadDeckCode,
+  } = useSeededResource(deckCodeId, fetchDeckCodeById);
 
   const {
     isOpen: isOpenForUpdateUsedDeckModal,
@@ -176,57 +189,6 @@ export default function UsedDeckById({
       });
     }
   };
-
-  const deckId = record?.deck_id;
-
-  // デッキ本体だけを取得（失敗時のリロードから再利用）
-  const loadDeck = useCallback(async () => {
-    if (!deckId) {
-      setLoading1(false);
-      return;
-    }
-
-    setDeckError(false);
-    setLoading1(true);
-
-    try {
-      const data = await fetchDeckById(deckId);
-      setDeck(data);
-    } catch (err) {
-      console.log(err);
-      setDeckError(true);
-    } finally {
-      setLoading1(false);
-    }
-  }, [deckId]);
-
-  const deckCodeId = record?.deck_code_id;
-
-  // デッキコードだけを取得
-  const loadDeckCode = useCallback(async () => {
-    if (!deckCodeId) {
-      setLoading2(false);
-      return;
-    }
-
-    setCodeError(false);
-    setLoading2(true);
-
-    try {
-      const data = await fetchDeckCodeById(deckCodeId);
-      setDeckCode(data);
-    } catch (err) {
-      console.log(err);
-      setCodeError(true);
-    } finally {
-      setLoading2(false);
-    }
-  }, [deckCodeId]);
-
-  useEffect(() => {
-    loadDeck();
-    loadDeckCode();
-  }, [loadDeck, loadDeckCode]);
 
   if (loading1 || loading2 || holdSkeleton) {
     return <DeckCardSkeleton compact={compact} enableCardList={enableCardList} />;

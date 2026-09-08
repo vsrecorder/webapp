@@ -167,7 +167,6 @@ export default function UpdateUsedDeckModal({
 
   const [isDeckChangedByUser, setIsDeckChangedByUser] = useState(false);
 
-  const [isDisabled, setIsDisabled] = useState<boolean>(false);
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
 
   /*
@@ -175,16 +174,20 @@ export default function UpdateUsedDeckModal({
     deck_idのDeckとdeck_code_idのDeckCodeを取得し、
     選択しているデッキ/バージョンとして指定
   */
+  // 取得の有無は開いた瞬間に決まる。effect で切り替えると前の状態での描画が一度挟まるので、
+  // 開閉と記録を控えておき、変わったときに描画中に切り替える
+  const [loadSource, setLoadSource] = useState({ isOpen, record });
+  if (loadSource.isOpen !== isOpen || loadSource.record !== record) {
+    setLoadSource({ isOpen, record });
+    const loadable = isOpen && !!record;
+    setIsLoadingDeckOptions(loadable && !!record.deck_id);
+    setIsLoadingDeckCodeOptions(loadable && !!record.deck_code_id);
+  }
+
   useEffect(() => {
-    if (!isOpen || !record) {
-      setIsLoadingDeckOptions(false);
-      setIsLoadingDeckCodeOptions(false);
-      return;
-    }
+    if (!isOpen || !record) return;
 
     const setSelectedDeck = async () => {
-      setIsLoadingDeckOptions(true);
-
       try {
         const res = await fetch(`/api/decks/${record.deck_id}`, {
           cache: "no-store",
@@ -213,8 +216,6 @@ export default function UpdateUsedDeckModal({
     };
 
     const setSelectedDeckCode = async () => {
-      setIsLoadingDeckCodeOptions(true);
-
       try {
         const res = await fetch(`/api/deckcodes/${record.deck_code_id}`, {
           cache: "no-store",
@@ -252,17 +253,8 @@ export default function UpdateUsedDeckModal({
       }
     };
 
-    if (record.deck_id) {
-      setSelectedDeck();
-    } else {
-      setIsLoadingDeckOptions(false);
-    }
-
-    if (record.deck_code_id) {
-      setSelectedDeckCode();
-    } else {
-      setIsLoadingDeckCodeOptions(false);
-    }
+    if (record.deck_id) setSelectedDeck();
+    if (record.deck_code_id) setSelectedDeckCode();
   }, [isOpen, record]);
 
   /*
@@ -332,21 +324,19 @@ export default function UpdateUsedDeckModal({
   /*
    *
    * deck_code_idから単体取得した直後は通し番号が不明(label: "")のため、
-   * 一覧(deckcodeData)が揃い次第、正しいバージョン番号に補正する
+   * 一覧(deckcodeData)が揃っていれば正しいバージョン番号で描く
    *
    */
-  useEffect(() => {
-    if (!deckcodeData) return;
+  const selectedDeckCodeOptionLabeled = (() => {
+    if (!selectedDeckCodeOption || selectedDeckCodeOption.label !== "" || !deckcodeData) {
+      return selectedDeckCodeOption;
+    }
 
-    setSelectedDeckCodeOption((prev) => {
-      if (!prev || prev.label !== "") return prev;
+    const index = deckcodeData.findIndex((dc) => dc.id === selectedDeckCodeOption.id);
+    if (index === -1) return selectedDeckCodeOption;
 
-      const index = deckcodeData.findIndex((dc) => dc.id === prev.id);
-      if (index === -1) return prev;
-
-      return { ...prev, label: String(deckcodeData.length - index) };
-    });
-  }, [deckcodeData]);
+    return { ...selectedDeckCodeOption, label: String(deckcodeData.length - index) };
+  })();
 
   /*
    *
@@ -354,20 +344,14 @@ export default function UpdateUsedDeckModal({
    * 同じである場合は変更できないようにする
    *
    */
-  useEffect(() => {
+  const isDisabled = (() => {
     // デッキが未選択、またはバージョンの取得中は変更不可
-    if (!selectedDeckOption || deckcodeLoading) {
-      setIsDisabled(true);
-      return;
-    }
+    if (!selectedDeckOption || deckcodeLoading) return true;
 
     // 選択されたデッキにバージョンが存在するにも関わらず、
     // バージョンが選択されていない場合は変更不可
     // (バージョンが存在しないデッキの場合は未選択のままでよい)
-    if (deckcodeOptions.length > 0 && !selectedDeckCodeOption) {
-      setIsDisabled(true);
-      return;
-    }
+    if (deckcodeOptions.length > 0 && !selectedDeckCodeOption) return true;
 
     // 記録に設定されている使用デッキ/バージョンと選択内容が
     // 同じ場合は変更不可
@@ -375,36 +359,28 @@ export default function UpdateUsedDeckModal({
     const isSameDeckCode =
       (record?.deck_code_id ?? null) === (selectedDeckCodeOption?.id ?? null);
 
-    setIsDisabled(isSameDeck && isSameDeckCode);
-  }, [
-    record?.deck_id,
-    record?.deck_code_id,
-    selectedDeckOption,
-    selectedDeckCodeOption,
-    deckcodeLoading,
-    deckcodeOptions.length,
-  ]);
+    return isSameDeck && isSameDeckCode;
+  })();
 
   /*
    *
    * バージョン(デッキコード)選択のデータが変更された場合、
-   * 最新のデッキコードのデータを選択されたバージョンとして設定する
+   * 最新のデッキコードのデータを選択されたバージョンとして設定する。
+   * effect で設定すると前の選択での描画が一度挟まるので、一覧と操作の有無を控えておき
+   * 変わったときに描画中に設定する
    *
    */
-  useEffect(() => {
-    setIsLoadingDeckCodeOptions(true);
+  const [deckcodeSource, setDeckcodeSource] = useState({ deckcodeData, isDeckChangedByUser });
+  if (
+    deckcodeSource.deckcodeData !== deckcodeData ||
+    deckcodeSource.isDeckChangedByUser !== isDeckChangedByUser
+  ) {
+    setDeckcodeSource({ deckcodeData, isDeckChangedByUser });
 
     if (!deckcodeData || deckcodeData.length === 0) {
       setSelectedDeckCodeOption(null);
-
-      setImageLoadedForDeckCode(false);
-      setIsLoadingDeckCodeOptions(false);
-
-      return;
-    }
-
-    // ユーザによるデッキ選択の操作が行われる前は実行されないようにする
-    if (isDeckChangedByUser) {
+    } else if (isDeckChangedByUser) {
+      // ユーザによるデッキ選択の操作が行われる前は実行されないようにする。
       // 最新のデッキコードのデータを選択されたバージョンとして設定する
       setSelectedDeckCodeOption(
         convertToDeckCodeOption(deckcodeData[0], deckcodeData.length),
@@ -415,7 +391,7 @@ export default function UpdateUsedDeckModal({
 
     setImageLoadedForDeckCode(false);
     setIsLoadingDeckCodeOptions(false);
-  }, [deckcodeData, isDeckChangedByUser]);
+  }
 
   /*
    *
@@ -544,7 +520,6 @@ export default function UpdateUsedDeckModal({
         setIsLoadingDeckCodeOptions(true);
 
         setIsDeckChangedByUser(false);
-        setIsDisabled(false);
         setIsUpdating(false);
       }}
       classNames={{
@@ -689,7 +664,7 @@ export default function UpdateUsedDeckModal({
                       isSearchable={false}
                       noOptionsMessage={() => deckcodeOptionsMessage}
                       options={deckcodeOptions}
-                      value={selectedDeckCodeOption}
+                      value={selectedDeckCodeOptionLabeled}
                       onChange={(option) => {
                         setSelectedDeckCodeOption(option);
 

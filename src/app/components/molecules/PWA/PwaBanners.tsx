@@ -4,7 +4,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { useSession } from "next-auth/react";
 
 import { useInstallPrompt } from "@app/hooks/useInstallPrompt";
-import { consumeRecordCreatedTrigger } from "@app/utils/pushPrompt";
+import { discardRecordCreatedTrigger } from "@app/utils/pushPrompt";
 import AcquisitionSurveyPrompt from "@app/components/molecules/PWA/AcquisitionSurveyPrompt";
 import AddToHomeScreenBanner from "@app/components/molecules/PWA/AddToHomeScreenBanner";
 import PushPermissionPrompt, {
@@ -69,7 +69,7 @@ export default function PwaBanners({ iconUrl, userId }: Props) {
   // 残したままだと、ウィンドウを lg 未満へ縮めた瞬間に、何時間も前の記録作成を
   // 根拠に push の soft ask が突然出る(PushPermissionPrompt 側の消費と同じ考え方)
   useEffect(() => {
-    if (isLgUp) consumeRecordCreatedTrigger();
+    if (isLgUp) discardRecordCreatedTrigger();
   }, [isLgUp]);
 
   // 追加バナーが実際に見えるか。発火待ちの "pending" を分けているのは、

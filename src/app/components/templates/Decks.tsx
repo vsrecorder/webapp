@@ -3,6 +3,14 @@
 
 import { useState, useCallback, useEffect } from "react";
 
+import { useClientValue } from "@app/hooks/useClientValue";
+import { useSessionStorageItem } from "@app/hooks/useSessionStorageItem";
+import {
+  REOPEN_DECK_MODAL_ARCHIVED,
+  REOPEN_DECK_MODAL_DECK_ID,
+} from "@app/utils/deckModalReopen";
+import { writeSessionStorage } from "@app/utils/sessionStorageStore";
+
 import ScreenLockLoading from "@app/components/atoms/ScreenLockLoading";
 import ScrollUpFloating from "@app/components/atoms/Floating/ScrollUpFloating";
 import FloatingButtonClearance from "@app/components/atoms/Floating/FloatingButtonClearance";
@@ -59,7 +67,15 @@ export default function TemplateDecks({ userId, initial, initialTab }: Props) {
    * 作り直しても同じ値を渡してよい。
    */
   const [initialDecks, setInitialDecks] = useState(initial?.decks ?? undefined);
-  const [selectedKey, setSelectedKey] = useState<TabKey>(serverTab);
+  /*
+   * 選択中のタブ。利用者が切り替える(userTab)までは、ブラウザで決め直した初期タブ:
+   * 遷移再開フラグ(reopenDeckModalArchived)が立っていればそちらを優先し、なければ cookie に
+   * 保存済みのタブ(通常はサーバ描画と同じ)。骨格(DeckListSkeleton)と同じ規則で決める
+   * (食い違うと骨格→実体でカードの高さが変わる)。サーバ描画とハイドレーションでは serverTab。
+   */
+  const [userTab, setUserTab] = useState<TabKey | null>(null);
+  const clientInitialTab = useClientValue(readDecksInitialTab, serverTab);
+  const selectedKey: TabKey = userTab ?? clientInitialTab;
   // 表示中の一覧(Decks)の読み込み状態。ヘッダー(状態切替・表示切替)の出し分けに使う。
   const [loadState, setLoadState] = useState<DeckListLoadState>(INITIAL_LOAD_STATE);
   // 利用中タブが空か（null=未判定）。デッキが1つも無い新規ユーザーの検出に使う。
@@ -70,9 +86,17 @@ export default function TemplateDecks({ userId, initial, initialTab }: Props) {
   // アーカイブ済みにデッキがあるかの確認結果。利用中が空のときだけ確認する。
   const [archivedCheck, setArchivedCheck] = useState<{ token: number; has: boolean } | null>(null);
   const hasArchivedDecks = archivedCheck?.token === emptyToken ? archivedCheck.has : null;
-  // 戻り遷移でデッキモーダルを再開する対象デッキが、アーカイブ済みタブ側か
-  // （null=再開対象なし）。対象タブの Decks にだけ自動追加読み込みを担わせる。
-  const [reopenTargetArchived, setReopenTargetArchived] = useState<boolean | null>(null);
+  /*
+   * 戻り遷移でデッキモーダルを再開する対象デッキが、アーカイブ済みタブ側か
+   * （null=再開対象なし）。対象タブの Decks にだけ自動追加読み込みを担わせる。
+   * sessionStorage のフラグを「外部ストア」として描画中に読む(useSessionStorageItem)。
+   * 対象デッキのフラグは DeckCard が再開したときに消え、アーカイブ側かのフラグは
+   * 再開の一連の処理が終わったとき(handleReopenSettled)に消す
+   */
+  const reopenDeckId = useSessionStorageItem(REOPEN_DECK_MODAL_DECK_ID);
+  const reopenArchivedFlag = useSessionStorageItem(REOPEN_DECK_MODAL_ARCHIVED);
+  const reopenTargetArchived =
+    reopenDeckId !== null && reopenArchivedFlag !== null ? reopenArchivedFlag === "1" : null;
   /*
    * 戻り遷移でのデッキモーダル再開が済むまで、画面全体をローディングで覆う。
    *
@@ -87,22 +111,17 @@ export default function TemplateDecks({ userId, initial, initialTab }: Props) {
     release: releaseScreen,
   } = useScreenLockLoading();
 
-  // マウント後（クライアント専用）にタブを決め直す。
-  // 遷移再開フラグ（reopenDeckModalArchived）が立っていればそちらを優先し、
-  // なければ cookie に保存済みのタブ(通常はサーバ描画と同じ)。
+  // 再開対象があれば、探し始める時点から画面を覆う
   useEffect(() => {
-    const archivedFlag = sessionStorage.getItem("reopenDeckModalArchived");
-    // 骨格(DeckListSkeleton)と同じ規則で決める(食い違うと骨格→実体でカードの高さが変わる)
-    setSelectedKey(readDecksInitialTab());
-    // 再開対象のデッキがどちらのタブに属するかを控えておく。
-    // 対象デッキが2ページ目以降にいる場合に、そのタブでだけ自動で追加読み込みさせる。
-    if (sessionStorage.getItem("reopenDeckModalDeckId") !== null) {
-      setReopenTargetArchived(archivedFlag === "1");
-      lockScreen();
+    if (reopenTargetArchived !== null) lockScreen();
+  }, [reopenTargetArchived, lockScreen]);
+
+  // 再開対象のデッキが無いのにアーカイブ側かのフラグだけが残っていれば、役目を終えているので捨てる
+  useEffect(() => {
+    if (reopenDeckId === null && reopenArchivedFlag !== null) {
+      writeSessionStorage(REOPEN_DECK_MODAL_ARCHIVED, null);
     }
-    // 役目を終えたフラグは削除（DeckCard が使う reopenDeckModalDeckId は残す）。
-    sessionStorage.removeItem("reopenDeckModalArchived");
-  }, [lockScreen]);
+  }, [reopenDeckId, reopenArchivedFlag]);
 
   // 選択タブを cookie に保存し、リロード後はサーバ描画の時点から同じタブで描けるようにする。
   useEffect(() => {
@@ -112,12 +131,12 @@ export default function TemplateDecks({ userId, initial, initialTab }: Props) {
   const handleCreatedDeck = useCallback(() => {
     setInitialDecks(undefined);
     setRefreshKey((prev) => prev + 1);
-    setSelectedKey("inuse");
+    setUserTab("inuse");
   }, []);
 
   const handleSelectionChange = (key: React.Key) => {
     setInitialDecks(undefined);
-    setSelectedKey(key as TabKey);
+    setUserTab(key as TabKey);
   };
 
   // 一覧の読み込み状態を受け取る。空判定は利用中タブのときだけ使う
@@ -136,7 +155,9 @@ export default function TemplateDecks({ userId, initial, initialTab }: Props) {
   // 対象デッキへスクロールした直後にデッキモーダルが開くため、すぐ外すと
   // モーダルが開き切る前の一覧が一瞬見えてしまう。開閉アニメーション（約300ms）が
   // 終わるまで覆いを残し、覆いが消えたときにはモーダルが出ている状態にする。
+  // 役目を終えたアーカイブ側かのフラグもここで捨てる（DeckCard が使う reopenDeckModalDeckId は残す）
   const handleReopenSettled = useCallback(() => {
+    writeSessionStorage(REOPEN_DECK_MODAL_ARCHIVED, null);
     releaseScreen(350);
   }, [releaseScreen]);
 

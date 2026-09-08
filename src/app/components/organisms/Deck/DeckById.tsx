@@ -56,6 +56,8 @@ import ArchiveDeckModal from "@app/components/organisms/Deck/Modal/ArchiveDeckMo
 import UnarchiveDeckModal from "@app/components/organisms/Deck/Modal/UnarchiveDeckModal";
 
 import { useDeckCodes, getDeckCodeVersionNumber } from "@app/hooks/useDeckCodes";
+import { useClientValue } from "@app/hooks/useClientValue";
+import { useSeededResource } from "@app/hooks/useSeededResource";
 
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
@@ -99,6 +101,11 @@ function formatWinRateDeviation(rate: number, overallWinRate: number) {
     colorClass:
       diffPt > 0 ? "text-success" : diffPt < 0 ? "text-danger" : "text-default-400",
   };
+}
+
+// このページのオリジン(絶対URLの組み立てに使う)。window はクライアントでのみ参照できる
+function readLocationOrigin(): string {
+  return window.location.origin;
 }
 
 // デッキ本体を取得する。
@@ -155,22 +162,35 @@ export default function DeckById({ id, valueMeterEnabled = false }: Props) {
   // デッキモーダルを開き直せるよう、再開フラグをこのページで預かる。
   useReopenFlagsOnBack(DECK_MODAL_REOPEN_KEYS);
 
-  const [deck, setDeck] = useState<DeckGetByIdResponseType | null>(null);
+  // デッキ本体。失敗時は retry(FetchError のリロード)で取り直し、
+  // 編集モーダルの結果(setDeck)で差し替える
+  const {
+    data: deck,
+    setData: setDeck,
+    loading,
+    error: deckError,
+    retry: loadDeck,
+  } = useSeededResource(id, fetchDeckById);
 
   // きずな。灯の濃さ・スプライトの揺れ方と、きずなカードの表示に使う
   const kizuna = useKizunaDeck(userId, id);
   const kizunaLevel = kizuna?.level ?? null;
 
   // 画面上部に表示する代表デッキコード（＝最新バージョン）。
+  // 取得したデッキの最新バージョンから入れ、バージョンの作成・削除・最新化(setDeckCode)で
+  // 差し替わる。デッキ本体を取り直したり編集モーダルが差し替えたりしたら、そのデッキの
+  // 最新バージョンで入れ直す(前回のデッキを控えておき、描画中に入れ直す)
   const [deckcode, setDeckCode] = useState<DeckCodeType | null>(null);
+  const [deckcodeSource, setDeckcodeSource] = useState<DeckGetByIdResponseType | null>(null);
+  if (deckcodeSource !== deck) {
+    setDeckcodeSource(deck);
+    setDeckCode(deck?.latest_deck_code ?? null);
+  }
   const [usageStat, setUsageStat] = useState<DeckUsageItemType | null>(null);
 
   // 施策E-3: 同デッキの先週の環境平均勝率（0〜1）。価値メーターの「借りて→返す」で
   // 個人勝率の錨として併記する。環境データが引けない・圏外なら null のまま。
   const [deckEnvWinRate, setDeckEnvWinRate] = useState<number | null>(null);
-
-  const [loading, setLoading] = useState(true);
-  const [deckError, setDeckError] = useState(false);
 
   const [recordTab, setRecordTab] = useState<RecordTabKey>("all");
 
@@ -178,8 +198,9 @@ export default function DeckById({ id, valueMeterEnabled = false }: Props) {
   const [visibleVersionCount, setVisibleVersionCount] = useState(VERSIONS_PER_PAGE);
 
   // このページの絶対URL（NFCタグに書き込む用途でコピーできるものにする）。
-  // window はクライアントでのみ参照できるため、マウント後に組み立てる。
-  const [pageUrl, setPageUrl] = useState("");
+  // window はクライアントでのみ参照できるため、ハイドレーション後に組み立てる。
+  const origin = useClientValue(readLocationOrigin, "");
+  const pageUrl = deck && origin ? `${origin}/decks/${deck.id}` : "";
   const [copied, setCopied] = useState(false);
 
   // 「シェアする」モーダル（記録情報のシェアと同じ流れ：画像＋ポスト文を共有）の開閉。
@@ -215,28 +236,6 @@ export default function DeckById({ id, valueMeterEnabled = false }: Props) {
   // このデッキの全バージョン（デッキコード）。バージョン履歴と件数の表示に使う。
   const { deckcodes } = useDeckCodes(deck?.id, deckcode?.id);
   const versionCount = deckcodes?.length ?? null;
-
-  const loadDeck = useCallback(async () => {
-    if (!id) return;
-
-    setDeckError(false);
-    setLoading(true);
-
-    try {
-      const data = await fetchDeckById(id);
-      setDeck(data);
-      setDeckCode(data.latest_deck_code ?? null);
-    } catch (err) {
-      console.log(err);
-      setDeckError(true);
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
-  useEffect(() => {
-    loadDeck();
-  }, [loadDeck]);
 
   // 対戦成績（勝率など）は userId とデッキ確定後に取得する。
   useEffect(() => {
@@ -284,12 +283,6 @@ export default function DeckById({ id, valueMeterEnabled = false }: Props) {
       { fallbackHref: "/decks" },
     );
   }, [router]);
-
-  // このデッキ詳細ページの絶対URLを組み立てる（クエリは含めず正規のパスにする）。
-  useEffect(() => {
-    if (!deck) return;
-    setPageUrl(`${window.location.origin}/decks/${deck.id}`);
-  }, [deck]);
 
   // ページURLをクリップボードへコピーする。NFCタグへの書き込みに使ってもらう。
   const handleCopyUrl = useCallback(async () => {

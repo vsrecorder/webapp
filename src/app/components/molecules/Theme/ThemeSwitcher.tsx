@@ -1,20 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import { Button } from "@heroui/react";
 import { LuSun, LuMoon } from "react-icons/lu";
 
+import { useHydrated } from "@app/hooks/useHydrated";
+
 // ライト/ダークを手動で切り替えるトグルボタン
 export default function ThemeSwitcher() {
-  // SSRとクライアントの不一致を避けるため、マウント後に描画する
-  const [mounted, setMounted] = useState(false);
+  // SSRとクライアントの不一致を避けるため、ハイドレーションが済んでから描画する
+  const mounted = useHydrated();
   // resolvedTheme: theme が "system" のときに実際に適用されている light/dark を返す
   const { resolvedTheme, setTheme } = useTheme();
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   // マウント前はレイアウトを崩さないようプレースホルダを表示
   if (!mounted) {

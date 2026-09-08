@@ -2,6 +2,9 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
+import { useCaptureWidth } from "@app/hooks/useCaptureWidth";
+import { useClientValue } from "@app/hooks/useClientValue";
+
 import {
   ModalContent,
   ModalHeader,
@@ -27,7 +30,6 @@ import { sendGAEvent } from "@next/third-parties/google";
 import {
   captureThemedPng,
   hasUnloadedImages,
-  SIDE_PADDING,
 } from "@app/utils/captureImage";
 import {
   dataUrlToFile,
@@ -110,34 +112,63 @@ export default function PanelShareModal({
   sheets,
 }: Props) {
   const captureRefs = useRef<(HTMLDivElement | null)[]>([]);
-  // 生成中に条件が変わった/モーダルを閉じた場合に、後から終わった古い生成結果で
-  // 上書きしてしまわないための世代番号。自分が最新かを確認してから反映する。
-  const captureSeq = useRef(0);
 
-  // キャプチャ対象の幅。書き出し画像の横幅が端末の画面幅いっぱいになるよう、
-  // 端末の画面幅から左右余白(SIDE_PADDING * 2)を引いた値を使う。
-  // SSR時はwindowを参照できないため360で初期化する。
-  const [captureWidth, setCaptureWidth] = useState(360);
+  // キャプチャ対象の幅。実寸が決まっているカードは端末幅に合わせず、その幅で書き出す。
+  // それ以外は書き出し画像の横幅が端末の画面幅いっぱいになるよう端末の画面幅から決める
+  // (useCaptureWidth。SSR 時は 360)
+  const viewportCaptureWidth = useCaptureWidth();
+  const captureWidth = capture?.width ?? viewportCaptureWidth;
   const [captureMounted, setCaptureMounted] = useState(false);
-  const [images, setImages] = useState<ShareImage[]>([]);
-  // 複数枚のときの進捗（何枚目まで作れたか）
-  const [capturedCount, setCapturedCount] = useState(0);
-  // 生成した画像にスプライト等の欠けがあるか(読み込めなかった画像が残っていたか)。
-  // 欠けは画像を見なくても判定できるため、黙ってシェアさせずに知らせる。
-  const [incomplete, setIncomplete] = useState(false);
-  const [capturing, setCapturing] = useState(false);
-  // 画像の生成そのものに失敗したか。失敗を伝えるだけだと手詰まりになるため、
-  // 作り直すか、ポスト文だけでシェアするかを選べるようにする。
-  const [captureFailed, setCaptureFailed] = useState(false);
-  // 「再生成」「作り直す」を押したときに生成用の useEffect を走らせ直すための世代番号
+  // 「再生成」「作り直す」を押したときに生成し直すための世代番号
   const [regenSeq, setRegenSeq] = useState(0);
   const [busy, setBusy] = useState<null | "share">(null);
-  const [text, setText] = useState(postText);
   // ポスト文をコピーしたか(コピーボタンの見た目を一時的に切り替えるのに使う)
   const [textCopied, setTextCopied] = useState(false);
-  // Android 端末か。SSR では navigator を参照できないため、マウント後に判定する。
-  const [isAndroidDevice, setIsAndroidDevice] = useState(false);
-  useEffect(() => setIsAndroidDevice(isAndroid()), []);
+  // Android 端末か。SSR では navigator を参照できないため、ハイドレーション後に判定する。
+  const isAndroidDevice = useClientValue(isAndroid, false);
+
+  /*
+   * 生成した画像。どの条件(captureKey)で撮ったかも持つ。
+   * 条件が変わっていれば生成中(capturing)で、その間もプレビューには前の画像を残す
+   * (消すと枠の高さが変わって飛び跳ねる)。生成中に条件が変わった/閉じた場合は、
+   * 後から終わった古い生成結果は(条件が違うので)そのまま捨てられる。
+   *   incomplete … 生成した画像にスプライト等の欠けがあるか(読み込めなかった画像が残っていたか)。
+   *                欠けは画像を見なくても判定できるため、黙ってシェアさせずに知らせる
+   *   failed     … 画像の生成そのものに失敗したか。失敗を伝えるだけだと手詰まりになるため、
+   *                作り直すか、ポスト文だけでシェアするかを選べるようにする
+   */
+  const captureKey =
+    isOpen && captureMounted
+      ? [
+          captureWidth,
+          filenamePrefix,
+          sheets?.length ?? 1,
+          regenSeq,
+          capture?.bare ? 1 : 0,
+          capture?.theme ?? "",
+          capture?.desiredPixelRatio ?? "",
+        ].join("|")
+      : null;
+  const [captured, setCaptured] = useState<{
+    key: string;
+    images: ShareImage[];
+    incomplete: boolean;
+    failed: boolean;
+  } | null>(null);
+  // 複数枚のときの進捗（何枚目まで作れたか）
+  const [progress, setProgress] = useState<{ key: string; count: number } | null>(null);
+  const currentCapture = captureKey !== null && captured?.key === captureKey ? captured : null;
+  const images = captured?.images ?? [];
+  const incomplete = currentCapture?.incomplete ?? false;
+  const captureFailed = currentCapture?.failed ?? false;
+  const capturing = captureKey !== null && currentCapture === null;
+  const capturedCount = progress?.key === captureKey ? progress.count : 0;
+
+  // ポスト文。開くたびに既定値(postText)へ戻す(前回の手編集を引きずらない)。
+  // 手編集はどの既定値を元にしたかと組で持ち、既定値が変わったら捨てる
+  const [textEdit, setTextEdit] = useState<{ base: string; value: string } | null>(null);
+  const text = textEdit && textEdit.base === postText ? textEdit.value : postText;
+  const setText = (value: string) => setTextEdit({ base: postText, value });
   // Android の回避策(画像だけ共有し、ポスト文はコピーしてもらう)を使うか。
   // X の挙動が戻れば ANDROID_SHARE_IMAGES_ONLY を false にするだけで無効になる。
   const androidImagesOnly = ANDROID_SHARE_IMAGES_ONLY && isAndroidDevice;
@@ -156,62 +187,36 @@ export default function PanelShareModal({
 
   // モーダルを閉じるとキャプチャ用DOMは破棄されるため、生成済み画像も捨てる
   // (次に開いたとき、古い内容の画像を共有してしまわないようにする)。
-  useEffect(() => {
-    if (isOpen) return;
-    setImages([]);
-    setCapturedCount(0);
-    setIncomplete(false);
-    setCapturing(false);
-    setCaptureFailed(false);
-    // 生成中に閉じた場合、後から終わった生成結果が状態を書き戻してしまう。
-    // 世代を進めて、その結果を捨てさせる。
-    captureSeq.current++;
-  }, [isOpen]);
-
-  // ポスト文は開くたびに既定値へ戻す(前回の手編集を引きずらない)
-  useEffect(() => {
-    if (!isOpen) return;
-    setText(postText);
-  }, [isOpen, postText]);
+  // 次に開いたときはキャプチャ用DOMも開くアニメーションが終わってから描画し直し、
+  // ポスト文は既定値から始める。effect で戻すと閉じる前の状態での描画が一度挟まるので、
+  // 前回の開閉を控えておき描画中に戻す
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (wasOpen !== isOpen) {
+    setWasOpen(isOpen);
+    if (!isOpen) {
+      setCaptured(null);
+      setProgress(null);
+      setCaptureMounted(false);
+    }
+    setTextEdit(null);
+  }
 
   // キャプチャ用DOMは、開くアニメーションが終わってから描画する。
   // アニメーション中に描画すると、その重さで開く動きがカクつく。
   useEffect(() => {
-    if (!isOpen) {
-      setCaptureMounted(false);
-      return;
-    }
+    if (!isOpen) return;
     const timer = setTimeout(() => setCaptureMounted(true), CAPTURE_MOUNT_DELAY_MS);
     return () => clearTimeout(timer);
   }, [isOpen]);
 
-  // モーダルを開いたら、書き出し画像の横幅が端末の画面幅いっぱいになるよう
-  // キャプチャ対象の幅を算出する。画面が狭すぎ/PCなどで広すぎる場合に備えクランプする。
+  // シェア画像の生成。撮る条件(captureKey)が変わるたびに撮り直す
   useEffect(() => {
-    if (!isOpen) return;
-    // 実寸が決まっているカードは端末幅に合わせず、その幅で書き出す
-    if (capture?.width != null) {
-      setCaptureWidth(capture.width);
-      return;
-    }
-    const target = Math.round(window.innerWidth) - SIDE_PADDING * 2;
-    setCaptureWidth(Math.max(320, Math.min(target, 480)));
-  }, [isOpen, capture?.width]);
+    if (captureKey === null) return;
 
-  // シェア画像の生成
-  useEffect(() => {
-    if (!isOpen || !captureMounted) return;
-
-    const seq = ++captureSeq.current;
-    setCaptureFailed(false);
-    setCapturing(true);
-
-    let started = false;
+    let cancelled = false;
     const timer = setTimeout(async () => {
-      started = true;
-
       try {
-        const captured: ShareImage[] = [];
+        const captures: ShareImage[] = [];
         const stamp = Date.now();
         let hasMissing = false;
 
@@ -245,42 +250,29 @@ export default function PanelShareModal({
               : `${filenamePrefix}_${stamp}.png`;
           const file = await dataUrlToFile(dataUrl, filename);
 
-          if (seq !== captureSeq.current) return;
-          captured.push({ dataUrl, filename, file });
-          setCapturedCount(captured.length);
+          if (cancelled) return;
+          captures.push({ dataUrl, filename, file });
+          setProgress({ key: captureKey, count: captures.length });
         }
 
-        if (seq !== captureSeq.current) return;
-        setImages(captured);
-        setIncomplete(hasMissing);
+        if (cancelled) return;
+        setCaptured({ key: captureKey, images: captures, incomplete: hasMissing, failed: false });
       } catch (e) {
         console.error(e);
-        if (seq !== captureSeq.current) return;
+        if (cancelled) return;
         // 失敗はプレビュー欄に出し続ける(トーストは消えてしまい、
         // 何が起きたのか分からないまま準備中の表示だけが残ってしまうため)。
-        setCaptureFailed(true);
-      } finally {
-        if (seq === captureSeq.current) setCapturing(false);
+        setCaptured({ key: captureKey, images: [], incomplete: false, failed: true });
       }
     }, CAPTURE_DEBOUNCE_MS);
 
     return () => {
+      cancelled = true;
       clearTimeout(timer);
-      // 走り出す前に取り消された場合は生成中を解く
-      // (走り出していた場合は、世代番号で最新の生成が状態を持つため触らない)
-      if (!started) setCapturing(false);
     };
-  }, [
-    isOpen,
-    captureMounted,
-    captureWidth,
-    filenamePrefix,
-    sheetCount,
-    regenSeq,
-    capture?.bare,
-    capture?.theme,
-    capture?.desiredPixelRatio,
-  ]);
+    // 撮る条件は captureKey にまとめてある(それ以外は撮る中身の参照に使うだけ)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [captureKey]);
 
   // 上部バーのフリックでモーダルを閉じる。ただしシェアの処理中(busy)は閉じさせない。
   const attachHeader = useModalDragToClose(onClose, { disabled: busy !== null });

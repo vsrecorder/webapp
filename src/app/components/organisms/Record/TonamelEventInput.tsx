@@ -26,20 +26,27 @@ export default function TonamelEventInput({
   onEventIdChange,
   onValidityChange,
 }: Props) {
-  const [tonamelEventTitle, setTonamelEventTitle] = useState("");
-  const [tonamelEventImage, setTonamelEventImage] = useState("");
-  // 入力に対する検証結果(エラー表示用)。空入力時はエラー表示しない(true)。
-  const [isValidated, setIsValidated] = useState(true);
+  /*
+   * Tonamel API での確認結果。どのイベントIDの結果かも持ち、入力中のIDと一致するときだけ使う
+   * (空入力・確認中は前回の結果を出さない)。valid が false なら存在しないID
+   */
+  const [checked, setChecked] = useState<{
+    eventId: string;
+    valid: boolean;
+    title: string;
+    image: string;
+  } | null>(null);
+  const current = eventId && checked?.eventId === eventId ? checked : null;
+  const tonamelEventTitle = current?.title ?? "";
+  const tonamelEventImage = current?.image ?? "";
+  // 入力に対する検証結果(エラー表示用)。空入力時・確認中はエラー表示しない(true)。
+  const isValidated = current ? current.valid : true;
+  // 有効なイベントIDが入っているか(保存可否)。確認が終わって存在したときだけ true
+  const isValid = current?.valid === true;
 
   // イベントIDが変わるたびにTonamel APIで有効性を確認する(記録作成ページと同じ挙動)。
   useEffect(() => {
-    if (!eventId) {
-      setTonamelEventTitle("");
-      setTonamelEventImage("");
-      setIsValidated(true);
-      onValidityChange(false);
-      return;
-    }
+    if (!eventId) return;
 
     let cancelled = false;
     const checkTonamelEventId = async () => {
@@ -48,17 +55,11 @@ export default function TonamelEventInput({
         if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
         const data = await res.json();
         if (cancelled) return;
-        setTonamelEventTitle(data.title);
-        setTonamelEventImage(data.image);
-        setIsValidated(true);
-        onValidityChange(true);
+        setChecked({ eventId, valid: true, title: data.title, image: data.image });
       } catch (error) {
         console.error(error);
         if (cancelled) return;
-        setTonamelEventTitle("");
-        setTonamelEventImage("");
-        setIsValidated(false);
-        onValidityChange(false);
+        setChecked({ eventId, valid: false, title: "", image: "" });
       }
     };
 
@@ -66,9 +67,14 @@ export default function TonamelEventInput({
     return () => {
       cancelled = true;
     };
+  }, [eventId]);
+
+  // 保存可否を親へ伝える(確認結果が変わったときだけ)
+  useEffect(() => {
+    onValidityChange(isValid);
     // onValidityChange は親が useCallback 化しない前提で依存から外す
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [eventId]);
+  }, [isValid]);
 
   return (
     <div className="flex flex-col gap-3">

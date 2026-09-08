@@ -1,5 +1,5 @@
 import { SetStateAction, Dispatch } from "react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { addToast, closeToast } from "@heroui/react";
 import { Button } from "@heroui/react";
@@ -35,38 +35,16 @@ export default function UpdateUsedDeckModal({
     record.tcg_meister_url ?? "",
   );
   const [isDisabled, setIsDisabled] = useState(false);
-  const [couldChangeTCGMeisterURL, setCouldChangeTCGMeisterURL] = useState(false);
-  const [isInvalidTCGMeisterURL, setIsInvalidTCGMeisterURL] = useState(false);
 
-  useEffect(() => {
-    if (tcgMeisterURL != "") {
-      // 入力された値がTCGマイスターのURLか確認
-      if (
-        tcgMeisterURL.substring(0, 23) == "https://tcg.sfc-jpn.jp/" ||
-        tcgMeisterURL.substring(0, 22) == "http://tcg.sfc-jpn.jp/"
-      ) {
-        // URLに変更があるか
-        if (tcgMeisterURL == record.tcg_meister_url) {
-          setIsInvalidTCGMeisterURL(false);
-          setCouldChangeTCGMeisterURL(false);
-        } else {
-          setIsInvalidTCGMeisterURL(false);
-          setCouldChangeTCGMeisterURL(true);
-        }
-      } else {
-        setIsInvalidTCGMeisterURL(true);
-        setCouldChangeTCGMeisterURL(false);
-      }
-    } else {
-      if (tcgMeisterURL != record.tcg_meister_url) {
-        setIsInvalidTCGMeisterURL(false);
-        setCouldChangeTCGMeisterURL(true);
-      } else {
-        setIsInvalidTCGMeisterURL(false);
-        setCouldChangeTCGMeisterURL(false);
-      }
-    }
-  }, [tcgMeisterURL, record.tcg_meister_url]);
+  // 入力された値がTCGマイスターのURLか
+  const isTCGMeisterURL =
+    tcgMeisterURL.substring(0, 23) == "https://tcg.sfc-jpn.jp/" ||
+    tcgMeisterURL.substring(0, 22) == "http://tcg.sfc-jpn.jp/";
+  // 空でなくTCGマイスター以外のURLなら無効
+  const isInvalidTCGMeisterURL = tcgMeisterURL != "" && !isTCGMeisterURL;
+  // 有効な入力で、かつ記録のURLから変更があれば保存できる(空に戻すのも変更)
+  const couldChangeTCGMeisterURL =
+    !isInvalidTCGMeisterURL && tcgMeisterURL != record.tcg_meister_url;
 
   /*
    *
@@ -173,8 +151,6 @@ export default function UpdateUsedDeckModal({
       onOpenChange={onOpenChange}
       onClose={() => {
         setIsDisabled(false);
-        setCouldChangeTCGMeisterURL(false);
-        setIsInvalidTCGMeisterURL(false);
       }}
       isDismissable={!isDisabled}
       // 処理中はESCキーでも閉じられないようにする

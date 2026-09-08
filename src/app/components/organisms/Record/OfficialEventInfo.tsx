@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import { SetStateAction, Dispatch } from "react";
+
+import { useSeededResource } from "@app/hooks/useSeededResource";
 
 import { Image } from "@heroui/react";
 import { Link } from "@heroui/react";
@@ -43,6 +44,8 @@ async function fetchOfficialEventById(id: number) {
 
     const ret: OfficialEventGetByIdResponseType = await res.json();
 
+    ret.title = cleanOfficialEventTitle(ret.title);
+
     return ret;
   } catch (error) {
     throw error;
@@ -60,46 +63,19 @@ export default function OfficialEventInfo({
   setRecord,
   enableEditTCGMeisterURL,
 }: Props) {
-  const [officialEvent, setOfficialEvent] =
-    useState<OfficialEventGetByIdResponseType | null>(null);
-  const [loadingOfficialEvent, setLoadingOfficialEvent] = useState(true);
-  const [error, setError] = useState(false);
+  // 公式イベント情報。参照先が変わると取り直し、失敗時は retry(FetchError のリロード)で取り直す
+  const {
+    data: officialEvent,
+    loading: loadingOfficialEvent,
+    error,
+    retry: loadOfficialEvent,
+  } = useSeededResource(record?.official_event_id, fetchOfficialEventById);
 
   const {
     isOpen: isOpenForTCGMeisterURLModal,
     onOpen: onOpenForTCGMeisterURLModal,
     onOpenChange: onOpenChangeForTCGMeisterURLModal,
   } = useDisclosure();
-
-  const officialEventId = record?.official_event_id;
-
-  // 公式イベント情報だけを取得（失敗時のリロードから再利用）
-  const loadOfficialEvent = useCallback(async () => {
-    if (!officialEventId) {
-      setLoadingOfficialEvent(false);
-      return;
-    }
-
-    setError(false);
-    setLoadingOfficialEvent(true);
-
-    try {
-      const data = await fetchOfficialEventById(officialEventId);
-
-      data.title = cleanOfficialEventTitle(data.title);
-
-      setOfficialEvent(data);
-    } catch (err) {
-      console.log(err);
-      setError(true);
-    } finally {
-      setLoadingOfficialEvent(false);
-    }
-  }, [officialEventId]);
-
-  useEffect(() => {
-    loadOfficialEvent();
-  }, [loadOfficialEvent]);
 
   if (error) {
     return <FetchError onRetry={loadOfficialEvent} compact />;

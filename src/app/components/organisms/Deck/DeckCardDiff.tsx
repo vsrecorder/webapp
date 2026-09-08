@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 
 import { Chip } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
@@ -12,6 +12,21 @@ import { Modal } from "@app/components/atoms/AppModal";
 import FetchError from "@app/components/molecules/FetchError";
 
 import { fetchDeckCardList } from "@app/utils/deckcard";
+import { useSeededResource } from "@app/hooks/useSeededResource";
+
+// カード一覧を取り、画像も先読みしておく(差分を出したときに画像の到着を待たせない)
+async function fetchDeckCardListWithImages(code: string): Promise<DeckCardType[]> {
+  const data = await fetchDeckCardList(code);
+
+  const urls = [...data].map((c) => c.image_url);
+  const uniqueUrls = [...new Set(urls)];
+  uniqueUrls.forEach((url) => {
+    const img = new window.Image();
+    img.src = url;
+  });
+
+  return data;
+}
 
 import { DeckCardType, CardType } from "@app/types/deckcard";
 
@@ -73,12 +88,19 @@ type Props = {
 };
 
 export default function DeckCardDiff({ current_code, previous_code }: Props) {
-  const [currentDeckCardList, setCurrentDeckCardList] = useState<DeckCardType[]>();
-  const [previousDeckCardList, setPreviousDeckCardList] = useState<DeckCardType[]>();
-  const [loading1, setLoading1] = useState(true);
-  const [loading2, setLoading2] = useState(true);
-  const [currentError, setCurrentError] = useState(false);
-  const [previousError, setPreviousError] = useState(false);
+  // 現在バージョン・直前バージョンのカード一覧。それぞれ失敗したほうだけ retry で取り直す
+  const {
+    data: currentDeckCardList,
+    loading: loading1,
+    error: currentError,
+    retry: loadCurrent,
+  } = useSeededResource(current_code, fetchDeckCardListWithImages);
+  const {
+    data: previousDeckCardList,
+    loading: loading2,
+    error: previousError,
+    retry: loadPrevious,
+  } = useSeededResource(previous_code, fetchDeckCardListWithImages);
 
   const [card, setCard] = useState<CardType>();
   const {
@@ -86,67 +108,6 @@ export default function DeckCardDiff({ current_code, previous_code }: Props) {
     onOpen: onOpenForShowCardModal,
     onOpenChange: onOpenChangeForShowCardModal,
   } = useDisclosure();
-
-  // 現在バージョンのカード一覧だけを取得（失敗時のリロードから再利用）
-  const loadCurrent = useCallback(async () => {
-    if (!current_code) {
-      setLoading1(false);
-      return;
-    }
-
-    setCurrentError(false);
-    setLoading1(true);
-
-    try {
-      const data = await fetchDeckCardList(current_code);
-      setCurrentDeckCardList(data);
-
-      const urls = [...data].map((c) => c.image_url);
-      const uniqueUrls = [...new Set(urls)];
-      uniqueUrls.forEach((url) => {
-        const img = new window.Image();
-        img.src = url;
-      });
-    } catch (err) {
-      console.log(err);
-      setCurrentError(true);
-    } finally {
-      setLoading1(false);
-    }
-  }, [current_code]);
-
-  // 直前バージョンのカード一覧だけを取得
-  const loadPrevious = useCallback(async () => {
-    if (!previous_code) {
-      setLoading2(false);
-      return;
-    }
-
-    setPreviousError(false);
-    setLoading2(true);
-
-    try {
-      const data = await fetchDeckCardList(previous_code);
-      setPreviousDeckCardList(data);
-
-      const urls = [...data].map((c) => c.image_url);
-      const uniqueUrls = [...new Set(urls)];
-      uniqueUrls.forEach((url) => {
-        const img = new window.Image();
-        img.src = url;
-      });
-    } catch (err) {
-      console.log(err);
-      setPreviousError(true);
-    } finally {
-      setLoading2(false);
-    }
-  }, [previous_code]);
-
-  useEffect(() => {
-    loadCurrent();
-    loadPrevious();
-  }, [loadCurrent, loadPrevious]);
 
   if (!current_code || !previous_code) return;
 

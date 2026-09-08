@@ -1,6 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+
+import { useSeededResource } from "@app/hooks/useSeededResource";
 
 import { Button, Card, CardBody, Spinner } from "@heroui/react";
 import { LuImages, LuShare2 } from "react-icons/lu";
@@ -56,6 +58,35 @@ type RecapCard = {
   node: ReactNode;
 };
 
+// その期間の材料。戦績(stat)だけは必須。他は欠けてもカードを減らして表示する
+type ReportData = {
+  stat: UserStatType;
+  deckStat: DeckUsageStatType | null;
+  opponentStat: OpponentDeckUsageStatType | null;
+  streak: UserStreakType | null;
+};
+
+async function fetchReportData(userId: string, period: RecapPeriod): Promise<ReportData> {
+  const query = periodQuery(period);
+  const [statRes, deckRes, opponentRes, streakRes] = await Promise.all([
+    fetch(`/api/users/${userId}/stat?${query}`, { cache: "no-store" }),
+    fetch(`/api/users/${userId}/deck-usage?${query}`, { cache: "no-store" }),
+    fetch(`/api/users/${userId}/opponent-deck-usage?${query}`, {
+      cache: "no-store",
+    }),
+    fetch(`/api/users/${userId}/streak`, { cache: "no-store" }),
+  ]);
+
+  if (!statRes.ok) throw new Error("failed to fetch user stat");
+
+  return {
+    stat: await statRes.json(),
+    deckStat: deckRes.ok ? await deckRes.json() : null,
+    opponentStat: opponentRes.ok ? await opponentRes.json() : null,
+    streak: streakRes.ok ? await streakRes.json() : null,
+  };
+}
+
 /*
  * ふりかえり（/users/report/weeks/[week]、/users/report/[yearMonth]、
  * /users/report/environments/[id]）。
@@ -70,16 +101,7 @@ type RecapCard = {
  * 表示状態や取得済みの環境データはここで初期化しない。
  */
 export default function TemplateUserReport({ userId, period }: Props) {
-  const [stat, setStat] = useState<UserStatType | null>(null);
-  const [deckStat, setDeckStat] = useState<DeckUsageStatType | null>(null);
-  const [opponentStat, setOpponentStat] = useState<OpponentDeckUsageStatType | null>(
-    null,
-  );
-  const [streak, setStreak] = useState<UserStreakType | null>(null);
   const [env, setEnv] = useState<PeriodDeckEnv | null>(null);
-
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasError, setHasError] = useState(false);
   // シェア対象のカード。閉じるアニメーションの間も中身を保つため、
   // 開閉フラグ(shareOpen)とは別に持つ。
   const [shareTarget, setShareTarget] = useState<RecapCard | null>(null);
@@ -89,39 +111,19 @@ export default function TemplateUserReport({ userId, period }: Props) {
 
   const shouldReduceMotion = useReducedMotion();
 
-  const load = useCallback(async () => {
-    setIsLoading(true);
-    setHasError(false);
-
-    try {
-      const query = periodQuery(period);
-      // 戦績(stat)だけは必須。他は欠けてもカードを減らして表示する。
-      const [statRes, deckRes, opponentRes, streakRes] = await Promise.all([
-        fetch(`/api/users/${userId}/stat?${query}`, { cache: "no-store" }),
-        fetch(`/api/users/${userId}/deck-usage?${query}`, { cache: "no-store" }),
-        fetch(`/api/users/${userId}/opponent-deck-usage?${query}`, {
-          cache: "no-store",
-        }),
-        fetch(`/api/users/${userId}/streak`, { cache: "no-store" }),
-      ]);
-
-      if (!statRes.ok) throw new Error("failed to fetch user stat");
-
-      setStat(await statRes.json());
-      setDeckStat(deckRes.ok ? await deckRes.json() : null);
-      setOpponentStat(opponentRes.ok ? await opponentRes.json() : null);
-      setStreak(streakRes.ok ? await streakRes.json() : null);
-    } catch (e) {
-      console.error(e);
-      setHasError(true);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [userId, period]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+  // その期間の戦績・デッキ・相手・ストリーク。期間が変わると取り直し、失敗時は retry(load)で取り直す
+  const {
+    data: report,
+    loading: isLoading,
+    error: hasError,
+    retry: load,
+  } = useSeededResource(`${userId}:${periodValue(period)}`, () =>
+    fetchReportData(userId, period),
+  );
+  const stat = report?.stat ?? null;
+  const deckStat = report?.deckStat ?? null;
+  const opponentStat = report?.opponentStat ?? null;
+  const streak = report?.streak ?? null;
 
   // その期間に多く使ったデッキ / 多く当たった相手を上位3件まで。
   // API は件数降順で返すが、表示の根拠を並び順に依存させないため明示的に並べ替える。

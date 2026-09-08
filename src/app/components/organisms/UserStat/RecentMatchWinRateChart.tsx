@@ -125,7 +125,6 @@ export default function RecentMatchWinRateChart({ userId }: Props) {
 
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<ChartJS<"line">>(null);
-  const chartDataRef = useRef<RecentMatchItemType[]>([]);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const tooltipSpriteContainerRef = useRef<HTMLDivElement>(null);
   const tooltipTitleRef = useRef<HTMLParagraphElement>(null);
@@ -163,8 +162,8 @@ export default function RecentMatchWinRateChart({ userId }: Props) {
     };
   }, [userId, countMode, regulationId]);
 
+  // 描画中の対戦一覧。ツールチップの計算・点の色分けは描画ごとに作り直す関数から参照する
   const chartData: RecentMatchItemType[] = stat?.matches ?? [];
-  chartDataRef.current = chartData;
 
   // ローリング勝率の信頼性を確保するため、選択した戦数分のデータが貯まるまでは機能をロックする
   const requiredCount = Number(countMode);
@@ -239,11 +238,8 @@ export default function RecentMatchWinRateChart({ userId }: Props) {
     const rawIdx = xScale.getValueForPixel(xOnCanvas);
     if (rawIdx == null) return;
 
-    const idx = Math.max(
-      0,
-      Math.min(chartDataRef.current.length - 1, Math.round(rawIdx)),
-    );
-    const d = chartDataRef.current[idx];
+    const idx = Math.max(0, Math.min(chartData.length - 1, Math.round(rawIdx)));
+    const d = chartData[idx];
     if (!d) return;
 
     if (tooltipSpriteContainerRef.current)
@@ -331,7 +327,7 @@ export default function RecentMatchWinRateChart({ userId }: Props) {
         backgroundColor: "rgba(245, 165, 36, 0.08)",
         borderWidth: 2,
         pointBackgroundColor: (ctx: { dataIndex: number }) => {
-          const d = chartDataRef.current[ctx.dataIndex];
+          const d = chartData[ctx.dataIndex];
           // 引き分け(BO3のみ)はグレー、勝ち=緑、負け=赤
           if (d?.draw) return "#A1A1AA";
           return d?.victory ? "#17C964" : "#F31260";

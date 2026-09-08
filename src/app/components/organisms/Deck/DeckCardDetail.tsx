@@ -1,6 +1,5 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 
 import { Chip } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
@@ -8,9 +7,9 @@ import { Skeleton } from "@heroui/react";
 import FetchError from "@app/components/molecules/FetchError";
 
 import { fetchDeckCardDetail } from "@app/utils/deckcard";
+import { useSeededResource } from "@app/hooks/useSeededResource";
 
 import { DeckCodeType } from "@app/types/deck_code";
-import { DeckCardDetailType } from "@app/types/deckcard";
 
 type Props = {
   deckcode: DeckCodeType | null;
@@ -48,36 +47,13 @@ function CardSkelton() {
 }
 
 export default function DeckCardDetail({ deckcode }: Props) {
-  const [deckcardDetail, setDeckCardDetail] = useState<DeckCardDetailType | null>(
-    null,
-  );
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-
-  // デッキカード内訳だけを取得（失敗時のリロードから再利用）
-  const loadDeckCardDetail = useCallback(async () => {
-    if (!deckcode) {
-      setLoading(false);
-      return;
-    }
-
-    setError(false);
-    setLoading(true);
-
-    try {
-      const data = await fetchDeckCardDetail(deckcode.code);
-      setDeckCardDetail(data);
-    } catch (err) {
-      console.log(err);
-      setError(true);
-    } finally {
-      setLoading(false);
-    }
-  }, [deckcode]);
-
-  useEffect(() => {
-    loadDeckCardDetail();
-  }, [loadDeckCardDetail]);
+  // デッキカード内訳。デッキコードが変わると取り直し、失敗時は retry で取り直す
+  const {
+    data: deckcardDetail,
+    loading,
+    error,
+    retry: loadDeckCardDetail,
+  } = useSeededResource(deckcode?.code, fetchDeckCardDetail);
 
   if (!deckcode) return;
 

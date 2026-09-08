@@ -189,7 +189,10 @@ export default function DesignationPanel({
   const cityleagueHeight = useCityleagueResultsHeight(season);
   const [rankStats, setRankStats] = useState<DesignationRankStatsType | null>(null);
   // プレイヤーズクラブ連携状態(称号詳細モーダルでの案内表示に使う)。null は読み込み中。
-  const [isPlayerLinked, setIsPlayerLinked] = useState<boolean | null>(null);
+  // サーバで取れていればその値から始める(取りに行かない)
+  const [isPlayerLinked, setIsPlayerLinked] = useState<boolean | null>(() =>
+    initialUserPlayer !== undefined ? initialUserPlayer != null : null,
+  );
   // 前回の連携状態。連携済みだと「入賞したシティリーグ」の節が増えるので、
   // スケルトンの高さを決めるのに使う(表示の可否は上の isPlayerLinked のまま=取得結果で決める)
   const linkedHint = usePlayerLinkedHint();
@@ -231,12 +234,9 @@ export default function DesignationPanel({
     initialSeason === season ? initialDesignation : undefined,
   );
 
-  // プレイヤーズクラブの連携状態。サーバで取れていればその値を使い、取りに行かない
+  // プレイヤーズクラブの連携状態。サーバで取れていなければここで取る
   useEffect(() => {
-    if (initialUserPlayer !== undefined) {
-      setIsPlayerLinked(initialUserPlayer != null);
-      return;
-    }
+    if (initialUserPlayer !== undefined) return;
 
     fetch("/api/usersplayers", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))

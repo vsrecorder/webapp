@@ -46,9 +46,20 @@ export default function DeckCodeQuickStartModal({ isOpen, onOpenChange }: Props)
 
   const [deckName, setDeckName] = useState("");
   const [deckCode, setDeckCode] = useState("");
-  const [isValidatedDeckCode, setIsValidatedDeckCode] = useState(true);
+  // 外部API(deckIDCheck.php)で確認した結果。どのコードの結果かも持ち、入力中のコードと
+  // 一致するときだけ使う(確認中は前回同様、有効扱いのまま待つ)
+  const [deckCodeCheck, setDeckCodeCheck] = useState<{ code: string; valid: boolean } | null>(
+    null,
+  );
   const [isDisabled, setIsDisabled] = useState(false);
+  // デッキ画像の読み込み状態。デッキコードが変わったら読み込み前に戻す
+  // (effect で戻すと前の画像の状態での描画が一度挟まるので、前回のコードを控えて描画中に戻す)
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageDeckCode, setImageDeckCode] = useState(deckCode);
+  if (imageDeckCode !== deckCode) {
+    setImageDeckCode(deckCode);
+    setImageLoaded(false);
+  }
 
   // デッキアイコン(スプライト)。任意・最大2枠。
   const [sprite1, setSprite1] = useState<PokemonSpriteType | null>(null);
@@ -61,21 +72,19 @@ export default function DeckCodeQuickStartModal({ isOpen, onOpenChange }: Props)
   } = useDisclosure();
 
   // デッキコードは20桁固定。桁数が違えば即無効、20桁なら外部APIで有効性を確認する。
+  // デッキ登録(CreateDeckModal)と同じ判定条件:
+  // 未入力は有効(true)扱い、20桁でなければ無効、20桁なら外部APIの確認結果に従う。
+  // (デッキコード必須の担保は canSubmit の桁数チェック側で行う)
+  const isValidatedDeckCode = !deckCode
+    ? true
+    : deckCode.length !== DECK_CODE_LENGTH
+      ? false
+      : deckCodeCheck?.code === deckCode
+        ? deckCodeCheck.valid
+        : true;
+
   useEffect(() => {
-    setImageLoaded(false);
-
-    // デッキ登録(CreateDeckModal)と同じ判定条件:
-    // 未入力は有効(true)扱い、20桁でなければ無効、20桁なら外部APIで確認する。
-    // (デッキコード必須の担保は canSubmit の桁数チェック側で行う)
-    if (!deckCode) {
-      setIsValidatedDeckCode(true);
-      return;
-    }
-
-    if (deckCode.length !== DECK_CODE_LENGTH) {
-      setIsValidatedDeckCode(false);
-      return;
-    }
+    if (!deckCode || deckCode.length !== DECK_CODE_LENGTH) return;
 
     let cancelled = false;
 
@@ -91,12 +100,12 @@ export default function DeckCodeQuickStartModal({ isOpen, onOpenChange }: Props)
 
         const data = await res.json();
         if (!cancelled) {
-          setIsValidatedDeckCode(data.result === 1);
+          setDeckCodeCheck({ code: deckCode, valid: data.result === 1 });
         }
       } catch (error) {
         console.error(error);
         if (!cancelled) {
-          setIsValidatedDeckCode(false);
+          setDeckCodeCheck({ code: deckCode, valid: false });
         }
       }
     };
@@ -124,7 +133,7 @@ export default function DeckCodeQuickStartModal({ isOpen, onOpenChange }: Props)
   const resetState = () => {
     setDeckName("");
     setDeckCode("");
-    setIsValidatedDeckCode(false);
+    setDeckCodeCheck(null);
     setIsDisabled(false);
     setImageLoaded(false);
     setSprite1(null);

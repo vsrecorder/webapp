@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from "react";
 
+import { useClientValue } from "@app/hooks/useClientValue";
+import { useLocalStorageItem } from "@app/hooks/useLocalStorageItem";
+import { writeLocalStorage } from "@app/utils/localStorageStore";
 import { isIOS, isInAppBrowser, isStandalonePWA } from "@app/utils/platform";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -20,51 +23,63 @@ const INSTALL_EVENT_GRACE_MS = 1500;
 
 export type InstallState = "idle" | "android" | "ios";
 
-function isRecentlyDismissed(): boolean {
-  const dismissedAt = localStorage.getItem(DISMISS_KEY);
+// どの案内の対象となる環境か。サーバ描画では判定できないので "none" にしておく
+type Platform = "none" | "ios" | "android";
 
+function detectPlatform(): Platform {
+  // スタンドアロン（インストール済み）なら非表示
+  if (isStandalonePWA()) return "none";
+
+  // LINEやXのアプリ内ブラウザ(WebView)には「ホーム画面に追加」自体が無いため、
+  // 案内しても実行できない。iOSではWebViewからSafariを開く公式手段も無い
+  // （platform.ts の canOpenInExternalBrowser）ので、ここでは何も出さない。
+  if (isInAppBrowser()) return "none";
+
+  // iOS は beforeinstallprompt が発火せず、プログラムからインストールを起動する手段も無い。
+  // ユーザー自身に「共有」→「ホーム画面に追加」を辿ってもらうしかないため、
+  // Android のようなボタンではなく手順を案内する状態にする。
+  // iOSのWeb Pushはホーム画面に追加したPWAでしか受け取れず、この案内が出ないと
+  // iOSユーザーには通知が一切届かない（B1_B2_PUSH_NOTIFICATION_PLAN.md §2）。
+  if (isIOS()) return "ios";
+
+  // Android / Chrome: beforeinstallprompt を待つ
+  return "android";
+}
+
+function isRecentlyDismissedAt(dismissedAt: string | null): boolean {
   return dismissedAt !== null && Date.now() - Number(dismissedAt) < DISMISS_DURATION_MS;
 }
 
+/*
+ * 表示状態(installState / awaitingInstallEvent)は effect で組み立てず、環境の判定・
+ * 閉じた日時(localStorage)・受け取ったイベントから描画中に導く。
+ * サーバ描画では環境が分からないので "idle"(何も出さない)になり、ハイドレーション後に
+ * 実際の環境の値へ差し替わる。
+ */
 export function useInstallPrompt() {
-  const [installState, setInstallState] = useState<InstallState>("idle");
+  const platform = useClientValue(detectPlatform, "none");
+  const dismissedAt = useLocalStorageItem(DISMISS_KEY);
+  // 最近閉じた場合は非表示
+  const recentlyDismissed = isRecentlyDismissedAt(dismissedAt);
+
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  // beforeinstallprompt が飛んでくるかどうかを待っている最中か(PwaBanners が参照する)
-  const [awaitingInstallEvent, setAwaitingInstallEvent] = useState(false);
+  // beforeinstallprompt を一度でも受け取ったか。deferredPrompt とは別に持つのは、
+  // 受け取ったが使わない(閉じた直後の再発火)場合にも「発火待ち」を終えるため
+  const [installEventSeen, setInstallEventSeen] = useState(false);
+  // 発火待ちの猶予が過ぎたか
+  const [graceElapsed, setGraceElapsed] = useState(false);
+  // ネイティブのインストール確認を受け入れた(案内の役目は終わり)
+  const [installAccepted, setInstallAccepted] = useState(false);
 
   useEffect(() => {
-    // スタンドアロン（インストール済み）なら非表示
-    if (isStandalonePWA()) return;
+    if (platform !== "android" || recentlyDismissed) return;
 
-    // 最近閉じた場合は非表示
-    if (isRecentlyDismissed()) return;
-
-    // LINEやXのアプリ内ブラウザ(WebView)には「ホーム画面に追加」自体が無いため、
-    // 案内しても実行できない。iOSではWebViewからSafariを開く公式手段も無い
-    // （platform.ts の canOpenInExternalBrowser）ので、ここでは何も出さない。
-    if (isInAppBrowser()) return;
-
-    // iOS は beforeinstallprompt が発火せず、プログラムからインストールを起動する手段も無い。
-    // ユーザー自身に「共有」→「ホーム画面に追加」を辿ってもらうしかないため、
-    // Android のようなボタンではなく手順を案内する状態にする。
-    // iOSのWeb Pushはホーム画面に追加したPWAでしか受け取れず、この案内が出ないと
-    // iOSユーザーには通知が一切届かない（B1_B2_PUSH_NOTIFICATION_PLAN.md §2）。
-    if (isIOS()) {
-      setInstallState("ios");
-      return;
-    }
-
-    // Android / Chrome: beforeinstallprompt を待つ
-    setAwaitingInstallEvent(true);
-    const graceTimer = setTimeout(() => setAwaitingInstallEvent(false), INSTALL_EVENT_GRACE_MS);
+    const graceTimer = setTimeout(() => setGraceElapsed(true), INSTALL_EVENT_GRACE_MS);
 
     const handler = (e: Event) => {
       e.preventDefault();
-      setAwaitingInstallEvent(false);
-      // ナビゲーション後に再発火した場合に備えてここでも確認
-      if (isRecentlyDismissed()) return;
+      setInstallEventSeen(true);
       setDeferredPrompt(e as BeforeInstallPromptEvent);
-      setInstallState("android");
     };
 
     window.addEventListener("beforeinstallprompt", handler);
@@ -72,19 +87,31 @@ export function useInstallPrompt() {
       clearTimeout(graceTimer);
       window.removeEventListener("beforeinstallprompt", handler);
     };
-  }, []);
+  }, [platform, recentlyDismissed]);
+
+  // beforeinstallprompt が飛んでくるかどうかを待っている最中か(PwaBanners が参照する)
+  const awaitingInstallEvent =
+    platform === "android" && !recentlyDismissed && !graceElapsed && !installEventSeen;
+
+  let installState: InstallState = "idle";
+  if (!recentlyDismissed) {
+    if (platform === "ios") {
+      installState = "ios";
+    } else if (platform === "android" && installEventSeen && !installAccepted) {
+      installState = "android";
+    }
+  }
 
   const install = async () => {
     if (!deferredPrompt) return;
     await deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === "accepted") setInstallState("idle");
+    if (outcome === "accepted") setInstallAccepted(true);
     setDeferredPrompt(null);
   };
 
   const dismiss = () => {
-    localStorage.setItem(DISMISS_KEY, String(Date.now()));
-    setInstallState("idle");
+    writeLocalStorage(DISMISS_KEY, String(Date.now()));
   };
 
   return { installState, install, dismiss, awaitingInstallEvent };

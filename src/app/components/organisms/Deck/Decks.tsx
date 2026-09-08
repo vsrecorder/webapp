@@ -41,6 +41,8 @@ import {
   REOPEN_DECK_MODAL_WITH_RECORDS,
 } from "@app/utils/deckModalReopen";
 import { ZERO_DATE } from "@app/utils/date";
+import { writeSessionStorage } from "@app/utils/sessionStorageStore";
+import { useSessionStorageItem } from "@app/hooks/useSessionStorageItem";
 
 // 再開時のスクロール位置。画面上部に固定されたヘッダー＋タブの分だけ手前で止め、
 // 対象デッキのカードがそれらに隠れないようにする。
@@ -134,7 +136,6 @@ export default function Decks({
   // SWR で持ち、タブ切替や戻り遷移で Decks が作り直されても取り直しを待たずに出す
   const deckUsageStats = useDeckUsageAllTime(userId, initialUsage, isInitialFresh);
   const [nextCursor, setNextCursor] = useState<string>(() => initialStep?.nextCursor ?? "");
-  const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(() => initialStep?.hasNext ?? true);
   const [isInitialLoaded, setIsInitialLoaded] = useState(initialStep !== null);
   /*
@@ -152,6 +153,8 @@ export default function Decks({
   // デッキ一覧の取得に失敗したか。失敗した位置（初回か追加読み込みか）に関わらず、
   // 一覧の末尾にエラーと再読み込みボタンを出す。
   const [error, setError] = useState(false);
+  // 「更に読み込む」(または失敗後の再読み込み)を押して、続きを待っている間
+  const [manualLoadPending, setManualLoadPending] = useState(false);
   // 表示モードは localStorage に保存された値を購読する。
   const view = useDeckListView();
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
@@ -255,68 +258,104 @@ export default function Decks({
     new Set(initialStep?.appended.map((d) => d.data.id)),
   );
 
-  const loadMore = useCallback(async () => {
+  /*
+   * 戻り遷移で再開する対象デッキ。sessionStorage のフラグを「外部ストア」として描画中に読み
+   * (useSessionStorageItem)、対象タブ(isReopenTargetTab)でだけ受け取る。
+   * 見つかった後の再開(モーダルを開く・フラグの削除)は DeckCard 側が担い、
+   * フラグが消えるとその場で null になる
+   */
+  const savedReopenDeckId = useSessionStorageItem(REOPEN_DECK_MODAL_DECK_ID);
+  const pendingReopenDeckId = isReopenTargetTab ? savedReopenDeckId : null;
+  const reopenTargetFound =
+    pendingReopenDeckId !== null && items.some((item) => item.data.id === pendingReopenDeckId);
+  // 対象デッキが描画されるまで自動で続きを読む。
+  // 取得に失敗した状態で続けると同じ cursor を延々と取り直す（＝覆いも外れない）ため打ち切る。
+  // きずな待ちの間はカードが描画されていない(骨格のまま)ので、描画されてから探す
+  const autoLoadPending =
+    pendingReopenDeckId !== null && !reopenTargetFound && hasMore && !error && !kizunaLoading;
+
+  /*
+   * 続きを読み込んでいる最中か。読み込みの「要求」は state ではなく条件から導く:
+   * 初回の読み込み・対象デッキを探すための自動読み込み・「更に読み込む」の押下のいずれかで、
+   * 読める続きがあり(hasMore)、1ページ目の取り直し中でない間。
+   * 下の effect はこれが立っている間、次のページを取って一覧に足す。足し終えると
+   * (nextCursor が進むので)条件を見直し、まだ立っていれば次のページを取る
+   */
+  const isLoading =
+    !isRefreshing && hasMore && (!isInitialLoaded || autoLoadPending || manualLoadPending);
+
+  useEffect(() => {
+    if (!isLoading) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const loadedDeckIds = loadedDeckIdsRef.current;
+        let cursor = nextCursor;
+        let hasNext = true;
+        let appendedCount = 0;
+
+        /*
+         * 1ページ取って、未取得のデッキだけを足す(足す・続きの有無・カーソルの進め方は stepDeckPage)。
+         * 「更に読み込む」を出すかは、BFF(/api/decks)が1件多く取って返す has_next で決める。
+         * 以前は次のページを先読みして判定していたが、その往復が終わるまで骨格が消えず、
+         * 初回表示が1往復ぶん遅れていた。
+         *
+         * 続けて次のページも読むのは、次のどちらかのときだけ:
+         *   - 未取得のデッキが1件も増えなかった(取得済みのお気に入りだけのページだった)
+         *   - 次ページの先頭が取得済みのデッキで、続きに未取得があるか読まないと分からない
+         * 利用中タブの1ページ目では先頭へ繰り上げられたお気に入りのデッキが、本来の位置
+         * (＝より後ろのページ)でも再び返るためこうなる。お気に入りが1件だけの現状では
+         * 最終ページでしか起こらないためほぼ回らないが、繰り上げ対象が増えたときに
+         * 一覧が途中で黙って止まったり、押しても増えない「更に読み込む」が出たりするのを防ぐ。
+         * ページ数は有限で、カーソルが進まないときは打ち切るので必ず終わる。
+         */
+        for (;;) {
+          const page: DeckGetResponseType = await fetchDecks(isArchived, cursor);
+          if (cancelled) return;
+
+          const step = stepDeckPage(page, loadedDeckIds, cursor);
+
+          step.appended.forEach((d) => loadedDeckIds.add(d.data.id));
+          if (step.appended.length > 0) {
+            appendedCount += step.appended.length;
+            setItems((prev) => [...prev, ...step.appended]);
+          }
+
+          hasNext = step.hasNext;
+          cursor = step.nextCursor;
+
+          if (!hasNext) break;
+          if (appendedCount > 0 && !step.peekLoaded) break;
+        }
+
+        setHasMore(hasNext);
+        setNextCursor(cursor);
+      } catch (err) {
+        if (cancelled) return;
+        console.error("Error loading items:", err);
+        // hasMoreはtrueのまま残す。再読み込みボタンから同じcursorで取り直せるようにするため。
+        setError(true);
+      } finally {
+        if (!cancelled) {
+          setIsInitialLoaded(true);
+          setManualLoadPending(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoading, isArchived, nextCursor]);
+
+  // 「更に読み込む」と、失敗後の再読み込み。読み込み中・取り直し中・続きが無いときは何もしない
+  const loadMore = () => {
     if (isLoading || isRefreshing || !hasMore) return;
 
     setError(false);
-    setIsLoading(true);
-
-    try {
-      const loadedDeckIds = loadedDeckIdsRef.current;
-      let cursor = nextCursor;
-      let hasNext = true;
-      let appendedCount = 0;
-
-      /*
-       * 1ページ取って、未取得のデッキだけを足す(足す・続きの有無・カーソルの進め方は stepDeckPage)。
-       * 「更に読み込む」を出すかは、BFF(/api/decks)が1件多く取って返す has_next で決める。
-       * 以前は次のページを先読みして判定していたが、その往復が終わるまで骨格が消えず、
-       * 初回表示が1往復ぶん遅れていた。
-       *
-       * 続けて次のページも読むのは、次のどちらかのときだけ:
-       *   - 未取得のデッキが1件も増えなかった(取得済みのお気に入りだけのページだった)
-       *   - 次ページの先頭が取得済みのデッキで、続きに未取得があるか読まないと分からない
-       * 利用中タブの1ページ目では先頭へ繰り上げられたお気に入りのデッキが、本来の位置
-       * (＝より後ろのページ)でも再び返るためこうなる。お気に入りが1件だけの現状では
-       * 最終ページでしか起こらないためほぼ回らないが、繰り上げ対象が増えたときに
-       * 一覧が途中で黙って止まったり、押しても増えない「更に読み込む」が出たりするのを防ぐ。
-       * ページ数は有限で、カーソルが進まないときは打ち切るので必ず終わる。
-       */
-      for (;;) {
-        const page: DeckGetResponseType = await fetchDecks(isArchived, cursor);
-        const step = stepDeckPage(page, loadedDeckIds, cursor);
-
-        step.appended.forEach((d) => loadedDeckIds.add(d.data.id));
-        if (step.appended.length > 0) {
-          appendedCount += step.appended.length;
-          setItems((prev) => [...prev, ...step.appended]);
-        }
-
-        hasNext = step.hasNext;
-        cursor = step.nextCursor;
-
-        if (!hasNext) break;
-        if (appendedCount > 0 && !step.peekLoaded) break;
-      }
-
-      setHasMore(hasNext);
-      setNextCursor(cursor);
-    } catch (err) {
-      console.error("Error loading items:", err);
-      // hasMoreはtrueのまま残す。再読み込みボタンから同じcursorで取り直せるようにするため。
-      setError(true);
-    } finally {
-      setIsLoading(false);
-      if (!isInitialLoaded) {
-        setIsInitialLoaded(true);
-      }
-    }
-  }, [isArchived, nextCursor, isLoading, isRefreshing, hasMore, isInitialLoaded]);
-
-  useEffect(() => {
-    if (isInitialLoaded) return;
-    loadMore();
-  }, [isInitialLoaded, loadMore]);
+    setManualLoadPending(true);
+  };
 
   // サーバで取った1ページ目の取り直し(理由は isRefreshing のコメント)。
   // 使い回しの初期データを渡されたときだけ、マウント時に一度だけ走る
@@ -349,14 +388,13 @@ export default function Decks({
     };
   }, [initialStep, isInitialFresh, isArchived]);
 
-  // 戻り遷移で再開する対象デッキ。一覧に現れるまで自動で追加読み込みする。
-  const [pendingReopenDeckId, setPendingReopenDeckId] = useState<string | null>(null);
-
   // 再開完了の通知は一度だけ。スクロール後も items（きずな・戦績の反映など）は
   // 更新され続けるため、通知済みかを ref で覚えておく。
   const reopenSettledRef = useRef(false);
   const onReopenSettledRef = useRef(onReopenSettled);
-  onReopenSettledRef.current = onReopenSettled;
+  useEffect(() => {
+    onReopenSettledRef.current = onReopenSettled;
+  }, [onReopenSettled]);
 
   const settleReopen = useCallback(() => {
     if (reopenSettledRef.current) return;
@@ -364,16 +402,10 @@ export default function Decks({
     onReopenSettledRef.current?.();
   }, []);
 
+  // 再開対象が無い（既に消費済み等）。待つものが無いので親を待たせない。
   useEffect(() => {
-    if (!isReopenTargetTab) return;
-    const id = sessionStorage.getItem(REOPEN_DECK_MODAL_DECK_ID);
-    if (id) {
-      setPendingReopenDeckId(id);
-    } else {
-      // 再開対象が無い（既に消費済み等）。待つものが無いので親を待たせない。
-      settleReopen();
-    }
-  }, [isReopenTargetTab, settleReopen]);
+    if (isReopenTargetTab && savedReopenDeckId === null) settleReopen();
+  }, [isReopenTargetTab, savedReopenDeckId, settleReopen]);
 
   // 対象デッキが一覧に現れたら、その位置までスクロールする。
   //
@@ -401,52 +433,35 @@ export default function Decks({
     settleReopen();
   }, [pendingReopenDeckId, items, kizunaLoading, settleReopen]);
 
-  // 対象デッキが描画されるまで自動ロードする。
-  // 見つかった後の再開（モーダルを開く・フラグの削除）は DeckCard 側が担う。
+  // 対象デッキが見つからないまま自動読み込みを打ち切ったときも、覆いが残り続けないよう通知する
   useEffect(() => {
-    if (!pendingReopenDeckId) return;
+    if (pendingReopenDeckId === null || reopenTargetFound) return;
     if (!isInitialLoaded || isLoading || isRefreshing || kizunaLoading) return;
 
-    const found = items.some((item) => item.data.id === pendingReopenDeckId);
-    if (found) {
-      // 同じコミットのレイアウトエフェクトでスクロールと通知は済んでいるが、
-      // 万一取りこぼしても覆いが残り続けないよう、ここでも通知する（二重呼び出しは無視される）。
-      setPendingReopenDeckId(null);
-      settleReopen();
-      return;
-    }
-
     if (error) {
-      // 取得に失敗した状態で自動読み込みを続けると、同じ cursor を延々と
-      // 取り直す（＝覆いも外れない）ため、ここで自動追加読み込みは打ち切る。
-      // sessionStorage のフラグは残すので、末尾の再読み込みボタンから
+      // 取得に失敗した。sessionStorage のフラグは残すので、末尾の再読み込みボタンから
       // 取り直して対象デッキが現れれば、DeckCard 側で再開はできる。
-      setPendingReopenDeckId(null);
       settleReopen();
       return;
     }
 
-    if (hasMore) {
-      loadMore();
-    } else {
+    if (!hasMore) {
       // 全件読み込んでも見つからない（削除済み・別タブのデッキ等）。
       // フラグを残すと、後で「更に読み込む」を押した時などに
       // 意図しないタイミングでモーダルが開いてしまうため捨てる。
-      sessionStorage.removeItem(REOPEN_DECK_MODAL_DECK_ID);
-      sessionStorage.removeItem(REOPEN_DECK_MODAL_WITH_RECORDS);
-      setPendingReopenDeckId(null);
+      writeSessionStorage(REOPEN_DECK_MODAL_DECK_ID, null);
+      writeSessionStorage(REOPEN_DECK_MODAL_WITH_RECORDS, null);
       settleReopen();
     }
   }, [
     pendingReopenDeckId,
+    reopenTargetFound,
     isInitialLoaded,
     isLoading,
     isRefreshing,
     kizunaLoading,
-    items,
     hasMore,
     error,
-    loadMore,
     settleReopen,
   ]);
 

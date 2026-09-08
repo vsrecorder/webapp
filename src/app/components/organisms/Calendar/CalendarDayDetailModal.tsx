@@ -356,13 +356,21 @@ const RENDER_CHUNK_SIZE = 6;
  * 最初は見える範囲だけを描き、残りは後続フレームに回すことで、
  * 開く操作を待たせず、描画中も操作を受け付けられるようにする。
  */
-function useProgressiveRenderCount(total: number, isOpen: boolean): number {
-  const [count, setCount] = useState(0);
+// 開いた直後(と件数が変わった直後)に描画する行数。閉じている間は何も描画しない
+function initialRenderCount(isOpen: boolean, total: number): number {
+  return isOpen ? Math.min(INITIAL_RENDER_COUNT, total) : 0;
+}
 
-  // 開くたびに最初からやり直す(閉じている間は何も描画しない)
-  useEffect(() => {
-    setCount(isOpen ? Math.min(INITIAL_RENDER_COUNT, total) : 0);
-  }, [isOpen, total]);
+function useProgressiveRenderCount(total: number, isOpen: boolean): number {
+  const [count, setCount] = useState(() => initialRenderCount(isOpen, total));
+
+  // 開くたび(と件数が変わるたび)に最初からやり直す。effect でやり直すと古い行数での描画が
+  // 一度挟まるので、前回の値を控えておき描画中に戻す(React の「前回の描画の情報を保存する」パターン)
+  const [prev, setPrev] = useState({ isOpen, total });
+  if (prev.isOpen !== isOpen || prev.total !== total) {
+    setPrev({ isOpen, total });
+    setCount(initialRenderCount(isOpen, total));
+  }
 
   useEffect(() => {
     if (!isOpen || count === 0 || count >= total) return;

@@ -1,7 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect } from "react";
 import { SetStateAction, Dispatch } from "react";
+
+import { useSeededResource } from "@app/hooks/useSeededResource";
 
 import { Card, Image, Link, Chip, Skeleton, useDisclosure } from "@heroui/react";
 
@@ -408,6 +410,30 @@ function HeroShell({
   );
 }
 
+// 種別ごとのイベント情報。鍵(「種別:id」)に応じてどれか1つが入る
+type EventData = {
+  official?: OfficialEventGetByIdResponseType;
+  tonamel?: TonamelEventGetByIdResponseType;
+  unofficial?: UnofficialEventGetByIdResponseType;
+};
+
+// 鍵「種別:id」からイベント情報を取る
+async function fetchEventByKey(key: string): Promise<EventData> {
+  const separator = key.indexOf(":");
+  const kind = key.slice(0, separator);
+  const id = key.slice(separator + 1);
+
+  if (kind === "official") {
+    const data = await fetchOfficialEvent(Number(id));
+    data.title = cleanOfficialEventTitle(data.title);
+    return { official: data };
+  }
+  if (kind === "tonamel") {
+    return { tonamel: await fetchTonamelEvent(id) };
+  }
+  return { unofficial: await fetchUnofficialEvent(id) };
+}
+
 type Props = {
   record: RecordGetByIdResponseType;
   setRecord: Dispatch<SetStateAction<RecordGetByIdResponseType | null>>;
@@ -474,19 +500,34 @@ export default function RecordHero({
   eventRefreshKey = 0,
   holdSkeleton = false,
 }: Props) {
-  const [officialEvent, setOfficialEvent] =
-    useState<OfficialEventGetByIdResponseType | null>(null);
-  const [tonamelEvent, setTonamelEvent] =
-    useState<TonamelEventGetByIdResponseType | null>(null);
-  const [unofficialEvent, setUnofficialEvent] =
-    useState<UnofficialEventGetByIdResponseType | null>(null);
-  const [deck, setDeck] = useState<DeckGetByIdResponseType | null>(null);
-  // 使用デッキの取得中フラグ。デッキ変更時に古いデッキが一瞬残らないよう、
-  // 取得完了までデッキ行をローディング表示にするために使う。
-  const [loadingDeck, setLoadingDeck] = useState(false);
+  const isOfficial = record.official_event_id !== 0;
+  const isTonamel = record.tonamel_event_id !== "";
+  const isUnofficial = record.unofficial_event_id !== "";
 
-  const [loadingEvent, setLoadingEvent] = useState(true);
-  const [error, setError] = useState(false);
+  // イベント情報を種別に応じて取得する。鍵は「種別:id」で、参照先が変わると取り直す。
+  // eventRefreshKey は同じ参照先のまま取り直すためのトリガー(自由形式イベントの編集)。
+  // 失敗時は retry(FetchError のリロード)で取り直す
+  const eventKey = isOfficial
+    ? `official:${record.official_event_id}`
+    : isTonamel
+      ? `tonamel:${record.tonamel_event_id}`
+      : isUnofficial
+        ? `unofficial:${record.unofficial_event_id}`
+        : null;
+  const {
+    data: eventData,
+    loading: loadingEvent,
+    error,
+    retry: loadEvent,
+  } = useSeededResource(eventKey, fetchEventByKey, undefined, { refreshKey: eventRefreshKey });
+  const officialEvent = eventData?.official ?? null;
+  const tonamelEvent = eventData?.tonamel ?? null;
+  const unofficialEvent = eventData?.unofficial ?? null;
+
+  // 使用デッキ(登録済みの記録のみ。ヒーロー下段に名前とスプライトを表示)。
+  // デッキ変更時に古いデッキが一瞬残らないよう、取得完了までデッキ行をローディング表示にする
+  const { data: fetchedDeck, loading: loadingDeck } = useSeededResource(record.deck_id, fetchDeck);
+  const deck = record.deck_id ? fetchedDeck : null;
 
   const {
     isOpen: isOpenForTCGMeisterURLModal,
@@ -499,69 +540,6 @@ export default function RecordHero({
     onOpen: onOpenForUsedDeckModal,
     onOpenChange: onOpenChangeForUsedDeckModal,
   } = useDisclosure();
-
-  const isOfficial = record.official_event_id !== 0;
-  const isTonamel = record.tonamel_event_id !== "";
-  const isUnofficial = record.unofficial_event_id !== "";
-
-  // イベント情報を種別に応じて取得する（失敗時のリロードから再利用）
-  const loadEvent = useCallback(async () => {
-    setError(false);
-    setLoadingEvent(true);
-
-    try {
-      if (isOfficial) {
-        const data = await fetchOfficialEvent(record.official_event_id);
-        data.title = cleanOfficialEventTitle(data.title);
-        setOfficialEvent(data);
-      } else if (isTonamel) {
-        const data = await fetchTonamelEvent(record.tonamel_event_id);
-        setTonamelEvent(data);
-      } else if (isUnofficial) {
-        const data = await fetchUnofficialEvent(record.unofficial_event_id);
-        setUnofficialEvent(data);
-      }
-    } catch (err) {
-      console.log(err);
-      setError(true);
-    } finally {
-      setLoadingEvent(false);
-    }
-  }, [
-    isOfficial,
-    isTonamel,
-    isUnofficial,
-    record.official_event_id,
-    record.tonamel_event_id,
-    record.unofficial_event_id,
-  ]);
-
-  useEffect(() => {
-    loadEvent();
-    // eventRefreshKey は取り直しのトリガーとしてのみ使う(loadEvent 内では参照しない)
-  }, [loadEvent, eventRefreshKey]);
-
-  // 使用デッキを取得する(登録済みの記録のみ。ヒーロー下段に名前とスプライトを表示)
-  useEffect(() => {
-    if (!record.deck_id) {
-      setDeck(null);
-      setLoadingDeck(false);
-      return;
-    }
-    let ignore = false;
-    setLoadingDeck(true);
-    fetchDeck(record.deck_id)
-      .then((data) => {
-        if (!ignore) setDeck(data);
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (!ignore) setLoadingDeck(false);
-      });
-    return () => {
-      ignore = true;
-    };
-  }, [record.deck_id]);
 
   // イベント・使用デッキの取得が完了したら親へ通知する(シェア画像のスケルトン撮影防止)。
   // 使用デッキは未登録なら取得不要。登録済みは現在の deck_id と一致するまで待つ。

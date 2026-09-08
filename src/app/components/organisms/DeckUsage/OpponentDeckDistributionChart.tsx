@@ -22,6 +22,7 @@ import {
   createPieSlicesSpritePlugin,
   createPieCenterSpritePlugin,
   getSpriteBadgeIndexAt,
+  type PieSpriteDatasetProps,
 } from "@app/utils/pieSlicesSpritePlugin";
 import usePieChartPadding, { type PieChartBox } from "@app/hooks/usePieChartPadding";
 import DeckUsageEmptyState from "@app/components/organisms/DeckUsage/DeckUsageEmptyState";
@@ -252,56 +253,41 @@ export default function OpponentDeckDistributionChart({
     softColors: deckColorsSoft,
   } = useMemo(() => buildOpponentDeckDisplay(decks), [decks]);
 
-  // react-chartjs-2はマウント後にplugins prop自体の変更を反映しないため、
-  // プラグインの中身は常に最新のstateを見るようrefを介して参照する
-  // (useMemoで作り直しても、react-chartjs-2側が古いプラグインインスタンスを使い続けてしまう)
-  const displayDecksRef = useRef(displayDecks);
-  displayDecksRef.current = displayDecks;
-  const deckColorsRef = useRef(deckColors);
-  deckColorsRef.current = deckColors;
-  const tooltipRef = useRef(tooltip);
-  tooltipRef.current = tooltip;
-
+  // react-chartjs-2はマウント後にplugins prop自体の変更を反映しない
+  // (useMemoで作り直しても、react-chartjs-2側が古いプラグインインスタンスを使い続けてしまう)ため、
+  // プラグインは固定にし、描く内容はデータセットの独自プロパティ(下の chartData)で渡す。
+  // データは描画のたびに同期されるので、プラグインは常に最新の state を見る。
+  //
   // 外周に色バッジ付きで表示するスプライト画像（実際に登録されている分のみ。最大2体）
   // 「その他」など情報を持たないデッキは何も描画しない
   // 詳細カード表示中は選択デッキの情報を円の中心にまとめて表示するため、外周のバッジは消す
-  const spritePlugin = useMemo(
-    () =>
-      createPieSlicesSpritePlugin(
-        (idx) =>
-          tooltipRef.current
-            ? []
-            : deckSpriteUrls(displayDecksRef.current[idx]?.pokemon_sprites),
-        (idx) => deckColorsRef.current[idx] ?? OTHER_COLOR,
-        (idx) => {
-          const rate = displayDecksRef.current[idx]?.usage_rate;
-          return rate != null ? `${roundToSignificantDigits(rate * 100, 3)}%` : null;
-        },
-      ),
-    [],
-  );
+  const spritePlugin = useMemo(() => createPieSlicesSpritePlugin(), []);
 
   // 詳細カード表示中、選択中のデッキのスプライトと対面率を円の中心に表示する
-  const centerSpritePlugin = useMemo(
-    () =>
-      createPieCenterSpritePlugin(
-        () =>
-          tooltipRef.current
-            ? deckSpriteUrls(tooltipRef.current.deck.pokemon_sprites)
-            : null,
-        () =>
-          tooltipRef.current
-            ? `${roundToSignificantDigits(tooltipRef.current.deck.usage_rate * 100, 3)}%`
-            : null,
-      ),
-    [],
-  );
+  const centerSpritePlugin = useMemo(() => createPieCenterSpritePlugin(), []);
 
-  useEffect(() => {
+  // プラグインに渡す描画内容(PieSpriteDatasetProps)
+  const spriteDatasetProps: PieSpriteDatasetProps = {
+    spriteUrls: displayDecks.map((deck) => deckSpriteUrls(deck.pokemon_sprites)),
+    sliceColors: displayDecks.map((_, idx) => deckColors[idx] ?? OTHER_COLOR),
+    percentTexts: displayDecks.map((deck) =>
+      deck.usage_rate != null ? `${roundToSignificantDigits(deck.usage_rate * 100, 3)}%` : null,
+    ),
+    hideSliceBadges: tooltip != null,
+    centerSpriteUrls: tooltip ? deckSpriteUrls(tooltip.deck.pokemon_sprites) : null,
+    centerPercentText: tooltip
+      ? `${roundToSignificantDigits(tooltip.deck.usage_rate * 100, 3)}%`
+      : null,
+  };
+
+  // データが切り替わったら選択状態をリセット。
+  // effect で戻すと前のデータに前の選択が乗った描画が一度挟まるので、前回のデータを控えて描画中に戻す
+  const [prevDecks, setPrevDecks] = useState(decks);
+  if (prevDecks !== decks) {
+    setPrevDecks(decks);
     setSelectedIdx(null);
     setTooltip(null);
-    tooltipRef.current = null;
-  }, [decks]);
+  }
 
   // モーダルが開き切って寸法が確定したら、ネイティブの入場アニメ(animateRotate)を
   // reset()+update() で1回だけ再生し直す。ページ内(replayEntryAnimation=false)では何もしない。
@@ -372,7 +358,6 @@ export default function OpponentDeckDistributionChart({
   function closeDetail() {
     setSelectedIdx(null);
     setTooltip(null);
-    tooltipRef.current = null;
   }
 
   function handleLegendClick(idx: number) {
@@ -384,7 +369,6 @@ export default function OpponentDeckDistributionChart({
     const nextTooltip = { deck: displayDecks[idx], color: deckColors[idx] };
     setSelectedIdx(idx);
     setTooltip(nextTooltip);
-    tooltipRef.current = nextTooltip;
   }
 
   // 円グラフのコンテナ（スライス部分＋外側の余白）のクリックを自前でヒットテストする。
@@ -437,6 +421,8 @@ export default function OpponentDeckDistributionChart({
         // 始点と終点が同じ位置で重なるため、区切る相手がいないのに12時方向へ白線が引かれて
         // 円(詳細表示中はリング)が切れて見えてしまう。1件のときは枠線を引かない。
         borderWidth: displayDecks.length > 1 ? 2 : 0,
+        // スプライトバッジ・中心表示の材料(プラグインが描画時に読む)
+        ...spriteDatasetProps,
       },
     ],
   };

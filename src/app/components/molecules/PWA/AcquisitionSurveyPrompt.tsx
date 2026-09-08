@@ -5,10 +5,12 @@ import { Button, addToast } from "@heroui/react";
 import { LuX } from "react-icons/lu";
 import { sendGAEvent } from "@next/third-parties/google";
 
+import { useLocalStorageItem } from "@app/hooks/useLocalStorageItem";
 import {
   ACQUISITION_SURVEY_CHOICES,
+  ACQUISITION_SURVEY_PENDING_KEY,
   clearAcquisitionSurveyPending,
-  isAcquisitionSurveyPending,
+  isAcquisitionSurveyPendingAt,
 } from "@app/utils/acquisitionSurvey";
 
 type Props = {
@@ -27,17 +29,20 @@ type Props = {
  * 回答・スキップのどちらでもフラグを消し、二度と訊かない(任意回答・1回きり)。
  */
 export default function AcquisitionSurveyPrompt({ userId, onOpenChange }: Props) {
-  const [open, setOpen] = useState(false);
+  // フラグは localStorage にあり SSR では読めない。サーバ描画とハイドレーションでは null
+  // (=出さない)で、その後の描画で実際の値になる。回答・スキップで消すとその場で追随する
+  const pending = isAcquisitionSurveyPendingAt(
+    useLocalStorageItem(ACQUISITION_SURVEY_PENDING_KEY),
+  );
+  // 送信に失敗してフラグを残したまま閉じた(次の訪問で訊き直す)
+  const [closed, setClosed] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  // localStorage は SSR で読めないため、表示判定はマウント後に行う
-  useEffect(() => {
-    if (!userId) return;
-    if (!isAcquisitionSurveyPending()) return;
+  const open = !!userId && pending && !closed;
 
-    setOpen(true);
-    sendGAEvent("event", "acq_survey_impression", {});
-  }, [userId]);
+  useEffect(() => {
+    if (open) sendGAEvent("event", "acq_survey_impression", {});
+  }, [open]);
 
   useEffect(() => {
     onOpenChange?.(open);
@@ -45,7 +50,7 @@ export default function AcquisitionSurveyPrompt({ userId, onOpenChange }: Props)
 
   if (!open) return null;
 
-  const close = () => setOpen(false);
+  const close = () => setClosed(true);
 
   const handleAnswer = async (answer: string) => {
     setBusy(true);

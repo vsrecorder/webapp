@@ -1,6 +1,8 @@
 "use client";
 
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { useCaptureWidth } from "@app/hooks/useCaptureWidth";
+import { useClientValue } from "@app/hooks/useClientValue";
 import type { Dispatch, SetStateAction, RefObject } from "react";
 
 import {
@@ -33,7 +35,6 @@ import Matches from "@app/components/organisms/Match/Matches";
 import {
   captureThemedPng,
   hasUnloadedImages,
-  SIDE_PADDING,
 } from "@app/utils/captureImage";
 import {
   shareRecord,
@@ -133,12 +134,9 @@ export default function ShareRecordModal({
   // 上書きしてしまわないための世代番号。自分が最新かを確認してから反映する。
   const resultSeq = useRef(0);
   const deckSeq = useRef(0);
-  // キャプチャ対象(戦績カード)の幅。書き出し画像の横幅が端末の画面幅いっぱいに
-  // なるよう、端末の画面幅から左右余白(SIDE_PADDING * 2)を引いた値を使う。
-  //   最終画像の横幅 = captureWidth + SIDE_PADDING * 2 = 端末の画面幅
-  // SSR時はwindowを参照できないため従来の360で初期化し、モーダルを開いたときに
-  // クライアント側で実際の画面幅から算出する。極端な幅を避けるためクランプする。
-  const [captureWidth, setCaptureWidth] = useState(360);
+  // キャプチャ対象(戦績カード)の幅。書き出し画像の横幅が端末の画面幅いっぱいになるよう
+  // 端末の画面幅から決める(useCaptureWidth。SSR 時は 360)
+  const captureWidth = useCaptureWidth();
   const [includeDeck, setIncludeDeck] = useState(false);
   // 1枚目の戦績画像に使用デッキを描画するか(既定は表示)
   const [showDeck, setShowDeck] = useState(true);
@@ -150,12 +148,10 @@ export default function ShareRecordModal({
   const [includePostDeck, setIncludePostDeck] = useState(true);
   // 実行中の処理種別。処理中はローディング表示とモーダルのクローズ抑止に使う
   const [busy, setBusy] = useState<null | "share">(null);
-  const [text, setText] = useState("");
   // ポスト文をコピーしたか(コピーボタンの見た目を一時的に切り替えるのに使う)
   const [textCopied, setTextCopied] = useState(false);
-  // Android 端末か。SSR では navigator を参照できないため、マウント後に判定する。
-  const [isAndroidDevice, setIsAndroidDevice] = useState(false);
-  useEffect(() => setIsAndroidDevice(isAndroid()), []);
+  // Android 端末か。SSR では navigator を参照できないため、ハイドレーション後に判定する。
+  const isAndroidDevice = useClientValue(isAndroid, false);
   // Android の回避策(画像だけ共有し、ポスト文はコピーしてもらう)を使うか。
   // X の挙動が戻れば ANDROID_SHARE_IMAGES_ONLY を false にするだけで無効になる。
   const androidImagesOnly = ANDROID_SHARE_IMAGES_ONLY && isAndroidDevice;
@@ -243,74 +239,16 @@ export default function ShareRecordModal({
   // トグルの呼称を「主催者」にする。
   const venueTermName = officialEvent?.type_id === 6 ? "主催者" : "会場";
 
-  // モーダルを閉じるとキャプチャ用 DOM は破棄されるため、次に開いたときは
-  // 再度描画完了を待つよう準備状態をリセットする。
-  // あわせて生成済み画像も捨てる(次に開いたとき古い画像を共有してしまわないよう)。
-  // オプション(トグル)も既定値に戻し、次に開いたときは前回の操作を引きずらず
-  // 既定の生成内容から始まるようにする。ポスト文は下の組み立て用 useEffect が
-  // isOpen の変化で再生成するため、ここでは触らない(手編集も破棄される)。
-  useEffect(() => {
-    if (!isOpen) {
-      setHeroReady(false);
-      setResultImage(null);
-      setDeckImage(null);
-      setResultIncomplete(false);
-      setDeckIncomplete(false);
-      setCapturingResult(false);
-      setCapturingDeck(false);
-      // 取っておいた画像は次に開いたときには使わない(記録の内容が変わっている
-      // 可能性があり、古い画像を共有してしまう)。メモリも抱えたままにしない。
-      resultCacheRef.current.clear();
-      deckKeyRef.current = null;
-      // 生成中に閉じた場合、後から終わった生成結果が状態を書き戻し、次に開いたとき
-      // 古い画像が残ってしまう。世代を進めて、その結果を捨てさせる。
-      resultSeq.current++;
-      deckSeq.current++;
-      setResultFailed(false);
-      setDeckFailed(false);
-      setIncludeDeck(false);
-      setShowDeck(true);
-      setShowVenue(true);
-      setIncludePostMatches(true);
-      setIncludePostDeck(true);
-    }
-  }, [isOpen]);
-
-  // キャプチャ用DOMは、開くアニメーションが終わってから描画する。
-  // アニメーション中に描画すると、その重さで開く動きがカクつく。
-  useEffect(() => {
-    if (!isOpen) {
-      setCaptureMounted(false);
-      return;
-    }
-    const timer = setTimeout(() => setCaptureMounted(true), CAPTURE_MOUNT_DELAY_MS);
-    return () => clearTimeout(timer);
-  }, [isOpen]);
-
-  // モーダルを開いたら、書き出し画像の横幅が端末の画面幅いっぱいになるよう
-  // キャプチャ対象の幅を算出する。画面が狭すぎ/PCなどで広すぎる場合に備えクランプする。
-  useEffect(() => {
-    if (!isOpen) return;
-    const target = Math.round(window.innerWidth) - SIDE_PADDING * 2;
-    setCaptureWidth(Math.max(320, Math.min(target, 480)));
-  }, [isOpen]);
-
-  // 取得済みデータ・オプションが変わったらポスト文を組み立て直す
-  // (この時点でユーザーの手編集は上書きされる)
-  // モーダルを開いたときも必ず組み立て直すため isOpen も依存に含める。これにより
-  // 前回開いたときの手編集を引きずらず、常に既定のポスト文から始められる。
-  useEffect(() => {
-    if (!isOpen) return;
-
-    // 開催日は戦績カードと同じ順で解決する(自由形式は unofficial_events.date へ落ちる)
-    const dateLabel = formatEventDateLabel(
-      record.event_date,
-      record.created_at,
-      unofficialEvent?.date,
-    );
-    setText(
-      buildRecordPostText(
-        dateLabel,
+  /*
+   * 既定のポスト文。取得済みデータ・オプションから組み立てる。
+   * これが変わるたびに手編集(textEdit)は捨てられ、既定のポスト文に戻る。
+   * 開いたときも既定から始める(下の開閉の切り替えで手編集を捨てる)ので、
+   * 前回開いたときの手編集を引きずらない。
+   * 開催日は戦績カードと同じ順で解決する(自由形式は unofficial_events.date へ落ちる)
+   */
+  const defaultText = isOpen
+    ? buildRecordPostText(
+        formatEventDateLabel(record.event_date, record.created_at, unofficialEvent?.date),
         officialEvent,
         tonamelEvent,
         unofficialEvent,
@@ -321,21 +259,66 @@ export default function ShareRecordModal({
           includeDeck: includePostDeck,
           includeVenue: showVenue,
         },
-      ) + "\n\n#バトレコ",
-    );
-  }, [
-    isOpen,
-    record.event_date,
-    record.created_at,
-    officialEvent,
-    tonamelEvent,
-    unofficialEvent,
-    deck,
-    matches,
-    includePostMatches,
-    includePostDeck,
-    showVenue,
-  ]);
+      ) + "\n\n#バトレコ"
+    : "";
+  // 手編集したポスト文。どの既定文を元にしたかも持ち、既定文が変わったら捨てる
+  const [textEdit, setTextEdit] = useState<{ base: string; value: string } | null>(null);
+  const text = textEdit && textEdit.base === defaultText ? textEdit.value : defaultText;
+  const setText = (value: string) => setTextEdit({ base: defaultText, value });
+
+  /*
+   * モーダルを閉じるとキャプチャ用 DOM は破棄されるため、次に開いたときは
+   * 再度描画完了を待つよう準備状態をリセットする。
+   * あわせて生成済み画像も捨てる(次に開いたとき古い画像を共有してしまわないよう)。
+   * オプション(トグル)も既定値に戻し、次に開いたときは前回の操作を引きずらず
+   * 既定の生成内容から始まるようにする。ポスト文は開いたときに既定から始めるため、
+   * 手編集も捨てる。
+   * effect で戻すと閉じる前の状態での描画が一度挟まるので、前回の開閉を控えておき
+   * 描画中に戻す(ref に持つ取り置き・世代番号は描画中には触れないので下の effect で進める)
+   */
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (wasOpen !== isOpen) {
+    setWasOpen(isOpen);
+    if (!isOpen) {
+      setHeroReady(false);
+      setResultImage(null);
+      setDeckImage(null);
+      setResultIncomplete(false);
+      setDeckIncomplete(false);
+      setCapturingResult(false);
+      setCapturingDeck(false);
+      setResultFailed(false);
+      setDeckFailed(false);
+      setIncludeDeck(false);
+      setShowDeck(true);
+      setShowVenue(true);
+      setIncludePostMatches(true);
+      setIncludePostDeck(true);
+      // キャプチャ用DOMは、次に開いたときに開くアニメーションが終わってから描画し直す
+      setCaptureMounted(false);
+    }
+    setTextEdit(null);
+  }
+
+  useEffect(() => {
+    if (isOpen) return;
+    // 取っておいた画像は次に開いたときには使わない(記録の内容が変わっている
+    // 可能性があり、古い画像を共有してしまう)。メモリも抱えたままにしない。
+    resultCacheRef.current.clear();
+    deckKeyRef.current = null;
+    // 生成中に閉じた場合、後から終わった生成結果が状態を書き戻し、次に開いたとき
+    // 古い画像が残ってしまう。世代を進めて、その結果を捨てさせる。
+    resultSeq.current++;
+    deckSeq.current++;
+  }, [isOpen]);
+
+  // キャプチャ用DOMは、開くアニメーションが終わってから描画する。
+  // アニメーション中に描画すると、その重さで開く動きがカクつく。
+  useEffect(() => {
+    if (!isOpen) return;
+    const timer = setTimeout(() => setCaptureMounted(true), CAPTURE_MOUNT_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [isOpen]);
 
   // 上部バーのフリックでモーダルを閉じる(記録情報モーダルと同じ挙動)。
   // ただしシェア/保存の処理中(busy)は閉じさせない。

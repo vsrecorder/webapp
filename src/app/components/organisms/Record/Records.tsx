@@ -19,6 +19,8 @@ import { RecordType, RecordGetResponseType } from "@app/types/record";
 import { formatJSTYearMonth, nonZeroDate } from "@app/utils/date";
 import { resolveRecordEventType, stepRecordPage } from "@app/utils/recordListPage";
 import { REOPEN_MODAL_EVENT_TYPE, REOPEN_MODAL_RECORD_ID } from "@app/utils/recordModalReopen";
+import { writeSessionStorage } from "@app/utils/sessionStorageStore";
+import { useSessionStorageItem } from "@app/hooks/useSessionStorageItem";
 
 // 月見出し("YYYY年M月")の判定に使う日付（開催日が無ければ作成日）。
 // JST の暦日で決める(サーバ描画とブラウザで同じ見出しになるように。utils/date 参照)
@@ -130,7 +132,6 @@ export default function Records({
     return limit !== 0 ? appended.slice(0, limit) : appended;
   });
   const [nextCursor, setNextCursor] = useState<string>(() => initialStep?.nextCursor ?? "");
-  const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(() => {
     if (!initialStep) return true;
     if (limit !== 0 && initialStep.appended.length >= limit) return false;
@@ -150,7 +151,39 @@ export default function Records({
   // 一覧の取得に失敗したか。失敗した位置(初回か追加読み込みか)に関わらず、
   // 一覧の末尾にエラーと再読み込みボタンを出す
   const [error, setError] = useState(false);
-  const [pendingReopenId, setPendingReopenId] = useState<string | null>(null);
+  // 「更に読み込む」(または失敗後の再読み込み)を押して、続きを待っている間
+  const [manualLoadPending, setManualLoadPending] = useState(false);
+
+  /*
+   * 戻り遷移で再開する対象の記録。
+   * sessionStorage のフラグを「外部ストア」として描画中に読む(useSessionStorageItem)。
+   * 非アクティブなタブのインスタンスはスピナーを表示せず再開も担わない
+   * (アクティブなインスタンスとのキー奪い合いを防ぐ)。
+   * すべて表示では全種別を含むため、保存された種別に関わらず再開対象とする。
+   * フラグはカード側がモーダルを開く直前(handleReopenComplete)に消し、その場で null になる
+   */
+  const savedReopenId = useSessionStorageItem(REOPEN_MODAL_RECORD_ID);
+  const savedReopenEventType = useSessionStorageItem(REOPEN_MODAL_EVENT_TYPE);
+  const pendingReopenId =
+    isActive && savedReopenId && (event_type === "all" || savedReopenEventType === event_type)
+      ? savedReopenId
+      : null;
+  const reopenTargetFound =
+    pendingReopenId !== null && items.some((item) => item.data.id === pendingReopenId);
+  // 対象 record が描画されるまで自動で続きを読む(取得に失敗したら打ち切る)
+  const autoLoadPending = pendingReopenId !== null && !reopenTargetFound && hasMore && !error;
+  /*
+   * 全件読み込んでも見つからなかった(削除済み等)、または取得に失敗した。
+   * スクロールする対象も無いので、覆いも外す。フラグは残しておく: 取得の失敗なら、
+   * 末尾の再読み込みで取り直して対象が現れたときにカード側で再開できる
+   * (そのときは自動読み込みも続きから再開する)
+   */
+  const reopenGaveUp =
+    pendingReopenId !== null &&
+    !reopenTargetFound &&
+    isInitialLoaded &&
+    !isRefreshing &&
+    (!hasMore || error);
   // この一覧インスタンスの描画範囲。再開時に対象カードを探す起点にする。
   const listRef = useRef<HTMLDivElement>(null);
   // 取得済みの記録 ID。失敗後の再読み込みなどで同じ記録が再び返っても重複させない
@@ -209,56 +242,77 @@ export default function Records({
 
   // カード側からモーダルを開く直前に呼ばれるコールバック。
   // 覆いは外さず、モーダルが開き切るまで（350ms）残す。
+  // 再開の対象は済んだのでフラグを消す(pendingReopenId も null になる)。
   const handleReopenComplete = useCallback(
     (id: string) => {
       scrollToCard(id);
-      setPendingReopenId(null);
+      writeSessionStorage(REOPEN_MODAL_RECORD_ID, null);
+      writeSessionStorage(REOPEN_MODAL_EVENT_TYPE, null);
       releaseScreen(350);
     },
     [scrollToCard, releaseScreen],
   );
 
   /*
-   * 次のページを取って一覧に足す。
+   * 続きを読み込んでいる最中か。読み込みの「要求」は state ではなく条件から導く:
+   * 初回の読み込み・対象カードを探すための自動読み込み・「更に読み込む」の押下のいずれかで、
+   * 読める続きがあり(hasMore)、1ページ目の取り直し中でない間。
+   * 下の effect はこれが立っている間、次のページを取って一覧に足す。足し終えると
+   * (nextCursor が進むので)条件を見直し、まだ立っていれば次のページを取る。
    *
    * 続きの有無は BFF が付ける has_next で決める(以前は2ページ目を先読みして判定していたので、
    * 表示のたびに往復が1つ余計に走っていた)。limit(ダッシュボードの「最近の記録」)が
    * あるときはその件数で打ち切る。
    */
-  const loadMore = useCallback(async () => {
+  const isLoading =
+    !isRefreshing && hasMore && (!isInitialLoaded || autoLoadPending || manualLoadPending);
+  const itemCount = items.length;
+
+  useEffect(() => {
+    if (!isLoading) return;
+
+    let cancelled = false;
+    fetchRecords(apiEventType, deck_id, nextCursor)
+      .then((page) => {
+        if (cancelled) return;
+
+        const step = stepRecordPage(page, loadedIdsRef.current, nextCursor);
+
+        let appended = step.appended;
+        let more = step.hasNext;
+        if (limit !== 0 && itemCount + appended.length >= limit) {
+          appended = appended.slice(0, Math.max(0, limit - itemCount));
+          more = false;
+        }
+
+        for (const record of appended) loadedIdsRef.current.add(record.data.id);
+        setItems((prev) => [...prev, ...appended]);
+        setNextCursor(step.nextCursor);
+        setHasMore(more);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        console.error("Error loading items:", error);
+        setError(true);
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setIsInitialLoaded(true);
+        setManualLoadPending(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoading, apiEventType, deck_id, nextCursor, limit, itemCount]);
+
+  // 「更に読み込む」と、失敗後の再読み込み。読み込み中・取り直し中・続きが無いときは何もしない
+  const loadMore = () => {
     if (isLoading || isRefreshing || !hasMore) return;
 
     setError(false);
-    setIsLoading(true);
-
-    try {
-      const page = await fetchRecords(apiEventType, deck_id, nextCursor);
-      const step = stepRecordPage(page, loadedIdsRef.current, nextCursor);
-
-      let appended = step.appended;
-      let more = step.hasNext;
-      if (limit !== 0 && items.length + appended.length >= limit) {
-        appended = appended.slice(0, Math.max(0, limit - items.length));
-        more = false;
-      }
-
-      for (const record of appended) loadedIdsRef.current.add(record.data.id);
-      setItems((prev) => [...prev, ...appended]);
-      setNextCursor(step.nextCursor);
-      setHasMore(more);
-    } catch (error) {
-      console.error("Error loading items:", error);
-      setError(true);
-    } finally {
-      setIsLoading(false);
-      setIsInitialLoaded(true);
-    }
-  }, [apiEventType, deck_id, nextCursor, isLoading, isRefreshing, hasMore, items.length, limit]);
-
-  useEffect(() => {
-    if (isInitialLoaded) return;
-    loadMore();
-  }, [isInitialLoaded, loadMore]);
+    setManualLoadPending(true);
+  };
 
   // サーバで取った1ページ目を、マウント直後に裏で取り直して差し替える(理由は isRefreshing を参照)
   useEffect(() => {
@@ -290,53 +344,16 @@ export default function Records({
     };
   }, [isRefreshing, apiEventType, deck_id, limit]);
 
-  // 戻り遷移時に対象 record の event_type が一致する場合だけ ID を保持
+  // 対象カードを探し始める時点から覆う(自動追加読み込みの間も含む)。
+  // 見つかったときはカード側の handleReopenComplete が(モーダルが開き切るまで残して)外し、
+  // 諦めたときと非アクティブになったときはここで外す
   useEffect(() => {
-    // 非アクティブなタブのインスタンスはスピナーを表示せず再開も担わない
-    //（アクティブなインスタンスとのキー奪い合いを防ぐ）。
-    if (!isActive) {
-      setPendingReopenId(null);
-      releaseScreen();
-      return;
-    }
-    const id = sessionStorage.getItem(REOPEN_MODAL_RECORD_ID);
-    const storedType = sessionStorage.getItem(REOPEN_MODAL_EVENT_TYPE);
-    // すべて表示では全種別を含むため、保存された種別に関わらず再開対象とする。
-    if (id && (event_type === "all" || storedType === event_type)) {
-      setPendingReopenId(id);
-      // 対象カードを探し始める時点から覆う（自動追加読み込みの間も含む）。
+    if (pendingReopenId !== null && !reopenGaveUp) {
       lockScreen();
+    } else {
+      releaseScreen();
     }
-  }, [event_type, isActive, lockScreen, releaseScreen]);
-
-  // 対象 record が描画されるまで自動ロード
-  // found になったときは何もしない（カード側の handleReopenComplete が pendingReopenId を null にする）
-  useEffect(() => {
-    if (!pendingReopenId) return;
-    if (!isInitialLoaded || isLoading || isRefreshing) return;
-
-    const found = items.some((item) => item.data.id === pendingReopenId);
-    if (!found) {
-      if (hasMore && !error) {
-        loadMore();
-      } else {
-        // 全件読み込んでも見つからなかった（削除済み等）、または取得に失敗した。
-        // スクロールする対象も無いので、覆いもここで外す。
-        setPendingReopenId(null);
-        releaseScreen();
-      }
-    }
-  }, [
-    pendingReopenId,
-    isInitialLoaded,
-    isLoading,
-    isRefreshing,
-    items,
-    hasMore,
-    error,
-    loadMore,
-    releaseScreen,
-  ]);
+  }, [pendingReopenId, reopenGaveUp, lockScreen, releaseScreen]);
 
   // 初回ロードが終わり、追加読み込みも無く、1件も無い状態を「空」として親へ通知する。
   const isEmpty = isInitialLoaded && !isLoading && !hasMore && !error && items.length === 0;

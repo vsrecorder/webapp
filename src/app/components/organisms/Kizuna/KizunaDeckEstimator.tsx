@@ -21,7 +21,9 @@ import KizunaBreakdownCard from "@app/components/organisms/Kizuna/KizunaBreakdow
 import KizunaHeaderShareModal from "@app/components/organisms/Kizuna/KizunaHeaderShareModal";
 import { useSetKizunaPreviewDeck } from "@app/components/organisms/Kizuna/KizunaPreviewContext";
 
-import { captureThemedPng, SIDE_PADDING } from "@app/utils/captureImage";
+import { captureThemedPng } from "@app/utils/captureImage";
+import { useCaptureWidth } from "@app/hooks/useCaptureWidth";
+import { useClientValue } from "@app/hooks/useClientValue";
 import {
   shareRecord,
   saveGeneratedImage,
@@ -297,8 +299,6 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
   // （詳細は utils/saveImage.ts の shareRecord のコメントを参照）
   const shareCardRef = useRef<HTMLDivElement>(null);
   const breakdownCardRef = useRef<HTMLDivElement>(null);
-  const [images, setImages] = useState<ShareImage[] | null>(null);
-  const [captureFailed, setCaptureFailed] = useState(false);
   const [busy, setBusy] = useState<null | "share" | "save">(null);
   // 内訳カードを2枚目の画像として一緒にシェアするか。
   // 既定はOFF。シェアしたいのはまず結果であり、内訳まで出すかは本人が選ぶこと。
@@ -307,11 +307,8 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
   // X ヘッダー画像モーダルの開閉
   const [headerModalOpen, setHeaderModalOpen] = useState(false);
 
-  const [captureWidth, setCaptureWidth] = useState(360);
-  useEffect(() => {
-    const target = Math.round(window.innerWidth) - SIDE_PADDING * 2;
-    setCaptureWidth(Math.max(320, Math.min(target, 480)));
-  }, []);
+  // 書き出し画像の横幅が端末の画面幅いっぱいになるようキャプチャ対象の幅を決める
+  const captureWidth = useCaptureWidth();
 
   const tier = estimate ? kizunaTierOf(estimate.score) : null;
   const hasResult = !!selectedDeck && !!estimate && estimate.recordCount > 0;
@@ -357,17 +354,25 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
     });
   }, [hasResult, selectedDeck, estimate, usages, setPreviewDeck]);
 
-  const captureSeq = useRef(0);
-  useEffect(() => {
-    if (!hasResult) {
-      setImages(null);
-      setCaptureFailed(false);
-      return;
-    }
+  /*
+   * 生成した画像。どの条件(captureKey)で撮ったかも持ち、今の条件と一致するときだけ使う。
+   * 条件が変わると(古い画像を出さずに)作り直しになり、生成中に条件が変わった場合は
+   * 後から終わった古い生成結果も条件が合わないので捨てられる
+   */
+  const captureKey = hasResult
+    ? [estimate?.score, selectedDeckId, captureWidth, includeBreakdown ? 1 : 0].join("|")
+    : null;
+  const [capture, setCapture] = useState<{
+    key: string;
+    images: ShareImage[] | null;
+    failed: boolean;
+  } | null>(null);
+  const currentCapture = captureKey !== null && capture?.key === captureKey ? capture : null;
+  const images = currentCapture?.images ?? null;
+  const captureFailed = currentCapture?.failed ?? false;
 
-    const seq = ++captureSeq.current;
-    setImages(null);
-    setCaptureFailed(false);
+  useEffect(() => {
+    if (captureKey === null) return;
 
     // 1枚目=結果カード、2枚目=内訳カード（トグルON時のみ）
     const capture = async (el: HTMLElement, name: string): Promise<ShareImage> => {
@@ -391,16 +396,15 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
           captured.push(await capture(breakdownCardRef.current, "breakdown"));
         }
 
-        if (seq !== captureSeq.current) return;
-        setImages(captured);
+        setCapture({ key: captureKey, images: captured, failed: false });
       } catch (e) {
         console.error(e);
-        if (seq !== captureSeq.current) return;
-        setCaptureFailed(true);
+        setCapture({ key: captureKey, images: null, failed: true });
       }
     })();
+    // 撮る条件は captureKey にまとめてある(それ以外は撮る中身の参照に使うだけ)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasResult, estimate?.score, selectedDeckId, captureWidth, includeBreakdown]);
+  }, [captureKey]);
 
   // 共有からの流入を計測するため、URLにはUTMを付ける(P-5 柱1)。
   // utm_content で実データ式(estimator)か質問式(simulator)かを区別する。
@@ -435,9 +439,8 @@ export default function KizunaDeckEstimator({ userId, onNoDecks }: Props) {
 
   // ポスト文をコピーしたか(コピーボタンの見た目を一時的に切り替えるのに使う)
   const [textCopied, setTextCopied] = useState(false);
-  // Android 端末か。SSR では navigator を参照できないため、マウント後に判定する。
-  const [isAndroidDevice, setIsAndroidDevice] = useState(false);
-  useEffect(() => setIsAndroidDevice(isAndroid()), []);
+  // Android 端末か。SSR では navigator を参照できないため、ハイドレーション後に判定する。
+  const isAndroidDevice = useClientValue(isAndroid, false);
   // Android の回避策(画像だけ共有し、ポスト文はコピーしてもらう)を使うか。
   // X の挙動が戻れば ANDROID_SHARE_IMAGES_ONLY を false にするだけで無効になる。
   const androidImagesOnly = ANDROID_SHARE_IMAGES_ONLY && isAndroidDevice;

@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useLocalStorageItem } from "@app/hooks/useLocalStorageItem";
+import { writeLocalStorage } from "@app/utils/localStorageStore";
 import Link from "next/link";
 import { Avatar, Card, CardBody, useDisclosure } from "@heroui/react";
 import {
@@ -339,23 +341,15 @@ export default function UserProfileCard({
   );
   const [isPlayersClubFeatureDisabled, setIsPlayersClubFeatureDisabled] = useState(false);
   const [profile, setProfile] = useState({ name: user.name, imageUrl: user.image_url });
-  const [statsVisible, setStatsVisible] = useState(true);
+  // 戦績の表示/非表示。保存先は localStorage(サーバ描画では読めないので、読めるまでは表示)
+  const statsVisible = useLocalStorageItem(STATS_VISIBLE_KEY) !== "false";
   const [yearMonth, setYearMonth] = useState<string>(getCurrentYearMonth);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   const yearMonthOptions = generateYearMonthOptions(userCreatedAt);
 
-  useEffect(() => {
-    const stored = localStorage.getItem(STATS_VISIBLE_KEY);
-    if (stored !== null) setStatsVisible(stored !== "false");
-  }, []);
-
   function toggleStatsVisible() {
-    setStatsVisible((prev) => {
-      const next = !prev;
-      localStorage.setItem(STATS_VISIBLE_KEY, String(next));
-      return next;
-    });
+    writeLocalStorage(STATS_VISIBLE_KEY, String(!statsVisible));
   }
 
   // 取得に失敗したことを「勝率0.0% / 0戦0勝0敗」の表示で覆い隠さないよう、
@@ -389,14 +383,10 @@ export default function UserProfileCard({
 
   // プレイヤーズクラブの連携状態。サーバで取れていればその値を使い、取りに行かない
   // (機能停止の 503 はサーバ側で undefined になるため、その場合はここで取って判定する)
+  // 初期値(useState)はサーバの値から決めてあるので、無いときだけ取りに行く
   useEffect(() => {
-    if (initialUserPlayer !== undefined) {
-      setUserPlayer(initialUserPlayer);
-      setIsUserPlayerLoading(false);
-      return;
-    }
+    if (initialUserPlayer !== undefined) return;
 
-    setIsUserPlayerLoading(true);
     fetch("/api/usersplayers", { cache: "no-store" })
       .then((r) => {
         if (r.status === 503) {

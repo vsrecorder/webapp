@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import NextLink from "next/link";
 
@@ -27,6 +27,13 @@ import {
   OfficialEventListItemType,
 } from "@app/types/official_event";
 import { formatJSTDateWithWeekday } from "@app/utils/date";
+import { useClientValue } from "@app/hooks/useClientValue";
+import { markCityleagueResultScrollTarget } from "@app/utils/cityleagueScrollRestore";
+import { useSeededResource } from "@app/hooks/useSeededResource";
+
+function isIntersectionObserverMissing(): boolean {
+  return typeof IntersectionObserver === "undefined";
+}
 
 async function fetchOfficialEventById(id: number) {
   try {
@@ -85,36 +92,17 @@ export default function CityleagueResult({
   official_event,
   eagerAllSlides = false,
 }: Props) {
-  const [fetchedEvent, setFetchedEvent] = useState<OfficialEventGetByIdResponseType | null>(null);
-  const [loading, setLoading] = useState(!official_event);
-  const [error, setError] = useState(false);
-
-  // 公式イベント情報だけを取得（失敗時のリロードから再利用）
-  const loadEvent = useCallback(async () => {
-    if (!event_result.official_event_id) {
-      setLoading(false);
-      return;
-    }
-
-    setError(false);
-    setLoading(true);
-
-    try {
-      const data = await fetchOfficialEventById(event_result.official_event_id);
-      setFetchedEvent(data);
-    } catch (err) {
-      console.log(err);
-      setError(true);
-    } finally {
-      setLoading(false);
-    }
-  }, [event_result.official_event_id]);
-
-  useEffect(() => {
-    // 親からイベント情報が渡されていれば取得は不要
-    if (official_event) return;
-    loadEvent();
-  }, [official_event, loadEvent]);
+  // 公式イベント情報。親からイベント情報が渡されていれば取得は不要(鍵を無しにする)。
+  // 失敗時は retry(FetchError のリロード)でこのイベントだけ取り直す
+  const {
+    data: fetchedEvent,
+    loading,
+    error,
+    retry: loadEvent,
+  } = useSeededResource(
+    official_event ? null : event_result.official_event_id,
+    fetchOfficialEventById,
+  );
 
   const event = official_event ?? fetchedEvent;
 
@@ -130,7 +118,10 @@ export default function CityleagueResult({
    * 初期値は呼び出し側と揃うので(サーバ・ブラウザとも eagerAllSlides)、
    * ハイドレーションの不一致は起きない。
    */
-  const [showAllSlides, setShowAllSlides] = useState(eagerAllSlides);
+  const [nearViewport, setNearViewport] = useState(eagerAllSlides);
+  // 対応していない環境では出し惜しみせず全部描く(表示が欠けるより遅い方がまし)
+  const observerMissing = useClientValue(isIntersectionObserverMissing, false);
+  const showAllSlides = nearViewport || observerMissing;
   const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -139,17 +130,11 @@ export default function CityleagueResult({
     const el = cardRef.current;
     if (!el) return;
 
-    // 対応していない環境では出し惜しみせず全部描く(表示が欠けるより遅い方がまし)
-    if (typeof IntersectionObserver === "undefined") {
-      setShowAllSlides(true);
-      return;
-    }
-
     const observer = new IntersectionObserver(
       (entries) => {
         if (!entries.some((entry) => entry.isIntersecting)) return;
 
-        setShowAllSlides(true);
+        setNearViewport(true);
         observer.disconnect();
       },
       { rootMargin: SLIDE_PRELOAD_MARGIN },
@@ -282,13 +267,9 @@ export default function CityleagueResult({
               className="text-xs"
               onPress={() => {
                 // 個別ページから戻ってきたとき、対象カードまで自動スクロールするための保存
-                sessionStorage.setItem(
-                  "cityleagueResultScrollToId",
-                  String(event_result.official_event_id),
-                );
-                sessionStorage.setItem(
-                  "cityleagueResultScrollToLeagueType",
-                  String(event_result.league_type),
+                markCityleagueResultScrollTarget(
+                  event_result.official_event_id,
+                  event_result.league_type,
                 );
               }}
             >

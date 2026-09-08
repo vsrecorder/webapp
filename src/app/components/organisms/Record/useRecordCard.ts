@@ -13,6 +13,8 @@ import { TonamelEventGetByIdResponseType } from "@app/types/tonamel_event";
 import { UnofficialEventGetByIdResponseType } from "@app/types/unofficial_event";
 import { summarizeMatches } from "@app/utils/match";
 import { REOPEN_MODAL_RECORD_ID } from "@app/utils/recordModalReopen";
+import { writeSessionStorage } from "@app/utils/sessionStorageStore";
+import { useSessionStorageItem } from "@app/hooks/useSessionStorageItem";
 
 /*
  * 記録カード(公式 / Tonamel / 自由形式)で共通の状態。
@@ -114,31 +116,36 @@ export function useRecordCard({
   const disclosure = useDisclosure();
   const { onOpen } = disclosure;
 
-  const [shouldReopen, setShouldReopen] = useState(false);
   // 最新の onReopenComplete(描画中に ref を書かず、effect で追随させる)
   const onReopenCompleteRef = useRef(onReopenComplete);
   useEffect(() => {
     onReopenCompleteRef.current = onReopenComplete;
   }, [onReopenComplete]);
 
-  // マウント時に対象 record か判定だけ行う
+  /*
+   * この記録が戻り遷移の再開対象か。sessionStorage のフラグを「外部ストア」として描画中に読み
+   * (useSessionStorageItem)、この記録の id と一致するときだけ。
+   * 開いたらフラグを消す(一覧側の handleReopenComplete でも消す)ので、その場で false に戻る
+   */
   const recordId = recordData.data.id;
-  useEffect(() => {
-    if (!enableReopen) return;
-    const pendingId = sessionStorage.getItem(REOPEN_MODAL_RECORD_ID);
-    if (pendingId && pendingId === recordId) {
-      sessionStorage.removeItem(REOPEN_MODAL_RECORD_ID);
-      setShouldReopen(true);
-    }
-  }, [enableReopen, recordId]);
+  const pendingId = useSessionStorageItem(REOPEN_MODAL_RECORD_ID);
+  const shouldReopen = enableReopen && pendingId !== null && pendingId === recordId;
+  // 一度開いたら、同じ再開で開き直さない
+  const reopenedRef = useRef(false);
 
   // イベント情報が揃ったらスクロール通知 + モーダルオープン。
   // 親モーダルが落ち着く（reopenReady）まで待ってから開く。
   useEffect(() => {
-    if (!shouldReopen || eventLoading || !reopenReady) return;
-    setShouldReopen(false);
+    if (!shouldReopen) {
+      reopenedRef.current = false;
+      return;
+    }
+    if (eventLoading || !reopenReady || reopenedRef.current) return;
+
+    reopenedRef.current = true;
     onReopenCompleteRef.current?.();
     onOpen();
+    writeSessionStorage(REOPEN_MODAL_RECORD_ID, null);
   }, [shouldReopen, eventLoading, reopenReady, onOpen]);
 
   return {

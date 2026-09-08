@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+
+import { useSeededResource } from "@app/hooks/useSeededResource";
 
 import { Link } from "@heroui/react";
 import { Chip } from "@heroui/react";
@@ -60,40 +62,15 @@ type Props = {
 };
 
 export default function TonamelEventInfo({ record }: Props) {
-  const [tonamelEvent, setTonamelEvent] =
-    useState<TonamelEventGetByIdResponseType | null>(null);
-  const [loadingTonamelEvent, setLoadingTonamelEvent] = useState(true);
+  // Tonamelイベント情報。参照先が変わると取り直し、失敗時は retry(FetchError のリロード)で取り直す
+  const {
+    data: tonamelEvent,
+    loading: loadingTonamelEvent,
+    error,
+    retry: loadTonamelEvent,
+  } = useSeededResource(record?.tonamel_event_id, fetchTonamelEventById);
 
   const [environment, setEnvironment] = useState<EnvironmentType | null>(null);
-
-  const [error, setError] = useState(false);
-
-  const tonamelEventId = record?.tonamel_event_id;
-
-  // Tonamelイベント情報だけを取得（失敗時のリロードから再利用）
-  const loadTonamelEvent = useCallback(async () => {
-    if (!tonamelEventId) {
-      setLoadingTonamelEvent(false);
-      return;
-    }
-
-    setError(false);
-    setLoadingTonamelEvent(true);
-
-    try {
-      const data = await fetchTonamelEventById(tonamelEventId);
-      setTonamelEvent(data);
-    } catch (err) {
-      console.log(err);
-      setError(true);
-    } finally {
-      setLoadingTonamelEvent(false);
-    }
-  }, [tonamelEventId]);
-
-  useEffect(() => {
-    loadTonamelEvent();
-  }, [loadTonamelEvent]);
 
   // 開催日(event_date 優先、ゼロ値なら created_at)を基に対戦環境を取得する
   useEffect(() => {

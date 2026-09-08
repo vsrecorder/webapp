@@ -14,6 +14,7 @@ import { RiTwitterXLine } from "react-icons/ri";
 import { handleSignIn } from "@app/handlers/handleSignIn";
 import type { SignInErrorStatus } from "@app/handlers/handleSignIn";
 import { isInAppBrowser } from "@app/utils/platform";
+import { useClientValue } from "@app/hooks/useClientValue";
 
 import InAppBrowserNotice from "./InAppBrowserNotice";
 
@@ -34,12 +35,8 @@ export default function SocialSignIn({
   const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
   const [isLoadingX, setIsLoadingX] = useState(false);
   const [errorStatus, setErrorStatus] = useState<SignInErrorStatus | null>(null);
-  // UserAgentはサーバ側では参照できないため、マウント後に判定する
-  const [isInApp, setIsInApp] = useState(false);
-
-  useEffect(() => {
-    setIsInApp(isInAppBrowser());
-  }, []);
+  // UserAgentはサーバ側では参照できないため、ハイドレーション後に実際の値へ差し替わる
+  const isInApp = useClientValue(isInAppBrowser, false);
 
   useEffect(() => {
     onLoadingChange?.(isLoadingGoogle || isLoadingX);

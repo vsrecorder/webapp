@@ -6,12 +6,17 @@ import { Button, addToast } from "@heroui/react";
 import { LuBellRing, LuX } from "react-icons/lu";
 import { sendGAEvent } from "@next/third-parties/google";
 
+import { useClientValue } from "@app/hooks/useClientValue";
+import { useLocalStorageItem } from "@app/hooks/useLocalStorageItem";
 import { usePushSubscription } from "@app/hooks/usePushSubscription";
 import { UserStreakType } from "@app/types/streak";
 import {
-  consumeRecordCreatedTrigger,
+  PUSH_PROMPT_DISMISSED_AT_KEY,
+  discardRecordCreatedTrigger,
   dismissPushPrompt,
-  isPushPromptDismissed,
+  isPushPromptDismissedAt,
+  readRecordCreatedTrigger,
+  subscribeRecordCreatedTrigger,
   type PushPromptSource,
 } from "@app/utils/pushPrompt";
 
@@ -57,55 +62,73 @@ export default function PushPermissionPrompt({
 }: Props) {
   const pathname = usePathname();
   const { ready, support, permission, subscribed, busy, subscribe } = usePushSubscription();
-  const [source, setSource] = useState<PushPromptSource | null>(null);
 
-  useEffect(() => {
-    if (!userId || !ready) return;
+  /*
+   * 出す/出さない(source)は effect で決めて state に入れるのではなく、材料から描画中に導く。
+   *   - 記録作成のトリガー(sessionStorage): 読んだ時点で消え、このページの表示中は覚えておく
+   *   - 「あとで」の日時(localStorage): 押した瞬間にその場で追随する
+   *   - ストリーク: 取得結果だけを state に持つ(非同期に決まる唯一の材料)
+   * どちらのストレージもサーバ描画では読めないので、ハイドレーション後に実際の値になる
+   */
+  const recordCreated = useClientValue(
+    readRecordCreatedTrigger,
+    false,
+    subscribeRecordCreatedTrigger,
+  );
+  const dismissed = isPushPromptDismissedAt(useLocalStorageItem(PUSH_PROMPT_DISMISSED_AT_KEY));
+  // ホームで取得したストリークが表示条件を満たしたか。誰のものかも控えておく
+  // (ログインし直した直後に前の人の結果で出さない)
+  const [streakResult, setStreakResult] = useState<{ userId: string; eligible: boolean } | null>(
+    null,
+  );
 
-    // 追加バナーが出るかどうかの判定中は何も決めない。ここで抜けるのは、下の
-    // consumeRecordCreatedTrigger() まで進むと記録作成のトリガーを捨ててしまうため
-    // (判定がついてから、出す/捨てるを決める)
-    if (installBannerState === "pending") return;
+  // 追加バナーが出るかどうかの判定中は何も決めない(判定がついてから、出す/捨てるを決める)
+  const decidable = !!userId && ready && installBannerState !== "pending";
+  const eligible =
+    decidable &&
+    installBannerState !== "visible" &&
+    support === "supported" &&
+    permission === "default" &&
+    !subscribed &&
+    !dismissed;
 
-    const eligible =
-      installBannerState !== "visible" &&
-      support === "supported" && permission === "default" && !subscribed && !isPushPromptDismissed();
-
-    // 出せない状態では記録作成のトリガーも消費して捨てる(次に条件が揃ったとき、
-    // 何週間も前の記録作成を根拠に突然出るのを防ぐ)
-    const recordCreated = consumeRecordCreatedTrigger();
-    if (!eligible) {
-      setSource(null);
-      return;
-    }
-
+  let source: PushPromptSource | null = null;
+  if (eligible) {
     if (recordCreated) {
-      setSource("record_created");
-      return;
+      source = "record_created";
+    } else if (pathname === "/" && streakResult?.userId === userId && streakResult.eligible) {
+      source = "streak";
     }
+  }
 
-    if (pathname !== "/") {
-      setSource(null);
-      return;
-    }
+  // 出せない状態では記録作成のトリガーを捨てる(次に条件が揃ったとき、
+  // 何週間も前の記録作成を根拠に突然出るのを防ぐ)
+  useEffect(() => {
+    if (decidable && !eligible) discardRecordCreatedTrigger();
+  }, [decidable, eligible]);
+
+  // ホームでは、記録作成のトリガーが無ければストリークで判定する
+  useEffect(() => {
+    if (!userId || !eligible || recordCreated || pathname !== "/") return;
 
     let cancelled = false;
     fetch(`/api/users/${userId}/streak`, { cache: "no-store" })
       .then((res) => (res.ok ? res.json() : null))
       .then((streak: UserStreakType | null) => {
         if (cancelled) return;
-        setSource(
-          streak && streak.current_weeks >= STREAK_WEEKS_FOR_PROMPT ? "streak" : null,
-        );
+        setStreakResult({
+          userId,
+          eligible: !!streak && streak.current_weeks >= STREAK_WEEKS_FOR_PROMPT,
+        });
       })
       .catch(() => {
-        if (!cancelled) setSource(null);
+        if (!cancelled) setStreakResult({ userId, eligible: false });
       });
 
     return () => {
       cancelled = true;
     };
-  }, [userId, ready, support, permission, subscribed, pathname, installBannerState]);
+  }, [userId, eligible, recordCreated, pathname]);
 
   useEffect(() => {
     if (source) {
@@ -143,13 +166,15 @@ export default function PushPermissionPrompt({
         timeout: 5000,
       });
     }
-    setSource(null);
+    // 出したあとは、その根拠になった記録作成のトリガーを捨てる(同じ記録作成で二度出さない)。
+    // 表示自体は、購読できれば subscribed、できなければ「あとで」の記録で消える
+    discardRecordCreatedTrigger();
   };
 
   const handleDismiss = () => {
-    dismissPushPrompt();
     sendGAEvent("event", "push_prompt_dismiss", { source });
-    setSource(null);
+    discardRecordCreatedTrigger();
+    dismissPushPrompt();
   };
 
   return (

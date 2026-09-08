@@ -18,23 +18,44 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "ポケカプレイヤーのための対戦記録サービス",
     start_url: "/",
     display: "standalone",
-    // background_color は PWA 起動スプラッシュの地色。**アイコン画像の地色に合わせる**こと。
-    // ここをアイコンの地色からズラすと、アイコンの外形(OS スプラッシュでは円マスク、Chrome の
-    // スプラッシュでは角丸四角)が地色との段差として浮かび上がり、2枚のスプラッシュが切り替わる
-    // 瞬間に「丸が四角に変わって縮む」ように見える。値は icon-*.png / maskable_icon_*.png の
-    // 縦中央の地色(グラデーションの中間色)。アイコンを描き直したらこの値も測り直す。
+    // background_color は PWA 起動スプラッシュの地色。**manifest 用アイコンの地色と完全に同じ値**
+    // にすること。ここがズレると、アイコンの外形(OS スプラッシュでは直径 160dp の円、Chrome の
+    // スプラッシュでは 128dp の四角)が地色との段差として浮かび上がり、2枚のスプラッシュが
+    // 切り替わる瞬間に「丸が四角に変わって縮む」ように見える。
+    // splash_icon-*.png / maskable_icon_*.png は、この値の単色を地色にしてある(下の icons 参照)。
     background_color: env == "dev" ? "#FB7A06" : "#0779F6",
     // theme_color はアプリ表示中のステータスバー色。ヘッダーのグラデーション始点
     // (本番は blue-600)に合わせる。dev環境は一目で区別できるようオレンジにする
     theme_color: env == "dev" ? "#EA580C" : "#2563EB",
-    // purpose:"any" のアイコンは Chrome の起動スプラッシュで 128dp の四角として描かれるのに対し、
-    // purpose:"maskable" は Android 12 以降の OS スプラッシュで「240dp 枠の中央・直径 160dp の円」に
-    // マスクして描かれる。同じ絵柄を同じ余白で置くと、ロゴの実効サイズが約 76dp と約 103dp に食い違い、
-    // 先に出る OS スプラッシュから Chrome のスプラッシュへ移る瞬間にロゴが縮んで見える。
-    // そのため any 側は、ロゴを枠いっぱい(占有率 約80%)まで寄せた splash_icon-*.png を専用に用意し、
-    // maskable 側の実効サイズ(約103dp)と揃えている。maskable の余白は円マスクで切られないための
-    // ものなので詰められない。片方だけ差し替えるとまたズレるため、両者は必ずセットで見直すこと。
-    // アプリ内のロゴ表示(OGP画像・シェア画像・PWAバナー)は従来どおり icon-*.png を使う。
+    /*
+     * Android の PWA 起動では、ロゴ画面が2枚続けて出る。
+     *   1. OS スプラッシュ(Android 12 以降) … purpose:"maskable" を「240dp 枠の中央・
+     *      直径 160dp の円」にマスクして描く
+     *   2. Chrome スプラッシュ … purpose:"any" を 128dp の四角として描く
+     * 見た目が食い違っていると、1 から 2 へ移る瞬間に「ロゴがもう一度描き直された」ように見える。
+     * ページ側では何も起きていないので、揃えるべき条件はこの manifest とアイコン画像だけで決まる。
+     *
+     * 揃えるのは次の3つ。どれか1つでも崩れると再発する。
+     *
+     * (a) ロゴの実効サイズ … 同じ絵柄を同じ余白で置くと 約76dp と 約103dp に食い違う。
+     *     any 側はロゴを枠いっぱい(占有率 約80%)に寄せた splash_icon-*.png を専用に用意し、
+     *     maskable 側(占有率 約43% → 240dp×0.43 = 約103dp)と揃えてある。maskable の余白は
+     *     円マスクで切られないためのものなので詰められない。動かすのは常に any 側。
+     *
+     * (b) 地色 … **両者とも background_color と同じ単色**にしてある。グラデーションが載っていると、
+     *     円(直径 160dp)と四角(128dp)という外形の違いがそのまま地色の段差として見え、
+     *     ロゴ自体が同じ位置・同じ大きさでも「淡い円が小さい四角に変わる」動きになる
+     *     (2026-09-08 の実測: 円の下端で G が背景 -19、四角の下端で -11 と差があった)。
+     *     アイコンを描き直すときも、この2枚だけは地色を単色に潰すこと。
+     *
+     * (c) ロゴの解像感 … maskable は 240dp 枠ぶんに拡大されるため、画像内のロゴが小さいと
+     *     引き伸ばされてボケ、シャープな any 側と並べたときに差が出る。maskable だけ
+     *     1024x1024 を用意してあるのはこのため(1024×0.43 = 440px を 720px 枠へ縮小して描く)。
+     *     192 は低密度端末のランチャー用で、起動スプラッシュには選ばれない。
+     *
+     * アプリ内のロゴ表示(OGP画像・シェア画像・PWAバナー)は従来どおり icon-*.png を使う。
+     * こちらはグラデーションのままでよく、manifest 用と兼用にしないこと。
+     */
     icons:
       env == "dev"
         ? [
@@ -57,8 +78,8 @@ export default function manifest(): MetadataRoute.Manifest {
               purpose: "maskable",
             },
             {
-              src: "/maskable_icon_dev_x512.png",
-              sizes: "512x512",
+              src: "/maskable_icon_dev_x1024.png",
+              sizes: "1024x1024",
               type: "image/png",
               purpose: "maskable",
             },
@@ -83,8 +104,8 @@ export default function manifest(): MetadataRoute.Manifest {
               purpose: "maskable",
             },
             {
-              src: "/maskable_icon_x512.png",
-              sizes: "512x512",
+              src: "/maskable_icon_x1024.png",
+              sizes: "1024x1024",
               type: "image/png",
               purpose: "maskable",
             },

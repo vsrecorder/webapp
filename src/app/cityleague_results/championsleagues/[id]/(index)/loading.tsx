@@ -9,6 +9,11 @@ import CityleagueIndexSkeleton from "@app/components/organisms/Cityleague/Skelet
 //
 // 中身はリーグ区分の索引（ヘッダー＋区分一覧）。rowCount は実データの区分数
 // （多くの大会でマスター・シニア・ジュニアの3件）に合わせている。
+//
+// 置き場所が (index) グループなのは、この骨格を索引ページだけに効かせるため。
+// 直下に置くと詳細ページ(子セグメント)にも継承され、詳細側が自前の loading.tsx を
+// 持っていても打ち消せない(子のツリーが組み上がるまで外側のこの境界が使われるため、
+// 索引の骨格が先に出てから詳細の骨格に差し替わる)。
 export default function Loading() {
   return <CityleagueIndexSkeleton rowCount={3} showSubtitle />;
 }

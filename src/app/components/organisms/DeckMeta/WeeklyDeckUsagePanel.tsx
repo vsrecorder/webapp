@@ -15,7 +15,17 @@ import {
 } from "react-icons/lu";
 
 import DeckSprites from "@app/components/molecules/DeckSprites";
-import { WeeklyDeckUsageSkeletonRow } from "@app/components/organisms/DeckMeta/Skeleton/WeeklyDeckUsagePanelSkeleton";
+import {
+  WeeklyDeckUsageBetaNote,
+  WeeklyDeckUsageNotes,
+  WeeklyDeckUsageRankingHeader,
+  WeeklyDeckUsageRateNote,
+} from "@app/components/organisms/DeckMeta/WeeklyDeckUsageTexts";
+import {
+  WeeklyDeckUsageRankingSkeleton,
+  WeeklyDeckUsageRateModeSkeleton,
+  WeeklyDeckUsageSummarySkeleton,
+} from "@app/components/organisms/DeckMeta/Skeleton/WeeklyDeckUsagePanelSkeleton";
 
 import { generateWeekOptions, lastWeekValue } from "@app/utils/week";
 import { WeeklyDeckUsageStatType } from "@app/types/weekly_deck_usage_stat";
@@ -232,21 +242,7 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
     <Card className="shadow-md">
       <CardBody className="gap-4 p-3">
         {/* β機能の注記 */}
-        <div className="flex items-center gap-2">
-          <Chip
-            size="sm"
-            color="warning"
-            variant="flat"
-            classNames={{ base: "h-5 px-0.5", content: "text-[0.625rem] font-black px-1.5" }}
-          >
-            β機能
-          </Chip>
-          <span className="text-[0.6875rem] text-default-400 leading-snug">
-            プラットフォーム全体の週次デッキ使用率
-            <br />
-            (集計方法や表示仕様は今後変わる可能性があります)
-          </span>
-        </div>
+        <WeeklyDeckUsageBetaNote />
 
         {/* 週セレクタ（前後移動ボタン付き） */}
         <div className="flex items-center gap-2">
@@ -292,22 +288,7 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
         </div>
 
         {/* 母集団の明示(初回読み込み中は同寸のスケルトンを置き、完了時にレイアウトが跳ねないようにする) */}
-        {isLoading && stat == null && (
-          <div className="flex flex-col items-center gap-1.5 animate-pulse">
-            {/* 期間ラベル */}
-            <div className="h-3 w-36 rounded bg-default-200" />
-            {/* 人数・のべ件数のサマリボックス */}
-            <div className="h-8 w-full rounded-xl bg-default-100" />
-            {/* 注記5行 */}
-            <div className="flex flex-col items-center gap-1">
-              <div className="h-2.5 w-48 rounded bg-default-200" />
-              <div className="h-2.5 w-52 rounded bg-default-200" />
-              <div className="h-2.5 w-60 rounded bg-default-200" />
-              <div className="h-2.5 w-64 rounded bg-default-200" />
-              <div className="h-2.5 w-64 rounded bg-default-200" />
-            </div>
-          </div>
-        )}
+        {isLoading && stat == null && <WeeklyDeckUsageSummarySkeleton />}
         {stat != null && (
           <div className="flex flex-col items-center gap-1.5">
             <span className="text-xs text-default-400">{periodLabel}</span>
@@ -332,29 +313,12 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
                 </span>
               </div>
             </div>
-            <span className="text-[0.625rem] text-default-300 leading-snug text-center">
-              ※スタンダードの記録のみを集計しています
-              <br />
-              ※自分・相手それぞれのデッキを1件として
-              <br />
-              集計するため、対戦数より多くなっています
-              <br />
-              ※ポケモン未設定の対戦はデッキ名から推測して集計しています
-              <br />
-              ※▲▼・NEW と +/− の数値は前週の順位・使用率・勝率との比較です
-            </span>
+            <WeeklyDeckUsageNotes />
           </div>
         )}
 
         {/* 使用率の算出基準切り替え(こちらも初回読み込み中はスケルトンで場所を確保する) */}
-        {isLoading && stat == null && (
-          <div className="flex flex-col items-center gap-1.5 animate-pulse">
-            {/* タブ */}
-            <div className="h-9 w-full rounded-xl bg-default-100" />
-            {/* 分母の説明1行 */}
-            <div className="h-2.5 w-56 rounded bg-default-200" />
-          </div>
-        )}
+        {isLoading && stat == null && <WeeklyDeckUsageRateModeSkeleton />}
         {stat != null && (
           <div className="flex flex-col gap-1.5">
             <Tabs
@@ -367,33 +331,20 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
               <Tab key="all" title="全体の中の割合" />
               <Tab key="excl_other" title="その他を除いた割合" />
             </Tabs>
-            <span className="text-[0.625rem] text-default-400 leading-snug text-center">
-              {rateMode === "all"
-                ? "「その他」を含む全体件数を分母に算出しています"
-                : `「その他」(${otherCount}件)を除いた${exclOtherTotal}件を分母に算出しています`}
-            </span>
+            <WeeklyDeckUsageRateNote
+              rateMode={rateMode}
+              otherCount={otherCount}
+              exclOtherTotal={exclOtherTotal}
+            />
           </div>
         )}
 
         {/* ランキングの並び順を明示（読み込み中もレイアウトが動かないよう表示しておく） */}
-        {(isLoading || displayDecks.length > 0) && (
-          <div className="flex items-center justify-between px-1 -mb-2">
-            <span className="text-[0.6875rem] font-black text-default-500">
-              使用率ランキング
-            </span>
-            <span className="text-[0.625rem] text-default-400">
-              使用率が高い順（同率は勝率順）
-            </span>
-          </div>
-        )}
+        {(isLoading || displayDecks.length > 0) && <WeeklyDeckUsageRankingHeader />}
 
         {/* ランキング */}
         {isLoading && !stat ? (
-          <div className="flex flex-col gap-1.5">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <WeeklyDeckUsageSkeletonRow key={i} />
-            ))}
-          </div>
+          <WeeklyDeckUsageRankingSkeleton limit={limit} />
         ) : displayDecks.length === 0 ? (
           <div className="h-48 flex items-center justify-center">
             <span className="text-xs text-default-400 text-center px-4">
@@ -435,9 +386,13 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
                     <div className="flex items-center gap-2 min-w-0">
                       <div className="flex flex-col items-center gap-0.5 shrink-0 w-6">
                         <RankBadge rank={idx + 1} isOther={isOther} />
-                        {!isOther && (
-                          <RankDelta rank={idx + 1} previousRank={deck.previous_rank} />
-                        )}
+                        {/* 変動の行は行全体の高さを決める。変動が無い「その他」でも、
+                            文字の小さい NEW(text-[0.5rem])でも縮まないよう枠で固定する */}
+                        <span className="flex h-[0.5625rem] items-center">
+                          {!isOther && (
+                            <RankDelta rank={idx + 1} previousRank={deck.previous_rank} />
+                          )}
+                        </span>
                       </div>
                       <DeckSprites sprites={deck.pokemon_sprites} size={32} />
                       {isOther && (
@@ -499,8 +454,9 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
                     >
                       勝率 {(deck.win_rate * 100).toFixed(1)}%
                     </Chip>
-                    {/* 前週差が無い行(NEW等)でも列幅は保たれ、バーの長さが全行で揃う */}
-                    <span className="text-right">
+                    {/* 前週差が無い行(NEW等)でも列幅と行の高さが保たれ、
+                        バーの長さも下段の高さも全行で揃う */}
+                    <span className="flex h-3 items-center justify-end">
                       <DeltaPoints
                         current={deck.win_rate}
                         previous={deck.previous_win_rate}

@@ -1,10 +1,11 @@
 import { Card, CardHeader, CardBody } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
 
+import { CALENDAR_LEGEND } from "@app/components/organisms/Calendar/calendarLegend";
+
 const WEEKDAY_COUNT = 7;
 // カレンダーグリッドは常に6週(42セル)固定で描画されるため、スケルトンも合わせる
 const CALENDAR_CELL_COUNT = 42;
-const LEGEND_ITEM_COUNT = 4;
 
 // 読み込み中・取得失敗のどちらでも使う器。
 //
@@ -12,6 +13,10 @@ const LEGEND_ITEM_COUNT = 4;
 // 失敗表示に高さを決め打ちすると端末幅ごとに骨格とズレる。骨格をそのまま置いて
 // 場所を取り、失敗時はそれを伏せて文言を重ねる。こうすると読み込み中と失敗で
 // カードの寸法が変わらず、下のセクションが跳ねない。
+//
+// 骨格の各行は「実体の行ボックスと同じ高さの器」に骨格の棒を入れる形にしてある。
+// 棒の高さをそのまま行の高さにすると、実体のテキスト(text-tiny なら 16px)より
+// 低くなり、切り替わった瞬間にカレンダー全体が下へ伸びる。
 function DashboardCalendarBox({ message }: { message?: string }) {
   const isError = message != null;
   // 場所取りだけに使うときは伏せる(visibility:hidden なので支援技術からも外れる)
@@ -23,13 +28,22 @@ function DashboardCalendarBox({ message }: { message?: string }) {
         className={`flex items-center justify-between px-2 pt-3 pb-1 ${placeholder}`}
       >
         <Skeleton className="h-8 w-8 rounded-full" />
-        <Skeleton className="h-4 w-20 rounded-md" />
+        {/* 実体のヘッダー中央は「YYYY年M月(text-sm)」と「今月へ戻る(text-tiny)」の2行 */}
+        <div className="flex flex-col items-center">
+          <div className="flex h-5 items-center">
+            <Skeleton className="h-4 w-20 rounded-md" />
+          </div>
+          {/* 実体は当月でも「今月へ戻る」の領域を常に確保しているので、骨格でも空ける */}
+          <div className="h-4 mt-0.5" />
+        </div>
         <Skeleton className="h-8 w-8 rounded-full" />
       </CardHeader>
       <CardBody className={`px-3 pb-3 pt-1 ${placeholder}`}>
         <div className="grid grid-cols-7 gap-1 mb-1">
           {Array.from({ length: WEEKDAY_COUNT }).map((_, index) => (
-            <Skeleton key={index} className="h-3.5 rounded-md" />
+            <div key={index} className="flex h-4 items-center">
+              <Skeleton className="h-3.5 w-full rounded-md" />
+            </div>
           ))}
         </div>
         <div className="grid grid-cols-7 gap-1">
@@ -38,11 +52,16 @@ function DashboardCalendarBox({ message }: { message?: string }) {
           ))}
         </div>
 
-        <div className="flex items-center gap-x-4 gap-y-1.5 flex-wrap justify-center pt-3">
-          {Array.from({ length: LEGEND_ITEM_COUNT }).map((_, index) => (
-            <div key={index} className="flex items-center gap-1.5">
-              <Skeleton className="w-1.5 h-1.5 rounded-full" />
-              <Skeleton className="h-3 w-20 rounded-md" />
+        {/* 実体と同じ凡例定義から描く。文言と同じ幅を取るので折返しの位置も揃う */}
+        <div className="flex items-center gap-x-4 gap-y-1.5 flex-wrap justify-center pt-3 text-tiny">
+          {CALENDAR_LEGEND.map((item) => (
+            <div key={item.type} className="flex items-center gap-1.5">
+              <Skeleton className="w-1.5 h-1.5 rounded-full shrink-0" />
+              {/* 文言そのもので幅と行の高さを取り、骨格の棒はその上に重ねる */}
+              <span className="relative">
+                <span className="invisible">{item.label}</span>
+                <Skeleton className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-3 rounded-md" />
+              </span>
             </div>
           ))}
         </div>

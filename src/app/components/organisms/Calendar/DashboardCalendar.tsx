@@ -13,18 +13,15 @@ import {
   DashboardCalendarSkeleton,
 } from "@app/components/organisms/Calendar/Skeleton/DashboardCalendarSkeleton";
 
-import { CalendarGetResponseType, CalendarEventType } from "@app/types/calendar";
+import {
+  CALENDAR_LEGEND,
+  EVENT_DOT_CLASS,
+} from "@app/components/organisms/Calendar/calendarLegend";
+
+import { CalendarGetResponseType } from "@app/types/calendar";
 import { getCalendarGrid, getJstNow, toJstDateKey } from "@app/utils/calendar";
 
 const WEEKDAY_LABELS = ["日", "月", "火", "水", "木", "金", "土"];
-
-const EVENT_DOT_CLASS: Record<CalendarEventType, string> = {
-  record: "bg-primary",
-  match_added: "bg-warning",
-  deck_created: "bg-success",
-  deck_code_added: "bg-secondary",
-  deck_archived: "bg-default-400",
-};
 
 async function fetcher(url: string): Promise<CalendarGetResponseType> {
   const res = await fetch(url, {
@@ -193,26 +190,14 @@ export default function DashboardCalendar({ userId }: Props) {
           </div>
 
           <div className="flex items-center gap-x-4 gap-y-1.5 flex-wrap justify-center pt-3 text-tiny text-default-500">
-            <div className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-              記録作成
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-warning" />
-              対戦結果の追加
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-success" />
-              デッキ登録
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-secondary" />
-              新しいデッキのバージョンを作成
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-default-400" />
-              デッキをアーカイブ
-            </div>
+            {CALENDAR_LEGEND.map((item) => (
+              <div key={item.type} className="flex items-center gap-1.5">
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${EVENT_DOT_CLASS[item.type]}`}
+                />
+                {item.label}
+              </div>
+            ))}
           </div>
         </CardBody>
       </Card>

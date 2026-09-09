@@ -7,6 +7,8 @@ import LazyGoogleAnalytics from "@app/components/atoms/LazyGoogleAnalytics";
 
 import Layout from "@app/components/templates/Layout";
 import { isDevEnv } from "@app/utils/appIcon";
+import { platformDetectScript } from "@app/utils/platformDetectScript";
+import { getStatusBarColor } from "@app/utils/pwaColors";
 import { OG_SIZE, renderSiteOgImage } from "@app/utils/ogImage";
 import { ensureOgImage } from "@app/utils/ogStorage";
 import { CDN_ORIGIN } from "@app/utils/cdn";
@@ -79,15 +81,13 @@ export default function RootLayout({
     <html lang="ja" suppressHydrationWarning data-env={isDevEnv() ? "dev" : "prod"}>
       <body className="overflow-x-hidden bg-white text-foreground dark:bg-neutral-950">
         {/*
-          描画前に iOS の standalone PWA かどうか / Android かどうかを判定し、
-          <html> に data-ios-pwa / data-android を付与する。
-          下部ナビ(MobileNavigation)のレイアウトを CSS 側で切り替えるための目印で、
-          クライアント判定を useEffect で行うと初回描画後にガタつくため、ペイント前の
-          インラインスクリプトで先に確定させてちらつきを防ぐ。
+          描画前に iOS の standalone PWA かどうか / Android かどうかを判定して <html> に目印を付け、
+          Android の standalone PWA ではステータスバー色の <meta name="theme-color"> も足す。
+          内容と理由は platformDetectScript.ts を参照。
         */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var ua=navigator.userAgent;var isIOS=(/iPad|iPhone|iPod/.test(ua)&&!('MSStream' in window))||(ua.indexOf('Mac')>-1&&navigator.maxTouchPoints>1);var isStandalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;if(isIOS&&isStandalone){document.documentElement.setAttribute('data-ios-pwa','true');}if(!isIOS&&/Android/i.test(ua)){document.documentElement.setAttribute('data-android','true');}}catch(e){}})();`,
+            __html: platformDetectScript(getStatusBarColor()),
           }}
         />
         {/*

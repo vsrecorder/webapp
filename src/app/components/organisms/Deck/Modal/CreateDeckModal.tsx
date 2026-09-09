@@ -35,6 +35,26 @@ import { getSpriteBySlot } from "@app/utils/spriteSlot";
 const DECK_CODE_LENGTH = 20;
 const DECK_CODE_CHECK_DEBOUNCE_MS = 500;
 
+// 初期スプライト(枠と id しか持たない)を、指定スロット(1/2)の PokemonSpriteType へ解決する。
+// アイコン一覧がまだ無ければ id だけの仮の値にし(画像は id から組める)、
+// 一覧が届いた時点で名前を入れ直す(下の resolveSprite)。
+function toInitialSprite(
+  initialSprites: DeckPokemonSpriteType[] | undefined,
+  slot: 1 | 2,
+  spriteMaster?: PokemonSpriteType[],
+): PokemonSpriteType | null {
+  const sprite = getSpriteBySlot(initialSprites, slot);
+  if (!sprite) return null;
+
+  return (
+    spriteMaster?.find((s) => s.id === sprite.id) ?? {
+      id: sprite.id,
+      name: sprite.id,
+      image_url: spriteImageUrl(sprite.id),
+    }
+  );
+}
+
 type Props = {
   deck_code: string;
   // 開いたときにデッキ名・アイコンへ入れておく初期値。みんなの公開デッキの「取り込む」が、
@@ -65,9 +85,20 @@ export default function CreateDeckModal({
   );
   const [isDisabled, setIsDisabled] = useState<boolean>(false);
 
-  // 利用者が選んだスプライト。id と名前が同じものは一覧が届く前の仮の値(下の resolveSprite で本物にする)
-  const [sprite1, setSprite1] = useState<PokemonSpriteType | null>(null);
-  const [sprite2, setSprite2] = useState<PokemonSpriteType | null>(null);
+  /*
+   * 利用者が選んだスプライト。id と名前が同じものは一覧が届く前の仮の値(下の resolveSprite で本物にする)。
+   *
+   * 初期値は下の initialSource(開いたときの入れ直し)だけには任せられない。このモーダルは
+   * createLazyModal 経由で「開かれてから初めてマウントされる」ため、マウント直後は isOpen に
+   * 差分が無く入れ直しが走らない。デッキ名(useState(initialName))と同じく、マウント時ぶんは
+   * ここで入れる(みんなの公開デッキの「デッキ登録」で、初回だけアイコンが空だった原因)。
+   */
+  const [sprite1, setSprite1] = useState<PokemonSpriteType | null>(() =>
+    toInitialSprite(initialSprites, 1),
+  );
+  const [sprite2, setSprite2] = useState<PokemonSpriteType | null>(() =>
+    toInitialSprite(initialSprites, 2),
+  );
   const [activeSpriteSlot, setActiveSpriteSlot] = useState<1 | 2>(1);
 
   // 初期スプライトは id と枠しか持たないため、名前と画像はポケモンのアイコン一覧から引く。
@@ -80,20 +111,9 @@ export default function CreateDeckModal({
     { revalidateOnFocus: false },
   );
 
-  // 初期スプライトを枠(1/2)ごとに PokemonSpriteType へ解決する。一覧がまだ無ければ id だけの
-  // 仮の値にし(画像は id から組める)、一覧が届いた時点で名前を入れ直す
-  const resolveInitialSprite = (slot: 1 | 2): PokemonSpriteType | null => {
-    const sprite = getSpriteBySlot(initialSprites, slot);
-    if (!sprite) return null;
-
-    return (
-      spriteMaster?.find((s) => s.id === sprite.id) ?? {
-        id: sprite.id,
-        name: sprite.id,
-        image_url: spriteImageUrl(sprite.id),
-      }
-    );
-  };
+  // 初期スプライトを枠(1/2)ごとに解決する。一覧(spriteMaster)が届いていればその場で名前も入る
+  const resolveInitialSprite = (slot: 1 | 2): PokemonSpriteType | null =>
+    toInitialSprite(initialSprites, slot, spriteMaster);
 
   // 開くたびに初期値(デッキ名・アイコン)を入れ直す。閉じたときの resetState だけだと、
   // 別の投稿から同じモーダルを開き直したときに前回の初期値が残るため。

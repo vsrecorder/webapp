@@ -731,7 +731,9 @@ export default function DeckUsagePanel({
                     <span className="font-bold text-xs text-default-700 truncate flex-1 min-w-0">
                       {deck.name}
                     </span>
-                    <div className="flex flex-col items-end gap-1 shrink-0 pl-2 border-l border-default-200">
+                    {/* 区切り線は引かない
+                        (OpponentDeckDistributionChart の凡例と同じ理由)。 */}
+                    <div className="flex flex-col items-end gap-1 shrink-0 whitespace-nowrap pl-3">
                       <span className="font-black text-xs text-default-700 tabular-nums">
                         {(deck.usage_rate * 100).toFixed(1)}%({deck.count}件)
                       </span>

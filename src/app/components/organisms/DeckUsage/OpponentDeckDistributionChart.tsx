@@ -203,7 +203,10 @@ function OpponentDeckLegendRow({ deck }: { deck: OpponentDeckUsageItemType }) {
       <span className="font-bold text-xs text-default-700 truncate flex-1 min-w-0">
         {deck.deck_info}
       </span>
-      <div className="flex flex-col items-end gap-1 shrink-0 pl-2 border-l border-default-200">
+      {/* 区切り線は引かない。数値の桁数で右ブロックの幅が変わるため、線を入れると
+          行ごとに縦位置がずれてかえって粗く見える。右端は items-end で揃うので、
+          名前との間は余白だけで足りる。 */}
+      <div className="flex flex-col items-end gap-1 shrink-0 whitespace-nowrap pl-3">
         <span className="text-[0.625rem] text-default-400 tabular-nums">
           対面率 {(deck.usage_rate * 100).toFixed(1)}% ({deck.count}件)
         </span>

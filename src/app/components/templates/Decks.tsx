@@ -264,7 +264,7 @@ export default function TemplateDecks({ userId, initial, initialTab }: Props) {
       )}
       <div className="pt-12 w-full">
         {/* 「マイデッキ｜みんなの公開デッキ」はデッキの有無によらず常に最上部に出す */}
-        <DeckSegmentedControl selected="mine" viewerId={userId} />
+        <DeckSegmentedControl selected="mine" isLoggedIn />
 
         {/* 最下部のカードがフローティングボタン（＋/トップへ戻る）と重ならないよう余白を確保するが、
             末尾がボタンに掛からないときは余白を出さず、空白へスクロールできてしまうのを防ぐ

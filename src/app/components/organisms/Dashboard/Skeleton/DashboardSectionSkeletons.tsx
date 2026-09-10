@@ -3,6 +3,7 @@ import { ReactNode } from "react";
 import { RecordCardSkeletons } from "@app/components/organisms/Record/Skeleton/RecordCardSkeleton";
 import { DashboardCalendarSkeleton } from "@app/components/organisms/Calendar/Skeleton/DashboardCalendarSkeleton";
 import CityleagueEventsSkeleton from "@app/components/organisms/Cityleague/Skeleton/CityleagueEventsSkeleton";
+import CityleagueOffSeasonCardSkeleton from "@app/components/organisms/Cityleague/Skeleton/CityleagueOffSeasonCardSkeleton";
 import BadgeGallerySkeleton from "@app/components/organisms/Badge/Skeleton/BadgeGallerySkeleton";
 import EnvironmentBadgeGallerySkeleton from "@app/components/organisms/Badge/Skeleton/EnvironmentBadgeGallerySkeleton";
 import OnboardingBadgePanelSkeleton from "@app/components/organisms/Badge/Skeleton/OnboardingBadgePanelSkeleton";
@@ -16,7 +17,10 @@ import ChartPanelFallback from "@app/components/organisms/Dashboard/ChartPanelFa
 import EnvironmentWindowCardSkeleton from "@app/components/organisms/Dashboard/Skeleton/EnvironmentWindowCardSkeleton";
 import FirstRecordCtaCardSkeleton from "@app/components/organisms/Dashboard/Skeleton/FirstRecordCtaCardSkeleton";
 
-import { DashboardBlockId } from "@app/utils/dashboardLayout";
+import {
+  DASHBOARD_RECENT_RECORDS_LIMIT,
+  DashboardBlockId,
+} from "@app/utils/dashboardLayout";
 
 /*
  * ホーム(ダッシュボード)のブロック1つぶんの骨格。
@@ -122,9 +126,17 @@ export default function DashboardBlockSkeleton({ id, isDevEnv = false }: Props):
     case "cityleague":
       return (
         <Section gap="gap-3">
-          {/* 見出しは「{大会名} 開催中」。長さは代表的な大会名で取る */}
-          <SectionHeading label="シティリーグ 開催中" action="結果を見る" />
+          <SectionHeading label="本日のシティリーグ結果" action="結果を見る" />
           <CityleagueEventsSkeleton />
+        </Section>
+      );
+
+    // 開催期間外。見出しは同じで、中身が次回シーズンの案内カードに変わる
+    case "cityleague_off_season":
+      return (
+        <Section gap="gap-3">
+          <SectionHeading label="本日のシティリーグ結果" action="結果を見る" />
+          <CityleagueOffSeasonCardSkeleton />
         </Section>
       );
 
@@ -241,7 +253,10 @@ export default function DashboardBlockSkeleton({ id, isDevEnv = false }: Props):
           <SectionHeading label="最近の記録" action="すべて見る" />
           {/* 外枠は Records の一覧グリッド(desktopColumns=3)と同じ指定 */}
           <div className="grid grid-cols-1 w-full gap-3 lg:grid-cols-2 xl:grid-cols-3 lg:gap-x-6">
-            <RecordCardSkeletons desktopColumns={3} />
+            <RecordCardSkeletons
+              desktopColumns={3}
+              count={DASHBOARD_RECENT_RECORDS_LIMIT}
+            />
           </div>
         </Section>
       );

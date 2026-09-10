@@ -25,6 +25,23 @@ import {
 import { EnvironmentType } from "@app/types/environment";
 import { PokemonSpriteType } from "@app/types/pokemon_sprite";
 
+/*
+ * 絞り込みチップの共通の形。高さは 32px(h-8)で固定する。
+ *
+ * マイデッキ側の同じ位置にある切り替え(SegmentedButtons＝利用中／アーカイブ済み、
+ * リスト／ギャラリー)が 32px なので、揃えておくと固定バーの高さが両方 48px になり、
+ * 「マイデッキ｜みんなの公開デッキ」を行き来しても下の一覧が上下に跳ねない。
+ *
+ * 高さを padding ではなく h-8 で決めているのは、枠線の有無(未選択のチップだけ border)や
+ * 中身(スプライト 22px・ACE SPEC のカード画像 24px)で行の高さが変わらないようにするため。
+ * 実測では選ぶ前 26px・ACE SPEC を選ぶと 28px と、絞り込むたびに行がずれていた。
+ */
+const CHIP_BASE = "flex h-8 shrink-0 items-center rounded-full text-xs font-bold";
+
+// 絞り込みを解除する×ボタン。チップと同じ高さにして、選んでも行の高さが変わらないようにする
+const CHIP_CLEAR =
+  "flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-default-100 text-default-500 active:opacity-70";
+
 type Props = {
   // 閲覧者のユーザID。未ログインなら null
   viewerId: string | null;
@@ -154,7 +171,7 @@ export default function TemplateSharedDecks({ viewerId, initial }: Props) {
         {/* 「マイデッキ｜みんなの公開デッキ」はデッキ一覧と同じ固定セグメント */}
         <DeckSegmentedControl
           selected="shared"
-          viewerId={viewerId}
+          isLoggedIn={!!viewerId}
           onRequireLogin={() => requireLogin("マイデッキを見るにはログインが必要です")}
         />
 
@@ -171,7 +188,7 @@ export default function TemplateSharedDecks({ viewerId, initial }: Props) {
               <button
                 type="button"
                 onClick={environmentModal.onOpen}
-                className="flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary"
+                className={`${CHIP_BASE} gap-1 bg-primary/10 px-3 text-primary`}
               >
                 {shownEnvironmentTitle ?? "環境"}
                 <LuChevronDown className="text-xs" />
@@ -183,12 +200,12 @@ export default function TemplateSharedDecks({ viewerId, initial }: Props) {
                 type="button"
                 onClick={spriteModal.onOpen}
                 aria-pressed={spriteFilters.length > 0}
-                className={`flex shrink-0 items-center gap-1 rounded-full py-0.5 pl-1 text-xs font-bold ${
+                className={`${CHIP_BASE} gap-1 ${
                   spriteFilters.length === 0
-                    ? "border border-default-200 bg-content1 py-1 pl-3 pr-3 text-default-500"
+                    ? "border border-default-200 bg-content1 px-3 text-default-500"
                     : spriteFilters.length === 1
-                      ? "bg-foreground pr-3 text-background"
-                      : "bg-foreground pr-1.5 text-background"
+                      ? "bg-foreground pl-1 pr-3 text-background"
+                      : "bg-foreground pl-1 pr-1.5 text-background"
                 }`}
               >
                 {spriteFilters.length > 0 ? (
@@ -214,7 +231,7 @@ export default function TemplateSharedDecks({ viewerId, initial }: Props) {
                   type="button"
                   onClick={clearSprites}
                   aria-label="スプライトの絞り込みを解除"
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-default-100 text-default-500 active:opacity-70"
+                  className={CHIP_CLEAR}
                 >
                   <LuX className="text-xs" />
                 </button>
@@ -225,12 +242,12 @@ export default function TemplateSharedDecks({ viewerId, initial }: Props) {
                 type="button"
                 onClick={aceSpecModal.onOpen}
                 aria-pressed={!!aceSpecFilter}
-                /* カード画像(24px の長方形)は角丸の縁からはみ出しやすい。チップの高さ28pxに対して
-                   左端から 6.8px 以上内側に置けば角が縁の内側に収まる。右の余白と揃えて pl-3(12px)にする */
-                className={`flex shrink-0 items-center gap-1.5 rounded-full text-xs font-bold ${
+                /* カード画像(24px の長方形)は角丸の縁からはみ出しやすい。チップの高さ32pxに対して
+                   左端から 5.5px 以上内側に置けば角が縁の内側に収まる。右の余白と揃えて px-3(12px)にする */
+                className={`${CHIP_BASE} gap-1.5 ${
                   aceSpecFilter
-                    ? "bg-foreground py-0.5 pl-3 pr-3 text-background"
-                    : "border border-default-200 bg-content1 px-3 py-1 text-default-500"
+                    ? "bg-foreground px-3 text-background"
+                    : "border border-default-200 bg-content1 px-3 text-default-500"
                 }`}
               >
                 {aceSpecFilter ? (
@@ -258,7 +275,7 @@ export default function TemplateSharedDecks({ viewerId, initial }: Props) {
                   type="button"
                   onClick={() => setAceSpecFilter(null)}
                   aria-label="ACE SPEC の絞り込みを解除"
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-default-100 text-default-500 active:opacity-70"
+                  className={CHIP_CLEAR}
                 >
                   <LuX className="text-xs" />
                 </button>

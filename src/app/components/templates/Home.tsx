@@ -17,15 +17,10 @@ import {
 } from "react-icons/lu";
 
 import Footer from "@app/components/organisms/Layout/Footer";
-import CityleagueEvents from "@app/components/organisms/Cityleague/CityleagueEvents";
 import StatsCounter from "@app/components/molecules/StatsCounter";
 import PhoneMock from "@app/components/molecules/PhoneMock";
 
-import { CityleagueScheduleType } from "@app/types/cityleague_schedule";
 import { isDevEnv } from "@app/utils/appIcon";
-
-import { upstreamUrl } from "@app/utils/upstream";
-import { getJstNow } from "@app/utils/calendar";
 
 const GRAFANA_DASHBOARD_UID = "55c83543db74465b895ff8301f4b9d5d";
 
@@ -70,33 +65,6 @@ async function getGrafanaStat(panelId: number): Promise<number | undefined> {
     return undefined;
   } catch {
     return undefined;
-  }
-}
-
-async function getCityleagueScheduleByDate(date: Date): Promise<CityleagueScheduleType> {
-  try {
-    const today = date.toISOString().split("T")[0];
-
-    const res = await fetch(upstreamUrl`/api/v1beta/cityleague_schedules?date=${today}`, {
-      // シティリーグの開催情報は最大でも日次更新のため、毎回取得(no-store)は不要。
-      // 5分キャッシュ(stale-while-revalidate)にしてサーバ応答(TTFB)を短縮し、FCP/LCPを改善する。
-      next: { revalidate: 300 },
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
-    });
-
-    if (res.status === 200) {
-      const ret: CityleagueScheduleType = await res.json();
-      return ret;
-    } else if (res.status === 404) {
-      throw new Error("not found");
-    } else {
-      throw new Error("error");
-    }
-  } catch (error) {
-    throw error;
   }
 }
 
@@ -297,29 +265,6 @@ function StatsSectionFallback() {
           </div>
         ))}
       </div>
-    </section>
-  );
-}
-
-// 本日のシティリーグ。開催がない日は丸ごと出ないセクションなので、
-// 取得待ちの枠は作らず(作ると開催なしの日に空白が残る)、揃ってから差し込む。
-async function TodayCityleagueSection() {
-  const date = getJstNow();
-  // 失敗しても描画を止めないよう、undefinedにフォールバックする。
-  const cs = await getCityleagueScheduleByDate(date).catch(() => undefined);
-
-  if (!cs) return null;
-
-  return (
-    <section className="flex flex-col gap-4">
-      <div className="flex flex-col items-center gap-1 text-center">
-        <span className="text-xs lg:text-sm font-bold text-primary uppercase tracking-widest">
-          TODAY
-        </span>
-        <h2 className="text-2xl lg:text-4xl font-black">{cs.title} 開催中！</h2>
-        <p className="text-sm lg:text-base text-default-500">本日開催のシティリーグ会場</p>
-      </div>
-      <CityleagueEvents />
     </section>
   );
 }
@@ -533,11 +478,6 @@ export default function TemplateHome() {
             ))}
           </div>
         </section>
-
-        {/* 本日のシティリーグ */}
-        <Suspense fallback={null}>
-          <TodayCityleagueSection />
-        </Suspense>
       </div>
 
       <Footer />

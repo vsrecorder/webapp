@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 
-import FixedTabBarSkeleton from "@app/components/molecules/Skeleton/FixedTabBarSkeleton";
+import DeckSegmentedControl from "@app/components/molecules/DeckSegmentedControl";
 import FloatingButtonClearance from "@app/components/atoms/Floating/FloatingButtonClearance";
 import { DeckViewToggleSkeleton } from "@app/components/organisms/Deck/Skeleton/DeckCardSkeleton";
 import DeckViewToggleBar from "@app/components/organisms/Deck/DeckViewToggleBar";
@@ -26,13 +26,12 @@ export default async function Loading() {
   return (
     <DeckListViewProvider initialView={view}>
       <div className="pt-12 w-full">
-        {/* マイデッキ｜みんなの公開デッキ(DeckSegmentedControl と同じ位置)。
+        {/* マイデッキ｜みんなの公開デッキ。骨格ではなく実体をそのまま出す
+          (タブの見た目はデータに依存しないので、骨格に差し替えるとラベルと選択位置が
+          一瞬グレーの棒になって戻るだけのちらつきになる)。
+          /decks は proxy.ts が未ログインを弾くので、ここに来るのはログイン済みだけ。
           利用中/アーカイブ済みは固定タブではなく、下の表示切替バーの中に入る */}
-        <FixedTabBarSkeleton
-          count={2}
-          positionClassName="light top-15 left-(--sidebar-width) right-0"
-          barClassName="bg-blue-100"
-        />
+        <DeckSegmentedControl selected="mine" isLoggedIn />
 
         <div className="pt-2 lg:pb-6 lg:max-w-4xl lg:mx-auto">
           {/* 実体(Decks)と同じ骨格で包む。space-y-3 と pb-3 まで揃えないと、

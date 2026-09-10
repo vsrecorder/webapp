@@ -90,6 +90,7 @@ describe("isDashboardBlockId", () => {
     expect(isDashboardBlockId("streak")).toBe(true);
     expect(isDashboardBlockId("environment_meta_window")).toBe(true);
     expect(isDashboardBlockId("designation_linked")).toBe(true);
+    expect(isDashboardBlockId("cityleague_off_season")).toBe(true);
     expect(isDashboardBlockId("nope")).toBe(false);
   });
 });
@@ -109,18 +110,30 @@ describe("DEFAULT_DASHBOARD_LAYOUT", () => {
 
   // 出方がサーバの取得結果で決まる節は「出ない側」に倒してある(骨格が実物より高いと
   // 差し替わりで下がせり上がる)
-  it("開催日だけ出る節や記録件数で出る節は含まない", () => {
-    expect(DEFAULT_DASHBOARD_LAYOUT).not.toContain("cityleague");
+  it("記録件数で出る節は含まない", () => {
     expect(DEFAULT_DASHBOARD_LAYOUT).not.toContain("first_record_cta");
     expect(DEFAULT_DASHBOARD_LAYOUT).not.toContain("env_window");
   });
 
-  // 中身が2種類ある節は、背の低い方(多数派)を既定にする
+  // 中身が2種類ある節は、背の低い方を既定にする
   it("称号は未連携の側、対戦環境データは従来パネルの側を使う", () => {
     expect(DEFAULT_DASHBOARD_LAYOUT).toContain("designation");
     expect(DEFAULT_DASHBOARD_LAYOUT).not.toContain("designation_linked");
     expect(DEFAULT_DASHBOARD_LAYOUT).toContain("environment_meta");
     expect(DEFAULT_DASHBOARD_LAYOUT).not.toContain("environment_meta_window");
+  });
+
+  // シティリーグの節は開催期間によらず常に出る。骨格は背の低い期間外の側
+  it("シティリーグは開催期間外の側を使う", () => {
+    expect(DEFAULT_DASHBOARD_LAYOUT).toContain("cityleague_off_season");
+    expect(DEFAULT_DASHBOARD_LAYOUT).not.toContain("cityleague");
+  });
+
+  // ストリークの直下がシティリーグ(Dashboard.tsx が sections を積む順と揃える)
+  it("シティリーグはストリークの直後に置く", () => {
+    const streak = DEFAULT_DASHBOARD_LAYOUT.indexOf("streak");
+
+    expect(DEFAULT_DASHBOARD_LAYOUT[streak + 1]).toBe("cityleague_off_season");
   });
 });
 
@@ -128,12 +141,20 @@ describe("sectionIdOfBlock", () => {
   it("中身が2種類ある節だけ設定のキーへ戻す", () => {
     expect(sectionIdOfBlock("environment_meta_window")).toBe("environment_meta");
     expect(sectionIdOfBlock("designation_linked")).toBe("designation");
+    expect(sectionIdOfBlock("cityleague_off_season")).toBe("cityleague");
     expect(sectionIdOfBlock("streak")).toBe("streak");
   });
 });
 
 describe("initialSectionStateFromLayout", () => {
-  const sectionIds = ["onboarding_badges", "streak", "designation", "environment_meta", "calendar"];
+  const sectionIds = [
+    "onboarding_badges",
+    "streak",
+    "cityleague",
+    "designation",
+    "environment_meta",
+    "calendar",
+  ];
 
   it("cookie が無ければ null(骨格で繋ぐ)", () => {
     expect(initialSectionStateFromLayout(undefined, sectionIds)).toBeNull();
@@ -147,19 +168,45 @@ describe("initialSectionStateFromLayout", () => {
     );
 
     expect(state).toEqual({
-      order: ["calendar", "designation", "streak", "onboarding_badges", "environment_meta"],
-      hidden: ["onboarding_badges", "environment_meta"],
+      order: [
+        "calendar",
+        "designation",
+        "streak",
+        "onboarding_badges",
+        "cityleague",
+        "environment_meta",
+      ],
+      hidden: ["onboarding_badges", "cityleague", "environment_meta"],
     });
   });
 
-  // 今回サーバが描かない節(開催日以外のシティリーグなど)や pinned のブロックは無視する
+  // 開催期間外に描いた cookie("cityleague_off_season")でも、同じ節として拾えること。
+  // ここを取り違えると、シーズンが始まった日にパネルが非表示で始まってしまう
+  it("シティリーグは開催期間外の骨格IDでも同じ節として拾う", () => {
+    const state = initialSectionStateFromLayout(
+      ["streak", "cityleague_off_season"],
+      sectionIds,
+    );
+
+    expect(state?.order.slice(0, 2)).toEqual(["streak", "cityleague"]);
+    expect(state?.hidden).not.toContain("cityleague");
+  });
+
+  // pinned・trailing のブロックや、今回サーバが描かない節(記録3件未満のときの
+  // 対戦環境データなど)は sectionIds に無いので無視する
   it("今回の節に無いIDは無視する", () => {
     const state = initialSectionStateFromLayout(
-      ["profile", "cityleague", "streak", "recent_records"],
+      ["profile", "badges", "streak", "recent_records"],
       sectionIds,
     );
 
     expect(state?.order[0]).toBe("streak");
-    expect(state?.hidden).toEqual(["onboarding_badges", "designation", "environment_meta", "calendar"]);
+    expect(state?.hidden).toEqual([
+      "onboarding_badges",
+      "cityleague",
+      "designation",
+      "environment_meta",
+      "calendar",
+    ]);
   });
 });

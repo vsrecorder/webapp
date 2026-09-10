@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { hasSessionCookie } from "@app/utils/sessionCookie";
+
 // このファイルは2つの役目を持つ。
 //
 //   1. ログイン必須ページへの未認証アクセスを、描画に入る前に 307 で / へ返す
@@ -23,9 +25,7 @@ import { NextResponse, type NextRequest } from "next/server";
 // auth() が引き続き行う)。Cookie が無いのはクローラと未ログインの訪問者に共通で、
 // 判定に I/O を伴わないため対象ルートの全リクエストに乗せても遅くならない。
 //
-// Cookie 名は next-auth の既定(auth.ts が useSecureCookies: true なので __Secure- 付き)。
-// セッションが大きいと "<name>.0", "<name>.1" に分割されるため前方一致でも見る。
-const SESSION_COOKIE_NAMES = ["__Secure-authjs.session-token", "authjs.session-token"];
+// 判定は hasSessionCookie に寄せてある(loading.tsx のフォールバックでも同じ判定が要るため)。
 
 // ログイン必須のルート。ページ側で auth() → redirect("/") しているものと同じ範囲。
 // 以前は config.matcher でこの範囲だけを対象にしていたが、UTM の着地はトップページや
@@ -34,14 +34,6 @@ const SESSION_COOKIE_NAMES = ["__Secure-authjs.session-token", "authjs.session-t
 // みんなの公開デッキ(/shared_decks)はログイン不要の公開ページなので、この配下には置いていない
 // (置くとここで弾く例外や robots の除外が要る)。
 const PROTECTED_PATHS = ["/decks", "/records", "/users", "/calendar"];
-
-function hasSessionCookie(request: NextRequest): boolean {
-  return request.cookies
-    .getAll()
-    .some(({ name }) =>
-      SESSION_COOKIE_NAMES.some((base) => name === base || name.startsWith(`${base}.`)),
-    );
-}
 
 function isProtectedPath(pathname: string): boolean {
   return PROTECTED_PATHS.some(
@@ -144,7 +136,7 @@ function saveAttribution(request: NextRequest, response: NextResponse): NextResp
   }
 
   // ログイン済みの訪問者はこれ以上「新規登録」を発生させないため、記録しても使われない
-  if (hasSessionCookie(request)) {
+  if (hasSessionCookie(request.cookies.getAll())) {
     return response;
   }
 
@@ -191,7 +183,7 @@ function saveAttribution(request: NextRequest, response: NextResponse): NextResp
 }
 
 export function proxy(request: NextRequest) {
-  if (isProtectedPath(request.nextUrl.pathname) && !hasSessionCookie(request)) {
+  if (isProtectedPath(request.nextUrl.pathname) && !hasSessionCookie(request.cookies.getAll())) {
     // ページ側の redirect("/") と同じ行き先。ホストはリクエストのものをそのまま使う。
     const url = request.nextUrl.clone();
     url.pathname = "/";

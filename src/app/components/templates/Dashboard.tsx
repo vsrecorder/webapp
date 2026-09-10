@@ -2,6 +2,7 @@ import LinkButton from "@app/components/molecules/LinkButton";
 
 import Footer from "@app/components/organisms/Layout/Footer";
 import CityleagueEvents from "@app/components/organisms/Cityleague/CityleagueEvents";
+import CityleagueOffSeasonCard from "@app/components/organisms/Cityleague/CityleagueOffSeasonCard";
 import DashboardCalendar from "@app/components/organisms/Calendar/DashboardCalendar";
 import MyGymPanel from "@app/components/organisms/MyGym/MyGymPanel";
 import Records from "@app/components/organisms/Record/Records";
@@ -33,6 +34,7 @@ import WeeklyDeckUsagePanelSkeleton from "@app/components/organisms/DeckMeta/Ske
 import EnvironmentWindowCardSkeleton from "@app/components/organisms/Dashboard/Skeleton/EnvironmentWindowCardSkeleton";
 import { RecordCardSkeletons } from "@app/components/organisms/Record/Skeleton/RecordCardSkeleton";
 import {
+  DASHBOARD_RECENT_RECORDS_LIMIT,
   DashboardBlockId,
   splitDashboardLayout,
 } from "@app/utils/dashboardLayout";
@@ -53,6 +55,8 @@ import { upstreamUrl } from "@app/utils/upstream";
 import { signUpstreamToken } from "@app/utils/upstreamToken";
 import { getAllChampionshipSeries } from "@app/utils/championshipSeriesServer";
 import { getDashboardInitialData } from "@app/utils/dashboardServer";
+import { pickCityleagueScheduleState } from "@app/utils/cityleagueSchedule";
+import { todayJSTDateString } from "@app/utils/date";
 
 import { getJstNow } from "@app/utils/calendar";
 
@@ -64,10 +68,16 @@ const MASTER_DATA_REVALIDATE_SEC = 3600;
 // 非会員向けの Home.tsx と同じ値に揃える。
 const DAILY_DATA_REVALIDATE_SEC = 300;
 
-async function getCityleagueScheduleByDate(date: Date): Promise<CityleagueScheduleType> {
-  const today = date.toISOString().split("T")[0];
-
-  const res = await fetch(upstreamUrl`/api/v1beta/cityleague_schedules?date=${today}`, {
+/*
+ * シティリーグのシーズン(開催期間)を全件取る。
+ *
+ * 日付を指定して1件だけ引くこともできるが、それだと開催期間外に「次はいつ始まるのか」を
+ * 出せない。全件から今日の状態を決める(pickCityleagueScheduleState)。
+ * 日付をURLに含めないぶんキャッシュのキーが日をまたいでも変わらず、
+ * /cityleague_results が引くのと同じエントリに相乗りできる。
+ */
+async function getAllCityleagueSchedules(): Promise<CityleagueScheduleType[]> {
+  const res = await fetch(upstreamUrl`/api/v1beta/cityleague_schedules`, {
     // シティリーグの開催情報は最大でも日次更新のため、毎回取得(no-store)は不要。
     // キャッシュしてサーバ応答(TTFB)を短縮する。
     next: { revalidate: DAILY_DATA_REVALIDATE_SEC },
@@ -207,7 +217,7 @@ export default async function TemplateDashboard({ userId, storedLayout }: Props)
   // シティリーグ開催情報と対戦環境は「無ければ undefined」で描画を続ける仕様のため、
   // ここで catch して他の取得を巻き込んで失敗させない。
   const [
-    cs,
+    schedules,
     env,
     environments,
     standardRegulations,
@@ -215,7 +225,7 @@ export default async function TemplateDashboard({ userId, storedLayout }: Props)
     user,
     totalRecords,
   ] = await Promise.all([
-    getCityleagueScheduleByDate(date).catch(() => undefined),
+    getAllCityleagueSchedules().catch(() => undefined),
     getEnvironmentByDate(date).catch(() => undefined),
     getAllEnvironments(),
     getAllStandardRegulations(),
@@ -225,6 +235,20 @@ export default async function TemplateDashboard({ userId, storedLayout }: Props)
       ? getCappedRecordCount(userId).catch(() => null)
       : Promise.resolve<number | null>(null),
   ]);
+
+  /*
+   * 今日がシーズン(開催期間)の中かどうかと、期間外なら次に始まるシーズン。
+   * 「本日のシティリーグ結果」はどちらの場合も出し、中身だけ入れ替える。
+   *
+   * schedules が undefined なのは取得に失敗したとき。期間の判定ができないので
+   * 「開催期間外」と言い切らず、当日の会場を自分で取りに行く CityleagueEvents に任せる
+   * (期間中なら会場が出るし、開催の無い日はそちらの空状態が出る)。
+   */
+  const { ongoing: cs, next: nextCs } = pickCityleagueScheduleState(
+    schedules,
+    todayJSTDateString(),
+  );
+  const showOffSeasonCard = schedules !== undefined && cs === null;
 
   /*
    * 各パネル(バッジ・ストリーク・称号・戦績・プロフィール)が最初に出す値を、ここでまとめて取る。
@@ -282,31 +306,43 @@ export default async function TemplateDashboard({ userId, storedLayout }: Props)
     ),
   });
 
-  // 本日のシティリーグ
-  if (cs) {
-    sections.push({
-      id: "cityleague",
-      label: "本日のシティリーグ",
-      node: (
-        <section key="cityleague" className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-default-700">{cs.title} 開催中</h2>
-            <LinkButton
-              href="/cityleague_results"
-              size="sm"
-              variant="light"
-              color="primary"
-              radius="full"
-              className="text-xs font-bold h-7 px-3"
-            >
-              結果を見る
-            </LinkButton>
-          </div>
+  /*
+   * 本日のシティリーグ結果。
+   *
+   * シティリーグは年に数回のシーズンにまとまって開催される。以前は開催期間外だと
+   * この節ごと消していたが、それだとホームの構成が時期によって変わり、利用者からは
+   * 「パネルが消えた」ように見える。節は常に出し、中身だけ入れ替える:
+   *   ・開催期間中(と、期間が分からなかったとき) … 当日の会場一覧(CityleagueEvents)
+   *   ・開催期間外 … 次に始まるシーズンの案内(CityleagueOffSeasonCard)
+   * 骨格も背丈が違うので skeletonId で分ける。
+   */
+  sections.push({
+    id: "cityleague",
+    label: "本日のシティリーグ結果",
+    skeletonId: showOffSeasonCard ? "cityleague_off_season" : "cityleague",
+    node: (
+      <section key="cityleague" className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-bold text-default-700">本日のシティリーグ結果</h2>
+          <LinkButton
+            href="/cityleague_results"
+            size="sm"
+            variant="light"
+            color="primary"
+            radius="full"
+            className="text-xs font-bold h-7 px-3"
+          >
+            結果を見る
+          </LinkButton>
+        </div>
+        {showOffSeasonCard ? (
+          <CityleagueOffSeasonCard next={nextCs} />
+        ) : (
           <CityleagueEvents />
-        </section>
-      ),
-    });
-  }
+        )}
+      </section>
+    ),
+  });
 
   // Myジム(登録した店舗のイベント予定)
   sections.push({
@@ -552,16 +588,24 @@ export default async function TemplateDashboard({ userId, storedLayout }: Props)
           すべて見る
         </LinkButton>
       </div>
-      {/* ページ末尾。近づくまでマウントせず、記録 10 件とその周辺情報の取得を初期表示から外す。
+      {/* ページ末尾。近づくまでマウントせず、記録とその周辺情報の取得を初期表示から外す。
           骨格の外枠は Records の一覧グリッド(desktopColumns=3)と同じ指定にする */}
       <DeferUntilVisible
         fallback={
           <div className="grid grid-cols-1 w-full gap-3 lg:grid-cols-2 xl:grid-cols-3 lg:gap-x-6">
-            <RecordCardSkeletons desktopColumns={3} />
+            <RecordCardSkeletons
+              desktopColumns={3}
+              count={DASHBOARD_RECENT_RECORDS_LIMIT}
+            />
           </div>
         }
       >
-        <Records event_type="all" disable_more_load={true} limit={10} desktopColumns={3} />
+        <Records
+          event_type="all"
+          disable_more_load={true}
+          limit={DASHBOARD_RECENT_RECORDS_LIMIT}
+          desktopColumns={3}
+        />
       </DeferUntilVisible>
     </section>
   );

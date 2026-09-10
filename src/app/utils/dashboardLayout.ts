@@ -10,7 +10,7 @@
  *
  * 設定そのものを cookie へ移す手もあるが、それだけでは足りない。
  * ホームの構成は設定以外にもサーバ側の取得結果で変わる:
- *   ・本日のシティリーグ … 開催日だけ出る
+ *   ・本日のシティリーグ結果 … 開催期間中と期間外で中身が入れ替わる
  *   ・対戦環境データ     … 記録件数(3件境界)で「組み合わせパネル」と従来パネルが入れ替わる
  *   ・最初の記録CTA/環境ウィンドウ … 記録0件・3件未満のときだけ pinned に出る
  * そこで「設定」ではなく「実際に描いた結果の並び」をそのまま覚える。
@@ -21,6 +21,14 @@
  * (document.cookie の読み書きは utils/clientCookie)。
  */
 
+/*
+ * ホーム末尾の「最近の記録」に出す件数。
+ *
+ * 実体(Records の limit)と骨格(RecordCardSkeletons の count)の両方から参照する。
+ * ここが食い違うと、骨格が実物に差し替わった瞬間に高さが飛ぶ。
+ */
+export const DASHBOARD_RECENT_RECORDS_LIMIT = 5;
+
 // 1年保つ。ホームの構成はそう頻繁には変わらないので、間隔が空いた再訪でも効かせたい
 export const DASHBOARD_LAYOUT_COOKIE = "dashboardLayout";
 export const DASHBOARD_LAYOUT_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
@@ -30,7 +38,8 @@ export const DASHBOARD_LAYOUT_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
  *
  * DashboardSections の sections に積む id と同じ文字列を使う(cityleague・stats など)。
  * pinned と trailing のぶんはセクションではないが、縦に並ぶ順に同じ列へ入れる。
- * environment_meta だけは中身が2種類あるため、骨格を選べるようIDを分けている。
+ * 中身が2種類ある節(cityleague・designation・environment_meta)だけは、
+ * 骨格を選べるようIDを分けている。
  */
 export const DASHBOARD_BLOCK_IDS = [
   // pinned(プロフィールカードと、その直下に固定で並ぶカード)
@@ -40,7 +49,10 @@ export const DASHBOARD_BLOCK_IDS = [
   // 並べ替え・非表示の対象になるセクション
   "onboarding_badges",
   "streak",
+  // 本日のシティリーグ結果。開催期間中(当日の会場一覧)と期間外(次回シーズンの案内)で
+  // 中身の背丈が違うので、骨格を選べるようIDを分けている
   "cityleague",
+  "cityleague_off_season",
   "my_gyms",
   // 称号とランク。プレイヤーズクラブ連携済みだと「入賞したシティリーグ」の節が増えるので、
   // 骨格も2種類ある(節の有無で 200px 以上変わる)
@@ -84,15 +96,18 @@ export function isDashboardBlockId(value: string): value is DashboardBlockId {
  *
  * 既定の並びは Dashboard.tsx が sections を積む順と揃えること。
  * ただしサーバ取得の結果で出方が変わるものは「出ない側」に倒す:
- *   ・cityleague       … 開催日以外は出ない。常に出すと平日の骨格が1つ余る
  *   ・first_record_cta / env_window … 記録0件・3件未満のときだけ
  * 骨格が実物より多いと、差し替わった瞬間に下の内容が「せり上がる」形でずれる。
  * 逆に少ないぶんは下へ伸びるだけなので、迷ったら出さない側に倒す。
+ * 中身が入れ替わる節も同じ理由で背の低い側を既定にする。
+ * ただしシティリーグだけは開催期間中と期間外で高さを揃えてある(どちらも 232px)ので、
+ * どちらを既定にしても骨格の高さは変わらない(期間外の側を置いている)。
  */
 export const DEFAULT_DASHBOARD_LAYOUT: readonly DashboardBlockId[] = [
   "profile",
   "onboarding_badges",
   "streak",
+  "cityleague_off_season",
   "my_gyms",
   "designation",
   "badges",
@@ -163,6 +178,7 @@ export function splitDashboardLayout(ids: readonly DashboardBlockId[]): {
 export function sectionIdOfBlock(block: DashboardBlockId): string {
   if (block === "environment_meta_window") return "environment_meta";
   if (block === "designation_linked") return "designation";
+  if (block === "cityleague_off_season") return "cityleague";
   return block;
 }
 
@@ -177,7 +193,7 @@ export function sectionIdOfBlock(block: DashboardBlockId): string {
  * その場合も読み終えた時点で並び直る)。
  *
  * cookie に無い節は非表示扱いで始める(前回描いていないので、非表示設定か自動非表示のどちらか)。
- * 今回サーバが描かない節(開催日以外のシティリーグなど)は sectionIds に無いので無視する。
+ * 今回サーバが描かない節(記録3件未満のときの対戦環境データなど)は sectionIds に無いので無視する。
  * cookie が無ければ null(従来どおり骨格で繋ぐ)。
  */
 export function initialSectionStateFromLayout(

@@ -132,12 +132,39 @@ function MonthHeaderSkeleton({
   );
 }
 
-// スマホ: 3枚 / タブレット(md〜): 4枚 / デスクトップ(lg〜): 2列なら8枚・3列なら9枚
-// （デスクトップの列数は Records の desktopColumns に合わせて呼び出し元から渡す）
-export function RecordCardSkeletons({ desktopColumns = 2 }: { desktopColumns?: 2 | 3 }) {
+/*
+ * 一覧の読み込み中に並べるカードの骨格。
+ *
+ * 既定(count 省略)は「画面に入るぶんだけ」を出す件数で、続きを読み込む一覧(/records)向け:
+ * スマホ 3枚 / タブレット(md〜) 4枚 / デスクトップ(lg〜) 2列なら8枚・3列なら9枚
+ * （デスクトップの列数は Records の desktopColumns に合わせて呼び出し元から渡す）
+ *
+ * count を渡すと、その枚数を画面幅によらず並べる。ホームの「最近の記録」のように
+ * 出る件数が最初から決まっている一覧向け。骨格が実物より多いと差し替わった瞬間に
+ * 下がせり上がるので、件数が分かっているなら合わせておく。
+ * 月の仕切りは実データの月数で決まって読めないため、先頭の1本だけ置く。
+ */
+export function RecordCardSkeletons({
+  desktopColumns = 2,
+  count,
+}: {
+  desktopColumns?: 2 | 3;
+  count?: number;
+}) {
   const colSpanClass =
     desktopColumns === 3 ? "lg:col-span-2 xl:col-span-3" : "lg:col-span-2";
   const extraDesktopCards = desktopColumns === 3 ? 5 : 4;
+
+  if (count !== undefined) {
+    return (
+      <>
+        <MonthHeaderSkeleton colSpanClass={colSpanClass} />
+        {Array.from({ length: count }).map((_, i) => (
+          <RecordCardSkeleton key={i} />
+        ))}
+      </>
+    );
+  }
 
   return (
     <>

@@ -9,8 +9,7 @@ type Props = {
   positionClassName: string;
   /*
    * タブの入れ物（HeroUI の tabList）に載せるクラス。既定は HeroUI の既定背景。
-   * 実体が classNames.tabList で別の背景を使う画面（デッキ一覧・みんなの公開デッキの
-   * DeckSegmentedControl は bg-blue-100）は、その背景を渡して骨格と揃える。
+   * 実体が classNames.tabList で別の背景を使う画面は、その背景を渡して骨格と揃える。
    */
   barClassName?: string;
 };
@@ -22,8 +21,12 @@ type Props = {
  * サーバレンダリング待ちの間に画面が固まって見えるのを防ぐ。
  *
  * 寸法は HeroUI Tabs(size="md")のテーマに合わせている。この部品を使う画面
- * (記録一覧・記録作成・デッキ一覧・みんなの公開デッキ・シティリーグ結果)は
- * すべて size="md" で、タブの高さは classNames でも h-8 に揃えられている。
+ * (記録一覧・記録作成・シティリーグ結果)はすべて size="md" で、タブの高さは
+ * classNames でも h-8 に揃えられている。
+ *
+ * デッキ一覧・みんなの公開デッキは骨格をやめ、loading.tsx でも実体の
+ * DeckSegmentedControl をそのまま描いている(タブがグレーの棒に化けて戻る
+ * ちらつきを無くすため。理由はそちらのコメント)。同じ手はここを使う画面にも使える。
  *
  *   tabList → p-1 gap-2 rounded-medium   タブの入れ物
  *   tab     → h-8 rounded-small(8px)     タブ1つ

@@ -9,8 +9,10 @@ import { sharedDecksPath } from "@app/utils/deckCodePost";
 type Props = {
   // いま開いている側
   selected: "mine" | "shared";
-  // 閲覧者のユーザID。未ログインなら null(「マイデッキ」に鍵を付け、押すとログイン案内)
-  viewerId: string | null;
+  // 閲覧者がログイン済みか(未ログインなら「マイデッキ」に鍵を付け、押すとログイン案内)。
+  // ID そのものは使わないので真偽値で受ける。読み込み中(loading.tsx)からも
+  // セッション Cookie の有無だけで同じ見た目を出せるようにするため
+  isLoggedIn: boolean;
   // 未ログインで「マイデッキ」を押したとき
   onRequireLogin?: () => void;
 };
@@ -22,8 +24,13 @@ type Props = {
  * 見た目はデッキ一覧の「利用中／アーカイブ済み」タブと同じ部品で揃え、色だけ変えて
  * 「上段＝どちらのデッキか、下段＝マイデッキの中の絞り込み」と読めるようにする。
  * 高さは 2.5rem(タブ h-8 ＋ 余白)。下に別の固定バーを置くときはこの分ずらす。
+ *
+ * 両ページの loading.tsx も骨格ではなくこれを直接描く。タブの見た目はデータに依存しないので、
+ * 骨格に差し替えると「タブを押す→ラベルと選択位置が一瞬グレーの棒になって戻る」だけの
+ * ちらつきになる(実測で約400ms)。読み込み中もそのまま出しておけば、押したタブが
+ * すぐ選択状態になり、切り替わったのは下の一覧だけに見える。
  */
-export default function DeckSegmentedControl({ selected, viewerId, onRequireLogin }: Props) {
+export default function DeckSegmentedControl({ selected, isLoggedIn, onRequireLogin }: Props) {
   const router = useRouter();
 
   return (
@@ -36,7 +43,7 @@ export default function DeckSegmentedControl({ selected, viewerId, onRequireLogi
         if (key === selected) return;
 
         if (key === "mine") {
-          if (!viewerId) {
+          if (!isLoggedIn) {
             onRequireLogin?.();
             return;
           }
@@ -58,7 +65,7 @@ export default function DeckSegmentedControl({ selected, viewerId, onRequireLogi
         tabContent: "font-bold",
       }}
     >
-      <Tab key="mine" title={viewerId ? "マイデッキ" : "🔒 マイデッキ"} />
+      <Tab key="mine" title={isLoggedIn ? "マイデッキ" : "🔒 マイデッキ"} />
       <Tab key="shared" title="みんなの公開デッキ" />
     </Tabs>
   );

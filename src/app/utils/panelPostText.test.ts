@@ -24,30 +24,22 @@ const stat = {
 
 describe("buildUserStatPostText", () => {
   it("勝率と件数の要約を載せる", () => {
-    const text = buildUserStatPostText("『メガリザードンex』", stat, false);
+    const text = buildUserStatPostText("『メガリザードンex』", stat);
 
     expect(text).toContain("『メガリザードンex』 の戦績");
     expect(text).toContain("勝率 57.4%（31勝23敗）");
     expect(text).toContain("対戦記録 18件 / 試合数 54戦");
   });
 
-  // 不戦勝・不戦敗を外した数字は公式のスイスドロー成績と一致しない。
-  // ポスト文は数字だけが独り歩きするので、断り書きが落ちていないかを見る
-  it("不戦勝・不戦敗を除いた数字なら断り書きを添える", () => {
-    const text = buildUserStatPostText("2026年7月", stat, true);
-
-    expect(text).toContain("2026年7月 の戦績（不戦勝・不戦敗を除く）");
-  });
-
-  it("含めた数字には断り書きを添えない", () => {
-    const text = buildUserStatPostText("2026年7月", stat, false);
+  // 集計条件の但し書きはポスト文に入れない(シェア画像の側に出してある)
+  it("集計条件の断り書きは入れない", () => {
+    const text = buildUserStatPostText("2026年7月", stat);
 
     expect(text).not.toContain("不戦勝");
   });
 });
 
-// デッキの戦績は常に不戦勝・不戦敗を外して集計しているので、シェア文でもその旨を断る。
-// これが無いと、公式のスイスドロー成績と違う数字がそのまま外に出る。
+// デッキの戦績も、集計条件の但し書きは入れずに数字だけを載せる。
 describe("buildDeckSummaryPostText", () => {
   const deckStat = {
     deck_id: "d1",
@@ -68,18 +60,18 @@ describe("buildDeckSummaryPostText", () => {
     pokemon_sprites: [],
   };
 
-  it("勝率と戦績に不戦を除いた旨を添える", () => {
+  it("デッキ名と勝率・戦績の要約を載せる", () => {
     const text = buildDeckSummaryPostText("メガリザードンex", deckStat);
 
-    expect(text).toContain("『メガリザードンex』の戦績（不戦勝・不戦敗を除く）");
+    expect(text).toContain("『メガリザードンex』の戦績");
     expect(text).toContain("勝率 66.7%（12戦 8勝4敗）");
+    expect(text).not.toContain("不戦勝");
   });
 
-  // 戦績が無ければ数字を出さないので、除外の断りも要らない
   it("対戦が無いデッキはデッキ名だけにする", () => {
     const text = buildDeckSummaryPostText("メガリザードンex", null);
 
     expect(text).toContain("『メガリザードンex』");
-    expect(text).not.toContain("不戦勝・不戦敗");
+    expect(text).not.toContain("不戦勝");
   });
 });

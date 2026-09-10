@@ -72,12 +72,15 @@ export default function UserProfileCardSkeleton({ isDevEnv = false }: Props) {
         </div>
 
         {/* 不戦勝・不戦敗の除外トグル。
-            既定が「除外する」なので、実カードが最初に描く選択中の面(bg-primary-50)に合わせる。
             チェックのアイコン(14px)と、文言の行(10px × 1.5 = 15px)・幅(実測 150px)。
-            行のほうが高いので、この面の高さは 15px + py-1.5 で実カードと揃う。 */}
-        <div className="mt-2.5 flex w-full items-center justify-center gap-1.5 py-1.5 rounded-xl bg-primary-50">
-          <div className="w-3.5 h-3.5 rounded-sm bg-primary-200 animate-pulse" />
-          <div className="h-[0.9375rem] w-[9.375rem] rounded-md bg-primary-200 animate-pulse" />
+            行のほうが高いので、この面の高さは 15px + py-1.5 で実カードと揃う。
+
+            色は実カードの選択中(bg-primary-50)に寄せず、他のプレースホルダと同じ中立色にする。
+            この設定は端末ごとに ON/OFF が違い、骨格の時点ではどちらか分からない。
+            選択中の色で描くと、外している人には「一瞬だけ有効に見えてから外れる」に見える。 */}
+        <div className="mt-2.5 flex w-full items-center justify-center gap-1.5 py-1.5 rounded-xl">
+          <div className="w-3.5 h-3.5 rounded-sm bg-default-200 animate-pulse" />
+          <div className="h-[0.9375rem] w-[9.375rem] rounded-md bg-default-200 animate-pulse" />
         </div>
       </CardBody>
     </Card>

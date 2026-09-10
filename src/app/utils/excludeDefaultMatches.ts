@@ -13,11 +13,15 @@
  * 保存先は localStorage。表示の好みであって記録そのものではないので端末ごとで足りる
  * (トレーナー情報パネルの戦績の表示/非表示と揃えてある)。
  *
- * サーバ描画では localStorage を読めないため、サーバ側は必ず既定
- * (DEFAULT_EXCLUDE_DEFAULT_MATCHES)で取る。パネル側もこの既定と一致するときだけ
- * サーバの値を初期値として使い、食い違うときはハイドレーション後に取り直す。
- * 両者がこの定数を共有していないと、既定を変えたときに「初期値を使う条件」だけが
- * 取り残されて毎回取り直しになるので、必ずここを参照すること。
+ * サーバ描画では localStorage を読めないので、同じ値を cookie にも書いて
+ * (EXCLUDE_DEFAULT_MATCHES_COOKIE)サーバへ渡す。cookie が無い初回訪問だけ既定
+ * (DEFAULT_EXCLUDE_DEFAULT_MATCHES)になる。
+ *
+ * cookie を経由しないと、外している端末でも最初の描画は既定(=外す)になり、
+ *   ・トグルが一瞬だけ有効に見えてから外れる
+ *   ・サーバが取った戦績が使えず、ハイドレーション後に必ず取り直しになる
+ * の2つが起きる。localStorage を正としつつ、書くときは cookie も必ず一緒に更新すること
+ * (書き込みは hooks/useExcludeDefaultMatches に集約してある)。
  */
 
 /*
@@ -31,6 +35,30 @@
 export const EXCLUDE_DEFAULT_MATCHES_KEY = "profile_exclude_default_matches";
 
 export const DEFAULT_EXCLUDE_DEFAULT_MATCHES = true;
+
+/*
+ * サーバ描画へ設定を渡すための cookie。値は "true" / "false"。
+ *
+ * localStorage と二重に持つのは、サーバが localStorage を読めないため
+ * (ダッシュボードの並び DASHBOARD_LAYOUT_COOKIE と同じ手)。正は localStorage で、
+ * cookie は「サーバに見せるための写し」。
+ */
+export const EXCLUDE_DEFAULT_MATCHES_COOKIE = "excludeDefaultMatches";
+
+// 1年保つ。表示の好みはそう頻繁に変わらないので、間隔が空いた再訪でも効かせたい
+export const EXCLUDE_DEFAULT_MATCHES_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
+
+/*
+ * cookie の値を設定へ戻す。cookie は誰でも書き換えられるので、"true" / "false" 以外は
+ * 無いものとして扱う(null=既定)。
+ */
+export function parseExcludeDefaultMatchesCookie(
+  value: string | null | undefined,
+): boolean | null {
+  if (value === "true") return true;
+  if (value === "false") return false;
+  return null;
+}
 
 // localStorage から読んだ生の値を設定へ戻す。null(未保存・読めない環境)は既定になる
 export function toExcludeDefaultMatches(stored: string | null): boolean {

@@ -518,9 +518,11 @@ export default function DeckUsagePanel({
     [],
   );
 
-  // 画像とポスト文の見出し。集計の断りは改行して2行目に置く
+  // ポスト文の見出し。集計条件の但し書きは入れない(utils/panelPostText)
+  const postSubtitle = `${filterLabel} のデッキ使用率`;
+  // シェア画像の見出し。断りは画像の中だけに置く
   // (対戦相手のデッキ分析パネルと同じ組み方。画像側は whitespace-pre-line で受ける)。
-  const shareSubtitle = `${filterLabel} のデッキ使用率\n不戦勝・不戦敗を除く`;
+  const shareSubtitle = `${postSubtitle}\n不戦勝・不戦敗を除く`;
 
   return (
     <>
@@ -759,7 +761,7 @@ export default function DeckUsagePanel({
         onOpenChange={() => setShareOpen((open) => !open)}
         onClose={() => setShareOpen(false)}
         description="デッキ使用率分析を画像にして、ポスト文と一緒にシェアできます。"
-        postText={buildDeckDistributionPostText(shareSubtitle, shareRows)}
+        postText={buildDeckDistributionPostText(postSubtitle, shareRows)}
         filenamePrefix="deck_usage"
       >
         {(width) => (

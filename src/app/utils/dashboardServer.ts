@@ -14,7 +14,6 @@ import { currentSeasonValue } from "@app/utils/season";
 import { fetchUpstream, upstreamUrl } from "@app/utils/upstream";
 import { signUpstreamToken } from "@app/utils/upstreamToken";
 import { getCurrentYearMonth } from "@app/utils/yearMonthOptions";
-import { DEFAULT_EXCLUDE_DEFAULT_MATCHES } from "@app/utils/excludeDefaultMatches";
 
 /*
  * ダッシュボード(「/」)の各パネルが最初に出す値を、ページの描画中にサーバでまとめて取る。
@@ -91,6 +90,8 @@ export type DashboardInitialDataType = {
   userPlayer?: UserPlayerType | null;
   // 戦績パネルの初期表示(対戦環境で絞り、レギュレーションは既定)
   stat?: UserStatType;
+  // stat / monthlyStat をどの条件で取ったか。パネル側は自分の設定と一致するときだけ使う
+  excludeDefaultMatches: boolean;
   // 戦績パネルが初期表示に使う対戦環境。パネル側の初期値と一致するときだけ使う
   statEnvironmentId: string;
   // プロフィールカードの当月戦績
@@ -123,6 +124,9 @@ export const getDashboardInitialData = cache(
     userId: string,
     championshipSeries: ChampionshipSeriesType[],
     environmentId: string,
+    // 不戦勝・不戦敗を外すか(cookie 由来)。パネルが投げるクエリと揃える必要があるので
+    // 既定を決め打ちにせず、呼び出し側から受け取る
+    excludeDefaultMatches: boolean,
   ): Promise<DashboardInitialDataType> => {
     const season = currentSeasonValue(championshipSeries);
     const yearMonth = getCurrentYearMonth();
@@ -178,23 +182,19 @@ export const getDashboardInitialData = cache(
       environmentId
         ? getPanel<UserStatType>(
             "stat",
-            // 不戦勝・不戦敗を外すかは戦績分析パネルの設定(localStorage)だが、サーバでは
-            // 読めないので既定で取る。パネル側も設定が既定のままのときだけこの値を使う。
             statUrl(userId, {
               regulation_id: String(DEFAULT_REGULATION_ID),
               environment_id: environmentId,
-              exclude_default_matches: String(DEFAULT_EXCLUDE_DEFAULT_MATCHES),
+              exclude_default_matches: String(excludeDefaultMatches),
             }),
             headers,
           )
         : Promise.resolve<UserStatType | undefined>(undefined),
       getPanel<UserStatType>(
         "monthly stat",
-        // 不戦勝・不戦敗を外すかはトレーナー情報パネルの設定(localStorage)だが、サーバでは
-        // 読めないので既定で取る。カード側も設定が既定のままのときだけこの値を使う。
         statUrl(userId, {
           year_month: yearMonth,
-          exclude_default_matches: String(DEFAULT_EXCLUDE_DEFAULT_MATCHES),
+          exclude_default_matches: String(excludeDefaultMatches),
         }),
         headers,
       ),
@@ -217,6 +217,7 @@ export const getDashboardInitialData = cache(
       designation,
       userPlayer,
       stat,
+      excludeDefaultMatches,
       statEnvironmentId: environmentId,
       monthlyStat,
       yearMonth,

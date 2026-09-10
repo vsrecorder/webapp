@@ -300,8 +300,10 @@ export default function OpponentDeckUsagePanel({
   const ownDeckLine = ownDeckId
     ? `『${ownDecks.find((d) => d.deck_id === ownDeckId)?.name ?? ""}』使用時の`
     : "すべての使用デッキでの";
-  // シェア画像の見出し。画面の期間ラベルと同じ文言・同じ改行位置にする
-  const shareSubtitle = `${filterLabel}\n${ownDeckLine}\n対戦相手のデッキ分析\n不戦勝・不戦敗を除く`;
+  // ポスト文の見出し。集計条件の但し書きは入れない(utils/panelPostText)
+  const postSubtitle = `${filterLabel}\n${ownDeckLine}\n対戦相手のデッキ分析`;
+  // シェア画像の見出し。画面の期間ラベルと同じ文言・同じ改行位置にし、断りは画像の中だけに置く
+  const shareSubtitle = `${postSubtitle}\n不戦勝・不戦敗を除く`;
 
   // シェア画像・ポスト文に渡す表示データ。
   // 「その他」への集約と配色は画面の円グラフと同じ関数で求め、並び・色をずらさない。
@@ -490,7 +492,7 @@ export default function OpponentDeckUsagePanel({
         onOpenChange={() => setShareOpen((open) => !open)}
         onClose={() => setShareOpen(false)}
         description="対戦相手のデッキ分析を画像にして、ポスト文と一緒にシェアできます。"
-        postText={buildDeckDistributionPostText(shareSubtitle, shareRows.rows)}
+        postText={buildDeckDistributionPostText(postSubtitle, shareRows.rows)}
         filenamePrefix="opponent_deck_usage"
       >
         {(width) => (

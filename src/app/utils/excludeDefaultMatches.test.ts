@@ -4,6 +4,7 @@ import {
   DECK_USAGE_ALL_TIME_QUERY,
   EXCLUDE_DEFAULT_MATCHES_QUERY,
   DEFAULT_EXCLUDE_DEFAULT_MATCHES,
+  parseExcludeDefaultMatchesCookie,
   toExcludeDefaultMatches,
 } from "@app/utils/excludeDefaultMatches";
 
@@ -47,5 +48,23 @@ describe("DECK_USAGE_ALL_TIME_QUERY", () => {
 
     expect(params.get("all_time")).toBe("true");
     expect(params.get("exclude_default_matches")).toBe("true");
+  });
+});
+
+/*
+ * cookie はサーバへ設定を見せるための写し。誰でも書き換えられるので、
+ * 期待した値以外は「無い」(=既定に従う)として扱う。
+ */
+describe("parseExcludeDefaultMatchesCookie", () => {
+  it("true / false を解釈する", () => {
+    expect(parseExcludeDefaultMatchesCookie("true")).toBe(true);
+    expect(parseExcludeDefaultMatchesCookie("false")).toBe(false);
+  });
+
+  it("未設定や想定外の値は null にする", () => {
+    expect(parseExcludeDefaultMatchesCookie(undefined)).toBeNull();
+    expect(parseExcludeDefaultMatchesCookie(null)).toBeNull();
+    expect(parseExcludeDefaultMatchesCookie("")).toBeNull();
+    expect(parseExcludeDefaultMatchesCookie("1")).toBeNull();
   });
 });

@@ -54,6 +54,7 @@ import { upstreamUrl } from "@app/utils/upstream";
 import { signUpstreamToken } from "@app/utils/upstreamToken";
 import { getAllChampionshipSeries } from "@app/utils/championshipSeriesServer";
 import { getDashboardInitialData } from "@app/utils/dashboardServer";
+import { DEFAULT_EXCLUDE_DEFAULT_MATCHES } from "@app/utils/excludeDefaultMatches";
 import { pickCityleagueScheduleState } from "@app/utils/cityleagueSchedule";
 import { todayJSTDateString } from "@app/utils/date";
 
@@ -109,6 +110,12 @@ type Props = {
    * DashboardSections が表示設定(localStorage)を読むまでの繋ぎに、この構成で骨格を出す。
    */
   storedLayout?: readonly DashboardBlockId[];
+  /*
+   * 不戦勝・不戦敗を戦績集計から外すか(cookie 由来。page.tsx が読む)。
+   * localStorage を読めるまでの繋ぎで、各パネルの最初の描画とサーバでの取得に使う。
+   * cookie が無い初回訪問は undefined(既定に従う)。
+   */
+  excludeDefaultMatches?: boolean;
 };
 
 async function getUser(userId: string): Promise<UserType | null> {
@@ -199,7 +206,11 @@ async function getAllStandardRegulations(): Promise<StandardRegulationType[]> {
   return [];
 }
 
-export default async function TemplateDashboard({ userId, storedLayout }: Props) {
+export default async function TemplateDashboard({
+  userId,
+  storedLayout,
+  excludeDefaultMatches,
+}: Props) {
   const date = getJstNow();
 
   // 施策0-6: 記録0件のユーザーにだけ「最初の記録を作成する」CTAを出す。
@@ -261,6 +272,7 @@ export default async function TemplateDashboard({ userId, storedLayout }: Props)
     userId,
     championshipSeries,
     env?.id ?? environments[0]?.id ?? "",
+    excludeDefaultMatches ?? DEFAULT_EXCLUDE_DEFAULT_MATCHES,
   );
 
   // totalRecords は「全期間の記録件数（0〜3にキャップ）」。3 は「3件以上」の意味。
@@ -424,6 +436,7 @@ export default async function TemplateDashboard({ userId, storedLayout }: Props)
           userCreatedAt={user?.created_at != null ? String(user.created_at) : undefined}
           initialStat={panels.stat}
           initialStatEnvironmentId={panels.statEnvironmentId}
+          initialExcludeDefaultMatches={panels.excludeDefaultMatches}
         />
       </section>
     ),
@@ -436,7 +449,11 @@ export default async function TemplateDashboard({ userId, storedLayout }: Props)
     node: (
       <section key="stats_history" className="flex flex-col gap-2">
         <h2 className="text-sm font-bold text-default-700">月毎の勝率推移</h2>
-        <UserStatHistoryChart userId={userId} championshipSeries={championshipSeries} />
+        <UserStatHistoryChart
+          userId={userId}
+          championshipSeries={championshipSeries}
+          initialExcludeDefaultMatches={panels.excludeDefaultMatches}
+        />
       </section>
     ),
   });
@@ -620,6 +637,7 @@ export default async function TemplateDashboard({ userId, storedLayout }: Props)
                   }
                   initialStat={panels.monthlyStat}
                   initialYearMonth={panels.yearMonth}
+                  initialExcludeDefaultMatches={panels.excludeDefaultMatches}
                   initialUserPlayer={panels.userPlayer}
                 />
                 {/*

@@ -44,6 +44,12 @@ const OWN_DECK_SPRITE_SIZE = 28;
 type Props = {
   userId: string;
   championshipSeries: ChampionshipSeriesType[];
+  /*
+   * 不戦勝・不戦敗を外すかの、サーバが cookie から読んだ値(utils/excludeDefaultMatches)。
+   * このパネル自体は遅延マウントでサーバ描画されないが、設定を共有する他のパネルと
+   * 初回の見た目を揃えるために受け取る。
+   */
+  initialExcludeDefaultMatches?: boolean;
 };
 
 function formatXLabel(ym: string, hasMultipleYears: boolean): string {
@@ -73,7 +79,11 @@ function recentYearMonths(count: number): string[] {
   });
 }
 
-export default function UserStatHistoryChart({ userId, championshipSeries }: Props) {
+export default function UserStatHistoryChart({
+  userId,
+  championshipSeries,
+  initialExcludeDefaultMatches,
+}: Props) {
   // 今シーズンの season 識別子。「今シーズン」表示のときに、グラフ(period=season で
   // バックエンドが現在シーズンを解決する)とデッキ一覧の期間を揃えるために使う。
   const currentSeason = currentSeasonValue(championshipSeries);
@@ -85,7 +95,9 @@ export default function UserStatHistoryChart({ userId, championshipSeries }: Pro
   // レギュレーション区分(スタンダード/エクストラ/殿堂/その他)。既定はスタンダード。
   const [regulationId, setRegulationId] = useState<number>(DEFAULT_REGULATION_ID);
   // 不戦勝・不戦敗を集計から外すか(トレーナー情報・戦績分析パネルと共有の設定)
-  const [excludeDefaultMatches, toggleExcludeDefaultMatches] = useExcludeDefaultMatches();
+  const [excludeDefaultMatches, toggleExcludeDefaultMatches] = useExcludeDefaultMatches(
+    initialExcludeDefaultMatches,
+  );
   const [ownDecks, setOwnDecks] = useState<DeckUsageItemType[]>([]);
   const [history, setHistory] = useState<UserStatHistoryType | null>(null);
   const [isLoading, setIsLoading] = useState(true);

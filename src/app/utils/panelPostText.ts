@@ -8,19 +8,23 @@ import type { ShareDeckRow } from "@app/components/organisms/DeckUsage/DeckDistr
 
 const HASHTAG = "#バトレコ";
 
-// 「戦績分析」パネル。勝率と件数の要約を載せる。
-// excludeDefaultMatches のときは、公式のスイスドロー成績と一致しない数字だと分かるよう断る。
+/*
+ * 「戦績分析」パネル。勝率と件数の要約を載せる。
+ *
+ * 不戦勝・不戦敗を外して集計しているかどうかはポスト文に書かない。
+ * ポストは読み手に数字を見せるもので、集計条件の但し書きは字数を食うわりに伝わらない
+ * (シェア画像の側には出してある)。デッキのシェア文も同じ扱い。
+ */
 export function buildUserStatPostText(
   filterLabel: string,
   stat: UserStatType | null,
-  excludeDefaultMatches: boolean,
 ): string {
   const winRate = ((stat?.win_rate ?? 0) * 100).toFixed(1);
   const draws = drawCount(stat);
   const record = `${stat?.wins ?? 0}勝${stat?.losses ?? 0}敗${draws > 0 ? `${draws}分` : ""}`;
 
   return [
-    `${filterLabel} の戦績${excludeDefaultMatches ? "（不戦勝・不戦敗を除く）" : ""}`,
+    `${filterLabel} の戦績`,
     "",
     `勝率 ${winRate}%（${record}）`,
     `対戦記録 ${stat?.total_records ?? 0}件 / 試合数 ${stat?.total_matches ?? 0}戦`,
@@ -30,8 +34,7 @@ export function buildUserStatPostText(
 }
 
 // デッキ詳細ページの「シェアする」用ポスト文。デッキ名と勝率・戦績の要約を載せる。
-// デッキの戦績は不戦勝・不戦敗を外して集計しているので(utils/excludeDefaultMatches)、
-// 公式のスイスドロー成績と一致しない数字だと分かるよう断る(戦績分析パネルと同じ流儀)。
+// 集計条件の但し書きを入れない理由は buildUserStatPostText と同じ。
 export function buildDeckSummaryPostText(
   deckName: string,
   stat: DeckUsageItemType | null,
@@ -46,7 +49,7 @@ export function buildDeckSummaryPostText(
   const record = `${stat!.wins}勝${stat!.losses}敗`;
 
   return [
-    `『${deckName}』の戦績（不戦勝・不戦敗を除く）`,
+    `『${deckName}』の戦績`,
     "",
     `勝率 ${winRate}%（${stat!.count}戦 ${record}）`,
     "",

@@ -16,6 +16,10 @@ import {
   DEFAULT_DASHBOARD_LAYOUT,
   parseDashboardLayout,
 } from "@app/utils/dashboardLayout";
+import {
+  EXCLUDE_DEFAULT_MATCHES_COOKIE,
+  parseExcludeDefaultMatchesCookie,
+} from "@app/utils/excludeDefaultMatches";
 
 const description = SITE_DESCRIPTION;
 
@@ -87,6 +91,12 @@ export default async function Home({ searchParams }: Props) {
     // (DashboardSections が書く)。初回訪問など cookie が無ければ既定の並び。
     const store = await cookies();
     const storedLayout = parseDashboardLayout(store.get(DASHBOARD_LAYOUT_COOKIE)?.value);
+    // 不戦勝・不戦敗を外すかも localStorage にあってサーバからは読めないため、
+    // 同じ手で cookie から受け取る。渡さないと外している端末で最初の描画だけ
+    // 既定(=外す)になり、トグルが一瞬有効に見えてから外れる
+    const excludeDefaultMatches = parseExcludeDefaultMatchesCookie(
+      store.get(EXCLUDE_DEFAULT_MATCHES_COOKIE)?.value,
+    );
 
     return (
       <Suspense
@@ -96,6 +106,7 @@ export default async function Home({ searchParams }: Props) {
         <TemplateDashboard
           userId={session.user.id}
           storedLayout={storedLayout ?? undefined}
+          excludeDefaultMatches={excludeDefaultMatches ?? undefined}
         />
       </Suspense>
     );

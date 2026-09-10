@@ -50,6 +50,11 @@ type Props = {
    *   null      … 未連携(取れた上で「無い」)
    */
   initialUserPlayer?: UserPlayerType | null;
+  /*
+   * 不戦勝・不戦敗を外すかの、サーバが cookie から読んだ値(utils/excludeDefaultMatches)。
+   * localStorage を読めるまでの最初の描画に使う。initialStat もこの条件で取ってある。
+   */
+  initialExcludeDefaultMatches?: boolean;
 };
 
 // フレームがこの間隔以内で描けていれば「滑らかに描ける状態」とみなす(およそ25fps以上)。
@@ -338,6 +343,7 @@ export default function UserProfileCard({
   initialStat,
   initialYearMonth,
   initialUserPlayer,
+  initialExcludeDefaultMatches,
 }: Props) {
   const [userPlayer, setUserPlayer] = useState<UserPlayerType | null>(
     initialUserPlayer ?? null,
@@ -350,7 +356,9 @@ export default function UserProfileCard({
   // 戦績の表示/非表示。保存先は localStorage(サーバ描画では読めないので、読めるまでは表示)
   const statsVisible = useLocalStorageItem(STATS_VISIBLE_KEY) !== "false";
   // 不戦勝・不戦敗を集計から外すか(戦績分析パネルと共有の設定)
-  const [excludeDefaultMatches, toggleExcludeDefaultMatches] = useExcludeDefaultMatches();
+  const [excludeDefaultMatches, toggleExcludeDefaultMatches] = useExcludeDefaultMatches(
+    initialExcludeDefaultMatches,
+  );
   const [yearMonth, setYearMonth] = useState<string>(getCurrentYearMonth);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
@@ -393,10 +401,9 @@ export default function UserProfileCard({
   );
 
   /*
-   * サーバ描画の戦績は既定(DEFAULT_EXCLUDE_DEFAULT_MATCHES)で取ってある。localStorage は
-   * サーバから読めず、この端末が既定を上書きしているかを知りようがないため。
-   * したがって初期値として使えるのは設定が既定のままのときだけで、切り替えてある端末では
-   * ハイドレーション後に鍵が変わって取り直しになる。
+   * サーバ描画の戦績は initialExcludeDefaultMatches の条件で取ってある(cookie 由来)。
+   * 通常は localStorage と一致するので取り直しは起きない。別端末で設定を変えた直後など、
+   * cookie と localStorage が食い違うときだけハイドレーション後に鍵が変わって取り直す。
    */
   const {
     data: stat,
@@ -407,7 +414,8 @@ export default function UserProfileCard({
     statKey,
     fetchStat,
     initialYearMonth === yearMonth &&
-      excludeDefaultMatches === DEFAULT_EXCLUDE_DEFAULT_MATCHES
+      excludeDefaultMatches ===
+        (initialExcludeDefaultMatches ?? DEFAULT_EXCLUDE_DEFAULT_MATCHES)
       ? initialStat
       : undefined,
   );

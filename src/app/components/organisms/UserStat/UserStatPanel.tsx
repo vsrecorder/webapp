@@ -51,6 +51,11 @@ type Props = {
    */
   initialStat?: UserStatType;
   initialStatEnvironmentId?: string;
+  /*
+   * 不戦勝・不戦敗を外すかの、サーバが cookie から読んだ値(utils/excludeDefaultMatches)。
+   * localStorage を読めるまでの最初の描画に使う。initialStat もこの条件で取ってある。
+   */
+  initialExcludeDefaultMatches?: boolean;
 };
 
 export default function UserStatPanel({
@@ -63,6 +68,7 @@ export default function UserStatPanel({
   sectionTitle,
   initialStat,
   initialStatEnvironmentId,
+  initialExcludeDefaultMatches,
 }: Props) {
   const [filterMode, setFilterMode] = useState<FilterMode>("environment");
   const [yearMonth, setYearMonth] = useState<string>(getCurrentYearMonth);
@@ -83,7 +89,9 @@ export default function UserStatPanel({
   const [shareOpen, setShareOpen] = useState(false);
 
   // 不戦勝・不戦敗を集計から外すか(トレーナー情報パネルと共有の設定)
-  const [excludeDefaultMatches, toggleExcludeDefaultMatches] = useExcludeDefaultMatches();
+  const [excludeDefaultMatches, toggleExcludeDefaultMatches] = useExcludeDefaultMatches(
+    initialExcludeDefaultMatches,
+  );
 
   const yearMonthOptions = generateYearMonthOptions(userCreatedAt);
   const seasonOptions = seasonOptionsFromChampionshipSeries(championshipSeries);
@@ -134,14 +142,14 @@ export default function UserStatPanel({
 
   // サーバ値が使えるのは「初期表示の絞り込みのまま」のときだけ。
   // 対戦環境で絞り、レギュレーションが既定で、環境がサーバの取得時と同じ場合に限る。
-  // 不戦勝・不戦敗の扱いも同様で、サーバは localStorage を読めず既定で取っているため、
-  // この端末が切り替えているときは使えない(ハイドレーション後に取り直す)。
+  // 不戦勝・不戦敗の扱いも同様で、サーバが取ったときの条件(cookie 由来)と一致するときだけ使う。
   const canUseInitialStat =
     filterMode === "environment" &&
     regulationId === DEFAULT_REGULATION_ID &&
     environmentId !== "" &&
     environmentId === initialStatEnvironmentId &&
-    excludeDefaultMatches === DEFAULT_EXCLUDE_DEFAULT_MATCHES;
+    excludeDefaultMatches ===
+      (initialExcludeDefaultMatches ?? DEFAULT_EXCLUDE_DEFAULT_MATCHES);
 
   const { data: stat, loading: isLoading } = useSeededResource(
     query,
@@ -331,7 +339,7 @@ export default function UserStatPanel({
         onOpenChange={() => setShareOpen((open) => !open)}
         onClose={() => setShareOpen(false)}
         description="戦績分析を画像にして、ポスト文と一緒にシェアできます。"
-        postText={buildUserStatPostText(filterLabel, stat, excludeDefaultMatches)}
+        postText={buildUserStatPostText(filterLabel, stat)}
         filenamePrefix="user_stat"
       >
         {() => (

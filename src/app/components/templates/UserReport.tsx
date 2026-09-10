@@ -390,7 +390,7 @@ function EmptyPeriod({ period }: { period: RecapPeriod }) {
       <CardBody className="flex flex-col gap-4 p-6">
         <div className="flex flex-col gap-1">
           <span className="text-sm font-black text-foreground">
-            {periodTitle(period)}の記録はまだありません
+            {periodTitle(period)}の対戦はまだありません
           </span>
           <span className="text-[0.6875rem] leading-relaxed text-default-500">
             勝敗と相手デッキだけなら10秒で残せます。1戦記録すると、この期間の

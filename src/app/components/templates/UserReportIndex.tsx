@@ -273,7 +273,7 @@ export default function TemplateUserReportIndex({ userId }: Props) {
               subtitle={
                 thisMonthRow && thisMonthRow.total_matches > 0
                   ? `${thisMonthRow.total_matches}戦 ・ 勝率 ${(thisMonthRow.win_rate * 100).toFixed(1)}%`
-                  : "まだ記録がありません"
+                  : "まだ対戦がありません"
               }
             />
           </div>

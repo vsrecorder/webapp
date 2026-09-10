@@ -171,7 +171,7 @@ export function periodDateRange(period: RecapPeriod): { from: string; to: string
 }
 
 // 選べる月を新しい順に返す。記録のある月だけに絞り、当月は記録が無くても必ず入れる
-// （その月のふりかえりを開いて「まだ記録がありません」を見せたいのは当月だけのため）。
+// （その月のふりかえりを開いて「まだ対戦がありません」を見せたいのは当月だけのため）。
 export function selectableMonths(
   history: UserStatMonthlyType[],
   currentMonth: string,

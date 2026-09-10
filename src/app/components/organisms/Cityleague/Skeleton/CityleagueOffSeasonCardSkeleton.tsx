@@ -45,7 +45,7 @@ export default function CityleagueOffSeasonCardSkeleton() {
         {/* 注意書き(text-tiny の行)。実体では次回の有無によらず常に出る */}
         <span className="relative inline-flex items-center">
           <span aria-hidden className="invisible text-tiny">
-            開催期間中は大会結果が表示されます
+            開催期間中は大会が表示されます
           </span>
           <span className="absolute inset-y-0.5 left-0 right-0 rounded-md bg-default-100 animate-pulse" />
         </span>

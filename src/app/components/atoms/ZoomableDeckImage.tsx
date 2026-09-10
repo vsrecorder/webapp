@@ -62,7 +62,11 @@ export default function ZoomableDeckImage({ code, disableZoom = false, alt, load
   const imageContent = (
     <>
       {!imageLoaded && !imageFailed && (
-        <Skeleton className="absolute inset-0 rounded-lg" />
+        /* 角丸は枠(frameClass)側で持たせ、骨格・画像には付けない。
+          それぞれが角丸を持つと半径の差ぶんだけ骨格が画像を覆いきれず、
+          「画像は描かれたが React がまだ骨格を外していない」わずかな間に、
+          下の画像の白い角が四隅から弧になって覗く(実測: 骨格 rounded-lg > 画像 rounded-md)。 */
+        <Skeleton className="absolute inset-0" />
       )}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
@@ -72,16 +76,23 @@ export default function ZoomableDeckImage({ code, disableZoom = false, alt, load
         loading={loading}
         onLoad={() => setImageLoaded(true)}
         onError={() => setImageFailed(true)}
-        className={`h-full w-full rounded-md object-cover ${
-          imageFailed ? "opacity-0" : ""
-        }`}
+        /*
+         * 読み終わるまでは伏せておく。ブラウザは読み込みが決着した瞬間に画像を描くが、
+         * それを受けた React が骨格を外すのは次のコミット(実測で数百ms遅れることがある)
+         * なので、伏せずにいると骨格の下で画像だけが先に描かれる。角丸の縁は
+         * 骨格と画像でアンチエイリアスが二重にかかるため、その隙間から下の画像の
+         * 白い角が四隅に薄く滲む(実測: 骨格色40に対して84)。
+         * 伏せる条件を imageLoaded にしておけば、読めなかったとき(imageFailed)も
+         * そのまま伏せたままになる。
+         */
+        className={`h-full w-full object-cover ${imageLoaded ? "" : "opacity-0"}`}
       />
     </>
   );
 
   // 読めなかったときは枠を無地にして「そこに画像がある場所」だけを残す
   // （デッキ一覧のギャラリーカードと同じ見せ方）。
-  const frameClass = `relative w-full aspect-2/1 block${imageFailed ? " rounded-md bg-default-100" : ""}`;
+  const frameClass = `relative w-full aspect-2/1 block overflow-hidden rounded-md${imageFailed ? " bg-default-100" : ""}`;
 
   // disableZoom のときは、タップで全画面表示しない素の画像として描画する。
   // それ以外はタップで拡大するボタンにする。読めなかったときは拡大しても何も映らないので、

@@ -21,11 +21,14 @@ import { writeLocalStorage } from "@app/utils/localStorageStore";
 import { useHydrated } from "@app/hooks/useHydrated";
 import { useLocalStorageItem } from "@app/hooks/useLocalStorageItem";
 import {
+  applyOrderMigrations,
   DASHBOARD_LAYOUT_COOKIE,
   DASHBOARD_LAYOUT_COOKIE_MAX_AGE,
+  DASHBOARD_ORDER_VERSION,
   DashboardBlockId,
   initialSectionStateFromLayout,
   isDashboardBlockId,
+  mergeIntoStoredOrder,
   serializeDashboardLayout,
 } from "@app/utils/dashboardLayout";
 
@@ -79,31 +82,61 @@ type StoredLayout = {
   // 自動非表示(全達成した「はじめの一歩」など)を、ユーザーが明示的に再表示した節。
   // 「既定は非表示だが、本人がONにしたら表示し続ける」を成立させるための上書き記録。
   shown?: string[];
+  /*
+   * この並びに適用済みの「一度きりの並び直し」の版(utils/dashboardLayout)。
+   * 無い＝その仕組みができる前に保存された値。保存時は必ず現在の版を付ける。
+   */
+  orderVersion?: number;
 };
 
-// 保存値(localStorage の生の JSON)を並び・非表示・明示表示へ戻す。
-// 未知のIDを除外しつつ、新しく増えたセクションは末尾に追加する
+/*
+ * 保存値(localStorage の生の JSON)を並び・非表示・明示表示へ戻す。
+ *
+ * 未知のIDは落とし、保存値に無い節は既定の位置へ差し込む(mergeIntoStoredOrder)。
+ * 末尾に足すと、あとから増えた節が既存ユーザーにだけホーム・表示設定の最下部に出る。
+ * すでに保存値へ入っている節の位置は動かせないので、そちらは版付きの並び直し
+ * (applyOrderMigrations)で一度だけ直す。
+ */
 function parseLayout(raw: string | null, defaultOrder: string[]): Required<StoredLayout> {
   try {
-    if (!raw) return { order: defaultOrder, hidden: [], shown: [] };
+    if (!raw) {
+      // 未保存。並び直しの対象が無いので、現在の版が入っている扱いにする
+      return {
+        order: defaultOrder,
+        hidden: [],
+        shown: [],
+        orderVersion: DASHBOARD_ORDER_VERSION,
+      };
+    }
 
     const parsed = JSON.parse(raw) as StoredLayout;
     const known = new Set(defaultOrder);
-    const order = parsed.order.filter((id) => known.has(id));
-    const missing = defaultOrder.filter((id) => !order.includes(id));
 
     return {
-      order: [...order, ...missing],
+      order: applyOrderMigrations(
+        mergeIntoStoredOrder(parsed.order ?? [], defaultOrder),
+        parsed.orderVersion,
+      ),
       hidden: (parsed.hidden ?? []).filter((id) => known.has(id)),
       shown: (parsed.shown ?? []).filter((id) => known.has(id)),
+      orderVersion: parsed.orderVersion ?? 0,
     };
   } catch {
-    return { order: defaultOrder, hidden: [], shown: [] };
+    return {
+      order: defaultOrder,
+      hidden: [],
+      shown: [],
+      orderVersion: DASHBOARD_ORDER_VERSION,
+    };
   }
 }
 
-function saveLayout(layout: StoredLayout) {
-  writeLocalStorage(STORAGE_KEY, JSON.stringify(layout));
+// 保存はここに集約する。適用済みの版を必ず付け、次回の読み込みで並びが巻き戻らないようにする
+function saveLayout(layout: Omit<StoredLayout, "orderVersion">) {
+  writeLocalStorage(
+    STORAGE_KEY,
+    JSON.stringify({ ...layout, orderVersion: DASHBOARD_ORDER_VERSION }),
+  );
 }
 
 // localStorage が使えない環境では自動非表示のキャッシュを諦める(致命的ではない)
@@ -167,6 +200,7 @@ export default function DashboardSections({
       order: initialFromCookie?.order ?? (defaultOrderKey ? defaultOrderKey.split(",") : []),
       hidden: initialFromCookie?.hidden ?? [],
       shown: [],
+      orderVersion: DASHBOARD_ORDER_VERSION,
     }),
     [initialFromCookie, defaultOrderKey],
   );
@@ -217,6 +251,24 @@ export default function DashboardSections({
   useEffect(() => {
     if (badges) saveOnboardingComplete(isOnboardingComplete(badges));
   }, [badges]);
+
+  /*
+   * 版付きの並び直し(applyOrderMigrations)を適用した結果を、一度だけ保存し直す。
+   *
+   * 読み込み時に直すだけだと版が古いままなので、次に開いたときも同じ並び直しが走り、
+   * ユーザーが自分で動かした位置を毎回巻き戻してしまう。ここで現在の版を付けて保存すれば、
+   * 直すのは一度きりになる。未保存(storedLayout が null)なら直すものが無いので何もしない。
+   */
+  useEffect(() => {
+    if (!hydrated || storedLayout == null) return;
+    if (savedLayout.orderVersion >= DASHBOARD_ORDER_VERSION) return;
+
+    saveLayout({
+      order: savedLayout.order,
+      hidden: savedLayout.hidden,
+      shown: savedLayout.shown,
+    });
+  }, [hydrated, storedLayout, savedLayout]);
 
   // ヘッダーのユーザメニューから ?customize=1 付きで遷移してきたらモーダルを開く
   useEffect(() => {

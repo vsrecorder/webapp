@@ -68,7 +68,7 @@ export default function CityleagueOffSeasonCard({ next }: Props) {
 
         {/* このパネルが何を出す場所なのかの注意書き。開催期間外は中身が空に見えるため、
             「機能が壊れている」と受け取られないよう明記する */}
-        <p className="text-tiny text-default-400">開催期間中は大会結果が表示されます</p>
+        <p className="text-tiny text-default-400">開催期間中は大会が表示されます</p>
       </CardBody>
     </Card>
   );

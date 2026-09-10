@@ -100,8 +100,11 @@ function NoDeckCodeImage() {
   }, []);
 
   return (
-    <div className="relative w-full aspect-2/1">
-      {!loaded && <Skeleton className="absolute inset-0 rounded-lg" />}
+    /* 角丸は枠側で持つ。骨格と画像がそれぞれ角丸を持つと、半径の差ぶんだけ
+      骨格が画像を覆いきれず、四隅から下の画像の白い角が弧になって覗く
+      (ZoomableDeckImage と同じ理由) */
+    <div className="relative w-full aspect-2/1 overflow-hidden rounded-md">
+      {!loaded && <Skeleton className="absolute inset-0" />}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         ref={imageRef}
@@ -109,7 +112,9 @@ function NoDeckCodeImage() {
         src={NO_DECK_CODE_IMAGE_URL}
         loading="lazy"
         onLoad={() => setLoaded(true)}
-        className="h-full w-full rounded-md object-cover"
+        // 読み終わるまで伏せる(ZoomableDeckImage と同じ理由。骨格の下で画像だけが
+        // 先に描かれると、角丸の縁から白い角が滲む)
+        className={`h-full w-full object-cover ${loaded ? "" : "opacity-0"}`}
       />
     </div>
   );

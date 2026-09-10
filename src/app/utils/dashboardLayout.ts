@@ -183,6 +183,92 @@ export function sectionIdOfBlock(block: DashboardBlockId): string {
 }
 
 /*
+ * 保存済みの並びに、そこに無い節を「既定の位置」で差し込む。
+ *
+ * 保存済みの並び(localStorage の dashboard_layout_v1 / cookie)は、節が増える前に
+ * 書かれたものでありうる。以前はそこに無い節を末尾へ足していたが、それだと
+ * コード上はストリークの直後に積んでいる節(本日のシティリーグ結果)が、
+ * 既存ユーザーにだけホームと表示設定の一番下に現れてしまう。
+ *
+ * 既定の並びで直前に来る節のうち、保存済みの並びにあるものを探して、その後ろへ入れる
+ * (見つからなければ先頭)。こうすると、増えた節は書いたとおりの位置に出つつ、
+ * ユーザーが自分で並べ替えた順序はそのまま保たれる。
+ * 未知のID(古い節・cookie の書き換え)は落とす。
+ */
+export function mergeIntoStoredOrder(
+  storedOrder: readonly string[],
+  defaultOrder: readonly string[],
+): string[] {
+  const known = new Set(defaultOrder);
+  const placed = new Set<string>();
+  const merged: string[] = [];
+
+  for (const id of storedOrder) {
+    if (!known.has(id) || placed.has(id)) continue;
+
+    placed.add(id);
+    merged.push(id);
+  }
+
+  defaultOrder.forEach((id, index) => {
+    if (placed.has(id)) return;
+
+    // 既定の並びで手前にある節のうち、すでに置かれているものの直後へ入れる
+    let at = 0;
+    for (let prev = index - 1; prev >= 0; prev--) {
+      const found = merged.indexOf(defaultOrder[prev]);
+      if (found >= 0) {
+        at = found + 1;
+        break;
+      }
+    }
+
+    merged.splice(at, 0, id);
+    placed.add(id);
+  });
+
+  return merged;
+}
+
+/*
+ * 保存済みの並び(localStorage の dashboard_layout_v1)に対する、一度きりの並び直しの版。
+ *
+ * mergeIntoStoredOrder は「保存済みに無い節」を既定の位置へ入れるが、すでに保存済みに
+ * 入ってしまっている節は動かせない(ユーザーが自分で置いた位置かもしれないため)。
+ * 節の位置をこちらの都合で直したいときは、この版を上げて applyOrderMigrations に足す。
+ */
+export const DASHBOARD_ORDER_VERSION = 1;
+
+// order の中の id を anchor の直後へ移す。どちらか無ければ何もしない
+function moveRightAfter(order: readonly string[], id: string, anchor: string): string[] {
+  if (!order.includes(id) || !order.includes(anchor) || id === anchor) return [...order];
+
+  const next = order.filter((value) => value !== id);
+  next.splice(next.indexOf(anchor) + 1, 0, id);
+  return next;
+}
+
+/*
+ * 保存済みの並びを、その版に応じて一度だけ直す。
+ *
+ * v1: 「本日のシティリーグ結果」をストリークの直後へ。
+ *     この節は以前は開催日にしか出ていなかったため、常時表示に変えるまでに一度でも
+ *     表示設定を触ったことがあるユーザーは、末尾に足された位置のまま保存されている。
+ *     差し込み(mergeIntoStoredOrder)では動かせないので、ここで一度だけ直す。
+ *
+ * 直したあとは呼び出し側が現在の版を付けて保存し直すので、以後は何もしない
+ * (ユーザーが自分で動かした位置を毎回巻き戻さないため)。
+ */
+export function applyOrderMigrations(
+  order: readonly string[],
+  version: number | undefined,
+): string[] {
+  if ((version ?? 0) >= DASHBOARD_ORDER_VERSION) return [...order];
+
+  return moveRightAfter(order, "cityleague", "streak");
+}
+
+/*
  * 前回描いた並び(cookie)から、DashboardSections の初期状態(order / hidden)を作る。
  *
  * 表示設定は localStorage にあってサーバでは読めないため、以前はハイドレーション後に
@@ -193,6 +279,7 @@ export function sectionIdOfBlock(block: DashboardBlockId): string {
  * その場合も読み終えた時点で並び直る)。
  *
  * cookie に無い節は非表示扱いで始める(前回描いていないので、非表示設定か自動非表示のどちらか)。
+ * 位置は既定の並びに合わせて差し込む(mergeIntoStoredOrder)。
  * 今回サーバが描かない節(記録3件未満のときの対戦環境データなど)は sectionIds に無いので無視する。
  * cookie が無ければ null(従来どおり骨格で繋ぐ)。
  */
@@ -203,15 +290,15 @@ export function initialSectionStateFromLayout(
   if (!blocks || blocks.length === 0) return null;
 
   const known = new Set(sectionIds);
-  const order: string[] = [];
+  const drawnLastTime: string[] = [];
 
   for (const block of blocks) {
     const id = sectionIdOfBlock(block);
-    if (known.has(id) && !order.includes(id)) order.push(id);
+    if (known.has(id) && !drawnLastTime.includes(id)) drawnLastTime.push(id);
   }
 
-  // 前回描いていない節は末尾に置いて非表示で始める
-  const missing = sectionIds.filter((id) => !order.includes(id));
+  // 前回描いていない節は非表示で始める。並びは既定の位置へ差し込む(末尾に寄せない)
+  const missing = sectionIds.filter((id) => !drawnLastTime.includes(id));
 
-  return { order: [...order, ...missing], hidden: missing };
+  return { order: mergeIntoStoredOrder(drawnLastTime, sectionIds), hidden: missing };
 }

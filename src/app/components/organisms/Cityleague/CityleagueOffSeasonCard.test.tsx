@@ -39,7 +39,7 @@ describe("CityleagueOffSeasonCard", () => {
    * document 全体を見る screen ではなく、それぞれの container の中で探す。
    */
   it("注意書きは次回の有無によらず出す", () => {
-    const note = "開催期間中は大会結果が表示されます";
+    const note = "開催期間中は大会が表示されます";
 
     const withNext = render(<CityleagueOffSeasonCard next={NEXT_SCHEDULE} />);
     expect(within(withNext.container).getByText(note)).toBeTruthy();

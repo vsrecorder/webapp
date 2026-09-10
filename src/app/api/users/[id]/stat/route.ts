@@ -12,6 +12,7 @@ async function getUserStat(
   season: string,
   standardRegulationId: string,
   regulationId: string,
+  excludeDefaultMatches: string,
 ): Promise<UserStatType> {
   const params = new URLSearchParams();
   if (week) params.set("week", week);
@@ -21,6 +22,8 @@ async function getUserStat(
   if (standardRegulationId)
     params.set("standard_regulation_id", standardRegulationId);
   if (regulationId) params.set("regulation_id", regulationId);
+  // 不戦勝/不戦敗を集計から外すかどうか。未指定(=含める)のときは付けない
+  if (excludeDefaultMatches) params.set("exclude_default_matches", excludeDefaultMatches);
 
   const res = await fetch(
     upstreamUrl`/api/v1beta/users/${userId}/stats?${params}`,
@@ -50,6 +53,7 @@ export async function GET(
   const season = searchParams.get("season") ?? "";
   const standardRegulationId = searchParams.get("standard_regulation_id") ?? "";
   const regulationId = searchParams.get("regulation_id") ?? "";
+  const excludeDefaultMatches = searchParams.get("exclude_default_matches") ?? "";
 
   const stat = await getUserStat(
     id,
@@ -59,6 +63,7 @@ export async function GET(
     season,
     standardRegulationId,
     regulationId,
+    excludeDefaultMatches,
   );
   return NextResponse.json(stat, { status: 200 });
 }

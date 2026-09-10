@@ -14,6 +14,7 @@ import { currentSeasonValue } from "@app/utils/season";
 import { fetchUpstream, upstreamUrl } from "@app/utils/upstream";
 import { signUpstreamToken } from "@app/utils/upstreamToken";
 import { getCurrentYearMonth } from "@app/utils/yearMonthOptions";
+import { DEFAULT_EXCLUDE_DEFAULT_MATCHES } from "@app/utils/excludeDefaultMatches";
 
 /*
  * ダッシュボード(「/」)の各パネルが最初に出す値を、ページの描画中にサーバでまとめて取る。
@@ -186,7 +187,12 @@ export const getDashboardInitialData = cache(
         : Promise.resolve<UserStatType | undefined>(undefined),
       getPanel<UserStatType>(
         "monthly stat",
-        statUrl(userId, { year_month: yearMonth }),
+        // 不戦勝・不戦敗を外すかはトレーナー情報パネルの設定(localStorage)だが、サーバでは
+        // 読めないので既定で取る。カード側も設定が既定のままのときだけこの値を使う。
+        statUrl(userId, {
+          year_month: yearMonth,
+          exclude_default_matches: String(DEFAULT_EXCLUDE_DEFAULT_MATCHES),
+        }),
         headers,
       ),
       getPanel<UserGymOfficialEventGetResponseType>(

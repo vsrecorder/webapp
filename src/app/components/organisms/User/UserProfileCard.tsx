@@ -14,6 +14,8 @@ import {
   LuEyeOff,
   LuIdCard,
   LuCircleCheck,
+  LuSquare,
+  LuSquareCheck,
 } from "react-icons/lu";
 
 import UpdateNameModal from "@app/components/organisms/User/Modal/UpdateNameModal";
@@ -27,6 +29,11 @@ import {
   generateYearMonthOptions,
 } from "@app/utils/yearMonthOptions";
 import { UserPlayerType } from "@app/types/user_player";
+import {
+  DEFAULT_EXCLUDE_DEFAULT_MATCHES,
+  EXCLUDE_DEFAULT_MATCHES_KEY,
+  toExcludeDefaultMatches,
+} from "@app/utils/excludeDefaultMatches";
 
 type Props = {
   user: UserType;
@@ -325,6 +332,39 @@ function PlayersClubBadge({ isLoading, userPlayer }: PlayersClubBadgeProps) {
 
 const STATS_VISIBLE_KEY = "profile_stats_visible";
 
+/*
+ * 不戦勝・不戦敗を戦績集計に含めるかの切り替え(既定は外す。utils/excludeDefaultMatches)。
+ *
+ * 除外は勝率の分母だけでなく試合数・勝利・敗北のすべてに効く
+ * (対戦が存在しない以上、1戦として数える根拠がないため)。
+ */
+function ExcludeDefaultMatchesToggle({
+  excluded,
+  onToggle,
+}: {
+  excluded: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      onClick={onToggle}
+      aria-pressed={excluded}
+      className={`mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-xl py-1.5 transition-colors ${
+        excluded
+          ? "bg-primary-50 text-primary-600 hover:bg-primary-100"
+          : "text-default-400 hover:bg-default-100"
+      }`}
+    >
+      {excluded ? (
+        <LuSquareCheck className="h-3.5 w-3.5 shrink-0" />
+      ) : (
+        <LuSquare className="h-3.5 w-3.5 shrink-0" />
+      )}
+      <span className="text-[0.625rem] font-bold">不戦勝・不戦敗を除いて集計する</span>
+    </button>
+  );
+}
+
 export default function UserProfileCard({
   user,
   isDevEnv = false,
@@ -343,6 +383,10 @@ export default function UserProfileCard({
   const [profile, setProfile] = useState({ name: user.name, imageUrl: user.image_url });
   // 戦績の表示/非表示。保存先は localStorage(サーバ描画では読めないので、読めるまでは表示)
   const statsVisible = useLocalStorageItem(STATS_VISIBLE_KEY) !== "false";
+  // 不戦勝・不戦敗を集計から外すか。未保存なら既定(外す)に従う
+  const excludeDefaultMatches = toExcludeDefaultMatches(
+    useLocalStorageItem(EXCLUDE_DEFAULT_MATCHES_KEY),
+  );
   const [yearMonth, setYearMonth] = useState<string>(getCurrentYearMonth);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
@@ -352,12 +396,31 @@ export default function UserProfileCard({
     writeLocalStorage(STATS_VISIBLE_KEY, String(!statsVisible));
   }
 
+  function toggleExcludeDefaultMatches() {
+    writeLocalStorage(EXCLUDE_DEFAULT_MATCHES_KEY, String(!excludeDefaultMatches));
+  }
+
+  /*
+   * 取得の鍵。表示中の月と、不戦勝/不戦敗を除くかどうかの両方で結果が変わるので、
+   * どちらが変わっても取り直せるよう1つの文字列にまとめる
+   * (user.id はこのカードでは変わらないため鍵に含めない)。
+   */
+  const statKey = `${yearMonth}|${excludeDefaultMatches ? "1" : "0"}`;
+
   // 取得に失敗したことを「勝率0.0% / 0戦0勝0敗」の表示で覆い隠さないよう、
   // 失敗はエラーとして扱い、戦績の部分だけで取り直せるようにする。
-  // 鍵は表示中の月(user.id はこのカードでは変わらない)。
   const fetchStat = useCallback(
-    async (targetYearMonth: string): Promise<UserStatType> => {
-      const res = await fetch(`/api/users/${user.id}/stat?year_month=${targetYearMonth}`, {
+    async (key: string): Promise<UserStatType> => {
+      const [targetYearMonth, exclude] = key.split("|");
+
+      // APIの既定は「絞り込まない」(他の絞り込みパラメータと同じ)。こちらの既定とは
+      // 別物なので、含める場合も含めて常に明示して送る。
+      const params = new URLSearchParams({
+        year_month: targetYearMonth,
+        exclude_default_matches: exclude === "1" ? "true" : "false",
+      });
+
+      const res = await fetch(`/api/users/${user.id}/stat?${params}`, {
         cache: "no-store",
       });
 
@@ -370,15 +433,24 @@ export default function UserProfileCard({
     [user.id],
   );
 
+  /*
+   * サーバ描画の戦績は既定(DEFAULT_EXCLUDE_DEFAULT_MATCHES)で取ってある。localStorage は
+   * サーバから読めず、この端末が既定を上書きしているかを知りようがないため。
+   * したがって初期値として使えるのは設定が既定のままのときだけで、切り替えてある端末では
+   * ハイドレーション後に鍵が変わって取り直しになる。
+   */
   const {
     data: stat,
     loading: isLoading,
     error: statError,
     retry: loadStat,
   } = useSeededResource(
-    yearMonth,
+    statKey,
     fetchStat,
-    initialYearMonth === yearMonth ? initialStat : undefined,
+    initialYearMonth === yearMonth &&
+      excludeDefaultMatches === DEFAULT_EXCLUDE_DEFAULT_MATCHES
+      ? initialStat
+      : undefined,
   );
 
   // プレイヤーズクラブの連携状態。サーバで取れていればその値を使い、取りに行かない
@@ -512,6 +584,13 @@ export default function UserProfileCard({
                 colorClass="text-danger"
               />
             </div>
+          )}
+          {/* 戦績を伏せている間は数字が変わらないので、切り替えの意味が無い分だけ出さない */}
+          {!statError && statsVisible && (
+            <ExcludeDefaultMatchesToggle
+              excluded={excludeDefaultMatches}
+              onToggle={toggleExcludeDefaultMatches}
+            />
           )}
         </CardBody>
       </Card>

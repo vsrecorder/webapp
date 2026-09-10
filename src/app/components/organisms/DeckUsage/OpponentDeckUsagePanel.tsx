@@ -300,10 +300,14 @@ export default function OpponentDeckUsagePanel({
   const ownDeckLine = ownDeckId
     ? `『${ownDecks.find((d) => d.deck_id === ownDeckId)?.name ?? ""}』使用時の`
     : "すべての使用デッキでの";
-  // ポスト文の見出し。集計条件の但し書きは入れない(utils/panelPostText)
-  const postSubtitle = `${filterLabel}\n${ownDeckLine}\n対戦相手のデッキ分析`;
-  // シェア画像の見出し。画面の期間ラベルと同じ文言・同じ改行位置にし、断りは画像の中だけに置く
-  const shareSubtitle = `${postSubtitle}\n不戦勝・不戦敗を除く`;
+  /*
+   * 見出し。シェア画像とポスト文で同じものを使う。
+   *
+   * 集計条件の但し書き(「不戦勝・不戦敗を除く」)は入れない。この分析は相手デッキが
+   * 記録されている対戦だけを対象にしており、相手のいない不戦勝・不戦敗はそもそも
+   * 母数に入らない。断ると「入りうるものを外している」と読めて、かえって誤解を招く。
+   */
+  const subtitle = `${filterLabel}\n${ownDeckLine}\n対戦相手のデッキ分析`;
 
   // シェア画像・ポスト文に渡す表示データ。
   // 「その他」への集約と配色は画面の円グラフと同じ関数で求め、並び・色をずらさない。
@@ -466,15 +470,6 @@ export default function OpponentDeckUsagePanel({
             対戦相手のデッキ分析
           </p>
 
-          {/* 不戦勝・不戦敗は集計から外している(utils/excludeDefaultMatches)。
-              除外は勝率だけでなく件数・対面率にも効くため、期間ラベルの直下で断る。
-              出す対戦が無いときは説明する数字も無いので出さない。 */}
-          {decks.length > 0 && (
-            <p className="-mt-3 text-center text-[0.625rem] text-default-400">
-              不戦勝・不戦敗を除いて集計しています
-            </p>
-          )}
-
           {/* グラフ + 凡例 */}
           <OpponentDeckDistributionChart
             decks={decks}
@@ -492,13 +487,13 @@ export default function OpponentDeckUsagePanel({
         onOpenChange={() => setShareOpen((open) => !open)}
         onClose={() => setShareOpen(false)}
         description="対戦相手のデッキ分析を画像にして、ポスト文と一緒にシェアできます。"
-        postText={buildDeckDistributionPostText(postSubtitle, shareRows.rows)}
+        postText={buildDeckDistributionPostText(subtitle, shareRows.rows)}
         filenamePrefix="opponent_deck_usage"
       >
         {(width) => (
           <DeckDistributionShareCard
             title="対戦相手のデッキ分析"
-            subtitle={shareSubtitle}
+            subtitle={subtitle}
             rows={shareRows.rows}
             colors={shareRows.colors}
             softColors={shareRows.softColors}

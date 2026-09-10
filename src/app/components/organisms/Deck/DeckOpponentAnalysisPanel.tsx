@@ -398,14 +398,6 @@ export default function DeckOpponentAnalysisPanel({
           の対戦相手のデッキ分析
         </p>
 
-        {/* 不戦勝・不戦敗は集計から外している(utils/excludeDefaultMatches)。
-            デッキ詳細の対戦成績と同じ扱いで、こちらも期間ラベルの直下で断る。 */}
-        {!holdSkeleton && decks.length > 0 && (
-          <p className="-mt-1 text-center text-[0.625rem] text-default-400">
-            不戦勝・不戦敗を除いて集計しています
-          </p>
-        )}
-
         <OpponentDeckDistributionChart
           decks={holdSkeleton ? [] : decks}
           isLoading={isLoading || holdSkeleton}

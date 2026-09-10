@@ -32,6 +32,7 @@ import OpponentDeckDistributionChart, {
 } from "@app/components/organisms/DeckUsage/OpponentDeckDistributionChart";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
+import { EXCLUDE_DEFAULT_MATCHES_QUERY } from "@app/utils/excludeDefaultMatches";
 
 type FilterMode = "month" | "environment" | "season" | "regulation";
 
@@ -118,7 +119,8 @@ export default function OpponentDeckUsagePanel({
     async function fetchStat() {
       setIsLoading(true);
       try {
-        const params = new URLSearchParams();
+        // 勝率・対戦数は不戦勝・不戦敗を外して集計する(utils/excludeDefaultMatches)
+        const params = new URLSearchParams(EXCLUDE_DEFAULT_MATCHES_QUERY);
         params.set("regulation_id", String(regulationId));
         if (filterMode === "month" && yearMonth) {
           params.set("year_month", yearMonth);
@@ -153,7 +155,16 @@ export default function OpponentDeckUsagePanel({
     return () => {
       cancelled = true;
     };
-  }, [userId, filterMode, yearMonth, environmentId, season, standardRegulationId, regulationId, ownDeckId]);
+  }, [
+    userId,
+    filterMode,
+    yearMonth,
+    environmentId,
+    season,
+    standardRegulationId,
+    regulationId,
+    ownDeckId,
+  ]);
 
   // 期間フィルタが変わるたびに、その期間で実際に使用したデッキ一覧を取得し
   // 「自分のデッキ」セレクタの選択肢にする（未使用デッキを候補に出さないため）
@@ -195,11 +206,27 @@ export default function OpponentDeckUsagePanel({
     return () => {
       cancelled = true;
     };
-  }, [userId, filterMode, yearMonth, environmentId, season, standardRegulationId, regulationId]);
+  }, [
+    userId,
+    filterMode,
+    yearMonth,
+    environmentId,
+    season,
+    standardRegulationId,
+    regulationId,
+  ]);
 
   // 期間フィルタが変わったら「自分のデッキ」の絞り込みは解除する(前の期間のデッキが残らないように)。
   // effect で解除すると前の絞り込みでの描画が一度挟まるので、前回の条件を控えて描画中に解除する
-  const filterKey = [userId, filterMode, yearMonth, environmentId, season, standardRegulationId, regulationId].join("|");
+  const filterKey = [
+    userId,
+    filterMode,
+    yearMonth,
+    environmentId,
+    season,
+    standardRegulationId,
+    regulationId,
+  ].join("|");
   const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
   if (prevFilterKey !== filterKey) {
     setPrevFilterKey(filterKey);
@@ -217,7 +244,6 @@ export default function OpponentDeckUsagePanel({
   const ownDeckSprite1 = getDeckSpriteBySlot(selectedOwnDeck?.pokemon_sprites, 1);
   const ownDeckSprite2 = getDeckSpriteBySlot(selectedOwnDeck?.pokemon_sprites, 2);
   const hasOwnDeckSprite = Boolean(ownDeckSprite1 || ownDeckSprite2);
-
 
   // 「環境」と「レギュレーションマーク」はスタンダードのカードプールを前提にした区切りのため、
   // エクストラ・殿堂では月次とシーズンだけを出す。
@@ -268,12 +294,14 @@ export default function OpponentDeckUsagePanel({
       ? periodFilterLabel
       : `${periodFilterLabel}(${regulationDisplay(regulationId).name})`;
 
-  // 使用デッキで絞り込んでいるときは、どのデッキ使用時の分布かを添える
-  const ownDeckSuffix = ownDeckId
-    ? `・『${ownDecks.find((d) => d.deck_id === ownDeckId)?.name ?? ""}』使用時の`
-    : "";
+  // どのデッキ使用時の分布かを独立した行で添える。絞り込んでいないときも
+  // 「すべての使用デッキでの」を出して行数を変えない
+  // (行数が変わると、下の円グラフの位置がデッキ選択の有無でずれるため)。
+  const ownDeckLine = ownDeckId
+    ? `『${ownDecks.find((d) => d.deck_id === ownDeckId)?.name ?? ""}』使用時の`
+    : "すべての使用デッキでの";
   // シェア画像の見出し。画面の期間ラベルと同じ文言・同じ改行位置にする
-  const shareSubtitle = `${filterLabel}${ownDeckSuffix}\n対戦相手のデッキ分布`;
+  const shareSubtitle = `${filterLabel}\n${ownDeckLine}\n対戦相手のデッキ分析\n不戦勝・不戦敗を除く`;
 
   // シェア画像・ポスト文に渡す表示データ。
   // 「その他」への集約と配色は画面の円グラフと同じ関数で求め、並び・色をずらさない。
@@ -430,10 +458,20 @@ export default function OpponentDeckUsagePanel({
           {/* 期間ラベル */}
           <p className="text-center text-xs text-default-400 -mt-2">
             {filterLabel}
-            {ownDeckSuffix}
             <br />
-            対戦相手のデッキ分布
+            {ownDeckLine}
+            <br />
+            対戦相手のデッキ分析
           </p>
+
+          {/* 不戦勝・不戦敗は集計から外している(utils/excludeDefaultMatches)。
+              除外は勝率だけでなく件数・対面率にも効くため、期間ラベルの直下で断る。
+              出す対戦が無いときは説明する数字も無いので出さない。 */}
+          {decks.length > 0 && (
+            <p className="-mt-3 text-center text-[0.625rem] text-default-400">
+              不戦勝・不戦敗を除いて集計しています
+            </p>
+          )}
 
           {/* グラフ + 凡例 */}
           <OpponentDeckDistributionChart
@@ -441,10 +479,9 @@ export default function OpponentDeckUsagePanel({
             isLoading={isLoading}
             hasData={stat !== null}
             emptyMessage={
-              "この期間の対戦記録がまだありません。\n記録を作成すると対戦相手のデッキ分布が表示されます。"
+              "この期間の対戦記録がまだありません。\n記録を作成すると対戦相手のデッキ分析が表示されます。"
             }
           />
-
         </CardBody>
       </Card>
 
@@ -452,13 +489,13 @@ export default function OpponentDeckUsagePanel({
         isOpen={shareOpen}
         onOpenChange={() => setShareOpen((open) => !open)}
         onClose={() => setShareOpen(false)}
-        description="対戦相手のデッキ分布を画像にして、ポスト文と一緒にシェアできます。"
+        description="対戦相手のデッキ分析を画像にして、ポスト文と一緒にシェアできます。"
         postText={buildDeckDistributionPostText(shareSubtitle, shareRows.rows)}
         filenamePrefix="opponent_deck_usage"
       >
         {(width) => (
           <DeckDistributionShareCard
-            title="対戦相手のデッキ分布"
+            title="対戦相手のデッキ分析"
             subtitle={shareSubtitle}
             rows={shareRows.rows}
             colors={shareRows.colors}

@@ -178,9 +178,12 @@ export const getDashboardInitialData = cache(
       environmentId
         ? getPanel<UserStatType>(
             "stat",
+            // 不戦勝・不戦敗を外すかは戦績分析パネルの設定(localStorage)だが、サーバでは
+            // 読めないので既定で取る。パネル側も設定が既定のままのときだけこの値を使う。
             statUrl(userId, {
               regulation_id: String(DEFAULT_REGULATION_ID),
               environment_id: environmentId,
+              exclude_default_matches: String(DEFAULT_EXCLUDE_DEFAULT_MATCHES),
             }),
             headers,
           )

@@ -11,5 +11,7 @@ export type UserStatHistoryType = {
   period: string;
   season: string;
   deck_id?: string;
+  // 不戦勝・不戦敗を外して集計されたものか(user_stat.ts と同じ)
+  exclude_default_matches?: boolean;
   history: UserStatMonthlyType[];
 };

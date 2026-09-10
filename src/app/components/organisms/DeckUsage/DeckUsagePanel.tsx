@@ -33,6 +33,7 @@ import DeckSprites from "@app/components/molecules/DeckSprites";
 import { ChampionshipSeriesType } from "@app/types/championship_series";
 import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
 import { DeckUsageItemType, DeckUsageStatType } from "@app/types/deck_usage_stat";
+import { EXCLUDE_DEFAULT_MATCHES_QUERY } from "@app/utils/excludeDefaultMatches";
 import {
   seasonOptionsFromChampionshipSeries,
   currentSeasonValue,
@@ -209,7 +210,8 @@ export default function DeckUsagePanel({
     async function fetchStat() {
       setIsLoading(true);
       try {
-        const params = new URLSearchParams();
+        // 勝率・対戦数は不戦勝・不戦敗を外して集計する(utils/excludeDefaultMatches)
+        const params = new URLSearchParams(EXCLUDE_DEFAULT_MATCHES_QUERY);
         params.set("regulation_id", String(regulationId));
         if (filterMode === "month" && yearMonth) {
           params.set("year_month", yearMonth);
@@ -516,7 +518,9 @@ export default function DeckUsagePanel({
     [],
   );
 
-  const shareSubtitle = `${filterLabel} のデッキ使用率`;
+  // 画像とポスト文の見出し。集計の断りは改行して2行目に置く
+  // (対戦相手のデッキ分析パネルと同じ組み方。画像側は whitespace-pre-line で受ける)。
+  const shareSubtitle = `${filterLabel} のデッキ使用率\n不戦勝・不戦敗を除く`;
 
   return (
     <>
@@ -737,6 +741,13 @@ export default function DeckUsagePanel({
                   </div>
                 ))}
               </div>
+
+              {/* 不戦勝・不戦敗は集計から外している(utils/excludeDefaultMatches)。
+                  除外は勝率だけでなく件数・使用率にも効くため、凡例の下にまとめて断る。
+                  公式のスイスドロー成績と数字が食い違う理由がここで分かる。 */}
+              <p className="px-1 text-[0.625rem] text-default-400">
+                不戦勝・不戦敗を除いて集計しています
+              </p>
             </>
           )}
 

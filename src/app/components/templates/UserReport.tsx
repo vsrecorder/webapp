@@ -43,6 +43,7 @@ import {
   periodValue,
   type RecapPeriod,
 } from "@app/utils/recapPeriod";
+import { EXCLUDE_DEFAULT_MATCHES_QUERY } from "@app/utils/excludeDefaultMatches";
 
 // 1080×1350 をそのまま @4x で焼くと canvas 上限に近づき、生成も重くなる。
 // @2x(2160×2700)で X のタイムラインには十分。
@@ -67,7 +68,10 @@ type ReportData = {
 };
 
 async function fetchReportData(userId: string, period: RecapPeriod): Promise<ReportData> {
-  const query = periodQuery(period);
+  // ふりかえりの数字は全て不戦勝・不戦敗を外して集計する。1枚ずつカードにして見せる面なので、
+  // カードごとに条件が違うと同じ期間の勝率が2種類出てしまう(utils/excludeDefaultMatches)。
+  // 全体戦績のカードには、公式のスイスドロー成績と違う数字だと分かるよう断りを出している。
+  const query = `${periodQuery(period)}&${EXCLUDE_DEFAULT_MATCHES_QUERY}`;
   const [statRes, deckRes, opponentRes, streakRes] = await Promise.all([
     fetch(`/api/users/${userId}/stat?${query}`, { cache: "no-store" }),
     fetch(`/api/users/${userId}/deck-usage?${query}`, { cache: "no-store" }),

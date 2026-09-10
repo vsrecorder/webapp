@@ -20,6 +20,9 @@ import { seasonOptionsFromChampionshipSeries, currentSeasonValue } from "@app/ut
 import { todayJSTDateString } from "@app/utils/date";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import RegulationSegmentedControl from "@app/components/molecules/RegulationSegmentedControl";
+import ExcludeDefaultMatchesToggle from "@app/components/molecules/ExcludeDefaultMatchesToggle";
+import { useExcludeDefaultMatches } from "@app/hooks/useExcludeDefaultMatches";
+import { excludeDefaultMatchesParam } from "@app/utils/excludeDefaultMatches";
 import { DEFAULT_REGULATION_ID } from "@app/types/regulation";
 import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
 
@@ -81,6 +84,8 @@ export default function UserStatHistoryChart({ userId, championshipSeries }: Pro
 
   // レギュレーション区分(スタンダード/エクストラ/殿堂/その他)。既定はスタンダード。
   const [regulationId, setRegulationId] = useState<number>(DEFAULT_REGULATION_ID);
+  // 不戦勝・不戦敗を集計から外すか(トレーナー情報・戦績分析パネルと共有の設定)
+  const [excludeDefaultMatches, toggleExcludeDefaultMatches] = useExcludeDefaultMatches();
   const [ownDecks, setOwnDecks] = useState<DeckUsageItemType[]>([]);
   const [history, setHistory] = useState<UserStatHistoryType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -111,6 +116,10 @@ export default function UserStatHistoryChart({ userId, championshipSeries }: Pro
         }
         if (deckId) params.set("deck_id", deckId);
         params.set("regulation_id", String(regulationId));
+        params.set(
+          "exclude_default_matches",
+          excludeDefaultMatchesParam(excludeDefaultMatches),
+        );
 
         const res = await fetch(
           `/api/users/${userId}/stat/history?${params.toString()}`,
@@ -133,10 +142,10 @@ export default function UserStatHistoryChart({ userId, championshipSeries }: Pro
     return () => {
       cancelled = true;
     };
-  }, [userId, periodMode, seasonYear, deckId, regulationId]);
+  }, [userId, periodMode, seasonYear, deckId, regulationId, excludeDefaultMatches]);
 
   // グラフに出している期間・レギュレーションで実際に使用したデッキ一覧を取得し、
-  // デッキセレクタの選択肢にする（対戦相手のデッキ分布パネルと同様、
+  // デッキセレクタの選択肢にする（対戦相手のデッキ分析パネルと同様、
   // 「使用したすべてのデッキで集計」をデフォルトにした単一パネル構成）。
   //
   // アーカイブ済みのデッキも選択肢に含める。過去の戦績を振り返るパネルであり、
@@ -390,7 +399,7 @@ export default function UserStatHistoryChart({ userId, championshipSeries }: Pro
           </div>
         </div>
 
-        {/* デッキセレクタ（対戦相手のデッキ分布パネルと同様、「使用したすべてのデッキで集計」がデフォルト）。
+        {/* デッキセレクタ（対戦相手のデッキ分析パネルと同様、「使用したすべてのデッキで集計」がデフォルト）。
             ネイティブの <select> には画像を入れられないため、選択中デッキのスプライトは
             セレクタの左に並べて示す（未選択＝全デッキ集計のときは表示しない） */}
         <div className="flex items-center gap-2">
@@ -455,6 +464,13 @@ export default function UserStatHistoryChart({ userId, championshipSeries }: Pro
             </div>
           </div>
         )}
+
+        {/* 不戦勝・不戦敗の扱い。グラフの下に置く(効く先はこのグラフの勝率)。
+            余白は CardBody の gap-3 に任せる */}
+        <ExcludeDefaultMatchesToggle
+          excluded={excludeDefaultMatches}
+          onToggle={toggleExcludeDefaultMatches}
+        />
       </CardBody>
     </Card>
   );

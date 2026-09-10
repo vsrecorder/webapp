@@ -13,6 +13,7 @@ import EnvironmentWindowCardSkeleton from "@app/components/organisms/Dashboard/S
 import { fingerprintKey } from "@app/utils/fingerprint";
 import { rankableDecks, exclOtherTotalOf } from "@app/utils/deckEnv";
 import { lastWeekValue } from "@app/utils/week";
+import { DECK_USAGE_ALL_TIME_QUERY } from "@app/utils/excludeDefaultMatches";
 import { DeckData, DeckGetAllType, isFavoritedDeck } from "@app/types/deck";
 import { DeckUsageItemType, DeckUsageStatType } from "@app/types/deck_usage_stat";
 import {
@@ -757,7 +758,9 @@ export default function EnvironmentWindowCard({
           // アーカイブ済みを除いた全件を返す /api/decks/all を使う。
           fetch(`/api/decks/all`, { cache: "no-store" }),
           // deck-usage は「あなたの実勝率」を出すための補助。失敗しても本体は出すため寛容に。
-          fetch(`/api/users/${userId}/deck-usage?all_time=true`, {
+          // 比較相手の環境平均(weekly_deck_usage)は不戦勝・不戦敗を常に外しているので、
+          // こちらも同じ条件で引く(でないと除外済みの平均に不戦込みの勝率を並べることになる)。
+          fetch(`/api/users/${userId}/deck-usage?${DECK_USAGE_ALL_TIME_QUERY}`, {
             cache: "no-store",
           }).catch(() => null),
         ]);

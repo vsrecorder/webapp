@@ -5,6 +5,7 @@ import { useEffect, useMemo } from "react";
 import useSWR from "swr";
 
 import { DeckUsageItemType, DeckUsageStatType } from "@app/types/deck_usage_stat";
+import { DECK_USAGE_ALL_TIME_QUERY } from "@app/utils/excludeDefaultMatches";
 
 /*
  * デッキごとの全期間の対戦数・勝率・先攻/後攻情報（デッキ一覧カードに出す戦績）。
@@ -54,7 +55,7 @@ export function useDeckUsageAllTime(
   const canSkipRevalidation = isInitialFresh && initialDecks !== undefined;
 
   const { data, mutate } = useSWR<DeckUsageItemType[], Error>(
-    userId ? `/api/users/${userId}/deck-usage?all_time=true` : null,
+    userId ? `/api/users/${userId}/deck-usage?${DECK_USAGE_ALL_TIME_QUERY}` : null,
     fetcher,
     {
       revalidateOnFocus: false,

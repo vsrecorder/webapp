@@ -26,6 +26,12 @@ import {
   seasonOptionsFromChampionshipSeries,
   currentSeasonValue,
 } from "@app/utils/season";
+import ExcludeDefaultMatchesToggle from "@app/components/molecules/ExcludeDefaultMatchesToggle";
+import { useExcludeDefaultMatches } from "@app/hooks/useExcludeDefaultMatches";
+import {
+  DEFAULT_EXCLUDE_DEFAULT_MATCHES,
+  excludeDefaultMatchesParam,
+} from "@app/utils/excludeDefaultMatches";
 
 type FilterMode = "month" | "environment" | "season" | "regulation";
 
@@ -76,6 +82,9 @@ export default function UserStatPanel({
   // シェアモーダルの開閉
   const [shareOpen, setShareOpen] = useState(false);
 
+  // 不戦勝・不戦敗を集計から外すか(トレーナー情報パネルと共有の設定)
+  const [excludeDefaultMatches, toggleExcludeDefaultMatches] = useExcludeDefaultMatches();
+
   const yearMonthOptions = generateYearMonthOptions(userCreatedAt);
   const seasonOptions = seasonOptionsFromChampionshipSeries(championshipSeries);
 
@@ -86,6 +95,10 @@ export default function UserStatPanel({
   const query = useMemo(() => {
     const params = new URLSearchParams();
     params.set("regulation_id", String(regulationId));
+    params.set(
+      "exclude_default_matches",
+      excludeDefaultMatchesParam(excludeDefaultMatches),
+    );
     if (filterMode === "month" && yearMonth) {
       params.set("year_month", yearMonth);
     } else if (filterMode === "environment" && environmentId) {
@@ -96,7 +109,15 @@ export default function UserStatPanel({
       params.set("standard_regulation_id", standardRegulationId);
     }
     return params.toString();
-  }, [filterMode, yearMonth, environmentId, season, standardRegulationId, regulationId]);
+  }, [
+    filterMode,
+    yearMonth,
+    environmentId,
+    season,
+    standardRegulationId,
+    regulationId,
+    excludeDefaultMatches,
+  ]);
 
   const fetchStat = useCallback(
     async (key: string): Promise<UserStatType> => {
@@ -113,11 +134,14 @@ export default function UserStatPanel({
 
   // サーバ値が使えるのは「初期表示の絞り込みのまま」のときだけ。
   // 対戦環境で絞り、レギュレーションが既定で、環境がサーバの取得時と同じ場合に限る。
+  // 不戦勝・不戦敗の扱いも同様で、サーバは localStorage を読めず既定で取っているため、
+  // この端末が切り替えているときは使えない(ハイドレーション後に取り直す)。
   const canUseInitialStat =
     filterMode === "environment" &&
     regulationId === DEFAULT_REGULATION_ID &&
     environmentId !== "" &&
-    environmentId === initialStatEnvironmentId;
+    environmentId === initialStatEnvironmentId &&
+    excludeDefaultMatches === DEFAULT_EXCLUDE_DEFAULT_MATCHES;
 
   const { data: stat, loading: isLoading } = useSeededResource(
     query,
@@ -292,6 +316,13 @@ export default function UserStatPanel({
 
           {/* 統計グリッドと勝率 */}
           <UserStatSummary stat={stat} isLoading={isLoading} />
+
+          {/* 不戦勝・不戦敗の扱い。効く先(試合数・勝敗・勝率)のすぐ下に置く。
+              余白は CardBody の gap-4 に任せる */}
+          <ExcludeDefaultMatchesToggle
+            excluded={excludeDefaultMatches}
+            onToggle={toggleExcludeDefaultMatches}
+          />
         </CardBody>
       </Card>
 
@@ -300,10 +331,16 @@ export default function UserStatPanel({
         onOpenChange={() => setShareOpen((open) => !open)}
         onClose={() => setShareOpen(false)}
         description="戦績分析を画像にして、ポスト文と一緒にシェアできます。"
-        postText={buildUserStatPostText(filterLabel, stat)}
+        postText={buildUserStatPostText(filterLabel, stat, excludeDefaultMatches)}
         filenamePrefix="user_stat"
       >
-        {() => <UserStatShareCard filterLabel={filterLabel} stat={stat} />}
+        {() => (
+          <UserStatShareCard
+            filterLabel={filterLabel}
+            stat={stat}
+            excludeDefaultMatches={excludeDefaultMatches}
+          />
+        )}
       </PanelShareModal>
     </>
   );

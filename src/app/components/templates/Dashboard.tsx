@@ -12,7 +12,6 @@ import WeeklyDeckUsagePanel from "@app/components/organisms/DeckMeta/WeeklyDeckU
 // 詳細は DashboardChartPanels 側のコメントを参照。
 import {
   UserStatHistoryChart,
-  RecentMatchWinRateChart,
   DeckUsagePanel,
   OpponentDeckUsagePanel,
 } from "@app/components/organisms/Dashboard/DashboardChartPanels";
@@ -442,18 +441,6 @@ export default async function TemplateDashboard({ userId, storedLayout }: Props)
     ),
   });
 
-  // 直近N戦の勝率推移
-  sections.push({
-    id: "stats_recent",
-    label: "直近N戦の勝率推移",
-    node: (
-      <section key="stats_recent" className="flex flex-col gap-2">
-        <h2 className="text-sm font-bold text-default-700">直近N戦の勝率推移</h2>
-        <RecentMatchWinRateChart userId={userId} />
-      </section>
-    ),
-  });
-
   // デッキ使用率分析
   sections.push({
     id: "deck_usage",
@@ -473,14 +460,14 @@ export default async function TemplateDashboard({ userId, storedLayout }: Props)
     ),
   });
 
-  // 対戦相手のデッキ分布
+  // 対戦相手のデッキ分析
   sections.push({
     id: "opponent_deck_usage",
-    label: "対戦相手のデッキ分布",
+    label: "対戦相手のデッキ分析",
     node: (
       <section key="opponent_deck_usage" className="flex flex-col gap-2">
         <OpponentDeckUsagePanel
-          sectionTitle="対戦相手のデッキ分布"
+          sectionTitle="対戦相手のデッキ分析"
           userId={userId}
           environments={environments}
           currentEnvironmentId={env?.id}

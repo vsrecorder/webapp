@@ -6,6 +6,9 @@ export type UserStatType = {
   environment_id: string;
   season: string;
   regulation_id: string;
+  // この数字が不戦勝・不戦敗を外して集計されたものか(utils/excludeDefaultMatches)。
+  // 上流が古い間は届かないので任意にしてある
+  exclude_default_matches?: boolean;
   total_records: number;
   official_event_count: number;
   tonamel_event_count: number;

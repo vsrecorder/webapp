@@ -77,13 +77,26 @@ export function useSeededResource<K extends string | number, T>(
   // 初期値は古いので取り直す
   const initialKeyRef = useRef(key);
 
+  /*
+   * いま出しているのが初期値そのものかどうか。一度でも取りに行ったら false になる。
+   *
+   * 「初期値があるなら取りに行かない」の判定を鍵の一致だけで行ってはならない。
+   * 鍵を変えて取り直したあとにマウント時の鍵へ戻ってくると、表示中の値は別の鍵のもの
+   * なのに「初期値があるから」と取りに行かず、古い値を出したままになる
+   * (戦績の「不戦勝・不戦敗を除く」を切り替えても数字が変わらない、で見つかった)。
+   */
+  const showingInitialRef = useRef(initial !== undefined);
+
   // 初期値が(取り直しで)変わったら、それに差し替える。同じ内容なら何もしない
   const initialRef = useRef(initial);
   useEffect(() => {
     if (initial === undefined || initialRef.current === initial) return;
     const changed = !sameContent(initialRef.current, initial);
     initialRef.current = initial;
-    if (changed) setState({ data: initial, loading: false, error: false });
+    if (changed) {
+      setState({ data: initial, loading: false, error: false });
+      showingInitialRef.current = true;
+    }
   }, [initial]);
 
   // マウント時の refreshKey。そこから変わっていれば、初期値があっても取り直す
@@ -92,17 +105,19 @@ export function useSeededResource<K extends string | number, T>(
 
   useEffect(() => {
     if (!hasKey) return;
-    // 初期値があるなら最初の取得は省く(retry・refreshKey・鍵の変更では取る)
+    // 初期値をそのまま出しているなら取得は省く(retry・refreshKey・鍵の変更では取る)
     if (
       attempt === 0 &&
       !refreshed &&
       key === initialKeyRef.current &&
-      initialRef.current !== undefined
+      initialRef.current !== undefined &&
+      showingInitialRef.current
     ) {
       return;
     }
 
     let cancelled = false;
+    showingInitialRef.current = false;
     setState((prev) => ({ ...prev, loading: true, error: false }));
 
     fetcherRef

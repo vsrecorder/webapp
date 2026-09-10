@@ -82,7 +82,7 @@ type Props = {
   priorityImage?: boolean;
 };
 
-// 勝率に応じた色分け（UserStatPanel/RecentMatchWinRateChartの勝率表示と同じ閾値に合わせる）
+// 勝率に応じた色分け（UserStatPanelの勝率表示と同じ閾値に合わせる）
 function winRateTextColor(rate: number): string {
   if (rate >= 0.55) return "text-success";
   if (rate >= 0.45) return "text-default-500";
@@ -310,6 +310,28 @@ export default function DeckCard({
     </div>
   );
 
+  // 不戦勝・不戦敗として勝率の集計から外した対戦数。
+  const defaultMatchCount = deckUsageStat?.default_match_count ?? 0;
+
+  // 不戦勝・不戦敗しか記録が無いデッキ向けの案内。
+  // 対戦記録は存在するので「まだ対戦記録がありません」とは出せない
+  // (不戦は勝率の集計に含めないため、戦績としては何も出せない)。
+  const defaultOnlyNote = (
+    <div className="flex flex-col items-center gap-2 rounded-lg bg-default-100 px-3 py-3 text-center">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
+        <LuSwords className="text-base text-primary" />
+      </div>
+      <div className="min-w-0">
+        <div className="text-tiny font-bold text-default-600">
+          不戦勝・不戦敗のみ{defaultMatchCount}件です
+        </div>
+        <div className="text-[0.625rem] text-default-400">
+          対戦していないため、勝率などの集計には含まれません
+        </div>
+      </div>
+    </div>
+  );
+
   // 「集計対象外の記録がある」旨を示す注記。リスト/ギャラリー双方で使い回す。
   const ignoredNote =
     ignoredCount > 0 ? (
@@ -325,6 +347,15 @@ export default function DeckCard({
         </Chip>
         <span className="text-[0.625rem] text-default-400">勝率などの集計に未反映</span>
       </div>
+    ) : null;
+
+  // 戦績があるデッキで、不戦をいくつ外したかを示す注記。
+  // 「なぜ記録した対戦数と戦績の合計が合わないのか」がこれで分かる。
+  const defaultMatchNote =
+    hasStats && defaultMatchCount > 0 ? (
+      <span className="text-[0.625rem] text-default-400">
+        不戦勝・不戦敗{defaultMatchCount}件を除いて集計しています
+      </span>
     ) : null;
 
   /*
@@ -490,8 +521,11 @@ export default function DeckCard({
             内部の CTA ボタン等は自身で stopPropagation して個別動作する。 */}
         {listExpanded && (
           <div className="px-3 pb-3 flex flex-col gap-2 cursor-pointer" onClick={onOpen}>
-            {/* 対戦記録が無いデッキ：ギャラリー表示と同じ案内パネルを出す */}
-            {!hasStats && ignoredCount === 0 && noRecordsNote}
+            {/* 対戦記録が無いデッキ：ギャラリー表示と同じ案内パネルを出す。
+                不戦しか無いデッキは「記録が無い」ではなく、その旨を示す */}
+            {!hasStats &&
+              ignoredCount === 0 &&
+              (defaultMatchCount > 0 ? defaultOnlyNote : noRecordsNote)}
 
             {hasStats && deckUsageStat!.game_count > 0 && (
               <DeckGoStatsGrid
@@ -505,6 +539,7 @@ export default function DeckCard({
             )}
 
             {ignoredNote}
+            {defaultMatchNote}
 
             {/* デッキ詳細/記録情報モーダルと同じレイアウト（デッキ画像→デッキコード）。
                 デッキ画像のタップは全画面表示（DeckCodeCard 側で伝播を止めるため、
@@ -700,6 +735,8 @@ export default function DeckCard({
                       </div>
                     </div>
                   </div>
+                ) : defaultMatchCount > 0 ? (
+                  defaultOnlyNote
                 ) : (
                   noRecordsNote
                 )}
@@ -718,6 +755,7 @@ export default function DeckCard({
 
                 {/* 集計対象外の記録がある場合の注記（勝率などには未反映） */}
                 {hasStats && ignoredNote}
+                {defaultMatchNote}
               </CardBody>
             )}
           </Card>

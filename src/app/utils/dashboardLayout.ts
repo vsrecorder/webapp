@@ -62,7 +62,6 @@ export const DASHBOARD_BLOCK_IDS = [
   "environment_badges",
   "stats",
   "stats_history",
-  "stats_recent",
   "deck_usage",
   "opponent_deck_usage",
   // 対戦環境データ。従来パネル(WeeklyDeckUsagePanel)と組み合わせパネル(EnvironmentWindowCard)
@@ -114,7 +113,6 @@ export const DEFAULT_DASHBOARD_LAYOUT: readonly DashboardBlockId[] = [
   "environment_badges",
   "stats",
   "stats_history",
-  "stats_recent",
   "deck_usage",
   "opponent_deck_usage",
   "environment_meta",

@@ -20,6 +20,7 @@ import { UserStatHistoryType, UserStatMonthlyType } from "@app/types/user_stat_h
 import { environmentBadgeImageUrl } from "@app/utils/badgeImage";
 import { selectableEnvironments } from "@app/utils/recapPeriod";
 import { lastWeekValue, weekRangeLabel } from "@app/utils/week";
+import { EXCLUDE_DEFAULT_MATCHES_QUERY } from "@app/utils/excludeDefaultMatches";
 import { currentYearMonth, daysInMonth, yearMonthLabel } from "@app/utils/yearMonth";
 
 // 月・環境それぞれの表示上限。古い期間まで無制限に並べても選ぶ意味がないため区切る。
@@ -71,8 +72,12 @@ async function fetchReportIndexData(userId: string): Promise<ReportIndexData> {
       fetch(`/api/users/${userId}/stat/history?period=6months`, { cache: "no-store" }),
       fetch(`/api/environments`, { cache: "no-store" }),
       fetch(`/api/users/${userId}/oldest-record-event-date`, { cache: "no-store" }),
-      // 先週(月〜日)の戦績。週次レポート通知(P-2)の入口をここにも置く
-      fetch(`/api/users/${userId}/stat?week=${lastWeekValue()}`, { cache: "no-store" }),
+      // 先週(月〜日)の戦績。週次レポート通知(P-2)の入口をここにも置く。
+      // このタイルから開くふりかえり本体は常に不戦勝・不戦敗を外して集計するので、
+      // 条件を揃える(揃えないとタイルと遷移先で同じ週の勝率が違って見える)。
+      fetch(`/api/users/${userId}/stat?week=${lastWeekValue()}&${EXCLUDE_DEFAULT_MATCHES_QUERY}`, {
+        cache: "no-store",
+      }),
     ]);
 
   if (!seasonRes.ok && !recentRes.ok) {

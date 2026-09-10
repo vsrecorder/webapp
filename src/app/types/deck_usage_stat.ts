@@ -20,6 +20,10 @@ export type DeckUsageItemType = {
   // 勝率などの集計には含まれないが、その旨をデッキ一覧に表示するために使う。
   // バックエンド未対応時は undefined になり得るため任意。
   ignored_count?: number;
+  // 不戦勝・不戦敗として勝率の集計から外した対戦数(除外して集計したときだけ返る)。
+  // 不戦しか記録が無いデッキは count が 0 になるため、これが無いと
+  // 「対戦記録が無いデッキ」と区別できない。バックエンド未対応時は undefined。
+  default_match_count?: number;
   pokemon_sprites: DeckPokemonSpriteType[];
 };
 

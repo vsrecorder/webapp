@@ -145,4 +145,29 @@ describe("useSeededResource: 鍵の変更", () => {
     await waitFor(() => expect(result.current.data).toEqual({ id: "d1", name: "fetched" }));
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
+
+  /*
+   * 鍵を戻したときも取り直す。
+   *
+   * 「初期値があるなら取りに行かない」を鍵の一致だけで判定すると、別の鍵で取り直したあとに
+   * マウント時の鍵へ戻ってきたときも取得を省いてしまい、表示は別の鍵の値のまま止まる。
+   * 戦績の「不戦勝・不戦敗を除く」を切り替えても数字が変わらない不具合がこれだった。
+   */
+  it("別の鍵で取り直したあとマウント時の鍵へ戻っても取り直す", async () => {
+    const fetcher = vi.fn(async (id: string) => ({ name: `fetched-${id}` }));
+    const { result, rerender } = renderHook(
+      ({ key }: { key: string }) =>
+        // 初期値はマウント時の鍵に対応する値なので、別の鍵のときは渡さない
+        useSeededResource(key, fetcher, key === "d1" ? { name: "initial" } : undefined),
+      { initialProps: { key: "d1" } },
+    );
+    expect(fetcher).not.toHaveBeenCalled();
+
+    rerender({ key: "d2" });
+    await waitFor(() => expect(result.current.data).toEqual({ name: "fetched-d2" }));
+
+    rerender({ key: "d1" });
+    await waitFor(() => expect(result.current.data).toEqual({ name: "fetched-d1" }));
+    expect(fetcher).toHaveBeenLastCalledWith("d1");
+  });
 });

@@ -4,6 +4,7 @@ import { DeckGetResponseType, DecksInitialDataType } from "@app/types/deck";
 import { DeckUsageStatType } from "@app/types/deck_usage_stat";
 import { KizunaType } from "@app/types/kizuna";
 import { DECK_PAGE_LIMIT, toDeckPage } from "@app/utils/deckListPage";
+import { DECK_USAGE_ALL_TIME_QUERY } from "@app/utils/excludeDefaultMatches";
 import { fetchUpstream, upstreamUrl } from "@app/utils/upstream";
 import { signUpstreamToken } from "@app/utils/upstreamToken";
 
@@ -47,7 +48,8 @@ export const getDecksInitialData = cache(
     getFirst<KizunaType>("kizuna", upstreamUrl`/api/v1beta/users/${userId}/kizuna`, headers),
     getFirst<DeckUsageStatType>(
       "deck usage",
-      upstreamUrl`/api/v1beta/users/${userId}/deck_usage?all_time=true`,
+      // 戦績は不戦勝・不戦敗を除く(excludeDefaultMatches)。クライアント側の取り直しと同条件
+      upstreamUrl`/api/v1beta/users/${userId}/deck_usage?${new URLSearchParams(DECK_USAGE_ALL_TIME_QUERY)}`,
       headers,
     ),
   ]);

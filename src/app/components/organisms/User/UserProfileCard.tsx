@@ -14,8 +14,6 @@ import {
   LuEyeOff,
   LuIdCard,
   LuCircleCheck,
-  LuSquare,
-  LuSquareCheck,
 } from "react-icons/lu";
 
 import UpdateNameModal from "@app/components/organisms/User/Modal/UpdateNameModal";
@@ -29,10 +27,11 @@ import {
   generateYearMonthOptions,
 } from "@app/utils/yearMonthOptions";
 import { UserPlayerType } from "@app/types/user_player";
+import ExcludeDefaultMatchesToggle from "@app/components/molecules/ExcludeDefaultMatchesToggle";
+import { useExcludeDefaultMatches } from "@app/hooks/useExcludeDefaultMatches";
 import {
   DEFAULT_EXCLUDE_DEFAULT_MATCHES,
-  EXCLUDE_DEFAULT_MATCHES_KEY,
-  toExcludeDefaultMatches,
+  excludeDefaultMatchesParam,
 } from "@app/utils/excludeDefaultMatches";
 
 type Props = {
@@ -332,39 +331,6 @@ function PlayersClubBadge({ isLoading, userPlayer }: PlayersClubBadgeProps) {
 
 const STATS_VISIBLE_KEY = "profile_stats_visible";
 
-/*
- * 不戦勝・不戦敗を戦績集計に含めるかの切り替え(既定は外す。utils/excludeDefaultMatches)。
- *
- * 除外は勝率の分母だけでなく試合数・勝利・敗北のすべてに効く
- * (対戦が存在しない以上、1戦として数える根拠がないため)。
- */
-function ExcludeDefaultMatchesToggle({
-  excluded,
-  onToggle,
-}: {
-  excluded: boolean;
-  onToggle: () => void;
-}) {
-  return (
-    <button
-      onClick={onToggle}
-      aria-pressed={excluded}
-      className={`mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-xl py-1.5 transition-colors ${
-        excluded
-          ? "bg-primary-50 text-primary-600 hover:bg-primary-100"
-          : "text-default-400 hover:bg-default-100"
-      }`}
-    >
-      {excluded ? (
-        <LuSquareCheck className="h-3.5 w-3.5 shrink-0" />
-      ) : (
-        <LuSquare className="h-3.5 w-3.5 shrink-0" />
-      )}
-      <span className="text-[0.625rem] font-bold">不戦勝・不戦敗を除いて集計する</span>
-    </button>
-  );
-}
-
 export default function UserProfileCard({
   user,
   isDevEnv = false,
@@ -383,10 +349,8 @@ export default function UserProfileCard({
   const [profile, setProfile] = useState({ name: user.name, imageUrl: user.image_url });
   // 戦績の表示/非表示。保存先は localStorage(サーバ描画では読めないので、読めるまでは表示)
   const statsVisible = useLocalStorageItem(STATS_VISIBLE_KEY) !== "false";
-  // 不戦勝・不戦敗を集計から外すか。未保存なら既定(外す)に従う
-  const excludeDefaultMatches = toExcludeDefaultMatches(
-    useLocalStorageItem(EXCLUDE_DEFAULT_MATCHES_KEY),
-  );
+  // 不戦勝・不戦敗を集計から外すか(戦績分析パネルと共有の設定)
+  const [excludeDefaultMatches, toggleExcludeDefaultMatches] = useExcludeDefaultMatches();
   const [yearMonth, setYearMonth] = useState<string>(getCurrentYearMonth);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
@@ -396,9 +360,6 @@ export default function UserProfileCard({
     writeLocalStorage(STATS_VISIBLE_KEY, String(!statsVisible));
   }
 
-  function toggleExcludeDefaultMatches() {
-    writeLocalStorage(EXCLUDE_DEFAULT_MATCHES_KEY, String(!excludeDefaultMatches));
-  }
 
   /*
    * 取得の鍵。表示中の月と、不戦勝/不戦敗を除くかどうかの両方で結果が変わるので、
@@ -413,11 +374,9 @@ export default function UserProfileCard({
     async (key: string): Promise<UserStatType> => {
       const [targetYearMonth, exclude] = key.split("|");
 
-      // APIの既定は「絞り込まない」(他の絞り込みパラメータと同じ)。こちらの既定とは
-      // 別物なので、含める場合も含めて常に明示して送る。
       const params = new URLSearchParams({
         year_month: targetYearMonth,
-        exclude_default_matches: exclude === "1" ? "true" : "false",
+        exclude_default_matches: excludeDefaultMatchesParam(exclude === "1"),
       });
 
       const res = await fetch(`/api/users/${user.id}/stat?${params}`, {
@@ -585,9 +544,14 @@ export default function UserProfileCard({
               />
             </div>
           )}
-          {/* 戦績を伏せている間は数字が変わらないので、切り替えの意味が無い分だけ出さない */}
-          {!statError && statsVisible && (
+          {/* 戦績を伏せていても出す。この表示/非表示は localStorage にあってサーバでは
+              読めないため、伏せている端末だけハイドレーション後にこの面が消えて
+              カードが 37px 縮み、最上部のカードなので下の内容ごと動いてしまう。
+              伏せている間は数字が変わらず切り替えの効果は見えないが、次に表示したときの
+              集計条件を決める設定なので、出しておいても筋は通る。 */}
+          {!statError && (
             <ExcludeDefaultMatchesToggle
+              className="mt-2.5"
               excluded={excludeDefaultMatches}
               onToggle={toggleExcludeDefaultMatches}
             />

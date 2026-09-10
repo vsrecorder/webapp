@@ -63,6 +63,7 @@ import { DeckGetByIdResponseType } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
 import { DeckUsageItemType, DeckUsageStatType } from "@app/types/deck_usage_stat";
 import { formatJSTDate, formatJSTDateWithWeekday, isZeroDate } from "@app/utils/date";
+import { DECK_USAGE_ALL_TIME_QUERY } from "@app/utils/excludeDefaultMatches";
 
 type RecordTabKey = "all" | "official" | "tonamel" | "unofficial";
 
@@ -131,7 +132,7 @@ async function fetchDeckUsageStat(
   deckId: string,
 ): Promise<DeckUsageItemType | null> {
   try {
-    const res = await fetch(`/api/users/${userId}/deck-usage?all_time=true`, {
+    const res = await fetch(`/api/users/${userId}/deck-usage?${DECK_USAGE_ALL_TIME_QUERY}`, {
       cache: "no-store",
       method: "GET",
       headers: { Accept: "application/json" },
@@ -320,6 +321,8 @@ export default function DeckById({ id, valueMeterEnabled = false }: Props) {
   const hasStats = !!usageStat && usageStat.count > 0;
   const winRate = usageStat?.win_rate ?? 0;
   const ignoredCount = usageStat?.ignored_count ?? 0;
+  // 不戦勝・不戦敗として勝率の集計から外した対戦数
+  const defaultMatchCount = usageStat?.default_match_count ?? 0;
 
   const goFirstHasStats = !!usageStat && usageStat.go_first_count > 0;
   const goSecondHasStats = !!usageStat && usageStat.go_second_count > 0;
@@ -626,6 +629,12 @@ export default function DeckById({ id, valueMeterEnabled = false }: Props) {
                 </div>
               )}
 
+              {defaultMatchCount > 0 && (
+                <span className="text-[0.625rem] text-default-400">
+                  不戦勝・不戦敗{defaultMatchCount}件を除いて集計しています
+                </span>
+              )}
+
               {ignoredCount > 0 && (
                 <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
                   {/* 記録カードの「集計対象外」チップと同じ塗り(solid)・同じ warning で揃える */}
@@ -662,12 +671,27 @@ export default function DeckById({ id, valueMeterEnabled = false }: Props) {
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
                 <LuSwords className="text-base text-primary" />
               </div>
-              <div className="text-tiny font-bold text-default-600">
-                まだ対戦記録がありません
-              </div>
-              <div className="text-[0.625rem] text-default-400">
-                対戦を記録すると勝率や先攻・後攻の成績が見られます
-              </div>
+              {/* 不戦は対戦が行われていないため勝率を出せないが、記録はある。
+                  「まだ対戦記録がありません」と出すと事実に反するので分けて伝える。 */}
+              {defaultMatchCount > 0 ? (
+                <>
+                  <div className="text-tiny font-bold text-default-600">
+                    不戦勝・不戦敗のみ{defaultMatchCount}件です
+                  </div>
+                  <div className="text-[0.625rem] text-default-400">
+                    対戦していないため、勝率や先攻・後攻の集計には含まれません
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="text-tiny font-bold text-default-600">
+                    まだ対戦記録がありません
+                  </div>
+                  <div className="text-[0.625rem] text-default-400">
+                    対戦を記録すると勝率や先攻・後攻の成績が見られます
+                  </div>
+                </>
+              )}
             </div>
           )}
         </CardBody>
@@ -796,7 +820,7 @@ export default function DeckById({ id, valueMeterEnabled = false }: Props) {
         </Card>
       )}
 
-      {/* 対戦相手のデッキ分布・勝率の分析 */}
+      {/* 対戦相手のデッキ分析・勝率の分析 */}
       <Card className="w-full">
         <CardHeader className="px-3 pt-3 pb-1">
           <span className="font-bold text-medium">対戦分析</span>

@@ -223,7 +223,7 @@ function OpponentDeckLegendRow({ deck }: { deck: OpponentDeckUsageItemType }) {
   );
 }
 
-// 対戦相手のデッキ分布を表す円グラフ＋凡例＋詳細カードの表示・操作をまとめた共通コンポーネント。
+// 対戦相手のデッキ分析を表す円グラフ＋凡例＋詳細カードの表示・操作をまとめた共通コンポーネント。
 // データ取得やフィルタUIは呼び出し側の責務とし、ここでは受け取った集計結果の描画のみを担当する。
 export default function OpponentDeckDistributionChart({
   decks,

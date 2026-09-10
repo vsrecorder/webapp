@@ -21,6 +21,7 @@ import {
   currentSeasonValue,
 } from "@app/utils/season";
 import { todayJSTDateString } from "@app/utils/date";
+import { EXCLUDE_DEFAULT_MATCHES_QUERY } from "@app/utils/excludeDefaultMatches";
 import OpponentDeckDistributionChart from "@app/components/organisms/DeckUsage/OpponentDeckDistributionChart";
 
 type PeriodMode = "all" | "month" | "environment" | "season" | "regulation";
@@ -180,7 +181,8 @@ export default function DeckOpponentAnalysisPanel({
     async function fetchStat() {
       setIsLoading(true);
       try {
-        const params = new URLSearchParams();
+        // 勝率・対戦数は不戦勝・不戦敗を外して集計する(utils/excludeDefaultMatches)
+        const params = new URLSearchParams(EXCLUDE_DEFAULT_MATCHES_QUERY);
         params.set("deck_id", deckId);
         params.set("regulation_id", String(regulationId));
         if (periodMode === "month" && yearMonth) {
@@ -393,15 +395,23 @@ export default function DeckOpponentAnalysisPanel({
                 : periodMode === "regulation"
                   ? `『${standardRegulations.find((r) => r.id === standardRegulationId)?.marks ?? ""}』`
                   : "全期間"}
-          の対戦相手のデッキ分布・勝率
+          の対戦相手のデッキ分析
         </p>
+
+        {/* 不戦勝・不戦敗は集計から外している(utils/excludeDefaultMatches)。
+            デッキ詳細の対戦成績と同じ扱いで、こちらも期間ラベルの直下で断る。 */}
+        {!holdSkeleton && decks.length > 0 && (
+          <p className="-mt-1 text-center text-[0.625rem] text-default-400">
+            不戦勝・不戦敗を除いて集計しています
+          </p>
+        )}
 
         <OpponentDeckDistributionChart
           decks={holdSkeleton ? [] : decks}
           isLoading={isLoading || holdSkeleton}
           hasData={!holdSkeleton && stat !== null}
           emptyMessage={
-            "この期間の対戦記録がまだありません。\n記録を作成すると対戦相手のデッキ分布が表示されます。"
+            "この期間の対戦記録がまだありません。\n記録を作成すると対戦相手のデッキ分析が表示されます。"
           }
           replayEntryAnimation={inModal}
         />

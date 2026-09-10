@@ -25,19 +25,27 @@ export default function RecapSummaryCard({ period, stat }: Props) {
       tone="primary"
       period={period}
       bottom={
-        <RecapStats
-          tone="primary"
-          items={[
-            { label: "勝ち", value: String(stat.wins) },
-            {
-              label: "負け",
-              value: String(stat.losses),
-              // 試合数と勝敗の合計が食い違って見えないよう、引き分けがある月だけ内訳を添える
-              note: draws > 0 ? `（${draws}分）` : undefined,
-            },
-            { label: "勝率", value: (stat.win_rate * 100).toFixed(1), unit: "%" },
-          ]}
-        />
+        <div className="flex flex-col" style={{ gap: 20 }}>
+          <RecapStats
+            tone="primary"
+            items={[
+              { label: "勝ち", value: String(stat.wins) },
+              {
+                label: "負け",
+                value: String(stat.losses),
+                // 試合数と勝敗の合計が食い違って見えないよう、引き分けがある月だけ内訳を添える
+                note: draws > 0 ? `（${draws}分）` : undefined,
+              },
+              { label: "勝率", value: (stat.win_rate * 100).toFixed(1), unit: "%" },
+            ]}
+          />
+          {/* 不戦勝・不戦敗は集計から外している(utils/excludeDefaultMatches)。
+              このカードは画像にして外へ出るので、公式のスイスドロー成績と数字が
+              食い違う理由がカード単体で分かるようにしておく。 */}
+          <span style={{ fontSize: 26, color: t.sub }} className="font-bold">
+            不戦勝・不戦敗を除いて集計しています
+          </span>
+        </div>
       }
     >
       <div className="flex flex-col" style={{ gap: 12, marginTop: -40 }}>

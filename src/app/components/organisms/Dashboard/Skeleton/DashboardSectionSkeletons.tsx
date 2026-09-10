@@ -198,14 +198,6 @@ export default function DashboardBlockSkeleton({ id, isDevEnv = false }: Props):
         </Section>
       );
 
-    case "stats_recent":
-      return (
-        <Section>
-          <SectionHeading label="直近N戦の勝率推移" />
-          <ChartPanelFallback />
-        </Section>
-      );
-
     case "deck_usage":
       // 見出し行はパネル自身が持つ(ChartPanelFallback の withHeading と同じ)
       return (

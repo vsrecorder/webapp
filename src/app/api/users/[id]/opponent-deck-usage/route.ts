@@ -33,6 +33,8 @@ export async function GET(
     const standardRegulationId = searchParams.get("standard_regulation_id") ?? "";
     const regulationId = searchParams.get("regulation_id") ?? "";
     const deckId = searchParams.get("deck_id") ?? "";
+    // 不戦勝・不戦敗を集計から外すかどうか(未指定なら上流の既定＝含める)
+    const excludeDefaultMatches = searchParams.get("exclude_default_matches") ?? "";
 
     const queryParams = new URLSearchParams();
     if (week) queryParams.set("week", week);
@@ -43,6 +45,8 @@ export async function GET(
       queryParams.set("standard_regulation_id", standardRegulationId);
     if (regulationId) queryParams.set("regulation_id", regulationId);
     if (deckId) queryParams.set("deck_id", deckId);
+    if (excludeDefaultMatches)
+      queryParams.set("exclude_default_matches", excludeDefaultMatches);
 
     const res = await fetch(
       upstreamUrl`/api/v1beta/users/${id}/opponent_deck_usage?${queryParams}`,

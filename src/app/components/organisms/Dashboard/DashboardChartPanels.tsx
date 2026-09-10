@@ -147,10 +147,6 @@ export const UserStatHistoryChart = deferUntilVisible(
   () => import("@app/components/organisms/UserStat/UserStatHistoryChart"),
 );
 
-export const RecentMatchWinRateChart = deferUntilVisible(
-  () => import("@app/components/organisms/UserStat/RecentMatchWinRateChart"),
-);
-
 // 見出し行はパネル自身が描く（Dashboard 側に h2 が無い）ため、
 // プレースホルダにも見出し行を持たせる。
 export const DeckUsagePanel = deferUntilVisible(

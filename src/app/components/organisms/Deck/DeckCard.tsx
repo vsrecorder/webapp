@@ -482,7 +482,7 @@ export default function DeckCard({
                      アイコンを baseline 揃えから外し(self-center)、文字の baseline で揃える */
                   <span className="flex min-w-0 items-baseline gap-1 text-default-400">
                     <LuSwords className="self-center text-[0.6875rem] shrink-0" />
-                    対戦記録なし
+                    対戦なし
                   </span>
                 )}
                 {kizunaLevel != null && <KizunaLevelInline level={kizunaLevel} />}

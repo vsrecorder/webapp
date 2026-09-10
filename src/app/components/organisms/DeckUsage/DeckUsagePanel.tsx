@@ -246,6 +246,13 @@ export default function DeckUsagePanel({
 
   const decks = useMemo(() => stat?.decks ?? [], [stat]);
 
+  // 不戦勝・不戦敗として外した対戦数の合計。0 なら但し書きを出さない
+  // (実際に外していないのに断りだけ出ると、何を除いたのか分からなくなる)。
+  const defaultMatchCount = useMemo(
+    () => decks.reduce((sum, deck) => sum + (deck.default_match_count ?? 0), 0),
+    [decks],
+  );
+
   // 表示件数が多いとノイズになるため、対面率が低いデッキは「その他」にまとめる
   const { displayItems: displayDecks, hasOther } = useMemo(
     () =>
@@ -747,9 +754,11 @@ export default function DeckUsagePanel({
               {/* 不戦勝・不戦敗は集計から外している(utils/excludeDefaultMatches)。
                   除外は勝率だけでなく件数・使用率にも効くため、凡例の下にまとめて断る。
                   公式のスイスドロー成績と数字が食い違う理由がここで分かる。 */}
-              <p className="px-1 text-[0.625rem] text-default-400">
-                不戦勝・不戦敗を除いて集計しています
-              </p>
+              {defaultMatchCount > 0 && (
+                <p className="px-1 text-[0.625rem] text-default-400">
+                  不戦勝・不戦敗{defaultMatchCount}件を除いて集計しています
+                </p>
+              )}
             </>
           )}
 

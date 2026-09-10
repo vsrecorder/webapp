@@ -16,7 +16,7 @@ import { DECK_USAGE_ALL_TIME_QUERY } from "@app/utils/excludeDefaultMatches";
  * (本番 p90 で 0.2 秒)、キャッシュがあれば即座に出し、裏で取り直す。
  *
  * 取得に失敗しても画面は出したいので、エラーは呼び出し側に投げず空にする
- * (戦績は「対戦記録なし」として描かれる)。
+ * (戦績は「対戦なし」として描かれる)。
  *
  * SWR に持たせるのは Map ではなく配列。理由は useKizunaDecksState と同じ
  * (SWR の既定の比較関数は Map の中身を比べられず、取り直しの結果を捨てる)。
@@ -59,7 +59,7 @@ export function useDeckUsageAllTime(
     fetcher,
     {
       revalidateOnFocus: false,
-      // 失敗しても「対戦記録なし」で出るだけなので、再試行で無駄に叩かない
+      // 失敗しても「対戦なし」で出るだけなので、再試行で無駄に叩かない
       shouldRetryOnError: false,
       fallbackData: initialDecks,
       revalidateOnMount: canSkipRevalidation ? false : undefined,

@@ -66,15 +66,23 @@ async function fetchReportIndexData(userId: string): Promise<ReportIndexData> {
   // シーズン側が数ヶ月しか無い。両方引いて和集合にすると、どちらの時期でも埋まる。
   // レギュレーションは絞らない（レポート本体の periodQuery と揃えている）。
   // ここを片方だけ絞るとタイルの戦数・勝率が開いたレポートと食い違う。
+  //
+  // 不戦勝・不戦敗も同じ理由で、タイルの集計から必ず外す。タイルから開く
+  // ふりかえり本体は常に外して集計しているので、ここを揃えないと
+  // 同じ月・同じ環境の戦数と勝率がタイルと遷移先で違って見える。
   const [seasonRes, recentRes, environmentsRes, oldestRes, lastWeekRes] =
     await Promise.all([
-      fetch(`/api/users/${userId}/stat/history?period=season`, { cache: "no-store" }),
-      fetch(`/api/users/${userId}/stat/history?period=6months`, { cache: "no-store" }),
+      fetch(
+        `/api/users/${userId}/stat/history?period=season&${EXCLUDE_DEFAULT_MATCHES_QUERY}`,
+        { cache: "no-store" },
+      ),
+      fetch(
+        `/api/users/${userId}/stat/history?period=6months&${EXCLUDE_DEFAULT_MATCHES_QUERY}`,
+        { cache: "no-store" },
+      ),
       fetch(`/api/environments`, { cache: "no-store" }),
       fetch(`/api/users/${userId}/oldest-record-event-date`, { cache: "no-store" }),
       // 先週(月〜日)の戦績。週次レポート通知(P-2)の入口をここにも置く。
-      // このタイルから開くふりかえり本体は常に不戦勝・不戦敗を外して集計するので、
-      // 条件を揃える(揃えないとタイルと遷移先で同じ週の勝率が違って見える)。
       fetch(`/api/users/${userId}/stat?week=${lastWeekValue()}&${EXCLUDE_DEFAULT_MATCHES_QUERY}`, {
         cache: "no-store",
       }),
@@ -126,7 +134,7 @@ async function fetchReportIndexData(userId: string): Promise<ReportIndexData> {
     candidates.map(async (environment): Promise<EnvironmentStat | null> => {
       try {
         const res = await fetch(
-          `/api/users/${userId}/stat?environment_id=${environment.id}`,
+          `/api/users/${userId}/stat?environment_id=${environment.id}&${EXCLUDE_DEFAULT_MATCHES_QUERY}`,
           { cache: "no-store" },
         );
         if (!res.ok) return null;

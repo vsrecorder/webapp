@@ -43,6 +43,7 @@ import { GameRequestType } from "@app/types/game";
 import { PokemonSpriteType, MatchPokemonSpriteType } from "@app/types/pokemon_sprite";
 
 import { useModalDragToClose } from "@app/hooks/useModalDragToClose";
+import { useSyncOnChange } from "@app/hooks/useSyncOnChange";
 import {
   scrollIntoViewAfterKeyboard,
   scrollToTopAfterKeyboard,
@@ -402,15 +403,6 @@ export default function UpdateMatchModal({
     disabled: isSubmitting || isTagManaging,
   });
 
-
-  // 開くたびに対戦の内容で入力欄を復元する。effect で復元すると前回の入力での描画が
-  // 一度挟まるので、対戦と開閉を控えておき、変わったときに描画中に復元する
-  const [restoreSource, setRestoreSource] = useState({ match, isOpen });
-  if (restoreSource.match !== match || restoreSource.isOpen !== isOpen) {
-    setRestoreSource({ match, isOpen });
-    if (match && isOpen) restoreFromMatch(match);
-  }
-
   function restoreFromMatch(match: MatchGetResponseType) {
     // BO3 / チーム戦 / BO1 は排他なので、フラグからタブを復元する
     setSelectedTab(match.bo3_flg ? "bo3" : match.group_match_flg ? "team" : "bo1");
@@ -460,6 +452,12 @@ export default function UpdateMatchModal({
         : null,
     );
   }
+
+  // 開くたびに対戦の内容で入力欄を復元する。effect で復元すると前回の入力での描画が
+  // 一度挟まるので、対戦と開閉を控えておき、変わったときに描画中に復元する
+  useSyncOnChange({ match, isOpen }, () => {
+    if (match && isOpen) restoreFromMatch(match);
+  });
 
   // 予選と決勝トーナメントの両方は選べない
   const isValidedFlg = !(qualifyingRoundFlg && finalTournamentFlg);

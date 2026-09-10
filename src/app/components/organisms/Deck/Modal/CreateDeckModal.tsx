@@ -31,6 +31,7 @@ import { normalizeDeckCode } from "@app/utils/deckCode";
 import { swrFetcher } from "@app/utils/deckCodePost";
 import { spriteImageUrl } from "@app/utils/sprite";
 import { getSpriteBySlot } from "@app/utils/spriteSlot";
+import { useSyncOnChange } from "@app/hooks/useSyncOnChange";
 
 const DECK_CODE_LENGTH = 20;
 const DECK_CODE_CHECK_DEBOUNCE_MS = 500;
@@ -120,19 +121,13 @@ export default function CreateDeckModal({
   // initialSpriteKey は initialSprites の中身を文字列にしたもの(配列の参照ではなく中身で比較する)。
   // effect で入れ直すと前回の値での描画が一度挟まるので、前回の初期値を控えて描画中に入れ直す
   const initialSpriteKey = (initialSprites ?? []).map((s) => `${s.position ?? ""}:${s.id}`).join(",");
-  const [initialSource, setInitialSource] = useState({ isOpen, initialName, initialSpriteKey });
-  if (
-    initialSource.isOpen !== isOpen ||
-    initialSource.initialName !== initialName ||
-    initialSource.initialSpriteKey !== initialSpriteKey
-  ) {
-    setInitialSource({ isOpen, initialName, initialSpriteKey });
+  useSyncOnChange({ isOpen, initialName, initialSpriteKey }, () => {
     if (isOpen) {
       setDeckName(initialName);
       setSprite1(resolveInitialSprite(1));
       setSprite2(resolveInitialSprite(2));
     }
-  }
+  });
 
   // アイコン一覧が後から届いたら、名前が仮(id のまま)のスプライトだけ本物で描く。
   // 利用者が選び直したスプライト(名前が入っている)はそのまま

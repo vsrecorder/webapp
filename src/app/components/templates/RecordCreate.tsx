@@ -69,6 +69,7 @@ import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
 import { deckImageUrl } from "@app/utils/deckImage";
 import { MAX_EVENT_TITLE_LENGTH, exceedsTextLength } from "@app/utils/textLength";
 import { useOfficialEventGuide } from "@app/hooks/useOfficialEventGuide";
+import { useSyncOnChange } from "@app/hooks/useSyncOnChange";
 import { RecordCreateTab, parseRecordCreateTab } from "@app/utils/recordCreatePrefs";
 import { writeRecordCreateSelectedTab } from "@app/utils/recordCreateSelectedTab";
 
@@ -998,13 +999,7 @@ export default function TemplateRecordCreate({
    * effect で設定すると前の選択での描画が一度挟まるので、一覧と操作の有無を控えておき
    * 変わったときに描画中に設定する
    */
-  const [deckcodeSource, setDeckcodeSource] = useState({ deckcodeData, isDeckChangedByUser });
-  if (
-    deckcodeSource.deckcodeData !== deckcodeData ||
-    deckcodeSource.isDeckChangedByUser !== isDeckChangedByUser
-  ) {
-    setDeckcodeSource({ deckcodeData, isDeckChangedByUser });
-
+  useSyncOnChange({ deckcodeData, isDeckChangedByUser }, () => {
     // SWR がまだ取得中の場合は待つ（isDeckChangedByUser は true のまま）
     if (isDeckChangedByUser && deckcodeData !== undefined) {
       if (deckcodeData.length === 0) {
@@ -1017,7 +1012,7 @@ export default function TemplateRecordCreate({
       setImageLoadedForDeckCode(false);
       setIsDeckChangedByUser(false);
     }
-  }
+  });
 
   /*
    * デッキ選択セレクターのメニューを開いたときにキーボード上部へスクロールする

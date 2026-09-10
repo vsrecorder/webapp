@@ -15,6 +15,7 @@ import PokemonSpriteModal from "@app/components/organisms/Match/Modal/PokemonSpr
 import { PokemonSpriteType, DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
+import { useSyncOnChange } from "@app/hooks/useSyncOnChange";
 import TagSelector from "@app/components/organisms/Tag/TagSelector";
 
 // 2つの文字列配列が「順序も含めて」同じかを判定する。タグ付与の変更検知に使う。
@@ -86,47 +87,42 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
     fetcherForPokemonSprites,
   );
 
-  // モーダルを開くたびに、デッキの現在のアイコンで両スロットを完全同期する。
+  // モーダルを開くたびに、デッキの現在の内容で入力欄を完全同期する。
   // アイコンが外れたスロットは null に戻す。ここで空スロットをクリアしないと、
   // 更新後(スプライト削除後)の再オープン時に、削除済みアイコンが残ったまま表示される。
-  // また依存配列に isOpen を含めないと、deck の参照が変わらない再オープンでは
-  // 同期が走らず、resetToDefaults が復元した古い状態が残ってしまう。
-  // effect で同期すると前回の値での描画が一度挟まるので、同期の元になった値を控えておき、
-  // 変わったときに描画中に同期する(React の「前回の描画の情報を保存する」パターン)
-  const [spriteSource, setSpriteSource] = useState({ isOpen, deck, pokemonSpritesData });
-  if (
-    spriteSource.isOpen !== isOpen ||
-    spriteSource.deck !== deck ||
-    spriteSource.pokemonSpritesData !== pokemonSpritesData
-  ) {
-    setSpriteSource({ isOpen, deck, pokemonSpritesData });
-    if (isOpen && deck && pokemonSpritesData) {
-      setSprite1(
-        pokemonSpritesData.find(
-          (s) => s.id === getDeckSpriteBySlot(deck.pokemon_sprites, 1)?.id,
-        ) ?? null,
-      );
-      setSprite2(
-        pokemonSpritesData.find(
-          (s) => s.id === getDeckSpriteBySlot(deck.pokemon_sprites, 2)?.id,
-        ) ?? null,
-      );
-    }
-  }
+  // source に isOpen を含めないと、deck の参照が変わらない再オープンでは同期が走らず、
+  // resetToDefaults が復元した古い状態が残ってしまう。
+  // デッキ名はかつてここで isOpen を見ておらず、deck が既にある状態でマウントされる
+  // 経路(ShowDeckModal は createLazyModal 経由で、開いた瞬間にマウントされる)では
+  // 同期が一度も走らなかった。入力欄が空のまま更新でき、name が空のリクエストが飛んで
+  // 上流が400を返していた
+  //
+  // デッキ名とタグの source に pokemonSpritesData を混ぜないこと。アイコン一覧は SWR で
+  // 取っていて再検証で参照が変わりうるため、混ぜると入力中に名前や選択タグが
+  // 巻き戻る余地ができる。
+  useSyncOnChange({ isOpen, deck }, () => {
+    if (!isOpen || !deck) return;
 
-  // デッキ名は、デッキが差し替わったときにその名前へ同期する
-  const [nameSource, setNameSource] = useState(deck);
-  if (nameSource !== deck) {
-    setNameSource(deck);
-    if (deck) setNewDeckName(deck.name);
-  }
+    setNewDeckName(deck.name);
+    setTagIds((deck.tags ?? []).map((tag) => tag.id));
+  });
 
-  // モーダルを開くたびに、デッキの現在の付与タグでタグ選択状態を同期する。
-  const [tagSource, setTagSource] = useState({ isOpen, deck });
-  if (tagSource.isOpen !== isOpen || tagSource.deck !== deck) {
-    setTagSource({ isOpen, deck });
-    if (isOpen && deck) setTagIds((deck.tags ?? []).map((tag) => tag.id));
-  }
+  // アイコンは一覧(pokemonSpritesData)が届いてから解決する。
+  // 届いた時点で source が変わり、もう一度走る
+  useSyncOnChange({ isOpen, deck, pokemonSpritesData }, () => {
+    if (!isOpen || !deck || !pokemonSpritesData) return;
+
+    setSprite1(
+      pokemonSpritesData.find(
+        (s) => s.id === getDeckSpriteBySlot(deck.pokemon_sprites, 1)?.id,
+      ) ?? null,
+    );
+    setSprite2(
+      pokemonSpritesData.find(
+        (s) => s.id === getDeckSpriteBySlot(deck.pokemon_sprites, 2)?.id,
+      ) ?? null,
+    );
+  });
 
   if (!deck) {
     return;
@@ -143,8 +139,9 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
     );
 
   const newDeckNameLength = countTextLength(newDeckName.trim());
-  // 上限を超えたままではAPIが400を返すため、更新ボタンを押せないようにする
+  // 上限を超えたまま・空のままではAPIが400を返すため、更新ボタンを押せないようにする
   const isNewDeckNameTooLong = newDeckNameLength > MAX_DECK_NAME_LENGTH;
+  const isNewDeckNameEmpty = newDeckName.trim() === "";
 
   const resetToDefaults = () => {
     setNewDeckName(deck.name);
@@ -198,7 +195,10 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
     });
 
     try {
-      const res = await fetch(`/api/decks/${deck.id}/`, {
+      // URLの末尾に "/" を付けない。Next.js(trailingSlash: false)は
+      // /api/decks/<id>/ を /api/decks/<id> へ308でリダイレクトするので、
+      // 付けると毎回リダイレクトを1往復ぶん余計に踏む。
+      const res = await fetch(`/api/decks/${deck.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -326,8 +326,12 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
                   value={newDeckName}
                   onChange={(e) => setNewDeckName(e.target.value)}
                   onFocus={(e) => scrollIntoViewAfterKeyboard(e.currentTarget)}
-                  isInvalid={isNewDeckNameTooLong}
-                  errorMessage={`デッキ名は${MAX_DECK_NAME_LENGTH}文字以内で入力してください（現在${newDeckNameLength}文字）`}
+                  isInvalid={isNewDeckNameTooLong || isNewDeckNameEmpty}
+                  errorMessage={
+                    isNewDeckNameEmpty
+                      ? "デッキ名を入力してください"
+                      : `デッキ名は${MAX_DECK_NAME_LENGTH}文字以内で入力してください（現在${newDeckNameLength}文字）`
+                  }
                   description={`${newDeckNameLength}/${MAX_DECK_NAME_LENGTH}文字`}
                 />
 
@@ -371,6 +375,7 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
                   isDisabled={
                     !hasChanges ||
                     isNewDeckNameTooLong ||
+                    isNewDeckNameEmpty ||
                     isDisabled ||
                     isTagManaging
                   }

@@ -48,6 +48,7 @@ import {
 
 import { MAX_EVENT_TITLE_LENGTH, exceedsTextLength } from "@app/utils/textLength";
 import { useOfficialEventGuide } from "@app/hooks/useOfficialEventGuide";
+import { useSyncOnChange } from "@app/hooks/useSyncOnChange";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 import { JST_TIME_ZONE, isZeroDate, toJSTDateString } from "@app/utils/date";
 
@@ -151,28 +152,25 @@ export default function EditEventInfoModal({
   // 一度挟まるので、開閉と記録を控えておき、変わったときに描画中に初期化する。
   // 自由形式イベントの取得だけは下の effect で行う(取得中の表示はここで立てる)
   const needsUnofficialFetch = currentEventType === "unofficial" && !!record.unofficial_event_id;
-  const [initSource, setInitSource] = useState({ isOpen, record });
-  if (initSource.isOpen !== isOpen || initSource.record !== record) {
-    setInitSource({ isOpen, record });
-    if (isOpen) {
-      const recordDate = toCalendarDate(record.event_date);
+  useSyncOnChange({ isOpen, record }, () => {
+    if (!isOpen) return;
 
-      setEventType(currentEventType);
-      setOfficialEventId(record.official_event_id !== 0 ? record.official_event_id : null);
-      setTonamelEventId(record.tonamel_event_id);
-      setIsValidTonamelEventId(record.tonamel_event_id !== "");
-      setEventTitle("");
-      setInitialEventTitle("");
+    const recordDate = toCalendarDate(record.event_date);
 
-      if (!needsUnofficialFetch) {
-        const date =
-          recordDate ?? toCalendarDate(record.created_at) ?? today(JST_TIME_ZONE);
-        setEventDate(date);
-        setInitialDate(date);
-      }
-      setIsLoading(needsUnofficialFetch);
+    setEventType(currentEventType);
+    setOfficialEventId(record.official_event_id !== 0 ? record.official_event_id : null);
+    setTonamelEventId(record.tonamel_event_id);
+    setIsValidTonamelEventId(record.tonamel_event_id !== "");
+    setEventTitle("");
+    setInitialEventTitle("");
+
+    if (!needsUnofficialFetch) {
+      const date = recordDate ?? toCalendarDate(record.created_at) ?? today(JST_TIME_ZONE);
+      setEventDate(date);
+      setInitialDate(date);
     }
-  }
+    setIsLoading(needsUnofficialFetch);
+  });
 
   useEffect(() => {
     if (!isOpen || !needsUnofficialFetch) return;

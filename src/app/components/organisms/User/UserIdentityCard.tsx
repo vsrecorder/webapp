@@ -9,6 +9,7 @@ import FetchError from "@app/components/molecules/FetchError";
 import { UserType } from "@app/types/user";
 import { formatJoinDate } from "@app/utils/calendar";
 import { useSeededResource } from "@app/hooks/useSeededResource";
+import { useSyncOnChange } from "@app/hooks/useSyncOnChange";
 
 async function fetchUser(userId: string): Promise<UserType> {
   const res = await fetch(`/api/users/${userId}`, { cache: "no-store" });
@@ -34,11 +35,9 @@ export default function UserIdentityCard({ userId }: Props) {
   const [copied, setCopied] = useState(false);
   // 表示中のプロフィール。取得した内容で始め、編集モーダルの結果(onUpdated)で差し替わる
   const [profile, setProfile] = useState({ name: "", imageUrl: "" });
-  const [profileSource, setProfileSource] = useState<UserType | null>(null);
-  if (profileSource !== user) {
-    setProfileSource(user);
+  useSyncOnChange({ user }, () => {
     if (user) setProfile({ name: user.name, imageUrl: user.image_url });
-  }
+  });
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   async function handleCopy() {

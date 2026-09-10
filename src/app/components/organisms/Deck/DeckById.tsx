@@ -58,6 +58,7 @@ import UnarchiveDeckModal from "@app/components/organisms/Deck/Modal/UnarchiveDe
 import { useDeckCodes, getDeckCodeVersionNumber } from "@app/hooks/useDeckCodes";
 import { useClientValue } from "@app/hooks/useClientValue";
 import { useSeededResource } from "@app/hooks/useSeededResource";
+import { useSyncOnChange } from "@app/hooks/useSyncOnChange";
 
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
@@ -182,11 +183,9 @@ export default function DeckById({ id, valueMeterEnabled = false }: Props) {
   // 差し替わる。デッキ本体を取り直したり編集モーダルが差し替えたりしたら、そのデッキの
   // 最新バージョンで入れ直す(前回のデッキを控えておき、描画中に入れ直す)
   const [deckcode, setDeckCode] = useState<DeckCodeType | null>(null);
-  const [deckcodeSource, setDeckcodeSource] = useState<DeckGetByIdResponseType | null>(null);
-  if (deckcodeSource !== deck) {
-    setDeckcodeSource(deck);
+  useSyncOnChange({ deck }, () => {
     setDeckCode(deck?.latest_deck_code ?? null);
-  }
+  });
   const [usageStat, setUsageStat] = useState<DeckUsageItemType | null>(null);
 
   // 施策E-3: 同デッキの先週の環境平均勝率（0〜1）。価値メーターの「借りて→返す」で

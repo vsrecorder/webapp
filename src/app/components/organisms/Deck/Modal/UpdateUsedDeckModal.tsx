@@ -30,6 +30,7 @@ import { DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 import { formatJSTDateWithWeekday } from "@app/utils/date";
 import { deckImageUrl } from "@app/utils/deckImage";
+import { useSyncOnChange } from "@app/hooks/useSyncOnChange";
 
 // 失敗レスポンスのボディをそのまま返すと、選択肢を組み立てるmap/forEachがレンダー中に
 // 例外になりページ全体が落ちる。取得できなかったことはSWRのerrorとして扱う。
@@ -176,13 +177,11 @@ export default function UpdateUsedDeckModal({
   */
   // 取得の有無は開いた瞬間に決まる。effect で切り替えると前の状態での描画が一度挟まるので、
   // 開閉と記録を控えておき、変わったときに描画中に切り替える
-  const [loadSource, setLoadSource] = useState({ isOpen, record });
-  if (loadSource.isOpen !== isOpen || loadSource.record !== record) {
-    setLoadSource({ isOpen, record });
+  useSyncOnChange({ isOpen, record }, () => {
     const loadable = isOpen && !!record;
     setIsLoadingDeckOptions(loadable && !!record.deck_id);
     setIsLoadingDeckCodeOptions(loadable && !!record.deck_code_id);
-  }
+  });
 
   useEffect(() => {
     if (!isOpen || !record) return;
@@ -370,6 +369,12 @@ export default function UpdateUsedDeckModal({
    * 変わったときに描画中に設定する
    *
    */
+  //
+  // ここだけ useSyncOnChange を使わない。あれは初回の描画で必ず一度呼ぶため、
+  // 下の setIsLoadingDeckCodeOptions(false) が初期値(true)を打ち消してしまい、
+  // 開いた直後のローディング表示が出なくなる。ここは開閉に伴う入力欄の初期化ではなく、
+  // 「デッキコードが届いた」「利用者がデッキを選び直した」に反応する処理なので、
+  // 初回に走らせる必要がない
   const [deckcodeSource, setDeckcodeSource] = useState({ deckcodeData, isDeckChangedByUser });
   if (
     deckcodeSource.deckcodeData !== deckcodeData ||

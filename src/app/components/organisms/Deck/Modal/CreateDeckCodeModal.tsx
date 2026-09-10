@@ -19,6 +19,7 @@ import { DeckCodeType, DeckCodeCreateRequestType } from "@app/types/deck_code";
 import TagSelectorAccordion from "@app/components/organisms/Tag/TagSelectorAccordion";
 import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
 import { normalizeDeckCode } from "@app/utils/deckCode";
+import { useSyncOnChange } from "@app/hooks/useSyncOnChange";
 
 const DECK_CODE_LENGTH = 20;
 const DECK_CODE_CHECK_DEBOUNCE_MS = 500;
@@ -111,11 +112,9 @@ export default function CreateDeckCodeModal({
   // モーダルを開くたびに、継承元 deckcode の付与タグでタグ選択状態を初期化する
   // (継承元が無い＝最初のバージョン作成時は空のまま)。
   // effect で初期化すると前回の選択での描画が一度挟まるので、前回の値を控えて描画中に初期化する
-  const [tagIdsSource, setTagIdsSource] = useState({ isOpen, deckcode });
-  if (tagIdsSource.isOpen !== isOpen || tagIdsSource.deckcode !== deckcode) {
-    setTagIdsSource({ isOpen, deckcode });
+  useSyncOnChange({ isOpen, deckcode }, () => {
     if (isOpen) setTagIds((deckcode?.tags ?? []).map((tag) => tag.id));
-  }
+  });
 
   if (!deck) {
     return;

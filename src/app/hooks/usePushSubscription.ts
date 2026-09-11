@@ -22,6 +22,9 @@ export type PushPermission = NotificationPermission | "unsupported";
 
 const RESYNC_KEY = "vsrec:push:resynced-on";
 
+// 通信そのものが失敗したときの結果。登録できていないので失効の判定もできない
+const failedSubscribe = { ok: false, wasRevoked: false } as const;
+
 // navigator.serviceWorker.ready は SW の登録が失敗すると永遠に解決しない(拒否もされない)。
 // その場合に ready が立たず UI が出ないままになるのを防ぐため、上限を置いて諦める。
 const SERVICE_WORKER_READY_TIMEOUT_MS = 8000;
@@ -80,7 +83,15 @@ function todayJST(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tokyo" }).format(new Date());
 }
 
-async function postSubscription(subscription: PushSubscription): Promise<boolean> {
+type SubscribeResult = {
+  ok: boolean;
+  // サーバ側でこの endpoint が失効(revoked)扱いのまま残っていた。
+  // 配信側が 404/410 や連続失敗で失効させた購読は、同じ endpoint で登録し直しても
+  // 大抵そのまま届かないため、呼び出し側は購読を作り直す。
+  wasRevoked: boolean;
+};
+
+async function postSubscription(subscription: PushSubscription): Promise<SubscribeResult> {
   const json = subscription.toJSON();
   const res = await fetch("/api/users/push/subscribe", {
     method: "POST",
@@ -91,7 +102,19 @@ async function postSubscription(subscription: PushSubscription): Promise<boolean
       platform: detectPushPlatform(),
     }),
   });
-  return res.ok;
+
+  if (!res.ok) return { ok: false, wasRevoked: false };
+
+  // 失効していたかはおまけの情報なので、読めなくても登録の成否は変えない。
+  // json() が無い・本文が空といった場合に同期で投げることもあるので try で包む
+  let body: { was_revoked?: unknown } | null = null;
+  try {
+    body = await res.json();
+  } catch {
+    body = null;
+  }
+
+  return { ok: true, wasRevoked: body?.was_revoked === true };
 }
 
 /*
@@ -175,8 +198,32 @@ export function usePushSubscription() {
         // 1日1回だけサーバへ再送して同期する(失敗しても表示には影響させない)
         const today = todayJST();
         if (mustPost || localStorage.getItem(RESYNC_KEY) !== today) {
-          const ok = await postSubscription(subscription).catch(() => false);
-          if (ok) localStorage.setItem(RESYNC_KEY, today);
+          const result = await postSubscription(subscription).catch(() => failedSubscribe);
+          if (cancelled) return;
+          if (result.ok) localStorage.setItem(RESYNC_KEY, today);
+
+          // サーバ側で失効していた購読は、登録し直して revoked_at が消えても endpoint 自体は
+          // 死んでいることが多い(404/410 で失効したもの、古い VAPID 鍵で作られたもの)。
+          // 端末には購読オブジェクトが残るため端末だけでは気付けず、放っておくと
+          // 「設定上はオンなのに一通も届かない」状態が続く。作り直して繋ぎ直す。
+          // 直前に作り直したばかり(mustPost)のものは対象外。
+          if (result.wasRevoked && !mustPost) {
+            await subscription.unsubscribe().catch(() => {});
+
+            const fresh = await resubscribe(registration);
+            if (cancelled) return;
+
+            if (fresh) {
+              const renewed = await postSubscription(fresh).catch(() => failedSubscribe);
+              if (cancelled) return;
+              setSubscribed(renewed.ok);
+              if (renewed.ok) localStorage.setItem(RESYNC_KEY, today);
+            } else {
+              // 作り直せなかった。許諾は残っているので、次に開いたときに
+              // 「購読が無い」経路(resubscribe)で拾い直される
+              setSubscribed(false);
+            }
+          }
         }
       } catch {
         // SW が使えない(登録失敗・タイムアウト)なら購読もできないので非対応として扱う
@@ -219,7 +266,7 @@ export function usePushSubscription() {
           applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
         }));
 
-      const ok = await postSubscription(subscription);
+      const { ok } = await postSubscription(subscription);
       if (!ok) throw new Error("failed to register push subscription");
 
       localStorage.setItem(RESYNC_KEY, todayJST());

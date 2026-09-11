@@ -18,6 +18,7 @@ function makeSubscription(endpoint: string): PushSubscription {
   return {
     endpoint,
     toJSON: () => ({ endpoint, keys: { p256dh: "p256dh-value", auth: "auth-value" } }),
+    unsubscribe: vi.fn().mockResolvedValue(true),
   } as unknown as PushSubscription;
 }
 
@@ -26,6 +27,8 @@ function makeSubscription(endpoint: string): PushSubscription {
 function stubPushEnvironment(options: {
   existing: PushSubscription | null;
   permission: NotificationPermission;
+  // /api/users/push/subscribe が返す was_revoked(サーバ側で失効扱いだったか)
+  wasRevoked?: boolean;
 }) {
   const subscribe = vi.fn().mockResolvedValue(makeSubscription("https://push.example/new"));
   const registration = {
@@ -42,10 +45,17 @@ function stubPushEnvironment(options: {
   vi.stubGlobal("PushManager", class {});
   vi.stubGlobal("Notification", { permission: options.permission });
 
-  const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+  const fetchMock = vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({ was_revoked: options.wasRevoked ?? false }),
+  });
   vi.stubGlobal("fetch", fetchMock);
 
-  return { subscribe, fetchMock };
+  const unsubscribe = options.existing
+    ? (options.existing.unsubscribe as ReturnType<typeof vi.fn>)
+    : vi.fn();
+
+  return { subscribe, fetchMock, unsubscribe };
 }
 
 function subscribeCalls(fetchMock: ReturnType<typeof vi.fn>): unknown[][] {
@@ -110,6 +120,47 @@ describe("usePushSubscription の購読の自動復旧", () => {
 
     expect(subscribe).not.toHaveBeenCalled();
     expect(result.current.subscribed).toBe(false);
+  });
+
+  // サーバ側が失効させた購読は、登録し直して revoked_at が消えても endpoint 自体は
+  // 死んでいることが多い。端末には購読オブジェクトが残るため端末だけでは気付けず、
+  // 放っておくと「設定上はオンなのに一通も届かない」状態が続く
+  it("サーバ側で失効していたと返されたら、購読を作り直して登録し直す", async () => {
+    localStorage.setItem(RESYNC_KEY, "2020-01-01");
+    const existing = makeSubscription("https://push.example/revoked");
+    const { subscribe, fetchMock, unsubscribe } = stubPushEnvironment({
+      existing,
+      permission: "granted",
+      wasRevoked: true,
+    });
+
+    const { result } = renderHook(() => usePushSubscription());
+    await waitFor(() => expect(result.current.ready).toBe(true));
+
+    // 死んだ購読を捨ててから作り直す
+    await waitFor(() => expect(subscribe).toHaveBeenCalledTimes(1));
+    expect(unsubscribe).toHaveBeenCalledTimes(1);
+    // 1回目は失効していた購読、2回目は作り直した購読
+    await waitFor(() => expect(subscribeCalls(fetchMock)).toHaveLength(2));
+    expect(result.current.subscribed).toBe(true);
+  });
+
+  it("失効していなければ作り直さない", async () => {
+    localStorage.setItem(RESYNC_KEY, "2020-01-01");
+    const existing = makeSubscription("https://push.example/alive");
+    const { subscribe, unsubscribe, fetchMock } = stubPushEnvironment({
+      existing,
+      permission: "granted",
+      wasRevoked: false,
+    });
+
+    const { result } = renderHook(() => usePushSubscription());
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    await waitFor(() => expect(subscribeCalls(fetchMock)).toHaveLength(1));
+
+    expect(subscribe).not.toHaveBeenCalled();
+    expect(unsubscribe).not.toHaveBeenCalled();
+    expect(result.current.subscribed).toBe(true);
   });
 
   it("購読が生きているときは作り直さず、日次の再同期だけを行う", async () => {

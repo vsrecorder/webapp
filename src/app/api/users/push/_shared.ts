@@ -5,8 +5,9 @@ import { NextResponse } from "next/server";
  *
  * 4本(subscribe / unsubscribe / delivered / clicked)はいずれも
  * 「NextAuth のセッションを確認 → 10秒 JWT を署名(utils/upstreamToken の
- * requireUpstreamToken) → core-apiserver へ中継」で、上流のステータスをそのまま返し、
- * ボディは読まない(すべて 204 No Content で返る)。
+ * requireUpstreamToken) → core-apiserver へ中継」で、上流のステータスをそのまま返す。
+ * ボディは解釈せずそのまま通す(subscribe だけは 200 で {"was_revoked":bool} を返し、
+ * 端末が購読を作り直すかどうかの判断に使う。他の3本は 204 No Content)。
  *
  * ファイル名を _ 始まりにしているのは、App Router のルートとして解決させないため。
  */

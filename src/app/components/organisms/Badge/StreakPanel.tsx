@@ -13,6 +13,8 @@ import StreakPanelSkeleton, {
 import { useSeededResource } from "@app/hooks/useSeededResource";
 import { UserStreakType } from "@app/types/streak";
 
+import { freezeRegenText } from "@app/utils/streak";
+
 async function fetchStreak(userId: string): Promise<UserStreakType> {
   const res = await fetch(`/api/users/${userId}/streak`, { cache: "no-store" });
 
@@ -31,11 +33,11 @@ type Props = {
 
 // フリーズ復活の案内。2行に折り返すと確保した高さを超えてしまうので1行に収める
 // (週数が2桁でも収まる長さの文言。狭い端末向けの保険として truncate も掛けている)。
-function FreezeRegenLine({ weeks }: { weeks: number }) {
+function FreezeRegenLine({ text }: { text: string }) {
   return (
     <span className="inline-flex items-center gap-0.5 text-[0.6875rem] text-primary font-medium">
       <LuSnowflake className="w-3 h-3 shrink-0" />
-      <span className="truncate">あと{weeks}週連続記録でフリーズが1つ復活</span>
+      <span className="truncate">{text}</span>
     </span>
   );
 }
@@ -131,7 +133,14 @@ export default function StreakPanel({ userId, initialStreak }: Props) {
             )}
           </div>
 
-          {showFreezeRegen && <FreezeRegenLine weeks={freezeRegenRemainingWeeks} />}
+          {showFreezeRegen && (
+            <FreezeRegenLine
+              text={freezeRegenText(
+                freezeRegenRemainingWeeks,
+                streak?.last_recorded_week,
+              )}
+            />
+          )}
         </TextColumn>
 
         {/*

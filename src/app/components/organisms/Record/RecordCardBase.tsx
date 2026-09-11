@@ -206,7 +206,7 @@ export default function RecordCardBase({
                           ⚠ この記録は分析・集計の対象外です
                         </span>
                         <span className="text-xs text-default-500">
-                          勝率・使用デッキ分析・相手デッキ分布・週次レポートから除外されています
+                          勝率・使用デッキ分析・相手デッキ分析・週次レポートから除外されています
                         </span>
                       </div>
                     </PopoverContent>

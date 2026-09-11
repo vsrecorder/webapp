@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+  type ReactNode,
+} from "react";
 
 import {
   ArcElement,
@@ -10,7 +17,8 @@ import {
 } from "chart.js";
 import { Pie } from "react-chartjs-2";
 import { AnimatePresence, motion } from "framer-motion";
-import { Accordion, AccordionItem, Chip } from "@heroui/react";
+import { Accordion, AccordionItem, Chip, type Selection } from "@heroui/react";
+import { LuChevronDown } from "react-icons/lu";
 
 import { OpponentDeckUsageItemType } from "@app/types/opponent_deck_usage_stat";
 import DeckSprites from "@app/components/molecules/DeckSprites";
@@ -68,6 +76,11 @@ const OTHER_RATE_CAP = 0.5;
 // 対面デッキが極端に分散していて10件まで増やしても「その他」が OTHER_RATE_CAP を
 // 下回らない場合は、この件数で打ち切る。
 const MAX_INDIVIDUAL_DECKS_EXPANDED = SLICE_COLORS.length;
+
+// 「その他」の内訳アコーディオンの選択キー。参照を固定して、開閉していないのに
+// 制御プロパティが毎回変わることによる再描画を避ける。
+const OTHER_EXPANDED_KEYS = new Set(["other"]);
+const OTHER_COLLAPSED_KEYS = new Set<string>();
 
 // 円グラフ本体はスプライト画像を主役にしたいため、塗りは薄いパステル調にする
 const SLICE_COLORS_SOFT = SLICE_COLORS.map((c) => lighten(c, 0.55));
@@ -194,14 +207,27 @@ export function buildOpponentDeckDisplay(decks: OpponentDeckUsageItemType[]): {
 
 // 凡例1行分の中身（スプライト・デッキ名・対面率・勝率）。
 // 通常の凡例行と、「その他」を展開した内訳行の両方で使い回す。
-function OpponentDeckLegendRow({ deck }: { deck: OpponentDeckUsageItemType }) {
+//
+// indicator は「その他」行だけに渡す展開アイコン。アコーディオン既定の位置（行の右端）に
+// 出すと、その幅ぶん数値ブロックだけが内側へ押し込まれ、「その他」行の対面率・勝率が
+// 他の行と縦に揃わなくなる。名前と数値の間に挟むことで、右端は全行で揃う。
+function OpponentDeckLegendRow({
+  deck,
+  indicator,
+}: {
+  deck: OpponentDeckUsageItemType;
+  indicator?: ReactNode;
+}) {
   return (
     <>
       <div className="w-16 flex justify-center shrink-0">
         <DeckSprites sprites={deck.pokemon_sprites} size={32} />
       </div>
-      <span className="font-bold text-xs text-default-700 truncate flex-1 min-w-0">
-        {deck.deck_info}
+      <span className="flex flex-1 min-w-0 items-center gap-1">
+        <span className="font-bold text-xs text-default-700 truncate min-w-0">
+          {deck.deck_info}
+        </span>
+        {indicator}
       </span>
       {/* 区切り線は引かない。数値の桁数で右ブロックの幅が変わるため、線を入れると
           行ごとに縦位置がずれてかえって粗く見える。右端は items-end で揃うので、
@@ -237,6 +263,9 @@ export default function OpponentDeckDistributionChart({
 }: Props) {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+  // 「その他」の内訳が開いているか。展開アイコンを既定の位置から動かして自前で描くため、
+  // 向きを切り替えられるようアコーディオンを制御する（「その他」の行は常に高々1つ）。
+  const [isOtherExpanded, setIsOtherExpanded] = useState(false);
 
   const chartRef = useRef<ChartJS<"pie">>(null);
 
@@ -372,6 +401,15 @@ export default function OpponentDeckDistributionChart({
     const nextTooltip = { deck: displayDecks[idx], color: deckColors[idx] };
     setSelectedIdx(idx);
     setTooltip(nextTooltip);
+  }
+
+  // 「その他」の内訳アコーディオンの開閉。アイコンを自前で描いている都合で制御している。
+  const otherSelectedKeys: Selection = isOtherExpanded
+    ? OTHER_EXPANDED_KEYS
+    : OTHER_COLLAPSED_KEYS;
+
+  function handleOtherSelectionChange(keys: Selection) {
+    setIsOtherExpanded(keys === "all" || keys.size > 0);
   }
 
   // 円グラフのコンテナ（スライス部分＋外側の余白）のクリックを自前でヒットテストする。
@@ -550,6 +588,8 @@ export default function OpponentDeckDistributionChart({
                 key={`${deck.deck_info}-${idx}`}
                 isCompact
                 className="px-0"
+                selectedKeys={otherSelectedKeys}
+                onSelectionChange={handleOtherSelectionChange}
                 itemClasses={{
                   base: `rounded-xl px-3 ${
                     selectedIdx === idx
@@ -558,20 +598,32 @@ export default function OpponentDeckDistributionChart({
                   }`,
                   trigger: "py-1.5 gap-2",
                   title: "min-w-0",
-                  indicator: "text-default-400",
                   content: "pt-0 pb-2",
                 }}
               >
                 <AccordionItem
                   key="other"
                   aria-label={`${deck.deck_info}の内訳`}
+                  // 既定のアイコンは行の右端に出て数値ブロックを押し込むため隠し、
+                  // 代わりにデッキ名の直後へ自前で置く（閉じているとき「>」、開くと下向き）。
+                  hideIndicator
                   title={
                     <div className="flex items-center gap-2">
                       <span
                         className="w-2.5 h-2.5 rounded-full shrink-0"
                         style={{ backgroundColor: deckColors[idx] }}
                       />
-                      <OpponentDeckLegendRow deck={deck} />
+                      <OpponentDeckLegendRow
+                        deck={deck}
+                        indicator={
+                          <LuChevronDown
+                            aria-hidden
+                            className={`w-4 h-4 shrink-0 text-default-400 transition-transform ${
+                              isOtherExpanded ? "rotate-0" : "-rotate-90"
+                            }`}
+                          />
+                        }
+                      />
                     </div>
                   }
                 >

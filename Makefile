@@ -42,6 +42,23 @@ deploy:
 	git fetch --prune
 	docker compose pull
 	docker compose up -d --no-deps --wait webapp
+	$(MAKE) warmup
+
+#
+# 起動直後の最初の閲覧者に初回レンダリングを負わせないための予熱。
+#
+# healthcheck(/health)が通っても、ホーム(/)はまだ一度も描かれていない。Next は
+# 動的レンダリングのルートを最初のリクエストで組み立てるため、その1人が待たされる。
+#
+# pm2 が cluster で2プロセス動いており、リクエストはプロセスに振り分けられる。
+# 片方だけ温めても、もう片方に当たった人が同じ目に遭うので複数回叩く。
+# 失敗してもデプロイ自体は成功扱いにする(予熱は最適化であって、可否の判定ではない)。
+#
+.PHONY: warmup
+warmup:
+	for i in 1 2 3 4; do \
+		docker compose exec -T webapp wget --spider -q -T 30 http://127.0.0.1:3003/ || true; \
+	done
 
 .PHONY: restart
 restart:

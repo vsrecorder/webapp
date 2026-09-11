@@ -29,6 +29,28 @@ services:
     mem_limit: 1024m
     memswap_limit: 1024m
     mem_reservation: 256m
+    #
+    # 応答できる状態になったかの判定。
+    #
+    # これが無いと `docker compose up --wait` は「コンテナが起動した」だけで完了し、
+    # Next のサーバが listen する前にデプロイが終わったことになる。結果、直後に来た
+    # 最初の閲覧者が Node の起動と初回レンダリングを丸ごと引き受けていた
+    # (2026-09-12 の実測: デプロイ直後の / が 11.7 秒、温まった後は 0.13 秒)。
+    #
+    # 叩き先は /health(静的な1行を返すだけのページ)。ホーム(/)にすると上流APIを
+    # 呼ぶため、30秒ごとに無駄な負荷がかかる。
+    #
+    # start_period の間の失敗は retries に数えられない(起動途中は落ちていて当然)。
+    # 60秒は、pm2 が2プロセスを立ち上げて listen するまでの実測(数秒)に対する余裕。
+    # healthcheck の失敗でコンテナが再起動することはない(restart policy とは無関係)。
+    #
+    healthcheck:
+      # alpine なので curl は入っていない。wget は busybox 版
+      test: ["CMD", "wget", "--spider", "-q", "-T", "10", "http://127.0.0.1:3003/health"]
+      interval: 30s
+      timeout: 12s
+      retries: 3
+      start_period: 60s
     ports:
       - 3003:3003
     environment:

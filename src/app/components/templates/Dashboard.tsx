@@ -116,6 +116,11 @@ type Props = {
    * cookie が無い初回訪問は undefined(既定に従う)。
    */
   excludeDefaultMatches?: boolean;
+  /*
+   * 戦績を表示するか(cookie 由来。page.tsx が読む)。
+   * トレーナー情報パネルの最初の描画に使う。cookie が無い初回訪問は undefined(既定=表示)。
+   */
+  statsVisible?: boolean;
 };
 
 async function getUser(userId: string): Promise<UserType | null> {
@@ -210,6 +215,7 @@ export default async function TemplateDashboard({
   userId,
   storedLayout,
   excludeDefaultMatches,
+  statsVisible,
 }: Props) {
   const date = getJstNow();
 
@@ -638,6 +644,7 @@ export default async function TemplateDashboard({
                   initialStat={panels.monthlyStat}
                   initialYearMonth={panels.yearMonth}
                   initialExcludeDefaultMatches={panels.excludeDefaultMatches}
+                  initialStatsVisible={statsVisible}
                   initialUserPlayer={panels.userPlayer}
                 />
                 {/*

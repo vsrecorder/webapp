@@ -1,8 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useLocalStorageItem } from "@app/hooks/useLocalStorageItem";
-import { writeLocalStorage } from "@app/utils/localStorageStore";
 import Link from "next/link";
 import { Avatar, Card, CardBody, useDisclosure } from "@heroui/react";
 import {
@@ -29,6 +27,7 @@ import {
 import { UserPlayerType } from "@app/types/user_player";
 import ExcludeDefaultMatchesToggle from "@app/components/molecules/ExcludeDefaultMatchesToggle";
 import { useExcludeDefaultMatches } from "@app/hooks/useExcludeDefaultMatches";
+import { useStatsVisible } from "@app/hooks/useStatsVisible";
 import {
   DEFAULT_EXCLUDE_DEFAULT_MATCHES,
   excludeDefaultMatchesParam,
@@ -55,6 +54,11 @@ type Props = {
    * localStorage を読めるまでの最初の描画に使う。initialStat もこの条件で取ってある。
    */
   initialExcludeDefaultMatches?: boolean;
+  /*
+   * 戦績を表示するかの、サーバが cookie から読んだ値(utils/statsVisible)。
+   * localStorage を読めるまでの最初の描画に使う。
+   */
+  initialStatsVisible?: boolean;
 };
 
 // フレームがこの間隔以内で描けていれば「滑らかに描ける状態」とみなす(およそ25fps以上)。
@@ -334,8 +338,6 @@ function PlayersClubBadge({ isLoading, userPlayer }: PlayersClubBadgeProps) {
   );
 }
 
-const STATS_VISIBLE_KEY = "profile_stats_visible";
-
 export default function UserProfileCard({
   user,
   isDevEnv = false,
@@ -344,6 +346,7 @@ export default function UserProfileCard({
   initialYearMonth,
   initialUserPlayer,
   initialExcludeDefaultMatches,
+  initialStatsVisible,
 }: Props) {
   const [userPlayer, setUserPlayer] = useState<UserPlayerType | null>(
     initialUserPlayer ?? null,
@@ -353,8 +356,8 @@ export default function UserProfileCard({
   );
   const [isPlayersClubFeatureDisabled, setIsPlayersClubFeatureDisabled] = useState(false);
   const [profile, setProfile] = useState({ name: user.name, imageUrl: user.image_url });
-  // 戦績の表示/非表示。保存先は localStorage(サーバ描画では読めないので、読めるまでは表示)
-  const statsVisible = useLocalStorageItem(STATS_VISIBLE_KEY) !== "false";
+  // 戦績の表示/非表示。サーバが cookie から読んだ値を初期値に使う(utils/statsVisible)
+  const [statsVisible, toggleStatsVisible] = useStatsVisible(initialStatsVisible);
   // 不戦勝・不戦敗を集計から外すか(戦績分析パネルと共有の設定)
   const [excludeDefaultMatches, toggleExcludeDefaultMatches] = useExcludeDefaultMatches(
     initialExcludeDefaultMatches,
@@ -363,10 +366,6 @@ export default function UserProfileCard({
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   const yearMonthOptions = generateYearMonthOptions(userCreatedAt);
-
-  function toggleStatsVisible() {
-    writeLocalStorage(STATS_VISIBLE_KEY, String(!statsVisible));
-  }
 
 
   /*

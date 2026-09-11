@@ -20,6 +20,7 @@ import {
   EXCLUDE_DEFAULT_MATCHES_COOKIE,
   parseExcludeDefaultMatchesCookie,
 } from "@app/utils/excludeDefaultMatches";
+import { STATS_VISIBLE_COOKIE, parseStatsVisibleCookie } from "@app/utils/statsVisible";
 
 const description = SITE_DESCRIPTION;
 
@@ -97,6 +98,9 @@ export default async function Home({ searchParams }: Props) {
     const excludeDefaultMatches = parseExcludeDefaultMatchesCookie(
       store.get(EXCLUDE_DEFAULT_MATCHES_COOKIE)?.value,
     );
+    // 戦績を伏せているかも同じ理由で cookie から受け取る。渡さないと伏せている端末で
+    // 目のアイコンが一瞬「表示中」に見えてから伏せ字へ切り替わる
+    const statsVisible = parseStatsVisibleCookie(store.get(STATS_VISIBLE_COOKIE)?.value);
 
     return (
       <Suspense
@@ -107,6 +111,7 @@ export default async function Home({ searchParams }: Props) {
           userId={session.user.id}
           storedLayout={storedLayout ?? undefined}
           excludeDefaultMatches={excludeDefaultMatches ?? undefined}
+          statsVisible={statsVisible ?? undefined}
         />
       </Suspense>
     );

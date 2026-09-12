@@ -6,7 +6,10 @@ import ChampionsleagueResultByLeague, {
   formatChampionsleagueWinner,
 } from "@app/components/organisms/Championsleague/ChampionsleagueResultByLeague";
 
-import { ChampionsleagueEventResultType } from "@app/types/championsleague_result";
+import {
+  ChampionsleagueEventResultType,
+  ChampionsleagueResult,
+} from "@app/types/championsleague_result";
 import { ChampionsleagueScheduleType } from "@app/types/championsleague_schedule";
 import { DeckSummaryType } from "@app/types/deckcard";
 import { OfficialEventType } from "@app/types/official_event";
@@ -42,6 +45,23 @@ function buildTitle(
   return `${schedule.title.trim()} ${buildLeagueName(leagueType)} 結果・優勝デッキ`;
 }
 
+/*
+ * 説明文と要約に載せる優勝。
+ *
+ * 1日目と2日目が別々の大会として開かれた区分には優勝が2人いる。どちらか1人しか
+ * 載せられないので最終日を採る。イベントの並び順に左右されないよう、ここで日付から選ぶ
+ * (generateMetadata と本文で違う人が出ると、検索結果とページの内容が食い違う)。
+ */
+function findLastDayWinner(
+  eventResults: ChampionsleagueEventResultType[],
+): ChampionsleagueResult | undefined {
+  const lastDay = [...eventResults].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+  )[eventResults.length - 1];
+
+  return lastDay?.results.find((result) => result.rank === 1);
+}
+
 function buildDescription(
   schedule: ChampionsleagueScheduleType,
   leagueType: number,
@@ -49,7 +69,7 @@ function buildDescription(
   deckSummaries: Record<string, DeckSummaryType>,
 ): string {
   const results = eventResults.flatMap((eventResult) => eventResult.results);
-  const winner = results.find((result) => result.rank === 1);
+  const winner = findLastDayWinner(eventResults);
   const winnerText = winner
     ? `優勝は${formatChampionsleagueWinner(winner, deckSummaries)}。`
     : "";
@@ -90,9 +110,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const eventResults = championsleagueResult?.event_results ?? [];
 
   // 説明文に載せるのは優勝デッキだけなので、ここでは1件しか引かない。
-  const winnerDeckCode = eventResults
-    .flatMap((eventResult) => eventResult.results)
-    .find((result) => result.rank === 1)?.deck_code;
+  const winnerDeckCode = findLastDayWinner(eventResults)?.deck_code;
   const winnerSummary = winnerDeckCode ? await getDeckSummary(winnerDeckCode) : null;
 
   const title = buildTitle(schedule, leagueType);
@@ -141,7 +159,11 @@ export default async function Page({ params }: Props) {
     notFound();
   }
 
-  const eventResults = championsleagueResult.event_results;
+  // 1日目/2日目に分かれた区分は、開催順(古い順)に並べる。
+  // core-apiserver は新しい日から返すため、そのままでは2日目が先に出る。
+  const eventResults = [...championsleagueResult.event_results].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+  );
 
   // 入賞デッキのカード内訳と、イベント名・会場のための公式イベント情報。
   const [deckSummaries, officialEvents] = await Promise.all([

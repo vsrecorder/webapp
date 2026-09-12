@@ -33,3 +33,13 @@ export function summarizeMatches(matches: MatchGetResponseType[]): MatchSummaryT
     has_bo3: hasBo3Match(matches),
   };
 }
+
+// サイド枚数を表示するか判定する。
+// サイドは未入力だと 0 - 0 のままになるため、0 - 0 は「入力なし」とみなして表示しない。
+// (対戦一覧のチップ・対戦詳細・カレンダーの詳細で同じ判定を使う)
+export function hasPrizeCards(
+  yourPrizeCards: number | null | undefined,
+  opponentsPrizeCards: number | null | undefined,
+) {
+  return (yourPrizeCards ?? 0) !== 0 || (opponentsPrizeCards ?? 0) !== 0;
+}

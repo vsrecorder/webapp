@@ -28,6 +28,7 @@ import { MatchGetResponseType } from "@app/types/match";
 import { RecordGetByIdResponseType } from "@app/types/record";
 import { WeeklyDeckUsageStatType } from "@app/types/weekly_deck_usage_stat";
 import { isZeroDate } from "@app/utils/date";
+import { hasPrizeCards } from "@app/utils/match";
 
 // 記録情報モーダル(閲覧モード)で対戦結果をタップしたときに開く詳細モーダル。
 // その1戦を振り返るための情報をまとめて表示する:
@@ -254,13 +255,18 @@ export default function DisplayMatchDetailModal({
                               <span className="font-bold">
                                 {game.go_first ? "先攻" : "後攻"}
                               </span>
-                              {/* チーム戦はサイド枚数を扱わないため非表示(一覧と同じ) */}
-                              {!match.group_match_flg && (
-                                <span className="tabular-nums text-default-500">
-                                  サイド {game.your_prize_cards} -{" "}
-                                  {game.opponents_prize_cards}
-                                </span>
-                              )}
+                              {/* チーム戦はサイド枚数を扱わないため非表示(一覧と同じ)。
+                                  0 - 0 は未入力とみなして同じく非表示 */}
+                              {!match.group_match_flg &&
+                                hasPrizeCards(
+                                  game.your_prize_cards,
+                                  game.opponents_prize_cards,
+                                ) && (
+                                  <span className="tabular-nums text-default-500">
+                                    サイド {game.your_prize_cards} -{" "}
+                                    {game.opponents_prize_cards}
+                                  </span>
+                                )}
                             </div>
                           ))
                         ) : (
@@ -268,12 +274,16 @@ export default function DisplayMatchDetailModal({
                             <span className="font-bold">
                               {games[0]?.go_first ? "先攻" : "後攻"}
                             </span>
-                            {!match.group_match_flg && (
-                              <span className="tabular-nums text-default-500">
-                                サイド {games[0]?.your_prize_cards ?? 0} -{" "}
-                                {games[0]?.opponents_prize_cards ?? 0}
-                              </span>
-                            )}
+                            {!match.group_match_flg &&
+                              hasPrizeCards(
+                                games[0]?.your_prize_cards,
+                                games[0]?.opponents_prize_cards,
+                              ) && (
+                                <span className="tabular-nums text-default-500">
+                                  サイド {games[0]?.your_prize_cards ?? 0} -{" "}
+                                  {games[0]?.opponents_prize_cards ?? 0}
+                                </span>
+                              )}
                           </div>
                         )}
                         {/* 引き分け(BO3のみ): 1勝1敗のまま決着しなかった対戦 */}

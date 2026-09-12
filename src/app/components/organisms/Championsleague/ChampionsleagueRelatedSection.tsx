@@ -35,7 +35,7 @@ export default async function ChampionsleagueRelatedSection({ schedule }: Props)
           </h2>
 
           <ul className="flex flex-col divide-y divide-default-100 overflow-hidden rounded-2xl border border-default-100 bg-content1">
-            {related.map(({ schedule: relatedSchedule, eventCount }) => (
+            {related.map(({ schedule: relatedSchedule, leagueCount }) => (
               <li key={relatedSchedule.id}>
                 <Link
                   href={`/cityleague_results/championsleagues/${relatedSchedule.id}`}
@@ -46,7 +46,7 @@ export default async function ChampionsleagueRelatedSection({ schedule }: Props)
                       {relatedSchedule.title.trim()}
                     </span>
                     <span className="text-tiny text-default-400">
-                      {formatEventDate(relatedSchedule.from_date)} / {eventCount}区分
+                      {formatEventDate(relatedSchedule.from_date)} / {leagueCount}区分
                     </span>
                   </span>
                   <LuChevronRight className="shrink-0 text-default-300" />

@@ -5,11 +5,10 @@ import { LuChevronRight, LuCrown, LuTrophy } from "react-icons/lu";
 import { ChampionsleagueScheduleType } from "@app/types/championsleague_schedule";
 import {
   championsleagueLeagueTitle,
+  formatLeagueDates,
   getChampionsleagueEventRefs,
-  leagueSlugFromType,
-  leagueTypeOrder,
+  groupEventsByLeagueType,
 } from "@app/utils/championsleague";
-import { formatEventDate } from "@app/utils/cityleague";
 
 type Props = {
   schedule: ChampionsleagueScheduleType;
@@ -29,14 +28,14 @@ export default async function ChampionsleagueLeagueRelatedSection({
   // （getJson は障害時に例外を投げる）。
   const events = await getChampionsleagueEventRefs().catch(() => []);
 
-  const siblings = events
-    .filter(
+  // 区分ページは区分に1つなので、1日目/2日目が別イベントの区分も1行にまとめる。
+  const siblings = groupEventsByLeagueType(
+    events.filter(
       (event) =>
         event.championsleague_schedule_id === schedule.id &&
-        event.league_type !== leagueType &&
-        leagueSlugFromType(event.league_type) !== "",
-    )
-    .sort((a, b) => leagueTypeOrder(a.league_type) - leagueTypeOrder(b.league_type));
+        event.league_type !== leagueType,
+    ),
+  ).filter((group) => group.slug !== "");
 
   const scheduleTitle = schedule.title.trim();
 
@@ -49,18 +48,18 @@ export default async function ChampionsleagueLeagueRelatedSection({
           </h2>
 
           <ul className="flex flex-col divide-y divide-default-100 overflow-hidden rounded-2xl border border-default-100 bg-content1">
-            {siblings.map((event) => (
-              <li key={event.official_event_id}>
+            {siblings.map((group) => (
+              <li key={group.leagueType}>
                 <Link
-                  href={`/cityleague_results/championsleagues/${schedule.id}/${leagueSlugFromType(event.league_type)}`}
+                  href={`/cityleague_results/championsleagues/${schedule.id}/${group.slug}`}
                   className="flex items-center justify-between gap-2 px-3 py-2.5 hover:bg-default-50"
                 >
                   <span className="flex min-w-0 flex-col gap-0.5">
                     <span className="truncate font-bold text-small">
-                      {championsleagueLeagueTitle(event.league_type)}リーグ
+                      {championsleagueLeagueTitle(group.leagueType)}リーグ
                     </span>
                     <span className="text-tiny text-default-400">
-                      {formatEventDate(event.date)}
+                      {formatLeagueDates(group.events.map((event) => event.date))}
                     </span>
                   </span>
                   <LuChevronRight className="shrink-0 text-default-300" />

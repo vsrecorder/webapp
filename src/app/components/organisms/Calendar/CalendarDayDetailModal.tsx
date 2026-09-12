@@ -21,6 +21,7 @@ import ZoomableDeckImage from "@app/components/atoms/ZoomableDeckImage";
 import DeckCardDiff from "@app/components/organisms/Deck/DeckCardDiff";
 import { useModalDragToClose } from "@app/hooks/useModalDragToClose";
 import { closingPassthroughClassNames } from "@app/utils/modal";
+import { hasPrizeCards } from "@app/utils/match";
 
 type Props = {
   isOpen: boolean;
@@ -222,7 +223,8 @@ function EventContent({ event }: { event: CalendarEvent }) {
                 {event.go_first ? "先攻" : "後攻"}
               </Chip>
             )}
-            {event.your_prize_cards !== null && event.opponents_prize_cards !== null && (
+            {/* サイドは未入力だと 0 - 0 のままになるため、0 - 0 はチップを出さない */}
+            {hasPrizeCards(event.your_prize_cards, event.opponents_prize_cards) && (
               <Chip
                 size="sm"
                 variant="flat"

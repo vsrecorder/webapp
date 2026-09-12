@@ -8,10 +8,21 @@ export type ChampionsleagueLeagueListItem = {
   href: string;
   // 「マスターリーグ」など
   title: string;
-  date: Date;
-  resultCount: number;
-  // 「○○デッキ（△△選手）」。デッキの内訳が取れなかったときは選手名だけ
-  winner?: string;
+  /*
+   * 開催日ごとの内訳。
+   *
+   * シニア・ジュニアは1日目と2日目が別々の大会として開かれることがあり、そのとき
+   * ここが2件になる。区分ページのURLは区分に1つなので行は1つにまとめ、
+   * 中で日ごとに分けて見せる（1日ぶんだけ載せると、もう一方の結果が一覧から消える）。
+   */
+  days: {
+    // 同じ日に2イベントある大会があるため、キーは開催日ではなくイベントIDで持つ
+    officialEventId: number;
+    date: Date;
+    resultCount: number;
+    // 「○○デッキ（△△選手）」。デッキの内訳が取れなかったときは選手名だけ
+    winner?: string;
+  }[];
 };
 
 type Props = {
@@ -32,14 +43,25 @@ export default function ChampionsleagueLeagueList({ items }: Props) {
           >
             <span className="flex min-w-0 flex-col gap-0.5">
               <span className="truncate font-bold text-small">{item.title}</span>
-              <span className="text-tiny text-default-400">
-                {formatEventDate(item.date)} / 入賞{item.resultCount}名
+
+              {/* 日が1つなら従来どおり1行ぶん。2日に分かれた区分だけ縦に伸びる */}
+              <span className="flex min-w-0 flex-col gap-1.5">
+                {item.days.map((day) => (
+                  <span
+                    key={day.officialEventId}
+                    className="flex min-w-0 flex-col gap-0.5"
+                  >
+                    <span className="text-tiny text-default-400">
+                      {formatEventDate(day.date)} / 入賞{day.resultCount}名
+                    </span>
+                    {day.winner && (
+                      <span className="truncate text-tiny text-default-500">
+                        優勝：{day.winner}
+                      </span>
+                    )}
+                  </span>
+                ))}
               </span>
-              {item.winner && (
-                <span className="truncate text-tiny text-default-500">
-                  優勝：{item.winner}
-                </span>
-              )}
             </span>
             <LuChevronRight className="shrink-0 text-default-300" />
           </Link>

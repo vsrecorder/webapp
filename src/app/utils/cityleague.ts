@@ -275,6 +275,11 @@ export function formatEventDate(date: Date | string): string {
   return formatInJst(date, { year: "numeric", month: "long", day: "numeric" });
 }
 
+// 「3月28日」。同じ年の日付を並べるときに、年を繰り返さないための書式。
+export function formatEventMonthDay(date: Date | string): string {
+  return formatInJst(date, { month: "long", day: "numeric" });
+}
+
 export function formatTermRange(term: CityleagueTerm): string {
   return `${formatEventDate(term.from_date)} 〜 ${formatEventDate(term.to_date)}`;
 }

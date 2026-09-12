@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { MatchGetResponseType } from "@app/types/match";
-import { countMatchResults, summarizeMatches } from "@app/utils/match";
+import { countMatchResults, hasPrizeCards, summarizeMatches } from "@app/utils/match";
 
 // テスト用の対戦(集計に関わるフラグだけ持つ)
 const match = (flags: Partial<MatchGetResponseType>): MatchGetResponseType =>
@@ -38,5 +38,23 @@ describe("summarizeMatches", () => {
       has_group_match: false,
       has_bo3: false,
     });
+  });
+});
+
+describe("hasPrizeCards", () => {
+  it("0 - 0 は未入力とみなして表示しない", () => {
+    expect(hasPrizeCards(0, 0)).toBe(false);
+  });
+
+  it("どちらかが 0 以外なら表示する", () => {
+    expect(hasPrizeCards(6, 0)).toBe(true);
+    expect(hasPrizeCards(0, 6)).toBe(true);
+    expect(hasPrizeCards(2, 3)).toBe(true);
+  });
+
+  it("null / undefined は 0 として扱う", () => {
+    expect(hasPrizeCards(null, null)).toBe(false);
+    expect(hasPrizeCards(undefined, undefined)).toBe(false);
+    expect(hasPrizeCards(null, 4)).toBe(true);
   });
 });

@@ -32,6 +32,7 @@ import { MatchGetResponseType, MatchOrderItemType } from "@app/types/match";
 
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import { getSpriteBySlot } from "@app/utils/spriteSlot";
+import { hasPrizeCards } from "@app/utils/match";
 
 type SectionKey = "qualifying" | "final" | "other";
 
@@ -619,26 +620,33 @@ export default function Matches({
                                                               ? "先攻"
                                                               : "後攻"}
                                                           </Chip>
-                                                          {/* チーム戦はサイド枚数を扱わないためチップを非表示にする */}
-                                                          {!match.group_match_flg && (
-                                                            <Chip
-                                                              size="sm"
-                                                              variant="flat"
-                                                              radius="sm"
-                                                              classNames={{
-                                                                base: "h-4 px-1",
-                                                                content:
-                                                                  "px-1 text-[0.5rem] font-bold",
-                                                              }}
-                                                            >
-                                                              {match.games[0]
-                                                                ?.your_prize_cards ?? 0}
-                                                              {" - "}
-                                                              {match.games[0]
-                                                                ?.opponents_prize_cards ??
-                                                                0}
-                                                            </Chip>
-                                                          )}
+                                                          {/* チーム戦はサイド枚数を扱わないためチップを非表示にする。
+                                                              0 - 0 は未入力とみなして同じく非表示 */}
+                                                          {!match.group_match_flg &&
+                                                            hasPrizeCards(
+                                                              match.games[0]
+                                                                ?.your_prize_cards,
+                                                              match.games[0]
+                                                                ?.opponents_prize_cards,
+                                                            ) && (
+                                                              <Chip
+                                                                size="sm"
+                                                                variant="flat"
+                                                                radius="sm"
+                                                                classNames={{
+                                                                  base: "h-4 px-1",
+                                                                  content:
+                                                                    "px-1 text-[0.5rem] font-bold",
+                                                                }}
+                                                              >
+                                                                {match.games[0]
+                                                                  ?.your_prize_cards ?? 0}
+                                                                {" - "}
+                                                                {match.games[0]
+                                                                  ?.opponents_prize_cards ??
+                                                                  0}
+                                                              </Chip>
+                                                            )}
                                                         </>
                                                       )}
                                                       {/* 付与タグ。先攻/後攻・サイド数などの後ろに、

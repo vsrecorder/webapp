@@ -28,11 +28,13 @@ export const metadata: Metadata = {
 export default async function Page() {
   const summaries = await getChampionsleagueScheduleSummaries();
 
-  const items = summaries.map(({ schedule, eventCount }) => ({
+  // 添える数は区分の数。1日目/2日目が別イベントの区分があるため、
+  // イベント数で数えると「5区分」のように実際より多く出る。
+  const items = summaries.map(({ schedule, leagueCount }) => ({
     href: `/cityleague_results/championsleagues/${schedule.id}`,
     title: schedule.title.trim(),
     subtitle: formatTermRange(schedule),
-    count: eventCount,
+    count: leagueCount,
   }));
 
   const jsonLd = buildBreadcrumbJsonLd([

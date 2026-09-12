@@ -23,8 +23,8 @@ import { safeExternalUrl } from "@app/utils/url";
 type Props = {
   schedule: ChampionsleagueScheduleType;
   leagueType: number;
-  // このリーグ区分の結果。区分は通常1イベント(1日)だが、Day1/Day2 に分かれた場合に
-  // 取りこぼさないよう配列で受ける。
+  // このリーグ区分の結果。区分は通常1イベント(1日)だが、1日目/2日目に分かれた場合に
+  // 取りこぼさないよう配列で受ける。開催日の古い順で渡すこと(表示も要約もその順に従う)。
   eventResults: ChampionsleagueEventResultType[];
   // official_events から引いた大会名・会場。取れなかったイベントは含まれない。
   officialEvents: Record<number, OfficialEventType>;
@@ -62,10 +62,6 @@ export function buildEventHeading(
   }
 
   return title;
-}
-
-function findWinner(results: ChampionsleagueResult[]): ChampionsleagueResult | undefined {
-  return results.find((result) => result.rank === 1);
 }
 
 // 「優勝は○○デッキ（△△選手）」。デッキの内訳が取れなかったときは選手名だけにする。
@@ -118,7 +114,10 @@ export default function ChampionsleagueResultByLeague({
     .find((value) => !!value);
 
   // 検索結果から直接開かれたとき、何のページなのかを冒頭の1文で伝える。
-  const winner = findWinner(eventResults.flatMap((eventResult) => eventResult.results));
+  // 1日目/2日目に分かれた区分には優勝が2人いるので、代表として最終日のほうを載せる。
+  const winner = eventResults[eventResults.length - 1]?.results.find(
+    (result) => result.rank === 1,
+  );
   const summary =
     `${formatTermRange(schedule)}に${venue ? `${venue}で` : ""}開催された${scheduleTitle}` +
     `${leagueTitle ? `（${leagueTitle}リーグ）` : ""}の結果です。` +

@@ -15,12 +15,12 @@ import { ChampionsleagueScheduleType } from "@app/types/championsleague_schedule
 import { DeckSummaryType } from "@app/types/deckcard";
 
 import {
+  ChampionsleagueLeagueGroup,
   championsleagueLeagueTitle,
   getChampionsleagueResultsByScheduleId,
   getChampionsleagueScheduleById,
   getOfficialEventsByIds,
-  leagueSlugFromType,
-  leagueTypeOrder,
+  groupEventsByLeagueType,
 } from "@app/utils/championsleague";
 import { formatTermRange } from "@app/utils/cityleague";
 import { serializeJsonLd } from "@app/utils/breadcrumb";
@@ -36,29 +36,27 @@ function buildTitle(schedule: ChampionsleagueScheduleType): string {
   return `${schedule.title.trim()} 結果・優勝デッキ`;
 }
 
-// 表示・リンクの順はマスター → シニア → ジュニア → オープン。
-// core-apiserver も league_type の降順で返すが、区分の並びはページ側の決めごとなのでここで揃える。
-function sortByLeague(
-  eventResults: ChampionsleagueEventResultType[],
-): ChampionsleagueEventResultType[] {
-  return [...eventResults].sort(
-    (a, b) => leagueTypeOrder(a.league_type) - leagueTypeOrder(b.league_type),
-  );
-}
+// 区分の一覧。並びはマスター → シニア → ジュニア → オープン、区分の中は開催日の古い順。
+type LeagueGroups = ChampionsleagueLeagueGroup<ChampionsleagueEventResultType>[];
 
 function buildDescription(
   schedule: ChampionsleagueScheduleType,
-  eventResults: ChampionsleagueEventResultType[],
+  leagueGroups: LeagueGroups,
   deckSummaries: Record<string, DeckSummaryType>,
 ): string {
-  const leagueTitles = sortByLeague(eventResults)
-    .map((eventResult) => championsleagueLeagueTitle(eventResult.league_type))
+  const leagueTitles = leagueGroups
+    .map((group) => championsleagueLeagueTitle(group.leagueType))
     .filter((title) => title !== "");
 
   // 代表として最上位の区分(マスター)の優勝を1件だけ載せる。説明文は全区分ぶんを並べるには短い。
-  const headline = sortByLeague(eventResults).find((eventResult) =>
-    eventResult.results.some((result) => result.rank === 1),
-  );
+  // 1日目/2日目に分かれた区分では最終日を採る(大会の優勝として通りが良いのは最終日)。
+  const headline = leagueGroups
+    .map((group) =>
+      [...group.events]
+        .reverse()
+        .find((eventResult) => eventResult.results.some((result) => result.rank === 1)),
+    )
+    .find((eventResult) => eventResult !== undefined);
   const winner = headline?.results.find((result) => result.rank === 1);
   const winnerText =
     winner && headline
@@ -112,7 +110,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const deckSummaries = await getWinnerDeckSummaries(eventResults);
 
   const title = buildTitle(schedule);
-  const description = buildDescription(schedule, eventResults, deckSummaries);
+  const description = buildDescription(
+    schedule,
+    groupEventsByLeagueType(eventResults),
+    deckSummaries,
+  );
   const path = `/cityleague_results/championsleagues/${schedule.id}`;
 
   return {
@@ -145,7 +147,9 @@ export default async function Page({ params }: Props) {
     notFound();
   }
 
-  const eventResults = sortByLeague(championsleagueResult.event_results);
+  const eventResults = championsleagueResult.event_results;
+  // 1日目/2日目が別イベントの区分があるため、行はイベントではなく区分ごとに作る。
+  const leagueGroups = groupEventsByLeagueType(eventResults);
 
   const [deckSummaries, officialEvents] = await Promise.all([
     getWinnerDeckSummaries(eventResults),
@@ -163,20 +167,28 @@ export default async function Page({ params }: Props) {
     .map((eventResult) => officialEvents[eventResult.official_event_id])
     .find((event) => !!event?.venue);
 
-  const items: ChampionsleagueLeagueListItem[] = eventResults.map((eventResult) => {
-    const leagueTitle = championsleagueLeagueTitle(eventResult.league_type);
-    const winner = eventResult.results.find((result) => result.rank === 1);
+  const items: ChampionsleagueLeagueListItem[] = leagueGroups.map((group) => {
+    const leagueTitle = championsleagueLeagueTitle(group.leagueType);
 
     return {
-      href: `/cityleague_results/championsleagues/${schedule.id}/${leagueSlugFromType(eventResult.league_type)}`,
+      href: `/cityleague_results/championsleagues/${schedule.id}/${group.slug}`,
       title: leagueTitle ? `${leagueTitle}リーグ` : "結果",
-      date: eventResult.date,
-      resultCount: eventResult.results.length,
-      winner: winner ? formatChampionsleagueWinner(winner, deckSummaries) : undefined,
+      days: group.events.map((eventResult) => {
+        const winner = eventResult.results.find((result) => result.rank === 1);
+
+        return {
+          officialEventId: eventResult.official_event_id,
+          date: eventResult.date,
+          resultCount: eventResult.results.length,
+          winner: winner
+            ? formatChampionsleagueWinner(winner, deckSummaries)
+            : undefined,
+        };
+      }),
     };
   });
 
-  const description = buildDescription(schedule, eventResults, deckSummaries);
+  const description = buildDescription(schedule, leagueGroups, deckSummaries);
 
   const domain = process.env.VSRECORDER_DOMAIN;
   const pageUrl = `https://${domain}/cityleague_results/championsleagues/${schedule.id}`;

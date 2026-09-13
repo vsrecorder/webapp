@@ -28,6 +28,7 @@ import { PokemonSpriteType, DeckPokemonSpriteType } from "@app/types/pokemon_spr
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 import { MAX_DECK_NAME_LENGTH, countTextLength } from "@app/utils/textLength";
 import { normalizeDeckCode } from "@app/utils/deckCode";
+import { ACTIVITY_DECK_FORM, sendDailyActivity } from "@app/utils/dailyActivity";
 
 const DECK_CODE_LENGTH = 20;
 const DECK_CODE_CHECK_DEBOUNCE_MS = 500;
@@ -82,6 +83,15 @@ export default function DeckCodeQuickStartModal({ isOpen, onOpenChange }: Props)
       : deckCodeCheck?.code === deckCode
         ? deckCodeCheck.valid
         : true;
+
+  // 初回記録ファネルの副導線(A-2)にどこまで進んだかを日次で残す。
+  // 「CTAは押したがデッキ登録で止まった」と「記録フォームまで行って保存しなかった」を
+  // 分けるために必要(engagement-weekly-2026-09-14.md §5.6)。
+  useEffect(() => {
+    if (!isOpen) return;
+
+    void sendDailyActivity([ACTIVITY_DECK_FORM]);
+  }, [isOpen]);
 
   useEffect(() => {
     if (!deckCode || deckCode.length !== DECK_CODE_LENGTH) return;

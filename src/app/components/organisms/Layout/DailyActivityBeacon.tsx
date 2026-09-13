@@ -6,6 +6,14 @@ import { usePathname } from "next/navigation";
 
 import { useSession } from "next-auth/react";
 
+import {
+  ACTIVITY_PUSH_CAPABLE,
+  ACTIVITY_RECORD_FORM,
+  ACTIVITY_STANDALONE,
+  ACTIVITY_VISIT,
+  sendDailyActivity,
+} from "@app/utils/dailyActivity";
+
 // ログイン済みユーザーの「見る」利用を日次で計測するビーコン
 // （USER_DAILY_ACTIVITIES_PLAN.md）。
 //
@@ -40,17 +48,17 @@ const CATEGORY_RULES: { category: string; patterns: RegExp[] }[] = [
     category: "report",
     patterns: [/^\/users\/report(\/.*)?$/],
   },
+  {
+    // 記録作成フォームを開いた。初回記録ファネルの最終段で、
+    // 「CTAは見たがフォームで諦めた」と「フォームにすら来ていない」を分ける
+    // （engagement-weekly-2026-09-14.md §5.6）。
+    // 記録経験者も日常的に立てるので、ファネルとして読むときは初回記録より前の分だけを見る。
+    category: ACTIVITY_RECORD_FORM,
+    patterns: [/^\/records\/(create|quick)$/],
+  },
   // 例）将来 /calendar を独立したカテゴリにする場合:
   // { category: "event", patterns: [/^\/calendar$/] },
 ];
-
-// サイトを開いたこと自体を表すカテゴリ。全ページで必ず送る。
-const BASE_CATEGORY = "visit";
-
-// 端末・起動方法から決まるカテゴリ。ルート判定ではないため CATEGORY_RULES とは
-// 別の分岐で持つ（USER_DAILY_ACTIVITIES_PLAN.md §3.3 の注記）。
-const CATEGORY_STANDALONE = "standalone";
-const CATEGORY_PUSH_CAPABLE = "push_capable";
 
 // その日の「起動方法」と「Web Pushを受けられる環境か」を返す。
 // Web Push（B-1）に投資してよいかは iOS の到達率で決まるが、iOS はホーム画面に
@@ -69,57 +77,16 @@ function deviceCategories(): string[] {
     (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
 
   if (standalone) {
-    categories.push(CATEGORY_STANDALONE);
+    categories.push(ACTIVITY_STANDALONE);
   }
 
   // 許諾の可否ではなくAPIの有無を見る（許諾はUIを出してからでないと分からず、
   // 出す前に規模を知りたいのがこの計測の目的のため）。
   if ("serviceWorker" in navigator && "PushManager" in window && "Notification" in window) {
-    categories.push(CATEGORY_PUSH_CAPABLE);
+    categories.push(ACTIVITY_PUSH_CAPABLE);
   }
 
   return categories;
-}
-
-const KEY_PREFIX = "vsrec:daily-activity:";
-
-// JSTの当日を "YYYY-MM-DD" で得る。端末のタイムゾーンに依存させない
-// （サーバ側もJSTの当日で行を作るため、日付境界の解釈を揃える）。
-function todayJST(): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tokyo" }).format(new Date());
-}
-
-// 当日まだ送っていないカテゴリだけを1リクエストにまとめて送る。
-//
-// 素直に毎マウントで叩くとSPA遷移のたびにリクエストが飛ぶため、localStorageに
-// カテゴリごとの最終送信日を持たせて間引き、実質「1ユーザー1日1リクエスト」に収める。
-// （view数を正確に測りたくなったらこの間引きを外し、サーバ側の加算に任せる）
-async function sendPending(categories: string[]): Promise<void> {
-  const today = todayJST();
-  const pending = categories.filter((category) => {
-    return localStorage.getItem(KEY_PREFIX + category) !== today;
-  });
-
-  if (pending.length === 0) {
-    return;
-  }
-
-  try {
-    const res = await fetch("/api/users/activity", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ categories: pending }),
-      keepalive: true,
-    });
-
-    // 送信できたぶんだけ当日送信済みとして記録する。
-    // 失敗時は何も書かないので、次のページ遷移で再試行される。
-    if (res.ok) {
-      pending.forEach((category) => localStorage.setItem(KEY_PREFIX + category, today));
-    }
-  } catch {
-    // 計測の失敗はUXに影響させない（トーストも出さずリトライもしない）
-  }
 }
 
 export default function DailyActivityBeacon() {
@@ -135,7 +102,7 @@ export default function DailyActivityBeacon() {
       rule.patterns.some((pattern) => pattern.test(pathname)),
     ).map((rule) => rule.category);
 
-    void sendPending([BASE_CATEGORY, ...matched, ...deviceCategories()]);
+    void sendDailyActivity([ACTIVITY_VISIT, ...matched, ...deviceCategories()]);
   }, [status, pathname]);
 
   return null;

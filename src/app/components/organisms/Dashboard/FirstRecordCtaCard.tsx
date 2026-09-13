@@ -8,6 +8,8 @@ import { sendGAEvent } from "@next/third-parties/google";
 
 import DeckCodeQuickStartModal from "@app/components/organisms/Deck/Modal/DeckCodeQuickStartModal";
 
+import { ACTIVITY_ONBOARDING_CTA, sendDailyActivity } from "@app/utils/dailyActivity";
+
 type Props = {
   // GA 計測のラベル用。コホート限定はせず、登録週(7/13週か否か)の区別は計測に付与するだけ。
   cohortWeek?: string;
@@ -28,8 +30,12 @@ export default function FirstRecordCtaCard({ cohortWeek, daysSinceSignup }: Prop
   };
 
   // 表示回数を計測（マウント時に1回）。
+  // GA とは別に日次シグナルも送る。GA は Grafana から読めずコホート表にも繋げられないため、
+  // 「登録したがCTAすら見ていない人」を数えるには DB 側に残す必要がある
+  // （engagement-weekly-2026-09-14.md §5.6）。
   useEffect(() => {
     sendGAEvent("event", "cta_first_record_impression", eventParams);
+    void sendDailyActivity([ACTIVITY_ONBOARDING_CTA]);
     // eventParams は cohortWeek/daysSinceSignup から導出しており、下記の依存で十分。
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cohortWeek, daysSinceSignup]);

@@ -10,6 +10,7 @@ import { Modal } from "@app/components/atoms/AppModal";
 import DeckCodeQuickStartModal from "@app/components/organisms/Deck/Modal/DeckCodeQuickStartModal";
 import { useClientValue } from "@app/hooks/useClientValue";
 import { readLocalStorage, writeLocalStorage } from "@app/utils/localStorageStore";
+import { ACTIVITY_ONBOARDING_CTA, sendDailyActivity } from "@app/utils/dailyActivity";
 
 // 閉じてから再表示しない期間。PWAインストールバナー(useInstallPrompt)と同じ流儀・同じ長さ。
 const DISMISS_KEY = "quick_start_modal_dismissed_at";
@@ -78,6 +79,9 @@ export default function QuickStartModal({ cohortWeek, daysSinceSignup }: Props) 
 
     writeLocalStorage(DISMISS_KEY, String(Date.now()));
     sendGAEvent("event", "quickstart_modal_impression", eventParams);
+    // カードと同じ onboarding_cta を送る。ファネル上はどちらも「空状態の導線を見た」なので、
+    // 出し方(カード/モーダル)ではなく到達したかどうかで数える
+    void sendDailyActivity([ACTIVITY_ONBOARDING_CTA]);
     // eventParams は cohortWeek/daysSinceSignup から導出しており、下記の依存で十分。
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shouldShow, cohortWeek, daysSinceSignup]);

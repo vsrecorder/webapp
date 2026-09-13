@@ -10,6 +10,8 @@ import { rankForTier } from "@app/utils/designationRank";
 import { getSpriteBySlot } from "@app/utils/spriteSlot";
 import { spriteImageUrl } from "@app/utils/sprite";
 import { spriteFitBox } from "@app/utils/spriteFit";
+import { deckImageUrl } from "@app/utils/deckImage";
+import { deckNameFontSize } from "@app/utils/ogText";
 import { formatEventDate } from "@app/utils/cityleague";
 
 // OGP画像の規定サイズ。X(Twitter)の summary_large_image と Facebook の推奨に合わせる。
@@ -151,6 +153,13 @@ const OG_SPRITE_OVERLAP = 36;
 // スプライトが1体だけのときに2枠目へ出すプレースホルダ(白いモンスターボール)の枠の割合。
 // キャラと同じ大きさで置くと「無い方」が主役に見えてしまうため、一回り小さくする。
 const OG_UNKNOWN_FRAME_RATIO = 0.65;
+
+// デッキ名を描く枠の幅。左の余白72から、右のスプライト(x=616 から)に掛からない 572 までに収める。
+const OG_TITLE_WIDTH = 500;
+// スプライトが無い投稿は右側を空けないため、左右の余白を除いた全幅を使う。
+const OG_TITLE_WIDTH_FULL = 1056;
+const OG_TITLE_FONT_MAX = 52;
+const OG_TITLE_FONT_MAX_FULL = 64;
 
 const canvasStyle = {
   width: "100%",
@@ -320,19 +329,71 @@ async function fetchImageAsDataUri(url: string, timeoutMs: number): Promise<stri
   }
 }
 
+// 背景に敷くデッキ画像に重ねる幕。上はカードを見せ、下(投稿者・ACE SPEC・フッター)へ向けて
+// 紺の単色に落とす。文字が乗る帯をほぼ不透明にすることで、現行と同じ読みやすさを保つ。
+//
+// 幕は1要素にまとめている。satori は絶対配置の div を3枚重ねると3枚目を描かないため、
+// 幕を複数使う場合も backgroundImage にカンマ区切りで並べること。
+const DECK_IMAGE_VEIL =
+  "linear-gradient(180deg, rgba(15,23,42,0.65) 0%, rgba(15,23,42,0.92) 45%, #0f172a 80%)";
+
+// デッキ画像(2:1)は 1200×630 に対して縦が足りないので、高さを合わせて 1260×630 に伸ばし、
+// はみ出す左右 30px ずつを切る。
+const DECK_IMAGE_WIDTH = 1260;
+
+function DeckImageBackground({ src }: { src: string }) {
+  return (
+    <div
+      style={{
+        position: "absolute",
+        left: 0,
+        top: 0,
+        width: OG_SIZE.width,
+        height: OG_SIZE.height,
+        display: "flex",
+      }}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt=""
+        width={DECK_IMAGE_WIDTH}
+        height={OG_SIZE.height}
+        style={{ position: "absolute", left: (OG_SIZE.width - DECK_IMAGE_WIDTH) / 2, top: 0 }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          left: 0,
+          top: 0,
+          width: OG_SIZE.width,
+          height: OG_SIZE.height,
+          display: "flex",
+          backgroundImage: DECK_IMAGE_VEIL,
+        }}
+      />
+    </div>
+  );
+}
+
 /*
  * みんなの公開デッキの個別ページ(公開したデッキコード)のOGP画像。
  *
  * 左にデッキ名・投稿者(アイコン・名前・ランクと称号)・ACE SPEC、右にデッキのスプライト2体を
- * 横に揃えて置く。背景は他のOGPと同じ紺の単色(PNGの圧縮を効かせる)。
+ * 横に揃えて置く。背景にはそのデッキのデッキ画像を敷き、上から紺の幕(DECK_IMAGE_VEIL)で
+ * 落として文字を読ませる。デッキ画像が取れない投稿は他のOGPと同じ紺の単色になる。
  * スプライトが未登録の投稿は右側を空けず、デッキ名を1段大きくする。
  * 称号の絵文字は satori が絵文字フォントを持たないため画像には載せず、名前だけを出す。
  */
-
 export async function renderDeckCodePostOgImage(post: DeckCodePostType): Promise<Buffer> {
   const assets = await loadOgAssets();
-  // 投稿者のアイコンは外部(Google / X)の URL なので、切れていても画像全体が失敗しないよう先に取る
-  const avatarSrc = await fetchImageAsDataUri(post.user.image_url, 2000);
+  // 投稿者のアイコン(外部の Google / X)と背景のデッキ画像(CDN)は、取得に失敗しても
+  // 画像全体が落ちないよう先に取る。デッキ画像は生成前・削除済みで404があり得るので、
+  // 取れなければ背景なし(紺の単色)で描く。
+  const [avatarSrc, deckImageSrc] = await Promise.all([
+    fetchImageAsDataUri(post.user.image_url, 2000),
+    fetchImageAsDataUri(deckImageUrl(post.code), 2500),
+  ]);
 
   const designation = designationForTier(post.user.designation_tier);
   const rank = rankForTier(post.user.designation_tier);
@@ -342,13 +403,20 @@ export async function renderDeckCodePostOgImage(post: DeckCodePostType): Promise
   // 1体だけなら2体目は unknown(id が無い枠。画像は同梱の白いモンスターボールを使う)
   const spriteIds: (string | undefined)[] = first ? [first.id, second?.id] : [];
 
-  const titleFontSize = spriteIds.length === 0 ? 64 : post.deck_name.length > 12 ? 44 : 52;
+  // デッキ名は長さに上限が無い。枠に収まるサイズまで小さくし、それでも収まらない長さは
+  // lineClamp:1 で末尾を省略する(折り返すと下の投稿者・ACE SPEC が押し出されるため)。
+  const titleWidth = spriteIds.length === 0 ? OG_TITLE_WIDTH_FULL : OG_TITLE_WIDTH;
+  const titleFontSize = deckNameFontSize(
+    post.deck_name,
+    titleWidth,
+    spriteIds.length === 0 ? OG_TITLE_FONT_MAX_FULL : OG_TITLE_FONT_MAX,
+  );
 
   return toPngBuffer(
     <div style={{ ...canvasStyle, justifyContent: "flex-start", position: "relative" }}>
-      {/* 左列の幅: 右のスプライトは x=616 から始まるので、左の余白72から 572 までに収めて
-          文字がスプライトの下に潜らないようにする */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 18, width: spriteIds.length === 0 ? 1056 : 500 }}>
+      {deckImageSrc ? <DeckImageBackground src={deckImageSrc} /> : null}
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 18, width: titleWidth }}>
         <Chip>みんなの公開デッキ</Chip>
 
         <div
@@ -357,7 +425,10 @@ export async function renderDeckCodePostOgImage(post: DeckCodePostType): Promise
             fontSize: titleFontSize,
             fontWeight: 700,
             lineHeight: 1.2,
-            lineClamp: 2,
+            lineClamp: 1,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
           }}
         >
           {post.deck_name}

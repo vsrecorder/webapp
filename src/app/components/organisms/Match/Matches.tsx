@@ -20,7 +20,7 @@ import { Card, CardBody } from "@heroui/react";
 
 import { useDisclosure } from "@heroui/react";
 
-import { LuStickyNote, LuSwords, LuChevronUp, LuChevronDown } from "react-icons/lu";
+import { LuSwords, LuChevronUp, LuChevronDown } from "react-icons/lu";
 
 import UpdateMatchModal from "@app/components/organisms/Match/Modal/UpdateMatchModal";
 import DisplayMatchDetailModal from "@app/components/organisms/Match/Modal/DisplayMatchDetailModal";
@@ -681,11 +681,6 @@ export default function Matches({
                                               </>
                                             )}
                                           </div>
-
-                                          {/* メモがある場合は右端にアイコンを表示 */}
-                                          {match.memo && match.memo !== "" && (
-                                            <LuStickyNote className="ml-auto mr-2 shrink-0 text-lg text-default-400" />
-                                          )}
                                         </div>
                                       </Button>
                                     </div>

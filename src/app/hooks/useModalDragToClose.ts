@@ -54,6 +54,10 @@ const TEXT_ENTRY_SELECTOR =
  */
 const IGNORE_SELECTOR = '[data-sheet-drag="ignore"]';
 
+// ヘッダー内でドラッグの起点にしない要素(ボタン等はそちらの操作に任せる)。タッチ・マウスで共通。
+// マウス側は押下時に pointer を捕捉するため、ここから漏れた要素はクリックが届かなくなる
+const HEADER_CONTROL_SELECTOR = 'button, a, input, textarea, select, [role="button"]';
+
 type SheetGesture = {
   x: number;
   y: number;
@@ -76,7 +80,7 @@ type SheetGesture = {
  *    始まった動きはブラウザのスクロールに委ねる。ヘッダー上の操作は 1 に任せ二重に扱わない。
  *    options.sheet = false で無効化でき、data-sheet-drag="ignore" を付けた要素上からは始まらない。
  *
- * マウス/ペン(デスクトップ)では 1 のヘッダーだけ Pointer Events で同じ判定をする。
+ * マウス(デスクトップ)では 1 のヘッダーだけ Pointer Events で同じ判定をする。
  * touch イベントはタッチ端末でしか発火しないため、以前はデスクトップでヘッダーを掴んで引いても
  * 何も起きず、× を隠し外側クリックでも閉じないシートは Esc かブラウザバックでしか閉じられなかった。
  * ボディ側(2)はマウスには広げない。文字列の選択やスクロールバーの操作と競合し、
@@ -161,7 +165,7 @@ export function useModalDragToClose(
       // ヘッダー内のボタン等のタップはドラッグとして扱わない。
       // touchmove を preventDefault() すると、指が僅かに動いただけで
       // ボタンの click が発火しなくなるため、ドラッグ領域の押下のみを対象にする。
-      if ((e.target as HTMLElement).closest("button, a, input, textarea, select")) return;
+      if ((e.target as HTMLElement).closest(HEADER_CONTROL_SELECTOR)) return;
 
       startY.current = e.touches[0].clientY;
     };
@@ -192,7 +196,7 @@ export function useModalDragToClose(
     node.addEventListener("touchcancel", onTouchEnd);
 
     // ---------------------------------------------------------------------
-    // 1'. ヘッダー(マウス/ペン): Pointer Events で 1 と同じ判定をする
+    // 1'. ヘッダー(マウス): Pointer Events で 1 と同じ判定をする
     // ---------------------------------------------------------------------
     // 対象はマウスだけ。タッチは 1 の touch イベント側で扱う。ペンも除外する:
     // iPadOS(Apple Pencil)や Android(スタイラス)はペンでも touch イベントを発火するため、
@@ -212,8 +216,7 @@ export function useModalDragToClose(
       if (disabledRef.current) return;
       // 主ボタン(左)以外は対象外
       if (e.button !== 0) return;
-      // ヘッダー内のボタン等はそちらの操作に任せる(1 と同じ)
-      if ((e.target as HTMLElement).closest("button, a, input, textarea, select")) return;
+      if ((e.target as HTMLElement).closest(HEADER_CONTROL_SELECTOR)) return;
 
       pointerId = e.pointerId;
       pointerStartY = e.clientY;
@@ -240,14 +243,8 @@ export function useModalDragToClose(
       }
 
       if (e.clientY - pointerStartY > CLOSE_THRESHOLD) {
+        // 捕捉(setPointerCapture)は pointerup か、閉じてヘッダーが DOM から外れた時点で自動的に解ける
         resetPointer();
-        if (typeof node.releasePointerCapture === "function") {
-          try {
-            node.releasePointerCapture(e.pointerId);
-          } catch {
-            // 捕捉していなければ何もしない
-          }
-        }
         // マウスには慣性スクロールが無いので、touch 側の close()(フリング抑止付き)は通さない。
         // 通すと document の touchmove 抑止リスナが次のタッチ操作まで残ってしまう
         onCloseRef.current();

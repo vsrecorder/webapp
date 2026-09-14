@@ -1066,15 +1066,19 @@ export default function UpdateMatchModal({
                     <div>対戦結果を編集</div>
                   </div>
 
-                  {/* 右側 */}
-                  <div>
-                    <LuTrash2
-                      className="text-xl cursor-pointer text-red-500"
-                      onClick={() => {
-                        onOpenForDeleteMatchModal();
-                      }}
-                    />
-                  </div>
+                  {/* 右側(マウス主体の端末で AppModal が右上に出す × との間隔は AppModal 側が確保する)。
+                      素の svg に onClick を付けると、ヘッダーのドラッグ判定(useModalDragToClose)が
+                      マウスの押下を捕捉してクリックが届かないので、button にして判定の対象外にする */}
+                  <button
+                    type="button"
+                    aria-label="この対戦結果を削除"
+                    className="flex items-center text-xl text-red-500"
+                    onClick={() => {
+                      onOpenForDeleteMatchModal();
+                    }}
+                  >
+                    <LuTrash2 />
+                  </button>
                 </div>
               </ModalHeader>
               <ModalBody

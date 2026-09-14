@@ -23,8 +23,6 @@ export function resolveSheetHideCloseButton({
   isKeyboardDismissDisabled: boolean | undefined;
   isFinePointer: boolean;
 }): boolean | undefined {
-  if (placement !== "bottom") return hideCloseButton;
-  if (!isFinePointer) return hideCloseButton;
-  if (isKeyboardDismissDisabled) return hideCloseButton;
-  return false;
+  const forceShow = placement === "bottom" && isFinePointer && !isKeyboardDismissDisabled;
+  return forceShow ? false : hideCloseButton;
 }

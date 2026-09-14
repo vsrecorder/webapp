@@ -327,9 +327,9 @@ export default function DisplayRecordModal({
                 <div className="flex items-center justify-between w-full">
                   <div>記録情報</div>
 
-                  {/* 右側の操作: シェア(独立アイコン) + 3点メニュー。
-                      マウス主体の端末では AppModal がシートの右上に × を出すので、そのぶん(w-8)左へ寄せる */}
-                  <div className="flex items-center gap-1 -translate-y-3 pointer-fine:mr-8">
+                  {/* 右側の操作: シェア(独立アイコン) + 3点メニュー
+                      (マウス主体の端末で AppModal が右上に出す × との間隔は AppModal 側が確保する) */}
+                  <div className="flex items-center gap-1 -translate-y-3">
                     {/* シェア: プライマリ色で強調した独立アイコン(3点メニューから分離) */}
                     <Button
                       isIconOnly

@@ -84,8 +84,7 @@ export default function FilterSheet({
                       onClear();
                       onClose();
                     }}
-                    // マウス主体の端末では AppModal がシートの右上に × を出すので、重ならないぶん左へ寄せる
-                    className="shrink-0 rounded-full bg-default-100 px-3 py-1 text-tiny font-bold text-default-600 active:opacity-70 pointer-fine:mr-4"
+                    className="shrink-0 rounded-full bg-default-100 px-3 py-1 text-tiny font-bold text-default-600 active:opacity-70"
                   >
                     絞り込みを解除
                   </button>

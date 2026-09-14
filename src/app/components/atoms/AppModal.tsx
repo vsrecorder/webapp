@@ -106,16 +106,30 @@ const reducedMotion: Variants = {
 const BOTTOM_SHEET_BASE = "sm:my-0";
 
 // マウス主体の端末か(pointer: fine)。タブレットにマウスを繋ぐ等で変わるので変化を購読する。
-// matchMedia が無い環境(jsdom 等)では「タッチ主体」扱いにして、呼び出し側の指定をそのまま使う
+// MediaQueryList はモジュールで1つを共有する。getSnapshot は描画のたびに(閉じているモーダルでも)
+// 呼ばれるので、毎回 matchMedia でクエリを作り直さず、プロパティを読むだけにする。
+// matchMedia が無い環境(jsdom 等)では null にし、「タッチ主体」扱いで呼び出し側の指定をそのまま使う
+let finePointerMql: MediaQueryList | null | undefined;
+
+function getFinePointerMql(): MediaQueryList | null {
+  if (finePointerMql === undefined) {
+    finePointerMql =
+      typeof window !== "undefined" && typeof window.matchMedia === "function"
+        ? window.matchMedia(FINE_POINTER_QUERY)
+        : null;
+  }
+  return finePointerMql;
+}
+
 function subscribeFinePointer(onChange: () => void): () => void {
-  if (typeof window.matchMedia !== "function") return () => {};
-  const mql = window.matchMedia(FINE_POINTER_QUERY);
+  const mql = getFinePointerMql();
+  if (!mql) return () => {};
   mql.addEventListener("change", onChange);
   return () => mql.removeEventListener("change", onChange);
 }
 
 function isFinePointerNow(): boolean {
-  return typeof window.matchMedia === "function" && window.matchMedia(FINE_POINTER_QUERY).matches;
+  return getFinePointerMql()?.matches ?? false;
 }
 
 function useIsFinePointer(): boolean {
@@ -144,26 +158,37 @@ export function Modal({
   const shouldReduceMotion = useReducedMotion() ?? false;
   const isFinePointer = useIsFinePointer();
 
+  /*
+   * 下寄せシートはヘッダーのスワイプで閉じる前提で × を隠しているものが多いが、
+   * マウスではその操作が自然でなく、外側クリックでも閉じないシートは閉じる手段が
+   * Esc しか無くなる。マウス主体の端末では × を出す(判定は utils/sheetCloseButton.ts)。
+   */
+  const resolvedHideCloseButton = resolveSheetHideCloseButton({
+    placement,
+    hideCloseButton,
+    isKeyboardDismissDisabled: props.isKeyboardDismissDisabled,
+    isFinePointer,
+  });
+  const isSheet = placement === "bottom";
+  // × はシート右上(top-1 right-1、約 32〜36px 四方)に絶対配置される。pe-14(56px)で 16px 以上空く。ヘッダーの右端に
+  // 操作(記録情報の共有/メニュー、対戦結果編集の削除、絞り込みの解除など)を置くシートで
+  // 重ならないよう、× を出す条件と同じ pointer-fine: でヘッダーの右余白をここで確保する。
+  // 各シートに余白を書かせると、右端に操作を足したときに漏れる(実際に1件漏れた)。
+  // 変種付きなので、シート側の px-* とは tailwind-merge で競合せず両方残る
+  const sheetHeaderClass = isSheet && !resolvedHideCloseButton ? "pointer-fine:pe-14" : undefined;
+
   return (
     <HeroUIModal
       {...props}
       placement={placement}
-      /*
-       * 下寄せシートはヘッダーのスワイプで閉じる前提で × を隠しているものが多いが、
-       * マウスではその操作が自然でなく、外側クリックでも閉じないシートは閉じる手段が
-       * Esc しか無くなる。マウス主体の端末では × を出す(判定は utils/sheetCloseButton.ts)。
-       * シートのヘッダー右端に操作を置く画面は、× と重ならないよう pointer-fine: で余白を空けること
-       * (記録情報モーダル・公開デッキの絞り込みシートが該当)。
-       */
-      hideCloseButton={resolveSheetHideCloseButton({
-        placement,
-        hideCloseButton,
-        isKeyboardDismissDisabled: props.isKeyboardDismissDisabled,
-        isFinePointer,
-      })}
+      hideCloseButton={resolvedHideCloseButton}
       classNames={
-        placement === "bottom"
-          ? { ...classNames, base: cn(BOTTOM_SHEET_BASE, classNames?.base) }
+        isSheet
+          ? {
+              ...classNames,
+              base: cn(BOTTOM_SHEET_BASE, classNames?.base),
+              header: cn(sheetHeaderClass, classNames?.header),
+            }
           : classNames
       }
       // 呼び出し側が明示した motionProps があればそちらを優先する

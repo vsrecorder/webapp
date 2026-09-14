@@ -633,6 +633,9 @@ export default function ShareRecordModal({
         placement="bottom"
         hideCloseButton
         isDismissable={false}
+        // 処理中は Esc でも閉じない。マウス主体の端末で AppModal が出す × もこの間は出さない
+        // (出しても上の onOpenChange で無視され、押せないボタンが見えるだけになる)
+        isKeyboardDismissDisabled={busy !== null}
         scrollBehavior="inside"
         // min() でシート高の上限を可視領域(--visual-viewport-height)にし、
         // iOS でキーボード表示中に入力欄がキーボードの裏に隠れるのを防ぐ

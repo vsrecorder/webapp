@@ -32,6 +32,7 @@ import { normalizeDeckUsageGrouping } from "@app/utils/deckUsageGrouping";
 import { generateWeekOptions, lastWeekValue } from "@app/utils/week";
 import {
   WeeklyDeckUsageGroupingType,
+  WeeklyDeckUsageItemType,
   WeeklyDeckUsageStatType,
 } from "@app/types/weekly_deck_usage_stat";
 
@@ -134,6 +135,51 @@ function DeltaPoints({
 }
 
 
+// 行に束ねられた内訳の1件（「その他」に集約された変種／1体目でまとめた行の組み合わせ）。
+// rank は「その他」の内訳だけに渡す（畳まれる前の順位を引き継ぐ）。渡さない場合も
+// 番号の枠は残し、どちらの内訳でもスプライトの位置が揃うようにする。
+function BreakdownRow({
+  item,
+  rank,
+  usageRate,
+  rateNote,
+}: {
+  item: WeeklyDeckUsageItemType;
+  rank?: number;
+  // 表示中の算出基準に合わせた使用率と、その分母を示す注記
+  usageRate: number;
+  rateNote: string;
+}) {
+  return (
+    <div className="flex items-center gap-2 rounded-lg bg-default-50 px-2 py-1.5">
+      <span className="w-6 text-center text-[0.625rem] font-black tabular-nums text-default-400 shrink-0">
+        {rank ?? ""}
+      </span>
+      <DeckSprites sprites={item.pokemon_sprites} size={32} />
+      <div className="ml-auto flex flex-col items-end shrink-0 leading-none">
+        <span className="text-sm font-black tabular-nums text-default-600">
+          {(usageRate * 100).toFixed(1)}
+          <span className="text-[0.625rem] font-bold text-default-400">%</span>
+        </span>
+        <span className="text-[0.5625rem] text-default-400 tabular-nums mt-0.5">
+          {item.count}件・{rateNote}
+        </span>
+      </div>
+      <Chip
+        size="sm"
+        variant="flat"
+        color={winRateChipColor(item.win_rate)}
+        classNames={{
+          base: "h-5 px-0.5 shrink-0",
+          content: "text-[0.625rem] font-bold tabular-nums px-1.5",
+        }}
+      >
+        勝率 {(item.win_rate * 100).toFixed(1)}%
+      </Chip>
+    </div>
+  );
+}
+
 // 使用率の算出基準（全体件数を分母にするか、「その他」を除いた件数を分母にするか）
 type RateMode = "all" | "excl_other";
 
@@ -159,8 +205,24 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
   const [stat, setStat] = useState<WeeklyDeckUsageStatType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [rateMode, setRateMode] = useState<RateMode>("all");
-  // 「その他」の内訳アコーディオンの開閉状態
-  const [otherExpanded, setOtherExpanded] = useState(false);
+  // 内訳アコーディオンの開閉状態。行ごとに独立して開けるよう指紋の集合で持つ
+  // （「その他」行の指紋は空文字）。1体目でまとめた表示では複数の行が内訳を持つため、
+  // 単一の真偽値だと別の行を開いたときに前の行が畳まれてしまう。
+  const [expandedKeys, setExpandedKeys] = useState<ReadonlySet<string>>(
+    () => new Set<string>(),
+  );
+
+  function toggleExpanded(fingerprint: string) {
+    setExpandedKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(fingerprint)) {
+        next.delete(fingerprint);
+      } else {
+        next.add(fingerprint);
+      }
+      return next;
+    });
+  }
 
   // 週や集計単位を切り替えたら内訳アコーディオンは畳んでおく
   // （別の集計結果の展開状態を持ち越さない。まとめ方を変えると内訳の中身ごと変わる）。
@@ -168,7 +230,7 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
   const [prevKey, setPrevKey] = useState(`${week}/${grouping}`);
   if (prevKey !== `${week}/${grouping}`) {
     setPrevKey(`${week}/${grouping}`);
-    setOtherExpanded(false);
+    setExpandedKeys(new Set<string>());
   }
 
   useEffect(() => {
@@ -401,6 +463,15 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
                 ? 0
                 : Math.min(100, Math.max(2, Math.round((displayRate ?? 0) * 100)));
 
+              // 内訳をアコーディオンで開ける行:
+              //  - 「その他」: 集約された少数変種(中身は行だけでは一切見えないので常に開ける)
+              //  - 1体目でまとめた行: 束ねる前の組み合わせ。行は1体目しか出していないため、
+              //    組み合わせが1種類しかない行でも2体目が分かるという新しい情報になる
+              // 全体を俯瞰する埋め込み(limit指定)では畳んだままにし、詳細ページでのみ展開可能にする
+              const members = deck.members ?? [];
+              const canExpand = limit == null && members.length > 0;
+              const isExpanded = expandedKeys.has(deck.fingerprint);
+
               return (
                 <div
                   key={`${deck.fingerprint || "other"}-${idx}`}
@@ -492,62 +563,54 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
                     </span>
                   </div>
 
-                  {/* 「その他」に集約された少数変種(3件未満)の内訳をアコーディオンで一覧表示する。
-                      全体を俯瞰する埋め込み(limit指定)では畳んだままにし、詳細ページでのみ展開可能にする */}
-                  {isOther && limit == null && (deck.members?.length ?? 0) > 0 && (
+                  {/* 束ねた内訳をアコーディオンで一覧表示する。
+                      「その他」行は集約された少数変種(3件未満)、1体目でまとめた行は
+                      束ねる前の組み合わせ(2体目違いの派生)が並ぶ */}
+                  {canExpand && (
                     <div className="flex flex-col gap-1 mt-0.5">
                       <button
                         type="button"
-                        onClick={() => setOtherExpanded((v) => !v)}
-                        aria-expanded={otherExpanded}
+                        onClick={() => toggleExpanded(deck.fingerprint)}
+                        aria-expanded={isExpanded}
                         className="flex items-center justify-center gap-1 py-1 text-[0.625rem] font-bold text-default-500 hover:text-default-600"
                       >
                         <LuChevronDown
                           className={`w-3.5 h-3.5 transition-transform ${
-                            otherExpanded ? "rotate-180" : ""
+                            isExpanded ? "rotate-180" : ""
                           }`}
                         />
-                        {otherExpanded
+                        {isExpanded
                           ? "内訳を閉じる"
-                          : `内訳をすべて見る（${deck.members!.length}種類）`}
+                          : isOther
+                            ? `内訳をすべて見る（${members.length}種類）`
+                            : `組み合わせの内訳を見る（${members.length}種類）`}
                       </button>
 
-                      {otherExpanded && (
+                      {isExpanded && (
                         <div className="flex flex-col gap-1">
-                          {deck.members!.map((member, mIdx) => (
-                            <div
-                              key={`${member.fingerprint || "member"}-${mIdx}`}
-                              className="flex items-center gap-2 rounded-lg bg-default-50 px-2 py-1.5"
-                            >
-                              {/* 「その他」に畳まれる前の順位を引き継ぐ（その他行の次の順位から連番） */}
-                              <span className="w-6 text-center text-[0.625rem] font-black tabular-nums text-default-400 shrink-0">
-                                {idx + 1 + mIdx}
-                              </span>
-                              <DeckSprites sprites={member.pokemon_sprites} size={32} />
-                              <div className="ml-auto flex flex-col items-end shrink-0 leading-none">
-                                <span className="text-sm font-black tabular-nums text-default-600">
-                                  {(member.usage_rate * 100).toFixed(1)}
-                                  <span className="text-[0.625rem] font-bold text-default-400">
-                                    %
-                                  </span>
-                                </span>
-                                <span className="text-[0.5625rem] text-default-400 tabular-nums mt-0.5">
-                                  {member.count}件・全体比
-                                </span>
-                              </div>
-                              <Chip
-                                size="sm"
-                                variant="flat"
-                                color={winRateChipColor(member.win_rate)}
-                                classNames={{
-                                  base: "h-5 px-0.5 shrink-0",
-                                  content: "text-[0.625rem] font-bold tabular-nums px-1.5",
-                                }}
-                              >
-                                勝率 {(member.win_rate * 100).toFixed(1)}%
-                              </Chip>
-                            </div>
-                          ))}
+                          {members.map((member, mIdx) => {
+                            // 「その他」の内訳は「その他を除いた割合」では分母から
+                            // 外れた票なので、常に全体件数を分母にしたままにする。
+                            // 1体目でまとめた行の内訳は行と同じ基準に合わせる
+                            // （内訳の合計が行の使用率に一致する）
+                            const useAll = isOther || rateMode === "all";
+                            return (
+                              <BreakdownRow
+                                key={`${member.fingerprint || "member"}-${mIdx}`}
+                                item={member}
+                                // 「その他」の内訳だけは畳まれる前の順位を引き継ぐ
+                                // （その他行の次の順位から連番）。1体目でまとめた行の
+                                // 内訳は順位を持たないので番号を出さない
+                                rank={isOther ? idx + 1 + mIdx : undefined}
+                                usageRate={
+                                  useAll
+                                    ? member.usage_rate
+                                    : member.count / (exclOtherTotal || 1)
+                                }
+                                rateNote={useAll ? "全体比" : "その他除く"}
+                              />
+                            );
+                          })}
                         </div>
                       )}
                     </div>

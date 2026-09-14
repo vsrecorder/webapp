@@ -17,6 +17,7 @@ import {
 import DeckSprites from "@app/components/molecules/DeckSprites";
 import {
   WeeklyDeckUsageBetaNote,
+  WeeklyDeckUsageGroupingNote,
   WeeklyDeckUsageNotes,
   WeeklyDeckUsageRankingHeader,
   WeeklyDeckUsageRateNote,
@@ -27,8 +28,12 @@ import {
   WeeklyDeckUsageSummarySkeleton,
 } from "@app/components/organisms/DeckMeta/Skeleton/WeeklyDeckUsagePanelSkeleton";
 
+import { normalizeDeckUsageGrouping } from "@app/utils/deckUsageGrouping";
 import { generateWeekOptions, lastWeekValue } from "@app/utils/week";
-import { WeeklyDeckUsageStatType } from "@app/types/weekly_deck_usage_stat";
+import {
+  WeeklyDeckUsageGroupingType,
+  WeeklyDeckUsageStatType,
+} from "@app/types/weekly_deck_usage_stat";
 
 // 勝率に応じた色分け（既存の統計表示と同じ閾値に合わせる）
 function winRateChipColor(rate: number): "success" | "default" | "warning" | "danger" {
@@ -147,17 +152,22 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
       ? weekParam
       : lastWeekValue();
   });
+  // URLの grouping パラメータがあれば初期表示の集計単位として引き継ぐ
+  const [grouping, setGrouping] = useState<WeeklyDeckUsageGroupingType>(() =>
+    normalizeDeckUsageGrouping(searchParams.get("grouping")),
+  );
   const [stat, setStat] = useState<WeeklyDeckUsageStatType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [rateMode, setRateMode] = useState<RateMode>("all");
   // 「その他」の内訳アコーディオンの開閉状態
   const [otherExpanded, setOtherExpanded] = useState(false);
 
-  // 週を切り替えたら内訳アコーディオンは畳んでおく（別週の展開状態を持ち越さない）。
-  // effect で畳むと開いたままの描画が一度挟まるので、前回の週を控えて描画中に畳む
-  const [prevWeek, setPrevWeek] = useState(week);
-  if (prevWeek !== week) {
-    setPrevWeek(week);
+  // 週や集計単位を切り替えたら内訳アコーディオンは畳んでおく
+  // （別の集計結果の展開状態を持ち越さない。まとめ方を変えると内訳の中身ごと変わる）。
+  // effect で畳むと開いたままの描画が一度挟まるので、前回の値を控えて描画中に畳む
+  const [prevKey, setPrevKey] = useState(`${week}/${grouping}`);
+  if (prevKey !== `${week}/${grouping}`) {
+    setPrevKey(`${week}/${grouping}`);
     setOtherExpanded(false);
   }
 
@@ -169,6 +179,7 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
       try {
         const params = new URLSearchParams();
         if (week) params.set("week", week);
+        params.set("grouping", grouping);
 
         const res = await fetch(`/api/deck_meta/weekly_usage?${params.toString()}`, {
           cache: "no-store",
@@ -189,7 +200,7 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [week]);
+  }, [week, grouping]);
 
   const decks = useMemo(() => stat?.decks ?? [], [stat]);
 
@@ -285,6 +296,22 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
           >
             <LuChevronRight className="w-4 h-4" />
           </Button>
+        </div>
+
+        {/* デッキのまとめ方(集計単位)。データに依らない操作なので、週セレクタと同じく
+            読み込み中も実物を出して切り替えられるようにする */}
+        <div className="flex flex-col gap-1.5">
+          <Tabs
+            fullWidth
+            size="sm"
+            selectedKey={grouping}
+            onSelectionChange={(key) => setGrouping(key as WeeklyDeckUsageGroupingType)}
+            classNames={{ tab: "h-7", tabContent: "font-bold text-xs" }}
+          >
+            <Tab key="exact" title="組み合わせ別" />
+            <Tab key="first_sprite" title="1体目でまとめる" />
+          </Tabs>
+          <WeeklyDeckUsageGroupingNote grouping={grouping} />
         </div>
 
         {/* 母集団の明示(初回読み込み中は同寸のスケルトンを置き、完了時にレイアウトが跳ねないようにする) */}
@@ -533,7 +560,7 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
             {hiddenCount > 0 && (
               <Button
                 as={Link}
-                href={`/deck_meta?week=${week}`}
+                href={`/deck_meta?week=${week}&grouping=${grouping}`}
                 variant="flat"
                 color="default"
                 radius="lg"

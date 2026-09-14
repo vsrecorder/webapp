@@ -2,13 +2,22 @@ import { NextResponse, NextRequest } from "next/server";
 
 import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/upstream";
 
-import { WeeklyDeckUsageStatType } from "@app/types/weekly_deck_usage_stat";
+import { normalizeDeckUsageGrouping } from "@app/utils/deckUsageGrouping";
+
+import {
+  WeeklyDeckUsageGroupingType,
+  WeeklyDeckUsageStatType,
+} from "@app/types/weekly_deck_usage_stat";
 
 // プラットフォーム全体の週次デッキ使用率を取得する公開 proxy。
 // 非会員も閲覧できる環境レポートのため、auth() は呼ばず Authorization ヘッダなしで core-api を叩く。
-async function getWeeklyDeckUsage(week: string): Promise<WeeklyDeckUsageStatType> {
+async function getWeeklyDeckUsage(
+  week: string,
+  grouping: WeeklyDeckUsageGroupingType,
+): Promise<WeeklyDeckUsageStatType> {
   const query = new URLSearchParams();
   if (week) query.set("week", week);
+  query.set("grouping", grouping);
 
   return await fetchUpstream<WeeklyDeckUsageStatType>(
     upstreamUrl`/api/v1beta/deck_meta/weekly_usage?${query}`,
@@ -25,8 +34,10 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const week = searchParams.get("week") ?? "";
+    // core-api は未知の値を 400 にするため、受け付ける値へ寄せてから渡す。
+    const grouping = normalizeDeckUsageGrouping(searchParams.get("grouping"));
 
-    const usage = await getWeeklyDeckUsage(week);
+    const usage = await getWeeklyDeckUsage(week, grouping);
 
     return NextResponse.json(usage, { status: 200 });
   } catch (error) {

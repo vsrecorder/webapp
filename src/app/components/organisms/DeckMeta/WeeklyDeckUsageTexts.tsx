@@ -1,5 +1,7 @@
 import { Chip } from "@heroui/react";
 
+import { WeeklyDeckUsageGroupingType } from "@app/types/weekly_deck_usage_stat";
+
 /*
  * 週次デッキ使用率パネルの固定文言。骨格(WeeklyDeckUsagePanelSkeleton)と
  * 実体(WeeklyDeckUsagePanel)の両方から同じものを描く。
@@ -63,6 +65,21 @@ export function WeeklyDeckUsageRateNote({
       {rateMode === "all"
         ? "「その他」を含む全体件数を分母に算出しています"
         : `「その他」(${otherCount}件)を除いた${exclOtherTotal}件を分母に算出しています`}
+    </span>
+  );
+}
+
+// デッキのまとめ方(集計単位)の説明。骨格からは既定(組み合わせ一致)のまま呼ぶ
+export function WeeklyDeckUsageGroupingNote({
+  grouping = "exact",
+}: {
+  grouping?: WeeklyDeckUsageGroupingType;
+}) {
+  return (
+    <span className="text-[0.625rem] text-default-400 leading-snug text-center">
+      {grouping === "exact"
+        ? "ポケモン2体の組み合わせが同じものを1つのデッキとして数えています"
+        : "1体目のポケモンが同じものを1つのデッキとして数えています"}
     </span>
   );
 }

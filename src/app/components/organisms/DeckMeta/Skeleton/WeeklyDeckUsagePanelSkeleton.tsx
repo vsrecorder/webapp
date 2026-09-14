@@ -3,6 +3,7 @@ import { Card, CardBody } from "@heroui/react";
 import SkeletonTextLine from "@app/components/molecules/Skeleton/SkeletonTextLine";
 import {
   WeeklyDeckUsageBetaNote,
+  WeeklyDeckUsageGroupingNote,
   WeeklyDeckUsageNotes,
   WeeklyDeckUsageRankingHeader,
   WeeklyDeckUsageRateNote,
@@ -90,6 +91,19 @@ export function WeeklyDeckUsageSummarySkeleton() {
   );
 }
 
+// デッキのまとめ方の切り替え(タブ h-9 + 説明1行)。
+// パネル側は読み込み中も実物のタブを出すので、ここは同じ高さのバーで場所だけ確保する。
+export function WeeklyDeckUsageGroupingSkeleton() {
+  return (
+    <div className="flex flex-col gap-1.5">
+      {/* タブ(Tabs の高さ 36px) */}
+      <div className="h-9 w-full rounded-xl bg-default-100 animate-pulse" />
+      {/* 説明は固定文言。初期表示(組み合わせ別)のものをそのまま置く */}
+      <WeeklyDeckUsageGroupingNote />
+    </div>
+  );
+}
+
 // 使用率の算出基準の切り替え(タブ h-9 + 分母の説明1行)
 export function WeeklyDeckUsageRateModeSkeleton() {
   return (
@@ -143,6 +157,7 @@ export default function WeeklyDeckUsagePanelSkeleton({ limit = 5 }: Props) {
           <div className="h-8 w-8 rounded-medium bg-default-100 animate-pulse shrink-0" />
         </div>
 
+        <WeeklyDeckUsageGroupingSkeleton />
         <WeeklyDeckUsageSummarySkeleton />
         <WeeklyDeckUsageRateModeSkeleton />
 

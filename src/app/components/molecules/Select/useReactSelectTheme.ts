@@ -1,27 +1,48 @@
 import { useTheme } from "next-themes";
 import type { Theme } from "react-select";
 
-// 現在ダークモードが適用されているかを判定する。
-// next-themes の resolvedTheme はマウント前（ハイドレーション前）に undefined を返すため、
-// その間は <html> の .dark クラスを直接参照して実際の適用状態を判定する。
-// これをしないと、ページ本体はダーク表示なのにセレクターだけが
-// 既定（白）の配色のまま描画され「時々セレクターが白い」状態になる。
-function detectIsDark(resolvedTheme: string | undefined): boolean {
-  if (resolvedTheme) return resolvedTheme === "dark";
-  if (typeof document !== "undefined") {
-    return document.documentElement.classList.contains("dark");
-  }
-  return false;
+import { useClientValue } from "@app/hooks/useClientValue";
+
+/*
+ * 現在ダークモードが適用されているか。
+ *
+ * next-themes の resolvedTheme はマウント前(ハイドレーション前)に undefined を返すため、
+ * その間は <html> の .dark クラスを直接見て実際の適用状態を判定する。これをしないと、
+ * ページ本体はダーク表示なのにセレクターだけが既定(白)の配色になる。
+ *
+ * ただしこの判定を描画中にそのまま出してはいけない。サーバ描画では .dark を読めず必ず
+ * ライトになるため、クライアントの最初の描画でダークにすると両者が食い違う。React は
+ * 属性(ここでは emotion のクラス名)の不一致を修復しないので、サーバが書いたライトの
+ * クラスが DOM に残り、しかも React 側の値は最初からダークのまま変化しないため
+ * 二度と書き換えられない。結果、直したかったはずの「セレクターだけ白い」が
+ * サーバ描画されるページ(記録作成)で永久に残っていた。
+ *
+ * useClientValue を通し、最初の描画はサーバと同じライトにする。ハイドレーション後に
+ * 実際の値へ切り替わると、そこで初めてクラス名が変わるので React が DOM を書き換える。
+ */
+function useIsDark(): boolean {
+  const { resolvedTheme } = useTheme();
+
+  /*
+   * 判定そのものを useClientValue に通す。resolvedTheme はハイドレーション時点で既に
+   * 決まっていることがあり(実測)、それをそのまま返すとサーバ(必ずライト)と食い違う。
+   * ここを通せば最初の描画は必ずサーバと同じライトになり、次の描画から実際の値になる。
+   * resolvedTheme が変われば再描画されるので、テーマ切替にも追従する。
+   */
+  return useClientValue(
+    () =>
+      resolvedTheme
+        ? resolvedTheme === "dark"
+        : document.documentElement.classList.contains("dark"),
+    false,
+  );
 }
 
 // react-select / react-windowed-select はHeroUIのテーマに自動追従しないため、
 // ダークモード時のみ配色（メニュー背景・文字色・枠線など）を上書きする。
 // 各 <Select> / <WindowedSelect> の theme プロップに渡して使う。
 export function useReactSelectTheme() {
-  const { resolvedTheme } = useTheme();
-  // 初回描画時点（マウント前）でも <html> の .dark を見て正しい配色を当てる。
-  // 描画のたびに判定するので、マウント後・テーマ切替後も resolvedTheme の変化に追従する
-  const isDark = detectIsDark(resolvedTheme);
+  const isDark = useIsDark();
 
   return (base: Theme): Theme => {
     // ライトモードは react-select の既定配色のまま

@@ -1,6 +1,6 @@
 "use client";
 
-import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { addToast } from "@heroui/react";
 
@@ -51,8 +51,12 @@ export default function RecordTagSetting({
   const [isSaving, setIsSaving] = useState(false);
 
   // 保存リクエストの組み立てには記録の最新値が要る(他の設定の更新で差し替わるため)。
+  // 描画中に ref へ書かず、コミット時(レイアウトエフェクト)に追随させる。
+  // 読むのは保存の実行時(コミット後)なので、これで常に最新になっている
   const recordRef = useRef(record);
-  recordRef.current = record;
+  useLayoutEffect(() => {
+    recordRef.current = record;
+  });
 
   // 保存したい最新の集合。保存中にさらに操作されても取りこぼさないよう ref で持つ。
   const desiredRef = useRef<string[]>(tagIds);

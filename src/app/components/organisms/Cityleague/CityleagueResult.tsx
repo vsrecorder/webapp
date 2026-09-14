@@ -28,6 +28,7 @@ import {
 } from "@app/types/official_event";
 import { formatJSTDateWithWeekday } from "@app/utils/date";
 import { useClientValue } from "@app/hooks/useClientValue";
+import { useHydrated } from "@app/hooks/useHydrated";
 import { markCityleagueResultScrollTarget } from "@app/utils/cityleagueScrollRestore";
 import { useSeededResource } from "@app/hooks/useSeededResource";
 
@@ -87,6 +88,48 @@ const EAGER_SLIDE_COUNT = 1;
 // 描き始めても間に合うよう、画面の高さ程度は先回りする。
 const SLIDE_PRELOAD_MARGIN = "600px";
 
+// 現在時刻(ミリ秒)。描画中に直接呼ばないよう、初期化子から呼ぶ用の包み
+function currentTimeMs(): number {
+  return Date.now();
+}
+
+/*
+ * 開催から36時間以内のイベントに付ける New のしるし。
+ *
+ * 時計に依る判定なので、ハイドレーションが済むまでは出さない。このカードはサーバ描画され、
+ * サーバの「いま」とクライアントの「いま」は別物なので、境界に乗ったイベントで有無が食い違う
+ * (戻る操作ではサーバ描画の結果がそのまま使い回されるため、サーバ側の「いま」が何時間も
+ * 古いまま描かれる経路もある)。不一致になると React は DOM を直さないので、出るはずの
+ * しるしが出ないまま固まる。
+ *
+ * 判定ごとカードから切り出しているのは、ハイドレーション後の描き直しをこの小さな部品だけに
+ * 留めるため。カード側に置くと、結果一覧(実測で21枚)の Swiper ごと描き直すことになる。
+ */
+function NewChip({ date }: { date: Date }) {
+  const hydrated = useHydrated();
+  // 「いま」はマウント時に確定させる(描画のたびに取り直すと、境界付近で出たり消えたりする)
+  const [nowMs] = useState(() => currentTimeMs());
+
+  if (!hydrated) return null;
+
+  const diffInHours = (nowMs - new Date(date).getTime()) / (1000 * 60 * 60);
+  if (diffInHours > 36) return null;
+
+  return (
+    <Chip
+      size="sm"
+      radius="md"
+      classNames={{
+        base: "bg-linear-to-br from-indigo-500 to-pink-500 border-small border-white/50 ",
+        content: "drop-shadow-xs shadow-black text-white",
+      }}
+      variant="shadow"
+    >
+      <small className="font-bold">New</small>
+    </Chip>
+  );
+}
+
 export default function CityleagueResult({
   event_result,
   official_event,
@@ -145,15 +188,6 @@ export default function CityleagueResult({
     return () => observer.disconnect();
   }, [showAllSlides]);
 
-  const isNew = (date: Date) => {
-    const now = new Date();
-
-    const diffInMs = now.getTime() - date.getTime();
-    const diffInHours = diffInMs / (1000 * 60 * 60);
-
-    return diffInHours <= 36;
-  };
-
   if (loading) {
     return <CityleagueResultSkeleton />;
   }
@@ -199,19 +233,7 @@ export default function CityleagueResult({
                   <Chip size="sm" radius="md" variant="bordered">
                     <small className="font-bold">『{event.environment_title}』</small>
                   </Chip>
-                  {isNew(new Date(event.date)) && (
-                    <Chip
-                      size="sm"
-                      radius="md"
-                      classNames={{
-                        base: "bg-linear-to-br from-indigo-500 to-pink-500 border-small border-white/50 ",
-                        content: "drop-shadow-xs shadow-black text-white",
-                      }}
-                      variant="shadow"
-                    >
-                      <small className="font-bold">New</small>
-                    </Chip>
-                  )}
+                  <NewChip date={event.date} />
                 </div>
               </div>
             </div>

@@ -46,7 +46,10 @@ export default function DashboardCalendar({ userId }: Props) {
     fetcher,
   );
 
-  const today = useMemo(() => getJstNow(), []);
+  // JST での「いま」。マウント時に確定させる。useMemo は値の保持を保証せず
+  // (React はメモを捨てて計算し直せる)、取り直しが日付の変わり目をまたぐと
+  // 下の todayYear / todayMonth(state)とずれるため、state で持つ
+  const [today] = useState(() => getJstNow());
   const todayYear = today.getUTCFullYear();
   const todayMonth = today.getUTCMonth();
   // today と同じ時刻から導く。別々に現在時刻を取ると、日付の変わり目をまたいだ場合に

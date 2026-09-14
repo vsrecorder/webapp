@@ -1494,6 +1494,7 @@ export default function TemplateRecordCreate({
                 </StepLabel>
 
                 <WindowedSelect
+                  instanceId="record-create-official-event"
                   theme={reactSelectTheme}
                   placeholder={
                     <div className="flex items-center gap-2">
@@ -1681,6 +1682,7 @@ export default function TemplateRecordCreate({
 
                 <div ref={deckSelectRef}>
                   <Select
+                    instanceId="record-create-official-deck"
                     theme={reactSelectTheme}
                     placeholder={
                       <div className="flex items-center gap-2">
@@ -1801,6 +1803,7 @@ export default function TemplateRecordCreate({
                 </div>
                 <div>
                   <Select
+                    instanceId="record-create-official-deck-version"
                     inputId="record-create-official-deck-version"
                     theme={reactSelectTheme}
                     // menuPosition="fixed" 時、react-selectは menuPlacement="bottom" を
@@ -2038,6 +2041,7 @@ export default function TemplateRecordCreate({
 
                 <div ref={deckSelectRef}>
                   <Select
+                    instanceId="record-create-tonamel-deck"
                     theme={reactSelectTheme}
                     placeholder={
                       <div className="flex items-center gap-2">
@@ -2158,6 +2162,7 @@ export default function TemplateRecordCreate({
                 </div>
                 <div>
                   <Select
+                    instanceId="record-create-tonamel-deck-version"
                     inputId="record-create-tonamel-deck-version"
                     theme={reactSelectTheme}
                     // menuPosition="fixed" 時、react-selectは menuPlacement="bottom" を
@@ -2364,6 +2369,7 @@ export default function TemplateRecordCreate({
 
                 <div ref={deckSelectRef}>
                   <Select
+                    instanceId="record-create-unofficial-deck"
                     theme={reactSelectTheme}
                     placeholder={
                       <div className="flex items-center gap-2">
@@ -2482,6 +2488,7 @@ export default function TemplateRecordCreate({
                 </div>
                 <div>
                   <Select
+                    instanceId="record-create-unofficial-deck-version"
                     inputId="record-create-unofficial-deck-version"
                     theme={reactSelectTheme}
                     // menuPosition="fixed" 時、react-selectは menuPlacement="bottom" を

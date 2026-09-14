@@ -114,6 +114,7 @@ export default function OfficialEventSelect({
   return (
     <div className="flex flex-col gap-1">
       <WindowedSelect
+        instanceId="official-event-select"
         theme={reactSelectTheme}
         placeholder={
           <div className="flex items-center gap-2">

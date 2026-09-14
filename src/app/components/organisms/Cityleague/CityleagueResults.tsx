@@ -143,8 +143,9 @@ export default function CityleagueResults({
   scheduleContext,
 }: Props) {
   // JSTでの今日。マウント時に確定させる(描画のたびに取り直すと、
-  // 開催中かどうかの判定が描画ごとに変わりうる)。
-  const today = useMemo(() => todayJSTDateString(), []);
+  // 開催中かどうかの判定が描画ごとに変わりうる)。useMemo は値の保持を保証しない
+  // (React はメモを捨てて計算し直せる)ので state で持つ
+  const [today] = useState(() => todayJSTDateString());
 
   const [items, setItems] = useState<CityleagueResultType[]>(initial?.results ?? []);
   // official_event_id → イベント情報。日単位の一覧APIでまとめて取得したものを

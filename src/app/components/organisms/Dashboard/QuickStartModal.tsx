@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useState } from "react";
 import { ModalContent, ModalBody, Button } from "@heroui/react";
 import { LuFilePen, LuClipboardPaste, LuRocket } from "react-icons/lu";
 import { sendGAEvent } from "@next/third-parties/google";
 
 import { Modal } from "@app/components/atoms/AppModal";
 import DeckCodeQuickStartModal from "@app/components/organisms/Deck/Modal/DeckCodeQuickStartModal";
-import { useClientValue } from "@app/hooks/useClientValue";
+import { useHydrated } from "@app/hooks/useHydrated";
 import { readLocalStorage, writeLocalStorage } from "@app/utils/localStorageStore";
 import { ACTIVITY_ONBOARDING_CTA, sendDailyActivity } from "@app/utils/dailyActivity";
 
@@ -31,22 +31,22 @@ function isRecentlyDismissed(): boolean {
 /*
  * 出すかどうかは、このモーダルを開いた(マウントした)時点の抑止記録で決め、表示中は変えない
  * (出した時点で抑止を記録するため、記録を購読して決めると出した瞬間に閉じてしまう)。
- * 決めた結果はインスタンス(useId)ごとに覚えておき、描画のたびに同じ答えを返す。
- * ページを開き直せば(別のインスタンスになるので)抑止記録から決め直す
+ *
+ * 判定はこのマウントの state に持つ。以前はモジュールの Map に useId をキーにして覚えていたが、
+ * useId はツリー上の位置から決まるため、同じ文書の中でホームを開き直すと同じキーになり、
+ * 閉じた直後でも前回の「出す」がそのまま返っていた(3日空ける抑止が効かなかった)。
+ * マウントごとに持てば、開き直すたびに抑止記録から決め直せる。
+ *
+ * localStorage はサーバ描画では読めないので、判定が効くのはハイドレーション後から。
+ * それまではサーバと同じ「出さない」を返す(食い違わせない)。
  */
-const decisions = new Map<string, boolean>();
+export function useShouldShowQuickStart(): boolean {
+  const hydrated = useHydrated();
+  const [shouldShow] = useState(() =>
+    typeof window === "undefined" ? false : !isRecentlyDismissed(),
+  );
 
-function useShouldShowQuickStart(): boolean {
-  const instanceId = useId();
-  // localStorage はサーバ描画では読めないので、ハイドレーション後に決まる
-  return useClientValue(() => {
-    let decided = decisions.get(instanceId);
-    if (decided === undefined) {
-      decided = !isRecentlyDismissed();
-      decisions.set(instanceId, decided);
-    }
-    return decided;
-  }, false);
+  return hydrated && shouldShow;
 }
 
 // 記録がまだ0件のユーザーがホーム(ダッシュボード)を開いたときに、最初の1件への導線を

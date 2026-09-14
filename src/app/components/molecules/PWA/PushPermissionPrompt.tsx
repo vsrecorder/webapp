@@ -12,6 +12,7 @@ import { usePushSubscription } from "@app/hooks/usePushSubscription";
 import { UserStreakType } from "@app/types/streak";
 import {
   PUSH_PROMPT_DISMISSED_AT_KEY,
+  consumeRecordCreatedTrigger,
   discardRecordCreatedTrigger,
   dismissPushPrompt,
   isPushPromptDismissedAt,
@@ -129,6 +130,13 @@ export default function PushPermissionPrompt({
       cancelled = true;
     };
   }, [userId, eligible, recordCreated, pathname]);
+
+  // 読み取った記録作成の目印は、描画が確定してから sessionStorage から消す
+  // (描画中に消すと、React が捨てた描画で目印だけ失われる)。
+  // 出すかどうかはモジュール側が覚えているので、消しても今回の表示には影響しない
+  useEffect(() => {
+    if (recordCreated) consumeRecordCreatedTrigger();
+  }, [recordCreated]);
 
   useEffect(() => {
     if (source) {

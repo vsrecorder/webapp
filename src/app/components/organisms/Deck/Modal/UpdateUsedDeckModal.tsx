@@ -547,6 +547,7 @@ export default function UpdateUsedDeckModal({
                   </label>
                   <div>
                     <WindowedSelect
+                      instanceId="update-used-deck-deck"
                       inputId="update-used-deck-deck"
                       theme={reactSelectTheme}
                       windowThreshold={50}
@@ -654,6 +655,7 @@ export default function UpdateUsedDeckModal({
                   </label>
                   <div>
                     <Select
+                      instanceId="update-used-deck-version"
                       inputId="update-used-deck-version"
                       theme={reactSelectTheme}
                       minMenuHeight={270}

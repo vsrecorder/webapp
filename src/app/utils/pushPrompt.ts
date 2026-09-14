@@ -22,8 +22,8 @@ const DISMISS_DURATION_MS = 14 * 24 * 60 * 60 * 1000;
 export type PushPromptSource = "record_created" | "streak";
 
 /*
- * 記録作成のトリガーは、読み出した時点で sessionStorage から消し、このページの表示中は
- * 覚えておく(1回の記録作成につき1回だけ出す。リロードすれば消える)。
+ * 記録作成のトリガーは、最初に読んだ結果をこの文書の表示中ずっと覚えておく
+ * (1回の記録作成につき1回だけ出す。リロードすれば消える)。
  *   null  … まだ読んでいない(次に読むときに sessionStorage を見る)
  *   true  … 立っていた(出すか捨てるかは表示側が決める)
  *   false … 立っていなかった / 捨てた
@@ -46,24 +46,37 @@ export function markRecordCreatedForPushPrompt(): void {
   recordCreatedTrigger = null;
 }
 
-// フラグが立っていれば消して true を返す(1回の記録作成につき1回だけ出す)。
-function consumeRecordCreatedTrigger(): boolean {
-  try {
-    if (sessionStorage.getItem(RECORD_CREATED_TRIGGER_KEY) === null) return false;
-    sessionStorage.removeItem(RECORD_CREATED_TRIGGER_KEY);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-// 記録作成のトリガーが立っているか。初回だけ sessionStorage から読んで(消して)覚える。
-// useSyncExternalStore の getSnapshot として使う(何度呼んでも同じ値を返す)
+/*
+ * 記録作成のトリガーが立っているか。初回だけ sessionStorage から読んで覚える。
+ * useSyncExternalStore の getSnapshot として使う(何度呼んでも同じ値を返す)。
+ *
+ * ここでは消さない。getSnapshot は描画のたびに呼ばれ、React は描画を途中で捨てることが
+ * あるため、読んだ時点で消すと「表示されないまま目印だけ失われる」ことが起きる。
+ * 消すのは描画が確定してから(consumeRecordCreatedTrigger)。
+ */
 export function readRecordCreatedTrigger(): boolean {
   if (recordCreatedTrigger === null) {
-    recordCreatedTrigger = consumeRecordCreatedTrigger();
+    try {
+      recordCreatedTrigger = sessionStorage.getItem(RECORD_CREATED_TRIGGER_KEY) !== null;
+    } catch {
+      // ストレージが使えない環境では出さないだけ
+      recordCreatedTrigger = false;
+    }
   }
   return recordCreatedTrigger;
+}
+
+/*
+ * 読み取った目印を sessionStorage から消す。描画が確定してから(effect で)呼ぶこと。
+ * この文書で出すかどうかは recordCreatedTrigger が覚えているので、消しても表示は続く。
+ * リロードすれば消えている、という従来の動きはこれで保たれる。
+ */
+export function consumeRecordCreatedTrigger(): void {
+  try {
+    sessionStorage.removeItem(RECORD_CREATED_TRIGGER_KEY);
+  } catch {
+    // 消せなければ次回また読まれるだけ
+  }
 }
 
 export function subscribeRecordCreatedTrigger(listener: () => void): () => void {

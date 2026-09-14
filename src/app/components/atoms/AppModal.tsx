@@ -3,6 +3,9 @@
 import { cn, Modal as HeroUIModal, type ModalProps } from "@heroui/react";
 import { useReducedMotion, type Variants } from "framer-motion";
 
+import { useClientValue } from "@app/hooks/useClientValue";
+import { FINE_POINTER_QUERY, resolveSheetHideCloseButton } from "@app/utils/sheetCloseButton";
+
 /*
  * モーダルの出入りのアニメーションを差し替えた Modal。
  * アプリ内のモーダルはすべて @heroui/react ではなくこれを使う。
@@ -102,6 +105,25 @@ const reducedMotion: Variants = {
  */
 const BOTTOM_SHEET_BASE = "sm:my-0";
 
+// マウス主体の端末か(pointer: fine)。タブレットにマウスを繋ぐ等で変わるので変化を購読する。
+// matchMedia が無い環境(jsdom 等)では「タッチ主体」扱いにして、呼び出し側の指定をそのまま使う
+function subscribeFinePointer(onChange: () => void): () => void {
+  if (typeof window.matchMedia !== "function") return () => {};
+  const mql = window.matchMedia(FINE_POINTER_QUERY);
+  mql.addEventListener("change", onChange);
+  return () => mql.removeEventListener("change", onChange);
+}
+
+function isFinePointerNow(): boolean {
+  return typeof window.matchMedia === "function" && window.matchMedia(FINE_POINTER_QUERY).matches;
+}
+
+function useIsFinePointer(): boolean {
+  // サーバ描画とハイドレーション時は「タッチ主体」とみなし、呼び出し側の hideCloseButton をそのまま使う。
+  // モーダルは開かれてから描画されるので、その時点では実測値になっている
+  return useClientValue(isFinePointerNow, false, subscribeFinePointer);
+}
+
 function getMotionVariants(placement: ModalProps["placement"], shouldReduceMotion: boolean) {
   if (shouldReduceMotion) return reducedMotion;
 
@@ -111,14 +133,34 @@ function getMotionVariants(placement: ModalProps["placement"], shouldReduceMotio
   return placement === "bottom" ? sheetMotion : dialogMotion;
 }
 
-export function Modal({ motionProps, placement, classNames, ...props }: ModalProps) {
+export function Modal({
+  motionProps,
+  placement,
+  classNames,
+  hideCloseButton,
+  ...props
+}: ModalProps) {
   // 端末の設定を尊重する。SSR 時は null(= 視差効果あり)になる
   const shouldReduceMotion = useReducedMotion() ?? false;
+  const isFinePointer = useIsFinePointer();
 
   return (
     <HeroUIModal
       {...props}
       placement={placement}
+      /*
+       * 下寄せシートはヘッダーのスワイプで閉じる前提で × を隠しているものが多いが、
+       * マウスではその操作が自然でなく、外側クリックでも閉じないシートは閉じる手段が
+       * Esc しか無くなる。マウス主体の端末では × を出す(判定は utils/sheetCloseButton.ts)。
+       * シートのヘッダー右端に操作を置く画面は、× と重ならないよう pointer-fine: で余白を空けること
+       * (記録情報モーダル・公開デッキの絞り込みシートが該当)。
+       */
+      hideCloseButton={resolveSheetHideCloseButton({
+        placement,
+        hideCloseButton,
+        isKeyboardDismissDisabled: props.isKeyboardDismissDisabled,
+        isFinePointer,
+      })}
       classNames={
         placement === "bottom"
           ? { ...classNames, base: cn(BOTTOM_SHEET_BASE, classNames?.base) }

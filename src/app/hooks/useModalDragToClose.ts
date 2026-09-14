@@ -76,6 +76,12 @@ type SheetGesture = {
  *    始まった動きはブラウザのスクロールに委ねる。ヘッダー上の操作は 1 に任せ二重に扱わない。
  *    options.sheet = false で無効化でき、data-sheet-drag="ignore" を付けた要素上からは始まらない。
  *
+ * マウス/ペン(デスクトップ)では 1 のヘッダーだけ Pointer Events で同じ判定をする。
+ * touch イベントはタッチ端末でしか発火しないため、以前はデスクトップでヘッダーを掴んで引いても
+ * 何も起きず、× を隠し外側クリックでも閉じないシートは Esc かブラウザバックでしか閉じられなかった。
+ * ボディ側(2)はマウスには広げない。文字列の選択やスクロールバーの操作と競合し、
+ * デスクトップにはボディを引いて閉じる作法も無いため。
+ *
  * touchmove を「非パッシブ」で登録して preventDefault() する必要があるため、
  * React の onTouchMove ではなく ref から直接リスナを登録している。
  *
@@ -185,11 +191,89 @@ export function useModalDragToClose(
     node.addEventListener("touchend", onTouchEnd);
     node.addEventListener("touchcancel", onTouchEnd);
 
+    // ---------------------------------------------------------------------
+    // 1'. ヘッダー(マウス/ペン): Pointer Events で 1 と同じ判定をする
+    // ---------------------------------------------------------------------
+    // 対象はマウスだけ。タッチは 1 の touch イベント側で扱う。ペンも除外する:
+    // iPadOS(Apple Pencil)や Android(スタイラス)はペンでも touch イベントを発火するため、
+    // ここでも扱うと 1 と二重に onClose が呼ばれる(履歴を戻す後始末が2回走る)。
+    // Windows 等のペンはドラッグで閉じられないが、マウス主体の端末には × が出る(AppModal)。
+
+    let pointerId: number | null = null;
+    let pointerStartY = 0;
+
+    const resetPointer = () => {
+      pointerId = null;
+      node.style.removeProperty("cursor");
+    };
+
+    const onPointerDown = (e: PointerEvent) => {
+      if (e.pointerType !== "mouse") return;
+      if (disabledRef.current) return;
+      // 主ボタン(左)以外は対象外
+      if (e.button !== 0) return;
+      // ヘッダー内のボタン等はそちらの操作に任せる(1 と同じ)
+      if ((e.target as HTMLElement).closest("button, a, input, textarea, select")) return;
+
+      pointerId = e.pointerId;
+      pointerStartY = e.clientY;
+      // 掴んでいる間はカーソルを「掴み中」にする(ヘッダーの cursor-grab と対)
+      node.style.cursor = "grabbing";
+      // ヘッダーの外へ出ても pointermove / pointerup を受け取り続ける(jsdom には無い)
+      if (typeof node.setPointerCapture === "function") {
+        try {
+          node.setPointerCapture(e.pointerId);
+        } catch {
+          // 既に離されている等。捕捉できなくてもヘッダー上で動く分は判定できる
+        }
+      }
+      // mousedown の既定動作(ドラッグに伴う文字列選択の開始)を止める。
+      // pointerdown を cancel すると後続の互換マウスイベントが抑止される
+      e.preventDefault();
+    };
+
+    const onPointerMove = (e: PointerEvent) => {
+      if (pointerId === null || e.pointerId !== pointerId) return;
+      if (disabledRef.current) {
+        resetPointer();
+        return;
+      }
+
+      if (e.clientY - pointerStartY > CLOSE_THRESHOLD) {
+        resetPointer();
+        if (typeof node.releasePointerCapture === "function") {
+          try {
+            node.releasePointerCapture(e.pointerId);
+          } catch {
+            // 捕捉していなければ何もしない
+          }
+        }
+        // マウスには慣性スクロールが無いので、touch 側の close()(フリング抑止付き)は通さない。
+        // 通すと document の touchmove 抑止リスナが次のタッチ操作まで残ってしまう
+        onCloseRef.current();
+      }
+    };
+
+    // pointerup だけでなく pointercancel でもリセットする(1 の touchcancel と同じ理由)
+    const onPointerEnd = (e: PointerEvent) => {
+      if (e.pointerId === pointerId) resetPointer();
+    };
+
+    node.addEventListener("pointerdown", onPointerDown);
+    node.addEventListener("pointermove", onPointerMove);
+    node.addEventListener("pointerup", onPointerEnd);
+    node.addEventListener("pointercancel", onPointerEnd);
+
     const detachHeader = () => {
       node.removeEventListener("touchstart", onTouchStart);
       node.removeEventListener("touchmove", onTouchMove);
       node.removeEventListener("touchend", onTouchEnd);
       node.removeEventListener("touchcancel", onTouchEnd);
+      node.removeEventListener("pointerdown", onPointerDown);
+      node.removeEventListener("pointermove", onPointerMove);
+      node.removeEventListener("pointerup", onPointerEnd);
+      node.removeEventListener("pointercancel", onPointerEnd);
+      resetPointer();
     };
 
     // ---------------------------------------------------------------------

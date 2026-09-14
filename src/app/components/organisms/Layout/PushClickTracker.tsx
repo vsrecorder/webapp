@@ -3,6 +3,8 @@
 import { Suspense, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 
+import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
+
 /*
  * push 通知のタップ計測(B-1)。
  *
@@ -12,6 +14,10 @@ import { useSearchParams } from "next/navigation";
  *
  * SW からの fetch ではなく画面側で送るのは、セッション切れの端末で落ちる SW 側より
  * 取りこぼしが少ないため(到達は下限値・タップは確実に、という役割分担)。
+ *
+ * この記録を受けた core-apiserver は、配達ログが指すアプリ内通知を既読にする
+ * (push を開いた時点で本人はその知らせを見ているため)。ここではその後始末として、
+ * ベルの未読数を取り直させる。
  */
 function Tracker() {
   const searchParams = useSearchParams();
@@ -25,7 +31,14 @@ function Tracker() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ deliveryId }),
       keepalive: true,
-    }).catch(() => {});
+    })
+      .then((res) => {
+        // タップの記録と同時に、サーバ側でその push のもとになった通知が既読になる。
+        // ベルは描画時点の未読数を持っているので、記録が通ったら取り直させる
+        // (そうしないと、開いた本人には「読んだのに未読のまま」に見える)
+        if (res.ok) triggerNotificationsRefresh();
+      })
+      .catch(() => {});
 
     // router.replace だと hash が落ち、先頭へスクロールし、RSC の再取得まで走る。
     // URL から pd を消したいだけなので履歴の置き換えで済ませる(App Router は

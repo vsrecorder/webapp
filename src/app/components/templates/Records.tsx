@@ -13,6 +13,7 @@ import Records from "@app/components/organisms/Record/Records";
 import { RecordGetResponseType } from "@app/types/record";
 import { RECORDS_TABS, RecordsTab } from "@app/utils/recordListPrefs";
 import { writeRecordsSelectedTab } from "@app/utils/recordsSelectedTab";
+import { HEADER_BAR } from "@app/utils/headerBar";
 
 const TAB_TITLES: Record<RecordsTab, string> = {
   all: "すべて",
@@ -99,7 +100,7 @@ export default function TemplateRecords({ initial, initialTab = "all" }: Props) 
           size="md"
           selectedKey={selectedKey}
           onSelectionChange={handleSelectionChange}
-          className="fixed z-50 top-15 left-0 right-0 lg:left-56 pl-1 pr-1"
+          className={`${HEADER_BAR} pl-1 pr-1`}
           classNames={{
             cursor: "",
             tab: "h-8",

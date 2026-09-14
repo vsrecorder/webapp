@@ -4,8 +4,8 @@ type Props = {
   // 表示するタブ数（実ページのタブ数に合わせる）。
   count: number;
   // 固定配置用のクラス。各ページの Tabs と同じ位置・同じ背景に載せるため呼び出し側から渡す
-  // （例: "top-15 left-0 right-0 lg:left-56"）。実体側が背景や余白を持つ場合はそれも含める
-  // （食い違うと骨格から実体へ切り替わった瞬間にタブが跳ねる）。
+  // （通常は utils/headerBar.ts の HEADER_BAR_TOP と HEADER_BAR_X）。実体側が背景や余白を
+  // 持つ場合はそれも含める（食い違うと骨格から実体へ切り替わった瞬間にタブが跳ねる）。
   positionClassName: string;
   /*
    * タブの入れ物（HeroUI の tabList）に載せるクラス。既定は HeroUI の既定背景。

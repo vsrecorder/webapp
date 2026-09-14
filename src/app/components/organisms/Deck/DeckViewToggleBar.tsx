@@ -23,29 +23,31 @@ export default function DeckViewToggleBar({ children }: { children: React.ReactN
           高さの既定値は 0。バーが fixed になるまで（サーバ描画〜ハイドレーション）は
           バー自身が流れの中で場所を取るため、ここで埋めると二重になる。
 
-          負の上マージンは、実測で入る marginTop（バーの貼り付き位置 top-25＝100px と、
+          負の上マージンは、実測で入る marginTop（バーの貼り付き位置と、
           空き枠が流れの中で本来始まる位置との差）の既定値。これが無いと
           ハイドレーションで marginTop が入った瞬間に一覧が跳ねる。
-          値は上の余白の合計から決まり、ブレークポイントで変わる
+          値は上の余白の合計から決まる
           (固定の「マイデッキ｜みんなの公開デッキ」セグメント 2.5rem ぶん、本文は pt-12 から始まる):
-            〜lg : pt-14(56) + pt-12(48) + pt-2(8) = 112px → 100-112 = -12px(-mt-3)
-            lg〜 : pt-28(112) + pt-12(48) + pt-2(8) = 168px → 100-168 = -68px(-mt-17)
-          lg では空き枠の高さが 0 に潰れる（バーがコンテンツ開始位置より上にあり、
-          重ならないので押し下げる必要が無い）。
-          あくまで近似で、ハイドレーション後は実測値が上書きする。
-          上の余白（Layout の pt-14/lg:pt-28 や templates/Decks の pt-12）を変えるときはここも合わせること。 */}
+            〜lg : pt-14(56) + pt-12(48) + pt-2(8) = 112px → top-25(100) - 112 = -12px
+            lg〜 : pt-28(112) + pt-12(48) + pt-2(8) = 168px → lg:top-39(156) - 168 = -12px
+          どちらも -mt-3。あくまで近似で、ハイドレーション後は実測値が上書きする。
+          上の余白（Layout の pt-14/lg:pt-28 や templates/Decks の pt-12）や
+          バーの top を変えるときはここも合わせること。 */}
       <div
         ref={slotRef}
         aria-hidden
-        className="-mt-3 lg:-mt-17"
+        className="-mt-3"
         style={{ height: slotHeight }}
       />
       {/* 半透明にすると下を流れるカードが透けて揺らいで見えるため、背景は不透明にする。
           地色はページのドット背景と同じにして、境目が出ないようにする。
           position は付けない。実測が入るまでは流れの中に置き、幅を親（＝カード列と
           同じ枠）から決めさせる。fixed 化は sync が行う（理由はそちらのコメント）。
-          top-25 / z-40 は fixed になって初めて効くので、先に書いておいてよい。 */}
-      <div ref={barRef} className="app-dot-bg-plain top-25 z-40 py-2">
+          top / z-40 は fixed になって初めて効くので、先に書いておいてよい。
+          top はすぐ上の固定セグメント(HEADER_BAR_TOP: top-15 / lg:top-29 ＋ 高さ 2.5rem)の下端:
+            〜lg: top-25(100px) / lg〜: top-39(156px)
+          以前は lg でも top-25 のままで、デスクトップではヘッダー(112px)に潜り込んでいた。 */}
+      <div ref={barRef} className="app-dot-bg-plain top-25 lg:top-39 z-40 py-2">
         {children}
       </div>
     </div>

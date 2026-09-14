@@ -86,6 +86,7 @@ import {
   UnofficialEventCreateRequestType,
   UnofficialEventCreateResponseType,
 } from "@app/types/unofficial_event";
+import { HEADER_BAR } from "@app/utils/headerBar";
 
 type OfficialEventOption = {
   label: string;
@@ -1454,7 +1455,7 @@ export default function TemplateRecordCreate({
           size="md"
           selectedKey={selectedTab}
           onSelectionChange={handleTabSelectionChange}
-          className="fixed z-50 top-15 left-0 right-0 pl-1 pr-1 font-bold"
+          className={`${HEADER_BAR} pl-1 pr-1 font-bold`}
         >
           {/*
            *

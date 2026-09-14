@@ -1,6 +1,7 @@
 import FixedTabBarSkeleton from "@app/components/molecules/Skeleton/FixedTabBarSkeleton";
 import FloatingButtonClearance from "@app/components/atoms/Floating/FloatingButtonClearance";
 import { RecordCardSkeletons } from "@app/components/organisms/Record/Skeleton/RecordCardSkeleton";
+import { HEADER_BAR_TOP, HEADER_BAR_X } from "@app/utils/headerBar";
 
 /*
  * /records の Suspense 境界。実ページ(TemplateRecords)と同じ「上部固定タブ＋記録カード一覧」の
@@ -18,7 +19,7 @@ export default function Loading() {
         {/* タブ(すべて/公式イベント/Tonamel/自由形式) */}
         <FixedTabBarSkeleton
           count={4}
-          positionClassName="top-15 left-0 right-0 lg:left-56"
+          positionClassName={`${HEADER_BAR_TOP} ${HEADER_BAR_X}`}
         />
       </div>
 

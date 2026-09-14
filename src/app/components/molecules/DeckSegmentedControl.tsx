@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Tab, Tabs } from "@heroui/react";
 
 import { sharedDecksPath } from "@app/utils/deckCodePost";
+import { HEADER_BAR } from "@app/utils/headerBar";
 
 type Props = {
   // いま開いている側
@@ -55,9 +56,9 @@ export default function DeckSegmentedControl({ selected, isLoggedIn, onRequireLo
       }}
       // 背景が固定のパステル色のため、ダークモードでも文字色などを
       // ライトモードの見た目に固定する（light クラスでテーマをライトに再スコープ）
-      // 左端はサイドバーの幅(--sidebar-width。Layout がログイン時の PC 幅でだけ 14rem にする)。
-      // 未ログインで見るみんなの公開デッキにはサイドバーが無いので、固定の lg:left-56 だと右へずれる
-      className="light fixed z-50 top-15 left-(--sidebar-width) right-0 pl-1 pr-1"
+      // 位置(ヘッダー直下・サイドバーの右)は HEADER_BAR に一本化してある。
+      // 未ログインで見るみんなの公開デッキにはサイドバーが無いが、--sidebar-width が 0 になるので同じ書き方で揃う
+      className={`light ${HEADER_BAR} pl-1 pr-1`}
       classNames={{
         cursor: "bg-blue-200",
         tab: "h-8",

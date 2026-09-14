@@ -7,6 +7,7 @@ import {
   parseRecordCreateTab,
   DEFAULT_RECORD_CREATE_TAB,
 } from "@app/utils/recordCreatePrefs";
+import { HEADER_BAR_TOP, HEADER_BAR_X } from "@app/utils/headerBar";
 
 /*
  * /records/create の Suspense 境界。実ページ(TemplateRecordCreate)と同じ
@@ -40,7 +41,7 @@ export default async function Loading() {
   return (
     <div className="flex flex-col pt-1 w-full">
       {/* タブ(公式イベント/Tonamel/自由形式) */}
-      <FixedTabBarSkeleton count={3} positionClassName="top-15 left-0 right-0" />
+      <FixedTabBarSkeleton count={3} positionClassName={`${HEADER_BAR_TOP} ${HEADER_BAR_X}`} />
 
       {/* HeroUI の Tab パネルと同じ余白 */}
       <div className="py-3 px-1">

@@ -15,6 +15,7 @@ import {
 } from "@app/utils/cityleagueListPrefs";
 import { CityleagueListInitialData } from "@app/utils/cityleagueListServer";
 import { writeCityleagueSelectedTab } from "@app/utils/cityleagueSelectedTab";
+import { HEADER_BAR_X } from "@app/utils/headerBar";
 
 const TAB_TITLES: Record<CityleagueTab, string> = {
   league_type_1: "オープンリーグ",
@@ -117,8 +118,11 @@ export default function TemplateCityleagueResults({
             (実測でこの帯のピクセルが 12px スクロールごとに 7.68% 変化)。
             背景をページと同じ地色で不透明に敷いて塞ぐ。
             lg はヘッダーが h-28 でタブの top-28 と一致するため隙間が無く、pt は 0 に戻す。
+            横位置(サイドバーの右・残り幅いっぱい)は HEADER_BAR_X に一本化してある。
+            以前の left-0 right-0 は、ログイン時のデスクトップでサイドバー(z-40)の上に
+            タブ(z-50)が被さっていた。
           */
-          className="fixed z-50 top-14 left-0 right-0 lg:top-28 pt-1 lg:pt-0 pl-1 pr-1 app-dot-bg-plain"
+          className={`fixed z-50 top-14 lg:top-28 ${HEADER_BAR_X} pt-1 lg:pt-0 pl-1 pr-1 app-dot-bg-plain`}
           classNames={{
             cursor: "",
             tab: "h-8",

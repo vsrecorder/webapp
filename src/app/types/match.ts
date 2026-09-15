@@ -106,4 +106,12 @@ export type MatchSummaryType = {
   // チーム戦 / BO3 が1つでも含まれるか(カード右上のバッジ)
   has_group_match: boolean;
   has_bo3: boolean;
+  /*
+   * その記録の対戦のうち、いちばん新しい作成日時(ISO文字列)。対戦が0件なら null。
+   *
+   * ホームの「記録中」カードが「最後に手が動いた時刻」として使う。
+   * 上流が古くてこの項目を返さない場合に備えて任意にしてある(その場合は記録の
+   * created_at へフォールバックする。utils/recordingNow)。
+   */
+  last_match_at?: string | null;
 };

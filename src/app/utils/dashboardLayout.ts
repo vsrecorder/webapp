@@ -44,6 +44,9 @@ export const DASHBOARD_LAYOUT_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 export const DASHBOARD_BLOCK_IDS = [
   // pinned(プロフィールカードと、その直下に固定で並ぶカード)
   "profile",
+  // 記録中のイベント。使用デッキの行を持つかで背丈が変わるのでIDを分けている
+  "recording_now",
+  "recording_now_no_deck",
   "first_record_cta",
   "env_window",
   // 並べ替え・非表示の対象になるセクション
@@ -74,9 +77,22 @@ export const DASHBOARD_BLOCK_IDS = [
 
 export type DashboardBlockId = (typeof DASHBOARD_BLOCK_IDS)[number];
 
+/*
+ * 「記録中のイベント」カードのブロックID(使用デッキの行を持つかで分かれている)。
+ *
+ * カードを閉じたときに並びから取り除く側(RecordingNowCard)は、どちらが書かれていても
+ * 外せる必要がある。片方だけを消すと、もう片方が残って実体の無い骨格が出てしまう。
+ */
+export const RECORDING_NOW_BLOCK_IDS: readonly DashboardBlockId[] = [
+  "recording_now",
+  "recording_now_no_deck",
+];
+
 // pinned に置かれるブロック。骨格側は cookie の並びからこれらを拾って先頭のまとまりにする
 const PINNED_BLOCK_IDS: readonly DashboardBlockId[] = [
   "profile",
+  "recording_now",
+  "recording_now_no_deck",
   "first_record_cta",
   "env_window",
 ];
@@ -95,6 +111,7 @@ export function isDashboardBlockId(value: string): value is DashboardBlockId {
  *
  * 既定の並びは Dashboard.tsx が sections を積む順と揃えること。
  * ただしサーバ取得の結果で出方が変わるものは「出ない側」に倒す:
+ *   ・recording_now … 今日のイベントを記録している最中だけ
  *   ・first_record_cta / env_window … 記録0件・3件未満のときだけ
  * 骨格が実物より多いと、差し替わった瞬間に下の内容が「せり上がる」形でずれる。
  * 逆に少ないぶんは下へ伸びるだけなので、迷ったら出さない側に倒す。

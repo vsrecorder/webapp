@@ -20,6 +20,7 @@ import {
   EXCLUDE_DEFAULT_MATCHES_COOKIE,
   parseExcludeDefaultMatchesCookie,
 } from "@app/utils/excludeDefaultMatches";
+import { RECORDING_DISMISSED_COOKIE } from "@app/utils/recordingNow";
 import { STATS_VISIBLE_COOKIE, parseStatsVisibleCookie } from "@app/utils/statsVisible";
 
 const description = SITE_DESCRIPTION;
@@ -101,6 +102,9 @@ export default async function Home({ searchParams }: Props) {
     // 戦績を伏せているかも同じ理由で cookie から受け取る。渡さないと伏せている端末で
     // 目のアイコンが一瞬「表示中」に見えてから伏せ字へ切り替わる
     const statsVisible = parseStatsVisibleCookie(store.get(STATS_VISIBLE_COOKIE)?.value);
+    // 「記録中」カードを今日すでに閉じたか。こちらは localStorage を正とせず cookie だけで
+    // 持つ(サーバで判定に混ぜないと、閉じたカードが初回描画で一瞬出てしまうため)
+    const recordingDismissed = store.get(RECORDING_DISMISSED_COOKIE)?.value;
 
     return (
       <Suspense
@@ -112,6 +116,7 @@ export default async function Home({ searchParams }: Props) {
           storedLayout={storedLayout ?? undefined}
           excludeDefaultMatches={excludeDefaultMatches ?? undefined}
           statsVisible={statsVisible ?? undefined}
+          recordingDismissed={recordingDismissed}
         />
       </Suspense>
     );

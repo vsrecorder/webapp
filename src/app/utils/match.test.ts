@@ -26,7 +26,15 @@ describe("summarizeMatches", () => {
         match({ victory_flg: true, bo3_flg: true }),
         match({ group_match_flg: true }),
       ]),
-    ).toEqual({ total: 2, wins: 1, losses: 1, draws: 0, has_group_match: true, has_bo3: true });
+    ).toEqual({
+      total: 2,
+      wins: 1,
+      losses: 1,
+      draws: 0,
+      has_group_match: true,
+      has_bo3: true,
+      last_match_at: null,
+    });
   });
 
   it("対戦が無ければ全て 0 / false", () => {
@@ -37,7 +45,19 @@ describe("summarizeMatches", () => {
       draws: 0,
       has_group_match: false,
       has_bo3: false,
+      last_match_at: null,
     });
+  });
+
+  // ホームの「記録中」カードが最後に手が動いた時刻として使う。
+  // 過去の対戦を後から足せるので、並び順ではなく最大値を取る
+  it("最後に作られた対戦の作成日時を返す", () => {
+    const summary = summarizeMatches([
+      match({ created_at: "2026-09-15T03:05:00Z" as unknown as Date }),
+      match({ created_at: "2026-09-15T01:20:00Z" as unknown as Date }),
+    ]);
+
+    expect(summary.last_match_at).toBe("2026-09-15T03:05:00.000Z");
   });
 });
 

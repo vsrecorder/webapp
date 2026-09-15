@@ -16,6 +16,7 @@ import UserProfileCardSkeleton from "@app/components/organisms/User/Skeleton/Use
 import ChartPanelFallback from "@app/components/organisms/Dashboard/ChartPanelFallback";
 import EnvironmentWindowCardSkeleton from "@app/components/organisms/Dashboard/Skeleton/EnvironmentWindowCardSkeleton";
 import FirstRecordCtaCardSkeleton from "@app/components/organisms/Dashboard/Skeleton/FirstRecordCtaCardSkeleton";
+import RecordingNowCardSkeleton from "@app/components/organisms/Dashboard/Skeleton/RecordingNowCardSkeleton";
 
 import {
   DASHBOARD_RECENT_RECORDS_LIMIT,
@@ -98,6 +99,13 @@ export default function DashboardBlockSkeleton({ id, isDevEnv = false }: Props):
     // ---- pinned ----
     case "profile":
       return <UserProfileCardSkeleton isDevEnv={isDevEnv} />;
+
+    case "recording_now":
+      return <RecordingNowCardSkeleton />;
+
+    case "recording_now_no_deck":
+      // 使用デッキが未登録の記録。実体にデッキの行が無いぶん背が低い
+      return <RecordingNowCardSkeleton withDeck={false} />;
 
     case "first_record_cta":
       return <FirstRecordCtaCardSkeleton />;

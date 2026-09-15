@@ -17,6 +17,7 @@ import {
 } from "@app/components/organisms/Dashboard/DashboardChartPanels";
 import UserProfileCard from "@app/components/organisms/User/UserProfileCard";
 import FirstRecordCtaCard from "@app/components/organisms/Dashboard/FirstRecordCtaCard";
+import RecordingNowCard from "@app/components/organisms/Dashboard/RecordingNowCard";
 import QuickStartModal from "@app/components/organisms/Dashboard/QuickStartModal";
 import EnvironmentWindowCard from "@app/components/organisms/Dashboard/EnvironmentWindowCard";
 import StreakPanel from "@app/components/organisms/Badge/StreakPanel";
@@ -42,18 +43,19 @@ import { CityleagueScheduleType } from "@app/types/cityleague_schedule";
 import { EnvironmentType } from "@app/types/environment";
 import { StandardRegulationType } from "@app/types/standard_regulation";
 import { UserType } from "@app/types/user";
-import { RecordGetResponseType } from "@app/types/record";
 import { isDevEnv } from "@app/utils/appIcon";
 import {
   isFirstRecordCtaEnabled,
   isEnvWindowEnabled,
   isQuickStartModalEnabled,
+  isRecordingNowEnabled,
 } from "@app/utils/featureFlags";
 
 import { upstreamUrl } from "@app/utils/upstream";
-import { signUpstreamToken } from "@app/utils/upstreamToken";
 import { getAllChampionshipSeries } from "@app/utils/championshipSeriesServer";
 import { getDashboardInitialData } from "@app/utils/dashboardServer";
+import { getHomeRecordsHead, getRecordingNow } from "@app/utils/recordingNowServer";
+import { formatElapsedSince } from "@app/utils/recordingNow";
 import { DEFAULT_EXCLUDE_DEFAULT_MATCHES } from "@app/utils/excludeDefaultMatches";
 import { pickCityleagueScheduleState } from "@app/utils/cityleagueSchedule";
 import { todayJSTDateString } from "@app/utils/date";
@@ -121,6 +123,12 @@ type Props = {
    * トレーナー情報パネルの最初の描画に使う。cookie が無い初回訪問は undefined(既定=表示)。
    */
   statsVisible?: boolean;
+  /*
+   * 「記録を終える」で閉じた記録(cookie 由来。page.tsx が読む)。値は "YYYY-MM-DD:recordId"。
+   * localStorage ではなく cookie に持たせているのは、ここ(サーバ)で読んで判定に混ぜ、
+   * 閉じたカードが初回描画に一瞬だけ出るのを防ぐため(utils/recordingNow)。
+   */
+  recordingDismissed?: string;
 };
 
 async function getUser(userId: string): Promise<UserType | null> {
@@ -135,33 +143,22 @@ async function getUser(userId: string): Promise<UserType | null> {
   return null;
 }
 
-// 全期間の対戦記録件数を「最大3件」だけ取得して数える（施策0-6 CTA=0件 / 施策E-2=3件未満の判定用）。
+// 全期間の対戦記録件数を「最大3件」だけ数える（施策0-6 CTA=0件 / 施策E-2=3件未満の判定用）。
 // 返す値は 0〜3 にキャップされる（3 は「3件以上」を意味する）。
 //
 // 注意: user_stat の total_records は使えない。`/users/:id/stats` はクエリ無しだと
 // 「当月」の集計を返すため（全期間ではない）、月初に履歴のあるユーザーへ誤って CTA/カードを
-// 出してしまう。records 一覧を limit=3 で引き、その件数で全期間の到達状況を判定する。
+// 出してしまう。records 一覧の先頭を引き、その件数で全期間の到達状況を判定する。
 //
-// records 一覧はトークンの uid 基準（要認証）のため、webapp の /api routes と同じ方式で
-// 短命 JWT を署名して呼ぶ（userId は page.tsx で session.user.id を渡しており本人のみ）。
-// 失敗時は null を返し、CTA・カードは「出さない」側に倒す（誤表示より非表示を優先）。
+// 一覧の取得は getHomeRecordsHead に集約してある（「記録中」カードの候補探しと同じ応答を
+// 使い回す。あちらの都合で limit は 5 だが、ここが見るのは 0〜3 の境界だけなので
+// 数え方は変わらない）。失敗時は null を返し、CTA・カードは「出さない」側に倒す
+// （誤表示より非表示を優先）。
 async function getCappedRecordCount(userId: string): Promise<number | null> {
-  const token = signUpstreamToken(userId);
+  const records = await getHomeRecordsHead(userId);
+  if (!records) return null;
 
-  const res = await fetch(upstreamUrl`/api/v1beta/records?limit=3`, {
-    cache: "no-store",
-    method: "GET",
-    headers: {
-      Authorization: "Bearer " + token,
-      Accept: "application/json",
-    },
-  });
-
-  if (res.status === 200) {
-    const data: RecordGetResponseType = await res.json();
-    return data.records.length; // 0〜3。3なら「3件以上」の意味
-  }
-  return null;
+  return Math.min(records.length, 3); // 0〜3。3なら「3件以上」の意味
 }
 
 // 登録日(created_at)から、計測ラベル用のコホート週(登録週の月曜日 YYYY-MM-DD, JST基準)と
@@ -216,6 +213,7 @@ export default async function TemplateDashboard({
   storedLayout,
   excludeDefaultMatches,
   statsVisible,
+  recordingDismissed,
 }: Props) {
   const date = getJstNow();
 
@@ -227,6 +225,7 @@ export default async function TemplateDashboard({
   const envWindowEnabled = isEnvWindowEnabled();
   const quickStartModalEnabled = isQuickStartModalEnabled();
   const needTotalRecords = ctaEnabled || envWindowEnabled || quickStartModalEnabled;
+  const recordingNowEnabled = isRecordingNowEnabled();
 
   // 各取得は互いに独立しているため、直列に await すると往復回数ぶん
   // そのままサーバ応答(TTFB)が伸びる。並列化して全体の待ち時間を最も遅い1本ぶんに抑える。
@@ -240,6 +239,7 @@ export default async function TemplateDashboard({
     championshipSeries,
     user,
     totalRecords,
+    recordingNow,
   ] = await Promise.all([
     getAllCityleagueSchedules().catch(() => undefined),
     getEnvironmentByDate(date).catch(() => undefined),
@@ -250,6 +250,11 @@ export default async function TemplateDashboard({
     needTotalRecords
       ? getCappedRecordCount(userId).catch(() => null)
       : Promise.resolve<number | null>(null),
+    // 記録一覧の取得は getCappedRecordCount と共有される(getHomeRecordsHead が
+    // React の cache で1回に畳む)ので、並べても往復は増えない
+    recordingNowEnabled
+      ? getRecordingNow(userId, recordingDismissed).catch(() => null)
+      : Promise.resolve(null),
   ]);
 
   /*
@@ -578,6 +583,10 @@ export default async function TemplateDashboard({
   const pinnedIds: DashboardBlockId[] = user
     ? [
         "profile",
+        // 使用デッキの行があるかで骨格の背丈が変わるので、描いたほうのIDを残す
+        ...(recordingNow
+          ? ([recordingNow.deck ? "recording_now" : "recording_now_no_deck"] as const)
+          : []),
         ...(showFirstRecordCta ? (["first_record_cta"] as const) : []),
         ...(combinedAtTop ? (["env_window"] as const) : []),
       ]
@@ -647,6 +656,28 @@ export default async function TemplateDashboard({
                   initialStatsVisible={statsVisible}
                   initialUserPlayer={panels.userPlayer}
                 />
+                {/*
+                  いま記録中のイベントがあれば、プロフィールカードの直後に置く。
+                  大会の合間に2戦目・3戦目を足すまでを1タップにするのが目的なので、
+                  ホームを開いた時点で目に入る位置に固定する(並べ替え・非表示の対象にしない)。
+                  出す条件(今日のイベント / 最後の動きから9時間 / 未クローズ)は
+                  サーバ側で判定済み(utils/recordingNowServer)。
+                */}
+                {recordingNow && (
+                  <RecordingNowCard
+                    record={recordingNow.record}
+                    eventTitle={recordingNow.eventTitle}
+                    eventIconUrl={recordingNow.eventIconUrl}
+                    venue={recordingNow.venue}
+                    deck={recordingNow.deck}
+                    summary={recordingNow.summary}
+                    lastActiveAt={recordingNow.lastActiveAt}
+                    windowMs={recordingNow.windowMs}
+                    // 経過時間はサーバで一度組み立てて渡す。クライアントで初期値を
+                    // 計算するとハイドレーションの前後で文言がずれることがある
+                    initialElapsedLabel={formatElapsedSince(recordingNow.lastActiveAt)}
+                  />
+                )}
                 {/*
                   施策0-6 止血: 記録0件のユーザーにだけ、プロフィールカードの直後に
                   最初の1件を促すCTAを出す。DashboardSections の sections に混ぜると

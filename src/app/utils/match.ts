@@ -31,7 +31,25 @@ export function summarizeMatches(matches: MatchGetResponseType[]): MatchSummaryT
     draws,
     has_group_match: hasGroupMatch(matches),
     has_bo3: hasBo3Match(matches),
+    // 上流の一括集計(MAX(matches.created_at))と同じ値をこちら側でも埋めておく。
+    // ここは上流が古いときのフォールバック経路なので、揃えないと「記録中」判定だけが
+    // 経路によって効いたり効かなかったりする
+    last_match_at: latestMatchCreatedAt(matches),
   };
+}
+
+// 対戦一覧のうち、いちばん新しい作成日時を返す。0件なら null。
+// created_at は作成順とは限らない(過去の対戦を後から足せる)ため、最大値を取る
+function latestMatchCreatedAt(matches: MatchGetResponseType[]): string | null {
+  let latest: number | null = null;
+
+  for (const match of matches) {
+    const time = new Date(match.created_at).getTime();
+    if (Number.isNaN(time)) continue;
+    if (latest === null || time > latest) latest = time;
+  }
+
+  return latest === null ? null : new Date(latest).toISOString();
 }
 
 // サイド枚数を表示するか判定する。

@@ -18,7 +18,7 @@
  * 値は実寸(px)で入れること。クリアランスの計算(FloatingButtonClearance)が JS から
  * 読むので、rem のままだと換算が要る。
  */
-export const BOTTOM_BANNER_HEIGHT_VAR = "--recording-bar-height";
+const BOTTOM_BANNER_HEIGHT_VAR = "--recording-bar-height";
 
 /*
  * 高さが変わったことを知らせるイベント。

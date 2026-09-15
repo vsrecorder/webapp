@@ -54,15 +54,3 @@ export function dropRecordingNowFromStoredLayout(): void {
     DASHBOARD_LAYOUT_COOKIE_MAX_AGE,
   );
 }
-
-/*
- * 画面下のバーの高さを載せる CSS 変数。
- *
- * 本文の下余白・フローティングボタン・カードのクリアランスは、いずれも
- * --mobile-nav-height を基準に組んである。バーのぶんはこの変数で足す。
- * 出ていないときは 0 にする(変数を消すと参照側の calc がすべて壊れる)。
- *
- * 値は実寸(px)で入れること。クリアランスの計算(FloatingButtonClearance)が
- * JS から読むので、rem のままだと換算が要る。
- */
-export const RECORDING_BAR_HEIGHT_VAR = "--recording-bar-height";

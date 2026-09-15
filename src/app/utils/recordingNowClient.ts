@@ -66,34 +66,3 @@ export function dropRecordingNowFromStoredLayout(): void {
  * JS から読むので、rem のままだと換算が要る。
  */
 export const RECORDING_BAR_HEIGHT_VAR = "--recording-bar-height";
-
-/*
- * 帯の高さが変わったことを知らせるイベント。
- *
- * 変数が変わったことを CSS から知る手立てが無いので、測り直しが要る側
- * (FloatingButtonClearance)へ自分で知らせる。
- *
- * window の resize は使わない。画面幅の変化を見ている箇所が他に7つほどあり
- * (デッキ一覧の列数・固定バーの位置合わせなど)、帯が出入りするたびに全部が
- * 無駄に測り直すことになる。実際には画面の大きさは変わっていない。
- */
-export const RECORDING_BAR_RESIZE_EVENT = "vsrecorder:recording-bar-resize";
-
-export function setRecordingBarHeight(px: number): void {
-  if (typeof document === "undefined") return;
-
-  document.documentElement.style.setProperty(RECORDING_BAR_HEIGHT_VAR, `${px}px`);
-  window.dispatchEvent(new Event(RECORDING_BAR_RESIZE_EVENT));
-}
-
-// いま設定されているバーの高さ(px)。読めなければ 0
-export function readRecordingBarHeight(): number {
-  if (typeof document === "undefined") return 0;
-
-  const raw = getComputedStyle(document.documentElement).getPropertyValue(
-    RECORDING_BAR_HEIGHT_VAR,
-  );
-  const px = parseFloat(raw);
-
-  return Number.isNaN(px) ? 0 : px;
-}

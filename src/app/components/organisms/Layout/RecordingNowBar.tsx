@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { usePathname, useRouter } from "next/navigation";
 import { useDisclosure } from "@heroui/react";
@@ -30,7 +30,6 @@ import {
   RECORDING_NOW_SWR_KEY,
   dropRecordingNowFromStoredLayout,
   refreshRecordingNow,
-  setRecordingBarHeight,
 } from "@app/utils/recordingNowClient";
 import { writeSessionStorage } from "@app/utils/sessionStorageStore";
 import { useSessionStorageItem } from "@app/hooks/useSessionStorageItem";
@@ -51,13 +50,6 @@ import { useSessionStorageItem } from "@app/hooks/useSessionStorageItem";
 // 取得の間引き。ページを移るたびに投げ直さない
 const DEDUPING_INTERVAL_MS = 60 * 1000;
 
-/*
- * 下部ナビとの間に空ける隙間(px)。
- *
- * ナビにぴたりと付けるとページの一部に見えてしまうので、左右にも余白を取って
- * 浮かせる。場所を空けてもらう高さ(--recording-bar-height)にはこの隙間も足す。
- */
-const BAR_GAP_PX = 8;
 
 /*
  * バーを出さない画面。
@@ -127,7 +119,6 @@ export default function RecordingNowBar() {
     return () => clearTimeout(timer);
   }, [hiddenValue, recording]);
 
-  const barRef = useRef<HTMLDivElement>(null);
 
   // 「記録を終える」の確認。押し間違いで今日のあいだ消えてしまうのを防ぐ
   const {
@@ -142,17 +133,6 @@ export default function RecordingNowBar() {
     (recording !== null && pathname === `/records/${recording.recordId}`);
 
   const visible = recording !== null && !hidden && !onHiddenPathname;
-
-  /*
-   * バーの高さを CSS 変数に載せて、画面下の余白へ足してもらう(utils/recordingNowClient)。
-   * 決め打ちではなく実寸を測るのは、小型タブレットでルートの文字サイズを上げている
-   * 環境があり、rem 指定の高さが端末で変わるため。
-   */
-  useEffect(() => {
-    setRecordingBarHeight(visible ? (barRef.current?.offsetHeight ?? 0) + BAR_GAP_PX : 0);
-
-    return () => setRecordingBarHeight(0);
-  }, [visible]);
 
   useEffect(() => {
     if (!visible) return;
@@ -232,7 +212,7 @@ export default function RecordingNowBar() {
       className="flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-full bg-primary px-4 text-xs font-bold text-white shadow-md transition-transform active:scale-95"
     >
       <LuCirclePlus className="h-4 w-4" />
-      対戦結果
+      対戦追加
     </button>
   );
 
@@ -280,7 +260,7 @@ export default function RecordingNowBar() {
 
   return (
     <BottomBanner dismissLabel="このバーを閉じる" onDismiss={handleHide}>
-      <div ref={barRef} className="flex items-stretch">
+      <div className="flex items-stretch">
         {/*
           左端のアクセント。対戦記録カードと同じ言語で「記録の帯」だと示す。
           色はヘッダーと同じブランドの並び(青→藍→菫)。dev環境のヘッダーは

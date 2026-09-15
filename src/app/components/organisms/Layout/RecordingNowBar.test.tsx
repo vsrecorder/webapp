@@ -90,7 +90,7 @@ describe("RecordingNowBar", () => {
     expect((await screen.findAllByText("ジムバトル")).length).toBeGreaterThan(0);
     expect(screen.getByText("カードショップ○○")).toBeTruthy();
     expect(screen.getByText("3勝1敗")).toBeTruthy();
-    expect(screen.getByText("対戦結果")).toBeTruthy();
+    expect(screen.getByText("対戦追加")).toBeTruthy();
   });
 
   /*
@@ -103,13 +103,13 @@ describe("RecordingNowBar", () => {
     renderBar();
 
     // 押す場所を種別で変えない。会場の行が無いぶんボタンは右へ寄る
-    expect(await screen.findByText("対戦結果")).toBeTruthy();
+    expect(await screen.findByText("対戦追加")).toBeTruthy();
     expect(screen.queryByText("カードショップ○○")).toBeNull();
   });
 
   it("イベントのアイコンを出す", async () => {
     const { container } = renderBar();
-    await screen.findByText("対戦結果");
+    await screen.findByText("対戦追加");
 
     const icon = container.querySelector("img");
     expect(icon?.getAttribute("src")).toBe("https://example.test/icons/gym.png");
@@ -162,7 +162,7 @@ describe("RecordingNowBar", () => {
   it("「対戦」で記録詳細ページへ移り、着いた先で開くよう指示を残す", async () => {
     renderBar();
 
-    fireEvent.click(await screen.findByText("対戦結果"));
+    fireEvent.click(await screen.findByText("対戦追加"));
 
     expect(sessionStorage.getItem(OPEN_CREATE_MATCH_RECORD_ID)).toBe(RECORD_ID);
     expect(push).toHaveBeenCalledWith(`/records/${RECORD_ID}`);
@@ -195,11 +195,11 @@ describe("RecordingNowBar", () => {
    */
   it("「×」ではバーだけ引っ込み、記録は終わらせない", async () => {
     renderBar();
-    await screen.findByText("対戦結果");
+    await screen.findByText("対戦追加");
 
     fireEvent.click(screen.getByLabelText("このバーを閉じる"));
 
-    await waitFor(() => expect(screen.queryByText("対戦結果")).toBeNull());
+    await waitFor(() => expect(screen.queryByText("対戦追加")).toBeNull());
     expect(sessionStorage.getItem(RECORDING_BAR_HIDDEN_KEY)).toContain(RECORD_ID);
     // 記録を終えたことにはしない
     expect(document.cookie).not.toContain("recordingDismissed=2");

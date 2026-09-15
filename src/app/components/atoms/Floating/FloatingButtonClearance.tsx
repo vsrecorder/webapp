@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 
 import {
-  RECORDING_BAR_RESIZE_EVENT,
-  readRecordingBarHeight,
-} from "@app/utils/recordingNowClient";
+  BOTTOM_BANNER_RESIZE_EVENT,
+  readBottomBannerHeight,
+} from "@app/utils/bottomBannerHeight";
 
 /*
  * フローティングボタンにコンテンツが隠れないよう、画面下端から確保したい余白(px)。
@@ -17,7 +17,7 @@ import {
  * その 192px に 8px の余裕を足した値にしている。
  * どれかのボタンの位置や大きさを変えるときは、ここも合わせて更新すること。
  *
- * 画面下に「続きを記録」バーが出ているあいだは、ボタンがそのぶん上へ逃げる
+ * 画面下に帯が出ているあいだは、ボタンがそのぶん上へ逃げる
  * (bottom に --recording-bar-height を足してある)。確保する余白も同じだけ増やす。
  */
 const CLEARANCE_PX = 200;
@@ -106,8 +106,8 @@ export default function FloatingButtonClearance() {
       const svh = probe.offsetHeight;
       // 画面下端からコンテンツ末尾までの空き。ビューポートを超えていれば負になる。
       const gap = svh - contentBottom;
-      // バーの高さ。出ていなければ 0
-      const needed = CLEARANCE_PX + readRecordingBarHeight();
+      // 帯の高さ。出ていなければ 0
+      const needed = CLEARANCE_PX + readBottomBannerHeight();
 
       setClearance(
         gap >= needed ? 0 : Math.max(0, needed - measureFixedSpaceBelow(el)),
@@ -121,16 +121,16 @@ export default function FloatingButtonClearance() {
     // 端末回転など svh 自体が変わる場合に追従する
     window.addEventListener("resize", measure);
     /*
-     * 「続きを記録」バーの出入りも拾う。バーは position:fixed で body の大きさを
-     * 変えないため ResizeObserver では気づけず、バー側が専用のイベントを投げている
-     * (utils/recordingNowClient の setRecordingBarHeight)。
+     * 画面下の帯(アンケート・ホーム画面に追加・通知の許諾・記録中)の出入りも拾う。
+     * 帯は position:fixed で body の大きさを変えないため ResizeObserver では気づけず、
+     * 器(BottomBanner)が専用のイベントを投げている(utils/bottomBannerHeight)。
      */
-    window.addEventListener(RECORDING_BAR_RESIZE_EVENT, measure);
+    window.addEventListener(BOTTOM_BANNER_RESIZE_EVENT, measure);
 
     return () => {
       ro.disconnect();
       window.removeEventListener("resize", measure);
-      window.removeEventListener(RECORDING_BAR_RESIZE_EVENT, measure);
+      window.removeEventListener(BOTTOM_BANNER_RESIZE_EVENT, measure);
     };
   }, []);
 

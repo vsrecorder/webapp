@@ -1,6 +1,9 @@
 "use client";
 
+import { useEffect, useRef } from "react";
+
 import DismissBadgeButton from "@app/components/atoms/DismissBadgeButton";
+import { setBottomBannerHeight } from "@app/utils/bottomBannerHeight";
 
 /*
  * 画面下に浮かせる帯の共通の器。
@@ -13,6 +16,12 @@ import DismissBadgeButton from "@app/components/atoms/DismissBadgeButton";
  * 面を透かさないのは、ここが文字と数字を読ませる場所だから。下部ナビはアイコンと
  * ラベルだけなので半透明でも読めるが、こちらは後ろのコンテンツが透けると途端に読めない。
  */
+
+/*
+ * 下部ナビとの間に空ける隙間(px)。ナビにぴたりと付けるとページの一部に見えるので、
+ * 左右にも余白を取って浮かせている。bottom の 0.5rem と対応させること。
+ */
+const GAP_PX = 8;
 
 type Props = {
   children: React.ReactNode;
@@ -32,6 +41,31 @@ export default function BottomBanner({
   onDismiss,
   desktop = false,
 }: Props) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  /*
+   * 帯のぶん、画面下に場所を空けてもらう(utils/bottomBannerHeight)。
+   *
+   * 高さは決め打ちにできない。中身は帯ごとに違ううえ、記録中の帯は勝敗が増えたり
+   * 会場の行が付いたりして描いたあとにも変わる。実寸を測って、変わったら入れ直す。
+   */
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    // 下部ナビとの隙間(bottom の 0.5rem)も空けてもらうぶんに含める
+    const measure = () => setBottomBannerHeight(el.offsetHeight + GAP_PX);
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+
+    return () => {
+      observer.disconnect();
+      setBottomBannerHeight(0);
+    };
+  }, []);
+
   return (
     /*
      * 外枠は場所を決めるだけ。角丸・枠線・面は内側が持つ。

@@ -10,7 +10,7 @@ import { DeckGetResponseType, DeckType } from "@app/types/deck";
  */
 
 // 1ページに出す件数
-export const DECK_PAGE_LIMIT = 10;
+export const DECK_PAGE_LIMIT = 30;
 
 export type PeekedPage<T> = {
   // 画面に出すぶん(limit 件まで)

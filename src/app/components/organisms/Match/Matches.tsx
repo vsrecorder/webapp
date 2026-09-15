@@ -367,7 +367,7 @@ export default function Matches({
                                     key={item.id}
                                     className="bg-content1! hover:bg-content1! cursor-default"
                                   >
-                                    <TableCell className="px-2 pt-6 pb-1.5">
+                                    <TableCell className="px-2 py-[3px]">
                                       <div className="flex items-center gap-2">
                                         <div className="flex-1 h-px bg-default-200" />
                                         <span className="text-[0.625rem] font-bold text-default-400">

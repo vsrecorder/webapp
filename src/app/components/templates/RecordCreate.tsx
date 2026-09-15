@@ -41,6 +41,7 @@ import type { CSSObjectWithLabel } from "react-select";
 import { Modal } from "@app/components/atoms/AppModal";
 import DeckSprites from "@app/components/molecules/DeckSprites";
 import { useReactSelectTheme } from "@app/components/molecules/Select/useReactSelectTheme";
+import { useTonamelEventCheck } from "@app/hooks/useTonamelEventCheck";
 import { Image } from "@heroui/react";
 import { Button } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
@@ -662,17 +663,12 @@ export default function TemplateRecordCreate({
    * 「無効なイベントIDです」の行(24px)が入り、ハイドレーション直後にその行が消えて
    * 下のブロックが跳ね上がる。
    */
-  const [tonamelCheck, setTonamelCheck] = useState<{
-    eventId: string;
-    valid: boolean;
-    title: string;
-    image: string;
-  } | null>(null);
-  const currentTonamelCheck =
-    tonamelEventId && tonamelCheck?.eventId === tonamelEventId ? tonamelCheck : null;
-  const tonamelEventTitle = currentTonamelCheck?.title ?? "";
-  const tonamelEventImage = currentTonamelCheck?.image ?? "";
-  const isValidatedTonamelEventId = currentTonamelCheck ? currentTonamelCheck.valid : true;
+  const {
+    isInvalidInput: isInvalidTonamelEventId,
+    title: tonamelEventTitle,
+    image: tonamelEventImage,
+  } = useTonamelEventCheck(tonamelEventId);
+  const isValidatedTonamelEventId = !isInvalidTonamelEventId;
   const [tonamelEventDate, setTonamelEventDate] = useState<CalendarDate>(
     today(JST_TIME_ZONE),
   );
@@ -833,40 +829,6 @@ export default function TemplateRecordCreate({
 
   // デッキを選択していてバージョンが存在する場合のみ、バージョンは必須となる
   const isDeckVersionRequired = !!selectedDeckOption && (deckcodeData?.length ?? 0) > 0;
-
-  /*
-    TonamelのイベントIDが有効かどうかチェック
-  */
-  useEffect(() => {
-    if (!tonamelEventId) return;
-
-    let cancelled = false;
-    const checkTonamelEventId = async () => {
-      try {
-        const res = await fetch(`/api/tonamel_events/${tonamelEventId}`, {
-          method: "GET",
-        });
-
-        if (!res.ok) {
-          const ret = await res.json();
-          throw new Error(`HTTP error: ${res.status} Message: ${ret.message}`);
-        }
-
-        const data = await res.json();
-        if (cancelled) return;
-        setTonamelCheck({ eventId: tonamelEventId, valid: true, title: data.title, image: data.image });
-      } catch (error) {
-        console.error(error);
-        if (cancelled) return;
-        setTonamelCheck({ eventId: tonamelEventId, valid: false, title: "", image: "" });
-      }
-    };
-
-    checkTonamelEventId();
-    return () => {
-      cancelled = true;
-    };
-  }, [tonamelEventId]);
 
   /*
     deck_idがある場合、deck_idのDeckを取得し、使用するデッキとして指定

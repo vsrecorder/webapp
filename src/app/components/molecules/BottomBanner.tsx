@@ -41,7 +41,13 @@ export default function BottomBanner({
      * 左端のアクセント)が角からはみ出して枠線と合わなくなる。
      */
     <div
-      className={`fixed z-50 bottom-[calc(var(--mobile-nav-height)+env(safe-area-inset-bottom)+0.5rem)] left-2 right-2 ${
+      /*
+        重なりは z-40。モーダル(HeroUI は backdrop ともに z-50)より下に置くためで、
+        同値にすると重なり順が DOM の並び任せになり、記録一覧などでカードのモーダルを
+        開いたときに帯が前に出かねない。位置で重なるのは下部ナビ(z-50)だけだが、
+        帯はその上に浮いているので隠れることはない。
+      */
+      className={`fixed z-40 bottom-[calc(var(--mobile-nav-height)+env(safe-area-inset-bottom)+0.5rem)] left-2 right-2 ${
         desktop ? "lg:bottom-6 lg:left-auto lg:right-6 lg:w-[26rem]" : ""
       }`}
     >

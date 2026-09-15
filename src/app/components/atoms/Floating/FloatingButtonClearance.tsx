@@ -2,7 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { readRecordingBarHeight } from "@app/utils/recordingNowClient";
+import {
+  RECORDING_BAR_RESIZE_EVENT,
+  readRecordingBarHeight,
+} from "@app/utils/recordingNowClient";
 
 /*
  * フローティングボタンにコンテンツが隠れないよう、画面下端から確保したい余白(px)。
@@ -115,17 +118,19 @@ export default function FloatingButtonClearance() {
     // 一覧の増減・追加読み込み・カード高の変化(きずな等)に追従する。
     const ro = new ResizeObserver(measure);
     ro.observe(document.body);
+    // 端末回転など svh 自体が変わる場合に追従する
+    window.addEventListener("resize", measure);
     /*
-     * 端末回転など svh 自体が変わる場合に追従する。
-     * 「続きを記録」バーの出入りもここで拾う —— バーは position:fixed で body の
-     * 大きさを変えないため ResizeObserver では気づけず、バー側が resize を投げている
+     * 「続きを記録」バーの出入りも拾う。バーは position:fixed で body の大きさを
+     * 変えないため ResizeObserver では気づけず、バー側が専用のイベントを投げている
      * (utils/recordingNowClient の setRecordingBarHeight)。
      */
-    window.addEventListener("resize", measure);
+    window.addEventListener(RECORDING_BAR_RESIZE_EVENT, measure);
 
     return () => {
       ro.disconnect();
       window.removeEventListener("resize", measure);
+      window.removeEventListener(RECORDING_BAR_RESIZE_EVENT, measure);
     };
   }, []);
 

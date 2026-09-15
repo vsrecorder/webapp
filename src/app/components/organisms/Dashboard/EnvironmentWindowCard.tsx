@@ -1050,13 +1050,23 @@ export default function EnvironmentWindowCard({
     for (const deck of userDecks) {
       const fp = deckFingerprintKey(deck.pokemon_sprites, statGrouping);
       if (fp === "") continue; // スプライト未設定は環境上で識別できないため選択肢に出さない
-      const idx = rankable.findIndex((d) => d.fingerprint === fp);
+      const exactFp = deckFingerprintKey(deck.pokemon_sprites, "exact");
+      let idx = rankable.findIndex((d) => d.fingerprint === fp);
+      if (idx < 0 && statGrouping === "first_sprite" && exactFp !== "") {
+        // 1体目でまとめた行は、その組み合わせで「多数派の並びの1体目」で束ねられている。
+        // 自分のデッキを少数派の並び(1体目と2体目が逆)で登録していると自分の1体目では
+        // 行が見つからないため、内訳(組み合わせ単位)の指紋から親行を引き当てる。
+        idx = rankable.findIndex((d) => d.members?.some((m) => m.fingerprint === exactFp));
+      }
+      const row = idx >= 0 ? rankable[idx] : null;
       list.push({
         deck,
-        fingerprint: fp,
-        exactFingerprint: deckFingerprintKey(deck.pokemon_sprites, "exact"),
+        // 行のハイライト照合に使うため、引き当てた行の指紋に合わせる
+        // (少数派の並びのデッキは、自分の1体目と行の指紋が一致しない)。
+        fingerprint: row?.fingerprint ?? fp,
+        exactFingerprint: exactFp,
         rank: idx >= 0 ? idx + 1 : null,
-        row: idx >= 0 ? rankable[idx] : null,
+        row,
         favorited: isFavoritedDeck(deck),
       });
     }

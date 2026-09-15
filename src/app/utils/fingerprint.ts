@@ -39,6 +39,10 @@ type SpriteWithPosition = { id: string; position?: number };
  * 2枠目だけに登録された票を指紋なしとして捨てないための規則で、集計側
  * (core-apiserver の internal/infrastructure/weekly_deck_usage_stat.go)と揃えている。
  * position を持たない旧データは配列の並びを枠の順とみなす(spriteSlot と同じ扱い)。
+ *
+ * ただし first_sprite の行は、集計側では「その組み合わせで最も多く1体目に置かれた
+ * スプライト」で束ねられている。1体目と2体目を逆に登録したデッキはここで作る指紋が
+ * 行の指紋と一致しないため、呼び出し側は exact 指紋で行の内訳(members)も探すこと。
  */
 export function deckFingerprintKey(
   sprites: SpriteWithPosition[] | undefined | null,

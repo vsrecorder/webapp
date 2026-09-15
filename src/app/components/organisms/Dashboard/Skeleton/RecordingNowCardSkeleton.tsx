@@ -10,7 +10,7 @@ import { Card, CardBody } from "@heroui/react";
  *   ・見出し行 …… 「記録を終える」ボタン(h-7 = 28px)が決める
  *   ・イベント行 … アイコン枠(40px)が決める(中身はイベント名 + 会場)
  *   ・デッキ行 …… スプライト(28px)。使用デッキが未登録の記録では実体ごと無いので出さない
- *   ・ボタン …… Button の既定(40px)
+ *   ・ボタン …… 44px(指で押す領域の下限に合わせてある)
  *
  * 使用デッキの行を描くかは呼び出し側が決める(どちらを描いたかは cookie のブロックIDで
  * 覚えてある。中身が2種類ある節と同じ扱い。utils/dashboardLayout)。
@@ -58,7 +58,7 @@ export default function RecordingNowCardSkeleton({ withDeck = true }: { withDeck
         )}
 
         {/* 「対戦結果を追加する」 */}
-        <div className="h-10 w-full rounded-full bg-primary/20 animate-pulse" />
+        <div className="h-11 w-full rounded-full bg-primary/20 animate-pulse" />
       </CardBody>
     </Card>
   );

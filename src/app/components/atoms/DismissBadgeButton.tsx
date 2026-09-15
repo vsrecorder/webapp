@@ -25,7 +25,11 @@ export default function DismissBadgeButton({ label, onPress }: Props) {
       type="button"
       aria-label={label}
       onClick={onPress}
-      className="absolute -right-2 -top-3.5 z-10 flex h-7 w-7 items-center justify-center rounded-full border border-divider bg-content1 text-default-500 shadow-md transition-transform active:scale-95"
+      /*
+        見た目は 28px だが、指で押す領域は 44px 確保する(iOS の推奨)。
+        丸を大きくすると角のバッジとして重く見えるので、疑似要素で領域だけ広げる。
+      */
+      className="absolute -right-2 -top-3.5 z-10 flex h-7 w-7 items-center justify-center rounded-full border border-divider bg-content1 text-default-500 shadow-md transition-transform after:absolute after:-inset-2 after:content-[''] active:scale-95"
     >
       <LuX className="h-3.5 w-3.5" />
     </button>

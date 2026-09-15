@@ -175,7 +175,8 @@ export default function RecordingNowCard({
             size="sm"
             variant="bordered"
             radius="full"
-            className="ml-auto h-7 border-default-300 px-2.5 text-tiny font-bold text-default-600"
+            /* 見た目は 28px、押せる範囲は疑似要素で 44px まで広げる */
+            className="relative ml-auto h-7 border-default-300 px-2.5 text-tiny font-bold text-default-600 after:absolute after:-inset-2 after:content-['']"
             startContent={<LuCheck className="w-3.5 h-3.5" />}
             onPress={onFinishOpen}
           >
@@ -250,7 +251,8 @@ export default function RecordingNowCard({
           fullWidth
           color="primary"
           radius="full"
-          className="font-bold shadow-md"
+          // 主操作。指で押す領域として 44px を確保する(既定は 40px)
+          className="h-11 font-bold shadow-md"
           startContent={<LuCirclePlus className="w-4 h-4" />}
           onPress={handleAddMatch}
         >

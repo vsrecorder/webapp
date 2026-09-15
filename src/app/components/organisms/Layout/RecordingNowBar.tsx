@@ -197,7 +197,8 @@ export default function RecordingNowBar() {
       type="button"
       onClick={onFinishOpen}
       /* 寸法は「対戦結果」と揃える。役割の違いは色で示す(こちらは枠線だけ) */
-      className="flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-full border border-default-300 px-4 text-xs font-bold text-default-600 transition-transform active:scale-95 active:bg-default-100"
+      /* 見た目は 32px、押せる範囲は上下に 6px ずつ広げて 44px にする */
+      className="relative flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-full border border-default-300 px-4 text-xs font-bold text-default-600 transition-transform after:absolute after:-inset-y-1.5 after:-inset-x-1 after:content-[''] active:scale-95 active:bg-default-100"
     >
       <LuCheck className="h-4 w-4" />
       記録終了
@@ -209,7 +210,8 @@ export default function RecordingNowBar() {
     <button
       type="button"
       onClick={handleAddMatch}
-      className="flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-full bg-primary px-4 text-xs font-bold text-white shadow-md transition-transform active:scale-95"
+      /* 見た目は 32px、押せる範囲は上下に 6px ずつ広げて 44px にする */
+      className="relative flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-full bg-primary px-4 text-xs font-bold text-white shadow-md transition-transform after:absolute after:-inset-y-1.5 after:-inset-x-1 after:content-[''] active:scale-95"
     >
       <LuCirclePlus className="h-4 w-4" />
       対戦追加
@@ -296,8 +298,12 @@ export default function RecordingNowBar() {
               )}
             </div>
 
-            {/* 操作。上に戦績と記録終了、下に主操作 */}
-            <div className="flex shrink-0 flex-col items-end gap-1">
+            {/*
+              操作。上に戦績と記録終了、下に主操作。
+              行間を広く取っているのは、2つのボタンが上下へ広げた押せる範囲(各6px)を
+              重ねないため。詰めると境目でどちらが反応するか定まらない。
+            */}
+            <div className="flex shrink-0 flex-col items-end gap-3">
               <div className="flex items-center gap-2.5">
                 {summary}
                 {finishButton}

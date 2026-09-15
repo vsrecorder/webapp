@@ -4,7 +4,7 @@ import { auth } from "@app/auth";
 
 import { OldestRecordEventDateType } from "@app/types/oldest_record_event_date";
 
-import { upstreamUrl } from "@app/utils/upstream";
+import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/upstream";
 import { signUpstreamToken } from "@app/utils/upstreamToken";
 
 export async function GET(
@@ -31,10 +31,9 @@ export async function GET(
     const queryParams = new URLSearchParams();
     if (deckId) queryParams.set("deck_id", deckId);
 
-    const res = await fetch(
+    const ret = await fetchUpstream<OldestRecordEventDateType>(
       upstreamUrl`/api/v1beta/users/${id}/oldest_record_event_date?${queryParams}`,
       {
-        cache: "no-store",
         method: "GET",
         headers: {
           Authorization: "Bearer " + token,
@@ -43,15 +42,8 @@ export async function GET(
       },
     );
 
-    if (!res.ok) {
-      const body = await res.json();
-      return NextResponse.json(body, { status: res.status });
-    }
-
-    const ret: OldestRecordEventDateType = await res.json();
-
     return NextResponse.json(ret, { status: 200 });
   } catch (error) {
-    throw error;
+    return upstreamErrorResponse(error);
   }
 }

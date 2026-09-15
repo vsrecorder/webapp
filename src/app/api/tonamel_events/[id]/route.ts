@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { TonamelEventGetByIdResponseType } from "@app/types/tonamel_event";
 
-import { upstreamUrl } from "@app/utils/upstream";
+import { UpstreamError, fetchUpstream, upstreamUrl } from "@app/utils/upstream";
 
 /*
  * Tonamel のイベント情報を引く中継。
@@ -20,29 +20,25 @@ export async function GET(
 ) {
   const { id } = await params;
 
-  let res: Response;
   try {
-    res = await fetch(upstreamUrl`/api/v1beta/tonamel_events/${id}`, {
-      cache: "no-store",
-      method: "GET",
-      headers: {
-        Accept: "application/json",
+    const ret = await fetchUpstream<TonamelEventGetByIdResponseType>(
+      upstreamUrl`/api/v1beta/tonamel_events/${id}`,
+      {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+        },
       },
-    });
-  } catch {
-    // 上流へ届かなかった(ネットワーク・タイムアウト)
+    );
+
+    return NextResponse.json(ret, { status: 200 });
+  } catch (error) {
+    if (error instanceof UpstreamError && error.status === 404) {
+      return NextResponse.json({ error: "not found" }, { status: 404 });
+    }
+
+    // 上流が失敗した(5xx・デプロイ中のHTML応答)か、そもそも届かなかった
+    // (ネットワーク・タイムアウト)。どちらも「見つからない」と区別する。
     return NextResponse.json({ error: "bad gateway" }, { status: 502 });
   }
-
-  if (res.status === 404) {
-    return NextResponse.json({ error: "not found" }, { status: 404 });
-  }
-
-  if (!res.ok) {
-    return NextResponse.json({ error: "bad gateway" }, { status: 502 });
-  }
-
-  const ret: TonamelEventGetByIdResponseType = await res.json();
-
-  return NextResponse.json(ret, { status: 200 });
 }

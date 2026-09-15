@@ -5,7 +5,12 @@ import { deleteFirebaseUserWithRetry, getFirebaseAdmin } from "@firebase/admin";
 
 import { UserGetByIdResponseType, UserUpdateRequestType, UserUpdateResponseType } from "@app/types/user";
 
-import { upstreamUrl } from "@app/utils/upstream";
+import {
+  UpstreamError,
+  fetchUpstream,
+  upstreamErrorResponse,
+  upstreamUrl,
+} from "@app/utils/upstream";
 import { signUpstreamToken } from "@app/utils/upstreamToken";
 
 export async function GET(
@@ -13,33 +18,35 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const res = await fetch(upstreamUrl`/api/v1beta/users/${id}`, {
-    cache: "no-store",
-    method: "GET",
-    headers: { Accept: "application/json" },
-  });
 
-  if (!res.ok) {
-    // このルートの404は「core-apiserverがユーザ不在と答えた」ことを意味させる。
-    // プロキシ層の障害時などはバックエンドを経由しないHTMLの404が返ることがあり、
-    // それをそのまま404で返すと、呼び出し側(サインイン失敗時のロールバック等)が
-    // 実在するユーザを不在と誤認しかねないため、502で区別する。
-    const isBackendNotFound =
-      res.status === 404 &&
-      (res.headers.get("content-type") ?? "").includes("application/json");
+  try {
+    const user = await fetchUpstream<UserGetByIdResponseType>(
+      upstreamUrl`/api/v1beta/users/${id}`,
+      {
+        method: "GET",
+        headers: { Accept: "application/json" },
+      },
+    );
 
-    if (res.status === 404 && !isBackendNotFound) {
-      return NextResponse.json(
-        { error: "upstream returned a non-JSON response" },
-        { status: 502 },
-      );
+    return NextResponse.json(user, { status: 200 });
+  } catch (error) {
+    if (error instanceof UpstreamError) {
+      // このルートの404は「core-apiserverがユーザ不在と答えた」ことを意味させる。
+      // プロキシ層の障害時などはバックエンドを経由しないHTMLの404が返ることがあり、
+      // それをそのまま404で返すと、呼び出し側(サインイン失敗時のロールバック等)が
+      // 実在するユーザを不在と誤認しかねないため、502で区別する。
+      if (error.status === 404 && !error.bodyIsJson) {
+        return NextResponse.json(
+          { error: "upstream returned a non-JSON response" },
+          { status: 502 },
+        );
+      }
+
+      return NextResponse.json({ error: "not found" }, { status: error.status });
     }
 
-    return NextResponse.json({ error: "not found" }, { status: res.status });
+    return upstreamErrorResponse(error);
   }
-
-  const user: UserGetByIdResponseType = await res.json();
-  return NextResponse.json(user, { status: 200 });
 }
 
 export async function PUT(
@@ -60,21 +67,27 @@ export async function PUT(
   const token = signUpstreamToken(session.user.id);
   const body: UserUpdateRequestType = await request.json();
 
-  const res = await fetch(upstreamUrl`/api/v1beta/users/${id}`, {
-    method: "PUT",
-    headers: {
-      Authorization: "Bearer " + token,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
+  try {
+    const updated = await fetchUpstream<UserUpdateResponseType>(
+      upstreamUrl`/api/v1beta/users/${id}`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: "Bearer " + token,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      },
+    );
 
-  if (!res.ok) {
-    return NextResponse.json({ error: "update failed" }, { status: res.status });
+    return NextResponse.json(updated, { status: 200 });
+  } catch (error) {
+    if (error instanceof UpstreamError) {
+      return NextResponse.json({ error: "update failed" }, { status: error.status });
+    }
+
+    return upstreamErrorResponse(error);
   }
-
-  const updated: UserUpdateResponseType = await res.json();
-  return NextResponse.json(updated, { status: 200 });
 }
 
 export async function DELETE(
@@ -93,15 +106,20 @@ export async function DELETE(
   }
 
   const token = signUpstreamToken(session.user.id);
-  const res = await fetch(upstreamUrl`/api/v1beta/users/${id}`, {
-    method: "DELETE",
-    headers: {
-      Authorization: "Bearer " + token,
-    },
-  });
 
-  if (!res.ok) {
-    return NextResponse.json({ error: "delete failed" }, { status: res.status });
+  try {
+    await fetchUpstream(upstreamUrl`/api/v1beta/users/${id}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: "Bearer " + token,
+      },
+    });
+  } catch (error) {
+    if (error instanceof UpstreamError) {
+      return NextResponse.json({ error: "delete failed" }, { status: error.status });
+    }
+
+    return upstreamErrorResponse(error);
   }
 
   // バックエンドの退会処理が完了した後にFirebaseの認証ユーザを削除する。

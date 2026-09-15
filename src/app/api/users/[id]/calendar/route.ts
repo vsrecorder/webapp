@@ -14,7 +14,12 @@ import {
 
 import { toDateKey } from "@app/utils/calendar";
 
-import { upstreamUrl } from "@app/utils/upstream";
+import {
+  UpstreamError,
+  fetchUpstream,
+  upstreamErrorResponse,
+  upstreamUrl,
+} from "@app/utils/upstream";
 import { signUpstreamToken } from "@app/utils/upstreamToken";
 
 // core-apiserver の GET /users/{id}/calendar が返す形。
@@ -193,20 +198,16 @@ async function fetchCalendar(
   token: string,
   userId: string,
 ): Promise<CalendarApiResponse> {
-  const res = await fetch(upstreamUrl`/api/v1beta/users/${userId}/calendar`, {
-    cache: "no-store",
-    method: "GET",
-    headers: {
-      Authorization: "Bearer " + token,
-      Accept: "application/json",
+  return await fetchUpstream<CalendarApiResponse>(
+    upstreamUrl`/api/v1beta/users/${userId}/calendar`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: "Bearer " + token,
+        Accept: "application/json",
+      },
     },
-  });
-
-  if (!res.ok) {
-    throw new Error(`failed to fetch calendar: ${res.status}`);
-  }
-
-  return res.json();
+  );
 }
 
 export async function GET(
@@ -233,6 +234,12 @@ export async function GET(
 
     return NextResponse.json({ data: buildCalendarData(calendar) }, { status: 200 });
   } catch (error) {
+    // 上流が失敗したのか、こちらの組み立てが失敗したのかを区別する。
+    // 一律500にすると、デプロイ中(上流が503)も「カレンダーが壊れた」と見分けが付かない。
+    if (error instanceof UpstreamError) {
+      return upstreamErrorResponse(error);
+    }
+
     console.error(error);
     return NextResponse.json({ error: "failed to build calendar" }, { status: 500 });
   }

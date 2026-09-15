@@ -4,7 +4,7 @@ import { auth } from "@app/auth";
 
 import { DeckUsageStatType } from "@app/types/deck_usage_stat";
 
-import { upstreamUrl } from "@app/utils/upstream";
+import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/upstream";
 import { signUpstreamToken } from "@app/utils/upstreamToken";
 
 export async function GET(
@@ -48,10 +48,9 @@ export async function GET(
     if (excludeDefaultMatches)
       queryParams.set("exclude_default_matches", excludeDefaultMatches);
 
-    const res = await fetch(
+    const stat = await fetchUpstream<DeckUsageStatType>(
       upstreamUrl`/api/v1beta/users/${id}/deck_usage?${queryParams}`,
       {
-        cache: "no-store",
         method: "GET",
         headers: {
           Authorization: "Bearer " + token,
@@ -60,15 +59,8 @@ export async function GET(
       },
     );
 
-    if (!res.ok) {
-      const body = await res.json();
-      return NextResponse.json(body, { status: res.status });
-    }
-
-    const stat: DeckUsageStatType = await res.json();
-
     return NextResponse.json(stat, { status: 200 });
   } catch (error) {
-    throw error;
+    return upstreamErrorResponse(error);
   }
 }

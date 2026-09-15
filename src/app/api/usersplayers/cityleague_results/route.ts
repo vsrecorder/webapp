@@ -4,7 +4,12 @@ import { auth } from "@app/auth";
 
 import { UserPlayerCityleagueResultsGetResponseType } from "@app/types/user_player";
 
-import { upstreamUrl } from "@app/utils/upstream";
+import {
+  UpstreamError,
+  fetchUpstream,
+  upstreamErrorResponse,
+  upstreamUrl,
+} from "@app/utils/upstream";
 import { signUpstreamToken } from "@app/utils/upstreamToken";
 
 // 上流はトークンの uid に紐付いたプレイヤーIDでしか引かないため、ここは
@@ -36,32 +41,30 @@ export async function GET(request: NextRequest) {
   if (season) query.set("season", season);
 
   const token = signUpstreamToken(session.user.id);
-  const res = await fetch(
-    upstreamUrl`/api/v1beta/usersplayers/cityleague_results?${query}`,
-    {
-      cache: "no-store",
-      method: "GET",
-      headers: {
-        Authorization: "Bearer " + token,
-        Accept: "application/json",
+
+  try {
+    const results = await fetchUpstream<UserPlayerCityleagueResultsGetResponseType>(
+      upstreamUrl`/api/v1beta/usersplayers/cityleague_results?${query}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: "Bearer " + token,
+          Accept: "application/json",
+        },
       },
-    },
-  );
+    );
 
-  if (res.status === 404) {
-    const empty: UserPlayerCityleagueResultsGetResponseType = {
-      season: season ?? "",
-      count: 0,
-      results: [],
-    };
-    return NextResponse.json(empty, { status: 200 });
+    return NextResponse.json(results, { status: 200 });
+  } catch (error) {
+    if (error instanceof UpstreamError && error.status === 404) {
+      const empty: UserPlayerCityleagueResultsGetResponseType = {
+        season: season ?? "",
+        count: 0,
+        results: [],
+      };
+      return NextResponse.json(empty, { status: 200 });
+    }
+
+    return upstreamErrorResponse(error);
   }
-
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    return NextResponse.json(body, { status: res.status });
-  }
-
-  const results: UserPlayerCityleagueResultsGetResponseType = await res.json();
-  return NextResponse.json(results, { status: 200 });
 }

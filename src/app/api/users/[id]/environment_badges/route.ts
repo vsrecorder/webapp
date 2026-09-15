@@ -2,22 +2,18 @@ import { NextResponse, NextRequest } from "next/server";
 
 import { UserEnvironmentBadgesResponseType } from "@app/types/environment_badge";
 
-import { upstreamUrl } from "@app/utils/upstream";
+import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/upstream";
 
 async function getUserEnvironmentBadges(
   userId: string,
 ): Promise<UserEnvironmentBadgesResponseType> {
-  const res = await fetch(upstreamUrl`/api/v1beta/users/${userId}/environment_badges`, {
-    cache: "no-store",
-    method: "GET",
-    headers: { Accept: "application/json" },
-  });
-
-  if (!res.ok) {
-    throw new Error(`failed to fetch user environment badges: ${res.status}`);
-  }
-
-  return res.json();
+  return await fetchUpstream<UserEnvironmentBadgesResponseType>(
+    upstreamUrl`/api/v1beta/users/${userId}/environment_badges`,
+    {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    },
+  );
 }
 
 export async function GET(
@@ -26,6 +22,10 @@ export async function GET(
 ) {
   const { id } = await params;
 
-  const badges = await getUserEnvironmentBadges(id);
-  return NextResponse.json(badges, { status: 200 });
+  try {
+    const badges = await getUserEnvironmentBadges(id);
+    return NextResponse.json(badges, { status: 200 });
+  } catch (error) {
+    return upstreamErrorResponse(error);
+  }
 }

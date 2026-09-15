@@ -8,7 +8,12 @@ import {
   UserPlayerCreateResponseType,
 } from "@app/types/user_player";
 
-import { upstreamUrl } from "@app/utils/upstream";
+import {
+  UpstreamError,
+  fetchUpstream,
+  upstreamErrorResponse,
+  upstreamUrl,
+} from "@app/utils/upstream";
 import { signUpstreamToken } from "@app/utils/upstreamToken";
 
 // 未連携(上流404)は null を200で返す。「まだ連携していない」は大多数のユーザにとっての
@@ -30,26 +35,27 @@ export async function GET() {
   }
 
   const token = signUpstreamToken(session.user.id);
-  const res = await fetch(upstreamUrl`/api/v1beta/usersplayers`, {
-    cache: "no-store",
-    method: "GET",
-    headers: {
-      Authorization: "Bearer " + token,
-      Accept: "application/json",
-    },
-  });
 
-  if (res.status === 404) {
-    return NextResponse.json(null, { status: 200 });
+  try {
+    const userPlayer = await fetchUpstream<UserPlayerGetResponseType>(
+      upstreamUrl`/api/v1beta/usersplayers`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: "Bearer " + token,
+          Accept: "application/json",
+        },
+      },
+    );
+
+    return NextResponse.json(userPlayer, { status: 200 });
+  } catch (error) {
+    if (error instanceof UpstreamError && error.status === 404) {
+      return NextResponse.json(null, { status: 200 });
+    }
+
+    return upstreamErrorResponse(error);
   }
-
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    return NextResponse.json(body, { status: res.status });
-  }
-
-  const userPlayer: UserPlayerGetResponseType = await res.json();
-  return NextResponse.json(userPlayer, { status: 200 });
 }
 
 // プレイヤーIDの実在確認・所有権確認は行わない(利用者の自己申告として受け入れる)ため、
@@ -63,21 +69,21 @@ export async function POST(request: NextRequest) {
   const token = signUpstreamToken(session.user.id);
   const body: UserPlayerCreateRequestType = await request.json();
 
-  const res = await fetch(upstreamUrl`/api/v1beta/usersplayers`, {
-    method: "POST",
-    headers: {
-      Authorization: "Bearer " + token,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
+  try {
+    const created = await fetchUpstream<UserPlayerCreateResponseType>(
+      upstreamUrl`/api/v1beta/usersplayers`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: "Bearer " + token,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      },
+    );
 
-  const resBody = await res.json().catch(() => ({}));
-
-  if (!res.ok) {
-    return NextResponse.json(resBody, { status: res.status });
+    return NextResponse.json(created, { status: 201 });
+  } catch (error) {
+    return upstreamErrorResponse(error);
   }
-
-  const created: UserPlayerCreateResponseType = resBody;
-  return NextResponse.json(created, { status: 201 });
 }

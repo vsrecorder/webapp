@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { RegulationType } from "@app/types/regulation";
 
-import { upstreamUrl } from "@app/utils/upstream";
+import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/upstream";
 
 /*
  * レギュレーション(使用可能なカードの範囲)のマスタは、年に数回しか増減しない
@@ -23,20 +23,18 @@ const REVALIDATE_SECONDS = 3600;
 
 export async function GET() {
   try {
-    const res = await fetch(upstreamUrl`/api/v1beta/regulations`, {
-      cache: "force-cache",
-      next: { revalidate: REVALIDATE_SECONDS },
-      method: "GET",
-      headers: { Accept: "application/json" },
-    });
+    const data = await fetchUpstream<RegulationType[]>(
+      upstreamUrl`/api/v1beta/regulations`,
+      {
+        cache: "force-cache",
+        next: { revalidate: REVALIDATE_SECONDS },
+        method: "GET",
+        headers: { Accept: "application/json" },
+      },
+    );
 
-    if (!res.ok) {
-      return NextResponse.json({ message: "error" }, { status: res.status });
-    }
-
-    const data: RegulationType[] = await res.json();
     return NextResponse.json(data, { status: 200 });
-  } catch {
-    return NextResponse.json({ message: "internal server error" }, { status: 500 });
+  } catch (error) {
+    return upstreamErrorResponse(error);
   }
 }

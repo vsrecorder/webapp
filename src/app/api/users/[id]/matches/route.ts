@@ -4,7 +4,7 @@ import { auth } from "@app/auth";
 
 import { MatchGetResponseType } from "@app/types/match";
 
-import { upstreamUrl } from "@app/utils/upstream";
+import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/upstream";
 import { signUpstreamToken } from "@app/utils/upstreamToken";
 
 export async function GET(
@@ -27,10 +27,9 @@ export async function GET(
 
     const { searchParams } = new URL(request.url);
     const limit = searchParams.get("limit") ?? "10";
-    const res = await fetch(
+    const ret = await fetchUpstream<MatchGetResponseType[]>(
       upstreamUrl`/api/v1beta/users/${id}/matches?limit=${limit}`,
       {
-        cache: "no-store",
         method: "GET",
         headers: {
           Authorization: "Bearer " + token,
@@ -39,15 +38,8 @@ export async function GET(
       },
     );
 
-    if (!res.ok) {
-      const body = await res.json();
-      return NextResponse.json(body, { status: res.status });
-    }
-
-    const ret: MatchGetResponseType[] = await res.json();
-
     return NextResponse.json(ret, { status: 200 });
   } catch (error) {
-    throw error;
+    return upstreamErrorResponse(error);
   }
 }

@@ -79,12 +79,19 @@ export function upstreamUrl(
 export class UpstreamError extends Error {
   readonly status: number;
   readonly body: unknown;
+  // 上流の応答をJSONとして読めたか。読めなかったとき body は既定のエラーオブジェクトになる。
+  //
+  // 同じステータスでも、バックエンドが答えたのか手前のプロキシが答えたのかで意味が変わる
+  // 場合に使う。nginx はデプロイ中の 502/504 を deploying.html の 503 に、手動メンテナンスを
+  // maintenance.html の 503 に変えるため、上流の失敗がHTMLで返ることがある。
+  readonly bodyIsJson: boolean;
 
-  constructor(status: number, body: unknown) {
+  constructor(status: number, body: unknown, bodyIsJson: boolean = true) {
     super(`upstream responded with ${status}`);
     this.name = "UpstreamError";
     this.status = status;
     this.body = body;
+    this.bodyIsJson = bodyIsJson;
   }
 }
 
@@ -113,7 +120,11 @@ export async function fetchUpstream<T>(url: string, init?: RequestInit): Promise
   const body = parseJson(text);
 
   if (!res.ok) {
-    throw new UpstreamError(res.status, body ?? { error: "upstream request failed" });
+    throw new UpstreamError(
+      res.status,
+      body ?? { error: "upstream request failed" },
+      body !== undefined,
+    );
   }
 
   // 200だがJSONとして読めない応答は、成功として扱うと呼び出し側が壊れるため失敗にする

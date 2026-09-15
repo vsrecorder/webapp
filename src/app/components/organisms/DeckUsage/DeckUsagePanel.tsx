@@ -259,6 +259,8 @@ export default function DeckUsagePanel({
       groupIntoOther(decks, {
         threshold: OTHER_THRESHOLD,
         maxIndividual: MAX_INDIVIDUAL_DECKS,
+        // 使用率(件数)が並んだデッキは、勝率の高い方を上に並べる
+        tieBreak: (a, b) => b.win_rate - a.win_rate,
         createOther: (aggregate, rest): DeckUsageItemType => {
           const gameCount = rest.reduce((sum, item) => sum + item.game_count, 0);
           const goFirstCount = rest.reduce((sum, item) => sum + item.go_first_count, 0);

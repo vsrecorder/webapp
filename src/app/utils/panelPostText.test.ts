@@ -31,6 +31,35 @@ describe("buildUserStatPostText", () => {
     expect(text).toContain("対戦記録 18件 / 試合数 54戦");
   });
 
+  it("対戦がまだ無い期間は勝率の行を載せない", () => {
+    // 0.0% と書くと全敗と読めてしまうので、件数だけにする
+    const text = buildUserStatPostText("2026年9月", {
+      ...stat,
+      total_records: 0,
+      total_matches: 0,
+      wins: 0,
+      losses: 0,
+      win_rate: 0,
+    });
+
+    expect(text).toContain("2026年9月 の戦績");
+    expect(text).toContain("対戦記録 0件 / 試合数 0戦");
+    expect(text).not.toContain("勝率");
+  });
+
+  it("全敗の期間は勝率 0.0% を載せる(勝率が存在する)", () => {
+    const text = buildUserStatPostText("2026年9月", {
+      ...stat,
+      total_records: 1,
+      total_matches: 3,
+      wins: 0,
+      losses: 3,
+      win_rate: 0,
+    });
+
+    expect(text).toContain("勝率 0.0%（0勝3敗）");
+  });
+
   // 集計条件の但し書きはポスト文に入れない(シェア画像の側に出してある)
   it("集計条件の断り書きは入れない", () => {
     const text = buildUserStatPostText("2026年7月", stat);

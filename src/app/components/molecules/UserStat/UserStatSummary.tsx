@@ -1,23 +1,36 @@
 "use client";
 
+import { hasWinRate } from "@app/utils/winRate";
+
 import { UserStatType } from "@app/types/user_stat";
 
 // 戦績分析の数値表示（対戦記録・イベント種別・試合数・勝敗・勝率）。
 // 画面のパネル(UserStatPanel)とシェア画像(UserStatShareCard)の両方から使い、
 // 同じ記録が画面と画像で違って見えることがないようにする。
 
-function WinRateDisplay({ winRate, isLoading }: { winRate: number; isLoading: boolean }) {
-  const pct = (winRate * 100).toFixed(1);
-  const color =
-    winRate === 0
-      ? "text-default-500"
-      : winRate >= 0.55
-        ? "text-success"
-        : winRate >= 0.45
-          ? "text-default-500"
-          : winRate >= 0.4
-            ? "text-warning"
-            : "text-danger";
+/*
+ * 勝率。勝ちも負けも無い期間(対戦0件、または引き分けだけ)は勝率が存在しないため、
+ * 0.0% ではなく「-」を出す。0.0% と描くと全敗と見分けが付かない
+ * (デッキ一覧・記録の戦績パネルと同じ扱い)。
+ */
+function WinRateDisplay({
+  winRate,
+  hasRate,
+  isLoading,
+}: {
+  winRate: number;
+  hasRate: boolean;
+  isLoading: boolean;
+}) {
+  const color = !hasRate
+    ? "text-default-300"
+    : winRate >= 0.55
+      ? "text-success"
+      : winRate >= 0.45
+        ? "text-default-500"
+        : winRate >= 0.4
+          ? "text-warning"
+          : "text-danger";
 
   return (
     <div className="flex flex-col items-center gap-0.5">
@@ -27,8 +40,14 @@ function WinRateDisplay({ winRate, isLoading }: { winRate: number; isLoading: bo
       <span
         className={`text-4xl font-black tabular-nums transition-opacity duration-300 ${isLoading ? "opacity-30" : "opacity-100"} ${color}`}
       >
-        {pct}
-        <span className="text-xl font-bold">%</span>
+        {hasRate ? (
+          <>
+            {(winRate * 100).toFixed(1)}
+            <span className="text-xl font-bold">%</span>
+          </>
+        ) : (
+          "-"
+        )}
       </span>
     </div>
   );
@@ -117,7 +136,11 @@ export default function UserStatSummary({ stat, isLoading }: Props) {
         <StatCell label="敗北" value={stat?.losses ?? 0} isLoading={isLoading} />
       </div>
 
-      <WinRateDisplay winRate={stat?.win_rate ?? 0} isLoading={isLoading} />
+      <WinRateDisplay
+        winRate={stat?.win_rate ?? 0}
+        hasRate={hasWinRate(stat?.wins ?? 0, stat?.losses ?? 0)}
+        isLoading={isLoading}
+      />
     </>
   );
 }

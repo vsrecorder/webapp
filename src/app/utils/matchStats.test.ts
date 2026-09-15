@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { hasWinRate, summarizeMatches } from "@app/utils/matchStats";
+import { summarizeMatches } from "@app/utils/matchStats";
+
+import { hasWinRate } from "@app/utils/winRate";
 
 import { MatchGetResponseType } from "@app/types/match";
 
@@ -14,9 +16,11 @@ const match = (flags: Partial<MatchGetResponseType>) =>
     ...flags,
   }) as unknown as MatchGetResponseType;
 
-describe("hasWinRate", () => {
+// 集計(summarizeMatches)の結果が「勝率を持つか」の判定とかみ合うか
+describe("summarizeMatches と hasWinRate", () => {
   it("対戦が1件も無ければ勝率を持たない", () => {
-    expect(hasWinRate(summarizeMatches([]))).toBe(false);
+    const stats = summarizeMatches([]);
+    expect(hasWinRate(stats.wins, stats.losses)).toBe(false);
   });
 
   it("引き分けだけなら勝率を持たない", () => {
@@ -25,15 +29,15 @@ describe("hasWinRate", () => {
 
     expect(stats.total).toBe(2);
     expect(stats.winRate).toBe(0);
-    expect(hasWinRate(stats)).toBe(false);
+    expect(hasWinRate(stats.wins, stats.losses)).toBe(false);
   });
 
   it("勝ちか負けが1件でもあれば勝率を持つ", () => {
-    expect(hasWinRate(summarizeMatches([match({ victory_flg: true })]))).toBe(true);
-    expect(hasWinRate(summarizeMatches([match({ victory_flg: false })]))).toBe(true);
+    const win = summarizeMatches([match({ victory_flg: true })]);
+    expect(hasWinRate(win.wins, win.losses)).toBe(true);
+
     // 引き分け混じりでも決着があれば算出できる
-    expect(
-      hasWinRate(summarizeMatches([match({ draw_flg: true }), match({ victory_flg: true })])),
-    ).toBe(true);
+    const mixed = summarizeMatches([match({ draw_flg: true }), match({ victory_flg: true })]);
+    expect(hasWinRate(mixed.wins, mixed.losses)).toBe(true);
   });
 });

@@ -130,17 +130,6 @@ export function summarizeMatches(matches: MatchGetResponseType[]): MatchStats {
 }
 
 /*
- * 勝率を算出できるか(勝ちか負けで決着した対戦が1件でもあるか)。
- *
- * 勝率は引き分けを分母から外す(勝ち/(勝ち+負け))ため、引き分けだけの記録は
- * 対戦が1件以上あっても勝率を持たない。持たないものを 0% として描くと全敗と
- * 見分けが付かないので、表示側はこれで「勝率なし」に切り替える。
- */
-export function hasWinRate(stats: MatchStats): boolean {
-  return stats.wins + stats.losses > 0;
-}
-
-/*
  * 2値×2値のφ係数(ピアソン相関の2値版 / MCC)を求める。
  *
  *   φ = (ad - bc) / √((a+b)(c+d)(a+c)(b+d))

@@ -1,3 +1,5 @@
+import { hasWinRate } from "@app/utils/winRate";
+
 import { UserStatType } from "@app/types/user_stat";
 import { DeckUsageItemType } from "@app/types/deck_usage_stat";
 import { drawCount } from "@app/components/molecules/UserStat/UserStatSummary";
@@ -19,15 +21,23 @@ export function buildUserStatPostText(
   filterLabel: string,
   stat: UserStatType | null,
 ): string {
-  const winRate = ((stat?.win_rate ?? 0) * 100).toFixed(1);
   const draws = drawCount(stat);
   const record = `${stat?.wins ?? 0}勝${stat?.losses ?? 0}敗${draws > 0 ? `${draws}分` : ""}`;
+  const counts = `対戦記録 ${stat?.total_records ?? 0}件 / 試合数 ${stat?.total_matches ?? 0}戦`;
+
+  // 勝ちも負けも無い期間は勝率が存在しないので、その行ごと落とす
+  // (0.0% と書くと全敗と読めてしまう)。デッキのシェア文も同じ扱い。
+  if (!hasWinRate(stat?.wins ?? 0, stat?.losses ?? 0)) {
+    return [`${filterLabel} の戦績`, "", counts, "", HASHTAG].join("\n");
+  }
+
+  const winRate = ((stat?.win_rate ?? 0) * 100).toFixed(1);
 
   return [
     `${filterLabel} の戦績`,
     "",
     `勝率 ${winRate}%（${record}）`,
-    `対戦記録 ${stat?.total_records ?? 0}件 / 試合数 ${stat?.total_matches ?? 0}戦`,
+    counts,
     "",
     HASHTAG,
   ].join("\n");

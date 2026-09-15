@@ -17,6 +17,8 @@ import {
 import UpdateNameModal from "@app/components/organisms/User/Modal/UpdateNameModal";
 import FetchError from "@app/components/molecules/FetchError";
 
+import { hasWinRate } from "@app/utils/winRate";
+
 import { UserType } from "@app/types/user";
 import { useSeededResource } from "@app/hooks/useSeededResource";
 import { UserStatType } from "@app/types/user_stat";
@@ -166,6 +168,9 @@ function winRateColor(rate: number): string {
 
 type WinRateBadgeProps = {
   winRate: number;
+  // 勝率が存在するか(勝ちか負けで決着した対戦が1件でもあるか)。
+  // 対戦がまだ無い月・引き分けだけの月に 0.0% を出すと全敗と読めてしまうため、値は伏せる
+  hasRate: boolean;
   isLoading: boolean;
   // 戦績の取得に失敗したか。0.0%と表示すると「勝率0%」と読めてしまうため、値は伏せる
   hasError: boolean;
@@ -178,6 +183,7 @@ type WinRateBadgeProps = {
 
 function WinRateBadge({
   winRate,
+  hasRate,
   isLoading,
   hasError,
   yearMonth,
@@ -189,7 +195,7 @@ function WinRateBadge({
   // winRate は 0〜1 なので ×1000 して小数1桁精度でカウントアップ
   const animated = useCountUp(isLoading ? null : winRate * 1000, 900);
   // null の間はまだ数値を出さない(取得中と同じローディング表示のままにする)
-  const pct = animated === null ? null : (animated / 10).toFixed(1);
+  const pct = animated === null || !hasRate ? null : (animated / 10).toFixed(1);
   const color = isLoading ? "text-white/30" : winRateColor(winRate);
 
   return (
@@ -238,6 +244,9 @@ function WinRateBadge({
         {hidden ? (
           <span className="text-3xl font-black text-white/30 leading-none">——</span>
         ) : hasError ? (
+          <span className="text-3xl font-black text-white/30 leading-none">—</span>
+        ) : !hasRate && !isLoading ? (
+          // まだ勝率が無い(対戦0件・引き分けだけ)。取得中と違い、待っても数字は出ない
           <span className="text-3xl font-black text-white/30 leading-none">—</span>
         ) : isLoading || pct === null ? (
           <span className="text-3xl font-black text-white/30 animate-pulse leading-none">
@@ -488,6 +497,7 @@ export default function UserProfileCard({
           <div className="ml-auto shrink-0">
             <WinRateBadge
               winRate={stat?.win_rate ?? 0}
+              hasRate={hasWinRate(stat?.wins ?? 0, stat?.losses ?? 0)}
               isLoading={isLoading}
               hasError={statError}
               yearMonth={yearMonth}

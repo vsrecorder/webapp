@@ -11,7 +11,8 @@ import {
   heroStatColStyle,
 } from "@app/components/organisms/Record/Hero/heroColumns";
 
-import { MatchStats, hasWinRate } from "@app/utils/matchStats";
+import { MatchStats } from "@app/utils/matchStats";
+import { hasWinRate } from "@app/utils/winRate";
 
 type Props = {
   stats: MatchStats;
@@ -120,7 +121,7 @@ export default function RecordStatPanel({
    * 分母から外すため、1分だけの記録も勝率が無い)が該当する。
    * この場合はリングも勝敗も中立のグレーで置く。
    */
-  const noWinRate = !hasWinRate(stats);
+  const noWinRate = !hasWinRate(stats.wins, stats.losses);
 
   // 裏面(貢献度)はチーム戦の記録でのみ表示できる
   const isSynergyView = hasTeamStats && showSynergy;

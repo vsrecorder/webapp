@@ -500,7 +500,9 @@ export default function ShareRecordModal({
             // 画面の戦績パネルと同じ面(勝率 / 貢献度)を撮る。
             // onToggleSynergy は渡さない(キャプチャ用のパネルはタップさせない)
             showSynergy={showSynergy}
-            hideDeck={!deferredShowDeck}
+            // 未登録の記録では区画ごと落とす。画面(記録詳細)は骨格と高さを揃えるために
+            // 「未登録」の枠を置くが、画像に持っていない情報の枠を写す意味は無い
+            hideDeck={!deferredShowDeck || !record.deck_id}
             hideVenue={!deferredShowVenue}
             onReadyChange={setHeroReady}
             matchesSlot={

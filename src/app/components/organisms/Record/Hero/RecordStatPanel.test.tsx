@@ -31,10 +31,25 @@ describe("RecordStatPanel", () => {
     expect(panel.getByText("-")).toBeTruthy();
     expect(panel.queryByText("0%")).toBeNull();
     // リングが勝ち負けの色を持たない状態であることを読み上げにも出す
-    expect(panel.getByLabelText("対戦結果がないため勝率なし")).toBeTruthy();
+    expect(panel.getByLabelText("勝率なし")).toBeTruthy();
     // 勝敗タイルは 0-0 のまま残す(対戦を足したときに構造が変わらないようにする)
     expect(panel.getByText("勝")).toBeTruthy();
     expect(panel.getByText("敗")).toBeTruthy();
+  });
+
+  it("引き分けだけの記録も勝率は「-」にする", () => {
+    // 勝率は引き分けを分母から外すので、この記録に勝率は無い。
+    // 0% と描くと全敗と見分けが付かない
+    const stats = summarizeMatches([match({ draw_flg: true })]);
+
+    const { container } = render(<RecordStatPanel stats={stats} />);
+    const panel = within(container);
+
+    expect(panel.getByText("-")).toBeTruthy();
+    expect(panel.queryByText("0%")).toBeNull();
+    expect(panel.getByLabelText("勝率なし")).toBeTruthy();
+    // 内訳は 0勝0敗1分
+    expect(panel.getByText("分")).toBeTruthy();
   });
 
   it("対戦結果があれば従来どおり勝率と勝敗数を出す", () => {

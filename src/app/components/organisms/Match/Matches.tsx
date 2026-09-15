@@ -25,7 +25,9 @@ import { LuSwords, LuChevronUp, LuChevronDown } from "react-icons/lu";
 import UpdateMatchModal from "@app/components/organisms/Match/Modal/UpdateMatchModal";
 import DisplayMatchDetailModal from "@app/components/organisms/Match/Modal/DisplayMatchDetailModal";
 import CreateMatchModalButton from "@app/components/organisms/Match/CreateMatchModalButton";
-import MatchSkeleton from "@app/components/organisms/Match/Skeleton/MatchSkeleton";
+import MatchSkeleton, {
+  matchPanelHeight,
+} from "@app/components/organisms/Match/Skeleton/MatchSkeleton";
 
 import { RecordGetByIdResponseType } from "@app/types/record";
 import { MatchGetResponseType, MatchOrderItemType } from "@app/types/match";
@@ -326,7 +328,20 @@ export default function Matches({
               <div ref={matchCardRef} className={flat ? "" : "p-1"}>
                 <Card className={flat ? "bg-transparent shadow-none" : ""}>
                   <CardBody
-                    className={`px-0 py-0.5 ${matches && matches.length === 0 ? "min-h-28" : ""} w-full`}
+                    className="px-0 py-0.5 w-full"
+                    // 0件のときは取得中の骨格と同じ高さを下限にする。これが無いと
+                    // 「骨格 → 対戦0件」の差し替えでパネルが縮み、カードごと跳ねる
+                    // (実測: 詳細ページ 10px / 記録情報モーダル 34px)。
+                    style={
+                      matches && matches.length === 0
+                        ? {
+                            minHeight: matchPanelHeight(
+                              enableUpdateMatchModalButton,
+                              enableCreateMatchModalButton,
+                            ),
+                          }
+                        : undefined
+                    }
                   >
                     {matches && matches.length !== 0 ? (
                       <div className="px-0 py-0 w-full">
@@ -345,16 +360,14 @@ export default function Matches({
                             <TableColumn>対戦結果</TableColumn>
                           </TableHeader>
                           <TableBody>
-                            {orderedItems.map((item, index) => {
+                            {orderedItems.map((item) => {
                               if (item.kind === "header") {
                                 return (
                                   <TableRow
                                     key={item.id}
                                     className="bg-content1! hover:bg-content1! cursor-default"
                                   >
-                                    <TableCell
-                                      className={`px-2 pb-1.5 ${index === 0 ? "pt-1.5" : "pt-6"}`}
-                                    >
+                                    <TableCell className="px-2 pt-6 pb-1.5">
                                       <div className="flex items-center gap-2">
                                         <div className="flex-1 h-px bg-default-200" />
                                         <span className="text-[0.625rem] font-bold text-default-400">
@@ -692,7 +705,10 @@ export default function Matches({
                         </Table>
                       </div>
                     ) : (
-                      <div className="flex flex-col items-center justify-center gap-5 py-8 px-4">
+                      // 縦の余白は py-4。py-8 だと、対戦結果を追加できない記録情報モーダルでは
+                      // 中身だけで骨格より 34px 高くなり、差し替えでカードが伸びる。
+                      // 足りないぶんは上の minHeight と justify-center が埋める。
+                      <div className="flex flex-col items-center justify-center gap-5 py-4 px-4">
                         <div className="flex items-center justify-center w-16 h-16 rounded-full bg-default-100">
                           <LuSwords className="text-3xl text-default-400" />
                         </div>

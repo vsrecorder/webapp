@@ -11,7 +11,7 @@ import {
   heroStatColStyle,
 } from "@app/components/organisms/Record/Hero/heroColumns";
 
-import { MatchStats } from "@app/utils/matchStats";
+import { MatchStats, hasWinRate } from "@app/utils/matchStats";
 
 type Props = {
   stats: MatchStats;
@@ -106,7 +106,7 @@ function synergyGlowClass(phi: number | null): string {
  *
  * 対戦結果がまだ1件も無い記録でもパネルは出す。出さないと上段が1カラムになって
  * イベント情報パネルだけが全幅に伸び、対戦を1件追加した瞬間にカードが組み替わるため。
- * その場合は勝率が存在しないので、リング・勝敗・グローをすべて中立のグレーにする。
+ * 勝率を持たない記録(対戦0件・引き分けだけ)は、リング・勝敗・グローをすべて中立のグレーにする。
  */
 export default function RecordStatPanel({
   stats,
@@ -115,8 +115,12 @@ export default function RecordStatPanel({
 }: Props) {
   const hasTeamStats = stats.team.total > 0;
 
-  // 対戦結果がまだ1件も無い記録。勝率が存在しないので、リングも勝敗も中立のグレーで置く
-  const isEmpty = stats.total === 0;
+  /*
+   * 勝率を持たない記録。対戦が1件も無いときと、引き分けだけのとき(勝率は引き分けを
+   * 分母から外すため、1分だけの記録も勝率が無い)が該当する。
+   * この場合はリングも勝敗も中立のグレーで置く。
+   */
+  const noWinRate = !hasWinRate(stats);
 
   // 裏面(貢献度)はチーム戦の記録でのみ表示できる
   const isSynergyView = hasTeamStats && showSynergy;
@@ -124,8 +128,8 @@ export default function RecordStatPanel({
   // パネルの glow は表示中の指標に連動させる。
   //   表面(勝率)   : 負け越し(50%未満)なら負け色、それ以外は勝ち色
   //   裏面(貢献度) : φが正なら勝ち色、負なら負け色、連動なし/算出不可はグレー
-  //   対戦0件      : 勝ち負けがまだ無いのでグレー
-  const glowClass = isEmpty
+  //   勝率なし     : 勝ち負けがまだ決まっていないのでグレー
+  const glowClass = noWinRate
     ? "record-stat-glow-neutral"
     : isSynergyView
       ? synergyGlowClass(stats.team.phi)
@@ -161,7 +165,7 @@ export default function RecordStatPanel({
             <WinRateRing
               winRate={stats.winRate}
               teamWinRate={hasTeamStats ? stats.team.winRate : undefined}
-              empty={isEmpty}
+              empty={noWinRate}
             />
 
             {/* 勝敗の内訳。リングとは区切り線で分ける */}
@@ -193,7 +197,7 @@ export default function RecordStatPanel({
                   <div className="flex flex-1 flex-col items-center justify-center leading-none">
                     <span
                       className={`text-lg font-bold tabular-nums ${
-                        isEmpty ? "text-default-300" : "text-success"
+                        noWinRate ? "text-default-300" : "text-success"
                       }`}
                     >
                       {stats.wins}
@@ -206,7 +210,7 @@ export default function RecordStatPanel({
                   <div className="flex flex-1 flex-col items-center justify-center leading-none">
                     <span
                       className={`text-lg font-bold tabular-nums ${
-                        isEmpty ? "text-default-300" : "text-danger"
+                        noWinRate ? "text-default-300" : "text-danger"
                       }`}
                     >
                       {stats.losses}

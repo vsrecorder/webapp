@@ -27,16 +27,25 @@ const record = {
   tags: [],
 } as unknown as RecordGetByIdResponseType;
 
+// イベント(自由形式)と使用デッキの取得をまとめてモックする
 function stubEventFetch() {
   vi.stubGlobal(
     "fetch",
-    vi.fn(async () =>
-      Response.json({
+    vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/api/decks/")) {
+        return Response.json({
+          id: "deck-1",
+          name: "リザードンex",
+          pokemon_sprites: [{ id: "0006", position: 1 }],
+        });
+      }
+      return Response.json({
         id: "unofficial-1",
         title: "ジムバトル",
         date: "2026-09-01T00:00:00Z",
-      }),
-    ),
+      });
+    }),
   );
 }
 
@@ -61,7 +70,7 @@ describe("RecordHero", () => {
     await waitFor(() => expect(hero.getByText("ジムバトル")).toBeTruthy());
 
     // パネルを消すとイベント情報だけが全幅に伸び、対戦を1件足した瞬間にカードが組み替わる
-    expect(hero.getByLabelText("対戦結果がないため勝率なし")).toBeTruthy();
+    expect(hero.getByLabelText("勝率なし")).toBeTruthy();
   });
 
   it("対戦一覧の取得中は戦績パネルの骨格のままにする", async () => {
@@ -80,6 +89,38 @@ describe("RecordHero", () => {
     await waitFor(() => expect(hero.getByText("ジムバトル")).toBeTruthy());
 
     // 取得中の total 0 は「対戦0件」と見分けが付かないので、確定するまで「-」は出さない
-    expect(hero.queryByLabelText("対戦結果がないため勝率なし")).toBeNull();
+    expect(hero.queryByLabelText("勝率なし")).toBeNull();
+  });
+
+  it("使用デッキが未登録でも区画を残す", async () => {
+    stubEventFetch();
+
+    const { container } = render(
+      <RecordHero record={record} setRecord={() => {}} stats={summarizeMatches([])} />,
+    );
+    const hero = within(container);
+
+    await waitFor(() => expect(hero.getByText("ジムバトル")).toBeTruthy());
+
+    // 区画ごと消すと、ローディングの骨格(使用デッキを必ず出す)から実体へ変わる瞬間に
+    // カードが 108.5px 縮む
+    expect(hero.getByText("使用デッキ")).toBeTruthy();
+    expect(hero.getByText("未登録")).toBeTruthy();
+  });
+
+  it("使用デッキが登録済みならデッキ名を出す", async () => {
+    stubEventFetch();
+
+    const { container } = render(
+      <RecordHero
+        record={{ ...record, deck_id: "deck-1" }}
+        setRecord={() => {}}
+        stats={summarizeMatches([])}
+      />,
+    );
+    const hero = within(container);
+
+    await waitFor(() => expect(hero.getByText("リザードンex")).toBeTruthy());
+    expect(hero.queryByText("未登録")).toBeNull();
   });
 });

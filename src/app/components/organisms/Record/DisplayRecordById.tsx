@@ -106,23 +106,28 @@ export default function DisplayRecordById({ recordData }: Props) {
 
         {/* デッキリスト：この記録について「見るもの」。下の設定カードとは役割が違うので分ける。
           ヒーロー内の「使用デッキ」がデッキ名とスプライトを示すのに対し、
-          こちらは中身(デッキコード・カード一覧)を見るための区画なので名前で区別する。 */}
-        <Card shadow="sm" className="w-full overflow-hidden">
-          <CardBody className="p-0">
-            <BoardPanel icon={<LuLayers />} label="デッキリスト">
-              <div ref={deckCardRef}>
-                <UsedDeckById
-                  record={record}
-                  setRecord={setRecord}
-                  enableShowDeckModal={false}
-                  enableUpdateUsedDeckModal={true}
-                  compact={true}
-                  enableCardList={true}
-                />
-              </div>
-            </BoardPanel>
-          </CardBody>
-        </Card>
+          こちらは中身(デッキコード・カード一覧)を見るための区画なので名前で区別する。
+
+          使用デッキが未登録のときは区画ごと出さない。見る中身がまだ無く、登録の誘いが
+          ヒーローの「使用デッキ(未登録)」と二重になるため。登録するとこの区画が現れる。 */}
+        {record?.deck_id && (
+          <Card shadow="sm" className="w-full overflow-hidden">
+            <CardBody className="p-0">
+              <BoardPanel icon={<LuLayers />} label="デッキリスト">
+                <div ref={deckCardRef}>
+                  <UsedDeckById
+                    record={record}
+                    setRecord={setRecord}
+                    enableShowDeckModal={false}
+                    enableUpdateUsedDeckModal={true}
+                    compact={true}
+                    enableCardList={true}
+                  />
+                </div>
+              </BoardPanel>
+            </CardBody>
+          </Card>
+        )}
 
         {/* この記録の設定：「変えるもの」をまとめる。
           各パネルは見出しの右に現在値を出し、説明文は「?」の吹き出しへ畳んである

@@ -11,6 +11,25 @@ type Props = {
   flat?: boolean;
 };
 
+/*
+ * 骨格パネルの高さ(px)。実体が0件のとき(Matches の空状態)にも同じ高さを下限として当て、
+ * 「取得中の骨格 → 対戦0件」の差し替えでカードが跳ねないようにする。
+ *
+ * 内訳(いずれも下の Rows / content と同じ値):
+ *   CardBody の py-0.5 ........ 4px
+ *   対戦行 ................... (行の高さ ＋ 行間 my-0.5 の 4px) × 3行
+ *                              行の高さは編集可(並び替えガターあり)62px / 不可 48px
+ *   「対戦結果を追加する」..... gap-1.5 の 6px ＋ (pt-1 ＋ h-10 ＋ pb-1) の 48px
+ *
+ * 行の高さは Tailwind のクラス(h-[62px] / h-12)にも直接書いてある。動的なクラス名は
+ * 生成されないため一本化できないので、変えるときは両方を直すこと。
+ * 値はヒーロー内に置く flat 表示のもの(現在の呼び出しはすべて flat)。
+ */
+export function matchPanelHeight(rowsEditable: boolean, withAddButton: boolean): number {
+  const rowHeight = rowsEditable ? 62 : 48;
+  return 4 + (rowHeight + 4) * 3 + (withAddButton ? 6 + 48 : 0);
+}
+
 // 対戦行の骨格。実態(Matches)の1行に合わせて
 // 「並び替えガター(編集時)＋W/Lバッジ＋相手スプライト2枚＋相手デッキ名/チップ2行」を並べる。
 function Rows({

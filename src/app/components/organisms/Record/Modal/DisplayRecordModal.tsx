@@ -452,25 +452,31 @@ export default function DisplayRecordModal({
                     デッキリストはヒーロー内の「使用デッキ」(デッキ名とスプライト)に対して、
                     中身(デッキコード・カード一覧)を見るための区画なので名前で区別する。
                     モーダルは画面の高さが端末に固定されているため、設定はコントロールを
-                    開いたままにせず、現在値だけの行にして変更はシートで行う。 */}
+                    開いたままにせず、現在値だけの行にして変更はシートで行う。
+
+                    使用デッキが未登録のときは区画ごと出さない(記録詳細ページと同じ)。
+                    見る中身がまだ無く、ヒーローの「使用デッキ(未登録)」と二重になるため。
+                    登録は3点メニューの「詳細・編集ページを開く」から行う。 */}
                 <div className="flex flex-col gap-4 px-1">
-                  <Card shadow="sm" className="w-full overflow-hidden">
-                    <CardBody className="p-0">
-                      <BoardPanel icon={<LuLayers />} label="デッキリスト">
-                        <div ref={deckCardRef}>
-                          <UsedDeckById
-                            record={record}
-                            setRecord={setRecord}
-                            enableShowDeckModal={false}
-                            enableUpdateUsedDeckModal={false}
-                            compact={true}
-                            enableCardList={true}
-                            holdSkeleton={!entered}
-                          />
-                        </div>
-                      </BoardPanel>
-                    </CardBody>
-                  </Card>
+                  {record.deck_id && (
+                    <Card shadow="sm" className="w-full overflow-hidden">
+                      <CardBody className="p-0">
+                        <BoardPanel icon={<LuLayers />} label="デッキリスト">
+                          <div ref={deckCardRef}>
+                            <UsedDeckById
+                              record={record}
+                              setRecord={setRecord}
+                              enableShowDeckModal={false}
+                              enableUpdateUsedDeckModal={false}
+                              compact={true}
+                              enableCardList={true}
+                              holdSkeleton={!entered}
+                            />
+                          </div>
+                        </BoardPanel>
+                      </CardBody>
+                    </Card>
+                  )}
 
                   <RecordSettingList
                     record={record}

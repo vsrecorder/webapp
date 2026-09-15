@@ -7,7 +7,16 @@ import { useSeededResource } from "@app/hooks/useSeededResource";
 
 import { Card, Image, Link, Chip, Skeleton, useDisclosure } from "@heroui/react";
 
-import { LuClock, LuMapPin, LuPencilLine, LuScrollText, LuSwords } from "react-icons/lu";
+import {
+  LuClock,
+  LuLayers,
+  LuMapPin,
+  LuPencilLine,
+  LuRotateCw,
+  LuScrollText,
+  LuSwords,
+  LuTriangleAlert,
+} from "react-icons/lu";
 
 import FetchError from "@app/components/molecules/FetchError";
 import RecordStatPanel from "@app/components/organisms/Record/Hero/RecordStatPanel";
@@ -526,7 +535,12 @@ export default function RecordHero({
 
   // 使用デッキ(登録済みの記録のみ。ヒーロー下段に名前とスプライトを表示)。
   // デッキ変更時に古いデッキが一瞬残らないよう、取得完了までデッキ行をローディング表示にする
-  const { data: fetchedDeck, loading: loadingDeck } = useSeededResource(record.deck_id, fetchDeck);
+  const {
+    data: fetchedDeck,
+    loading: loadingDeck,
+    error: deckError,
+    retry: retryDeck,
+  } = useSeededResource(record.deck_id, fetchDeck);
   const deck = record.deck_id ? fetchedDeck : null;
 
   const {
@@ -545,11 +559,25 @@ export default function RecordHero({
   // 使用デッキは未登録なら取得不要。登録済みは現在の deck_id と一致するまで待つ。
   useEffect(() => {
     if (!onReadyChange) return;
-    // 使用デッキを描画しない場合はデッキの取得完了を待つ必要はない
+    // 使用デッキを描画しない場合はデッキの取得完了を待つ必要はない。
+    // 失敗も「決着した」として扱う。待ち続けても取得は再開しないので、待たせると
+    // シェア画像が生成されないまま止まる(デッキ行は失敗表示のまま写る)。
     const deckReady =
-      hideDeck || !record.deck_id || (!loadingDeck && deck?.id === record.deck_id);
+      hideDeck ||
+      !record.deck_id ||
+      deckError ||
+      (!loadingDeck && deck?.id === record.deck_id);
     onReadyChange(!loadingEvent && !error && deckReady);
-  }, [onReadyChange, loadingEvent, error, loadingDeck, deck, record.deck_id, hideDeck]);
+  }, [
+    onReadyChange,
+    loadingEvent,
+    error,
+    loadingDeck,
+    deckError,
+    deck,
+    record.deck_id,
+    hideDeck,
+  ]);
 
   if (error) {
     return <FetchError onRetry={loadEvent} />;
@@ -605,11 +633,63 @@ export default function RecordHero({
     </>
   ) : null;
 
+  /*
+   * 使用デッキが未登録のときの行。見出しとパネルの枠だけを登録済みと同じ寸法で置く。
+   * 区画ごと消すと、ローディングの骨格(使用デッキを必ず出す)より実体が 108.5px 低くなり、
+   * 実データへの差し替えでカードが縮む。中身はスプライトの代わりに枠、名前の代わりに
+   * 「未登録」にする。高さを決めるのは登録済みと同じ 44px のスプライト枠。
+   */
+  const deckEmptyRowInner = (
+    <>
+      <span className="text-[0.5625rem] font-bold tracking-wide text-default-400">
+        使用デッキ
+      </span>
+      <div className={deckPanelClass}>
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-dashed border-default-300">
+          <LuLayers className="h-5 w-5 text-default-300" />
+        </div>
+        <span className="min-w-0 flex-1 text-sm font-bold text-default-400">未登録</span>
+        {enableEditUsedDeck && (
+          <LuPencilLine className="h-3.5 w-3.5 shrink-0 text-default-400" />
+        )}
+      </div>
+    </>
+  );
+
+  /*
+   * 使用デッキの取得に失敗したときの行。未登録の行と同じ枠で文言だけを変え、
+   * タップでその場で取り直せるようにする(右端の矢印がその手がかり)。
+   */
+  const deckErrorRowInner = (
+    <>
+      <span className="text-[0.5625rem] font-bold tracking-wide text-default-400">
+        使用デッキ
+      </span>
+      <div className={deckPanelClass}>
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-dashed border-default-300">
+          <LuTriangleAlert className="h-5 w-5 text-default-300" />
+        </div>
+        <span className="min-w-0 flex-1 text-sm font-bold text-default-400">
+          読み込めませんでした
+        </span>
+        <LuRotateCw className="h-3.5 w-3.5 shrink-0 text-default-400" />
+      </div>
+    </>
+  );
+
   const deckRowClass = "flex w-full flex-col gap-1.5";
 
-  // 取得中、または保持しているデッキが record の現在の deck_id と一致しない
-  // (＝変更直後でまだ新しいデッキを取得できていない)場合はローディング表示にする。
-  const isDeckLoading = !!record.deck_id && (loadingDeck || deck?.id !== record.deck_id);
+  /*
+   * 取得中、または保持しているデッキが record の現在の deck_id と一致しない
+   * (＝変更直後でまだ新しいデッキを取得できていない)場合はローディング表示にする。
+   *
+   * 失敗したときは除く。deck が null のままなので「一致しない」が永久に成り立ち、
+   * ローディングの行が消えずに残り続ける(取得は止まっているので待っても変わらない)。
+   * 代わりに下の失敗行を出して、その場で取り直せるようにする。
+   */
+  const isDeckFailed = !!record.deck_id && !loadingDeck && deckError;
+  const isDeckLoading =
+    !!record.deck_id && !deckError && (loadingDeck || deck?.id !== record.deck_id);
 
   // 使用デッキ取得中のローディング行(実表示と同じ骨格でガタつきを抑える)
   const deckLoadingRow = (
@@ -632,34 +712,41 @@ export default function RecordHero({
   // 「使用デッキを表示する」OFF時は区画ごと描画しない。かつては同じ場所に
   // 「非公開」の行を出していたが、シェア画像では伏せたこと自体を写したくないため、
   // 見出しごと消して他の区画が詰まるようにする。
-  const deckNode =
-    !record.deck_id || hideDeck ? null : (
-      <>
-        {enableEditUsedDeck && (
-          <UpdateUsedDeckModal
-            record={record}
-            setRecord={setRecord}
-            isOpen={isOpenForUsedDeckModal}
-            onOpenChange={onOpenChangeForUsedDeckModal}
-          />
-        )}
-        {isDeckLoading ? (
-          deckLoadingRow
-        ) : deck ? (
-          enableEditUsedDeck ? (
-            <button
-              type="button"
-              onClick={onOpenForUsedDeckModal}
-              className={`${deckRowClass} text-left transition-opacity hover:opacity-80`}
-            >
-              {deckRowInner}
-            </button>
-          ) : (
-            <div className={deckRowClass}>{deckRowInner}</div>
-          )
-        ) : null}
-      </>
-    );
+  // シェア画像は未登録の記録でも hideDeck を立てて渡してくるので、画像に「未登録」は写らない。
+  const deckNode = hideDeck ? null : (
+    <>
+      {enableEditUsedDeck && (
+        <UpdateUsedDeckModal
+          record={record}
+          setRecord={setRecord}
+          isOpen={isOpenForUsedDeckModal}
+          onOpenChange={onOpenChangeForUsedDeckModal}
+        />
+      )}
+      {isDeckLoading ? (
+        deckLoadingRow
+      ) : isDeckFailed ? (
+        <button
+          type="button"
+          onClick={retryDeck}
+          className={`${deckRowClass} text-left transition-opacity hover:opacity-80`}
+        >
+          {deckErrorRowInner}
+        </button>
+      ) : enableEditUsedDeck ? (
+        // 未登録の行もタップで登録モーダルを開ける(右端の鉛筆がその手がかり)
+        <button
+          type="button"
+          onClick={onOpenForUsedDeckModal}
+          className={`${deckRowClass} text-left transition-opacity hover:opacity-80`}
+        >
+          {deck ? deckRowInner : deckEmptyRowInner}
+        </button>
+      ) : (
+        <div className={deckRowClass}>{deck ? deckRowInner : deckEmptyRowInner}</div>
+      )}
+    </>
+  );
 
   // 記録側のレギュレーション。大半の記録がスタンダードで、毎回出しても情報にならないため、
   // それ以外(エクストラ・殿堂・その他)のときだけ行にする。

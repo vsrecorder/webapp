@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 
 import { DeckCodePostType } from "@app/types/deck_code_post";
 import { renderDeckCodePostOgImage } from "@app/utils/ogImage";
-import { ensureOgImage } from "@app/utils/ogStorage";
+import { ensureOgImage, ogImageUrlFor } from "@app/utils/ogStorage";
 
 // みんなの公開デッキの OGP 画像。個別ページの generateMetadata と、公開直後(POST の応答後)の
 // 先回り生成の両方から同じキーで呼び、最初に個別ページを開いた人(多くは X のカード取得)が
@@ -36,7 +36,15 @@ export function deckCodePostOgImageKey(post: DeckCodePostType): string {
   return `deck_code_posts/${post.id}-${ogImageFingerprint(post)}`;
 }
 
-// 画像が無ければ生成してアップロードし、CDN の URL を返す(失敗は null)。
-export function ensureDeckCodePostOgImage(post: DeckCodePostType): Promise<string | null> {
+// 個別ページの generateMetadata 用。CDN の URL を返し、画像がまだ無ければ裏で用意させる
+// (配信元が未設定なら null)。描画を止めないので、待つのは下の先回り生成のほうに任せる。
+export function deckCodePostOgImageUrl(post: DeckCodePostType): string | null {
+  return ogImageUrlFor(deckCodePostOgImageKey(post), () =>
+    renderDeckCodePostOgImage(post),
+  );
+}
+
+// 公開直後(POST の応答後)の先回り生成用。応答を返したあとに走るので、ここでは待ってよい。
+export function ensureDeckCodePostOgImage(post: DeckCodePostType): Promise<void> {
   return ensureOgImage(deckCodePostOgImageKey(post), () => renderDeckCodePostOgImage(post));
 }

@@ -10,7 +10,7 @@ import { isDevEnv } from "@app/utils/appIcon";
 import { platformDetectScript } from "@app/utils/platformDetectScript";
 import { getStatusBarColor } from "@app/utils/pwaColors";
 import { OG_SIZE, renderSiteOgImage } from "@app/utils/ogImage";
-import { ensureOgImage } from "@app/utils/ogStorage";
+import { ogImageUrlFor } from "@app/utils/ogStorage";
 import { CDN_ORIGIN } from "@app/utils/cdn";
 import { SITE_DESCRIPTION, SITE_TITLE } from "@app/utils/siteMeta";
 
@@ -27,7 +27,7 @@ const description = SITE_DESCRIPTION;
 
 export async function generateMetadata(): Promise<Metadata> {
   // 固有のOGP画像を持たないページは、この画像を引き継ぐ。
-  const ogImageUrl = await ensureOgImage("site", renderSiteOgImage);
+  const ogImageUrl = ogImageUrlFor("site", renderSiteOgImage);
 
   return {
     metadataBase: new URL(`https://` + domain),

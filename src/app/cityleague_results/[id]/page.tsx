@@ -18,7 +18,7 @@ import { OG_SIZE, renderCityleagueEventOgImage } from "@app/utils/ogImage";
 import { serializeJsonLd } from "@app/utils/breadcrumb";
 import { formatMainPokemon } from "@app/utils/deckSummary";
 import { getDeckSummaries, getDeckSummary } from "@app/utils/deckSummaryServer";
-import { ensureOgImage } from "@app/utils/ogStorage";
+import { ogImageUrlFor } from "@app/utils/ogStorage";
 
 type Props = {
   params: Promise<{
@@ -83,7 +83,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   );
   const path = `/cityleague_results/${event.id}`;
 
-  const ogImageUrl = await ensureOgImage(`cityleague_results/${event.id}`, () =>
+  const ogImageUrl = ogImageUrlFor(`cityleague_results/${event.id}`, () =>
     renderCityleagueEventOgImage(event),
   );
 

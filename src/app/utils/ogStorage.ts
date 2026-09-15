@@ -27,6 +27,9 @@ const ensuredKeys = new Set<string>();
 const failedKeys = new Map<string, number>();
 const FAILED_KEY_RETRY_MS = 10 * 60 * 1000;
 
+// 裏で用意している最中のキー。同じ画像に同時にアクセスが来ても、確認と生成を重ねて走らせない。
+const inFlightKeys = new Set<string>();
+
 function buildS3Client(): S3Client {
   return new S3Client({
     region,
@@ -83,34 +86,81 @@ async function exists(s3Client: S3Client, key: string): Promise<boolean> {
 }
 
 /**
- * OGP画像がオブジェクトストレージに無ければ生成してアップロードし、CDN上のURLを返す。
+ * OGP画像のCDN上のURLを返す。まだ置かれていなければ、裏で生成してアップロードする。
  *
- * 生成は satori 経由で数百ms かかるため、既にアップロード済みなら描画自体を行わない。
- * アップロードに失敗した場合は URL を返さない（null）。og:image が欠けるだけで、
- * ページの描画は妨げない。
+ * 存在確認(HeadObject)も生成も待たない。待つと、そのページの初回描画が往復ぶん遅くなる。
+ * ensuredKeys はプロセスが生きている間しか残らないので、デプロイのたびに空になり、
+ * シティリーグ個別ページ(7,802件)はそれぞれの初回アクセスで1往復していた
+ * (本番実測: キャッシュが温まった状態の TTFB 0.11〜0.15秒に対し、初回 0.25〜1.02秒)。
+ *
+ * og:image は SNS にシェアされたときだけ要るもので、検索エンジンの本文評価にも
+ * ページ表示にも効かない。描画を止めてまで確かめるものではない。
+ *
+ * キーは決定的(name + OG_IMAGE_VERSION)なので、実体より先にURLを返しても後から一致する。
+ * 引き換えに、一度も描画されたことのない画像は最初のシェアに間に合わないことがある
+ * (次のシェアからは出る)。既存のページは生成済みなので、実際に当たるのは新規イベント。
+ */
+export function ogImageUrlFor(
+  name: string,
+  render: () => Promise<Buffer>,
+): string | null {
+  // 配信元が無ければURLを組み立てられない(og:image が欠けるだけでページは出る)
+  if (!cdnUrl) {
+    return null;
+  }
+
+  const key = buildOgImageKey(name);
+
+  if (!ensuredKeys.has(key)) {
+    ensureInBackground(key, render);
+  }
+
+  return `${cdnUrl}/${key}`;
+}
+
+/**
+ * 画像の実体を用意し切る。応答を返したあと(after())から呼ぶ用。
+ *
+ * 描画の経路からは呼ばないこと。生成は satori 経由で数百ms、存在確認もネットワークを
+ * 1往復するため、待つとその分だけ初回描画が遅くなる。描画側は ogImageUrlFor を使う。
  */
 export async function ensureOgImage(
   name: string,
   render: () => Promise<Buffer>,
-): Promise<string | null> {
+): Promise<void> {
   const key = buildOgImageKey(name);
-  const url = `${cdnUrl}/${key}`;
 
   if (ensuredKeys.has(key)) {
-    return url;
+    return;
+  }
+
+  await ensureStored(key, render);
+}
+
+/**
+ * 実体を確認し、無ければ生成してアップロードする。
+ *
+ * 失敗しても投げない。この処理の成否はページの描画に影響しない(og:image が
+ * 遅れて揃うだけ)うえ、裏で走らせたときに未処理の rejection にしないため。
+ */
+async function ensureStored(key: string, render: () => Promise<Buffer>): Promise<void> {
+  if (inFlightKeys.has(key)) {
+    return;
   }
 
   const retryAt = failedKeys.get(key);
   if (retryAt !== undefined && retryAt > Date.now()) {
-    return null;
+    return;
   }
+
+  inFlightKeys.add(key);
 
   try {
     const s3Client = buildS3Client();
 
     if (await exists(s3Client, key)) {
       ensuredKeys.add(key);
-      return url;
+      return;
     }
 
     const body = await render();
@@ -131,11 +181,15 @@ export async function ensureOgImage(
 
     ensuredKeys.add(key);
     failedKeys.delete(key);
-
-    return url;
   } catch (error) {
     console.error("failed to ensure ogp image", { key, error });
     failedKeys.set(key, Date.now() + FAILED_KEY_RETRY_MS);
-    return null;
+  } finally {
+    inFlightKeys.delete(key);
   }
+}
+
+// 描画を止めずに実体を用意させる。ensureStored は失敗を内側で閉じるので投げっぱなしでよい。
+function ensureInBackground(key: string, render: () => Promise<Buffer>): void {
+  void ensureStored(key, render);
 }

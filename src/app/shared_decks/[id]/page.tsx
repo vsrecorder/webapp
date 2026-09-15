@@ -11,7 +11,7 @@ import TemplateSharedDeckById from "@app/components/templates/SharedDeckById";
 import { DeckCodePostGetByIdResponseType } from "@app/types/deck_code_post";
 import { deckCodePostPath, sharedDecksPath } from "@app/utils/deckCodePost";
 import { DeckCodePostFetchResult, getDeckCodePost } from "@app/utils/deckCodePostServer";
-import { ensureDeckCodePostOgImage } from "@app/utils/deckCodePostOg";
+import { deckCodePostOgImageUrl } from "@app/utils/deckCodePostOg";
 import { OG_SIZE } from "@app/utils/ogImage";
 
 type Props = {
@@ -48,8 +48,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const description = buildDescription(post);
   const path = deckCodePostPath(post.id);
 
-  // 公開直後に先回りで生成してあれば、ここはキーの確認だけで済む
-  const ogImageUrl = await ensureDeckCodePostOgImage(post);
+  // 実体の確認も生成もここでは待たない(公開直後に先回りで生成してある)。
+  // まだ無ければ裏で用意され、次のシェアからは画像が出る。
+  const ogImageUrl = deckCodePostOgImageUrl(post);
 
   return {
     title,

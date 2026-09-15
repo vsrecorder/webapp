@@ -54,7 +54,11 @@ type GaVariant = "A" | "B" | "C";
 // 自分の登録デッキ1つ分の、環境上での立ち位置。rank/row は圏外なら null。
 type DeckPosition = {
   deck: DeckData;
+  // いま出ているランキングの集計単位で作った指紋(行との突合に使う)
   fingerprint: string;
+  // 組み合わせ単位(exact)で作った指紋。1体目でまとめた行の内訳は組み合わせ単位なので、
+  // 「内訳のどれが自分のデッキか」はこちらで突き合わせる
+  exactFingerprint: string;
   rank: number | null;
   row: WeeklyDeckUsageItemType | null;
   // お気に入りに設定されているデッキか(ユーザーごとに1つだけ)。既定選択の決定に使う。
@@ -109,21 +113,102 @@ function RankBadge({ rank }: { rank: number }) {
   );
 }
 
+/*
+ * 「1体目でまとめる」で束ねた行の内訳1件（2体目違いの派生）。
+ * 対戦環境分析(WeeklyDeckUsagePanel の BreakdownRow)と同じ見せ方に揃える。
+ * 使用率はこのカード全体と同じ基準(その他を除いた割合)で出すので、内訳の合計は行の使用率に一致する。
+ */
+function BreakdownRow({
+  item,
+  usageRate,
+  isMe,
+}: {
+  item: WeeklyDeckUsageItemType;
+  usageRate: number;
+  // 選択中の自分のデッキと同じ組み合わせか
+  isMe?: boolean;
+}) {
+  return (
+    // 320px 幅だと「スプライト2体＋あなたの印＋使用率＋勝率」で行が埋まるため、
+    // 間隔とスプライトを行(DeckRankRow)より一回り詰める
+    <div
+      className={`flex items-center gap-1.5 rounded-lg px-2 py-1.5 ${
+        isMe ? "bg-primary/10 ring-1 ring-primary/60" : "bg-default-50"
+      }`}
+    >
+      <DeckSprites sprites={item.pokemon_sprites} size={28} />
+      {/* 束ねた行のどれが自分のデッキかを示す。行(DeckRankRow)の「あなたのデッキ」より
+          小さく短くする。内訳の行は使用率・件数・勝率で幅がほぼ埋まっており、
+          同じ文言を入れると 390px 幅で 11px はみ出す(実測) */}
+      {isMe && (
+        <Chip
+          size="sm"
+          color="primary"
+          variant="flat"
+          classNames={{
+            base: "h-4 px-0 shrink-0",
+            content: "text-[0.5rem] font-bold px-1",
+          }}
+        >
+          あなた
+        </Chip>
+      )}
+      <div className="ml-auto flex flex-col items-end shrink-0 leading-none">
+        <span className="text-sm font-black tabular-nums text-default-600">
+          {(usageRate * 100).toFixed(1)}
+          <span className="text-[0.625rem] font-bold text-default-400">%</span>
+        </span>
+        {/* 件数だけを添える。このカードの使用率は常に「その他を除いた割合」で、
+            それは節の見出し(subtitle)が示しているため、行ごとに分母を書かない。
+            書くと 320px 幅で「あなた」の印ごと行からはみ出す(実測) */}
+        <span className="mt-0.5 text-[0.5625rem] tabular-nums text-default-400">
+          {item.count}件
+        </span>
+      </div>
+      <Chip
+        size="sm"
+        variant="flat"
+        color={winRateChipColor(item.win_rate)}
+        classNames={{
+          base: "h-5 px-0.5 shrink-0",
+          content: "text-[0.625rem] font-bold tabular-nums px-1.5",
+        }}
+      >
+        勝率 {(item.win_rate * 100).toFixed(1)}%
+      </Chip>
+    </div>
+  );
+}
+
 // ランキングの1行（自分のデッキなら isMe でハイライト＋デッキ名を出す）。
 // displayRate は表示する使用率。「その他を除いた割合」(count / exclOtherTotal)を渡す。
 function DeckRankRow({
   rank,
   item,
   displayRate,
+  exclOtherTotal,
   isMe,
   meName,
+  myMemberFingerprint,
 }: {
   rank: number;
   item: WeeklyDeckUsageItemType;
   displayRate: number;
+  // 内訳の使用率を行と同じ基準で出すための分母（「その他」を除いた件数）
+  exclOtherTotal: number;
   isMe?: boolean;
   meName?: string;
+  // 選択中の自分のデッキの組み合わせ単位の指紋。内訳のどれが自分かを示すのに使う
+  myMemberFingerprint?: string;
 }) {
+  /*
+   * 束ねる前の組み合わせ。「1体目でまとめる」で集計したときだけ入っている。
+   * 行は1体目しか出していないので、組み合わせが1種類の行でも2体目が分かる新しい情報になる。
+   * (このカードのランキングは「その他」を除いてあるため、内訳が入るのはこの行だけ)
+   */
+  const members = item.members ?? [];
+  const [expanded, setExpanded] = useState(false);
+
   return (
     <div
       className={`flex flex-col gap-1.5 rounded-xl px-3 py-2 ${
@@ -176,6 +261,43 @@ function DeckRankRow({
           勝率 {(item.win_rate * 100).toFixed(1)}%
         </Chip>
       </div>
+
+      {/* 束ねた組み合わせの内訳。対戦環境分析と同じく、その場で開いて確かめられるようにする */}
+      {members.length > 0 && (
+        <div className="mt-0.5 flex flex-col gap-1">
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            aria-expanded={expanded}
+            className="flex items-center justify-center gap-1 py-1 text-[0.625rem] font-bold text-default-500 hover:text-default-600"
+          >
+            <LuChevronDown
+              className={`w-3.5 h-3.5 transition-transform ${expanded ? "rotate-180" : ""}`}
+            />
+            {expanded
+              ? "内訳を閉じる"
+              : `組み合わせの内訳を見る（${members.length}種類）`}
+          </button>
+
+          {expanded && (
+            <div className="flex flex-col gap-1">
+              {members.map((member, idx) => (
+                <BreakdownRow
+                  key={`${member.fingerprint || "member"}-${idx}`}
+                  item={member}
+                  usageRate={
+                    exclOtherTotal > 0 ? member.count / exclOtherTotal : member.usage_rate
+                  }
+                  isMe={
+                    myMemberFingerprint != null &&
+                    member.fingerprint === myMemberFingerprint
+                  }
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -188,12 +310,14 @@ function RankingList({
   startRank = 1,
   selectedFingerprint,
   selectedName,
+  selectedMemberFingerprint,
 }: {
   items: WeeklyDeckUsageItemType[];
   exclOtherTotal: number;
   startRank?: number;
   selectedFingerprint?: string;
   selectedName?: string;
+  selectedMemberFingerprint?: string;
 }) {
   return (
     <div className="flex flex-col gap-1.5">
@@ -208,8 +332,10 @@ function RankingList({
             displayRate={
               exclOtherTotal > 0 ? item.count / exclOtherTotal : item.usage_rate
             }
+            exclOtherTotal={exclOtherTotal}
             isMe={isMe}
             meName={isMe ? selectedName : undefined}
+            myMemberFingerprint={selectedMemberFingerprint}
           />
         );
       })}
@@ -225,13 +351,16 @@ function UsageRankingSection({
   subtitle = "その他を除いた割合",
   selectedFingerprint,
   selectedName,
+  selectedMemberFingerprint,
 }: {
   ranking: WeeklyDeckUsageItemType[];
   exclOtherTotal: number;
   title: string;
   subtitle?: string;
+  // 選択中の自分のデッキ: 行との突合用(表示中の集計単位)と、内訳との突合用(組み合わせ単位)
   selectedFingerprint?: string;
   selectedName?: string;
+  selectedMemberFingerprint?: string;
 }) {
   const [expanded, setExpanded] = useState(false);
   const top5 = ranking.slice(0, 5);
@@ -246,6 +375,7 @@ function UsageRankingSection({
         startRank={1}
         selectedFingerprint={selectedFingerprint}
         selectedName={selectedName}
+        selectedMemberFingerprint={selectedMemberFingerprint}
       />
       {rest.length > 0 && (
         <div className="flex flex-col gap-1.5">
@@ -256,6 +386,7 @@ function UsageRankingSection({
               startRank={6}
               selectedFingerprint={selectedFingerprint}
               selectedName={selectedName}
+              selectedMemberFingerprint={selectedMemberFingerprint}
             />
           )}
           <button
@@ -538,9 +669,17 @@ function RecordCtaButton({
  */
 function GroupingTabs({
   grouping,
+  noteGrouping,
+  failed,
   onChange,
 }: {
+  // タブの選択状態(押した瞬間に変わる)
   grouping: WeeklyDeckUsageGroupingType;
+  // いま出ているランキングが実際に集計された単位。注記はこちらに合わせる
+  // (取得が終わるまでは前の結果が出ているため)
+  noteGrouping: WeeklyDeckUsageGroupingType;
+  // 切り替えの取得に失敗したか
+  failed: boolean;
   onChange: (grouping: WeeklyDeckUsageGroupingType) => void;
 }) {
   return (
@@ -556,7 +695,15 @@ function GroupingTabs({
         <Tab key="exact" title="組み合わせ別" />
         <Tab key="first_sprite" title="1体目でまとめる" />
       </Tabs>
-      <WeeklyDeckUsageGroupingNote grouping={grouping} />
+      {failed ? (
+        // 中身は前のまとめ方のままなので、食い違っている理由を注記の位置で伝える。
+        // もう一方のタブを押せばやり直せる
+        <span className="text-center text-[0.625rem] leading-snug text-danger">
+          まとめ方を切り替えられませんでした。もう一度お試しください
+        </span>
+      ) : (
+        <WeeklyDeckUsageGroupingNote grouping={noteGrouping} />
+      )}
     </div>
   );
 }
@@ -737,6 +884,7 @@ function SelectModeView({
             title="今週あなたが当たりやすい相手のデッキ"
             selectedFingerprint={selected.fingerprint}
             selectedName={selected.deck.name}
+            selectedMemberFingerprint={selected.exactFingerprint}
           />
         </>
       ) : (
@@ -747,6 +895,8 @@ function SelectModeView({
             ranking={ranking}
             exclOtherTotal={exclOtherTotal}
             title="今週の環境 使用率ランキング"
+            // 環境では圏外のデッキでも、1体目でまとめた行の内訳には現れることがある
+            selectedMemberFingerprint={selected.exactFingerprint}
           />
         </>
       )}
@@ -778,6 +928,8 @@ export default function EnvironmentWindowCard({
   // あなたのデッキ別実績(deck-usage)。取得失敗・未対応でも致命ではないので空配列で続行する。
   const [deckUsage, setDeckUsage] = useState<DeckUsageItemType[]>([]);
   const [failed, setFailed] = useState(false);
+  // まとめ方を切り替えたときの取得だけが失敗した状態。カードは前の結果のまま残す
+  const [switchFailed, setSwitchFailed] = useState(false);
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
@@ -826,6 +978,13 @@ export default function EnvironmentWindowCard({
     };
   }, [userId]);
 
+  // 取得の失敗を「最初の1回」と「切り替え」で分けるために、effect から最新の stat を見る。
+  // 依存に stat を入れると、取得するたびに effect が走り直してしまう。
+  const statRef = useRef<WeeklyDeckUsageStatType | null>(null);
+  useEffect(() => {
+    statRef.current = stat;
+  }, [stat]);
+
   // 環境ランキング（公開）。まとめ方を変えるとサーバ側の集計そのものが変わるので取り直す。
   // 届くまでは前のまとめ方の結果を出したままにする(骨格へ戻すとカードごと跳ねるため)。
   useEffect(() => {
@@ -840,10 +999,21 @@ export default function EnvironmentWindowCard({
         if (!res.ok) throw new Error("fetch failed");
 
         const statData: WeeklyDeckUsageStatType = await res.json();
-        if (!cancelled) setStat(statData);
+        if (cancelled) return;
+        setStat(statData);
+        // 一度失敗しても、取り直せたらカードと注記を元に戻す
+        setFailed(false);
+        setSwitchFailed(false);
       } catch (e) {
         console.error(e);
-        if (!cancelled) setFailed(true);
+        if (cancelled) return;
+        /*
+         * 最初の取得に失敗したときだけカードごと引っ込める(誤情報を出さないため)。
+         * 一度出したあとの切り替えで失敗したときに同じことをすると、タブごと消えて
+         * 元のまとめ方にも戻せなくなる。前の結果を残し、注記の位置で知らせる。
+         */
+        if (statRef.current == null) setFailed(true);
+        else setSwitchFailed(true);
       }
     }
 
@@ -865,17 +1035,26 @@ export default function EnvironmentWindowCard({
     return map;
   }, [deckUsage]);
 
-  // 自分の登録デッキ(スプライトあり=環境上で識別可能)ごとの立ち位置。ランク入りを上位に。
+  /*
+   * 自分の登録デッキ(スプライトあり=環境上で識別可能)ごとの立ち位置。ランク入りを上位に。
+   *
+   * 指紋は「選んでいるまとめ方」ではなく「いま出ているランキングが実際に集計された単位」
+   * (stat.grouping)で作る。タブは即座に変わるのにランキングは取得が終わるまで前のままなので、
+   * 選んだ方で突合すると、その間だけどの行にも一致せず「まだランク外」と出てしまう
+   * (実測で約500ms、1位のデッキが圏外表示になっていた)。
+   */
+  const statGrouping = stat?.grouping ?? grouping;
   const deckPositions = useMemo<DeckPosition[]>(() => {
     if (!userDecks) return [];
     const list: DeckPosition[] = [];
     for (const deck of userDecks) {
-      const fp = deckFingerprintKey(deck.pokemon_sprites, grouping);
+      const fp = deckFingerprintKey(deck.pokemon_sprites, statGrouping);
       if (fp === "") continue; // スプライト未設定は環境上で識別できないため選択肢に出さない
       const idx = rankable.findIndex((d) => d.fingerprint === fp);
       list.push({
         deck,
         fingerprint: fp,
+        exactFingerprint: deckFingerprintKey(deck.pokemon_sprites, "exact"),
         rank: idx >= 0 ? idx + 1 : null,
         row: idx >= 0 ? rankable[idx] : null,
         favorited: isFavoritedDeck(deck),
@@ -891,7 +1070,7 @@ export default function EnvironmentWindowCard({
       if (b.rank == null) return -1;
       return a.rank - b.rank;
     });
-  }, [userDecks, rankable, grouping]);
+  }, [userDecks, rankable, statGrouping]);
 
   const hasRanked = deckPositions.some((p) => p.rank != null);
 
@@ -973,7 +1152,12 @@ export default function EnvironmentWindowCard({
       <Card className="shadow-md">
         <CardBody className="gap-3 p-4">
           <BetaHeader stat={stat} />
-          <GroupingTabs grouping={grouping} onChange={setGrouping} />
+          <GroupingTabs
+            grouping={grouping}
+            noteGrouping={statGrouping}
+            failed={switchFailed}
+            onChange={setGrouping}
+          />
 
           {renderMode === "C" ? (
             <>

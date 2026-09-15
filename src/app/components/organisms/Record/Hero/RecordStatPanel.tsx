@@ -103,6 +103,10 @@ function synergyGlowClass(phi: number | null): string {
  *
  * 勝率グロー(勝ち越し=緑 / 負け越し=赤)はパネル右上から放射させる。対戦結果パネルと
  * 同じ枠線・角丸で系統を揃え、グローは角丸からはみ出さないよう overflow-hidden で切る。
+ *
+ * 対戦結果がまだ1件も無い記録でもパネルは出す。出さないと上段が1カラムになって
+ * イベント情報パネルだけが全幅に伸び、対戦を1件追加した瞬間にカードが組み替わるため。
+ * その場合は勝率が存在しないので、リング・勝敗・グローをすべて中立のグレーにする。
  */
 export default function RecordStatPanel({
   stats,
@@ -111,17 +115,23 @@ export default function RecordStatPanel({
 }: Props) {
   const hasTeamStats = stats.team.total > 0;
 
+  // 対戦結果がまだ1件も無い記録。勝率が存在しないので、リングも勝敗も中立のグレーで置く
+  const isEmpty = stats.total === 0;
+
   // 裏面(貢献度)はチーム戦の記録でのみ表示できる
   const isSynergyView = hasTeamStats && showSynergy;
 
   // パネルの glow は表示中の指標に連動させる。
   //   表面(勝率)   : 負け越し(50%未満)なら負け色、それ以外は勝ち色
   //   裏面(貢献度) : φが正なら勝ち色、負なら負け色、連動なし/算出不可はグレー
-  const glowClass = isSynergyView
-    ? synergyGlowClass(stats.team.phi)
-    : stats.winRate < 50
-      ? "record-stat-glow-loss"
-      : "record-stat-glow";
+  //   対戦0件      : 勝ち負けがまだ無いのでグレー
+  const glowClass = isEmpty
+    ? "record-stat-glow-neutral"
+    : isSynergyView
+      ? synergyGlowClass(stats.team.phi)
+      : stats.winRate < 50
+        ? "record-stat-glow-loss"
+        : "record-stat-glow";
 
   const panelClass = HERO_STAT_PANEL_CLASS;
 
@@ -151,6 +161,7 @@ export default function RecordStatPanel({
             <WinRateRing
               winRate={stats.winRate}
               teamWinRate={hasTeamStats ? stats.team.winRate : undefined}
+              empty={isEmpty}
             />
 
             {/* 勝敗の内訳。リングとは区切り線で分ける */}
@@ -180,7 +191,11 @@ export default function RecordStatPanel({
               <div className="mt-2.5 w-full border-t border-divider pt-2.5">
                 <div className={`flex ${BREAKDOWN_HEIGHT_CLASS} items-stretch`}>
                   <div className="flex flex-1 flex-col items-center justify-center leading-none">
-                    <span className="text-lg font-bold tabular-nums text-success">
+                    <span
+                      className={`text-lg font-bold tabular-nums ${
+                        isEmpty ? "text-default-300" : "text-success"
+                      }`}
+                    >
                       {stats.wins}
                     </span>
                     <span className="mt-1 text-[0.5625rem] font-bold text-default-500">
@@ -189,7 +204,11 @@ export default function RecordStatPanel({
                   </div>
                   <span aria-hidden className="w-px self-stretch bg-divider" />
                   <div className="flex flex-1 flex-col items-center justify-center leading-none">
-                    <span className="text-lg font-bold tabular-nums text-danger">
+                    <span
+                      className={`text-lg font-bold tabular-nums ${
+                        isEmpty ? "text-default-300" : "text-danger"
+                      }`}
+                    >
                       {stats.losses}
                     </span>
                     <span className="mt-1 text-[0.5625rem] font-bold text-default-500">

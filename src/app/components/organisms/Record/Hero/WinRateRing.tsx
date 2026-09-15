@@ -26,14 +26,25 @@ export function winRateColors(winRate: number) {
   };
 }
 
+/*
+ * 対戦結果が1件も無いときのリング色。勝率が算出できない状態なので勝ち/負けの色は使わず、
+ * 中立のグレーのトラックだけを描く(ゲージは描かない)。
+ * stroke を CSS 変数で直接指定するのは winRateColors と同じ理由(シェア画像の書き出し)。
+ */
+const EMPTY_RING_COLORS = {
+  track: "hsl(var(--heroui-default-300) / 0.6)",
+};
+
 type RingProps = {
   radius: number;
   strokeWidth: number;
   winRate: number;
+  // 対戦結果が無く勝率を算出できない状態か
+  empty?: boolean;
 };
 
 // 勝率ぶんの円弧＋残りのトラックを1本ぶん描く
-function Ring({ radius, strokeWidth, winRate }: RingProps) {
+function Ring({ radius, strokeWidth, winRate, empty = false }: RingProps) {
   const circumference = 2 * Math.PI * radius;
   // 勝率ぶんだけ円弧を見せる(dashoffset は残りの長さ)
   const dashOffset = circumference * (1 - Math.min(Math.max(winRate, 0), 100) / 100);
@@ -41,27 +52,29 @@ function Ring({ radius, strokeWidth, winRate }: RingProps) {
 
   return (
     <>
-      {/* トラック(残りぶん) */}
+      {/* トラック(残りぶん)。対戦結果が無いときはこれだけを描く */}
       <circle
         cx={VIEWBOX / 2}
         cy={VIEWBOX / 2}
         r={radius}
         fill="none"
-        stroke={track}
+        stroke={empty ? EMPTY_RING_COLORS.track : track}
         strokeWidth={strokeWidth}
       />
       {/* 勝率ぶんの円弧 */}
-      <circle
-        cx={VIEWBOX / 2}
-        cy={VIEWBOX / 2}
-        r={radius}
-        fill="none"
-        stroke={gauge}
-        strokeWidth={strokeWidth}
-        strokeLinecap="round"
-        strokeDasharray={circumference}
-        strokeDashoffset={dashOffset}
-      />
+      {!empty && (
+        <circle
+          cx={VIEWBOX / 2}
+          cy={VIEWBOX / 2}
+          r={radius}
+          fill="none"
+          stroke={gauge}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={dashOffset}
+        />
+      )}
     </>
   );
 }
@@ -71,11 +84,17 @@ type Props = {
   winRate: number;
   // チームの勝率(0〜100)。チーム戦の記録で指定すると外周にもう1本リングを描く
   teamWinRate?: number;
+  // 対戦結果がまだ1件も無いか。勝率が存在しないので、グレーのトラックだけのリングにし、
+  // 中央の数字も「-」にする(0% と書くと全敗と読めてしまう)
+  empty?: boolean;
 };
 
 /*
  * 勝率を表す円形リング。SVGの円弧で勝率ぶんを success 色で描き、
  * 残りを danger の薄いトラックで示す。中央に勝率%を表示する。
+ *
+ * 対戦結果が1件も無い記録(empty)では勝率が存在しないため、円弧を描かず
+ * グレーのトラックだけにして中央を「-」にする。勝率0%として描くと全敗と読めてしまう。
  *
  * チーム戦(teamWinRate 指定時)は外周にチーム勝率、内周に個人勝率の2重リングにする。
  * 色は勝率ごとに独立して決まるため、「外が赤・内が緑 = チームは負け越したが自分は勝ち越した」
@@ -86,7 +105,7 @@ type Props = {
  * 実寸の決定は親(RecordStatPanel)に委ねる。
  * 中央のテキストもリング径に対する比率で決めたいので、コンテナクエリ単位(cqw)を使う。
  */
-export default function WinRateRing({ winRate, teamWinRate }: Props) {
+export default function WinRateRing({ winRate, teamWinRate, empty = false }: Props) {
   const isDual = teamWinRate !== undefined;
   const strokeWidth = isDual ? DUAL_STROKE : SINGLE_STROKE;
 
@@ -101,9 +120,11 @@ export default function WinRateRing({ winRate, teamWinRate }: Props) {
       className="relative aspect-square w-full shrink-0"
       role="img"
       aria-label={
-        isDual
-          ? `チーム勝率 ${teamWinRate}パーセント、個人勝率 ${winRate}パーセント`
-          : `勝率 ${winRate}パーセント`
+        empty
+          ? "対戦結果がないため勝率なし"
+          : isDual
+            ? `チーム勝率 ${teamWinRate}パーセント、個人勝率 ${winRate}パーセント`
+            : `勝率 ${winRate}パーセント`
       }
     >
       <svg viewBox={`0 0 ${VIEWBOX} ${VIEWBOX}`} className="h-full w-full -rotate-90">
@@ -115,17 +136,22 @@ export default function WinRateRing({ winRate, teamWinRate }: Props) {
             <Ring radius={innerRadius} strokeWidth={strokeWidth} winRate={winRate} />
           </>
         ) : (
-          <Ring radius={outerRadius} strokeWidth={strokeWidth} winRate={winRate} />
+          <Ring
+            radius={outerRadius}
+            strokeWidth={strokeWidth}
+            winRate={winRate}
+            empty={empty}
+          />
         )}
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center leading-none">
         {/* 従来の size * 0.27 / 8px 相当を、リング径に対する比率で表現する。
             2重リングは内周の中に収める必要があるため、数字を一回り小さくする */}
         <span
-          className="font-bold tabular-nums"
+          className={`font-bold tabular-nums ${empty ? "text-default-400" : ""}`}
           style={{ fontSize: isDual ? "22cqw" : "27cqw" }}
         >
-          {winRate}%
+          {empty ? "-" : `${winRate}%`}
         </span>
         <span
           className="mt-0.5 font-bold tracking-wide text-default-400"

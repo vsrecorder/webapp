@@ -161,7 +161,8 @@ type ShellProps = {
   action?: React.ReactNode;
   stats: MatchStats;
   // 対戦一覧をまだ取得中か。stats は対戦一覧から集計するため、取得中は total が 0 で
-  // 「対戦0件の記録」と見分けが付かない。取得中は戦績パネルの骨格を置いて枠を確保する。
+  // 「対戦0件の記録」と見分けが付かない。取得中は戦績パネルの骨格を置き、
+  // 0件と確定してから中身がグレーの実体パネルへ差し替える。
   loadingStats?: boolean;
   // 戦績パネルの裏面(貢献度)を表示するか / その切り替え
   showSynergy?: boolean;
@@ -199,8 +200,6 @@ function HeroShell({
   accentColorClass,
   infoBg,
 }: ShellProps) {
-  const hasStats = stats.total > 0;
-
   // 補足行は上限まで。行の取捨は組み立て側の優先順に委ね、ここでは切るだけにする。
   const metaRows = (meta ?? []).slice(0, HERO_META_MAX);
 
@@ -371,16 +370,17 @@ function HeroShell({
             {/* 右：戦績パネル。対戦一覧の取得中は骨格を置いて枠を先に確保する
               (取得できてから描くと、その間だけイベント欄が全幅になり、
               届いた瞬間にパネルが割り込んでカードが組み替わる)。
-              取得が終わって対戦0件と確定した記録では、従来どおりパネルを出さない。 */}
-            {hasStats ? (
+              対戦0件と確定した記録でもパネルは出す。消すとその記録だけ上段が1カラムになり、
+              対戦を1件追加した瞬間に同じ組み替えが起きる(中身はグレーの「-」になる)。 */}
+            {loadingStats ? (
+              <RecordStatPanelSkeleton />
+            ) : (
               <RecordStatPanel
                 stats={stats}
                 showSynergy={showSynergy}
                 onToggleSynergy={onToggleSynergy}
               />
-            ) : loadingStats ? (
-              <RecordStatPanelSkeleton />
-            ) : null}
+            )}
           </div>
 
           {/* 使用デッキ(登録済みの場合のみ)。かつては左カラムの最下部に置いていたが、

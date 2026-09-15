@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import { useEffect } from "react";
+
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -9,10 +11,21 @@ vi.mock("@app/components/molecules/PWA/AcquisitionSurveyPrompt", () => ({
   default: () => <div data-testid="survey" />,
 }));
 vi.mock("@app/components/molecules/PWA/AddToHomeScreenBanner", () => ({
-  default: () => <div data-testid="install" />,
+  // 実体と同じく、出ていることを親へ知らせる(フック名の規約に合わせて関数名を付ける)
+  default: function MockAddToHomeScreenBanner({
+    onOpenChange,
+  }: {
+    onOpenChange?: (open: boolean) => void;
+  }) {
+    useEffect(() => onOpenChange?.(true), [onOpenChange]);
+    return <div data-testid="install" />;
+  },
 }));
 vi.mock("@app/components/molecules/PWA/PushPermissionPrompt", () => ({
   default: () => <div data-testid="push" />,
+}));
+vi.mock("@app/components/organisms/Layout/RecordingNowBar", () => ({
+  default: () => <div data-testid="recording" />,
 }));
 
 vi.mock("next-auth/react", () => ({
@@ -77,5 +90,18 @@ describe("PwaBanners", () => {
     render(<PwaBanners iconUrl="/icon-192x192.png" userId="user-1" />);
 
     expect(screen.getByTestId("survey")).toBeTruthy();
+  });
+
+  /*
+   * 画面下の帯は同時に1枚だけ。勧誘の3枚は条件が揃ったその時にしか出せないのに対し、
+   * 記録中バーは記録が続くかぎり何度でも出せるので、最後に回す。
+   */
+  it("勧誘のバナーが出ているあいだは記録中バーを出さない", () => {
+    stubViewport(false);
+
+    render(<PwaBanners iconUrl="/icon.png" userId="u1" />);
+
+    expect(screen.getByTestId("install")).toBeTruthy();
+    expect(screen.queryByTestId("recording")).toBeNull();
   });
 });

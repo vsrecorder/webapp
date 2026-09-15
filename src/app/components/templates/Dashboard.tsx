@@ -55,7 +55,7 @@ import { upstreamUrl } from "@app/utils/upstream";
 import { getAllChampionshipSeries } from "@app/utils/championshipSeriesServer";
 import { getDashboardInitialData } from "@app/utils/dashboardServer";
 import { getHomeRecordsHead, getRecordingNow } from "@app/utils/recordingNowServer";
-import { formatElapsedSince } from "@app/utils/recordingNow";
+import { formatElapsedDuration } from "@app/utils/recordingNow";
 import { DEFAULT_EXCLUDE_DEFAULT_MATCHES } from "@app/utils/excludeDefaultMatches";
 import { pickCityleagueScheduleState } from "@app/utils/cityleagueSchedule";
 import { todayJSTDateString } from "@app/utils/date";
@@ -675,7 +675,7 @@ export default async function TemplateDashboard({
                     windowMs={recordingNow.windowMs}
                     // 経過時間はサーバで一度組み立てて渡す。クライアントで初期値を
                     // 計算するとハイドレーションの前後で文言がずれることがある
-                    initialElapsedLabel={formatElapsedSince(recordingNow.lastActiveAt)}
+                    initialElapsedLabel={formatElapsedDuration(recordingNow.lastActiveAt)}
                   />
                 )}
                 {/*

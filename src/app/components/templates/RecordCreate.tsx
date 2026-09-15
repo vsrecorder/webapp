@@ -60,6 +60,7 @@ import OfficialEventGuideNote from "@app/components/molecules/OfficialEventGuide
 
 import { cleanOfficialEventTitle } from "@app/components/organisms/Record/officialEventHelpers";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
+import { refreshRecordingNow } from "@app/utils/recordingNowClient";
 import { markRecordCreatedForPushPrompt } from "@app/utils/pushPrompt";
 import { JST_TIME_ZONE, formatJSTDateWithWeekday, formatJSTTime, toJSTDateString } from "@app/utils/date";
 import {
@@ -1083,6 +1084,8 @@ export default function TemplateRecordCreate({
       });
 
       triggerNotificationsRefresh();
+      // 作ったばかりの記録が「記録中」になる。画面下のバーにすぐ出す
+      refreshRecordingNow();
       // 価値を体験した直後に通知の許諾を求める(遷移先で PushPermissionPrompt が出す)
       markRecordCreatedForPushPrompt();
 
@@ -1203,6 +1206,8 @@ export default function TemplateRecordCreate({
       });
 
       triggerNotificationsRefresh();
+      // 作ったばかりの記録が「記録中」になる。画面下のバーにすぐ出す
+      refreshRecordingNow();
       // 価値を体験した直後に通知の許諾を求める(遷移先で PushPermissionPrompt が出す)
       markRecordCreatedForPushPrompt();
 
@@ -1350,6 +1355,8 @@ export default function TemplateRecordCreate({
       });
 
       triggerNotificationsRefresh();
+      // 作ったばかりの記録が「記録中」になる。画面下のバーにすぐ出す
+      refreshRecordingNow();
       // 価値を体験した直後に通知の許諾を求める(遷移先で PushPermissionPrompt が出す)
       markRecordCreatedForPushPrompt();
 

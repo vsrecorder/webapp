@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { readRecordingBarHeight } from "@app/utils/recordingNowClient";
+
 /*
  * フローティングボタンにコンテンツが隠れないよう、画面下端から確保したい余白(px)。
  *
@@ -11,6 +13,9 @@ import { useEffect, useRef, useState } from "react";
  *                          h-12 + gap-3(=12px) + h-12
  * その 192px に 8px の余裕を足した値にしている。
  * どれかのボタンの位置や大きさを変えるときは、ここも合わせて更新すること。
+ *
+ * 画面下に「続きを記録」バーが出ているあいだは、ボタンがそのぶん上へ逃げる
+ * (bottom に --recording-bar-height を足してある)。確保する余白も同じだけ増やす。
  */
 const CLEARANCE_PX = 200;
 
@@ -98,9 +103,11 @@ export default function FloatingButtonClearance() {
       const svh = probe.offsetHeight;
       // 画面下端からコンテンツ末尾までの空き。ビューポートを超えていれば負になる。
       const gap = svh - contentBottom;
+      // バーの高さ。出ていなければ 0
+      const needed = CLEARANCE_PX + readRecordingBarHeight();
 
       setClearance(
-        gap >= CLEARANCE_PX ? 0 : Math.max(0, CLEARANCE_PX - measureFixedSpaceBelow(el)),
+        gap >= needed ? 0 : Math.max(0, needed - measureFixedSpaceBelow(el)),
       );
     };
 
@@ -108,7 +115,12 @@ export default function FloatingButtonClearance() {
     // 一覧の増減・追加読み込み・カード高の変化(きずな等)に追従する。
     const ro = new ResizeObserver(measure);
     ro.observe(document.body);
-    // 端末回転など svh 自体が変わる場合に追従する。
+    /*
+     * 端末回転など svh 自体が変わる場合に追従する。
+     * 「続きを記録」バーの出入りもここで拾う —— バーは position:fixed で body の
+     * 大きさを変えないため ResizeObserver では気づけず、バー側が resize を投げている
+     * (utils/recordingNowClient の setRecordingBarHeight)。
+     */
     window.addEventListener("resize", measure);
 
     return () => {

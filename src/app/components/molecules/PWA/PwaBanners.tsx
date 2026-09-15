@@ -10,6 +10,7 @@ import AddToHomeScreenBanner from "@app/components/molecules/PWA/AddToHomeScreen
 import PushPermissionPrompt, {
   type InstallBannerState,
 } from "@app/components/molecules/PWA/PushPermissionPrompt";
+import RecordingNowBar from "@app/components/organisms/Layout/RecordingNowBar";
 
 /*
  * 画面下部に出るバナー(登録時アンケート / ホーム画面に追加 / Web Push の soft ask)の交通整理。
@@ -64,6 +65,8 @@ export default function PwaBanners({ iconUrl, userId }: Props) {
   const { installState, install, dismiss, awaitingInstallEvent } = useInstallPrompt();
   const isLgUp = useIsLgUp();
   const [surveyOpen, setSurveyOpen] = useState(false);
+  const [installOpen, setInstallOpen] = useState(false);
+  const [pushOpen, setPushOpen] = useState(false);
 
   // デスクトップ幅では記録作成のトリガー(sessionStorage)をここで捨てる。
   // 残したままだと、ウィンドウを lg 未満へ縮めた瞬間に、何時間も前の記録作成を
@@ -86,6 +89,24 @@ export default function PwaBanners({ iconUrl, userId }: Props) {
   // PWA / 通知の2枚はモバイル幅でだけ出す
   const showPwaBanners = !isLgUp && !surveyOpen;
 
+
+  /*
+   * 記録中バーはこの4枚のなかで最も優先度が低い。他のどれかが出ているあいだは出さない。
+   *
+   * 勧誘の3枚は「条件が揃ったその時」にしか出せない(登録直後・インストール可能・
+   * 記録作成直後)のに対し、記録中バーは記録が続くかぎり何度でも出せるため。
+   * 順番は アンケート > ホーム画面に追加 > 通知の許諾 > 記録中。
+   */
+  const showRecordingBar =
+    // 記録中かどうかはブラウザから API を叩いて確かめる。見えない場面では描かない
+    // (lg 以上は帯自体を出さないし、未ログインなら記録中もない)
+    !!userId &&
+    !isLgUp &&
+    !surveyOpen &&
+    // 2枚は出さない側に回るとマウントごと消え、閉じた通知が来ないまま true が残る。
+    // 出している間の状態としてだけ読む
+    !(showPwaBanners && (installOpen || pushOpen));
+
   return (
     <>
       {/* 登録時アンケート(施策0-4 S4)。新規登録直後のフラグがある間だけ出る。
@@ -97,13 +118,21 @@ export default function PwaBanners({ iconUrl, userId }: Props) {
           installState={installState}
           onInstall={install}
           onDismiss={dismiss}
+          onOpenChange={setInstallOpen}
         />
       )}
       {/* Web Push の soft ask(B-1)。記録作成直後とストリーク2週以上のホームでだけ出る。
           アンケート表示中はマウントしない(マウントすると記録作成のトリガーを消費してしまう) */}
       {showPwaBanners && (
-        <PushPermissionPrompt userId={userId} installBannerState={installBannerState} />
+        <PushPermissionPrompt
+          userId={userId}
+          installBannerState={installBannerState}
+          onOpenChange={setPushOpen}
+        />
       )}
+
+      {/* 記録中のイベントへの導線。勧誘の3枚が出ていないときだけ */}
+      {showRecordingBar && <RecordingNowBar />}
     </>
   );
 }

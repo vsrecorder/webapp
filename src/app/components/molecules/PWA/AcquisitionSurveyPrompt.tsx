@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+
+import BottomBanner from "@app/components/molecules/BottomBanner";
 import { Button, addToast } from "@heroui/react";
-import { LuX } from "react-icons/lu";
 import { sendGAEvent } from "@next/third-parties/google";
 
 import { useLocalStorageItem } from "@app/hooks/useLocalStorageItem";
@@ -101,21 +102,10 @@ export default function AcquisitionSurveyPrompt({ userId, onOpenChange }: Props)
     // 見た目は PushPermissionPrompt に合わせる(同じ場所に出る仲間として認知させる)。
     // このバナーは lg 以上でも出る(PwaBanners 参照)ため、下部ナビが無いデスクトップでは
     // 全幅に伸ばさず右下に寄せる
-    <div className="fixed z-50 bottom-[calc(var(--mobile-nav-height)+env(safe-area-inset-bottom)+0.5rem)] left-2 right-2 lg:bottom-6 lg:left-auto lg:right-6 lg:w-[26rem] rounded-2xl bg-content1/95 backdrop-blur-md shadow-xl border border-divider">
+    <BottomBanner dismissLabel="スキップ" onDismiss={handleDismiss} desktop>
       <div className="relative px-4 py-2.5">
-        <Button
-          isIconOnly
-          size="sm"
-          variant="light"
-          radius="full"
-          aria-label="スキップ"
-          className="absolute top-0.5 right-0.5 text-default-400 hover:text-default-600"
-          onPress={handleDismiss}
-        >
-          <LuX className="w-4 h-4" />
-        </Button>
 
-        <p className="text-sm font-semibold text-default-900 leading-tight pr-8">
+        <p className="text-sm font-semibold text-default-900 leading-tight">
           どこでバトレコを知りましたか？
         </p>
         <p className="text-xs text-default-500 mt-0.5">1タップで完了します</p>
@@ -136,6 +126,6 @@ export default function AcquisitionSurveyPrompt({ userId, onOpenChange }: Props)
           ))}
         </div>
       </div>
-    </div>
+    </BottomBanner>
   );
 }

@@ -11,6 +11,7 @@ import CreateMatchModal from "@app/components/organisms/Match/Modal/CreateMatchM
 import { RecordGetByIdResponseType } from "@app/types/record";
 import { MatchGetResponseType } from "@app/types/match";
 import { OPEN_CREATE_MATCH_RECORD_ID } from "@app/utils/createMatchIntent";
+import { refreshRecordingNow } from "@app/utils/recordingNowClient";
 import { readSessionStorage, writeSessionStorage } from "@app/utils/sessionStorageStore";
 
 type Props = {
@@ -99,6 +100,16 @@ export default function CreateMatchModalButton({
         setMatches={(update) => {
           addedRef.current = true;
           setMatches(update);
+          /*
+           * 画面下のバーの勝敗は、足した時点で合わせる。
+           *
+           * サーバ側の取り直し(router.refresh)は閉じるまで待つが、こちらは待てない。
+           * 「続けて対戦結果を追加する」でフォームを開いたままにしたり、環境リターンの
+           * シートが重なったりすると、閉じる操作を経ずにページを離れることがあり、
+           * そのときバーだけ古い勝敗のまま残ってしまう。
+           * バーはモーダルの背後にある別物なので、ここで取り直しても入力は妨げない。
+           */
+          refreshRecordingNow();
         }}
         isOpen={isOpenForCreateMatchModal}
         onOpenChange={onOpenChangeForCreateMatchModal}

@@ -10,6 +10,7 @@ import { addToast, closeToast } from "@heroui/react";
 import { Modal } from "@app/components/atoms/AppModal";
 import { RecordGetByIdResponseType } from "@app/types/record";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
+import { refreshRecordingNow } from "@app/utils/recordingNowClient";
 
 type Props = {
   record: RecordGetByIdResponseType;
@@ -71,6 +72,12 @@ export default function DeleteRecordModal({
       // 連続週数が届かなくなったストリーク通知を取り消すので、ポーリング(60秒)を待たず
       // その場で通知ベルを再取得させる。
       triggerNotificationsRefresh();
+      /*
+       * 消した記録が「記録中」だったかもしれない。画面下のバーはブラウザから取っていて
+       * 60秒は同じ結果を使い回すため、捨てておかないと消えた記録の帯が残り、
+       * 押すと無い記録へ飛んでしまう。
+       */
+      refreshRecordingNow();
 
       onClose();
       setIsSelected(false);

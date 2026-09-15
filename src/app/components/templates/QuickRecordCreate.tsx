@@ -46,6 +46,7 @@ import { MatchCreateRequestType, MatchGetResponseType } from "@app/types/match";
 import { MatchPokemonSpriteType, PokemonSpriteType } from "@app/types/pokemon_sprite";
 import { DeckData, isFavoritedDeck } from "@app/types/deck";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
+import { refreshRecordingNow } from "@app/utils/recordingNowClient";
 import { markRecordCreatedForPushPrompt } from "@app/utils/pushPrompt";
 import { getSpriteBySlot } from "@app/utils/spriteSlot";
 import {
@@ -485,6 +486,8 @@ export default function TemplateQuickRecordCreate({
         with_deck: selectedDeckId !== "",
       });
       triggerNotificationsRefresh();
+      // 作ったばかりの記録が「記録中」になる。画面下のバーにすぐ出す
+      refreshRecordingNow();
       // 価値を体験した直後に通知の許諾を求める(遷移先で PushPermissionPrompt が出す)
       markRecordCreatedForPushPrompt();
 

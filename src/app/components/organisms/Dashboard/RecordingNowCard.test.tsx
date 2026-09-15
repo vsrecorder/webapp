@@ -1,10 +1,9 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { MatchSummaryType } from "@app/types/match";
 import { RecordGetByIdResponseType } from "@app/types/record";
-import { todayJSTDateString } from "@app/utils/date";
 import {
   RECORDING_WINDOW_AFTER_MATCH_MS,
   RECORDING_WINDOW_NO_MATCH_MS,
@@ -146,16 +145,25 @@ describe("RecordingNowCard", () => {
     expect(push).toHaveBeenCalledWith("/records/01M2J6M2XH8JVG6VZT4RF889TE");
   });
 
-  it("「記録を終える」でカードが消え、その記録IDが cookie に残る", () => {
+  it("「記録を終える」でカードが消え、その記録IDが cookie に残る", async () => {
     renderCard();
-    fireEvent.click(screen.getByText("記録を終える"));
+    fireEvent.click(screen.getByText("記録終了"));
 
-    expect(screen.queryAllByText("第12回 ジムバトル")).toHaveLength(0);
-    // 日付を含めた値。日が変われば一致しなくなり、翌日はまた出る
+    // 押し間違い防止に確認を挟む。ここではまだ消えない
+    expect(screen.getAllByText("第12回 ジムバトル").length).toBeGreaterThan(0);
+    expect(document.cookie).not.toContain("recordingDismissed=2");
+
+    // モーダル側の「記録を終える」を押して初めて終わる
+    const confirmButtons = await screen.findAllByText("記録終了");
+    fireEvent.click(confirmButtons[confirmButtons.length - 1]);
+
+    // モーダルの閉じるアニメーションが済むまで DOM に残る
+    await waitFor(() =>
+      expect(screen.queryAllByText("第12回 ジムバトル")).toHaveLength(0),
+    );
+    // 日付は含めない。記録中が日付をまたぐので、0時で戻ってきては困る
     expect(document.cookie).toContain(
-      `recordingDismissed=${encodeURIComponent(
-        `${todayJSTDateString()}:01M2J6M2XH8JVG6VZT4RF889TE`,
-      )}`,
+      "recordingDismissed=01M2J6M2XH8JVG6VZT4RF889TE",
     );
   });
 
@@ -163,12 +171,15 @@ describe("RecordingNowCard", () => {
    * ホームの骨格は「前回描いた並び」(dashboardLayout cookie)で出る。閉じたあとも
    * 並びに残っていると、次に開いたときに実物の無い骨格だけが数秒ぶん居座る。
    */
-  it("閉じたら骨格の並びからも「記録中」を外し、サーバ側の構成も取り直す", () => {
+  it("閉じたら骨格の並びからも「記録中」を外し、サーバ側の構成も取り直す", async () => {
     document.cookie =
       "dashboardLayout=profile%2Crecording_now%2Cstreak%2Crecent_records; Path=/";
 
     renderCard();
-    fireEvent.click(screen.getByText("記録を終える"));
+    fireEvent.click(screen.getByText("記録終了"));
+
+    const confirmButtons = await screen.findAllByText("記録終了");
+    fireEvent.click(confirmButtons[confirmButtons.length - 1]);
 
     expect(decodeURIComponent(document.cookie)).toContain(
       "dashboardLayout=profile,streak,recent_records",

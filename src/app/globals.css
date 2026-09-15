@@ -189,6 +189,12 @@
  */
 :root {
   --mobile-nav-height: 4.25rem;
+  /*
+   * 画面下に常駐する「続きを記録」バーの高さ。出ていないときは 0。
+   * 表示中だけバー(RecordingNowBar)が実寸を入れ替える(utils/recordingNowClient)。
+   * 本文の下余白・フローティングボタン・カードのクリアランスがこれを足して場所を空ける。
+   */
+  --recording-bar-height: 0px;
 }
 
 :root[data-ios-pwa="true"] {

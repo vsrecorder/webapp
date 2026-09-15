@@ -1,8 +1,11 @@
 "use client";
 
 import Image from "next/image";
+
+import BottomBanner from "@app/components/molecules/BottomBanner";
 import { Button } from "@heroui/react";
-import { LuX } from "react-icons/lu";
+import { useEffect } from "react";
+
 import { useSession } from "next-auth/react";
 
 import { InstallState } from "@app/hooks/useInstallPrompt";
@@ -20,6 +23,11 @@ type Props = {
   installState: InstallState;
   onInstall: () => void;
   onDismiss: () => void;
+  /*
+   * 表示状態の変化を親(PwaBanners)へ知らせる。画面下の帯は同時に1枚しか出さないので、
+   * 親はこれを見て優先度の低いもの(記録中バー)を抑止する。
+   */
+  onOpenChange?: (open: boolean) => void;
 };
 
 export default function AddToHomeScreenBanner({
@@ -27,14 +35,20 @@ export default function AddToHomeScreenBanner({
   installState,
   onInstall,
   onDismiss,
+  onOpenChange,
 }: Props) {
   const { status } = useSession();
 
-  if (status !== "authenticated") return null;
-  if (installState === "idle") return null;
+  const open = status === "authenticated" && installState !== "idle";
+
+  useEffect(() => {
+    onOpenChange?.(open);
+  }, [open, onOpenChange]);
+
+  if (!open) return null;
 
   return (
-    <div className="fixed z-50 bottom-[calc(var(--mobile-nav-height)+env(safe-area-inset-bottom)+0.5rem)] left-2 right-2 rounded-2xl bg-content1/95 backdrop-blur-md shadow-xl border border-divider">
+    <BottomBanner dismissLabel="バナーを閉じる" onDismiss={onDismiss}>
       <div className="flex items-center gap-3 px-4 py-3">
         <Image
           src={iconUrl}
@@ -70,19 +84,7 @@ export default function AddToHomeScreenBanner({
             追加
           </Button>
         )}
-
-        <Button
-          isIconOnly
-          size="sm"
-          variant="light"
-          radius="full"
-          aria-label="バナーを閉じる"
-          className="shrink-0 text-default-400 hover:text-default-600"
-          onPress={onDismiss}
-        >
-          <LuX className="w-4 h-4" />
-        </Button>
       </div>
-    </div>
+    </BottomBanner>
   );
 }

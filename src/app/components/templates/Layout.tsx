@@ -51,7 +51,7 @@ export default async function TemplateLayout({
               下余白は下部ナビ(MobileNavigation)の実寸に合わせる: 本体(--mobile-nav-height) +
               safe-area の下端余白。lg以上は下部ナビが消えるので lg:pb-6 に戻す。
               ナビの高さは globals.css の --mobile-nav-height で決まる(Androidのみ低い) */}
-          <main className={`app-dot-bg flex-1 p-2 pt-14 lg:pt-28 lg:pb-6 min-h-svh w-full ${session ? "md:px-12 xl:px-20 2xl:px-32 pb-[calc(var(--mobile-nav-height)+env(safe-area-inset-bottom))]" : "pb-2"}`}>
+          <main className={`app-dot-bg flex-1 p-2 pt-14 lg:pt-28 lg:pb-6 min-h-svh w-full ${session ? "md:px-12 xl:px-20 2xl:px-32 pb-[calc(var(--mobile-nav-height)+var(--recording-bar-height)+env(safe-area-inset-bottom))]" : "pb-2"}`}>
             {children}
           </main>
         </div>

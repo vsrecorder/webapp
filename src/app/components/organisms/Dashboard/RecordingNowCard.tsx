@@ -4,30 +4,28 @@ import { useEffect, useState } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { Button, Card, CardBody } from "@heroui/react";
-import { LuCheck, LuCirclePlus, LuMapPin, LuPencilLine } from "react-icons/lu";
+import { Button, Card, CardBody, useDisclosure } from "@heroui/react";
+import { LuCheck, LuCirclePlus, LuMapPin } from "react-icons/lu";
 import { sendGAEvent } from "@next/third-parties/google";
 
 import DeckSprites from "@app/components/molecules/DeckSprites";
+import FinishRecordingModal from "@app/components/molecules/FinishRecordingModal";
+import EventIcon from "@app/components/molecules/EventIcon";
 import ScrollingText from "@app/components/molecules/ScrollingText";
 import RecordMetaRows from "@app/components/organisms/Record/RecordMetaRows";
 
 import { MatchSummaryType } from "@app/types/match";
 import { RecordCardDeckType, RecordGetByIdResponseType } from "@app/types/record";
-import { readClientCookie, writeClientCookie } from "@app/utils/clientCookie";
+import { writeClientCookie } from "@app/utils/clientCookie";
 import { OPEN_CREATE_MATCH_RECORD_ID } from "@app/utils/createMatchIntent";
 import {
-  DASHBOARD_LAYOUT_COOKIE,
-  DASHBOARD_LAYOUT_COOKIE_MAX_AGE,
-  RECORDING_NOW_BLOCK_IDS,
-  parseDashboardLayout,
-  serializeDashboardLayout,
-} from "@app/utils/dashboardLayout";
-import { todayJSTDateString } from "@app/utils/date";
+  dropRecordingNowFromStoredLayout,
+  refreshRecordingNow,
+} from "@app/utils/recordingNowClient";
 import {
   RECORDING_DISMISSED_COOKIE,
   RECORDING_DISMISSED_COOKIE_MAX_AGE,
-  formatElapsedSince,
+  formatElapsedDuration,
   isWithinRecordingWindow,
   recordingDismissedValue,
 } from "@app/utils/recordingNow";
@@ -35,28 +33,6 @@ import { writeSessionStorage } from "@app/utils/sessionStorageStore";
 
 // 経過時間の表示を更新する間隔。分単位でしか出さないので1分で足りる
 const ELAPSED_REFRESH_MS = 60 * 1000;
-
-/*
- * 骨格の並び(cookie)から「記録中」を取り除く。
- *
- * ホームの骨格(DashboardSkeleton)は「前回このホームが実際に描いた並び」で出る。
- * カードが消えたことをここへ反映しないと、次にホームを開いたときに実物の無い骨格だけが
- * 数秒ぶん居座る(ホームは取得が多く、Suspense が解けるまで時間がかかる)。
- *
- * サーバ側の構成(pinnedIds)も router.refresh() で取り直すが、その完了を待たずに
- * リロードされることがあるので、cookie は同期で直しておく。
- */
-function dropRecordingNowFromStoredLayout(): void {
-  const stored = parseDashboardLayout(readClientCookie(DASHBOARD_LAYOUT_COOKIE));
-  // 使用デッキの行の有無で2種類あるので、どちらが書かれていても外す
-  if (!stored?.some((id) => RECORDING_NOW_BLOCK_IDS.includes(id))) return;
-
-  writeClientCookie(
-    DASHBOARD_LAYOUT_COOKIE,
-    serializeDashboardLayout(stored.filter((id) => !RECORDING_NOW_BLOCK_IDS.includes(id))),
-    DASHBOARD_LAYOUT_COOKIE_MAX_AGE,
-  );
-}
 
 type Props = {
   record: RecordGetByIdResponseType;
@@ -74,7 +50,7 @@ type Props = {
    * (utils/recordingNow)。サーバの判定と食い違わないよう、ここでは決め直さずに受け取る。
    */
   windowMs: number;
-  // サーバで組み立てた「最後の記録から◯分」。ハイドレーションで文言がずれないよう、
+  // サーバで組み立てた経過時間(「42分」)。ハイドレーションで文言がずれないよう、
   // 初回はこの値をそのまま使い、マウント後に自分で計算し直す
   initialElapsedLabel: string;
 };
@@ -114,9 +90,16 @@ export default function RecordingNowCard({
   // 開いたまま窓を過ぎたら消す(PWAでホームを出しっぱなしにしている場合)
   const [expired, setExpired] = useState(false);
 
+  // 「記録を終える」の確認。押し間違いで今日のあいだ消えてしまうのを防ぐ
+  const {
+    isOpen: isFinishOpen,
+    onOpen: onFinishOpen,
+    onOpenChange: onFinishOpenChange,
+  } = useDisclosure();
+
   useEffect(() => {
     function refresh() {
-      setElapsedLabel(formatElapsedSince(lastActiveAt));
+      setElapsedLabel(formatElapsedDuration(lastActiveAt));
       setExpired(!isWithinRecordingWindow(lastActiveAt, windowMs));
     }
 
@@ -149,6 +132,7 @@ export default function RecordingNowCard({
   const total = summary?.total ?? 0;
   const draws = summary?.draws ?? 0;
 
+
   function handleAddMatch() {
     sendGAEvent("event", "recording_now_add_match_click");
     // 着いた先で対戦追加モーダルを開いてもらう(遷移先が読んだ時点で消える)
@@ -156,15 +140,18 @@ export default function RecordingNowCard({
     router.push(`/records/${record.id}`);
   }
 
+  // 確認モーダルで了解を得てから呼ぶ
   function handleFinish() {
     sendGAEvent("event", "recording_now_finish_click");
     // 日付を含めた値にしておくと、日が変わった時点で古い値は一致しなくなる
     writeClientCookie(
       RECORDING_DISMISSED_COOKIE,
-      recordingDismissedValue(todayJSTDateString(), record.id),
+      recordingDismissedValue(record.id),
       RECORDING_DISMISSED_COOKIE_MAX_AGE,
     );
     setDismissed(true);
+    // 画面下のバーも同じ記録を指しているので、取り直させて一緒に消す
+    refreshRecordingNow();
   }
 
   return (
@@ -176,23 +163,39 @@ export default function RecordingNowCard({
             <span className="w-2 h-2 rounded-full bg-primary motion-safe:animate-pulse" />
             記録中
           </span>
-          <span className="text-tiny text-default-400">最後の記録から{elapsedLabel}</span>
+          {/*
+            起点が対戦か記録の作成かで言い回しを変える。「最後の記録から」だと、
+            対戦をまだ入れていない記録で何を指しているのか分からない。
+          */}
+          <span className="text-tiny text-default-400">
+            {total > 0 ? "最後の対戦から" : "記録を作成してから"}
+            {elapsedLabel}経過
+          </span>
           <Button
             size="sm"
-            variant="light"
+            variant="bordered"
             radius="full"
-            className="ml-auto h-7 px-2.5 text-tiny font-bold text-default-500"
+            className="ml-auto h-7 border-default-300 px-2.5 text-tiny font-bold text-default-600"
             startContent={<LuCheck className="w-3.5 h-3.5" />}
-            onPress={handleFinish}
+            onPress={onFinishOpen}
           >
-            記録を終える
+            記録終了
           </Button>
         </div>
 
         <div className="flex items-center gap-2.5">
           {/* イベントのアイコン枠。対戦記録カード(RecordCardBase)と同じ寸法・同じ面 */}
           <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-default-100 ring-1 ring-black/5 ring-inset">
-            <EventIcon record={record} iconUrl={eventIconUrl} />
+            <EventIcon
+              kind={
+                record.official_event_id !== 0
+                  ? "official"
+                  : record.tonamel_event_id !== ""
+                    ? "tonamel"
+                    : "unofficial"
+              }
+              iconUrl={eventIconUrl}
+            />
           </div>
 
           <div className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -254,48 +257,13 @@ export default function RecordingNowCard({
           対戦結果を追加する
         </Button>
       </CardBody>
+
+      <FinishRecordingModal
+        eventTitle={eventTitle}
+        isOpen={isFinishOpen}
+        onOpenChange={onFinishOpenChange}
+        onConfirm={handleFinish}
+      />
     </Card>
   );
-}
-
-/*
- * イベント種別ごとの印。対戦記録カードが各種別で描いているものと同じにする。
- *   公式 …… イベント種別のアイコン画像(サーバが URL を決める)
- *   Tonamel … オレンジ地の「T」
- *   自由形式 … 鉛筆
- */
-function EventIcon({
-  record,
-  iconUrl,
-}: {
-  record: RecordGetByIdResponseType;
-  iconUrl: string | null;
-}) {
-  if (iconUrl) {
-    /*
-     * HeroUI の Image は、キャッシュ済みの画像で読み込み完了を取りこぼすと
-     * opacity:0 のまま出てこないことがある(スプライト・デッキ画像も同じ理由で
-     * 素の img にしてある)。ここも素の img を使う。
-     */
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={iconUrl} alt="" className="h-7 w-7 object-contain" />;
-  }
-
-  if (record.tonamel_event_id !== "") {
-    return (
-      <div className="flex h-full w-full items-center justify-center bg-orange-500">
-        <span className="text-sm font-black text-white">T</span>
-      </div>
-    );
-  }
-
-  if (record.unofficial_event_id !== "") {
-    return <LuPencilLine className="h-5 w-5 text-default-500" />;
-  }
-
-  /*
-   * 公式イベントなのにアイコンのURLが無い = イベントの取得に失敗したとき。
-   * ここで自由形式の鉛筆を出すと種別を誤って伝えるので、枠だけ残して何も描かない。
-   */
-  return null;
 }

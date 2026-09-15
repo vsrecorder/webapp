@@ -21,7 +21,7 @@ import { todayJSTDateString } from "@app/utils/date";
 import {
   isRecordingDismissed,
   isWithinRecordingWindow,
-  pickTodaysRecord,
+  pickRecordingCandidate,
   recordingActivityOf,
 } from "@app/utils/recordingNow";
 import { fetchUpstream, upstreamUrl } from "@app/utils/upstream";
@@ -228,9 +228,9 @@ export async function getRecordingNow(
 
   const today = todayJSTDateString();
 
-  const candidate = pickTodaysRecord(records, today);
+  const candidate = pickRecordingCandidate(records, today);
   if (!candidate) return null;
-  if (isRecordingDismissed(dismissed, candidate.data.id, today)) return null;
+  if (isRecordingDismissed(dismissed, candidate.data.id)) return null;
 
   const [summary, event, deck] = await Promise.all([
     fetchSummary(userId, candidate.data.id),

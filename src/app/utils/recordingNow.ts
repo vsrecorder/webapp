@@ -9,14 +9,13 @@ import { toJSTDateString, todayJSTDateString } from "@app/utils/date";
  * 記録カードを開いてメニューを辿らなくても、ホームから直接1件足せるようにする。
  *
  * 出す条件は3つとも満たすこと:
- *   1. event_date が今日(JST)の記録のうち、最新の1件
+ *   1. event_date が今日か昨日(JST)の記録のうち、最新の1件
  *   2. その記録の「最後の動き」から、起点ごとに決まる窓の内側にいること
  *      (対戦が1件以上 → last_match_at から6時間 / 対戦0件 → created_at から18時間)
  *   3. 「記録を終える」で閉じられていない
  *
  * 逆に、次のどれかで消える:
- *   ・日付が変わる(翌日には event_date が今日でなくなる)
- *   ・最後の動きから窓のぶん経つ
+ *   ・最後の動きから窓のぶん経つ(日付が変わっただけでは消さない。深夜の記録を切らないため)
  *   ・「記録を終える」を押す(その日のあいだ出さない)
  *
  * 時刻の扱いに注意。event_date は DATE カラムで UTC 0時に寄って返るため、
@@ -56,51 +55,134 @@ export const RECORDING_DISMISSED_COOKIE = "recordingDismissed";
 export const RECORDING_DISMISSED_COOKIE_MAX_AGE = 60 * 60 * 24;
 
 /*
- * cookie に入れる値。"YYYY-MM-DD:recordId" の形にする。
+ * 画面下のバーだけを引っ込めた記録。値は "recordId:閉じた時刻(ミリ秒)"。
  *
- * 日付を含めるので、日をまたいだ時点で古い値は自動的に一致しなくなる。
- * 「今日のあいだだけ出さない」がこれだけで満たせて、古い値の掃除も要らない。
+ * 「記録を終える」(上の cookie)とは別物。記録中であること自体は終わらせないので、
+ * ホームのカードは出たままで、バーだけがしばらく黙る。
+ *
+ * sessionStorage に置いているので、タブを閉じたりPWAを起動し直したりすれば消えて
+ * すぐまた出る。同じセッションで見続けている場合も、下の時間が過ぎれば戻る。
+ * 「いまは邪魔だが、記録はまだ続いている」を表す。
  */
-export function recordingDismissedValue(dateString: string, recordId: string): string {
-  return `${dateString}:${recordId}`;
+export const RECORDING_BAR_HIDDEN_KEY = "recordingBarHidden";
+
+/*
+ * バーを引っ込めておく時間。
+ *
+ * 大会の合間に一度どけても、次の試合が終わる頃にはまた出ていてほしい。
+ * 試合1回ぶんより短いくらいが目安。
+ */
+export const RECORDING_BAR_HIDDEN_MS = 10 * 60 * 1000;
+
+// sessionStorage に入れる値
+export function recordingBarHiddenValue(recordId: string, at: number = Date.now()): string {
+  return `${recordId}:${at}`;
 }
 
 /*
- * その記録が今日すでに閉じられているか。
+ * 閉じた状態が明ける時刻(ミリ秒)。閉じていない・別の記録・壊れた値なら null。
+ *
+ * 「隠すか」ではなく「いつ明けるか」を返すのは、呼び出し側がその時刻にタイマーを
+ * 張れるようにするため。画面を開いたまま待っている人にも、黙って戻ってくる。
+ */
+export function recordingBarHiddenUntil(
+  value: string | null | undefined,
+  recordId: string,
+): number | null {
+  if (!value) return null;
+
+  const separator = value.lastIndexOf(":");
+  if (separator === -1) return null;
+  if (value.slice(0, separator) !== recordId) return null;
+
+  const closedAt = Number(value.slice(separator + 1));
+  if (!Number.isFinite(closedAt)) return null;
+
+  return closedAt + RECORDING_BAR_HIDDEN_MS;
+}
+
+// いまバーを引っ込めておくべきか
+export function isRecordingBarHidden(
+  value: string | null | undefined,
+  recordId: string,
+  now: number = Date.now(),
+): boolean {
+  const until = recordingBarHiddenUntil(value, recordId);
+
+  return until !== null && now < until;
+}
+
+/*
+ * cookie に入れる値。終えた記録のIDそのもの。
+ *
+ * かつては "YYYY-MM-DD:recordId" として日付で失効させていたが、記録中が日付をまたぐように
+ * なったので、日付で切ると「終えたはずの記録が0時に戻ってくる」ことになる。
+ * 失効は cookie の寿命(24時間。窓の最長18時間より長い)に任せる。
+ */
+export function recordingDismissedValue(recordId: string): string {
+  return recordId;
+}
+
+/*
+ * その記録がすでに閉じられているか。
  * cookie は誰でも書き換えられるので、形の違う値は「閉じていない」として扱う。
  */
 export function isRecordingDismissed(
   cookieValue: string | null | undefined,
   recordId: string,
-  today: string = todayJSTDateString(),
 ): boolean {
   if (!cookieValue) return false;
 
-  return cookieValue === recordingDismissedValue(today, recordId);
+  /*
+   * 以前の形式("YYYY-MM-DD:recordId")で書かれた cookie も受ける。
+   * 受けないと、入れ替わりの日に終えた人のカードが翌日いちどだけ戻ってしまう。
+   */
+  const separator = cookieValue.lastIndexOf(":");
+  const value = separator === -1 ? cookieValue : cookieValue.slice(separator + 1);
+
+  return value === recordId;
 }
 
 /*
- * 今日(JST)のイベント日を持つ記録のうち、最新の1件を返す。
+ * 記録中の候補になる記録(イベント日が今日か昨日)のうち、最新の1件を返す。
+ *
+ * 昨日まで見るのは、日付をまたいで記録を続けることがあるため。PTCGL を深夜に回したり、
+ * 大会のあと帰ってから入力したりすると、0時をまたいだ瞬間にイベント日が「今日」で
+ * なくなる。そこで消えてしまうと、いちばん記録したい場面で使えない。
+ *
+ * それ以上は遡らない。何日も前の記録に対戦を足すのは「あとから整理している」のであって
+ * 記録中ではない。実際にいつ引っ込むかは、この先の窓(最後の動きから6時間/18時間)が決める。
  *
  * 記録一覧は event_date DESC, created_at DESC で返るため、条件に合う最初の1件が
  * そのまま「最新」になる。候補が複数ある日(午前ジム・午後シティ)でも最新だけを見て、
  * それが窓を過ぎていれば2件目は見に行かない。
  *
- * 未来日の記録(大会の予定を先に作った場合)は「今日」と一致しないので自然に外れる。
+ * 未来日の記録(大会の予定を先に作った場合)はどちらとも一致しないので自然に外れる。
  * event_date が未設定(ゼロ値)の記録も同じく外れる。
  */
-export function pickTodaysRecord(
+export function pickRecordingCandidate(
   records: readonly RecordType[],
   today: string = todayJSTDateString(),
 ): RecordType | null {
+  const yesterday = previousDate(today);
+
   for (const record of records) {
     const eventDate = record.data.event_date;
     if (!eventDate) continue;
 
-    if (toJSTDateString(eventDate) === today) return record;
+    const date = toJSTDateString(eventDate);
+    if (date === today || date === yesterday) return record;
   }
 
   return null;
+}
+
+// "YYYY-MM-DD" の前日。暦日どうしの計算なので実行時刻に依存しない
+function previousDate(dateString: string): string {
+  const date = new Date(`${dateString}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() - 1);
+
+  return date.toISOString().split("T")[0];
 }
 
 export type RecordingActivity = {
@@ -170,16 +252,21 @@ export function isWithinRecordingWindow(
 }
 
 /*
- * 「最後の記録から◯分」の表示文。カードに添えて、放っておけば引っ込むことを伝える。
- * 1分未満は「たった今」、1時間以上は時間で丸める。
+ * 起点からの経過時間(「42分」「3時間」)。
+ *
+ * 「記録を作成してから◯◯経過」「最後の対戦から◯◯経過」の◯◯にあたる部分で、
+ * 前後の言い回しは呼び出し側が付ける。放っておけば引っ込むことを伝えるための添え物。
+ *
+ * 1分未満も「1分」に丸める。「0分経過」「たった今経過」はどちらも据わりが悪く、
+ * かといってここだけ言い回しを変えると呼び出し側が分岐を抱えることになる。
  */
-export function formatElapsedSince(lastActiveAt: string, now: number = Date.now()): string {
+export function formatElapsedDuration(lastActiveAt: string, now: number = Date.now()): string {
   const time = new Date(lastActiveAt).getTime();
   if (Number.isNaN(time)) return "";
 
   const elapsedMinutes = Math.floor((now - time) / (60 * 1000));
-  if (elapsedMinutes < 1) return "たった今";
-  if (elapsedMinutes < 60) return `${elapsedMinutes}分前`;
+  if (elapsedMinutes < 60) return `${Math.max(1, elapsedMinutes)}分`;
 
-  return `${Math.floor(elapsedMinutes / 60)}時間前`;
+  return `${Math.floor(elapsedMinutes / 60)}時間`;
 }
+

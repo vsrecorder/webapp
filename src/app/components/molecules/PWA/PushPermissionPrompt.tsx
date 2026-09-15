@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+
+import BottomBanner from "@app/components/molecules/BottomBanner";
 import { usePathname } from "next/navigation";
 import { Button, addToast } from "@heroui/react";
-import { LuBellRing, LuX } from "react-icons/lu";
+import { LuBellRing } from "react-icons/lu";
 import { sendGAEvent } from "@next/third-parties/google";
 
 import { useClientValue } from "@app/hooks/useClientValue";
@@ -41,6 +43,11 @@ export type InstallBannerState = "none" | "pending" | "visible";
 type Props = {
   userId: string | null;
   installBannerState?: InstallBannerState;
+  /*
+   * 表示状態の変化を親(PwaBanners)へ知らせる。画面下の帯は同時に1枚しか出さないので、
+   * 親はこれを見て優先度の低いもの(記録中バー)を抑止する。
+   */
+  onOpenChange?: (open: boolean) => void;
 };
 
 /*
@@ -60,6 +67,7 @@ type Props = {
 export default function PushPermissionPrompt({
   userId,
   installBannerState = "none",
+  onOpenChange,
 }: Props) {
   const pathname = usePathname();
   const { ready, support, permission, subscribed, busy, subscribe } = usePushSubscription();
@@ -144,6 +152,10 @@ export default function PushPermissionPrompt({
     }
   }, [source]);
 
+  useEffect(() => {
+    onOpenChange?.(source !== null);
+  }, [source, onOpenChange]);
+
   if (!source) return null;
 
   const handleAccept = async () => {
@@ -188,26 +200,15 @@ export default function PushPermissionPrompt({
   return (
     // 位置はホーム画面追加バナーと同じ(同時には出ない。PwaBanners 参照)。
     // デスクトップ幅(lg 以上)では PwaBanners がマウントしないので、モバイルの位置だけ持つ。
-    <div className="fixed z-50 bottom-[calc(var(--mobile-nav-height)+env(safe-area-inset-bottom)+0.5rem)] left-2 right-2 rounded-2xl bg-content1/95 backdrop-blur-md shadow-xl border border-divider">
+    <BottomBanner dismissLabel="あとで" onDismiss={handleDismiss}>
       {/* 高さを抑えるため、CTA は独立した行にせずリストの右へ回す(右下の位置は保つ)。
           左カラムが「何がいつ届くか」、右下が操作、という2ブロックだけの構成 */}
       <div className="relative px-4 py-2.5">
         {/* 閉じるは右上に絶対配置し、文言の行から追い出す(文言の幅を削らないため) */}
-        <Button
-          isIconOnly
-          size="sm"
-          variant="light"
-          radius="full"
-          aria-label="あとで"
-          className="absolute top-0.5 right-0.5 text-default-400 hover:text-default-600"
-          onPress={handleDismiss}
-        >
-          <LuX className="w-4 h-4" />
-        </Button>
 
         {/* 導線(記録直後 / ホーム)によらず、訴求は「先週のバトルレポートが届く」に揃える。
-            pr-8 は右上の閉じるボタンぶんの逃げ(タイトルが折り返しても重ならない) */}
-        <div className="flex items-center gap-2 pr-8">
+            は右上の閉じるボタンぶんの逃げ(タイトルが折り返しても重ならない) */}
+        <div className="flex items-center gap-2">
           <span className="w-5 h-5 rounded-md bg-primary/10 text-primary inline-flex items-center justify-center shrink-0">
             <LuBellRing className="w-3 h-3" />
           </span>
@@ -248,6 +249,6 @@ export default function PushPermissionPrompt({
           </Button>
         </div>
       </div>
-    </div>
+    </BottomBanner>
   );
 }

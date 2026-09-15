@@ -3,13 +3,17 @@ import { describe, expect, it } from "vitest";
 import { MatchSummaryType } from "@app/types/match";
 import { RecordType } from "@app/types/record";
 import {
+  RECORDING_BAR_HIDDEN_MS,
   RECORDING_WINDOW_AFTER_MATCH_MS,
   RECORDING_WINDOW_NO_MATCH_MS,
-  formatElapsedSince,
+  formatElapsedDuration,
+  isRecordingBarHidden,
   isRecordingDismissed,
   isWithinRecordingWindow,
-  pickTodaysRecord,
+  pickRecordingCandidate,
   recordingActivityOf,
+  recordingBarHiddenUntil,
+  recordingBarHiddenValue,
   recordingDismissedValue,
 } from "@app/utils/recordingNow";
 
@@ -50,19 +54,19 @@ function summary(total: number, lastMatchAt: string | null): MatchSummaryType {
   };
 }
 
-describe("pickTodaysRecord", () => {
+describe("pickRecordingCandidate", () => {
   // event_date は DATE カラムのため UTC 0時で返る。JSTの暦日として読めること
   it("今日(JST)のイベント日を持つ記録を返す", () => {
     const today = record("r1", "2026-09-15T00:00:00Z", "2026-09-15T01:00:00Z");
 
-    expect(pickTodaysRecord([today], "2026-09-15")?.data.id).toBe("r1");
+    expect(pickRecordingCandidate([today], "2026-09-15")?.data.id).toBe("r1");
   });
 
   it("一覧の並び(event_date DESC)のまま最初に見つかった1件を返す", () => {
     const newer = record("r2", "2026-09-15T00:00:00Z", "2026-09-15T09:00:00Z");
     const older = record("r1", "2026-09-15T00:00:00Z", "2026-09-15T01:00:00Z");
 
-    expect(pickTodaysRecord([newer, older], "2026-09-15")?.data.id).toBe("r2");
+    expect(pickRecordingCandidate([newer, older], "2026-09-15")?.data.id).toBe("r2");
   });
 
   it("未来日の記録は候補にしない", () => {
@@ -70,19 +74,36 @@ describe("pickTodaysRecord", () => {
     const today = record("r1", "2026-09-15T00:00:00Z", "2026-09-15T02:00:00Z");
 
     // 大会の予定を先に作っていると一覧の先頭は未来日になる。飛ばして今日の記録を拾う
-    expect(pickTodaysRecord([future, today], "2026-09-15")?.data.id).toBe("r1");
+    expect(pickRecordingCandidate([future, today], "2026-09-15")?.data.id).toBe("r1");
   });
 
-  it("昨日の記録しか無ければ null", () => {
-    const yesterday = record("r1", "2026-09-14T00:00:00Z", "2026-09-14T01:00:00Z");
+  /*
+   * 日付をまたいで記録を続けることがある(PTCGL の深夜・大会のあとの入力)。
+   * 0時で消えると、いちばん記録したい場面で使えない。
+   */
+  it("昨日のイベント日でも候補にする", () => {
+    const yesterday = record("r1", "2026-09-14T00:00:00Z", "2026-09-14T22:00:00Z");
 
-    expect(pickTodaysRecord([yesterday], "2026-09-15")).toBeNull();
+    expect(pickRecordingCandidate([yesterday], "2026-09-15")?.data.id).toBe("r1");
+  });
+
+  it("一昨日より前は候補にしない", () => {
+    const older = record("r1", "2026-09-13T00:00:00Z", "2026-09-13T01:00:00Z");
+
+    // あとから整理しているだけなので、記録中とは見なさない
+    expect(pickRecordingCandidate([older], "2026-09-15")).toBeNull();
+  });
+
+  it("月をまたいでも前日として扱う", () => {
+    const lastMonth = record("r1", "2026-08-31T00:00:00Z", "2026-08-31T22:00:00Z");
+
+    expect(pickRecordingCandidate([lastMonth], "2026-09-01")?.data.id).toBe("r1");
   });
 
   it("イベント日が未設定の記録は候補にしない", () => {
     const noDate = record("r1", "", "2026-09-15T01:00:00Z");
 
-    expect(pickTodaysRecord([noDate], "2026-09-15")).toBeNull();
+    expect(pickRecordingCandidate([noDate], "2026-09-15")).toBeNull();
   });
 });
 
@@ -179,37 +200,86 @@ describe("isWithinRecordingWindow", () => {
 });
 
 describe("isRecordingDismissed", () => {
-  it("今日その記録を閉じていれば true", () => {
-    const value = recordingDismissedValue("2026-09-15", "r1");
-
-    expect(isRecordingDismissed(value, "r1", "2026-09-15")).toBe(true);
+  it("その記録を閉じていれば true", () => {
+    expect(isRecordingDismissed(recordingDismissedValue("r1"), "r1")).toBe(true);
   });
 
-  it("日付が変われば無効になる", () => {
-    const value = recordingDismissedValue("2026-09-14", "r1");
+  /*
+   * 記録中が日付をまたぐので、閉じた印も日付では切らない
+   * (切ると「終えたはずの記録が0時に戻ってくる」)。失効は cookie の寿命に任せる。
+   */
+  it("日付が変わっても効いたままにする", () => {
+    const value = recordingDismissedValue("r1");
 
-    expect(isRecordingDismissed(value, "r1", "2026-09-15")).toBe(false);
+    expect(isRecordingDismissed(value, "r1")).toBe(true);
   });
 
   it("別の記録には効かない", () => {
-    const value = recordingDismissedValue("2026-09-15", "r1");
+    expect(isRecordingDismissed(recordingDismissedValue("r1"), "r2")).toBe(false);
+  });
 
-    expect(isRecordingDismissed(value, "r2", "2026-09-15")).toBe(false);
+  // 入れ替わりの日に終えた人のカードが翌日いちど戻らないよう、旧形式も受ける
+  it("以前の形式(YYYY-MM-DD:recordId)でも効く", () => {
+    expect(isRecordingDismissed("2026-09-15:r1", "r1")).toBe(true);
+    expect(isRecordingDismissed("2026-09-15:r1", "r2")).toBe(false);
   });
 
   it("cookie が無い・壊れている場合は閉じていない扱い", () => {
-    expect(isRecordingDismissed(null, "r1", "2026-09-15")).toBe(false);
-    expect(isRecordingDismissed("", "r1", "2026-09-15")).toBe(false);
-    expect(isRecordingDismissed("こわれた値", "r1", "2026-09-15")).toBe(false);
+    expect(isRecordingDismissed(null, "r1")).toBe(false);
+    expect(isRecordingDismissed("", "r1")).toBe(false);
+    expect(isRecordingDismissed("こわれた値", "r1")).toBe(false);
   });
 });
 
-describe("formatElapsedSince", () => {
+/*
+ * 画面下のバーの「×」は、記録を終えずにバーだけを引っ込める。
+ * 大会の合間に一度どけても、次の試合が終わる頃にはまた出ていてほしいので時間で明ける。
+ */
+describe("isRecordingBarHidden", () => {
+  const closedAt = new Date("2026-09-15T12:00:00Z").getTime();
+  const value = recordingBarHiddenValue("r1", closedAt);
+
+  it("閉じた直後は引っ込めたまま", () => {
+    expect(isRecordingBarHidden(value, "r1", closedAt + 1000)).toBe(true);
+  });
+
+  it("10分経てばまた出す", () => {
+    expect(isRecordingBarHidden(value, "r1", closedAt + RECORDING_BAR_HIDDEN_MS - 1)).toBe(
+      true,
+    );
+    expect(isRecordingBarHidden(value, "r1", closedAt + RECORDING_BAR_HIDDEN_MS)).toBe(
+      false,
+    );
+  });
+
+  it("別の記録には効かない", () => {
+    expect(isRecordingBarHidden(value, "r2", closedAt + 1000)).toBe(false);
+  });
+
+  it("値が無い・壊れていれば引っ込めない", () => {
+    expect(isRecordingBarHidden(null, "r1", closedAt)).toBe(false);
+    expect(isRecordingBarHidden("", "r1", closedAt)).toBe(false);
+    expect(isRecordingBarHidden("r1", "r1", closedAt)).toBe(false);
+    expect(isRecordingBarHidden("r1:こわれた値", "r1", closedAt)).toBe(false);
+  });
+
+  it("明ける時刻を返す(呼び出し側がタイマーを張れる)", () => {
+    expect(recordingBarHiddenUntil(value, "r1")).toBe(closedAt + RECORDING_BAR_HIDDEN_MS);
+    expect(recordingBarHiddenUntil(value, "r2")).toBeNull();
+  });
+});
+
+describe("formatElapsedDuration", () => {
   const now = new Date("2026-09-15T12:00:00Z").getTime();
 
   it("経過時間を分と時間で丸める", () => {
-    expect(formatElapsedSince("2026-09-15T11:59:30Z", now)).toBe("たった今");
-    expect(formatElapsedSince("2026-09-15T11:18:00Z", now)).toBe("42分前");
-    expect(formatElapsedSince("2026-09-15T09:30:00Z", now)).toBe("2時間前");
+    expect(formatElapsedDuration("2026-09-15T11:18:00Z", now)).toBe("42分");
+    expect(formatElapsedDuration("2026-09-15T09:30:00Z", now)).toBe("2時間");
+  });
+
+  // 「0分経過」「たった今経過」は据わりが悪いので、下は1分で止める
+  it("1分未満も1分として出す", () => {
+    expect(formatElapsedDuration("2026-09-15T11:59:30Z", now)).toBe("1分");
+    expect(formatElapsedDuration("2026-09-15T12:00:00Z", now)).toBe("1分");
   });
 });

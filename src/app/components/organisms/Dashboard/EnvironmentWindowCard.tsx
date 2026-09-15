@@ -3,20 +3,23 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 
-import { Button, Card, CardBody, Chip, useDisclosure } from "@heroui/react";
+import { Button, Card, CardBody, Chip, Tab, Tabs, useDisclosure } from "@heroui/react";
 import { LuChevronDown, LuChevronRight, LuFilePen, LuLock } from "react-icons/lu";
 import { sendGAEvent } from "@next/third-parties/google";
 
 import DeckSprites from "@app/components/molecules/DeckSprites";
+import { WeeklyDeckUsageGroupingNote } from "@app/components/organisms/DeckMeta/WeeklyDeckUsageTexts";
 import DeckCodeQuickStartModal from "@app/components/organisms/Deck/Modal/DeckCodeQuickStartModal";
 import EnvironmentWindowCardSkeleton from "@app/components/organisms/Dashboard/Skeleton/EnvironmentWindowCardSkeleton";
-import { fingerprintKey } from "@app/utils/fingerprint";
+import { deckFingerprintKey } from "@app/utils/fingerprint";
+import { DEFAULT_DECK_USAGE_GROUPING } from "@app/utils/deckUsageGrouping";
 import { rankableDecks, exclOtherTotalOf } from "@app/utils/deckEnv";
 import { lastWeekValue } from "@app/utils/week";
 import { DECK_USAGE_ALL_TIME_QUERY } from "@app/utils/excludeDefaultMatches";
 import { DeckData, DeckGetAllType, isFavoritedDeck } from "@app/types/deck";
 import { DeckUsageItemType, DeckUsageStatType } from "@app/types/deck_usage_stat";
 import {
+  WeeklyDeckUsageGroupingType,
   WeeklyDeckUsageItemType,
   WeeklyDeckUsageStatType,
 } from "@app/types/weekly_deck_usage_stat";
@@ -526,6 +529,38 @@ function RecordCtaButton({
   );
 }
 
+/*
+ * 集計単位(どこまでを「同じデッキ」として束ねるか)の切り替え。対戦環境分析
+ * (WeeklyDeckUsagePanel)と同じ2択・同じ文言にする。
+ *
+ * 下段の使用率ランキングだけでなく、上段の「あなたのデッキは環境◯位」にも効く
+ * (自分のデッキの指紋も同じ単位で作り直す)ため、カードの先頭に置く。
+ */
+function GroupingTabs({
+  grouping,
+  onChange,
+}: {
+  grouping: WeeklyDeckUsageGroupingType;
+  onChange: (grouping: WeeklyDeckUsageGroupingType) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Tabs
+        fullWidth
+        size="sm"
+        selectedKey={grouping}
+        onSelectionChange={(key) => onChange(key as WeeklyDeckUsageGroupingType)}
+        classNames={{ tab: "h-7", tabContent: "font-bold text-xs" }}
+        aria-label="デッキのまとめ方"
+      >
+        <Tab key="exact" title="組み合わせ別" />
+        <Tab key="first_sprite" title="1体目でまとめる" />
+      </Tabs>
+      <WeeklyDeckUsageGroupingNote grouping={grouping} />
+    </div>
+  );
+}
+
 function BetaHeader({ stat }: { stat: WeeklyDeckUsageStatType }) {
   const period =
     stat.week_start && stat.week_end ? `${stat.week_start} 〜 ${stat.week_end} の週` : "";
@@ -734,6 +769,11 @@ export default function EnvironmentWindowCard({
   showEmptyState = false,
 }: Props) {
   const [stat, setStat] = useState<WeeklyDeckUsageStatType | null>(null);
+  // デッキのまとめ方(組み合わせ別 / 1体目でまとめる)。対戦環境分析と同じ2択で、
+  // 環境ランキングと自分のデッキの順位の両方がこの単位で決まる。
+  const [grouping, setGrouping] = useState<WeeklyDeckUsageGroupingType>(
+    DEFAULT_DECK_USAGE_GROUPING,
+  );
   const [userDecks, setUserDecks] = useState<DeckData[] | null>(null);
   // あなたのデッキ別実績(deck-usage)。取得失敗・未対応でも致命ではないので空配列で続行する。
   const [deckUsage, setDeckUsage] = useState<DeckUsageItemType[]>([]);
@@ -741,17 +781,15 @@ export default function EnvironmentWindowCard({
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
-  // 環境ランキング（公開）・自分の登録デッキ（要ログイン）・デッキ別実績を並行取得する。
-  // 環境とデッキのどちらかが失敗したら、誤情報を出さないためカードごと非表示にする。
+  // 自分の登録デッキ（要ログイン）とデッキ別実績を取得する。どちらも集計単位に依らないので、
+  // まとめ方を切り替えても取り直さない。デッキが取れなければ、誤情報を出さないため
+  // カードごと非表示にする。
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
       try {
-        const [statRes, decksRes, usageRes] = await Promise.all([
-          fetch(`/api/deck_meta/weekly_usage?week=${lastWeekValue()}`, {
-            cache: "no-store",
-          }),
+        const [decksRes, usageRes] = await Promise.all([
           // デッキ選択の候補は「持っているデッキ全部」でなければならない。
           // ページングの /api/decks は1ページ10件で、11個目以降が候補から
           // 落ちる(スプライト付きのデッキが全て溢れると識別不能扱いにもなる)ため、
@@ -765,13 +803,11 @@ export default function EnvironmentWindowCard({
           }).catch(() => null),
         ]);
 
-        if (!statRes.ok || !decksRes.ok) throw new Error("fetch failed");
+        if (!decksRes.ok) throw new Error("fetch failed");
 
-        const statData: WeeklyDeckUsageStatType = await statRes.json();
         const decksData: DeckGetAllType = await decksRes.json();
 
         if (cancelled) return;
-        setStat(statData);
         setUserDecks(decksData);
 
         if (usageRes && usageRes.ok) {
@@ -790,6 +826,33 @@ export default function EnvironmentWindowCard({
     };
   }, [userId]);
 
+  // 環境ランキング（公開）。まとめ方を変えるとサーバ側の集計そのものが変わるので取り直す。
+  // 届くまでは前のまとめ方の結果を出したままにする(骨格へ戻すとカードごと跳ねるため)。
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      try {
+        const res = await fetch(
+          `/api/deck_meta/weekly_usage?week=${lastWeekValue()}&grouping=${grouping}`,
+          { cache: "no-store" },
+        );
+        if (!res.ok) throw new Error("fetch failed");
+
+        const statData: WeeklyDeckUsageStatType = await res.json();
+        if (!cancelled) setStat(statData);
+      } catch (e) {
+        console.error(e);
+        if (!cancelled) setFailed(true);
+      }
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [grouping]);
+
   // ランキング対象（「その他」= 空指紋を除く・使用率降順）。共通ロジックに集約(deckEnv)。
   const rankable = useMemo(() => (stat ? rankableDecks(stat) : []), [stat]);
 
@@ -807,7 +870,7 @@ export default function EnvironmentWindowCard({
     if (!userDecks) return [];
     const list: DeckPosition[] = [];
     for (const deck of userDecks) {
-      const fp = fingerprintKey((deck.pokemon_sprites ?? []).map((s) => s.id));
+      const fp = deckFingerprintKey(deck.pokemon_sprites, grouping);
       if (fp === "") continue; // スプライト未設定は環境上で識別できないため選択肢に出さない
       const idx = rankable.findIndex((d) => d.fingerprint === fp);
       list.push({
@@ -828,7 +891,7 @@ export default function EnvironmentWindowCard({
       if (b.rank == null) return -1;
       return a.rank - b.rank;
     });
-  }, [userDecks, rankable]);
+  }, [userDecks, rankable, grouping]);
 
   const hasRanked = deckPositions.some((p) => p.rank != null);
 
@@ -910,6 +973,7 @@ export default function EnvironmentWindowCard({
       <Card className="shadow-md">
         <CardBody className="gap-3 p-4">
           <BetaHeader stat={stat} />
+          <GroupingTabs grouping={grouping} onChange={setGrouping} />
 
           {renderMode === "C" ? (
             <>

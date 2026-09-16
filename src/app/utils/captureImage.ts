@@ -320,6 +320,33 @@ function replaceOuterBoxShadows(root: HTMLElement, isDark: boolean): void {
 }
 
 /*
+ * 書き出しでコピーする CSS プロパティの一覧。
+ *
+ * 描画ライブラリは、複製した要素ひとつひとつに計算済みスタイルを書き写す。その対象は
+ * 既定では「:root の計算済みスタイルを列挙したもの」で、Chrome 141 以降はそこに
+ * Tailwind / HeroUI のカスタムプロパティが 300 個以上入る(実測: 779 個中 304 個)。
+ * 全要素ぶん書き写すとそれだけで書き出しが重くなる
+ * (実測: 280要素・画像60枚の戦績カード / CPU 4倍スロットル で 3.3〜3.9秒 → 1.7〜2.4秒)。
+ *
+ * カスタムプロパティが要るのは、書き出し先の SVG 文書で var() を解決するときだけで、
+ * それは inlineSvgVarPaints で先に解決済みにしてある。なので標準プロパティだけ写せば足りる
+ * (実測: 除外あり・なしで書き出し画像は1画素も変わらない)。
+ *
+ * Chrome 141 より前・Firefox・Safari では列挙の中身が変わるだけで、除外しても
+ * 従来と同じ一覧になる(それらの列挙にカスタムプロパティは含まれない/含まれても同じ扱い)。
+ */
+let captureStyleProperties: string[] | null = null;
+
+export function getCaptureStyleProperties(): string[] {
+  if (!captureStyleProperties) {
+    captureStyleProperties = Array.from(
+      getComputedStyle(document.documentElement),
+    ).filter((name) => !name.startsWith("--"));
+  }
+  return captureStyleProperties;
+}
+
+/*
  * SVG の子要素に CSS 変数で指定された塗り(fill / stroke)を、解決済みの値へ書き戻す。
  *
  * 描画ライブラリ(html-to-image)は <svg> を丸ごと複製するだけで、その子要素には
@@ -591,6 +618,7 @@ export async function captureThemedPng(
       const context: Context = await createContext(container, {
         scale: pixelRatio,
         backgroundColor: bgColor,
+        includeStyleProperties: getCaptureStyleProperties(),
         fetch: { bypassingCache: true, placeholderImage: TRANSPARENT_PIXEL },
         onCreateForeignObjectSvg: () => {
           context.drawImageCount = Math.min(context.drawImageCount, MAX_REDRAW);
@@ -610,6 +638,7 @@ export async function captureThemedPng(
       pixelRatio,
       backgroundColor: bgColor,
       imagePlaceholder: TRANSPARENT_PIXEL,
+      includeStyleProperties: getCaptureStyleProperties(),
     });
   } finally {
     document.body.removeChild(wrapper);

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { inlineSvgVarPaints } from "@app/utils/captureImage";
+import { getCaptureStyleProperties, inlineSvgVarPaints } from "@app/utils/captureImage";
 
 /*
  * jsdom の getComputedStyle は SVG の塗り(fill / stroke)を解決しないため、
@@ -88,5 +88,29 @@ describe("inlineSvgVarPaints", () => {
 
     const div = root.querySelector("div") as HTMLElement;
     expect(div.style.fill).toBe("hsl(var(--heroui-danger))");
+  });
+});
+
+// 一覧はモジュール内に1つだけ持つ(描画ライブラリ側も1回で確定させるため)。
+// そのため、この describe より前に getCaptureStyleProperties を呼ぶテストは足さないこと。
+describe("getCaptureStyleProperties", () => {
+  // 書き出しでコピーするプロパティの一覧。カスタムプロパティは inlineSvgVarPaints で
+  // 解決済みにしてあるぶん不要で、全要素へ写すと書き出しが重くなる
+  it("カスタムプロパティを除いた一覧を返し、2回目は同じ配列を使い回す", () => {
+    const enumerated = Object.assign(
+      { length: 4 },
+      { 0: "color", 1: "--heroui-danger", 2: "stroke", 3: "--tw-rotate" },
+    );
+    const spy = vi
+      .spyOn(window, "getComputedStyle")
+      .mockReturnValue(enumerated as unknown as CSSStyleDeclaration);
+
+    const first = getCaptureStyleProperties();
+    expect(first).toEqual(["color", "stroke"]);
+
+    // 描画ライブラリ側も一覧を1回だけ確定させるため、こちらも作り直さない
+    const second = getCaptureStyleProperties();
+    expect(second).toBe(first);
+    expect(spy).toHaveBeenCalledTimes(1);
   });
 });

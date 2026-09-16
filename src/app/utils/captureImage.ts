@@ -319,6 +319,41 @@ function replaceOuterBoxShadows(root: HTMLElement, isDark: boolean): void {
   }
 }
 
+/*
+ * SVG の子要素に CSS 変数で指定された塗り(fill / stroke)を、解決済みの値へ書き戻す。
+ *
+ * 描画ライブラリ(html-to-image)は <svg> を丸ごと複製するだけで、その子要素には
+ * 計算済みスタイルをコピーしない(clone-node の cloneChildren が <svg> で打ち切る)。
+ * そのため stroke="hsl(var(--heroui-danger))" のような指定は文字列のまま書き出し用の
+ * SVG 文書へ運ばれ、アプリの CSS が無いその文書で変数を解決できるかどうかは
+ * ブラウザ任せになる。html-to-image は :root の計算済みスタイルを列挙して
+ * カスタムプロパティを各要素へ写しているが、Chromium がその列挙にカスタムプロパティを
+ * 含めるようになったのは Chrome 141 から(それ以前は列挙から漏れるバグがあった)。
+ * 実測: Chromium 131 では勝率リングが書き出し画像から丸ごと消え、151 では出る。
+ *
+ * 画面上では var() はどのブラウザでも解決できているので、ここで計算済みの値を
+ * 直接載せてしまえば、書き出しでも同じ絵になる。
+ *
+ * 対象は「var( を含む指定」だけに絞る。全要素の塗りを書き戻すと、グラデーションの
+ * 参照(kizuna の fill="url(#…)")のような、触る必要の無いものまで書き換えてしまうため。
+ *
+ * クローンを DOM へ入れてテーマ(.light)を付けた後に呼ぶこと。入れる前に呼ぶと
+ * 計算値が取れず、色を空で上書きしてしまう。
+ */
+export function inlineSvgVarPaints(root: HTMLElement): void {
+  for (const el of Array.from(root.querySelectorAll<SVGElement>("svg *"))) {
+    for (const prop of ["fill", "stroke"] as const) {
+      // 属性・インラインスタイルのどちらで指定されていても拾う
+      const specified = `${el.getAttribute(prop) ?? ""} ${el.style.getPropertyValue(prop)}`;
+      if (!specified.includes("var(")) continue;
+
+      const resolved = getComputedStyle(el).getPropertyValue(prop);
+      // 解決できなかったときは元の指定を残す(空で上書きすると色を失う)
+      if (resolved) el.style.setProperty(prop, resolved);
+    }
+  }
+}
+
 // 実行環境(ENV)はサーバー側でしか参照できないため、layout.tsxが<html>に埋め込んだ
 // data-env属性から取得する（クライアント側でNEXT_PUBLIC_*を使わない理由はappIcon.ts参照）
 function getAppIconSrc(): string {
@@ -522,6 +557,9 @@ export async function captureThemedPng(
     forceLoadedImagesVisible(container);
     // 外側の影は iOS で帯として描かれてしまう。端末で見た目が割れないよう全端末で置き換える。
     replaceOuterBoxShadows(container, isDark);
+    // SVG の子要素に CSS 変数で入れた色は、ブラウザによっては書き出しで解決できない。
+    // テーマを付け終えたこの時点で、計算済みの値へ置き換えておく。
+    inlineSvgVarPaints(container);
 
     // 実レイアウト後のサイズから、canvas 制限を超えない pixelRatio を決める。
     // 縦長の記録(対戦数が多い)で高い pixelRatio のまま描画すると、iOS では

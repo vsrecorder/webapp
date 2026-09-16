@@ -7,6 +7,7 @@ import { LuTriangleAlert, LuIdCard } from "react-icons/lu";
 import LinkPlayerIdModal from "@app/components/organisms/User/Modal/LinkPlayerIdModal";
 import { UserPlayerType } from "@app/types/user_player";
 import { savePlayerLinkedCache, usePlayerLinkedHint } from "@app/utils/playerLinkCache";
+import { triggerPlayerLinkChanged } from "@app/utils/playerLinkEvents";
 import { formatJSTDateNumeric } from "@app/utils/date";
 
 export default function PlayerLinkCard() {
@@ -151,6 +152,8 @@ export default function PlayerLinkCard() {
         onLinked={(linked) => {
           setUserPlayer(linked);
           savePlayerLinkedCache(linked != null);
+          // 同じページの称号カードは独立に連携状態を取っているので、取り直してもらう
+          triggerPlayerLinkChanged();
         }}
       />
     </>

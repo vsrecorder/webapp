@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, Fragment } from "react";
 
 import { useSeededResource } from "@app/hooks/useSeededResource";
+import { onPlayerLinkChanged } from "@app/utils/playerLinkEvents";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -234,15 +235,37 @@ export default function DesignationPanel({
     initialSeason === season ? initialDesignation : undefined,
   );
 
-  // プレイヤーズクラブの連携状態。サーバで取れていなければここで取る
-  useEffect(() => {
-    if (initialUserPlayer !== undefined) return;
-
+  const loadPlayerLink = useCallback(() => {
     fetch("/api/usersplayers", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((data: UserPlayerType | null) => setIsPlayerLinked(data != null))
       .catch(() => setIsPlayerLinked(false));
-  }, [initialUserPlayer]);
+  }, []);
+
+  // プレイヤーズクラブの連携状態。サーバで取れていなければここで取る
+  useEffect(() => {
+    if (initialUserPlayer !== undefined) return;
+
+    loadPlayerLink();
+  }, [initialUserPlayer, loadPlayerLink]);
+
+  /*
+   * 同じページの連携カードで連携されたら取り直す。
+   *
+   * 連携状態はこのパネルもマウント時に1回しか取らず、サーバから初期値を受け取った
+   * ときは取りにも行かない。そのため連携しても「連携すると入賞が称号になる」という
+   * 案内が残ってしまう。初期値の有無にかかわらず取り直す(初期値は連携前の値なので)。
+   *
+   * 称号そのものも連携したプレイヤーIDの入賞で決まるため、併せて取り直す。
+   */
+  useEffect(
+    () =>
+      onPlayerLinkChanged(() => {
+        loadPlayerLink();
+        loadDesignation();
+      }),
+    [loadPlayerLink, loadDesignation],
+  );
 
   useEffect(() => {
     // ランク一覧モーダルを開いたときだけ取得する(通常表示では不要な集計クエリのため)

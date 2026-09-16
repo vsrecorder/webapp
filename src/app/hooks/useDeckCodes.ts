@@ -1,13 +1,23 @@
 "use client";
 
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 
-import useSWR from "swr";
+import useSWR, { useSWRConfig } from "swr";
 
 import { DeckCodeType } from "@app/types/deck_code";
 
+// デッキコード一覧の取得先。件数を出す側(ShowDeckModal の「◯件」・DeckCard 等)と
+// バージョン履歴(DisplayDeckCodes)が同じデッキを指すので、鍵を1か所で決めておき、
+// 取り直しの対象がずれないようにする。
+export function deckCodesKey(deckId: string) {
+  return `/api/decks/${deckId}/deckcodes`;
+}
+
 async function fetcher(url: string): Promise<DeckCodeType[]> {
   const res = await fetch(url, {
+    // バージョンの追加・削除の直後に取り直すため、HTTPキャッシュに当てさせない
+    // (バージョン履歴側の fetchDeckCodesByDeckId と同じ扱い)
+    cache: "no-store",
     method: "GET",
     headers: {
       Accept: "application/json",
@@ -33,7 +43,7 @@ export function useDeckCodes(
   watchDeckCodeId?: string | null,
 ) {
   const { data, error, isLoading, mutate } = useSWR<DeckCodeType[], Error>(
-    deckId ? `/api/decks/${deckId}/deckcodes` : null,
+    deckId ? deckCodesKey(deckId) : null,
     fetcher,
   );
 
@@ -51,6 +61,30 @@ export function useDeckCodes(
     error,
     mutate,
   };
+}
+
+/*
+ * バージョンの増減を、件数を出している側(ShowDeckModal の「◯件」など)へ反映させる。
+ *
+ * バージョン履歴(DisplayDeckCodes)は SWR ではなく useSeededResource で一覧を持ち、
+ * 追加・削除・最新化の結果を自分の state にだけ反映する。そのため履歴で増減させても
+ * useDeckCodes の SWR キャッシュは古いままで、件数が変わらない。
+ *
+ * useDeckCodes は watchDeckCodeId(表示中のバージョンID)の変化でも取り直すが、
+ * 表示中でないバージョンを削除したときは ID が変わらないため取り直しが起きない。
+ * 増減させた側から明示的にこれを呼ぶ。
+ */
+export function useRevalidateDeckCodes() {
+  const { mutate } = useSWRConfig();
+
+  return useCallback(
+    (deckId: string | null | undefined) => {
+      if (!deckId) return;
+
+      return mutate(deckCodesKey(deckId));
+    },
+    [mutate],
+  );
 }
 
 // deckcodes（作成日時降順で取得した全バージョン）の中から、

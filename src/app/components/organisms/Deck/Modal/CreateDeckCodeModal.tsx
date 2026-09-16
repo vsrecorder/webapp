@@ -20,6 +20,7 @@ import TagSelectorAccordion from "@app/components/organisms/Tag/TagSelectorAccor
 import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
 import { normalizeDeckCode } from "@app/utils/deckCode";
 import { useSyncOnChange } from "@app/hooks/useSyncOnChange";
+import { useRevalidateDeckCodes } from "@app/hooks/useDeckCodes";
 
 const DECK_CODE_LENGTH = 20;
 const DECK_CODE_CHECK_DEBOUNCE_MS = 500;
@@ -41,6 +42,9 @@ export default function CreateDeckCodeModal({
   isOpen,
   onOpenChange,
 }: Props) {
+  // 作成後にバージョン件数(ShowDeckModal の「◯件」など)を取り直すため
+  const revalidateDeckCodes = useRevalidateDeckCodes();
+
   const [imageLoaded, setImageLoaded] = useState(false);
   const [newdeckcode, setNewDeckCode] = useState<string>("");
   const [memo, setMemo] = useState<string>("");
@@ -167,6 +171,9 @@ export default function CreateDeckCodeModal({
       });
 
       setDeckCode(ret);
+
+      // 件数を出している側は SWR キャッシュを見ているので、ここで取り直す
+      revalidateDeckCodes(deck.id);
 
       onClose();
     } catch (error) {

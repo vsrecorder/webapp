@@ -2,6 +2,8 @@ import { SetStateAction, Dispatch } from "react";
 
 import { useEffect, useRef, useState } from "react";
 
+import { mutate } from "swr";
+
 import {
   ModalContent,
   ModalHeader,
@@ -51,6 +53,8 @@ import {
 
 import { useModalDragToClose } from "@app/hooks/useModalDragToClose";
 import { useSeededResource } from "@app/hooks/useSeededResource";
+import { useRevalidateDeckCodes } from "@app/hooks/useDeckCodes";
+import { deckActivePostsKey } from "@app/hooks/useDeckActivePosts";
 import { useModalEntered } from "@app/hooks/useModalEntered";
 import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
 import { closingPassthroughClassNames } from "@app/utils/modal";
@@ -98,6 +102,10 @@ export default function DisplayDeckCodesModal({
   onClose,
   onOpenCreateDeckCode,
 }: Props) {
+  // 追加・削除・最新化のあとにバージョン件数(ShowDeckModal の「◯件」など)を取り直すため。
+  // この一覧は SWR ではなく useSeededResource で持っているので、件数側とは別のキャッシュになる
+  const revalidateDeckCodes = useRevalidateDeckCodes();
+
   const [displayDeckCode, setDisplayDeckCode] = useState<DeckCodeType | null>(null);
   // バージョン一覧。開いている間だけ取り(閉じている間は鍵なし)、失敗時は retry で取り直す。
   // 作成・削除・最新化の結果は setData で一覧へ反映する
@@ -253,6 +261,18 @@ export default function DisplayDeckCodesModal({
         return filtered;
       });
 
+      // 件数を出している側は SWR キャッシュを見ているので、ここで取り直す。
+      // 表示中でないバージョンを消したときは deckcode の ID が変わらず、
+      // useDeckCodes 側の取り直しが働かないため、この呼び出しが必要になる
+      revalidateDeckCodes(deck?.id);
+
+      // サーバはバージョンの削除と同時に、そのバージョンの投稿(みんなの公開デッキ)も
+      // 取り下げる(DeckCode.Delete の UnpublishByDeckCodeId)。公開中の数を出している
+      // 側はそれを知らないので、ここで取り直す
+      if (deck?.id) {
+        mutate(deckActivePostsKey(deck.id));
+      }
+
       // deckcodeをリセット
       setDisplayDeckCode(null);
 
@@ -355,6 +375,10 @@ export default function DisplayDeckCodesModal({
           : prev,
       );
 
+      // デッキ詳細のバージョン一覧は SWR キャッシュのメモ・タグを出しているので取り直す。
+      // 編集では deckcode の ID が変わらず、useDeckCodes 側の取り直しは働かない
+      revalidateDeckCodes(deck?.id);
+
       onClose();
     } catch (error) {
       console.error(error);
@@ -442,6 +466,9 @@ export default function DisplayDeckCodesModal({
       // 表示中のデッキコードを新バージョンに更新する。
       // deckcode の変化を監視する useEffect が一覧の先頭へ追加する。
       setDeckCode(ret);
+
+      // 件数を出している側は SWR キャッシュを見ているので、ここで取り直す
+      revalidateDeckCodes(deck?.id);
 
       onClose();
     } catch (error) {

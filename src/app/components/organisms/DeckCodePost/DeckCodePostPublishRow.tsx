@@ -10,6 +10,7 @@ import {
   ModalContent,
   ModalFooter,
   ModalHeader,
+  Skeleton,
   Switch,
   addToast,
   useDisclosure,
@@ -115,6 +116,19 @@ export default function DeckCodePostPublishRow({
     }
   };
 
+  /*
+   * 公開状態が取れるまでは「載っていない」と区別がつかない。
+   *
+   * ここでオフのスイッチを見せてしまうと、最新バージョンを公開しているデッキでも
+   * モーダルを開いた直後だけスイッチがオフに見える(別のデッキを開くたびに
+   * そのデッキ分のキャッシュが無く isLoading になるため、毎回起きる)。
+   *
+   * 骨格は中身と差し替えるのではなく、中身の上に absolute で重ねる
+   * (Home.tsx の実績値の出し方と同じ)。差し替えると骨格の寸法を実物に
+   * 合わせて書くことになり、ズレるとその分だけ描画時に揺らぐ。
+   */
+  const isUnknown = !isArchived && isLoading;
+
   const bg = background === "content1" ? "bg-content1" : "bg-default-100";
   const status = isArchived
     ? "アーカイブしたデッキは公開できません"
@@ -137,8 +151,13 @@ export default function DeckCodePostPublishRow({
           <div className={`text-tiny font-bold ${post?.hidden ? "text-warning-600" : post ? "text-primary" : "text-default-600"}`}>
             みんなの公開デッキに載せる
           </div>
-          <div className="flex items-center gap-1 text-[0.625rem] text-default-500">
-            <span className="truncate">{caption}</span>
+          <div className="relative flex items-center gap-1 text-[0.625rem] text-default-500">
+            {isUnknown && (
+              <Skeleton aria-hidden className="absolute inset-0 z-10 rounded-full" />
+            )}
+            {/* 未確定の間は文言を出さない(骨格で隠れていても読み上げには出るため)。
+                空にすると行が潰れて揺らぐので、空白1つで高さだけ確保する */}
+            <span className="truncate">{isUnknown ? "\u00a0" : caption}</span>
             {post && !post.hidden && (
               <NextLink
                 href={deckCodePostPath(post.id)}
@@ -150,13 +169,18 @@ export default function DeckCodePostPublishRow({
             )}
           </div>
         </div>
-        <Switch
-          size="sm"
-          aria-label="みんなの公開デッキに載せる"
-          isSelected={!!post}
-          isDisabled={isArchived || pending || isLoading}
-          onValueChange={handleToggle}
-        />
+        <div className="relative flex shrink-0" aria-hidden={isUnknown || undefined}>
+          {isUnknown && (
+            <Skeleton aria-hidden className="absolute inset-0 z-10 rounded-full" />
+          )}
+          <Switch
+            size="sm"
+            aria-label="みんなの公開デッキに載せる"
+            isSelected={!!post}
+            isDisabled={isArchived || pending || isUnknown}
+            onValueChange={handleToggle}
+          />
+        </div>
       </div>
 
       {/* 公開の確認 */}

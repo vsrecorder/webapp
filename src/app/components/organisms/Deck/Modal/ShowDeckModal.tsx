@@ -221,10 +221,21 @@ export default function ShowDeckModal({
   // 運営により非表示のものは「公開中」と言えないので数えない(履歴の各行で分かる)。
   // 公開スイッチ(DeckCodePostPublishRow)と同じ SWR キャッシュなので取得は増えず、
   // 履歴側で公開・取り下げすればこの数も揃う。
-  const { byDeckCodeId: activePostsByDeckCodeId } = useDeckActivePosts(deck?.id);
-  const publishedCount = Array.from(activePostsByDeckCodeId.values()).filter(
-    (post) => !post.hidden,
-  ).length;
+  const { byDeckCodeId: activePostsByDeckCodeId, isLoading: isActivePostsLoading } =
+    useDeckActivePosts(deck?.id);
+
+  /*
+   * 取得前は「0件」と見分けがつかないので、確定するまでは件数を持たない(null)。
+   *
+   * 確定を待って印が遅れて出ても、この行のレイアウトは動かない。印が入る箱は
+   * ml-auto で右端に寄せてあり、印はバージョン件数の左隣に足されるため、
+   * 件数の位置も「バージョン履歴」の文字の位置も変わらないため。
+   * (骨格で場所を取る手もあるが、公開していないデッキでは確定後に骨格が消えるだけで、
+   * かえって動いて見える)
+   */
+  const publishedCount = isActivePostsLoading
+    ? null
+    : Array.from(activePostsByDeckCodeId.values()).filter((post) => !post.hidden).length;
 
   // 新バージョン作成時のベース（差分・プレースホルダの基準）にするバージョン。
   // 「バージョン履歴」の各バージョンから作成する場合に、そのバージョンを基準にする。
@@ -361,7 +372,7 @@ export default function ShowDeckModal({
                         <div className="ml-auto flex shrink-0 items-center gap-1">
                           {/* みんなの公開デッキに載せているバージョンがあることの印。
                               どのバージョンかは履歴を開けば各行の公開スイッチで分かる */}
-                          {publishedCount > 0 && (
+                          {publishedCount !== null && publishedCount > 0 && (
                             <span className="flex items-center gap-0.5 bg-white text-primary rounded-full px-2 py-0.5 text-tiny font-bold">
                               <LuUsers className="text-[0.6875rem]" />
                               {publishedCount}

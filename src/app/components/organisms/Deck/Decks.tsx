@@ -135,7 +135,9 @@ export default function Decks({
   // デッキごとの全期間の戦績(対戦記録が無いデッキは含まれない)。
   // SWR で持ち、タブ切替や戻り遷移で Decks が作り直されても取り直しを待たずに出す
   const deckUsageStats = useDeckUsageAllTime(userId, initialUsage, isInitialFresh);
-  const [nextCursor, setNextCursor] = useState<string>(() => initialStep?.nextCursor ?? "");
+  const [nextCursor, setNextCursor] = useState<string>(
+    () => initialStep?.nextCursor ?? "",
+  );
   const [hasMore, setHasMore] = useState(() => initialStep?.hasNext ?? true);
   const [isInitialLoaded, setIsInitialLoaded] = useState(initialStep !== null);
   /*
@@ -149,7 +151,9 @@ export default function Decks({
    * 取り直しの間は骨格を出さず(カードは既に出ている)、追加読み込みだけ待たせる
    * (差し替えと2ページ目の追記が交錯しないように)。
    */
-  const [isRefreshing, setIsRefreshing] = useState(initialStep !== null && !isInitialFresh);
+  const [isRefreshing, setIsRefreshing] = useState(
+    initialStep !== null && !isInitialFresh,
+  );
   // デッキ一覧の取得に失敗したか。失敗した位置（初回か追加読み込みか）に関わらず、
   // 一覧の末尾にエラーと再読み込みボタンを出す。
   const [error, setError] = useState(false);
@@ -267,12 +271,17 @@ export default function Decks({
   const savedReopenDeckId = useSessionStorageItem(REOPEN_DECK_MODAL_DECK_ID);
   const pendingReopenDeckId = isReopenTargetTab ? savedReopenDeckId : null;
   const reopenTargetFound =
-    pendingReopenDeckId !== null && items.some((item) => item.data.id === pendingReopenDeckId);
+    pendingReopenDeckId !== null &&
+    items.some((item) => item.data.id === pendingReopenDeckId);
   // 対象デッキが描画されるまで自動で続きを読む。
   // 取得に失敗した状態で続けると同じ cursor を延々と取り直す（＝覆いも外れない）ため打ち切る。
   // きずな待ちの間はカードが描画されていない(骨格のまま)ので、描画されてから探す
   const autoLoadPending =
-    pendingReopenDeckId !== null && !reopenTargetFound && hasMore && !error && !kizunaLoading;
+    pendingReopenDeckId !== null &&
+    !reopenTargetFound &&
+    hasMore &&
+    !error &&
+    !kizunaLoading;
 
   /*
    * 続きを読み込んでいる最中か。読み込みの「要求」は state ではなく条件から導く:
@@ -282,7 +291,9 @@ export default function Decks({
    * (nextCursor が進むので)条件を見直し、まだ立っていれば次のページを取る
    */
   const isLoading =
-    !isRefreshing && hasMore && (!isInitialLoaded || autoLoadPending || manualLoadPending);
+    !isRefreshing &&
+    hasMore &&
+    (!isInitialLoaded || autoLoadPending || manualLoadPending);
 
   useEffect(() => {
     if (!isLoading) return;
@@ -531,7 +542,9 @@ export default function Decks({
                 <span className="short:hidden">
                   負けても握り続けた回数、組み直した夜、連れて行った大会。
                 </span>
+                <br />
                 勝率では測れないデッキとの歩みが「きずなLv.」になります。
+                <br />
                 <span className="font-bold text-amber-800 dark:text-amber-200">
                   1日でも早く始めるほど、深くなります。
                 </span>
@@ -575,7 +588,8 @@ export default function Decks({
                 2
               </div>
               <p className="text-xs leading-snug text-default-600">
-                下の<span className="font-bold text-foreground">「デッキを登録する」</span>
+                下の
+                <span className="font-bold text-foreground">「デッキを登録する」</span>
                 から、デッキ名とデッキコードを貼り付ける
               </p>
             </div>
@@ -617,76 +631,76 @@ export default function Decks({
           空状態カードとの間に 12px の余白を作り、背の低い端末で1画面に収まらなくなる。
           取得失敗(error)は hasMore が残るので isEmpty にならず、FetchError はこの中で出せる */}
       {!isEmpty && (
-      <div
-        className={`grid w-full ${
-          view === "gallery"
-            ? "gap-4 grid-cols-1 lg:grid-cols-2 lg:gap-x-6"
-            : "gap-3 grid-cols-1"
-        }`}
-      >
-        {settled &&
-          items.map((deck, index) => (
-          <DeckCard
-            key={deck.data.id}
-            // ギャラリー表示の先頭2枚は最初の画面に入り LCP になるので、遅延させず優先して読む
-            priorityImage={view === "gallery" && index < 2}
-            deckData={deck.data}
-            deckcodeData={deck.data.latest_deck_code}
-            deckUsageStat={deckUsageStats.get(deck.data.id) ?? null}
-            kizunaLevel={kizunaDecks.get(deck.data.id)?.level ?? null}
-            onRemove={handleRemove}
-            enableShowDeckModal={true}
-            view={view}
-            isFavorited={isFavoritedDeck(deck.data)}
-            onToggleFavorite={handleToggleFavorite}
-            isFavoritePending={favoritePendingDeckId === deck.data.id}
-          />
-        ))}
+        <div
+          className={`grid w-full ${
+            view === "gallery"
+              ? "gap-4 grid-cols-1 lg:grid-cols-2 lg:gap-x-6"
+              : "gap-3 grid-cols-1"
+          }`}
+        >
+          {settled &&
+            items.map((deck, index) => (
+              <DeckCard
+                key={deck.data.id}
+                // ギャラリー表示の先頭2枚は最初の画面に入り LCP になるので、遅延させず優先して読む
+                priorityImage={view === "gallery" && index < 2}
+                deckData={deck.data}
+                deckcodeData={deck.data.latest_deck_code}
+                deckUsageStat={deckUsageStats.get(deck.data.id) ?? null}
+                kizunaLevel={kizunaDecks.get(deck.data.id)?.level ?? null}
+                onRemove={handleRemove}
+                enableShowDeckModal={true}
+                view={view}
+                isFavorited={isFavoritedDeck(deck.data)}
+                onToggleFavorite={handleToggleFavorite}
+                isFavoritePending={favoritePendingDeckId === deck.data.id}
+              />
+            ))}
 
-        {/* ローディング表示 */}
-        {/* ★ボタンは利用中のデッキにだけ出るため、骨格もタブに合わせる */}
-        {showSkeletons && <DeckCardSkeletons view={view} withFavorite={!isArchived} />}
-        {settled && isLoading && (
-          <div className="flex justify-center col-span-1 lg:col-span-2">
-            <Spinner size="lg" className="pt-0" />
-          </div>
-        )}
+          {/* ローディング表示 */}
+          {/* ★ボタンは利用中のデッキにだけ出るため、骨格もタブに合わせる */}
+          {showSkeletons && <DeckCardSkeletons view={view} withFavorite={!isArchived} />}
+          {settled && isLoading && (
+            <div className="flex justify-center col-span-1 lg:col-span-2">
+              <Spinner size="lg" className="pt-0" />
+            </div>
+          )}
 
-        {/* 取得に失敗したときは、空の一覧を装わずに理由を出し、その場で取り直せるようにする。
+          {/* 取得に失敗したときは、空の一覧を装わずに理由を出し、その場で取り直せるようにする。
             既に読み込めているデッキはそのまま残し、続きの取得だけをやり直す。 */}
-        {settled && error && !isLoading && (
-          <div className="col-span-1 lg:col-span-2">
-            <FetchError
-              message={
-                items.length === 0
-                  ? "デッキ一覧の取得に失敗しました"
-                  : "続きのデッキの取得に失敗しました"
-              }
-              onRetry={loadMore}
-            />
-          </div>
-        )}
+          {settled && error && !isLoading && (
+            <div className="col-span-1 lg:col-span-2">
+              <FetchError
+                message={
+                  items.length === 0
+                    ? "デッキ一覧の取得に失敗しました"
+                    : "続きのデッキの取得に失敗しました"
+                }
+                onRetry={loadMore}
+              />
+            </div>
+          )}
 
-        {settled && !isLoading && !error && hasMore && (
-          <div className="flex justify-center col-span-1 lg:col-span-2">
-            <Button
-              size="sm"
-              radius="full"
-              onPress={loadMore}
-              // 1ページ目の取り直し中は押せない(押しても何も起きないより、待つことが分かるほうがよい)
-              isDisabled={isRefreshing}
-              className="w-48 max-w-full"
-            >
-              <div className="flex items-center gap-1">
-                <span className="text-xs">
-                  <LuCirclePlus />
-                </span>
-                <span className="font-bold text-xs">更に読み込む</span>
-              </div>
-            </Button>
-          </div>
-        )}
-      </div>
+          {settled && !isLoading && !error && hasMore && (
+            <div className="flex justify-center col-span-1 lg:col-span-2">
+              <Button
+                size="sm"
+                radius="full"
+                onPress={loadMore}
+                // 1ページ目の取り直し中は押せない(押しても何も起きないより、待つことが分かるほうがよい)
+                isDisabled={isRefreshing}
+                className="w-48 max-w-full"
+              >
+                <div className="flex items-center gap-1">
+                  <span className="text-xs">
+                    <LuCirclePlus />
+                  </span>
+                  <span className="font-bold text-xs">更に読み込む</span>
+                </div>
+              </Button>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

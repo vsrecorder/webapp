@@ -52,8 +52,13 @@ import {
   scrollIntoViewAfterKeyboard,
   scrollToTopAfterKeyboard,
 } from "@app/utils/keyboard";
-import { getSpriteBySlot } from "@app/utils/spriteSlot";
-import { filterOwnDeckHistoryWindow } from "@app/utils/deckHistoryWindow";
+import {
+  DeckHistory,
+  MAX_OPPONENT_DECK_CANDIDATES,
+  fetchOpponentDeckCandidates,
+  toDeckHistories,
+} from "@app/utils/opponentDeckCandidates";
+import { OpponentDeckCandidatesGetResponseType } from "@app/types/opponent_deck_candidate";
 import { isIOS } from "@app/utils/platform";
 import { useClientValue } from "@app/hooks/useClientValue";
 import { closingPassthroughClassNames } from "@app/utils/modal";
@@ -66,8 +71,6 @@ import {
   bo3DrawFlg,
   isBO3GamesFilled,
 } from "@app/utils/bo3";
-
-const SPRITE_BASE_URL = "https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites";
 
 // ひらがなをカタカナに統一して比較できるようにする
 const toKatakana = (str: string) =>
@@ -109,70 +112,6 @@ function CardDeckName({ text }: { text: string }) {
       )}
     </div>
   );
-}
-
-type DeckHistory = {
-  deckInfo: string;
-  sprite1: PokemonSpriteType | null;
-  sprite2: PokemonSpriteType | null;
-};
-
-// 相手デッキ候補の表示上限。自身の履歴がこの件数に満たない場合は他ユーザの履歴で水増しする
-const MAX_DECK_HISTORY_CANDIDATES = 50;
-
-// 「相手デッキ名 + スロット1/2のスプライト」の組み合わせを一意に識別するキー。
-// 同じデッキでもスプライトが異なれば別候補として扱う
-const historyKey = (h: DeckHistory) =>
-  `${h.deckInfo}|${h.sprite1?.id ?? ""}|${h.sprite2?.id ?? ""}`;
-
-// マッチ配列を「相手デッキ名 + スプライト」の組み合わせで集計し、出現回数の多い順に並べて返す。
-// 不戦勝/不戦敗・デッキ名なしは候補から除外する。自身の履歴・他ユーザの水増し候補の双方で共通利用する
-function aggregateDeckHistories(matches: MatchGetResponseType[]): DeckHistory[] {
-  const countMap = new Map<string, { history: DeckHistory; count: number }>();
-  for (const match of matches) {
-    if (match.default_victory_flg || match.default_defeat_flg) continue;
-    if (!match.opponents_deck_info) continue;
-    const s1Id = getSpriteBySlot(match.pokemon_sprites, 1)?.id;
-    const s2Id = getSpriteBySlot(match.pokemon_sprites, 2)?.id;
-    const key = `${match.opponents_deck_info}|${s1Id ?? ""}|${s2Id ?? ""}`;
-    const entry = countMap.get(key);
-    if (entry) {
-      entry.count++;
-    } else {
-      countMap.set(key, {
-        count: 1,
-        history: {
-          deckInfo: match.opponents_deck_info,
-          sprite1: s1Id
-            ? {
-                id: s1Id,
-                name: "",
-                image_url: `${SPRITE_BASE_URL}/${s1Id.replace(/^0+(?!$)/, "")}.png`,
-              }
-            : null,
-          sprite2: s2Id
-            ? {
-                id: s2Id,
-                name: "",
-                image_url: `${SPRITE_BASE_URL}/${s2Id.replace(/^0+(?!$)/, "")}.png`,
-              }
-            : null,
-        },
-      });
-    }
-  }
-  return Array.from(countMap.values())
-    .sort((a, b) => b.count - a.count)
-    .map((item) => item.history);
-}
-
-async function fetchMatches(url: string): Promise<MatchGetResponseType[]> {
-  const res = await fetch(url, {
-    method: "GET",
-    headers: { Accept: "application/json" },
-  });
-  if (!res.ok) return [];
-  return res.json();
 }
 
 type Props = {
@@ -255,60 +194,22 @@ export default function CreateMatchModal({
   const [pokemonSprite1, setPokemonSprite1] = useState<PokemonSpriteType | null>(null);
   const [pokemonSprite2, setPokemonSprite2] = useState<PokemonSpriteType | null>(null);
 
-  // モーダルが開いているときだけ直近マッチを取得（limit=100 で十分な候補数を確保）
-  const { data: recentMatches, mutate: mutateRecentMatches } = useSWR<
-    MatchGetResponseType[]
-  >(
-    isOpen && record ? `/api/users/${record.user_id}/matches?limit=100` : null,
-    fetchMatches,
-  );
-
-  // 出現回数の多い順に並んだ自身のデッキ履歴（上位 MAX_DECK_HISTORY_CANDIDATES 件、不戦勝/不戦敗を除外）。
-  // 直近の対戦だけを対象にする（環境が入れ替わった後も昔のデッキが候補に残らないようにする）
-  const deckHistories = useMemo<DeckHistory[]>(() => {
-    if (!recentMatches) return [];
-    return aggregateDeckHistories(filterOwnDeckHistoryWindow(recentMatches)).slice(
-      0,
-      MAX_DECK_HISTORY_CANDIDATES,
+  // モーダルが開いているときだけ相手デッキ候補を取得する。
+  // 自身の履歴を先頭に、不足分を他ユーザの候補で埋めたものを上流が返す
+  // （併合・重複排除・期間の絞り込み・出現回数の集計はすべて上流で済んでいる）
+  const { data: candidates, mutate: mutateCandidates } =
+    useSWR<OpponentDeckCandidatesGetResponseType>(
+      isOpen && record
+        ? `/api/matches/opponent_deck_candidates?limit=${MAX_OPPONENT_DECK_CANDIDATES}`
+        : null,
+      fetchOpponentDeckCandidates,
     );
-  }, [recentMatches]);
 
-  // 自身の履歴が上限に満たない場合のみ、他ユーザの直近100件を取得して不足分の水増しに使う
-  const { data: globalMatches } = useSWR<MatchGetResponseType[]>(
-    isOpen &&
-      recentMatches !== undefined &&
-      deckHistories.length < MAX_DECK_HISTORY_CANDIDATES
-      ? `/api/matches?limit=100`
-      : null,
-    fetchMatches,
+  const activeCandidates = useMemo<DeckHistory[]>(
+    () => toDeckHistories(candidates?.data),
+    [candidates],
   );
-
-  // 他ユーザのマッチを出現回数の多い順に集計した水増し候補
-  const globalHistories = useMemo<DeckHistory[]>(() => {
-    if (!globalMatches) return [];
-    return aggregateDeckHistories(globalMatches);
-  }, [globalMatches]);
-
-  // 表示に使う候補。自身の履歴を先頭に並べ、上限に満たない分だけ他ユーザ履歴の多い順で水増しする
-  // （自身の履歴と重複する組み合わせは除外）
-  const activeCandidates = useMemo<DeckHistory[]>(() => {
-    const result = [...deckHistories];
-    const seen = new Set(deckHistories.map(historyKey));
-    for (const history of globalHistories) {
-      if (result.length >= MAX_DECK_HISTORY_CANDIDATES) break;
-      const key = historyKey(history);
-      if (seen.has(key)) continue;
-      seen.add(key);
-      result.push(history);
-    }
-    return result;
-  }, [deckHistories, globalHistories]);
-
-  // ユーザ履歴ロード中、または（履歴が空で）水増し候補フェッチ中。
-  // 履歴が1件でもあれば即表示し、水増し分は取得でき次第あとから追加する（ちらつき防止）
-  const isCandidatesLoading =
-    recentMatches === undefined ||
-    (deckHistories.length === 0 && globalMatches === undefined);
+  const isCandidatesLoading = candidates === undefined;
 
   // 入力テキストにマッチする候補（空入力は全件）
   const filteredHistories = useMemo(() => {
@@ -558,8 +459,8 @@ export default function CreateMatchModal({
       triggerNotificationsRefresh();
 
       // 「続けて対戦結果を追加する」で直前に入力した相手デッキ(スプライト含む)が候補に出るよう、
-      // 相手デッキ候補の元データ(直近マッチ)を再取得しておく。
-      mutateRecentMatches();
+      // 相手デッキ候補を取り直しておく(自身の履歴は上流でキャッシュしていないので即座に反映される)。
+      mutateCandidates();
 
       // 施策E-1: 相手が先週ランキングに載っていれば環境リターンを出す。
       // 出すときはフォームを閉じずにリセットして背後に残し(「続けて追加」でそのまま入力可)、

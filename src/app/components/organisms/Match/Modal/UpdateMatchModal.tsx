@@ -48,8 +48,15 @@ import {
   scrollIntoViewAfterKeyboard,
   scrollToTopAfterKeyboard,
 } from "@app/utils/keyboard";
+import { CDN_ORIGIN } from "@app/utils/cdn";
 import { getSpriteBySlot } from "@app/utils/spriteSlot";
-import { filterOwnDeckHistoryWindow } from "@app/utils/deckHistoryWindow";
+import {
+  DeckHistory,
+  MAX_OPPONENT_DECK_CANDIDATES,
+  fetchOpponentDeckCandidates,
+  toDeckHistories,
+} from "@app/utils/opponentDeckCandidates";
+import { OpponentDeckCandidatesGetResponseType } from "@app/types/opponent_deck_candidate";
 import { closingPassthroughClassNames } from "@app/utils/modal";
 import {
   MAX_OPPONENTS_DECK_INFO_LENGTH,
@@ -65,7 +72,7 @@ import {
   toGameInputs,
 } from "@app/utils/bo3";
 
-const SPRITE_BASE_URL = "https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites";
+const SPRITE_BASE_URL = `${CDN_ORIGIN}/images/pokemon-sprites`;
 
 // ひらがなをカタカナに統一して比較できるようにする
 const toKatakana = (str: string) =>
@@ -107,21 +114,6 @@ function CardDeckName({ text }: { text: string }) {
       )}
     </div>
   );
-}
-
-type DeckHistory = {
-  deckInfo: string;
-  sprite1: PokemonSpriteType | null;
-  sprite2: PokemonSpriteType | null;
-};
-
-async function fetchMatches(url: string): Promise<MatchGetResponseType[]> {
-  const res = await fetch(url, {
-    method: "GET",
-    headers: { Accept: "application/json" },
-  });
-  if (!res.ok) return [];
-  return res.json();
 }
 
 type Props = {
@@ -191,95 +183,21 @@ export default function UpdateMatchModal({
   const [pokemonSprite1, setPokemonSprite1] = useState<PokemonSpriteType | null>(null);
   const [pokemonSprite2, setPokemonSprite2] = useState<PokemonSpriteType | null>(null);
 
-  // モーダルが開いているときだけ直近マッチを取得（limit=100 で十分な候補数を確保）
-  const { data: recentMatches } = useSWR<MatchGetResponseType[]>(
-    isOpen && match ? `/api/users/${match.user_id}/matches?limit=100` : null,
-    fetchMatches,
-  );
-
-  // 出現回数の多い順に並んだデッキ履歴（上位30件、不戦勝/不戦敗を除外）。
-  // 直近の対戦だけを対象にする（環境が入れ替わった後も昔のデッキが候補に残らないようにする）
-  const deckHistories = useMemo<DeckHistory[]>(() => {
-    if (!recentMatches) return [];
-    const countMap = new Map<string, { history: DeckHistory; count: number }>();
-    for (const m of filterOwnDeckHistoryWindow(recentMatches)) {
-      if (m.default_victory_flg || m.default_defeat_flg) continue;
-      if (!m.opponents_deck_info) continue;
-      const s1Id = getSpriteBySlot(m.pokemon_sprites, 1)?.id;
-      const s2Id = getSpriteBySlot(m.pokemon_sprites, 2)?.id;
-      const key = `${m.opponents_deck_info}|${s1Id ?? ""}|${s2Id ?? ""}`;
-      const entry = countMap.get(key);
-      if (entry) {
-        entry.count++;
-      } else {
-        countMap.set(key, {
-          count: 1,
-          history: {
-            deckInfo: m.opponents_deck_info,
-            sprite1: s1Id
-              ? {
-                  id: s1Id,
-                  name: "",
-                  image_url: `${SPRITE_BASE_URL}/${s1Id.replace(/^0+(?!$)/, "")}.png`,
-                }
-              : null,
-            sprite2: s2Id
-              ? {
-                  id: s2Id,
-                  name: "",
-                  image_url: `${SPRITE_BASE_URL}/${s2Id.replace(/^0+(?!$)/, "")}.png`,
-                }
-              : null,
-          },
-        });
-      }
-    }
-    return Array.from(countMap.values())
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 50)
-      .map((item) => item.history);
-  }, [recentMatches]);
-
-  // ユーザ履歴がない場合のみ全体の直近100件を取得してダミー候補を作成
-  const { data: globalMatches } = useSWR<MatchGetResponseType[]>(
-    isOpen && recentMatches !== undefined && deckHistories.length === 0
-      ? `/api/matches?limit=100`
+  // モーダルが開いているときだけ相手デッキ候補を取得する。
+  // 自身の履歴を先頭に、不足分を他ユーザの候補で埋めたものを上流が返す
+  // （併合・重複排除・期間の絞り込み・出現回数の集計はすべて上流で済んでいる）
+  const { data: candidates } = useSWR<OpponentDeckCandidatesGetResponseType>(
+    isOpen && match
+      ? `/api/matches/opponent_deck_candidates?limit=${MAX_OPPONENT_DECK_CANDIDATES}`
       : null,
-    fetchMatches,
+    fetchOpponentDeckCandidates,
   );
 
-  const dummyHistories = useMemo<DeckHistory[]>(() => {
-    if (!globalMatches) return [];
-    const seen = new Set<string>();
-    const result: DeckHistory[] = [];
-    for (const m of globalMatches) {
-      if (m.default_victory_flg || m.default_defeat_flg) continue;
-      if (!m.opponents_deck_info) continue;
-      const s1Id = getSpriteBySlot(m.pokemon_sprites, 1)?.id;
-      const s2Id = getSpriteBySlot(m.pokemon_sprites, 2)?.id;
-      const key = `${m.opponents_deck_info}|${s1Id ?? ""}|${s2Id ?? ""}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      result.push({
-        deckInfo: m.opponents_deck_info,
-        sprite1: s1Id
-          ? {
-              id: s1Id,
-              name: "",
-              image_url: `${SPRITE_BASE_URL}/${s1Id.replace(/^0+(?!$)/, "")}.png`,
-            }
-          : null,
-        sprite2: s2Id
-          ? {
-              id: s2Id,
-              name: "",
-              image_url: `${SPRITE_BASE_URL}/${s2Id.replace(/^0+(?!$)/, "")}.png`,
-            }
-          : null,
-      });
-    }
-    return result;
-  }, [globalMatches]);
+  const activeCandidates = useMemo<DeckHistory[]>(
+    () => toDeckHistories(candidates?.data),
+    [candidates],
+  );
+  const isCandidatesLoading = candidates === undefined;
 
   // 元の match データとの差分があるかを判定
   const hasChanges = useMemo(() => {
@@ -367,14 +285,6 @@ export default function UpdateMatchModal({
     pokemonSprite2,
     tagIds,
   ]);
-
-  // 表示に使う候補（ユーザ履歴優先、なければダミー）
-  const activeCandidates = deckHistories.length > 0 ? deckHistories : dummyHistories;
-
-  // ユーザ履歴ロード中、またはダミー候補フェッチ中
-  const isCandidatesLoading =
-    recentMatches === undefined ||
-    (deckHistories.length === 0 && globalMatches === undefined);
 
   // 入力テキストにマッチする候補（空入力は全件）
   const filteredHistories = useMemo(() => {

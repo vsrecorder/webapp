@@ -42,14 +42,20 @@ import {
 } from "@app/types/unofficial_event";
 import { RecordCreateRequestType, RecordCreateResponseType } from "@app/types/record";
 import { DEFAULT_REGULATION_ID } from "@app/types/regulation";
-import { MatchCreateRequestType, MatchGetResponseType } from "@app/types/match";
+import { MatchCreateRequestType } from "@app/types/match";
 import { MatchPokemonSpriteType, PokemonSpriteType } from "@app/types/pokemon_sprite";
 import { DeckData, isFavoritedDeck } from "@app/types/deck";
+import { OpponentDeckCandidatesGetResponseType } from "@app/types/opponent_deck_candidate";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 import { refreshRecordingNow } from "@app/utils/recordingNowClient";
 import { markRecordCreatedForPushPrompt } from "@app/utils/pushPrompt";
 import { getSpriteBySlot } from "@app/utils/spriteSlot";
-import { filterOwnDeckHistoryWindow } from "@app/utils/deckHistoryWindow";
+import {
+  DeckHistory,
+  MAX_OPPONENT_DECK_CANDIDATES,
+  fetchOpponentDeckCandidates,
+  toDeckHistories,
+} from "@app/utils/opponentDeckCandidates";
 import {
   MAX_EVENT_TITLE_LENGTH,
   MAX_OPPONENTS_DECK_INFO_LENGTH,
@@ -63,8 +69,6 @@ import {
 } from "@app/utils/deckEnv";
 import { JST_TIME_ZONE } from "@app/utils/date";
 
-const SPRITE_BASE_URL = "https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites";
-
 // ひらがなをカタカナに統一して比較できるようにする
 const toKatakana = (str: string) =>
   str.replace(/[ぁ-ゖ]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) + 0x60));
@@ -72,30 +76,6 @@ const toKatakana = (str: string) =>
 // CalendarDate を YYYY-MM-DD 文字列へ変換する(公式イベント検索やISO日付生成に使う)
 const calendarDateToYmd = (d: CalendarDate) =>
   `${d.year}-${String(d.month).padStart(2, "0")}-${String(d.day).padStart(2, "0")}`;
-
-type DeckHistory = {
-  deckInfo: string;
-  sprite1: PokemonSpriteType | null;
-  sprite2: PokemonSpriteType | null;
-};
-
-// 相手デッキ候補の表示上限。自身の履歴がこの件数に満たない場合は他ユーザの履歴で水増しする
-// (CreateMatchModal と同じ)
-const MAX_DECK_HISTORY_CANDIDATES = 50;
-
-// 「相手デッキ名 + スロット1/2のスプライト」の組み合わせを一意に識別するキー。
-// 同じデッキでもスプライトが異なれば別候補として扱う
-const historyKey = (h: DeckHistory) =>
-  `${h.deckInfo}|${h.sprite1?.id ?? ""}|${h.sprite2?.id ?? ""}`;
-
-async function fetchMatches(url: string): Promise<MatchGetResponseType[]> {
-  const res = await fetch(url, {
-    method: "GET",
-    headers: { Accept: "application/json" },
-  });
-  if (!res.ok) return [];
-  return res.json();
-}
 
 // 自分のデッキ一覧を取得する。「使用デッキ」の選択肢と、選択中デッキのスプライト表示に使う。
 // upstream の /decks/all はアーカイブ済みを除外し、作成日の新しい順で返す。
@@ -108,49 +88,6 @@ async function fetchDecks(url: string): Promise<DeckData[]> {
   });
   if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
   return res.json();
-}
-
-// 過去マッチに含まれる相手デッキ(テキスト＋スプライト)を、出現頻度順の候補へ畳み込む。
-// CreateMatchModal と同じロジックを、簡素化フォーム用に切り出したもの。
-// 件数の上限は呼び出し側で切る(自身の履歴と他ユーザの水増し分を合わせて上限に収めるため)。
-function buildDeckHistories(matches: MatchGetResponseType[] | undefined): DeckHistory[] {
-  if (!matches) return [];
-  const countMap = new Map<string, { history: DeckHistory; count: number }>();
-  for (const match of matches) {
-    if (match.default_victory_flg || match.default_defeat_flg) continue;
-    if (!match.opponents_deck_info) continue;
-    const s1Id = getSpriteBySlot(match.pokemon_sprites, 1)?.id;
-    const s2Id = getSpriteBySlot(match.pokemon_sprites, 2)?.id;
-    const key = `${match.opponents_deck_info}|${s1Id ?? ""}|${s2Id ?? ""}`;
-    const entry = countMap.get(key);
-    if (entry) {
-      entry.count++;
-    } else {
-      countMap.set(key, {
-        count: 1,
-        history: {
-          deckInfo: match.opponents_deck_info,
-          sprite1: s1Id
-            ? {
-                id: s1Id,
-                name: "",
-                image_url: `${SPRITE_BASE_URL}/${s1Id.replace(/^0+(?!$)/, "")}.png`,
-              }
-            : null,
-          sprite2: s2Id
-            ? {
-                id: s2Id,
-                name: "",
-                image_url: `${SPRITE_BASE_URL}/${s2Id.replace(/^0+(?!$)/, "")}.png`,
-              }
-            : null,
-        },
-      });
-    }
-  }
-  return Array.from(countMap.values())
-    .sort((a, b) => b.count - a.count)
-    .map((v) => v.history);
 }
 
 type EventType = "unofficial" | "official" | "tonamel";
@@ -233,9 +170,9 @@ export default function TemplateQuickRecordCreate({
 
   // --- 相手デッキの履歴候補 ---
   // 自分の過去マッチ(頻度順)。無ければ全体の直近マッチをダミー候補にする。
-  const { data: recentMatches } = useSWR<MatchGetResponseType[]>(
-    userId ? `/api/users/${userId}/matches?limit=100` : null,
-    fetchMatches,
+  const { data: candidates } = useSWR<OpponentDeckCandidatesGetResponseType>(
+    userId ? `/api/matches/opponent_deck_candidates?limit=${MAX_OPPONENT_DECK_CANDIDATES}` : null,
+    fetchOpponentDeckCandidates,
   );
 
   // 使用デッキの選択肢。既にデッキを作成しているユーザーは、ここから選んで記録できる。
@@ -255,47 +192,13 @@ export default function TemplateQuickRecordCreate({
   // クイックスタートから受け取ったデッキ名で表示を埋める。
   const selectedDeckName = selectedDeck?.name || deckName;
   const selectedDeckSprites = selectedDeck?.pokemon_sprites ?? [];
-  // 出現回数の多い順に並んだ自身のデッキ履歴(上位 MAX_DECK_HISTORY_CANDIDATES 件)。
-  // 直近の対戦だけを対象にする(環境が入れ替わった後も昔のデッキが候補に残らないようにする)
-  const deckHistories = useMemo(
-    () =>
-      buildDeckHistories(filterOwnDeckHistoryWindow(recentMatches)).slice(
-        0,
-        MAX_DECK_HISTORY_CANDIDATES,
-      ),
-    [recentMatches],
+  // 表示に使う候補。自身の履歴を先頭に、不足分を他ユーザの候補で埋めたものを上流が返す
+  // (併合・重複排除・期間の絞り込み・出現回数の集計はすべて上流で済んでいる)
+  const activeCandidates = useMemo<DeckHistory[]>(
+    () => toDeckHistories(candidates?.data),
+    [candidates],
   );
-
-  // 自身の履歴が上限に満たない場合のみ、他ユーザの直近100件を取得して不足分の水増しに使う
-  const { data: globalMatches } = useSWR<MatchGetResponseType[]>(
-    recentMatches !== undefined && deckHistories.length < MAX_DECK_HISTORY_CANDIDATES
-      ? `/api/matches?limit=100`
-      : null,
-    fetchMatches,
-  );
-
-  // 他ユーザのマッチを出現回数の多い順に集計した水増し候補
-  const globalHistories = useMemo(() => buildDeckHistories(globalMatches), [globalMatches]);
-
-  // 表示に使う候補。自身の履歴を先頭に並べ、上限に満たない分だけ他ユーザ履歴の多い順で水増しする
-  // (自身の履歴と重複する組み合わせは除外)
-  const activeCandidates = useMemo<DeckHistory[]>(() => {
-    const result = [...deckHistories];
-    const seen = new Set(deckHistories.map(historyKey));
-    for (const history of globalHistories) {
-      if (result.length >= MAX_DECK_HISTORY_CANDIDATES) break;
-      const key = historyKey(history);
-      if (seen.has(key)) continue;
-      seen.add(key);
-      result.push(history);
-    }
-    return result;
-  }, [deckHistories, globalHistories]);
-  // ユーザ履歴ロード中、または(履歴が空で)水増し候補フェッチ中。
-  // 履歴が1件でもあれば即表示し、水増し分は取得でき次第あとから追加する(ちらつき防止)
-  const isCandidatesLoading =
-    recentMatches === undefined ||
-    (deckHistories.length === 0 && globalMatches === undefined);
+  const isCandidatesLoading = candidates === undefined;
   const filteredHistories = useMemo(() => {
     if (!opponentsDeckInfo.trim()) return activeCandidates;
     const query = toKatakana(opponentsDeckInfo.toLowerCase());

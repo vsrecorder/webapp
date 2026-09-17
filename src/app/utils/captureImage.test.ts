@@ -1,7 +1,11 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { getCaptureStyleProperties, inlineSvgVarPaints } from "@app/utils/captureImage";
+import {
+  fillCanvasBackground,
+  getCaptureStyleProperties,
+  inlineSvgVarPaints,
+} from "@app/utils/captureImage";
 
 /*
  * jsdom の getComputedStyle は SVG の塗り(fill / stroke)を解決しないため、
@@ -88,6 +92,40 @@ describe("inlineSvgVarPaints", () => {
 
     const div = root.querySelector("div") as HTMLElement;
     expect(div.style.fill).toBe("hsl(var(--heroui-danger))");
+  });
+});
+
+/*
+ * jsdom には canvas の 2D コンテキストが無いため、呼び出しだけを見る。
+ * ここで確かめたいのは「絵の下に地色を敷く」ことで、描画結果そのものは実機で確認する。
+ */
+describe("fillCanvasBackground", () => {
+  function fakeCanvas(context2d: unknown) {
+    return {
+      width: 100,
+      height: 200,
+      getContext: () => context2d,
+    } as unknown as HTMLCanvasElement;
+  }
+
+  it("既に描かれている絵の下に、canvas 全面の地色を敷く", () => {
+    const calls: [number, number, number, number][] = [];
+    const context2d = {
+      globalCompositeOperation: "source-over",
+      fillStyle: "",
+      fillRect: (...args: [number, number, number, number]) => calls.push(args),
+    };
+
+    fillCanvasBackground(fakeCanvas(context2d), "#0a0a0a");
+
+    // source-over だと絵の上に地色を被せてしまい、画像が地色一色になる
+    expect(context2d.globalCompositeOperation).toBe("destination-over");
+    expect(context2d.fillStyle).toBe("#0a0a0a");
+    expect(calls).toEqual([[0, 0, 100, 200]]);
+  });
+
+  it("2Dコンテキストが取れなければ何もしない", () => {
+    expect(() => fillCanvasBackground(fakeCanvas(null), "#ffffff")).not.toThrow();
   });
 });
 

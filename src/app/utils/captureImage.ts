@@ -381,6 +381,33 @@ export function inlineSvgVarPaints(root: HTMLElement): void {
   }
 }
 
+/*
+ * canvas の透けている部分を、書き出しの地色で塗り足す。
+ *
+ * modern-screenshot は canvas を地色で塗ってから SVG を描くが、Safari 向けの描き直し
+ * (fixSvgXmlDecode。画像のデコードが1回目の描画に間に合わない対策)が、描き直しのたびに
+ * clearRect で canvas を丸ごと消してから描く。そのため2回目以降は地色が失われ、
+ * SVG の絵だけが残る。その絵の左右の端は1画素ぶんが半分しか覆われない(実測 alpha 0.56)ため、
+ * その1列だけ半透明のまま書き出される。
+ *
+ * PNG の透明は、写真アプリや共有先では白として扱われる。地色が白のライトでは気づかないが、
+ * ダークでは地色(#0a0a0a)の画像の左右の端に、白っぽい細い縦線が1本ずつ出る
+ * (白地に重ねた実測値 rgb(117,117,117))。上下の端は画素の境目に乗るのでこの症状は出ない。
+ * 描き直しをしない html-to-image 経路(Android/PC)でも出ない。iOS だけの症状。
+ *
+ * destination-over は「既に描かれている絵の下」に塗るので、絵は変えずに
+ * 半透明の端だけが地色と混ざって不透明になる。元々 modern-screenshot が最初に塗っていた
+ * 地色を、描き直しのあとにもう一度敷き直すのと同じことをしている。
+ */
+export function fillCanvasBackground(canvas: HTMLCanvasElement, color: string): void {
+  const context2d = canvas.getContext("2d");
+  if (!context2d) return;
+
+  context2d.globalCompositeOperation = "destination-over";
+  context2d.fillStyle = color;
+  context2d.fillRect(0, 0, canvas.width, canvas.height);
+}
+
 // 実行環境(ENV)はサーバー側でしか参照できないため、layout.tsxが<html>に埋め込んだ
 // data-env属性から取得する（クライアント側でNEXT_PUBLIC_*を使わない理由はappIcon.ts参照）
 function getAppIconSrc(): string {
@@ -602,7 +629,7 @@ export async function captureThemedPng(
     if (isIOS()) {
       // iOS は modern-screenshot(動的importでサーバーバンドル回避)。
       // scale が pixelRatio 相当、fetch.bypassingCache が cacheBust 相当。
-      const { createContext, destroyContext, domToPng } =
+      const { createContext, destroyContext, domToCanvas } =
         await import("modern-screenshot");
 
       // Safari は foreignObject 内の画像のデコードが1回目の canvas 描画に間に合わず
@@ -625,7 +652,10 @@ export async function captureThemedPng(
         },
       });
       try {
-        return await domToPng(context);
+        const canvas = await domToCanvas(context);
+        // 描き直しで消えた地色を敷き直してから PNG にする(理由は fillCanvasBackground)
+        fillCanvasBackground(canvas, bgColor);
+        return canvas.toDataURL("image/png");
       } finally {
         // context を自前で作った場合は自動破棄されないため、明示的に後始末する
         destroyContext(context);

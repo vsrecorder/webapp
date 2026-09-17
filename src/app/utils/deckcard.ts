@@ -12,6 +12,9 @@ const DETAIL_CARD_KEYS = [
   "card_pke",
   "card_gds",
   "card_tool",
+  // card_tech は型 DeckCardDetailType では必須。検証から漏らすと、これだけ配列でない応答が
+  // ガードを通過し、buildDeckSummary の flatMap が undefined を混ぜて 500 になりうる。
+  "card_tech",
   "card_sup",
   "card_sta",
   "card_ene",

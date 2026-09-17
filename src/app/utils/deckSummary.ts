@@ -73,7 +73,9 @@ export function buildDeckSummary(
   const groups: DeckSummaryGroupType[] = [];
 
   for (const { keys, label } of GROUPS) {
-    const cards = aggregateByName(keys.flatMap((key) => detail[key]));
+    // 型ガード(isDeckCardDetail)を通っていれば全キーが配列だが、万一欠けても
+    // undefined を混ぜて落ちないよう ?? [] で守る
+    const cards = aggregateByName(keys.flatMap((key) => detail[key] ?? []));
 
     if (cards.length === 0) continue;
 

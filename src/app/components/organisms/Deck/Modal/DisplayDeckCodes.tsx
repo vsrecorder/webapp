@@ -236,30 +236,20 @@ export default function DisplayDeckCodesModal({
         timeout: 3000,
       });
 
-      // 削除したバージョンを一覧から除外
-      setDisplayDeckCodes((prev) => {
-        if (!prev) return prev;
+      // 削除したバージョンを一覧から除外する。
+      // 親の setDeckCode は、この更新関数の中ではなく外で呼ぶ
+      // (別コンポーネントのレンダー中に親を更新すると React の警告対象になり、
+      //  StrictMode では更新関数が二度走る)。
+      const filtered = (displayDeckCodes ?? []).filter(
+        (dc) => dc.id !== displayDeckCode?.id,
+      );
 
-        const filtered = prev.filter((dc) => dc.id !== displayDeckCode?.id);
+      setDisplayDeckCodes(filtered);
 
-        // deckcodeも更新
-        setDeckCode((prevDeckCode) => {
-          if (!prevDeckCode) return prevDeckCode;
-
-          // 削除対象が最新のものだった場合、次に新しいバージョンに変える
-          if (prevDeckCode.id === displayDeckCode?.id) {
-            if (filtered.length > 0) {
-              return filtered[0];
-            }
-
-            return null;
-          }
-
-          return prevDeckCode;
-        });
-
-        return filtered;
-      });
+      // 表示中(親が持つ deckcode)が削除対象だったら、次に新しいバージョンへ差し替える
+      if (deckcode?.id === displayDeckCode?.id) {
+        setDeckCode(filtered.length > 0 ? filtered[0] : null);
+      }
 
       // 件数を出している側は SWR キャッシュを見ているので、ここで取り直す。
       // 表示中でないバージョンを消したときは deckcode の ID が変わらず、

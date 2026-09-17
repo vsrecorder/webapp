@@ -41,6 +41,20 @@ export const getOfficialEventList = cache(async function getOfficialEventList(
     },
   );
 
+  // fetchUpstream は 204/空ボディで null を返す(upstream.ts の契約)。現状の上流は
+  // 常に 200 で {official_events: []} を返すため発火しないが、recordListServer などと同様に
+  // null を守り、TypeError でページごと 500 になるのを防ぐ。
+  if (!upstream) {
+    return {
+      type_id: Number(type_id),
+      league_type: Number(league_type),
+      start_date: new Date(date),
+      end_date: new Date(date),
+      count: 0,
+      official_events: [],
+    };
+  }
+
   return {
     ...upstream,
     official_events: (upstream.official_events ?? []).map(toOfficialEventListItem),

@@ -84,6 +84,10 @@ export function useOffsetPagination<T, M = undefined>({
     if (seededKey.current === key) return;
     seededKey.current = null;
 
+    // この key に前回の失敗が残っていれば、取り直しの前に消す。消さないと error が真のまま
+    // isLoading が false になって骨格が出ず、取得に成功してもエラー表示が残り続ける。
+    setFailure((prev) => (prev && prev.key === key ? null : prev));
+
     fetchPageRef
       .current(0)
       .then((page) => {

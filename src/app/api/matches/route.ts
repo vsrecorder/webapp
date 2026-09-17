@@ -3,6 +3,7 @@ import { NextResponse, NextRequest } from "next/server";
 import { auth } from "@app/auth";
 
 import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/upstream";
+import { readJsonBody } from "@app/utils/requestBody";
 import { signUpstreamToken } from "@app/utils/upstreamToken";
 
 import {
@@ -48,7 +49,7 @@ export async function POST(request: NextRequest) {
   const token = signUpstreamToken(session.user.id);
 
   try {
-    const match: MatchCreateRequestType = await request.json();
+    const match = await readJsonBody<MatchCreateRequestType>(request);
 
     const created = await fetchUpstream<MatchCreateResponseType>(
       upstreamUrl`/api/v1beta/matches`,

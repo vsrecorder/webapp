@@ -7,6 +7,7 @@ import {
   upstreamErrorResponse,
   upstreamUrl,
 } from "@app/utils/upstream";
+import { readJsonBody } from "@app/utils/requestBody";
 
 import {
   TagUpdateRequestType,
@@ -31,7 +32,7 @@ export async function PUT(
 
   try {
     const { id } = await params;
-    const tag: TagUpdateRequestType = await request.json();
+    const tag = await readJsonBody<TagUpdateRequestType>(request);
 
     const updated = await fetchUpstream<TagUpdateResponseType>(
       upstreamUrl`/api/v1beta/tags/${id}`,

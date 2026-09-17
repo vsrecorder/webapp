@@ -3,6 +3,7 @@ import { NextResponse, NextRequest } from "next/server";
 import { auth } from "@app/auth";
 
 import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/upstream";
+import { readJsonBody } from "@app/utils/requestBody";
 import { signUpstreamToken } from "@app/utils/upstreamToken";
 
 import { MatchUpdateRequestType, MatchUpdateResponseType } from "@app/types/match";
@@ -20,7 +21,7 @@ export async function PUT(
 
   try {
     const { id } = await params;
-    const match: MatchUpdateRequestType = await request.json();
+    const match = await readJsonBody<MatchUpdateRequestType>(request);
 
     const updated = await fetchUpstream<MatchUpdateResponseType>(
       upstreamUrl`/api/v1beta/matches/${id}`,

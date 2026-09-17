@@ -67,6 +67,47 @@ describe("createUserCheckThrottle", () => {
     expect(run).toHaveBeenCalledTimes(1);
   });
 
+  it("退会済みと分かったら、期限内は問い合わせずに退会済みのまま扱う", async () => {
+    const { throttle, advance } = setup();
+    const run = vi.fn().mockResolvedValue(true);
+
+    // 検知したリクエストだけでなく、その後のリクエストも退会済み(true)になる
+    await expect(throttle.check("u1", undefined, run)).resolves.toBe(true);
+    await expect(throttle.check("u1", undefined, run)).resolves.toBe(true);
+    expect(run).toHaveBeenCalledTimes(1);
+
+    // 期限が切れたら改めて問い合わせる
+    advance(TTL + 1);
+    await expect(throttle.check("u1", undefined, run)).resolves.toBe(true);
+    expect(run).toHaveBeenCalledTimes(2);
+  });
+
+  it("退会済みの記録より新しいセッションは有効として扱う", async () => {
+    const { throttle, advance } = setup();
+    const run = vi.fn().mockResolvedValue(true);
+
+    await throttle.check("u1", undefined, run);
+
+    // 記録の後にサインインし直したセッション(登録が通っている)は退会済みにしない
+    advance(10);
+    await expect(throttle.check("u1", 10_010, run)).resolves.toBe(false);
+    expect(run).toHaveBeenCalledTimes(1);
+  });
+
+  it("markDeleted で覚えさせると、問い合わせずに退会済みとして扱う", async () => {
+    const { throttle, advance } = setup();
+    const run = vi.fn().mockResolvedValue(false);
+
+    throttle.markDeleted("u1");
+    await expect(throttle.check("u1", undefined, run)).resolves.toBe(true);
+    expect(run).not.toHaveBeenCalled();
+
+    // 期限が切れたら改めて問い合わせ、その結果に従う
+    advance(TTL + 1);
+    await expect(throttle.check("u1", undefined, run)).resolves.toBe(false);
+    expect(run).toHaveBeenCalledTimes(1);
+  });
+
   it("覚えるユーザ数に上限があり、超えたら古いものから落とす", async () => {
     let current = 10_000;
     const throttle = createUserCheckThrottle({ ttlMs: TTL, maxEntries: 2, now: () => current });

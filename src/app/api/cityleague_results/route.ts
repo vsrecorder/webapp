@@ -39,14 +39,41 @@ async function getCityleagueResultsByTerm(
   );
 }
 
+// "YYYY-MM-DD" として読める日付だけ通す。Date に不正な文字列を渡すと Invalid Date になり、
+// toISOString() が RangeError を投げて 500 になっていた(誰でも起こせる)。
+function parseDateParam(value: string): Date | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const league_type = Number(searchParams.get("league_type")) ?? 0;
 
-    if (searchParams.get("from_date") && searchParams.get("to_date")) {
-      const from_date = new Date(searchParams.get("from_date") ?? "");
-      const to_date = new Date(searchParams.get("to_date") ?? "");
+    // 未指定は 0(絞り込みなし)。数値でない値は NaN のまま上流へ渡さず 400 にする
+    const leagueTypeParam = searchParams.get("league_type") ?? "";
+    const league_type = leagueTypeParam === "" ? 0 : Number(leagueTypeParam);
+    if (!Number.isInteger(league_type) || league_type < 0) {
+      return NextResponse.json(
+        { error: "league_type must be a non-negative integer" },
+        { status: 400 },
+      );
+    }
+
+    const fromDateParam = searchParams.get("from_date");
+    const toDateParam = searchParams.get("to_date");
+
+    if (fromDateParam && toDateParam) {
+      const from_date = parseDateParam(fromDateParam);
+      const to_date = parseDateParam(toDateParam);
+      if (!from_date || !to_date) {
+        return NextResponse.json(
+          { error: "from_date and to_date must be YYYY-MM-DD" },
+          { status: 400 },
+        );
+      }
 
       const results = await getCityleagueResultsByTerm(league_type, from_date, to_date);
 

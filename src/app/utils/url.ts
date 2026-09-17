@@ -28,3 +28,27 @@ export function safeExternalUrl(url: string | null | undefined): string | undefi
 
   return url;
 }
+
+// データ由来のパスを router.push などサイト内遷移に使う前に通す。
+//
+// "/" 始まりの確認だけでは足りない。"//evil.example" はプロトコル相対 URL で、
+// "/\\evil.example" も WHATWG URL は特殊スキームで "\\" を "/" と同じに扱うため、
+// どちらも別オリジンへ解決される(App Router の router.push は別オリジンをフルページ遷移する)。
+// 文字の形で弾くのではなく、実際に解決した結果のオリジンが自分と同じかで判定する。
+export function isSameOriginPath(
+  path: string | null | undefined,
+  origin: string,
+): path is string {
+  if (!path || !path.startsWith("/")) {
+    return false;
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(path, origin);
+  } catch {
+    return false;
+  }
+
+  return parsed.origin === origin;
+}

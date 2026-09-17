@@ -14,6 +14,7 @@ import {
   upstreamErrorResponse,
   upstreamUrl,
 } from "@app/utils/upstream";
+import { readJsonBody } from "@app/utils/requestBody";
 import { signUpstreamToken } from "@app/utils/upstreamToken";
 
 // 未連携(上流404)は null を200で返す。「まだ連携していない」は大多数のユーザにとっての
@@ -67,9 +68,10 @@ export async function POST(request: NextRequest) {
   }
 
   const token = signUpstreamToken(session.user.id);
-  const body: UserPlayerCreateRequestType = await request.json();
 
   try {
+    const body = await readJsonBody<UserPlayerCreateRequestType>(request);
+
     const created = await fetchUpstream<UserPlayerCreateResponseType>(
       upstreamUrl`/api/v1beta/usersplayers`,
       {

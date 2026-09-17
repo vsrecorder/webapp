@@ -4,6 +4,7 @@ import { auth } from "@app/auth";
 
 import { ensureDeckCodePostOgImage } from "@app/utils/deckCodePostOg";
 import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/upstream";
+import { readJsonBody } from "@app/utils/requestBody";
 import { optionalAuthorizationHeader, signUpstreamToken } from "@app/utils/upstreamToken";
 
 import {
@@ -53,7 +54,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body: DeckCodePostCreateRequestType = await request.json();
+    const body = await readJsonBody<DeckCodePostCreateRequestType>(request);
 
     const data = await fetchUpstream<DeckCodePostCreateResponseType>(
       upstreamUrl`/api/v1beta/deck_code_posts`,

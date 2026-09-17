@@ -7,6 +7,7 @@ import {
   upstreamErrorResponse,
   upstreamUrl,
 } from "@app/utils/upstream";
+import { readJsonBody } from "@app/utils/requestBody";
 
 import {
   TagGetResponseType,
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
   const token = signToken(session.user.id);
 
   try {
-    const tag: TagCreateRequestType = await request.json();
+    const tag = await readJsonBody<TagCreateRequestType>(request);
 
     const created = await fetchUpstream<TagCreateResponseType>(
       upstreamUrl`/api/v1beta/tags`,

@@ -502,4 +502,11 @@ const {
 // 1リクエストにつき1回の実行に集約する。
 const auth = cache(uncachedAuth);
 
-export { handlers, signIn, signOut, auth };
+// 退会 API(DELETE /api/users/[id])が上流の退会処理を終えたあとに呼ぶ。
+// このプロセスの間引きに「退会済み」を覚えさせ、同じ uid のセッションで来る次のリクエストから
+// 上流へ問い合わせずに未ログイン扱いにする(別プロセス・別コンテナは次回の確認で追いつく)。
+function markUserDeleted(uid: string): void {
+  userCheckThrottle.markDeleted(uid);
+}
+
+export { handlers, signIn, signOut, auth, markUserDeleted };

@@ -3,6 +3,7 @@ import { NextResponse, NextRequest } from "next/server";
 import { auth } from "@app/auth";
 
 import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/upstream";
+import { readJsonBody } from "@app/utils/requestBody";
 import { signUpstreamToken } from "@app/utils/upstreamToken";
 
 import {
@@ -19,7 +20,7 @@ export async function POST(request: NextRequest) {
   const token = signUpstreamToken(session.user.id);
 
   try {
-    const deckcode: DeckCodeCreateRequestType = await request.json();
+    const deckcode = await readJsonBody<DeckCodeCreateRequestType>(request);
 
     const created = await fetchUpstream<DeckCodeCreateResponseType>(
       upstreamUrl`/api/v1beta/deckcodes`,

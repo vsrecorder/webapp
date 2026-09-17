@@ -11,6 +11,7 @@ import { getSpriteBySlot } from "@app/utils/spriteSlot";
 import { spriteImageUrl } from "@app/utils/sprite";
 import { spriteFitBox } from "@app/utils/spriteFit";
 import { deckImageUrl } from "@app/utils/deckImage";
+import { isTrustedImageUrl } from "@app/utils/trustedImageUrl";
 import { deckNameFontSize } from "@app/utils/ogText";
 import { formatEventDate } from "@app/utils/cityleague";
 
@@ -307,20 +308,60 @@ export async function renderCityleagueEventOgImage(
   );
 }
 
+// data URI に埋め込む画像の上限。CDN のデッキ画像(JPEG)とアイコン(PNG、アップロード上限 5MB)が
+// 収まればよく、それを超える応答は取得先の異常とみなして埋め込まない(メモリを食わせないため)。
+const MAX_EMBED_IMAGE_BYTES = 8 * 1024 * 1024;
+
+// 応答ボディを上限つきで読む。超えたらその場で打ち切って null を返す。
+async function readBodyWithLimit(res: Response, limit: number): Promise<Buffer | null> {
+  if (!res.body) return null;
+
+  const reader = res.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    total += value.byteLength;
+    if (total > limit) {
+      await reader.cancel();
+      return null;
+    }
+    chunks.push(value);
+  }
+
+  return Buffer.concat(chunks);
+}
+
 // 外部の画像(投稿者のアイコンなど)を短いタイムアウトで取り、data URI にして返す。
 // satori は描画中に <img> の取得に失敗すると画像全体の生成が失敗するため、
 // 信頼できない URL は先に取っておき、取れなければ null(その要素を出さない)にする。
+//
+// 取得先は isTrustedImageUrl の許可ホストに限る。投稿者のアイコン URL は本人が自由に
+// 設定できる値なので、ここで絞らないと内部ネットワークへ向けた GET を webapp サーバに
+// 撃たせられる(SSRF)。リダイレクトも追わない(許可ホストから外へ転送される経路を塞ぐ)。
 async function fetchImageAsDataUri(url: string, timeoutMs: number): Promise<string | null> {
-  if (!url) return null;
+  if (!isTrustedImageUrl(url)) return null;
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch(url, { signal: controller.signal, cache: "no-store" });
+    const res = await fetch(url, {
+      signal: controller.signal,
+      cache: "no-store",
+      redirect: "error",
+    });
     const contentType = res.headers.get("content-type") ?? "";
     if (!res.ok || !contentType.startsWith("image/")) return null;
 
-    const body = Buffer.from(await res.arrayBuffer());
+    const declaredLength = Number(res.headers.get("content-length") ?? 0);
+    if (declaredLength > MAX_EMBED_IMAGE_BYTES) return null;
+
+    const body = await readBodyWithLimit(res, MAX_EMBED_IMAGE_BYTES);
+    if (!body) return null;
+
     return `data:${contentType.split(";")[0]};base64,${body.toString("base64")}`;
   } catch {
     return null;

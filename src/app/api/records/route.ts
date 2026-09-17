@@ -4,6 +4,7 @@ import { auth } from "@app/auth";
 
 import { fetchRecordsPageWithDetails } from "@app/utils/recordListServer";
 import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/upstream";
+import { readJsonBody } from "@app/utils/requestBody";
 import { signUpstreamToken } from "@app/utils/upstreamToken";
 
 import { RecordCreateRequestType, RecordCreateResponseType } from "@app/types/record";
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
   const token = signUpstreamToken(session.user.id);
 
   try {
-    const record: RecordCreateRequestType = await request.json();
+    const record = await readJsonBody<RecordCreateRequestType>(request);
 
     const created = await fetchUpstream<RecordCreateResponseType>(
       upstreamUrl`/api/v1beta/records`,

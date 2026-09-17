@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@app/auth";
 
 import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/upstream";
+import { readJsonBody } from "@app/utils/requestBody";
 import { signUpstreamToken } from "@app/utils/upstreamToken";
 
 import { MatchReorderRequestType } from "@app/types/match";
@@ -20,7 +21,7 @@ export async function PUT(
 
   try {
     const { id } = await params;
-    const body: MatchReorderRequestType = await request.json();
+    const body = await readJsonBody<MatchReorderRequestType>(request);
 
     await fetchUpstream<null>(
       upstreamUrl`/api/v1beta/records/${id}/matches/order`,

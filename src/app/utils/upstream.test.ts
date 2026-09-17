@@ -1,6 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { UpstreamError, fetchUpstream } from "@app/utils/upstream";
+import {
+  BadRequestError,
+  UpstreamError,
+  fetchUpstream,
+  upstreamErrorResponse,
+  upstreamUrl,
+} from "@app/utils/upstream";
 
 /*
  * 上流の失敗がJSONで返るとは限らない。
@@ -99,5 +105,53 @@ describe("fetchUpstream", () => {
       "https://example.test/api",
       expect.objectContaining({ cache: "force-cache", next: { revalidate: 3600 } }),
     );
+  });
+});
+
+describe("upstreamUrl", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("埋め込んだ値をエンコードし、URLSearchParams はそのまま展開する", () => {
+    vi.stubEnv("VSRECORDER_UPSTREAM_ORIGIN", "http://upstream.test");
+
+    expect(upstreamUrl`/api/v1beta/records/${"a/b?c"}`).toBe(
+      "http://upstream.test/api/v1beta/records/a%2Fb%3Fc",
+    );
+    expect(
+      upstreamUrl`/api/v1beta/users/${"u1"}/matches?${new URLSearchParams({ limit: "10" })}`,
+    ).toBe("http://upstream.test/api/v1beta/users/u1/matches?limit=10");
+    // 条件付きのクエリが 1 つも無いときは末尾の "?" を落とす
+    expect(upstreamUrl`/api/v1beta/users/${"u1"}/badges?${new URLSearchParams()}`).toBe(
+      "http://upstream.test/api/v1beta/users/u1/badges",
+    );
+  });
+
+  // Next.js はパスパラメータをデコードして渡すので、/users/%2E%2E/deck_code_posts は
+  // id が ".." になる。encodeURIComponent は "." を残すため、そのまま組むと URL パーサが
+  // 一つ上のパス(/deck_code_posts)へ正規化してしまう。
+  it("値が . や .. のときは 400 になる BadRequestError を投げる", () => {
+    vi.stubEnv("VSRECORDER_UPSTREAM_ORIGIN", "http://upstream.test");
+
+    expect(() => upstreamUrl`/api/v1beta/users/${".."}/deck_code_posts`).toThrow(
+      BadRequestError,
+    );
+    expect(() => upstreamUrl`/api/v1beta/users/${"."}/deck_code_posts`).toThrow(
+      BadRequestError,
+    );
+    // ドットを含むだけの値は通す(セグメントとしては別物)
+    expect(upstreamUrl`/api/v1beta/users/${"..x"}/deck_code_posts`).toBe(
+      "http://upstream.test/api/v1beta/users/..x/deck_code_posts",
+    );
+
+    const error: unknown = (() => {
+      try {
+        return upstreamUrl`/api/v1beta/users/${".."}`;
+      } catch (e) {
+        return e;
+      }
+    })();
+    expect(upstreamErrorResponse(error).status).toBe(400);
   });
 });

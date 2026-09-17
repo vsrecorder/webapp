@@ -34,6 +34,7 @@ import { onNotificationsRefreshRequested } from "@app/utils/notificationEvents";
 import { rankInfoForName } from "@app/utils/designationRank";
 import { environmentBadgeImageUrl } from "@app/utils/badgeImage";
 import { formatJSTDateNumeric } from "@app/utils/date";
+import { isSameOriginPath } from "@app/utils/url";
 
 const NOTIFICATIONS_LIMIT = 30;
 const POLL_INTERVAL_MS = 60 * 1000;
@@ -213,9 +214,10 @@ export default function NotificationBell({ userId }: Props) {
     if (!notification.is_read) markAsRead(notification.id);
 
     // リンク先を持つ通知(週次レポート・ストリークの途切れ防止など)はタップでそのページへ移動する。
-    // core-apiserver が作る link_url はサイト内パスだけなので、それ以外は無視する
-    // ("//example.com" のようなプロトコル相対URLも外部遷移になるため通さない)。
-    if (notification.link_url && /^\/(?!\/)/.test(notification.link_url)) {
+    // core-apiserver が作る link_url はサイト内パスだけなので、それ以外は無視する。
+    // "//example.com" や "/\\example.com" のように別オリジンへ解決される値は、
+    // 文字の形ではなく解決後のオリジンで弾く(utils/url の isSameOriginPath 参照)。
+    if (isSameOriginPath(notification.link_url, window.location.origin)) {
       router.push(notification.link_url);
     }
   };

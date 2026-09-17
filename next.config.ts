@@ -206,6 +206,23 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        /*
+         * BFF(ルートハンドラ)の応答は既定で共有キャッシュに載せない。
+         *
+         * ルートハンドラは動的でも自動では Cache-Control を付けない(本番実測)。応答の大半は
+         * ログイン中の本人のデータなので、経路上の共有キャッシュやブラウザの履歴キャッシュに
+         * 残らないよう、ここで no-store を既定にする。
+         *
+         * 注意: ここで付けたヘッダは、ルートハンドラが自分の応答で同名のヘッダを返しても
+         * 上書きされない(next/dist/server/send-response.js は既に存在するヘッダを追記しない)。
+         * 公開データを長くキャッシュさせるルート(deckcards/[code]/acespec の public, max-age)は
+         * この対象から外しておく必要があるため、パスの否定先読みで除外している。
+         * 自前の Cache-Control を返すルートを増やすときは、ここの除外にも足すこと。
+         */
+        source: "/api/:path((?!deckcards/).*)",
+        headers: [{ key: "Cache-Control", value: "private, no-store" }],
+      },
+      {
         source: "/:path*",
         headers: [
           // MIMEスニッフィングを禁止する。CDN上のユーザーアップロード画像などを

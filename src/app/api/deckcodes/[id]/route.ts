@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@app/auth";
 
 import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/upstream";
+import { readJsonBody } from "@app/utils/requestBody";
 import { signUpstreamToken } from "@app/utils/upstreamToken";
 
 import {
@@ -59,7 +60,7 @@ export async function PUT(
 
   try {
     const { id } = await params;
-    const body: DeckCodeUpdateRequestType = await request.json();
+    const body = await readJsonBody<DeckCodeUpdateRequestType>(request);
 
     const updated = await fetchUpstream<DeckCodeUpdateResponseType>(
       upstreamUrl`/api/v1beta/deckcodes/${id}`,

@@ -132,7 +132,7 @@ export const getDashboardInitialData = cache(
     const yearMonth = getCurrentYearMonth();
     const myGymRange = getMyGymEventRange();
 
-    const headers: HeadersInit = { Accept: "application/json" };
+    // 本人の活動記録(バッジ・連続記録・称号・戦績)は上流が本人以外を 403 で弾くので、全て署名付きで取る
     const authHeaders: HeadersInit = {
       Accept: "application/json",
       Authorization: "Bearer " + signUpstreamToken(userId),
@@ -156,27 +156,27 @@ export const getDashboardInitialData = cache(
       getPanel<UserBadgesType>(
         "badges",
         upstreamUrl`/api/v1beta/users/${userId}/badges?${noQuery}`,
-        headers,
+        authHeaders,
       ),
       getPanel<UserBadgesType>(
         "season badges",
         upstreamUrl`/api/v1beta/users/${userId}/badges?${seasonQuery}`,
-        headers,
+        authHeaders,
       ),
       getPanel<UserEnvironmentBadgesResponseType>(
         "environment badges",
         upstreamUrl`/api/v1beta/users/${userId}/environment_badges`,
-        headers,
+        authHeaders,
       ),
       getPanel<UserStreakType>(
         "streak",
         upstreamUrl`/api/v1beta/users/${userId}/streak`,
-        headers,
+        authHeaders,
       ),
       getPanel<UserDesignationType>(
         "designation",
         upstreamUrl`/api/v1beta/users/${userId}/designation?${seasonQuery}`,
-        headers,
+        authHeaders,
       ),
       getUserPlayer(authHeaders),
       environmentId
@@ -187,7 +187,7 @@ export const getDashboardInitialData = cache(
               environment_id: environmentId,
               exclude_default_matches: String(excludeDefaultMatches),
             }),
-            headers,
+            authHeaders,
           )
         : Promise.resolve<UserStatType | undefined>(undefined),
       getPanel<UserStatType>(
@@ -196,7 +196,7 @@ export const getDashboardInitialData = cache(
           year_month: yearMonth,
           exclude_default_matches: String(excludeDefaultMatches),
         }),
-        headers,
+        authHeaders,
       ),
       getPanel<UserGymOfficialEventGetResponseType>(
         "my gym events",

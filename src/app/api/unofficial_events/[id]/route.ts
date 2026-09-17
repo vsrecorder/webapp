@@ -9,31 +9,21 @@ import {
 } from "@app/types/unofficial_event";
 
 import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/upstream";
+import { readJsonBody } from "@app/utils/requestBody";
 import { signUpstreamToken } from "@app/utils/upstreamToken";
 
 async function getUnofficialEventById(
   id: string,
 ): Promise<UnofficialEventGetByIdResponseType> {
-  try {
-    const res = await fetch(upstreamUrl`/api/v1beta/unofficial_events/${id}`, {
-      cache: "no-store",
+  return await fetchUpstream<UnofficialEventGetByIdResponseType>(
+    upstreamUrl`/api/v1beta/unofficial_events/${id}`,
+    {
       method: "GET",
       headers: {
         Accept: "application/json",
       },
-    });
-
-    if (!res.ok) {
-      const ret = await res.json();
-      throw new Error(`HTTP error: ${res.status} Message: ${ret.message}`);
-    }
-
-    const ret: UnofficialEventGetByIdResponseType = await res.json();
-
-    return ret;
-  } catch (error) {
-    throw error;
-  }
+    },
+  );
 }
 
 export async function GET(
@@ -47,7 +37,8 @@ export async function GET(
 
     return NextResponse.json(ret, { status: 200 });
   } catch (error) {
-    throw error;
+    // 存在しない ID の 404 やデプロイ中の 503 は、上流のステータスのまま返す(以前は全て 500 だった)
+    return upstreamErrorResponse(error);
   }
 }
 
@@ -64,7 +55,7 @@ export async function PUT(
 
   try {
     const { id } = await params;
-    const unofficialEvent: UnofficialEventUpdateRequestType = await request.json();
+    const unofficialEvent = await readJsonBody<UnofficialEventUpdateRequestType>(request);
 
     const updated = await fetchUpstream<UnofficialEventUpdateResponseType>(
       upstreamUrl`/api/v1beta/unofficial_events/${id}`,

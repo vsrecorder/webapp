@@ -34,6 +34,15 @@ export function upstreamOrigin(): string {
   return process.env.VSRECORDER_UPSTREAM_ORIGIN || `https://${process.env.VSRECORDER_DOMAIN}`;
 }
 
+// リクエスト側の不備(壊れた JSON のボディ、パスに使えない値)を表す例外。
+// upstreamErrorResponse が 400 にする。上流の失敗(UpstreamError)と同じ catch で扱えるようにしてある。
+export class BadRequestError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "BadRequestError";
+  }
+}
+
 // 上流APIのURLを組み立てるタグ付きテンプレート。埋め込んだ値は自動でencodeURIComponentされる。
 //
 //   upstreamUrl`/api/v1beta/records/${id}`
@@ -45,6 +54,10 @@ export function upstreamOrigin(): string {
 // リクエストを飛ばせてしまう。
 // 例: /api/deckcards/..%2F..%2Fusers%2Fxxx/list → https://<domain>/api/users/xxx/list
 // ルートハンドラ側の所有者チェック（session.user.id !== id で403）も、この経路では迂回される。
+//
+// encodeURIComponent は "." を残すため、値がちょうど "." や ".." だとセグメントごと
+// 正規化されて一つ上のパスへ飛ぶ(/users/../deck_code_posts → /deck_code_posts)。
+// 本番は手前の nginx が %2E%2E を正規化して届かないが、ここでも拒否して 400 にする。
 export function upstreamUrl(
   strings: TemplateStringsArray,
   ...values: (string | number | boolean | URLSearchParams | undefined | null)[]
@@ -69,7 +82,12 @@ export function upstreamUrl(
       return;
     }
 
-    url += encodeURIComponent(String(value));
+    const text = String(value);
+    if (text === "." || text === "..") {
+      throw new BadRequestError("path parameter must not be a dot segment");
+    }
+
+    url += encodeURIComponent(text);
   });
 
   return url;
@@ -135,11 +153,15 @@ export async function fetchUpstream<T>(url: string, init?: RequestInit): Promise
   return (body ?? null) as T;
 }
 
-// ルートハンドラのcatchで使う。上流の失敗はそのステータスのまま返し、
-// それ以外の想定外のエラーはNext.jsに委ねる（500になる）。
+// ルートハンドラのcatchで使う。上流の失敗はそのステータスのまま返し、リクエスト側の不備は
+// 400 で返す。それ以外の想定外のエラーはNext.jsに委ねる（500になる）。
 export function upstreamErrorResponse(error: unknown): NextResponse {
   if (error instanceof UpstreamError) {
     return NextResponse.json(error.body, { status: error.status });
+  }
+
+  if (error instanceof BadRequestError) {
+    return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
   throw error;

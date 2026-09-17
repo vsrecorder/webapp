@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { auth } from "@app/auth";
+import { auth, markUserDeleted } from "@app/auth";
 import { deleteFirebaseUserWithRetry, getFirebaseAdmin } from "@firebase/admin";
 
 import { UserGetByIdResponseType, UserUpdateRequestType, UserUpdateResponseType } from "@app/types/user";
@@ -12,6 +12,7 @@ import {
   upstreamUrl,
 } from "@app/utils/upstream";
 import { signUpstreamToken } from "@app/utils/upstreamToken";
+import { isTrustedImageUrl } from "@app/utils/trustedImageUrl";
 
 export async function GET(
   _request: NextRequest,
@@ -65,7 +66,22 @@ export async function PUT(
   }
 
   const token = signUpstreamToken(session.user.id);
-  const body: UserUpdateRequestType = await request.json();
+
+  // ボディは型注釈だけでは何も保証されない(壊れた JSON は 500 になり、余計なキーは
+  // そのまま上流へ流れる)。上流へ渡すのは name と image_url の 2 つだけに組み直す。
+  // image_url は取得先を限定する。OGP 画像の生成がサーバ側でこの URL を取りに行くため、
+  // 任意のホストを保存できると内部ネットワークへの GET に使われる(utils/trustedImageUrl 参照)。
+  const raw: unknown = await request.json().catch(() => null);
+  if (!raw || typeof raw !== "object") {
+    return NextResponse.json({ error: "invalid body" }, { status: 400 });
+  }
+
+  const { name, image_url } = raw as Record<string, unknown>;
+  if (typeof name !== "string" || !isTrustedImageUrl(image_url)) {
+    return NextResponse.json({ error: "invalid body" }, { status: 400 });
+  }
+
+  const body: UserUpdateRequestType = { name, image_url };
 
   try {
     const updated = await fetchUpstream<UserUpdateResponseType>(
@@ -121,6 +137,10 @@ export async function DELETE(
 
     return upstreamErrorResponse(error);
   }
+
+  // このプロセスの退会チェックに「退会済み」を覚えさせる。他端末のセッションが
+  // 次の確認を待たずに未ログイン扱いになる(auth.ts の markUserDeleted 参照)。
+  markUserDeleted(id);
 
   // バックエンドの退会処理が完了した後にFirebaseの認証ユーザを削除する。
   //

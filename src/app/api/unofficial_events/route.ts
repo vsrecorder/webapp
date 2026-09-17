@@ -3,6 +3,7 @@ import { NextResponse, NextRequest } from "next/server";
 import { auth } from "@app/auth";
 
 import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/upstream";
+import { readJsonBody } from "@app/utils/requestBody";
 import { signUpstreamToken } from "@app/utils/upstreamToken";
 
 import {
@@ -19,7 +20,7 @@ export async function POST(request: NextRequest) {
   const token = signUpstreamToken(session.user.id);
 
   try {
-    const unofficialEvent: UnofficialEventCreateRequestType = await request.json();
+    const unofficialEvent = await readJsonBody<UnofficialEventCreateRequestType>(request);
 
     const created = await fetchUpstream<UnofficialEventCreateResponseType>(
       upstreamUrl`/api/v1beta/unofficial_events`,

@@ -1,6 +1,9 @@
 import { NextResponse, NextRequest } from "next/server";
 
+import { auth } from "@app/auth";
+
 import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/upstream";
+import { signUpstreamToken } from "@app/utils/upstreamToken";
 
 import { UserStatType } from "@app/types/user_stat";
 
@@ -13,6 +16,7 @@ async function getUserStat(
   standardRegulationId: string,
   regulationId: string,
   excludeDefaultMatches: string,
+  token: string,
 ): Promise<UserStatType> {
   const params = new URLSearchParams();
   if (week) params.set("week", week);
@@ -29,7 +33,10 @@ async function getUserStat(
     upstreamUrl`/api/v1beta/users/${userId}/stats?${params}`,
     {
       method: "GET",
-      headers: { Accept: "application/json" },
+      headers: {
+        Authorization: "Bearer " + token,
+        Accept: "application/json",
+      },
     },
   );
 }
@@ -38,7 +45,18 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const session = await auth();
+  if (!session) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
   const { id } = await params;
+  // 戦績は本人の活動記録そのもので、他人向けの画面は無い。
+  // 上流も本人以外を403で弾くが、無駄な往復を避けるため手前で弾く。
+  if (session.user.id !== id) {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
+
   const { searchParams } = new URL(request.url);
   const week = searchParams.get("week") ?? "";
   const yearMonth = searchParams.get("year_month") ?? "";
@@ -58,6 +76,7 @@ export async function GET(
       standardRegulationId,
       regulationId,
       excludeDefaultMatches,
+      signUpstreamToken(session.user.id),
     );
     return NextResponse.json(stat, { status: 200 });
   } catch (error) {

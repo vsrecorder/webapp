@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@app/auth";
 
 import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/upstream";
+import { readJsonBody } from "@app/utils/requestBody";
 import { signUpstreamToken } from "@app/utils/upstreamToken";
 
 import {
@@ -62,7 +63,7 @@ export async function PUT(
 
   try {
     const { id } = await params;
-    const record: RecordUpdateRequestType = await request.json();
+    const record = await readJsonBody<RecordUpdateRequestType>(request);
 
     const updated = await fetchUpstream<RecordUpdateResponseType>(
       upstreamUrl`/api/v1beta/records/${id}`,

@@ -53,6 +53,7 @@ import {
   scrollToTopAfterKeyboard,
 } from "@app/utils/keyboard";
 import { getSpriteBySlot } from "@app/utils/spriteSlot";
+import { filterOwnDeckHistoryWindow } from "@app/utils/deckHistoryWindow";
 import { isIOS } from "@app/utils/platform";
 import { useClientValue } from "@app/hooks/useClientValue";
 import { closingPassthroughClassNames } from "@app/utils/modal";
@@ -262,10 +263,14 @@ export default function CreateMatchModal({
     fetchMatches,
   );
 
-  // 出現回数の多い順に並んだ自身のデッキ履歴（上位 MAX_DECK_HISTORY_CANDIDATES 件、不戦勝/不戦敗を除外）
+  // 出現回数の多い順に並んだ自身のデッキ履歴（上位 MAX_DECK_HISTORY_CANDIDATES 件、不戦勝/不戦敗を除外）。
+  // 直近の対戦だけを対象にする（環境が入れ替わった後も昔のデッキが候補に残らないようにする）
   const deckHistories = useMemo<DeckHistory[]>(() => {
     if (!recentMatches) return [];
-    return aggregateDeckHistories(recentMatches).slice(0, MAX_DECK_HISTORY_CANDIDATES);
+    return aggregateDeckHistories(filterOwnDeckHistoryWindow(recentMatches)).slice(
+      0,
+      MAX_DECK_HISTORY_CANDIDATES,
+    );
   }, [recentMatches]);
 
   // 自身の履歴が上限に満たない場合のみ、他ユーザの直近100件を取得して不足分の水増しに使う

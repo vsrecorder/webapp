@@ -49,6 +49,7 @@ import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 import { refreshRecordingNow } from "@app/utils/recordingNowClient";
 import { markRecordCreatedForPushPrompt } from "@app/utils/pushPrompt";
 import { getSpriteBySlot } from "@app/utils/spriteSlot";
+import { filterOwnDeckHistoryWindow } from "@app/utils/deckHistoryWindow";
 import {
   MAX_EVENT_TITLE_LENGTH,
   MAX_OPPONENTS_DECK_INFO_LENGTH,
@@ -78,6 +79,15 @@ type DeckHistory = {
   sprite2: PokemonSpriteType | null;
 };
 
+// 相手デッキ候補の表示上限。自身の履歴がこの件数に満たない場合は他ユーザの履歴で水増しする
+// (CreateMatchModal と同じ)
+const MAX_DECK_HISTORY_CANDIDATES = 50;
+
+// 「相手デッキ名 + スロット1/2のスプライト」の組み合わせを一意に識別するキー。
+// 同じデッキでもスプライトが異なれば別候補として扱う
+const historyKey = (h: DeckHistory) =>
+  `${h.deckInfo}|${h.sprite1?.id ?? ""}|${h.sprite2?.id ?? ""}`;
+
 async function fetchMatches(url: string): Promise<MatchGetResponseType[]> {
   const res = await fetch(url, {
     method: "GET",
@@ -100,12 +110,10 @@ async function fetchDecks(url: string): Promise<DeckData[]> {
   return res.json();
 }
 
-// 過去マッチの relに含まれる相手デッキ(テキスト＋スプライト)を、出現頻度順の候補へ畳み込む。
+// 過去マッチに含まれる相手デッキ(テキスト＋スプライト)を、出現頻度順の候補へ畳み込む。
 // CreateMatchModal と同じロジックを、簡素化フォーム用に切り出したもの。
-function buildDeckHistories(
-  matches: MatchGetResponseType[] | undefined,
-  unique: boolean,
-): DeckHistory[] {
+// 件数の上限は呼び出し側で切る(自身の履歴と他ユーザの水増し分を合わせて上限に収めるため)。
+function buildDeckHistories(matches: MatchGetResponseType[] | undefined): DeckHistory[] {
   if (!matches) return [];
   const countMap = new Map<string, { history: DeckHistory; count: number }>();
   for (const match of matches) {
@@ -140,10 +148,9 @@ function buildDeckHistories(
       });
     }
   }
-  const values = Array.from(countMap.values());
-  // ユーザ履歴は頻度順、ダミー(全体)は登場順のまま重複排除する
-  if (!unique) values.sort((a, b) => b.count - a.count);
-  return values.slice(0, 50).map((v) => v.history);
+  return Array.from(countMap.values())
+    .sort((a, b) => b.count - a.count)
+    .map((v) => v.history);
 }
 
 type EventType = "unofficial" | "official" | "tonamel";
@@ -248,21 +255,44 @@ export default function TemplateQuickRecordCreate({
   // クイックスタートから受け取ったデッキ名で表示を埋める。
   const selectedDeckName = selectedDeck?.name || deckName;
   const selectedDeckSprites = selectedDeck?.pokemon_sprites ?? [];
+  // 出現回数の多い順に並んだ自身のデッキ履歴(上位 MAX_DECK_HISTORY_CANDIDATES 件)。
+  // 直近の対戦だけを対象にする(環境が入れ替わった後も昔のデッキが候補に残らないようにする)
   const deckHistories = useMemo(
-    () => buildDeckHistories(recentMatches, false),
+    () =>
+      buildDeckHistories(filterOwnDeckHistoryWindow(recentMatches)).slice(
+        0,
+        MAX_DECK_HISTORY_CANDIDATES,
+      ),
     [recentMatches],
   );
+
+  // 自身の履歴が上限に満たない場合のみ、他ユーザの直近100件を取得して不足分の水増しに使う
   const { data: globalMatches } = useSWR<MatchGetResponseType[]>(
-    recentMatches !== undefined && deckHistories.length === 0
+    recentMatches !== undefined && deckHistories.length < MAX_DECK_HISTORY_CANDIDATES
       ? `/api/matches?limit=100`
       : null,
     fetchMatches,
   );
-  const dummyHistories = useMemo(
-    () => buildDeckHistories(globalMatches, true),
-    [globalMatches],
-  );
-  const activeCandidates = deckHistories.length > 0 ? deckHistories : dummyHistories;
+
+  // 他ユーザのマッチを出現回数の多い順に集計した水増し候補
+  const globalHistories = useMemo(() => buildDeckHistories(globalMatches), [globalMatches]);
+
+  // 表示に使う候補。自身の履歴を先頭に並べ、上限に満たない分だけ他ユーザ履歴の多い順で水増しする
+  // (自身の履歴と重複する組み合わせは除外)
+  const activeCandidates = useMemo<DeckHistory[]>(() => {
+    const result = [...deckHistories];
+    const seen = new Set(deckHistories.map(historyKey));
+    for (const history of globalHistories) {
+      if (result.length >= MAX_DECK_HISTORY_CANDIDATES) break;
+      const key = historyKey(history);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      result.push(history);
+    }
+    return result;
+  }, [deckHistories, globalHistories]);
+  // ユーザ履歴ロード中、または(履歴が空で)水増し候補フェッチ中。
+  // 履歴が1件でもあれば即表示し、水増し分は取得でき次第あとから追加する(ちらつき防止)
   const isCandidatesLoading =
     recentMatches === undefined ||
     (deckHistories.length === 0 && globalMatches === undefined);

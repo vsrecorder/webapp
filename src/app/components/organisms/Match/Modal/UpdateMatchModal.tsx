@@ -49,6 +49,7 @@ import {
   scrollToTopAfterKeyboard,
 } from "@app/utils/keyboard";
 import { getSpriteBySlot } from "@app/utils/spriteSlot";
+import { filterOwnDeckHistoryWindow } from "@app/utils/deckHistoryWindow";
 import { closingPassthroughClassNames } from "@app/utils/modal";
 import {
   MAX_OPPONENTS_DECK_INFO_LENGTH,
@@ -196,11 +197,12 @@ export default function UpdateMatchModal({
     fetchMatches,
   );
 
-  // 出現回数の多い順に並んだデッキ履歴（上位30件、不戦勝/不戦敗を除外）
+  // 出現回数の多い順に並んだデッキ履歴（上位30件、不戦勝/不戦敗を除外）。
+  // 直近の対戦だけを対象にする（環境が入れ替わった後も昔のデッキが候補に残らないようにする）
   const deckHistories = useMemo<DeckHistory[]>(() => {
     if (!recentMatches) return [];
     const countMap = new Map<string, { history: DeckHistory; count: number }>();
-    for (const m of recentMatches) {
+    for (const m of filterOwnDeckHistoryWindow(recentMatches)) {
       if (m.default_victory_flg || m.default_defeat_flg) continue;
       if (!m.opponents_deck_info) continue;
       const s1Id = getSpriteBySlot(m.pokemon_sprites, 1)?.id;

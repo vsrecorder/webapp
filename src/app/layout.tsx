@@ -79,7 +79,18 @@ export default function RootLayout({
 
   return (
     <html lang="ja" suppressHydrationWarning data-env={isDevEnv() ? "dev" : "prod"}>
-      <body className="overflow-x-hidden bg-white text-foreground dark:bg-neutral-950">
+      {/*
+        body の背景色は、iOS の standalone PWA で「最下端のセーフエリア(ホームインジケーターの
+        帯)」を塗る色になる(その領域はビューポートの外で、iOS がルート要素の背景色で埋めるため)。
+        ライト時に白・ダーク時に黒だったのはこの bg-white / dark:bg-neutral-950 が出ていたもの。
+        上端のステータスバー(theme-color)と揃えるため、上部と同じ getStatusBarColor() に塗る。
+        ビューポート内の地色は <main> の app-dot-bg が不透明で覆うので、見えるのはセーフエリアと
+        オーバースクロール時だけ。上端のセーフエリアは theme-color が優先されるので影響しない。
+      */}
+      <body
+        className="overflow-x-hidden text-foreground"
+        style={{ backgroundColor: getStatusBarColor() }}
+      >
         {/*
           描画前に iOS の standalone PWA かどうか / Android かどうかを判定して <html> に目印を付け、
           Android の standalone PWA ではステータスバー色の <meta name="theme-color"> も足す。

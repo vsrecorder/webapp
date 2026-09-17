@@ -221,7 +221,7 @@ export default function TemplateSharedDecks({ viewerId, initial }: Props) {
                   </>
                 ) : (
                   <>
-                    スプライト
+                    ポケモン
                     <LuChevronDown className="text-xs" />
                   </>
                 )}
@@ -230,7 +230,7 @@ export default function TemplateSharedDecks({ viewerId, initial }: Props) {
                 <button
                   type="button"
                   onClick={clearSprites}
-                  aria-label="スプライトの絞り込みを解除"
+                  aria-label="ポケモンの絞り込みを解除"
                   className={CHIP_CLEAR}
                 >
                   <LuX className="text-xs" />

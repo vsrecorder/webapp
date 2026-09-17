@@ -67,13 +67,13 @@ function HeaderShell({
         なることがあるため、ぼかし背景だけを別レイヤー（absolute）に分離し、
         コンテンツ側は backdrop-filter の直接の対象にならないようにする。
 
-        下端の境界線もこのレイヤーに持たせる。header 側に付けると、inset-0 の
-        レイヤーはパディングボックスまでしか広がらないため境界線の1pxだけ背景が
-        抜け、白15%が背後のページ背景に乗って「ほぼ白い線」になる。利用規約など
-        直下が濃色のページでは、それがヘッダーとの隙間に見えてしまう。
+        本文との区切りはこのレイヤーの下向きの薄い影で表す。以前は白15%の
+        下端境界線だったが、ダークモードでは背後が暗く、明るい線がはっきり
+        浮いて見えたため、影に置き換えた。影は箱の外側へ落ちるので、境界線の
+        ように1pxぶん背景が抜ける問題も起きない。
       */}
       <div
-        className={`absolute inset-0 border-b border-white/15 ${gradientClass} backdrop-blur-md`}
+        className={`absolute inset-0 ${gradientClass} backdrop-blur-md shadow-[0_3px_8px_-2px_rgba(0,0,0,0.18)]`}
       />
       {/* 本サービスはモバイル専用のため、デスクトップ幅（lg以上）でのみ非対応の旨を表示する */}
       <div

@@ -6,39 +6,7 @@ import { fetchUpstream, upstreamErrorResponse, upstreamUrl } from "@app/utils/up
 import { readJsonBody } from "@app/utils/requestBody";
 import { signUpstreamToken } from "@app/utils/upstreamToken";
 
-import {
-  MatchCreateRequestType,
-  MatchCreateResponseType,
-  MatchGetResponseType,
-} from "@app/types/match";
-
-export async function GET(request: NextRequest) {
-  const session = await auth();
-  if (!session) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
-
-  const token = signUpstreamToken(session.user.id);
-
-  try {
-    const { searchParams } = new URL(request.url);
-    const limit = searchParams.get("limit") ?? "20";
-    const matches = await fetchUpstream<MatchGetResponseType[]>(
-      upstreamUrl`/api/v1beta/matches?limit=${limit}`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: "Bearer " + token,
-          "Content-Type": "application/json",
-        },
-      },
-    );
-
-    return NextResponse.json(matches, { status: 200 });
-  } catch (error) {
-    return upstreamErrorResponse(error);
-  }
-}
+import { MatchCreateRequestType, MatchCreateResponseType } from "@app/types/match";
 
 export async function POST(request: NextRequest) {
   const session = await auth();

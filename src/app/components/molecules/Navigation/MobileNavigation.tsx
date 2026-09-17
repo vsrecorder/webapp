@@ -11,7 +11,13 @@ import { useNavPendingHref } from "./useNavPendingHref";
 // アプリ内のナビゲーションを被せない。
 const HIDDEN_PATHNAMES = ["/kizuna"];
 
-export default function MobileNavigation() {
+type Props = {
+  // 最下端のセーフエリアを埋める色。上部ステータスバーと揃えるため、
+  // サーバ(Navigation)が getStatusBarColor() を解決して渡す
+  safeAreaColor: string;
+};
+
+export default function MobileNavigation({ safeAreaColor }: Props) {
   const pathname = usePathname();
   // タップした項目を遷移先が描かれるまで選択中の見た目にする(useNavPendingHref 参照)
   const { pending, markPending } = useNavPendingHref(pathname);
@@ -19,12 +25,11 @@ export default function MobileNavigation() {
   if (HIDDEN_PATHNAMES.includes(pathname)) return null;
 
   return (
-    <nav
-      className="fixed z-50 lg:hidden bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md dark:bg-neutral-900/80 border-t border-default-200/50 dark:border-neutral-800/80"
-      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
-    >
+    <nav className="fixed z-50 lg:hidden bottom-0 left-0 right-0">
+      {/* ナビ本体。すりガラス調の白は従来どおり。背景を内側のこの層に移し、
+          下のセーフエリア帯だけ別色にできるようにした */}
       <div
-        className="grid h-[var(--mobile-nav-height)]"
+        className="grid h-[var(--mobile-nav-height)] bg-white/80 backdrop-blur-md dark:bg-neutral-900/80 border-t border-default-200/50 dark:border-neutral-800/80"
         style={{ gridTemplateColumns: `repeat(${navItems.length}, minmax(0, 1fr))` }}
       >
         {navItems.map(({ href, label, icon: Icon, prefetch }) => {
@@ -53,6 +58,12 @@ export default function MobileNavigation() {
           );
         })}
       </div>
+      {/* 最下端のセーフエリア(ホームインジケーター等の帯)を、上部ステータスバーと
+          同じ色で埋める。safe-area-inset-bottom が 0 の端末では高さ 0 で見えない */}
+      <div
+        aria-hidden
+        style={{ height: "env(safe-area-inset-bottom)", backgroundColor: safeAreaColor }}
+      />
     </nav>
   );
 }

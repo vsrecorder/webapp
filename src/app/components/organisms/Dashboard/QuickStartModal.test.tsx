@@ -17,7 +17,7 @@ describe("useShouldShowQuickStart", () => {
     expect(result.current).toBe(true);
   });
 
-  it("3日以内に出していれば出さない", () => {
+  it("1日以内に出していれば出さない", () => {
     localStorage.setItem(DISMISS_KEY, String(Date.now()));
 
     const { result } = renderHook(() => useShouldShowQuickStart());
@@ -25,8 +25,8 @@ describe("useShouldShowQuickStart", () => {
     expect(result.current).toBe(false);
   });
 
-  it("3日を過ぎていれば出す", () => {
-    localStorage.setItem(DISMISS_KEY, String(Date.now() - 4 * 24 * 60 * 60 * 1000));
+  it("1日を過ぎていれば出す", () => {
+    localStorage.setItem(DISMISS_KEY, String(Date.now() - 2 * 24 * 60 * 60 * 1000));
 
     const { result } = renderHook(() => useShouldShowQuickStart());
 

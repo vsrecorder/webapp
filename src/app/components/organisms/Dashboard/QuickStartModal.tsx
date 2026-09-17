@@ -12,9 +12,10 @@ import { useHydrated } from "@app/hooks/useHydrated";
 import { readLocalStorage, writeLocalStorage } from "@app/utils/localStorageStore";
 import { ACTIVITY_ONBOARDING_CTA, sendDailyActivity } from "@app/utils/dailyActivity";
 
-// 閉じてから再表示しない期間。PWAインストールバナー(useInstallPrompt)と同じ流儀・同じ長さ。
+// 出してから再表示しない期間。PWAインストールバナー(useInstallPrompt)と同じ流儀(出した時点で記録し、
+// 期間内は出さない)。長さは1日: 記録0件のうちは翌日にはまた最初の1件への導線を前に出す。
 const DISMISS_KEY = "quick_start_modal_dismissed_at";
-const DISMISS_DURATION_MS = 3 * 24 * 60 * 60 * 1000;
+const DISMISS_DURATION_MS = 1 * 24 * 60 * 60 * 1000;
 
 type Props = {
   // GA 計測のラベル用。コホート限定はせず、登録週の区別は計測に付与するだけ(FirstRecordCtaCard と同じ)。
@@ -22,7 +23,7 @@ type Props = {
   daysSinceSignup?: number;
 };
 
-// 「一度出したら3日空ける」の抑止中か
+// 「一度出したら1日空ける」の抑止中か
 function isRecentlyDismissed(): boolean {
   const dismissedAt = readLocalStorage(DISMISS_KEY);
   return !!dismissedAt && Date.now() - Number(dismissedAt) < DISMISS_DURATION_MS;
@@ -34,7 +35,7 @@ function isRecentlyDismissed(): boolean {
  *
  * 判定はこのマウントの state に持つ。以前はモジュールの Map に useId をキーにして覚えていたが、
  * useId はツリー上の位置から決まるため、同じ文書の中でホームを開き直すと同じキーになり、
- * 閉じた直後でも前回の「出す」がそのまま返っていた(3日空ける抑止が効かなかった)。
+ * 閉じた直後でも前回の「出す」がそのまま返っていた(期間を空ける抑止が効かなかった)。
  * マウントごとに持てば、開き直すたびに抑止記録から決め直せる。
  *
  * localStorage はサーバ描画では読めないので、判定が効くのはハイドレーション後から。
@@ -71,7 +72,7 @@ export default function QuickStartModal({ cohortWeek, daysSinceSignup }: Props) 
   };
 
   // 出すと決まったら抑止を記録し、表示を計測する。
-  // 「一度出したら3日空ける」。閉じる操作を待たずに開いた時点で記録するのは、
+  // 「一度出したら1日空ける」。閉じる操作を待たずに開いた時点で記録するのは、
   // 閉じずにリロードした場合や別ページへ移って戻った場合に毎回出てしまうのを防ぐため。
   // (書き込めない環境では抑止できないが、表示自体は妨げない)
   useEffect(() => {

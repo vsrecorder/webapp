@@ -19,12 +19,24 @@ export default function MobileNavigation() {
   if (HIDDEN_PATHNAMES.includes(pathname)) return null;
 
   return (
+    /*
+      画面下端に貼り付けず、左右と下に余白を取って浮かせる。
+      セーフエリア(iOS のホームインジケータ)の内側にさらに --mobile-nav-gap を空けるので、
+      下端に接して窮屈に見えることがない。塞ぐ高さの合計は --mobile-nav-height として
+      globals.css が出しており、本文の下余白や浮かせる要素はこれまでどおりそれを見る。
+    */
     <nav
-      className="fixed z-50 lg:hidden bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md dark:bg-neutral-900/80 border-t border-default-200/50 dark:border-neutral-800/80"
-      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      className="fixed z-50 left-3 right-3 lg:hidden"
+      style={{ bottom: "calc(env(safe-area-inset-bottom) + var(--mobile-nav-gap))" }}
     >
+      {/*
+        浮かせた面は透かさない。背後をページが流れていくので、半透明だと文字とアイコンが
+        読みにくくなる(貼り付いていた頃は下端の帯で背景が単調だったため透かせていた)。
+        角を丸めた面に落ちる影で浮きを出し、枠線は置かない。ダークだけは影が沈んで
+        輪郭が消えるので、細い枠で縁を作る。
+      */}
       <div
-        className="grid h-[var(--mobile-nav-height)]"
+        className="mobile-nav-bar grid h-[var(--mobile-nav-bar-height)] overflow-hidden rounded-[1.75rem] bg-white dark:border dark:border-neutral-800 dark:bg-neutral-900"
         style={{ gridTemplateColumns: `repeat(${navItems.length}, minmax(0, 1fr))` }}
       >
         {navItems.map(({ href, label, icon: Icon, prefetch }) => {
@@ -39,9 +51,13 @@ export default function MobileNavigation() {
               aria-label={label}
               aria-current={current ? "page" : undefined}
               onClick={() => markPending(href)}
+              /*
+                選択中は色だけで示す。面を敷くと、丸めた角に四角い塗りがぶつかって
+                両端の項目だけ角が欠けて見える。
+              */
               className={`mobile-nav-item flex flex-col items-center justify-start gap-1 transition-all duration-150 active:scale-90 ${
                 active
-                  ? "text-primary bg-primary/10"
+                  ? "text-primary"
                   : "text-default-400 hover:text-default-600 dark:hover:text-default-300"
               }`}
             >

@@ -176,19 +176,27 @@
 }
 
 /*
- * 下部ナビ(MobileNavigation)の高さ。
- * ナビ本体だけでなく、<main> が下に確保する余白や、ナビの上へ浮かせる要素
- * (フローティングボタン / PWAバナー) もこの値を参照する。変えるときはここだけを直す。
+ * 下部ナビ(MobileNavigation)の寸法。
+ *
+ * ナビは画面下端に貼り付けず、左右と下に余白を取って浮かせた角丸のバーにしている。
+ * そのため寸法を2つに分ける:
+ *   --mobile-nav-bar-height … バーそのものの高さ
+ *   --mobile-nav-gap        … バーと画面下端(セーフエリアの内側)との隙間
+ * 参照側が知りたいのは「下から何 px 塞がっているか」なので、その合計を
+ * --mobile-nav-height として出す。<main> の下余白や、ナビの上へ浮かせる要素
+ * (フローティングボタン / PWAバナー)はこれまでどおりこの値だけを見ればよい。
  *
  * Android は画面下端に OS のナビゲーションバー(ジェスチャーバー)が居座るぶん
- * 下部が厚く見えるため、Android のときだけ少し低くする。
+ * 下部が厚く見えるため、Android のときだけバーを少し低くする。
  *
- * 逆に iOS の standalone PWA は、ホームインジケータの帯がビューポートの外にあって
- * ナビの下端がそこに接するため、項目がインジケータに寄って窮屈に見える。
- * 帯を上へ 0.25rem 広げて間を持たせる。
+ * iOS の standalone PWA は以前ここを 0.25rem 高くしていた。ホームインジケータの帯に
+ * ナビの下端が接して項目が窮屈に見えたためだが、いまはセーフエリアの上にさらに
+ * --mobile-nav-gap を空けて浮かせているので、その上積みは要らない。
  */
 :root {
-  --mobile-nav-height: 4.25rem;
+  --mobile-nav-bar-height: 4.25rem;
+  --mobile-nav-gap: 1rem;
+  --mobile-nav-height: calc(var(--mobile-nav-bar-height) + var(--mobile-nav-gap));
   /*
    * 画面下に出る帯(登録時アンケート・ホーム画面に追加・通知の許諾・記録中)の高さ。
    * 出ていないときは 0。同時に1枚しか出さないので、値も常に1枚ぶん。
@@ -200,12 +208,8 @@
   --recording-bar-height: 0px;
 }
 
-:root[data-ios-pwa="true"] {
-  --mobile-nav-height: 4.5rem;
-}
-
 :root[data-android="true"] {
-  --mobile-nav-height: 3.75rem;
+  --mobile-nav-bar-height: 3.75rem;
 }
 
 /*
@@ -248,24 +252,37 @@
    * すべて px 固定で拡大されない。伸ばすと増えるのは余白だけで、項目が上寄りに見える。
    * 拡大前と同じ高さに固定すれば、下の .mobile-nav-item の padding-top(rem)が
    * 15.75px になり (68 - 38) / 2 = 15px とほぼ一致して、中央寄せもそのまま保たれる。
+   * 浮かせるぶんの隙間も同じ理由で px に固定する。
    */
   :root {
-    --mobile-nav-height: 68px; /* 4.25rem @16px と同値 */
-  }
-
-  :root[data-ios-pwa="true"] {
-    --mobile-nav-height: 72px; /* 4.5rem @16px と同値 */
+    --mobile-nav-bar-height: 68px; /* 4.25rem @16px と同値 */
+    --mobile-nav-gap: 16px; /* 1rem @16px と同値 */
   }
 
   :root[data-android="true"] {
-    --mobile-nav-height: 60px; /* 3.75rem @16px と同値 */
+    --mobile-nav-bar-height: 60px; /* 3.75rem @16px と同値 */
   }
+}
+
+/*
+ * 浮かせた下部ナビの面に落とす影。
+ *
+ * Tailwind の任意値(shadow-[...])では書けない。値に rgba() のカンマが入ると
+ * クラス名として切られてしまい、box-shadow が none のまま当たらない(実測)。
+ * ダークは同じ影だと面に沈んで輪郭が消えるので、濃さを上げたうえで枠線も併用する。
+ */
+.mobile-nav-bar {
+  box-shadow: 0 0.25rem 1.25rem rgba(0, 0, 0, 0.12);
+}
+
+.dark .mobile-nav-bar {
+  box-shadow: 0 0.25rem 1.25rem rgba(0, 0, 0, 0.5);
 }
 
 /*
  * 下部ナビ(MobileNavigation)の項目の上パディング。
  * 項目の中身は アイコン枠 24px + gap 4px + ラベル 10px = 38px なので、
- * (ナビの高さ - 38px) / 2 がおおよそ中央に見える値。
+ * (バーの高さ - 38px) / 2 がおおよそ中央に見える値。
  *
  * iOS の standalone PWA はナビ自体を 4.5rem(72px)に広げてあるぶん、
  * (72 - 38) / 2 = 17px より上に置いて 11px にする。下端のホームインジケータが
@@ -276,11 +293,7 @@
   padding-top: 0.875rem;
 }
 
-:root[data-ios-pwa="true"] .mobile-nav-item {
-  padding-top: 0.6875rem; /* 11px */
-}
-
-/* Android はナビ自体が低いぶん、上パディングも詰めて中身を中央に置く */
+/* Android はバー自体が低いぶん、上パディングも詰めて中身を中央に置く */
 :root[data-android="true"] .mobile-nav-item {
   padding-top: 0.6875rem;
 }

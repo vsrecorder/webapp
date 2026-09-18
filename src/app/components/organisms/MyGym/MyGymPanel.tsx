@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
 import { Button, Card, CardBody, Chip, Image, useDisclosure } from "@heroui/react";
 import { LuChevronDown, LuHouse, LuPencil, LuPlus } from "react-icons/lu";
@@ -12,6 +12,7 @@ import MyGymShopRow from "@app/components/organisms/MyGym/MyGymShopRow";
 import {
   getEventTimeRange,
   groupEventsByDate,
+  isEventGroupExpanded,
   MY_GYM_EVENT_RANGE_DAYS,
 } from "@app/components/organisms/MyGym/myGymHelpers";
 import { MyGymEventRange, getMyGymEventRange } from "@app/utils/myGymEventRange";
@@ -22,9 +23,18 @@ import {
   getEventVenueLabel,
 } from "@app/components/organisms/Record/officialEventHelpers";
 
-import MyGymPanelSkeleton, {
-  MY_GYM_PLACEHOLDER_HEIGHT,
-} from "@app/components/organisms/MyGym/Skeleton/MyGymPanelSkeleton";
+import MyGymPanelSkeleton from "@app/components/organisms/MyGym/Skeleton/MyGymPanelSkeleton";
+import { useClientValue } from "@app/hooks/useClientValue";
+import { readClientCookie, writeClientCookie } from "@app/utils/clientCookie";
+import {
+  currentMyGymSkeleton,
+  DEFAULT_MY_GYM_SKELETON,
+  formatMyGymSkeleton,
+  MY_GYM_SKELETON_COOKIE,
+  MY_GYM_SKELETON_COOKIE_MAX_AGE,
+  myGymSkeletonHeightRem,
+  parseMyGymSkeleton,
+} from "@app/utils/myGymSkeleton";
 
 import { OfficialEventType } from "@app/types/official_event";
 import { UserGymOfficialEventGetResponseType } from "@app/types/user_gym";
@@ -39,6 +49,79 @@ async function fetcher(url: string): Promise<UserGymOfficialEventGetResponseType
   if (!res.ok) throw new Error("Failed to fetch");
 
   return res.json();
+}
+
+/*
+ * 畳んだ日付行の右側に並べる会場チップ。その日の会場を、行に入るだけ出す。
+ *
+ * 入りきらないぶんは flex-wrap で2行目へ送り、1行ぶんの高さ(h-5)で切って隠す。
+ * 何個入るかは店舗名の長さで変わる(実データで10〜14文字)ので、出す数を決め打ちに
+ * すると短い店舗名の日で右が空いたままになる。隠れた数は描いてから数えて「+N」で出す。
+ *
+ * 「+N」は列の外に絶対配置し、その場所(pr-6)を常に空けておく。列の中に入れると
+ * 数が変わるたびに列の幅が動き、入る個数と「+N」が互いを書き換えて落ち着かない。
+ */
+function VenueChips({ venues }: { venues: string[] }) {
+  const listRef = useRef<HTMLDivElement>(null);
+  const [hiddenCount, setHiddenCount] = useState(0);
+
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+
+    // 2行目へ送られた(= 隠れた)チップを数える。ResizeObserver は observe した時点でも
+    // 一度呼ばれるので、初回の計測もここで済む
+    const count = () => {
+      const chips = [...list.children] as HTMLElement[];
+      if (chips.length === 0) return;
+
+      const firstTop = chips[0].offsetTop;
+
+      setHiddenCount(chips.filter((chip) => chip.offsetTop > firstTop).length);
+    };
+
+    const observer = new ResizeObserver(count);
+    observer.observe(list);
+
+    return () => observer.disconnect();
+  }, [venues]);
+
+  if (venues.length === 0) return null;
+
+  return (
+    <div className="relative flex min-w-0 flex-1 justify-end pr-6">
+      <div
+        ref={listRef}
+        className="flex h-5 flex-wrap items-center justify-end gap-1 overflow-hidden"
+      >
+        {venues.map((venue) => (
+          <Chip
+            key={venue}
+            size="sm"
+            variant="flat"
+            color="default"
+            /*
+              入らないものは縮めずに列ごと隠し、「+N」に集約する(切れた名前が並ぶと
+              どの店か読み取れない)。ただし1つ目が列より長いときだけは逃げ場が無いので、
+              max-w-full で列に収めて末尾を省略する。これが無いと右寄せのぶん
+              左端から切れて、店名の頭が読めなくなる(320px 幅で発生)。
+              min-w-0 は Chip の base が持つ min-w-min の打ち消し。
+            */
+            className="h-5 min-w-0 max-w-full shrink-0"
+            classNames={{ content: "truncate text-[0.625rem] font-bold" }}
+          >
+            {venue}
+          </Chip>
+        ))}
+      </div>
+
+      {hiddenCount > 0 && (
+        <span className="absolute right-0 top-1/2 -translate-y-1/2 text-[0.625rem] font-bold text-default-400">
+          +{hiddenCount}
+        </span>
+      )}
+    </div>
+  );
 }
 
 // イベント1件の行。
@@ -132,6 +215,10 @@ export default function MyGymPanel({ initialEvents, initialRange }: Props) {
   // 登録店舗の一覧は既定で畳んでおく。日々見たいのは予定の方で、
   // 「どこを登録しているか」は畳んだ見出しの件数で足りることが多い。
   const [gymsExpanded, setGymsExpanded] = useState(false);
+  // 予定の日付ごとの開閉。利用者が触った日付だけを覚える(既定は isEventGroupExpanded)
+  const [eventGroupOverrides, setEventGroupOverrides] = useState<Record<string, boolean>>(
+    {},
+  );
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   // タップされたイベント。閉じるアニメーションの間も中身を描き続けたいので、
   // 閉じるときには null に戻さず、次に開くまで最後のイベントを持ち続ける。
@@ -161,6 +248,37 @@ export default function MyGymPanel({ initialEvents, initialRange }: Props) {
   const events = useMemo(() => data?.official_events ?? [], [data]);
   const groups = useMemo(() => groupEventsByDate(events), [events]);
 
+  /*
+   * 読み込み中・取得失敗のときに取る場所。このパネルは中身で高さが3倍以上変わるので、
+   * 前回このユーザーのホームが描いた形(cookie)に合わせる(utils/myGymSkeleton)。
+   * cookie の値は文字列のまま受け取ってから組み立てる。useClientValue に毎回
+   * 新しいオブジェクトを返す関数を渡すと描画が止まらなくなる。
+   */
+  const storedShapeValue = useClientValue(
+    () => readClientCookie(MY_GYM_SKELETON_COOKIE),
+    null,
+  );
+  const storedShape = useMemo(
+    () => parseMyGymSkeleton(storedShapeValue ?? undefined) ?? DEFAULT_MY_GYM_SKELETON,
+    [storedShapeValue],
+  );
+
+  // 実際に描けた形を次回の骨格のために残す。依存は文字列にして、
+  // 同じ形のまま描き直しても書き込みが走らないようにする
+  const shapeValue = data
+    ? formatMyGymSkeleton(currentMyGymSkeleton(data.user_gyms ?? [], groups.length))
+    : null;
+
+  useEffect(() => {
+    if (shapeValue == null) return;
+
+    writeClientCookie(
+      MY_GYM_SKELETON_COOKIE,
+      shapeValue,
+      MY_GYM_SKELETON_COOKIE_MAX_AGE,
+    );
+  }, [shapeValue]);
+
   // 出し分けは「表示できるデータがあるか」で決める。error だけを見て差し替えると、
   // 一度描けたパネルが再検証(タブ復帰・再接続・失敗時の自動リトライ)の失敗で
   // 小さなエラーカードに置き換わり、リトライが通るたびに高さが行き来してしまう。
@@ -168,15 +286,19 @@ export default function MyGymPanel({ initialEvents, initialRange }: Props) {
   // キャッシュが無い間だけ isLoading を立てる)ため、骨格とエラーカードの寸法が
   // 揃っていないと数秒おきにパネルの高さが変わる。両者を同じ高さで置く。
   if (!data) {
-    if (isLoading) return <MyGymPanelSkeleton />;
+    if (isLoading) return <MyGymPanelSkeleton shape={storedShape} />;
 
+    // エラーカードも骨格と同じ場所を取る(失敗しても・失敗から骨格へ戻っても寸法が変わらない)。
+    // FetchError はクラスしか受けないので、高さは外側の器で与える
     return (
-      <FetchError
-        message="Myジムの取得に失敗しました"
-        onRetry={() => mutate()}
-        compact
-        className={MY_GYM_PLACEHOLDER_HEIGHT}
-      />
+      <div style={{ height: `${myGymSkeletonHeightRem(storedShape)}rem` }}>
+        <FetchError
+          message="Myジムの取得に失敗しました"
+          onRetry={() => mutate()}
+          compact
+          className="h-full"
+        />
+      </div>
     );
   }
 
@@ -288,35 +410,69 @@ export default function MyGymPanel({ initialEvents, initialRange }: Props) {
               今後{MY_GYM_EVENT_RANGE_DAYS}日間に予定されているイベントはありません
             </span>
           ) : (
-            <>
-              {/* 予定は全件描く。2週間ぶんは20件を超えることがあるため、
-                  パネルごと縦に伸ばさずこの中だけをスクロールさせる。
-                  中にフォーカスできる要素が無いため、tabIndex を与えないと
-                  キーボードだけの操作でここをスクロールできない。 */}
-              <div
-                tabIndex={0}
-                role="group"
-                aria-label="Myジムの予定"
-                // overscroll-contain は、一覧を端まで送ってもページ側へスクロールを
-                // 伝播させないため(指を離さず続けるとホームごと動いてしまう)
-                className="flex max-h-62 flex-col gap-3 overflow-y-auto overscroll-contain"
-              >
-                {groups.map((group) => (
+            /* 予定は日付ごとに畳み、既定では日付と件数だけを並べる。
+               1週間ぶんで20件を超えることがあるが、ここを内部スクロールにすると、
+               ホームを下へ送る指がこの帯に乗ったときにスワイプがパネル側へ吸われ、
+               ホームが動かなくなる(ホーム上から4番目の節なので、下まで読むなら
+               ほぼ必ずこの帯を通る)。縦のスクロールはページの1軸だけに戻し、
+               見せる量は利用者の開閉に委ねる。 */
+            <div className="flex flex-col gap-3">
+              {groups.map((group, index) => {
+                const expanded = isEventGroupExpanded(
+                  eventGroupOverrides,
+                  group.dateKey,
+                  index,
+                );
+
+                return (
                   <div key={group.dateKey} className="flex flex-col gap-1.5">
-                    <span className="text-[0.6875rem] font-bold text-default-500">
-                      {group.label}
-                    </span>
-                    {group.events.map((event) => (
-                      <MyGymEventRow
-                        key={event.id}
-                        event={event}
-                        onSelect={handleSelectEvent}
+                    {/* 日付見出しがそのまま開閉のボタン。行に他の要素が無いので幅いっぱいで
+                        受ける。縦は padding を行の高さに含める(負のマージンで打ち消すと
+                        判定が隣の行と接して押し間違えやすい)。
+                        件数は開閉にかかわらず出す。畳んだ行にだけ数字があると、
+                        日付の列で数字の有無がまだらになって週の予定量を追いにくい。 */}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setEventGroupOverrides((prev) => ({
+                          ...prev,
+                          [group.dateKey]: !expanded,
+                        }))
+                      }
+                      aria-expanded={expanded}
+                      // min-h-8 は会場チップ(h-5 = 20px)に py-1.5 が乗った高さ。
+                      // 開くとチップを引っ込めるので、これが無いと開閉のたびに行が縮む
+                      className="flex min-h-8 w-full items-center gap-1.5 py-1.5 text-left"
+                    >
+                      <LuChevronDown
+                        className={`h-3.5 w-3.5 shrink-0 text-default-400 transition-transform ${
+                          expanded ? "rotate-180" : ""
+                        }`}
                       />
-                    ))}
+                      <span className="shrink-0 text-[0.6875rem] font-bold text-default-500">
+                        {group.label}
+                      </span>
+                      <span className="shrink-0 text-[0.6875rem] font-bold text-default-400">
+                        {group.events.length}件
+                      </span>
+
+                      {/* 開いている日は下にイベント行が並んで会場も読めるので、
+                          畳んでいるあいだだけ出す */}
+                      {!expanded && <VenueChips venues={group.venues} />}
+                    </button>
+
+                    {expanded &&
+                      group.events.map((event) => (
+                        <MyGymEventRow
+                          key={event.id}
+                          event={event}
+                          onSelect={handleSelectEvent}
+                        />
+                      ))}
                   </div>
-                ))}
-              </div>
-            </>
+                );
+              })}
+            </div>
           )}
         </CardBody>
       </Card>

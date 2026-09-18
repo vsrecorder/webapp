@@ -12,6 +12,10 @@ import { getAppIconUrl } from "@app/utils/appIcon";
 import { serializeJsonLd } from "@app/utils/breadcrumb";
 import { SITE_DESCRIPTION } from "@app/utils/siteMeta";
 import {
+  MY_GYM_SKELETON_COOKIE,
+  parseMyGymSkeleton,
+} from "@app/utils/myGymSkeleton";
+import {
   DASHBOARD_LAYOUT_COOKIE,
   DEFAULT_DASHBOARD_LAYOUT,
   parseDashboardLayout,
@@ -105,10 +109,18 @@ export default async function Home({ searchParams }: Props) {
     // 「記録中」カードを今日すでに閉じたか。こちらは localStorage を正とせず cookie だけで
     // 持つ(サーバで判定に混ぜないと、閉じたカードが初回描画で一瞬出てしまうため)
     const recordingDismissed = store.get(RECORDING_DISMISSED_COOKIE)?.value;
+    // Myジムパネルの骨格が取る形。実体は中身で高さが3倍以上変わる(未登録 184px /
+    // 予定0件 106px / 日付7本 354px)ので、前回描いた形を cookie から受け取る
+    const myGymShape = parseMyGymSkeleton(store.get(MY_GYM_SKELETON_COOKIE)?.value);
 
     return (
       <Suspense
-        fallback={<DashboardSkeleton layout={storedLayout ?? DEFAULT_DASHBOARD_LAYOUT} />}
+        fallback={
+          <DashboardSkeleton
+            layout={storedLayout ?? DEFAULT_DASHBOARD_LAYOUT}
+            myGymShape={myGymShape ?? undefined}
+          />
+        }
       >
         {/* ダッシュボード側にも渡す。表示設定を読むまでの繋ぎに同じ構成の骨格を出すため */}
         <TemplateDashboard

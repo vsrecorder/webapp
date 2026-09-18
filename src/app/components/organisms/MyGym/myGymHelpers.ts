@@ -1,4 +1,5 @@
 import { OfficialEventType } from "@app/types/official_event";
+import { getEventVenueLabel } from "@app/components/organisms/Record/officialEventHelpers";
 import { toDateKey } from "@app/utils/calendar";
 import { formatJSTTime } from "@app/utils/date";
 
@@ -10,7 +11,28 @@ export type MyGymEventGroup = {
   dateKey: string;
   label: string;
   events: OfficialEventType[];
+  // その日の会場(重複を除く)。畳んだ日付行に並べる
+  venues: string[];
 };
+
+/*
+ * 日付グループに含まれる会場の一覧。重複は落とす。
+ *
+ * 同じ店舗がその日に何本もイベントを持つことが多い(ジムバトルは週次開催で、
+ * 時間帯違いが並ぶ)ので、畳んだ行に出すのは「どの店か」だけでよい。
+ * 並びはイベントの並び(上流が返す日付・開始時刻の昇順)のままにする。
+ */
+export function getEventGroupVenues(events: OfficialEventType[]): string[] {
+  const venues: string[] = [];
+
+  for (const event of events) {
+    const venue = getEventVenueLabel(event);
+
+    if (venue && !venues.includes(venue)) venues.push(venue);
+  }
+
+  return venues;
+}
 
 // 「9月1日(月)」形式。年は期間が2週間で年跨ぎの誤読が起きないため省く。
 function formatGroupLabel(dateKey: string): string {
@@ -37,7 +59,13 @@ export function groupEventsByDate(events: OfficialEventType[]): MyGymEventGroup[
       continue;
     }
 
-    groups.push({ dateKey, label: formatGroupLabel(dateKey), events: [event] });
+    groups.push({ dateKey, label: formatGroupLabel(dateKey), events: [event], venues: [] });
+  }
+
+  // 会場はグループが出そろってから入れる。ここで持たせておくと、日付行を描くたびに
+  // 新しい配列ができて会場チップの計測(ResizeObserver)が毎回張り直しになるのを避けられる
+  for (const group of groups) {
+    group.venues = getEventGroupVenues(group.events);
   }
 
   return groups;
@@ -71,4 +99,30 @@ export function formatEventTime(event: OfficialEventType): string {
   if (!time) return "";
 
   return time.end ? `${time.start} ~ ${time.end}` : `${time.start} ~`;
+}
+
+/*
+ * 一覧を開いた直後から中身が見えている日付の数。既定は 0(すべて畳む)。
+ *
+ * この節はホームの上から4番目にあるため、パネルが縦に伸びるほど下の節まで
+ * 読む距離が延びる。実測(Myジム5店舗・7日で21件、390x844 のカード高さ):
+ *   0日 246px / 1日 420px / 2日 594px
+ * 畳んでいても日付と件数は並ぶので、「今週いつ何件あるか」はここで読める。
+ */
+export const MY_GYM_INITIAL_EXPANDED_GROUPS: number = 0;
+
+/*
+ * 日付グループが開いているか。
+ *
+ * 開閉そのものを状態に持たず、「利用者が触った日付」(overrides)だけを覚えて、
+ * 触っていない日付は先頭から数えた位置で決める。全日付ぶんの開閉を作り置きすると、
+ * 再取得(店舗の登録・解除や日付跨ぎ)で並びが変わったときに古い日付の状態が残り、
+ * 先頭が畳まれたままになる。
+ */
+export function isEventGroupExpanded(
+  overrides: Record<string, boolean>,
+  dateKey: string,
+  index: number,
+): boolean {
+  return overrides[dateKey] ?? index < MY_GYM_INITIAL_EXPANDED_GROUPS;
 }

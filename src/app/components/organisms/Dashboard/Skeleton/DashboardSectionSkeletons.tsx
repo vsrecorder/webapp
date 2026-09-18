@@ -9,6 +9,7 @@ import EnvironmentBadgeGallerySkeleton from "@app/components/organisms/Badge/Ske
 import OnboardingBadgePanelSkeleton from "@app/components/organisms/Badge/Skeleton/OnboardingBadgePanelSkeleton";
 import StreakPanelSkeleton from "@app/components/organisms/Badge/Skeleton/StreakPanelSkeleton";
 import MyGymPanelSkeleton from "@app/components/organisms/MyGym/Skeleton/MyGymPanelSkeleton";
+import { MyGymSkeletonShape } from "@app/utils/myGymSkeleton";
 import DesignationPanelSkeleton from "@app/components/organisms/Designation/Skeleton/DesignationPanelSkeleton";
 import WeeklyDeckUsagePanelSkeleton from "@app/components/organisms/DeckMeta/Skeleton/WeeklyDeckUsagePanelSkeleton";
 import UserStatPanelSkeleton from "@app/components/organisms/UserStat/Skeleton/UserStatPanelSkeleton";
@@ -92,9 +93,18 @@ type Props = {
   id: DashboardBlockId;
   // プロフィールカードは dev 環境だけヘッダーの配色が変わる(実カードと揃える)
   isDevEnv?: boolean;
+  /*
+   * Myジムパネルの骨格が取る形。実体は中身で高さが3倍以上変わるので、前回このユーザーの
+   * ホームが描いた形を page.tsx が cookie から読んで渡す(utils/myGymSkeleton)。
+   */
+  myGymShape?: MyGymSkeletonShape;
 };
 
-export default function DashboardBlockSkeleton({ id, isDevEnv = false }: Props): ReactNode {
+export default function DashboardBlockSkeleton({
+  id,
+  isDevEnv = false,
+  myGymShape,
+}: Props): ReactNode {
   switch (id) {
     // ---- pinned ----
     case "profile":
@@ -152,7 +162,7 @@ export default function DashboardBlockSkeleton({ id, isDevEnv = false }: Props):
       return (
         <Section>
           <SectionHeading label="Myジムのイベント" />
-          <MyGymPanelSkeleton />
+          <MyGymPanelSkeleton shape={myGymShape} />
         </Section>
       );
 

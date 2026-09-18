@@ -1,5 +1,6 @@
 import DashboardBlockSkeleton from "@app/components/organisms/Dashboard/Skeleton/DashboardSectionSkeletons";
 import { isDevEnv } from "@app/utils/appIcon";
+import { MyGymSkeletonShape } from "@app/utils/myGymSkeleton";
 import {
   DashboardBlockId,
   DEFAULT_DASHBOARD_LAYOUT,
@@ -27,10 +28,13 @@ import {
 
 type Props = {
   layout?: readonly DashboardBlockId[];
+  // Myジムパネルの骨格が取る形(前回このユーザーのホームが描いた形。cookie から)
+  myGymShape?: MyGymSkeletonShape;
 };
 
 export default function DashboardSkeleton({
   layout = DEFAULT_DASHBOARD_LAYOUT,
+  myGymShape,
 }: Props) {
   const { pinned, sections, trailing } = splitDashboardLayout(layout);
   const devEnv = isDevEnv();
@@ -42,7 +46,12 @@ export default function DashboardSkeleton({
         <div className="mb-3 lg:mb-6 lg:break-inside-avoid-column">
           <div className="flex flex-col gap-3 lg:gap-6">
             {pinned.map((id) => (
-              <DashboardBlockSkeleton key={id} id={id} isDevEnv={devEnv} />
+              <DashboardBlockSkeleton
+                key={id}
+                id={id}
+                isDevEnv={devEnv}
+                myGymShape={myGymShape}
+              />
             ))}
           </div>
         </div>
@@ -51,14 +60,14 @@ export default function DashboardSkeleton({
       <div className="lg:columns-2 lg:gap-6">
         {sections.map((id) => (
           <div key={id} className="mb-3 lg:mb-6 lg:break-inside-avoid-column">
-            <DashboardBlockSkeleton id={id} isDevEnv={devEnv} />
+            <DashboardBlockSkeleton id={id} isDevEnv={devEnv} myGymShape={myGymShape} />
           </div>
         ))}
       </div>
 
       {trailing.map((id) => (
         <div key={id} className="mt-3 lg:mt-6 lg:break-inside-avoid-column">
-          <DashboardBlockSkeleton id={id} isDevEnv={devEnv} />
+          <DashboardBlockSkeleton id={id} isDevEnv={devEnv} myGymShape={myGymShape} />
         </div>
       ))}
     </div>

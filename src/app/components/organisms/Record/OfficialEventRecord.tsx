@@ -4,7 +4,7 @@ import { useMemo } from "react";
 
 import { Image } from "@heroui/react";
 
-import { LuMapPin, LuSwords } from "react-icons/lu";
+import { LuMapPin } from "react-icons/lu";
 
 import FetchError from "@app/components/molecules/FetchError";
 import RecordCardBase from "@app/components/organisms/Record/RecordCardBase";
@@ -14,7 +14,6 @@ import {
   getEventIconUrl,
   getEventAccentColor,
   cleanOfficialEventTitle,
-  shouldShowEnvironmentChip,
 } from "@app/components/organisms/Record/officialEventHelpers";
 import {
   RecordCardProps,
@@ -61,7 +60,7 @@ export default function OfficialEventRecord(props: RecordCardProps) {
   }
 
   if (event.loading || !officialEvent) {
-    return <RecordCardSkeleton />;
+    return <RecordCardSkeleton eventType="official" />;
   }
 
   if (!record) {
@@ -70,19 +69,16 @@ export default function OfficialEventRecord(props: RecordCardProps) {
 
   const date = formatJSTDateWithWeekday(nonZeroDate(record.event_date) ?? record.created_at);
 
-  // 補足行。会場 → 対戦環境の順で、記録詳細のヒーローと同じ並び・同じアイコンにする
-  const metaCandidates: (RecordMetaRow | null)[] = [
-    officialEvent.shop_name
-      ? { icon: <LuMapPin className="h-3 w-3" />, text: officialEvent.shop_name }
-      : null,
-    officialEvent.environment_title && shouldShowEnvironmentChip(officialEvent)
-      ? {
-          icon: <LuSwords className="h-3 w-3" />,
-          text: `『${officialEvent.environment_title}』`,
-        }
-      : null,
-  ];
-  const meta = metaCandidates.filter((row): row is RecordMetaRow => row !== null);
+  /*
+   * 補足行。一覧のカードでは会場だけを出す。
+   *
+   * 対戦環境(『ストームエメラルダ』など)は記録詳細のヒーロー(RecordHero)に出ていて、
+   * 一覧では同じシーズンの記録が延々と並ぶぶん、全カードに同じ文字列が繰り返される。
+   * 読み取れる情報が増えないわりに1行ぶん背が伸びるので、一覧からは落とす。
+   */
+  const meta: RecordMetaRow[] = officialEvent.shop_name
+    ? [{ icon: <LuMapPin className="h-3 w-3" />, text: officialEvent.shop_name }]
+    : [];
 
   return (
     <>

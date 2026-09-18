@@ -237,22 +237,29 @@ export default function RecordCardBase({
                 )}
               </div>
 
-              {/* イベントの事実(会場・対戦環境)。記録詳細のヒーローと同じ部品・同じ書式で出す。
-                  かつてはチップを2段並べていたが、チップは数が増えるほど同じ重さの札に見えて
-                  読み解く手間が増えるため、アイコン付きの行に変えた */}
-              <RecordMetaRows rows={meta ?? []} className="mt-2" />
+              {/*
+                補足の行。公式イベントは会場(アイコン付きの行。かつてはチップを2段
+                並べていたが、チップは数が増えるほど同じ重さの札に見えて読み解く手間が
+                増えるため行に変えた)、Tonamel / 自由形式は種別のチップが入る。
 
-              {/* イベント種別のチップ(Tonamel / 自由形式)。持たないカードには
-                  余白を出さないため、渡されたときだけ行ごと描画する */}
-              {chips && (
-                <div className="mt-2 flex flex-wrap items-center gap-2">{chips}</div>
-              )}
+                中身が何であっても 20px の枠を確保する。会場の行(15.125px)とチップ(20px)、
+                そしてどちらも持たないカード(会場が登録されていない公式イベント)で
+                ここが伸び縮みすると、一覧でカードの高さが4通りに割れて、読み込み中の
+                骨格と実体が合わなくなる(先頭が何のカードかは読み込むまで分からない)。
+              */}
+              <div className="mt-2 flex min-h-5 flex-col justify-center">
+                <RecordMetaRows rows={meta ?? []} />
+                {chips && <div className="flex flex-wrap items-center gap-2">{chips}</div>}
+              </div>
 
               {/* 区切り線 */}
               <div className="border-t border-divider mt-3 mb-2.5" />
 
-              {/* 情報行(使用デッキ + 勝敗) */}
-              <div className="flex min-w-0 items-center justify-between gap-2">
+              {/* 情報行(使用デッキ + 勝敗)。
+                  デッキのスプライト(32px)で決まる高さを、デッキを紐付けていない記録
+                  (勝敗バッジだけで 22px)でも確保する。ここも揃えないと、同じ一覧の中で
+                  カードが 10px 低いものと混ざる */}
+              <div className="flex min-h-8 min-w-0 items-center justify-between gap-2">
                 <div className="min-w-0 flex-1">
                   {loadingDeck ? (
                     <RecordDeckRowSkeleton />

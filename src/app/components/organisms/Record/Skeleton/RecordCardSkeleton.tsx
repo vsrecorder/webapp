@@ -27,7 +27,23 @@ export function RecordDeckRowSkeleton() {
  * RecordCardBase と同じ骨格のローディングスケルトン。
  * 公式/Tonamel/自由形式の全カードで共有する。
  */
-export function RecordCardSkeleton({ className = "" }: { className?: string }) {
+/*
+ * 一覧のタブ(event_type)。カードの4番目のブロックがこれで変わる:
+ *   公式イベント        … 会場の補足行(RecordMetaRows の 15.125px)
+ *   Tonamel / 自由形式  … 種別チップの行(20px)
+ * 「すべて」は混ざるが、実データでは公式が大半なので補足行に寄せる。
+ */
+function isChipRowType(eventType: string): boolean {
+  return eventType === "tonamel" || eventType === "unofficial";
+}
+
+export function RecordCardSkeleton({
+  className = "",
+  eventType = "all",
+}: {
+  className?: string;
+  eventType?: string;
+}) {
   return (
     <div className={className}>
       <Card shadow="none" className="border border-divider overflow-hidden">
@@ -60,23 +76,21 @@ export function RecordCardSkeleton({ className = "" }: { className?: string }) {
                 <Skeleton className="h-3.5 w-18 rounded-md" />
               </div>
 
-              {/* 補足行(会場・対戦環境)。実体は RecordMetaRows の
-                  text-[0.6875rem] leading-snug = 15.125px の行を gap-0.5 で2本。
-                  バーに直接 h-* を置くと行ボックスぶんの高さが出ないため、実体と同じ
-                  文字サイズの見えないテキストで行の高さを取り、その上に重ねる。
-                  幅は会場名の中央値(12文字)と『ストームエメラルダ』の実測に合わせる */}
-              <div className="mt-2 flex flex-col gap-0.5">
-                {["w-33", "w-30"].map((width) => (
-                  <div key={width} className="relative flex items-center">
-                    <span className="invisible text-[0.6875rem] leading-snug">
-                      &nbsp;
-                    </span>
-                    <Skeleton className="absolute left-0 h-3 w-3 rounded-sm" />
-                    <Skeleton
-                      className={`absolute left-[1.125rem] h-2.5 ${width} max-w-full rounded`}
-                    />
-                  </div>
-                ))}
+              {/* 補足の行。実体は中身によらず 20px の枠(RecordCardBase の min-h-5)。
+                  中の見た目だけタブで出し分ける:
+                    公式イベント        … 会場のアイコン + 名前(幅は会場名の中央値 12文字)
+                    Tonamel / 自由形式  … 種別チップ(実測で Tonamel 56.3px・自由形式 58px) */}
+              <div className="mt-2 flex h-5 items-center">
+                {isChipRowType(eventType) ? (
+                  <Skeleton
+                    className={`h-5 ${eventType === "tonamel" ? "w-14" : "w-14.5"} rounded-full`}
+                  />
+                ) : (
+                  <>
+                    <Skeleton className="h-3 w-3 shrink-0 rounded-sm" />
+                    <Skeleton className="ml-1.5 h-2.5 w-33 max-w-full rounded" />
+                  </>
+                )}
               </div>
 
               {/* 区切り線 */}
@@ -147,9 +161,12 @@ function MonthHeaderSkeleton({
 export function RecordCardSkeletons({
   desktopColumns = 2,
   count,
+  eventType = "all",
 }: {
   desktopColumns?: 2 | 3;
   count?: number;
+  // 一覧のタブ。カードの骨格の形が変わる(RecordCardSkeleton のコメント参照)
+  eventType?: string;
 }) {
   const colSpanClass =
     desktopColumns === 3 ? "lg:col-span-2 xl:col-span-3" : "lg:col-span-2";
@@ -160,7 +177,7 @@ export function RecordCardSkeletons({
       <>
         <MonthHeaderSkeleton colSpanClass={colSpanClass} />
         {Array.from({ length: count }).map((_, i) => (
-          <RecordCardSkeleton key={i} />
+          <RecordCardSkeleton key={i} eventType={eventType} />
         ))}
       </>
     );
@@ -169,14 +186,14 @@ export function RecordCardSkeletons({
   return (
     <>
       <MonthHeaderSkeleton colSpanClass={colSpanClass} />
-      <RecordCardSkeleton />
-      <RecordCardSkeleton />
-      <RecordCardSkeleton />
-      <RecordCardSkeleton className="hidden md:block" />
+      <RecordCardSkeleton eventType={eventType} />
+      <RecordCardSkeleton eventType={eventType} />
+      <RecordCardSkeleton eventType={eventType} />
+      <RecordCardSkeleton className="hidden md:block" eventType={eventType} />
 
       <MonthHeaderSkeleton display="hidden lg:flex" colSpanClass={colSpanClass} />
       {Array.from({ length: extraDesktopCards }).map((_, i) => (
-        <RecordCardSkeleton key={i} className="hidden lg:block" />
+        <RecordCardSkeleton key={i} className="hidden lg:block" eventType={eventType} />
       ))}
     </>
   );

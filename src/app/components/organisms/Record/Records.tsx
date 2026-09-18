@@ -509,7 +509,7 @@ export default function Records({
         })}
         {/* ローディング表示(実体化を遅らせている間もスケルトンを出す) */}
         {(!isInitialLoaded || holdSkeleton) && (
-          <RecordCardSkeletons desktopColumns={desktopColumns} />
+          <RecordCardSkeletons desktopColumns={desktopColumns} eventType={event_type} />
         )}
         {!holdSkeleton && isInitialLoaded && isLoading && (
           <div className={`flex justify-center col-span-1 ${colSpanClass}`}>

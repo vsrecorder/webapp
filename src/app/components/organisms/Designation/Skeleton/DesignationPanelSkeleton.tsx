@@ -1,6 +1,7 @@
 import { Fragment } from "react";
 import { Card, CardBody } from "@heroui/react";
 
+import PlayerCityleagueResultsSkeleton from "@app/components/organisms/Cityleague/Skeleton/PlayerCityleagueResultsSkeleton";
 import { DEFAULT_CITYLEAGUE_RESULTS_HEIGHT } from "@app/utils/cityleagueResultsHeightCache";
 
 /*
@@ -50,7 +51,7 @@ type Props = {
    * サーバで描く骨格はそのキャッシュ(localStorage)を読めないため、既定値で場所を取る。
    * 実体側もハイドレーション前は同じ既定値を使う(useCityleagueResultsHeight のサーバ値)。
    */
-  cityleagueHeight?: number | string;
+  cityleagueHeight?: number;
 };
 
 export default function DesignationPanelSkeleton({
@@ -115,9 +116,9 @@ export default function DesignationPanelSkeleton({
                   <div className="w-40 h-3 rounded-full bg-default-100 animate-pulse" />
                 </div>
               </div>
-              <div
-                style={{ height: cityleagueHeight }}
-                className="-mx-4 rounded-xl bg-default-100 animate-pulse"
+              <PlayerCityleagueResultsSkeleton
+                height={cityleagueHeight}
+                bleedClassName="-mx-4"
               />
             </div>
           </div>

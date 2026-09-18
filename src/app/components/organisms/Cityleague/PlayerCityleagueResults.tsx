@@ -13,6 +13,7 @@ import "swiper/css/pagination";
 
 import ZoomableDeckImage from "@app/components/atoms/ZoomableDeckImage";
 import FetchError from "@app/components/molecules/FetchError";
+import PlayerCityleagueResultsSkeleton from "@app/components/organisms/Cityleague/Skeleton/PlayerCityleagueResultsSkeleton";
 
 import {
   UserPlayerCityleagueResultType,
@@ -217,9 +218,9 @@ export default function PlayerCityleagueResults({ season, seasonLabel }: Props) 
           min-w-0 は上の親と同じ理由(Swiper が中身の幅まで広がってはみ出すのを防ぐ) */}
       <div ref={contentRef} className="min-w-0">
         {isLoading ? (
-          <div
-            style={{ height: placeholderHeight }}
-            className={`animate-pulse rounded-xl bg-default-100 ${BLEED}`}
+          <PlayerCityleagueResultsSkeleton
+            height={placeholderHeight}
+            bleedClassName={BLEED}
           />
         ) : error ? (
           <FetchError

@@ -281,7 +281,10 @@ export default function ShowDeckModal({
                   描画される絶対配置の閉じるボタン（HeroUI標準）の上にヘッダーが重なって
                   クリックを奪ってしまう。ヘッダー自体は pointer-events-none にして
                   クリックを透過させ、操作が必要な詳細リンクだけ pointer-events-auto で戻す。 */}
-              <ModalHeader className="relative px-3 pt-8 pb-1 flex items-center gap-3 pointer-events-none">
+              {/* 上の余白(pt-12=48px)は「詳細」リンク・閉じるボタン(いずれも top-1 の 40px角＝
+                  下端44px)を避けるための寸法。pt-8 だとスプライトの上端が44pxより上に来て
+                  ボタンの行と重なり、詰まって見える */}
+              <ModalHeader className="relative px-3 pt-12 pb-1 flex items-center gap-3 pointer-events-none">
                 <>
                   {/* 詳細ページへの遷移導線。右上はHeroUIの閉じるボタンが占めるため左上に置く。
                       閉じるボタン（top-1 end-1・40px角）と同じラインに揃うよう、高さ40px(h-10)・

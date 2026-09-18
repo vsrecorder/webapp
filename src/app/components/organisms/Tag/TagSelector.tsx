@@ -8,6 +8,7 @@ import { LuPlus, LuTag, LuX } from "react-icons/lu";
 import { useTags } from "@app/hooks/useTags";
 import { TagType, TagPresetCategory } from "@app/types/tag";
 import { katakanaToHiragana } from "@app/utils/kana";
+import { sortTagsPresetFirst } from "@app/utils/tagOrder";
 import { tagTextColor } from "@app/utils/tagColor";
 
 // 検索照合用の正規化。カタカナをひらがなに畳み込み、英字は小文字化し、絵文字を落とす。
@@ -34,12 +35,16 @@ const PRESET_SECTION_LABEL: Record<TagPresetCategory, string> = {
 
 /*
  * 1つの付与先に1つしか成立しないプリセット群。
- * 大会順位は「優勝かつベスト4」がありえないため、既に順位が付いているところへ
- * 別の順位を選んだら、弾くのではなく差し替える(順位の付け直しは「選び直す」操作で済む)。
- * ACE SPEC は1デッキ1枚だが、デッキコードの版ごとに違うカードを記録したい場合が
- * あるので排他にはしない。
+ * 大会順位は「優勝かつベスト4」がありえず、ACE SPEC もデッキに入るのは1枚なので、
+ * 既に付いているところへ別のものを選んだら、弾くのではなく差し替える
+ * (付け直しが「選び直す」操作だけで済む)。
+ * 版ごとに違う ACE SPEC を記録したい場合は、デッキコードそれぞれに付ければよい
+ * (付与先が別なので、この排他には掛からない)。
  */
-const EXCLUSIVE_PRESET_CATEGORIES: readonly TagPresetCategory[] = ["placement"];
+const EXCLUSIVE_PRESET_CATEGORIES: readonly TagPresetCategory[] = [
+  "acespec",
+  "placement",
+];
 
 // プリセットは必ず色を持つが、色未設定で投入された場合に備えた保険。
 // プリセットだと分かる見た目を保つため、無彩色ではなく既定色を当てる。
@@ -92,10 +97,19 @@ export default function TagSelector({
     return map;
   }, [tags, presetTags]);
 
-  // 付与済みのタグ（順序は選択順を維持）。まだ一覧に載っていないIDは表示から落とす。
-  const selectedTags = selectedTagIds
-    .map((id) => tagById.get(id))
-    .filter((tag): tag is TagType => Boolean(tag));
+  /*
+   * 付与済みのタグ。まだ一覧に載っていないIDは表示から落とす。
+   *
+   * 並びはプリセット(デッキなら ACE SPEC、記録なら大会順位)を先頭にし、その中と
+   * 自分のタグは選択順のまま。デッキ一覧カード・デッキ詳細モーダルの表示も同じ規則
+   * (sortTagsPresetFirst)なので、選んでいるときと見えかたが揃う。
+   * 付与するIDの並び(onChange で親へ渡すもの)は選択順のままにする。
+   */
+  const selectedTags = sortTagsPresetFirst(
+    selectedTagIds
+      .map((id) => tagById.get(id))
+      .filter((tag): tag is TagType => Boolean(tag)),
+  );
 
   const normalizedQuery = query.trim();
   // 照合用にかなを畳み込んだクエリ。ひらがな入力でカタカナ名にヒットさせる。
@@ -124,7 +138,7 @@ export default function TagSelector({
 
   const atLimit = selectedTagIds.length >= MAX_TAGS_PER_ENTITY;
 
-  // この群のプリセットは同時に1つしか付けられない(大会順位など)
+  // この群のプリセットは同時に1つしか付けられない(ACE SPEC・大会順位)
   const isExclusivePreset = EXCLUSIVE_PRESET_CATEGORIES.includes(presetCategory);
   const presetIds = new Set((presetTags ?? []).map((tag) => tag.id));
 

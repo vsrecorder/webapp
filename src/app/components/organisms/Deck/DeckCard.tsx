@@ -41,6 +41,7 @@ import {
 } from "@app/utils/deckModalReopen";
 import { readSessionStorage, writeSessionStorage } from "@app/utils/sessionStorageStore";
 import { formatJSTDateWithWeekday, isZeroDate } from "@app/utils/date";
+import { sortTagsPresetFirst } from "@app/utils/tagOrder";
 
 // デッキ詳細モーダルは子モーダル9個と chart.js などを抱える。
 // 初期JSと初期マウントから外すため、開くまで読み込まない(理由は createLazyModal を参照)。
@@ -601,9 +602,10 @@ export default function DeckCard({
                   骨格も同じ行を持ち、タグの有無でカードの高さが変わらない。
                   溢れた分は折り返すが、見せるのは1行だけにする(max-h-5 overflow-hidden):
                   折り返したぶんまで見せると、タグ6個で48px(2行)高くなり一覧が揃わなくなる。
-                  チップを途中で切らず行ごと隠すので、タグが半分だけ覗くことはない */}
+                  チップを途中で切らず行ごと隠すので、タグが半分だけ覗くことはない。
+                  隠れるのは後ろのタグなので、ACE SPEC は先頭へ寄せる(sortTagsPresetFirst) */}
                 <TagChips
-                  tags={deck.tags}
+                  tags={sortTagsPresetFirst(deck.tags)}
                   reserveSpace
                   className="max-h-5 justify-center overflow-hidden"
                 />

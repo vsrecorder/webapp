@@ -55,6 +55,7 @@ import { DeckCodeType } from "@app/types/deck_code";
 import { closingPassthroughClassNames } from "@app/utils/modal";
 import { markDeckModalReopen } from "@app/utils/deckModalReopen";
 import { isZeroDate } from "@app/utils/date";
+import { sortTagsPresetFirst } from "@app/utils/tagOrder";
 
 type Props = {
   deck: DeckGetByIdResponseType | null;
@@ -326,8 +327,13 @@ export default function ShowDeckModal({
                         付いていないデッキでも1行ぶんを空けたままにする(reserveSpace)。
                         デッキ名ボタンの外に出すのは当たり判定のため: 中に入れるとタグの数だけ
                         ボタンが横に広がり、左上の「詳細」リンクと重なる。
-                        タップの要らない表示なので、ヘッダーの pointer-events-none のままでよい。 */}
-                    <TagChips tags={deck.tags} reserveSpace className="justify-center" />
+                        タップの要らない表示なので、ヘッダーの pointer-events-none のままでよい。
+                        ACE SPEC は一覧カードと同じく先頭に寄せる(sortTagsPresetFirst)。 */}
+                    <TagChips
+                      tags={sortTagsPresetFirst(deck.tags)}
+                      reserveSpace
+                      className="justify-center"
+                    />
                   </div>
                 </>
               </ModalHeader>

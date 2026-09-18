@@ -20,14 +20,22 @@ export default function MobileNavigation() {
 
   return (
     /*
-      画面下端に貼り付けず、左右と下に余白を取って浮かせる。
+      バーは画面下端に貼り付けず、左右と下に余白を取って浮かせる。
       セーフエリア(iOS のホームインジケータ)の内側にさらに --mobile-nav-gap を空けるので、
       下端に接して窮屈に見えることがない。塞ぐ高さの合計は --mobile-nav-height として
       globals.css が出しており、本文の下余白や浮かせる要素はこれまでどおりそれを見る。
+
+      浮かせる余白は、この <nav> を画面下端いっぱいに敷いたうえで padding として取る。
+      <nav> を余白ぶん縮めてバーだけを置くと、空いた隙間から背後のカードやボタンに
+      タップが抜けてしまい、ナビの脇を触っただけで別の画面へ飛ぶ。
+      面も枠も持たない透明な帯なので見た目は変わらず、タップだけをここで止める。
+      スワイプは fixed 要素の上でもページへ伝わるので、スクロールは妨げない。
     */
     <nav
-      className="fixed z-50 left-3 right-3 lg:hidden"
-      style={{ bottom: "calc(env(safe-area-inset-bottom) + var(--mobile-nav-gap))" }}
+      className="fixed z-50 bottom-0 left-0 right-0 px-3 lg:hidden"
+      style={{
+        paddingBottom: "calc(env(safe-area-inset-bottom) + var(--mobile-nav-gap))",
+      }}
     >
       {/*
         浮かせた面は透かさない。背後をページが流れていくので、半透明だと文字とアイコンが

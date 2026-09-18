@@ -10,8 +10,7 @@ import type { DeckCardView } from "@app/components/organisms/Deck/DeckCard";
 // 各行の高さは実物のカードを実測した値に合わせてある（幅390pxで合計193px。枠線1px×2を含む。
 // ★ボタンの有無で高さは変わらない＝利用中とアーカイブ済みで同じ）。
 // 骨格が1本でも欠けると、データが入った瞬間に行が伸びて一覧全体が飛ぶ。
-// タグ行は含めない: タグは任意で付けるもので、付いていないデッキのほうが多い前提。
-// 実体側は1行に収めているので、付いていても差は 24px に留まる。
+// タグ行は含めない: リスト表示の実体もタグを出さない（ギャラリー表示とデッキ詳細モーダルで見せる）。
 export function DeckListRowSkeleton({
   withFavorite = false,
 }: { withFavorite?: boolean } = {}) {
@@ -107,8 +106,9 @@ export function DeckCardSkeleton({
   // 「デッキコード・戦績を見る」開閉ボタンの骨格を並べる。
   // デッキコード・戦績・先攻/後攻は開いたときだけ出るためここには含めない。
   //
-  // 各要素の高さは実物のカードを実測した値に合わせてある（幅390pxで合計416px。
+  // 各要素の高さは実物のカードを実測した値に合わせてある（幅390pxで合計440px。
   // ★ボタンの有無で高さは変わらない＝利用中とアーカイブ済みで同じ）。
+  // タグ行は、実体がタグの無いデッキでも空けたままにするぶん(20px)を含む。
   return (
     <Card className="w-full overflow-hidden border border-default-200 shadow-sm">
       <CardHeader className="flex flex-col gap-1.5 px-3 pt-3 pb-2">
@@ -135,6 +135,9 @@ export function DeckCardSkeleton({
           <div className="flex h-7 items-center">
             <Skeleton className="h-5 w-40 rounded-lg" />
           </div>
+          {/* タグ行（チップ1つぶんの20px）。実体はタグが無くてもこの高さを
+              空けたままにするので、骨格でも常に確保する。 */}
+          <div className="h-5" />
           {/* きずなLv.の数値（20px行）と線。畳んだ状態でも見えるため骨格に含める。
               数値の幅は「きずなLv.120」61px、その右の説明への入口は実体では
               44px幅のボタンの中央に12pxのアイコンが載る。 */}

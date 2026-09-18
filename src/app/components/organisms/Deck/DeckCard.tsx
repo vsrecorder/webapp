@@ -452,9 +452,9 @@ export default function DeckCard({
               詳しい案内は展開時にギャラリー表示と同じパネルで見せる。 */}
             <div className="flex-1 min-w-0 flex flex-col gap-1">
               <div className="font-bold text-medium truncate">{deck.name}</div>
-              {/* タグは1行に収め、溢れた分は見せない。折り返すとタグの数でカードの高さが
-                  変わり、骨格(タグ行なし)との差が2行ぶん(48px)まで広がる */}
-              <TagChips tags={deck.tags} nowrap className="min-w-0 overflow-hidden" />
+              {/* タグはリスト表示では出さない。1行に畳んだ表示で一覧性を優先する場所なので、
+                  スプライト・勝率・戦績・きずなLv.に絞る。タグはギャラリー表示と
+                  デッキ詳細モーダルで見せる（骨格もタグ行を持たない） */}
               {/* 戦績ときずなLv.を同じ行に置く。「強かったか」と「どう歩んできたか」が
                 左右に並ぶことで、カードの中でも対比がそのまま読める。 */}
               <div className="flex items-baseline justify-between gap-2 text-tiny">
@@ -597,7 +597,16 @@ export default function DeckCard({
                 <div className="w-full min-w-0 truncate text-center font-bold text-large">
                   {deck.name}
                 </div>
-                <TagChips tags={deck.tags} className="justify-center" />
+                {/* タグが付いていないデッキでも1行ぶんを空けたままにする(reserveSpace)。
+                  骨格も同じ行を持ち、タグの有無でカードの高さが変わらない。
+                  溢れた分は折り返すが、見せるのは1行だけにする(max-h-5 overflow-hidden):
+                  折り返したぶんまで見せると、タグ6個で48px(2行)高くなり一覧が揃わなくなる。
+                  チップを途中で切らず行ごと隠すので、タグが半分だけ覗くことはない */}
+                <TagChips
+                  tags={deck.tags}
+                  reserveSpace
+                  className="max-h-5 justify-center overflow-hidden"
+                />
                 {/* きずなLv.は展開しなくても見えるようにする。戦績はアコーディオンの
                   中にあるため、ここに置かないと畳んだ状態では何も見えなくなる。
                   勝率との対比（二枚看板）は展開後に置く。 */}

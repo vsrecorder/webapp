@@ -30,6 +30,7 @@ import CardListAccordion from "@app/components/organisms/Deck/CardListAccordion"
 import DeckCodePostPublishRow from "@app/components/organisms/DeckCodePost/DeckCodePostPublishRow";
 import { useKizunaLevel } from "@app/hooks/useKizunaLevels";
 import KizunaDeckSprites from "@app/components/molecules/KizunaDeckSprites";
+import TagChips from "@app/components/molecules/TagChips";
 import { useDeckCodes } from "@app/hooks/useDeckCodes";
 import { useDeckActivePosts } from "@app/hooks/useDeckActivePosts";
 
@@ -296,7 +297,7 @@ export default function ShowDeckModal({
                     <LuExternalLink className="text-base" />
                     詳細
                   </Link>
-                  <div className="flex items-center justify-center w-full">
+                  <div className="flex w-full min-w-0 flex-col items-center gap-1">
                     {/* スプライト・デッキ名のタップでデッキ情報の更新モーダルを開く。
                         w-fullにすると左上の詳細リンク・右上の閉じるボタンと当たり判定が
                         重なるため、コンテンツ幅に収めて（max-w-full+min-w-0で長い名前は
@@ -317,6 +318,13 @@ export default function ShowDeckModal({
                         {deck.name}
                       </div>
                     </button>
+
+                    {/* デッキに付けたタグ。一覧カード(ギャラリー表示)と同じく名前の直下に置き、
+                        付いていないデッキでも1行ぶんを空けたままにする(reserveSpace)。
+                        デッキ名ボタンの外に出すのは当たり判定のため: 中に入れるとタグの数だけ
+                        ボタンが横に広がり、左上の「詳細」リンクと重なる。
+                        タップの要らない表示なので、ヘッダーの pointer-events-none のままでよい。 */}
+                    <TagChips tags={deck.tags} reserveSpace className="justify-center" />
                   </div>
                 </>
               </ModalHeader>

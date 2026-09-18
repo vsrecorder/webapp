@@ -13,6 +13,10 @@ type Props = {
   // 折り返さず1行に並べる。溢れる分は、外側のスクロールコンテナで横に辿らせる想定。
   // 一覧の行で使うと、タグ数でカードの高さが変わらずに済む。
   nowrap?: boolean;
+  // タグが無いときも、チップ1行ぶん(20px)の空きを残す。
+  // 一覧のカードで使うと、タグの有無でカードの高さが変わらずに済む
+  // （骨格と実体の高さを揃えるためにも、常に同じ場所を空けておく必要がある）。
+  reserveSpace?: boolean;
   className?: string;
 };
 
@@ -25,9 +29,14 @@ export default function TagChips({
   onRemove,
   size = "sm",
   nowrap = false,
+  reserveSpace = false,
   className,
 }: Props) {
-  if (!tags || tags.length === 0) return null;
+  if (!tags || tags.length === 0) {
+    // 中身が無い＝読み上げるものも無いので、高さだけを持つ枠にする。
+    // 高さはチップ本体の h-5 と同じ 20px（size によらずチップは 20px 固定）。
+    return reserveSpace ? <div aria-hidden className={`h-5 ${className ?? ""}`} /> : null;
+  }
 
   return (
     <div

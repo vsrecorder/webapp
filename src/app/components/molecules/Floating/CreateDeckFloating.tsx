@@ -26,7 +26,7 @@ export default function CreateDeckFloating({ onCreated }: Props) {
         radius="full"
         size="lg"
         color="primary"
-        className="lg:hidden fixed z-30 bottom-[calc(9rem+var(--recording-bar-height))] right-3 shadow-lg active:scale-95 transition-all duration-200"
+        className="lg:hidden fixed z-30 bottom-[calc(var(--mobile-nav-height)+var(--recording-bar-height)+1rem+3.75rem)] right-3 shadow-lg active:scale-95 transition-all duration-200"
         onPress={onOpen}
       >
         <LuPlus className="w-5 h-5" />

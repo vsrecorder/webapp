@@ -8,19 +8,22 @@ import {
 } from "@app/utils/bottomBannerHeight";
 
 /*
- * フローティングボタンにコンテンツが隠れないよう、画面下端から確保したい余白(px)。
+ * フローティングボタンにコンテンツが隠れないよう、画面下端から確保したい余白。
  *
- * 使う画面ごとにボタンの構成は違うが、いずれも上端は画面下端から 192px に揃っている。
- *   一覧(記録 / デッキ)  … 「＋」が bottom-36(=144px) + h-12(=48px)
- *   記録詳細            … シェアと3点メニューの縦積みが bottom-21(=84px) +
- *                          h-12 + gap-3(=12px) + h-12
- * その 192px に 8px の余裕を足した値にしている。
- * どれかのボタンの位置や大きさを変えるときは、ここも合わせて更新すること。
+ * 使う画面ごとにボタンの構成は違うが、いずれも上端は同じ高さに揃っている。
+ * 下部ナビが塞ぐぶん(--mobile-nav-height)を起点に、その上へ:
+ *   一覧(記録 / デッキ)  … 浮かせ 1rem + 「トップへ戻る」3rem + gap-3 0.75rem + 「＋」3rem
+ *   記録詳細            … 浮かせ 1rem + 3点メニュー 3rem + gap-3 0.75rem + シェア 3rem
+ * どちらも 7.75rem。これに 0.5rem の余裕を足したものを確保する。
+ *
+ * px で持たない。ボタンの大きさと間隔は rem なので、ルートの文字サイズを上げる帯
+ * (globals.css の幅 640〜767px)では 1.125 倍に伸びるが、--mobile-nav-height は
+ * その帯で px 据え置きになる。両者が混ざるため、式を CSS に書いてプローブで実測する。
  *
  * 画面下に帯が出ているあいだは、ボタンがそのぶん上へ逃げる
  * (bottom に --recording-bar-height を足してある)。確保する余白も同じだけ増やす。
  */
-const CLEARANCE_PX = 200;
+const CLEARANCE_STYLE = "calc(var(--mobile-nav-height) + 7.75rem + 0.5rem)";
 
 /**
  * クリアランス要素より下に既にある「固定の余白」を測る。
@@ -92,12 +95,15 @@ export default function FloatingButtonClearance() {
   // 100svh の実ピクセル値を測るためのプローブ。svh はURLバーの開閉で変化しない安定値なので、
   // これを基準にすることで window.innerHeight を使ったときのバー開閉による余白の発振を防ぐ。
   const probeRef = useRef<HTMLDivElement>(null);
+  // 確保したい余白(CLEARANCE_STYLE)の実ピクセル値を測るためのプローブ
+  const clearanceProbeRef = useRef<HTMLDivElement>(null);
   const [clearance, setClearance] = useState(0);
 
   useEffect(() => {
     const el = ref.current;
     const probe = probeRef.current;
-    if (!el || !probe) return;
+    const clearanceProbe = clearanceProbeRef.current;
+    if (!el || !probe || !clearanceProbe) return;
 
     const measure = () => {
       // コンテンツ末尾の絶対Y位置。自身より下のクリアランス高には依存しないため、
@@ -107,7 +113,8 @@ export default function FloatingButtonClearance() {
       // 画面下端からコンテンツ末尾までの空き。ビューポートを超えていれば負になる。
       const gap = svh - contentBottom;
       // 帯の高さ。出ていなければ 0
-      const needed = CLEARANCE_PX + readBottomBannerHeight();
+      const needed =
+        clearanceProbe.getBoundingClientRect().height + readBottomBannerHeight();
 
       setClearance(
         gap >= needed ? 0 : Math.max(0, needed - measureFixedSpaceBelow(el)),
@@ -141,6 +148,13 @@ export default function FloatingButtonClearance() {
         ref={probeRef}
         aria-hidden
         className="pointer-events-none invisible fixed top-0 left-0 w-0 h-svh"
+      />
+      {/* 確保したい余白の実寸を測るプローブ。式に rem と px が混ざるので CSS に計算させる */}
+      <div
+        ref={clearanceProbeRef}
+        aria-hidden
+        className="pointer-events-none invisible fixed top-0 left-0 w-0"
+        style={{ height: CLEARANCE_STYLE }}
       />
       <div ref={ref} aria-hidden className="lg:hidden" style={{ height: clearance }} />
     </>

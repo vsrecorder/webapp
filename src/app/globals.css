@@ -8,9 +8,10 @@
 /*
  * 背の低い画面(可視高 600px 以下。iPhone SE 系の Safari でツールバー表示中など)向けの variant。
  * 1画面に収めたい案内(デッキ0件の空状態など)で、装飾的な要素を畳むのに使う。
- * 600px は「ヘッダー・固定タブ 112px ＋ 空状態カード約 408px ＋ 下部ナビ 68px」が収まる下限。
+ * 「ヘッダー・固定タブ 112px ＋ 空状態カード約 408px ＋ 下部ナビが塞ぐ 84px」が収まる下限。
+ * 下部ナビは浮かせたバー(68px)＋画面下端との隙間(16px)で 84px なので、合計 604px。
  */
-@custom-variant short (@media (max-height: 600px));
+@custom-variant short (@media (max-height: 604px));
 
 /* メイン領域のドット背景: ライト/ダークでドット色と地色を切り替える */
 .app-dot-bg {
@@ -265,6 +266,56 @@
 }
 
 /*
+ * ページ下端に空ける余白。
+ *
+ * 会員は下部ナビ(浮かせたバー + 画面下端との隙間 = --mobile-nav-height)と、
+ * 出ていれば下部の帯(--recording-bar-height)、それにセーフエリアぶんを空ける。
+ * lg 以上は下部ナビが消えるので通常の余白に戻す。
+ *
+ * <main> が padding で取り、フッター(Footer)は同じ量だけ下へ食い込んで面を伸ばす。
+ * 両方が同じ変数を見るので、ナビの寸法を変えてもここだけで揃う。
+ */
+main {
+  --page-bottom-space: 0.5rem;
+}
+
+main[data-authed] {
+  --page-bottom-space: calc(
+    var(--mobile-nav-height) + var(--recording-bar-height) + env(safe-area-inset-bottom)
+  );
+}
+
+/*
+ * lg 以上は下部ナビが消えるので、会員かどうかに関わらず通常の余白に戻す
+ * (旧 lg:pb-6 も session を問わず効いていた。規約など未ログインで見るページが縮む)。
+ * main[data-authed] は属性ぶん詳細度が高いので、こちらも同じ形で並べて上書きする。
+ */
+@media (min-width: 64rem) {
+  main,
+  main[data-authed] {
+    --page-bottom-space: 1.5rem;
+  }
+}
+
+/*
+ * ダークを強制しているページ(/kizuna は世界観を固定するため、自分の配下に .dark を付ける)
+ * でのフッターの地色。
+ *
+ * 端末がライトのあいだは html に .light が付き、冒頭の
+ * `@custom-variant dark (&:is(.dark *):not(.light *))` によって配下の dark: が丸ごと無効になる。
+ * そのためフッターだけ bg-neutral-900(ライト用)のまま残り、ページの地(neutral-950)から
+ * 浮いて見えていた。面と上端の枠は素の CSS で .dark に追従させる。
+ * html が .dark のときは dark: バリアントと同じ値なので、通常のダーク表示は変わらない。
+ *
+ * セレクタは要素(footer)ではなく専用クラスに絞ること。HeroUI の ModalFooter は
+ * 実体が <footer> なので、`.dark footer` と書くとダークのモーダル全部の地色を塗ってしまう。
+ */
+.dark .app-footer {
+  background-color: var(--color-neutral-950);
+  border-top: 1px solid var(--color-neutral-800);
+}
+
+/*
  * 浮かせた下部ナビの面に落とす影。
  *
  * Tailwind の任意値(shadow-[...])では書けない。値に rgba() のカンマが入ると
@@ -284,10 +335,10 @@
  * 項目の中身は アイコン枠 24px + gap 4px + ラベル 10px = 38px なので、
  * (バーの高さ - 38px) / 2 がおおよそ中央に見える値。
  *
- * iOS の standalone PWA はナビ自体を 4.5rem(72px)に広げてあるぶん、
- * (72 - 38) / 2 = 17px より上に置いて 11px にする。下端のホームインジケータが
- * ビューポートの外に続いていて、そのぶん重心が下に寄って見えるため。
- * それ以外(iOS Safari ブラウザ / PC 等)は 4.25rem(68px)の中で (68 - 38) / 2 = 15px。
+ * バーは 4.25rem(68px)なので (68 - 38) / 2 = 15px。
+ * 以前は iOS の standalone PWA だけバーを 4.5rem に広げて上パディングを 11px にしていた
+ * (ホームインジケータに重心が寄って見えるため)。バーを浮かせてからは下端に接しないので、
+ * その出し分けは廃止して全環境で同じ値にしている。
  */
 .mobile-nav-item {
   padding-top: 0.875rem;

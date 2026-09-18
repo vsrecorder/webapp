@@ -48,10 +48,14 @@ export default async function TemplateLayout({
               768〜1023px では「余白128px + 上限672px」が二重にかかって実効幅が512〜578pxまで潰れ、
               それより狭い iPad mini(744px・余白8px→実効672px)を下回っていた
               (画面が広いほどコンテンツが狭くなる逆転)。md も lg と同じ px-12 に揃えて解消する。
-              下余白は下部ナビ(MobileNavigation)の実寸に合わせる: 本体(--mobile-nav-height) +
-              safe-area の下端余白。lg以上は下部ナビが消えるので lg:pb-6 に戻す。
-              ナビの高さは globals.css の --mobile-nav-height で決まる(Androidのみ低い) */}
-          <main className={`app-dot-bg flex-1 p-2 pt-14 lg:pt-28 lg:pb-6 min-h-svh w-full ${session ? "md:px-12 xl:px-20 2xl:px-32 pb-[calc(var(--mobile-nav-height)+var(--recording-bar-height)+env(safe-area-inset-bottom))]" : "pb-2"}`}>
+              下余白(--page-bottom-space)は下部ナビの実寸から globals.css が決める。
+              data-authed の有無と lg で値が変わるので、クラスではなく変数で持つ。
+              フッターのあるページは、フッターがこの余白ぶん食い込んで面を下端まで伸ばす
+              (ナビを浮かせてからは、ここが地のままだとナビの周りだけ背景色が覗く) */}
+          <main
+            data-authed={session ? "true" : undefined}
+            className={`app-dot-bg flex-1 p-2 pt-14 lg:pt-28 min-h-svh w-full pb-[var(--page-bottom-space)] ${session ? "md:px-12 xl:px-20 2xl:px-32" : ""}`}
+          >
             {children}
           </main>
         </div>

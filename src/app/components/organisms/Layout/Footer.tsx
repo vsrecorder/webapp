@@ -12,7 +12,19 @@ export default async function Footer() {
   const iconUrl = getAppIconUrl();
 
   return (
-    <footer className="-mx-2 mt-8 bg-neutral-900 dark:bg-neutral-950 dark:border-t dark:border-neutral-800 text-neutral-400">
+    /*
+      左右は <main> の p-2 を、下は下部ナビのぶん空けた余白(--page-bottom-space)を
+      打ち消して、面を画面の端まで届かせる。下部ナビは浮かせたバーなので、ここを
+      地のままにするとバーの周りにだけページ背景が覗く。
+      食い込んだぶんは padding で返して、中身の位置は変えない。
+    */
+    <footer
+      className="app-footer -mx-2 mt-8 bg-neutral-900 dark:bg-neutral-950 dark:border-t dark:border-neutral-800 text-neutral-400"
+      style={{
+        marginBottom: "calc(var(--page-bottom-space) * -1)",
+        paddingBottom: "var(--page-bottom-space)",
+      }}
+    >
       {/* 本体コンテンツ(Home/Dashboard)と同じ最大幅に揃える。
           片方だけ狭いとデスクトップでフッターの中身が中央に寄って見える */}
       <div className="max-w-2xl lg:max-w-6xl xl:max-w-7xl mx-auto px-6 lg:px-8 pt-10 pb-8">

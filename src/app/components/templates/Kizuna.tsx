@@ -92,13 +92,18 @@ export default function TemplateKizuna({ userId }: Props) {
   /*
    * <main>（templates/Layout.tsx）の余白を負のマージンで打ち消し、地色と
    * ヒーローをページ全面に広げるための指定。
-   * <main> の余白はログイン状態で変わる（会員のみ pb-14 と md 以上の横余白が付く）ため、
+   * <main> の横余白はログイン状態で変わる（会員のみ md 以上の横余白が付く）ため、
    * 打ち消す量も出し分ける。打ち消したうえで px-2 を敷き直し、内側からは
    * ログイン状態によらず同じ箱に見えるようにしている。
+   *
+   * 下だけはクラスで書かない。<main> の下余白はログイン状態・ブレークポイント・
+   * 下部ナビの寸法で決まる（globals.css の --page-bottom-space）ので、
+   * 数値を書き写すとズレる。実際、会員側は -mb-14(56px) のままになっていて、
+   * 余白が 68px だった頃から 12px ぶん地色が残っていた。同じ変数を見て打ち消す。
    */
   const bleedClass = isLoggedIn
-    ? "-mx-2 -mb-14 md:-mx-32 lg:-mx-12 lg:-mb-6 xl:-mx-20 2xl:-mx-32"
-    : "-mx-2 -mb-2 lg:-mb-6";
+    ? "-mx-2 md:-mx-32 lg:-mx-12 xl:-mx-20 2xl:-mx-32"
+    : "-mx-2";
 
   return (
     /*
@@ -111,6 +116,14 @@ export default function TemplateKizuna({ userId }: Props) {
      */
     <div
       className={`dark -mt-14 min-h-svh bg-neutral-950 px-2 pt-14 text-foreground lg:-mt-28 lg:pt-28 ${bleedClass}`}
+      /*
+        フッター(Footer)も同じ量の負マージンを持つが、二重には効かない。
+        この外枠は padding-bottom も border-bottom も持たないので、最後の子である
+        フッターの margin-bottom は外へすり抜けてここの margin-bottom と相殺され、
+        絶対値の大きい方(同値)ひとつになる。実測でも
+        フッター下端 = 外枠下端 = <main> 下端で、はみ出しも余分なスクロールも無い。
+      */
+      style={{ marginBottom: "calc(var(--page-bottom-space) * -1)" }}
     >
       {/* ヒーロー：OGP画像と同じ「黄昏に灯がともる」世界観。
           トップページの青系ヒーローとは意図的に色を変え、β版の新機能であることを視覚的に区別する。 */}

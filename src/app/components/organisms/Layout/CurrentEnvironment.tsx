@@ -72,7 +72,9 @@ export default function CurrentEnvironment({ environment }: Props) {
         <button
           type="button"
           aria-label={`現在の対戦環境『${environment.title}』の詳細を表示`}
-          className="flex flex-1 self-stretch items-center gap-1.5 min-w-0 mx-3 rounded-md transition-opacity active:opacity-60"
+          // gap はランプと文字の間隔。左隣のロゴとランプの間(このボタンの mx-3 = 12px)に
+          // 合わせてあるので、片方だけ変えると並びが揃わなくなる
+          className="flex flex-1 self-stretch items-center gap-3 min-w-0 mx-3 rounded-md transition-opacity active:opacity-60"
         >
           <span
             className={`w-1.5 h-1.5 rounded-full ${getEnvDotColor(environment.to_date)} animate-pulse shrink-0`}

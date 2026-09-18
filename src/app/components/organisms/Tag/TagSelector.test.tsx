@@ -89,6 +89,16 @@ describe("TagSelector", () => {
     expect(head.indexOf("シークレットボックス")).toBeLessThan(head.indexOf("大会用"));
   });
 
+  it("タグを付けていなくてもチップ1行ぶんの場所を空けておく", async () => {
+    // 1つ目を付けた瞬間に行が生まれると、入力欄から下(候補・プリセット)がまとめて下がる
+    const { container } = render(<Harness />);
+    await waitFor(() => chip("大会用"));
+
+    // 付与済みの行は入力欄より前にある
+    const head = container.innerHTML.split("<input")[0];
+    expect(head).toContain("min-h-6");
+  });
+
   it("差し替わるのは同じ群のプリセットだけで、自分のタグは残る", async () => {
     render(<Harness />);
     await waitFor(() => chip("大会用"));

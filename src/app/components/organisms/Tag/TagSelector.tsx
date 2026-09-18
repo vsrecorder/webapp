@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Button, Chip, Input, addToast } from "@heroui/react";
 import { LuPlus, LuTag, LuX } from "react-icons/lu";
@@ -82,6 +82,23 @@ export default function TagSelector({
   const [creating, setCreating] = useState(false);
   // 管理モード。ONの間だけ自分のタグに削除(×)を出す。プリセットは対象外。
   const [manageMode, setManageMode] = useState(false);
+
+  /*
+   * 管理モードに入ると、候補チップ・プリセットの並びが削除用の一覧へ入れ替わる。
+   * 中身の量が違うぶんカードの高さが変わり、押した瞬間に枠が縮んで見える
+   * (実測: デッキ登録の「タグを付ける」で 223px → 199px)。
+   * 入る直前の高さを下限として持たせ、管理中も同じ大きさに見えるようにする。
+   * 下限なので、タグが多くて一覧が長いときは従来どおり伸びる。
+   */
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [manageMinHeight, setManageMinHeight] = useState<number | null>(null);
+
+  function toggleManageMode() {
+    setManageMinHeight(
+      manageMode ? null : (rootRef.current?.offsetHeight ?? null),
+    );
+    setManageMode((m) => !m);
+  }
 
   // 管理モードの変化を親へ通知する。マウント時に false も通知されるため、
   // モーダルを開き直したときの親側フラグのリセットにもなる。
@@ -225,7 +242,11 @@ export default function TagSelector({
   const showManageToggle = (tags?.length ?? 0) > 0 || manageMode;
 
   return (
-    <div className="flex flex-col gap-2">
+    <div
+      ref={rootRef}
+      className="flex flex-col gap-2"
+      style={manageMinHeight ? { minHeight: manageMinHeight } : undefined}
+    >
       {(showLabel || showManageToggle) && (
         <div className="flex items-center justify-between gap-2">
           {showLabel ? (
@@ -239,8 +260,18 @@ export default function TagSelector({
           {showManageToggle && (
             <button
               type="button"
-              onClick={() => setManageMode((m) => !m)}
-              className="text-tiny text-default-500 active:opacity-70"
+              onClick={toggleManageMode}
+              /*
+               * 管理モード中だけ目立たせる。管理中はタグを選べず(候補の代わりに
+               * 削除用の一覧が出る)、保存系のボタンも止まるので、
+               * 「いま普段と違う状態にいる」「ここを押せば戻れる」が一目で分かる必要がある。
+               * 削除ができる状態なので、色は注意を促す warning に合わせる。
+               */
+              className={
+                manageMode
+                  ? "rounded-full bg-warning/20 px-2 py-0.5 text-tiny font-bold text-warning-700 active:opacity-70"
+                  : "text-tiny text-default-500 active:opacity-70"
+              }
             >
               {manageMode ? "管理を終了" : "タグを管理"}
             </button>
@@ -248,8 +279,11 @@ export default function TagSelector({
         </div>
       )}
 
-      {!manageMode && selectedTags.length > 0 && (
-        <div className="flex flex-wrap items-center gap-1">
+      {/* 付与済みのタグ。1つも付いていなくてもチップ1行ぶん(24px)の高さを残し、
+          付け外しで入力欄から下がずれないようにする
+          (管理モード中はここを出さず、削除用の一覧を下に出す) */}
+      {!manageMode && (
+        <div className="flex min-h-6 flex-wrap items-center gap-1">
           {selectedTags.map((tag) => (
             /*
              * 解除はチップ全体のタップだけで受ける。×は「押せば外れる」と分かるための

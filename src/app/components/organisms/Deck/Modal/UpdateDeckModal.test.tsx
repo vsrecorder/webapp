@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { SWRConfig } from "swr";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import UpdateDeckModal from "@app/components/organisms/Deck/Modal/UpdateDeckModal";
@@ -73,6 +74,47 @@ describe("UpdateDeckModal", () => {
     );
 
     expect(deckNameInput().value).toBe("テストデッキ");
+  });
+
+  // タグ管理中に閉じる手段を全部塞ぐと、「管理を終了」を押すまで抜けられなくなる。
+  // タグの削除は確認を挟んで即時反映されるので、閉じても失われる編集は無い
+  it("タグ管理中でも閉じる導線が残る", async () => {
+    // 「タグを管理」は自分のタグが1つ以上あるときだけ出る
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) =>
+        String(url).includes("/presets")
+          ? new Response("[]", { headers: { "content-type": "application/json" } })
+          : new Response(
+              JSON.stringify([
+                {
+                  id: "t1",
+                  created_at: "2026-09-01T00:00:00Z",
+                  name: "大会用",
+                  color: "",
+                  text_color: "",
+                  preset_flg: false,
+                },
+              ]),
+              { headers: { "content-type": "application/json" } },
+            ),
+      ),
+    );
+    // タグ一覧は SWR のグローバルキャッシュに載るので、このテストだけ空のものを与える
+    render(
+      <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
+        <UpdateDeckModal deck={deck} setDeck={() => {}} isOpen onOpenChange={() => {}} />
+      </SWRConfig>,
+    );
+
+    const manage = await screen.findByRole("button", { name: "タグを管理" });
+    fireEvent.click(manage);
+    expect(screen.getByRole("button", { name: "管理を終了" })).toBeTruthy();
+
+    // フッターの「閉じる」(HeroUI の dismiss ボタンも同名なので、表示テキストで絞る)
+    const close = screen.getAllByRole("button").filter((b) => b.textContent === "閉じる");
+    expect(close.length).toBe(1);
+    expect(close[0].hasAttribute("disabled")).toBe(false);
   });
 
   // デッキ名が空のままでは更新させない(上流は name が空だと400を返す)

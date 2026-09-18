@@ -859,7 +859,7 @@ export default function CreateMatchModal({
         isDismissable={false}
         // 登録APIの実行中はESCキーでも閉じられないようにする
         // (isDisabled は不戦勝/不戦敗の選択中を表すフラグなので、ここでは使わない)
-        isKeyboardDismissDisabled={isSubmitting || isTagManaging}
+        isKeyboardDismissDisabled={isSubmitting}
         isOpen={isOpen}
         onOpenChange={onOpenChange}
         onClose={resetForm}

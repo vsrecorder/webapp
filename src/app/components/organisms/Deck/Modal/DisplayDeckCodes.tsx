@@ -571,13 +571,15 @@ export default function DisplayDeckCodesModal({
         isOpen={isOpenForEditMemoModal}
         size={"sm"}
         placement="center"
-        // 保存中(isMemoSaving)・タグ管理中(isTagManaging)はESC・onOpenChange経由の
-        // クローズを無効化する
-        isKeyboardDismissDisabled={isMemoSaving || isTagManaging}
-        hideCloseButton={isMemoSaving || isTagManaging}
+        // 保存中(isMemoSaving)はESC・onOpenChange経由のクローズを無効化する。
+        // タグ管理中(isTagManaging)は塞がない: 管理モードは「×で削除できる」表示に変わるだけで、
+        // 削除は確認を挟んで即時反映されるため、閉じても失われる編集が無い
+        // (閉じたときに onClose が管理モードも解除する)
+        isKeyboardDismissDisabled={isMemoSaving}
+        hideCloseButton={isMemoSaving}
         isDismissable={false}
         onOpenChange={() => {
-          if (isMemoSaving || isTagManaging) return;
+          if (isMemoSaving) return;
           onOpenChangeForEditMemoModal();
         }}
         onClose={() => {
@@ -621,7 +623,7 @@ export default function DisplayDeckCodesModal({
                 <Button
                   color="default"
                   variant="solid"
-                  isDisabled={isMemoSaving || isTagManaging}
+                  isDisabled={isMemoSaving}
                   onPress={() => {
                     onClose();
                   }}

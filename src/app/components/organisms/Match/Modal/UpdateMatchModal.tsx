@@ -311,8 +311,10 @@ export default function UpdateMatchModal({
 
   // 更新APIの実行中にドラッグで閉じられると、結果(成功/失敗トースト)を確認できないまま
   // フォームが消えてしまうため、実行中はドラッグを受け付けない
+  // (タグ管理中は妨げない: タグの削除は確認を挟んで即時反映されるので、
+  //  ドラッグで閉じても失われる編集が無い)
   const attachHeader = useModalDragToClose(onClose, {
-    disabled: isSubmitting || isTagManaging,
+    disabled: isSubmitting,
   });
 
   function restoreFromMatch(match: MatchGetResponseType) {
@@ -915,10 +917,13 @@ export default function UpdateMatchModal({
         isDismissable={false}
         // 更新APIの実行中はESCキーでも閉じられないようにする
         // (isDisabled は不戦勝/不戦敗の選択中を表すフラグなので、ここでは使わない)
-        isKeyboardDismissDisabled={isSubmitting || isTagManaging}
+        isKeyboardDismissDisabled={isSubmitting}
         isOpen={isOpen}
         onOpenChange={onOpenChange}
         onClose={() => {
+          // 管理モードのまま閉じられるので、次に開いたときへ持ち越さないよう解除する
+          setIsTagManaging(false);
+
           setSelectedTab("bo1");
 
           setQualifyingRoundFlg(false);

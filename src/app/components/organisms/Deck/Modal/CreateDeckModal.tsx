@@ -333,12 +333,14 @@ export default function CreateDeckModal({
         // はみ出さないよう base に最大高を与え、はみ出す分は body 内スクロールにする
         scrollBehavior="inside"
         isDismissable={false}
-        // 登録処理中(isDisabled)・タグ管理中(isTagManaging)はESC・閉じるボタン・
-        // onOpenChange経由でのクローズを無効化する
-        isKeyboardDismissDisabled={isDisabled || isTagManaging}
-        hideCloseButton={isDisabled || isTagManaging}
+        // 登録処理中(isDisabled)はESC・閉じるボタン・onOpenChange経由でのクローズを無効化する。
+        // タグ管理中(isTagManaging)は塞がない: 管理モードは「×で削除できる」表示に変わるだけで、
+        // 削除は確認を挟んで即時反映されるため、閉じても失われる編集が無い
+        // (閉じたときに resetState が管理モードも解除する)
+        isKeyboardDismissDisabled={isDisabled}
+        hideCloseButton={isDisabled}
         onOpenChange={() => {
-          if (isDisabled || isTagManaging) return;
+          if (isDisabled) return;
           onOpenChange();
         }}
         onClose={resetState}
@@ -484,7 +486,7 @@ export default function CreateDeckModal({
                 <Button
                   color="default"
                   variant="solid"
-                  isDisabled={isDisabled || isTagManaging}
+                  isDisabled={isDisabled}
                   onPress={() => {
                     onClose();
                   }}

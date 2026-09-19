@@ -123,3 +123,44 @@ describe("WeeklyDeckUsagePanel", () => {
     expect(aggregated.closest('[role="button"]')).toBeNull();
   });
 });
+
+describe("WeeklyDeckUsagePanel の取得失敗", () => {
+  // 集計を取れなかっただけなのに「まだありません」と出すと、
+  // その週は誰も投稿していないと読めてしまう。
+  it("失敗を「データはまだありません」と区別して表示する", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response('{"message":"error"}', { status: 500 })),
+    );
+    render(<WeeklyDeckUsagePanel />);
+
+    await waitFor(() =>
+      expect(screen.getByText("週間デッキ使用率を取得できませんでした")).toBeTruthy(),
+    );
+    expect(screen.queryByText(/公開可能なデータはまだありません/)).toBeNull();
+  });
+
+  it("「再読み込み」で取り直せる", async () => {
+    let calls = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        calls += 1;
+        return calls === 1
+          ? new Response('{"message":"error"}', { status: 500 })
+          : Response.json(FIRST_SPRITE);
+      }),
+    );
+    render(<WeeklyDeckUsagePanel />);
+
+    await waitFor(() =>
+      expect(screen.getByText("週間デッキ使用率を取得できませんでした")).toBeTruthy(),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /再読み込み/ }));
+
+    await waitFor(() =>
+      expect(screen.queryByText("週間デッキ使用率を取得できませんでした")).toBeNull(),
+    );
+  });
+});

@@ -11,6 +11,8 @@ import {
   Filler,
 } from "chart.js";
 import { Line } from "react-chartjs-2";
+
+import FetchError from "@app/components/molecules/FetchError";
 import { Card, CardBody } from "@heroui/react";
 
 import { UserStatHistoryType, UserStatMonthlyType } from "@app/types/user_stat_history";
@@ -101,6 +103,11 @@ export default function UserStatHistoryChart({
   const [ownDecks, setOwnDecks] = useState<DeckUsageItemType[]>([]);
   const [history, setHistory] = useState<UserStatHistoryType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // 取得に失敗したか。失敗時は履歴を捨ててエラー表示に切り替える
+  // (前の期間の推移が新しい期間の見出しのまま残ると、別の期間の推移として読めてしまう)
+  const [isError, setIsError] = useState(false);
+  // 「再読み込み」で取り直すためのキー。増やすと取得のeffectが走り直す
+  const [reloadKey, setReloadKey] = useState(0);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<ChartJS<"line">>(null);
@@ -139,12 +146,25 @@ export default function UserStatHistoryChart({
             cache: "no-store",
           },
         );
-        if (!res.ok) return;
+        if (!res.ok) {
+          if (!cancelled) {
+            setHistory(null);
+            setIsError(true);
+          }
+          return;
+        }
 
         const data: UserStatHistoryType = await res.json();
-        if (!cancelled) setHistory(data);
+        if (!cancelled) {
+          setHistory(data);
+          setIsError(false);
+        }
       } catch (e) {
         console.error(e);
+        if (!cancelled) {
+          setHistory(null);
+          setIsError(true);
+        }
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -154,7 +174,15 @@ export default function UserStatHistoryChart({
     return () => {
       cancelled = true;
     };
-  }, [userId, periodMode, seasonYear, deckId, regulationId, excludeDefaultMatches]);
+  }, [
+    userId,
+    periodMode,
+    seasonYear,
+    deckId,
+    regulationId,
+    excludeDefaultMatches,
+    reloadKey,
+  ]);
 
   // グラフに出している期間・レギュレーションで実際に使用したデッキ一覧を取得し、
   // デッキセレクタの選択肢にする（対戦相手のデッキ分析パネルと同様、
@@ -442,7 +470,16 @@ export default function UserStatHistoryChart({
         </div>
 
         {/* グラフ */}
-        {isLoading ? (
+        {isError ? (
+          <div className="h-40 flex items-center justify-center">
+            <FetchError
+              message="勝率の推移を取得できませんでした"
+              onRetry={() => setReloadKey((key) => key + 1)}
+              isRetrying={isLoading}
+              compact
+            />
+          </div>
+        ) : isLoading ? (
           <div className="h-40 flex items-center justify-center">
             <span className="text-xs text-default-400">読み込み中...</span>
           </div>

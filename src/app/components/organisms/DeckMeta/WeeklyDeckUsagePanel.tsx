@@ -15,6 +15,7 @@ import {
 } from "react-icons/lu";
 
 import DeckSprites from "@app/components/molecules/DeckSprites";
+import FetchError from "@app/components/molecules/FetchError";
 import {
   WeeklyDeckUsageBetaNote,
   WeeklyDeckUsageGroupingNote,
@@ -271,6 +272,11 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
   );
   const [stat, setStat] = useState<WeeklyDeckUsageStatType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // 取得に失敗したか。失敗時は集計を捨ててエラー表示に切り替える
+  // (前の週の数字が新しい週の見出しのまま残ると、その週の集計として読めてしまう)
+  const [isError, setIsError] = useState(false);
+  // 「再読み込み」で取り直すためのキー。増やすと取得のeffectが走り直す
+  const [reloadKey, setReloadKey] = useState(0);
   const [rateMode, setRateMode] = useState<RateMode>("all");
   // 内訳アコーディオンの開閉状態。行ごとに独立して開けるよう指紋の集合で持つ
   // （「その他」行の指紋は空文字）。1体目でまとめた表示では複数の行が内訳を持つため、
@@ -314,12 +320,25 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
           cache: "no-store",
         });
 
-        if (!res.ok) return;
+        if (!res.ok) {
+          if (!cancelled) {
+            setStat(null);
+            setIsError(true);
+          }
+          return;
+        }
 
         const data: WeeklyDeckUsageStatType = await res.json();
-        if (!cancelled) setStat(data);
+        if (!cancelled) {
+          setStat(data);
+          setIsError(false);
+        }
       } catch (e) {
         console.error(e);
+        if (!cancelled) {
+          setStat(null);
+          setIsError(true);
+        }
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -329,7 +348,7 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [week, grouping]);
+  }, [week, grouping, reloadKey]);
 
   const decks = useMemo(() => stat?.decks ?? [], [stat]);
 
@@ -499,7 +518,17 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
         {(isLoading || displayDecks.length > 0) && <WeeklyDeckUsageRankingHeader />}
 
         {/* ランキング */}
-        {isLoading && !stat ? (
+        {isError ? (
+          // 読み込み中の骨格・データなしと同じ高さの枠に収める(差し替わりで下がずれないように)
+          <div className="h-48 flex items-center justify-center">
+            <FetchError
+              message="週間デッキ使用率を取得できませんでした"
+              onRetry={() => setReloadKey((key) => key + 1)}
+              isRetrying={isLoading}
+              compact
+            />
+          </div>
+        ) : isLoading && !stat ? (
           <WeeklyDeckUsageRankingSkeleton limit={limit} />
         ) : displayDecks.length === 0 ? (
           <div className="h-48 flex items-center justify-center">

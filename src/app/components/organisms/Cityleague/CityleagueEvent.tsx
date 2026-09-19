@@ -20,6 +20,7 @@ import CityleagueEventSkeleton from "@app/components/organisms/Cityleague/Skelet
 
 import { OfficialEventResponseType } from "@app/types/official_event";
 import { CityleagueResultGetResponseType } from "@app/types/cityleague_result";
+import FetchError from "@app/components/molecules/FetchError";
 
 async function fetchCityleagueInfoByDate(league_type: number, date: string) {
   try {
@@ -87,6 +88,10 @@ export default function CityleagueEvent({ league_type, setLeagueTypeCount }: Pro
   const [isLoading1, setIsLoading1] = useState(false);
   const [isLoading2, setIsLoading2] = useState(false);
   const [isInitialLoaded, setIsInitialLoaded] = useState(false);
+  // 開催情報を取れたか。取れないと1枚も出せないので、空(本日は開催なし)と区別して伝える
+  const [isError, setIsError] = useState(false);
+  // 「再読み込み」で取り直すためのキー。増やすと取得のeffectが走り直す
+  const [reloadKey, setReloadKey] = useState(0);
 
   const sortedEvents = useMemo(() => {
     if (!cityleague?.official_events) return [];
@@ -152,10 +157,15 @@ export default function CityleagueEvent({ league_type, setLeagueTypeCount }: Pro
           );
           setCityleague(data);
           setLeagueTypeCount(data.count);
+          setIsError(false);
 
           return;
         } catch (error) {
           console.error("Error loading items:", error);
+          // 開催情報が無いままでは1枚も描けない。「本日の開催はありません」と
+          // 取り違えられないよう、取得できなかったことを表示側へ伝える
+          setCityleague(null);
+          setIsError(true);
         } finally {
           setIsLoading1(false);
           setIsInitialLoaded(true);
@@ -185,12 +195,23 @@ export default function CityleagueEvent({ league_type, setLeagueTypeCount }: Pro
     };
 
     load();
-  }, [league_type, setLeagueTypeCount]);
+  }, [league_type, setLeagueTypeCount, reloadKey]);
 
   return (
     <>
-      {/* 空状態 */}
-      {isInitialLoaded && !isLoading1 && cityleague?.count === 0 ? (
+      {/* 取得できなかったとき。空状態と同じ枠で、取り直せるようにする */}
+      {isInitialLoaded && !isLoading1 && isError ? (
+        <Swiper>
+          <SwiperSlide className="p-3">
+            <FetchError
+              message="本日の開催情報を取得できませんでした"
+              onRetry={() => setReloadKey((key) => key + 1)}
+              isRetrying={isLoading1}
+            />
+          </SwiperSlide>
+        </Swiper>
+      ) : /* 空状態 */
+      isInitialLoaded && !isLoading1 && cityleague?.count === 0 ? (
         <Swiper>
           <SwiperSlide className="p-3">
             <div className="text-center">

@@ -33,6 +33,7 @@ import {
   clearCityleagueResultScrollTarget,
 } from "@app/utils/cityleagueScrollRestore";
 import { useSessionStorageItem } from "@app/hooks/useSessionStorageItem";
+import FetchError from "@app/components/molecules/FetchError";
 
 async function fetchCityleagueResultsByTerm(
   league_type: number,
@@ -163,6 +164,8 @@ export default function CityleagueResults({
     initial?.nextFromDate ?? scheduleContext?.startDate ?? today,
   );
   const [hasMore, setHasMore] = useState(initial ? initial.hasMore : true);
+  // 取得に失敗したか。結果が無いのか取れなかったのかを区別して伝える
+  const [isError, setIsError] = useState(false);
   const [isInitialLoaded, setIsInitialLoaded] = useState(!!initial);
   // 「更に読み込む」を押して、続きを待っている間
   const [manualLoadPending, setManualLoadPending] = useState(false);
@@ -264,6 +267,7 @@ export default function CityleagueResults({
 
           setItems((prev) => [...prev, ...newItems.event_results]);
           setNextDate(shiftDateString(date, -1));
+          setIsError(false);
 
           return;
         }
@@ -272,6 +276,9 @@ export default function CityleagueResults({
       } catch (error) {
         if (cancelled) return;
         console.error("Error loading items:", error);
+        // 取得できなかっただけで、結果が無いとは限らない。
+        // 「直近のシティリーグ結果はありません」と取り違えられないよう区別する
+        setIsError(true);
         setHasMore(false);
       } finally {
         if (!cancelled) {
@@ -285,6 +292,13 @@ export default function CityleagueResults({
       cancelled = true;
     };
   }, [isLoading, nextDate, league_type, schedule]);
+
+  // 失敗したぶんを取り直す。打ち切っていた続きの読み込みを再開する
+  const retryLoad = () => {
+    setIsError(false);
+    setHasMore(true);
+    setManualLoadPending(true);
+  };
 
   // 「更に読み込む」。読み込み中・続きが無いときは何もしない
   const loadMore = () => {
@@ -368,7 +382,7 @@ export default function CityleagueResults({
       ) : null}
 
       {/* 空状態 */}
-      {isInitialLoaded && !isLoading && !hasMore && items.length === 0 && (
+      {isInitialLoaded && !isLoading && !hasMore && !isError && items.length === 0 && (
         <div className="flex flex-col items-center gap-5 py-14 px-6 text-center">
           <div className="relative">
             <LuTrophy className="text-6xl text-default-200" />
@@ -399,6 +413,15 @@ export default function CityleagueResults({
             />
           </div>
         ))}
+
+        {/* 取得できなかったとき。読み込み済みのぶんは残したまま、その先だけ取り直せるようにする */}
+        {isInitialLoaded && !isLoading && isError && (
+          <FetchError
+            message="シティリーグ結果を取得できませんでした"
+            onRetry={retryLoad}
+            compact={items.length > 0}
+          />
+        )}
 
         {/* ローディング表示 */}
         {!isInitialLoaded && <CityleagueResultSkeletons />}

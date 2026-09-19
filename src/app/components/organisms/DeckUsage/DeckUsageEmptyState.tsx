@@ -7,13 +7,13 @@ import { Button } from "@heroui/react";
 import { ArcElement, Chart as ChartJS, Tooltip as ChartTooltip } from "chart.js";
 import { Pie } from "react-chartjs-2";
 
+import {
+  CHART_BOX_NORMAL,
+  toChartPadding,
+} from "@app/components/organisms/DeckUsage/pieChartLayout";
 import { createPieSlicesSpritePlugin } from "@app/utils/pieSlicesSpritePlugin";
 
 ChartJS.register(ArcElement, ChartTooltip);
-
-// 実データのグラフと寸法を揃えるための定数（DeckUsagePanel/OpponentDeckUsagePanelと同じ値）
-const CHART_SIZE = 192;
-const EXTERNAL_SPRITE_PADDING = 64;
 
 const SPRITE_BASE_URL = "https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites";
 // デッキ未登録デッキの表示にも使われている「不明」スプライトを、ダミー表示にも流用する
@@ -37,7 +37,10 @@ const DUMMY_CHART_DATA = {
 const DUMMY_CHART_OPTIONS = {
   responsive: true,
   maintainAspectRatio: false,
-  layout: { padding: EXTERNAL_SPRITE_PADDING },
+  // 余白も高さも実データのグラフ(CHART_BOX_NORMAL)と同じ値にする。ここがずれると
+  // データの有無が切り替わった瞬間に円の中心が上下へ飛んでちらつく
+  // （上下の余白だけ64pxにしていた頃は、円が24px上に寄り、枠の高さも48px低かった）。
+  layout: { padding: toChartPadding(CHART_BOX_NORMAL) },
   plugins: {
     legend: { display: false },
     tooltip: { enabled: false },
@@ -63,7 +66,7 @@ export default function DeckUsageEmptyState({ message }: Props) {
     <div className="flex flex-col items-center gap-3">
       <div
         className="relative w-full opacity-40"
-        style={{ height: CHART_SIZE + EXTERNAL_SPRITE_PADDING * 2 }}
+        style={{ height: CHART_BOX_NORMAL.height }}
       >
         <Pie
           data={DUMMY_CHART_DATA}

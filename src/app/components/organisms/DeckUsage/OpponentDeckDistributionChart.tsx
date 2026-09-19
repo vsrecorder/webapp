@@ -32,7 +32,12 @@ import {
   getSpriteBadgeIndexAt,
   type PieSpriteDatasetProps,
 } from "@app/utils/pieSlicesSpritePlugin";
-import usePieChartPadding, { type PieChartBox } from "@app/hooks/usePieChartPadding";
+import usePieChartPadding from "@app/hooks/usePieChartPadding";
+import {
+  CHART_BOX_DETAIL,
+  CHART_BOX_NORMAL,
+  toChartPadding,
+} from "@app/components/organisms/DeckUsage/pieChartLayout";
 import DeckUsageEmptyState from "@app/components/organisms/DeckUsage/DeckUsageEmptyState";
 
 ChartJS.register(ArcElement, ChartTooltip);
@@ -85,39 +90,6 @@ const OTHER_COLLAPSED_KEYS = new Set<string>();
 // 円グラフ本体はスプライト画像を主役にしたいため、塗りは薄いパステル調にする
 const SLICE_COLORS_SOFT = SLICE_COLORS.map((c) => lighten(c, 0.55));
 const OTHER_COLOR_SOFT = lighten(OTHER_COLOR, 0.55);
-
-// 円グラフ本体の高さ。外側スプライト分の余白はこれとは別にコンテナ側で確保し、
-// 円自体の大きさはこの値のまま変えない。
-const CHART_SIZE = 192;
-// 詳細カード表示中は外周バッジを描画せず円の中心に情報をまとめるため、外側の余白を
-// 小さくできる分、円自体を一回り大きくして見やすくする
-const CHART_SIZE_DETAIL = 216;
-// 円の外側にスプライトバッジを表示するための左右の余白（コンテナのmin-widthと合わせる。
-// スプライト2体分のバッジが横向きになった場合でも見切れない最低限の値を確保する）
-const EXTERNAL_SPRITE_PADDING_X = 64;
-// 詳細カード表示中は外周バッジ自体を描画しないため、見た目の余白程度の小さい値でよい
-const EXTERNAL_SPRITE_PADDING_X_NARROW = 28;
-// 円の外側にスプライトバッジを表示するための上下の余白（コンテナの高さと合わせる）。
-// バッジは上下方向にも同じ分だけ張り出すため、左右よりさらに余裕を持たせて見切れを防ぐ
-const EXTERNAL_SPRITE_PADDING_Y = 88;
-// 詳細カード表示中は外周バッジ自体を描画しないため、見た目の余白程度の小さい値でよい
-const EXTERNAL_SPRITE_PADDING_Y_NARROW = 28;
-
-// 通常表示・詳細カード表示それぞれの余白と、キャンバスを包む要素の高さ。
-// 開閉アニメーションの最中は、この2つの間をキャンバスの実寸に合わせて補間する
-// （切り替えた瞬間に余白だけ新しい値にすると円の大きさが逆向きに振れる。
-//   usePieChartPadding のコメント参照）
-const CHART_BOX_NORMAL: PieChartBox = {
-  padding: { x: EXTERNAL_SPRITE_PADDING_X, y: EXTERNAL_SPRITE_PADDING_Y },
-  height: CHART_SIZE + EXTERNAL_SPRITE_PADDING_Y * 2,
-};
-const CHART_BOX_DETAIL: PieChartBox = {
-  padding: {
-    x: EXTERNAL_SPRITE_PADDING_X_NARROW,
-    y: EXTERNAL_SPRITE_PADDING_Y_NARROW,
-  },
-  height: CHART_SIZE_DETAIL + EXTERNAL_SPRITE_PADDING_Y_NARROW * 2,
-};
 
 const SPRITE_BASE_URL = "https://xx8nnpgt.user.webaccel.jp/images/pokemon-sprites";
 
@@ -490,14 +462,7 @@ export default function OpponentDeckDistributionChart({
       // 狭いスライスのスプライトを円の外側に描画するための余白
       // （円自体は縮小しない。下記コンテナの高さ側で吸収する）。
       // 詳細カードの開閉中は usePieChartPadding が実寸に合わせて書き換える。
-      layout: {
-        padding: {
-          top: CHART_BOX_NORMAL.padding.y,
-          bottom: CHART_BOX_NORMAL.padding.y,
-          left: CHART_BOX_NORMAL.padding.x,
-          right: CHART_BOX_NORMAL.padding.x,
-        },
-      },
+      layout: { padding: toChartPadding(CHART_BOX_NORMAL) },
       // クリック判定は下のコンテナdiv側(handleChartAreaClick)で行うため、ここでは何もしない
       // (chart.jsのoptions.onClickはchartArea外側=余白部分のタップを検知できないため)
       plugins: {
@@ -512,7 +477,7 @@ export default function OpponentDeckDistributionChart({
     return (
       <div
         className="flex items-center justify-center"
-        style={{ height: CHART_SIZE + EXTERNAL_SPRITE_PADDING_Y * 2 }}
+        style={{ height: CHART_BOX_NORMAL.height }}
       >
         <span className="text-xs text-default-400">読み込み中...</span>
       </div>

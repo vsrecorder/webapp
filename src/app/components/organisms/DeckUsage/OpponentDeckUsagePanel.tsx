@@ -18,7 +18,6 @@ import RegulationSegmentedControl from "@app/components/molecules/RegulationSegm
 import { ChampionshipSeriesType } from "@app/types/championship_series";
 import { OpponentDeckUsageStatType } from "@app/types/opponent_deck_usage_stat";
 import { DeckUsageItemType, DeckUsageStatType } from "@app/types/deck_usage_stat";
-import { OldestRecordEventDateType } from "@app/types/oldest_record_event_date";
 import {
   seasonOptionsFromChampionshipSeries,
   currentSeasonValue,
@@ -30,6 +29,9 @@ import {
 import OpponentDeckDistributionChart, {
   buildOpponentDeckDisplay,
 } from "@app/components/organisms/DeckUsage/OpponentDeckDistributionChart";
+import { CHART_BOX_NORMAL } from "@app/components/organisms/DeckUsage/pieChartLayout";
+import FetchError from "@app/components/molecules/FetchError";
+import useOldestRecordEventDate from "@app/hooks/useOldestRecordEventDate";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
 import { EXCLUDE_DEFAULT_MATCHES_QUERY } from "@app/utils/excludeDefaultMatches";
@@ -79,39 +81,22 @@ export default function OpponentDeckUsagePanel({
   const [isLoading, setIsLoading] = useState(true);
   const [ownDeckId, setOwnDeckId] = useState<string>("");
   const [ownDecks, setOwnDecks] = useState<DeckUsageItemType[]>([]);
-  const [oldestEventDate, setOldestEventDate] = useState<string | null>(null);
+  // 取得に失敗したか。失敗時は集計を捨ててエラー表示に切り替える
+  // (前の期間の数字が新しい期間ラベルのまま残ると、別の期間の集計として読めてしまう)
+  const [isError, setIsError] = useState(false);
+  // 「再読み込み」で取り直すためのキー。増やすと取得のeffectが走り直す
+  const [reloadKey, setReloadKey] = useState(0);
   // シェアモーダルの開閉
   const [shareOpen, setShareOpen] = useState(false);
 
   // 「月次」の選択肢は、実際に記録されている最も古い対戦のevent_dateを起点にする。
-  // 取得前・取得失敗時はユーザー登録日、それも無ければ直近12ヶ月にフォールバックする。
+  // 取得前・取得失敗時はユーザー登録日、それも無ければ直近12ヶ月にフォールバックする
+  // (デッキ使用率分析パネルと同じ値を使うので、取得はフックの中で共有される)。
+  const oldestEventDate = useOldestRecordEventDate(userId);
   const yearMonthOptions = generateYearMonthOptions(
     oldestEventDate ?? userCreatedAt ?? undefined,
   );
   const seasonOptions = seasonOptionsFromChampionshipSeries(championshipSeries);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function fetchOldestEventDate() {
-      try {
-        const res = await fetch(`/api/users/${userId}/oldest-record-event-date`, {
-          cache: "no-store",
-        });
-        if (!res.ok) return;
-
-        const data: OldestRecordEventDateType = await res.json();
-        if (!cancelled) setOldestEventDate(data.event_date);
-      } catch (e) {
-        console.error(e);
-      }
-    }
-
-    fetchOldestEventDate();
-    return () => {
-      cancelled = true;
-    };
-  }, [userId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -140,12 +125,25 @@ export default function OpponentDeckUsagePanel({
           },
         );
 
-        if (!res.ok) return;
+        if (!res.ok) {
+          if (!cancelled) {
+            setStat(null);
+            setIsError(true);
+          }
+          return;
+        }
 
         const data: OpponentDeckUsageStatType = await res.json();
-        if (!cancelled) setStat(data);
+        if (!cancelled) {
+          setStat(data);
+          setIsError(false);
+        }
       } catch (e) {
         console.error(e);
+        if (!cancelled) {
+          setStat(null);
+          setIsError(true);
+        }
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -164,6 +162,7 @@ export default function OpponentDeckUsagePanel({
     standardRegulationId,
     regulationId,
     ownDeckId,
+    reloadKey,
   ]);
 
   // 期間フィルタが変わるたびに、その期間で実際に使用したデッキ一覧を取得し
@@ -471,14 +470,29 @@ export default function OpponentDeckUsagePanel({
           </p>
 
           {/* グラフ + 凡例 */}
-          <OpponentDeckDistributionChart
-            decks={decks}
-            isLoading={isLoading}
-            hasData={stat !== null}
-            emptyMessage={
-              "この期間の対戦記録がまだありません。\n記録を作成すると対戦相手のデッキ分析が表示されます。"
-            }
-          />
+          {isError ? (
+            // 読み込み中・空状態・グラフと同じ高さの枠に収める(差し替わりで下がずれないように)
+            <div
+              className="flex items-center justify-center"
+              style={{ height: CHART_BOX_NORMAL.height }}
+            >
+              <FetchError
+                message="対戦相手のデッキ分析を取得できませんでした"
+                onRetry={() => setReloadKey((key) => key + 1)}
+                isRetrying={isLoading}
+                compact
+              />
+            </div>
+          ) : (
+            <OpponentDeckDistributionChart
+              decks={decks}
+              isLoading={isLoading}
+              hasData={stat !== null}
+              emptyMessage={
+                "この期間の対戦記録がまだありません。\n記録を作成すると対戦相手のデッキ分析が表示されます。"
+              }
+            />
+          )}
         </CardBody>
       </Card>
 

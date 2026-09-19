@@ -58,7 +58,15 @@ async function fetchCityleagueResultsByTerm(
 
     const ret: CityleagueResultGetResponseType = await res.json();
 
-    return ret;
+    // 200 でも想定と違う形(エラーメッセージだけの JSON など)が返ることがある。
+    // そのまま配列として展開するとページごとエラー画面へ落ちるので、ここで均しておく
+    const event_results = Array.isArray(ret?.event_results) ? ret.event_results : [];
+
+    return {
+      ...ret,
+      event_results,
+      count: typeof ret?.count === "number" ? ret.count : event_results.length,
+    };
   } catch (error) {
     throw error;
   }
@@ -86,7 +94,10 @@ async function fetchScheduleByDate(date: string): Promise<CityleagueScheduleType
     headers: { Accept: "application/json" },
   });
   if (!res.ok) return null;
-  return res.json();
+
+  const data = await res.json();
+  // 想定と違う形なら「該当なし」として扱う(開催期間の読み取りで落ちない)
+  return data && typeof data === "object" && !Array.isArray(data) ? data : null;
 }
 
 async function fetchAllSchedules(): Promise<CityleagueScheduleType[]> {
@@ -96,7 +107,9 @@ async function fetchAllSchedules(): Promise<CityleagueScheduleType[]> {
     headers: { Accept: "application/json" },
   });
   if (!res.ok) return [];
-  return res.json();
+
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
 }
 
 // その日のシティリーグ(type_id=2)の公式イベント一覧。応答の要素は単品応答
@@ -116,7 +129,13 @@ async function fetchOfficialEventsByDate(
     },
   );
   if (!res.ok) return null;
-  return res.json();
+
+  const data: OfficialEventResponseType = await res.json();
+
+  return {
+    ...data,
+    official_events: Array.isArray(data?.official_events) ? data.official_events : [],
+  };
 }
 
 type Props = {
@@ -261,7 +280,7 @@ export default function CityleagueResults({
           );
           if (cancelled) return;
 
-          if (dayEvents?.official_events) {
+          if (dayEvents?.official_events.length) {
             setEvents((prev) => [...prev, ...dayEvents.official_events]);
           }
 

@@ -83,3 +83,19 @@ describe("CityleagueResults の取得失敗", () => {
     );
   });
 });
+
+describe("CityleagueResults の想定外の応答", () => {
+  // 200 で {message: "..."} のような別の形が返ると、配列展開でページごと
+  // エラー画面へ落ちていた。空として扱い、画面は保つ。
+  it("200 で配列でない応答が返っても落ちない", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json({ message: "error" })),
+    );
+    render(<CityleagueResults league_type={1} scheduleContext={SCHEDULE_CONTEXT} />);
+
+    await waitFor(() =>
+      expect(screen.getByText("直近のシティリーグ結果はありません")).toBeTruthy(),
+    );
+  });
+});

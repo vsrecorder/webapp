@@ -41,7 +41,16 @@ async function fetchCityleagueInfoByDate(league_type: number, date: string) {
 
     const ret: OfficialEventResponseType = await res.json();
 
-    return ret;
+    // 200 でも想定と違う形が返ることがある。一覧を配列として扱えるよう均しておく
+    const official_events = Array.isArray(ret?.official_events)
+      ? ret.official_events
+      : [];
+
+    return {
+      ...ret,
+      official_events,
+      count: typeof ret?.count === "number" ? ret.count : official_events.length,
+    };
   } catch (error) {
     throw error;
   }
@@ -70,7 +79,10 @@ async function fetchCityleagueResultsByTerm(
 
     const ret: CityleagueResultGetResponseType = await res.json();
 
-    return ret;
+    return {
+      ...ret,
+      event_results: Array.isArray(ret?.event_results) ? ret.event_results : [],
+    };
   } catch (error) {
     throw error;
   }

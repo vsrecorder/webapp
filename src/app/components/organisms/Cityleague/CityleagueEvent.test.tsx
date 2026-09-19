@@ -75,3 +75,15 @@ describe("CityleagueEvent の取得失敗", () => {
     await waitFor(() => expect(screen.getByText("本日の開催はありません")).toBeTruthy());
   });
 });
+
+describe("CityleagueEvent の想定外の応答", () => {
+  it("200 で配列でない応答が返っても落ちない", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json({ message: "error" })),
+    );
+    render(<CityleagueEvent league_type={1} setLeagueTypeCount={() => {}} />);
+
+    await waitFor(() => expect(screen.getByText("本日の開催はありません")).toBeTruthy());
+  });
+});

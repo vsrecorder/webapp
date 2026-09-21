@@ -12,8 +12,10 @@ import { Card, CardBody } from "@heroui/react";
 import { CgSearch } from "react-icons/cg";
 import { LuBookmark, LuCalendar, LuHouse, LuMapPin } from "react-icons/lu";
 
-import { useReactSelectTheme } from "@app/components/molecules/Select/useReactSelectTheme";
-import { reactSelectControlStyle } from "@app/components/molecules/Select/reactSelectStyles";
+import {
+  reactSelectControlStyle,
+  reactSelectTheme,
+} from "@app/components/molecules/Select/reactSelectStyles";
 import ScrollingText from "@app/components/molecules/ScrollingText";
 import {
   OfficialEventOption,
@@ -146,8 +148,6 @@ export default function OfficialEventSelect({
   initialEventsDate,
   presetId,
 }: Props) {
-  const reactSelectTheme = useReactSelectTheme();
-
   const url = officialEventListUrl(date);
 
   /*
@@ -211,7 +211,12 @@ export default function OfficialEventSelect({
   else if (data?.length === 0) optionsMessage = "イベントがありません";
 
   return (
-    <div className="flex flex-col gap-1">
+    /*
+     * 選択欄とプレビューカードの間隔は gap-2 + カード側の pt-1 で 12px。
+     * 骨格(RecordCreateFormSkeleton の OfficialEventFieldSkeleton)も同じ間隔で組んで
+     * あるので、変えるときは両方を直すこと(ここだけ変えると骨格→実体で行がずれる)。
+     */
+    <div className="flex flex-col gap-2">
       <WindowedSelect
         instanceId={instanceId}
         theme={reactSelectTheme}

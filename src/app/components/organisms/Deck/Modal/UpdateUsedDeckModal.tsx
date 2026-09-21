@@ -4,7 +4,7 @@ import WindowedSelect from "react-windowed-select";
 import Select from "react-select";
 import { Modal } from "@app/components/atoms/AppModal";
 import DeckSprites from "@app/components/molecules/DeckSprites";
-import { useReactSelectTheme } from "@app/components/molecules/Select/useReactSelectTheme";
+import { reactSelectTheme } from "@app/components/molecules/Select/reactSelectStyles";
 
 import { SetStateAction, Dispatch } from "react";
 import { useEffect, useRef, useState } from "react";
@@ -150,8 +150,6 @@ export default function UpdateUsedDeckModal({
   onOpenChange,
 }: Props) {
   // react-select をダークモードに追従させるテーマ
-  const reactSelectTheme = useReactSelectTheme();
-
   // セレクターを閉じたときにフォーカスを引き受けるための要素
   // フォーカストラップを満たしつつキーボードを閉じるために使用
   const focusSinkRef = useRef<HTMLDivElement>(null);

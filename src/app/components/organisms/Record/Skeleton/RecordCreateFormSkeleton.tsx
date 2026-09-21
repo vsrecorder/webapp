@@ -103,6 +103,10 @@ function EventDateSkeleton() {
  * プレビューカードは未選択でも枠が出て、中身は「イベント名」「イベント日時」…の
  * 決まり文句になる。実体と同じアイコン・同じ文言・同じ入れ子で置く(ここを
  * Skeleton のバーで代用すると、行の高さが 16px→20px に膨らみカードが16px高くなる)。
+ *
+ * 実体は organisms/Record/OfficialEventSelect。選択欄とカードの間隔は、あちらが
+ * gap-2、カード側が pt-1 で 12px。ここでは手順ラベルのブロックを閉じてから
+ * 親(gap-2)の直下に pt-1 のカードを置くことで同じ 12px にしている。
  */
 const OFFICIAL_EVENT_PLACEHOLDER_ROWS = [
   { key: "title", icon: <LuBookmark color="gray" />, label: "イベント名" },
@@ -124,7 +128,8 @@ function OfficialEventFieldSkeleton() {
 
       <div className="pt-1">
         <Card radius="none" shadow="sm">
-          <CardBody>
+          {/* overflow-visible は実体(OfficialEventSelect)と同じ。iOS のスクロール対策 */}
+          <CardBody className="overflow-visible">
             <div className="pl-1 pr-1 flex items-center gap-5 w-full min-w-0">
               <div className="flex items-center justify-center gap-5 min-w-0">
                 <div className="z-0 shrink-0">

@@ -32,8 +32,10 @@ import { CgSearch } from "react-icons/cg";
 import Select, { components } from "react-select";
 import { Modal } from "@app/components/atoms/AppModal";
 import DeckSprites from "@app/components/molecules/DeckSprites";
-import { useReactSelectTheme } from "@app/components/molecules/Select/useReactSelectTheme";
-import { reactSelectControlStyle } from "@app/components/molecules/Select/reactSelectStyles";
+import {
+  reactSelectControlStyle,
+  reactSelectTheme,
+} from "@app/components/molecules/Select/reactSelectStyles";
 import { useTonamelEventCheck } from "@app/hooks/useTonamelEventCheck";
 import { Image } from "@heroui/react";
 import { Button } from "@heroui/react";
@@ -412,8 +414,6 @@ export default function TemplateRecordCreate({
   useReopenFlagsOnBack(DECK_MODAL_REOPEN_KEYS);
 
   // react-select をダークモードに追従させるテーマ
-  const reactSelectTheme = useReactSelectTheme();
-
   // サーバが確定させたタブで描き始める(recordCreatePrefs 参照)。
   // 復元をクライアントでやっていた頃と違い、確定を待つ間の骨格表示は要らない
   const [selectedTab, setSelectedTab] = useState<RecordCreateTab>(tab);

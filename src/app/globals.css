@@ -564,3 +564,54 @@ textarea {
 [data-slot="input-field"] {
   font-size: 1rem;
 }
+
+/*
+ * react-select / react-windowed-select の配色。
+ *
+ * これらは HeroUI のテーマに自動では追従しないので、theme プロップで色を渡している
+ * (molecules/Select/reactSelectStyles の reactSelectTheme)。渡す値を JS で
+ * ダーク/ライトに出し分けると、サーバ描画では <html> の .dark を読めず必ずライトになる。
+ * クライアントの最初の描画もライトに合わせないとハイドレーションが食い違うため、
+ * ダークで開いたときに選択バーが一瞬白く光っていた。
+ *
+ * 色を CSS 変数で渡せば、HTML に .dark が付いた時点で正しい色が当たる。
+ * emotion が書き出すクラス名はサーバとクライアントで同じ(var(...) の文字列を
+ * 書くだけ)なので、食い違いも起きない。
+ *
+ * 既定値は react-select の既定配色そのまま。ダーク側は HeroUI の zinc 系に合わせている。
+ */
+:root {
+  --rs-primary: #2684ff; /* 選択中オプションの背景 */
+  --rs-primary75: #4c9aff;
+  --rs-primary50: #b2d4ff; /* オプションのアクティブ状態 */
+  --rs-primary25: #deebff; /* オプションのホバー/フォーカス背景 */
+  --rs-neutral0: hsl(0, 0%, 100%); /* コントロール・メニューの背景 */
+  --rs-neutral5: hsl(0, 0%, 95%);
+  --rs-neutral10: hsl(0, 0%, 90%); /* 複数選択タグなどの背景 */
+  --rs-neutral20: hsl(0, 0%, 80%); /* 枠線・区切り線 */
+  --rs-neutral30: hsl(0, 0%, 70%); /* ホバー時の枠線 */
+  --rs-neutral40: hsl(0, 0%, 60%); /* インジケーター */
+  --rs-neutral50: hsl(0, 0%, 50%); /* プレースホルダ */
+  --rs-neutral60: hsl(0, 0%, 40%);
+  --rs-neutral70: hsl(0, 0%, 30%);
+  --rs-neutral80: hsl(0, 0%, 20%); /* 入力文字・選択値の文字色 */
+  --rs-neutral90: hsl(0, 0%, 10%);
+}
+
+.dark {
+  --rs-primary: #3b82f6;
+  --rs-primary75: #60a5fa;
+  --rs-primary50: #52525b;
+  --rs-primary25: #3f3f46;
+  --rs-neutral0: #27272a;
+  --rs-neutral5: #3f3f46;
+  --rs-neutral10: #3f3f46;
+  --rs-neutral20: #52525b;
+  --rs-neutral30: #71717a;
+  --rs-neutral40: #a1a1aa;
+  --rs-neutral50: #a1a1aa;
+  --rs-neutral60: #d4d4d8;
+  --rs-neutral70: #e4e4e7;
+  --rs-neutral80: #f4f4f5;
+  --rs-neutral90: #fafafa;
+}

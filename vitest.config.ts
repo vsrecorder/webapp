@@ -16,6 +16,8 @@ export default defineConfig({
   },
   test: {
     include: ["src/**/*.test.{ts,tsx}"],
+    // 全テスト共通の後始末(テスト終了時に scheduler の残りを流し切る)
+    setupFiles: ["./vitest.setup.ts"],
     environment: "node",
     // テストごとに CSS を処理する必要は無い(Tailwind のクラス名は文字列として比較する)
     css: false,

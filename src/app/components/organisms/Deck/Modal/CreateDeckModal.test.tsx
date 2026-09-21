@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import CreateDeckModal from "@app/components/organisms/Deck/Modal/CreateDeckModal";
 
@@ -16,6 +16,8 @@ beforeEach(() => {
     ),
   );
 });
+
+afterEach(cleanup);
 
 // PokemonSprite は id(先頭ゼロ除去)を alt に出す。アイコン無しは "unknown"
 const spriteIds = () =>

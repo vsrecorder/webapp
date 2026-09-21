@@ -1,4 +1,5 @@
 import { OfficialEventType } from "@app/types/official_event";
+import { DEFAULT_REGULATION_ID, REGULATION_ID_EXTRA } from "@app/types/regulation";
 
 /*
  * 判定に使うフィールドだけを要求する。
@@ -8,6 +9,7 @@ import { OfficialEventType } from "@app/types/official_event";
  * 種別とタイトル(会場ラベルだけ店舗名と会場名)なので、そこまで緩める。
  */
 type OfficialEventKind = Pick<OfficialEventType, "title" | "type_id">;
+type OfficialEventTitle = Pick<OfficialEventType, "title">;
 type OfficialEventVenue = Pick<OfficialEventType, "shop_name" | "venue">;
 
 const ICON_BASE = "https://xx8nnpgt.user.webaccel.jp/images/icons/";
@@ -43,6 +45,31 @@ export function isPJCS(officialEvent: OfficialEventKind): boolean {
     officialEvent.title.includes("ポケモンジャパンチャンピオンシップス") ||
     officialEvent.title.includes("PJCS")
   );
+}
+
+// エクストラバトルの日かどうかを判定する。
+// 判定は整形前後どちらのタイトルでも効く(cleanOfficialEventTitle が落とすのは
+// 店舗名の【】接頭辞だけで、「エクストラバトルの日」はそのまま残る)。
+function isExtraBattleDay(officialEvent: OfficialEventTitle): boolean {
+  return officialEvent.title.includes("エクストラバトルの日");
+}
+
+/*
+ * 選んだ公式イベントに対する、記録のレギュレーションの既定値。
+ *
+ * エクストラバトルの日はエクストラレギュレーションで行われるイベントなので、
+ * 選んだ時点で「エクストラ」にしておく(既定のスタンダードのまま記録されると、
+ * 戦績・デッキ使用率がレギュレーション違いで混ざる)。
+ * それ以外のイベントと未選択は既定値(スタンダード)。
+ *
+ * あくまで既定値なので、利用者が自分で選び直したあとは呼び出し側が上書きしないこと。
+ */
+export function defaultRegulationIdForOfficialEvent(
+  officialEvent: OfficialEventTitle | null,
+): number {
+  if (officialEvent && isExtraBattleDay(officialEvent)) return REGULATION_ID_EXTRA;
+
+  return DEFAULT_REGULATION_ID;
 }
 
 // 対戦環境チップを表示する公式イベントかどうかを判定する。

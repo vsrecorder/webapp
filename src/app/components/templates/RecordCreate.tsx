@@ -54,6 +54,7 @@ import OfficialEventGuideNote from "@app/components/molecules/OfficialEventGuide
 
 import OfficialEventSelect from "@app/components/organisms/Record/OfficialEventSelect";
 import { OfficialEventOption } from "@app/components/organisms/Record/officialEventOption";
+import { defaultRegulationIdForOfficialEvent } from "@app/components/organisms/Record/officialEventHelpers";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 import { refreshRecordingNow } from "@app/utils/recordingNowClient";
 import { markRecordCreatedForPushPrompt } from "@app/utils/pushPrompt";
@@ -487,6 +488,9 @@ export default function TemplateRecordCreate({
 
   // レギュレーションも集計オプションと同じく、タブを切り替えても保持される共通の設定。
   const [regulationId, setRegulationId] = useState<number>(DEFAULT_REGULATION_ID);
+  // 利用者が自分でレギュレーションを選んだかどうか。選んだあとは公式イベントの
+  // 既定値(エクストラバトルの日→エクストラ)で上書きしない。
+  const [isRegulationChangedByUser, setIsRegulationChangedByUser] = useState(false);
 
   const [selectedDeckOption, setSelectedDeckOption] = useState<DeckOption | null>(null);
   const [selectedDeckCodeOption, setSelectedDeckCodeOption] =
@@ -672,11 +676,31 @@ export default function TemplateRecordCreate({
     selectedTab === "unofficial",
   );
 
+  /*
+   * 公式イベントの選択。エクストラバトルの日はエクストラレギュレーションで行われるため、
+   * 選んだ時点でレギュレーションの既定値も切り替える(選び直し・選択解除では戻す)。
+   * 利用者が自分でレギュレーションを選んだあとは、その選択を尊重して触らない。
+   */
+  const selectOfficialEventOption = (option: OfficialEventOption | null) => {
+    setSelectedOfficialEventOption(option);
+
+    if (!isRegulationChangedByUser) {
+      setRegulationId(defaultRegulationIdForOfficialEvent(option));
+    }
+  };
+
+  // レギュレーションの選択(3タブ共通)。一度でも自分で選んだら、以降は公式イベントの
+  // 既定値で上書きしない
+  const changeRegulationByUser = (value: number) => {
+    setIsRegulationChangedByUser(true);
+    setRegulationId(value);
+  };
+
   // 誘導パネルから公式イベントタブへ切り替える。入力済みの開催日を公式タブへ
   // 引き継ぎ、その日の公式イベント候補をすぐ選べる状態にする
   const handleGuideToOfficialTab = () => {
     setSelectedDate(unofficialEventDate);
-    setSelectedOfficialEventOption(null);
+    selectOfficialEventOption(null);
     handleTabSelectionChange("official");
     sendGAEvent("event", "official_event_guide_click", { source: "record_create" });
   };
@@ -1178,7 +1202,7 @@ export default function TemplateRecordCreate({
                   value={selectedDate}
                   onChange={(value) => {
                     setSelectedDate(value == null ? today(JST_TIME_ZONE) : value);
-                    setSelectedOfficialEventOption(null);
+                    selectOfficialEventOption(null);
                     // 別の日を選んだ時点で、URL 指定のイベントは選び直しになる
                     setPresetOfficialEventId(0);
                   }}
@@ -1195,7 +1219,7 @@ export default function TemplateRecordCreate({
                   date={officialEventDateKey}
                   selectedId={selectedOfficialEventOption?.id ?? null}
                   onChange={(option) => {
-                    setSelectedOfficialEventOption(option);
+                    selectOfficialEventOption(option);
                     setPresetOfficialEventId(0);
                   }}
                   // 公式イベントのタブを見ている間だけ取りに行く
@@ -1444,7 +1468,7 @@ export default function TemplateRecordCreate({
 
               <RegulationOption
                 regulationId={regulationId}
-                setRegulationId={setRegulationId}
+                setRegulationId={changeRegulationByUser}
               />
 
               <IgnoreStatsOption
@@ -1803,7 +1827,7 @@ export default function TemplateRecordCreate({
 
               <RegulationOption
                 regulationId={regulationId}
-                setRegulationId={setRegulationId}
+                setRegulationId={changeRegulationByUser}
               />
 
               <IgnoreStatsOption
@@ -2129,7 +2153,7 @@ export default function TemplateRecordCreate({
 
               <RegulationOption
                 regulationId={regulationId}
-                setRegulationId={setRegulationId}
+                setRegulationId={changeRegulationByUser}
               />
 
               <IgnoreStatsOption

@@ -42,6 +42,7 @@ import {
 } from "@app/types/unofficial_event";
 import { RecordCreateRequestType, RecordCreateResponseType } from "@app/types/record";
 import { DEFAULT_REGULATION_ID } from "@app/types/regulation";
+import { defaultRegulationIdForOfficialEvent } from "@app/components/organisms/Record/officialEventHelpers";
 import { MatchCreateRequestType } from "@app/types/match";
 import { MatchPokemonSpriteType, PokemonSpriteType } from "@app/types/pokemon_sprite";
 import { DeckData, isFavoritedDeck } from "@app/types/deck";
@@ -159,6 +160,13 @@ export default function TemplateQuickRecordCreate({
   const [eventDate, setEventDate] = useState<CalendarDate>(today(JST_TIME_ZONE));
   const [eventTitle, setEventTitle] = useState("");
   const [officialEventId, setOfficialEventId] = useState<number | null>(null);
+  /*
+   * 選んだ公式イベントから決まるレギュレーション(エクストラバトルの日はエクストラ)。
+   * クイック作成には選択UIが無いため、イベントから既定値を決めて記録に載せる
+   * (記録の詳細ページで後から変えられる)。
+   */
+  const [officialEventRegulationId, setOfficialEventRegulationId] =
+    useState<number>(DEFAULT_REGULATION_ID);
   const [tonamelEventId, setTonamelEventId] = useState("");
   const [tonamelValid, setTonamelValid] = useState(false);
   const [yourPrizeCards, setYourPrizeCards] = useState(0);
@@ -289,7 +297,7 @@ export default function TemplateQuickRecordCreate({
           deck_code_id: selectedDeckCodeId,
           private_flg: true,
           ignore_stats_flg: false,
-          regulation_id: DEFAULT_REGULATION_ID,
+          regulation_id: officialEventRegulationId,
           tcg_meister_url: "",
           memo: "",
           event_date: eventDateISO,
@@ -859,6 +867,7 @@ export default function TemplateQuickRecordCreate({
                           setEventDate(value == null ? today(JST_TIME_ZONE) : value);
                           // 開催日が変わると公式イベント候補も変わるため、選択をリセットする
                           setOfficialEventId(null);
+                          setOfficialEventRegulationId(DEFAULT_REGULATION_ID);
                         }}
                       />
                     </div>
@@ -872,7 +881,12 @@ export default function TemplateQuickRecordCreate({
                         <OfficialEventSelect
                           date={calendarDateToYmd(eventDate)}
                           selectedId={officialEventId}
-                          onChange={(option) => setOfficialEventId(option?.id ?? null)}
+                          onChange={(option) => {
+                            setOfficialEventId(option?.id ?? null);
+                            setOfficialEventRegulationId(
+                              defaultRegulationIdForOfficialEvent(option),
+                            );
+                          }}
                         />
                       </div>
                     ) : (

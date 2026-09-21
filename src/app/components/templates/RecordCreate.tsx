@@ -1,7 +1,5 @@
 "use client";
 
-import WindowedSelect from "react-windowed-select";
-
 import { useState } from "react";
 import { useEffect } from "react";
 import { useMemo } from "react";
@@ -15,7 +13,7 @@ import { today, parseDate } from "@internationalized/date";
 import { CalendarDate } from "@internationalized/date";
 
 import { Tabs, Tab } from "@heroui/react";
-import { DatePicker } from "@heroui/react";
+import HydratedDatePicker from "@app/components/molecules/HydratedDatePicker";
 import { Input } from "@heroui/react";
 import { Switch } from "@heroui/react";
 import {
@@ -27,20 +25,15 @@ import {
 } from "@heroui/react";
 import { Spinner } from "@heroui/spinner";
 
-import { LuBookmark } from "react-icons/lu";
-import { LuCalendar } from "react-icons/lu";
-import { LuHouse } from "react-icons/lu";
-import { LuMapPin } from "react-icons/lu";
 import { LuStar } from "react-icons/lu";
 
-import { Card, CardBody } from "@heroui/react";
 import { CgSearch } from "react-icons/cg";
 
 import Select, { components } from "react-select";
-import type { CSSObjectWithLabel } from "react-select";
 import { Modal } from "@app/components/atoms/AppModal";
 import DeckSprites from "@app/components/molecules/DeckSprites";
 import { useReactSelectTheme } from "@app/components/molecules/Select/useReactSelectTheme";
+import { reactSelectControlStyle } from "@app/components/molecules/Select/reactSelectStyles";
 import { useTonamelEventCheck } from "@app/hooks/useTonamelEventCheck";
 import { Image } from "@heroui/react";
 import { Button } from "@heroui/react";
@@ -53,20 +46,18 @@ import { sendGAEvent } from "@next/third-parties/google";
 import { useReopenFlagsOnBack } from "@app/hooks/useReopenFlagsOnBack";
 import { DECK_MODAL_REOPEN_KEYS } from "@app/utils/deckModalReopen";
 
-import ScrollingText from "@app/components/molecules/ScrollingText";
 import StepLabel, { RequiredBadge } from "@app/components/molecules/StepLabel";
 import RegulationSegmentedControl from "@app/components/molecules/RegulationSegmentedControl";
 import OfficialEventGuideNote from "@app/components/molecules/OfficialEventGuideNote";
 
-import { cleanOfficialEventTitle } from "@app/components/organisms/Record/officialEventHelpers";
+import OfficialEventSelect from "@app/components/organisms/Record/OfficialEventSelect";
+import { OfficialEventOption } from "@app/components/organisms/Record/officialEventOption";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 import { refreshRecordingNow } from "@app/utils/recordingNowClient";
 import { markRecordCreatedForPushPrompt } from "@app/utils/pushPrompt";
-import { JST_TIME_ZONE, formatJSTDateWithWeekday, formatJSTTime, toJSTDateString } from "@app/utils/date";
-import {
-  officialEventListUrl,
-  toOfficialEventDateKey,
-} from "@app/utils/officialEventList";
+import { JST_TIME_ZONE, formatJSTDateWithWeekday, toJSTDateString } from "@app/utils/date";
+import { toOfficialEventDateKey } from "@app/utils/officialEventList";
+import { katakanaToHiragana } from "@app/utils/kana";
 import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
 import { deckImageUrl } from "@app/utils/deckImage";
 import { MAX_EVENT_TITLE_LENGTH, exceedsTextLength } from "@app/utils/textLength";
@@ -75,10 +66,7 @@ import { useSyncOnChange } from "@app/hooks/useSyncOnChange";
 import { RecordCreateTab, parseRecordCreateTab } from "@app/utils/recordCreatePrefs";
 import { writeRecordCreateSelectedTab } from "@app/utils/recordCreateSelectedTab";
 
-import {
-  RecordCreateOfficialEventType,
-  OfficialEventResponseType,
-} from "@app/types/official_event";
+import { RecordCreateOfficialEventType } from "@app/types/official_event";
 import { DEFAULT_REGULATION_ID } from "@app/types/regulation";
 import { DeckGetAllType, DeckData, isFavoritedDeck } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
@@ -89,23 +77,6 @@ import {
   UnofficialEventCreateResponseType,
 } from "@app/types/unofficial_event";
 import { HEADER_BAR } from "@app/utils/headerBar";
-
-type OfficialEventOption = {
-  label: string;
-  value: string;
-  id: number;
-  date: Date;
-  started_at: Date;
-  ended_at: Date;
-  type_id: number;
-  event_time: string;
-  event_datetime: string;
-  title: string;
-  shop_name: string;
-  address: string;
-  image_alt: string;
-  image_src: string;
-};
 
 type DeckOption = {
   label: string;
@@ -129,26 +100,6 @@ type DeckCodeOption = {
   code: string;
   private_code_flg: boolean;
 };
-
-// 失敗レスポンスのボディをそのまま返すと、選択肢を組み立てるmapがレンダー中に例外になり
-// ページ全体が落ちる。取得できなかったことはSWRのerrorとして扱い、
-// 「エラーが発生しました」を選択肢の代わりに出す。
-async function fetcherForOfficialEvent(url: string) {
-  const res = await fetch(url, {
-    method: "GET",
-    headers: {
-      Accept: "application/json",
-    },
-  });
-
-  if (!res.ok) {
-    throw new Error("Failed to fetch");
-  }
-
-  const ret: OfficialEventResponseType = await res.json();
-
-  return ret.official_events;
-}
 
 async function fetcherForDeck(url: string) {
   const res = await fetch(url, {
@@ -182,144 +133,6 @@ async function fetcherForDeckCode(url: string) {
   const ret: DeckCodeType[] = await res.json();
 
   return ret;
-}
-
-function katakanaToHiragana(str: string): string {
-  return str.replace(/[\u30A1-\u30F6]/g, (match) => {
-    const charCode = match.charCodeAt(0);
-
-    // 「ヴ」はひらがなの「ゔ」（\u3094）へ、それ以外は一律 -0x60
-    return String.fromCharCode(charCode === 0x30f4 ? 0x3094 : charCode - 0x60);
-  });
-}
-
-function convertToOfficialEventOption(
-  officialEvent: RecordCreateOfficialEventType,
-): OfficialEventOption {
-  // 時刻はJST固定で読む(端末のタイムゾーンで読むと海外の端末で開催時刻がずれる)。
-  // formatJSTTime は書式を作り置きしているので、件数が多くても toLocaleString ほど遅くならない。
-  let startedAt = formatJSTTime(officialEvent.started_at);
-  let endedAt = formatJSTTime(officialEvent.ended_at);
-  let eventTime = "";
-
-  if (endedAt == "00:00") {
-    endedAt = "";
-  }
-  if (startedAt == "00:00") {
-    startedAt = "";
-  }
-  if (startedAt != "") {
-    eventTime = startedAt + " ~ ";
-    if (endedAt != "") {
-      eventTime = eventTime + endedAt;
-    }
-  }
-
-  // toLocaleString は呼ぶたびに Intl.DateTimeFormat を作り直すため、1日ぶんの候補
-  // (土日は1,400件超)を整形すると桁違いに遅い。作り置きの書式を使う共通ヘルパへ委譲する。
-  const datetime = formatJSTDateWithWeekday(officialEvent.date) + " " + eventTime;
-
-  // SWR のキャッシュに入っている元データを書き換えないよう、整形結果はローカルに持つ
-  const title = cleanOfficialEventTitle(officialEvent.title);
-
-  let image_alt = "";
-  let image_src = "https://xx8nnpgt.user.webaccel.jp/images/icons/";
-  if (officialEvent.type_id === 1) {
-    if (title.includes("ポケモンジャパンチャンピオンシップス")) {
-      image_alt = "ポケモンジャパンチャンピオンシップス";
-      image_src += "jcs.png";
-    } else if (title.includes("チャンピオンズリーグ")) {
-      image_alt = "チャンピオンズリーグ";
-      image_src += "cl.png";
-    } else if (title.includes("スクランブルバトル")) {
-      image_alt = "スクランブルバトル";
-      image_src += "sb.png";
-    } else {
-      image_alt = "ポケモンカードゲーム";
-      image_src += "pokemon_card_game.png";
-    }
-  } else if (officialEvent.type_id === 2) {
-    image_alt = "シティリーグ";
-    image_src += "city.png";
-  } else if (officialEvent.type_id === 3) {
-    image_alt = "トレーナーズリーグ";
-    image_src += "trainers.png";
-  } else if (officialEvent.type_id === 4) {
-    if (title.includes("ジムバトル")) {
-      image_alt = "ジムバトル";
-      image_src += "gym.png";
-    } else if (title.includes("MEGAウインターリーグ")) {
-      image_alt = "MEGAウインターリーグ";
-      image_src += "mega_winter_league.png";
-    } else if (title.includes("スタートデッキ100　そのままバトル")) {
-      image_alt = "スタートデッキ100　そのままバトル";
-      image_src += "100_sonomama_battle.png";
-    } else if (title.includes("マイジムNo.1決定戦")) {
-      image_alt = "マイジムNo.1決定戦";
-      image_src += "mygym_no1.png";
-    } else {
-      image_alt = "ポケモンカードゲーム";
-      image_src += "pokemon_card_game.png";
-    }
-  } else if (officialEvent.type_id === 6) {
-    image_alt = "公認自主イベント";
-    image_src += "organizer.png";
-  } else if (officialEvent.type_id === 7) {
-    if (title.includes("ポケモンカードゲーム教室")) {
-      image_alt = "ポケモンカードゲーム教室";
-      image_src += "classroom.png";
-    } else if (title.includes("ビクティニBWR争奪戦")) {
-      image_alt = "ビクティニBWR争奪戦";
-      image_src += "victini_bwr.png";
-    } else if (title.includes("メガエルレイドexSARゲットバトル")) {
-      image_alt = "メガエルレイドexSARゲットバトル";
-      image_src += "mega-gallade_ex_sar.png";
-    } else if (title.includes("スタートデッキ100　そのままバトル")) {
-      image_alt = "スタートデッキ100　そのままバトル";
-      image_src += "100_sonomama_battle.png";
-    } else if (
-      title.includes("100人大集合でたとこバトル ～スタートデッキ100 バトルコレクション～")
-    ) {
-      image_alt = "100人大集合でたとこバトル ～スタートデッキ100 バトルコレクション～";
-      image_src += "100_detatoko_battle.png";
-    } else {
-      image_alt = "ポケモンカードゲーム";
-      image_src += "pokemon_card_game.png";
-    }
-  } else {
-    image_alt = "ポケモンカードゲーム";
-    image_src += "pokemon_card_game.png";
-  }
-
-  const tag = officialEvent.type_id === 3 ? "とれり トレリ" : "";
-
-  return {
-    label:
-      title +
-      " - " +
-      katakanaToHiragana(title) +
-      " " +
-      officialEvent.shop_name +
-      " " +
-      eventTime +
-      " " +
-      officialEvent.address +
-      " " +
-      tag,
-    value: officialEvent.id.toString(),
-    id: officialEvent.id,
-    date: new Date(officialEvent.date),
-    started_at: new Date(officialEvent.started_at),
-    ended_at: new Date(officialEvent.ended_at),
-    type_id: officialEvent.type_id,
-    event_time: eventTime,
-    event_datetime: datetime,
-    title: title,
-    shop_name: officialEvent.shop_name ? officialEvent.shop_name : officialEvent.venue,
-    address: officialEvent.address,
-    image_alt: image_alt,
-    image_src: image_src,
-  };
 }
 
 function convertToDeckOption(data: DeckData): DeckOption {
@@ -498,26 +311,6 @@ type Props = {
   initial_decks?: DeckGetAllType;
 };
 
-/*
- * react-select のコントロール(選択バー)の高さ。
- *
- * 既定では emotion が px(38px)で入れる。ところが globals.css には
- * 「小型タブレット(幅 640〜767px)ではルートの文字サイズを 112.5% にして UI ごと拡大する」
- * 帯があり、rem で書かれた HeroUI の入力欄(h-10 = 2.5rem)は拡大されるのに、
- * ここだけ px のまま取り残されてタブ間・骨格との縦位置がずれる。
- * さらに検索アイコン付きのプレースホルダを持つ選択バーは、拡大時だけ中身に押されて
- * 38px を超える(実測 41px)ため、骨格が高さを決め打ちできない。
- *
- * 同じ 38px を rem で指定して、拡大帯でもフォーム全体が同じ比率で伸びるようにする。
- * 骨格側の SELECT_HEIGHT(RecordCreateFormSkeleton)と必ず同じ値にすること。
- */
-const REACT_SELECT_CONTROL_HEIGHT = "2.375rem"; // ルート16px時に 38px
-
-const reactSelectControlStyle = (base: CSSObjectWithLabel): CSSObjectWithLabel => ({
-  ...base,
-  minHeight: REACT_SELECT_CONTROL_HEIGHT,
-});
-
 // URL で指定された開催日を CalendarDate にする。壊れた値や未指定は null
 // (呼び出し側で今日にフォールバックする)。
 function parsePresetDate(value?: string): CalendarDate | null {
@@ -650,9 +443,17 @@ export default function TemplateRecordCreate({
   const [selectedOfficialEventOption, setSelectedOfficialEventOption] =
     useState<OfficialEventOption | null>(null);
 
-  // URL で指定された公式イベント。候補が揃うまで選べないため、選択できるまで持ち越す。
-  // 適用したら 0 に戻し、以後の再取得や利用者の選び直しを上書きしないようにする。
-  const presetOfficialEventIdRef = useRef(Number(official_event_id) || 0);
+  /*
+   * URL で指定された公式イベント。候補が揃うまで選べないため、届いた時点で
+   * 1度だけ選ぶ(その面倒は OfficialEventSelect が見る)。
+   *
+   * 選ばれたら 0 に戻す。タブを行き来すると選択欄ごと作り直される
+   * (HeroUI のタブは選ばれていないパネルを破棄する)ので、指定を持ったままだと
+   * 利用者の選び直しを上書きしてしまう。
+   */
+  const [presetOfficialEventId, setPresetOfficialEventId] = useState(
+    Number(official_event_id) || 0,
+  );
 
   const [tonamelEventId, setTonamelEventId] = useState<string>("");
   /*
@@ -695,66 +496,8 @@ export default function TemplateRecordCreate({
 
   const deckSelectRef = useRef<HTMLDivElement | null>(null);
 
-  // 先読み(page.tsx)と同じ規則でキーを組む。ずれると先読みが使われない
-  const officialEventUrl = officialEventListUrl(toOfficialEventDateKey(selectedDate));
-
-  /*
-   * サーバ側で先読みした候補は、その開催日を見ている間だけ使う。
-   * fallbackData はキーに紐づかないので、日付を変えた直後に前の日の候補を
-   * 出してしまわないよう、キーが一致するときだけ渡す。
-   *
-   * revalidateIfStale を切るのは、初期データがあるのにマウント直後へ
-   * 同じ内容の取得(土日は1,400件超)を重ねないため。公式イベントの一覧は
-   * 上流でも5分キャッシュしている程度の更新頻度で、記録を作っている間に
-   * 変わることはまず無い。
-   */
-  const officialEventFallback =
-    initial_official_event_date &&
-    officialEventUrl === officialEventListUrl(initial_official_event_date)
-      ? initial_official_events
-      : undefined;
-
-  /*
-   * 公式イベントタブを見ているときだけ取りに行く。
-   *
-   * 以前はタブに関わらず取っていたが、この一覧は土日で1,400件を超える
-   * (gzip でも90KB台)。本番のログ7日ぶんでは、作られた記録194件のうち65件(34%)が
-   * 自由形式で、その分がまるごと無駄になっていた。
-   *
-   * 一度取れば SWR のキャッシュに残るので、タブを行き来しても取り直さない。
-   */
-  const shouldFetchOfficialEvents = selectedTab === "official";
-
-  const {
-    data: officialEventData,
-    error: officialEventError,
-    isLoading: officialEventLoading,
-  } = useSWR<RecordCreateOfficialEventType[], Error>(
-    shouldFetchOfficialEvents ? officialEventUrl : null,
-    fetcherForOfficialEvent,
-    {
-      revalidateOnFocus: false,
-      revalidateIfStale: false,
-      fallbackData: officialEventFallback,
-    },
-  );
-
-  // イベント一覧の整形(正規表現・日付ローカライズ)はコストが高いため、
-  // データが更新されたときだけ再計算する。これを怠ると imageLoaded 等の
-  // 些細な state 変更による再レンダーごとに全件分の整形が走り重くなる。
-  const officialEventOptions = useMemo<OfficialEventOption[]>(
-    () => (officialEventData ?? []).map(convertToOfficialEventOption),
-    [officialEventData],
-  );
-
-  let officialEventOptionsMessage = "対象のイベントがありません";
-  if (officialEventError) {
-    officialEventOptionsMessage = "エラーが発生しました";
-  } else if (officialEventLoading) {
-    officialEventOptionsMessage = "検索中...";
-  } else if (officialEventData?.length === 0) {
-    officialEventOptionsMessage = "イベントがありません";
-  }
+  // 先読み(page.tsx)と同じ規則で開催日のキーを組む。ずれると先読みが使われない
+  const officialEventDateKey = toOfficialEventDateKey(selectedDate);
 
   const {
     data: deckData,
@@ -906,21 +649,6 @@ export default function TemplateRecordCreate({
 
   // 公式イベントは候補を選んでいれば作成できる
   const isDisabledCreateOfficialEventRecord = !selectedOfficialEventOption || isSubmitting;
-
-  // 指定された公式イベントを、その日の候補が届いたときに1度だけ選択する。
-  // 候補に無い(日付違い・開催終了で消えた等)場合は何もしない。利用者が
-  // 開催日を変えたときは指定を捨てる(DatePicker の onChange)。
-  useEffect(() => {
-    if (!presetOfficialEventIdRef.current) return;
-
-    const preset = officialEventOptions.find(
-      (option) => option.id === presetOfficialEventIdRef.current,
-    );
-    if (!preset) return;
-
-    presetOfficialEventIdRef.current = 0;
-    setSelectedOfficialEventOption(preset);
-  }, [officialEventOptions]);
 
   // Tonamelは開催日(常に既定値あり)とイベントIDが必須。デッキは任意のため必須にしない
   const isDisabledCreateTonamelEventRecord =
@@ -1440,7 +1168,7 @@ export default function TemplateRecordCreate({
                   開催日
                 </StepLabel>
 
-                <DatePicker
+                <HydratedDatePicker
                   name="record-create-official-event-date"
                   aria-label="開催日"
                   radius="none"
@@ -1452,7 +1180,7 @@ export default function TemplateRecordCreate({
                     setSelectedDate(value == null ? today(JST_TIME_ZONE) : value);
                     setSelectedOfficialEventOption(null);
                     // 別の日を選んだ時点で、URL 指定のイベントは選び直しになる
-                    presetOfficialEventIdRef.current = 0;
+                    setPresetOfficialEventId(0);
                   }}
                 />
               </div>
@@ -1462,188 +1190,20 @@ export default function TemplateRecordCreate({
                   イベント
                 </StepLabel>
 
-                <WindowedSelect
+                <OfficialEventSelect
                   instanceId="record-create-official-event"
-                  theme={reactSelectTheme}
-                  placeholder={
-                    <div className="flex items-center gap-2">
-                      <div className="text-xl">
-                        <CgSearch />
-                      </div>
-                      <span className="text-sm">例）町田市</span>
-                    </div>
-                  }
-                  isClearable={true}
-                  isSearchable={true}
-                  noOptionsMessage={() => officialEventOptionsMessage}
-                  options={officialEventOptions}
-                  value={selectedOfficialEventOption}
+                  date={officialEventDateKey}
+                  selectedId={selectedOfficialEventOption?.id ?? null}
                   onChange={(option) => {
-                    setSelectedOfficialEventOption(option as OfficialEventOption);
+                    setSelectedOfficialEventOption(option);
+                    setPresetOfficialEventId(0);
                   }}
-                  maxMenuHeight={485}
-                  windowThreshold={100}
-                  menuPosition="fixed"
-                  menuPortalTarget={
-                    typeof document !== "undefined" ? document.body : null
-                  }
-                  styles={{
-                    control: reactSelectControlStyle,
-                    menuPortal: (base) => ({ ...base, zIndex: 9999 }),
-                    // メニューがコントロール幅を超えて横に広がりページ全体のレイアウトを
-                    // 崩さないよう、明示的に横方向のはみ出しをクリップする
-                    menu: (base) => ({ ...base, maxWidth: "100%", overflow: "hidden" }),
-                  }}
-                  formatOptionLabel={(option, { context }) => {
-                    const opt = option as OfficialEventOption;
-
-                    if (context === "menu") {
-                      return (
-                        <div className="text-sm border p-2 w-full">
-                          <div className="flex items-center gap-3 w-full min-w-0">
-                            <div className="flex items-center justify-center shrink-0">
-                              <Image
-                                alt={opt.image_alt}
-                                src={opt.image_src}
-                                radius="none"
-                                className="h-18 w-18 object-contain"
-                              />
-                            </div>
-
-                            <div className="grid gap-0.5 min-w-0">
-                              <div className="flex items-center gap-2 min-w-0">
-                                <span className="shrink-0">
-                                  <LuBookmark color="gray" />
-                                </span>
-                                <ScrollingText
-                                  text={opt.title}
-                                  className="flex-1 min-w-0 text-sm"
-                                />
-                              </div>
-
-                              <div className="flex items-center gap-2 min-w-0">
-                                <span>
-                                  <LuCalendar color="gray" />
-                                </span>
-                                <span className="truncate">{opt.event_datetime}</span>
-                              </div>
-
-                              <div className="flex items-center gap-2 min-w-0">
-                                <span className="shrink-0">
-                                  <LuHouse color="gray" />
-                                </span>
-                                <ScrollingText
-                                  text={opt.shop_name}
-                                  className="flex-1 min-w-0 text-sm"
-                                />
-                              </div>
-
-                              <div className="flex items-center gap-2 min-w-0">
-                                <span className="shrink-0">
-                                  <LuMapPin color="gray" />
-                                </span>
-                                <ScrollingText
-                                  text={opt.address}
-                                  className="flex-1 min-w-0 text-sm"
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <ScrollingText
-                        text={`${opt.title} - ${opt.shop_name}`}
-                        className="text-sm"
-                      />
-                    );
-                  }}
+                  // 公式イベントのタブを見ている間だけ取りに行く
+                  enabled={selectedTab === "official"}
+                  initialEvents={initial_official_events}
+                  initialEventsDate={initial_official_event_date}
+                  presetId={presetOfficialEventId}
                 />
-              </div>
-
-              <div className="pt-1">
-                <Card radius="none" shadow="sm">
-                  <CardBody>
-                    <div className="pl-1 pr-1 flex items-center gap-5 w-full min-w-0">
-                      <div className="flex items-center justify-center gap-5 min-w-0">
-                        <div className="z-0 shrink-0">
-                          {selectedOfficialEventOption ? (
-                            <Image
-                              alt={selectedOfficialEventOption.image_alt}
-                              src={selectedOfficialEventOption.image_src}
-                              radius="none"
-                              className="h-18 w-18 object-contain"
-                            />
-                          ) : (
-                            <Image
-                              alt="ポケモンカードゲーム"
-                              src="https://xx8nnpgt.user.webaccel.jp/images/icons/pokemon_card_game.png"
-                              radius="none"
-                              className="h-18 w-18 object-contain"
-                            />
-                          )}
-                        </div>
-
-                        <div className="flex flex-col gap-2 min-w-0 flex-1">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className="shrink-0">
-                              <LuBookmark color="gray" />
-                            </span>
-                            <ScrollingText
-                              text={
-                                selectedOfficialEventOption
-                                  ? selectedOfficialEventOption.title
-                                  : "イベント名"
-                              }
-                              className="flex-1 min-w-0 text-xs text-default-600"
-                            />
-                          </div>
-
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className="shrink-0">
-                              <LuCalendar color="gray" />
-                            </span>
-                            <span className="text-xs text-default-600 truncate">
-                              {selectedOfficialEventOption
-                                ? selectedOfficialEventOption.event_datetime
-                                : "イベント日時"}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className="shrink-0">
-                              <LuHouse color="gray" />
-                            </span>
-                            <ScrollingText
-                              text={
-                                selectedOfficialEventOption
-                                  ? selectedOfficialEventOption.shop_name
-                                  : "イベント主催者"
-                              }
-                              className="flex-1 min-w-0 text-xs text-default-600"
-                            />
-                          </div>
-
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className="shrink-0">
-                              <LuMapPin color="gray" />
-                            </span>
-                            <ScrollingText
-                              text={
-                                selectedOfficialEventOption
-                                  ? selectedOfficialEventOption.address
-                                  : "イベント会場"
-                              }
-                              className="flex-1 min-w-0 text-xs text-default-600"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </CardBody>
-                </Card>
               </div>
 
               <div className="flex flex-col gap-1 pt-1">
@@ -1928,7 +1488,7 @@ export default function TemplateRecordCreate({
                   開催日
                 </StepLabel>
 
-                <DatePicker
+                <HydratedDatePicker
                   name="record-create-tonamel-event-date"
                   aria-label="開催日"
                   radius="none"
@@ -2289,7 +1849,7 @@ export default function TemplateRecordCreate({
                   開催日
                 </StepLabel>
 
-                <DatePicker
+                <HydratedDatePicker
                   name="record-create-unofficial-event-date"
                   aria-label="開催日"
                   radius="none"

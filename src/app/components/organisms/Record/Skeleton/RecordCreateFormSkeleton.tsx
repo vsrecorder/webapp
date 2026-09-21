@@ -31,7 +31,7 @@ import { RecordCreateTab } from "@app/utils/recordCreatePrefs";
 
 /*
  * react-select のコントロール。実体は styles.control で 2.375rem(=38px)に固定してある
- * (templates/RecordCreate の REACT_SELECT_CONTROL_HEIGHT)。px で書くと、ルートの
+ * (molecules/Select/reactSelectStyles の REACT_SELECT_CONTROL_HEIGHT)。px で書くと、ルートの
  * 文字サイズを上げる帯(小型タブレット)で実体だけ拡大されてズレるので rem で持つ。
  */
 const SELECT_HEIGHT = "h-[2.375rem]";

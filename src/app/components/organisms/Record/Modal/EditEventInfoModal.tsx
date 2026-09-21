@@ -11,7 +11,6 @@ import {
 
 import {
   Button,
-  DatePicker,
   Input,
   ModalBody,
   ModalContent,
@@ -23,6 +22,7 @@ import {
   addToast,
   closeToast,
 } from "@heroui/react";
+import HydratedDatePicker from "@app/components/molecules/HydratedDatePicker";
 
 import { CalendarDate, today } from "@internationalized/date";
 
@@ -450,7 +450,7 @@ export default function EditEventInfoModal({
       <span className="text-sm font-medium text-default-700">
         開催日<span className="text-danger ml-0.5">*</span>
       </span>
-      <DatePicker
+      <HydratedDatePicker
         name="edit-event-date"
         isRequired
         aria-label="開催日"
@@ -535,7 +535,7 @@ export default function EditEventInfoModal({
                             <OfficialEventSelect
                               date={calendarDateToYmd(eventDate)}
                               selectedId={officialEventId}
-                              onChange={setOfficialEventId}
+                              onChange={(option) => setOfficialEventId(option?.id ?? null)}
                               onMenuClose={() => focusSinkRef.current?.focus()}
                             />
                           </div>

@@ -138,6 +138,36 @@ export function getEventIconUrl(officialEvent: OfficialEventKind): string {
   return `${ICON_BASE}pokemon_card_game.png`;
 }
 
+/*
+ * アイコン画像ごとの代替テキスト。getEventIconUrl の分岐をもう一度書くと
+ * 片方だけ直して食い違うため、返ってきた URL から引く。
+ */
+const ICON_ALT: Record<string, string> = {
+  "jcs.png": "ポケモンジャパンチャンピオンシップス",
+  "cl.png": "チャンピオンズリーグ",
+  "sb.png": "スクランブルバトル",
+  "city.png": "シティリーグ",
+  "trainers.png": "トレーナーズリーグ",
+  "gym.png": "ジムバトル",
+  "mega_winter_league.png": "MEGAウインターリーグ",
+  "mygym_no1.png": "マイジムNo.1決定戦",
+  "organizer.png": "公認自主イベント",
+  "classroom.png": "ポケモンカードゲーム教室",
+  "victini_bwr.png": "ビクティニBWR争奪戦",
+  "mega-gallade_ex_sar.png": "メガエルレイドexSARゲットバトル",
+  "100_sonomama_battle.png": "スタートデッキ100　そのままバトル",
+  "100_detatoko_battle.png":
+    "100人大集合でたとこバトル ～スタートデッキ100 バトルコレクション～",
+  "pokemon_card_game.png": "ポケモンカードゲーム",
+};
+
+// 種別アイコンの代替テキスト。イベント種別が分かる名前を返す。
+export function getEventIconAlt(officialEvent: OfficialEventKind): string {
+  const file = getEventIconUrl(officialEvent).slice(ICON_BASE.length);
+
+  return ICON_ALT[file] ?? "ポケモンカードゲーム";
+}
+
 export function getEventAccentColor(officialEvent: OfficialEventKind): string {
   if (officialEvent.type_id === 1) return "bg-yellow-400";
   if (officialEvent.type_id === 2) return "bg-purple-500";

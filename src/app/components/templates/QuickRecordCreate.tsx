@@ -12,7 +12,6 @@ import {
   Input,
   Textarea,
   NumberInput,
-  DatePicker,
   Accordion,
   AccordionItem,
   Skeleton,
@@ -21,6 +20,7 @@ import {
   addToast,
   closeToast,
 } from "@heroui/react";
+import HydratedDatePicker from "@app/components/molecules/HydratedDatePicker";
 import { LuFilePen, LuSlidersHorizontal, LuCircleSlash, LuStar } from "react-icons/lu";
 import { sendGAEvent } from "@next/third-parties/google";
 import { CalendarDate, today } from "@internationalized/date";
@@ -847,7 +847,7 @@ export default function TemplateQuickRecordCreate({
                         開催日<span className="text-danger ml-0.5">*</span>
                       </span>
                       {/* 記録作成ページと同じ DatePicker */}
-                      <DatePicker
+                      <HydratedDatePicker
                         name="quick-record-event-date"
                         isRequired
                         aria-label="開催日"
@@ -872,7 +872,7 @@ export default function TemplateQuickRecordCreate({
                         <OfficialEventSelect
                           date={calendarDateToYmd(eventDate)}
                           selectedId={officialEventId}
-                          onChange={setOfficialEventId}
+                          onChange={(option) => setOfficialEventId(option?.id ?? null)}
                         />
                       </div>
                     ) : (

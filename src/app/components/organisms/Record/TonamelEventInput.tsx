@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { DatePicker, Input, Image, Skeleton } from "@heroui/react";
+import { Input, Image, Skeleton } from "@heroui/react";
+import HydratedDatePicker from "@app/components/molecules/HydratedDatePicker";
 import { CalendarDate, today } from "@internationalized/date";
 
 import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
@@ -48,7 +49,7 @@ export default function TonamelEventInput({
         <span className="text-sm font-medium text-default-700">
           開催日<span className="text-danger ml-0.5">*</span>
         </span>
-        <DatePicker
+        <HydratedDatePicker
           name="tonamel-event-date"
           isRequired
           aria-label="開催日"

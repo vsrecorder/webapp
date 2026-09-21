@@ -1,90 +1,138 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import useSWR from "swr";
 import WindowedSelect from "react-windowed-select";
-import { Image, Card, CardBody } from "@heroui/react";
+import {
+  components as reactSelectComponents,
+  GroupBase,
+  OptionProps,
+} from "react-select";
+import { Card, CardBody } from "@heroui/react";
 import { CgSearch } from "react-icons/cg";
 import { LuBookmark, LuCalendar, LuHouse, LuMapPin } from "react-icons/lu";
 
 import { useReactSelectTheme } from "@app/components/molecules/Select/useReactSelectTheme";
+import { reactSelectControlStyle } from "@app/components/molecules/Select/reactSelectStyles";
 import ScrollingText from "@app/components/molecules/ScrollingText";
 import {
-  getEventIconUrl,
-  cleanOfficialEventTitle,
-} from "@app/components/organisms/Record/officialEventHelpers";
+  OfficialEventOption,
+  toOfficialEventOption,
+} from "@app/components/organisms/Record/officialEventOption";
 import {
-  OfficialEventListItemType,
   OfficialEventResponseType,
+  RecordCreateOfficialEventType,
 } from "@app/types/official_event";
-import { formatJSTDateWithWeekday, formatJSTTime } from "@app/utils/date";
+import { officialEventListUrl } from "@app/utils/officialEventList";
 
-// 記録作成ページ(RecordCreate)の公式イベント選択と同等のUI/挙動を提供する共有コンポーネント。
-// アイコンは officialEventHelpers.getEventIconUrl を使うため、イベント種別アイコンの追加は
-// そちらのメンテナンスに追従する(RecordCreate 側と二重管理にならない)。
+/*
+ * 種別アイコンは HeroUI の <Image> を使わない。読み込み完了まで opacity-0 で、
+ * キャッシュ済みの画像だと load を取りこぼして透明のまま残ることがある
+ * (小さなPNGにフェードインも要らない)。素の <img> で出す。
+ */
 
-type OfficialEventOption = {
-  label: string;
-  value: string;
-  id: number;
-  title: string;
-  shop_name: string;
-  address: string;
-  event_datetime: string;
-  image_alt: string;
-  image_src: string;
-};
+/*
+ * 開催日で絞った公式イベントの選択欄(検索バー＋選んだイベントのプレビュー)。
+ *
+ * 記録の作成(RecordCreate)・クイック作成(QuickRecordCreate)・記録のイベント情報編集
+ * (EditEventInfoModal)が共有する。選択肢の整形は officialEventOption、
+ * 種別アイコンは officialEventHelpers に寄せてあるので、どれも二重管理にならない。
+ */
 
-async function fetcher(url: string): Promise<OfficialEventListItemType[]> {
+// 失敗レスポンスのボディをそのまま返すと、選択肢を組み立てる map がレンダー中に例外になり
+// ページ全体が落ちる。取得できなかったことは SWR の error として扱い、
+// 「エラーが発生しました」を選択肢の代わりに出す。
+async function fetcher(url: string): Promise<RecordCreateOfficialEventType[]> {
   const res = await fetch(url, { method: "GET", headers: { Accept: "application/json" } });
-  if (!res.ok) throw new Error("Failed to fetch");
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch");
+  }
+
   const ret: OfficialEventResponseType = await res.json();
+
   return ret.official_events;
 }
 
-// RecordCreate の convertToOfficialEventOption と同じ日時整形。アイコンだけ共有ヘルパーに委譲。
-function convertToOption(e: OfficialEventListItemType): OfficialEventOption {
-  // 時刻はJST固定で読む(端末のタイムゾーンで読むと海外の端末で開催時刻がずれる)。
-  // formatJSTTime は書式を作り置きしているので、件数が多くても toLocaleString ほど遅くならない。
-  let startedAt = formatJSTTime(e.started_at);
-  let endedAt = formatJSTTime(e.ended_at);
-  let eventTime = "";
-  if (endedAt === "00:00") endedAt = "";
-  if (startedAt === "00:00") startedAt = "";
-  if (startedAt !== "") {
-    eventTime = startedAt + " ~ ";
-    if (endedAt !== "") eventTime += endedAt;
-  }
+/*
+ * 候補の1件。iOS で1回目のタップが落ちるため、click ではなく touchend で確定させる。
+ *
+ * iOS Safari は「候補をタップ → 検索欄の blur → キーボードが閉じてビューポートが伸びる
+ * → click」の順でイベントを出す。click が来る頃にはメニュー(menuPosition="fixed")が
+ * 動いていて、指を離した位置に目的の候補が無いため選択が落ちる。候補をタップしても
+ * メニューが閉じないのはこのため(2回目はキーボードが閉じた後でレイアウトが動かず効く)。
+ * Android はキーボードでビューポートが動かないので元から1回で選べる。
+ *
+ * touchend はレイアウトが動く前に来るので、ここで確定させれば1回目から選べる。
+ * 指が動いていたらリスト送りなので何もしない。
+ */
+const TAP_MOVE_THRESHOLD = 5; // react-select が control のドラッグ判定に使うのと同じ
 
-  // 1日ぶんの候補(土日は1,400件超)を整形するため、書式を作り置きする共通ヘルパを使う。
-  // toLocaleString は呼ぶたびに Intl.DateTimeFormat を作り直すので桁違いに遅い。
-  const datetime = formatJSTDateWithWeekday(e.date) + " " + eventTime;
+function TouchFriendlyOption(props: OptionProps<unknown, boolean, GroupBase<unknown>>) {
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
-  // アイコンは元のタイトルで判定する(cleanOfficialEventTitle 前)ため e をそのまま渡す
-  const image_src = getEventIconUrl(e);
-  const title = cleanOfficialEventTitle(e.title);
+  return (
+    <reactSelectComponents.Option
+      {...props}
+      innerProps={{
+        ...props.innerProps,
+        onTouchStart: (event) => {
+          const touch = event.touches[0];
+          touchStartRef.current = touch ? { x: touch.clientX, y: touch.clientY } : null;
+        },
+        onTouchEnd: (event) => {
+          const start = touchStartRef.current;
+          touchStartRef.current = null;
 
-  return {
-    label: `${title} - ${e.shop_name}`,
-    value: String(e.id),
-    id: e.id,
-    title,
-    shop_name: e.shop_name,
-    address: e.address,
-    event_datetime: datetime,
-    image_alt: title,
-    image_src,
-  };
+          if (!start || props.isDisabled) return;
+
+          const touch = event.changedTouches[0];
+          if (!touch) return;
+
+          if (
+            Math.abs(touch.clientX - start.x) > TAP_MOVE_THRESHOLD ||
+            Math.abs(touch.clientY - start.y) > TAP_MOVE_THRESHOLD
+          ) {
+            return;
+          }
+
+          // touchend で確定したので、後から来る click で二重に選ばない
+          event.preventDefault();
+          props.selectOption(props.data);
+        },
+      }}
+    />
+  );
 }
+
+// 毎レンダー新しいオブジェクトを渡すと react-select が中の部品を作り直すため固定する
+const selectComponents = { Option: TouchFriendlyOption };
 
 type Props = {
   // 公式イベントを絞り込む開催日(YYYY-MM-DD)
   date: string;
   selectedId: number | null;
-  onChange: (id: number | null) => void;
+  onChange: (option: OfficialEventOption | null) => void;
   // 検索メニューを閉じたときの通知。モーダル内で使う場合に、フォーカスを
   // 受け皿へ移してソフトウェアキーボードを閉じるために使う。
   onMenuClose?: () => void;
+  // react-select の instanceId。同じページに2つ置く場合と、SSR済みのHTMLと
+  // id を合わせたい場合に指定する。
+  instanceId?: string;
+  /*
+   * false の間は取得しない。公式イベントのタブを見ているときだけ取りに行くために使う。
+   *
+   * この一覧は土日で1,400件を超える(gzip でも90KB台)。本番のログ7日ぶんでは、
+   * 作られた記録194件のうち65件(34%)が自由形式で、その分がまるごと無駄になっていた。
+   * 一度取れば SWR のキャッシュに残るので、タブを行き来しても取り直さない。
+   */
+  enabled?: boolean;
+  // サーバ側で先読みした候補と、それが対象とする開催日。開催日が一致するときだけ使う
+  // (fallbackData はキーに紐づかないので、日付を変えた直後に前の日の候補を出してしまう)。
+  initialEvents?: RecordCreateOfficialEventType[];
+  initialEventsDate?: string;
+  // URL 指定などで最初から選んでおくイベント。候補が届いた時点で一度だけ選ぶ。
+  presetId?: number;
 };
 
 export default function OfficialEventSelect({
@@ -92,30 +140,82 @@ export default function OfficialEventSelect({
   selectedId,
   onChange,
   onMenuClose,
+  instanceId = "official-event-select",
+  enabled = true,
+  initialEvents,
+  initialEventsDate,
+  presetId,
 }: Props) {
   const reactSelectTheme = useReactSelectTheme();
 
-  const { data, isLoading, error } = useSWR<OfficialEventListItemType[]>(
-    `/api/official_events?date=${date}`,
+  const url = officialEventListUrl(date);
+
+  /*
+   * 再検証を切るのは、初期データがあるのにマウント直後へ同じ内容の取得
+   * (土日は1,400件超)を重ねないため。公式イベントの一覧は上流でも5分
+   * キャッシュしている程度の更新頻度で(officialEventListServer.ts の
+   * REVALIDATE_SECONDS)、記録を作っている間に変わることはまず無い。
+   */
+  const { data, isLoading, error } = useSWR<RecordCreateOfficialEventType[], Error>(
+    enabled ? url : null,
     fetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateIfStale: false,
+      fallbackData:
+        initialEventsDate && initialEventsDate === date ? initialEvents : undefined,
+    },
   );
 
+  // イベント一覧の整形(正規表現・日付ローカライズ)はコストが高いため、
+  // データが更新されたときだけ再計算する。これを怠ると、些細な state 変更による
+  // 再レンダーごとに全件分の整形が走り重くなる。
   const options = useMemo<OfficialEventOption[]>(
-    () => (data ?? []).map(convertToOption),
+    () => (data ?? []).map(toOfficialEventOption),
     [data],
   );
 
   const selected = options.find((o) => o.id === selectedId) ?? null;
 
-  let optionsMessage = "この日の公式イベントがありません";
+  /*
+   * URL 指定のイベント(presetId)は、その候補が届いた時点で一度だけ選ぶ。
+   * 開催日を変えたら選び直しになるので、渡された開催日が変わった時点で諦める。
+   *
+   * ここは再マウントで巻き戻る(HeroUI のタブは選ばれていないパネルを破棄する)。
+   * 既に選ばれているときに選び直しを上書きしないよう、選択済みなら諦める。
+   * 呼び出し側も、一度選ばれたら presetId に 0 を渡すこと(RecordCreate 参照)。
+   */
+  const presetRef = useRef<{ id: number; date: string }>({ id: presetId ?? 0, date });
+
+  useEffect(() => {
+    const preset = presetRef.current;
+
+    if (!preset.id) return;
+
+    if (preset.date !== date || selectedId != null) {
+      preset.id = 0;
+      return;
+    }
+
+    const option = options.find((o) => o.id === preset.id);
+
+    if (!option) return;
+
+    preset.id = 0;
+    onChange(option);
+  }, [date, options, onChange, selectedId]);
+
+  let optionsMessage = "対象のイベントがありません";
   if (error) optionsMessage = "エラーが発生しました";
   else if (isLoading) optionsMessage = "検索中...";
+  else if (data?.length === 0) optionsMessage = "イベントがありません";
 
   return (
     <div className="flex flex-col gap-1">
       <WindowedSelect
-        instanceId="official-event-select"
+        instanceId={instanceId}
         theme={reactSelectTheme}
+        components={selectComponents}
         placeholder={
           <div className="flex items-center gap-2">
             <div className="text-xl">
@@ -129,16 +229,17 @@ export default function OfficialEventSelect({
         noOptionsMessage={() => optionsMessage}
         options={options}
         value={selected}
-        onChange={(option) =>
-          onChange(option ? (option as OfficialEventOption).id : null)
-        }
+        onChange={(option) => onChange((option as OfficialEventOption) ?? null)}
         maxMenuHeight={485}
         windowThreshold={100}
         menuPosition="fixed"
         onMenuClose={onMenuClose}
         menuPortalTarget={typeof document !== "undefined" ? document.body : null}
         styles={{
+          control: reactSelectControlStyle,
           menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+          // メニューがコントロール幅を超えて横に広がりページ全体のレイアウトを
+          // 崩さないよう、明示的に横方向のはみ出しをクリップする
           menu: (base) => ({ ...base, maxWidth: "100%", overflow: "hidden" }),
         }}
         formatOptionLabel={(option, { context }) => {
@@ -149,10 +250,10 @@ export default function OfficialEventSelect({
               <div className="text-sm border p-2 w-full">
                 <div className="flex items-center gap-3 w-full min-w-0">
                   <div className="flex items-center justify-center shrink-0">
-                    <Image
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
                       alt={opt.image_alt}
                       src={opt.image_src}
-                      radius="none"
                       className="h-18 w-18 object-contain"
                     />
                   </div>
@@ -202,14 +303,14 @@ export default function OfficialEventSelect({
             <div className="pl-1 pr-1 flex items-center gap-5 w-full min-w-0">
               <div className="flex items-center justify-center gap-5 min-w-0">
                 <div className="z-0 shrink-0">
-                  <Image
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
                     alt={selected ? selected.image_alt : "ポケモンカードゲーム"}
                     src={
                       selected
                         ? selected.image_src
                         : "https://xx8nnpgt.user.webaccel.jp/images/icons/pokemon_card_game.png"
                     }
-                    radius="none"
                     className="h-18 w-18 object-contain"
                   />
                 </div>

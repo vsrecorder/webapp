@@ -42,8 +42,8 @@ describe("ZoomableDeckImage", () => {
   it("角丸は枠だけが持ち、骨格・画像には付けない", () => {
     const { image, frame } = setup();
 
-    // 枠でクリップする
-    expect(frame.className).toContain("rounded-md");
+    // 枠でクリップする。角丸は、下に並ぶデッキコード欄・カードリストと同じ rounded-lg。
+    expect(frame.className).toContain("rounded-lg");
     expect(frame.className).toContain("overflow-hidden");
 
     // 骨格(枠の中で画像の手前に重なる要素)と画像は角丸を持たない

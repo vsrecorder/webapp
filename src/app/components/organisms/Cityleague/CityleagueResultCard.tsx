@@ -103,7 +103,7 @@ function NoDeckCodeImage() {
     /* 角丸は枠側で持つ。骨格と画像がそれぞれ角丸を持つと、半径の差ぶんだけ
       骨格が画像を覆いきれず、四隅から下の画像の白い角が弧になって覗く
       (ZoomableDeckImage と同じ理由) */
-    <div className="relative w-full aspect-2/1 overflow-hidden rounded-md">
+    <div className="relative w-full aspect-2/1 overflow-hidden rounded-lg">
       {!loaded && <Skeleton className="absolute inset-0" />}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img

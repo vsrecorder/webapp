@@ -65,7 +65,7 @@ export default function ZoomableDeckImage({ code, disableZoom = false, alt, load
         /* 角丸は枠(frameClass)側で持たせ、骨格・画像には付けない。
           それぞれが角丸を持つと半径の差ぶんだけ骨格が画像を覆いきれず、
           「画像は描かれたが React がまだ骨格を外していない」わずかな間に、
-          下の画像の白い角が四隅から弧になって覗く(実測: 骨格 rounded-lg > 画像 rounded-md)。 */
+          下の画像の白い角が四隅から弧になって覗く。 */
         <Skeleton className="absolute inset-0" />
       )}
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -92,7 +92,13 @@ export default function ZoomableDeckImage({ code, disableZoom = false, alt, load
 
   // 読めなかったときは枠を無地にして「そこに画像がある場所」だけを残す
   // （デッキ一覧のギャラリーカードと同じ見せ方）。
-  const frameClass = `relative w-full aspect-2/1 block overflow-hidden rounded-md${imageFailed ? " bg-default-100" : ""}`;
+  //
+  // 角丸は rounded-lg。この画像の下には、同じ幅でデッキコード欄(CopyableDeckCode)と
+  // カードリスト(CardListAccordion)が並ぶ場所が多く、どちらも rounded-lg なので、
+  // 画像だけ rounded-md だと縦に並んだ3つの角の丸みが揃わない。
+  // 場所取りの骨格(DeckCardSkeleton / DeckCodeCardSkeleton / DeckCodePostCardSkeleton)も
+  // もともと rounded-lg なので、実体と骨格の角も揃う。
+  const frameClass = `relative w-full aspect-2/1 block overflow-hidden rounded-lg${imageFailed ? " bg-default-100" : ""}`;
 
   // disableZoom のときは、タップで全画面表示しない素の画像として描画する。
   // それ以外はタップで拡大するボタンにする。読めなかったときは拡大しても何も映らないので、

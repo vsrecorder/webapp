@@ -72,6 +72,25 @@ export function defaultRegulationIdForOfficialEvent(
   return DEFAULT_REGULATION_ID;
 }
 
+/*
+ * 記録作成フォームのレギュレーションの既定値。
+ *
+ * 公式イベントのタブ以外では、選んだイベントはその記録に紐づかない(自由形式・Tonamel の
+ * 記録になる)。イベント由来の既定値をそのまま持ち越すと、エクストラバトルの日を一度
+ * 選んだだけで自由形式の記録までエクストラで登録され、戦績・デッキ使用率が
+ * レギュレーション違いで混ざる。タブを離れたら既定値(スタンダード)へ戻す。
+ *
+ * あくまで既定値なので、利用者が自分で選び直したあとは呼び出し側が上書きしないこと。
+ */
+export function defaultRegulationIdForRecordForm(
+  isOfficialEventTab: boolean,
+  officialEvent: OfficialEventTitle | null,
+): number {
+  if (!isOfficialEventTab) return DEFAULT_REGULATION_ID;
+
+  return defaultRegulationIdForOfficialEvent(officialEvent);
+}
+
 // 対戦環境チップを表示する公式イベントかどうかを判定する。
 // ジムバトル・トレーナーズリーグ・シティリーグ・チャンピオンズリーグ・PJCS のみ表示する。
 export function shouldShowEnvironmentChip(officialEvent: OfficialEventKind): boolean {

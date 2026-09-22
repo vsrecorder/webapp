@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   cleanOfficialEventTitle,
   defaultRegulationIdForOfficialEvent,
+  defaultRegulationIdForRecordForm,
 } from "@app/components/organisms/Record/officialEventHelpers";
 import { DEFAULT_REGULATION_ID, REGULATION_ID_EXTRA } from "@app/types/regulation";
 
@@ -24,5 +25,28 @@ describe("defaultRegulationIdForOfficialEvent", () => {
       }),
     ).toBe(DEFAULT_REGULATION_ID);
     expect(defaultRegulationIdForOfficialEvent(null)).toBe(DEFAULT_REGULATION_ID);
+  });
+});
+
+describe("defaultRegulationIdForRecordForm", () => {
+  const extraBattleDay = { title: "エクストラバトルの日" };
+
+  it("公式イベントのタブではイベントの既定値を使う", () => {
+    expect(defaultRegulationIdForRecordForm(true, extraBattleDay)).toBe(
+      REGULATION_ID_EXTRA,
+    );
+  });
+
+  it("公式イベント以外のタブではスタンダードへ戻す", () => {
+    // エクストラバトルの日を選んだあとに自由形式・Tonamel へ切り替えても、
+    // その記録はイベントに紐づかないのでエクストラを持ち越さない
+    expect(defaultRegulationIdForRecordForm(false, extraBattleDay)).toBe(
+      DEFAULT_REGULATION_ID,
+    );
+  });
+
+  it("イベント未選択はどちらのタブでもスタンダード", () => {
+    expect(defaultRegulationIdForRecordForm(true, null)).toBe(DEFAULT_REGULATION_ID);
+    expect(defaultRegulationIdForRecordForm(false, null)).toBe(DEFAULT_REGULATION_ID);
   });
 });

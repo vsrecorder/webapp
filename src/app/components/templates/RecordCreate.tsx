@@ -54,7 +54,7 @@ import OfficialEventGuideNote from "@app/components/molecules/OfficialEventGuide
 
 import OfficialEventSelect from "@app/components/organisms/Record/OfficialEventSelect";
 import { OfficialEventOption } from "@app/components/organisms/Record/officialEventOption";
-import { defaultRegulationIdForOfficialEvent } from "@app/components/organisms/Record/officialEventHelpers";
+import { defaultRegulationIdForRecordForm } from "@app/components/organisms/Record/officialEventHelpers";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 import { refreshRecordingNow } from "@app/utils/recordingNowClient";
 import { markRecordCreatedForPushPrompt } from "@app/utils/pushPrompt";
@@ -424,14 +424,6 @@ export default function TemplateRecordCreate({
     writeRecordCreateSelectedTab(tab);
   }, [tab]);
 
-  const handleTabSelectionChange = (key: React.Key) => {
-    const next = parseRecordCreateTab(String(key));
-    if (!next) return;
-
-    writeRecordCreateSelectedTab(next);
-    setSelectedTab(next);
-  };
-
   const { isOpen, onOpen, onClose, onOpenChange } = useDisclosure();
 
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -676,22 +668,50 @@ export default function TemplateRecordCreate({
     selectedTab === "unofficial",
   );
 
+  // レギュレーションの既定値を置き直す。利用者が自分で選んだあとは、その選択を尊重して触らない
+  const applyDefaultRegulation = (value: number) => {
+    if (isRegulationChangedByUser) return;
+
+    setRegulationId(value);
+  };
+
+  /*
+   * タブの切り替え。
+   *
+   * レギュレーションの既定値も切り替え先に合わせて置き直す。公式イベント以外のタブでは
+   * 選んだイベントはその記録に紐づかないため、イベント由来の既定値(エクストラバトルの日
+   * →エクストラ)を持ち越すと、自由形式・Tonamel の記録までエクストラで登録されてしまう。
+   */
+  const handleTabSelectionChange = (key: React.Key) => {
+    const next = parseRecordCreateTab(String(key));
+    if (!next) return;
+
+    writeRecordCreateSelectedTab(next);
+    setSelectedTab(next);
+    applyDefaultRegulation(
+      defaultRegulationIdForRecordForm(next === "official", selectedOfficialEventOption),
+    );
+  };
+
   /*
    * 公式イベントの選択。エクストラバトルの日はエクストラレギュレーションで行われるため、
    * 選んだ時点でレギュレーションの既定値も切り替える(選び直し・選択解除では戻す)。
-   * 利用者が自分でレギュレーションを選んだあとは、その選択を尊重して触らない。
    */
   const selectOfficialEventOption = (option: OfficialEventOption | null) => {
     setSelectedOfficialEventOption(option);
-
-    if (!isRegulationChangedByUser) {
-      setRegulationId(defaultRegulationIdForOfficialEvent(option));
-    }
+    applyDefaultRegulation(defaultRegulationIdForRecordForm(true, option));
   };
 
-  // レギュレーションの選択(3タブ共通)。一度でも自分で選んだら、以降は公式イベントの
-  // 既定値で上書きしない
+  /*
+   * レギュレーションの選択(3タブ共通)。一度でも自分で選んだら、以降は公式イベントの
+   * 既定値で上書きしない。
+   *
+   * 選択中のものを押し直しただけなら「自分で選んだ」とはみなさない。値が変わらないのに
+   * 以後イベント由来の既定値が効かなくなるのは、操作と結果が結びつかない。
+   */
   const changeRegulationByUser = (value: number) => {
+    if (value === regulationId) return;
+
     setIsRegulationChangedByUser(true);
     setRegulationId(value);
   };
@@ -700,8 +720,10 @@ export default function TemplateRecordCreate({
   // 引き継ぎ、その日の公式イベント候補をすぐ選べる状態にする
   const handleGuideToOfficialTab = () => {
     setSelectedDate(unofficialEventDate);
-    selectOfficialEventOption(null);
+    // イベントの選択解除は最後に行う。タブ切替が読む selectedOfficialEventOption は
+    // この描画時点の値(＝解除前)なので、先に解除しても既定値には反映されない
     handleTabSelectionChange("official");
+    selectOfficialEventOption(null);
     sendGAEvent("event", "official_event_guide_click", { source: "record_create" });
   };
 

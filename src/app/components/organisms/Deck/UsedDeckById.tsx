@@ -69,7 +69,6 @@ async function fetchDeckCodeById(id: string) {
 type Props = {
   record: RecordGetByIdResponseType | null;
   setRecord: Dispatch<SetStateAction<RecordGetByIdResponseType | null>>;
-  enableShowDeckModal: boolean;
   enableUpdateUsedDeckModal: boolean;
   // デッキコードの下に、展開でカード内訳を見られるカードリストのアコーディオンを置く
   enableCardList?: boolean;
@@ -82,7 +81,6 @@ type Props = {
 export default function UsedDeckById({
   record,
   setRecord,
-  enableShowDeckModal,
   enableUpdateUsedDeckModal,
   enableCardList = false,
   holdSkeleton = false,
@@ -229,10 +227,7 @@ export default function UsedDeckById({
       <div onClick={onOpenForUpdateUsedDeckModal}>
         <UsedDeckCard
           deck={deck}
-          setDeck={setDeck}
           deckcode={deckcode}
-          setDeckCode={setDeckCode}
-          enableShowDeckModal={enableShowDeckModal}
           onSelectExistingVersion={onOpenForUpdateUsedDeckModal}
           onCreateVersion={onOpenForCreateDeckCodeModal}
           enableCardList={enableCardList}

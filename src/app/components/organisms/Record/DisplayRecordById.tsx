@@ -118,7 +118,6 @@ export default function DisplayRecordById({ recordData }: Props) {
                   <UsedDeckById
                     record={record}
                     setRecord={setRecord}
-                    enableShowDeckModal={false}
                     enableUpdateUsedDeckModal={true}
                     enableCardList={true}
                   />

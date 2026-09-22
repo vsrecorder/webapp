@@ -466,7 +466,6 @@ export default function DisplayRecordModal({
                             <UsedDeckById
                               record={record}
                               setRecord={setRecord}
-                              enableShowDeckModal={false}
                               enableUpdateUsedDeckModal={false}
                               enableCardList={true}
                               holdSkeleton={!entered}

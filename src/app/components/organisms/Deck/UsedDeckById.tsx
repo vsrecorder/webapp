@@ -71,8 +71,6 @@ type Props = {
   setRecord: Dispatch<SetStateAction<RecordGetByIdResponseType | null>>;
   enableShowDeckModal: boolean;
   enableUpdateUsedDeckModal: boolean;
-  // デッキ名ヘッダーを省いてデッキコードに特化する(ヒーローに使用デッキ名がある場合)
-  compact?: boolean;
   // デッキコードの下に、展開でカード内訳を見られるカードリストのアコーディオンを置く
   enableCardList?: boolean;
   // true の間はデータが揃っていてもスケルトンを出し続ける。
@@ -86,7 +84,6 @@ export default function UsedDeckById({
   setRecord,
   enableShowDeckModal,
   enableUpdateUsedDeckModal,
-  compact = false,
   enableCardList = false,
   holdSkeleton = false,
 }: Props) {
@@ -191,17 +188,17 @@ export default function UsedDeckById({
   };
 
   if (loading1 || loading2 || holdSkeleton) {
-    return <DeckCardSkeleton compact={compact} enableCardList={enableCardList} />;
+    return <DeckCardSkeleton compact enableCardList={enableCardList} />;
   }
 
   // デッキ本体が失敗 → デッキ分だけ再取得
   if (deckError) {
-    return <FetchError onRetry={loadDeck} compact={compact} />;
+    return <FetchError onRetry={loadDeck} compact />;
   }
 
   // デッキコードが失敗 → デッキコード分だけ再取得
   if (codeError) {
-    return <FetchError onRetry={loadDeckCode} compact={compact} />;
+    return <FetchError onRetry={loadDeckCode} compact />;
   }
 
   return (
@@ -238,7 +235,6 @@ export default function UsedDeckById({
           enableShowDeckModal={enableShowDeckModal}
           onSelectExistingVersion={onOpenForUpdateUsedDeckModal}
           onCreateVersion={onOpenForCreateDeckCodeModal}
-          compact={compact}
           enableCardList={enableCardList}
         />
       </div>

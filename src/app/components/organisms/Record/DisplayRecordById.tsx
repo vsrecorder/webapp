@@ -104,7 +104,7 @@ export default function DisplayRecordById({ recordData }: Props) {
           />
         )}
 
-        {/* デッキリスト：この記録について「見るもの」。下の設定カードとは役割が違うので分ける。
+        {/* デッキ情報：この記録について「見るもの」。下の設定カードとは役割が違うので分ける。
           ヒーロー内の「使用デッキ」がデッキ名とスプライトを示すのに対し、
           こちらは中身(デッキコード・カード一覧)を見るための区画なので名前で区別する。
 
@@ -113,14 +113,13 @@ export default function DisplayRecordById({ recordData }: Props) {
         {record?.deck_id && (
           <Card shadow="sm" className="w-full overflow-hidden">
             <CardBody className="p-0">
-              <BoardPanel icon={<LuLayers />} label="デッキリスト">
+              <BoardPanel icon={<LuLayers />} label="デッキ情報">
                 <div ref={deckCardRef}>
                   <UsedDeckById
                     record={record}
                     setRecord={setRecord}
                     enableShowDeckModal={false}
                     enableUpdateUsedDeckModal={true}
-                    compact={true}
                     enableCardList={true}
                   />
                 </div>

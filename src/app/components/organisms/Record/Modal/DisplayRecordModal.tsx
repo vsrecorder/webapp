@@ -448,8 +448,8 @@ export default function DisplayRecordModal({
                   />
                 </div>
 
-                {/* ボード：デッキリスト(見るもの)と、設定(変えるもの)をカードで分ける。
-                    デッキリストはヒーロー内の「使用デッキ」(デッキ名とスプライト)に対して、
+                {/* ボード：デッキ情報(見るもの)と、設定(変えるもの)をカードで分ける。
+                    デッキ情報はヒーロー内の「使用デッキ」(デッキ名とスプライト)に対して、
                     中身(デッキコード・カード一覧)を見るための区画なので名前で区別する。
                     モーダルは画面の高さが端末に固定されているため、設定はコントロールを
                     開いたままにせず、現在値だけの行にして変更はシートで行う。
@@ -461,14 +461,13 @@ export default function DisplayRecordModal({
                   {record.deck_id && (
                     <Card shadow="sm" className="w-full overflow-hidden">
                       <CardBody className="p-0">
-                        <BoardPanel icon={<LuLayers />} label="デッキリスト">
+                        <BoardPanel icon={<LuLayers />} label="デッキ情報">
                           <div ref={deckCardRef}>
                             <UsedDeckById
                               record={record}
                               setRecord={setRecord}
                               enableShowDeckModal={false}
                               enableUpdateUsedDeckModal={false}
-                              compact={true}
                               enableCardList={true}
                               holdSkeleton={!entered}
                             />

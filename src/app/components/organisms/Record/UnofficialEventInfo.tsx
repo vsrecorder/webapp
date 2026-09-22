@@ -81,7 +81,7 @@ export default function UnofficialEventInfo({ record }: Props) {
         const data = await fetchEnvironment(dateStr);
         setEnvironment(data);
       } catch (err) {
-        console.log(err);
+        console.error(err);
       }
     };
 

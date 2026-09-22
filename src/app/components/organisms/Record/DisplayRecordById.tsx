@@ -61,7 +61,7 @@ export default function DisplayRecordById({ recordData }: Props) {
         if (!ignore) setMatches(data);
       })
       .catch((err) => {
-        console.log(err);
+        console.error(err);
         if (!ignore) setMatches([]);
       })
       .finally(() => {

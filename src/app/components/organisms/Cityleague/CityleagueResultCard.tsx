@@ -153,7 +153,7 @@ export default function CityleagueResultCard({
         const data = await fetchAcespec(result.deck_code);
         setAcespec(data);
       } catch (err) {
-        console.log(err);
+        console.error(err);
         setErrorAcespec(
           `Acespecカードのデータ取得に失敗しました(デッキコード: ${result.deck_code})`,
         );
@@ -168,7 +168,7 @@ export default function CityleagueResultCard({
         const data = await fetchEnvironment(date);
         setEnvironment(data);
       } catch (err) {
-        console.log(err);
+        console.error(err);
         setErrorEnvironment("環境名のデータ取得に失敗しました");
       } finally {
         setLoadingEnvironment(false);
@@ -197,7 +197,7 @@ export default function CityleagueResultCard({
         const data = await fetchDeckType(result.deck_code, environment.id);
         setDeckType(data);
       } catch (err) {
-        console.log(err);
+        console.error(err);
         setErrorDeckType(
           `デッキタイプのデータ取得に失敗しました(デッキコード: ${result.deck_code}, 環境ID: ${environment.id})`,
         );

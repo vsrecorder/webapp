@@ -31,6 +31,7 @@ import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 import { formatJSTDateWithWeekday } from "@app/utils/date";
 import { deckImageUrl } from "@app/utils/deckImage";
 import { useSyncOnChange } from "@app/hooks/useSyncOnChange";
+import { katakanaToHiragana } from "@app/utils/kana";
 
 // 失敗レスポンスのボディをそのまま返すと、選択肢を組み立てるmap/forEachがレンダー中に
 // 例外になりページ全体が落ちる。取得できなかったことはSWRのerrorとして扱う。
@@ -63,15 +64,6 @@ type DeckOption = {
   // お気に入りのデッキ。一覧の先頭に置き、★を添えて見分けられるようにする。
   is_favorited: boolean;
 };
-
-function katakanaToHiragana(str: string): string {
-  return str.replace(/[\u30A1-\u30F6]/g, (match) => {
-    const charCode = match.charCodeAt(0);
-
-    // 「ヴ」はひらがなの「ゔ」（\u3094）へ、それ以外は一律 -0x60
-    return String.fromCharCode(charCode === 0x30f4 ? 0x3094 : charCode - 0x60);
-  });
-}
 
 function convertToDeckOption(data: DeckData): DeckOption {
   const created_at = formatJSTDateWithWeekday(data.created_at);

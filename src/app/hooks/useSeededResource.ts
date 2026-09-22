@@ -126,7 +126,7 @@ export function useSeededResource<K extends string | number, T>(
         if (!cancelled) setState({ data, loading: false, error: false });
       })
       .catch((err) => {
-        console.log(err);
+        console.error(err);
         if (!cancelled) setState((prev) => ({ ...prev, loading: false, error: true }));
       });
 

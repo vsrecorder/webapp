@@ -66,4 +66,15 @@ describe("RecordStatPanel", () => {
     expect(panel.getByLabelText("勝率 67パーセント")).toBeTruthy();
     expect(panel.queryByText("-")).toBeNull();
   });
+
+  it("対戦一覧の取得に失敗したら、勝敗も「-」にする", () => {
+    // 取得できていないと集計は 0勝0敗 になる。そのまま描くと対戦0件の記録と
+    // 見分けが付かないため、数字を持っていないことを「-」で示す
+    const { container } = render(<RecordStatPanel stats={summarizeMatches([])} error />);
+    const panel = within(container);
+
+    // 勝率リングと勝/敗タイルの3か所
+    expect(panel.getAllByText("-").length).toBe(3);
+    expect(panel.queryByText("0")).toBeNull();
+  });
 });

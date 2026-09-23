@@ -51,6 +51,26 @@ describe("useSeededResource", () => {
     expect(fetcher).not.toHaveBeenCalled();
   });
 
+  it("鍵が変わったら、前の鍵の失敗を今の鍵の失敗として返さない", async () => {
+    // 記録カードが、差し替え前の記録の失敗を差し替え後の記録の失敗として出していた
+    const fetcher = vi
+      .fn<(id: string) => Promise<{ id: string }>>()
+      .mockRejectedValueOnce(new Error("boom"))
+      .mockImplementation(() => new Promise(() => {}));
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { result, rerender } = renderHook(({ id }) => useSeededResource(id, fetcher), {
+      initialProps: { id: "d1" },
+    });
+
+    await waitFor(() => expect(result.current.error).toBe(true));
+
+    rerender({ id: "d2" });
+    // 取得の effect が走る前の描画。前の鍵の失敗は伏せ、取得中として扱う
+    expect(result.current.error).toBe(false);
+    expect(result.current.loading).toBe(true);
+    log.mockRestore();
+  });
+
   it("失敗したら error になり、retry で取り直す", async () => {
     const fetcher = vi
       .fn<(id: string) => Promise<{ id: string }>>()

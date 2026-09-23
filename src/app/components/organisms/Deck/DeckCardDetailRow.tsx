@@ -447,7 +447,12 @@ export default function DeckCardDetailRow({ code }: Props) {
   }
 
   if (error) {
-    return <FetchError onRetry={loadDeckCardDetail} compact />;
+    // 骨格・実体と同じ高さの枠に収める(差し替わりで下がずれないように)
+    return (
+      <div className={`w-full ${CARD_DETAIL_HEIGHT_CLASS}`}>
+        <FetchError onRetry={loadDeckCardDetail} compact className="h-full" />
+      </div>
+    );
   }
 
   if (!deckcardDetail) return;

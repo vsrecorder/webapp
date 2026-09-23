@@ -3,6 +3,8 @@ import { Skeleton } from "@heroui/react";
 import { Chip } from "@heroui/react";
 import { Popover, PopoverTrigger, PopoverContent } from "@heroui/react";
 
+import { LuRotateCw } from "react-icons/lu";
+
 import ScrollingText from "@app/components/molecules/ScrollingText";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import { RecordDeckRowSkeleton } from "@app/components/organisms/Record/Skeleton/RecordCardSkeleton";
@@ -51,6 +53,12 @@ type Props = {
   // 対戦結果にBO3が1つでも含まれるか(勝敗の左横にバッジ表示)
   hasBo3?: boolean;
   loadingMatches: boolean;
+  // 対戦の集計を取得できなかったか。0件(「対戦なし」)とは分けて示す。
+  // 失敗を 0勝0敗 として描くと、対戦を持つ記録に「対戦なし」と言うことになる
+  matchesError?: boolean;
+  // 勝敗バッジの位置に出す取り直し(カードを開かずにここだけ取り直す)
+  onRetryMatches?: () => void;
+  isRetryingMatches?: boolean;
   // 戦績集計から除外されているか。true の場合カード右上にバッジを表示する
   ignoreStatsFlg?: boolean;
   // レギュレーション(regulations テーブルのID)。全ての記録でチップを表示する
@@ -85,6 +93,9 @@ export default function RecordCardBase({
   hasGroupMatch,
   hasBo3,
   loadingMatches,
+  matchesError = false,
+  onRetryMatches,
+  isRetryingMatches = false,
   ignoreStatsFlg,
   regulationId,
   bgMedia,
@@ -290,6 +301,28 @@ export default function RecordCardBase({
                 {loadingMatches ? (
                   <div className="flex items-center gap-1.5 shrink-0">
                     <Skeleton className="h-5 w-12 rounded-md" />
+                  </div>
+                ) : matchesError ? (
+                  /* 取得できなかった。勝敗の数字を持っていないことを「-」で示し、
+                     ここを押せばこの記録の集計だけ取り直せるようにする
+                     (カードを開く onClick と取り合わないよう伝播を止める)。 */
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      aria-label="対戦結果を再読み込みする"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRetryMatches?.();
+                      }}
+                      /* バッジは高さ20pxしかないため、当たり判定だけ疑似要素で外へ8px広げる
+                         (見た目は変えない。狭いままだと押したつもりでカードが開く) */
+                      className="relative flex items-center gap-1 text-xs font-bold shrink-0 rounded-md border px-1.5 py-0.5 text-default-400 border-default-200 bg-default-50 after:absolute after:-inset-2 after:content-['']"
+                    >
+                      <LuRotateCw
+                        className={`text-[0.6875rem] ${isRetryingMatches ? "animate-spin" : ""}`}
+                      />
+                      -
+                    </button>
                   </div>
                 ) : hasMatchResult ? (
                   <div className="flex items-center gap-1.5 shrink-0">

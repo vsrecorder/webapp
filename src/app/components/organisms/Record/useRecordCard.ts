@@ -107,11 +107,34 @@ export function useRecordCard({
   }, [recordData.data]);
 
   const deck = useSeededResource(record?.deck_id, fetchDeckById, recordData.details?.deck);
+
   const matches = useSeededResource(
     record?.id,
     fetchMatchSummary,
     recordData.details?.matches,
   );
+
+  /*
+   * 対戦の集計を一度も取得できていないうちに失敗したか。
+   * 失敗を 0勝0敗 のまま描くと「対戦なし」と見分けが付かず、対戦を持つ記録に
+   * 「対戦なし」と言ってしまうため、カード側で 0件 と分けて出す。
+   *
+   * useSeededResource の error は取り直しを始めた時点で false へ戻るので、そのまま使うと
+   * 「エラー → 骨格 → エラー」と往復する。取り直して成功するまでは立てたままにする。
+   *
+   * 覚える鍵は取得に使ったもの(state の record.id)にする。props(recordData.data.id)で
+   * 覚えると、一覧の取り直しでカードが別の記録に差し替わった描画では、まだ取得が
+   * 旧記録のままなのに新記録の失敗として記録してしまう(record の差し替えは effect で
+   * 1描画遅れる)。鍵を揃えておけば、差し替え後の描画で失敗は自然に外れる。
+   */
+  const matchesKey = record?.id ?? null;
+  const [failedMatchesId, setFailedMatchesId] = useState<string | null>(null);
+  const matchesFailed = failedMatchesId !== null && failedMatchesId === matchesKey;
+  if (matches.error && matches.data === null && !matchesFailed && matchesKey !== null) {
+    setFailedMatchesId(matchesKey);
+  } else if (matchesFailed && matches.data !== null) {
+    setFailedMatchesId(null);
+  }
 
   const disclosure = useDisclosure();
   const { onOpen } = disclosure;
@@ -152,9 +175,14 @@ export function useRecordCard({
     record,
     setRecord,
     deck,
-    // 集計が無い間は 0 勝 0 敗(「対戦なし」)として描く
+    // 集計が無い間は 0 勝 0 敗(「対戦なし」)として描く。
+    // 取得できなかったときは matchesFailed 側で分けるので、この値は使わない
     matchSummary: matches.data ?? EMPTY_MATCH_SUMMARY,
-    loadingMatches: matches.loading,
+    // 失敗しているあいだは骨格を出さない(取り直し中もバッジのアイコンを回すだけにする)
+    loadingMatches: matches.loading && !matchesFailed,
+    matchesFailed,
+    retryingMatches: matchesFailed && matches.loading,
+    retryMatches: matches.retry,
     disclosure,
   };
 }

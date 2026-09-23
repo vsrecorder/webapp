@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button, Card, CardBody, useDisclosure } from "@heroui/react";
 import { LuHouse } from "react-icons/lu";
 
-import FetchError from "@app/components/molecules/FetchError";
+import FetchErrorBox from "@app/components/molecules/FetchErrorBox";
 import MyGymEditModal from "@app/components/organisms/MyGym/MyGymEditModal";
 import MyGymShopRow from "@app/components/organisms/MyGym/MyGymShopRow";
 
@@ -25,6 +25,25 @@ async function fetchMyGyms(): Promise<UserGymGetResponseType> {
  * 「今なにが登録されているか」を見せて、そこから編集へ入れるだけに留める。
  * イベント一覧を出さないのは、予定を見る場所はホームに1つあれば足りるため。
  */
+// 読み込み中のスケルトン。実カードと同じ「見出し行＋本文＋ボタン」の3段構成で組む。
+// 取得に失敗したときの高さの型枠にもする(FetchErrorBox の sizer)。
+function MyGymCardSkeleton() {
+  return (
+    <Card className="shadow-md">
+      <CardBody className="flex flex-col gap-3 p-4">
+        <div className="flex items-center gap-2">
+          <div className="h-4 w-4 shrink-0 animate-pulse rounded-md bg-default-100" />
+          <div className="h-2.5 w-24 animate-pulse rounded-full bg-default-100" />
+        </div>
+        <div className="flex h-4 items-center">
+          <div className="h-3 w-40 animate-pulse rounded-full bg-default-100" />
+        </div>
+        <div className="h-8 w-full animate-pulse rounded-lg bg-default-100" />
+      </CardBody>
+    </Card>
+  );
+}
+
 export default function MyGymCard() {
   /*
    * Myジムの一覧と上限。登録・解除の後は load(retry)で取り直す。
@@ -51,31 +70,19 @@ export default function MyGymCard() {
   const isRetrying = loading && hasFailed;
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
-  // 読み込み中のスケルトン。実カードと同じ「見出し行＋本文＋ボタン」の3段構成で組む。
   if (isLoading) {
-    return (
-      <Card className="shadow-md">
-        <CardBody className="flex flex-col gap-3 p-4">
-          <div className="flex items-center gap-2">
-            <div className="h-4 w-4 shrink-0 animate-pulse rounded-md bg-default-100" />
-            <div className="h-2.5 w-24 animate-pulse rounded-full bg-default-100" />
-          </div>
-          <div className="flex h-4 items-center">
-            <div className="h-3 w-40 animate-pulse rounded-full bg-default-100" />
-          </div>
-          <div className="h-8 w-full animate-pulse rounded-lg bg-default-100" />
-        </CardBody>
-      </Card>
-    );
+    return <MyGymCardSkeleton />;
   }
 
   if (!isLoaded) {
+    // 骨格・実カードと同じ高さで出す(縮むと下に続くカードがずれる)
     return (
-      <FetchError
+      <FetchErrorBox
+        sizer={<MyGymCardSkeleton />}
         message="Myジムの取得に失敗しました"
         onRetry={load}
         isRetrying={isRetrying}
-        compact
+        variant="row"
       />
     );
   }

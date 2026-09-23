@@ -134,7 +134,12 @@ export default function Decks({
   const [items, setItems] = useState<DeckType[]>(() => initialStep?.appended ?? []);
   // デッキごとの全期間の戦績(対戦記録が無いデッキは含まれない)。
   // SWR で持ち、タブ切替や戻り遷移で Decks が作り直されても取り直しを待たずに出す
-  const deckUsageStats = useDeckUsageAllTime(userId, initialUsage, isInitialFresh);
+  const {
+    stats: deckUsageStats,
+    failed: usageFailed,
+    isRetrying: usageRetrying,
+    retry: retryUsage,
+  } = useDeckUsageAllTime(userId, initialUsage, isInitialFresh);
   const [nextCursor, setNextCursor] = useState<string>(
     () => initialStep?.nextCursor ?? "",
   );
@@ -624,6 +629,21 @@ export default function Decks({
             <LuArchive className="w-10 h-10 text-default-400" />
           </div>
           <p className="font-bold text-default-500">アーカイブ済みのデッキはありません</p>
+        </div>
+      )}
+
+      {/* デッキの戦績(対戦数・勝率)だけが取れなかったとき。カード側は戦績を出さないので、
+          黙っていると「まだ使っていないデッキ」と同じ見た目になる。一覧に1つだけ理由を出し、
+          ここから取り直す(デッキの並び自体は出ているので、一覧ごと隠さない)。
+          デッキが1つも無いときは出さない。載せる先が無く、空状態の邪魔になるだけなので */}
+      {settled && usageFailed && items.length > 0 && (
+        <div className="w-full">
+          <FetchError
+            message="デッキの戦績を取得できませんでした"
+            onRetry={retryUsage}
+            isRetrying={usageRetrying}
+            compact
+          />
         </div>
       )}
 

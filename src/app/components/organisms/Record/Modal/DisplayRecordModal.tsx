@@ -14,6 +14,7 @@ import {
   Button,
   Card,
   CardBody,
+  addToast,
 } from "@heroui/react";
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/dropdown";
 
@@ -40,11 +41,11 @@ import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
 import { TonamelEventGetByIdResponseType } from "@app/types/tonamel_event";
 import { UnofficialEventGetByIdResponseType } from "@app/types/unofficial_event";
 import { DeckGetByIdResponseType } from "@app/types/deck";
-import { MatchGetResponseType } from "@app/types/match";
 
-import { fetchMatchesByRecordId, summarizeMatches } from "@app/utils/matchStats";
+import { summarizeMatches } from "@app/utils/matchStats";
 import { writeSessionStorage } from "@app/utils/sessionStorageStore";
 import { useModalDragToClose } from "@app/hooks/useModalDragToClose";
+import { useRecordMatches } from "@app/hooks/useRecordMatches";
 import { useModalEntered } from "@app/hooks/useModalEntered";
 import { closingPassthroughClassNames } from "@app/utils/modal";
 
@@ -153,36 +154,17 @@ export default function DisplayRecordModal({
     useState<UnofficialEventGetByIdResponseType | null>(null);
   const [shareDeck, setShareDeck] = useState<DeckGetByIdResponseType | null>(null);
 
-  // 対戦一覧を親で一元管理し、ヒーローの戦績と対戦結果表示で共有する
-  const [matches, setMatches] = useState<MatchGetResponseType[] | null>(null);
-  const [loadingMatches, setLoadingMatches] = useState(true);
+  // 対戦一覧を親で一元管理し、ヒーローの戦績と対戦結果表示で共有する。
+  // 取得に失敗したときは空配列にせず failed で伝える(0件と混ぜない)
+  const {
+    matches,
+    setMatches,
+    loading: loadingMatches,
+    failed: matchesFailed,
+    isRetrying: retryingMatches,
+    retry: retryMatches,
+  } = useRecordMatches(record.id);
   const stats = summarizeMatches(matches ?? []);
-
-  // 記録が変わったら対戦一覧を取り直す(取得中の初期値は上の useState で立てている。
-  // 記録が差し替わったときは前回の値を控えておき、描画中に取得中へ戻す)
-  const [matchesRecordId, setMatchesRecordId] = useState(record.id);
-  if (matchesRecordId !== record.id) {
-    setMatchesRecordId(record.id);
-    setLoadingMatches(true);
-  }
-
-  useEffect(() => {
-    let ignore = false;
-    fetchMatchesByRecordId(record.id)
-      .then((data) => {
-        if (!ignore) setMatches(data);
-      })
-      .catch((err) => {
-        console.error(err);
-        if (!ignore) setMatches([]);
-      })
-      .finally(() => {
-        if (!ignore) setLoadingMatches(false);
-      });
-    return () => {
-      ignore = true;
-    };
-  }, [record.id]);
 
   useEffect(() => {
     if (!record) return;
@@ -253,6 +235,24 @@ export default function DisplayRecordModal({
 
   // シェアのデッキ画像(2枚目)をキャプチャするための実DOM参照
   const deckCardRef = useRef<HTMLDivElement>(null);
+
+  /*
+   * シェアモーダルを開く。対戦一覧を取得できていないときは開かない。
+   * シェア画像は対戦結果を含めて撮るため、揃うまで「シェアする」が押せないまま
+   * 待ち続けることになる(取り直しは上の対戦結果パネルから行う)。
+   */
+  const openShareModal = () => {
+    if (matchesFailed) {
+      addToast({
+        title: "対戦結果を読み込めていません",
+        description: "対戦結果を再読み込みしてからシェアしてください",
+        color: "warning",
+        timeout: 5000,
+      });
+      return;
+    }
+    onOpenForShareModal();
+  };
 
   return (
     <>
@@ -337,7 +337,7 @@ export default function DisplayRecordModal({
                       radius="full"
                       className="bg-primary/10 text-primary"
                       aria-label="この記録をシェアする"
-                      onPress={onOpenForShareModal}
+                      onPress={() => openShareModal()}
                     >
                       <LuShare2 className="text-lg" />
                     </Button>
@@ -431,6 +431,7 @@ export default function DisplayRecordModal({
                     setRecord={setRecord}
                     stats={stats}
                     loadingStats={loadingMatches}
+                    statsError={matchesFailed}
                     holdSkeleton={!entered}
                     showSynergy={showSynergy}
                     onToggleSynergy={() => setShowSynergy((prev) => !prev)}
@@ -440,6 +441,9 @@ export default function DisplayRecordModal({
                         matches={matches}
                         setMatches={setMatches}
                         loading={loadingMatches}
+                        error={matchesFailed}
+                        onRetry={retryMatches}
+                        isRetrying={retryingMatches}
                         enableCreateMatchModalButton={false}
                         enableUpdateMatchModalButton={false}
                         flat={true}

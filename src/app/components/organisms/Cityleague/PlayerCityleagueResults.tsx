@@ -12,7 +12,7 @@ import "swiper/css";
 import "swiper/css/pagination";
 
 import ZoomableDeckImage from "@app/components/atoms/ZoomableDeckImage";
-import FetchError from "@app/components/molecules/FetchError";
+import FetchErrorBox from "@app/components/molecules/FetchErrorBox";
 import PlayerCityleagueResultsSkeleton from "@app/components/organisms/Cityleague/Skeleton/PlayerCityleagueResultsSkeleton";
 
 import {
@@ -223,10 +223,18 @@ export default function PlayerCityleagueResults({ season, seasonLabel }: Props) 
             bleedClassName={BLEED}
           />
         ) : error ? (
-          <FetchError
+          // 骨格・実体と同じ高さで出す(差し替わりで下がずれないように)
+          <FetchErrorBox
+            sizer={
+              <PlayerCityleagueResultsSkeleton
+                height={placeholderHeight}
+                bleedClassName={BLEED}
+              />
+            }
             message="入賞したシティリーグの取得に失敗しました"
             onRetry={loadResults}
-            compact
+            // 枠の高さは前回の実測値(0件なら 64px)で決まるため、縦積みでは入らない
+            variant="row"
           />
         ) : results.length === 0 ? (
           <div className="rounded-xl bg-default-50 px-3 py-6 text-center text-xs text-default-400">

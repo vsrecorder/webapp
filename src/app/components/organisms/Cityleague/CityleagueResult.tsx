@@ -19,7 +19,7 @@ import "swiper/css/scrollbar";
 
 import CityleagueResultCard from "@app/components/organisms/Cityleague/CityleagueResultCard";
 import { CityleagueResultSkeleton } from "@app/components/organisms/Cityleague/Skeleton/CityleagueResultSkeleton";
-import FetchError from "@app/components/molecules/FetchError";
+import FetchErrorBox from "@app/components/molecules/FetchErrorBox";
 
 import { CityleagueResultType } from "@app/types/cityleague_result";
 import {
@@ -193,7 +193,10 @@ export default function CityleagueResult({
   }
 
   if (error) {
-    return <FetchError onRetry={loadEvent} compact />;
+    // 骨格・実体と同じ高さで出す(一覧に並ぶので、欠けると下の行がずれる)
+    return (
+      <FetchErrorBox sizer={<CityleagueResultSkeleton />} onRetry={loadEvent} compact />
+    );
   }
 
   if (!event) {

@@ -28,6 +28,7 @@ import CreateMatchModalButton from "@app/components/organisms/Match/CreateMatchM
 import MatchSkeleton, {
   matchPanelHeight,
 } from "@app/components/organisms/Match/Skeleton/MatchSkeleton";
+import FetchError from "@app/components/molecules/FetchError";
 
 import { RecordGetByIdResponseType } from "@app/types/record";
 import { MatchGetResponseType, MatchOrderItemType } from "@app/types/match";
@@ -179,6 +180,14 @@ type Props = {
   matches: MatchGetResponseType[] | null;
   setMatches: Dispatch<SetStateAction<MatchGetResponseType[] | null>>;
   loading: boolean;
+  // 対戦一覧の取得に失敗したか。0件(「対戦結果がありません」)とは別に、
+  // 取り直せるエラーカードを出す。取得できていないだけの記録に「まだ何も無い」と
+  // 言ってしまわないための分岐。
+  error?: boolean;
+  // エラーカードの「再読み込み」
+  onRetry?: () => void;
+  // 取り直し中。エラーカードは出したままボタンだけ回す
+  isRetrying?: boolean;
   enableCreateMatchModalButton: boolean;
   enableUpdateMatchModalButton: boolean;
   matchCardRef?: RefObject<HTMLDivElement | null>;
@@ -191,6 +200,9 @@ export default function Matches({
   matches,
   setMatches,
   loading,
+  error = false,
+  onRetry,
+  isRetrying = false,
   enableCreateMatchModalButton,
   enableUpdateMatchModalButton,
   matchCardRef,
@@ -211,7 +223,9 @@ export default function Matches({
     onOpenChange: onOpenChangeForDisplayMatchDetailModal,
   } = useDisclosure();
 
-  if (loading) {
+  // 取得に失敗しているあいだは骨格を出さない(下でエラーカードを出す)。
+  // 取り直し中も同じで、エラー → 骨格 → エラーと往復させない
+  if (loading && !error) {
     return (
       <MatchSkeleton
         enableCreateMatchModalButton={enableCreateMatchModalButton}
@@ -329,11 +343,11 @@ export default function Matches({
                 <Card className={flat ? "bg-transparent shadow-none" : ""}>
                   <CardBody
                     className="px-0 py-0.5 w-full"
-                    // 0件のときは取得中の骨格と同じ高さを下限にする。これが無いと
+                    // 0件・取得失敗のときは取得中の骨格と同じ高さを下限にする。これが無いと
                     // 「骨格 → 対戦0件」の差し替えでパネルが縮み、カードごと跳ねる
                     // (実測: 詳細ページ 10px / 記録情報モーダル 34px)。
                     style={
-                      matches && matches.length === 0
+                      error || (matches && matches.length === 0)
                         ? {
                             minHeight: matchPanelHeight(
                               enableUpdateMatchModalButton,
@@ -343,7 +357,20 @@ export default function Matches({
                         : undefined
                     }
                   >
-                    {matches && matches.length !== 0 ? (
+                    {error ? (
+                      /* 取得に失敗した。空状態(「対戦結果がありません」)と混ぜると、
+                         対戦を持つ記録に「まだ何も無い」と言ってしまう。ここでこの
+                         データだけ取り直せるようにする。 */
+                      <div className="flex flex-1 flex-col justify-center px-1 py-1">
+                        <FetchError
+                          message="対戦結果を取得できませんでした"
+                          onRetry={() => onRetry?.()}
+                          isRetrying={isRetrying}
+                          compact
+                          className="border-none bg-transparent shadow-none"
+                        />
+                      </div>
+                    ) : matches && matches.length !== 0 ? (
                       <div className="px-0 py-0 w-full">
                         <Table
                           hideHeader

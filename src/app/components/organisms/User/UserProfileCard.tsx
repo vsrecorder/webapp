@@ -15,7 +15,7 @@ import {
 } from "react-icons/lu";
 
 import UpdateNameModal from "@app/components/organisms/User/Modal/UpdateNameModal";
-import FetchError from "@app/components/molecules/FetchError";
+import FetchErrorBox from "@app/components/molecules/FetchErrorBox";
 
 import { hasWinRate } from "@app/utils/winRate";
 
@@ -512,9 +512,14 @@ export default function UserProfileCard({
         {/* 統計グリッド。取得に失敗したときは0件の戦績を装わず、ここだけをエラー表示に置き換える
             （プロフィール部分は表示したままにする） */}
         <CardBody className="p-3 -mt-2 bg-content1 rounded-t-2xl relative z-10">
-          {statError ? (
-            <FetchError message="戦績の取得に失敗しました" onRetry={loadStat} compact />
-          ) : (
+          {/* 失敗しても、正常時(統計グリッド＋トグル)と同じ高さで出す。
+              ここが縮むと最上部のカードなので下の内容ごと動いてしまう */}
+          <FetchErrorBox
+            failed={statError}
+            message="戦績の取得に失敗しました"
+            onRetry={loadStat}
+            variant="row"
+          >
             <div className="grid grid-cols-3 gap-5">
               <StatChip
                 icon={<LuSwords className="w-3.5 h-3.5" />}
@@ -560,19 +565,17 @@ export default function UserProfileCard({
                 colorClass="text-danger"
               />
             </div>
-          )}
-          {/* 戦績を伏せていても出す。この表示/非表示は localStorage にあってサーバでは
-              読めないため、伏せている端末だけハイドレーション後にこの面が消えて
-              カードが 37px 縮み、最上部のカードなので下の内容ごと動いてしまう。
-              伏せている間は数字が変わらず切り替えの効果は見えないが、次に表示したときの
-              集計条件を決める設定なので、出しておいても筋は通る。 */}
-          {!statError && (
+            {/* 戦績を伏せていても出す。この表示/非表示は localStorage にあってサーバでは
+                読めないため、伏せている端末だけハイドレーション後にこの面が消えて
+                カードが 37px 縮み、最上部のカードなので下の内容ごと動いてしまう。
+                伏せている間は数字が変わらず切り替えの効果は見えないが、次に表示したときの
+                集計条件を決める設定なので、出しておいても筋は通る。 */}
             <ExcludeDefaultMatchesToggle
               className="mt-2.5"
               excluded={excludeDefaultMatches}
               onToggle={toggleExcludeDefaultMatches}
             />
-          )}
+          </FetchErrorBox>
         </CardBody>
       </Card>
     </>

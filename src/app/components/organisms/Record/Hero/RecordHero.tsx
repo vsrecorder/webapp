@@ -18,7 +18,7 @@ import {
   LuTriangleAlert,
 } from "react-icons/lu";
 
-import FetchError from "@app/components/molecules/FetchError";
+import FetchErrorBox from "@app/components/molecules/FetchErrorBox";
 import RecordStatPanel from "@app/components/organisms/Record/Hero/RecordStatPanel";
 import RecordStatPanelSkeleton from "@app/components/organisms/Record/Hero/RecordStatPanelSkeleton";
 import {
@@ -173,6 +173,8 @@ type ShellProps = {
   // 「対戦0件の記録」と見分けが付かない。取得中は戦績パネルの骨格を置き、
   // 0件と確定してから中身がグレーの実体パネルへ差し替える。
   loadingStats?: boolean;
+  // 対戦一覧の取得に失敗したか。戦績パネルの数字を「-」にして 0勝0敗 と読ませない
+  statsError?: boolean;
   // 戦績パネルの裏面(貢献度)を表示するか / その切り替え
   showSynergy?: boolean;
   onToggleSynergy?: () => void;
@@ -201,6 +203,7 @@ function HeroShell({
   action,
   stats,
   loadingStats,
+  statsError,
   showSynergy,
   onToggleSynergy,
   ignoreStatsFlg,
@@ -386,6 +389,7 @@ function HeroShell({
             ) : (
               <RecordStatPanel
                 stats={stats}
+                error={statsError}
                 showSynergy={showSynergy}
                 onToggleSynergy={onToggleSynergy}
               />
@@ -451,6 +455,9 @@ type Props = {
   // 対戦一覧をまだ取得中か。戦績パネルの出現でカードが組み替わるのを防ぐために使う。
   // シェア画像のキャプチャ用インスタンスでは渡さない(骨格を撮ってしまうため)。
   loadingStats?: boolean;
+  // 対戦一覧の取得に失敗したか。stats は対戦一覧から集計するため、失敗すると 0勝0敗 になり
+  // 対戦0件の記録と見分けが付かない。戦績パネルの数字を「-」にして数字が無いことを示す。
+  statsError?: boolean;
   // 戦績パネルの裏面(貢献度)を表示するか。表示状態は親で管理する。
   // シェア画像は別インスタンスの RecordHero を画面外に描画して撮るため、
   // 状態を親で持たないと画面と同じ面を撮れない。
@@ -497,6 +504,7 @@ export default function RecordHero({
   setRecord,
   stats,
   loadingStats = false,
+  statsError = false,
   showSynergy = false,
   onToggleSynergy,
   enableEditTCGMeisterURL = false,
@@ -580,7 +588,18 @@ export default function RecordHero({
   ]);
 
   if (error) {
-    return <FetchError onRetry={loadEvent} />;
+    // 骨格・実体と同じ高さで出す。ヒーローが縮むと下のカードが一気にせり上がる
+    return (
+      <FetchErrorBox
+        sizer={
+          <RecordHeroSkeleton
+            metaRows={isOfficial ? 3 : 0}
+            matchesEditable={enableEditMatches}
+          />
+        }
+        onRetry={loadEvent}
+      />
+    );
   }
 
   if (loadingEvent || holdSkeleton) {
@@ -826,6 +845,7 @@ export default function RecordHero({
           tags={record.tags}
           stats={stats}
           loadingStats={loadingStats}
+          statsError={statsError}
           showSynergy={showSynergy}
           onToggleSynergy={onToggleSynergy}
           ignoreStatsFlg={record.ignore_stats_flg}
@@ -864,6 +884,7 @@ export default function RecordHero({
         tags={record.tags}
         stats={stats}
         loadingStats={loadingStats}
+        statsError={statsError}
         showSynergy={showSynergy}
         onToggleSynergy={onToggleSynergy}
         ignoreStatsFlg={record.ignore_stats_flg}
@@ -901,6 +922,7 @@ export default function RecordHero({
         tags={record.tags}
         stats={stats}
         loadingStats={loadingStats}
+        statsError={statsError}
         showSynergy={showSynergy}
         onToggleSynergy={onToggleSynergy}
         ignoreStatsFlg={record.ignore_stats_flg}

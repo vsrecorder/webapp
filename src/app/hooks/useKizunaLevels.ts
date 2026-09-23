@@ -43,6 +43,8 @@ async function fetcher(url: string): Promise<KizunaDeckType[]> {
     return [];
   }
 
+  // 失敗しても空で済ませる。きずなLv.はデッキ一覧に添える演出で、出ないだけなら
+  // 一覧の用は足りる(数字を誤って 0 や Lv.1 と見せることにもならない)
   if (!res.ok) return [];
 
   const kizuna: KizunaType = await res.json();

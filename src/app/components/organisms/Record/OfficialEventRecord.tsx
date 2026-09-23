@@ -6,7 +6,7 @@ import { Image } from "@heroui/react";
 
 import { LuMapPin } from "react-icons/lu";
 
-import FetchError from "@app/components/molecules/FetchError";
+import FetchErrorBox from "@app/components/molecules/FetchErrorBox";
 import RecordCardBase from "@app/components/organisms/Record/RecordCardBase";
 import { type RecordMetaRow } from "@app/components/organisms/Record/RecordMetaRows";
 import { RecordCardSkeleton } from "@app/components/organisms/Record/Skeleton/RecordCardSkeleton";
@@ -46,17 +46,28 @@ export default function OfficialEventRecord(props: RecordCardProps) {
     [event.data],
   );
 
-  const { record, setRecord, deck, matchSummary, loadingMatches, disclosure } = useRecordCard({
+  const {
+    record,
+    setRecord,
+    deck,
+    matchSummary,
+    loadingMatches,
+    matchesFailed,
+    retryingMatches,
+    retryMatches,
+    disclosure,
+  } = useRecordCard({
     ...props,
     eventLoading: event.loading,
   });
 
+  // 一覧に並ぶカードなので、失敗しても骨格・実体と同じ高さで出す(欠けると下の行がずれる)
   if (event.error) {
-    return <FetchError onRetry={event.retry} compact />;
+    return <FetchErrorBox sizer={<RecordCardSkeleton eventType="official" />} onRetry={event.retry} compact />;
   }
 
   if (deck.error) {
-    return <FetchError onRetry={deck.retry} compact />;
+    return <FetchErrorBox sizer={<RecordCardSkeleton eventType="official" />} onRetry={deck.retry} compact />;
   }
 
   if (event.loading || !officialEvent) {
@@ -121,6 +132,9 @@ export default function OfficialEventRecord(props: RecordCardProps) {
         hasGroupMatch={matchSummary.has_group_match}
         hasBo3={matchSummary.has_bo3}
         loadingMatches={loadingMatches}
+        matchesError={matchesFailed}
+        onRetryMatches={retryMatches}
+        isRetryingMatches={retryingMatches}
       />
     </>
   );

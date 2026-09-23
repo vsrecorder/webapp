@@ -17,7 +17,7 @@ import {
 import { LuLock, LuTriangleAlert } from "react-icons/lu";
 
 import { Modal } from "@app/components/atoms/AppModal";
-import FetchError from "@app/components/molecules/FetchError";
+import FetchErrorBox from "@app/components/molecules/FetchErrorBox";
 import PlayerCityleagueResults from "@app/components/organisms/Cityleague/PlayerCityleagueResults";
 import DesignationPanelSkeleton, {
   DESIGNATION_LADDER_ROW_SIZE,
@@ -313,7 +313,19 @@ export default function DesignationPanel({
   }
 
   if (error) {
-    return <FetchError message="称号の取得に失敗しました" onRetry={loadDesignation} />;
+    // 骨格・実体と同じ高さで出す。パネルが縮むと下に続くものがずれる
+    return (
+      <FetchErrorBox
+        sizer={
+          <DesignationPanelSkeleton
+            linkedHint={linkedHint}
+            cityleagueHeight={cityleagueHeight}
+          />
+        }
+        message="称号の取得に失敗しました"
+        onRetry={loadDesignation}
+      />
+    );
   }
 
   const current = data?.current ?? null;

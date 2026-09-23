@@ -14,7 +14,7 @@ import {
 import { LuLock, LuChevronDown, LuChevronUp } from "react-icons/lu";
 
 import { Modal } from "@app/components/atoms/AppModal";
-import FetchError from "@app/components/molecules/FetchError";
+import FetchErrorBox from "@app/components/molecules/FetchErrorBox";
 
 import EnvironmentBadgeGallerySkeleton, {
   ENVIRONMENT_BADGE_INITIAL_VISIBLE_COUNT,
@@ -123,7 +123,14 @@ export default function EnvironmentBadgeGallery({ userId, initialBadges }: Props
   }
 
   if (error) {
-    return <FetchError message="環境バッジの取得に失敗しました" onRetry={loadBadges} />;
+    // 骨格・実体と同じ高さで出す。パネルが縮むと下に続くものがずれる
+    return (
+      <FetchErrorBox
+        sizer={<EnvironmentBadgeGallerySkeleton />}
+        message="環境バッジの取得に失敗しました"
+        onRetry={loadBadges}
+      />
+    );
   }
 
   const achievedCount = badges?.filter((b) => b.achieved).length ?? 0;

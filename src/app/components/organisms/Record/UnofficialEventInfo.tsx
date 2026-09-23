@@ -6,7 +6,7 @@ import { Chip } from "@heroui/react";
 
 import { LuPencilLine } from "react-icons/lu";
 
-import FetchError from "@app/components/molecules/FetchError";
+import FetchErrorBox from "@app/components/molecules/FetchErrorBox";
 import RecordInfoCardBase from "@app/components/organisms/Record/RecordInfoCardBase";
 import RecordInfoCardSkeleton from "@app/components/organisms/Record/Skeleton/RecordInfoCardSkeleton";
 
@@ -89,7 +89,10 @@ export default function UnofficialEventInfo({ record }: Props) {
   }, [record?.event_date, record?.created_at, unofficialEvent?.date]);
 
   if (error) {
-    return <FetchError onRetry={loadUnofficialEvent} compact />;
+    // 骨格・実体と同じ高さで出す(欠けると下に続くものがずれる)
+    return (
+      <FetchErrorBox sizer={<RecordInfoCardSkeleton />} onRetry={loadUnofficialEvent} compact />
+    );
   }
 
   if (loadingUnofficialEvent) {

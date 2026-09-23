@@ -34,13 +34,19 @@ function sameContent(a: unknown, b: unknown): boolean {
   }
 }
 
-type State<T> = {
+type State<T, K> = {
   data: T | null;
   loading: boolean;
   error: boolean;
+  // この結果がどの鍵のものか。鍵が変わった直後はまだ取得の effect が走っておらず、
+  // 前の鍵の結果が残っているため、失敗を今の鍵のものとして返さないために使う
+  key: K | null;
 };
 
-export type SeededResource<T> = State<T> & {
+export type SeededResource<T> = {
+  data: T | null;
+  loading: boolean;
+  error: boolean;
   // 失敗したときの再取得(FetchError の onRetry に渡す)
   retry: () => void;
   // 取得した値を差し替える(取得中・失敗の状態はそのまま)
@@ -59,10 +65,11 @@ export function useSeededResource<K extends string | number, T>(
   { refreshKey }: Options = {},
 ): SeededResource<T> {
   const hasKey = key !== null && key !== undefined && key !== "" && key !== 0;
-  const [state, setState] = useState<State<T>>(() => ({
+  const [state, setState] = useState<State<T, K>>(() => ({
     data: initial ?? null,
     loading: hasKey && initial === undefined,
     error: false,
+    key: hasKey ? (key as K) : null,
   }));
   // 何度目の取得か。retry で進めて effect を再実行させる
   const [attempt, setAttempt] = useState(0);
@@ -94,9 +101,16 @@ export function useSeededResource<K extends string | number, T>(
     const changed = !sameContent(initialRef.current, initial);
     initialRef.current = initial;
     if (changed) {
-      setState({ data: initial, loading: false, error: false });
+      setState({
+        data: initial,
+        loading: false,
+        error: false,
+        key: hasKey ? (key as K) : null,
+      });
       showingInitialRef.current = true;
     }
+    // key は「この初期値がどの鍵のものか」を記録するためだけに読む(変化で走らせない)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initial]);
 
   // マウント時の refreshKey。そこから変わっていれば、初期値があっても取り直す
@@ -123,11 +137,13 @@ export function useSeededResource<K extends string | number, T>(
     fetcherRef
       .current(key as K)
       .then((data) => {
-        if (!cancelled) setState({ data, loading: false, error: false });
+        if (!cancelled) setState({ data, loading: false, error: false, key: key as K });
       })
       .catch((err) => {
         console.error(err);
-        if (!cancelled) setState((prev) => ({ ...prev, loading: false, error: true }));
+        if (!cancelled) {
+          setState((prev) => ({ ...prev, loading: false, error: true, key: key as K }));
+        }
       });
 
     return () => {
@@ -147,6 +163,21 @@ export function useSeededResource<K extends string | number, T>(
     }));
   }, []);
 
-  // 鍵が無い(紐付くものが無い)ときは取得中にしない(鍵が途中で消えた場合も含む)
-  return { ...state, loading: hasKey && state.loading, retry, setData };
+  /*
+   * 鍵が無い(紐付くものが無い)ときは取得中にしない(鍵が途中で消えた場合も含む)。
+   *
+   * 失敗は「今の鍵に対する失敗」だけを返す。鍵が変わった直後の描画には前の鍵の結果が
+   * 残っており、そのまま返すと呼び出し側が別のものの失敗を出してしまう
+   * (記録カードが、前の記録の失敗を差し替え後の記録の失敗として表示していた)。
+   * 次の描画で取得の effect が走り、その鍵での loading / error に入れ替わる。
+   */
+  const staleKey = hasKey && state.key !== key;
+
+  return {
+    data: state.data,
+    loading: hasKey && (state.loading || staleKey),
+    error: state.error && !staleKey,
+    retry,
+    setData,
+  };
 }

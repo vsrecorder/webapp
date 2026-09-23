@@ -16,6 +16,10 @@ import { hasWinRate } from "@app/utils/winRate";
 
 type Props = {
   stats: MatchStats;
+  // 対戦一覧の取得に失敗したか。stats は対戦一覧から集計するため、失敗すると
+  // 0勝0敗になり「対戦0件の記録」と見分けが付かない。勝率も勝敗も「-」にして、
+  // 数字を持っていないことを示す(取り直しは下の対戦結果パネルのエラーカードから行う)。
+  error?: boolean;
   // 裏面(貢献度)を表示するか。表示状態は親が持つ
   // (シェア画像は別インスタンスの RecordHero を描画するため、同じ面を撮るには
   //  状態を共有する必要がある)。
@@ -111,6 +115,7 @@ function synergyGlowClass(phi: number | null): string {
  */
 export default function RecordStatPanel({
   stats,
+  error = false,
   showSynergy = false,
   onToggleSynergy,
 }: Props) {
@@ -121,7 +126,8 @@ export default function RecordStatPanel({
    * 分母から外すため、1分だけの記録も勝率が無い)が該当する。
    * この場合はリングも勝敗も中立のグレーで置く。
    */
-  const noWinRate = !hasWinRate(stats.wins, stats.losses);
+  // 取得に失敗したときも勝率を持たない扱いにする(0% と描くと全敗に読める)
+  const noWinRate = error || !hasWinRate(stats.wins, stats.losses);
 
   // 裏面(貢献度)はチーム戦の記録でのみ表示できる
   const isSynergyView = hasTeamStats && showSynergy;
@@ -201,7 +207,7 @@ export default function RecordStatPanel({
                         noWinRate ? "text-default-300" : "text-success"
                       }`}
                     >
-                      {stats.wins}
+                      {error ? "-" : stats.wins}
                     </span>
                     <span className="mt-1 text-[0.5625rem] font-bold text-default-500">
                       勝
@@ -214,7 +220,7 @@ export default function RecordStatPanel({
                         noWinRate ? "text-default-300" : "text-danger"
                       }`}
                     >
-                      {stats.losses}
+                      {error ? "-" : stats.losses}
                     </span>
                     <span className="mt-1 text-[0.5625rem] font-bold text-default-500">
                       敗

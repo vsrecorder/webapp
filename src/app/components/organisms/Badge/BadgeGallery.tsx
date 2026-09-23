@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useState, Fragment } from "react";
 import { Card, CardBody, useDisclosure } from "@heroui/react";
 
-import FetchError from "@app/components/molecules/FetchError";
+import FetchErrorBox from "@app/components/molecules/FetchErrorBox";
 
 import { useSeededResource } from "@app/hooks/useSeededResource";
 import { UserBadgeType, UserBadgesType } from "@app/types/badge";
@@ -149,7 +149,14 @@ export default function BadgeGallery({
   }
 
   if (error) {
-    return <FetchError message="バッジの取得に失敗しました" onRetry={loadBadges} />;
+    // 骨格・実体と同じ高さで出す。パネルが縮むと下に続くものがずれる
+    return (
+      <FetchErrorBox
+        sizer={<BadgeGallerySkeleton />}
+        message="バッジの取得に失敗しました"
+        onRetry={loadBadges}
+      />
+    );
   }
 
   const grouped = BADGE_CATEGORY_ORDER.map((category) => ({

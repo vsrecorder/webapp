@@ -5,6 +5,7 @@ import { useCallback, useMemo, useState } from "react";
 import { Button, Card, CardBody, Tabs, Tab } from "@heroui/react";
 import { LuShare2 } from "react-icons/lu";
 
+import FetchErrorBox from "@app/components/molecules/FetchErrorBox";
 import UserStatPanelSkeleton from "@app/components/organisms/UserStat/Skeleton/UserStatPanelSkeleton";
 import UserStatSummary from "@app/components/molecules/UserStat/UserStatSummary";
 import UserStatShareCard from "@app/components/organisms/UserStat/UserStatShareCard";
@@ -151,11 +152,26 @@ export default function UserStatPanel({
     excludeDefaultMatches ===
       (initialExcludeDefaultMatches ?? DEFAULT_EXCLUDE_DEFAULT_MATCHES);
 
-  const { data: stat, loading: isLoading } = useSeededResource(
-    query,
-    fetchStat,
-    canUseInitialStat ? initialStat : undefined,
-  );
+  const {
+    data: stat,
+    loading: isLoading,
+    error: statError,
+    retry: retryStat,
+  } = useSeededResource(query, fetchStat, canUseInitialStat ? initialStat : undefined);
+
+  /*
+   * 取得に失敗したか(絞り込みごとに覚える)。
+   * 失敗したまま stat を null で描くと、UserStatSummary は「対戦記録 0 / 勝利 0 / 敗北 0」を
+   * 並べてしまい、まだ記録が無いユーザーと見分けが付かない。数字の代わりに取り直しを出す。
+   * 取り直しを始めると error は false に戻るので、成功するまでは立てたままにする。
+   */
+  const [failedQuery, setFailedQuery] = useState<string | null>(null);
+  const statFailed = failedQuery !== null && failedQuery === query;
+  if (statError && stat === null && !statFailed) {
+    setFailedQuery(query);
+  } else if (statFailed && stat !== null) {
+    setFailedQuery(null);
+  }
 
 
   // 「環境」と「レギュレーションマーク」はスタンダードのカードプールを前提にした区切りのため、
@@ -227,7 +243,7 @@ export default function UserStatPanel({
     </div>
   );
 
-  if (isLoading && !stat) {
+  if (isLoading && !stat && !statFailed) {
     return (
       <>
         {header}
@@ -322,8 +338,25 @@ export default function UserStatPanel({
           {/* 期間ラベル */}
           <p className="text-center text-xs text-default-400 -mt-2">{filterLabel} の戦績</p>
 
-          {/* 統計グリッドと勝率 */}
-          <UserStatSummary stat={stat} isLoading={isLoading} />
+          {/* 統計グリッドと勝率。取得できなかったときは 0 を並べず、ここだけ取り直させる
+              (絞り込みのタブ・セレクタは操作できるまま残す) */}
+          {statFailed ? (
+            /* 高さは正常時の数値グリッドに合わせる。UserStatSummary は断片(Fragment)で
+               CardBody の gap-4 に直接並ぶため、型枠の中でも同じ gap で積んでおく */
+            <FetchErrorBox
+              sizer={
+                <div className="flex flex-col gap-4">
+                  <UserStatSummary stat={stat} isLoading={false} />
+                </div>
+              }
+              message="戦績を取得できませんでした"
+              onRetry={retryStat}
+              isRetrying={isLoading}
+              compact
+            />
+          ) : (
+            <UserStatSummary stat={stat} isLoading={isLoading} />
+          )}
 
           {/* 不戦勝・不戦敗の扱い。効く先(試合数・勝敗・勝率)のすぐ下に置く。
               余白は CardBody の gap-4 に任せる */}

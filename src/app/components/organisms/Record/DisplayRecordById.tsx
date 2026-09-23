@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 
 import { Card, CardBody } from "@heroui/react";
 import { LuLayers, LuChartNoAxesColumn, LuScrollText, LuTag } from "react-icons/lu";
@@ -20,10 +20,11 @@ import {
   tagSummary,
 } from "@app/components/organisms/Record/recordSettings";
 
-import { fetchMatchesByRecordId, summarizeMatches } from "@app/utils/matchStats";
+import { useRecordMatches } from "@app/hooks/useRecordMatches";
+
+import { summarizeMatches } from "@app/utils/matchStats";
 
 import { RecordGetByIdResponseType } from "@app/types/record";
-import { MatchGetResponseType } from "@app/types/match";
 
 type Props = {
   recordData: RecordGetByIdResponseType;
@@ -32,9 +33,16 @@ type Props = {
 export default function DisplayRecordById({ recordData }: Props) {
   const [record, setRecord] = useState<RecordGetByIdResponseType | null>(recordData);
 
-  // 対戦一覧を親で一元管理し、ヒーローの戦績と対戦結果表示で共有する
-  const [matches, setMatches] = useState<MatchGetResponseType[] | null>(null);
-  const [loadingMatches, setLoadingMatches] = useState(true);
+  // 対戦一覧を親で一元管理し、ヒーローの戦績と対戦結果表示で共有する。
+  // 取得に失敗したときは空配列にせず failed で伝える(0件と混ぜない)
+  const {
+    matches,
+    setMatches,
+    loading: loadingMatches,
+    failed: matchesFailed,
+    isRetrying: retryingMatches,
+    retry: retryMatches,
+  } = useRecordMatches(recordData.id);
 
   // 戦績パネルの裏面(貢献度)の表示状態。シェア画像は画面外に別の RecordHero を
   // 描画して撮るため、画面と同じ面を撮れるよう状態はここで持ちシェア側にも渡す。
@@ -45,32 +53,6 @@ export default function DisplayRecordById({ recordData }: Props) {
   const [eventRefreshKey, setEventRefreshKey] = useState(0);
 
   const deckCardRef = useRef<HTMLDivElement>(null);
-
-  // 記録が変わったら対戦一覧を取り直す(取得中の初期値は上の useState で立てている。
-  // 記録が差し替わったときは前回の値を控えておき、描画中に取得中へ戻す)
-  const [matchesRecordId, setMatchesRecordId] = useState(recordData.id);
-  if (matchesRecordId !== recordData.id) {
-    setMatchesRecordId(recordData.id);
-    setLoadingMatches(true);
-  }
-
-  useEffect(() => {
-    let ignore = false;
-    fetchMatchesByRecordId(recordData.id)
-      .then((data) => {
-        if (!ignore) setMatches(data);
-      })
-      .catch((err) => {
-        console.error(err);
-        if (!ignore) setMatches([]);
-      })
-      .finally(() => {
-        if (!ignore) setLoadingMatches(false);
-      });
-    return () => {
-      ignore = true;
-    };
-  }, [recordData.id]);
 
   const stats = summarizeMatches(matches ?? []);
 
@@ -84,6 +66,7 @@ export default function DisplayRecordById({ recordData }: Props) {
             setRecord={setRecord}
             stats={stats}
             loadingStats={loadingMatches}
+            statsError={matchesFailed}
             showSynergy={showSynergy}
             onToggleSynergy={() => setShowSynergy((prev) => !prev)}
             enableEditTCGMeisterURL={true}
@@ -96,6 +79,9 @@ export default function DisplayRecordById({ recordData }: Props) {
                 matches={matches}
                 setMatches={setMatches}
                 loading={loadingMatches}
+                error={matchesFailed}
+                onRetry={retryMatches}
+                isRetrying={retryingMatches}
                 enableCreateMatchModalButton={true}
                 enableUpdateMatchModalButton={true}
                 flat={true}
@@ -189,6 +175,7 @@ export default function DisplayRecordById({ recordData }: Props) {
             record={record}
             setRecord={setRecord}
             matches={matches}
+            matchesFailed={matchesFailed}
             stats={stats}
             showSynergy={showSynergy}
             deckCardRef={deckCardRef}

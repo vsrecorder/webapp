@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Card, CardBody, useDisclosure } from "@heroui/react";
 
-import FetchError from "@app/components/molecules/FetchError";
+import FetchErrorBox from "@app/components/molecules/FetchErrorBox";
 
 import { useSeededResource } from "@app/hooks/useSeededResource";
 import { UserBadgeType, UserBadgesType } from "@app/types/badge";
@@ -59,7 +59,11 @@ export default function OnboardingBadgePanel({ userId, initialBadges }: Props) {
 
   if (error) {
     return (
-      <FetchError message="「はじめの一歩」の取得に失敗しました" onRetry={loadBadges} />
+      <FetchErrorBox
+        sizer={<OnboardingBadgePanelSkeleton />}
+        message="「はじめの一歩」の取得に失敗しました"
+        onRetry={loadBadges}
+      />
     );
   }
 

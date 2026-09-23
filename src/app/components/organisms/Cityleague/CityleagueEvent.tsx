@@ -20,7 +20,7 @@ import CityleagueEventSkeleton from "@app/components/organisms/Cityleague/Skelet
 
 import { OfficialEventResponseType } from "@app/types/official_event";
 import { CityleagueResultGetResponseType } from "@app/types/cityleague_result";
-import FetchError from "@app/components/molecules/FetchError";
+import FetchErrorBox from "@app/components/molecules/FetchErrorBox";
 
 async function fetchCityleagueInfoByDate(league_type: number, date: string) {
   try {
@@ -219,11 +219,16 @@ export default function CityleagueEvent({ league_type, setLeagueTypeCount, date 
 
   return (
     <>
-      {/* 取得できなかったとき。空状態と同じ枠で、取り直せるようにする */}
+      {/* 取得できなかったとき。読み込み中・実体と同じ高さの枠で、取り直せるようにする */}
       {isInitialLoaded && !isLoading1 && isError ? (
         <Swiper>
           <SwiperSlide className="p-3">
-            <FetchError
+            <FetchErrorBox
+              sizer={
+                <div className="text-center">
+                  <CityleagueEventSkeleton />
+                </div>
+              }
               message={
                 isPreview
                   ? "この日の開催情報を取得できませんでした"
@@ -231,6 +236,8 @@ export default function CityleagueEvent({ league_type, setLeagueTypeCount, date 
               }
               onRetry={() => setReloadKey((key) => key + 1)}
               isRetrying={isLoading1}
+              // 枠は 136px しかなく、縦積み(約138px)では 26px はみ出す
+              variant="row"
             />
           </SwiperSlide>
         </Swiper>

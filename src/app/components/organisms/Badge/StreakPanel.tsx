@@ -3,7 +3,7 @@
 import { Card, CardBody, Popover, PopoverContent, PopoverTrigger } from "@heroui/react";
 import { LuFlame, LuInfo, LuSnowflake } from "react-icons/lu";
 
-import FetchError from "@app/components/molecules/FetchError";
+import FetchErrorBox from "@app/components/molecules/FetchErrorBox";
 
 import StreakPanelSkeleton, {
   InfoButtonPlaceholder,
@@ -57,8 +57,14 @@ export default function StreakPanel({ userId, initialStreak }: Props) {
   }
 
   if (error) {
+    // 骨格・実体と同じ高さで出す。パネルが縮むと下に続くものがずれる
     return (
-      <FetchError message="連続記録の取得に失敗しました" onRetry={loadStreak} compact />
+      <FetchErrorBox
+        sizer={<StreakPanelSkeleton />}
+        message="連続記録の取得に失敗しました"
+        onRetry={loadStreak}
+        variant="row"
+      />
     );
   }
 

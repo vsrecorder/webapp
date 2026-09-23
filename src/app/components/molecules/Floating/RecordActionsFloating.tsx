@@ -4,7 +4,7 @@ import { RefObject, Dispatch, SetStateAction, useEffect, useState } from "react"
 
 import { useRouter } from "next/navigation";
 
-import { Button, useDisclosure } from "@heroui/react";
+import { Button, useDisclosure, addToast } from "@heroui/react";
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/dropdown";
 
 import {
@@ -84,6 +84,9 @@ type Props = {
   setRecord: Dispatch<SetStateAction<RecordGetByIdResponseType | null>>;
   // ヒーローの戦績と共有する対戦一覧・戦績サマリー(親で一元管理)
   matches: MatchGetResponseType[] | null;
+  // 対戦一覧の取得に失敗しているか。シェア画像は対戦結果を写すため、
+  // 取得できていないまま開かせない(開いても揃うのを待ち続けることになる)
+  matchesFailed?: boolean;
   stats: MatchStats;
   // 戦績パネルで貢献度(裏面)を表示中か。シェア画像に同じ面を写すため、そのまま中継する
   showSynergy?: boolean;
@@ -97,6 +100,7 @@ export default function RecordActionsFloating({
   record,
   setRecord,
   matches,
+  matchesFailed = false,
   stats,
   showSynergy,
   deckCardRef,
@@ -193,6 +197,24 @@ export default function RecordActionsFloating({
     });
   }, [record]);
 
+  /*
+   * シェアモーダルを開く。対戦一覧を取得できていないときは開かない。
+   * シェア画像は対戦結果を含めて撮るため、揃うまで「シェアする」が押せないまま
+   * 待ち続けることになる(取り直しは記録の対戦結果パネルから行う)。
+   */
+  const openShareModal = () => {
+    if (matchesFailed) {
+      addToast({
+        title: "対戦結果を読み込めていません",
+        description: "対戦結果を再読み込みしてからシェアしてください",
+        color: "warning",
+        timeout: 5000,
+      });
+      return;
+    }
+    onOpenForShareModal();
+  };
+
   return (
     <>
       <ShareRecordModal
@@ -269,7 +291,7 @@ export default function RecordActionsFloating({
             size="lg"
             color="primary"
             className="shadow-lg active:scale-95 transition-all duration-200"
-            onPress={onOpenForShareModal}
+            onPress={() => openShareModal()}
           >
             <LuShare2 className="text-xl" />
           </Button>

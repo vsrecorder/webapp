@@ -12,7 +12,7 @@ import { useDisclosure } from "@heroui/react";
 
 import { LuLink } from "react-icons/lu";
 
-import FetchError from "@app/components/molecules/FetchError";
+import FetchErrorBox from "@app/components/molecules/FetchErrorBox";
 import RecordInfoCardBase from "@app/components/organisms/Record/RecordInfoCardBase";
 import RecordInfoCardSkeleton from "@app/components/organisms/Record/Skeleton/RecordInfoCardSkeleton";
 import {
@@ -78,7 +78,10 @@ export default function OfficialEventInfo({
   } = useDisclosure();
 
   if (error) {
-    return <FetchError onRetry={loadOfficialEvent} compact />;
+    // 骨格・実体と同じ高さで出す(欠けると下に続くものがずれる)
+    return (
+      <FetchErrorBox sizer={<RecordInfoCardSkeleton />} onRetry={loadOfficialEvent} compact />
+    );
   }
 
   if (loadingOfficialEvent || !officialEvent) {

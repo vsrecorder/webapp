@@ -351,15 +351,20 @@ export default function DeckById({ id, valueMeterEnabled = false }: Props) {
         <div className="absolute inset-0 border-b border-default-200/60 bg-white/90 backdrop-blur-md dark:bg-neutral-950/90" />
         <div className="relative flex items-center justify-between px-2 py-2">
           <BackLink href="/decks" label="デッキ一覧" />
-          {/* シェア：記録情報のシェアと同じく、プライマリ色で強調した独立ボタン */}
+          {/* シェア：記録情報のシェアと同じく、プライマリ色で強調した独立ボタン。
+              寸法(余白・文字・アイコン)は左の BackLink に合わせ、同じ大きさの対で見せる */}
           <button
             type="button"
             onClick={() => setShareOpen(true)}
             aria-label="このデッキをシェアする"
-            className="flex items-center gap-0.5 rounded-full bg-primary/10 px-2.5 py-1 text-[0.6875rem] font-bold text-primary active:opacity-70"
+            /* 左の BackLink と同じ大きさ・同じ浮きにする。あちらが使う bg-content1 は
+               ダークでだけ 1px の境界線を持ち(実測: ライト 32px / ダーク 34px)、
+               その白い縁と影で浮いて見える。こちらは面が半透明で沈むため、
+               同じ境界線(実測 rgba(255,255,255,0.3))と shadow-small を置いて揃える */
+            className="inline-flex items-center gap-1 rounded-full border-white/30 bg-primary/10 py-1.5 pl-2 pr-3.5 text-sm font-bold text-primary shadow-small active:opacity-70 dark:border"
           >
-            <LuShare2 className="text-xs" />
-            シェア
+            <LuShare2 className="shrink-0 text-base" />
+            <span className="truncate">シェア</span>
           </button>
         </div>
       </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { LuSwords, LuTrophy } from "react-icons/lu";
 
@@ -53,6 +53,18 @@ export function DeckVersionWinRateOverview({
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const bestColumnRef = useRef<HTMLLIElement | null>(null);
 
+  // 左右にまだ隠れた列があるか。スクロールバーを出していないので、続きがある側の端を
+  // うっすら暗くして、横にスクロールできることに気づけるようにする
+  const [hiddenLeft, setHiddenLeft] = useState(false);
+  const [hiddenRight, setHiddenRight] = useState(false);
+  const updateEdges = useCallback(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+    // 1px の余裕は、拡大表示などで scrollLeft が小数になり端に届き切らないことがあるため
+    setHiddenLeft(scroller.scrollLeft > 1);
+    setHiddenRight(scroller.scrollLeft + scroller.clientWidth < scroller.scrollWidth - 1);
+  }, []);
+
   // 最高勝率の列が右にはみ出しているときだけ、その列の右端が見えるところまでずらす。
   // 最小限のずらし方にするのは、左側(新しい版)をできるだけ見えたままにするため。
   // 描画前に合わせないと、左端で一度描かれてから飛ぶのが見えてしまう。
@@ -68,6 +80,18 @@ export function DeckVersionWinRateOverview({
     }
   }, [bestId, deckcodes.length]);
 
+  // 版の増減・画面幅の変化(回転やモーダルの幅)で、はみ出すかどうかが変わるので測り直す。
+  // 上の自動スクロールより後に宣言しているので、ずらした後の位置で測る
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+
+    updateEdges();
+    const observer = new ResizeObserver(updateEdges);
+    observer.observe(scroller);
+    return () => observer.disconnect();
+  }, [updateEdges, deckcodes.length]);
+
   return (
     <section className="mb-4 mx-1 rounded-xl bg-default-100 p-3 flex flex-col gap-2">
       <div className="flex items-center justify-between gap-2">
@@ -81,73 +105,89 @@ export function DeckVersionWinRateOverview({
         )}
       </div>
 
-      {/* relative は列の offsetLeft をこの箱基準にするため */}
-      <div
-        ref={scrollerRef}
-        className="relative overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none"
-      >
-        <ol className="flex gap-1.5 min-w-max">
-          {deckcodes.map((dc, index) => {
-            const versionNo = deckcodes.length - index;
-            const usage = usageById.get(dc.id);
-            const enough = !!usage && hasEnoughMatchesForWinRate(usage);
-            const isBest = dc.id === bestId;
-            const barHeight = enough
-              ? Math.max(4, Math.round(usage.win_rate * BAR_MAX_HEIGHT))
-              : 4;
+      {/* 端の影はスクロールする箱の外側に重ねる(内側に置くと列と一緒に流れてしまう) */}
+      <div className="relative">
+        {/* relative は列の offsetLeft をこの箱基準にするため */}
+        <div
+          ref={scrollerRef}
+          onScroll={updateEdges}
+          className="relative overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none"
+        >
+          <ol className="flex gap-1.5 min-w-max">
+            {deckcodes.map((dc, index) => {
+              const versionNo = deckcodes.length - index;
+              const usage = usageById.get(dc.id);
+              const enough = !!usage && hasEnoughMatchesForWinRate(usage);
+              const isBest = dc.id === bestId;
+              const barHeight = enough
+                ? Math.max(4, Math.round(usage.win_rate * BAR_MAX_HEIGHT))
+                : 4;
 
-            return (
-              <li key={dc.id} ref={isBest ? bestColumnRef : undefined}>
-                <button
-                  type="button"
-                  onClick={() =>
-                    document
-                      .getElementById(deckVersionElementId(dc.id))
-                      ?.scrollIntoView({ behavior: "smooth", block: "start" })
-                  }
-                  aria-label={`バージョン${versionNo}へ移動`}
-                  className={`flex w-12 flex-col items-center gap-1 rounded-lg px-1 py-1.5 active:opacity-70 ${
-                    isBest ? "bg-primary/10" : "bg-content1"
-                  }`}
-                >
-                  <span
-                    className={`text-[0.6875rem] font-bold tabular-nums ${
-                      isBest
-                        ? "text-primary"
-                        : enough
-                          ? "text-foreground"
-                          : "text-default-300"
+              return (
+                <li key={dc.id} ref={isBest ? bestColumnRef : undefined}>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      document
+                        .getElementById(deckVersionElementId(dc.id))
+                        ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                    }
+                    aria-label={`バージョン${versionNo}へ移動`}
+                    className={`flex w-12 flex-col items-center gap-1 rounded-lg px-1 py-1.5 active:opacity-70 ${
+                      isBest ? "bg-primary/10" : "bg-content1"
                     }`}
                   >
-                    {enough ? formatPercent(usage.win_rate) : "—"}
-                  </span>
-                  <div
-                    className="flex w-5 items-end justify-center"
-                    style={{ height: BAR_MAX_HEIGHT }}
-                    aria-hidden
-                  >
-                    <div
-                      className={`w-full rounded-t ${
+                    <span
+                      className={`text-[0.6875rem] font-bold tabular-nums ${
                         isBest
-                          ? "bg-primary"
+                          ? "text-primary"
                           : enough
-                            ? "bg-default-400"
-                            : "bg-default-200"
+                            ? "text-foreground"
+                            : "text-default-300"
                       }`}
-                      style={{ height: barHeight }}
-                    />
-                  </div>
-                  <span className="text-[0.625rem] font-bold text-default-600">
-                    Ver.{versionNo}
-                  </span>
-                  <span className="text-[0.625rem] text-default-400 tabular-nums">
-                    {usage ? `${usage.count}戦` : "0戦"}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ol>
+                    >
+                      {enough ? formatPercent(usage.win_rate) : "—"}
+                    </span>
+                    <div
+                      className="flex w-5 items-end justify-center"
+                      style={{ height: BAR_MAX_HEIGHT }}
+                      aria-hidden
+                    >
+                      <div
+                        className={`w-full rounded-t ${
+                          isBest
+                            ? "bg-primary"
+                            : enough
+                              ? "bg-default-400"
+                              : "bg-default-200"
+                        }`}
+                        style={{ height: barHeight }}
+                      />
+                    </div>
+                    <span className="text-[0.625rem] font-bold text-default-600">
+                      Ver.{versionNo}
+                    </span>
+                    <span className="text-[0.625rem] text-default-400 tabular-nums">
+                      {usage ? `${usage.count}戦` : "0戦"}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
+        <div
+          aria-hidden
+          className={`pointer-events-none absolute inset-y-0 left-0 w-10 rounded-l-lg bg-linear-to-r from-black/25 via-black/8 to-transparent transition-opacity duration-200 dark:from-black/75 dark:via-black/30 ${
+            hiddenLeft ? "opacity-100" : "opacity-0"
+          }`}
+        />
+        <div
+          aria-hidden
+          className={`pointer-events-none absolute inset-y-0 right-0 w-10 rounded-r-lg bg-linear-to-l from-black/25 via-black/8 to-transparent transition-opacity duration-200 dark:from-black/75 dark:via-black/30 ${
+            hiddenRight ? "opacity-100" : "opacity-0"
+          }`}
+        />
       </div>
 
       <p className="text-[0.625rem] text-default-400">

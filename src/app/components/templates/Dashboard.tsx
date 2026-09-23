@@ -57,8 +57,12 @@ import { getDashboardInitialData } from "@app/utils/dashboardServer";
 import { getHomeRecordsHead, getRecordingNow } from "@app/utils/recordingNowServer";
 import { formatElapsedDuration } from "@app/utils/recordingNow";
 import { DEFAULT_EXCLUDE_DEFAULT_MATCHES } from "@app/utils/excludeDefaultMatches";
-import { pickCityleagueScheduleState } from "@app/utils/cityleagueSchedule";
-import { todayJSTDateString } from "@app/utils/date";
+import {
+  isPastCityleaguePreviewReveal,
+  pickCityleagueScheduleState,
+} from "@app/utils/cityleagueSchedule";
+import { formatJSTDateWithWeekday, todayJSTDateString, toJSTDateString } from "@app/utils/date";
+import { getOfficialEventList } from "@app/utils/officialEventListServer";
 
 import { getJstNow } from "@app/utils/calendar";
 
@@ -272,6 +276,33 @@ export default async function TemplateDashboard({
   const showOffSeasonCard = schedules !== undefined && cs === null;
 
   /*
+   * 開催期間外でも、次シーズンの解禁時刻(PREVIEW_REVEAL_LEAD_HOURS 参照)を過ぎていれば、
+   * 案内カードの代わりに初日の会場一覧を先出しでプレビュー表示する。
+   *
+   * 上流の会場登録自体は境界日より数日前に済んでいることが多いが、それをそのまま
+   * 出すと運営側の発表より早く漏れてしまうため、解禁時刻で絞る。
+   * league_type を指定せず問い合わせ、リーグ区分によらず1件でも登録があればプレビューする。
+   */
+  const previewSchedule =
+    showOffSeasonCard && nextCs
+      ? { schedule: nextCs, date: toJSTDateString(nextCs.from_date) }
+      : null;
+  const pastPreviewReveal =
+    previewSchedule !== null &&
+    isPastCityleaguePreviewReveal(previewSchedule.schedule.from_date);
+
+  let previewEventCount = 0;
+  if (previewSchedule && pastPreviewReveal) {
+    try {
+      const preview = await getOfficialEventList("2", "", previewSchedule.date);
+      previewEventCount = preview.count ?? 0;
+    } catch {
+      previewEventCount = 0;
+    }
+  }
+  const showPreview = previewSchedule !== null && pastPreviewReveal && previewEventCount > 0;
+
+  /*
    * 各パネル(バッジ・ストリーク・称号・戦績・プロフィール)が最初に出す値を、ここでまとめて取る。
    *
    * 上の取得のあとに置いているのは、シーズン(championshipSeries)と当日の対戦環境(env)が
@@ -335,13 +366,18 @@ export default async function TemplateDashboard({
    * この節ごと消していたが、それだとホームの構成が時期によって変わり、利用者からは
    * 「パネルが消えた」ように見える。節は常に出し、中身だけ入れ替える:
    *   ・開催期間中(と、期間が分からなかったとき) … 当日の会場一覧(CityleagueEvents)
-   *   ・開催期間外 … 次に始まるシーズンの案内(CityleagueOffSeasonCard)
+   *   ・開催期間外、次シーズン初日の会場がまだ無い … 次に始まるシーズンの案内(CityleagueOffSeasonCard)
+   *   ・開催期間外、次シーズン初日の会場がもう登録済み … その日の会場一覧を先出し(showPreview)
    * 骨格も背丈が違うので skeletonId で分ける。
    */
   sections.push({
     id: "cityleague",
     label: "本日のシティリーグ結果",
-    skeletonId: showOffSeasonCard ? "cityleague_off_season" : "cityleague",
+    skeletonId: showPreview
+      ? "cityleague_preview"
+      : showOffSeasonCard
+        ? "cityleague_off_season"
+        : "cityleague",
     node: (
       <section key="cityleague" className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
@@ -357,7 +393,12 @@ export default async function TemplateDashboard({
             結果を見る
           </LinkButton>
         </div>
-        {showOffSeasonCard ? (
+        {showPreview && previewSchedule ? (
+          <CityleagueEvents
+            date={previewSchedule.date}
+            previewLabel={formatJSTDateWithWeekday(previewSchedule.schedule.from_date)}
+          />
+        ) : showOffSeasonCard ? (
           <CityleagueOffSeasonCard next={nextCs} />
         ) : (
           <CityleagueEvents />

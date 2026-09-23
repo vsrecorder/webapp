@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { CityleagueScheduleType } from "@app/types/cityleague_schedule";
-import { pickCityleagueScheduleState } from "@app/utils/cityleagueSchedule";
+import {
+  isPastCityleaguePreviewReveal,
+  pickCityleagueScheduleState,
+} from "@app/utils/cityleagueSchedule";
 
 // 上流(core-apiserver)は JST 0:00 を +09:00 付きで返す。実データと同じ形で組む
 function schedule(
@@ -82,5 +85,34 @@ describe("pickCityleagueScheduleState", () => {
 
     expect(ongoing).toBeNull();
     expect(next?.id).toBe("2027s1");
+  });
+});
+
+describe("isPastCityleaguePreviewReveal", () => {
+  // from_date は常にJST 0:00。9/26 0:00 の5時間前 = 9/25 19:00
+  const FROM_DATE = "2026-09-26T00:00:00+09:00";
+
+  it("解禁時刻ちょうどは解禁済み", () => {
+    expect(
+      isPastCityleaguePreviewReveal(FROM_DATE, new Date("2026-09-25T19:00:00+09:00")),
+    ).toBe(true);
+  });
+
+  it("解禁時刻の1分前はまだ", () => {
+    expect(
+      isPastCityleaguePreviewReveal(FROM_DATE, new Date("2026-09-25T18:59:00+09:00")),
+    ).toBe(false);
+  });
+
+  it("開催日当日はもちろん解禁済み", () => {
+    expect(isPastCityleaguePreviewReveal(FROM_DATE, new Date("2026-09-26T00:00:00+09:00"))).toBe(
+      true,
+    );
+  });
+
+  it("数日前はまだ解禁されない", () => {
+    expect(isPastCityleaguePreviewReveal(FROM_DATE, new Date("2026-09-23T09:00:00+09:00"))).toBe(
+      false,
+    );
   });
 });

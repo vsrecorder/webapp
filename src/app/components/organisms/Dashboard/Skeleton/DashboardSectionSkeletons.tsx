@@ -158,6 +158,16 @@ export default function DashboardBlockSkeleton({
         </Section>
       );
 
+    // 開催期間外だが、次シーズン初日の会場をもう先出しプレビュー表示できる場合。
+    // 中身の形は "cityleague" と同じ(タブ+会場カード)だが、日付バナーぶん背が高い
+    case "cityleague_preview":
+      return (
+        <Section gap="gap-3">
+          <SectionHeading label="本日のシティリーグ結果" action="結果を見る" />
+          <CityleagueEventsSkeleton withPreviewBanner />
+        </Section>
+      );
+
     case "my_gyms":
       return (
         <Section>

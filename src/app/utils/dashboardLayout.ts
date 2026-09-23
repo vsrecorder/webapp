@@ -52,10 +52,12 @@ export const DASHBOARD_BLOCK_IDS = [
   // 並べ替え・非表示の対象になるセクション
   "onboarding_badges",
   "streak",
-  // 本日のシティリーグ結果。開催期間中(当日の会場一覧)と期間外(次回シーズンの案内)で
-  // 中身の背丈が違うので、骨格を選べるようIDを分けている
+  // 本日のシティリーグ結果。開催期間中(当日の会場一覧)・期間外(次回シーズンの案内)・
+  // 期間外だが次シーズン初日をもう先出しプレビューできる場合、で中身の背丈が違うので、
+  // 骨格を選べるようIDを分けている
   "cityleague",
   "cityleague_off_season",
+  "cityleague_preview",
   "my_gyms",
   // 称号とランク。プレイヤーズクラブ連携済みだと「入賞したシティリーグ」の節が増えるので、
   // 骨格も2種類ある(節の有無で 200px 以上変わる)
@@ -193,7 +195,7 @@ export function splitDashboardLayout(ids: readonly DashboardBlockId[]): {
 export function sectionIdOfBlock(block: DashboardBlockId): string {
   if (block === "environment_meta_window") return "environment_meta";
   if (block === "designation_linked") return "designation";
-  if (block === "cityleague_off_season") return "cityleague";
+  if (block === "cityleague_off_season" || block === "cityleague_preview") return "cityleague";
   return block;
 }
 

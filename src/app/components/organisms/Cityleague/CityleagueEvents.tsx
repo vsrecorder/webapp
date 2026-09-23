@@ -9,7 +9,14 @@ import CityleagueEvent from "@app/components/organisms/Cityleague/CityleagueEven
 
 type TabKey = "league_type_1" | "league_type_3" | "league_type_2";
 
-export default function CityleagueEvents() {
+type Props = {
+  // 表示対象の日付("YYYY-MM-DD")。省略時は今日(JST)
+  date?: string;
+  // 開催期間外に次シーズン初日を先出しプレビュー表示するときのラベル(例:「2026年9月26日(土)」)
+  previewLabel?: string;
+};
+
+export default function CityleagueEvents({ date, previewLabel }: Props) {
   const [selectedKey, setSelectedKey] = useState<
     "league_type_1" | "league_type_3" | "league_type_2"
   >("league_type_1");
@@ -44,6 +51,13 @@ export default function CityleagueEvents() {
     <>
       <Card className="w-full">
         <CardBody className="px-0 py-1 w-full ">
+          {previewLabel && (
+            <div className="px-3 pb-1">
+              <span className="text-xs font-bold text-primary-600">
+                {previewLabel} 開催予定
+              </span>
+            </div>
+          )}
           <div className="w-full">
             <Tabs
               fullWidth
@@ -74,13 +88,25 @@ export default function CityleagueEvents() {
           </div>
 
           <div className="w-full" hidden={selectedKey !== "league_type_1"}>
-            <CityleagueEvent league_type={1} setLeagueTypeCount={setLeagueType1Count} />
+            <CityleagueEvent
+              league_type={1}
+              setLeagueTypeCount={setLeagueType1Count}
+              date={date}
+            />
           </div>
           <div className="w-full" hidden={selectedKey !== "league_type_3"}>
-            <CityleagueEvent league_type={3} setLeagueTypeCount={setLeagueType3Count} />
+            <CityleagueEvent
+              league_type={3}
+              setLeagueTypeCount={setLeagueType3Count}
+              date={date}
+            />
           </div>
           <div className="w-full" hidden={selectedKey !== "league_type_2"}>
-            <CityleagueEvent league_type={2} setLeagueTypeCount={setLeagueType2Count} />
+            <CityleagueEvent
+              league_type={2}
+              setLeagueTypeCount={setLeagueType2Count}
+              date={date}
+            />
           </div>
         </CardBody>
       </Card>

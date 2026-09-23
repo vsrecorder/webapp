@@ -94,6 +94,7 @@ describe("isDashboardBlockId", () => {
     expect(isDashboardBlockId("environment_meta_window")).toBe(true);
     expect(isDashboardBlockId("designation_linked")).toBe(true);
     expect(isDashboardBlockId("cityleague_off_season")).toBe(true);
+    expect(isDashboardBlockId("cityleague_preview")).toBe(true);
     expect(isDashboardBlockId("nope")).toBe(false);
   });
 });
@@ -294,6 +295,12 @@ describe("sectionIdOfBlock", () => {
     expect(sectionIdOfBlock("cityleague_off_season")).toBe("cityleague");
     expect(sectionIdOfBlock("streak")).toBe("streak");
   });
+
+  // 先出しプレビュー(次シーズン初日の会場一覧)も、開催期間外の骨格と同じく
+  // 「本日のシティリーグ結果」の節として拾えること
+  it("先出しプレビューの骨格IDも同じ節として拾う", () => {
+    expect(sectionIdOfBlock("cityleague_preview")).toBe("cityleague");
+  });
 });
 
 describe("initialSectionStateFromLayout", () => {
@@ -340,6 +347,15 @@ describe("initialSectionStateFromLayout", () => {
     );
 
     // ストリークの直後に来ること(既定の並びと同じ位置)
+    expect(state?.order.indexOf("cityleague")).toBe(state!.order.indexOf("streak") + 1);
+    expect(state?.hidden).not.toContain("cityleague");
+  });
+
+  // 先出しプレビューの骨格ID("cityleague_preview")でも同様。ここを取り違えると、
+  // プレビューが始まった日にパネルが非表示で始まってしまう
+  it("シティリーグは先出しプレビューの骨格IDでも同じ節として拾う", () => {
+    const state = initialSectionStateFromLayout(["streak", "cityleague_preview"], sectionIds);
+
     expect(state?.order.indexOf("cityleague")).toBe(state!.order.indexOf("streak") + 1);
     expect(state?.hidden).not.toContain("cityleague");
   });

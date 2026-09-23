@@ -28,6 +28,26 @@ function jstDateString(value: Date | string): string | null {
   return toJSTDateString(value);
 }
 
+// シティリーグの先出しプレビュー(ホームの「本日のシティリーグ結果」)を解禁するまでの、
+// 次シーズン開催日(from_date)からの巻き戻り時間(時間)。
+// schedules の from_date は常にJST 0:00 なので、5時間前は前日19時になる。
+export const PREVIEW_REVEAL_LEAD_HOURS = 5;
+
+/*
+ * 次シーズンの解禁時刻(from_date の PREVIEW_REVEAL_LEAD_HOURS 時間前)を過ぎているか。
+ *
+ * now を引数にしているのは、呼び出し側(Dashboard.tsx)が Date.now() を直接書くと
+ * react-hooks/purity(コンポーネント本体での純粋でない呼び出しの禁止)に引っかかるため。
+ * todayJSTDateString() が内部で new Date() を呼ぶのと同じ理由で、ここに閉じ込める。
+ */
+export function isPastCityleaguePreviewReveal(
+  fromDate: Date | string,
+  now: Date | number = Date.now(),
+): boolean {
+  const nowMs = now instanceof Date ? now.getTime() : now;
+  return nowMs >= new Date(fromDate).getTime() - PREVIEW_REVEAL_LEAD_HOURS * 60 * 60 * 1000;
+}
+
 export function pickCityleagueScheduleState(
   schedules: readonly CityleagueScheduleType[] | null | undefined,
   today: string,

@@ -91,9 +91,16 @@ async function fetchCityleagueResultsByTerm(
 type Props = {
   league_type: number;
   setLeagueTypeCount: Dispatch<SetStateAction<number | undefined>>;
+  /*
+   * 表示対象の日付("YYYY-MM-DD")。省略時は今日(JST)。
+   * 開催期間外に次シーズン初日を先出しプレビュー表示するときだけ、この日付を渡す。
+   */
+  date?: string;
 };
 
-export default function CityleagueEvent({ league_type, setLeagueTypeCount }: Props) {
+export default function CityleagueEvent({ league_type, setLeagueTypeCount, date }: Props) {
+  // プレビュー表示か(=今日以外の日付を指定されている)。空状態・エラーの文言を「本日」から変える
+  const isPreview = date !== undefined;
   const [cityleague, setCityleague] = useState<OfficialEventResponseType | null>(null);
   const [cityleagueResults, setCityleagueResults] =
     useState<CityleagueResultGetResponseType | null>(null);
@@ -159,13 +166,14 @@ export default function CityleagueEvent({ league_type, setLeagueTypeCount }: Pro
 
       setIsLoading1(true);
       setIsLoading2(true);
-      const today = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().split("T")[0];
+      const targetDate =
+        date ?? new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().split("T")[0];
 
       const fetchfetchCityleagueInfoData = async () => {
         try {
           const data: OfficialEventResponseType = await fetchCityleagueInfoByDate(
             league_type,
-            today,
+            targetDate,
           );
           setCityleague(data);
           setLeagueTypeCount(data.count);
@@ -187,7 +195,7 @@ export default function CityleagueEvent({ league_type, setLeagueTypeCount }: Pro
       const fetchfetchCityleagueResultsData = async () => {
         try {
           const data: CityleagueResultGetResponseType =
-            await fetchCityleagueResultsByTerm(league_type, today, today);
+            await fetchCityleagueResultsByTerm(league_type, targetDate, targetDate);
           setCityleagueResults(data);
 
           return;
@@ -207,7 +215,7 @@ export default function CityleagueEvent({ league_type, setLeagueTypeCount }: Pro
     };
 
     load();
-  }, [league_type, setLeagueTypeCount, reloadKey]);
+  }, [league_type, setLeagueTypeCount, reloadKey, date]);
 
   return (
     <>
@@ -216,7 +224,11 @@ export default function CityleagueEvent({ league_type, setLeagueTypeCount }: Pro
         <Swiper>
           <SwiperSlide className="p-3">
             <FetchError
-              message="本日の開催情報を取得できませんでした"
+              message={
+                isPreview
+                  ? "この日の開催情報を取得できませんでした"
+                  : "本日の開催情報を取得できませんでした"
+              }
               onRetry={() => setReloadKey((key) => key + 1)}
               isRetrying={isLoading1}
             />
@@ -230,7 +242,9 @@ export default function CityleagueEvent({ league_type, setLeagueTypeCount }: Pro
               <div className="">
                 <Card className="pt-3 w-full">
                   <CardHeader className="pt-11.5 pb-9 px-3 flex-col items-center gap-0.5">
-                    <div className="text-center">本日の開催はありません</div>
+                    <div className="text-center">
+                      {isPreview ? "この日の開催はありません" : "本日の開催はありません"}
+                    </div>
                   </CardHeader>
                   <CardBody className="px-0 py-1"></CardBody>
                   <CardFooter className="pt-1 pb-2"></CardFooter>

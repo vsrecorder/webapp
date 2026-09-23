@@ -87,3 +87,39 @@ describe("CityleagueEvent の想定外の応答", () => {
     await waitFor(() => expect(screen.getByText("本日の開催はありません")).toBeTruthy());
   });
 });
+
+describe("CityleagueEvent の日付指定(開催期間外の先出しプレビュー)", () => {
+  // date を渡すと「今日」ではなくその日付で問い合わせる。開催期間外に次シーズン初日を
+  // 先出し表示するときに使う
+  it("渡した日付で公式イベントを取得する", async () => {
+    const requestedUrls: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        requestedUrls.push(url);
+        if (url.includes("/api/official_events")) return Response.json(EMPTY_EVENTS);
+        return Response.json({ count: 0, event_results: [] });
+      }),
+    );
+
+    render(
+      <CityleagueEvent league_type={1} setLeagueTypeCount={() => {}} date="2026-09-26" />,
+    );
+
+    await waitFor(() => expect(screen.getByText("この日の開催はありません")).toBeTruthy());
+    expect(requestedUrls.some((url) => url.includes("date=2026-09-26"))).toBe(true);
+  });
+
+  // 「本日」の文言のままだと、数日先のプレビューなのに今日の話に見えてしまう
+  it("取得失敗の文言が「本日」ではなく「この日」になる", async () => {
+    stubFetch([null]);
+    render(
+      <CityleagueEvent league_type={1} setLeagueTypeCount={() => {}} date="2026-09-26" />,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByText("この日の開催情報を取得できませんでした")).toBeTruthy(),
+    );
+    expect(screen.queryByText("本日の開催情報を取得できませんでした")).toBeNull();
+  });
+});

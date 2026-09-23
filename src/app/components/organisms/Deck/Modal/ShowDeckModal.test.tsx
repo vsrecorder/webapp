@@ -8,6 +8,11 @@ import ShowDeckModal from "@app/components/organisms/Deck/Modal/ShowDeckModal";
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { TagType } from "@app/types/tag";
 
+// バージョン一覧モーダルが、自分のデッキかどうか(戦績を出すか)の判定にセッションを見る
+vi.mock("next-auth/react", () => ({
+  useSession: () => ({ data: { user: { id: "u1" } } }),
+}));
+
 // きずなLv.・バージョン・公開状況の取得はここでは空で返しておく
 beforeEach(() => {
   vi.stubGlobal(

@@ -67,7 +67,7 @@ export function useDeckCodes(
  * バージョンの増減を、件数を出している側(ShowDeckModal の「◯件」など)へ反映させる。
  *
  * バージョン履歴(DisplayDeckCodes)は SWR ではなく useSeededResource で一覧を持ち、
- * 追加・削除・最新化の結果を自分の state にだけ反映する。そのため履歴で増減させても
+ * 追加・削除の結果を自分の state にだけ反映する。そのため履歴で増減させても
  * useDeckCodes の SWR キャッシュは古いままで、件数が変わらない。
  *
  * useDeckCodes は watchDeckCodeId(表示中のバージョンID)の変化でも取り直すが、

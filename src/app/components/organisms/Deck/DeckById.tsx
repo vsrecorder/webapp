@@ -179,7 +179,7 @@ export default function DeckById({ id, valueMeterEnabled = false }: Props) {
   const kizunaLevel = kizuna?.level ?? null;
 
   // 画面上部に表示する代表デッキコード（＝最新バージョン）。
-  // 取得したデッキの最新バージョンから入れ、バージョンの作成・削除・最新化(setDeckCode)で
+  // 取得したデッキの最新バージョンから入れ、バージョンの作成・削除(setDeckCode)で
   // 差し替わる。デッキ本体を取り直したり編集モーダルが差し替えたりしたら、そのデッキの
   // 最新バージョンで入れ直す(前回のデッキを控えておき、描画中に入れ直す)
   const [deckcode, setDeckCode] = useState<DeckCodeType | null>(null);

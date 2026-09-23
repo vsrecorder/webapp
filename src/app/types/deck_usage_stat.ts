@@ -36,3 +36,23 @@ export type DeckUsageStatType = {
   total_records: number;
   decks: DeckUsageItemType[];
 };
+
+// デッキの1バージョン(デッキコード)で戦った対戦の成績
+export type DeckCodeUsageItemType = {
+  deck_code_id: string;
+  count: number;
+  wins: number;
+  losses: number;
+  draws: number;
+  // 勝ち/(勝ち+負け)。引き分けは分母に含めない
+  win_rate: number;
+};
+
+// デッキの対戦成績をバージョンごとに分けたもの(全期間)
+export type DeckCodeUsageStatType = {
+  user_id: string;
+  deck_id: string;
+  deck_codes: DeckCodeUsageItemType[];
+  // バージョンを指定せずに記録した対戦の数(どのバージョンの成績にも入らない)
+  unassigned_count: number;
+};

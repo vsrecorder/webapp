@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 
 import { mutate } from "swr";
 
+import { useSession } from "next-auth/react";
+
 import {
   ModalContent,
   ModalHeader,
@@ -31,7 +33,7 @@ import {
   LuClock,
   LuSquarePen,
   LuPlus,
-  LuArrowUpToLine,
+  LuTrophy,
 } from "react-icons/lu";
 
 import { Modal } from "@app/components/atoms/AppModal";
@@ -43,11 +45,15 @@ import CopyableDeckCode from "@app/components/atoms/CopyableDeckCode";
 import ZoomableDeckImage from "@app/components/atoms/ZoomableDeckImage";
 import TagChips from "@app/components/molecules/TagChips";
 import TagSelector from "@app/components/organisms/Tag/TagSelector";
+import {
+  DeckVersionRecordStrip,
+  DeckVersionWinRateOverview,
+  deckVersionElementId,
+} from "@app/components/organisms/Deck/DeckVersionStats";
 
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import {
   DeckCodeType,
-  DeckCodeCreateRequestType,
   DeckCodeUpdateRequestType,
 } from "@app/types/deck_code";
 
@@ -56,6 +62,8 @@ import { useSeededResource } from "@app/hooks/useSeededResource";
 import { useRevalidateDeckCodes } from "@app/hooks/useDeckCodes";
 import { deckActivePostsKey } from "@app/hooks/useDeckActivePosts";
 import { useModalEntered } from "@app/hooks/useModalEntered";
+import { useDeckCodeUsage } from "@app/hooks/useDeckCodeUsage";
+import { pickBestVersionId } from "@app/utils/deckVersionStats";
 import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
 import { closingPassthroughClassNames } from "@app/utils/modal";
 import { formatJSTDateTimeWithWeekday, isZeroDate } from "@app/utils/date";
@@ -102,13 +110,13 @@ export default function DisplayDeckCodesModal({
   onClose,
   onOpenCreateDeckCode,
 }: Props) {
-  // 追加・削除・最新化のあとにバージョン件数(ShowDeckModal の「◯件」など)を取り直すため。
+  // 追加・削除のあとにバージョン件数(ShowDeckModal の「◯件」など)を取り直すため。
   // この一覧は SWR ではなく useSeededResource で持っているので、件数側とは別のキャッシュになる
   const revalidateDeckCodes = useRevalidateDeckCodes();
 
   const [displayDeckCode, setDisplayDeckCode] = useState<DeckCodeType | null>(null);
   // バージョン一覧。開いている間だけ取り(閉じている間は鍵なし)、失敗時は retry で取り直す。
-  // 作成・削除・最新化の結果は setData で一覧へ反映する
+  // 作成・削除の結果は setData で一覧へ反映する
   const {
     data: displayDeckCodes,
     setData: setDisplayDeckCodes,
@@ -132,18 +140,8 @@ export default function DisplayDeckCodesModal({
     onOpenChange: onOpenChangeForEditMemoModal,
   } = useDisclosure();
 
-  const {
-    isOpen: isOpenForMakeLatestModal,
-    onOpen: onOpenForMakeLatestModal,
-    onOpenChange: onOpenChangeForMakeLatestModal,
-  } = useDisclosure();
-
   const [isSelected, setIsSelected] = useState<boolean>(false);
   const [isDisabled, setIsDisabled] = useState<boolean>(false);
-
-  // 「このバージョンを最新にする」対象のバージョンと処理中フラグ
-  const [makeLatestDeckCode, setMakeLatestDeckCode] = useState<DeckCodeType | null>(null);
-  const [isMakingLatest, setIsMakingLatest] = useState<boolean>(false);
 
   // バージョン編集用。編集対象のバージョンと、入力中のメモ本文・付与タグを保持する
   const [editMemoDeckCode, setEditMemoDeckCode] = useState<DeckCodeType | null>(null);
@@ -152,6 +150,14 @@ export default function DisplayDeckCodesModal({
   const [isMemoSaving, setIsMemoSaving] = useState<boolean>(false);
   // タグ管理中は「閉じる」「保存」やモーダルのクローズを無効化する
   const [isTagManaging, setIsTagManaging] = useState<boolean>(false);
+
+  // バージョンごとの戦績。開いている間、自分のデッキのときだけ取る(成績は本人にしか見せない)
+  const { data: session } = useSession();
+  const userId = session?.user?.id;
+  const { stat: versionUsageStat } = useDeckCodeUsage(
+    isOpen && deck && userId && deck.user_id === userId ? userId : null,
+    deck?.id,
+  );
 
   const attachHeader = useModalDragToClose(onClose);
 
@@ -397,97 +403,6 @@ export default function DisplayDeckCodesModal({
     }
   };
 
-  // 「このバージョンを最新にする」確認モーダルを開く
-  const openMakeLatest = (target: DeckCodeType) => {
-    setMakeLatestDeckCode(target);
-    onOpenForMakeLatestModal();
-  };
-
-  // 選択したバージョンと同じデッキコードで新しいバージョンを作成し、最新にする。
-  // 新規作成のため、元のバージョンはそのまま履歴に残る。
-  const makeLatest = async (onClose: () => void) => {
-    if (!deck || !makeLatestDeckCode) return;
-
-    setIsMakingLatest(true);
-
-    const toastId = addToast({
-      title: "最新のバージョンにしています",
-      description: "しばらくお待ちください",
-      color: "default",
-      promise: new Promise(() => {}),
-    });
-
-    try {
-      const data: DeckCodeCreateRequestType = {
-        deck_id: deck.id,
-        code: makeLatestDeckCode.code,
-        private_code_flg: makeLatestDeckCode.private_code_flg,
-        memo: makeLatestDeckCode.memo,
-        // 最新化は既存バージョンを複製して作り直すため、そのバージョンのタグも引き継ぐ。
-        tag_ids: (makeLatestDeckCode.tags ?? []).map((tag) => tag.id),
-      };
-
-      const res = await fetch(`/api/deckcodes`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!res.ok) {
-        const t = await res.json();
-        throw new Error(`HTTP error: ${res.status} Message: ${t.message}`);
-      }
-
-      const ret: DeckCodeType = await res.json();
-
-      if (toastId) {
-        closeToast(toastId);
-      }
-
-      addToast({
-        title: "最新のバージョンにしました",
-        description: "同じデッキコードで新しいバージョンを作成しました",
-        color: "success",
-        timeout: 3000,
-      });
-
-      // 表示中のデッキコードを新バージョンに更新する。
-      // deckcode の変化を監視する useEffect が一覧の先頭へ追加する。
-      setDeckCode(ret);
-
-      // 件数を出している側は SWR キャッシュを見ているので、ここで取り直す
-      revalidateDeckCodes(deck?.id);
-
-      onClose();
-    } catch (error) {
-      console.error(error);
-
-      const errorMessage =
-        error instanceof Error ? error.message : "不明なエラーが発生しました";
-
-      if (toastId) {
-        closeToast(toastId);
-      }
-
-      addToast({
-        title: "最新のバージョンにできませんでした",
-        description: (
-          <>
-            最新のバージョンにできませんでした
-            <br />
-            {errorMessage}
-          </>
-        ),
-        color: "danger",
-        timeout: 5000,
-      });
-
-      onClose();
-    }
-  };
-
   const isArchived = deck ? !isZeroDate(deck.archived_at) : false;
 
   // バージョンが1件のときは、タイムラインの続きとして次バージョン作成を促す（アーカイブ済みは非表示）
@@ -499,9 +414,22 @@ export default function DisplayDeckCodesModal({
   const showPerVersionCreate =
     (displayDeckCodes?.length ?? 0) >= 2 && !!onOpenCreateDeckCode && !isArchived;
 
-  // バージョンが2件以上あるとき、過去バージョンを「最新にする」（同じデッキコードで
-  // 新バージョンを作成する）導線を出す。最新バージョン自身とアーカイブ済みは非表示。
-  const showMakeLatest = (displayDeckCodes?.length ?? 0) >= 2 && !isArchived;
+  // 勝率を出せる版が2つ以上あるときだけ、最も勝てていた版に印を付ける
+  const bestVersionId =
+    versionUsageStat && displayDeckCodes
+      ? pickBestVersionId(
+          versionUsageStat.deck_codes,
+          displayDeckCodes.map((dc) => dc.id),
+        )
+      : null;
+  const versionUsageById = new Map(
+    (versionUsageStat?.deck_codes ?? []).map((u) => [u.deck_code_id, u]),
+  );
+  // 推移は比べる相手があって、どこかの版で対戦しているときだけ出す
+  const showWinRateOverview =
+    !!versionUsageStat &&
+    (displayDeckCodes?.length ?? 0) >= 2 &&
+    versionUsageStat.deck_codes.some((u) => u.count > 0);
 
   return (
     <>
@@ -649,69 +577,6 @@ export default function DisplayDeckCodesModal({
       </Modal>
 
       <Modal
-        isOpen={isOpenForMakeLatestModal}
-        size={"sm"}
-        placement="center"
-        hideCloseButton={isMakingLatest}
-        isDismissable={!isMakingLatest}
-        isKeyboardDismissDisabled={isMakingLatest}
-        onOpenChange={() => {
-          if (isMakingLatest) return;
-          onOpenChangeForMakeLatestModal();
-        }}
-        onClose={() => {
-          setIsMakingLatest(false);
-          setMakeLatestDeckCode(null);
-        }}
-      >
-        <ModalContent>
-          {(onClose) => (
-            <>
-              <ModalHeader className="px-3 flex items-center gap-2">
-                このバージョンを最新にしますか？
-              </ModalHeader>
-              <ModalBody className="px-3 py-1">
-                <div className="flex flex-col gap-2">
-                  <div className="text-tiny text-default-500">
-                    同じデッキコードで新しいバージョンを作成し、最新のバージョンにします。
-                    元のバージョンはそのまま履歴に残ります。
-                  </div>
-                  {makeLatestDeckCode?.code && (
-                    <CopyableDeckCode code={makeLatestDeckCode.code} />
-                  )}
-                </div>
-              </ModalBody>
-              <ModalFooter>
-                <Button
-                  color="default"
-                  variant="solid"
-                  isDisabled={isMakingLatest}
-                  onPress={() => {
-                    onClose();
-                  }}
-                  className="font-bold"
-                >
-                  戻る
-                </Button>
-                <Button
-                  color="primary"
-                  variant="solid"
-                  isDisabled={isMakingLatest}
-                  startContent={<LuArrowUpToLine className="text-base" />}
-                  onPress={() => {
-                    makeLatest(onClose);
-                  }}
-                  className="font-bold"
-                >
-                  最新にする
-                </Button>
-              </ModalFooter>
-            </>
-          )}
-        </ModalContent>
-      </Modal>
-
-      <Modal
         isOpen={isOpen}
         size="md"
         placement="bottom"
@@ -753,6 +618,14 @@ export default function DisplayDeckCodesModal({
                   {loading || !entered ? (
                     <Spinner size="lg" className="pt-32" />
                   ) : !error ? (
+                    <>
+                      {showWinRateOverview && versionUsageStat && displayDeckCodes && (
+                        <DeckVersionWinRateOverview
+                          deckcodes={displayDeckCodes}
+                          usageStat={versionUsageStat}
+                          bestId={bestVersionId}
+                        />
+                      )}
                     <ol className="relative">
                       <div className="flex flex-col">
                         {(!displayDeckCodes || displayDeckCodes.length === 0) &&
@@ -842,7 +715,12 @@ export default function DisplayDeckCodesModal({
                             return (
                               // gapはドットのリング(4px)とカードが接しない範囲で詰め、
                               // カードを少しでも広く見せる
-                              <li key={deckcode.id} className="flex gap-2">
+                              // id は上の勝率の推移から、この版へスクロールするため
+                              <li
+                                key={deckcode.id}
+                                id={deckVersionElementId(deckcode.id)}
+                                className="flex gap-2 scroll-mt-3"
+                              >
                                 {/* タイムラインのガター。ドットと時刻ラベルを同じ高さ(h-4)の
                                     ボックスで揃えることで水平方向に一列に並べ、リング
                                     (bg-content1)でラインとの重なりを切り抜いて見せる */}
@@ -871,10 +749,11 @@ export default function DisplayDeckCodesModal({
                                     </span>
                                   </div>
 
-                                  {/* -ml-2 でカードだけをガターのgap分(8px)だけ左へ張り出す。
+                                  {/* -ml-1 でカードだけをガターのgap(8px)の半分だけ左へ張り出す。
                                       ドット・縦線・作成日時ラベルの位置はそのままにして、
-                                      カードの左端をドットの右端に接するところまで寄せる */}
-                                  <div className="mt-1.5 -ml-2">
+                                      カードの左端をドットの少し右に寄せる。mr-1 は右端を
+                                      上の「バージョンごとの勝率」パネルの右端に揃えるため */}
+                                  <div className="mt-1.5 -ml-1 mr-1">
                                     {deckcode.code ? (
                                       <div className="rounded-xl bg-default-100 p-3 flex flex-col gap-2.5">
                                         {/* 両端配置 */}
@@ -895,6 +774,12 @@ export default function DisplayDeckCodesModal({
                                                   初回
                                                 </span>
                                               )}
+                                            {deckcode.id === bestVersionId && (
+                                              <span className="flex items-center gap-0.5 text-tiny font-bold text-primary bg-primary/10 rounded-full px-2 py-0.5">
+                                                <LuTrophy className="text-[0.6875rem]" />
+                                                最高勝率
+                                              </span>
+                                            )}
                                           </div>
 
                                           {/* 右側 */}
@@ -909,6 +794,13 @@ export default function DisplayDeckCodesModal({
                                             <LuTrash2 className="text-sm" />
                                           </button>
                                         </div>
+
+                                        {versionUsageStat && (
+                                          <DeckVersionRecordStrip
+                                            usage={versionUsageById.get(deckcode.id)}
+                                            isBest={deckcode.id === bestVersionId}
+                                          />
+                                        )}
 
                                         <ZoomableDeckImage code={deckcode.code} />
 
@@ -1021,19 +913,6 @@ export default function DisplayDeckCodesModal({
                                           </div>
                                         )}
 
-                                        {/* このバージョンを最新にする導線（同じデッキコードで
-                                            新バージョンを作成する）。すでに最新(index===0)には出さない */}
-                                        {showMakeLatest && index !== 0 && (
-                                          <button
-                                            type="button"
-                                            onClick={() => openMakeLatest(deckcode)}
-                                            className="flex items-center justify-center gap-1.5 rounded-lg bg-content1 py-2 text-tiny font-bold text-primary active:opacity-70"
-                                          >
-                                            <LuArrowUpToLine className="text-sm" />
-                                            このバージョンを最新にする
-                                          </button>
-                                        )}
-
                                         {/* このバージョンを基準に新バージョンを作成する導線。
                                             差分・デッキコードはこのバージョンを基準にする */}
                                         {showPerVersionCreate && (
@@ -1075,8 +954,8 @@ export default function DisplayDeckCodesModal({
                                 </span>
                               </div>
 
-                              {/* 各バージョンのカードと左端を揃える */}
-                              <div className="mt-1.5 -ml-2">
+                              {/* 各バージョンのカードと左右の端を揃える */}
+                              <div className="mt-1.5 -ml-1 mr-1">
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -1102,6 +981,7 @@ export default function DisplayDeckCodesModal({
                         )}
                       </div>
                     </ol>
+                    </>
                   ) : (
                     // ModalBodyの左右余白は狭いため、エラーカードだけ余白を足す
                     <div className="px-2">

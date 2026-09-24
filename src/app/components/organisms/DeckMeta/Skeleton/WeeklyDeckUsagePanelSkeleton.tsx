@@ -8,6 +8,7 @@ import {
   WeeklyDeckUsageRankingHeader,
   WeeklyDeckUsageRateNote,
 } from "@app/components/organisms/DeckMeta/WeeklyDeckUsageTexts";
+import { UI_DEFAULT_DECK_USAGE_GROUPING } from "@app/utils/deckUsageGrouping";
 
 /*
  * 週次デッキ使用率パネル(対戦環境データ)の骨格。
@@ -31,7 +32,12 @@ import {
  * 行の高さは「順位バッジ(24px) + 前週からの順位変動の枠(h-[0.5625rem])」で決まる。
  * 変動の枠はバーの高さ(8px)で代用すると1px 足りないので、実体と同じクラスで置くこと。
  */
-export function WeeklyDeckUsageSkeletonRow() {
+export function WeeklyDeckUsageSkeletonRow({
+  withBreakdown = false,
+}: {
+  // 内訳の開閉ボタンを持つ行か(1体目でまとめた行。個別ページでのみ出る)
+  withBreakdown?: boolean;
+}) {
   return (
     <div className="flex flex-col gap-1.5 rounded-xl bg-default-100 px-3 py-2 animate-pulse">
       {/* 上段: 順位バッジ+変動 / スプライト2体 / 使用率 / 前週差・件数 */}
@@ -68,6 +74,23 @@ export function WeeklyDeckUsageSkeletonRow() {
           <span className="w-7 h-3 rounded bg-default-200" />
         </span>
       </div>
+      {withBreakdown && <WeeklyDeckUsageBreakdownToggleSkeleton />}
+    </div>
+  );
+}
+
+/*
+ * 内訳の開閉ボタン(「組み合わせの内訳を見る（N種類）」)の骨格。1体目でまとめた行は
+ * ほぼすべて内訳を持つので、これが無いと読み込み完了で1行あたり 31px 伸びる(実測)。
+ * 実体と同じ枠(mt-0.5 / py-1 / text-[0.625rem] / 14px のアイコン)で高さを作る。
+ */
+export function WeeklyDeckUsageBreakdownToggleSkeleton() {
+  return (
+    <div className="mt-0.5 flex items-center justify-center gap-1 py-1">
+      <span className="w-3.5 h-3.5" />
+      <SkeletonTextLine textClassName="text-[0.625rem]" align="center">
+        <span className="w-28 h-2 rounded bg-default-200" />
+      </SkeletonTextLine>
     </div>
   );
 }
@@ -98,8 +121,8 @@ export function WeeklyDeckUsageGroupingSkeleton() {
     <div className="flex flex-col gap-1.5">
       {/* タブ(Tabs の高さ 36px) */}
       <div className="h-9 w-full rounded-xl bg-default-100 animate-pulse" />
-      {/* 説明は固定文言。初期表示(組み合わせ別)のものをそのまま置く */}
-      <WeeklyDeckUsageGroupingNote />
+      {/* 説明は固定文言。初期表示(1体目でまとめる)のものをそのまま置く */}
+      <WeeklyDeckUsageGroupingNote grouping={UI_DEFAULT_DECK_USAGE_GROUPING} />
     </div>
   );
 }
@@ -123,13 +146,15 @@ type RankingProps = {
    * 件数が事前に分からないので既定の5行だけ置く。
    */
   limit?: number;
+  // 行に内訳の開閉ボタンの段を足すか(1体目でまとめた集計を個別ページで出すとき)
+  withBreakdown?: boolean;
 };
 
-export function WeeklyDeckUsageRankingSkeleton({ limit }: RankingProps) {
+export function WeeklyDeckUsageRankingSkeleton({ limit, withBreakdown = false }: RankingProps) {
   return (
     <div className="flex flex-col gap-1.5">
       {Array.from({ length: limit ?? 5 }).map((_, i) => (
-        <WeeklyDeckUsageSkeletonRow key={i} />
+        <WeeklyDeckUsageSkeletonRow key={i} withBreakdown={withBreakdown} />
       ))}
       {limit != null && <div className="h-10 rounded-large bg-default-100 animate-pulse" />}
     </div>

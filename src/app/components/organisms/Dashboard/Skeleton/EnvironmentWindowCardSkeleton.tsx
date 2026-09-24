@@ -35,7 +35,9 @@ export default function EnvironmentWindowCardSkeleton() {
 
         <div className="flex flex-col gap-1.5">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="h-16.5 rounded-xl bg-default-100 animate-pulse" />
+            // 行の高さは既定の「1体目でまとめる」の実体に合わせる(実測 105px)。
+            // 上段32px・下段20px・内訳の開閉ボタン23px ＋ 間隔と上下の余白
+            <div key={i} className="h-26.25 rounded-xl bg-default-100 animate-pulse" />
           ))}
         </div>
 

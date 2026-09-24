@@ -29,7 +29,10 @@ import {
   WeeklyDeckUsageSummarySkeleton,
 } from "@app/components/organisms/DeckMeta/Skeleton/WeeklyDeckUsagePanelSkeleton";
 
-import { normalizeDeckUsageGrouping } from "@app/utils/deckUsageGrouping";
+import {
+  normalizeDeckUsageGrouping,
+  UI_DEFAULT_DECK_USAGE_GROUPING,
+} from "@app/utils/deckUsageGrouping";
 import { generateWeekOptions, lastWeekValue } from "@app/utils/week";
 import {
   WeeklyDeckUsageGroupingType,
@@ -266,9 +269,13 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
       ? weekParam
       : lastWeekValue();
   });
-  // URLの grouping パラメータがあれば初期表示の集計単位として引き継ぐ
+  // URLの grouping パラメータがあれば初期表示の集計単位として引き継ぐ。
+  // 無ければ「1体目でまとめる」から見せる
   const [grouping, setGrouping] = useState<WeeklyDeckUsageGroupingType>(() =>
-    normalizeDeckUsageGrouping(searchParams.get("grouping")),
+    normalizeDeckUsageGrouping(
+      searchParams.get("grouping"),
+      UI_DEFAULT_DECK_USAGE_GROUPING,
+    ),
   );
   const [stat, setStat] = useState<WeeklyDeckUsageStatType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -456,8 +463,8 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
             onSelectionChange={(key) => setGrouping(key as WeeklyDeckUsageGroupingType)}
             classNames={{ tab: "h-7", tabContent: "font-bold text-xs" }}
           >
-            <Tab key="exact" title="組み合わせ別" />
             <Tab key="first_sprite" title="1体目でまとめる" />
+            <Tab key="exact" title="組み合わせ別" />
           </Tabs>
           <WeeklyDeckUsageGroupingNote grouping={grouping} />
         </div>
@@ -529,7 +536,11 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
             />
           </div>
         ) : isLoading && !stat ? (
-          <WeeklyDeckUsageRankingSkeleton limit={limit} />
+          <WeeklyDeckUsageRankingSkeleton
+            limit={limit}
+            // 内訳を開けるのは個別ページ(limit 無し)だけ。実体の canExpand と同じ条件
+            withBreakdown={limit == null && grouping === "first_sprite"}
+          />
         ) : displayDecks.length === 0 ? (
           <div className="h-48 flex items-center justify-center">
             <span className="text-xs text-default-400 text-center px-4">

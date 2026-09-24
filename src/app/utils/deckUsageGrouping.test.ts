@@ -24,4 +24,10 @@ describe("normalizeDeckUsageGrouping", () => {
   it("未知の値は既定の集計単位になる", () => {
     expect(normalizeDeckUsageGrouping("first")).toBe(DEFAULT_DECK_USAGE_GROUPING);
   });
+
+  it("既定の代わりを渡すと、未指定・未知の値はそちらになる", () => {
+    expect(normalizeDeckUsageGrouping(null, "first_sprite")).toBe("first_sprite");
+    expect(normalizeDeckUsageGrouping("first", "first_sprite")).toBe("first_sprite");
+    expect(normalizeDeckUsageGrouping("exact", "first_sprite")).toBe("exact");
+  });
 });

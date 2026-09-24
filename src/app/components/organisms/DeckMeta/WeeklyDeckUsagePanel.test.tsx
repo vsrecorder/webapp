@@ -69,6 +69,21 @@ afterEach(() => {
 });
 
 describe("WeeklyDeckUsagePanel", () => {
+  // 組み合わせ単位だと派生に票が割れるため、初期表示は1体目でまとめた集計にする
+  it("既定は「1体目でまとめる」で、タブも先頭に置く", async () => {
+    stubFetch();
+    render(<WeeklyDeckUsagePanel />);
+
+    await waitFor(() => expect(fetch).toHaveBeenCalled());
+    const url = String(vi.mocked(fetch).mock.calls[0][0]);
+    expect(url).toContain("grouping=first_sprite");
+
+    const tabs = screen.getAllByRole("tab");
+    expect(tabs[0].textContent).toBe("1体目でまとめる");
+    expect(tabs[0].getAttribute("aria-selected")).toBe("true");
+    expect(tabs[1].textContent).toBe("組み合わせ別");
+  });
+
   // 「その他」に落ちた行は1体目しか出ていないため、何と組んだデッキだったのかは
   // 内訳の中をさらに開かないと分からない。
   it("「その他」の内訳から組み合わせまで開ける", async () => {

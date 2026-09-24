@@ -54,14 +54,14 @@ const FIRST_SPRITE = {
   ],
 };
 
-function stubFetch({ failFirstSprite = false }: { failFirstSprite?: boolean } = {}) {
+function stubFetch({ failExact = false }: { failExact?: boolean } = {}) {
   vi.stubGlobal(
     "fetch",
     vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
       if (url.includes("/api/deck_meta/weekly_usage")) {
         const isFirstSprite = url.includes("grouping=first_sprite");
-        if (isFirstSprite && failFirstSprite) {
+        if (!isFirstSprite && failExact) {
           return new Response("boom", { status: 500 });
         }
         return Response.json(isFirstSprite ? FIRST_SPRITE : EXACT);
@@ -95,6 +95,27 @@ afterEach(() => {
  * document に残るので、document 全体を見る screen ではなく container の中で探す。
  */
 describe("EnvironmentWindowCard", () => {
+  it("既定は「1体目でまとめる」で、タブも先頭に置く", async () => {
+    stubFetch();
+
+    const { container } = render(
+      <EnvironmentWindowCard userId="user-1" totalRecords={3} showEmptyState />,
+    );
+    const card = within(container);
+
+    await waitFor(() => expect(card.getAllByRole("tab").length).toBe(2));
+    const tabs = card.getAllByRole("tab");
+    expect(tabs[0].textContent).toBe("1体目でまとめる");
+    expect(tabs[0].getAttribute("aria-selected")).toBe("true");
+    expect(tabs[1].textContent).toBe("組み合わせ別");
+
+    const weeklyCalls = vi
+      .mocked(fetch)
+      .mock.calls.map(([input]) => String(input))
+      .filter((url) => url.includes("/api/deck_meta/weekly_usage"));
+    expect(weeklyCalls[0]).toContain("grouping=first_sprite");
+  });
+
   it("1体目でまとめると、束ねた組み合わせの内訳を開ける", async () => {
     stubFetch();
 
@@ -103,13 +124,7 @@ describe("EnvironmentWindowCard", () => {
     );
     const card = within(container);
 
-    // 組み合わせ別では束ねていないので内訳は無い
-    await waitFor(() => expect(card.getByText("1体目でまとめる")).toBeTruthy());
-    expect(card.queryByText(/組み合わせの内訳を見る/)).toBeNull();
-
-    fireEvent.click(card.getByText("1体目でまとめる"));
-
-    // 束ねた行に内訳(2種類)が付く
+    // 既定(1体目でまとめる)では束ねた行に内訳(2種類)が付く
     const toggle = await waitFor(() => card.getByText("組み合わせの内訳を見る（2種類）"));
 
     // 開くまで内訳の行は出さない
@@ -127,7 +142,7 @@ describe("EnvironmentWindowCard", () => {
   });
 
   it("まとめ方の切り替えに失敗してもカードは残り、やり直せる", async () => {
-    stubFetch({ failFirstSprite: true });
+    stubFetch({ failExact: true });
     // 失敗そのものは想定内なので、テスト出力に出さない
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
@@ -136,20 +151,20 @@ describe("EnvironmentWindowCard", () => {
     );
     const card = within(container);
 
-    await waitFor(() => expect(card.getByText("1体目でまとめる")).toBeTruthy());
+    await waitFor(() => expect(card.getByText("組み合わせ別")).toBeTruthy());
 
-    fireEvent.click(card.getByText("1体目でまとめる"));
+    fireEvent.click(card.getByText("組み合わせ別"));
 
     // カードごと消すとタブまで消えて元のまとめ方にも戻せなくなる。前の結果を残して知らせる
     await waitFor(() =>
       expect(card.getByText(/まとめ方を切り替えられませんでした/)).toBeTruthy(),
     );
-    expect(card.getByText("組み合わせ別")).toBeTruthy();
+    expect(card.getByText("1体目でまとめる")).toBeTruthy();
 
     // 元のまとめ方に戻せば、取得が通って注記も戻る
-    fireEvent.click(card.getByText("組み合わせ別"));
+    fireEvent.click(card.getByText("1体目でまとめる"));
     await waitFor(() =>
-      expect(card.getByText(/ポケモン2体の組み合わせが同じもの/)).toBeTruthy(),
+      expect(card.getByText(/1体目のポケモンが同じもの/)).toBeTruthy(),
     );
     expect(card.queryByText(/まとめ方を切り替えられませんでした/)).toBeNull();
 

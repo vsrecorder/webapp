@@ -12,7 +12,7 @@ import { WeeklyDeckUsageGroupingNote } from "@app/components/organisms/DeckMeta/
 import DeckCodeQuickStartModal from "@app/components/organisms/Deck/Modal/DeckCodeQuickStartModal";
 import EnvironmentWindowCardSkeleton from "@app/components/organisms/Dashboard/Skeleton/EnvironmentWindowCardSkeleton";
 import { deckFingerprintKey } from "@app/utils/fingerprint";
-import { DEFAULT_DECK_USAGE_GROUPING } from "@app/utils/deckUsageGrouping";
+import { UI_DEFAULT_DECK_USAGE_GROUPING } from "@app/utils/deckUsageGrouping";
 import { rankableDecks, exclOtherTotalOf } from "@app/utils/deckEnv";
 import { lastWeekValue } from "@app/utils/week";
 import { DECK_USAGE_ALL_TIME_QUERY } from "@app/utils/excludeDefaultMatches";
@@ -692,8 +692,8 @@ function GroupingTabs({
         classNames={{ tab: "h-7", tabContent: "font-bold text-xs" }}
         aria-label="デッキのまとめ方"
       >
-        <Tab key="exact" title="組み合わせ別" />
         <Tab key="first_sprite" title="1体目でまとめる" />
+        <Tab key="exact" title="組み合わせ別" />
       </Tabs>
       {failed ? (
         // 中身は前のまとめ方のままなので、食い違っている理由を注記の位置で伝える。
@@ -922,7 +922,7 @@ export default function EnvironmentWindowCard({
   // デッキのまとめ方(組み合わせ別 / 1体目でまとめる)。対戦環境分析と同じ2択で、
   // 環境ランキングと自分のデッキの順位の両方がこの単位で決まる。
   const [grouping, setGrouping] = useState<WeeklyDeckUsageGroupingType>(
-    DEFAULT_DECK_USAGE_GROUPING,
+    UI_DEFAULT_DECK_USAGE_GROUPING,
   );
   const [userDecks, setUserDecks] = useState<DeckData[] | null>(null);
   // あなたのデッキ別実績(deck-usage)。取得失敗・未対応でも致命ではないので空配列で続行する。

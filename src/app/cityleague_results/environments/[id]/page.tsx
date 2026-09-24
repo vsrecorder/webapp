@@ -10,7 +10,10 @@ import {
   formatTermRange,
   getCityleagueEventsInTerm,
   getEnvironments,
+  toTermKey,
 } from "@app/utils/cityleague";
+import { OG_SIZE, renderCityleagueTermOgImage } from "@app/utils/ogImage";
+import { ogImageUrlFor } from "@app/utils/ogStorage";
 
 type Props = {
   params: Promise<{
@@ -41,6 +44,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const description = `『${environment.title}』環境（${formatTermRange(environment)}）に開催されたシティリーグの結果一覧です。この環境で勝ち残ったデッキの傾向を、優勝からベスト16までのデッキコードで確認できます。`;
   const path = `/cityleague_results/environments/${environment.id}`;
 
+  const ogImageUrl = ogImageUrlFor(
+    `cityleague_results/environments/${environment.id}-${toTermKey(environment)}`,
+    () => renderCityleagueTermOgImage(`『${environment.title}』環境`, environment),
+  );
+
   return {
     title,
     description,
@@ -52,6 +60,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description,
       locale: "ja_JP",
       siteName: "バトレコ",
+      images: ogImageUrl ? [{ url: ogImageUrl, ...OG_SIZE, alt: title }] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      site: "@vsrecorder_mobi",
+      title,
+      description,
+      images: ogImageUrl ? [ogImageUrl] : undefined,
     },
   };
 }

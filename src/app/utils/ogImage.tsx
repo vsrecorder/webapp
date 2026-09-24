@@ -12,8 +12,9 @@ import { spriteImageUrl } from "@app/utils/sprite";
 import { spriteFitBox } from "@app/utils/spriteFit";
 import { deckImageUrl } from "@app/utils/deckImage";
 import { isTrustedImageUrl } from "@app/utils/trustedImageUrl";
+import { ChampionsleagueScheduleType } from "@app/types/championsleague_schedule";
 import { deckNameFontSize } from "@app/utils/ogText";
-import { formatEventDate } from "@app/utils/cityleague";
+import { CityleagueTerm, formatEventDate, formatTermRange } from "@app/utils/cityleague";
 
 // OGP画像の規定サイズ。X(Twitter)の summary_large_image と Facebook の推奨に合わせる。
 export const OG_SIZE = { width: 1200, height: 630 };
@@ -223,22 +224,26 @@ export async function renderSiteOgImage(): Promise<Buffer> {
   );
 }
 
-// シティリーグ結果のハブページ用。
-export async function renderCityleagueListOgImage(): Promise<Buffer> {
+type HubOgImageProps = {
+  chip: string;
+  heading: string;
+  lead: string;
+};
+
+// 一覧・ハブページの共通レイアウト。見出しは短い固定文言なので、サイズは固定にしている。
+async function renderHubOgImage({ chip, heading, lead }: HubOgImageProps): Promise<Buffer> {
   const assets = await loadOgAssets();
 
   return toPngBuffer(
     <div style={canvasStyle}>
       <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-        <Chip>シティリーグ</Chip>
+        <Chip>{chip}</Chip>
 
         <div style={{ display: "flex", fontSize: 68, fontWeight: 700, lineHeight: 1.3 }}>
-          結果・優勝デッキ一覧
+          {heading}
         </div>
 
-        <div style={{ display: "flex", fontSize: 30, color: COLORS.muted }}>
-          全国のシティリーグの結果を日付順に掲載
-        </div>
+        <div style={{ display: "flex", fontSize: 30, color: COLORS.muted }}>{lead}</div>
 
         <div
           style={{ display: "flex", fontSize: 34, fontWeight: 700, color: COLORS.accent }}
@@ -251,6 +256,49 @@ export async function renderCityleagueListOgImage(): Promise<Buffer> {
     </div>,
     assets,
   );
+}
+
+// シティリーグ結果のハブページ用。
+export function renderCityleagueListOgImage(): Promise<Buffer> {
+  return renderHubOgImage({
+    chip: "シティリーグ",
+    heading: "結果・優勝デッキ一覧",
+    lead: "全国のシティリーグの結果を日付順に掲載",
+  });
+}
+
+// 大型大会(チャンピオンズリーグ・PJCS)の結果一覧ページ用。
+export function renderChampionsleagueListOgImage(): Promise<Buffer> {
+  return renderHubOgImage({
+    chip: "大型大会",
+    heading: "結果・優勝デッキ一覧",
+    lead: "チャンピオンズリーグ・PJCSの結果を大会ごとに掲載",
+  });
+}
+
+// シーズン・環境・開催月の一覧ページ用。
+export function renderCityleagueSeasonListOgImage(): Promise<Buffer> {
+  return renderHubOgImage({
+    chip: "シティリーグ結果",
+    heading: "シーズンから探す",
+    lead: "シティリーグの結果をシーズンごとに一覧",
+  });
+}
+
+export function renderCityleagueEnvironmentListOgImage(): Promise<Buffer> {
+  return renderHubOgImage({
+    chip: "シティリーグ結果",
+    heading: "環境から探す",
+    lead: "シティリーグの結果を対戦環境ごとに一覧",
+  });
+}
+
+export function renderCityleagueMonthListOgImage(): Promise<Buffer> {
+  return renderHubOgImage({
+    chip: "シティリーグ結果",
+    heading: "開催月から探す",
+    lead: "シティリーグの結果を開催月ごとに一覧",
+  });
 }
 
 // 店舗名は「鹿角ラボ」から「TSUTAYA Trading Card 宇都宮インターパークビレッジ店」まで
@@ -306,6 +354,120 @@ export async function renderCityleagueEventOgImage(
     </div>,
     assets,
   );
+}
+
+// 大会名・シーズン名などを描く枠の幅(左右の余白を除いた全幅)と、フォントサイズの上限・下限。
+// 名前は「2026年4月」から「ポケモンジャパンチャンピオンシップス2026」「『スタートデッキ100 バトルコレクション』環境」まで
+// 長さに幅があるため、1行に収まるサイズまで縮める(折り返すと下段が押し出される)。
+const OG_RESULT_TITLE_WIDTH = 1056;
+const OG_RESULT_TITLE_FONT_MAX = 72;
+const OG_RESULT_TITLE_FONT_MIN = 40;
+
+type TitledResultOgImageProps = {
+  chip: string;
+  title: string;
+  // 名前の下に「/」区切りで並べる補足(会期・リーグ区分など)。空なら行ごと出さない。
+  meta: string[];
+};
+
+// 大型大会・シーズン・環境・開催月の個別ページの共通レイアウト。
+async function renderTitledResultOgImage({
+  chip,
+  title,
+  meta,
+}: TitledResultOgImageProps): Promise<Buffer> {
+  const assets = await loadOgAssets();
+
+  return toPngBuffer(
+    <div style={canvasStyle}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        <Chip>{chip}</Chip>
+
+        <div
+          style={{
+            display: "flex",
+            fontSize: deckNameFontSize(
+              title,
+              OG_RESULT_TITLE_WIDTH,
+              OG_RESULT_TITLE_FONT_MAX,
+              OG_RESULT_TITLE_FONT_MIN,
+            ),
+            fontWeight: 700,
+            lineHeight: 1.3,
+            lineClamp: 1,
+          }}
+        >
+          {title}
+        </div>
+
+        {meta.length > 0 ? (
+          <div style={{ display: "flex", gap: 14, fontSize: 30, color: COLORS.muted }}>
+            {meta.flatMap((item, index) => [
+              index > 0 ? (
+                <span key={`sep-${index}`} style={{ color: COLORS.separator }}>
+                  /
+                </span>
+              ) : null,
+              <span key={index}>{item}</span>,
+            ])}
+          </div>
+        ) : null}
+
+        <div
+          style={{ display: "flex", fontSize: 34, fontWeight: 700, color: COLORS.accent }}
+        >
+          優勝からベスト16までのデッキコードを掲載
+        </div>
+      </div>
+
+      <Footer iconSrc={assets.iconSrc} />
+    </div>,
+    assets,
+  );
+}
+
+/*
+ * 大型大会の大会ページ・リーグ区分ページ用。leagueTitle を渡すと区分ページとして、
+ * 会期の横に区分名を添える。
+ *
+ * OGP画像は一度アップロードすると作り直さない(ogStorage)。まだ開催前の大会でも描かれうるため、
+ * 優勝デッキや区分の一覧のように後から変わる内容は載せず、大会名・会期・区分名だけにしている。
+ */
+export function renderChampionsleagueOgImage(
+  schedule: ChampionsleagueScheduleType,
+  leagueTitle?: string,
+): Promise<Buffer> {
+  return renderTitledResultOgImage({
+    chip: "大型大会の結果",
+    title: schedule.title.trim(),
+    meta: [formatTermRange(schedule), ...(leagueTitle ? [leagueTitle] : [])],
+  });
+}
+
+/*
+ * シーズン・環境の個別ページ用。
+ *
+ * 開催中のシーズン・環境は結果が増え続けるため、件数や優勝デッキは載せない(画像は作り直さない)。
+ * 会期は後から延びることがあるので、呼び出し側は会期をキーに含めること。
+ */
+export function renderCityleagueTermOgImage(
+  title: string,
+  term: CityleagueTerm,
+): Promise<Buffer> {
+  return renderTitledResultOgImage({
+    chip: "シティリーグ結果",
+    title,
+    meta: [formatTermRange(term)],
+  });
+}
+
+// 開催月の個別ページ用。
+export function renderCityleagueMonthOgImage(monthTitle: string): Promise<Buffer> {
+  return renderTitledResultOgImage({
+    chip: "シティリーグ結果",
+    title: monthTitle,
+    meta: ["全国のシティリーグの結果を店舗ごとに掲載"],
+  });
 }
 
 // data URI に埋め込む画像の上限。CDN のデッキ画像(JPEG)とアイコン(PNG、アップロード上限 5MB)が

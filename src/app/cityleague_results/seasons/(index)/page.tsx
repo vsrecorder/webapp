@@ -10,24 +10,41 @@ import {
   getAllCityleagueEventRefs,
   getCityleagueSeasons,
 } from "@app/utils/cityleague";
+import { OG_SIZE, renderCityleagueSeasonListOgImage } from "@app/utils/ogImage";
+import { ogImageUrlFor } from "@app/utils/ogStorage";
 
 const title = "シーズンから探す - シティリーグ結果";
 const description =
   "シティリーグの結果をシーズンごとに一覧できます。各シーズンに開催された全国の店舗の結果と、優勝からベスト16までのデッキコードを掲載しています。";
 
-export const metadata: Metadata = {
-  title,
-  description,
-  alternates: { canonical: "/cityleague_results/seasons" },
-  openGraph: {
-    url: "/cityleague_results/seasons",
-    type: "website",
+export async function generateMetadata(): Promise<Metadata> {
+  const ogImageUrl = ogImageUrlFor(
+    "cityleague_results/seasons",
+    renderCityleagueSeasonListOgImage,
+  );
+
+  return {
     title,
     description,
-    locale: "ja_JP",
-    siteName: "バトレコ",
-  },
-};
+    alternates: { canonical: "/cityleague_results/seasons" },
+    openGraph: {
+      url: "/cityleague_results/seasons",
+      type: "website",
+      title,
+      description,
+      locale: "ja_JP",
+      siteName: "バトレコ",
+      images: ogImageUrl ? [{ url: ogImageUrl, ...OG_SIZE, alt: title }] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      site: "@vsrecorder_mobi",
+      title,
+      description,
+      images: ogImageUrl ? [ogImageUrl] : undefined,
+    },
+  };
+}
 
 export default async function Page() {
   const [seasons, eventRefs] = await Promise.all([

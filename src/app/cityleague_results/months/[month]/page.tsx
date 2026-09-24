@@ -10,6 +10,8 @@ import {
   getCityleagueEventsInTerm,
   monthKeyToTerm,
 } from "@app/utils/cityleague";
+import { OG_SIZE, renderCityleagueMonthOgImage } from "@app/utils/ogImage";
+import { ogImageUrlFor } from "@app/utils/ogStorage";
 
 type Props = {
   params: Promise<{
@@ -24,13 +26,26 @@ function buildTitle(monthKey: string): string {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { month } = await params;
 
-  if (!monthKeyToTerm(month)) {
+  const term = monthKeyToTerm(month);
+
+  if (!term) {
     return { title: "シティリーグ結果" };
   }
 
   const title = buildTitle(month);
   const description = `${formatMonthKey(month)}に開催された全国のシティリーグの結果一覧です。店舗ごとに、優勝からベスト16までの入賞者のデッキコードを掲載しています。`;
   const path = `/cityleague_results/months/${month}`;
+
+  // 形式さえ合えばどの月でも URL になるため、結果のある月だけ画像を作る
+  // (存在しない月のURLを叩かれるたびに、ストレージへ画像を置かせないため)。
+  // 本文と同じ取得なので、同じ描画の中では1回しか取りに行かない(メモ化)。
+  const events = await getCityleagueEventsInTerm(term.fromDate, term.toDate);
+  const ogImageUrl =
+    events.length > 0
+      ? ogImageUrlFor(`cityleague_results/months/${month}`, () =>
+          renderCityleagueMonthOgImage(formatMonthKey(month)),
+        )
+      : null;
 
   return {
     title,
@@ -43,6 +58,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description,
       locale: "ja_JP",
       siteName: "バトレコ",
+      images: ogImageUrl ? [{ url: ogImageUrl, ...OG_SIZE, alt: title }] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      site: "@vsrecorder_mobi",
+      title,
+      description,
+      images: ogImageUrl ? [ogImageUrl] : undefined,
     },
   };
 }

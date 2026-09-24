@@ -6,24 +6,41 @@ import CityleagueIndexList from "@app/components/organisms/Cityleague/Cityleague
 import { buildBreadcrumbJsonLd, JsonLd } from "@app/utils/breadcrumb";
 import { getChampionsleagueScheduleSummaries } from "@app/utils/championsleague";
 import { formatTermRange } from "@app/utils/cityleague";
+import { OG_SIZE, renderChampionsleagueListOgImage } from "@app/utils/ogImage";
+import { ogImageUrlFor } from "@app/utils/ogStorage";
 
 const title = "チャンピオンズリーグ・大型大会の結果一覧";
 const description =
   "チャンピオンズリーグとポケモンジャパンチャンピオンシップス（PJCS）の結果を大会ごとに掲載しています。マスター／シニア／ジュニアの各リーグについて、優勝からベスト16までの入賞者のデッキコードとカードリストを確認できます。";
 
-export const metadata: Metadata = {
-  title,
-  description,
-  alternates: { canonical: "/cityleague_results/championsleagues" },
-  openGraph: {
-    url: "/cityleague_results/championsleagues",
-    type: "website",
+export async function generateMetadata(): Promise<Metadata> {
+  const ogImageUrl = ogImageUrlFor(
+    "championsleague_results",
+    renderChampionsleagueListOgImage,
+  );
+
+  return {
     title,
     description,
-    locale: "ja_JP",
-    siteName: "バトレコ",
-  },
-};
+    alternates: { canonical: "/cityleague_results/championsleagues" },
+    openGraph: {
+      url: "/cityleague_results/championsleagues",
+      type: "website",
+      title,
+      description,
+      locale: "ja_JP",
+      siteName: "バトレコ",
+      images: ogImageUrl ? [{ url: ogImageUrl, ...OG_SIZE, alt: title }] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      site: "@vsrecorder_mobi",
+      title,
+      description,
+      images: ogImageUrl ? [ogImageUrl] : undefined,
+    },
+  };
+}
 
 export default async function Page() {
   const summaries = await getChampionsleagueScheduleSummaries();

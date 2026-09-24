@@ -24,6 +24,8 @@ import {
 import { formatTermRange } from "@app/utils/cityleague";
 import { serializeJsonLd } from "@app/utils/breadcrumb";
 import { getDeckSummaries, getDeckSummary } from "@app/utils/deckSummaryServer";
+import { OG_SIZE, renderChampionsleagueOgImage } from "@app/utils/ogImage";
+import { ogImageUrlFor } from "@app/utils/ogStorage";
 
 type Props = {
   params: Promise<{
@@ -122,6 +124,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   );
   const path = `/cityleague_results/championsleagues/${schedule.id}/${league}`;
 
+  const ogImageUrl = ogImageUrlFor(`championsleague_results/${schedule.id}/${league}`, () =>
+    renderChampionsleagueOgImage(schedule, buildLeagueName(leagueType)),
+  );
+
   return {
     title,
     description,
@@ -133,12 +139,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description,
       locale: "ja_JP",
       siteName: "バトレコ",
+      images: ogImageUrl ? [{ url: ogImageUrl, ...OG_SIZE, alt: title }] : undefined,
     },
     twitter: {
-      card: "summary",
+      card: "summary_large_image",
       site: "@vsrecorder_mobi",
       title,
       description,
+      images: ogImageUrl ? [ogImageUrl] : undefined,
     },
   };
 }

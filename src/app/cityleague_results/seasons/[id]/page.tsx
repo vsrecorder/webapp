@@ -10,7 +10,10 @@ import {
   formatTermRange,
   getCityleagueEventsInTerm,
   getCityleagueSeasons,
+  toTermKey,
 } from "@app/utils/cityleague";
+import { OG_SIZE, renderCityleagueTermOgImage } from "@app/utils/ogImage";
+import { ogImageUrlFor } from "@app/utils/ogStorage";
 
 type Props = {
   params: Promise<{
@@ -41,6 +44,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const description = `${season.title}（${formatTermRange(season)}）に開催されたシティリーグの結果一覧です。全国の店舗ごとに、優勝からベスト16までの入賞者のデッキコードを掲載しています。`;
   const path = `/cityleague_results/seasons/${season.id}`;
 
+  const ogImageUrl = ogImageUrlFor(
+    `cityleague_results/seasons/${season.id}-${toTermKey(season)}`,
+    () => renderCityleagueTermOgImage(season.title, season),
+  );
+
   return {
     title,
     description,
@@ -52,6 +60,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description,
       locale: "ja_JP",
       siteName: "バトレコ",
+      images: ogImageUrl ? [{ url: ogImageUrl, ...OG_SIZE, alt: title }] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      site: "@vsrecorder_mobi",
+      title,
+      description,
+      images: ogImageUrl ? [ogImageUrl] : undefined,
     },
   };
 }

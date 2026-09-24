@@ -217,6 +217,18 @@ export function toMonthKey(date: Date | string): string {
   return formatInJst(date, { year: "numeric", month: "2-digit" }).replace("/", "-");
 }
 
+// 期間を "20260313-20260521"（JSTでの開始日-終了日）にする。OGP画像のキーに使う。
+// 開催中の環境・シーズンは終了日が後から変わりうるため、会期を描いた画像を作り直せるようにする。
+export function toTermKey(term: CityleagueTerm): string {
+  const toDateKey = (date: Date | string) =>
+    formatInJst(date, { year: "numeric", month: "2-digit", day: "2-digit" }).replaceAll(
+      "/",
+      "",
+    );
+
+  return `${toDateKey(term.from_date)}-${toDateKey(term.to_date)}`;
+}
+
 // "2026-04" -> その月の初日と末日
 export function monthKeyToTerm(
   monthKey: string,

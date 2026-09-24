@@ -188,7 +188,8 @@
  * (フローティングボタン / PWAバナー)はこれまでどおりこの値だけを見ればよい。
  *
  * Android は画面下端に OS のナビゲーションバー(ジェスチャーバー)が居座るぶん
- * 下部が厚く見えるため、Android のときだけバーを少し低くする。
+ * 下部が厚く見えるため、Android のときだけバーを少し低くし、画面下端との隙間も詰めて
+ * 下へ寄せる(OS のナビゲーションバーの上にさらに 16px 空くと、浮きすぎて見える)。
  *
  * iOS の standalone PWA は以前ここを 0.25rem 高くしていた。ホームインジケータの帯に
  * ナビの下端が接して項目が窮屈に見えたためだが、いまはセーフエリアの上にさらに
@@ -211,6 +212,7 @@
 
 :root[data-android="true"] {
   --mobile-nav-bar-height: 3.75rem;
+  --mobile-nav-gap: 0.5rem;
 }
 
 /*
@@ -262,6 +264,7 @@
 
   :root[data-android="true"] {
     --mobile-nav-bar-height: 60px; /* 3.75rem @16px と同値 */
+    --mobile-nav-gap: 8px; /* 0.5rem @16px と同値 */
   }
 }
 

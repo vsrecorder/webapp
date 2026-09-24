@@ -60,9 +60,11 @@ export default function DeckSegmentedControl({ selected, isLoggedIn, onRequireLo
       // 未ログインで見るみんなの公開デッキにはサイドバーが無いが、--sidebar-width が 0 になるので同じ書き方で揃う
       className={`light ${HEADER_BAR} pl-1 pr-1`}
       classNames={{
-        cursor: "bg-blue-200",
+        // 地と選択中の面はブランドの淡いグラデーション(globals.css)。選択中は地の上にもう1枚
+        // 重ねて一段濃く見せる(以前の bg-blue-100 の地に bg-blue-200 の選択中と同じ関係)
+        cursor: "brand-gradient-soft bg-white",
         tab: "h-8",
-        tabList: "bg-blue-100",
+        tabList: "brand-gradient-soft",
         tabContent: "font-bold",
       }}
     >

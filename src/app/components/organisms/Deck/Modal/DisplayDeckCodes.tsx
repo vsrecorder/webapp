@@ -653,7 +653,7 @@ export default function DisplayDeckCodesModal({
 
                               <div className="w-full flex flex-col gap-2.5">
                                 <div className="flex items-center gap-3 bg-default-100 rounded-xl px-4 py-3">
-                                  <LuLayers className="text-blue-500 text-xl shrink-0" />
+                                  <LuLayers className="text-primary text-xl shrink-0" />
                                   <div>
                                     <div className="font-bold text-sm">
                                       変更履歴を追跡

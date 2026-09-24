@@ -344,83 +344,173 @@ main[data-authed] {
 }
 
 /*
- * 青い塗り(ボタン・バッジ・点など)をヘッダーと同じグラデーションにする。
+ * ブランドのグラデーション(ヘッダーと同じ blue-600 → indigo-600 → violet-700)。
+ * 塗りの面(--brand-gradient)と、薄い面に使う淡い版(--brand-gradient-soft)を1か所で定義し、
+ * 下の各規則とクラス(.brand-gradient / .brand-gradient-soft)から参照する。
+ * 淡い版はライトで各色 14%、地が暗いダークは 30%。dev 環境はヘッダーと同じく橙にする
+ * (data-env は layout.tsx)。補間は Tailwind の bg-linear-to-br と同じ oklab。
+ * 文字や細い線の青は、hero.ts で primary 自体をこの中心の藍(indigo)に置き換えて揃えている。
+ */
+:root {
+  --brand-from: var(--color-blue-600);
+  --brand-via: var(--color-indigo-600);
+  --brand-to: var(--color-violet-700);
+  --brand-soft-alpha: 14%;
+}
+
+.dark {
+  --brand-soft-alpha: 30%;
+}
+
+.light {
+  --brand-soft-alpha: 14%;
+}
+
+:root[data-env="dev"] {
+  --brand-from: var(--color-orange-500);
+  --brand-via: var(--color-orange-600);
+  --brand-to: var(--color-amber-700);
+}
+
+/*
+ * グラデーション本体は .dark / .light でも定義し直す。カスタムプロパティは定義した要素で
+ * 値が確定するので、:root だけに書くと、部分的に .dark を付けた領域(/kizuna)や .light で
+ * 固定した領域(DeckSegmentedControl)で淡い版の濃さが切り替わらない。
+ */
+:root,
+.dark,
+.light {
+  --brand-gradient: linear-gradient(
+    to bottom right in oklab,
+    var(--brand-from),
+    var(--brand-via),
+    var(--brand-to)
+  );
+  --brand-gradient-soft: linear-gradient(
+    to bottom right in oklab,
+    color-mix(in oklab, var(--brand-from) var(--brand-soft-alpha), transparent),
+    color-mix(in oklab, var(--brand-via) var(--brand-soft-alpha), transparent),
+    color-mix(in oklab, var(--brand-to) var(--brand-soft-alpha), transparent)
+  );
+}
+
+.brand-gradient {
+  background-image: var(--brand-gradient);
+}
+
+/*
+ * 文字とアイコンをグラデーションで塗る(ナビの選択中の項目)。
+ * 地の上に置く細い文字なので、塗りの面より明るい段階を使う。ダークはさらに明るくする
+ * (塗りと同じ濃い段階のままだと、暗い地の上で読めない)。
+ * 文字は直下の <span> だけを background-clip: text で抜く。要素そのものに掛けると、
+ * 背景(選択中の淡い面)まで文字の形に切り抜かれて消えるため。
+ * アイコンは SVG の線を Navigation.tsx の #brand-stroke-gradient で塗る。
+ */
+:root,
+.light {
+  --brand-text-from: var(--color-blue-600);
+  --brand-text-via: var(--color-indigo-600);
+  --brand-text-to: var(--color-violet-600);
+}
+
+.dark {
+  --brand-text-from: var(--color-blue-400);
+  --brand-text-via: var(--color-indigo-300);
+  --brand-text-to: var(--color-violet-400);
+}
+
+:root[data-env="dev"] {
+  --brand-text-from: var(--color-orange-500);
+  --brand-text-via: var(--color-orange-600);
+  --brand-text-to: var(--color-amber-700);
+}
+
+:root[data-env="dev"].dark {
+  --brand-text-from: var(--color-orange-300);
+  --brand-text-via: var(--color-orange-400);
+  --brand-text-to: var(--color-amber-400);
+}
+
+.brand-gradient-content > span {
+  background-image: linear-gradient(
+    to right in oklab,
+    var(--brand-text-from),
+    var(--brand-text-via),
+    var(--brand-text-to)
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.brand-gradient-content svg {
+  stroke: url(#brand-stroke-gradient);
+}
+
+.brand-gradient-soft {
+  background-image: var(--brand-gradient-soft);
+}
+
+/*
+ * 青い塗り(ボタン・バッジ・点・進捗バーなど)をグラデーションにする。
  *
  * HeroUI の Button(color="primary" の solid)も、自前で bg-primary を塗ったボタン・丸い番号バッジ・
  * 点・進捗バー・ラジオの点も、塗りは .bg-primary クラスで付く。ここで背景画像として
  * グラデーションを重ねるので、呼び出し側を1つずつ書き換えなくても全部に効き、
  * 今後足した要素にも自動で当たる。
- * bg-primary/10 のような薄い塗り(flat)や、選択時だけ塗る data-[selected=true]:bg-primary は
- * クラス名が違うので対象外。
- * 色はヘッダー(Header.tsx)と同じで、dev 環境はヘッダーと同じく橙にする(data-env は layout.tsx)。
- * 補間も Tailwind の bg-linear-to-br と同じ oklab にして、ヘッダーと同じ見え方に揃える。
  */
 .bg-primary {
-  background-image: linear-gradient(
-    to bottom right in oklab,
-    var(--color-blue-600),
-    var(--color-indigo-600),
-    var(--color-violet-700)
-  );
-}
-
-:root[data-env="dev"] .bg-primary {
-  background-image: linear-gradient(
-    to bottom right in oklab,
-    var(--color-orange-500),
-    var(--color-orange-600),
-    var(--color-amber-700)
-  );
+  background-image: var(--brand-gradient);
 }
 
 /*
- * 薄い青のボタン(HeroUI の Button の color="primary" variant="flat")も同じ色味に揃える。
- * 塗りの淡い版(各色 14%、ダークは地が暗いので 30%)を背景にし、文字とアイコンは濃い藍の単色にする。
- * 文字までグラデーションにすると(background-clip: text)、currentColor で描くアイコンが
- * 透明になって消えるため単色にしている。
- *
+ * チェックボックスのチェックとスイッチのオンも塗りと同じにする。
+ * HeroUI の Checkbox は選択時に ::after(after:bg-primary)が広がって塗られ、
+ * Switch は選択時だけ group-data-[selected=true]:bg-primary で地が塗られる。
+ * どちらも .bg-primary とはクラス名が違うので、個別に重ねる。
+ */
+.after\:bg-primary::after {
+  background-image: var(--brand-gradient);
+}
+
+.group[data-selected="true"] .group-data-\[selected\=true\]\:bg-primary {
+  background-image: var(--brand-gradient);
+}
+
+/*
+ * 薄い青のボタン(HeroUI の Button の color="primary" variant="flat")は淡い版を背景にし、
+ * 文字とアイコンは濃い藍の単色にする。文字までグラデーションにすると(background-clip: text)、
+ * currentColor で描くアイコンが透明になって消えるため単色にしている。
  * flat の青は bg-primary/20 text-primary-600 で付く。同じクラスは flat の青い Chip にも付くので、
- * ボタンとリンクに絞る(Chip は据え置き)。地の水色(bg-primary/20)は透明にして、淡いグラデーションだけを見せる。
+ * ボタンとリンクに絞る(Chip は据え置き)。地の水色は透明にして、淡いグラデーションだけを見せる。
  */
 :is(button, a, [role="button"]).bg-primary\/20 {
   background-color: transparent;
-  background-image: linear-gradient(
-    to bottom right in oklab,
-    color-mix(in oklab, var(--color-blue-600) 14%, transparent),
-    color-mix(in oklab, var(--color-indigo-600) 14%, transparent),
-    color-mix(in oklab, var(--color-violet-700) 14%, transparent)
-  );
+  background-image: var(--brand-gradient-soft);
   color: var(--color-indigo-700);
 }
 
 .dark :is(button, a, [role="button"]).bg-primary\/20 {
-  background-image: linear-gradient(
-    to bottom right in oklab,
-    color-mix(in oklab, var(--color-blue-600) 30%, transparent),
-    color-mix(in oklab, var(--color-indigo-600) 30%, transparent),
-    color-mix(in oklab, var(--color-violet-700) 30%, transparent)
-  );
   color: var(--color-indigo-200);
 }
 
 :root[data-env="dev"] :is(button, a, [role="button"]).bg-primary\/20 {
-  background-image: linear-gradient(
-    to bottom right in oklab,
-    color-mix(in oklab, var(--color-orange-500) 14%, transparent),
-    color-mix(in oklab, var(--color-orange-600) 14%, transparent),
-    color-mix(in oklab, var(--color-amber-700) 14%, transparent)
-  );
   color: var(--color-orange-800);
 }
 
 :root[data-env="dev"].dark :is(button, a, [role="button"]).bg-primary\/20 {
-  background-image: linear-gradient(
-    to bottom right in oklab,
-    color-mix(in oklab, var(--color-orange-500) 30%, transparent),
-    color-mix(in oklab, var(--color-orange-600) 30%, transparent),
-    color-mix(in oklab, var(--color-amber-700) 30%, transparent)
-  );
   color: var(--color-orange-200);
+}
+
+/*
+ * 自前で薄い青(bg-primary/10・bg-primary-50)を敷いたボタン(選択中の選択肢、デッキのシェア、
+ * 「不戦勝・不戦敗を除いて集計する」など)も背景を淡い版にする。文字色は呼び出し側の指定
+ * (text-primary など)のまま。hover:bg-primary-* のような地色の変化は背景画像に覆われて
+ * 見えなくなるが、押下時の opacity や scale の反応は残る。
+ */
+:is(button, a, [role="button"]):is(.bg-primary\/10, .bg-primary-50) {
+  background-color: transparent;
+  background-image: var(--brand-gradient-soft);
 }
 
 /*

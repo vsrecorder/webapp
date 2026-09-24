@@ -67,10 +67,12 @@ export default function MobileNavigation() {
                 (実測のコントラスト比: 未選択 default-400 は 4.42、選択中 primary は 3.25)。
                 一段明るい色に上げて、面を明るくする前(5.24 / 3.85)を下回らないようにする。
                 ダークの default は番号が大きいほど明るいので、ホバーも 600 へ上げる。
+                選択中はアイコンと文字をブランドのグラデーションで塗る(brand-gradient-content)。
+                text-primary は、グラデーションを描けない環境向けの控えの色として残す。
               */
               className={`mobile-nav-item flex flex-col items-center justify-start gap-1 transition-all duration-150 active:scale-90 ${
                 active
-                  ? "text-primary dark:text-primary-600"
+                  ? "brand-gradient-content text-primary dark:text-primary-600"
                   : "text-default-400 hover:text-default-600 dark:text-default-500 dark:hover:text-default-600"
               }`}
             >

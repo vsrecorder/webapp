@@ -26,7 +26,7 @@ export default function DesktopNavigation() {
             onClick={() => markPending(href)}
             className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
               active
-                ? "text-primary bg-primary/10"
+                ? "brand-gradient-content text-primary bg-primary/10"
                 : "text-default-500 hover:text-default-700 hover:bg-default-100 dark:hover:text-default-300 dark:hover:bg-neutral-800/60"
             }`}
           >

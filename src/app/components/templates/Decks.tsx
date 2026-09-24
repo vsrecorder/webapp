@@ -214,7 +214,9 @@ export default function TemplateDecks({ userId, initial, initialTab }: Props) {
       <div className="min-w-0">
         {!hideTabs && <DeckStatusToggle value={selectedKey} onChange={handleSelectionChange} />}
       </div>
-      {loadState.hasItems && <DeckViewToggle />}
+      {/* 表示切替は「空だと確定した」ときだけ隠す。1件以上あるときに限ると、取得に失敗して
+          0件のまま再読み込みを待っている間も消えてしまい、ヘッダーの右半分が欠ける */}
+      {!loadState.isEmpty && <DeckViewToggle />}
     </div>
   );
 

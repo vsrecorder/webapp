@@ -24,6 +24,9 @@ async function fetchUser(id: string): Promise<UserType> {
     headers: { Accept: "application/json" },
   });
 
+  // エラー応答の本文(JSON)をユーザ情報として描かないよう、200 以外は失敗として扱う
+  if (res.status !== 200) throw new Error(`failed to fetch user: ${res.status}`);
+
   const ret: UserType = await res.json();
   return ret;
 }
@@ -143,11 +146,21 @@ export default async function Header() {
             </div>
           )}
           {/* アバターはアイコンボタンと違い枠内に余白がないため、見た目の間隔を揃えるためのマージン */}
-          {resolvedUser && (
-            <div className="ml-2">
+          <div className="ml-2">
+            {resolvedUser ? (
               <UserMenu user={resolvedUser} iconUrl={iconUrl} isDevEnv={isDev} />
-            </div>
-          )}
+            ) : (
+              /*
+                ユーザ情報が取れなかった(上流の失敗・無応答)ときは、アイコンを消さずに
+                同じ大きさ(Avatar size="md" = 40px)の骨格を残す。消すと右端の並びが詰まり、
+                ホームのプロフィールカードの骨格とも食い違う
+              */
+              <div
+                aria-hidden
+                className="w-10 h-10 rounded-full bg-white/25 ring-2 ring-white/40 animate-pulse"
+              />
+            )}
+          </div>
         </div>
       </HeaderShell>
     );

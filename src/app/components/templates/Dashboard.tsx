@@ -16,6 +16,7 @@ import {
   OpponentDeckUsagePanel,
 } from "@app/components/organisms/Dashboard/DashboardChartPanels";
 import UserProfileCard from "@app/components/organisms/User/UserProfileCard";
+import UserProfileCardSkeleton from "@app/components/organisms/User/Skeleton/UserProfileCardSkeleton";
 import FirstRecordCtaCard from "@app/components/organisms/Dashboard/FirstRecordCtaCard";
 import RecordingNowCard from "@app/components/organisms/Dashboard/RecordingNowCard";
 import QuickStartModal from "@app/components/organisms/Dashboard/QuickStartModal";
@@ -250,7 +251,9 @@ export default async function TemplateDashboard({
     getAllEnvironments(),
     getAllStandardRegulations(),
     getAllChampionshipSeries(),
-    getUser(userId),
+    // 応答が無い(接続失敗・タイムアウト)ときは例外になる。ここで null に倒さないと
+    // ページ全体がエラー画面になるので、取得失敗(非200)と同じ扱いにする
+    getUser(userId).catch(() => null),
     needTotalRecords
       ? getCappedRecordCount(userId).catch(() => null)
       : Promise.resolve<number | null>(null),
@@ -621,17 +624,17 @@ export default async function TemplateDashboard({
    * DashboardSections が実際に描いた並びとして cookie に残す(utils/dashboardLayout)。
    * 下の pinned の中身と順序を揃えること。
    */
-  const pinnedIds: DashboardBlockId[] = user
-    ? [
-        "profile",
-        // 使用デッキの行があるかで骨格の背丈が変わるので、描いたほうのIDを残す
-        ...(recordingNow
-          ? ([recordingNow.deck ? "recording_now" : "recording_now_no_deck"] as const)
-          : []),
-        ...(showFirstRecordCta ? (["first_record_cta"] as const) : []),
-        ...(combinedAtTop ? (["env_window"] as const) : []),
-      ]
-    : [];
+  // user の取得に失敗しても "profile" は外さない。外すとその並びが cookie に残り、
+  // 次回以降の読み込み骨格からもプロフィールカードが消えてしまう
+  const pinnedIds: DashboardBlockId[] = [
+    "profile",
+    // 使用デッキの行があるかで骨格の背丈が変わるので、描いたほうのIDを残す
+    ...(recordingNow
+      ? ([recordingNow.deck ? "recording_now" : "recording_now_no_deck"] as const)
+      : []),
+    ...(showFirstRecordCta ? (["first_record_cta"] as const) : []),
+    ...(combinedAtTop ? (["env_window"] as const) : []),
+  ];
 
   const recentRecords = (
     <section key="recent-records" className="flex flex-col gap-2">
@@ -682,8 +685,12 @@ export default async function TemplateDashboard({
             storedLayout ? splitDashboardLayout(storedLayout).sections : undefined
           }
           pinned={
-            user ? (
-              <div className="flex flex-col gap-3 lg:gap-6">
+            <div className="flex flex-col gap-3 lg:gap-6">
+                {/*
+                ユーザ情報が取れなかった(上流の失敗・無応答)ときは、枠ごと消さずに骨格を残す。
+                消すと下のカードが繰り上がって配置が崩れ、ユーザ情報の場所も分からなくなる。
+                */}
+                {user ? (
                 <UserProfileCard
                   key="pinned"
                   user={user}
@@ -697,55 +704,57 @@ export default async function TemplateDashboard({
                   initialStatsVisible={statsVisible}
                   initialUserPlayer={panels.userPlayer}
                 />
+                ) : (
+                <UserProfileCardSkeleton isDevEnv={isDevEnv()} />
+                )}
                 {/*
-                  いま記録中のイベントがあれば、プロフィールカードの直後に置く。
-                  大会の合間に2戦目・3戦目を足すまでを1タップにするのが目的なので、
-                  ホームを開いた時点で目に入る位置に固定する(並べ替え・非表示の対象にしない)。
-                  出す条件(今日のイベント / 最後の動きから9時間 / 未クローズ)は
-                  サーバ側で判定済み(utils/recordingNowServer)。
+                いま記録中のイベントがあれば、プロフィールカードの直後に置く。
+                大会の合間に2戦目・3戦目を足すまでを1タップにするのが目的なので、
+                ホームを開いた時点で目に入る位置に固定する(並べ替え・非表示の対象にしない)。
+                出す条件(今日のイベント / 最後の動きから9時間 / 未クローズ)は
+                サーバ側で判定済み(utils/recordingNowServer)。
                 */}
                 {recordingNow && (
-                  <RecordingNowCard
-                    record={recordingNow.record}
-                    eventTitle={recordingNow.eventTitle}
-                    eventIconUrl={recordingNow.eventIconUrl}
-                    venue={recordingNow.venue}
-                    deck={recordingNow.deck}
-                    summary={recordingNow.summary}
-                    lastActiveAt={recordingNow.lastActiveAt}
-                    windowMs={recordingNow.windowMs}
-                    // 経過時間はサーバで一度組み立てて渡す。クライアントで初期値を
-                    // 計算するとハイドレーションの前後で文言がずれることがある
-                    initialElapsedLabel={formatElapsedDuration(recordingNow.lastActiveAt)}
-                  />
+                <RecordingNowCard
+                  record={recordingNow.record}
+                  eventTitle={recordingNow.eventTitle}
+                  eventIconUrl={recordingNow.eventIconUrl}
+                  venue={recordingNow.venue}
+                  deck={recordingNow.deck}
+                  summary={recordingNow.summary}
+                  lastActiveAt={recordingNow.lastActiveAt}
+                  windowMs={recordingNow.windowMs}
+                  // 経過時間はサーバで一度組み立てて渡す。クライアントで初期値を
+                  // 計算するとハイドレーションの前後で文言がずれることがある
+                  initialElapsedLabel={formatElapsedDuration(recordingNow.lastActiveAt)}
+                />
                 )}
                 {/*
-                  施策0-6 止血: 記録0件のユーザーにだけ、プロフィールカードの直後に
-                  最初の1件を促すCTAを出す。DashboardSections の sections に混ぜると
-                  多段組(columns-2)や並べ替え・非表示の対象になってしまうため、pinned 内に
-                  プロフィールカードと並べて固定で描画する。
+                施策0-6 止血: 記録0件のユーザーにだけ、プロフィールカードの直後に
+                最初の1件を促すCTAを出す。DashboardSections の sections に混ぜると
+                多段組(columns-2)や並べ替え・非表示の対象になってしまうため、pinned 内に
+                プロフィールカードと並べて固定で描画する。
                 */}
                 {showFirstRecordCta && (
-                  <FirstRecordCtaCard
-                    cohortWeek={cohort.cohortWeek}
-                    daysSinceSignup={cohort.daysSinceSignup}
-                  />
+                <FirstRecordCtaCard
+                  cohortWeek={cohort.cohortWeek}
+                  daysSinceSignup={cohort.daysSinceSignup}
+                />
                 )}
                 {/*
-                  組み合わせパネル(環境ウィンドウ E-2 ＋ 対戦環境分析): 記録3件未満のユーザーには
-                  プロフィールカードの直後(CTA 0-6 の直後)に固定で並べ、価値を前倒しで見せる。
-                  3件以上のユーザーには pinned では出さず「対戦環境分析」セクション位置に出す。
+                組み合わせパネル(環境ウィンドウ E-2 ＋ 対戦環境分析): 記録3件未満のユーザーには
+                プロフィールカードの直後(CTA 0-6 の直後)に固定で並べ、価値を前倒しで見せる。
+                3件以上のユーザーには pinned では出さず「対戦環境分析」セクション位置に出す。
                 */}
                 {combinedAtTop && (
-                  <EnvironmentWindowCard
-                    userId={userId}
-                    totalRecords={totalRecords ?? 0}
-                    cohortWeek={cohort.cohortWeek}
-                    daysSinceSignup={cohort.daysSinceSignup}
-                  />
+                <EnvironmentWindowCard
+                  userId={userId}
+                  totalRecords={totalRecords ?? 0}
+                  cohortWeek={cohort.cohortWeek}
+                  daysSinceSignup={cohort.daysSinceSignup}
+                />
                 )}
-              </div>
-            ) : undefined
+            </div>
           }
           sections={sections}
           trailing={recentRecords}

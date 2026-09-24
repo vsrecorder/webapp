@@ -67,6 +67,7 @@ import {
   fetchOpponentEnv,
   isEnvReturnTargetDate,
   DeckEnvPosition,
+  FirstSpriteEnvPosition,
 } from "@app/utils/deckEnv";
 import { JST_TIME_ZONE } from "@app/utils/date";
 
@@ -130,6 +131,7 @@ export default function TemplateQuickRecordCreate({
     opponentName: string;
     opponentSprites: MatchPokemonSpriteType[];
     position: DeckEnvPosition | null; // null = 先週の環境ランキング外
+    firstSprite: FirstSpriteEnvPosition | null; // 1体目でまとめたときの立ち位置
     victory: boolean;
   } | null>(null);
   // リターンから記録詳細ページへ遷移する間、全画面オーバーレイで操作をブロックする。
@@ -435,10 +437,9 @@ export default function TemplateQuickRecordCreate({
       // 施策E-1: 相手が先週ランキングに載っていれば、記録直後に環境ベンチマークを返す。
       // 載っていない/スプライト無し/無効時は従来どおり成功トースト＋記録詳細へ即遷移する。
       // 「詳細」で開催日を今週より前にした遡り記録でも出さない(根拠が「先週の環境」のため)。
-      const opponentSpriteIds = pokemonSprites.map((s) => s.id);
       const env =
         envReturnEnabled && isEnvReturnTargetDate(eventDateISO)
-          ? await fetchOpponentEnv(opponentSpriteIds)
+          ? await fetchOpponentEnv(pokemonSprites)
           : null;
 
       // 保存も環境判定も完了。全画面ローディングオーバーレイ(z-9999)をここで畳んでから
@@ -455,12 +456,14 @@ export default function TemplateQuickRecordCreate({
           opponentName: opponentsDeckInfo.trim(),
           opponentSprites: pokemonSprites,
           position: env.position, // null = 先週の環境ランキング外
+          firstSprite: env.firstSprite,
           victory,
         });
         setReturnOpen(true);
         sendGAEvent("event", "env_return_impression", {
           rank: env.position?.rank ?? -1,
           ranked: env.position != null,
+          first_sprite_rank: env.firstSprite?.rank ?? -1,
           victory,
         });
       } else {
@@ -1016,6 +1019,7 @@ export default function TemplateQuickRecordCreate({
           opponentName={returnData.opponentName}
           opponentSprites={returnData.opponentSprites}
           position={returnData.position}
+          firstSprite={returnData.firstSprite}
           victory={returnData.victory}
           primaryCta={{ label: "記録を見る", onPress: handleReturnViewRecord }}
           secondaryCta={{

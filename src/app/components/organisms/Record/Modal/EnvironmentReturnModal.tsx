@@ -7,12 +7,14 @@ import { Modal } from "@app/components/atoms/AppModal";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
 import { MatchPokemonSpriteType } from "@app/types/pokemon_sprite";
-import { DeckEnvPosition } from "@app/utils/deckEnv";
+import { DeckEnvPosition, FirstSpriteEnvPosition } from "@app/utils/deckEnv";
 
 // 施策E-1: クイック記録の保存直後に、下からせり上がるシート。相手デッキの環境的な位置
 // (順位・使用率・全体勝率)と勝敗の意味づけを返し、「統計的に無意味な1戦」を「意味のある1戦」に変える。
 // position が null のときは「先週は環境ランキング外」の相手として表示する(親は「先週の対戦環境データが
 // あり、かつ相手にスプライトあり」で開く)。集合データで価値を前倒しする狙い(blindspots §2)。
+// firstSprite があれば、1体目でまとめたときの順位・使用率・勝率と、その中での相手の組み合わせの
+// 割合を補足として1段追加する(組み合わせ単位では圏外でも、系統としては環境上位のことがあるため)。
 
 type CtaConfig = { label: string; onPress: () => void };
 
@@ -23,6 +25,7 @@ type Props = {
   opponentName: string;
   opponentSprites: MatchPokemonSpriteType[];
   position: DeckEnvPosition | null; // null = 先週の環境ランキング外
+  firstSprite: FirstSpriteEnvPosition | null; // 1体目でまとめたときの立ち位置(圏外なら null)
   victory: boolean;
   // CTA はフローごとに差し替える(クイック記録=記録を見る/続けて追加、通常追加=続けて追加/閉じる)。
   primaryCta: CtaConfig;
@@ -35,6 +38,7 @@ export default function EnvironmentReturnModal({
   opponentName,
   opponentSprites,
   position,
+  firstSprite,
   victory,
   primaryCta,
   secondaryCta,
@@ -49,19 +53,44 @@ export default function EnvironmentReturnModal({
       ? position.row.count / position.exclOtherTotal
       : null;
 
+  // 1体目でまとめた段。束ねた組み合わせが1通りだけだと上段と同じ数字になるため出さない。
+  const firstMemberCount = firstSprite?.row.members?.length ?? 0;
+  const showFirstSprite = firstSprite != null && firstMemberCount >= 2;
+  const firstRank = showFirstSprite ? firstSprite.rank : null;
+  const firstMedal =
+    firstRank === 1 ? "🥇" : firstRank === 2 ? "🥈" : firstRank === 3 ? "🥉" : null;
+  const firstUsageRate =
+    firstSprite && firstSprite.exclOtherTotal > 0
+      ? firstSprite.row.count / firstSprite.exclOtherTotal
+      : null;
+  // 1体目の内訳(件数の多い順)。相手の組み合わせの割合を帯で見せる。
+  const firstMembers = [...(firstSprite?.row.members ?? [])].sort((a, b) => b.count - a.count);
+  const memberShare =
+    firstSprite?.member && firstSprite.row.count > 0
+      ? firstSprite.member.count / firstSprite.row.count
+      : null;
+  // 組み合わせは圏外だが、1体目でまとめると環境3位以内=「珍しい型だが環境上位の系統」
+  const topTierLineage = !ranked && firstRank != null && firstRank <= 3;
+
   // 勝敗の意味づけ。負けは煽らず健闘を肯定する(きずなの逆境思想・KIZUNA_ALGORITHM.md)。
+  // 組み合わせの順位で判定し、圏外のときだけ1体目でまとめた順位で「環境上位の系統」に格上げする。
+  // 改行(\n)は whitespace-pre-line で表示する。
   const verdictIcon = victory ? "🎉" : "🛡️";
   const verdictMsg = victory
     ? topTier
       ? "環境トップクラスの相手に勝てたのは大きい！"
       : ranked
         ? "環境で戦われている相手に勝てました！"
-        : "その相手に勝てました！"
+        : topTierLineage
+          ? "環境上位の系統に勝てました！"
+          : "その相手に勝てました！"
     : topTier
-      ? "環境トップクラスの難敵。よく戦いました。"
+      ? "環境トップクラスの難敵。\nよく戦いました。"
       : ranked
         ? "手強い相手でした。よく戦いました。"
-        : "よく戦いました。";
+        : topTierLineage
+          ? "環境上位の系統の難敵。よく戦いました。"
+          : "よく戦いました。";
 
   return (
     <Modal
@@ -73,7 +102,7 @@ export default function EnvironmentReturnModal({
       isKeyboardDismissDisabled
     >
       <ModalContent>
-        <ModalBody className="gap-4 px-5 py-6">
+        <ModalBody className="gap-4 px-3 py-6">
           {/* 見出し + 保存できた合図(この演出自体が完了通知なので別途トーストは出さない) */}
           <div className="flex items-start justify-between gap-2">
             <div className="flex flex-col gap-0.5 min-w-0">
@@ -144,6 +173,77 @@ export default function EnvironmentReturnModal({
                 </span>
               </div>
             )}
+
+            {/* 1体目でまとめたときの立ち位置(補足) */}
+            {showFirstSprite && (
+              <div className="flex flex-col gap-2 border-t border-dashed border-default-300 pt-3">
+                <div className="flex items-center gap-2 min-w-0">
+                  <PokemonSprite
+                    id={firstSprite.row.pokemon_sprites[0]?.id}
+                    size={40}
+                    className="-my-1.5 -ml-1 shrink-0"
+                  />
+                  <span className="text-[0.625rem] font-bold text-default-500">
+                    1体目でまとめると（{firstMemberCount}通りの組み合わせ）
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-baseline gap-x-3.5 gap-y-1">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-[0.625rem] font-bold text-default-400">順位</span>
+                    <span className="text-[0.9375rem] font-black tabular-nums whitespace-nowrap">
+                      {firstMedal && <span className="mr-0.5">{firstMedal}</span>}
+                      {firstRank}位
+                    </span>
+                  </div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-[0.625rem] font-bold text-default-400">使用率</span>
+                    <span className="text-[0.9375rem] font-black tabular-nums text-secondary">
+                      {((firstUsageRate ?? 0) * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-[0.625rem] font-bold text-default-400">勝率</span>
+                    <span className="text-[0.9375rem] font-black tabular-nums">
+                      {(firstSprite.row.win_rate * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+                {memberShare != null && firstSprite.member && (
+                  <>
+                    {/* 内訳の帯: 相手の組み合わせを強調し、他の組み合わせはグレーで件数順に並べる */}
+                    <div
+                      className="flex h-[7px] gap-[1.5px] overflow-hidden rounded-full bg-default-100"
+                      aria-hidden
+                    >
+                      {firstMembers.map((m) => (
+                        <span
+                          key={m.fingerprint}
+                          className={
+                            m.fingerprint === firstSprite.member?.fingerprint
+                              ? "bg-secondary"
+                              : "bg-default-300"
+                          }
+                          style={{ flexGrow: m.count, flexBasis: 0 }}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-[0.6875rem] leading-snug text-default-500">
+                      相手のデッキは1体目が同じデッキの
+                      <span className="font-bold text-foreground">
+                        {Math.round(memberShare * 100)}%
+                      </span>
+                      （{firstSprite.row.count}件中{firstSprite.member.count}件）。
+                      {topTierLineage && (
+                        <>
+                          <br />
+                          珍しい型ですが、系統としては環境上位です。
+                        </>
+                      )}
+                    </span>
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
           {/* 勝敗の意味づけ */}
@@ -160,7 +260,7 @@ export default function EnvironmentReturnModal({
               {verdictIcon}
             </span>
             <span
-              className={`text-[0.84375rem] font-bold leading-snug ${
+              className={`text-[0.84375rem] font-bold leading-snug whitespace-pre-line ${
                 victory ? "text-success-600" : "text-warning-700"
               }`}
             >

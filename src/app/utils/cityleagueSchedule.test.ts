@@ -89,18 +89,18 @@ describe("pickCityleagueScheduleState", () => {
 });
 
 describe("isPastCityleaguePreviewReveal", () => {
-  // from_date は常にJST 0:00。9/26 0:00 の5時間前 = 9/25 19:00
+  // from_date は常にJST 0:00。9/26 0:00 の6時間前 = 9/25 18:00
   const FROM_DATE = "2026-09-26T00:00:00+09:00";
 
   it("解禁時刻ちょうどは解禁済み", () => {
     expect(
-      isPastCityleaguePreviewReveal(FROM_DATE, new Date("2026-09-25T19:00:00+09:00")),
+      isPastCityleaguePreviewReveal(FROM_DATE, new Date("2026-09-25T18:00:00+09:00")),
     ).toBe(true);
   });
 
   it("解禁時刻の1分前はまだ", () => {
     expect(
-      isPastCityleaguePreviewReveal(FROM_DATE, new Date("2026-09-25T18:59:00+09:00")),
+      isPastCityleaguePreviewReveal(FROM_DATE, new Date("2026-09-25T17:59:00+09:00")),
     ).toBe(false);
   });
 

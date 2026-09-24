@@ -30,8 +30,8 @@ function jstDateString(value: Date | string): string | null {
 
 // シティリーグの先出しプレビュー(ホームの「本日のシティリーグ結果」)を解禁するまでの、
 // 次シーズン開催日(from_date)からの巻き戻り時間(時間)。
-// schedules の from_date は常にJST 0:00 なので、5時間前は前日19時になる。
-export const PREVIEW_REVEAL_LEAD_HOURS = 5;
+// schedules の from_date は常にJST 0:00 なので、6時間前は前日18時になる。
+export const PREVIEW_REVEAL_LEAD_HOURS = 6;
 
 /*
  * 次シーズンの解禁時刻(from_date の PREVIEW_REVEAL_LEAD_HOURS 時間前)を過ぎているか。

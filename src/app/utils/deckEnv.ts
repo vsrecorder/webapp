@@ -2,12 +2,14 @@
 // 突き合わせて「環境の中での立ち位置」を求める共通ロジック。
 // 施策E-2(環境の窓カード)と施策E-1(記録直後のリターン)で共有する。
 
-import { fingerprintKey } from "@app/utils/fingerprint";
+import { deckFingerprintKey, fingerprintKey } from "@app/utils/fingerprint";
 import { lastWeekValue, isInCurrentWeekJST } from "@app/utils/week";
 import {
+  WeeklyDeckUsageGroupingType,
   WeeklyDeckUsageItemType,
   WeeklyDeckUsageStatType,
 } from "@app/types/weekly_deck_usage_stat";
+import { MatchPokemonSpriteType } from "@app/types/pokemon_sprite";
 import { isZeroDate } from "@app/utils/date";
 
 // 「ランキング対象」= 「その他」(空指紋)を除いたデッキ変種を、使用率(count)降順・
@@ -45,6 +47,38 @@ export function findDeckPosition(
   return { rank: idx + 1, row: rankable[idx], exclOtherTotal: exclOtherTotalOf(stat) };
 }
 
+export type FirstSpriteEnvPosition = DeckEnvPosition & {
+  // 行に束ねられた内訳のうち、突き合わせたデッキ(組み合わせ単位)に当たるもの。
+  // 内訳に見つからなければ null(行の中での割合は出せない)。
+  member: WeeklyDeckUsageItemType | null;
+};
+
+/*
+ * 1体目でまとめた集計(grouping=first_sprite)の中で、あるデッキが属する行の立ち位置を返す。
+ * 行は集計側で「その組み合わせで最も多く1体目に置かれたスプライト」で束ねられているため、
+ * 先に内訳(members)の組み合わせ指紋で親行を探し、無ければ自分の1体目の指紋で探す
+ * (環境の窓カードと同じ引き当て方)。スプライト未設定かランキング外なら null。
+ */
+export function findFirstSpritePosition(
+  stat: WeeklyDeckUsageStatType,
+  sprites: Pick<MatchPokemonSpriteType, "id" | "position">[],
+): FirstSpriteEnvPosition | null {
+  const exactFp = deckFingerprintKey(sprites, "exact");
+  const firstFp = deckFingerprintKey(sprites, "first_sprite");
+  if (exactFp === "" || firstFp === "") return null;
+  const rankable = rankableDecks(stat);
+  let idx = rankable.findIndex((d) => d.members?.some((m) => m.fingerprint === exactFp));
+  if (idx < 0) idx = rankable.findIndex((d) => d.fingerprint === firstFp);
+  if (idx < 0) return null;
+  const row = rankable[idx];
+  return {
+    rank: idx + 1,
+    row,
+    exclOtherTotal: exclOtherTotalOf(stat),
+    member: row.members?.find((m) => m.fingerprint === exactFp) ?? null,
+  };
+}
+
 // 施策E-1: 環境リターンを出してよい記録かどうかを、記録の開催日から判定する。
 // リターンの根拠は常に「(操作日から見た)先週の対戦環境データ」なので、今週より前の対戦を
 // 遡って記録した場合は当時の環境と食い違う(当時はトップでも今は圏外、の逆もある)。
@@ -62,33 +96,60 @@ export function isEnvReturnTargetDate(
   return isInCurrentWeekJST(dateStr);
 }
 
-// 施策E-1: 相手デッキのスプライトから、先週の環境での立ち位置を引く。
-// - position: ランキングに載っていれば順位情報、圏外なら null
-// - hasEnvData: 先週のランキングにデータがあるか(空の週はリターンを出さない)
-// スプライト無し・取得失敗なら null(その場合はリターンを出さない)。
-// ランキング外の相手でもリターンを出すため、position の有無ではなく hasEnvData で判定する。
-export async function fetchOpponentEnv(
-  spriteIds: string[],
-): Promise<{ position: DeckEnvPosition | null; hasEnvData: boolean } | null> {
-  if (spriteIds.length === 0) return null;
+// 先週の週次デッキ使用率を取得する。取得できなければ null。
+async function fetchLastWeekUsage(
+  grouping: WeeklyDeckUsageGroupingType,
+): Promise<WeeklyDeckUsageStatType | null> {
   try {
-    const res = await fetch(`/api/deck_meta/weekly_usage?week=${lastWeekValue()}`, {
-      cache: "no-store",
-    });
+    const res = await fetch(
+      `/api/deck_meta/weekly_usage?week=${lastWeekValue()}&grouping=${grouping}`,
+      { cache: "no-store" },
+    );
     if (!res.ok) return null;
-    const stat: WeeklyDeckUsageStatType = await res.json();
-    return {
-      position: findDeckPosition(stat, spriteIds),
-      hasEnvData: rankableDecks(stat).length > 0,
-    };
+    return await res.json();
   } catch {
     return null;
   }
 }
 
+// 施策E-1: 相手デッキのスプライトから、先週の環境での立ち位置を引く。
+// - position: ランキングに載っていれば順位情報、圏外なら null
+// - firstSprite: 1体目でまとめたときの立ち位置。圏外・取得失敗なら null
+// - hasEnvData: 先週のランキングにデータがあるか(空の週はリターンを出さない)
+// スプライト無し・取得失敗なら null(その場合はリターンを出さない)。
+// ランキング外の相手でもリターンを出すため、position の有無ではなく hasEnvData で判定する。
+// 1体目でまとめた集計は補足表示なので、そちらだけ取れなかったときは firstSprite=null で続ける。
+export async function fetchOpponentEnv(
+  sprites: Pick<MatchPokemonSpriteType, "id" | "position">[],
+): Promise<{
+  position: DeckEnvPosition | null;
+  firstSprite: FirstSpriteEnvPosition | null;
+  hasEnvData: boolean;
+} | null> {
+  if (sprites.length === 0) return null;
+  const [stat, firstStat] = await Promise.all([
+    fetchLastWeekUsage("exact"),
+    fetchLastWeekUsage("first_sprite"),
+  ]);
+  if (!stat) return null;
+  return {
+    position: findDeckPosition(stat, sprites.map((s) => s.id)),
+    firstSprite: firstStat ? findFirstSpritePosition(firstStat, sprites) : null,
+    hasEnvData: rankableDecks(stat).length > 0,
+  };
+}
+
 // 施策E-3: 自分のデッキのスプライトから、先週の環境での立ち位置(順位・環境平均勝率)を引く。
 // 「暫定値の環境補完(借りて→返す)」で、個人勝率の錨となる同デッキの環境平均勝率を得るために使う。
-// 実体は fetchOpponentEnv と同じ(対象が相手か自分かの違いだけ)なので、意図を明示する薄い別名。
-export function fetchDeckEnv(spriteIds: string[]) {
-  return fetchOpponentEnv(spriteIds);
+// 組み合わせ単位の立ち位置だけを使うため、1体目でまとめた集計は取得しない。
+export async function fetchDeckEnv(
+  spriteIds: string[],
+): Promise<{ position: DeckEnvPosition | null; hasEnvData: boolean } | null> {
+  if (spriteIds.length === 0) return null;
+  const stat = await fetchLastWeekUsage("exact");
+  if (!stat) return null;
+  return {
+    position: findDeckPosition(stat, spriteIds),
+    hasEnvData: rankableDecks(stat).length > 0,
+  };
 }

@@ -45,6 +45,7 @@ import {
   fetchOpponentEnv,
   isEnvReturnTargetDate,
   DeckEnvPosition,
+  FirstSpriteEnvPosition,
 } from "@app/utils/deckEnv";
 
 import { useModalDragToClose } from "@app/hooks/useModalDragToClose";
@@ -184,6 +185,7 @@ export default function CreateMatchModal({
     opponentName: string;
     opponentSprites: MatchPokemonSpriteType[];
     position: DeckEnvPosition | null; // null = 先週の環境ランキング外
+    firstSprite: FirstSpriteEnvPosition | null; // 1体目でまとめたときの立ち位置
     victory: boolean;
   } | null>(null);
 
@@ -475,13 +477,14 @@ export default function CreateMatchModal({
       );
       const envRet =
         includeInStats && isThisWeekRecord
-          ? await fetchOpponentEnv(pokemon_sprites.map((s) => s.id))
+          ? await fetchOpponentEnv(pokemon_sprites)
           : null;
       if (envRet && envRet.hasEnvData) {
         setReturnData({
           opponentName: opponentsDeckInfo,
           opponentSprites: pokemon_sprites,
           position: envRet.position,
+          firstSprite: envRet.firstSprite,
           victory: victoryFlg,
         });
         setReturnOpen(true);
@@ -838,6 +841,7 @@ export default function CreateMatchModal({
           opponentName={returnData.opponentName}
           opponentSprites={returnData.opponentSprites}
           position={returnData.position}
+          firstSprite={returnData.firstSprite}
           victory={returnData.victory}
           primaryCta={{
             label: "続けて対戦結果を追加する",

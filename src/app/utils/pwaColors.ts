@@ -12,10 +12,13 @@ import { isDevEnv } from "@app/utils/appIcon";
 //      作り直される 1 フレームだけ下敷きの 1 が露出する。ここで 1 と 2 の見た目が違うと
 //      「起動画面が揺らぐ」。
 // ページ側で揃えられるのはステータスバー色だけなので、manifest の theme_color は
-// スプラッシュの地色と同じ値にし、アプリ表示中のステータスバー色は Android の standalone 表示に
-// 限って <meta name="theme-color">(getStatusBarColor)で別途ヘッダー色に上書きする。
-// Chrome は manifest の theme_color をページ読み込み前の既定色として使い、ページに
-// theme-color の meta があればそちらを優先する。
+// スプラッシュの地色と同じ値にする。
+//
+// アプリ表示中のステータスバー(通知バー)も同じ色にする。WebAPK はページの
+// <meta name="theme-color"> を反映せず manifest の theme_color で塗り続ける(実機で確認)ため、
+// Android ではそもそもこの色から動かせない。iOS の standalone も同じ色を meta で指定して
+// 両 OS を1色に揃え、ヘッダーの上端をこの色から溶かして境目を消す(Header.tsx)。
+// 通知バーは OS が単色で塗るので、グラデーションにはできない。
 
 /** スプラッシュの地色。manifest の background_color / theme_color と、manifest 用アイコンの地色 */
 export function getSplashBackgroundColor(): string {
@@ -23,9 +26,9 @@ export function getSplashBackgroundColor(): string {
 }
 
 /**
- * アプリ表示中のステータスバー色。ヘッダーのグラデーション始点(本番は blue-600)に合わせる。
- * dev 環境は一目で区別できるようオレンジにする。
+ * アプリ表示中のステータスバー(通知バー)の色。スプラッシュの地色と同じ(上の説明を参照)。
+ * ヘッダー上端の溶かし込みと、iOS の最下端のセーフエリアを塗る body の地色もこれに合わせる。
  */
 export function getStatusBarColor(): string {
-  return isDevEnv() ? "#EA580C" : "#2563EB";
+  return getSplashBackgroundColor();
 }

@@ -93,7 +93,7 @@ export default function RootLayout({
       >
         {/*
           描画前に iOS の standalone PWA かどうか / Android かどうかを判定して <html> に目印を付け、
-          Android の standalone PWA ではステータスバー色の <meta name="theme-color"> も足す。
+          standalone(ホーム画面アプリ)では通知バー色の <meta name="theme-color"> も足す。
           内容と理由は platformDetectScript.ts を参照。
         */}
         <script

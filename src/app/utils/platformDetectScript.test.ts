@@ -21,6 +21,7 @@ function themeColorMetas() {
 afterEach(() => {
   document.documentElement.removeAttribute("data-android");
   document.documentElement.removeAttribute("data-ios-pwa");
+  document.documentElement.removeAttribute("data-standalone");
   themeColorMetas().forEach((m) => m.remove());
 });
 
@@ -34,6 +35,7 @@ describe("platformDetectScript", () => {
     run({ ua: ANDROID_UA, standalone: true });
     expect(document.documentElement.getAttribute("data-android")).toBe("true");
     expect(document.documentElement.hasAttribute("data-ios-pwa")).toBe(false);
+    expect(document.documentElement.getAttribute("data-standalone")).toBe("true");
     expect(themeColorMetas().map((m) => m.getAttribute("content"))).toEqual([COLOR]);
   });
 
@@ -41,14 +43,23 @@ describe("platformDetectScript", () => {
     // 付けると Chrome のアドレスバーまでヘッダー色になる。PWA の起動画面対策の範囲に留める
     run({ ua: ANDROID_UA, standalone: false });
     expect(document.documentElement.getAttribute("data-android")).toBe("true");
+    expect(document.documentElement.hasAttribute("data-standalone")).toBe(false);
     expect(themeColorMetas()).toHaveLength(0);
   });
 
-  it("iOS の standalone PWA では data-ios-pwa だけで、theme-color は付けない", () => {
-    // iOS では theme-color がそのままステータスバーの地色になり、見た目が変わってしまう
+  it("iOS の standalone PWA では data-ios-pwa と theme-color の meta を付ける", () => {
+    // 通知バーを Android(manifest の theme_color)と同じ単色にし、ヘッダー上端と揃える
     run({ ua: IOS_UA, standalone: true });
     expect(document.documentElement.getAttribute("data-ios-pwa")).toBe("true");
     expect(document.documentElement.hasAttribute("data-android")).toBe(false);
+    expect(document.documentElement.getAttribute("data-standalone")).toBe("true");
+    expect(themeColorMetas().map((m) => m.getAttribute("content"))).toEqual([COLOR]);
+  });
+
+  it("iOS のブラウザ表示(Safari のタブ)では何も付けない", () => {
+    run({ ua: IOS_UA, standalone: false });
+    expect(document.documentElement.hasAttribute("data-ios-pwa")).toBe(false);
+    expect(document.documentElement.hasAttribute("data-standalone")).toBe(false);
     expect(themeColorMetas()).toHaveLength(0);
   });
 

@@ -21,11 +21,12 @@ describe.each(["dev", "prod"])("PWA の起動画面の色(ENV=%s)", (env) => {
     expect(m.theme_color).toBe(m.background_color);
   });
 
-  it("アプリ表示中のステータスバー色は #RRGGBB で、スプラッシュの地色とは別の色", () => {
+  it("アプリ表示中のステータスバー色は #RRGGBB で、スプラッシュの地色と同じ", () => {
+    // Android の WebAPK は表示中も manifest の theme_color で通知バーを塗る。
+    // iOS とヘッダー上端もこの色に揃えないと、OS ごとに通知バーとヘッダーの境目が見える
     process.env.ENV = env;
     expect(getStatusBarColor()).toMatch(HEX);
-    expect(getSplashBackgroundColor()).toMatch(HEX);
-    expect(getStatusBarColor()).not.toBe(getSplashBackgroundColor());
+    expect(getStatusBarColor()).toBe(getSplashBackgroundColor());
   });
 });
 

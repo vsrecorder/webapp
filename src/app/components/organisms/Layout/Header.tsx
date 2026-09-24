@@ -11,6 +11,7 @@ import ReloadButton from "@app/components/molecules/Header/ReloadButton";
 import { UserType } from "@app/types/user";
 import { EnvironmentType } from "@app/types/environment";
 import { getAppIconUrl, isDevEnv } from "@app/utils/appIcon";
+import { getStatusBarColor } from "@app/utils/pwaColors";
 import { todayJSTDateString } from "@app/utils/date";
 
 import Link from "next/link";
@@ -77,6 +78,20 @@ function HeaderShell({
       */}
       <div
         className={`absolute inset-0 ${gradientClass} backdrop-blur-md shadow-[0_3px_8px_-2px_rgba(0,0,0,0.18)]`}
+      />
+      {/*
+        ホーム画面アプリでは、真上の通知バーを OS が単色(getStatusBarColor)で塗る。
+        斜めのグラデーションのままだと、特に右側(紫)で通知バーとの境目がはっきり見えるので、
+        上端をその単色にして下へ向かって透明に抜き、下地のグラデーションへ溶かす。
+        ブラウザ表示では通知バーの色を指定していないので出さない(globals.css の
+        .header-statusbar-blend。目印の data-standalone は platformDetectScript が付ける)。
+      */}
+      <div
+        aria-hidden
+        className="header-statusbar-blend absolute inset-0 pointer-events-none"
+        style={{
+          backgroundImage: `linear-gradient(to bottom, ${getStatusBarColor()}, ${getStatusBarColor()}00)`,
+        }}
       />
       {/* 本サービスはモバイル専用のため、デスクトップ幅（lg以上）でのみ非対応の旨を表示する */}
       <div

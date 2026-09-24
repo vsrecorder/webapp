@@ -344,6 +344,18 @@ main[data-authed] {
 }
 
 /*
+ * ヘッダー上端を通知バーの色から溶かす層(Header.tsx)。通知バーの色を指定している
+ * ホーム画面アプリ(data-standalone)のときだけ出す。
+ */
+.header-statusbar-blend {
+  display: none;
+}
+
+:root[data-standalone="true"] .header-statusbar-blend {
+  display: block;
+}
+
+/*
  * 下部ナビ(MobileNavigation)の項目の上パディング。
  * 項目の中身は アイコン枠 24px + gap 4px + ラベル 10px = 38px なので、
  * (バーの高さ - 38px) / 2 がおおよそ中央に見える値。

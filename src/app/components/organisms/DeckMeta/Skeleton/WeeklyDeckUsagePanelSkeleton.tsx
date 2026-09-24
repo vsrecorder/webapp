@@ -127,18 +127,6 @@ export function WeeklyDeckUsageGroupingSkeleton() {
   );
 }
 
-// 使用率の算出基準の切り替え(タブ h-9 + 分母の説明1行)
-export function WeeklyDeckUsageRateModeSkeleton() {
-  return (
-    <div className="flex flex-col gap-1.5">
-      {/* タブ(Tabs の高さ 36px) */}
-      <div className="h-9 w-full rounded-xl bg-default-100 animate-pulse" />
-      {/* 分母の説明。初期表示(全体件数を分母)の文言は固定なのでそのまま置く */}
-      <WeeklyDeckUsageRateNote />
-    </div>
-  );
-}
-
 type RankingProps = {
   /*
    * 実体と同じ意味の limit。指定時は上位N件だけを並べ、実体と同じく
@@ -184,7 +172,8 @@ export default function WeeklyDeckUsagePanelSkeleton({ limit = 5 }: Props) {
 
         <WeeklyDeckUsageGroupingSkeleton />
         <WeeklyDeckUsageSummarySkeleton />
-        <WeeklyDeckUsageRateModeSkeleton />
+        {/* 使用率の分母の説明(固定文言。パネルも読み込み中から実物を出す) */}
+        <WeeklyDeckUsageRateNote />
 
         {/* ランキングの見出し(固定文言。こちらもパネルは読み込み中から実物を出す) */}
         <WeeklyDeckUsageRankingHeader />

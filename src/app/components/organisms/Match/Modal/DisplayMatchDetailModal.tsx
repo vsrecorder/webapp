@@ -109,11 +109,8 @@ export default function DisplayMatchDetailModal({
   const hasEnvData = envStat ? rankableDecks(envStat).length > 0 : false;
   const rank = position?.rank ?? null;
   const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : null;
-  // 使用率は環境リターン・環境の窓カードと同じ「その他を除いた割合」で表示する
-  const usageRate =
-    position && position.exclOtherTotal > 0
-      ? position.row.count / position.exclOtherTotal
-      : null;
+  // 使用率は環境リターン・環境の窓カードと同じ「その他」を含む全体の中の割合で表示する
+  const usageRate = position?.row.usage_rate ?? null;
 
   const games = match?.games ?? [];
 

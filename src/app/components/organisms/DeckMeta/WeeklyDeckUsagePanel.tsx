@@ -25,7 +25,6 @@ import {
 } from "@app/components/organisms/DeckMeta/WeeklyDeckUsageTexts";
 import {
   WeeklyDeckUsageRankingSkeleton,
-  WeeklyDeckUsageRateModeSkeleton,
   WeeklyDeckUsageSummarySkeleton,
 } from "@app/components/organisms/DeckMeta/Skeleton/WeeklyDeckUsagePanelSkeleton";
 
@@ -251,9 +250,6 @@ function BreakdownRow({
   );
 }
 
-// 使用率の算出基準（全体件数を分母にするか、「その他」を除いた件数を分母にするか）
-type RateMode = "all" | "excl_other";
-
 type Props = {
   // 指定時は上位N件のみ表示し、以降は個別ページへの誘導に置き換える（ダッシュボード埋め込み用）
   limit?: number;
@@ -284,7 +280,6 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
   const [isError, setIsError] = useState(false);
   // 「再読み込み」で取り直すためのキー。増やすと取得のeffectが走り直す
   const [reloadKey, setReloadKey] = useState(0);
-  const [rateMode, setRateMode] = useState<RateMode>("all");
   // 内訳アコーディオンの開閉状態。行ごとに独立して開けるよう指紋の集合で持つ
   // （「その他」行の指紋は空文字）。1体目でまとめた表示では複数の行が内訳を持つため、
   // 単一の真偽値だと別の行を開いたときに前の行が畳まれてしまう。
@@ -358,13 +353,6 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
   }, [week, grouping, reloadKey]);
 
   const decks = useMemo(() => stat?.decks ?? [], [stat]);
-
-  // 「その他」の件数と、それを除いた場合の母数（分母）を算出する
-  const otherCount = useMemo(
-    () => decks.find((d) => d.fingerprint === "")?.count ?? 0,
-    [decks],
-  );
-  const exclOtherTotal = (stat?.total_votes ?? 0) - otherCount;
 
   // 集計はサーバー側で使用率(count)降順・同数は勝率降順に整列済みだが、
   // UI 側でも念のため同じ規則で安定ソートする。「その他」は fingerprint が空で常に末尾へ。
@@ -499,27 +487,8 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
           </div>
         )}
 
-        {/* 使用率の算出基準切り替え(こちらも初回読み込み中はスケルトンで場所を確保する) */}
-        {isLoading && stat == null && <WeeklyDeckUsageRateModeSkeleton />}
-        {stat != null && (
-          <div className="flex flex-col gap-1.5">
-            <Tabs
-              fullWidth
-              size="sm"
-              selectedKey={rateMode}
-              onSelectionChange={(key) => setRateMode(key as RateMode)}
-              classNames={{ tab: "h-7", tabContent: "font-bold text-xs" }}
-            >
-              <Tab key="all" title="全体の中の割合" />
-              <Tab key="excl_other" title="その他を除いた割合" />
-            </Tabs>
-            <WeeklyDeckUsageRateNote
-              rateMode={rateMode}
-              otherCount={otherCount}
-              exclOtherTotal={exclOtherTotal}
-            />
-          </div>
-        )}
+        {/* 使用率の分母の説明(固定文言。読み込み中も同じものを出す) */}
+        <WeeklyDeckUsageRateNote />
 
         {/* ランキングの並び順を明示（読み込み中もレイアウトが動かないよう表示しておく） */}
         {(isLoading || displayDecks.length > 0) && <WeeklyDeckUsageRankingHeader />}
@@ -557,18 +526,12 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
           >
             {visibleDecks.map((deck, idx) => {
               const isOther = deck.fingerprint === "";
-              // 「その他を除く」表示では、その他自身は分母から外れており%が定義できない
-              const isExcluded = isOther && rateMode === "excl_other";
-              const displayRate = isExcluded
-                ? null
-                : rateMode === "all"
-                  ? deck.usage_rate
-                  : deck.count / (exclOtherTotal || 1);
-              // バーの幅は表示中の割合(%)をそのまま反映する（最上位デッキ基準の相対値だと
+              // バーの幅は使用率(%)をそのまま反映する（最上位デッキ基準の相対値だと
               // 実際の割合より過大な幅になり、表示中の%表記と食い違うため）
-              const barWidth = isExcluded
-                ? 0
-                : Math.min(100, Math.max(2, Math.round((displayRate ?? 0) * 100)));
+              const barWidth = Math.min(
+                100,
+                Math.max(2, Math.round(deck.usage_rate * 100)),
+              );
 
               // 内訳をアコーディオンで開ける行:
               //  - 「その他」: 集約された少数変種(中身は行だけでは一切見えないので常に開ける)
@@ -607,29 +570,18 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
                       )}
                     </div>
                     {/* 使用率を主指標として大きく強調表示する */}
-                    {isExcluded ? (
-                      <span className="text-right text-xs font-bold text-default-400 leading-none"></span>
-                    ) : (
-                      <span className="text-right text-lg font-black tabular-nums text-default-700 leading-none">
-                        {(displayRate! * 100).toFixed(1)}
-                        <span className="text-xs font-bold text-default-400">%</span>
-                      </span>
-                    )}
+                    <span className="text-right text-lg font-black tabular-nums text-default-700 leading-none">
+                      {(deck.usage_rate * 100).toFixed(1)}
+                      <span className="text-xs font-bold text-default-400">%</span>
+                    </span>
                     <span className="flex flex-col items-end gap-0.5 leading-none">
-                      {/* 前週差は表示中の基準に合わせる(「その他を除く」は除外後分母の前週値と比較)。
-                          前週差の無い行(NEW等)も高さを確保して件数の位置を揃える */}
+                      {/* 前週差の無い行(NEW等)も高さを確保して件数の位置を揃える */}
                       <span className="flex h-3 items-center">
-                        {!isExcluded && (
-                          <DeltaPoints
-                            current={displayRate!}
-                            previous={
-                              rateMode === "all"
-                                ? deck.previous_usage_rate
-                                : deck.previous_usage_rate_excl_other
-                            }
-                            unit="pt"
-                          />
-                        )}
+                        <DeltaPoints
+                          current={deck.usage_rate}
+                          previous={deck.previous_usage_rate}
+                          unit="pt"
+                        />
                       </span>
                       <span className="text-[0.5625rem] text-default-400 tabular-nums">
                         ({deck.count}件)
@@ -696,11 +648,8 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
                       {isExpanded && (
                         <div className="flex flex-col gap-1">
                           {members.map((member, mIdx) => {
-                            // 「その他」の内訳は「その他を除いた割合」では分母から
-                            // 外れた票なので、常に全体件数を分母にしたままにする。
-                            // 1体目でまとめた行の内訳は行と同じ基準に合わせる
-                            // （内訳の合計が行の使用率に一致する）
-                            const useAll = isOther || rateMode === "all";
+                            // 内訳も行と同じく全体件数を分母にする
+                            // （1体目でまとめた行は内訳の合計が行の使用率に一致する）
                             return (
                               <BreakdownRow
                                 key={`${member.fingerprint || "member"}-${mIdx}`}
@@ -709,12 +658,8 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
                                 // （その他行の次の順位から連番）。1体目でまとめた行の
                                 // 内訳は順位を持たないので番号を出さない
                                 rank={isOther ? idx + 1 + mIdx : undefined}
-                                usageRate={
-                                  useAll
-                                    ? member.usage_rate
-                                    : member.count / (exclOtherTotal || 1)
-                                }
-                                rateNote={useAll ? "全体比" : "その他除く"}
+                                usageRate={member.usage_rate}
+                                rateNote="全体比"
                               />
                             );
                           })}

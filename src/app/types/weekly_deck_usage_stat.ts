@@ -27,8 +27,6 @@ export type WeeklyDeckUsageItemType = {
   previous_rank?: number;
   previous_usage_rate?: number;
   previous_win_rate?: number;
-  // 前週の「その他を除いた分母」での使用率（「その他を除いた割合」表示の前週差用）。
-  previous_usage_rate_excl_other?: number;
 };
 
 export type WeeklyDeckUsageStatType = {

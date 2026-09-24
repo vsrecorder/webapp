@@ -20,17 +20,10 @@ export function rankableDecks(stat: WeeklyDeckUsageStatType): WeeklyDeckUsageIte
   );
 }
 
-// 「その他」を分母から除いた割合の母数(= total_votes − その他の件数)。
-// 使用率を「その他を除いた割合」で表示するときの分母に使う。
-export function exclOtherTotalOf(stat: WeeklyDeckUsageStatType): number {
-  const otherCount = stat.decks.find((d) => d.fingerprint === "")?.count ?? 0;
-  return stat.total_votes - otherCount;
-}
-
 export type DeckEnvPosition = {
   rank: number; // 1始まりの環境順位
-  row: WeeklyDeckUsageItemType; // 該当デッキの集計行(使用率・勝率など)
-  exclOtherTotal: number; // その他除外の母数(使用率表示に使う)
+  // 該当デッキの集計行(使用率・勝率など)。使用率は「その他」を含む全体件数が分母の usage_rate を使う
+  row: WeeklyDeckUsageItemType;
 };
 
 // 突き合わせたいデッキのスプライトIDから、環境上の立ち位置を返す。
@@ -44,7 +37,7 @@ export function findDeckPosition(
   const rankable = rankableDecks(stat);
   const idx = rankable.findIndex((d) => d.fingerprint === fp);
   if (idx < 0) return null;
-  return { rank: idx + 1, row: rankable[idx], exclOtherTotal: exclOtherTotalOf(stat) };
+  return { rank: idx + 1, row: rankable[idx] };
 }
 
 export type FirstSpriteEnvPosition = DeckEnvPosition & {
@@ -74,7 +67,6 @@ export function findFirstSpritePosition(
   return {
     rank: idx + 1,
     row,
-    exclOtherTotal: exclOtherTotalOf(stat),
     member: row.members?.find((m) => m.fingerprint === exactFp) ?? null,
   };
 }

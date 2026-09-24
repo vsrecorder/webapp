@@ -50,21 +50,11 @@ export function WeeklyDeckUsageNotes() {
   );
 }
 
-// 使用率の分母の説明。骨格からは既定(全体件数を分母にする表示)のまま呼ぶ
-export function WeeklyDeckUsageRateNote({
-  rateMode = "all",
-  otherCount = 0,
-  exclOtherTotal = 0,
-}: {
-  rateMode?: "all" | "excl_other";
-  otherCount?: number;
-  exclOtherTotal?: number;
-}) {
+// 使用率の分母の説明(パネル・骨格で共通の固定文言)
+export function WeeklyDeckUsageRateNote() {
   return (
     <span className="text-[0.625rem] text-default-400 leading-snug text-center">
-      {rateMode === "all"
-        ? "「その他」を含む全体件数を分母に算出しています"
-        : `「その他」(${otherCount}件)を除いた${exclOtherTotal}件を分母に算出しています`}
+      「その他」を含む全体件数を分母に算出しています
     </span>
   );
 }

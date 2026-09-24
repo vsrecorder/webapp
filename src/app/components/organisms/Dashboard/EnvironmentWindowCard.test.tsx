@@ -116,6 +116,33 @@ describe("EnvironmentWindowCard", () => {
     expect(weeklyCalls[0]).toContain("grouping=first_sprite");
   });
 
+  // 「その他」を除いた分母(100-10=90件)ではなく、全体件数(100件)を分母にする
+  it("使用率は「その他」を含む全体の中の割合で出す", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes("/api/deck_meta/weekly_usage")) {
+          return Response.json({
+            ...FIRST_SPRITE,
+            decks: [...FIRST_SPRITE.decks, row([], 10, 0.5)],
+          });
+        }
+        if (url.includes("/api/decks/all")) return Response.json([]);
+        return Response.json({ decks: [] });
+      }),
+    );
+
+    const { container } = render(
+      <EnvironmentWindowCard userId="user-1" totalRecords={3} showEmptyState />,
+    );
+    const card = within(container);
+
+    await waitFor(() => expect(card.getByText("36.0")).toBeTruthy());
+    expect(card.queryByText("40.0")).toBeNull();
+    expect(card.getByText("全体の中の割合")).toBeTruthy();
+  });
+
   it("1体目でまとめると、束ねた組み合わせの内訳を開ける", async () => {
     stubFetch();
 
@@ -132,7 +159,7 @@ describe("EnvironmentWindowCard", () => {
 
     fireEvent.click(toggle);
 
-    // 内訳の使用率は行と同じ基準(その他を除いた割合)。24+12件 = 束ねた行の36件
+    // 内訳の使用率は行と同じ基準(全体の中の割合)。24+12件 = 束ねた行の36件
     expect(card.getByText("24件")).toBeTruthy();
     expect(card.getByText("12件")).toBeTruthy();
     expect(card.getByText("内訳を閉じる")).toBeTruthy();

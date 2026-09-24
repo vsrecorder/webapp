@@ -47,11 +47,8 @@ export default function EnvironmentReturnModal({
   const rank = position?.rank ?? null;
   const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : null;
   const topTier = rank != null && rank <= 3;
-  // 使用率は E-2 と同じ「その他を除いた割合」で表示する。
-  const usageRate =
-    position && position.exclOtherTotal > 0
-      ? position.row.count / position.exclOtherTotal
-      : null;
+  // 使用率は E-2 と同じ「その他」を含む全体の中の割合で表示する。
+  const usageRate = position?.row.usage_rate ?? null;
 
   // 1体目でまとめた段。束ねた組み合わせが1通りだけだと上段と同じ数字になるため出さない。
   const firstMemberCount = firstSprite?.row.members?.length ?? 0;
@@ -59,10 +56,7 @@ export default function EnvironmentReturnModal({
   const firstRank = showFirstSprite ? firstSprite.rank : null;
   const firstMedal =
     firstRank === 1 ? "🥇" : firstRank === 2 ? "🥈" : firstRank === 3 ? "🥉" : null;
-  const firstUsageRate =
-    firstSprite && firstSprite.exclOtherTotal > 0
-      ? firstSprite.row.count / firstSprite.exclOtherTotal
-      : null;
+  const firstUsageRate = firstSprite?.row.usage_rate ?? null;
   // 1体目の内訳(件数の多い順)。相手の組み合わせの割合を帯で見せる。
   const firstMembers = [...(firstSprite?.row.members ?? [])].sort((a, b) => b.count - a.count);
   const memberShare =

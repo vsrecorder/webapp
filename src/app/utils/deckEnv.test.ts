@@ -48,8 +48,6 @@ describe("findFirstSpritePosition", () => {
     expect(pos?.rank).toBe(1);
     expect(pos?.row.fingerprint).toBe("0887");
     expect(pos?.member?.count).toBe(40);
-    // 分母は「その他」を除いた件数
-    expect(pos?.exclOtherTotal).toBe(90);
   });
 
   it("1体目と2体目を逆に登録していても、内訳から多数派の行を引き当てる", () => {

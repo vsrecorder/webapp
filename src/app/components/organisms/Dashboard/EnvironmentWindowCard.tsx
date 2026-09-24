@@ -13,7 +13,7 @@ import DeckCodeQuickStartModal from "@app/components/organisms/Deck/Modal/DeckCo
 import EnvironmentWindowCardSkeleton from "@app/components/organisms/Dashboard/Skeleton/EnvironmentWindowCardSkeleton";
 import { deckFingerprintKey } from "@app/utils/fingerprint";
 import { UI_DEFAULT_DECK_USAGE_GROUPING } from "@app/utils/deckUsageGrouping";
-import { rankableDecks, exclOtherTotalOf } from "@app/utils/deckEnv";
+import { rankableDecks } from "@app/utils/deckEnv";
 import { lastWeekValue } from "@app/utils/week";
 import { DECK_USAGE_ALL_TIME_QUERY } from "@app/utils/excludeDefaultMatches";
 import { DeckData, DeckGetAllType, isFavoritedDeck } from "@app/types/deck";
@@ -116,15 +116,14 @@ function RankBadge({ rank }: { rank: number }) {
 /*
  * 「1体目でまとめる」で束ねた行の内訳1件（2体目違いの派生）。
  * 対戦環境分析(WeeklyDeckUsagePanel の BreakdownRow)と同じ見せ方に揃える。
- * 使用率はこのカード全体と同じ基準(その他を除いた割合)で出すので、内訳の合計は行の使用率に一致する。
+ * 使用率はこのカード全体と同じ基準(「その他」を含む全体件数が分母)で出すので、
+ * 内訳の合計は行の使用率に一致する。
  */
 function BreakdownRow({
   item,
-  usageRate,
   isMe,
 }: {
   item: WeeklyDeckUsageItemType;
-  usageRate: number;
   // 選択中の自分のデッキと同じ組み合わせか
   isMe?: boolean;
 }) {
@@ -155,10 +154,10 @@ function BreakdownRow({
       )}
       <div className="ml-auto flex flex-col items-end shrink-0 leading-none">
         <span className="text-sm font-black tabular-nums text-default-600">
-          {(usageRate * 100).toFixed(1)}
+          {(item.usage_rate * 100).toFixed(1)}
           <span className="text-[0.625rem] font-bold text-default-400">%</span>
         </span>
-        {/* 件数だけを添える。このカードの使用率は常に「その他を除いた割合」で、
+        {/* 件数だけを添える。このカードの使用率は常に「全体の中の割合」で、
             それは節の見出し(subtitle)が示しているため、行ごとに分母を書かない。
             書くと 320px 幅で「あなた」の印ごと行からはみ出す(実測) */}
         <span className="mt-0.5 text-[0.5625rem] tabular-nums text-default-400">
@@ -181,21 +180,16 @@ function BreakdownRow({
 }
 
 // ランキングの1行（自分のデッキなら isMe でハイライト＋デッキ名を出す）。
-// displayRate は表示する使用率。「その他を除いた割合」(count / exclOtherTotal)を渡す。
+// 使用率は「その他」を含む全体件数を分母にした割合(usage_rate)で表示する。
 function DeckRankRow({
   rank,
   item,
-  displayRate,
-  exclOtherTotal,
   isMe,
   meName,
   myMemberFingerprint,
 }: {
   rank: number;
   item: WeeklyDeckUsageItemType;
-  displayRate: number;
-  // 内訳の使用率を行と同じ基準で出すための分母（「その他」を除いた件数）
-  exclOtherTotal: number;
   isMe?: boolean;
   meName?: string;
   // 選択中の自分のデッキの組み合わせ単位の指紋。内訳のどれが自分かを示すのに使う
@@ -236,7 +230,7 @@ function DeckRankRow({
           </>
         )}
         <span className="ml-auto text-lg font-black tabular-nums text-default-700 shrink-0 leading-none">
-          {(displayRate * 100).toFixed(1)}
+          {(item.usage_rate * 100).toFixed(1)}
           <span className="text-xs font-bold text-default-400">%</span>
         </span>
       </div>
@@ -245,7 +239,7 @@ function DeckRankRow({
           <div
             className="h-full rounded-full bg-primary/70"
             style={{
-              width: `${Math.min(100, Math.max(2, Math.round(displayRate * 100)))}%`,
+              width: `${Math.min(100, Math.max(2, Math.round(item.usage_rate * 100)))}%`,
             }}
           />
         </div>
@@ -285,9 +279,6 @@ function DeckRankRow({
                 <BreakdownRow
                   key={`${member.fingerprint || "member"}-${idx}`}
                   item={member}
-                  usageRate={
-                    exclOtherTotal > 0 ? member.count / exclOtherTotal : member.usage_rate
-                  }
                   isMe={
                     myMemberFingerprint != null &&
                     member.fingerprint === myMemberFingerprint
@@ -302,18 +293,16 @@ function DeckRankRow({
   );
 }
 
-// 使用率ランキングのリスト。使用率は「その他を除いた割合」(count / exclOtherTotal)で表示する。
+// 使用率ランキングのリスト。使用率は「その他」を含む全体件数を分母にした割合で表示する。
 // startRank から連番で順位を振る（アコーディオンで 6〜10 位を出すときに使う）。
 function RankingList({
   items,
-  exclOtherTotal,
   startRank = 1,
   selectedFingerprint,
   selectedName,
   selectedMemberFingerprint,
 }: {
   items: WeeklyDeckUsageItemType[];
-  exclOtherTotal: number;
   startRank?: number;
   selectedFingerprint?: string;
   selectedName?: string;
@@ -329,10 +318,6 @@ function RankingList({
             key={item.fingerprint}
             rank={startRank + idx}
             item={item}
-            displayRate={
-              exclOtherTotal > 0 ? item.count / exclOtherTotal : item.usage_rate
-            }
-            exclOtherTotal={exclOtherTotal}
             isMe={isMe}
             meName={isMe ? selectedName : undefined}
             myMemberFingerprint={selectedMemberFingerprint}
@@ -346,15 +331,13 @@ function RankingList({
 // 使用率ランキング（5位まで＋アコーディオンで6〜10位）。週セレクタは持たない。
 function UsageRankingSection({
   ranking,
-  exclOtherTotal,
   title,
-  subtitle = "その他を除いた割合",
+  subtitle = "全体の中の割合",
   selectedFingerprint,
   selectedName,
   selectedMemberFingerprint,
 }: {
   ranking: WeeklyDeckUsageItemType[];
-  exclOtherTotal: number;
   title: string;
   subtitle?: string;
   // 選択中の自分のデッキ: 行との突合用(表示中の集計単位)と、内訳との突合用(組み合わせ単位)
@@ -371,7 +354,6 @@ function UsageRankingSection({
       <RankHeader title={title} subtitle={subtitle} />
       <RankingList
         items={top5}
-        exclOtherTotal={exclOtherTotal}
         startRank={1}
         selectedFingerprint={selectedFingerprint}
         selectedName={selectedName}
@@ -382,7 +364,6 @@ function UsageRankingSection({
           {expanded && (
             <RankingList
               items={rest}
-              exclOtherTotal={exclOtherTotal}
               startRank={6}
               selectedFingerprint={selectedFingerprint}
               selectedName={selectedName}
@@ -831,7 +812,6 @@ function EmptyStateCard({
 function SelectModeView({
   positions,
   ranking,
-  exclOtherTotal,
   totalRecords,
   ownStatByDeckId,
   onRecordClick,
@@ -839,7 +819,6 @@ function SelectModeView({
 }: {
   positions: DeckPosition[];
   ranking: WeeklyDeckUsageItemType[];
-  exclOtherTotal: number;
   totalRecords: number;
   ownStatByDeckId: Map<string, OwnStat>;
   onRecordClick: () => void;
@@ -880,7 +859,6 @@ function SelectModeView({
           />
           <UsageRankingSection
             ranking={ranking}
-            exclOtherTotal={exclOtherTotal}
             title="今週あなたが当たりやすい相手のデッキ"
             selectedFingerprint={selected.fingerprint}
             selectedName={selected.deck.name}
@@ -893,7 +871,6 @@ function SelectModeView({
           <EncourageNote />
           <UsageRankingSection
             ranking={ranking}
-            exclOtherTotal={exclOtherTotal}
             title="今週の環境 使用率ランキング"
             // 環境では圏外のデッキでも、1体目でまとめた行の内訳には現れることがある
             selectedMemberFingerprint={selected.exactFingerprint}
@@ -1150,9 +1127,6 @@ export default function EnvironmentWindowCard({
   if (renderMode == null)
     return showEmptyState ? <EmptyStateCard stat={stat} failed={false} /> : null;
 
-  // 「その他」を除いた割合の母数。カード内の全ランキングをこの基準で表示する(deckEnv)。
-  const exclOtherTotal = exclOtherTotalOf(stat);
-
   // モードB(環境上で識別できるデッキが1つも無い)で代表として見せるデッキ。
   // select モードの既定選択と揃えて、お気に入りがあればそれを優先する。
   const representativeDeck = userDecks.find(isFavoritedDeck) ?? userDecks[0];
@@ -1184,7 +1158,6 @@ export default function EnvironmentWindowCard({
 
               <UsageRankingSection
                 ranking={rankable}
-                exclOtherTotal={exclOtherTotal}
                 title="使用率ランキング"
               />
 
@@ -1208,7 +1181,6 @@ export default function EnvironmentWindowCard({
               <EncourageNote />
               <UsageRankingSection
                 ranking={rankable}
-                exclOtherTotal={exclOtherTotal}
                 title="今週の環境 使用率ランキング"
               />
               <RecordCtaButton
@@ -1222,7 +1194,6 @@ export default function EnvironmentWindowCard({
             <SelectModeView
               positions={deckPositions}
               ranking={rankable}
-              exclOtherTotal={exclOtherTotal}
               totalRecords={totalRecords}
               ownStatByDeckId={ownStatByDeckId}
               onRecordClick={handleRecordClick}

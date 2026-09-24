@@ -37,12 +37,21 @@ type ToneStyle = {
   accent: string;
   // 区切り線
   rule: string;
+  // 面に重ねるグラデーション(ブランドの面だけ)。描けない環境では bg の単色が見える
+  bgImage?: string;
 };
 
+// ブランドのグラデーション(globals.css の --brand-gradient と同じ blue-600 → indigo-600 → violet-700)。
+// 書き出し画像にも写るよう、CSS 変数ではなく色を直接書く
+export const BRAND_GRADIENT =
+  "linear-gradient(to bottom right in oklab, #2563eb, #4f46e5, #6d28d9)";
+
 export const TONE: Record<RecapTone, ToneStyle> = {
-  // ブランドの primary(#006FEE) / secondary(#7828c8) は @heroui/theme の既定値
+  // ブランドの primary はヘッダー・ボタンと同じグラデーション(単色の控えは中心の indigo-600)。
+  // secondary(#7828c8) は @heroui/theme の既定値
   primary: {
-    bg: "#006FEE",
+    bg: "#4f46e5",
+    bgImage: BRAND_GRADIENT,
     fg: "#ffffff",
     sub: "rgba(255, 255, 255, 0.6)",
     accent: "#fbbf24",
@@ -77,7 +86,8 @@ export const TONE: Record<RecapTone, ToneStyle> = {
     bg: "#fafcff",
     fg: "#0f172a",
     sub: "rgba(15, 23, 42, 0.4)",
-    accent: "#006FEE",
+    // 主役の数字はブランドの藍(hero.ts の primary と同じ indigo-600)
+    accent: "#4f46e5",
     rule: "rgba(15, 23, 42, 0.12)",
   },
 };
@@ -109,6 +119,7 @@ export default function RecapCardFrame({
         height: CARD_HEIGHT,
         padding: 88,
         backgroundColor: t.bg,
+        backgroundImage: t.bgImage,
         color: t.fg,
       }}
       className="box-border flex flex-col justify-between overflow-hidden"

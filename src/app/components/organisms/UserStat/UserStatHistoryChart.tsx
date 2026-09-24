@@ -11,6 +11,7 @@ import {
   Filler,
 } from "chart.js";
 import { Line } from "react-chartjs-2";
+import type { ScriptableContext } from "chart.js";
 
 import FetchError from "@app/components/molecules/FetchError";
 import { Card, CardBody } from "@heroui/react";
@@ -27,6 +28,7 @@ import { useExcludeDefaultMatches } from "@app/hooks/useExcludeDefaultMatches";
 import { excludeDefaultMatchesParam } from "@app/utils/excludeDefaultMatches";
 import { DEFAULT_REGULATION_ID } from "@app/types/regulation";
 import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
+import { brandChartGradient } from "@app/utils/chartBrandGradient";
 
 ChartJS.register(
   CategoryScale,
@@ -339,10 +341,12 @@ export default function UserStatHistoryChart({
     datasets: [
       {
         data: winRates,
-        borderColor: "#006FEE",
-        backgroundColor: "rgba(0, 111, 238, 0.08)",
+        // 線・点・線の下の塗りを、ブランドのグラデーション(青 → 藍 → 紫)で左から右へ塗る。
+        // 塗りは線と同じ流れの淡い版にする
+        borderColor: (c: ScriptableContext<"line">) => brandChartGradient(c.chart),
+        backgroundColor: (c: ScriptableContext<"line">) => brandChartGradient(c.chart, 0.1),
         borderWidth: 2,
-        pointBackgroundColor: "#006FEE",
+        pointBackgroundColor: (c: ScriptableContext<"line">) => brandChartGradient(c.chart),
         pointRadius: 4,
         pointHoverRadius: 6,
         pointHitRadius: 24,

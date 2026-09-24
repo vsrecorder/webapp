@@ -5,6 +5,8 @@ import Link from "next/link";
 
 import { LuArrowRight } from "react-icons/lu";
 
+import { BRAND_GRADIENT } from "@app/components/organisms/Report/RecapCardFrame";
+
 /*
  * バトルレポート一覧に並べる期間のタイル。
  *
@@ -17,6 +19,8 @@ type TileColor = {
   fg: string;
   // ラベルや補足に使う、地に沈めた文字色
   sub: string;
+  // 面に重ねるグラデーション(先頭の primary だけ)
+  bgImage?: string;
 };
 
 /*
@@ -25,7 +29,13 @@ type TileColor = {
  * ブランドの primary/secondary に、彩度と明度を揃えた4色を足してある。
  */
 export const TILE_PALETTE: TileColor[] = [
-  { bg: "#006FEE", fg: "#ffffff", sub: "rgba(255, 255, 255, 0.6)" },
+  // 先頭(今月の hero)はブランドのグラデーション。単色の控えは中心の indigo-600
+  {
+    bg: "#4f46e5",
+    bgImage: BRAND_GRADIENT,
+    fg: "#ffffff",
+    sub: "rgba(255, 255, 255, 0.6)",
+  },
   { bg: "#7828c8", fg: "#ffffff", sub: "rgba(255, 255, 255, 0.6)" },
   { bg: "#0f172a", fg: "#ffffff", sub: "rgba(255, 255, 255, 0.5)" },
   { bg: "#f5a524", fg: "#0f172a", sub: "rgba(15, 23, 42, 0.55)" },
@@ -81,7 +91,11 @@ export default function RecapPeriodTile({
   return (
     <Link
       href={href}
-      style={{ backgroundColor: color.bg, color: color.fg }}
+      style={{
+        backgroundColor: color.bg,
+        backgroundImage: color.bgImage,
+        color: color.fg,
+      }}
       className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl shadow-md transition-transform active:scale-[0.98] ${
         isHero ? "h-40 p-5" : isWide ? "col-span-2 h-36 p-5" : "aspect-square p-4"
       }`}

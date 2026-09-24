@@ -81,6 +81,8 @@ export default function CreateMatchModalButton({
       <Button
         size="sm"
         radius="full"
+        // 塗りの青(primary)にして、ほかの主要ボタンと同じブランドのグラデーションを当てる(globals.css)
+        color="primary"
         fullWidth={fullWidth}
         className={fullWidth ? "h-10" : ""}
         onPress={onOpenForCreateMatchModal}

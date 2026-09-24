@@ -44,11 +44,14 @@ export default heroui({
     light: {
       colors: {
         primary: { ...indigo, DEFAULT: indigo[600], foreground: "#ffffff" },
+        // フォーカスの輪(focus-visible)も既定は #006FEE の青で、primary とは別に持っている
+        focus: { DEFAULT: indigo[500] },
       },
     },
     dark: {
       colors: {
         primary: { ...indigoDark, DEFAULT: indigo[500], foreground: "#ffffff" },
+        focus: { DEFAULT: indigo[400] },
         // カード背景。メイン背景(#0a0a0a)から浮き上がるよう一段明るくする
         content1: {
           DEFAULT: "#1d1d21",

@@ -75,7 +75,9 @@ export default async function ChampionsleagueLeagueRelatedSection({
           まとめて結果を見る
         </h2>
 
-        <nav className="flex flex-wrap gap-2">
+        {/* 縦に1つずつ並べる。横に流すと2つ目が右端まで伸び、右下のフローティングボタン
+            (トップへ戻る)に重なって押せなくなる。左寄せ・中身の幅なので右側は空く */}
+        <nav className="flex flex-col items-start gap-2">
           <Link
             href={`/cityleague_results/championsleagues/${schedule.id}`}
             className="flex items-center gap-1 rounded-full border border-default-200 bg-content1 px-2.5 py-1 font-bold text-tiny text-default-600 hover:bg-default-100"

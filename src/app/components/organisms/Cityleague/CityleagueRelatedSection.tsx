@@ -102,7 +102,9 @@ export default async function CityleagueRelatedSection({ event }: Props) {
           まとめて結果を見る
         </h2>
 
-        <nav className="flex flex-wrap gap-2">
+        {/* 縦に1つずつ並べる。横に流すと2つ目が右端まで伸び、右下のフローティングボタン
+            (トップへ戻る)に重なって押せなくなる。左寄せ・中身の幅なので右側は空く */}
+        <nav className="flex flex-col items-start gap-2">
           {hubs.map((hub) => (
             <Link
               key={hub.href}

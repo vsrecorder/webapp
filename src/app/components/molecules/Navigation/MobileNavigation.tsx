@@ -32,7 +32,7 @@ export default function MobileNavigation() {
       スワイプは fixed 要素の上でもページへ伝わるので、スクロールは妨げない。
     */
     <nav
-      className="fixed z-50 bottom-0 left-0 right-0 px-3 lg:hidden"
+      className="fixed z-50 bottom-0 left-0 right-0 px-4 lg:hidden"
       style={{
         paddingBottom: "calc(env(safe-area-inset-bottom) + var(--mobile-nav-gap))",
       }}
@@ -41,10 +41,11 @@ export default function MobileNavigation() {
         浮かせた面は透かさない。背後をページが流れていくので、半透明だと文字とアイコンが
         読みにくくなる(貼り付いていた頃は下端の帯で背景が単調だったため透かせていた)。
         角を丸めた面に落ちる影で浮きを出し、枠線は置かない。ダークだけは影が沈んで
-        輪郭が消えるので、細い枠で縁を作る。
+        輪郭が消えるので、細い枠で縁を作り、面もカード(neutral-900 相当)より一段明るくして
+        手前にあることを示す(暗い面のままだとカードより奥に沈んで見えていた)。
       */}
       <div
-        className="mobile-nav-bar grid h-[var(--mobile-nav-bar-height)] overflow-hidden rounded-[1.75rem] bg-white dark:border dark:border-neutral-800 dark:bg-neutral-900"
+        className="mobile-nav-bar grid h-[var(--mobile-nav-bar-height)] overflow-hidden rounded-[1.75rem] bg-white dark:border dark:border-neutral-700/80 dark:bg-neutral-800"
         style={{ gridTemplateColumns: `repeat(${navItems.length}, minmax(0, 1fr))` }}
       >
         {navItems.map(({ href, label, icon: Icon, prefetch }) => {
@@ -62,11 +63,15 @@ export default function MobileNavigation() {
               /*
                 選択中は色だけで示す。面を敷くと、丸めた角に四角い塗りがぶつかって
                 両端の項目だけ角が欠けて見える。
+                ダークは面を neutral-800 に明るくしたぶん、既定の色では文字との差が縮む
+                (実測のコントラスト比: 未選択 default-400 は 4.42、選択中 primary は 3.25)。
+                一段明るい色に上げて、面を明るくする前(5.24 / 3.85)を下回らないようにする。
+                ダークの default は番号が大きいほど明るいので、ホバーも 600 へ上げる。
               */
               className={`mobile-nav-item flex flex-col items-center justify-start gap-1 transition-all duration-150 active:scale-90 ${
                 active
-                  ? "text-primary"
-                  : "text-default-400 hover:text-default-600 dark:hover:text-default-300"
+                  ? "text-primary dark:text-primary-600"
+                  : "text-default-400 hover:text-default-600 dark:text-default-500 dark:hover:text-default-600"
               }`}
             >
               <div className="flex items-center justify-center w-10 h-6">

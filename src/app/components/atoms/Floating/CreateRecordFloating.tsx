@@ -21,7 +21,7 @@ export default function CreateRecordFloating({ eventType }: Props) {
       radius="full"
       size="lg"
       color="primary"
-      className="lg:hidden fixed z-30 bottom-[calc(var(--mobile-nav-height)+var(--recording-bar-height)+1rem+3.75rem)] right-3 shadow-lg active:scale-95 transition-all duration-200"
+      className="lg:hidden fixed z-30 bottom-[calc(var(--mobile-nav-height)+var(--recording-bar-height)+1rem+3.75rem)] right-4 shadow-lg active:scale-95 transition-all duration-200"
       onPress={() => router.push(`/records/create?event_type=${createEventType}`)}
     >
       <LuPlus className="w-5 h-5" />

@@ -280,7 +280,7 @@ export default function RecordActionsFloating({
           3点メニューには削除など低頻度の操作を残す。
           下部ナビ(--mobile-nav-height)の上に 16px の間隔を空ける位置に置く。lg以上は
           下部ナビが消えるため、従来どおり画面下から 80px に戻す。 */}
-      <div className="fixed z-30 bottom-[calc(var(--mobile-nav-height)+var(--recording-bar-height)+1rem)] lg:bottom-20 right-3 flex flex-col items-center gap-3">
+      <div className="fixed z-30 bottom-[calc(var(--mobile-nav-height)+var(--recording-bar-height)+1rem)] lg:bottom-20 right-4 lg:right-3 flex flex-col items-center gap-3">
         {/* シェア用フローティング。メニューは上向きに開くため、展開中は
             重なりを避けてシェアボタンを隠す。 */}
         {!isDropdownOpen && (

@@ -18,8 +18,10 @@ type Props = {
    * 並べ方。既定の card は「アイコン・文・ボタン」を縦に積む(約138px 要る)。
    * row は横一列に並べ、40px ほどの高さに収める。数値の1行だけを差し替える場所など、
    * 正常時の高さが低くて縦積みが入らないところで使う(FetchErrorBox を参照)。
+   * stack は「アイコン＋文」の1行の下にボタンを置き、70px ほどの高さに収める。
+   * row では文が長くて狭い幅で省略されてしまう場所で使う。
    */
-  variant?: "card" | "row";
+  variant?: "card" | "row" | "stack";
 };
 
 // データ取得に失敗した箇所で共通して表示するエラーカード。
@@ -41,7 +43,7 @@ export default function FetchError({
       isLoading={isRetrying}
       onPress={onRetry}
       startContent={!isRetrying && <LuRotateCw className="text-medium" />}
-      className={variant === "row" ? "h-7 shrink-0 px-3 text-xs" : ""}
+      className={variant !== "card" ? "h-7 shrink-0 px-3 text-xs" : ""}
     >
       再読み込み
     </Button>
@@ -53,6 +55,20 @@ export default function FetchError({
         <CardBody className="flex h-full flex-row items-center justify-center gap-2 px-3 py-2">
           <LuTriangleAlert className="shrink-0 text-medium text-default-400" />
           <p className="truncate text-tiny text-default-500">{message}</p>
+          {retryButton}
+        </CardBody>
+      </Card>
+    );
+  }
+
+  if (variant === "stack") {
+    return (
+      <Card shadow="sm" className={`w-full border border-default-200 ${className}`}>
+        <CardBody className="flex h-full flex-col items-center justify-center gap-1.5 px-3 py-2">
+          <div className="flex max-w-full items-center gap-2">
+            <LuTriangleAlert className="shrink-0 text-medium text-default-400" />
+            <p className="truncate text-tiny text-default-500">{message}</p>
+          </div>
           {retryButton}
         </CardBody>
       </Card>

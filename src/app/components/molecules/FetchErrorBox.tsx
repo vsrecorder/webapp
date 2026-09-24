@@ -8,7 +8,7 @@ type Common = {
   isRetrying?: boolean;
   compact?: boolean;
   className?: string;
-  variant?: "card" | "row";
+  variant?: "card" | "row" | "stack";
 };
 
 type Props = Common & {
@@ -35,7 +35,7 @@ type Props = Common & {
  * 中身の変更に追随できないので、骨格や実体を型枠として敷き、その上にエラーを重ねる。
  * 高さはいつでも型枠そのものになり、幅や端末差にもそのまま追随する。
  *
- * 型枠が低くて縦積み(約138px)が入らない場所は variant="row" にする。
+ * 型枠が低くて縦積み(約138px)が入らない場所は variant="row" か "stack"(約70px)にする。
  */
 export default function FetchErrorBox({
   sizer,

@@ -47,4 +47,14 @@ describe("FetchErrorBox", () => {
     fireEvent.click(screen.getByRole("button", { name: "再読み込み" }));
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
+
+  it("stack では、再読み込みボタンを文の下に置く", () => {
+    render(<FetchErrorBox sizer={<div />} message="取れませんでした" variant="stack" onRetry={vi.fn()} />);
+
+    // 文(とアイコン)の行とボタンが縦に並ぶ: ボタンは文の行の兄弟で、親は縦並び
+    const line = screen.getByText("取れませんでした").parentElement;
+    const button = screen.getByRole("button", { name: "再読み込み" });
+    expect(line?.nextElementSibling).toBe(button);
+    expect(line?.parentElement?.className).toContain("flex-col");
+  });
 });

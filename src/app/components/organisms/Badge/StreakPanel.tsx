@@ -61,9 +61,10 @@ export default function StreakPanel({ userId, initialStreak }: Props) {
     return (
       <FetchErrorBox
         sizer={<StreakPanelSkeleton />}
-        message="連続記録の取得に失敗しました"
+        message="ストリーク情報の取得に失敗しました"
         onRetry={loadStreak}
-        variant="row"
+        // 文が長く、row だと 360px 幅で末尾が省略されるので、ボタンを文の下に置く
+        variant="stack"
       />
     );
   }

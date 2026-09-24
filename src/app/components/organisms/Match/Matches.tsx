@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useRef,
-  useState,
-  type RefObject,
-  type Dispatch,
-  type SetStateAction,
-} from "react";
+import { useState, type RefObject, type Dispatch, type SetStateAction } from "react";
 
 import {
   Table,
@@ -29,7 +23,6 @@ import { useDisclosure } from "@heroui/react";
 import { LuSwords, LuChevronUp, LuChevronDown } from "react-icons/lu";
 
 import UpdateMatchModal from "@app/components/organisms/Match/Modal/UpdateMatchModal";
-import DeleteMatchModal from "@app/components/organisms/Match/Modal/DeleteMatchModal";
 import DisplayMatchDetailModal from "@app/components/organisms/Match/Modal/DisplayMatchDetailModal";
 import CreateMatchModalButton from "@app/components/organisms/Match/CreateMatchModalButton";
 import MatchSkeleton, {
@@ -43,7 +36,6 @@ import { MatchGetResponseType, MatchOrderItemType } from "@app/types/match";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import { getSpriteBySlot } from "@app/utils/spriteSlot";
 import { hasPrizeCards } from "@app/utils/match";
-import { useLongPress } from "@app/hooks/useLongPress";
 
 type SectionKey = "qualifying" | "final" | "other";
 
@@ -231,24 +223,6 @@ export default function Matches({
     onOpenChange: onOpenChangeForDisplayMatchDetailModal,
   } = useDisclosure();
 
-  const {
-    isOpen: isOpenForDeleteMatchModal,
-    onOpen: onOpenForDeleteMatchModal,
-    onOpenChange: onOpenChangeForDeleteMatchModal,
-  } = useDisclosure();
-
-  // 編集できる表示(記録詳細ページ)では、対戦の行を長押しすると削除モーダルを開く。
-  // 押している行は pointerdown の時点で控えておき、成立したらその対戦を対象にする
-  const longPressTargetRef = useRef<MatchGetResponseType | null>(null);
-  const { handlers: longPressHandlers, consumeLongPress } = useLongPress(
-    () => {
-      if (!longPressTargetRef.current) return;
-      setSelectedMatch(longPressTargetRef.current);
-      onOpenForDeleteMatchModal();
-    },
-    { enabled: enableUpdateMatchModalButton },
-  );
-
   // 取得に失敗しているあいだは骨格を出さない(下でエラーカードを出す)。
   // 取り直し中も同じで、エラー → 骨格 → エラーと往復させない
   if (loading && !error) {
@@ -352,15 +326,6 @@ export default function Matches({
         isOpen={isOpenForUpdateMatchModal && enableUpdateMatchModalButton}
         onOpenChange={onOpenChangeForUpdateMatchModal}
         onClose={onCloseForUpdateMatchModal}
-      />
-
-      <DeleteMatchModal
-        match={selectedMatch}
-        setMatches={setMatches}
-        isOpen={isOpenForDeleteMatchModal && enableUpdateMatchModalButton}
-        onOpenChange={onOpenChangeForDeleteMatchModal}
-        // 長押しから開いたときは閉じる親モーダルが無い
-        onCloseForCallBackModal={() => {}}
       />
 
       <DisplayMatchDetailModal
@@ -494,290 +459,270 @@ export default function Matches({
                                           </Button>
                                         </div>
                                       )}
-                                      {/* 長押しで削除モーダルを開くための包み。中の Button(usePress)が
-                                          pointer イベントを止めるので、フックは捕捉フェーズで拾う。
-                                          select-none / touch-callout は iOS の長押しで文字選択や
-                                          吹き出しが出るのを抑える */}
-                                      <div
-                                        className={`w-full min-w-0 ${
-                                          enableUpdateMatchModalButton
-                                            ? "select-none [-webkit-touch-callout:none]"
-                                            : ""
+                                      <Button
+                                        radius="md"
+                                        variant="light"
+                                        className={`pl-1.5 pr-0.5 w-full ${
+                                          match.group_match_flg ? "py-7" : "py-6"
                                         }`}
-                                        {...longPressHandlers}
-                                        onPointerDownCapture={(e) => {
-                                          longPressTargetRef.current = match;
-                                          longPressHandlers.onPointerDownCapture(e);
+                                        onPress={() => {
+                                          setSelectedMatch(match);
+                                          // 編集可能な場合は編集モーダル、
+                                          // それ以外は対戦の詳細モーダル(環境データ・タグ・メモ)を開く
+                                          if (enableUpdateMatchModalButton) {
+                                            onOpenForUpdateMatchModal();
+                                          } else {
+                                            onOpenForDisplayMatchDetailModal();
+                                          }
                                         }}
                                       >
-                                        <Button
-                                          radius="md"
-                                          variant="light"
-                                          className={`pl-1.5 pr-0.5 w-full ${
-                                            match.group_match_flg ? "py-7" : "py-6"
-                                          }`}
-                                          onPress={() => {
-                                            // 長押しで削除モーダルを開いた直後の「離した」はタップとして扱わない
-                                            if (consumeLongPress()) return;
-                                            setSelectedMatch(match);
-                                            // 編集可能な場合は編集モーダル、
-                                            // それ以外は対戦の詳細モーダル(環境データ・タグ・メモ)を開く
-                                            if (enableUpdateMatchModalButton) {
-                                              onOpenForUpdateMatchModal();
-                                            } else {
-                                              onOpenForDisplayMatchDetailModal();
-                                            }
-                                          }}
-                                        >
-                                          <div className="flex flex-wrap items-center gap-1.5 w-full">
-                                            {/* チーム戦は個人とチームの勝敗を並べて表示、BO1は個人の勝敗のみ */}
-                                            {match.group_match_flg ? (
-                                              // チーム戦はチーム/個人の2勝敗をラベル付きバッジで並べる
-                                              <div className="flex shrink-0 items-end gap-1.5">
-                                                <div className="flex flex-col items-center gap-0.5">
-                                                  <span className="text-[0.5625rem] leading-none text-default-400">
-                                                    チーム
-                                                  </span>
-                                                  <span
-                                                    className={`flex h-7 w-7 items-center justify-center rounded-lg text-sm font-bold ${
-                                                      match.group_match_victory_flg
-                                                        ? "bg-success/15 text-success"
-                                                        : "bg-danger/15 text-danger"
-                                                    }`}
-                                                  >
-                                                    {match.group_match_victory_flg
-                                                      ? "W"
-                                                      : "L"}
-                                                  </span>
-                                                </div>
-                                                <div className="flex flex-col items-center gap-0.5">
-                                                  <span className="text-[0.5625rem] leading-none text-default-400">
-                                                    個人
-                                                  </span>
-                                                  <span
-                                                    className={`flex h-7 w-7 items-center justify-center rounded-lg text-sm font-bold ${
-                                                      match.victory_flg
-                                                        ? "bg-success/15 text-success"
-                                                        : "bg-danger/15 text-danger"
-                                                    }`}
-                                                  >
-                                                    {match.victory_flg ? "W" : "L"}
-                                                  </span>
-                                                </div>
-                                              </div>
-                                            ) : (
-                                              <span
-                                                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-base font-bold ${
-                                                  match.draw_flg
-                                                    ? "bg-default-300/40 text-default-600"
-                                                    : match.victory_flg
+                                        <div className="flex flex-wrap items-center gap-1.5 w-full">
+                                          {/* チーム戦は個人とチームの勝敗を並べて表示、BO1は個人の勝敗のみ */}
+                                          {match.group_match_flg ? (
+                                            // チーム戦はチーム/個人の2勝敗をラベル付きバッジで並べる
+                                            <div className="flex shrink-0 items-end gap-1.5">
+                                              <div className="flex flex-col items-center gap-0.5">
+                                                <span className="text-[0.5625rem] leading-none text-default-400">
+                                                  チーム
+                                                </span>
+                                                <span
+                                                  className={`flex h-7 w-7 items-center justify-center rounded-lg text-sm font-bold ${
+                                                    match.group_match_victory_flg
                                                       ? "bg-success/15 text-success"
                                                       : "bg-danger/15 text-danger"
-                                                }`}
-                                              >
-                                                {match.draw_flg
-                                                  ? "D"
-                                                  : match.victory_flg
+                                                  }`}
+                                                >
+                                                  {match.group_match_victory_flg
                                                     ? "W"
                                                     : "L"}
-                                              </span>
-                                            )}
+                                                </span>
+                                              </div>
+                                              <div className="flex flex-col items-center gap-0.5">
+                                                <span className="text-[0.5625rem] leading-none text-default-400">
+                                                  個人
+                                                </span>
+                                                <span
+                                                  className={`flex h-7 w-7 items-center justify-center rounded-lg text-sm font-bold ${
+                                                    match.victory_flg
+                                                      ? "bg-success/15 text-success"
+                                                      : "bg-danger/15 text-danger"
+                                                  }`}
+                                                >
+                                                  {match.victory_flg ? "W" : "L"}
+                                                </span>
+                                              </div>
+                                            </div>
+                                          ) : (
+                                            <span
+                                              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-base font-bold ${
+                                                match.draw_flg
+                                                  ? "bg-default-300/40 text-default-600"
+                                                  : match.victory_flg
+                                                    ? "bg-success/15 text-success"
+                                                    : "bg-danger/15 text-danger"
+                                              }`}
+                                            >
+                                              {match.draw_flg
+                                                ? "D"
+                                                : match.victory_flg
+                                                  ? "W"
+                                                  : "L"}
+                                            </span>
+                                          )}
 
-                                            <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                                              {match.default_victory_flg ||
-                                              match.default_defeat_flg ? (
+                                          <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                            {match.default_victory_flg ||
+                                            match.default_defeat_flg ? (
+                                              <>
                                                 <>
-                                                  <>
-                                                    <div className="flex items-center gap-1 shrink-0 ml-1.5">
-                                                      {/* 不戦勝/不戦敗: 相手不明のためデフォルト(unknown)スプライトを表示 */}
-                                                      <PokemonSprite size={44} />
-                                                      <PokemonSprite size={44} />
-                                                    </div>
-                                                  </>
-
-                                                  <div className="flex flex-col justify-center gap-1 min-w-0 flex-1">
-                                                    <div className="min-w-0">
-                                                      <div className="font-bold truncate text-left">
-                                                        {match.default_victory_flg
-                                                          ? "不戦勝"
-                                                          : "不戦敗"}
-                                                      </div>
-                                                      <div className="mt-0.5 flex flex-wrap items-center gap-1">
-                                                        {/* BO3は独立したチップで示す
-                                                          (チーム戦は勝敗バッジの「チーム/個人」表記で判別できるためチップ不要) */}
-                                                        {match.bo3_flg && (
-                                                          <Chip
-                                                            size="sm"
-                                                            variant="flat"
-                                                            radius="sm"
-                                                            color="primary"
-                                                            classNames={{
-                                                              base: "h-4 px-1",
-                                                              content:
-                                                                "px-1 text-[0.5rem] font-bold",
-                                                            }}
-                                                          >
-                                                            BO3
-                                                          </Chip>
-                                                        )}
-                                                      </div>
-                                                    </div>
+                                                  <div className="flex items-center gap-1 shrink-0 ml-1.5">
+                                                    {/* 不戦勝/不戦敗: 相手不明のためデフォルト(unknown)スプライトを表示 */}
+                                                    <PokemonSprite size={44} />
+                                                    <PokemonSprite size={44} />
                                                   </div>
                                                 </>
-                                              ) : (
-                                                <>
-                                                  <>
-                                                    <div className="flex items-center gap-1 shrink-0 ml-1.5">
-                                                      {/* 対戦相手のポケモン2体。各スプライトを枠内で最適表示(PokemonSprite) */}
-                                                      <PokemonSprite
-                                                        id={
-                                                          getSpriteBySlot(
-                                                            match.pokemon_sprites,
-                                                            1,
-                                                          )?.id
-                                                        }
-                                                        size={44}
-                                                      />
-                                                      <PokemonSprite
-                                                        id={
-                                                          getSpriteBySlot(
-                                                            match.pokemon_sprites,
-                                                            2,
-                                                          )?.id
-                                                        }
-                                                        size={44}
-                                                      />
+
+                                                <div className="flex flex-col justify-center gap-1 min-w-0 flex-1">
+                                                  <div className="min-w-0">
+                                                    <div className="font-bold truncate text-left">
+                                                      {match.default_victory_flg
+                                                        ? "不戦勝"
+                                                        : "不戦敗"}
                                                     </div>
-                                                  </>
+                                                    <div className="mt-0.5 flex flex-wrap items-center gap-1">
+                                                      {/* BO3は独立したチップで示す
+                                                          (チーム戦は勝敗バッジの「チーム/個人」表記で判別できるためチップ不要) */}
+                                                      {match.bo3_flg && (
+                                                        <Chip
+                                                          size="sm"
+                                                          variant="flat"
+                                                          radius="sm"
+                                                          color="primary"
+                                                          classNames={{
+                                                            base: "h-4 px-1",
+                                                            content:
+                                                              "px-1 text-[0.5rem] font-bold",
+                                                          }}
+                                                        >
+                                                          BO3
+                                                        </Chip>
+                                                      )}
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                              </>
+                                            ) : (
+                                              <>
+                                                <>
+                                                  <div className="flex items-center gap-1 shrink-0 ml-1.5">
+                                                    {/* 対戦相手のポケモン2体。各スプライトを枠内で最適表示(PokemonSprite) */}
+                                                    <PokemonSprite
+                                                      id={
+                                                        getSpriteBySlot(
+                                                          match.pokemon_sprites,
+                                                          1,
+                                                        )?.id
+                                                      }
+                                                      size={44}
+                                                    />
+                                                    <PokemonSprite
+                                                      id={
+                                                        getSpriteBySlot(
+                                                          match.pokemon_sprites,
+                                                          2,
+                                                        )?.id
+                                                      }
+                                                      size={44}
+                                                    />
+                                                  </div>
+                                                </>
 
-                                                  <div className="flex flex-col justify-center gap-1 min-w-0 flex-1">
-                                                    <div className="min-w-0">
-                                                      <div className="font-bold truncate text-left text-xs">
-                                                        {match.opponents_deck_info}
-                                                      </div>
+                                                <div className="flex flex-col justify-center gap-1 min-w-0 flex-1">
+                                                  <div className="min-w-0">
+                                                    <div className="font-bold truncate text-left text-xs">
+                                                      {match.opponents_deck_info}
+                                                    </div>
 
-                                                      {/* 種別・先後・サイド数・タグを chip で表示。
+                                                    {/* 種別・先後・サイド数・タグを chip で表示。
                                                         タグが多くても行が縦に伸びて情報が見切れないよう、
                                                         折り返さず1行で横スクロールさせる([&>*]:shrink-0 で各chipを潰さない)。 */}
-                                                      <div className="mt-1 flex flex-nowrap items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0">
-                                                        {/* BO3は独立したチップで示す
+                                                    <div className="mt-1 flex flex-nowrap items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0">
+                                                      {/* BO3は独立したチップで示す
                                                           (チーム戦は勝敗バッジの「チーム/個人」表記で判別できるためチップ不要) */}
-                                                        {match.bo3_flg && (
+                                                      {match.bo3_flg && (
+                                                        <Chip
+                                                          size="sm"
+                                                          variant="flat"
+                                                          radius="sm"
+                                                          color="primary"
+                                                          classNames={{
+                                                            base: "h-4 px-1",
+                                                            content:
+                                                              "px-1 text-[0.5rem] font-bold",
+                                                          }}
+                                                        >
+                                                          BO3
+                                                        </Chip>
+                                                      )}
+                                                      {match.bo3_flg ? (
+                                                        // BO3は複数ゲームあるため、勝敗の推移(W/L)をまとめて表示する
+                                                        <>
+                                                          {/* 勝敗の推移（1本目→3本目の順にW/Lを並べる） */}
                                                           <Chip
                                                             size="sm"
                                                             variant="flat"
                                                             radius="sm"
-                                                            color="primary"
+                                                            classNames={{
+                                                              base: "h-4 px-1",
+                                                              content: "px-1",
+                                                            }}
+                                                          >
+                                                            <GameStreak
+                                                              games={match.games}
+                                                              size={11}
+                                                              isDraw={match.draw_flg}
+                                                            />
+                                                          </Chip>
+                                                        </>
+                                                      ) : (
+                                                        <>
+                                                          <Chip
+                                                            size="sm"
+                                                            variant="flat"
+                                                            radius="sm"
                                                             classNames={{
                                                               base: "h-4 px-1",
                                                               content:
                                                                 "px-1 text-[0.5rem] font-bold",
                                                             }}
                                                           >
-                                                            BO3
+                                                            {match.games[0]?.go_first
+                                                              ? "先攻"
+                                                              : "後攻"}
                                                           </Chip>
-                                                        )}
-                                                        {match.bo3_flg ? (
-                                                          // BO3は複数ゲームあるため、勝敗の推移(W/L)をまとめて表示する
-                                                          <>
-                                                            {/* 勝敗の推移（1本目→3本目の順にW/Lを並べる） */}
-                                                            <Chip
-                                                              size="sm"
-                                                              variant="flat"
-                                                              radius="sm"
-                                                              classNames={{
-                                                                base: "h-4 px-1",
-                                                                content: "px-1",
-                                                              }}
-                                                            >
-                                                              <GameStreak
-                                                                games={match.games}
-                                                                size={11}
-                                                                isDraw={match.draw_flg}
-                                                              />
-                                                            </Chip>
-                                                          </>
-                                                        ) : (
-                                                          <>
-                                                            <Chip
-                                                              size="sm"
-                                                              variant="flat"
-                                                              radius="sm"
-                                                              classNames={{
-                                                                base: "h-4 px-1",
-                                                                content:
-                                                                  "px-1 text-[0.5rem] font-bold",
-                                                              }}
-                                                            >
-                                                              {match.games[0]?.go_first
-                                                                ? "先攻"
-                                                                : "後攻"}
-                                                            </Chip>
-                                                            {/* チーム戦はサイド枚数を扱わないためチップを非表示にする。
+                                                          {/* チーム戦はサイド枚数を扱わないためチップを非表示にする。
                                                               0 - 0 は未入力とみなして同じく非表示 */}
-                                                            {!match.group_match_flg &&
-                                                              hasPrizeCards(
-                                                                match.games[0]
-                                                                  ?.your_prize_cards,
-                                                                match.games[0]
-                                                                  ?.opponents_prize_cards,
-                                                              ) && (
-                                                                <Chip
-                                                                  size="sm"
-                                                                  variant="flat"
-                                                                  radius="sm"
-                                                                  classNames={{
-                                                                    base: "h-4 px-1",
-                                                                    content:
-                                                                      "px-1 text-[0.5rem] font-bold",
-                                                                  }}
-                                                                >
-                                                                  {match.games[0]
-                                                                    ?.your_prize_cards ??
-                                                                    0}
-                                                                  {" - "}
-                                                                  {match.games[0]
-                                                                    ?.opponents_prize_cards ??
-                                                                    0}
-                                                                </Chip>
-                                                              )}
-                                                          </>
-                                                        )}
-                                                        {/* 付与タグ。先攻/後攻・サイド数などの後ろに、
+                                                          {!match.group_match_flg &&
+                                                            hasPrizeCards(
+                                                              match.games[0]
+                                                                ?.your_prize_cards,
+                                                              match.games[0]
+                                                                ?.opponents_prize_cards,
+                                                            ) && (
+                                                              <Chip
+                                                                size="sm"
+                                                                variant="flat"
+                                                                radius="sm"
+                                                                classNames={{
+                                                                  base: "h-4 px-1",
+                                                                  content:
+                                                                    "px-1 text-[0.5rem] font-bold",
+                                                                }}
+                                                              >
+                                                                {match.games[0]
+                                                                  ?.your_prize_cards ?? 0}
+                                                                {" - "}
+                                                                {match.games[0]
+                                                                  ?.opponents_prize_cards ??
+                                                                  0}
+                                                              </Chip>
+                                                            )}
+                                                        </>
+                                                      )}
+                                                      {/* 付与タグ。先攻/後攻・サイド数などの後ろに、
                                                           同じ横スクロール行で続ける。表示は付与順(position 昇順)。 */}
-                                                        {match.tags?.map((tag) => (
-                                                          <Chip
-                                                            key={tag.id}
-                                                            size="sm"
-                                                            variant="flat"
-                                                            radius="sm"
-                                                            style={
-                                                              tag.color
-                                                                ? {
-                                                                    backgroundColor:
-                                                                      tag.color,
-                                                                  }
-                                                                : undefined
-                                                            }
-                                                            classNames={{
-                                                              base: "h-4 px-1",
-                                                              content: tag.color
-                                                                ? "px-1 text-[0.5rem] font-bold text-white"
-                                                                : "px-1 text-[0.5rem] font-bold",
-                                                            }}
-                                                          >
-                                                            {tag.name}
-                                                          </Chip>
-                                                        ))}
-                                                      </div>
+                                                      {match.tags?.map((tag) => (
+                                                        <Chip
+                                                          key={tag.id}
+                                                          size="sm"
+                                                          variant="flat"
+                                                          radius="sm"
+                                                          style={
+                                                            tag.color
+                                                              ? {
+                                                                  backgroundColor:
+                                                                    tag.color,
+                                                                }
+                                                              : undefined
+                                                          }
+                                                          classNames={{
+                                                            base: "h-4 px-1",
+                                                            content: tag.color
+                                                              ? "px-1 text-[0.5rem] font-bold text-white"
+                                                              : "px-1 text-[0.5rem] font-bold",
+                                                          }}
+                                                        >
+                                                          {tag.name}
+                                                        </Chip>
+                                                      ))}
                                                     </div>
                                                   </div>
-                                                </>
-                                              )}
-                                            </div>
+                                                </div>
+                                              </>
+                                            )}
                                           </div>
-                                        </Button>
-                                      </div>
+                                        </div>
+                                      </Button>
                                     </div>
                                   </TableCell>
                                 </TableRow>

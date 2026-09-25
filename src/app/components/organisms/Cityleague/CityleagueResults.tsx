@@ -415,6 +415,7 @@ export default function CityleagueResults({
               </p>
               <p className="text-xs text-default-400 leading-relaxed max-w-xs">
                 現在シティリーグが開催中です。
+                <br />
                 大会の結果は、登録され次第ここに表示されます。
               </p>
               <p className="text-xs text-default-300 mt-1">結果の登録をお待ちください</p>

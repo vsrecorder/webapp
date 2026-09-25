@@ -12,6 +12,7 @@ import type { DecodedIdToken } from "firebase-admin/auth";
 
 import { MAX_USER_NAME_LENGTH, exceedsTextLength } from "@app/utils/textLength";
 import { upstreamOrigin } from "@app/utils/upstream";
+import { isProductionUpstreamFromNonProduction } from "@app/utils/productionWriteGuard";
 import { createUserCheckThrottle } from "@app/utils/userCheckThrottle";
 import { signUpstreamToken } from "@app/utils/upstreamToken";
 
@@ -291,6 +292,21 @@ const {
         const { idToken, attribution }: Credential = credentials;
         if (!idToken) {
           return null;
+        }
+
+        /*
+          本番以外のサーバが本番 API を上流にしているときはログインさせない
+          (理由は utils/productionWriteGuard.ts)。
+          書き込みは instrumentation.ts の dispatcher でも止まるが、それに任せてはならない。
+          登録の POST が止まると下の catch に入り、本番 DB に居ないことが確かめられた結果
+          Firebase のユーザーを削除してしまう(手元の開発用アカウントが消える)。
+          上流に触れる前、try の外で断る。
+        */
+        if (isProductionUpstreamFromNonProduction(upstreamOrigin())) {
+          console.error(
+            "上流が本番のため、ログインを止めました(本番 DB へのユーザー登録を防ぐため)",
+          );
+          throw new BackendUnavailableError();
         }
 
         const firebaseAdmin = getFirebaseAdmin();

@@ -14,7 +14,17 @@
  * 25 秒なのは、前段 nginx の keepalive_timeout が 30 秒で、サーバより先に閉じないと
  * 「閉じられた直後の接続へ書いてしまう」失敗が起きうるため。nginx 側を変えるときはここも合わせる。
  * 上流を直接つなぐ構成(VSRECORDER_UPSTREAM_ORIGIN)でも同じ Agent が使われる。
+ *
+ * あわせて、本番以外のサーバから本番 API への書き込みをここで止める
+ * (理由と判定は utils/productionWriteGuard.ts)。サーバ側の全 fetch が通る場所なので、
+ * 呼び出し側が upstreamOrigin() を使っているかどうかに関係なく効く。
  */
+import {
+  ProductionWriteBlockedError,
+  isBlockedProductionWrite,
+  isProductionUpstreamFromNonProduction,
+} from "@app/utils/productionWriteGuard";
+
 const UPSTREAM_KEEP_ALIVE_MS = 25_000;
 
 export async function register() {
@@ -33,6 +43,21 @@ export async function register() {
     new Agent({
       keepAliveTimeout: UPSTREAM_KEEP_ALIVE_MS,
       keepAliveMaxTimeout: UPSTREAM_KEEP_ALIVE_MS,
+    }).compose((dispatch) => (opts, handler) => {
+      // 送信前に投げる。fetch は "fetch failed"(cause にこの例外)で失敗し、本番へは何も届かない
+      if (isBlockedProductionWrite({ origin: String(opts.origin), method: opts.method })) {
+        throw new ProductionWriteBlockedError(opts.method, String(opts.origin));
+      }
+      return dispatch(opts, handler);
     }),
   );
+
+  const upstream =
+    process.env.VSRECORDER_UPSTREAM_ORIGIN || `https://${process.env.VSRECORDER_DOMAIN}`;
+  if (isProductionUpstreamFromNonProduction(upstream)) {
+    console.warn(
+      `[注意] 上流が本番(${upstream})です。読み取りだけ通し、書き込みとログインは止めます。` +
+        "確認が済んだら通常の設定で起動し直してください。",
+    );
+  }
 }

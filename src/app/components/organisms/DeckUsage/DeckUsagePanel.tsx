@@ -16,10 +16,10 @@ import {
 } from "chart.js";
 import { Pie } from "react-chartjs-2";
 import { AnimatePresence, motion } from "framer-motion";
-import { Button, Card, CardBody, Chip, Tab, Tabs } from "@heroui/react";
-import { LuShare2 } from "react-icons/lu";
+import { Card, CardBody, Chip, Tab, Tabs } from "@heroui/react";
 
 import PanelShareModal from "@app/components/organisms/Share/PanelShareModal";
+import PanelShareButton from "@app/components/organisms/Share/PanelShareButton";
 import DeckDistributionShareCard, {
   type ShareDeckRow,
 } from "@app/components/organisms/DeckUsage/DeckDistributionShareCard";
@@ -540,17 +540,10 @@ export default function DeckUsagePanel({
           中身が無いためシェアを押させない。 */}
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-sm font-bold text-default-700">{sectionTitle}</h2>
-        <Button
-          size="sm"
-          variant="flat"
-          radius="full"
-          className="h-7 shrink-0 px-3 text-xs font-bold"
-          startContent={<LuShare2 className="h-3.5 w-3.5" />}
+        <PanelShareButton
           isDisabled={isLoading || decks.length === 0}
           onPress={() => setShareOpen(true)}
-        >
-          シェア
-        </Button>
+        />
       </div>
       <Card>
         <CardBody className="gap-4 p-4">

@@ -2,14 +2,14 @@
 
 import { useCallback, useMemo, useState } from "react";
 
-import { Button, Card, CardBody, Tabs, Tab } from "@heroui/react";
-import { LuShare2 } from "react-icons/lu";
+import { Card, CardBody, Tabs, Tab } from "@heroui/react";
 
 import FetchErrorBox from "@app/components/molecules/FetchErrorBox";
 import UserStatPanelSkeleton from "@app/components/organisms/UserStat/Skeleton/UserStatPanelSkeleton";
 import UserStatSummary from "@app/components/molecules/UserStat/UserStatSummary";
 import UserStatShareCard from "@app/components/organisms/UserStat/UserStatShareCard";
 import PanelShareModal from "@app/components/organisms/Share/PanelShareModal";
+import PanelShareButton from "@app/components/organisms/Share/PanelShareButton";
 import { buildUserStatPostText } from "@app/utils/panelPostText";
 
 import { EnvironmentType } from "@app/types/environment";
@@ -229,17 +229,10 @@ export default function UserStatPanel({
   const header = (
     <div className="flex items-center justify-between gap-2">
       <h2 className="text-sm font-bold text-default-700">{sectionTitle}</h2>
-      <Button
-        size="sm"
-        variant="flat"
-        radius="full"
-        className="h-7 shrink-0 px-3 text-xs font-bold"
-        startContent={<LuShare2 className="h-3.5 w-3.5" />}
+      <PanelShareButton
         isDisabled={isLoading || stat === null}
         onPress={() => setShareOpen(true)}
-      >
-        シェア
-      </Button>
+      />
     </div>
   );
 

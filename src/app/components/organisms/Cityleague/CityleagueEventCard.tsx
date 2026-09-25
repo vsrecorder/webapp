@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useRef } from "react";
+
 import { Card, CardHeader, CardBody, CardFooter } from "@heroui/react";
 import { ModalContent, ModalHeader, ModalBody } from "@heroui/react";
 import { useDisclosure } from "@heroui/react";
@@ -17,10 +19,24 @@ import { formatJSTDateWithWeekday } from "@app/utils/date";
 type Props = {
   event: OfficialEventListItemType;
   results: CityleagueResultType[];
+  // モーダルの開閉を知らせる。並べている Swiper の自動スライドを、開いている間だけ止めるため
+  onModalOpenChange?: (isOpen: boolean) => void;
 };
 
-export default function CityleagueEventCard({ event, results }: Props) {
+export default function CityleagueEventCard({ event, results, onModalOpenChange }: Props) {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
+
+  /*
+   * 開閉が変わったときだけ知らせる。× ・外側のタップ・Esc・戻る操作のどれで閉じても
+   * isOpen が変わるので、閉じる経路ごとに知らせを書き足さずに済む。
+   * マウント時(閉じたまま)は知らせない(並んだカードの数だけ「閉じた」が飛ぶのを避ける)。
+   */
+  const wasOpenRef = useRef(isOpen);
+  useEffect(() => {
+    if (wasOpenRef.current === isOpen) return;
+    wasOpenRef.current = isOpen;
+    onModalOpenChange?.(isOpen);
+  }, [isOpen, onModalOpenChange]);
 
   // event.idと一致するresultを取得
   const matchedResult = results.find((result) => result.official_event_id === event.id);

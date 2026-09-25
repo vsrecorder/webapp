@@ -55,4 +55,19 @@ describe("CityleagueEventCard のタップ", () => {
     expect(screen.getByTestId("result")).toBeTruthy();
     expect(screen.queryByText("シティリーグの開催情報")).toBeNull();
   });
+  // 並べている Swiper の自動スライドを、開いている間だけ止めるための知らせ
+  it("モーダルの開閉を知らせる(マウント時は知らせない)", async () => {
+    const onModalOpenChange = vi.fn();
+    render(
+      <CityleagueEventCard event={EVENT} results={[]} onModalOpenChange={onModalOpenChange} />,
+    );
+    expect(onModalOpenChange).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByTitle("宝島可児店"));
+    await waitFor(() => expect(onModalOpenChange).toHaveBeenLastCalledWith(true));
+
+    fireEvent.click(screen.getByRole("button", { name: /close|閉じる/i }));
+    await waitFor(() => expect(onModalOpenChange).toHaveBeenLastCalledWith(false));
+    expect(onModalOpenChange).toHaveBeenCalledTimes(2);
+  });
 });

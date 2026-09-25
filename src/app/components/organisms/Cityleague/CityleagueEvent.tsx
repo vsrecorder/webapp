@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useEffect, useRef, useState } from "react";
 
 import { SetStateAction, Dispatch } from "react";
@@ -9,6 +9,7 @@ import { Card, CardHeader, CardBody, CardFooter } from "@heroui/react";
 
 import { A11y, Autoplay, Pagination } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
+import type { Swiper as SwiperInstance } from "swiper";
 
 import "swiper/css";
 import "swiper/css/navigation";
@@ -167,6 +168,25 @@ export default function CityleagueEvent({ league_type, setLeagueTypeCount, date 
    */
   const isLoadingRef = useRef(false);
 
+  /*
+   * 会場カードのモーダルを開いている間は、自動スライドを止める。
+   * 止めないと、モーダルを見ている間も背面のカードが流れ続け、閉じたときには
+   * タップした会場が画面から消えている。閉じたら再開する(次の切り替えは delay 後)。
+   */
+  const swiperRef = useRef<SwiperInstance | null>(null);
+  const handleModalOpenChange = useCallback((isOpen: boolean) => {
+    const swiper = swiperRef.current;
+    // 取り直しで Swiper が作り直されると古いインスタンスは破棄済みになる
+    if (!swiper || swiper.destroyed || !swiper.autoplay) return;
+    const autoplay = swiper.autoplay;
+
+    if (isOpen) {
+      autoplay.stop();
+    } else {
+      autoplay.start();
+    }
+  }, []);
+
   useEffect(() => {
     const load = async () => {
       if (isLoadingRef.current) return;
@@ -295,11 +315,15 @@ export default function CityleagueEvent({ league_type, setLeagueTypeCount, date 
                   disableOnInteraction: false,
                 }}
                 pagination={false}
+                onSwiper={(swiper) => {
+                  swiperRef.current = swiper;
+                }}
               >
                 {sortedEvents.map((event) => (
                   <SwiperSlide key={event.id} className="p-3">
                     <CityleagueEventCard
                       event={event}
+                      onModalOpenChange={handleModalOpenChange}
                       results={
                         cityleagueResults
                           ? cityleagueResults?.event_results

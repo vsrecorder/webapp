@@ -25,8 +25,19 @@ const HISTORY = {
   ],
 };
 
+// 月ごとの推移が入った応答(シェアの可否を見るのに使う)
+const HISTORY_WITH_MONTHS = {
+  user_id: "u1",
+  period: "3months",
+  season: "",
+  history: [
+    { year_month: "2026-07", total_matches: 10, wins: 5, losses: 5, win_rate: 0.5 },
+    { year_month: "2026-08", total_matches: 10, wins: 6, losses: 4, win_rate: 0.6 },
+  ],
+};
+
 /* 勝率推移の取得だけ成否を制御する。デッキ一覧など選択肢用の取得は空で返す */
-function stubFetch(responses: (typeof HISTORY | null)[]) {
+function stubFetch(responses: (typeof HISTORY | typeof HISTORY_WITH_MONTHS | null)[]) {
   let call = 0;
   vi.stubGlobal(
     "fetch",
@@ -51,7 +62,7 @@ afterEach(() => {
 describe("UserStatHistoryChart の取得失敗", () => {
   it("失敗を「データがありません」と区別して表示する", async () => {
     stubFetch([null]);
-    render(<UserStatHistoryChart userId="u1" championshipSeries={[]} />);
+    render(<UserStatHistoryChart sectionTitle="月毎の勝率推移" userId="u1" championshipSeries={[]} />);
 
     await waitFor(() =>
       expect(screen.getByText("勝率の推移を取得できませんでした")).toBeTruthy(),
@@ -62,7 +73,7 @@ describe("UserStatHistoryChart の取得失敗", () => {
 
   it("「再読み込み」で取り直せる", async () => {
     stubFetch([null, HISTORY]);
-    render(<UserStatHistoryChart userId="u1" championshipSeries={[]} />);
+    render(<UserStatHistoryChart sectionTitle="月毎の勝率推移" userId="u1" championshipSeries={[]} />);
 
     await waitFor(() =>
       expect(screen.getByText("勝率の推移を取得できませんでした")).toBeTruthy(),
@@ -73,5 +84,27 @@ describe("UserStatHistoryChart の取得失敗", () => {
     await waitFor(() =>
       expect(screen.queryByText("勝率の推移を取得できませんでした")).toBeNull(),
     );
+  });
+});
+
+describe("UserStatHistoryChart のシェアボタン", () => {
+  const shareButton = () => screen.getByRole("button", { name: "シェア" });
+
+  it("推移があればシェアできる", async () => {
+    stubFetch([HISTORY_WITH_MONTHS]);
+    render(<UserStatHistoryChart sectionTitle="月毎の勝率推移" userId="u1" championshipSeries={[]} />);
+
+    expect(screen.getByRole("heading", { name: "月毎の勝率推移" })).toBeTruthy();
+    await waitFor(() => expect(shareButton().hasAttribute("disabled")).toBe(false));
+  });
+
+  it("取得に失敗したときは押させない", async () => {
+    stubFetch([null]);
+    render(<UserStatHistoryChart sectionTitle="月毎の勝率推移" userId="u1" championshipSeries={[]} />);
+
+    await waitFor(() =>
+      expect(screen.getByText("勝率の推移を取得できませんでした")).toBeTruthy(),
+    );
+    expect(shareButton().hasAttribute("disabled")).toBe(true);
   });
 });

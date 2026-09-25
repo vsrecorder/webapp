@@ -1,9 +1,11 @@
 import { hasWinRate } from "@app/utils/winRate";
 
 import { UserStatType } from "@app/types/user_stat";
+import { UserStatMonthlyType } from "@app/types/user_stat_history";
 import { DeckUsageItemType } from "@app/types/deck_usage_stat";
 import { drawCount } from "@app/components/molecules/UserStat/UserStatSummary";
 import type { ShareDeckRow } from "@app/components/organisms/DeckUsage/DeckDistributionShareCard";
+import { formatShortYearMonth, spansMultipleYears } from "@app/utils/yearMonthLabel";
 
 // ダッシュボードの分析パネルをシェアするときのポスト文。
 // いずれも末尾にハッシュタグまで含めた完成形を返す(呼び出し側で足さない)。
@@ -83,6 +85,34 @@ export function buildDeckDistributionPostText(
   const lines = rows
     .slice(0, MAX_POST_ROWS)
     .map((row, idx) => `${idx + 1}. ${row.name} ${(row.usageRate * 100).toFixed(1)}%`);
+
+  return [heading, "", ...lines, "", HASHTAG].join("\n");
+}
+
+// ポスト文に列挙する月の最大数。シーズン表示では最大12ヶ月並ぶが、
+// 全部載せると X の文字数制限に収まらないため、新しい月から数えてこの数までにする
+// (画像には全部の月が載る)。
+const MAX_POST_MONTHS = 6;
+
+/*
+ * 「月毎の勝率推移」パネル。月ごとの勝率と勝敗を新しい月まで順に並べる。
+ * 勝ちも負けも無い月は勝率が存在しないので「-」にする(0.0% だと全敗と読めてしまう)。
+ * 集計条件の但し書きを入れない理由は buildUserStatPostText と同じ。
+ */
+export function buildUserStatHistoryPostText(
+  // 見出し(集計期間・デッキなどの補足)。改行を含んでいてもよい
+  heading: string,
+  months: UserStatMonthlyType[],
+): string {
+  const recent = months.slice(-MAX_POST_MONTHS);
+  // 年の表記は載せる月だけで決める(落とした古い月の年に引きずられない)
+  const withYear = spansMultipleYears(recent.map((m) => m.year_month));
+
+  const lines = recent.map((m) => {
+    const label = formatShortYearMonth(m.year_month, withYear);
+    const rate = hasWinRate(m.wins, m.losses) ? `${(m.win_rate * 100).toFixed(1)}%` : "-";
+    return `${label} ${rate}（${m.wins}勝${m.losses}敗）`;
+  });
 
   return [heading, "", ...lines, "", HASHTAG].join("\n");
 }

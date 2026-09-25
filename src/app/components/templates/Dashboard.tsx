@@ -503,8 +503,8 @@ export default async function TemplateDashboard({
     label: "月毎の勝率推移",
     node: (
       <section key="stats_history" className="flex flex-col gap-2">
-        <h2 className="text-sm font-bold text-default-700">月毎の勝率推移</h2>
         <UserStatHistoryChart
+          sectionTitle="月毎の勝率推移"
           userId={userId}
           championshipSeries={championshipSeries}
           initialExcludeDefaultMatches={panels.excludeDefaultMatches}

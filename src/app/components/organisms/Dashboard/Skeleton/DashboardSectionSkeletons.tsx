@@ -219,10 +219,10 @@ export default function DashboardBlockSkeleton({
       );
 
     case "stats_history":
+      // 見出し行はパネル自身が持つ(ChartPanelFallback の withHeading と同じ)
       return (
         <Section>
-          <SectionHeading label="月毎の勝率推移" />
-          <ChartPanelFallback />
+          <ChartPanelFallback withHeading />
         </Section>
       );
 

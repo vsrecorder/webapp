@@ -26,9 +26,18 @@ import RegulationSegmentedControl from "@app/components/molecules/RegulationSegm
 import ExcludeDefaultMatchesToggle from "@app/components/molecules/ExcludeDefaultMatchesToggle";
 import { useExcludeDefaultMatches } from "@app/hooks/useExcludeDefaultMatches";
 import { excludeDefaultMatchesParam } from "@app/utils/excludeDefaultMatches";
-import { DEFAULT_REGULATION_ID } from "@app/types/regulation";
+import { DEFAULT_REGULATION_ID, regulationDisplay } from "@app/types/regulation";
 import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
 import { brandChartGradient } from "@app/utils/chartBrandGradient";
+import {
+  formatLongYearMonth,
+  formatShortYearMonth,
+  spansMultipleYears,
+} from "@app/utils/yearMonthLabel";
+import PanelShareModal from "@app/components/organisms/Share/PanelShareModal";
+import PanelShareButton from "@app/components/organisms/Share/PanelShareButton";
+import UserStatHistoryShareCard from "@app/components/organisms/UserStat/UserStatHistoryShareCard";
+import { buildUserStatHistoryPostText } from "@app/utils/panelPostText";
 
 ChartJS.register(
   CategoryScale,
@@ -45,7 +54,17 @@ type PeriodMode = "3months" | "6months" | "current_season" | "select_season";
 // 「デッキ選択(選択済み)」に合わせる。
 const OWN_DECK_SPRITE_SIZE = 28;
 
+// 期間セレクタの表示名。シェア画像・ポスト文の見出しにも使う
+const PERIOD_LABELS: Record<PeriodMode, string> = {
+  "3months": "直近3ヶ月",
+  "6months": "直近6ヶ月",
+  current_season: "今シーズン",
+  select_season: "シーズン選択",
+};
+
 type Props = {
+  // セクション見出し。パネル自身が見出し行を描画し、その右端にシェアボタンを置く。
+  sectionTitle: string;
   userId: string;
   championshipSeries: ChampionshipSeriesType[];
   /*
@@ -55,18 +74,6 @@ type Props = {
    */
   initialExcludeDefaultMatches?: boolean;
 };
-
-function formatXLabel(ym: string, hasMultipleYears: boolean): string {
-  const [year, month] = ym.split("-");
-  return hasMultipleYears
-    ? `${year.slice(2)}/${parseInt(month)}`
-    : `${parseInt(month)}月`;
-}
-
-function formatTooltipMonth(ym: string): string {
-  const [year, month] = ym.split("-");
-  return `${year}年${parseInt(month)}月`;
-}
 
 // 当月を含む直近 count ヶ月の年月("YYYY-MM")を古い順に返す。
 // バックエンドの user_stat_history が period=3months/6months で見る範囲
@@ -84,6 +91,7 @@ function recentYearMonths(count: number): string[] {
 }
 
 export default function UserStatHistoryChart({
+  sectionTitle,
   userId,
   championshipSeries,
   initialExcludeDefaultMatches,
@@ -110,6 +118,8 @@ export default function UserStatHistoryChart({
   const [isError, setIsError] = useState(false);
   // 「再読み込み」で取り直すためのキー。増やすと取得のeffectが走り直す
   const [reloadKey, setReloadKey] = useState(0);
+  // シェアモーダルの開閉
+  const [shareOpen, setShareOpen] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<ChartJS<"line">>(null);
@@ -281,8 +291,7 @@ export default function UserStatHistoryChart({
   // 描画中の月次推移。ツールチップの計算は描画ごとに作り直す関数から参照する
   const chartData: UserStatMonthlyType[] = history?.history ?? [];
 
-  const hasMultipleYears =
-    new Set(chartData.map((d) => d.year_month.split("-")[0])).size > 1;
+  const hasMultipleYears = spansMultipleYears(chartData.map((d) => d.year_month));
 
   // clientX からツールチップを表示する（X 軸ラベル上のタップにも対応）
   function showTooltip(clientX: number) {
@@ -304,7 +313,7 @@ export default function UserStatHistoryChart({
     if (!d) return;
 
     if (tooltipTitleRef.current)
-      tooltipTitleRef.current.textContent = formatTooltipMonth(d.year_month);
+      tooltipTitleRef.current.textContent = formatLongYearMonth(d.year_month);
     if (tooltipRateRef.current)
       tooltipRateRef.current.textContent = `${(d.win_rate * 100).toFixed(1)}%`;
     if (tooltipInfoRef.current)
@@ -333,7 +342,7 @@ export default function UserStatHistoryChart({
     if (tooltipRef.current) tooltipRef.current.style.display = "none";
   }
 
-  const labels = chartData.map((d) => formatXLabel(d.year_month, hasMultipleYears));
+  const labels = chartData.map((d) => formatShortYearMonth(d.year_month, hasMultipleYears));
   const winRates = chartData.map((d) => Math.round(d.win_rate * 1000) / 10);
 
   const data = {
@@ -390,141 +399,198 @@ export default function UserStatHistoryChart({
     },
   };
 
-  return (
-    <Card>
-      <CardBody className="gap-3 p-4">
-        {/* レギュレーション区分の絞り込み */}
-        <RegulationSegmentedControl
-          regulationId={regulationId}
-          onChange={setRegulationId}
-        />
+  // シェア画像・ポスト文の見出し。シーズンは「今シーズン」ではなくシーズン名で書く
+  // (画像は後から見返されるので、いつのシーズンか分かる方がよい)。
+  const periodLabel =
+    periodMode === "current_season" || periodMode === "select_season"
+      ? (seasonOptions.find(
+          (o) => o.value === (periodMode === "current_season" ? currentSeason : seasonYear),
+        )?.label ?? PERIOD_LABELS[periodMode])
+      : PERIOD_LABELS[periodMode];
+  // レギュレーションはパネル上のセグメントで選ぶが、シェア画像には写らない。
+  // 既定のスタンダード以外を見ているときは、何のレギュレーションの数字か分かるよう添える。
+  const filterLabel =
+    regulationId === DEFAULT_REGULATION_ID
+      ? periodLabel
+      : `${periodLabel}(${regulationDisplay(regulationId).name})`;
+  // ポスト文の見出し。どのデッキ使用時の推移かを独立した行で添える
+  // (対戦相手のデッキ分析と同じ書き方)。画像の見出しはデッキ名とスプライトで別に組む
+  const deckLine = selectedDeck ? `『${selectedDeck.name}』使用時の` : "すべての使用デッキでの";
+  const postHeading = `${filterLabel}\n${deckLine}月毎の勝率推移`;
 
-        {/* ヘッダー */}
-        {/* 期間セレクタ。「シーズン選択」のときだけ左にシーズンセレクタが並ぶ。
-            シーズン名は「チャンピオンシップシリーズ2027」と長く、素の幅で2つ並べると
-            狭い端末(360px幅)でカードからはみ出して期間セレクタが切れてしまう。
-            シーズン側を可変(flex-1 min-w-0)にして余りを吸わせ、行を横いっぱいに使う。
-            期間セレクタは選択肢で文字数が変わらないので固定幅(shrink-0)のままにする。 */}
-        <div className="flex items-center justify-end gap-2">
-          {periodMode === "select_season" && (
-            <div className="relative flex-1 min-w-0">
+  return (
+    <>
+      {/* セクション見出し行。タイトルを左、シェアボタンを右端に置く（他の分析パネルと
+          同じ配置ルール）。推移が無い・取れていない間は画像に載せる中身が無いため押させない。 */}
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-sm font-bold text-default-700">{sectionTitle}</h2>
+        <PanelShareButton
+          isDisabled={isLoading || isError || chartData.length === 0}
+          onPress={() => setShareOpen(true)}
+        />
+      </div>
+      <Card>
+        <CardBody className="gap-3 p-4">
+          {/* レギュレーション区分の絞り込み */}
+          <RegulationSegmentedControl
+            regulationId={regulationId}
+            onChange={setRegulationId}
+          />
+
+          {/* ヘッダー */}
+          {/* 期間セレクタ。「シーズン選択」のときだけ左にシーズンセレクタが並ぶ。
+              シーズン名は「チャンピオンシップシリーズ2027」と長く、素の幅で2つ並べると
+              狭い端末(360px幅)でカードからはみ出して期間セレクタが切れてしまう。
+              シーズン側を可変(flex-1 min-w-0)にして余りを吸わせ、行を横いっぱいに使う。
+              期間セレクタは選択肢で文字数が変わらないので固定幅(shrink-0)のままにする。 */}
+          <div className="flex items-center justify-end gap-2">
+            {periodMode === "select_season" && (
+              <div className="relative flex-1 min-w-0">
+                <select
+                  name="user-stat-history-season"
+                  value={seasonYear}
+                  onChange={(e) => setSeasonYear(e.target.value)}
+                  className="w-full appearance-none truncate rounded-lg border border-default-200 bg-default-100 pl-3 pr-7 py-1.5 text-xs font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                >
+                  {seasonOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-default-400 text-[0.625rem]">
+                  ▼
+                </span>
+              </div>
+            )}
+            <div className="relative shrink-0">
               <select
-                name="user-stat-history-season"
-                value={seasonYear}
-                onChange={(e) => setSeasonYear(e.target.value)}
-                className="w-full appearance-none truncate rounded-lg border border-default-200 bg-default-100 pl-3 pr-7 py-1.5 text-xs font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                name="user-stat-history-period"
+                value={periodMode}
+                onChange={(e) => setPeriodMode(e.target.value as PeriodMode)}
+                className="appearance-none rounded-lg border border-default-200 bg-default-100 pl-3 pr-7 py-1.5 text-xs font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
               >
-                {seasonOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
+                <option value="3months">直近3ヶ月</option>
+                <option value="6months">直近6ヶ月</option>
+                <option value="current_season">今シーズン</option>
+                <option value="select_season">シーズン選択</option>
               </select>
               <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-default-400 text-[0.625rem]">
                 ▼
               </span>
             </div>
-          )}
-          <div className="relative shrink-0">
-            <select
-              name="user-stat-history-period"
-              value={periodMode}
-              onChange={(e) => setPeriodMode(e.target.value as PeriodMode)}
-              className="appearance-none rounded-lg border border-default-200 bg-default-100 pl-3 pr-7 py-1.5 text-xs font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
-            >
-              <option value="3months">直近3ヶ月</option>
-              <option value="6months">直近6ヶ月</option>
-              <option value="current_season">今シーズン</option>
-              <option value="select_season">シーズン選択</option>
-            </select>
-            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-default-400 text-[0.625rem]">
-              ▼
-            </span>
           </div>
-        </div>
 
-        {/* デッキセレクタ（対戦相手のデッキ分析パネルと同様、「使用したすべてのデッキで集計」がデフォルト）。
-            ネイティブの <select> には画像を入れられないため、選択中デッキのスプライトは
-            セレクタの左に並べて示す（未選択＝全デッキ集計のときは表示しない） */}
-        <div className="flex items-center gap-2">
-          {hasDeckSprite && (
-            <div className="flex items-center gap-0 shrink-0">
-              <PokemonSprite id={deckSprite1?.id} size={OWN_DECK_SPRITE_SIZE} />
-              <PokemonSprite id={deckSprite2?.id} size={OWN_DECK_SPRITE_SIZE} />
+          {/* デッキセレクタ（対戦相手のデッキ分析パネルと同様、「使用したすべてのデッキで集計」がデフォルト）。
+              ネイティブの <select> には画像を入れられないため、選択中デッキのスプライトは
+              セレクタの左に並べて示す（未選択＝全デッキ集計のときは表示しない） */}
+          <div className="flex items-center gap-2">
+            {hasDeckSprite && (
+              <div className="flex items-center gap-0 shrink-0">
+                <PokemonSprite id={deckSprite1?.id} size={OWN_DECK_SPRITE_SIZE} />
+                <PokemonSprite id={deckSprite2?.id} size={OWN_DECK_SPRITE_SIZE} />
+              </div>
+            )}
+            <div className="relative flex-1 min-w-0">
+              <select
+                name="user-stat-history-deck"
+                value={deckId}
+                onChange={(e) => setDeckId(e.target.value)}
+                className="w-full appearance-none rounded-lg border border-default-200 bg-default-100 pl-3 pr-7 py-1.5 text-xs font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
+              >
+                <option value="">使用したすべてのデッキで集計</option>
+                {ownDecks.map((deck) => (
+                  <option key={deck.deck_id} value={deck.deck_id}>
+                    {deck.name}
+                  </option>
+                ))}
+              </select>
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-default-400 text-[0.625rem]">
+                ▼
+              </span>
             </div>
-          )}
-          <div className="relative flex-1 min-w-0">
-            <select
-              name="user-stat-history-deck"
-              value={deckId}
-              onChange={(e) => setDeckId(e.target.value)}
-              className="w-full appearance-none rounded-lg border border-default-200 bg-default-100 pl-3 pr-7 py-1.5 text-xs font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
-            >
-              <option value="">使用したすべてのデッキで集計</option>
-              {ownDecks.map((deck) => (
-                <option key={deck.deck_id} value={deck.deck_id}>
-                  {deck.name}
-                </option>
-              ))}
-            </select>
-            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-default-400 text-[0.625rem]">
-              ▼
-            </span>
           </div>
-        </div>
 
-        {/* グラフ */}
-        {isError ? (
-          <div className="h-40 flex items-center justify-center">
-            <FetchError
-              message="勝率の推移を取得できませんでした"
-              onRetry={() => setReloadKey((key) => key + 1)}
-              isRetrying={isLoading}
-              compact
-            />
-          </div>
-        ) : isLoading ? (
-          <div className="h-40 flex items-center justify-center">
-            <span className="text-xs text-default-400">読み込み中...</span>
-          </div>
-        ) : chartData.length === 0 ? (
-          <div className="h-40 flex items-center justify-center">
-            <span className="text-xs text-default-400">データがありません</span>
-          </div>
-        ) : (
-          <div
-            ref={containerRef}
-            className="h-40 relative"
-            onTouchStart={(e) => showTooltip(e.touches[0].clientX)}
-            onTouchMove={(e) => {
-              if (e.touches[0]) showTooltip(e.touches[0].clientX);
-            }}
-            onTouchEnd={hideTooltip}
-            onMouseMove={(e) => showTooltip(e.clientX)}
-            onMouseLeave={hideTooltip}
-          >
-            <Line ref={chartRef} data={data} options={options} />
-
-            {/* カスタムツールチップ（DOM 直接操作） */}
+          {/* グラフ */}
+          {isError ? (
+            <div className="h-40 flex items-center justify-center">
+              <FetchError
+                message="勝率の推移を取得できませんでした"
+                onRetry={() => setReloadKey((key) => key + 1)}
+                isRetrying={isLoading}
+                compact
+              />
+            </div>
+          ) : isLoading ? (
+            <div className="h-40 flex items-center justify-center">
+              <span className="text-xs text-default-400">読み込み中...</span>
+            </div>
+          ) : chartData.length === 0 ? (
+            <div className="h-40 flex items-center justify-center">
+              <span className="text-xs text-default-400">データがありません</span>
+            </div>
+          ) : (
             <div
-              ref={tooltipRef}
-              className="absolute z-40 pointer-events-none bg-content1 border border-default-200 rounded-xl p-3 shadow-lg text-xs whitespace-nowrap"
-              style={{ display: "none", transform: "translate(-50%, calc(-100% - 8px))" }}
+              ref={containerRef}
+              className="h-40 relative"
+              onTouchStart={(e) => showTooltip(e.touches[0].clientX)}
+              onTouchMove={(e) => {
+                if (e.touches[0]) showTooltip(e.touches[0].clientX);
+              }}
+              onTouchEnd={hideTooltip}
+              onMouseMove={(e) => showTooltip(e.clientX)}
+              onMouseLeave={hideTooltip}
             >
-              <p ref={tooltipTitleRef} className="font-bold text-default-700 mb-1.5" />
-              <p ref={tooltipRateRef} className="text-primary font-bold text-sm" />
-              <p ref={tooltipInfoRef} className="text-default-500 mt-0.5" />
-            </div>
-          </div>
-        )}
+              <Line ref={chartRef} data={data} options={options} />
 
-        {/* 不戦勝・不戦敗の扱い。グラフの下に置く(効く先はこのグラフの勝率)。
-            余白は CardBody の gap-3 に任せる */}
-        <ExcludeDefaultMatchesToggle
-          excluded={excludeDefaultMatches}
-          onToggle={toggleExcludeDefaultMatches}
-        />
-      </CardBody>
-    </Card>
+              {/* カスタムツールチップ（DOM 直接操作） */}
+              <div
+                ref={tooltipRef}
+                className="absolute z-40 pointer-events-none bg-content1 border border-default-200 rounded-xl p-3 shadow-lg text-xs whitespace-nowrap"
+                style={{ display: "none", transform: "translate(-50%, calc(-100% - 8px))" }}
+              >
+                <p ref={tooltipTitleRef} className="font-bold text-default-700 mb-1.5" />
+                <p ref={tooltipRateRef} className="text-primary font-bold text-sm" />
+                <p ref={tooltipInfoRef} className="text-default-500 mt-0.5" />
+              </div>
+            </div>
+          )}
+
+          {/* 不戦勝・不戦敗の扱い。グラフの下に置く(効く先はこのグラフの勝率)。
+              余白は CardBody の gap-3 に任せる */}
+          <ExcludeDefaultMatchesToggle
+            excluded={excludeDefaultMatches}
+            onToggle={toggleExcludeDefaultMatches}
+          />
+        </CardBody>
+      </Card>
+
+      <PanelShareModal
+        isOpen={shareOpen}
+        onOpenChange={() => setShareOpen((open) => !open)}
+        onClose={() => setShareOpen(false)}
+        description="月毎の勝率推移を画像にして、ポスト文と一緒にシェアできます。"
+        postText={buildUserStatHistoryPostText(postHeading, chartData)}
+        filenamePrefix="user_stat_history"
+      >
+        {(captureWidth) => (
+          <UserStatHistoryShareCard
+            periodLabel={filterLabel}
+            deck={
+              selectedDeck
+                ? {
+                    name: selectedDeck.name,
+                    spriteIds: [deckSprite1?.id, deckSprite2?.id],
+                    hasSprite: hasDeckSprite,
+                  }
+                : null
+            }
+            months={chartData}
+            excludeDefaultMatches={excludeDefaultMatches}
+            width={captureWidth}
+          />
+        )}
+      </PanelShareModal>
+    </>
   );
 }

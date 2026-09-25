@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildDeckSummaryPostText,
+  buildUserStatHistoryPostText,
   buildUserStatPostText,
 } from "@app/utils/panelPostText";
 import { UserStatType } from "@app/types/user_stat";
@@ -102,5 +103,53 @@ describe("buildDeckSummaryPostText", () => {
 
     expect(text).toContain("『メガリザードンex』");
     expect(text).not.toContain("不戦勝");
+  });
+});
+
+describe("buildUserStatHistoryPostText", () => {
+  const month = (year_month: string, wins: number, losses: number) => ({
+    year_month,
+    total_matches: wins + losses,
+    wins,
+    losses,
+    win_rate: wins + losses > 0 ? wins / (wins + losses) : 0,
+  });
+
+  it("月ごとの勝率と勝敗を古い順に並べる", () => {
+    const text = buildUserStatHistoryPostText("直近3ヶ月", [
+      month("2026-07", 5, 5),
+      month("2026-08", 6, 4),
+    ]);
+
+    expect(text).toBe(
+      ["直近3ヶ月", "", "7月 50.0%（5勝5敗）", "8月 60.0%（6勝4敗）", "", "#バトレコ"].join(
+        "\n",
+      ),
+    );
+  });
+
+  it("勝ちも負けも無い月は勝率を「-」にする", () => {
+    const text = buildUserStatHistoryPostText("直近3ヶ月", [month("2026-07", 0, 0)]);
+
+    expect(text).toContain("7月 -（0勝0敗）");
+  });
+
+  it("載せるのは新しい6ヶ月まで。年は載せる月だけで判定する", () => {
+    const months = [
+      "2025-12",
+      "2026-01",
+      "2026-02",
+      "2026-03",
+      "2026-04",
+      "2026-05",
+      "2026-06",
+    ].map((ym) => month(ym, 1, 1));
+    const text = buildUserStatHistoryPostText("今シーズン", months);
+
+    // 2025年12月は落ち、残りは同じ年なので月だけで書く
+    expect(text).not.toContain("12月");
+    expect(text).not.toContain("26/");
+    expect(text).toContain("1月 50.0%");
+    expect(text).toContain("6月 50.0%");
   });
 });

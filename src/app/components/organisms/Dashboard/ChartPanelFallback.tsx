@@ -2,7 +2,7 @@ import { Card, CardBody, Skeleton } from "@heroui/react";
 
 type Props = {
   // パネル自身が見出し行（タイトル＋シェアボタン）を持つ場合に true。
-  // DeckUsagePanel / OpponentDeckUsagePanel は見出しをパネル内で描くため、
+  // UserStatHistoryChart / DeckUsagePanel / OpponentDeckUsagePanel は見出しをパネル内で描くため、
   // ここに置かないと実体へ差し替わった瞬間に見出し行のぶんだけ下がずれる。
   withHeading?: boolean;
 };

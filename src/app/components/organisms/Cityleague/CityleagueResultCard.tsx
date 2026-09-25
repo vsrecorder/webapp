@@ -58,7 +58,8 @@ type Props = {
   date: Date;
   // 個別ページのように順位ごとの見出しがある場所では、カード側のラベルが冗長になるため隠す。
   showRankLabel?: boolean;
-  // デッキのカード内訳の要約(サーバ側で取得済み)。渡されたときだけ主なポケモンとカードリストを出す。
+  // デッキのカード内訳の要約(サーバ側で取得済み)。渡されたときだけ主なポケモンを出し、
+  // カードリストのテキスト版を HTML に載せる(カードリスト自体は無くても開けば取得して出す)。
   deckSummary?: DeckSummaryType;
 };
 
@@ -239,7 +240,9 @@ export default function CityleagueResultCard({
         onClick={() => {
           onOpen();
         }}
-        className="cursor-pointer transition-transform active:scale-[0.98]"
+        // 押し込みの縮小はカードリスト内の操作(タブ・カードのタップや横スクロール)では出さない。
+        // :active は祖先にも付くため、そのままだとカードリストに触れるたびにカード全体が縮む
+        className="cursor-pointer transition-transform [&:active:not(:has([data-card-list]:active))]:scale-[0.98]"
       >
         <Card
           shadow="sm"
@@ -297,42 +300,46 @@ export default function CityleagueResultCard({
                 >
                   デッキコード {result.deck_code}
                 </span>
-                {deckSummary && (
-                  // 開閉のタップで親のモーダルが開かないよう伝播を止める
-                  <details
-                    className="mt-1.5 rounded-lg bg-default-100 px-3 py-1.5 text-tiny"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <summary className="cursor-pointer font-bold text-default-600">
-                      カードリスト（{deckSummary.total}枚）
-                    </summary>
-                    <dl className="flex flex-col gap-1 pt-1.5 text-default-500">
-                      {deckSummary.groups.map((group) => (
-                        <div key={group.label}>
-                          <dt className="inline font-bold text-default-600">
-                            {group.label}（{group.count}）：
-                          </dt>
-                          <dd className="inline">
-                            {group.cards
-                              .map((card) => `${card.name} ×${card.count}`)
-                              .join("、")}
-                          </dd>
-                        </div>
-                      ))}
-                      {deckSummary.aceSpec && (
-                        <div>
-                          <dt className="inline font-bold text-default-600">
-                            ACE SPEC：
-                          </dt>
-                          <dd className="inline">{deckSummary.aceSpec}</dd>
-                        </div>
-                      )}
-                    </dl>
-                  </details>
-                )}
+                {/* カードリストはデッキ管理と同じ部品。開閉やカードのタップで親のモーダルが
+                    開かないよう、伝播は部品側で止めている。
+                    準優勝のカードは地が bg-default-100(cityleagueRankBorderClass)で、既定の
+                    背景だとカードリストの枠が溶けて見えなくなるため content1 にする */}
+                <div data-card-list className="mt-1.5">
+                  <CardListAccordion
+                    code={result.deck_code}
+                    summary={deckSummary}
+                    background={result.rank === 2 ? "content1" : "default-100"}
+                  />
+                </div>
               </>
             ) : (
-              <NoDeckCodeImage />
+              <>
+                <NoDeckCodeImage />
+                {/* カードの高さはデッキコードがあるカードに揃える(一覧で1枚だけ短いと目立つ)。
+                    「主なポケモン」「デッキコード」の2行は同じ指定の行を見えない状態で置いて
+                    高さを決め、その中央に「デッキコードなし」を重ねる。台紙の画像だけだと
+                    読み込み失敗と見分けがつかないため、文字でも明示している */}
+                <div className="grid">
+                  <div
+                    aria-hidden="true"
+                    className="invisible col-start-1 row-start-1 flex flex-col text-center text-tiny"
+                  >
+                    <span className="pt-1.5 font-bold">主なポケモン</span>
+                    <span className="pt-0.5">デッキコード</span>
+                  </div>
+                  <span className="col-start-1 row-start-1 self-center pt-1.5 text-center text-tiny text-default-400">
+                    デッキコードなし
+                  </span>
+                </div>
+                {/* カードリストは出せないが、他のカードと同じ位置に押せない状態で置く */}
+                <div className="mt-1.5">
+                  <CardListAccordion
+                    code=""
+                    isDisabled
+                    background={result.rank === 2 ? "content1" : "default-100"}
+                  />
+                </div>
+              </>
             )}
           </CardBody>
         </Card>
@@ -414,7 +421,12 @@ export default function CityleagueResultCard({
                             </div>
                           </>
                         ) : (
-                          <NoDeckCodeImage />
+                          <>
+                            <NoDeckCodeImage />
+                            <span className="text-center text-tiny text-default-400">
+                              デッキコードなし
+                            </span>
+                          </>
                         )}
                       </div>
                     </BoardPanel>

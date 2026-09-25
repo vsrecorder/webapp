@@ -32,19 +32,45 @@ vi.mock("@app/components/organisms/Match/Modal/CreateMatchModal", () => ({
     ) : null,
 }));
 
-const CreateMatchModalButton = (
-  await import("@app/components/organisms/Match/CreateMatchModalButton")
-).default;
+// 追加後にバーを取り直す処理はサーバーアクションを呼ぶので、ここでは差し替える
+vi.mock("@app/utils/recordingNowClient", () => ({ refreshRecordingNow: vi.fn() }));
+
+const { default: CreateMatchModalButton, useCreateMatchModal } =
+  await import("@app/components/organisms/Match/CreateMatchModalButton");
 
 const RECORD_ID = "01M2J6M2XH8JVG6VZT4RF889TE";
 
 const record = { id: RECORD_ID } as unknown as RecordGetByIdResponseType;
 
-function renderButton(target: RecordGetByIdResponseType | null = record) {
-  return render(<CreateMatchModalButton record={target} setMatches={vi.fn()} />);
+// 対戦一覧(Matches)と同じ組み方: モーダルはフックが1つ持ち、ボタンは開くだけ
+function Harness({
+  target,
+  autoOpenReady,
+}: {
+  target: RecordGetByIdResponseType | null;
+  autoOpenReady: boolean;
+}) {
+  const createMatch = useCreateMatchModal({
+    record: target,
+    setMatches: vi.fn(),
+    autoOpenReady,
+  });
+  return (
+    <>
+      <CreateMatchModalButton onPress={createMatch.open} />
+      {createMatch.modal}
+    </>
+  );
 }
 
-describe("CreateMatchModalButton", () => {
+function renderButton(
+  target: RecordGetByIdResponseType | null = record,
+  autoOpenReady = true,
+) {
+  return render(<Harness target={target} autoOpenReady={autoOpenReady} />);
+}
+
+describe("useCreateMatchModal / CreateMatchModalButton", () => {
   beforeEach(() => {
     sessionStorage.clear();
     refresh.mockClear();
@@ -56,6 +82,26 @@ describe("CreateMatchModalButton", () => {
     renderButton();
 
     expect(screen.queryByText("対戦結果の入力フォーム")).toBeNull();
+  });
+
+  it("ボタンを押すと開く", () => {
+    renderButton();
+
+    fireEvent.click(screen.getByText("対戦結果を追加する"));
+
+    expect(screen.getByText("対戦結果の入力フォーム")).toBeTruthy();
+  });
+
+  // 対戦一覧の読み込み中・取得失敗のあいだは開かず、揃ってから開けるよう指示を残す
+  it("開いてよい状態になるまでは指示に応えない", () => {
+    sessionStorage.setItem(OPEN_CREATE_MATCH_RECORD_ID, RECORD_ID);
+
+    const { rerender } = renderButton(record, false);
+    expect(screen.queryByText("対戦結果の入力フォーム")).toBeNull();
+    expect(sessionStorage.getItem(OPEN_CREATE_MATCH_RECORD_ID)).toBe(RECORD_ID);
+
+    rerender(<Harness target={record} autoOpenReady />);
+    expect(screen.getByText("対戦結果の入力フォーム")).toBeTruthy();
   });
 
   // ホームの「記録中」カードから来たとき。着いた時点で入力に入れる

@@ -24,7 +24,9 @@ import { LuSwords, LuChevronUp, LuChevronDown } from "react-icons/lu";
 
 import UpdateMatchModal from "@app/components/organisms/Match/Modal/UpdateMatchModal";
 import DisplayMatchDetailModal from "@app/components/organisms/Match/Modal/DisplayMatchDetailModal";
-import CreateMatchModalButton from "@app/components/organisms/Match/CreateMatchModalButton";
+import CreateMatchModalButton, {
+  useCreateMatchModal,
+} from "@app/components/organisms/Match/CreateMatchModalButton";
 import MatchSkeleton, {
   matchPanelHeight,
 } from "@app/components/organisms/Match/Skeleton/MatchSkeleton";
@@ -223,6 +225,15 @@ export default function Matches({
     onOpenChange: onOpenChangeForDisplayMatchDetailModal,
   } = useDisclosure();
 
+  // 対戦結果を追加するモーダル。追加ボタンは空状態の中と一覧の下の2か所にあるが、
+  // モーダル(と環境リターン)はここで1つだけ持つ。ボタン側に持たせると、1戦目を足して
+  // 空状態のボタンが消えたときにモーダルごと破棄され、環境リターンが出なくなる
+  const createMatch = useCreateMatchModal({
+    record,
+    setMatches,
+    autoOpenReady: enableCreateMatchModalButton && !loading && !error,
+  });
+
   // 取得に失敗しているあいだは骨格を出さない(下でエラーカードを出す)。
   // 取り直し中も同じで、エラー → 骨格 → エラーと往復させない
   if (loading && !error) {
@@ -327,6 +338,8 @@ export default function Matches({
         onOpenChange={onOpenChangeForUpdateMatchModal}
         onClose={onCloseForUpdateMatchModal}
       />
+
+      {enableCreateMatchModalButton && createMatch.modal}
 
       <DisplayMatchDetailModal
         match={selectedMatch}
@@ -750,10 +763,7 @@ export default function Matches({
                           </div>
                         </div>
                         {enableCreateMatchModalButton && (
-                          <CreateMatchModalButton
-                            record={record}
-                            setMatches={setMatches}
-                          />
+                          <CreateMatchModalButton onPress={createMatch.open} />
                         )}
                       </div>
                     )}
@@ -766,11 +776,7 @@ export default function Matches({
                 // 上は行の my-0.5 と合わせて 6px 空き、ボタンが行の一部に見えない程度に離れる。
                 // ボタンは横幅いっぱい＋縦を高めにして押しやすくする。
                 <div className={flat ? "px-1 pt-1 pb-1" : ""}>
-                  <CreateMatchModalButton
-                    record={record}
-                    setMatches={setMatches}
-                    fullWidth={flat}
-                  />
+                  <CreateMatchModalButton onPress={createMatch.open} fullWidth={flat} />
                 </div>
               )}
             </div>

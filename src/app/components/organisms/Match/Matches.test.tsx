@@ -18,6 +18,7 @@ vi.mock("@app/components/organisms/Match/Modal/DisplayMatchDetailModal", () => (
 }));
 vi.mock("@app/components/organisms/Match/CreateMatchModalButton", () => ({
   default: () => <button>対戦結果を追加する</button>,
+  useCreateMatchModal: () => ({ open: () => {}, modal: null }),
 }));
 
 const Matches = (await import("@app/components/organisms/Match/Matches")).default;

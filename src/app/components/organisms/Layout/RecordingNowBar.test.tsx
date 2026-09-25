@@ -86,9 +86,9 @@ describe("RecordingNowBar", () => {
   it("記録中なら、イベント名・会場・勝敗と追加ボタンを出す", async () => {
     renderBar();
 
-    // ScrollingText は溢れ判定用の不可視コピーも持つ
+    // ScrollingText は溢れ判定用の不可視コピーも持つ(イベント名・会場とも)
     expect((await screen.findAllByText("ジムバトル")).length).toBeGreaterThan(0);
-    expect(screen.getByText("カードショップ○○")).toBeTruthy();
+    expect(screen.getAllByText("カードショップ○○").length).toBeGreaterThan(0);
     expect(screen.getByText("3勝1敗")).toBeTruthy();
     expect(screen.getByText("対戦追加")).toBeTruthy();
   });

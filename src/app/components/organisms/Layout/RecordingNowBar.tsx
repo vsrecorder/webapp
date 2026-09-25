@@ -290,11 +290,19 @@ export default function RecordingNowBar() {
             <div className="flex min-w-0 flex-1 flex-col gap-0.5">
               {eventTitle}
 
+              {/*
+                会場名は長いことが多い(商業施設名＋店舗名など)ので、末尾を切らずに
+                イベント名と同じく溢れたときだけ流す。ピンのアイコンは流さず左に留める。
+              */}
               {hasVenue && (
-                <span className="flex min-w-0 items-center gap-1 text-[0.6875rem] leading-snug text-default-500">
+                <div className="flex min-w-0 items-center gap-1 text-[0.6875rem] leading-snug text-default-500">
                   <LuMapPin aria-hidden className="h-3 w-3 shrink-0 text-default-400" />
-                  <span className="min-w-0 truncate">{recording.venue}</span>
-                </span>
+                  <ScrollingText
+                    text={recording.venue}
+                    animationClass="animate-marquee-card-slow"
+                    className="min-w-0 flex-1"
+                  />
+                </div>
               )}
             </div>
 

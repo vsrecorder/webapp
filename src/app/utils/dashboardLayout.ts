@@ -27,7 +27,7 @@
  * 実体(Records の limit)と骨格(RecordCardSkeletons の count)の両方から参照する。
  * ここが食い違うと、骨格が実物に差し替わった瞬間に高さが飛ぶ。
  */
-export const DASHBOARD_RECENT_RECORDS_LIMIT = 5;
+export const DASHBOARD_RECENT_RECORDS_LIMIT = 3;
 
 // 1年保つ。ホームの構成はそう頻繁には変わらないので、間隔が空いた再訪でも効かせたい
 export const DASHBOARD_LAYOUT_COOKIE = "dashboardLayout";

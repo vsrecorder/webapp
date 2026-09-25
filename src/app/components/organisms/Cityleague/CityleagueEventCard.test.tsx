@@ -36,12 +36,16 @@ describe("CityleagueEventCard のタップ", () => {
     fireEvent.click(screen.getByTitle("宝島可児店"));
 
     await waitFor(() => expect(screen.getByText("シティリーグの開催情報")).toBeTruthy());
-    expect(screen.getByText("09:00 〜")).toBeTruthy();
+    expect(screen.getByText("大会開始時間")).toBeTruthy();
+    expect(screen.getByText("09:00")).toBeTruthy();
     // 住所と、会場名の欄の自由記述(補足)は出さない
     expect(screen.queryByText("岐阜県可児市広見6-98")).toBeNull();
     expect(screen.queryByText("受付開始はイベント開始時間の30分前から")).toBeNull();
     expect(screen.queryByTestId("result")).toBeNull();
     expect(screen.queryByText("大会終了")).toBeNull();
+    // 公式サイトへの導線は置かない
+    expect(screen.queryByText("公式サイトで大会の詳細を見る")).toBeNull();
+    expect(document.querySelector('a[href*="players.pokemon-card.com"]')).toBeNull();
   });
 
   it("大会が終わっていれば、従来どおり結果のモーダルを開く", async () => {
@@ -55,6 +59,7 @@ describe("CityleagueEventCard のタップ", () => {
     expect(screen.getByTestId("result")).toBeTruthy();
     expect(screen.queryByText("シティリーグの開催情報")).toBeNull();
   });
+
   // 並べている Swiper の自動スライドを、開いている間だけ止めるための知らせ
   it("モーダルの開閉を知らせる(マウント時は知らせない)", async () => {
     const onModalOpenChange = vi.fn();
@@ -71,3 +76,4 @@ describe("CityleagueEventCard のタップ", () => {
     expect(onModalOpenChange).toHaveBeenCalledTimes(2);
   });
 });
+

@@ -1,15 +1,13 @@
 "use client";
 
-import { Card, CardHeader, CardBody, CardFooter } from "@heroui/react";
+import { Card, CardHeader, CardBody } from "@heroui/react";
 import { Chip } from "@heroui/react";
 import { Image } from "@heroui/react";
-import { Link as HeroLink } from "@heroui/react";
 
 import { LuClock } from "react-icons/lu";
 
 import { OfficialEventListItemType } from "@app/types/official_event";
 import { formatJSTDateWithWeekday, formatJSTTime } from "@app/utils/date";
-import { formatEventTimeRange } from "@app/utils/cityleagueEventInfo";
 
 type Props = {
   event: OfficialEventListItemType;
@@ -19,17 +17,14 @@ type Props = {
  * まだ結果の出ていない大会の開催情報。ホームの「本日のシティリーグ結果」で会場カードを
  * タップしたときのモーダルに出す(結果が出ている大会は CityleagueResult を出す)。
  *
- * 上の段は結果モーダル(CityleagueResult)の見出しと同じ見た目にそろえ、
- * 下に開催時間と、公式サイトの大会詳細への導線を置く。
+ * 上の段は結果モーダル(CityleagueResult)の見出しと同じ見た目にそろえ、下に大会開始時間を置く。
+ * 公式サイトへの導線(アイコンのリンクも含む)は置かない。
  */
 export default function CityleagueEventInfo({ event }: Props) {
   const date = formatJSTDateWithWeekday(event.date);
   const shopName = event.shop_name.replace(/ポケモンカードステーション・/g, "");
-  const timeRange = formatEventTimeRange(
-    formatJSTTime(event.started_at),
-    formatJSTTime(event.ended_at),
-  );
-  const officialUrl = `https://players.pokemon-card.com/event/detail/${event.id}`;
+  // 終了時刻は出さない(上流は未設定だと開催日 0:00 を返し、29会場中16会場がそうだった)
+  const startTime = formatJSTTime(event.started_at);
 
   return (
     <Card className="pt-3 w-full">
@@ -54,27 +49,25 @@ export default function CityleagueEventInfo({ event }: Props) {
           </div>
 
           <div className="z-0 shrink-0 translate-x-1 -translate-y-5">
-            <HeroLink isExternal href={officialUrl} aria-label="公式サイトで大会の詳細を見る">
-              <Image
-                alt="シティリーグ"
-                src="https://xx8nnpgt.user.webaccel.jp/images/icons/city.png"
-                radius="none"
-                className="h-9 w-9 object-contain"
-              />
-            </HeroLink>
+            <Image
+              alt="シティリーグ"
+              src="https://xx8nnpgt.user.webaccel.jp/images/icons/city.png"
+              radius="none"
+              className="h-9 w-9 object-contain"
+            />
           </div>
         </div>
       </CardHeader>
 
-      <CardBody className="px-3 pt-3 pb-1">
+      <CardBody className="px-3 pt-3 pb-3">
         <dl className="flex flex-col gap-2 text-tiny">
-          {timeRange && (
+          {startTime && (
             <div className="flex items-start gap-2">
               <dt className="flex shrink-0 items-center gap-1 pt-px font-bold text-default-500">
                 <LuClock className="text-sm" aria-hidden />
-                時間
+                大会開始時間
               </dt>
-              <dd className="font-bold text-default-700">{timeRange}</dd>
+              <dd className="font-bold text-default-700">{startTime}</dd>
             </div>
           )}
         </dl>
@@ -84,17 +77,6 @@ export default function CityleagueEventInfo({ event }: Props) {
         </p>
       </CardBody>
 
-      <CardFooter className="pt-1 pb-2">
-        <HeroLink
-          isExternal
-          showAnchorIcon
-          underline="always"
-          href={officialUrl}
-          className="text-xs"
-        >
-          公式サイトで大会の詳細を見る
-        </HeroLink>
-      </CardFooter>
     </Card>
   );
 }

@@ -1,4 +1,5 @@
 import { EventKind } from "@app/components/molecules/EventIcon";
+import { RecordCardDeckType } from "@app/types/record";
 
 /*
  * 画面下に常駐する「続きを記録」バーに出すぶんの、記録中のイベント。
@@ -22,6 +23,8 @@ export type RecordingNowBarType = {
   draws: number;
   // 集計が取れたか。false のときは勝敗を出さない(0勝0敗と誤解させないため)
   hasSummary: boolean;
+  // 使用デッキ(名前とスプライト)。未登録・取得失敗なら null(バーはデッキを出さない)
+  deck: Pick<RecordCardDeckType, "name" | "pokemon_sprites"> | null;
 };
 
 export type RecordingNowGetResponseType = {

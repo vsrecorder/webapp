@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useDisclosure } from "@heroui/react";
 import useSWR from "swr";
@@ -13,6 +14,7 @@ import BottomBanner from "@app/components/molecules/BottomBanner";
 import FinishRecordingModal from "@app/components/molecules/FinishRecordingModal";
 import EventIcon from "@app/components/molecules/EventIcon";
 import ScrollingText from "@app/components/molecules/ScrollingText";
+import DeckSprites from "@app/components/molecules/DeckSprites";
 
 import { RecordingNowGetResponseType } from "@app/types/recording_now";
 import { writeClientCookie } from "@app/utils/clientCookie";
@@ -49,7 +51,6 @@ import { useSessionStorageItem } from "@app/hooks/useSessionStorageItem";
 
 // 取得の間引き。ページを移るたびに投げ直さない
 const DEDUPING_INTERVAL_MS = 60 * 1000;
-
 
 /*
  * バーを出さない画面。
@@ -118,7 +119,6 @@ export default function RecordingNowBar() {
     const timer = setTimeout(() => setNow(Date.now()), delay);
     return () => clearTimeout(timer);
   }, [hiddenValue, recording]);
-
 
   // 「記録を終える」の確認。押し間違いで今日のあいだ消えてしまうのを防ぐ
   const {
@@ -284,27 +284,69 @@ export default function RecordingNowBar() {
           {recordingMark}
 
           <div className="flex min-w-0 items-center gap-2.5">
-            {icon}
+            {/*
+              アイコン・イベント名・会場の塊は、記録中の記録の詳細へのリンクにする。
+              戦績を見直したい・メモを足したいときに、ホームへ戻らずここから開ける。
+              イベント名と会場名は流れる文字(ScrollingText)だが、あれはタップを下へ通す
+              作り(pointer-events-none)なので、流れている文字の上を押してもこのリンクが拾う。
+              右の「記録終了」「対戦追加」はリンクの外に置き、押す場所を混ぜない。
+            */}
+            <Link
+              href={`/records/${recording.recordId}`}
+              onClick={() => sendGAEvent("event", "recording_bar_open_record_click")}
+              aria-label={`${recording.eventTitle || "無題のイベント"}の記録を開く`}
+              className="flex min-w-0 flex-1 flex-col gap-1 rounded-xl transition-opacity active:opacity-60"
+            >
+              <div className="flex min-w-0 items-center gap-2.5">
+                {icon}
 
-            {/* イベント名と会場。会場は名前のすぐ下に、一段落とした文字で添える */}
-            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-              {eventTitle}
+                {/* イベント名と会場。会場は名前のすぐ下に、一段落とした文字で添える */}
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  {eventTitle}
+
+                  {/*
+                    会場名は長いことが多い(商業施設名＋店舗名など)ので、末尾を切らずに
+                    イベント名と同じく溢れたときだけ流す。ピンのアイコンは流さず左に留める。
+                  */}
+                  {hasVenue && (
+                    <div className="flex min-w-0 items-center gap-1 text-[0.6875rem] leading-snug text-default-500">
+                      <LuMapPin
+                        aria-hidden
+                        className="h-3 w-3 shrink-0 text-default-400"
+                      />
+                      <ScrollingText
+                        text={recording.venue}
+                        animationClass="animate-marquee-card-slow"
+                        className="min-w-0 flex-1"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
 
               {/*
-                会場名は長いことが多い(商業施設名＋店舗名など)ので、末尾を切らずに
-                イベント名と同じく溢れたときだけ流す。ピンのアイコンは流さず左に留める。
+                使用デッキ。ホームの記録中パネル(RecordingNowCard)と同じ位置・寸法にする:
+                アイコン＋イベント情報の行とは行を分け、アイコンの左端から始める。
+                スプライト 28px・文字 text-xs・行の高さ h-7 もパネルと同じ。
+                左側の高さ(イベントの行 39px + 間 4px + この行 28px)は右の操作列(76px)に
+                収まるので、バーの高さは変わらない。長いデッキ名はパネルと違い、切らずに流す。
+                未登録なら行ごと出さない。
               */}
-              {hasVenue && (
-                <div className="flex min-w-0 items-center gap-1 text-[0.6875rem] leading-snug text-default-500">
-                  <LuMapPin aria-hidden className="h-3 w-3 shrink-0 text-default-400" />
+              {recording.deck && (
+                <div className="flex h-7 min-w-0 items-center gap-1.5 text-xs text-default-500">
+                  <DeckSprites
+                    sprites={recording.deck.pokemon_sprites}
+                    size={28}
+                    hideWhenEmpty
+                  />
                   <ScrollingText
-                    text={recording.venue}
+                    text={recording.deck.name}
                     animationClass="animate-marquee-card-slow"
                     className="min-w-0 flex-1"
                   />
                 </div>
               )}
-            </div>
+            </Link>
 
             {/*
               操作。上に戦績と記録終了、下に主操作。

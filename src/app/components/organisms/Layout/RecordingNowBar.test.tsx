@@ -47,6 +47,7 @@ const recording: RecordingNowBarType = {
   losses: 1,
   draws: 0,
   hasSummary: true,
+  deck: { name: "リザードンex", pokemon_sprites: [{ id: "0006", position: 1 }] },
 };
 
 /*
@@ -93,10 +94,46 @@ describe("RecordingNowBar", () => {
     expect(screen.getByText("対戦追加")).toBeTruthy();
   });
 
+  // ホームへ戻らずに、記録中の記録そのもの(戦績・メモ)を開けるようにする
+  it("イベント名のあたりは記録詳細へのリンクで、操作ボタンはリンクの外にある", async () => {
+    renderBar();
+
+    const link = await screen.findByRole("link", { name: "ジムバトルの記録を開く" });
+    expect(link.getAttribute("href")).toBe(`/records/${RECORD_ID}`);
+    // 会場もリンクの中
+    expect(link.textContent).toContain("カードショップ○○");
+    // 押し分けを混ぜない
+    expect(link.contains(screen.getByText("対戦追加"))).toBe(false);
+    expect(link.contains(screen.getByText("記録終了"))).toBe(false);
+  });
+
   /*
    * Tonamel・自由形式のイベントは会場を持たない。下段がボタンだけになるので、
    * 右へ寄せずに幅いっぱいへ広げ、ラベルも省略しない。
    */
+  // ホームの記録中パネルと同じく、イベント名・会場の下に置く(記録詳細へのリンクの中)
+  it("使用デッキをイベント情報の下に出す", async () => {
+    renderBar();
+
+    // デッキ名も溢れたら流す ScrollingText なので、不可視コピーを含めて数える
+    expect((await screen.findAllByText("リザードンex")).length).toBeGreaterThan(0);
+
+    const link = screen.getByRole("link", { name: "ジムバトルの記録を開く" });
+    const text = link.textContent ?? "";
+    expect(text).toContain("リザードンex");
+    // 並びは イベント名 → 会場 → デッキ
+    expect(text.indexOf("ジムバトル")).toBeLessThan(text.indexOf("カードショップ○○"));
+    expect(text.indexOf("カードショップ○○")).toBeLessThan(text.indexOf("リザードンex"));
+  });
+
+  it("使用デッキが未登録なら、デッキの欄は出さない", async () => {
+    mockFetch({ recording: { ...recording, deck: null } });
+    renderBar();
+
+    await screen.findAllByText("ジムバトル");
+    expect(screen.queryByText("リザードンex")).toBeNull();
+  });
+
   it("会場が無いイベントでも、追加ボタンは公式イベントと同じ形にする", async () => {
     mockFetch({ recording: { ...recording, venue: "", eventKind: "tonamel" } });
 
@@ -111,8 +148,9 @@ describe("RecordingNowBar", () => {
     const { container } = renderBar();
     await screen.findByText("対戦追加");
 
-    const icon = container.querySelector("img");
-    expect(icon?.getAttribute("src")).toBe("https://example.test/icons/gym.png");
+    // 1段目に使用デッキのスプライトも並ぶので、画像の中から探す
+    const srcs = [...container.querySelectorAll("img")].map((img) => img.getAttribute("src"));
+    expect(srcs).toContain("https://example.test/icons/gym.png");
   });
 
   it("記録中でなければ何も出さない", async () => {

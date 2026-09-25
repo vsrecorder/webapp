@@ -53,6 +53,8 @@ export async function GET() {
       draws: data.summary?.draws ?? 0,
       // 集計が取れなかったときは勝敗を出さない(0勝0敗と誤解させない)。カードと同じ扱い
       hasSummary: data.summary !== null,
+      // 使用デッキはカード用に getRecordingNow が取り済み。ここでは詰め替えるだけで往復は増えない
+      deck: data.deck ? { name: data.deck.name, pokemon_sprites: data.deck.pokemon_sprites } : null,
     };
 
     return NextResponse.json({ recording }, { status: 200 });

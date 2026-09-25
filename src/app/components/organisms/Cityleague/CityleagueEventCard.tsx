@@ -7,6 +7,7 @@ import { useDisclosure } from "@heroui/react";
 import { Chip } from "@heroui/react";
 
 import { Modal } from "@app/components/atoms/AppModal";
+import CityleagueEventInfo from "@app/components/organisms/Cityleague/CityleagueEventInfo";
 import CityleagueResult from "@app/components/organisms/Cityleague/CityleagueResult";
 
 import { OfficialEventListItemType } from "@app/types/official_event";
@@ -35,39 +36,44 @@ export default function CityleagueEventCard({ event, results }: Props) {
 
   return (
     <>
-      {isFinished && (
-        <Modal
-          isOpen={isOpen}
-          size={"md"}
-          placement="center"
-          //hideCloseButton
-          onOpenChange={onOpenChange}
-          classNames={{
-            base: "sm:max-w-full",
-            closeButton: "text-xl",
-          }}
-        >
-          <ModalContent>
-            {() => (
-              <>
-                <ModalHeader className="px-3 pb-1">
-                  <div className="">シティリーグの結果発表！</div>
-                </ModalHeader>
-                <ModalBody className="px-1.5">
-                  {/* このカード自身が event を持っているので、モーダル内での再取得を省く */}
+      {/* 大会が終わっていれば結果を、まだなら開催情報を出す */}
+      <Modal
+        isOpen={isOpen}
+        size={"md"}
+        placement="center"
+        //hideCloseButton
+        onOpenChange={onOpenChange}
+        classNames={{
+          base: "sm:max-w-full",
+          closeButton: "text-xl",
+        }}
+      >
+        <ModalContent>
+          {() => (
+            <>
+              <ModalHeader className="px-3 pb-1">
+                <div className="">
+                  {isFinished ? "シティリーグの結果発表！" : "シティリーグの開催情報"}
+                </div>
+              </ModalHeader>
+              <ModalBody className="px-1.5">
+                {matchedResult ? (
+                  /* このカード自身が event を持っているので、モーダル内での再取得を省く */
                   <CityleagueResult
                     event_result={matchedResult}
                     official_event={event}
                     eagerAllSlides
                   />
-                </ModalBody>
-              </>
-            )}
-          </ModalContent>
-        </Modal>
-      )}
+                ) : (
+                  <CityleagueEventInfo event={event} />
+                )}
+              </ModalBody>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
 
-      <div className="w-full" onClick={onOpen}>
+      <div className="w-full cursor-pointer" onClick={onOpen}>
         {/*
           カードの高さはデータによらず一定にする(ホームの「本日のシティリーグ結果」が
           読み込みのたびに揺れないように)。

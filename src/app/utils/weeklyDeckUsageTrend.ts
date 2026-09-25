@@ -19,6 +19,17 @@ export const DECK_USAGE_TREND_MAX_WEEKS = 12;
 // 2026年6月下旬で、それより前は1週に数件しかない
 export const DECK_USAGE_TREND_SELECTABLE_WEEKS = 26;
 
+/*
+ * 系列の色。30系列を色だけで見分けることはできないため、見分けは両端のスプライトと
+ * タップ時の強調が担い、色は「隣り合う線が別物に見える」ための補助にとどめる。
+ * 並び(最新週の順位順)に黄金角で色相を振り、隣の順位どうしが近い色にならないようにする。
+ * 画面の推移グラフと OGP 画像で同じ色にするため、ここに置く。
+ */
+export function trendSeriesColor(index: number): string {
+  const hue = (index * 137.508 + 12) % 360;
+  return `hsl(${hue.toFixed(1)} 72% 52%)`;
+}
+
 // 推移の対象期間。どちらも週の月曜日 "YYYY-MM-DD"(両端を含む)
 export type DeckUsageTrendRange = { from: string; to: string };
 
@@ -62,6 +73,30 @@ export function normalizeTrendRange(
     }
   }
   return defaultTrendRange(currentWeek);
+}
+
+/*
+ * サーバ側(推移 API・ページの OGP)で URL の from / to を期間へ正規化する。
+ * 未指定・不正な値や週数の上限を超える指定は既定の期間(先週までの6週)にする。
+ * 週数の上限は上流を呼ぶ回数の上限でもある。
+ *
+ * 画面で選べる範囲(今週を含む直近 DECK_USAGE_TREND_SELECTABLE_WEEKS 週)より前も受け付けない。
+ * 受け付けると、期間をずらしたリクエストを送り続けるだけで Data Cache に当たらない
+ * 上流の集計(1回で最大24週ぶん)を何度でも走らせられ、キャッシュや OGP 画像の項目も
+ * 際限なく増える。月曜0時をまたいで開いたままの画面(選択肢が1週古い)を弾かないよう、
+ * 1週だけ余裕を持たせる。
+ */
+export function trendRangeFromQuery(
+  from: string | null | undefined,
+  to: string | null | undefined,
+  currentWeek: string,
+): DeckUsageTrendRange {
+  return normalizeTrendRange(
+    from,
+    to,
+    currentWeek,
+    addDays(currentWeek, -7 * DECK_USAGE_TREND_SELECTABLE_WEEKS),
+  );
 }
 
 /*

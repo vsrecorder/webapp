@@ -30,6 +30,7 @@ import {
   DECK_USAGE_TREND_MAX_WEEKS,
   DECK_USAGE_TREND_MIN_WEEKS,
   DeckUsageTrendRange,
+  trendSeriesColor,
   trendWeekCount,
 } from "@app/utils/weeklyDeckUsageTrend";
 import {
@@ -46,16 +47,6 @@ const X_PAD = 6;
 // 週の目盛りの文字("12/28" で約26px)どうしが重ならない最小の間隔(px)。
 // 週数が多く間隔がこれより狭いときは、最新の週から数えて間引く
 const MIN_LABEL_GAP = 32;
-
-/*
- * 系列の色。30系列を色だけで見分けることはできないため、見分けは両端のスプライトと
- * タップ時の強調が担い、色は「隣り合う線が別物に見える」ための補助にとどめる。
- * 並び(最新週の順位順)に黄金角で色相を振り、隣の順位どうしが近い色にならないようにする。
- */
-function seriesColor(index: number): string {
-  const hue = (index * 137.508 + 12) % 360;
-  return `hsl(${hue.toFixed(1)} 72% 52%)`;
-}
 
 // "2026-09-14" → "9/14"
 function shortDate(ymd: string): string {
@@ -455,7 +446,7 @@ export default function WeeklyDeckUsageTrendPanel() {
         ? []
         : series.map((s, i) => ({
             fingerprint: s.fingerprint,
-            color: seriesColor(i),
+            color: trendSeriesColor(i),
             d: seriesPath(s, xs, limit),
             dots: s.points.flatMap((p, w) =>
               p.rank != null && p.rank <= limit

@@ -731,3 +731,356 @@ export async function renderDeckCodePostOgImage(post: DeckCodePostType): Promise
     assets,
   );
 }
+
+/*
+ * 対戦環境分析(週次デッキ使用率)のOGP画像。
+ *
+ * どちらも数字が週ごと(直近の週は日ごと)に変わるため、呼び出し側(deckMetaOg)は
+ * 対象の週と日付をキーに含めて別の画像にする。ここは渡された数字をそのまま描くだけ。
+ */
+
+// スプライトを枠いっぱいに正規化して置く(アプリ内と同じ spriteFitBox)。
+// id が無い枠は同梱の白いモンスターボールを小さめに置く
+function OgSprite({
+  id,
+  size,
+  unknownSrc,
+  style,
+}: {
+  id?: string;
+  size: number;
+  unknownSrc: string;
+  style?: React.CSSProperties;
+}) {
+  const inner = id ? size : Math.round(size * OG_UNKNOWN_FRAME_RATIO);
+  const inset = (size - inner) / 2;
+  const fit = spriteFitBox(id, inner);
+  return (
+    <div
+      style={{
+        position: "relative",
+        overflow: "hidden",
+        display: "flex",
+        width: size,
+        height: size,
+        ...style,
+      }}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={id ? spriteImageUrl(id) : unknownSrc}
+        alt=""
+        width={fit.width}
+        height={fit.height}
+        style={{ position: "absolute", left: fit.left + inset, top: fit.top + inset }}
+      />
+    </div>
+  );
+}
+
+// 1〜3位はランキング画面のメダル配色に合わせる
+function medalColor(rank: number): string {
+  if (rank === 1) return "#fbbf24";
+  if (rank === 2) return "#e2e8f0";
+  if (rank === 3) return "#fb923c";
+  return COLORS.subtle;
+}
+
+export type DeckMetaRankingOgDeck = {
+  // 1体目でまとめた集計なら1体、組み合わせ別なら2体(position の順)
+  spriteIds: (string | undefined)[];
+  usageRate: number;
+};
+
+// 使用率ランキングの上位を並べる。見出しの下に週と集計単位、その下に上位5件のカード
+export async function renderDeckMetaRankingOgImage({
+  weekLabel,
+  groupingLabel,
+  decks,
+}: {
+  weekLabel: string;
+  groupingLabel: string;
+  decks: DeckMetaRankingOgDeck[];
+}): Promise<Buffer> {
+  const assets = await loadOgAssets();
+
+  return toPngBuffer(
+    <div style={canvasStyle}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+          <Chip>対戦環境分析</Chip>
+          <div style={{ display: "flex", fontSize: 26, color: COLORS.muted }}>
+            {weekLabel} の週・{groupingLabel}
+          </div>
+        </div>
+
+        <div style={{ display: "flex", fontSize: 56, fontWeight: 700, lineHeight: 1.2 }}>
+          デッキ使用率ランキング
+        </div>
+
+        {decks.length > 0 ? (
+          <div style={{ display: "flex", gap: 16 }}>
+            {decks.map((deck, index) => (
+              <div
+                key={index}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  width: 198,
+                  padding: "12px 0",
+                  borderRadius: 20,
+                  backgroundColor: "rgba(255,255,255,0.06)",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    fontSize: 26,
+                    fontWeight: 700,
+                    color: medalColor(index + 1),
+                  }}
+                >
+                  {index + 1}位
+                </div>
+                <div style={{ display: "flex", height: 96, alignItems: "center" }}>
+                  {deck.spriteIds.length > 1 ? (
+                    deck.spriteIds.map((id, i) => (
+                      <OgSprite
+                        key={i}
+                        id={id}
+                        size={84}
+                        unknownSrc={assets.unknownSpriteSrc}
+                        style={{ marginLeft: i === 0 ? 0 : -12 }}
+                      />
+                    ))
+                  ) : (
+                    <OgSprite
+                      id={deck.spriteIds[0]}
+                      size={96}
+                      unknownSrc={assets.unknownSpriteSrc}
+                    />
+                  )}
+                </div>
+                <div style={{ display: "flex", alignItems: "baseline", fontWeight: 700 }}>
+                  <span style={{ fontSize: 36 }}>
+                    {(deck.usageRate * 100).toFixed(1)}
+                  </span>
+                  <span style={{ fontSize: 22, color: COLORS.muted }}>%</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ display: "flex", fontSize: 30, color: COLORS.muted }}>
+            バトレコの対戦記録から集計した週ごとのデッキ使用率
+          </div>
+        )}
+      </div>
+
+      <Footer iconSrc={assets.iconSrc} />
+    </div>,
+    assets,
+  );
+}
+
+export type DeckMetaTrendOgSeries = {
+  spriteId?: string;
+  color: string;
+  // 週ごとの順位(古い週が先頭)。圏外・集計なしは null
+  ranks: (number | null)[];
+};
+
+// 推移グラフの寸法。行の高さ × 表示する順位の数が線を描く領域の高さになる
+// (上位8位で 304px。フッターと X の帯の余白を除いた高さに、週の目盛りと合わせて収める)
+const OG_TREND_ROW = 38;
+const OG_TREND_PLOT_WIDTH = 520;
+const OG_TREND_SPRITE = 40;
+
+// 使用率順位の推移。左に見出し、右に最新週の上位の順位推移(画面の推移グラフと同じS字の線)
+export async function renderDeckMetaTrendOgImage({
+  rangeLabel,
+  weekLabels,
+  limit,
+  series,
+}: {
+  rangeLabel: string;
+  weekLabels: string[];
+  limit: number;
+  series: DeckMetaTrendOgSeries[];
+}): Promise<Buffer> {
+  const assets = await loadOgAssets();
+
+  const height = OG_TREND_ROW * limit;
+  const pad = 10;
+  const step =
+    weekLabels.length > 1 ? (OG_TREND_PLOT_WIDTH - pad * 2) / (weekLabels.length - 1) : 0;
+  const xs = weekLabels.map((_, i) => pad + i * step);
+  // 範囲外は描画域の下の外へ置き、線が下端から抜けていく見え方にする(画面と同じ)
+  const y = (rank: number | null) =>
+    rank != null && rank <= limit
+      ? (rank - 0.5) * OG_TREND_ROW
+      : (limit + 1.5) * OG_TREND_ROW;
+  const path = (ranks: (number | null)[]) =>
+    ranks
+      .map((r, i) => {
+        if (i === 0) return `M${xs[0]},${y(r)}`;
+        const mid = (xs[i - 1] + xs[i]) / 2;
+        return `C${mid},${y(ranks[i - 1])} ${mid},${y(r)} ${xs[i]},${y(r)}`;
+      })
+      .join(" ");
+  // 目盛りは多すぎると重なるので、最新の週から数えて間引く(60px 以上あける)
+  const labelEvery = step > 0 ? Math.max(1, Math.ceil(60 / step)) : 1;
+
+  return toPngBuffer(
+    <div style={canvasStyle}>
+      <div style={{ display: "flex", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 18, width: 400 }}>
+          <Chip>対戦環境分析</Chip>
+          {/* 幅に任せると「推 / 移」の間で折り返すので、語の切れ目で改行する */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              fontSize: 56,
+              fontWeight: 700,
+              lineHeight: 1.2,
+            }}
+          >
+            <span>使用率順位の</span>
+            <span>推移</span>
+          </div>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 6,
+              fontSize: 26,
+              color: COLORS.muted,
+            }}
+          >
+            <span>{rangeLabel}</span>
+            <span>1体目でまとめた集計・上位{limit}</span>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <div style={{ display: "flex" }}>
+            {/* 順位の目盛り */}
+            <div style={{ display: "flex", flexDirection: "column", width: 34 }}>
+              {Array.from({ length: limit }, (_, i) => (
+                <div
+                  key={i}
+                  style={{
+                    display: "flex",
+                    height: OG_TREND_ROW,
+                    alignItems: "center",
+                    fontSize: 18,
+                    color: COLORS.subtle,
+                  }}
+                >
+                  {i + 1}
+                </div>
+              ))}
+            </div>
+            <svg
+              width={OG_TREND_PLOT_WIDTH}
+              height={height}
+              viewBox={`0 0 ${OG_TREND_PLOT_WIDTH} ${height}`}
+              style={{ overflow: "hidden" }}
+            >
+              {xs.map((x, i) => (
+                <line
+                  key={`g${i}`}
+                  x1={x}
+                  x2={x}
+                  y1={0}
+                  y2={height}
+                  stroke={COLORS.rule}
+                  strokeWidth={1}
+                />
+              ))}
+              {series.map((s, i) => (
+                <path
+                  key={`p${i}`}
+                  d={path(s.ranks)}
+                  fill="none"
+                  stroke={s.color}
+                  strokeWidth={4}
+                  strokeLinecap="round"
+                />
+              ))}
+              {series.flatMap((s, i) =>
+                s.ranks.map((r, w) =>
+                  r != null && r <= limit ? (
+                    <circle
+                      key={`c${i}-${w}`}
+                      cx={xs[w]}
+                      cy={y(r)}
+                      r={5}
+                      fill={s.color}
+                    />
+                  ) : null,
+                ),
+              )}
+            </svg>
+            {/* 最新週の順位の位置にスプライトを置く */}
+            <div
+              style={{
+                display: "flex",
+                position: "relative",
+                width: OG_TREND_SPRITE + 8,
+                height,
+              }}
+            >
+              {series.map((s, i) => {
+                const r = s.ranks[s.ranks.length - 1];
+                if (r == null || r > limit) return null;
+                return (
+                  <OgSprite
+                    key={i}
+                    id={s.spriteId}
+                    size={OG_TREND_SPRITE}
+                    unknownSrc={assets.unknownSpriteSrc}
+                    style={{
+                      position: "absolute",
+                      left: 8,
+                      top: (r - 0.5) * OG_TREND_ROW - OG_TREND_SPRITE / 2,
+                    }}
+                  />
+                );
+              })}
+            </div>
+          </div>
+          {/* 週の目盛り(各週の月曜日) */}
+          <div
+            style={{ display: "flex", position: "relative", height: 28, marginLeft: 34 }}
+          >
+            {weekLabels.map((label, i) =>
+              (weekLabels.length - 1 - i) % labelEvery === 0 ? (
+                <div
+                  key={i}
+                  style={{
+                    display: "flex",
+                    position: "absolute",
+                    left: xs[i] - 30,
+                    width: 60,
+                    justifyContent: "center",
+                    top: 4,
+                    fontSize: 18,
+                    color: COLORS.subtle,
+                  }}
+                >
+                  {label}
+                </div>
+              ) : null,
+            )}
+          </div>
+        </div>
+      </div>
+
+      <Footer iconSrc={assets.iconSrc} />
+    </div>,
+    assets,
+  );
+}

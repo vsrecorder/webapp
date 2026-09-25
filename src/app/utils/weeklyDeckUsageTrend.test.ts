@@ -4,6 +4,7 @@ import {
   buildWeeklyDeckUsageTrend,
   changeTrendRangeEdge,
   normalizeTrendRange,
+  trendRangeFromQuery,
   trendWeekCount,
   trendWeeks,
 } from "@app/utils/weeklyDeckUsageTrend";
@@ -183,5 +184,28 @@ describe("期間の扱い", () => {
       from: EARLIEST,
       to: "2026-04-06",
     });
+  });
+});
+
+describe("trendRangeFromQuery(サーバ側の期間の検証)", () => {
+  const CURRENT = "2026-09-21";
+  const def = { from: "2026-08-10", to: "2026-09-14" };
+
+  it("画面で選べる26週に1週の余裕を足した範囲まで受け付ける", () => {
+    // 画面の最古の週(26週前 = 2026-03-30)と、その1週前(月曜0時をまたいだ画面向けの余裕)
+    expect(trendRangeFromQuery("2026-03-30", "2026-04-13", CURRENT)).toEqual({
+      from: "2026-03-30",
+      to: "2026-04-13",
+    });
+    expect(trendRangeFromQuery("2026-03-23", "2026-04-06", CURRENT)).toEqual({
+      from: "2026-03-23",
+      to: "2026-04-06",
+    });
+  });
+
+  it("それより前・未来の週は既定の期間に戻す", () => {
+    expect(trendRangeFromQuery("2026-03-16", "2026-04-06", CURRENT)).toEqual(def);
+    expect(trendRangeFromQuery("2020-01-06", "2020-02-03", CURRENT)).toEqual(def);
+    expect(trendRangeFromQuery("2026-09-14", "2026-09-28", CURRENT)).toEqual(def);
   });
 });

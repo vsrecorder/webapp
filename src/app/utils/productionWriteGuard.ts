@@ -34,7 +34,9 @@ export function isProductionServer(env: Env = process.env): boolean {
 // 本番ホストを指しているか。壊れた値は「本番ではない」とする
 export function isProductionHost(origin: string | URL): boolean {
   try {
-    return new URL(origin).hostname === PRODUCTION_HOST;
+    // 末尾のドット(完全修飾名の表記。https://vsrecorder.mobi. でも本番へ届く)を落として比べる。
+    // 大文字小文字は URL が小文字にそろえる
+    return new URL(origin).hostname.replace(/\.$/, "") === PRODUCTION_HOST;
   } catch {
     return false;
   }

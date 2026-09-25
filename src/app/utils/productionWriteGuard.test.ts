@@ -23,6 +23,9 @@ describe("isProductionHost", () => {
     expect(isProductionHost("https://vsrecorder.mobi")).toBe(true);
     expect(isProductionHost("https://vsrecorder.mobi:443")).toBe(true);
     expect(isProductionHost(new URL("https://vsrecorder.mobi/api/v1beta/users"))).toBe(true);
+    // 別の書き方でも本番へ届くので本番とみなす
+    expect(isProductionHost("https://vsrecorder.mobi.")).toBe(true);
+    expect(isProductionHost("HTTPS://VSRECORDER.MOBI")).toBe(true);
   });
 
   it("手元・別サブドメイン・直結の上流・壊れた値は本番ではない", () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 
 import { Card, CardBody } from "@heroui/react";
 import { Tabs, Tab } from "@heroui/react";
@@ -25,27 +25,17 @@ export default function CityleagueEvents({ date, previewLabel }: Props) {
   const [leagueType3Count, setLeagueType3Count] = useState<number>();
   const [leagueType2Count, setLeagueType2Count] = useState<number>();
 
-  // タブごとのスクロール位置を保存
-  const scrollPositions = useRef<Record<TabKey, number>>({
-    league_type_1: 0,
-    league_type_3: 0,
-    league_type_2: 0,
-  });
-
+  /*
+   * タブの切り替えではスクロール位置を動かさない。
+   *
+   * 以前はタブごとに window.scrollY を覚えて切り替え後に戻していたが、覚えた値の初期値が 0 のため、
+   * ホームの途中にあるこのパネルでタブを押すとページの先頭まで飛ばされていた(実測: 672px → 0)。
+   * マウント時にも同じ effect が走り、先頭へ戻していた。会場カードは高さ一定
+   * (CityleagueEventCard 参照)でタブを替えてもパネルの背丈は変わらないので、位置を直す必要も無い。
+   */
   const handleSelectionChange = (key: React.Key) => {
-    // 切り替え前のスクロール位置を保存
-    scrollPositions.current[selectedKey] = window.scrollY;
-
     setSelectedKey(key as TabKey);
   };
-
-  // タブ切り替え後にスクロール復元
-  useEffect(() => {
-    window.scrollTo({
-      top: scrollPositions.current[selectedKey],
-      behavior: "auto",
-    });
-  }, [selectedKey]);
 
   return (
     <>

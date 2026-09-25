@@ -1,11 +1,13 @@
 "use client";
 
+import { addToast } from "@heroui/react";
 import { Card, CardHeader, CardBody } from "@heroui/react";
 import { Chip } from "@heroui/react";
 import { Link as HeroLink } from "@heroui/react";
 import { Image } from "@heroui/react";
 
-import { LuLayers, LuUsers } from "react-icons/lu";
+import { FaXTwitter } from "react-icons/fa6";
+import { LuLayers, LuLink, LuUsers } from "react-icons/lu";
 
 import ScrollUpFloating from "@app/components/atoms/Floating/ScrollUpFloating";
 import BackLink from "@app/components/molecules/BackLink";
@@ -17,6 +19,10 @@ import { DeckSummaryType } from "@app/types/deckcard";
 import { OfficialEventType } from "@app/types/official_event";
 
 import { buildRankSections } from "@app/utils/cityleagueRank";
+import {
+  cityleagueResultPath,
+  cityleagueResultXIntentUrl,
+} from "@app/utils/cityleagueResultShare";
 import { formatMainPokemon } from "@app/utils/deckSummary";
 import { safeExternalUrl } from "@app/utils/url";
 import { formatJSTDateWithWeekday } from "@app/utils/date";
@@ -74,6 +80,25 @@ export default function CityleagueResultByOfficialEventId({
       : "") +
     `入賞${cityleagueResult.results.length}名のうち、${deckCodeCount}名のデッキコードを掲載しています。`;
 
+  // このページのシェア。X へのポストと、URL のコピー
+  const postToX = () => {
+    window.open(
+      cityleagueResultXIntentUrl(event, window.location.origin),
+      "_blank",
+      "noopener,noreferrer",
+    );
+  };
+
+  const copyLink = async () => {
+    const url = new URL(cityleagueResultPath(event.id), window.location.origin).toString();
+    try {
+      await navigator.clipboard.writeText(url);
+      addToast({ title: "リンクをコピーしました", color: "success", timeout: 2000 });
+    } catch {
+      addToast({ title: "コピーに失敗しました", color: "danger", timeout: 3000 });
+    }
+  };
+
   return (
     <div className="flex flex-col gap-3 pt-1 pb-3">
       <ScrollUpFloating />
@@ -88,8 +113,29 @@ export default function CityleagueResultByOfficialEventId({
       <div className="sticky top-14 z-40 -mx-2 lg:top-28">
         {/* デッキ画像が裏を流れても文字が埋もれないよう、不透明度を上げ、下端に境界線を引く */}
         <div className="absolute inset-0 border-b border-default-200/60 bg-white/90 backdrop-blur-md dark:bg-neutral-950/90" />
-        <div className="relative w-fit px-2 py-2">
+        <div className="relative flex items-center justify-between gap-2 px-2 py-2">
           <BackLink href="/cityleague_results" label="シティリーグ結果一覧" />
+
+          {/* このページのシェア。戻る導線と同じ高さ(2rem)・同じ見た目の丸ボタンにして、
+              スクロールしても常に押せるようにする */}
+          <div className="flex shrink-0 items-center gap-1.5">
+            <button
+              type="button"
+              aria-label="この大会結果を X にポストする"
+              onClick={postToX}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-content1 text-default-600 shadow-small hover:text-default-800 active:opacity-70"
+            >
+              <FaXTwitter className="text-sm" />
+            </button>
+            <button
+              type="button"
+              aria-label="この大会結果のリンクをコピーする"
+              onClick={() => void copyLink()}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-content1 text-default-600 shadow-small hover:text-default-800 active:opacity-70"
+            >
+              <LuLink className="text-base" />
+            </button>
+          </div>
         </div>
       </div>
 

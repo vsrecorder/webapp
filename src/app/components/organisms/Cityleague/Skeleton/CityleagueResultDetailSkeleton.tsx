@@ -24,9 +24,14 @@ export default function CityleagueResultDetailSkeleton() {
       {/* 一覧への戻り導線（実体と同じくヘッダー直下に sticky で置く） */}
       <div className="sticky top-14 z-40 -mx-2 lg:top-28">
         <div className="absolute inset-0 border-b border-default-200/60 bg-white/90 backdrop-blur-md dark:bg-neutral-950/90" />
-        <div className="relative w-fit px-2 py-2">
+        <div className="relative flex items-center justify-between gap-2 px-2 py-2">
           {/* 実体の戻るリンク(BackLink、ピル型・高さ 2rem)と同じ大きさ */}
           <Skeleton className="h-8 w-36 rounded-full" />
+          {/* 右端のシェアボタン(X へのポスト・リンクのコピー、丸型 2rem) */}
+          <div className="flex shrink-0 items-center gap-1.5">
+            <Skeleton className="h-8 w-8 rounded-full" />
+            <Skeleton className="h-8 w-8 rounded-full" />
+          </div>
         </div>
       </div>
 

@@ -1,5 +1,7 @@
 import { mutate } from "swr";
 
+import { refreshClientRouterCache } from "@app/actions/routerCache";
+
 import { readClientCookie, writeClientCookie } from "@app/utils/clientCookie";
 import {
   DASHBOARD_LAYOUT_COOKIE,
@@ -30,9 +32,15 @@ export const RECORDING_NOW_SWR_KEY = "/api/recording_now";
  * 記録中のイベントが変わる操作(記録を作った・対戦を足した・記録を終えた)のあとは、
  * その間引きを飛び越えて今の状態に合わせる必要がある。
  * 呼ばないと、新しく作った記録がバーに出るまで最大1分かかる。
+ *
+ * あわせてルーターのキャッシュも捨てる。ホーム上部の記録中パネルはサーバ描画で、
+ * ホームは先読みした描画結果を最大180秒使い回すため、捨てないと操作の前の
+ * (記録中パネルの無い)ホームが出て、再読み込みするまで現れない(routerCache.ts)。
+ * 失敗しても次の再読み込みや期限切れで追いつくので、待たずに投げっぱなしにする。
  */
 export function refreshRecordingNow(): void {
   void mutate(RECORDING_NOW_SWR_KEY);
+  refreshClientRouterCache().catch(() => {});
 }
 
 /*

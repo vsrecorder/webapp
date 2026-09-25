@@ -495,10 +495,31 @@ export default function WeeklyDeckUsageTrendPanel() {
 
   // 選んだ系列の詳細は週が多いと横に収まらないため横スクロールにし、最新の週を見せておく
   const detailRef = useRef<HTMLDivElement>(null);
+
+  // 詳細の左右にまだ隠れた週があるか。スクロールバーを出していないので、続きがある側の端を
+  // うっすら暗くして、横にスクロールできることに気づけるようにする(デッキのバージョンごとの
+  // 勝率 DeckVersionWinRateOverview と同じ見せ方)
+  const [detailHiddenLeft, setDetailHiddenLeft] = useState(false);
+  const [detailHiddenRight, setDetailHiddenRight] = useState(false);
+  const updateDetailEdges = useCallback(() => {
+    const el = detailRef.current;
+    if (!el) return;
+    // 1px の余裕は、拡大表示などで scrollLeft が小数になり端に届き切らないことがあるため
+    setDetailHiddenLeft(el.scrollLeft > 1);
+    setDetailHiddenRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+  }, []);
+
+  // 系列・データが変わったら最新の週まで送り、そのうえで端を測る。
+  // 画面幅の変化(回転・タブを隠す)ではみ出すかどうかが変わるので、大きさの変化でも測り直す
   useEffect(() => {
     const el = detailRef.current;
-    if (el) el.scrollLeft = el.scrollWidth;
-  }, [active, trend]);
+    if (!el) return;
+    el.scrollLeft = el.scrollWidth;
+    updateDetailEdges();
+    const observer = new ResizeObserver(updateDetailEdges);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [active, trend, updateDetailEdges]);
 
   return (
     <Card className="shadow-md">
@@ -550,57 +571,74 @@ export default function WeeklyDeckUsageTrendPanel() {
           {activeSeries && trend ? (
             <>
               <PokemonSprite id={activeSeries.pokemon_sprites[0]?.id} size={36} />
-              <div
-                ref={detailRef}
-                // 横にだけ送れるようにする。overflow-x を auto にすると縦も auto 扱いになり、
-                // 文字の描画が行の高さから数px はみ出しただけで縦にスクロールできてしまうため、
-                // 縦は明示的に止める。スクロールバーは数値に重なるので隠す(指・ホイールでは横に送れる)
-                className="min-w-0 flex-1 overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-              >
+              {/* 端の影はスクロールする箱の外側に重ねる(内側に置くと週と一緒に流れてしまう) */}
+              <div className="relative min-w-0 flex-1">
                 <div
-                  className="grid gap-0.5"
-                  style={{
-                    gridTemplateColumns: `repeat(${weekCount}, minmax(2.25rem, 1fr))`,
-                  }}
+                  ref={detailRef}
+                  onScroll={updateDetailEdges}
+                  // 横にだけ送れるようにする。overflow-x を auto にすると縦も auto 扱いになり、
+                  // 文字の描画が行の高さから数px はみ出しただけで縦にスクロールできてしまうため、
+                  // 縦は明示的に止める。スクロールバーは数値に重なるので隠す(指・ホイールでは横に送れる)
+                  className="overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                 >
-                  {activeSeries.points.map((p, i) => (
-                    <div
-                      key={trend.weeks[i].week}
-                      className="flex flex-col items-center py-1"
-                    >
-                      <span className="text-[0.5625rem] leading-3 text-default-400 tabular-nums">
-                        {shortDate(trend.weeks[i].week)}
-                      </span>
-                      {/* 圏外でも順位が分かる週(個別の行には出ている)は順位を控えめに出す。
-                          「その他」に回った週・1件も無い週は順位が無いので「圏外」 */}
-                      <span
-                        className={`text-sm leading-5 font-black tabular-nums ${
-                          p.rank != null && p.rank <= limit
-                            ? "text-default-700"
-                            : "text-default-400"
-                        }`}
+                  <div
+                    className="grid gap-0.5"
+                    style={{
+                      gridTemplateColumns: `repeat(${weekCount}, minmax(2.25rem, 1fr))`,
+                    }}
+                  >
+                    {activeSeries.points.map((p, i) => (
+                      <div
+                        key={trend.weeks[i].week}
+                        className="flex flex-col items-center py-1"
                       >
-                        {p.rank != null ? `${p.rank}位` : "圏外"}
-                      </span>
-                      <span className="text-[0.625rem] leading-3.5 tabular-nums text-default-400">
-                        {formatRate(p.usage_rate)}
-                      </span>
-                    </div>
-                  ))}
+                        <span className="text-[0.5625rem] leading-3 text-default-400 tabular-nums">
+                          {shortDate(trend.weeks[i].week)}
+                        </span>
+                        {/* 圏外でも順位が分かる週(個別の行には出ている)は順位を控えめに出す。
+                          「その他」に回った週・1件も無い週は順位が無いので「圏外」 */}
+                        <span
+                          className={`text-sm leading-5 font-black tabular-nums ${
+                            p.rank != null && p.rank <= limit
+                              ? "text-default-700"
+                              : "text-default-400"
+                          }`}
+                        >
+                          {p.rank != null ? `${p.rank}位` : "圏外"}
+                        </span>
+                        <span className="text-[0.625rem] leading-3.5 tabular-nums text-default-400">
+                          {formatRate(p.usage_rate)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
+                <div
+                  aria-hidden
+                  className={`pointer-events-none absolute inset-y-0 left-0 w-8 rounded-l-lg bg-linear-to-r from-black/25 via-black/8 to-transparent transition-opacity duration-200 dark:from-black/75 dark:via-black/30 ${
+                    detailHiddenLeft ? "opacity-100" : "opacity-0"
+                  }`}
+                />
+                <div
+                  aria-hidden
+                  className={`pointer-events-none absolute inset-y-0 right-0 w-8 rounded-r-lg bg-linear-to-l from-black/25 via-black/8 to-transparent transition-opacity duration-200 dark:from-black/75 dark:via-black/30 ${
+                    detailHiddenRight ? "opacity-100" : "opacity-0"
+                  }`}
+                />
               </div>
               {/* タップで選んでいるときだけ、組み合わせの内訳を開ける
                   (マウスを載せているだけの強調では出さない。載せ替えるたびに出入りしてしまう) */}
-              {selectedSeries && selectedSeries.fingerprint === activeSeries.fingerprint && (
-                <button
-                  type="button"
-                  onClick={() => setMembersOpen(true)}
-                  className="flex h-12 w-10 shrink-0 flex-col items-center justify-center gap-0.5 rounded-lg bg-primary/10 text-[0.5625rem] font-bold text-primary active:bg-primary/20"
-                >
-                  <LuLayers className="h-4 w-4" />
-                  内訳
-                </button>
-              )}
+              {selectedSeries &&
+                selectedSeries.fingerprint === activeSeries.fingerprint && (
+                  <button
+                    type="button"
+                    onClick={() => setMembersOpen(true)}
+                    className="flex h-12 w-10 shrink-0 flex-col items-center justify-center gap-0.5 rounded-lg bg-primary/10 text-[0.5625rem] font-bold text-primary active:bg-primary/20"
+                  >
+                    <LuLayers className="h-4 w-4" />
+                    内訳
+                  </button>
+                )}
             </>
           ) : (
             <span className="w-full text-center text-[0.625rem] text-default-400">

@@ -723,7 +723,7 @@ export default function WeeklyDeckUsageTrendPanel() {
           </div>
         )}
 
-        <span className="text-[0.625rem] text-default-300 leading-snug text-center">
+        <span className="block text-[0.625rem] text-default-300 leading-snug text-left">
           ※週ごとの使用率ランキングの順位を線でつないでいます
           <br />※{limit}位より下の週は、線が下端の外へ抜けて表示されます
           <br />

@@ -13,15 +13,17 @@ import {
 import { useSearchParams } from "next/navigation";
 
 import { Card, CardBody } from "@heroui/react";
-import { LuChartSpline } from "react-icons/lu";
+import { LuChartSpline, LuLayers } from "react-icons/lu";
 
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import FetchError from "@app/components/molecules/FetchError";
+import WeeklyDeckUsageTrendMembersSheet from "@app/components/organisms/DeckMeta/WeeklyDeckUsageTrendMembersSheet";
 
 import {
   initialTrendRange,
   loadWeeklyDeckUsageTrend,
   peekWeeklyDeckUsageTrend,
+  prefetchWeeklyDeckUsageTrendMembers,
   trendWeekOptions,
 } from "@app/components/organisms/DeckMeta/weeklyDeckUsageTrendLoader";
 
@@ -476,6 +478,17 @@ export default function WeeklyDeckUsageTrendPanel() {
   );
   const hover = useCallback((fingerprint: string | null) => setHovered(fingerprint), []);
 
+  // 選んだ系列の組み合わせの内訳シート。線やポケモンをタップで選んだ時点で内訳を先読みし、
+  // 「内訳」を押したときには届いているようにする(マウスを載せているだけでは取らない)
+  const [membersOpen, setMembersOpen] = useState(false);
+  useEffect(() => {
+    if (selected) prefetchWeeklyDeckUsageTrendMembers(range, selected);
+  }, [selected, range]);
+  const selectedSeries = series.find((s) => s.fingerprint === selected) ?? null;
+  // シートが閉じる動きの間も中身を保つため、最後に選んでいた系列を控えておく
+  const [sheetSeries, setSheetSeries] = useState(selectedSeries);
+  if (selectedSeries && selectedSeries !== sheetSeries) setSheetSeries(selectedSeries);
+
   // 目盛りを出す週(間隔が狭いときは最新の週から数えて間引く)
   const labelEvery =
     xs.length >= 2 ? Math.max(1, Math.ceil(MIN_LABEL_GAP / (xs[1] - xs[0]))) : 1;
@@ -576,6 +589,18 @@ export default function WeeklyDeckUsageTrendPanel() {
                   ))}
                 </div>
               </div>
+              {/* タップで選んでいるときだけ、組み合わせの内訳を開ける
+                  (マウスを載せているだけの強調では出さない。載せ替えるたびに出入りしてしまう) */}
+              {selectedSeries && selectedSeries.fingerprint === activeSeries.fingerprint && (
+                <button
+                  type="button"
+                  onClick={() => setMembersOpen(true)}
+                  className="flex h-12 w-10 shrink-0 flex-col items-center justify-center gap-0.5 rounded-lg bg-primary/10 text-[0.5625rem] font-bold text-primary active:bg-primary/20"
+                >
+                  <LuLayers className="h-4 w-4" />
+                  内訳
+                </button>
+              )}
             </>
           ) : (
             <span className="w-full text-center text-[0.625rem] text-default-400">
@@ -704,6 +729,15 @@ export default function WeeklyDeckUsageTrendPanel() {
           <br />
           ※目盛りの日付は各週の月曜日です
         </span>
+        <WeeklyDeckUsageTrendMembersSheet
+          isOpen={membersOpen}
+          onOpenChange={() => setMembersOpen((open) => !open)}
+          onClose={() => setMembersOpen(false)}
+          range={range}
+          series={sheetSeries}
+          weeks={trend?.weeks ?? []}
+          limit={limit}
+        />
       </CardBody>
     </Card>
   );

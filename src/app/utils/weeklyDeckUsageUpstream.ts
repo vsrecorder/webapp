@@ -2,6 +2,7 @@ import { fetchUpstream, upstreamUrl } from "@app/utils/upstream";
 import { addDays, currentWeekValue } from "@app/utils/week";
 import {
   buildWeeklyDeckUsageTrend,
+  buildWeeklyDeckUsageTrendMembers,
   DeckUsageTrendRange,
   trendWeeks,
 } from "@app/utils/weeklyDeckUsageTrend";
@@ -10,7 +11,10 @@ import {
   WeeklyDeckUsageGroupingType,
   WeeklyDeckUsageStatType,
 } from "@app/types/weekly_deck_usage_stat";
-import { WeeklyDeckUsageTrendType } from "@app/types/weekly_deck_usage_trend";
+import {
+  WeeklyDeckUsageTrendMembersType,
+  WeeklyDeckUsageTrendType,
+} from "@app/types/weekly_deck_usage_trend";
 
 /*
  * サーバ側(BFF・OGP画像)から週次デッキ使用率を取る。使用率順位の推移 API と、
@@ -67,4 +71,16 @@ export async function fetchWeeklyDeckUsageTrend(
     trendWeeks(range).map((week) => fetchWeeklyDeckUsage(week, "first_sprite")),
   );
   return buildWeeklyDeckUsageTrend(stats);
+}
+
+// 推移グラフで選んだ1系列の、週ごとの組み合わせの内訳。推移と同じ URL で取るので、
+// 推移を表示した直後なら上流を呼ばずに Data Cache から組み立てられる
+export async function fetchWeeklyDeckUsageTrendMembers(
+  range: DeckUsageTrendRange,
+  fingerprint: string,
+): Promise<WeeklyDeckUsageTrendMembersType> {
+  const stats = await Promise.all(
+    trendWeeks(range).map((week) => fetchWeeklyDeckUsage(week, "first_sprite")),
+  );
+  return buildWeeklyDeckUsageTrendMembers(stats, fingerprint);
 }

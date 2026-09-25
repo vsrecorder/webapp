@@ -1,7 +1,11 @@
 import { addDays, isValidWeekValue } from "@app/utils/week";
 
-import { WeeklyDeckUsageStatType } from "@app/types/weekly_deck_usage_stat";
 import {
+  WeeklyDeckUsageItemType,
+  WeeklyDeckUsageStatType,
+} from "@app/types/weekly_deck_usage_stat";
+import {
+  WeeklyDeckUsageTrendMembersType,
   WeeklyDeckUsageTrendPointType,
   WeeklyDeckUsageTrendSeriesType,
   WeeklyDeckUsageTrendType,
@@ -225,4 +229,77 @@ export function buildWeeklyDeckUsageTrend(
     })),
     series,
   };
+}
+
+// 推移グラフの系列の指紋(1体目でまとめた集計ではスプライトID1つ)として受け付ける形。
+// 内訳 API の入力検証に使う(任意の文字列をキャッシュや上流の探索に通さない)
+const TREND_FINGERPRINT_PATTERN = /^[0-9A-Za-z_-]{1,40}$/;
+
+export function isTrendFingerprint(value: string | null | undefined): value is string {
+  return value != null && TREND_FINGERPRINT_PATTERN.test(value);
+}
+
+/*
+ * 推移グラフで選んだ1系列(1体目でまとめた行)の、週ごとの組み合わせの内訳を取り出す。
+ * stats は古い週が先頭。順位の数え方は buildWeeklyDeckUsageTrend と同じ
+ * (「その他」を除いた個別の行の並び)。「その他」に集約された週も、その内訳から拾う。
+ *
+ * 内訳は上流が1体目でまとめた行に付けている members(束ねる前の組み合わせ)をそのまま使う。
+ * 使用率は全体件数が分母なので、内訳の合計がその週の行の使用率に一致する。
+ */
+export function buildWeeklyDeckUsageTrendMembers(
+  stats: WeeklyDeckUsageStatType[],
+  fingerprint: string,
+): WeeklyDeckUsageTrendMembersType {
+  // 前週比較(previous_*)は内訳の表示に使わないので落とし、応答を軽くする
+  const strip = (item: WeeklyDeckUsageItemType): WeeklyDeckUsageItemType => ({
+    fingerprint: item.fingerprint,
+    count: item.count,
+    usage_rate: item.usage_rate,
+    wins: item.wins,
+    losses: item.losses,
+    win_rate: item.win_rate,
+    pokemon_sprites: item.pokemon_sprites,
+  });
+
+  const weeks = stats.map((stat) => {
+    let rank = 0;
+    for (const deck of stat.decks ?? []) {
+      if (deck.fingerprint === "") {
+        const hit = (deck.members ?? []).find((m) => m.fingerprint === fingerprint);
+        if (hit) {
+          return {
+            week: stat.week_start,
+            rank: null,
+            count: hit.count,
+            usage_rate: hit.usage_rate,
+            win_rate: hit.win_rate,
+            members: (hit.members ?? []).map(strip),
+          };
+        }
+        continue;
+      }
+      rank++;
+      if (deck.fingerprint === fingerprint) {
+        return {
+          week: stat.week_start,
+          rank,
+          count: deck.count,
+          usage_rate: deck.usage_rate,
+          win_rate: deck.win_rate,
+          members: (deck.members ?? []).map(strip),
+        };
+      }
+    }
+    return {
+      week: stat.week_start,
+      rank: null,
+      count: 0,
+      usage_rate: null,
+      win_rate: null,
+      members: [],
+    };
+  });
+
+  return { fingerprint, weeks };
 }

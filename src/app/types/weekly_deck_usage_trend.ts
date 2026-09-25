@@ -1,4 +1,5 @@
 import { MatchPokemonSpriteType } from "@app/types/pokemon_sprite";
+import { WeeklyDeckUsageItemType } from "@app/types/weekly_deck_usage_stat";
 
 // 対戦環境分析の「使用率順位の推移」(1体目でまとめた集計を週ごとに並べたもの)。
 // 週次デッキ使用率(weekly_deck_usage_stat)を複数週ぶん取り、BFF で組み立てる。
@@ -38,4 +39,24 @@ export type WeeklyDeckUsageTrendType = {
   weeks: WeeklyDeckUsageTrendWeekType[];
   // いずれかの週で上位 limit 位に入った系列。最新週の順位順(圏外は最高順位の順で後ろへ)
   series: WeeklyDeckUsageTrendSeriesType[];
+};
+
+// 推移グラフで選んだ1系列の、週ごとの組み合わせの内訳(2体目まで含めた組み合わせ単位)
+export type WeeklyDeckUsageTrendMembersWeekType = {
+  // 週の月曜日 "YYYY-MM-DD"
+  week: string;
+  // その週の順位(推移グラフと同じ。「その他」に集約された週・記録の無い週は null)
+  rank: number | null;
+  count: number;
+  // 使用率・勝率(全体件数が分母)。記録の無い週は null
+  usage_rate: number | null;
+  win_rate: number | null;
+  // 組み合わせの内訳(件数の降順)。使用率は全体件数が分母で、合計がその週の usage_rate に一致する
+  members: WeeklyDeckUsageItemType[];
+};
+
+export type WeeklyDeckUsageTrendMembersType = {
+  fingerprint: string;
+  // 古い週が先頭
+  weeks: WeeklyDeckUsageTrendMembersWeekType[];
 };

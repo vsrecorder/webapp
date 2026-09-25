@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildWeeklyDeckUsageTrend,
+  buildWeeklyDeckUsageTrendMembers,
+  isTrendFingerprint,
   changeTrendRangeEdge,
   normalizeTrendRange,
   trendRangeFromQuery,
@@ -207,5 +209,57 @@ describe("trendRangeFromQuery(サーバ側の期間の検証)", () => {
     expect(trendRangeFromQuery("2026-03-16", "2026-04-06", CURRENT)).toEqual(def);
     expect(trendRangeFromQuery("2020-01-06", "2020-02-03", CURRENT)).toEqual(def);
     expect(trendRangeFromQuery("2026-09-14", "2026-09-28", CURRENT)).toEqual(def);
+  });
+});
+
+describe("buildWeeklyDeckUsageTrendMembers", () => {
+  // 組み合わせ(2体目まで)の内訳を持つ、1体目でまとめた行
+  const withMembers = (id: string, combos: [string, number][]): WeeklyDeckUsageItemType => ({
+    ...row(id, combos.reduce((n, [, c]) => n + c, 0)),
+    members: combos.map(([second, count]) => ({
+      ...row(`${id},${second}`, count),
+      pokemon_sprites: [
+        { id, position: 1 },
+        { id: second, position: 2 },
+      ],
+      previous_rank: 1,
+    })),
+  });
+
+  it("週ごとに、選んだ系列の順位と組み合わせの内訳を返す(その他に回った週も拾う)", () => {
+    const result = buildWeeklyDeckUsageTrendMembers(
+      [
+        week("2026-09-07", [row("B", 40), withMembers("A", [["X", 20], ["Y", 10]])]),
+        week("2026-09-14", [row("B", 40), other([withMembers("A", [["X", 2]])])]),
+        week("2026-09-21", [row("B", 40)]),
+      ],
+      "A",
+    );
+
+    expect(result.fingerprint).toBe("A");
+    expect(result.weeks.map((w) => [w.week, w.rank, w.count])).toEqual([
+      ["2026-09-07", 2, 30],
+      ["2026-09-14", null, 2],
+      ["2026-09-21", null, 0],
+    ]);
+    expect(result.weeks[0].members.map((m) => [m.fingerprint, m.count])).toEqual([
+      ["A,X", 20],
+      ["A,Y", 10],
+    ]);
+    // 前週比較は内訳に使わないので落とす
+    expect(result.weeks[0].members[0]).not.toHaveProperty("previous_rank");
+    expect(result.weeks[1].members.map((m) => m.fingerprint)).toEqual(["A,X"]);
+    expect(result.weeks[2]).toMatchObject({ usage_rate: null, win_rate: null, members: [] });
+  });
+});
+
+describe("isTrendFingerprint", () => {
+  it("スプライトID1つの形だけを受け付ける", () => {
+    expect(isTrendFingerprint("0887")).toBe(true);
+    expect(isTrendFingerprint("0006_mega_x")).toBe(true);
+    expect(isTrendFingerprint("0006,0018")).toBe(false);
+    expect(isTrendFingerprint("../x")).toBe(false);
+    expect(isTrendFingerprint("")).toBe(false);
+    expect(isTrendFingerprint(null)).toBe(false);
   });
 });

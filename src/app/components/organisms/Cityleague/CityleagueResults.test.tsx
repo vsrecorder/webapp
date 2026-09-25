@@ -84,6 +84,35 @@ describe("CityleagueResults の取得失敗", () => {
   });
 });
 
+describe("CityleagueResults の空状態の文言", () => {
+  // 開催初日などは大会が終わるまで結果が無い。開催期間外の文言だと食い違うので切り替える
+  it("開催中は「結果の登録待ち」を伝える", async () => {
+    stubFetch(["ok"]);
+    render(
+      <CityleagueResults
+        league_type={1}
+        scheduleContext={{ ...SCHEDULE_CONTEXT, isOngoing: true }}
+      />,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByText("シティリーグの結果はまだありません")).toBeTruthy(),
+    );
+    expect(screen.queryByText("直近のシティリーグ結果はありません")).toBeNull();
+    expect(screen.queryByText("次のシーズン開幕をお楽しみに")).toBeNull();
+  });
+
+  it("開催期間外は「次のシーズン待ち」を伝える", async () => {
+    stubFetch(["ok"]);
+    render(<CityleagueResults league_type={1} scheduleContext={SCHEDULE_CONTEXT} />);
+
+    await waitFor(() =>
+      expect(screen.getByText("次のシーズン開幕をお楽しみに")).toBeTruthy(),
+    );
+    expect(screen.queryByText("シティリーグの結果はまだありません")).toBeNull();
+  });
+});
+
 describe("CityleagueResults の想定外の応答", () => {
   // 200 で {message: "..."} のような別の形が返ると、配列展開でページごと
   // エラー画面へ落ちていた。空として扱い、画面は保つ。

@@ -400,23 +400,37 @@ export default function CityleagueResults({
         </div>
       ) : null}
 
-      {/* 空状態 */}
+      {/* 空状態。開催中なら「結果の登録待ち」、開催期間外なら「次のシーズン待ち」を伝える
+          (開催初日は大会が終わるまで結果が無いので、期間外の文言だと食い違う) */}
       {isInitialLoaded && !isLoading && !hasMore && !isError && items.length === 0 && (
         <div className="flex flex-col items-center gap-5 py-14 px-6 text-center">
           <div className="relative">
             <LuTrophy className="text-6xl text-default-200" />
             <LuCalendar className="text-2xl text-default-300 absolute -bottom-1 -right-2" />
           </div>
-          <div className="flex flex-col gap-2">
-            <p className="font-bold text-sm text-default-600">
-              直近のシティリーグ結果はありません
-            </p>
-            <p className="text-xs text-default-400 leading-relaxed max-w-xs">
-              シティリーグは年に数回、特定の期間に集中して開催されます。
-              現在は開催期間外か、まだ結果が登録されていない可能性があります。
-            </p>
-            <p className="text-xs text-default-300 mt-1">次のシーズン開幕をお楽しみに</p>
-          </div>
+          {isOngoing ? (
+            <div className="flex flex-col gap-2">
+              <p className="font-bold text-sm text-default-600">
+                シティリーグの結果はまだありません
+              </p>
+              <p className="text-xs text-default-400 leading-relaxed max-w-xs">
+                現在シティリーグが開催中です。
+                大会の結果は、登録され次第ここに表示されます。
+              </p>
+              <p className="text-xs text-default-300 mt-1">結果の登録をお待ちください</p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              <p className="font-bold text-sm text-default-600">
+                直近のシティリーグ結果はありません
+              </p>
+              <p className="text-xs text-default-400 leading-relaxed max-w-xs">
+                シティリーグは年に数回、特定の期間に集中して開催されます。
+                現在は開催期間外か、まだ結果が登録されていない可能性があります。
+              </p>
+              <p className="text-xs text-default-300 mt-1">次のシーズン開幕をお楽しみに</p>
+            </div>
+          )}
         </div>
       )}
 

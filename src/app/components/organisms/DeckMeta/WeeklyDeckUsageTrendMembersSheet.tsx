@@ -159,7 +159,7 @@ export default function WeeklyDeckUsageTrendMembersSheet({
                 <div className="flex min-w-0 flex-col">
                   <span>組み合わせの内訳</span>
                   <span className="text-[0.6875rem] font-normal leading-snug text-default-400">
-                    1体目が同じデッキを、2体目までの組み合わせごとに分けています
+                    「1体目が同じデッキ」としてまとめた中を、2体目ごとに分けています
                   </span>
                 </div>
               </div>
@@ -254,7 +254,9 @@ export default function WeeklyDeckUsageTrendMembersSheet({
               </div>
 
               <span className="text-center text-[0.625rem] leading-snug text-default-400">
-                使用率はその週の全体件数が分母です。内訳を合計するとこのデッキの使用率になります
+                使用率はその週の全体件数が分母です。
+                <br />
+                内訳を合計するとこのデッキの使用率になります
               </span>
             </ModalBody>
           </>

@@ -15,11 +15,11 @@ type Props = {
 // カードは横スワイプで並ぶが、縦の高さは1枚ぶんなので骨格も1枚だけ置く。
 export default function CityleagueEventsSkeleton({ withPreviewBanner = false }: Props) {
   return (
-    // 実カードは 390px 幅の実測で 232px(プレビュー無し)。プレビューのバナー1行ぶんは
-    // +28px(2026-09-26 実データでの devtest 実測)なので、あわせて 260px。
-    // 骨格の中身(タブ + カード1枚)はそれより少し低いので、min-h で実体に合わせる
-    // (期間外の案内カードとも同じ高さになる)
-    <Card className={`w-full ${withPreviewBanner ? "min-h-65" : "min-h-58"}`}>
+    // 高さは中身の組み立て(タブ + 会場カード1枚)を実体と同じにすることで揃える。
+    // 会場カードはデータによらず一定の高さ(CityleagueEventCard 参照)なので、min-h で
+    // 決め打ちしない。390px 幅の実測で 204px、プレビューのバナーありで 232px(2026-09-26)。
+    // 以前は「大会終了」でチップ列が2行になった会場カードに合わせた 232px を min-h で当てていた
+    <Card className="w-full">
       <CardBody className="px-0 py-1 w-full">
         {withPreviewBanner && (
           // CityleagueEvents のプレビューバナー(px-3 pb-1 + text-xs font-bold 1行)と同じ場所を取る

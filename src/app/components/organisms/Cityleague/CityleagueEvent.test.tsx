@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import type { ReactNode } from "react";
 
+import { renderToString } from "react-dom/server";
+
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -16,6 +18,10 @@ vi.mock("swiper/css", () => ({}));
 vi.mock("swiper/css/navigation", () => ({}));
 vi.mock("swiper/css/pagination", () => ({}));
 vi.mock("swiper/css/scrollbar", () => ({}));
+// 骨格が出ているかだけを見たいので、目印付きの箱に置き換える
+vi.mock("@app/components/organisms/Cityleague/Skeleton/CityleagueEventSkeleton", () => ({
+  default: () => <div data-testid="event-skeleton" />,
+}));
 
 const EMPTY_EVENTS = { count: 0, official_events: [] };
 
@@ -121,5 +127,20 @@ describe("CityleagueEvent の日付指定(開催期間外の先出しプレビ�
       expect(screen.getByText("この日の開催情報を取得できませんでした")).toBeTruthy(),
     );
     expect(screen.queryByText("本日の開催情報を取得できませんでした")).toBeNull();
+  });
+});
+
+describe("CityleagueEvent の最初の描画", () => {
+  /*
+   * サーバ描画(とハイドレーション直後)は effect が走る前の状態で描かれる。
+   * 取得中フラグが false で始まっていた頃は、ここがスライド0枚の空の Swiper になり、
+   * ホームをリロードするとパネルが一度潰れてから骨格・実体の順に伸びて揺れていた。
+   */
+  it("取得を始める前の描画から骨格を出す", () => {
+    const html = renderToString(
+      <CityleagueEvent league_type={1} setLeagueTypeCount={() => {}} />,
+    );
+
+    expect(html).toContain('data-testid="event-skeleton"');
   });
 });

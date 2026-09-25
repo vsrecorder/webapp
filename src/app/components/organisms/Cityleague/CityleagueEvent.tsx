@@ -104,8 +104,16 @@ export default function CityleagueEvent({ league_type, setLeagueTypeCount, date 
   const [cityleague, setCityleague] = useState<OfficialEventResponseType | null>(null);
   const [cityleagueResults, setCityleagueResults] =
     useState<CityleagueResultGetResponseType | null>(null);
-  const [isLoading1, setIsLoading1] = useState(false);
-  const [isLoading2, setIsLoading2] = useState(false);
+  /*
+   * 取得中かどうか。初期値は true(マウントするとすぐ取りに行くため)。
+   *
+   * false で始めると、サーバ描画とハイドレーション直後の最初の描画が「取得中でも空でもない」
+   * 分岐に落ち、スライド0枚の Swiper(高さ0)が出ていた。ホームをリロードすると
+   * パネルが一度潰れてから骨格・実体の順に伸び、下の節ごと上下に揺れていた
+   * (390px 幅の実測でパネル 76px → 236px → 255px)。
+   */
+  const [isLoading1, setIsLoading1] = useState(true);
+  const [isLoading2, setIsLoading2] = useState(true);
   const [isInitialLoaded, setIsInitialLoaded] = useState(false);
   // 開催情報を取れたか。取れないと1枚も出せないので、空(本日は開催なし)と区別して伝える
   const [isError, setIsError] = useState(false);
@@ -247,8 +255,10 @@ export default function CityleagueEvent({ league_type, setLeagueTypeCount, date 
           <SwiperSlide className="p-3">
             <div className="text-center">
               <div className="">
+                {/* 骨格(CityleagueEventSkeleton)・会場カードと同じ 136px にする。
+                    pb-9 だと 138px で、開催の無い日は骨格から替わる瞬間に 2px 伸びていた */}
                 <Card className="pt-3 w-full">
-                  <CardHeader className="pt-11.5 pb-9 px-3 flex-col items-center gap-0.5">
+                  <CardHeader className="pt-11.5 pb-8.5 px-3 flex-col items-center gap-0.5">
                     <div className="text-center">
                       {isPreview ? "この日の開催はありません" : "本日の開催はありません"}
                     </div>

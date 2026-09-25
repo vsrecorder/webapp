@@ -26,12 +26,14 @@ type Props = {
  * 開催期間中(CityleagueEvents の会場一覧カード)と同じ高さ。
  *
  * この節は開催期間で中身が入れ替わるが、パネルの大きさまで変わると
- * ホームの見た目が時期によって別物になる。会場一覧カードの高さは中の行数で決まり、
- * 390px 幅の実測で 232px(2026-05-06 / 05-03 / 03-15 の実データで一致)。
- * 中身が少ない期間外はここまで伸ばし、上下中央に置く。
- * 会場カードの構成を変えたときは、この値と CityleagueEventsSkeleton も測り直すこと。
+ * ホームの見た目が時期によって別物になる。会場一覧カードは会場カードの高さを
+ * データによらず一定にしてあり(CityleagueEventCard 参照)、390px 幅の実測で 204px
+ * (2026-09-26、結果前の日・結果の出た日の両方で一致)。
+ * 中身が少ない期間外はここまで伸ばし、上下中央に置く(中身はパディング込みで 184px)。
+ * 以前は「大会終了」でチップ列が2行になった会場カードに合わせて 232px にしていた。
+ * 会場カードの構成を変えたときは、この値と CityleagueOffSeasonCardSkeleton も測り直すこと。
  */
-const MIN_HEIGHT_CLASS = "min-h-58";
+const MIN_HEIGHT_CLASS = "min-h-51";
 
 export default function CityleagueOffSeasonCard({ next }: Props) {
   return (

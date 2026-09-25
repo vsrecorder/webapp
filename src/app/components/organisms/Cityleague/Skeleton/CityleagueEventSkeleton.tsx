@@ -18,7 +18,9 @@ export default function CityleagueEventSkeleton() {
             <Skeleton className="h-5 w-50" />
           </div>
 
-          <div className="pt-0 pb-1 flex flex-wrap items-start gap-1">
+          {/* 実体(CityleagueEventCard)と同じく1行に収める。折り返すと、幅 320px では
+              3つの合計幅が収まらず2行になり、骨格だけ 24px 高くなっていた */}
+          <div className="pt-0 pb-1 flex flex-nowrap items-start gap-1 overflow-hidden">
             <Skeleton className="h-5 w-12 rounded-2xl" />
             <Skeleton className="h-5 w-21 rounded-2xl" />
             <Skeleton className="h-5 w-24 rounded-2xl" />

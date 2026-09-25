@@ -11,7 +11,7 @@ import { Card, CardBody, Skeleton } from "@heroui/react";
 export default function CityleagueOffSeasonCardSkeleton() {
   return (
     // 高さは実体(CityleagueOffSeasonCard の MIN_HEIGHT_CLASS)と揃える
-    <Card className="w-full shadow-md min-h-58">
+    <Card className="w-full shadow-md min-h-51">
       <CardBody className="flex flex-col items-center justify-center gap-3 px-4 py-6 text-center">
         {/* シティリーグのロゴ(h-9 w-9) */}
         <Skeleton className="h-9 w-9 rounded-md" />

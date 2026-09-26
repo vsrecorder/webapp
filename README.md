@@ -13,7 +13,7 @@ VSRecorder は、ポケモンカードゲームの対戦記録を残すための
 - **デッキ登録**: 公式サイトで発行したデッキコードを使ってデッキを登録
 - **対戦記録の作成**: ジムバトル・トレーナーズリーグ・シティリーグなどの公式イベントに紐づく対戦記録を作成
 - **勝敗の記録**: 使用デッキ・対戦相手のデッキ情報・勝敗を記録
-- **シティリーグ結果 / 対戦環境分析（β機能）の閲覧**
+- **シティリーグ結果 / 対戦環境分析（β機能）の閲覧**: 2027 シーズン以降の入賞デッキには、姉妹サービスのバトラボ（vslab）が分類ルールで決めたデッキの種類（主デッキ・型・スプライト）を添える
 - **統計・グラフ表示**: 戦績を可視化
 
 ## 技術スタック
@@ -66,6 +66,7 @@ src/
 | ------------------------------------------------------------------------ | -------------------------------------------------- |
 | `VSRECORDER_DOMAIN` / `VSRECORDER_JWT_SECRET`                            | バックエンド（core-apiserver）連携用               |
 | `VSRECORDER_UPSTREAM_ORIGIN`                                             | サーバ側から core-apiserver へ直接つなぐオリジン（任意。未設定なら `https://VSRECORDER_DOMAIN` 経由） |
+| `VSLAB_ORIGIN`                                                           | バトラボ（vslab）のオリジン。シティリーグ結果の入賞デッキに添えるデッキ分類を引く（任意。未設定なら `https://lab.vsrecorder.mobi`） |
 | `AUTH_URL` / `AUTH_SECRET` / `AUTH_TRUST_HOST`                           | NextAuth (Auth.js) 設定                            |
 | `FIREBASE_PROJECT_ID` / `FIREBASE_CLIENT_EMAIL` / `FIREBASE_PRIVATE_KEY` | Firebase Admin SDK（サービスアカウント）           |
 | `NEXT_PUBLIC_FIREBASE_*`                                                 | クライアント用 Firebase 設定                       |

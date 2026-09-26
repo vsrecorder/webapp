@@ -19,12 +19,20 @@ type Props = {
    * 出す場所で骨格に行が無いと、切り替わった瞬間にカードが 18px 伸びていた(実測 264 → 282px)。
    */
   withMainPokemon?: boolean;
+  /*
+   * 実体がデッキの種類(バトラボのデッキ分類)の行を出す場所か。実体は種類(deckArchetype)を
+   * 渡されたときだけこの行を出す。分類は 2027 シーズン以降の大会にしか付かないので、
+   * 一覧(常に直近のシーズン)は出す前提、個別ページはそのイベントのシーズンで決める。
+   */
+  withDeckArchetype?: boolean;
 };
 
 export default function CityleagueResultCardSkeleton({
   showRankLabel = true,
   withMainPokemon = false,
+  withDeckArchetype = false,
 }: Props) {
+
   return (
     <Card shadow="sm" className="w-full border-2 border-default-100">
       {/* ヘッダー：順位タグの右隣にプレイヤー情報（アイコン・名前・ID）を横並び */}
@@ -54,6 +62,35 @@ export default function CityleagueResultCardSkeleton({
       </CardHeader>
 
       <CardBody className="px-3 pb-3 pt-2">
+        {/*
+          デッキの種類(出す場所だけ)。実体(DeckArchetypeLabel)はデッキ一覧のギャラリー表示と同じ
+          「スプライト 2 枠(48px)＋名前(text-large の 28px 行)＋型(text-small の 20px 行)」を
+          積み、下に pb-2 = 108px。型の行は実体が型の無いデッキでも空けたままにするので、
+          骨格でも常に確保する。スプライトの骨格は DeckCardSkeleton と同じく、丸をキャラ位置
+          (下端中央寄り)に置く。名前の幅は「ドラパルトex」相当、型は「バシャーモ型」相当。
+        */}
+        {withDeckArchetype && (
+          <div className="pb-2">
+            <div className="flex w-full min-w-0 flex-col items-center gap-1">
+              <div className="flex shrink-0 items-center">
+                {[0, 1].map((i) => (
+                  <div key={i} className="relative h-12 w-12">
+                    <Skeleton className="absolute bottom-0 left-1/2 h-10 w-10 -translate-x-1/2 rounded-full" />
+                  </div>
+                ))}
+              </div>
+              <div className="flex w-full min-w-0 flex-col items-center">
+                <div className="flex h-7 items-center">
+                  <Skeleton className="h-5 w-32 rounded-lg" />
+                </div>
+                <div className="flex h-5 items-center">
+                  <Skeleton className="h-3.5 w-20 rounded-md" />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* デッキ画像 */}
         <div className="relative w-full aspect-2/1">
           <Skeleton className="absolute inset-0 rounded-lg" />

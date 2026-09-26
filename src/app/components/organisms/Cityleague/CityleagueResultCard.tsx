@@ -23,6 +23,7 @@ import { LuUser } from "react-icons/lu";
 import { Modal } from "@app/components/atoms/AppModal";
 import CardListAccordion from "@app/components/organisms/Deck/CardListAccordion";
 import CopyableDeckCode from "@app/components/atoms/CopyableDeckCode";
+import DeckArchetypeLabel from "@app/components/molecules/DeckArchetypeLabel";
 import ZoomableDeckImage from "@app/components/atoms/ZoomableDeckImage";
 
 /*
@@ -43,12 +44,14 @@ import BoardPanel from "@app/components/organisms/Record/BoardPanel";
 import { createLazyModal } from "@app/utils/lazyModal";
 
 import { ResultCardEntry } from "@app/types/cityleague_result";
+import { DeckArchetypeType } from "@app/types/deck_archetype";
 import { DeckSummaryType } from "@app/types/deckcard";
 import {
   cityleagueRankBadgeClass,
   cityleagueRankBorderClass,
   cityleagueRankLabel,
 } from "@app/utils/cityleagueRank";
+import { deckArchetypeToDeckDraft } from "@app/utils/deckArchetype";
 import { formatMainPokemon } from "@app/utils/deckSummary";
 
 type Props = {
@@ -60,6 +63,13 @@ type Props = {
   showRankLabel?: boolean;
   // デッキのカード内訳の要約(サーバ側で取得済み)。渡されたときだけ主なポケモンを出す。
   deckSummary?: DeckSummaryType;
+  /*
+   * デッキの種類(バトラボのデッキ分類)。渡されたときだけ種類の行を出す。
+   *
+   * 未分類(索引にあるがどの主デッキにも当たらない)は label が null で渡ってきて「デッキ名：不明」と出る。
+   * 索引に無い(未取り込み・2027 シーズンより前)デッキは渡されず、行ごと出ない。
+   */
+  deckArchetype?: DeckArchetypeType;
 };
 
 
@@ -124,6 +134,7 @@ export default function CityleagueResultCard({
   result,
   showRankLabel = true,
   deckSummary,
+  deckArchetype,
 }: Props) {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
@@ -219,17 +230,25 @@ export default function CityleagueResultCard({
 
   const mainPokemon = formatMainPokemon(deckSummary?.mainPokemon ?? []);
 
-  // 画像の alt。デッキコードだけでは何の画像か伝わらないため、順位・選手・主なポケモンを入れる。
+  // 画像の alt。デッキコードだけでは何の画像か伝わらないため、順位・選手・デッキの種類を入れる。
+  // 種類はルールで決めた名前(「ドラパルトex バシャーモ型」)を優先し、無ければ主なポケモン。
   const rankText = cityleagueRankLabel(result.rank, false) || `${result.rank}位`;
+  const deckName = deckArchetype?.label ?? mainPokemon;
   const deckImageAlt =
     `${rankText} ${result.player_name}選手のデッキ` +
-    (mainPokemon ? `（${mainPokemon}）` : "") +
+    (deckName ? `（${deckName}）` : "") +
     ` デッキコード ${result.deck_code}`;
+
+  // 「このデッキコードでデッキを登録」の初期値。分類が付いていれば、その名前とアイコンを
+  // 入れた状態で登録モーダルを開く(みんなの公開デッキの「取り込む」と同じ。登録前に変えられる)
+  const deckDraft = deckArchetypeToDeckDraft(deckArchetype);
 
   return (
     <>
       <CreateDeckModal
         deck_code={result.deck_code}
+        initialName={deckDraft.name}
+        initialSprites={deckDraft.sprites}
         isOpen={isOpenForCreateDeckModal}
         onOpenChange={onOpenChangeForCreateDeckModal}
         onCreated={() => {}}
@@ -277,6 +296,14 @@ export default function CityleagueResultCard({
             {/* デッキ画像を主役として大きく見せる */}
             {result.deck_code ? (
               <>
+                {/* デッキの種類(バトラボのデッキ分類)。デッキ一覧のギャラリー表示と同じく、
+                    スプライトを上・名前を下に置いて画像の上に載せる。下の余白(pb-2)は
+                    骨格(CityleagueResultCardSkeleton)と揃えているので、変えるときは両方直すこと */}
+                {deckArchetype && (
+                  <div className="pb-2">
+                    <DeckArchetypeLabel archetype={deckArchetype} />
+                  </div>
+                )}
                 {/* カード内ではタップで詳細モーダルを開くため、画像タップのZoomは無効化する */}
                 <ZoomableDeckImage
                   loading="lazy"
@@ -375,6 +402,9 @@ export default function CityleagueResultCard({
                       <div className="flex flex-col gap-2.5">
                         {result.deck_code ? (
                           <>
+                            {/* デッキの種類。カードと同じ形(スプライトの下に名前)で画像の上に置く */}
+                            {deckArchetype && <DeckArchetypeLabel archetype={deckArchetype} />}
+
                             {/* デッキ画像の表示・タップ全画面表示は共通コンポーネントに委譲する */}
                             <ZoomableDeckImage code={result.deck_code} loading="lazy" />
 

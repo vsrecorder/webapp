@@ -66,9 +66,10 @@ export function CityleagueResultSkeleton() {
           </div>
         </CardHeader>
         <CardBody className="px-0 py-1">
-          {/* Swiper のスライド（px-2 pt-2 pb-10：ドット分の下余白を含む）1枚ぶん */}
+          {/* Swiper のスライド（px-2 pt-2 pb-10：ドット分の下余白を含む）1枚ぶん。
+              一覧は常に直近のシーズン(2027 以降)なので、デッキの種類の行も取る */}
           <div className="px-2 pt-2 pb-10">
-            <CityleagueResultCardSkeleton />
+            <CityleagueResultCardSkeleton withDeckArchetype />
           </div>
         </CardBody>
         <CardFooter className="pt-1 pb-2">

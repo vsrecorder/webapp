@@ -15,6 +15,7 @@ import BackLink from "@app/components/molecules/BackLink";
 import CityleagueResultCard from "@app/components/organisms/Cityleague/CityleagueResultCard";
 
 import { CityleagueResultType } from "@app/types/cityleague_result";
+import { DeckArchetypeMap } from "@app/types/deck_archetype";
 import { DeckSummaryType } from "@app/types/deckcard";
 import { OfficialEventType } from "@app/types/official_event";
 
@@ -32,6 +33,8 @@ type Props = {
   cityleagueResult: CityleagueResultType;
   // デッキコードごとのカード内訳の要約(サーバ側で取得済み)。無いデッキは画像とコードだけを出す。
   deckSummaries?: Record<string, DeckSummaryType>;
+  // デッキコードごとの種類(バトラボのデッキ分類。サーバ側で取得済み)。無いデッキは種類の行を出さない。
+  deckArchetypes?: DeckArchetypeMap;
   // 同じ月の他会場・各ハブへのリンク。サーバコンポーネントのまま受け取るため props で差し込む。
   relatedSection?: React.ReactNode;
 };
@@ -42,6 +45,7 @@ export default function CityleagueResultByOfficialEventId({
   event,
   cityleagueResult,
   deckSummaries = {},
+  deckArchetypes = {},
   relatedSection,
 }: Props) {
   const date = formatJSTDateWithWeekday(event.date);
@@ -240,6 +244,7 @@ export default function CityleagueResultByOfficialEventId({
                 date={cityleagueResult.date}
                 showRankLabel={false}
                 deckSummary={deckSummaries[result.deck_code]}
+                deckArchetype={deckArchetypes[result.deck_code]}
               />
             ))}
           </div>

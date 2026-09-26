@@ -16,6 +16,8 @@ import {
 } from "@app/utils/cityleague";
 import { OG_SIZE, renderCityleagueEventOgImage } from "@app/utils/ogImage";
 import { serializeJsonLd } from "@app/utils/breadcrumb";
+import { isDeckArchetypeSeason } from "@app/utils/deckArchetype";
+import { getDeckArchetypesByEvent } from "@app/utils/deckArchetypeServer";
 import { formatMainPokemon } from "@app/utils/deckSummary";
 import { getDeckSummaries, getDeckSummary } from "@app/utils/deckSummaryServer";
 import { ogImageUrlFor } from "@app/utils/ogStorage";
@@ -216,14 +218,20 @@ export default async function Page({ params }: Props) {
        * 先に出せるものを止めておく理由が無い。検索エンジンもストリーミングされた
        * 最終的な HTML を読むため、テキストは従来どおり載る。
        */}
-      <Suspense fallback={<CityleagueResultDetailSkeleton />}>
+      <Suspense
+        fallback={
+          <CityleagueResultDetailSkeleton
+            withDeckArchetype={isDeckArchetypeSeason(cityleagueResult.cityleague_schedule_id)}
+          />
+        }
+      >
         <ResultsWithDeckSummaries event={event} cityleagueResult={cityleagueResult} />
       </Suspense>
     </>
   );
 }
 
-// 入賞デッキのカード内訳を待ってから、結果本体を描く
+// 入賞デッキのカード内訳とデッキの種類を待ってから、結果本体を描く
 async function ResultsWithDeckSummaries({
   event,
   cityleagueResult,
@@ -231,15 +239,26 @@ async function ResultsWithDeckSummaries({
   event: OfficialEventType;
   cityleagueResult: CityleagueResultType;
 }) {
-  const deckSummaries = await getDeckSummaries(
-    cityleagueResult.results.map((result) => result.deck_code),
-  );
+  /*
+   * デッキの種類(バトラボのデッキ分類)はカード内訳と並べて待つ。
+   *
+   * 分類は 2027 シーズン以降の大会にしか付かないので、それより前のイベントは引かない
+   * (vslab は旧シーズンを扱わず「無い」と答えるだけ。理由は utils/deckArchetype)。
+   * 取れなくても空の辞書が返り、種類の行が無いだけでページは出る。
+   */
+  const [deckSummaries, deckArchetypes] = await Promise.all([
+    getDeckSummaries(cityleagueResult.results.map((result) => result.deck_code)),
+    isDeckArchetypeSeason(cityleagueResult.cityleague_schedule_id)
+      ? getDeckArchetypesByEvent(event.id)
+      : Promise.resolve({}),
+  ]);
 
   return (
     <TemplateCityleagueResultByOfficialEventId
       event={event}
       cityleagueResult={cityleagueResult}
       deckSummaries={deckSummaries}
+      deckArchetypes={deckArchetypes}
       /*
        * 末尾の関連リンクも待たずに流す。
        *

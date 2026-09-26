@@ -22,10 +22,12 @@ import { CityleagueResultSkeleton } from "@app/components/organisms/Cityleague/S
 import FetchErrorBox from "@app/components/molecules/FetchErrorBox";
 
 import { CityleagueResultType } from "@app/types/cityleague_result";
+import { DeckArchetypeMap } from "@app/types/deck_archetype";
 import {
   OfficialEventGetByIdResponseType,
   OfficialEventListItemType,
 } from "@app/types/official_event";
+import { isCityleagueListRank } from "@app/utils/cityleagueRank";
 import { formatJSTDateWithWeekday } from "@app/utils/date";
 import { useClientValue } from "@app/hooks/useClientValue";
 import { useHydrated } from "@app/hooks/useHydrated";
@@ -67,6 +69,13 @@ type Props = {
    * CityleagueResults 側が日単位の一覧APIでまとめて取得して配ってくる。
    */
   official_event?: OfficialEventListItemType;
+  /*
+   * 入賞デッキの種類(バトラボのデッキ分類)。デッキコードで引く。
+   *
+   * 一覧(CityleagueResults)が 1 日ぶんをまとめて取得して配ってくる。渡されなかった
+   * (取れなかった・提供範囲より前のシーズン)デッキは、カードが種類の行を出さない。
+   */
+  deck_archetypes?: DeckArchetypeMap;
   /*
    * 入賞スライドを最初から全部描くか。
    *
@@ -133,6 +142,7 @@ function NewChip({ date }: { date: Date }) {
 export default function CityleagueResult({
   event_result,
   official_event,
+  deck_archetypes,
   eagerAllSlides = false,
 }: Props) {
   // 公式イベント情報。親からイベント情報が渡されていれば取得は不要(鍵を無しにする)。
@@ -206,7 +216,9 @@ export default function CityleagueResult({
   const date = formatJSTDateWithWeekday(event.date);
 
   // 9位以下は一覧に載せない(個別ページで見せる)。近づくまでは先頭だけ描く
-  const rankedResults = event_result.results.filter((result) => result.rank < 9);
+  const rankedResults = event_result.results.filter((result) =>
+    isCityleagueListRank(result.rank),
+  );
   const slideResults = showAllSlides
     ? rankedResults
     : rankedResults.slice(0, EAGER_SLIDE_COUNT);
@@ -270,7 +282,11 @@ export default function CityleagueResult({
             >
               {slideResults.map((result, index) => (
                 <SwiperSlide key={index} className="px-2 pt-2 pb-10">
-                  <CityleagueResultCard result={result} date={event_result.date} />
+                  <CityleagueResultCard
+                    result={result}
+                    date={event_result.date}
+                    deckArchetype={deck_archetypes?.[result.deck_code]}
+                  />
                 </SwiperSlide>
               ))}
             </Swiper>

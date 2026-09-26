@@ -18,7 +18,16 @@ const RANK_SECTION_CARD_COUNTS = [1, 1, 2, 4];
  *   - page.tsx   : デッキのカード内訳を待つ間の fallback
  * 同じ骨格を使うことで、どちらの経路でも同じ見え方になる。
  */
-export default function CityleagueResultDetailSkeleton() {
+type Props = {
+  /*
+   * 入賞カードにデッキの種類(バトラボのデッキ分類)の行を取るか。
+   * 分類は 2027 シーズン以降の大会にしか付かない。page.tsx の fallback はイベントの
+   * シーズンが分かっているので渡せるが、loading.tsx はまだ何も知らないので既定(無し)で出す。
+   */
+  withDeckArchetype?: boolean;
+};
+
+export default function CityleagueResultDetailSkeleton({ withDeckArchetype = false }: Props) {
   return (
     <div className="flex flex-col gap-3 pt-1 pb-3">
       {/* 一覧への戻り導線（実体と同じくヘッダー直下に sticky で置く） */}
@@ -116,7 +125,12 @@ export default function CityleagueResultDetailSkeleton() {
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {Array.from({ length: cardCount }).map((_, cardIndex) => (
-              <CityleagueResultCardSkeleton key={cardIndex} showRankLabel={false} withMainPokemon />
+              <CityleagueResultCardSkeleton
+                key={cardIndex}
+                showRankLabel={false}
+                withMainPokemon
+                withDeckArchetype={withDeckArchetype}
+              />
             ))}
           </div>
         </section>

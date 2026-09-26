@@ -18,6 +18,10 @@ import {
 } from "@app/types/cityleague_result";
 import { CityleagueScheduleType } from "@app/types/cityleague_schedule";
 import {
+  DeckArchetypeMap,
+  DeckArchetypesGetResponseType,
+} from "@app/types/deck_archetype";
+import {
   OfficialEventListItemType,
   OfficialEventResponseType,
 } from "@app/types/official_event";
@@ -31,6 +35,11 @@ import {
   CityleagueScheduleContext,
 } from "@app/utils/cityleagueListServer";
 import { toJSTDateString, todayJSTDateString } from "@app/utils/date";
+import {
+  chunkDeckCodes,
+  collectListedDeckCodes,
+  normalizeDeckCodes,
+} from "@app/utils/deckArchetype";
 import {
   CITYLEAGUE_SCROLL_TO_ID_KEY,
   CITYLEAGUE_SCROLL_TO_LEAGUE_TYPE_KEY,
@@ -142,6 +151,40 @@ async function fetchOfficialEventsByDate(
   };
 }
 
+/*
+ * 入賞デッキの種類(バトラボのデッキ分類)を、1 日ぶんのデッキコードでまとめて引く。
+ *
+ * BFF の上限(100 件 = vslab の 1 回の照会)ごとに分けて並列に投げ、1 つの辞書にまとめる。
+ * 取れなかった塊は落とす(その日のカードに種類の行が出ないだけで、一覧は出す)。
+ */
+async function fetchDeckArchetypes(codes: string[]): Promise<DeckArchetypeMap> {
+  const chunks = chunkDeckCodes(normalizeDeckCodes(codes));
+
+  const maps = await Promise.all(
+    chunks.map(async (chunk) => {
+      try {
+        const res = await fetch(
+          `/api/cityleague_results/deck_archetypes?codes=${encodeURIComponent(chunk.join(","))}`,
+          {
+            cache: "no-store",
+            method: "GET",
+            headers: { Accept: "application/json" },
+          },
+        );
+        if (!res.ok) return {};
+
+        const data: DeckArchetypesGetResponseType = await res.json();
+
+        return data?.decks && typeof data.decks === "object" ? data.decks : {};
+      } catch {
+        return {};
+      }
+    }),
+  );
+
+  return Object.assign({}, ...maps);
+}
+
 type Props = {
   league_type: number;
   /*
@@ -181,6 +224,10 @@ export default function CityleagueResults({
   const eventsById = useMemo(
     () => new Map(events.map((event) => [event.id, event])),
     [events],
+  );
+  // デッキコード → 種類(バトラボのデッキ分類)。1 日ぶんずつまとめて取り、各カードへ配る
+  const [deckArchetypes, setDeckArchetypes] = useState<DeckArchetypeMap>(
+    initial?.deckArchetypes ?? {},
   );
   // 続きを読み込むときの起点となる暦日("YYYY-MM-DD")
   const [nextDate, setNextDate] = useState<string>(
@@ -279,14 +326,22 @@ export default function CityleagueResults({
            * 同じ日の公式イベント一覧を1回で取得してから結果を出す。
            * 一覧に無いidが混ざっていても、カード側が従来どおり個別に取得する
            * フォールバックがあるので表示は壊れない。取得失敗時も同様。
+           *
+           * デッキの種類(バトラボ)も同時に引く。結果を出してから後で足すと、
+           * 種類の行が後から現れてカードが伸びる(Swiper の高さも動く)ので、揃ってから出す。
            */
-          const dayEvents = await fetchOfficialEventsByDate(league_type, date).catch(
-            () => null,
-          );
+          const [dayEvents, dayArchetypes] = await Promise.all([
+            fetchOfficialEventsByDate(league_type, date).catch(() => null),
+            fetchDeckArchetypes(collectListedDeckCodes(newItems.event_results)),
+          ]);
           if (cancelled) return;
 
           if (dayEvents?.official_events.length) {
             setEvents((prev) => [...prev, ...dayEvents.official_events]);
+          }
+
+          if (Object.keys(dayArchetypes).length > 0) {
+            setDeckArchetypes((prev) => ({ ...prev, ...dayArchetypes }));
           }
 
           setItems((prev) => [...prev, ...newItems.event_results]);
@@ -449,6 +504,7 @@ export default function CityleagueResults({
             <CityleagueResult
               event_result={event_result}
               official_event={eventsById.get(event_result.official_event_id)}
+              deck_archetypes={deckArchetypes}
             />
           </div>
         ))}

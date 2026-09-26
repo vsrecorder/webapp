@@ -75,6 +75,18 @@ export function cityleagueLeagueTitle(leagueType: number): string {
   }
 }
 
+/*
+ * 一覧(CityleagueResult)に載せる順位の上限。9位以下(ベスト16)は個別ページで見せる。
+ *
+ * 一覧の描画と、一覧に載る入賞のデッキ分類をまとめて引くとき(utils/deckArchetype)の
+ * 両方が同じ線で区切るよう、ここに置く。
+ */
+export const CITYLEAGUE_LIST_RANK_LIMIT = 9;
+
+export function isCityleagueListRank(rank: number): boolean {
+  return rank < CITYLEAGUE_LIST_RANK_LIMIT;
+}
+
 // 順位ごとのセクション。入賞一覧を「優勝 / 準優勝 / ベスト4 …」で区切るために使う。
 // accent は枠色(cityleagueRankBorderClass)と揃えた見出しの色帯。
 const RANK_SECTIONS: { rank: number; label: string; accent: string }[] = [

@@ -5,6 +5,7 @@ import {
   CityleagueResultType,
 } from "@app/types/cityleague_result";
 import { CityleagueScheduleType } from "@app/types/cityleague_schedule";
+import { DeckArchetypeMap } from "@app/types/deck_archetype";
 import { OfficialEventListItemType } from "@app/types/official_event";
 import {
   buildSearchDates,
@@ -13,6 +14,8 @@ import {
 } from "@app/utils/cityleagueListPage";
 import { LIST_REVALIDATE_SECONDS, getJson } from "@app/utils/coreApi";
 import { todayJSTDateString, toJSTDateString } from "@app/utils/date";
+import { collectListedDeckCodes } from "@app/utils/deckArchetype";
+import { getDeckArchetypesByCodes } from "@app/utils/deckArchetypeServer";
 import { getOfficialEventList } from "@app/utils/officialEventListServer";
 
 /*
@@ -63,6 +66,11 @@ export type CityleagueListInitialData = CityleagueScheduleContext & {
    * JSON 化できる必要があるため(受け取った側で Map に組み直す)。
    */
   events: OfficialEventListItemType[];
+  /*
+   * その日の入賞デッキの種類(バトラボのデッキ分類)。一覧に載る入賞(8位まで)のデッキコードで
+   * まとめて引いたもの。取れなかったデッキは含まれず、カードは種類の行を出さない。
+   */
+  deckArchetypes: DeckArchetypeMap;
   // 続きを読むときの起点("YYYY-MM-DD")。1ページ目に採用した日の前日
   nextFromDate: string;
   hasMore: boolean;
@@ -136,10 +144,14 @@ export const getCityleagueListInitialData = cache(
         if (results.length === 0) continue;
 
         // カードが使う店舗名などは日単位の一覧でまとめて取る(カードごとの取得を避ける)。
-        // 取れなくてもカード側に個別取得のフォールバックがあるので、結果は返す
-        const events = await getOfficialEventList("2", String(leagueType), date)
-          .then((res) => res.official_events ?? [])
-          .catch(() => []);
+        // 取れなくてもカード側に個別取得のフォールバックがあるので、結果は返す。
+        // デッキの種類(バトラボ)も同じく 1 日ぶんをまとめて引き、取れなければ行が無いだけにする
+        const [events, deckArchetypes] = await Promise.all([
+          getOfficialEventList("2", String(leagueType), date)
+            .then((res) => res.official_events ?? [])
+            .catch(() => []),
+          getDeckArchetypesByCodes(collectListedDeckCodes(results)).catch(() => ({})),
+        ]);
 
         return {
           schedule,
@@ -147,6 +159,7 @@ export const getCityleagueListInitialData = cache(
           startDate,
           results,
           events,
+          deckArchetypes,
           nextFromDate: shiftDateString(date, -1),
           hasMore: true,
         };
@@ -159,6 +172,7 @@ export const getCityleagueListInitialData = cache(
         startDate,
         results: [],
         events: [],
+        deckArchetypes: {},
         nextFromDate: startDate,
         hasMore: false,
       };

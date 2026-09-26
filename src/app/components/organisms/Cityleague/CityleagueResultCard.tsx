@@ -58,8 +58,7 @@ type Props = {
   date: Date;
   // 個別ページのように順位ごとの見出しがある場所では、カード側のラベルが冗長になるため隠す。
   showRankLabel?: boolean;
-  // デッキのカード内訳の要約(サーバ側で取得済み)。渡されたときだけ主なポケモンを出し、
-  // カードリストのテキスト版を HTML に載せる(カードリスト自体は無くても開けば取得して出す)。
+  // デッキのカード内訳の要約(サーバ側で取得済み)。渡されたときだけ主なポケモンを出す。
   deckSummary?: DeckSummaryType;
 };
 
@@ -240,9 +239,7 @@ export default function CityleagueResultCard({
         onClick={() => {
           onOpen();
         }}
-        // 押し込みの縮小はカードリスト内の操作(タブ・カードのタップや横スクロール)では出さない。
-        // :active は祖先にも付くため、そのままだとカードリストに触れるたびにカード全体が縮む
-        className="cursor-pointer transition-transform [&:active:not(:has([data-card-list]:active))]:scale-[0.98]"
+        className="cursor-pointer transition-transform active:scale-[0.98]"
       >
         <Card
           shadow="sm"
@@ -287,9 +284,8 @@ export default function CityleagueResultCard({
                   alt={deckImageAlt}
                   disableZoom
                 />
-                {/* デッキの中身は CDN の画像で文字では追えないため、主なポケモン・デッキコード・
-                    カードリストをテキストでも出す。カードリストは閉じたままでも HTML に載るので、
-                    検索エンジンはモーダルを開かずに「何のデッキか」を読める。 */}
+                {/* デッキの中身は CDN の画像で文字では追えないため、主なポケモンとデッキコードを
+                    テキストでも出す。カードリストはカードには置かず、タップで開く詳細モーダルで見せる */}
                 {mainPokemon && (
                   <span className="pt-1.5 text-center font-bold text-tiny text-default-600">
                     主なポケモン：{mainPokemon}
@@ -300,17 +296,6 @@ export default function CityleagueResultCard({
                 >
                   デッキコード {result.deck_code}
                 </span>
-                {/* カードリストはデッキ管理と同じ部品。開閉やカードのタップで親のモーダルが
-                    開かないよう、伝播は部品側で止めている。
-                    準優勝のカードは地が bg-default-100(cityleagueRankBorderClass)で、既定の
-                    背景だとカードリストの枠が溶けて見えなくなるため content1 にする */}
-                <div data-card-list className="mt-1.5">
-                  <CardListAccordion
-                    code={result.deck_code}
-                    summary={deckSummary}
-                    background={result.rank === 2 ? "content1" : "default-100"}
-                  />
-                </div>
               </>
             ) : (
               <>
@@ -330,14 +315,6 @@ export default function CityleagueResultCard({
                   <span className="col-start-1 row-start-1 self-center pt-1.5 text-center text-tiny text-default-400">
                     デッキコードなし
                   </span>
-                </div>
-                {/* カードリストは出せないが、他のカードと同じ位置に押せない状態で置く */}
-                <div className="mt-1.5">
-                  <CardListAccordion
-                    code=""
-                    isDisabled
-                    background={result.rank === 2 ? "content1" : "default-100"}
-                  />
                 </div>
               </>
             )}

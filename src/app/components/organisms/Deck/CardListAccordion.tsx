@@ -8,8 +8,6 @@ import { LuList } from "react-icons/lu";
 
 import DeckCardDetailRow from "@app/components/organisms/Deck/DeckCardDetailRow";
 
-import { DeckSummaryType } from "@app/types/deckcard";
-
 type Props = {
   // 表示するカードリストのデッキコード
   code: string;
@@ -17,61 +15,18 @@ type Props = {
   // bg-default-100の面（バージョン一覧のカードなど）に置く場合は"content1"を指定し、
   // 同じ面のデッキコード欄と揃えてコントラストを確保する。
   background?: "default-100" | "content1";
-  // サーバ側で取得済みのカード内訳の要約。渡すと、開くまでのあいだ中身としてテキスト版を
-  // HTML に載せておく(検索エンジン向け。大会結果のカードで使う)。
-  summary?: DeckSummaryType;
-  // 押せない状態で置く。デッキコードの無い大会結果のカードで、他のカードと高さを揃えるために使う。
-  isDisabled?: boolean;
 };
-
-/*
- * 開く前のアコーディオンに載せておくテキスト版のカードリスト。
- *
- * 大会結果ページはデッキを CDN の画像でしか出しておらず、カード名が HTML に無いと
- * 検索エンジンは「何のデッキか」を読めない。たたんだ中身として載せておけば画面には出ず、
- * 開いた時点で通常のカードリスト(DeckCardDetailRow)に置き換わる。
- *
- * invisible(visibility: hidden)と aria-hidden は必須。たたんだ中身は高さ0・透明で見えない
- * だけで、そのままだとスクリーンリーダーが閉じたままのカード名を全カードぶん読み上げ
- * (実測: 大会結果の1ページで287ノード)、ページ内検索も見えない文字に当たって何も無い所へ
- * 飛ぶ。このテキストは表示されることがない(開くと置き換わる)ので、常に隠してよい。
- * HTML には残るので検索エンジンは読める。
- */
-function DeckSummaryText({ summary }: { summary: DeckSummaryType }) {
-  return (
-    <dl
-      aria-hidden="true"
-      className="invisible flex flex-col gap-1 text-tiny text-default-500"
-    >
-      {summary.groups.map((group) => (
-        <div key={group.label}>
-          <dt className="inline font-bold text-default-600">
-            {group.label}（{group.count}）：
-          </dt>
-          <dd className="inline">
-            {group.cards.map((card) => `${card.name} ×${card.count}`).join("、")}
-          </dd>
-        </div>
-      ))}
-      {summary.aceSpec && (
-        <div>
-          <dt className="inline font-bold text-default-600">ACE SPEC：</dt>
-          <dd className="inline">{summary.aceSpec}</dd>
-        </div>
-      )}
-    </dl>
-  );
-}
 
 const CARD_LIST_KEY = "cardList";
 
 /*
  * 見出しを押してから離すまでに、これ以上指が動いたら「スワイプ」とみなして開閉しない。
  *
- * 大会結果の入賞デッキカードは Swiper で横に並ぶ。閉じた見出しの上から横にスワイプすると、
+ * カルーセル(Swiper)の中に置いたときの守り。閉じた見出しの上から横にスワイプすると、
  * Swiper がスライドを指と一緒に動かすため、離した時点でも指は見出しの上にあり、
- * 見出し(react-aria の usePress)が「押された」と判定して開いていた。
- * 次のカードまで届かず元に戻ったスワイプ(実測 30px・100px)で開き、届いたもの(250px)は開かなかった。
+ * 見出し(react-aria の usePress)が「押された」と判定して開いてしまう。
+ * 大会結果の入賞デッキカード(Swiper で横に並ぶ)に置いていた頃に、次のカードまで届かず
+ * 元に戻ったスワイプ(実測 30px・100px)で開いていた。今はそのカードには置いていない。
  *
  * 16px は useModalDragToClose の TAP_SLOP と同じ。Android の Chrome は約 8px 動くまで
  * touchmove を送らないので、それより小さいと指ぶれ程度のタップまで無効になる。
@@ -86,8 +41,6 @@ const TAP_SLOP_PX = 16;
 export default function CardListAccordion({
   code,
   background = "default-100",
-  summary,
-  isDisabled = false,
 }: Props) {
   // 一度でも展開したか。閉じてもfalseへは戻さない。
   // これをkeepContentMountedへ渡すことで、
@@ -115,11 +68,10 @@ export default function CardListAccordion({
   return (
     // 記録詳細では使用デッキカード全体が親のonClick（使用デッキ編集モーダル）で
     // 包まれているため、開閉のタップで編集モーダルが開かないよう伝播を止める。
-    // 押せない状態のときは開閉が無いので止めず、親のカードと同じくタップを親へ渡す。
     // シェア画像は操作用UIを含めたくないため、書き出し時は取り除く。
     <div
       data-capture-hide="true"
-      onClick={isDisabled ? undefined : (e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
       // 開閉ボタンの押下(usePress)より先に見るため、キャプチャで拾う
       onPointerDownCapture={(e) => {
         gestureRef.current = { x: e.clientX, y: e.clientY, dragged: false };
@@ -150,7 +102,7 @@ export default function CardListAccordion({
           title: "text-tiny font-bold text-default-600",
           indicator: "text-default-500",
           // swiper-no-swiping: カルーセル(Swiper)の中に置かれたとき、展開した中身の操作で
-          // カルーセルが動かないようにする。大会結果の入賞デッキカードは Swiper で横に並ぶため、
+          // カルーセルが動かないようにする。大会結果の入賞デッキカード(Swiper で横に並ぶ)に置いていた頃、
           // カード画像の行を横スクロールすると、行ではなく外側の Swiper が次のカードへ送られていた。
           // Swiper はこのクラスの付いた要素の中からはスワイプを始めない(Swiper の外では何も起きない)。
           // 見出し(開閉ボタン)には付けないので、閉じているときはこれまでどおりカルーセルを送れる
@@ -164,15 +116,9 @@ export default function CardListAccordion({
           aria-label="カードリスト"
           title="カードリスト"
           startContent={<LuList className="text-sm text-primary" />}
-          isDisabled={isDisabled}
-          // テキスト版を載せるときは、開く前から中身をマウントしておく
-          keepContentMounted={hasOpened || !!summary}
+          keepContentMounted={hasOpened}
         >
-          {hasOpened ? (
-            <DeckCardDetailRow code={code} />
-          ) : (
-            summary && <DeckSummaryText summary={summary} />
-          )}
+          {hasOpened && <DeckCardDetailRow code={code} />}
         </AccordionItem>
       </Accordion>
     </div>

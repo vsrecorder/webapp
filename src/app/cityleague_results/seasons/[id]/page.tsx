@@ -28,7 +28,7 @@ async function findSeason(id: string): Promise<CityleagueTerm | undefined> {
 }
 
 function buildTitle(season: CityleagueTerm): string {
-  return `${season.title} の結果・優勝デッキ一覧`;
+  return `${season.title} の結果・入賞デッキ一覧`;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

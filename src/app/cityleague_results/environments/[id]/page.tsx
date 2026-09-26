@@ -28,7 +28,7 @@ async function findEnvironment(id: string): Promise<CityleagueTerm | undefined> 
 }
 
 function buildTitle(environment: CityleagueTerm): string {
-  return `『${environment.title}』環境のシティリーグ結果・優勝デッキ一覧`;
+  return `『${environment.title}』環境のシティリーグ結果・入賞デッキ一覧`;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

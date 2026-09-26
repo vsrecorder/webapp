@@ -20,7 +20,7 @@ type Props = {
 };
 
 function buildTitle(dateLabel: string): string {
-  return `${dateLabel}のシティリーグ結果・優勝デッキ一覧`;
+  return `${dateLabel}のシティリーグ結果・入賞デッキ一覧`;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

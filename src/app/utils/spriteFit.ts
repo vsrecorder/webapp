@@ -79,6 +79,21 @@ function isUnknownBounds(
   return b === SPRITE_BOUNDS["unknown"];
 }
 
+/*
+ * transform に書く数値を小数 3 桁に丸める。
+ *
+ * サーバ描画された style 属性は、ブラウザが CSS の数値として 6 有効桁に正規化して
+ * 読み戻す。丸めずに長い小数を書くと、ハイドレーション時に React が計算した文字列
+ * (translate(-14.570464652580903px, …))と DOM から読んだ値(-14.5705px)が食い違い、
+ * 「属性が一致しない」エラーになる(大会結果の入賞カードでスプライトをサーバ描画する
+ * ようになって実際に出た。id 0982 など、割り切れない値になるスプライトで起きる)。
+ * 枠は最大でも 100px 程度なので 3 桁なら 6 有効桁に収まり、そのまま往復する。
+ * 1/1000px の差は見た目に出ない。
+ */
+function round3(value: number): number {
+  return Math.round(value * 1000) / 1000;
+}
+
 export function spriteFitStyle(
   id: string | undefined | null,
   frame = 48,
@@ -111,7 +126,7 @@ export function spriteFitStyle(
     height: ch,
     maxWidth: "none",
     transformOrigin: "0 0",
-    transform: `translate(${tx}px, ${ty}px) scale(${scale})`,
+    transform: `translate(${round3(tx)}px, ${round3(ty)}px) scale(${round3(scale)})`,
   };
 }
 

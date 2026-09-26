@@ -17,7 +17,8 @@ type Props = {
  * デッキ画像の上に置く。画像に重ねる形にしないのは、デッキ画像は明るいことが多く
  * 重ね文字が読みづらいため(ギャラリー表示と同じ判断)。
  *
- * 主デッキ名は text-large の太字、型の名前(「バシャーモ型」)はその下の行に小さく出す。
+ * 主デッキ名は text-large の太字、型の名前(「バシャーモ型」)はその下の行に text-tiny で出す。
+ * 型の行は leading-5 で 20px に固定する(文字を小さくしても行の高さを変えず、骨格との一致を保つ)。
  * 型を持たない主デッキでも型の行は空けたままにする(ギャラリー表示がタグの無いデッキでも
  * タグの行を空けておくのと同じ)。同じ大会の中で型の有無によってカードの高さが変わると、
  * Swiper の高さが一番高いカードに合わせられて他のカードの下に余白が出るため。
@@ -50,8 +51,8 @@ export default function DeckArchetypeLabel({ archetype, size = 48 }: Props) {
             デッキ名：不明
           </div>
         )}
-        {/* 型の行。無くても高さ(h-5 = text-small の行)を空けたままにする */}
-        <div className="h-5 w-full min-w-0 truncate text-center font-bold text-small text-default-500">
+        {/* 型の行。無くても高さ(h-5)を空けたままにする */}
+        <div className="h-5 w-full min-w-0 truncate text-center font-bold text-tiny leading-5 text-default-500">
           {archetype.variantName}
         </div>
       </div>

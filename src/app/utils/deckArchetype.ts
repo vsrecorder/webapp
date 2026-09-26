@@ -143,22 +143,24 @@ export function parseDeckArchetypeResponse(body: unknown): DeckArchetypeMap {
 /*
  * 入賞デッキを自分のデッキとして登録するときの初期値(デッキ名・アイコン)を、分類から作る。
  *
- * 入賞カードの「このデッキコードでデッキを登録」で開く登録モーダルに渡す。名前は表示名
- * (「ドラパルトex バシャーモ型」)をそのまま使い、アイコンは分類のスプライトを 1 枠目・2 枠目に
- * 入れる(デッキのアイコンは 2 枠なので 3 体以上の定義でも先頭 2 体だけ)。どちらも登録前に
- * 利用者が変えられる。分類が無い・未分類のときは空で、これまでどおり自分で入れる。
+ * 入賞カードの「このデッキコードでデッキを登録」で開く登録モーダルに渡す。名前は主デッキ名
+ * (「ドラパルトex」)だけで、型名(「バシャーモ型」)は含めない。自分のデッキの名前としては
+ * 型まで付くと長く、同じ主デッキの別の型を登録したときに名前が割れるため。アイコンは分類の
+ * スプライトを 1 枠目・2 枠目に入れる(デッキのアイコンは 2 枠なので 3 体以上の定義でも
+ * 先頭 2 体だけ)。どちらも登録前に利用者が変えられる。分類が無い・未分類のときは空で、
+ * これまでどおり自分で入れる。
  *
- * 表示名の空白は 1 つに詰める。定義側で 2 つ続いているものがあり、そのまま入れると
+ * 名前の空白は 1 つに詰める。定義側で 2 つ続いているものがあり、そのまま入れると
  * デッキ名に不自然な空きが残るため。
  */
 export function deckArchetypeToDeckDraft(archetype: DeckArchetypeType | undefined): {
   name: string;
   sprites: DeckPokemonSpriteType[];
 } {
-  if (!archetype?.label) return { name: "", sprites: [] };
+  if (!archetype?.archetypeName) return { name: "", sprites: [] };
 
   return {
-    name: archetype.label.replace(/\s+/g, " ").trim(),
+    name: archetype.archetypeName.replace(/\s+/g, " ").trim(),
     sprites: archetype.sprites.slice(0, 2).map((id, index) => ({ id, position: index + 1 })),
   };
 }

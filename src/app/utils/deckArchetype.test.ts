@@ -174,7 +174,7 @@ describe("parseDeckArchetypeResponse", () => {
 });
 
 describe("deckArchetypeToDeckDraft", () => {
-  it("表示名をデッキ名に、スプライトを 1 枠目・2 枠目のアイコンにする", () => {
+  it("主デッキ名をデッキ名に(型名は含めない)、スプライトを 1 枠目・2 枠目のアイコンにする", () => {
     expect(
       deckArchetypeToDeckDraft({
         deckCode: "a-1",
@@ -184,7 +184,7 @@ describe("deckArchetypeToDeckDraft", () => {
         sprites: ["0887", "0257", "0006"],
       }),
     ).toEqual({
-      name: "ドラパルトex バシャーモ型",
+      name: "ドラパルトex",
       sprites: [
         { id: "0887", position: 1 },
         { id: "0257", position: 2 },
@@ -196,14 +196,14 @@ describe("deckArchetypeToDeckDraft", () => {
     expect(
       deckArchetypeToDeckDraft({
         deckCode: "a-1",
-        archetypeName: "メガミミロップex",
+        archetypeName: " ガチグマ  アカツキex ",
         variantName: "メガユキメノコ型",
-        label: "メガミミロップex  メガユキメノコ型 ",
-        sprites: ["0428_mega"],
+        label: "ガチグマ  アカツキex メガユキメノコ型",
+        sprites: ["0901_bloodmoon"],
       }),
     ).toEqual({
-      name: "メガミミロップex メガユキメノコ型",
-      sprites: [{ id: "0428_mega", position: 1 }],
+      name: "ガチグマ アカツキex",
+      sprites: [{ id: "0901_bloodmoon", position: 1 }],
     });
   });
 

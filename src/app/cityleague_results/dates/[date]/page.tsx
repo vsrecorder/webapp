@@ -4,13 +4,12 @@ import { notFound } from "next/navigation";
 
 import { LuCalendar, LuChevronRight } from "react-icons/lu";
 
-import CityleagueDateResults from "@app/components/organisms/Cityleague/CityleagueDateResults";
+import CityleagueEventLinkList from "@app/components/organisms/Cityleague/CityleagueEventLinkList";
 import CityleagueHubHeader from "@app/components/organisms/Cityleague/CityleagueHubHeader";
 
 import { buildBreadcrumbJsonLd, JsonLd } from "@app/utils/breadcrumb";
-import { formatMonthKey } from "@app/utils/cityleague";
+import { formatMonthKey, getCityleagueEventsInTerm } from "@app/utils/cityleague";
 import { dateParamToMonthKey, formatDateParam, parseDateParam } from "@app/utils/cityleagueDate";
-import { getCityleagueResultsOnDate } from "@app/utils/cityleagueDateServer";
 import { OG_SIZE, renderCityleagueDateOgImage } from "@app/utils/ogImage";
 import { ogImageUrlFor } from "@app/utils/ogStorage";
 
@@ -34,19 +33,19 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const dateLabel = formatDateParam(dateParam);
   const title = buildTitle(dateLabel);
-  const description = `${dateLabel}に開催された全国のシティリーグの結果です。オープン・シニア・ジュニアのリーグ別に、店舗ごとの優勝からベスト16までの入賞者のデッキを掲載しています。`;
+  const description = `${dateLabel}に開催された全国のシティリーグの結果一覧です。店舗ごとに、優勝からベスト16までの入賞者のデッキコードを掲載しています。`;
   const path = `/cityleague_results/dates/${dateParam}`;
 
   // 形式さえ合えばどの日でも URL になるため、結果のある日だけ画像を作る
   // (存在しない日の URL を叩かれるたびに、ストレージへ画像を置かせないため)。
-  // 本文と同じ取得なので、同じ描画の中では1回しか取りに行かない(cache)。
-  const leagues = await getCityleagueResultsOnDate(dateParam);
-  const hasResults = leagues.some((league) => league.results.length > 0);
-  const ogImageUrl = hasResults
-    ? ogImageUrlFor(`cityleague_results/dates/${dateParam}`, () =>
-        renderCityleagueDateOgImage(dateLabel),
-      )
-    : null;
+  // 本文と同じ取得なので、同じ描画の中では1回しか取りに行かない(メモ化)。
+  const events = await getCityleagueEventsInTerm(dateParam, dateParam);
+  const ogImageUrl =
+    events.length > 0
+      ? ogImageUrlFor(`cityleague_results/dates/${dateParam}`, () =>
+          renderCityleagueDateOgImage(dateLabel),
+        )
+      : null;
 
   return {
     title,
@@ -79,11 +78,11 @@ export default async function Page({ params }: Props) {
     notFound();
   }
 
-  const leagues = await getCityleagueResultsOnDate(dateParam);
-  const total = leagues.reduce((sum, league) => sum + league.results.length, 0);
+  // 開催月ページと同じく、結果が登録された会場を並べる(店舗名・都道府県・リーグ区分、個別ページへのリンク)
+  const events = await getCityleagueEventsInTerm(dateParam, dateParam);
 
   // 結果の無い日(開催が無い日・まだ登録されていない日)のページをインデックスさせないため、404 にする
-  if (total === 0) {
+  if (events.length === 0) {
     notFound();
   }
 
@@ -107,10 +106,10 @@ export default async function Page({ params }: Props) {
           backLabel="開催日から探す"
           eyebrow="DATE"
           title={buildTitle(dateLabel)}
-          count={total}
+          count={events.length}
         />
 
-        <CityleagueDateResults leagues={leagues} />
+        <CityleagueEventLinkList events={events} showDateLink={false} />
 
         {/* 同じ月の他の開催日へ横に辿れるよう、開催月のページへ繋ぐ */}
         <Link

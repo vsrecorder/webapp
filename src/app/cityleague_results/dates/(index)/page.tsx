@@ -11,7 +11,7 @@ import { ogImageUrlFor } from "@app/utils/ogStorage";
 
 const title = "開催日から探す - シティリーグ結果";
 const description =
-  "シティリーグの結果を開催日ごとに一覧できます。日付を選ぶと、その日に開催された全国のシティリーグの入賞デッキを、オープン・シニア・ジュニアのリーグ別に確認できます。";
+  "シティリーグの結果を開催日ごとに一覧できます。日付を選ぶと、その日に開催された全国のシティリーグを店舗ごとに確認でき、優勝からベスト16までのデッキコードを見られます。";
 
 export async function generateMetadata(): Promise<Metadata> {
   const ogImageUrl = ogImageUrlFor("cityleague_results/dates", renderCityleagueDateListOgImage);

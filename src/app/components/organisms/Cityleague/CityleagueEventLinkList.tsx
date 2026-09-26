@@ -13,6 +13,8 @@ type Props = {
   // イベントIDごとの優勝者。渡された行にだけ「優勝：…」を添える。
   // 店舗名の羅列だけでは「何のデッキが勝ったか」がハブに一文字も載らないため。
   winners?: Record<number, CityleagueWinnerType>;
+  // 日付見出しに開催日ページへのリンクを出すか。開催日ページ自身では自分へのリンクになるので出さない
+  showDateLink?: boolean;
 };
 
 function formatWinner(winner: CityleagueWinnerType): string {
@@ -25,7 +27,11 @@ function formatWinner(winner: CityleagueWinnerType): string {
 
 // 1ページに最大700件ほど並ぶため、HeroUI ではなく素のリンクで描画してJSの負荷を抑える。
 // サーバコンポーネントのままにすることで、リンクがそのままHTMLに載りクローラから辿れる。
-export default function CityleagueEventLinkList({ events, winners }: Props) {
+export default function CityleagueEventLinkList({
+  events,
+  winners,
+  showDateLink = true,
+}: Props) {
   if (events.length === 0) {
     return (
       <p className="py-10 text-center text-small text-default-400">
@@ -53,14 +59,16 @@ export default function CityleagueEventLinkList({ events, winners }: Props) {
               {formatEventDate(eventsOfDate[0].date)}
             </h2>
             <span className="text-tiny text-default-400">{eventsOfDate.length}件</span>
-            {/* その日の入賞デッキをまとめて見られる開催日ページへ */}
-            <Link
-              href={`/cityleague_results/dates/${dateParam}`}
-              className="ml-auto flex items-center gap-0.5 text-tiny font-bold text-primary"
-            >
-              この日の結果をまとめて見る
-              <LuChevronRight />
-            </Link>
+            {/* その日の会場をまとめて見られる開催日ページへ */}
+            {showDateLink && (
+              <Link
+                href={`/cityleague_results/dates/${dateParam}`}
+                className="ml-auto flex items-center gap-0.5 text-tiny font-bold text-primary"
+              >
+                この日の結果をまとめて見る
+                <LuChevronRight />
+              </Link>
+            )}
           </div>
 
           <ul className="flex flex-col divide-y divide-default-100 overflow-hidden rounded-2xl border border-default-100 bg-content1">

@@ -91,8 +91,7 @@ async function getCurrentOrLatestSchedule(
   return past[0] ?? null;
 }
 
-// その日(JST の暦日)にそのリーグ区分で結果が登録されている大会。開催日ページからも使う
-export async function getResultsByDate(
+async function getResultsByDate(
   leagueType: number,
   date: string,
 ): Promise<CityleagueResultType[]> {

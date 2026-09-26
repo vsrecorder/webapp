@@ -1,6 +1,8 @@
 import { Card, CardHeader, CardBody } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
 
+import { CITYLEAGUE_CARD_IMAGE_WIDTH_CLASS } from "@app/utils/cityleagueCardImage";
+
 /*
  * 入賞カード(CityleagueResultCard)のスケルトン。
  *
@@ -64,7 +66,7 @@ export default function CityleagueResultCardSkeleton({
       <CardBody className="px-3 pb-3 pt-2">
         {/*
           デッキの種類(出す場所だけ)。実体(DeckArchetypeLabel)はデッキ一覧のギャラリー表示と同じ
-          「スプライト 2 枠(48px)＋名前(text-large の 28px 行)＋型(text-small の 20px 行)」を
+          「スプライト 2 枠(48px)＋名前(text-large の 28px 行)＋型(text-tiny、行は 20px 固定)」を
           積み、下に pb-2 = 108px。型の行は実体が型の無いデッキでも空けたままにするので、
           骨格でも常に確保する。スプライトの骨格は DeckCardSkeleton と同じく、丸をキャラ位置
           (下端中央寄り)に置く。名前の幅は「ドラパルトex」相当、型は「バシャーモ型」相当。
@@ -84,16 +86,18 @@ export default function CityleagueResultCardSkeleton({
                   <Skeleton className="h-5 w-32 rounded-lg" />
                 </div>
                 <div className="flex h-5 items-center">
-                  <Skeleton className="h-3.5 w-20 rounded-md" />
+                  <Skeleton className="h-3 w-16 rounded-md" />
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* デッキ画像 */}
-        <div className="relative w-full aspect-2/1">
-          <Skeleton className="absolute inset-0 rounded-lg" />
+        {/* デッキ画像。実体と同じ幅の上限(モーダルの画像と同じ幅にするためのもの)を掛ける */}
+        <div className={CITYLEAGUE_CARD_IMAGE_WIDTH_CLASS}>
+          <div className="relative w-full aspect-2/1">
+            <Skeleton className="absolute inset-0 rounded-lg" />
+          </div>
         </div>
 
         {/*

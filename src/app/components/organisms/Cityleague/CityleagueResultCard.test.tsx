@@ -63,8 +63,37 @@ async function openCreateDeckModal() {
   await waitFor(() => expect(screen.getByTestId("create-deck-modal")).toBeTruthy());
 }
 
+describe("CityleagueResultCard の詳細モーダル", () => {
+  it("モーダルのデッキ情報は、カードの画像と同じ幅(パネルの内側まで)の列にまとめて中央に置く", async () => {
+    // jsdom はレイアウトを持たないので、カードの画像枠の幅を 346px(個別ページの実測)に固定する
+    const original = HTMLElement.prototype.getBoundingClientRect;
+    HTMLElement.prototype.getBoundingClientRect = function () {
+      return { ...original.call(this), width: 346 } as DOMRect;
+    };
+
+    try {
+      render(<CityleagueResultCard result={result} date={new Date()} deckArchetype={archetype} />);
+
+      fireEvent.click(screen.getByText(`デッキコード ${DECK_CODE}`));
+
+      const dialog = await screen.findByRole("dialog");
+      const image = dialog.querySelector('img[src*="images/decks"]')!;
+      // 画像を含むデッキ情報の列。デッキコード欄も同じ列に入る(画像だけ幅が違うと端が揃わない)
+      const column = image.closest("div[style]") as HTMLElement;
+
+      expect(column.style.width).toBe("346px");
+      // パネルの余白を優先し、内側より広いときは内側いっぱいまでに縮める
+      expect(column.className).toContain("max-w-full");
+      expect(column.className).toContain("mx-auto");
+      expect(column.textContent).toContain(DECK_CODE);
+    } finally {
+      HTMLElement.prototype.getBoundingClientRect = original;
+    }
+  });
+});
+
 describe("CityleagueResultCard のデッキ登録", () => {
-  it("分類が付いていれば、その名前とアイコンを入れた状態で登録モーダルを開く", async () => {
+  it("分類が付いていれば、主デッキ名(型名は含めない)とアイコンを入れた状態で登録モーダルを開く", async () => {
     render(<CityleagueResultCard result={result} date={new Date()} deckArchetype={archetype} />);
 
     await openCreateDeckModal();
@@ -72,7 +101,7 @@ describe("CityleagueResultCard のデッキ登録", () => {
     expect(createDeckModalProps).toHaveBeenLastCalledWith(
       expect.objectContaining({
         deck_code: DECK_CODE,
-        initialName: "ドラパルトex バシャーモ型",
+        initialName: "ドラパルトex",
         initialSprites: [
           { id: "0887", position: 1 },
           { id: "0257", position: 2 },

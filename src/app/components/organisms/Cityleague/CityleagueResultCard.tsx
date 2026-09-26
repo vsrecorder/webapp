@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Card, CardHeader, CardBody } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
@@ -51,6 +51,7 @@ import {
   cityleagueRankBorderClass,
   cityleagueRankLabel,
 } from "@app/utils/cityleagueRank";
+import { CITYLEAGUE_CARD_IMAGE_WIDTH_CLASS } from "@app/utils/cityleagueCardImage";
 import { deckArchetypeToDeckDraft } from "@app/utils/deckArchetype";
 import { formatMainPokemon } from "@app/utils/deckSummary";
 
@@ -146,6 +147,34 @@ export default function CityleagueResultCard({
 
   const { status } = useSession();
 
+  /*
+   * 詳細モーダルのデッキ画像を、カードの画像と同じ幅で出すための実測値。
+   *
+   * モーダルは開いた場所によらず自分の余白(ModalBody p-3 + パネル px-4)で幅が決まるため、
+   * カードの画像とは一致しない(390px 幅の実測: 一覧のカード 330px・個別ページのカード 346px に対して
+   * モーダルは 326px。PC の個別ページではカード 385px に対してモーダルは全幅の 1176px)。
+   * 余白を固定で合わせても一覧と個別ページの両方には合わないので、開く瞬間にカードの画像幅を
+   * 測ってモーダルへ渡し、その幅で中央に置く。開いている間に画面の幅が変わったら測り直す。
+   *
+   * カードの画像はモーダルの内側を超えないよう抑えてある(CITYLEAGUE_CARD_IMAGE_WIDTH_CLASS)ので、
+   * 測った幅はパネルの余白(px-4)を削らずにそのまま入る。
+   */
+  const cardImageRef = useRef<HTMLDivElement>(null);
+  const [modalImageWidth, setModalImageWidth] = useState<number | null>(null);
+
+  const measureCardImage = () => {
+    const width = cardImageRef.current?.getBoundingClientRect().width ?? 0;
+    setModalImageWidth(width > 0 ? width : null);
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    window.addEventListener("resize", measureCardImage);
+
+    return () => window.removeEventListener("resize", measureCardImage);
+  }, [isOpen]);
+
   {
     /*
   useEffect(() => {
@@ -239,8 +268,8 @@ export default function CityleagueResultCard({
     (deckName ? `（${deckName}）` : "") +
     ` デッキコード ${result.deck_code}`;
 
-  // 「このデッキコードでデッキを登録」の初期値。分類が付いていれば、その名前とアイコンを
-  // 入れた状態で登録モーダルを開く(みんなの公開デッキの「取り込む」と同じ。登録前に変えられる)
+  // 「このデッキコードでデッキを登録」の初期値。分類が付いていれば、主デッキ名(型名は含めない)と
+  // アイコンを入れた状態で登録モーダルを開く(みんなの公開デッキの「取り込む」と同じ。登録前に変えられる)
   const deckDraft = deckArchetypeToDeckDraft(deckArchetype);
 
   return (
@@ -256,6 +285,7 @@ export default function CityleagueResultCard({
 
       <div
         onClick={() => {
+          measureCardImage();
           onOpen();
         }}
         className="cursor-pointer transition-transform active:scale-[0.98]"
@@ -304,13 +334,16 @@ export default function CityleagueResultCard({
                     <DeckArchetypeLabel archetype={deckArchetype} />
                   </div>
                 )}
-                {/* カード内ではタップで詳細モーダルを開くため、画像タップのZoomは無効化する */}
-                <ZoomableDeckImage
-                  loading="lazy"
-                  code={result.deck_code}
-                  alt={deckImageAlt}
-                  disableZoom
-                />
+                {/* カード内ではタップで詳細モーダルを開くため、画像タップのZoomは無効化する。
+                    包む div は、モーダルの画像をこの画像と同じ幅にするための計測点 */}
+                <div ref={cardImageRef} className={CITYLEAGUE_CARD_IMAGE_WIDTH_CLASS}>
+                  <ZoomableDeckImage
+                    loading="lazy"
+                    code={result.deck_code}
+                    alt={deckImageAlt}
+                    disableZoom
+                  />
+                </div>
                 {/* デッキの中身は CDN の画像で文字では追えないため、主なポケモンとデッキコードを
                     テキストでも出す。カードリストはカードには置かず、タップで開く詳細モーダルで見せる */}
                 {mainPokemon && (
@@ -326,7 +359,10 @@ export default function CityleagueResultCard({
               </>
             ) : (
               <>
-                <NoDeckCodeImage />
+                {/* 画像の幅はデッキコードがあるカードと同じ上限にする(同じ大会の中で高さが揃うように) */}
+                <div className={CITYLEAGUE_CARD_IMAGE_WIDTH_CLASS}>
+                  <NoDeckCodeImage />
+                </div>
                 {/* カードの高さはデッキコードがあるカードに揃える(一覧で1枚だけ短いと目立つ)。
                     「主なポケモン」「デッキコード」の2行は同じ指定の行を見えない状態で置いて
                     高さを決め、その中央に「デッキコードなし」を重ねる。台紙の画像だけだと
@@ -377,20 +413,16 @@ export default function CityleagueResultCard({
                 )}
               </ModalHeader>
               <ModalBody className="p-3 gap-3">
-                {/* プレイヤー情報：見出しの下に埋もれないよう、アイコン付きの
-                    目立つカードで表示する */}
-                <div className="flex items-center gap-3 rounded-xl border border-primary/20 bg-linear-to-r from-primary/10 to-primary/5 px-4 py-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/15">
-                    <LuUser className="text-xl text-primary" />
+                {/* プレイヤー情報：アイコン・名前・ID を 1 行に詰める。主役はデッキ情報なので、
+                    ここは縦を取らない(以前は名前と ID の 2 行で 66px あった) */}
+                <div className="flex items-center gap-2 rounded-xl border border-primary/20 bg-linear-to-r from-primary/10 to-primary/5 px-3 py-1.5">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/15">
+                    <LuUser className="text-sm text-primary" />
                   </div>
-                  <div className="flex min-w-0 flex-col">
-                    <span className="truncate text-base font-bold">
-                      {result.player_name}
-                    </span>
-                    <span className="text-tiny text-default-500">
-                      ID: {result.player_id}
-                    </span>
-                  </div>
+                  <span className="min-w-0 truncate text-sm font-bold">{result.player_name}</span>
+                  <span className="ml-auto shrink-0 text-tiny text-default-500">
+                    ID: {result.player_id}
+                  </span>
                 </div>
 
                 {/* ボード：記録情報モーダルと同じ「デッキ情報」パネルデザインでまとめる。
@@ -399,7 +431,14 @@ export default function CityleagueResultCard({
                 <Card shadow="sm" className="w-full overflow-hidden">
                   <CardBody className="p-0">
                     <BoardPanel icon={<LuLayers />} label="デッキ情報">
-                      <div className="flex flex-col gap-2.5">
+                      {/* 中身(種類・画像・デッキコード欄・カードリスト・リンク)は 1 本の列にまとめて
+                          同じ幅にする(modalImageWidth)。画像だけ幅を変えると、下のデッキコード欄や
+                          カードリストと端が揃わず見た目がばらつく。カードの画像はモーダルの内側に収まる幅に
+                          抑えてあるので、max-w-full は測り違えたときの保険。測れていなければ内側いっぱい */}
+                      <div
+                        className="mx-auto flex w-full max-w-full flex-col gap-2.5"
+                        style={modalImageWidth ? { width: modalImageWidth } : undefined}
+                      >
                         {result.deck_code ? (
                           <>
                             {/* デッキの種類。カードと同じ形(スプライトの下に名前)で画像の上に置く */}

@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { LuCalendar, LuCrown, LuLayers, LuTrophy } from "react-icons/lu";
+import { LuCalendar, LuCalendarDays, LuCrown, LuLayers, LuTrophy } from "react-icons/lu";
 
 import CityleagueBrowseBar from "@app/components/organisms/Cityleague/CityleagueBrowseBar";
 
@@ -14,6 +14,7 @@ const AXES = [
   { href: "/cityleague_results/seasons", icon: LuTrophy, label: "シーズン" },
   { href: "/cityleague_results/environments", icon: LuLayers, label: "環境" },
   { href: "/cityleague_results/months", icon: LuCalendar, label: "開催月" },
+  { href: "/cityleague_results/dates", icon: LuCalendarDays, label: "開催日" },
   { href: "/cityleague_results/championsleagues", icon: LuCrown, label: "大型大会" },
 ];
 
@@ -24,15 +25,19 @@ export default function CityleagueBrowseSection() {
           見出しラベルは置かないため、このチップ群が何なのかは nav の aria-label だけが伝える。 */}
       <nav
         aria-label="過去の公式大会の結果を探す"
-        className="flex items-center justify-center-safe gap-2 overflow-x-auto px-2.5 py-2"
+        // 5つ(開催日を足した)で 390px 幅に収まるよう、横の余白は詰めてある
+        // (以前の gap-2 / px-2.5 のままだと 43px はみ出し、右端の「大型大会」が見切れていた)。
+        // 縦の余白(py)は変えないこと: 固定バー(CityleagueBrowseBar)の高さが変わる
+        className="flex items-center justify-center-safe gap-1.5 overflow-x-auto px-1.5 py-2"
       >
         {AXES.map((axis) => (
           <Link
             key={axis.href}
             href={axis.href}
-            className="flex shrink-0 items-center gap-1 rounded-full border border-default-200 bg-content1 px-2.5 py-1 font-bold text-tiny text-default-600 hover:bg-default-100"
+            className="flex shrink-0 items-center gap-0.5 rounded-full border border-default-200 bg-content1 px-2 py-1 font-bold text-tiny text-default-600 hover:bg-default-100"
           >
-            <axis.icon className="h-3 w-3 text-primary" />
+            {/* 390px 未満(375px・360px の端末)ではアイコンを外して文字だけにし、5つを収める */}
+            <axis.icon className="h-3 w-3 text-primary max-[389px]:hidden" />
             <span>{axis.label}</span>
           </Link>
         ))}

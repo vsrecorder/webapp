@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { LuCalendar, LuChevronRight, LuLayers, LuTrophy } from "react-icons/lu";
+import { LuCalendar, LuCalendarDays, LuChevronRight, LuLayers, LuTrophy } from "react-icons/lu";
 
 import { OfficialEventType } from "@app/types/official_event";
 import {
@@ -12,6 +12,7 @@ import {
   getRelatedCityleagueEvents,
   toMonthKey,
 } from "@app/utils/cityleague";
+import { formatDateParam, toDateParam } from "@app/utils/cityleagueDate";
 
 type Props = {
   event: OfficialEventType;
@@ -41,7 +42,13 @@ export default async function CityleagueRelatedSection({ event }: Props) {
   const environment = findTermByDate(environments, event.date);
 
   // 該当が見つかった軸だけ出す。シーズン・環境は期間外の日付だと引けないことがある。
+  const dateParam = toDateParam(event.date);
   const hubs = [
+    {
+      href: `/cityleague_results/dates/${dateParam}`,
+      icon: LuCalendarDays,
+      label: `${formatDateParam(dateParam)}の結果`,
+    },
     {
       href: `/cityleague_results/months/${monthKey}`,
       icon: LuCalendar,

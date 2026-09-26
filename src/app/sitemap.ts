@@ -11,6 +11,7 @@ import {
   getEnvironments,
   toMonthKey,
 } from "@app/utils/cityleague";
+import { toDateParam } from "@app/utils/cityleagueDate";
 import { deckCodePostPath, sharedDecksPath } from "@app/utils/deckCodePost";
 import { getRecentDeckCodePostRefs } from "@app/utils/deckCodePostServer";
 
@@ -43,6 +44,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: url + "/cityleague_results/seasons", changeFrequency: "weekly" },
     { url: url + "/cityleague_results/environments", changeFrequency: "weekly" },
     { url: url + "/cityleague_results/months", changeFrequency: "weekly" },
+    { url: url + "/cityleague_results/dates", changeFrequency: "weekly" },
     { url: url + "/cityleague_results/championsleagues", changeFrequency: "weekly" },
     { url: url + "/deck_meta", changeFrequency: "weekly" },
     { url: url + "/kizuna", changeFrequency: "weekly" },
@@ -73,15 +75,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     changeFrequency: "weekly",
   }));
 
-  // 結果が1件も無いシーズン・環境・月はページ自体を出さないため、sitemap にも載せない。
+  // 結果が1件も無いシーズン・環境・月・開催日はページ自体を出さないため、sitemap にも載せない。
   const seasonIds = new Set<string>();
   const environmentIds = new Set<string>();
   const monthKeys = new Set<string>();
+  const dateParams = new Set<string>();
 
   for (const ref of eventRefs) {
     seasonIds.add(findTermByDate(seasons, ref.date)?.id ?? "");
     environmentIds.add(findTermByDate(environments, ref.date)?.id ?? "");
     monthKeys.add(toMonthKey(ref.date));
+    dateParams.add(toDateParam(ref.date));
   }
   seasonIds.delete("");
   environmentIds.delete("");
@@ -142,6 +146,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
     ...[...monthKeys].map((monthKey) => ({
       url: `${url}/cityleague_results/months/${monthKey}`,
+      changeFrequency: "weekly" as const,
+    })),
+    ...[...dateParams].map((dateParam) => ({
+      url: `${url}/cityleague_results/dates/${dateParam}`,
       changeFrequency: "weekly" as const,
     })),
   ];

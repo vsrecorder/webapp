@@ -76,6 +76,12 @@ export default async function Footer() {
                 開催月から探す
               </Link>
               <Link
+                href="/cityleague_results/dates"
+                className="text-sm hover:text-white transition-colors duration-150"
+              >
+                開催日から探す
+              </Link>
+              <Link
                 href="/deck_meta"
                 className="text-sm hover:text-white transition-colors duration-150"
               >

@@ -5,6 +5,7 @@ import { LuChevronRight } from "react-icons/lu";
 import { CityleagueWinnerType } from "@app/types/cityleague_result";
 import { OfficialEventType } from "@app/types/official_event";
 import { formatEventDate } from "@app/utils/cityleague";
+import { toDateParam } from "@app/utils/cityleagueDate";
 import { formatMainPokemon } from "@app/utils/deckSummary";
 
 type Props = {
@@ -34,9 +35,10 @@ export default function CityleagueEventLinkList({ events, winners }: Props) {
   }
 
   // 開催日ごとに区切る。同じ日付が何十件も繰り返されるのを避け、一覧としても読みやすくする。
+  // キーは開催日ページの URL にも使う暦日("YYYY-MM-DD")
   const groups = new Map<string, OfficialEventType[]>();
   for (const event of events) {
-    const key = formatEventDate(event.date);
+    const key = toDateParam(event.date);
     const list = groups.get(key) ?? [];
     list.push(event);
     groups.set(key, list);
@@ -44,11 +46,21 @@ export default function CityleagueEventLinkList({ events, winners }: Props) {
 
   return (
     <div className="flex flex-col gap-5">
-      {[...groups.entries()].map(([date, eventsOfDate]) => (
-        <section key={date} className="flex flex-col gap-1.5">
+      {[...groups.entries()].map(([dateParam, eventsOfDate]) => (
+        <section key={dateParam} className="flex flex-col gap-1.5">
           <div className="flex items-baseline gap-2 px-0.5">
-            <h2 className="font-bold text-small text-default-700">{date}</h2>
+            <h2 className="font-bold text-small text-default-700">
+              {formatEventDate(eventsOfDate[0].date)}
+            </h2>
             <span className="text-tiny text-default-400">{eventsOfDate.length}件</span>
+            {/* その日の入賞デッキをまとめて見られる開催日ページへ */}
+            <Link
+              href={`/cityleague_results/dates/${dateParam}`}
+              className="ml-auto flex items-center gap-0.5 text-tiny font-bold text-primary"
+            >
+              この日の結果をまとめて見る
+              <LuChevronRight />
+            </Link>
           </div>
 
           <ul className="flex flex-col divide-y divide-default-100 overflow-hidden rounded-2xl border border-default-100 bg-content1">

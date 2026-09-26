@@ -301,6 +301,14 @@ export function renderCityleagueMonthListOgImage(): Promise<Buffer> {
   });
 }
 
+export function renderCityleagueDateListOgImage(): Promise<Buffer> {
+  return renderHubOgImage({
+    chip: "シティリーグ結果",
+    heading: "開催日から探す",
+    lead: "シティリーグの結果を開催日ごとに一覧",
+  });
+}
+
 // 店舗名は「鹿角ラボ」から「TSUTAYA Trading Card 宇都宮インターパークビレッジ店」まで
 // 長さの幅が大きい。固定サイズだと長い名前が折り返して下段を押し出すため、文字数に応じて縮小する。
 function shopNameFontSize(shopName: string): number {
@@ -467,6 +475,15 @@ export function renderCityleagueMonthOgImage(monthTitle: string): Promise<Buffer
     chip: "シティリーグ結果",
     title: monthTitle,
     meta: ["全国のシティリーグの結果を店舗ごとに掲載"],
+  });
+}
+
+// 開催日の個別ページ用。dateTitle は「2026年9月26日(土)」
+export function renderCityleagueDateOgImage(dateTitle: string): Promise<Buffer> {
+  return renderTitledResultOgImage({
+    chip: "シティリーグ結果",
+    title: dateTitle,
+    meta: ["この日に開催された全国のシティリーグの入賞デッキを掲載"],
   });
 }
 

@@ -29,8 +29,14 @@ async function findSeason(id: string): Promise<CityleagueTerm | undefined> {
 
 // シーズン名自体が「シティリーグ2027 シーズン1」のように「シティリーグ」を含むので、
 // ほかのハブの「…のシティリーグ入賞デッキ一覧」に合わせると重複する。「…の入賞デッキ一覧」にする
+// 見出しは「の」の後ろで改行して見せる(CityleagueHubHeader の titleLines)。
+// 1行のタイトル(<title>・OGP)は各行をつないだもの
+function buildTitleLines(season: CityleagueTerm): string[] {
+  return [`${season.title} の`, "入賞デッキ一覧"];
+}
+
 function buildTitle(season: CityleagueTerm): string {
-  return `${season.title} の入賞デッキ一覧`;
+  return buildTitleLines(season).join("");
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -102,6 +108,7 @@ export default async function Page({ params }: Props) {
           backLabel="シーズンから探す"
           eyebrow="SEASON"
           title={buildTitle(season)}
+          titleLines={buildTitleLines(season)}
           subtitle={formatTermRange(season)}
           count={events.length}
         />

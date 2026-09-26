@@ -19,8 +19,14 @@ type Props = {
   }>;
 };
 
+// 見出しは「の」の後ろで改行して見せる(CityleagueHubHeader の titleLines)。
+// 1行のタイトル(<title>・OGP)は各行をつないだもの
+function buildTitleLines(dateLabel: string): string[] {
+  return [`${dateLabel}の`, "シティリーグ入賞デッキ一覧"];
+}
+
 function buildTitle(dateLabel: string): string {
-  return `${dateLabel}のシティリーグ入賞デッキ一覧`;
+  return buildTitleLines(dateLabel).join("");
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -106,6 +112,7 @@ export default async function Page({ params }: Props) {
           backLabel="開催日から探す"
           eyebrow="DATE"
           title={buildTitle(dateLabel)}
+          titleLines={buildTitleLines(dateLabel)}
           count={events.length}
         />
 

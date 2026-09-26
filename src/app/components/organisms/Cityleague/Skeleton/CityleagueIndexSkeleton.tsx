@@ -59,7 +59,7 @@ export default function CityleagueIndexSkeleton({
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-3 pt-4 pb-8">
       {/* 索引ページのタイトルは短く1行。戻るリンクは「シティリーグ結果」で実測 155px */}
       <CityleagueHubHeaderSkeleton
-        titleLines={1}
+        titleLineWidths={["w-48"]}
         showSubtitle={showHeaderSubtitle}
         backLinkWidthClass="w-40"
       />

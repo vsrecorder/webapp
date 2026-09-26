@@ -6,8 +6,12 @@ type Props = {
   // 日付グループの数と、各グループの行数のダミー。実データが返るまでの「枠」を用意する。
   groupCount?: number;
   rowsPerGroup?: number;
-  // タイトル(h1)の行数。個別ページのタイトルは 390px 幅で2行に折り返す(実測)
-  titleLines?: 1 | 2;
+  /*
+   * タイトル(h1)の各行のバーの幅。個別ページは「〇〇の / シティリーグ入賞デッキ一覧」の2行
+   * (390px 幅の実測: 2行目は 259px。1行目は開催日 194px・開催月 117px・環境 200〜348px・
+   * シーズン 285px。シーズンの2行目は「入賞デッキ一覧」で 140px)。
+   */
+  titleLineWidths?: string[];
   // 期間の補足行を持つか(シーズン・環境の個別ページ)
   showSubtitle?: boolean;
   // 戻るリンクの幅(「開催月から探す」など実測 128〜155px)
@@ -25,14 +29,14 @@ type Props = {
 export default function CityleagueEventListSkeleton({
   groupCount = 4,
   rowsPerGroup = 4,
-  titleLines = 2,
+  titleLineWidths = ["w-48", "w-64"],
   showSubtitle = false,
   backLinkWidthClass = "w-36",
 }: Props) {
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-3 pt-4 pb-8">
       <CityleagueHubHeaderSkeleton
-        titleLines={titleLines}
+        titleLineWidths={titleLineWidths}
         showSubtitle={showSubtitle}
         backLinkWidthClass={backLinkWidthClass}
       />

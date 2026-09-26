@@ -30,7 +30,11 @@ export default function Loading() {
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-3 pt-4 pb-8">
       {/* 戻るリンクは「大型大会の結果一覧」 */}
-      <CityleagueHubHeaderSkeleton titleLines={1} showSubtitle backLinkWidthClass="w-40" />
+      <CityleagueHubHeaderSkeleton
+        titleLineWidths={["w-72"]}
+        showSubtitle
+        backLinkWidthClass="w-40"
+      />
 
       {/* 概要カード(会場のチップ・要約文・入賞人数) */}
       <Card className="w-full">

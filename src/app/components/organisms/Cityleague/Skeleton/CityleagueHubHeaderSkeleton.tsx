@@ -1,8 +1,13 @@
 import { Skeleton } from "@heroui/react";
 
 type Props = {
-  // タイトル(h1)の行数。個別ページのタイトルは 390px 幅で2行に折り返す
-  titleLines?: 1 | 2;
+  /*
+   * タイトル(h1)の各行のバーの幅。行数もこれで決まる。
+   * 個別ページのタイトルは「2026年9月26日(土)の / シティリーグ入賞デッキ一覧」のように
+   * 「の」の後ろで改行して2行で出す(CityleagueHubHeader の titleLines)ので、
+   * 各行の実測幅に近いバーを置く。既定は索引ページの短い1行。
+   */
+  titleLineWidths?: string[];
   // 期間などの補足行(subtitle)を持つか。シーズン・環境の個別ページは持つ
   showSubtitle?: boolean;
   // 戻るリンクの幅(文言の長さに合わせる)
@@ -19,7 +24,7 @@ type Props = {
  * 切り替わった瞬間に一覧がまとめて下へずれていた。
  */
 export default function CityleagueHubHeaderSkeleton({
-  titleLines = 1,
+  titleLineWidths = ["w-48"],
   showSubtitle = false,
   backLinkWidthClass = "w-40",
 }: Props) {
@@ -34,14 +39,11 @@ export default function CityleagueHubHeaderSkeleton({
         </div>
         {/* タイトルの1行 = 27.5px(text-xl 20px × leading-snug 1.375) */}
         <div className="flex flex-col">
-          <div className="flex h-[1.71875rem] items-center">
-            <Skeleton className="h-5 w-64 rounded-md" />
-          </div>
-          {titleLines === 2 && (
-            <div className="flex h-[1.71875rem] items-center">
-              <Skeleton className="h-5 w-40 rounded-md" />
+          {titleLineWidths.map((widthClass, index) => (
+            <div key={index} className="flex h-[1.71875rem] items-center">
+              <Skeleton className={`h-5 ${widthClass} rounded-md`} />
             </div>
-          )}
+          ))}
         </div>
         {showSubtitle && (
           <div className="flex h-4 items-center">

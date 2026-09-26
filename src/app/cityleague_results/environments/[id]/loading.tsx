@@ -8,5 +8,6 @@ import CityleagueEventListSkeleton from "@app/components/organisms/Cityleague/Sk
 // 索引側を直下(例: seasons/loading.tsx)へ戻すと、この骨格より先に索引の骨格が出る。
 // 詳細側にこのファイルを置いても打ち消せない(2026-09-08 実測)ので、索引側を動かさないこと。
 export default function Loading() {
-  return <CityleagueEventListSkeleton showSubtitle />;
+  // 環境名が長い一部(26件中5件)は1行目が折り返して3行になるが、多くは2行
+  return <CityleagueEventListSkeleton titleLineWidths={["w-64", "w-64"]} showSubtitle />;
 }

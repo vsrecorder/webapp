@@ -13,6 +13,7 @@ import {
   toTermKey,
 } from "@app/utils/cityleague";
 import { OG_SIZE, renderCityleagueTermOgImage } from "@app/utils/ogImage";
+import { splitAtBreakPoints } from "@app/utils/titleBreak";
 import { ogImageUrlFor } from "@app/utils/ogStorage";
 
 type Props = {
@@ -27,8 +28,44 @@ async function findEnvironment(id: string): Promise<CityleagueTerm | undefined> 
   return environments.find((environment) => environment.id === id);
 }
 
+/*
+ * 見出しの1行目「『環境名』環境の」。環境名が長いと1行に収まらない(26件中5件)。
+ *   - 「環境の」は改行しないまとまりにする(「…環 / 境の」と語の途中で切れないように)
+ *   - 「スカーレットex/バイオレットex」「スタートデッキ100 バトルコレクション」のように
+ *     「/」や空白を含む名前はその後ろで改行し、各部分の途中では切らない
+ *     (「サイバージャッ / ジ』」「コレクシ / ョン』」のようにならないように)
+ */
+function EnvironmentTitleLine({ title }: { title: string }) {
+  // 改行してよい所(「/」の後ろ・空白)で区切る(区切り方は splitAtBreakPoints)。
+  // 区切りの無い名前はまとまりにしない(1行に収まらないとはみ出してしまうため、幅に任せる)
+  const segments = splitAtBreakPoints(title);
+  const hasBreakPoints = segments.length > 1;
+
+  return (
+    <>
+      『
+      {segments.map((segment, index) =>
+        typeof segment === "string" ? (
+          segment
+        ) : (
+          <span key={index} className={hasBreakPoints ? "whitespace-nowrap" : undefined}>
+            {segment.text}
+          </span>
+        ),
+      )}
+      』<span className="whitespace-nowrap">環境の</span>
+    </>
+  );
+}
+
+// 見出しは「の」の後ろで改行して見せる(CityleagueHubHeader の titleLines)。
+// 1行のタイトル(<title>・OGP)は各行をつないだもの
+function buildTitleLines(environment: CityleagueTerm): string[] {
+  return [`『${environment.title}』環境の`, "シティリーグ入賞デッキ一覧"];
+}
+
 function buildTitle(environment: CityleagueTerm): string {
-  return `『${environment.title}』環境のシティリーグ入賞デッキ一覧`;
+  return buildTitleLines(environment).join("");
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -106,6 +143,11 @@ export default async function Page({ params }: Props) {
           backLabel="環境から探す"
           eyebrow="ENVIRONMENT"
           title={buildTitle(environment)}
+          // 1行目は環境名が長いと折り返すので、切れ目を選んだ要素で渡す(EnvironmentTitleLine)
+          titleLines={[
+            <EnvironmentTitleLine key="environment" title={environment.title} />,
+            buildTitleLines(environment)[1],
+          ]}
           subtitle={formatTermRange(environment)}
           count={events.length}
         />

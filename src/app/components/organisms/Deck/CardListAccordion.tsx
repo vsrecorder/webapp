@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
-import { Accordion, AccordionItem } from "@heroui/react";
+import { Accordion, AccordionItem, type Selection } from "@heroui/react";
 
 import { LuList } from "react-icons/lu";
 
@@ -63,6 +63,21 @@ function DeckSummaryText({ summary }: { summary: DeckSummaryType }) {
   );
 }
 
+const CARD_LIST_KEY = "cardList";
+
+/*
+ * 見出しを押してから離すまでに、これ以上指が動いたら「スワイプ」とみなして開閉しない。
+ *
+ * 大会結果の入賞デッキカードは Swiper で横に並ぶ。閉じた見出しの上から横にスワイプすると、
+ * Swiper がスライドを指と一緒に動かすため、離した時点でも指は見出しの上にあり、
+ * 見出し(react-aria の usePress)が「押された」と判定して開いていた。
+ * 次のカードまで届かず元に戻ったスワイプ(実測 30px・100px)で開き、届いたもの(250px)は開かなかった。
+ *
+ * 16px は useModalDragToClose の TAP_SLOP と同じ。Android の Chrome は約 8px 動くまで
+ * touchmove を送らないので、それより小さいと指ぶれ程度のタップまで無効になる。
+ */
+const TAP_SLOP_PX = 16;
+
 /*
  * デッキコードのカード内訳（カードリスト）を、たたんだ状態で置くためのアコーディオン。
  * 記録詳細・記録情報モーダル・デッキ詳細モーダル・バージョン一覧のように、
@@ -82,6 +97,21 @@ export default function CardListAccordion({
   // の両方を満たす。
   const [hasOpened, setHasOpened] = useState(false);
 
+  // 開閉の状態。スワイプだった操作による開閉を無視するため、アコーディオン任せにせずここで持つ
+  const [expandedKeys, setExpandedKeys] = useState<Selection>(new Set());
+
+  // 見出しを押したときの位置と、そこから TAP_SLOP_PX 以上動いたか。
+  // 描画には使わないので ref。次に押したとき・キーボードで操作したときに捨てる
+  const gestureRef = useRef<{ x: number; y: number; dragged: boolean } | null>(null);
+
+  const handleSelectionChange = (keys: Selection) => {
+    // スワイプの指を離したときの「押された」は開閉として扱わない
+    if (gestureRef.current?.dragged) return;
+
+    setExpandedKeys(keys);
+    if (keys === "all" || keys.has(CARD_LIST_KEY)) setHasOpened(true);
+  };
+
   return (
     // 記録詳細では使用デッキカード全体が親のonClick（使用デッキ編集モーダル）で
     // 包まれているため、開閉のタップで編集モーダルが開かないよう伝播を止める。
@@ -90,6 +120,24 @@ export default function CardListAccordion({
     <div
       data-capture-hide="true"
       onClick={isDisabled ? undefined : (e) => e.stopPropagation()}
+      // 開閉ボタンの押下(usePress)より先に見るため、キャプチャで拾う
+      onPointerDownCapture={(e) => {
+        gestureRef.current = { x: e.clientX, y: e.clientY, dragged: false };
+      }}
+      onPointerMoveCapture={(e) => {
+        const gesture = gestureRef.current;
+        if (!gesture || gesture.dragged) return;
+        if (
+          Math.abs(e.clientX - gesture.x) >= TAP_SLOP_PX ||
+          Math.abs(e.clientY - gesture.y) >= TAP_SLOP_PX
+        ) {
+          gesture.dragged = true;
+        }
+      }}
+      // Enter / Space での開閉は指の動きと関係ない。直前のスワイプの記録を持ち越さない
+      onKeyDownCapture={() => {
+        gestureRef.current = null;
+      }}
     >
       <Accordion
         isCompact
@@ -108,11 +156,11 @@ export default function CardListAccordion({
           // 見出し(開閉ボタン)には付けないので、閉じているときはこれまでどおりカルーセルを送れる
           content: "pt-0 pb-2.5 swiper-no-swiping",
         }}
-        // たたんだ状態から始まるため、初回の変化は必ず「開く」操作になる
-        onSelectionChange={() => setHasOpened(true)}
+        selectedKeys={expandedKeys}
+        onSelectionChange={handleSelectionChange}
       >
         <AccordionItem
-          key="cardList"
+          key={CARD_LIST_KEY}
           aria-label="カードリスト"
           title="カードリスト"
           startContent={<LuList className="text-sm text-primary" />}

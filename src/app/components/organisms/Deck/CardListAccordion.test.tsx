@@ -93,4 +93,48 @@ describe("CardListAccordion", () => {
     expect(screen.queryByTestId("detail-row")).toBeNull();
     expect(onParentClick).toHaveBeenCalledTimes(1);
   });
+
+  /*
+   * 閉じた見出しの上から横にスワイプすると、外側の Swiper がスライドを指ごと動かすので、
+   * 離した時点でも指は見出しの上にあり「押された」と判定されて開いていた。
+   */
+  it("見出しの上でスワイプした操作では開かない", () => {
+    render(<CardListAccordion code={SUMMARY.code} />);
+    const trigger = screen.getByRole("button", { name: "カードリスト" });
+
+    fireEvent.pointerDown(trigger, { clientX: 100, clientY: 100 });
+    fireEvent.pointerMove(trigger, { clientX: 60, clientY: 100 });
+    fireEvent.click(trigger);
+
+    expect(screen.queryByTestId("detail-row")).toBeNull();
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+  });
+
+  it("指ぶれ程度の動きならタップとして開く", () => {
+    render(<CardListAccordion code={SUMMARY.code} />);
+    const trigger = screen.getByRole("button", { name: "カードリスト" });
+
+    fireEvent.pointerDown(trigger, { clientX: 100, clientY: 100 });
+    fireEvent.pointerMove(trigger, { clientX: 92, clientY: 103 });
+    fireEvent.click(trigger);
+
+    expect(screen.getByTestId("detail-row")).toBeTruthy();
+  });
+
+  // スワイプの記録を持ち越して、次のキーボード操作まで無視しないこと
+  it("スワイプの後でもキーボードでは開ける", () => {
+    render(<CardListAccordion code={SUMMARY.code} />);
+    const trigger = screen.getByRole("button", { name: "カードリスト" });
+
+    fireEvent.pointerDown(trigger, { clientX: 100, clientY: 100 });
+    fireEvent.pointerMove(trigger, { clientX: 40, clientY: 100 });
+    fireEvent.click(trigger);
+    expect(screen.queryByTestId("detail-row")).toBeNull();
+
+    fireEvent.keyDown(trigger, { key: "Enter" });
+    fireEvent.keyUp(trigger, { key: "Enter" });
+
+    expect(screen.getByTestId("detail-row")).toBeTruthy();
+  });
 });
+

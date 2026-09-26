@@ -44,3 +44,22 @@ export function buildSearchDates(
 
   return dates;
 }
+
+/*
+ * 結果を遡り始める暦日。スケジュール(開催期間)の最終日と今日の、早い方。
+ *
+ * 以前はスケジュールの最終日から遡っていた。終わったシーズンならそれで正しいが、
+ * 開催中のシーズンでは最終日はまだ先で、1回に遡る CITYLEAGUE_SEARCH_DAYS(14日)では
+ * 今日まで届かない。1件も見つからないと「もう出すものが無い」と打ち切るため、
+ * 結果があるのに「シティリーグの結果はまだありません」になっていた
+ * (2026-09-26、シーズン初日。最終日 11/15 から 11/2 までしか探していなかった)。
+ * シーズンの最終日の2週間前までは、毎回この状態になる。
+ *
+ * scheduleToDate はスケジュールの最終日("YYYY-MM-DD")。スケジュールが無ければ null(今日から遡る)。
+ */
+export function resolveSearchStartDate(scheduleToDate: string | null, today: string): string {
+  if (!scheduleToDate) return today;
+
+  return scheduleToDate < today ? scheduleToDate : today;
+}
+

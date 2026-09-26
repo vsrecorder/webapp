@@ -21,7 +21,11 @@ import {
   OfficialEventListItemType,
   OfficialEventResponseType,
 } from "@app/types/official_event";
-import { buildSearchDates, shiftDateString } from "@app/utils/cityleagueListPage";
+import {
+  buildSearchDates,
+  resolveSearchStartDate,
+  shiftDateString,
+} from "@app/utils/cityleagueListPage";
 import {
   CityleagueListInitialData,
   CityleagueScheduleContext,
@@ -236,7 +240,8 @@ export default function CityleagueResults({
 
       if (foundSchedule) {
         setSchedule(foundSchedule);
-        setNextDate(toJSTDateString(foundSchedule.to_date));
+        // 開催中のシーズンは今日から遡る(最終日からだと今日まで届かない。resolveSearchStartDate 参照)
+        setNextDate(resolveSearchStartDate(toJSTDateString(foundSchedule.to_date), today));
       }
 
       setIsScheduleInitialized(true);

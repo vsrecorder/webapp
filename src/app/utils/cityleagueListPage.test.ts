@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   CITYLEAGUE_SEARCH_DAYS,
   buildSearchDates,
+  resolveSearchStartDate,
   shiftDateString,
 } from "@app/utils/cityleagueListPage";
 
@@ -43,3 +44,23 @@ describe("buildSearchDates", () => {
     expect(buildSearchDates("2026-05-03", "2026-05-04")).toEqual([]);
   });
 });
+
+describe("resolveSearchStartDate", () => {
+  // 2026-09-26(シーズン初日)に、最終日 11/15 から遡って今日の結果に届かなかった
+  it("開催中のシーズンは今日から遡る", () => {
+    expect(resolveSearchStartDate("2026-11-15", "2026-09-26")).toBe("2026-09-26");
+  });
+
+  it("終わったシーズンは最終日から遡る", () => {
+    expect(resolveSearchStartDate("2026-07-20", "2026-09-26")).toBe("2026-07-20");
+  });
+
+  it("最終日当日は今日(=最終日)から", () => {
+    expect(resolveSearchStartDate("2026-11-15", "2026-11-15")).toBe("2026-11-15");
+  });
+
+  it("スケジュールが無ければ今日から", () => {
+    expect(resolveSearchStartDate(null, "2026-09-26")).toBe("2026-09-26");
+  });
+});
+

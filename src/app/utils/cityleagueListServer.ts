@@ -6,7 +6,11 @@ import {
 } from "@app/types/cityleague_result";
 import { CityleagueScheduleType } from "@app/types/cityleague_schedule";
 import { OfficialEventListItemType } from "@app/types/official_event";
-import { buildSearchDates, shiftDateString } from "@app/utils/cityleagueListPage";
+import {
+  buildSearchDates,
+  resolveSearchStartDate,
+  shiftDateString,
+} from "@app/utils/cityleagueListPage";
 import { LIST_REVALIDATE_SECONDS, getJson } from "@app/utils/coreApi";
 import { todayJSTDateString, toJSTDateString } from "@app/utils/date";
 import { getOfficialEventList } from "@app/utils/officialEventListServer";
@@ -45,7 +49,7 @@ export type CityleagueScheduleContext = {
    * ハイドレーションがずれる。サーバで判定した結果をそのまま使う。
    */
   isOngoing: boolean;
-  // 結果を遡り始める暦日("YYYY-MM-DD")。スケジュールの最終日、引けなければ今日
+  // 結果を遡り始める暦日("YYYY-MM-DD")。スケジュールの最終日と今日の早い方、引けなければ今日
   startDate: string;
 };
 
@@ -112,9 +116,12 @@ export const getCityleagueListInitialData = cache(
         ? scheduleFromDate! <= today && today <= toJSTDateString(schedule.to_date)
         : false;
 
-      // 起点はスケジュールの最終日。スケジュールが引けなかったときは今日から遡る
-      // (ブラウザ側の従来の挙動と同じ)
-      const startDate = schedule ? toJSTDateString(schedule.to_date) : today;
+      // 起点はスケジュールの最終日と今日の早い方(開催中は今日から。理由は resolveSearchStartDate)。
+      // スケジュールが引けなかったときは今日から遡る
+      const startDate = resolveSearchStartDate(
+        schedule ? toJSTDateString(schedule.to_date) : null,
+        today,
+      );
 
       /*
        * 結果が登録されている最初の日を探す。

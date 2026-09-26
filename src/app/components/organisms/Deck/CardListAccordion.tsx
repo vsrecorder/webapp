@@ -101,7 +101,12 @@ export default function CardListAccordion({
           trigger: "py-2",
           title: "text-tiny font-bold text-default-600",
           indicator: "text-default-500",
-          content: "pt-0 pb-2.5",
+          // swiper-no-swiping: カルーセル(Swiper)の中に置かれたとき、展開した中身の操作で
+          // カルーセルが動かないようにする。大会結果の入賞デッキカードは Swiper で横に並ぶため、
+          // カード画像の行を横スクロールすると、行ではなく外側の Swiper が次のカードへ送られていた。
+          // Swiper はこのクラスの付いた要素の中からはスワイプを始めない(Swiper の外では何も起きない)。
+          // 見出し(開閉ボタン)には付けないので、閉じているときはこれまでどおりカルーセルを送れる
+          content: "pt-0 pb-2.5 swiper-no-swiping",
         }}
         // たたんだ状態から始まるため、初回の変化は必ず「開く」操作になる
         onSelectionChange={() => setHasOpened(true)}

@@ -63,6 +63,23 @@ describe("CardListAccordion", () => {
     expect(container.querySelector("dl")).toBeNull();
   });
 
+  /*
+   * 大会結果の入賞デッキカードは Swiper で横に並ぶ。展開した中身(カード画像の行・タブ)を
+   * 横にスクロールすると、外側の Swiper が次のカードへ送られていた。
+   * swiper-no-swiping の付いた要素の中からは Swiper がスワイプを始めない。
+   */
+  it("展開した中身では外側のカルーセル(Swiper)がスワイプを始めない", () => {
+    render(<CardListAccordion code={SUMMARY.code} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "カードリスト" }));
+
+    expect(screen.getByTestId("detail-row").closest(".swiper-no-swiping")).not.toBeNull();
+    // 開閉ボタンには付けない(閉じているときはこれまでどおりカルーセルを送れる)
+    expect(
+      screen.getByRole("button", { name: "カードリスト" }).closest(".swiper-no-swiping"),
+    ).toBeNull();
+  });
+
   it("押せない状態では開かず、タップは親へ渡す", () => {
     const onParentClick = vi.fn();
     render(

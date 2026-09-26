@@ -444,17 +444,22 @@ export default function CityleagueResults({
       {!isScheduleInitialized ? (
         <CityleagueScheduleHeaderSkeleton />
       ) : schedule ? (
-        <div className="w-full rounded-2xl bg-violet-500/15 border border-violet-500/30 px-4 py-4 flex flex-col items-center gap-1.5">
-          <div className="flex items-center gap-1.5">
-            {isOngoing && (
-              <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse shrink-0" />
-            )}
-            <span className="text-[0.625rem] font-bold text-primary uppercase tracking-widest">
-              {isOngoing ? "開催中" : "直近の結果"}
+        /* 「開催中」とシーズン名を 1 行にまとめ、期間を 2 行目に置く(以前は 3 行・97px、いまは 56px)。
+           一覧の上に常に出るので縦を取らないようにする。骨格(CityleagueScheduleHeaderSkeleton)と
+           同じ寸法なので、変えるときは両方直すこと */
+        <div className="w-full rounded-2xl bg-violet-500/15 border border-violet-500/30 px-4 py-2 flex flex-col items-center gap-0.5">
+          <div className="flex h-5 min-w-0 max-w-full items-center gap-2">
+            <span className="flex shrink-0 items-center gap-1">
+              {isOngoing && (
+                <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse shrink-0" />
+              )}
+              <span className="text-[0.625rem] font-bold text-primary uppercase tracking-widest">
+                {isOngoing ? "開催中" : "直近の結果"}
+              </span>
             </span>
+            <p className="min-w-0 truncate text-sm font-bold text-default-800">{schedule.title}</p>
           </div>
-          <p className="text-sm font-bold text-default-800">{schedule.title}</p>
-          <p className="text-xs text-default-400">
+          <p className="h-4 text-xs leading-4 text-default-400">
             {formatDate(schedule.from_date)} 〜 {formatDate(schedule.to_date)}
           </p>
         </div>

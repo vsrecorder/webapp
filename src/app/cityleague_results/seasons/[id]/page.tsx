@@ -27,8 +27,10 @@ async function findSeason(id: string): Promise<CityleagueTerm | undefined> {
   return seasons.find((season) => season.id === id);
 }
 
+// シーズン名自体が「シティリーグ2027 シーズン1」のように「シティリーグ」を含むので、
+// ほかのハブの「…のシティリーグ入賞デッキ一覧」に合わせると重複する。「…の入賞デッキ一覧」にする
 function buildTitle(season: CityleagueTerm): string {
-  return `${season.title} の結果・入賞デッキ一覧`;
+  return `${season.title} の入賞デッキ一覧`;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

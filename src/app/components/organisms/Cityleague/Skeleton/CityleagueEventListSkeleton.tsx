@@ -1,41 +1,47 @@
 import { Skeleton } from "@heroui/react";
 
+import CityleagueHubHeaderSkeleton from "@app/components/organisms/Cityleague/Skeleton/CityleagueHubHeaderSkeleton";
+
 type Props = {
   // 日付グループの数と、各グループの行数のダミー。実データが返るまでの「枠」を用意する。
   groupCount?: number;
   rowsPerGroup?: number;
+  // タイトル(h1)の行数。個別ページのタイトルは 390px 幅で2行に折り返す(実測)
+  titleLines?: 1 | 2;
+  // 期間の補足行を持つか(シーズン・環境の個別ページ)
+  showSubtitle?: boolean;
+  // 戻るリンクの幅(「開催月から探す」など実測 128〜155px)
+  backLinkWidthClass?: string;
 };
 
-// シーズン／環境／開催月の詳細ページ（CityleagueHubHeader + CityleagueEventLinkList）の
+// シーズン／環境／開催月／開催日の詳細ページ（CityleagueHubHeader + CityleagueEventLinkList）の
 // ローディング中に表示するスケルトン。一覧は開催日ごとにグルーピングされるため、
 // 見出し＋店舗行のまとまりを数グループぶん並べて実ページの見た目に寄せる。
+//
+// 行ごとに実体と同じ高さの枠を取ってからバーを入れる(390px 幅の実測)。
+//   - 開催日の見出し: text-small の行 20px
+//   - 店舗の行: py-2.5 + 店舗名(text-small 20px) + gap-0.5 + 都道府県/リーグ(text-tiny 16px)、区切り線込みで 59px
+// 以前はバーの高さだけで組んでいたため行が 51px しかなく、行数ぶん実体とずれていた。
 export default function CityleagueEventListSkeleton({
   groupCount = 4,
   rowsPerGroup = 4,
+  titleLines = 2,
+  showSubtitle = false,
+  backLinkWidthClass = "w-36",
 }: Props) {
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-3 pt-4 pb-8">
-      {/* CityleagueHubHeader 相当 */}
-      <div className="flex flex-col gap-2">
-        {/*
-         * 実体の戻るリンク(BackLink)。ピル型で高さ 2rem(py-1.5 + text-sm の行 20px)。
-         * ここを 1 行ぶんの高さで置くと、実体へ切り替わった瞬間に見出し以下が
-         * まとめて下へずれる。幅は「開催月から探す」など実測 128〜155px。
-         */}
-        <Skeleton className="h-8 w-36 rounded-full" />
-
-        <div className="flex flex-col gap-1">
-          <Skeleton className="h-3 w-16 rounded-md" />
-          <Skeleton className="h-6 w-64 rounded-md" />
-          <Skeleton className="h-3 w-40 rounded-md" />
-        </div>
-      </div>
+      <CityleagueHubHeaderSkeleton
+        titleLines={titleLines}
+        showSubtitle={showSubtitle}
+        backLinkWidthClass={backLinkWidthClass}
+      />
 
       {/* CityleagueEventLinkList 相当（開催日ごとのグループ） */}
       <div className="flex flex-col gap-5">
         {Array.from({ length: groupCount }).map((_, groupIndex) => (
           <section key={groupIndex} className="flex flex-col gap-1.5">
-            <div className="flex items-baseline gap-2 px-0.5">
+            <div className="flex h-5 items-center gap-2 px-0.5">
               <Skeleton className="h-4 w-32 rounded-md" />
               <Skeleton className="h-3 w-8 rounded-md" />
             </div>
@@ -48,8 +54,12 @@ export default function CityleagueEventListSkeleton({
                 >
                   {/* 店舗名 / 都道府県・リーグ区分 */}
                   <span className="flex min-w-0 flex-col gap-0.5">
-                    <Skeleton className="h-4 w-44 rounded-md" />
-                    <Skeleton className="h-3 w-28 rounded-md" />
+                    <span className="flex h-5 items-center">
+                      <Skeleton className="h-4 w-44 rounded-md" />
+                    </span>
+                    <span className="flex h-4 items-center">
+                      <Skeleton className="h-3 w-28 rounded-md" />
+                    </span>
                   </span>
 
                   {/* 詳細ページへのシェブロン */}

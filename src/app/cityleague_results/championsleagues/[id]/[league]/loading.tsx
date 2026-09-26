@@ -19,18 +19,24 @@ export default function Loading() {
       <div className="sticky top-14 z-40 -mx-2 lg:top-28">
         <div className="absolute inset-0 border-b border-default-200/60 bg-white/90 backdrop-blur-md dark:bg-neutral-950/90" />
         <div className="relative w-fit px-2 py-2">
-          {/* 実体の戻るリンク(BackLink、ピル型・高さ 2rem)と同じ大きさ */}
-          <Skeleton className="h-8 w-32 rounded-full" />
+          {/* 実体の戻るリンク(BackLink、ピル型)と同じ大きさ */}
+          {/* 実測 34px */}
+          <Skeleton className="h-[2.125rem] w-32 rounded-full" />
         </div>
       </div>
 
       {/* 大会名＋リーグ区分のヘッダー */}
       <Card className="w-full">
         <CardHeader className="flex-col items-start gap-2 bg-linear-to-br from-indigo-500/10 to-pink-500/10 px-3 py-3">
+          {/* 実体と同じ並び: 「CHAMPIONS LEAGUE」 → h1(大会名 → リーグ区分) → 会期。
+              以前は先頭の「CHAMPIONS LEAGUE」の行が無く、見出しが 16px 低かった */}
           <div className="flex min-w-0 flex-col gap-0.5">
-            <Skeleton className="h-4 w-32 rounded-md" />
-            <div className="py-0.5">
-              <Skeleton className="h-[1.375rem] w-56 rounded-md" />
+            <Skeleton className="h-4 w-28 rounded-md" />
+            <div className="flex flex-col gap-0.5">
+              <Skeleton className="h-4 w-32 rounded-md" />
+              <div className="pt-0.5">
+                <Skeleton className="h-[1.375rem] w-40 rounded-md" />
+              </div>
             </div>
             <Skeleton className="h-4 w-48 rounded-md" />
           </div>
@@ -48,8 +54,11 @@ export default function Loading() {
             <Skeleton className="h-4 w-28 rounded-md" />
           </div>
 
-          {/* 冒頭の要約文（text-tiny / leading-relaxed のおよそ3行） */}
+          {/* 冒頭の要約文。実体は text-tiny / leading-relaxed で、390px 幅では実測5行・98px
+              (区分6件中5件。残り1件は4行)。5本 × (h-3 + gap) で組む */}
           <div className="flex flex-col gap-2 py-[3px]">
+            <Skeleton className="h-3 w-full rounded-md" />
+            <Skeleton className="h-3 w-full rounded-md" />
             <Skeleton className="h-3 w-full rounded-md" />
             <Skeleton className="h-3 w-full rounded-md" />
             <Skeleton className="h-3 w-4/5 rounded-md" />
@@ -57,8 +66,12 @@ export default function Loading() {
         </CardBody>
       </Card>
 
-      {/* イベントの見出しカード（区分名・開催日・公式サイトへの導線） */}
-      <div className="pt-2">
+      {/* イベントの見出しカードと順位ごとの節。実体(ChampionsleagueResultByLeague)と同じく
+          <section className="flex flex-col gap-2 pt-2"> の中に並べる。
+          以前は外側の gap-3 で並べていたため節の間隔が 12px(実体は 8px)で、見出し行の
+          高さの差(16px / 実体 20px)とたまたま打ち消し合っていた */}
+      <div className="flex flex-col gap-2 pt-2">
+        {/* イベントの見出しカード（区分名・開催日・公式サイトへの導線） */}
         <Card shadow="sm" className="w-full">
           <CardBody className="gap-1 px-3 py-2.5">
             <Skeleton className="h-5 w-40 rounded-md" />
@@ -66,24 +79,29 @@ export default function Loading() {
             <Skeleton className="h-4 w-48 rounded-md" />
           </CardBody>
         </Card>
+
+        {/* 順位ごとのセクション */}
+        {RANK_SECTION_CARD_COUNTS.map((cardCount, sectionIndex) => (
+          <section key={sectionIndex} className="flex flex-col gap-2">
+            {/* 実体の見出しは text-small(行の高さ 20px) */}
+            <div className="flex h-5 items-center gap-2 px-0.5">
+              <span className="h-4 w-1 shrink-0 rounded-full bg-default-200" />
+              <Skeleton className="h-4 w-20 rounded-md" />
+              <Skeleton className="h-3 w-8 rounded-md" />
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {Array.from({ length: cardCount }).map((_, cardIndex) => (
+                <CityleagueResultCardSkeleton
+                  key={cardIndex}
+                  showRankLabel={false}
+                  withMainPokemon
+                />
+              ))}
+            </div>
+          </section>
+        ))}
       </div>
-
-      {/* 順位ごとのセクション */}
-      {RANK_SECTION_CARD_COUNTS.map((cardCount, sectionIndex) => (
-        <section key={sectionIndex} className="flex flex-col gap-2">
-          <div className="flex items-center gap-2 px-0.5">
-            <span className="h-4 w-1 shrink-0 rounded-full bg-default-200" />
-            <Skeleton className="h-4 w-20 rounded-md" />
-            <Skeleton className="h-3 w-8 rounded-md" />
-          </div>
-
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {Array.from({ length: cardCount }).map((_, cardIndex) => (
-              <CityleagueResultCardSkeleton key={cardIndex} showRankLabel={false} />
-            ))}
-          </div>
-        </section>
-      ))}
     </div>
   );
 }

@@ -14,5 +14,6 @@ import CityleagueIndexSkeleton from "@app/components/organisms/Cityleague/Skelet
 // 持っていても打ち消せない(子のツリーが組み上がるまで外側のこの境界が使われるため、
 // 索引の骨格が先に出てから詳細の骨格に差し替わる)。
 export default function Loading() {
-  return <CityleagueIndexSkeleton rowCount={23} showSubtitle />;
+  // 見出しに補足行(説明文)を持つ(実測で見出しが 20px 高い)
+  return <CityleagueIndexSkeleton rowCount={23} showSubtitle showHeaderSubtitle />;
 }

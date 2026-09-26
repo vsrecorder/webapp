@@ -13,9 +13,18 @@ type Props = {
   // 実体(CityleagueResultCard)と同じく、順位ごとの見出しを持つ場所では
   // カード側の順位ラベルを出さない。
   showRankLabel?: boolean;
+  /*
+   * 実体が「主なポケモン」の行を出す場所か。実体はデッキの内訳(deckSummary)を渡された
+   * ときだけこの行を出す(大会の個別ページ・大型大会のページ。一覧のカードは出さない)。
+   * 出す場所で骨格に行が無いと、切り替わった瞬間にカードが 18px 伸びていた(実測 264 → 282px)。
+   */
+  withMainPokemon?: boolean;
 };
 
-export default function CityleagueResultCardSkeleton({ showRankLabel = true }: Props) {
+export default function CityleagueResultCardSkeleton({
+  showRankLabel = true,
+  withMainPokemon = false,
+}: Props) {
   return (
     <Card shadow="sm" className="w-full border-2 border-default-100">
       {/* ヘッダー：順位タグの右隣にプレイヤー情報（アイコン・名前・ID）を横並び */}
@@ -51,13 +60,24 @@ export default function CityleagueResultCardSkeleton({ showRankLabel = true }: P
         </div>
 
         {/*
-          デッキコード。実体は画像の下に
-          <span className="pt-1.5 text-center text-tiny text-default-400"> の1行があり、
-          pt-1.5(6px) + 行ボックス(16px) = 22px を占める。ここが抜けていたため、
-          骨格から実体に切り替わるたびにカードが 22px 伸びていた。
+          主なポケモン(出す場所だけ)。実体は pt-1.5 + text-tiny の1行 = 22px。
+          幅は「主なポケモン：ドラパルトex・ニャースex」相当。
+        */}
+        {withMainPokemon && (
+          <div className="pt-1.5">
+            <div className="h-4 flex items-center justify-center">
+              <Skeleton className="h-3 w-56 rounded-md" />
+            </div>
+          </div>
+        )}
+
+        {/*
+          デッキコード。実体は画像の下に text-tiny の1行があり、主なポケモンが無ければ
+          pt-1.5(6px)、有れば pt-0.5(2px) を空けて 16px の行を置く(22px / 18px)。
+          ここが抜けていたため、骨格から実体に切り替わるたびにカードが伸びていた。
           幅は「デッキコード ○○○○○○-○○○○○○」の実測中央値 208px。
         */}
-        <div className="pt-1.5">
+        <div className={withMainPokemon ? "pt-0.5" : "pt-1.5"}>
           <div className="h-4 flex items-center justify-center">
             <Skeleton className="h-3 w-52 rounded-md" />
           </div>

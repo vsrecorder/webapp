@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 /*
- * デッキ詳細の「入賞デッキ」シートが使う BFF の応答の形と状態コード。
+ * デッキ詳細の「類似デッキ」シートが使う BFF の応答の形と状態コード。
  * バトラボへの取得(getSimilarDecks)は別でテストしているので、ここでは認証・検証・詰め替えだけを見る。
  */
 const auth = vi.fn();

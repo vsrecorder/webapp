@@ -203,7 +203,7 @@ function SimilarDecksList({ data }: { data: SimilarDecksGetResponseType }) {
       <SourceSummary source={source} />
       {similar.length === 0 ? (
         <div className="rounded-xl bg-default-100 px-3 py-4 text-center text-small text-default-600">
-          似ている入賞デッキが見つかりませんでした
+          類似している入賞デッキが見つかりませんでした
         </div>
       ) : (
         <>
@@ -283,14 +283,14 @@ export default function DisplaySimilarDecksModal({
               {/* スワイプバー */}
               <div className="mx-auto h-1 w-32 mb-1.5 rounded-full bg-default-300" />
 
-              <div>似ている入賞デッキ</div>
+              <div>類似している入賞デッキ</div>
             </ModalHeader>
             <ModalBody className="px-3 pt-1 pb-6 flex flex-col gap-2 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none">
               {showSkeleton ? (
                 <SimilarDecksSkeleton />
               ) : error ? (
                 <FetchError
-                  message="似ている入賞デッキを取得できませんでした"
+                  message="類似している入賞デッキを取得できませんでした"
                   onRetry={retry}
                   compact
                 />

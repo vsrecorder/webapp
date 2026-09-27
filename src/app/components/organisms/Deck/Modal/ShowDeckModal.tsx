@@ -388,7 +388,7 @@ export default function ShowDeckModal({
                     縦に一直線に揃え、バージョン管理系の操作としてのまとまりを出す。
                     デッキコード未登録の場合、バージョン履歴・新バージョン・入賞デッキは
                     いずれも表示しない（新バージョン作成の導線はDeckCodeCard側の案内に譲る）。
-                    列数はデッキコードの有無で変える: 入賞デッキ(似ている入賞デッキ)は
+                    列数はデッキコードの有無で変える: 類似デッキ(類似している入賞デッキ)は
                     デッキコードが要るので、あるときだけ2行目に足して5列、無ければ4列にする */}
                 <div className={`grid gap-1.5 ${deckcode?.code ? "grid-cols-5" : "grid-cols-4"}`}>
                   {deckcode?.code && (
@@ -468,7 +468,7 @@ export default function ShowDeckModal({
                     <LuChartPie className="text-base" />
                     <span className="text-tiny font-medium">対戦分析</span>
                   </button>
-                  {/* 似ている入賞デッキ(バトラボの類似デッキ検索)。デッキコードが要るので
+                  {/* 類似している入賞デッキ(バトラボの類似デッキ検索)。デッキコードが要るので
                       あるときだけ出す(5列目。列数は上のgridで切り替えている) */}
                   {deckcode?.code && (
                     <button
@@ -478,7 +478,7 @@ export default function ShowDeckModal({
                     >
                       <LuTrophy className="text-base" />
                       <span className="text-tiny font-medium whitespace-nowrap tracking-tight">
-                        入賞デッキ
+                        類似デッキ
                       </span>
                     </button>
                   )}

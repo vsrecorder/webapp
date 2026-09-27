@@ -5,7 +5,7 @@ import { SimilarDecksGetResponseType } from "@app/types/similar_deck";
 import { parseSimilarDecksResponse, similarDecksApiPath } from "@app/utils/similarDecks";
 
 /*
- * 似ている入賞デッキ(バトラボの類似デッキ検索)を BFF から取る。
+ * 類似している入賞デッキ(バトラボの類似デッキ検索)を BFF から取る。
  *
  * 取れなかった理由を 2 つに分ける。
  *   unavailable … 利用者のコード側の理由(公式サイトに無い・60 枚でない)。押し直しても

@@ -10,7 +10,7 @@ import { getSimilarDecks } from "@app/utils/similarDecksServer";
  *
  *   GET /api/deckcards/{code}/similar?env=<環境 ID>
  *
- * デッキ詳細モーダルの「入賞デッキ」シートが使う。env を省略するとバトラボが直近の環境で比べる。
+ * デッキ詳細モーダルの「類似デッキ」シートが使う。env を省略するとバトラボが直近の環境で比べる。
  *
  * ログイン必須にしている。デッキコード自体は公開の識別子だが、この口は 1 回ごとにバトラボが
  * 公式サイトまでデッキの中身を取りに行くので、誰でも叩ける口にはしない
@@ -54,7 +54,7 @@ export async function GET(
       );
     default:
       return NextResponse.json(
-        { error: "似ている入賞デッキをいま取得できません。しばらくしてからやり直してください" },
+        { error: "類似している入賞デッキをいま取得できません。しばらくしてからやり直してください" },
         { status: 502 },
       );
   }

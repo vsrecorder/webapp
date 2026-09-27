@@ -1,10 +1,12 @@
 "use client";
 
-import { Card, CardHeader, CardBody } from "@heroui/react";
+import { Card, CardHeader, CardBody, CardFooter } from "@heroui/react";
 import { Chip } from "@heroui/react";
 import { Image } from "@heroui/react";
 
 import { LuClock } from "react-icons/lu";
+
+import CityleagueResultCardSkeleton from "@app/components/organisms/Cityleague/Skeleton/CityleagueResultCardSkeleton";
 
 import { OfficialEventListItemType } from "@app/types/official_event";
 import { formatJSTDateWithWeekday, formatJSTTime } from "@app/utils/date";
@@ -59,24 +61,43 @@ export default function CityleagueEventInfo({ event }: Props) {
         </div>
       </CardHeader>
 
-      <CardBody className="px-3 pt-3 pb-3">
-        <dl className="flex flex-col gap-2 text-tiny">
-          {startTime && (
-            <div className="flex items-start gap-2">
-              <dt className="flex shrink-0 items-center gap-1 pt-px font-bold text-default-500">
-                <LuClock className="text-sm" aria-hidden />
-                大会開始時間
-              </dt>
-              <dd className="font-bold text-default-700">{startTime}</dd>
+      {/*
+        本体の大きさは、結果が出たあとのモーダル(CityleagueResult)の「入賞カード＋詳細ページへの導線」とそろえる。
+        大会が終わって同じモーダルを開き直したときに大きさが変わらないよう、結果の骨格
+        (CityleagueResultSkeleton と同じ組み立て)を見えない寸法の型として敷き、その上に開催情報を重ねる。
+        今後の大会は 2027 シーズン以降なので、骨格もデッキの種類の行ありにする
+      */}
+      <div className="relative">
+        <div aria-hidden className="invisible">
+          <CardBody className="px-0 py-1">
+            <div className="px-2 pt-2 pb-10">
+              <CityleagueResultCardSkeleton withDeckArchetype />
             </div>
+          </CardBody>
+          <CardFooter className="pt-1 pb-2">
+            <div className="h-6" />
+          </CardFooter>
+        </div>
+
+        <div className="absolute inset-0 flex flex-col gap-3 p-3">
+          {startTime && (
+            <dl className="flex flex-col gap-2 text-tiny">
+              <div className="flex items-start gap-2">
+                <dt className="flex shrink-0 items-center gap-1 pt-px font-bold text-default-500">
+                  <LuClock className="text-sm" aria-hidden />
+                  大会開始時間
+                </dt>
+                <dd className="font-bold text-default-700">{startTime}</dd>
+              </div>
+            </dl>
           )}
-        </dl>
 
-        <p className="mt-3 rounded-lg bg-default-100 px-3 py-2 text-tiny text-default-500">
-          大会が終わると、ここに入賞者のデッキが表示されます
-        </p>
-      </CardBody>
-
+          {/* 入賞カードが入る場所。残りの高さをすべて使う */}
+          <p className="flex min-h-0 flex-1 items-center justify-center rounded-lg bg-default-100 px-3 py-2 text-center text-tiny text-default-500">
+            大会が終わると、ここに入賞者のデッキが表示されます
+          </p>
+        </div>
+      </div>
     </Card>
   );
 }

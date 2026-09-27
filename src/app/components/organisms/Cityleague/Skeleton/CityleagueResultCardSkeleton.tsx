@@ -68,8 +68,10 @@ export default function CityleagueResultCardSkeleton({
           <div className="pb-1">
             <div className="flex w-full min-w-0 flex-col items-center gap-1">
               <div className="flex shrink-0 items-center">
+                {/* 実体のスプライト枠は px 固定(48px)。rem の h-12 にすると、ルートの文字が 18px になる
+                    640〜767px 幅で 54px になり、カードが 6px 伸びる */}
                 {[0, 1].map((i) => (
-                  <div key={i} className="relative h-12 w-12">
+                  <div key={i} className="relative h-[48px] w-[48px]">
                     <Skeleton className="absolute bottom-0 left-1/2 h-10 w-10 -translate-x-1/2 rounded-full" />
                   </div>
                 ))}

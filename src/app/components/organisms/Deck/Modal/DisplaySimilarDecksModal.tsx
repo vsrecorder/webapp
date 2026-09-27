@@ -99,6 +99,33 @@ function SourceSummary({ source }: { source: SimilarDecksSourceType }) {
   );
 }
 
+// 差分カードの 1 段。見出しとカード名のチップを並べる
+function DiffCards({
+  label,
+  names,
+  sign,
+  chipClassName,
+}: {
+  label: string;
+  names: string[];
+  sign: string;
+  chipClassName: string;
+}) {
+  return (
+    <div>
+      <div className="text-[11px] font-bold text-default-500">{label}</div>
+      <div className="mt-0.5 flex flex-wrap gap-1">
+        {names.map((name) => (
+          <span key={name} className={`rounded-md px-1.5 py-0.5 text-[11px] ${chipClassName}`}>
+            {sign}
+            {name}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function SimilarDeckRow({
   deck,
   sourceArchetypeId,
@@ -139,24 +166,26 @@ function SimilarDeckRow({
             </Chip>
           )}
         </div>
+        {/* 差分カード。入賞デッキにだけあるカードと、自分のデッキにだけあるカードを
+            上下の段に分ける(1 行に混ぜると、どちらのカードか色でしか見分けられないため) */}
         {hasDiff && (
-          <div className="mt-1.5 flex flex-wrap gap-1">
-            {deck.diffIn.map((name) => (
-              <span
-                key={`in-${name}`}
-                className="rounded-md bg-success-50 px-1.5 py-0.5 text-[11px] text-success-700"
-              >
-                +{name}
-              </span>
-            ))}
-            {deck.diffOut.map((name) => (
-              <span
-                key={`out-${name}`}
-                className="rounded-md bg-danger-50 px-1.5 py-0.5 text-[11px] text-danger-700"
-              >
-                −{name}
-              </span>
-            ))}
+          <div className="mt-2 flex flex-col gap-1.5">
+            {deck.diffIn.length > 0 && (
+              <DiffCards
+                label="入賞デッキにだけある"
+                names={deck.diffIn}
+                sign="+"
+                chipClassName="bg-success-50 text-success-700"
+              />
+            )}
+            {deck.diffOut.length > 0 && (
+              <DiffCards
+                label="あなたのデッキにだけある"
+                names={deck.diffOut}
+                sign="−"
+                chipClassName="bg-danger-50 text-danger-700"
+              />
+            )}
           </div>
         )}
       </div>

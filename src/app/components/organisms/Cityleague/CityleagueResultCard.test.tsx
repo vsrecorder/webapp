@@ -90,6 +90,11 @@ describe("CityleagueResultCard の詳細モーダル", () => {
       expect(column.className).toContain("max-w-full");
       expect(column.className).toContain("mx-auto");
       expect(column.textContent).toContain(DECK_CODE);
+
+      // 「このデッキコードでデッキを登録」はトレーナー情報・デッキ情報のカードと同じ幅にする
+      // (列の幅ではなく、フッターの左右余白を ModalBody の p-3 と揃える)
+      const button = screen.getByRole("button", { name: "このデッキコードでデッキを登録" });
+      expect(button.closest("footer")!.className).toContain("px-3");
     } finally {
       HTMLElement.prototype.getBoundingClientRect = original;
       if (offsetWidth) Object.defineProperty(HTMLElement.prototype, "offsetWidth", offsetWidth);

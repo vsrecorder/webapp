@@ -487,7 +487,9 @@ export default function CityleagueResultCard({
               {/* 廃止したヘッダー右上のデッキ登録機能を、
                   会員かつデッキコードがあるときだけ明示的なボタンとして配置する */}
               {status === "authenticated" && result.deck_code && (
-                <ModalFooter className="pt-0">
+                /* 左右の余白は ModalBody(p-3)と同じにして、ボタンの幅を上のトレーナー情報・
+                   デッキ情報のカードと揃える(フッター既定の px-6 だと左右 12px ずつ狭くなる) */
+                <ModalFooter className="px-3 pt-0">
                   <Button
                     fullWidth
                     color="primary"

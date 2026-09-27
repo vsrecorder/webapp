@@ -19,6 +19,8 @@ type Props = {
   // 件数の前に置く語。既定はシティリーグの索引向けの文言。
   // 大型大会の索引では「結果が登録された大会」のように差し替える。
   countLabel?: string;
+  // 戻るリンクの右端に置く操作(シェアボタンなど)。サーバコンポーネントのまま受け取るため ReactNode で渡す
+  actions?: ReactNode;
 };
 
 export default function CityleagueHubHeader({
@@ -30,11 +32,19 @@ export default function CityleagueHubHeader({
   subtitle,
   count,
   countLabel = "結果が登録されたシティリーグ",
+  actions,
 }: Props) {
   return (
     <div className="flex flex-col gap-2">
       {/* 検索から直接開かれるページなので、上位階層への導線を先頭に置く */}
-      <BackLink href={backHref} label={backLabel} />
+      {actions ? (
+        <div className="flex items-center justify-between gap-2">
+          <BackLink href={backHref} label={backLabel} />
+          {actions}
+        </div>
+      ) : (
+        <BackLink href={backHref} label={backLabel} />
+      )}
 
       <div className="flex flex-col gap-1">
         <span className="font-bold text-tiny text-primary">{eyebrow}</span>

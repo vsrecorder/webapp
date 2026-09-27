@@ -14,6 +14,7 @@ import { deckImageUrl } from "@app/utils/deckImage";
 import { isTrustedImageUrl } from "@app/utils/trustedImageUrl";
 import { ChampionsleagueScheduleType } from "@app/types/championsleague_schedule";
 import { deckNameFontSize } from "@app/utils/ogText";
+import type { DateWinnerDeck } from "@app/utils/cityleagueDateShare";
 import { CityleagueTerm, formatEventDate, formatTermRange } from "@app/utils/cityleague";
 
 // OGP画像の規定サイズ。X(Twitter)の summary_large_image と Facebook の推奨に合わせる。
@@ -478,13 +479,101 @@ export function renderCityleagueMonthOgImage(monthTitle: string): Promise<Buffer
   });
 }
 
-// 開催日の個別ページ用。dateTitle は「2026年9月26日(土)」
-export function renderCityleagueDateOgImage(dateTitle: string): Promise<Buffer> {
-  return renderTitledResultOgImage({
-    chip: "シティリーグ結果",
-    title: dateTitle,
-    meta: ["この日に開催された全国のシティリーグの入賞デッキを掲載"],
-  });
+// 優勝デッキのカード 1 枚の幅と、デッキ名の文字サイズの上限・下限(4 枚を横に並べる)
+const OG_WINNER_CARD_WIDTH = 246;
+const OG_WINNER_NAME_FONT_MAX = 30;
+const OG_WINNER_NAME_FONT_MIN = 20;
+
+/*
+ * 開催日の個別ページ用。dateTitle は「2026年9月26日(土)」。
+ *
+ * winners(その日の優勝デッキを主デッキごとに数えたもの。cityleagueDateShare の summarizeDateWinners)を
+ * 渡すと、日付の下に優勝の多かったデッキをスプライト付きで並べる。シェアされたときに「その日に何が
+ * 勝ったか」が画像だけで伝わるようにするため。渡さない(分類の無い旧シーズン・取れなかった)ときは
+ * 日付と定型文だけの画像にする。
+ *
+ * 結果は開催日のあとに少しずつ登録されるので、呼び出し側は大会数を画像のキーに含めること
+ * (画像は一度置いたら作り直さないため。ogStorage)。
+ */
+export async function renderCityleagueDateOgImage(
+  dateTitle: string,
+  winners: DateWinnerDeck[] = [],
+  eventCount = 0,
+): Promise<Buffer> {
+  if (winners.length === 0) {
+    return renderTitledResultOgImage({
+      chip: "シティリーグ結果",
+      title: dateTitle,
+      meta: ["この日に開催された全国のシティリーグの入賞デッキを掲載"],
+    });
+  }
+
+  const assets = await loadOgAssets();
+
+  return toPngBuffer(
+    <div style={canvasStyle}>
+      {/* 縦は X のカード表示の下端の被り(X_CARD_OVERLAY_SAFE_AREA)を除いた範囲に収める。
+          カードを大きくするとフッターの区切り線に重なる(スプライト 96px・見出し 60px で重なった) */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+          <Chip>シティリーグ結果</Chip>
+          <div style={{ display: "flex", fontSize: 26, color: COLORS.muted }}>
+            {`${eventCount}大会の優勝デッキ`}
+          </div>
+        </div>
+
+        <div style={{ display: "flex", fontSize: 52, fontWeight: 700, lineHeight: 1.2 }}>
+          {dateTitle}
+        </div>
+
+        <div style={{ display: "flex", gap: 16 }}>
+          {winners.map((deck, index) => (
+            <div
+              key={index}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                width: OG_WINNER_CARD_WIDTH,
+                padding: "6px 12px 10px",
+                borderRadius: 20,
+                backgroundColor: "rgba(255,255,255,0.06)",
+              }}
+            >
+              <OgSprite id={deck.spriteId} size={80} unknownSrc={assets.unknownSpriteSrc} />
+              <div
+                style={{
+                  display: "flex",
+                  maxWidth: OG_WINNER_CARD_WIDTH - 24,
+                  fontSize: deckNameFontSize(
+                    deck.name,
+                    OG_WINNER_CARD_WIDTH - 24,
+                    OG_WINNER_NAME_FONT_MAX,
+                    OG_WINNER_NAME_FONT_MIN,
+                  ),
+                  fontWeight: 700,
+                  lineHeight: 1.3,
+                  lineClamp: 1,
+                }}
+              >
+                {deck.name}
+              </div>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+                <span style={{ fontSize: 22, color: COLORS.muted }}>優勝</span>
+                <span style={{ fontSize: 34, fontWeight: 700, color: COLORS.accent }}>
+                  {deck.wins}
+                </span>
+                <span style={{ fontSize: 22, color: COLORS.muted }}>回</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <Footer iconSrc={assets.iconSrc} />
+    </div>,
+    assets,
+  );
 }
 
 // data URI に埋め込む画像の上限。CDN のデッキ画像(JPEG)とアイコン(PNG、アップロード上限 5MB)が

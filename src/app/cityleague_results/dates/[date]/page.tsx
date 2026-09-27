@@ -4,12 +4,14 @@ import { notFound } from "next/navigation";
 
 import { LuCalendar, LuChevronRight } from "react-icons/lu";
 
+import CityleagueDateShareButtons from "@app/components/molecules/CityleagueDateShareButtons";
 import CityleagueEventLinkList from "@app/components/organisms/Cityleague/CityleagueEventLinkList";
 import CityleagueHubHeader from "@app/components/organisms/Cityleague/CityleagueHubHeader";
 
 import { buildBreadcrumbJsonLd, JsonLd } from "@app/utils/breadcrumb";
 import { formatMonthKey, getCityleagueEventsInTerm } from "@app/utils/cityleague";
 import { dateParamToMonthKey, formatDateParam, parseDateParam } from "@app/utils/cityleagueDate";
+import { getDateWinnerDecks } from "@app/utils/cityleagueDateWinnersServer";
 import { OG_SIZE, renderCityleagueDateOgImage } from "@app/utils/ogImage";
 import { ogImageUrlFor } from "@app/utils/ogStorage";
 
@@ -46,10 +48,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   // (存在しない日の URL を叩かれるたびに、ストレージへ画像を置かせないため)。
   // 本文と同じ取得なので、同じ描画の中では1回しか取りに行かない(メモ化)。
   const events = await getCityleagueEventsInTerm(dateParam, dateParam);
+  /*
+   * 画像にはその日の優勝デッキ(デッキ分類ごとの優勝回数)を載せる。結果は開催日のあとに
+   * 少しずつ登録されるので、大会数をキーに含めて、増えたら新しい画像を作らせる
+   * (画像は一度置いたら作り直さないため。ogStorage)。優勝デッキの集計は画像を作るときにだけ走る。
+   */
   const ogImageUrl =
     events.length > 0
-      ? ogImageUrlFor(`cityleague_results/dates/${dateParam}`, () =>
-          renderCityleagueDateOgImage(dateLabel),
+      ? ogImageUrlFor(`cityleague_results/dates/${dateParam}-n${events.length}`, async () =>
+          renderCityleagueDateOgImage(dateLabel, await getDateWinnerDecks(events), events.length),
         )
       : null;
 
@@ -114,6 +121,7 @@ export default async function Page({ params }: Props) {
           title={buildTitle(dateLabel)}
           titleLines={buildTitleLines(dateLabel)}
           count={events.length}
+          actions={<CityleagueDateShareButtons dateParam={dateParam} dateLabel={dateLabel} />}
         />
 
         <CityleagueEventLinkList events={events} showDateLink={false} />

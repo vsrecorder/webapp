@@ -33,4 +33,23 @@ describe("CityleagueHubHeader", () => {
     expect(heading.textContent).toBe("開催日から探す");
     expect(heading.querySelectorAll(":scope > span")).toHaveLength(0);
   });
+
+  it("actions を渡すと戻るリンクの右端に並べる(渡さなければ戻るリンクだけ)", () => {
+    const { rerender } = render(
+      <CityleagueHubHeader
+        {...BASE}
+        title="t"
+        actions={<button type="button">シェア</button>}
+      />,
+    );
+
+    const back = screen.getByRole("link", { name: /開催日から探す/ });
+    const share = screen.getByRole("button", { name: "シェア" });
+    // 同じ行(両端寄せの flex)に入っている
+    expect(back.parentElement).toBe(share.parentElement);
+    expect(share.parentElement!.className).toContain("justify-between");
+
+    rerender(<CityleagueHubHeader {...BASE} title="t" />);
+    expect(screen.queryByRole("button", { name: "シェア" })).toBeNull();
+  });
 });

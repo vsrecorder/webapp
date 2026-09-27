@@ -1,3 +1,5 @@
+import { CITYLEAGUE_POST_HASHTAGS } from "@app/utils/cityleagueResultShare";
+
 // シティリーグ結果の一覧ページ(開催日・開催月・シーズン・環境ごとの入賞デッキ一覧)をシェアするための文言と URL。
 // 大会の個別ページのシェア(cityleagueResultShare.ts)と同じ形にそろえる。
 
@@ -12,7 +14,7 @@ export type CityleagueHubShare = {
 
 // X のポスト文(URL は intent の url に別で渡す)
 export function cityleagueHubPostText(title: string): string {
-  return [title, "#バトレコ #ポケカ"].join("\n");
+  return [title, CITYLEAGUE_POST_HASHTAGS].join("\n");
 }
 
 // X の投稿画面を開く URL。個別ページのシェアと同じく utm を付け、流入を追えるようにする

@@ -13,11 +13,14 @@ export function cityleagueResultPath(eventId: number): string {
   return `/cityleague_results/${eventId}`;
 }
 
+// シティリーグ関連の X のポストに付けるハッシュタグ(一覧ページのシェア cityleagueHubShare.ts と共通)
+export const CITYLEAGUE_POST_HASHTAGS = "#バトレコ #ポケカ #シティリーグ";
+
 // X のポスト文(URL は intent の url に別で渡す)
 export function cityleagueResultPostText(event: CityleagueResultShareEvent): string {
   return [
     `${event.title} ${event.shop_name}（${event.prefecture_name}）${formatJSTDate(event.date)}の結果`,
-    "#バトレコ #ポケカ",
+    CITYLEAGUE_POST_HASHTAGS,
   ].join("\n");
 }
 

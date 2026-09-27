@@ -7,6 +7,7 @@ import {
   collectListedDeckCodes,
   deckArchetypeToDeckDraft,
   deckDisplayName,
+  isDeckArchetypeChampionsleague,
   isDeckArchetypeSeason,
   normalizeDeckCodes,
   parseDeckArchetypeResponse,
@@ -273,5 +274,16 @@ describe("deckDisplayName", () => {
 
   it("どちらも無ければ空文字", () => {
     expect(deckDisplayName(undefined, undefined)).toBe("");
+  });
+});
+
+describe("isDeckArchetypeChampionsleague", () => {
+  it("大型大会の ID に含まれる年が 2027 以降なら分類が付く", () => {
+    expect(isDeckArchetypeChampionsleague("cl2027_yokohama")).toBe(true);
+    expect(isDeckArchetypeChampionsleague("cl2028_aichi")).toBe(true);
+    expect(isDeckArchetypeChampionsleague("pjcs2026")).toBe(false);
+    expect(isDeckArchetypeChampionsleague("cl2026_fukuoka")).toBe(false);
+    expect(isDeckArchetypeChampionsleague("")).toBe(false);
+    expect(isDeckArchetypeChampionsleague(undefined)).toBe(false);
   });
 });

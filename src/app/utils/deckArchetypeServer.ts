@@ -25,6 +25,9 @@ import {
 // vslab の公開オリジン。開発機ではローカルの vslab(http://localhost:6757)を VSLAB_ORIGIN で指す
 const DEFAULT_VSLAB_ORIGIN = "https://lab.vsrecorder.mobi";
 
+// 環境付きの照会(索引に無いデッキ)で vslab が 1 回に受け付ける件数(vslab の MAX_LIST_CODES と同じ)
+const LIST_CODES_PER_REQUEST = 20;
+
 /*
  * Data Cache に置く時間。vslab 側のキャッシュ(10 分、取り込みバッチの完了通知で捨てる)と同じ。
  * 定義の更新を追いたいので日単位にはしない。個別ページは大会ごとに 1 本、一覧は 1 日ぶんで
@@ -44,7 +47,16 @@ function vslabOrigin(): string {
   return process.env.VSLAB_ORIGIN || DEFAULT_VSLAB_ORIGIN;
 }
 
-async function fetchClassify(query: string): Promise<DeckArchetypeMap> {
+/*
+ * 索引に無いデッキ(大型大会)の照会を Data Cache に置く時間。
+ *
+ * この照会は vslab が 1 件ずつ上流からデッキの中身を取り寄せるため、一部だけ取れない応答
+ * (notFound 混じりの 200)が返ることがある。10 分置くとその欠けが 10 分残るので短くする。
+ * 中身は vslab 側が 1 日置いていて判定も軽いので、1 分ごとに引き直しても vslab の負担は小さい。
+ */
+const LIST_REVALIDATE_SECONDS = 60;
+
+async function fetchClassify(query: string, revalidate = REVALIDATE_SECONDS): Promise<DeckArchetypeMap> {
   const url = `${vslabOrigin()}/api/archetypes/classify?${query}`;
 
   let res: Response;
@@ -55,7 +67,7 @@ async function fetchClassify(query: string): Promise<DeckArchetypeMap> {
       headers: { Accept: "application/json" },
       // cache を明示しないと revalidate が効かない(理由は utils/coreApi.ts)
       cache: "force-cache",
-      next: { revalidate: REVALIDATE_SECONDS },
+      next: { revalidate },
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
   } catch (error) {
@@ -94,14 +106,41 @@ export async function getDeckArchetypesByEvent(
  * vslab の上限(100 件)ごとに分けて並列に引き、1 つの辞書にまとめる。
  * 並びを揃えてから分けるので、同じ 1 日ぶんなら塊の切れ目も同じになる(キャッシュが当たる)。
  */
-export async function getDeckArchetypesByCodes(codes: string[]): Promise<DeckArchetypeMap> {
-  const chunks = chunkDeckCodes(normalizeDeckCodes(codes));
+export async function getDeckArchetypesByCodes(
+  codes: string[],
+  context?: DeckArchetypeContext,
+): Promise<DeckArchetypeMap> {
+  // 環境付きの照会は vslab 側の 1 回の上限が 20 件(1 件ずつ上流へ取りに行くため)。
+  // 呼び出し側はイベント(区分×日)ごとに引くので、入賞 16 件で収まる
+  const chunks = chunkDeckCodes(normalizeDeckCodes(codes), context ? LIST_CODES_PER_REQUEST : undefined);
 
   if (chunks.length === 0) return {};
 
+  // 大会の環境と日付を添えると、vslab の索引に無いデッキ(大型大会の入賞など)も
+  // vslab がデッキの中身を取り寄せて同じ規則で判定する
+  const contextQuery = context
+    ? `&environment=${encodeURIComponent(context.environmentId)}&date=${encodeURIComponent(context.date)}`
+    : "";
+
   const maps = await Promise.all(
-    chunks.map((chunk) => fetchClassify(`codes=${encodeURIComponent(chunk.join(","))}`)),
+    chunks.map((chunk) =>
+      fetchClassify(
+        `codes=${encodeURIComponent(chunk.join(","))}${contextQuery}`,
+        context ? LIST_REVALIDATE_SECONDS : REVALIDATE_SECONDS,
+      ),
+    ),
   );
 
   return Object.assign({}, ...maps);
 }
+
+/*
+ * 索引に無いデッキを判定するときの大会の文脈。デッキの種類は環境と日付で変わりうるため
+ * (定義に適用期間がある)、どの大会のデッキかを vslab に伝える。
+ */
+export type DeckArchetypeContext = {
+  // 対戦環境の ID(official_events.environment_id。例 "m6a")
+  environmentId: string;
+  // 大会の開催日 "YYYY-MM-DD"(JST)
+  date: string;
+};

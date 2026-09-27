@@ -11,13 +11,14 @@ import {
   ChampionsleagueResult,
 } from "@app/types/championsleague_result";
 import { ChampionsleagueScheduleType } from "@app/types/championsleague_schedule";
+import { DeckArchetypeMap } from "@app/types/deck_archetype";
 import { DeckSummaryType } from "@app/types/deckcard";
 import { OfficialEventType } from "@app/types/official_event";
 
 import { championsleagueLeagueTitle } from "@app/utils/championsleague";
 import { formatEventDate, formatTermRange } from "@app/utils/cityleague";
 import { buildRankSections } from "@app/utils/cityleagueRank";
-import { formatMainPokemon } from "@app/utils/deckSummary";
+import { deckDisplayName } from "@app/utils/deckArchetype";
 import { safeExternalUrl } from "@app/utils/url";
 
 type Props = {
@@ -30,6 +31,8 @@ type Props = {
   officialEvents: Record<number, OfficialEventType>;
   // デッキコードごとのカード内訳の要約(サーバ側で取得済み)。
   deckSummaries?: Record<string, DeckSummaryType>;
+  // デッキコードごとの種類(バトラボのデッキ分類。2027 シーズン以降の大会だけ)。無いデッキは種類の行を出さない
+  deckArchetypes?: DeckArchetypeMap;
   // 同じ大会の他区分・他大会へのリンク。サーバコンポーネントのまま受け取るため props で差し込む。
   relatedSection?: React.ReactNode;
 };
@@ -64,18 +67,20 @@ export function buildEventHeading(
   return title;
 }
 
-// 「優勝は○○デッキ（△△選手）」。デッキの内訳が取れなかったときは選手名だけにする。
+// 「△△選手（デッキ分類名）」。シティリーグの個別ページの冒頭文と同じ形にする。
+// デッキの呼び名はデッキ分類の名前を優先し、無ければ主なポケモン(deckDisplayName)。
+// 入賞カードに出る種類と食い違わないようにする。どちらも取れなかったときは選手名だけにする。
 export function formatChampionsleagueWinner(
   winner: ChampionsleagueResult,
   deckSummaries: Record<string, DeckSummaryType>,
+  deckArchetypes: DeckArchetypeMap = {},
 ): string {
-  const mainPokemon = formatMainPokemon(
-    deckSummaries[winner.deck_code]?.mainPokemon ?? [],
+  const deckName = deckDisplayName(
+    deckArchetypes[winner.deck_code],
+    deckSummaries[winner.deck_code],
   );
 
-  return mainPokemon
-    ? `${mainPokemon}デッキ（${winner.player_name}選手）`
-    : `${winner.player_name}選手`;
+  return deckName ? `${winner.player_name}選手（${deckName}）` : `${winner.player_name}選手`;
 }
 
 /**
@@ -93,6 +98,7 @@ export default function ChampionsleagueResultByLeague({
   eventResults,
   officialEvents,
   deckSummaries = {},
+  deckArchetypes = {},
   relatedSection,
 }: Props) {
   const scheduleTitle = schedule.title.trim();
@@ -121,7 +127,9 @@ export default function ChampionsleagueResultByLeague({
   const summary =
     `${formatTermRange(schedule)}に${venue ? `${venue}で` : ""}開催された${scheduleTitle}` +
     `${leagueTitle ? `（${leagueTitle}リーグ）` : ""}の結果です。` +
-    (winner ? `優勝は${formatChampionsleagueWinner(winner, deckSummaries)}。` : "") +
+    (winner
+      ? `優勝は${formatChampionsleagueWinner(winner, deckSummaries, deckArchetypes)}。`
+      : "") +
     `入賞${resultCount}名のうち、${deckCodeCount}名のデッキコードとカードリストを掲載しています。`;
 
   return (
@@ -243,6 +251,7 @@ export default function ChampionsleagueResultByLeague({
                       date={eventResult.date}
                       showRankLabel={false}
                       deckSummary={deckSummaries[result.deck_code]}
+                      deckArchetype={deckArchetypes[result.deck_code]}
                     />
                   ))}
                 </div>

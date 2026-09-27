@@ -95,6 +95,10 @@ export default function Loading() {
                 <CityleagueResultCardSkeleton
                   key={cardIndex}
                   showRankLabel={false}
+                  // 2027 シーズン以降の大会にはデッキの種類(バトラボのデッキ分類)が付く。この時点では
+                  // どの大会か分からないが、閲覧の中心になる新しい大会に合わせて行を取っておく
+                  // (シティリーグの個別ページの loading.tsx と同じ判断)
+                  withDeckArchetype
                 />
               ))}
             </div>

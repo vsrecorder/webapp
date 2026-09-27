@@ -42,6 +42,18 @@ export function isDeckArchetypeSeason(scheduleId: string | null | undefined): bo
 }
 
 /*
+ * 大型大会(チャンピオンズリーグ等)のスケジュールにデッキ分類が付くか。
+ *
+ * 大型大会の ID はシーズンの年を含む("cl2027_yokohama"、"pjcs2026")。シティリーグと同じく
+ * 2027 シーズン以降だけを対象にする。年が読めない ID は対象外
+ */
+export function isDeckArchetypeChampionsleague(scheduleId: string | null | undefined): boolean {
+  const matched = /(\d{4})/.exec(scheduleId ?? "");
+
+  return !!matched && Number(matched[1]) >= DECK_ARCHETYPE_FIRST_SEASON;
+}
+
+/*
  * 一覧(CityleagueResult)に載る入賞のデッキコードを、分類を提供しているシーズンのイベントから
  * 集める(重複なし)。9位以下は一覧に載らないので取らない(1日ぶんで半分の本数で済む)。
  */

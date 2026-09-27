@@ -12,6 +12,7 @@ import CityleagueHubHeader from "@app/components/organisms/Cityleague/Cityleague
 
 import { ChampionsleagueEventResultType } from "@app/types/championsleague_result";
 import { ChampionsleagueScheduleType } from "@app/types/championsleague_schedule";
+import { DeckArchetypeMap } from "@app/types/deck_archetype";
 import { DeckSummaryType } from "@app/types/deckcard";
 
 import {
@@ -24,6 +25,7 @@ import {
 } from "@app/utils/championsleague";
 import { formatTermRange } from "@app/utils/cityleague";
 import { serializeJsonLd } from "@app/utils/breadcrumb";
+import { getChampionsleagueDeckArchetypes } from "@app/utils/championsleagueArchetypeServer";
 import { getDeckSummaries } from "@app/utils/deckSummaryServer";
 import { OG_SIZE, renderChampionsleagueOgImage } from "@app/utils/ogImage";
 import { ogImageUrlFor } from "@app/utils/ogStorage";
@@ -45,6 +47,7 @@ function buildDescription(
   schedule: ChampionsleagueScheduleType,
   leagueGroups: LeagueGroups,
   deckSummaries: Record<string, DeckSummaryType>,
+  deckArchetypes: DeckArchetypeMap,
 ): string {
   const leagueTitles = leagueGroups
     .map((group) => championsleagueLeagueTitle(group.leagueType))
@@ -63,7 +66,7 @@ function buildDescription(
   const winnerText =
     winner && headline
       ? `${championsleagueLeagueTitle(headline.league_type)}リーグの優勝は` +
-        `${formatChampionsleagueWinner(winner, deckSummaries)}。`
+        `${formatChampionsleagueWinner(winner, deckSummaries, deckArchetypes)}。`
       : "";
 
   return (
@@ -109,13 +112,25 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   const eventResults = championsleagueResult?.event_results ?? [];
-  const deckSummaries = await getWinnerDeckSummaries(eventResults);
+  // 優勝デッキの種類(デッキ分類)は環境が要るので、公式イベント情報を先に引く。
+  // 本文も同じ取得をするため、同じ描画の中では1回しか取りに行かない
+  const [deckSummaries, officialEvents] = await Promise.all([
+    getWinnerDeckSummaries(eventResults),
+    getOfficialEventsByIds(eventResults.map((eventResult) => eventResult.official_event_id)),
+  ]);
+  const deckArchetypes = await getChampionsleagueDeckArchetypes(
+    schedule.id,
+    eventResults,
+    officialEvents,
+    { winnersOnly: true },
+  );
 
   const title = buildTitle(schedule);
   const description = buildDescription(
     schedule,
     groupEventsByLeagueType(eventResults),
     deckSummaries,
+    deckArchetypes,
   );
   const path = `/cityleague_results/championsleagues/${schedule.id}`;
 
@@ -165,6 +180,13 @@ export default async function Page({ params }: Props) {
       eventResults.map((eventResult) => eventResult.official_event_id),
     ),
   ]);
+  // 区分ごとの優勝デッキの種類(バトラボのデッキ分類。2027 シーズン以降の大会だけ)
+  const deckArchetypes = await getChampionsleagueDeckArchetypes(
+    schedule.id,
+    eventResults,
+    officialEvents,
+    { winnersOnly: true },
+  );
 
   const scheduleTitle = schedule.title.trim();
   const resultCount = eventResults.reduce(
@@ -189,14 +211,14 @@ export default async function Page({ params }: Props) {
           date: eventResult.date,
           resultCount: eventResult.results.length,
           winner: winner
-            ? formatChampionsleagueWinner(winner, deckSummaries)
+            ? formatChampionsleagueWinner(winner, deckSummaries, deckArchetypes)
             : undefined,
         };
       }),
     };
   });
 
-  const description = buildDescription(schedule, leagueGroups, deckSummaries);
+  const description = buildDescription(schedule, leagueGroups, deckSummaries, deckArchetypes);
 
   const domain = process.env.VSRECORDER_DOMAIN;
   const pageUrl = `https://${domain}/cityleague_results/championsleagues/${schedule.id}`;

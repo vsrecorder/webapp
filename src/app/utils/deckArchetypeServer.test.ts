@@ -92,6 +92,28 @@ describe("getDeckArchetypesByCodes", () => {
     expect(map["code-149"].deckCode).toBe("code-149");
   });
 
+  it("大会の環境と日付を添えると、vslab に渡す(索引に無いデッキも判定させる)", async () => {
+    fetchMock.mockResolvedValue(Response.json({ decks: { "a-1": entry("a-1") } }));
+
+    await getDeckArchetypesByCodes(["a-1"], { environmentId: "m6a", date: "2026-09-22" });
+
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      "https://lab.vsrecorder.mobi/api/archetypes/classify?codes=a-1&environment=m6a&date=2026-09-22",
+    );
+    // 一部だけ取れない応答が長く残らないよう、環境付きの照会は Data Cache に短く置く
+    expect(fetchMock.mock.calls[0][1].next).toEqual({ revalidate: 60 });
+  });
+
+  it("環境付きの照会は 20 件ごとに分ける(vslab 側の上限が索引のデッキより小さい)", async () => {
+    fetchMock.mockResolvedValue(Response.json({ decks: {} }));
+
+    const codes = Array.from({ length: 21 }, (_, i) => `code-${String(i).padStart(3, "0")}`);
+    await getDeckArchetypesByCodes(codes, { environmentId: "m6a", date: "2026-09-22" });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(decodeURIComponent(String(fetchMock.mock.calls[0][0])).split("codes=")[1].split("&")[0].split(",")).toHaveLength(20);
+  });
+
   it("形の合わないコードは送らず、空なら引かない", async () => {
     fetchMock.mockResolvedValue(Response.json({ decks: {} }));
 

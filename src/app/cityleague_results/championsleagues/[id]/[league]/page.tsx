@@ -11,6 +11,7 @@ import {
   ChampionsleagueResult,
 } from "@app/types/championsleague_result";
 import { ChampionsleagueScheduleType } from "@app/types/championsleague_schedule";
+import { DeckArchetypeMap } from "@app/types/deck_archetype";
 import { DeckSummaryType } from "@app/types/deckcard";
 import { OfficialEventType } from "@app/types/official_event";
 
@@ -23,6 +24,7 @@ import {
 } from "@app/utils/championsleague";
 import { formatTermRange } from "@app/utils/cityleague";
 import { serializeJsonLd } from "@app/utils/breadcrumb";
+import { getChampionsleagueDeckArchetypes } from "@app/utils/championsleagueArchetypeServer";
 import { getDeckSummaries, getDeckSummary } from "@app/utils/deckSummaryServer";
 import { OG_SIZE, renderChampionsleagueOgImage } from "@app/utils/ogImage";
 import { ogImageUrlFor } from "@app/utils/ogStorage";
@@ -54,14 +56,18 @@ function buildTitle(
  * 載せられないので最終日を採る。イベントの並び順に左右されないよう、ここで日付から選ぶ
  * (generateMetadata と本文で違う人が出ると、検索結果とページの内容が食い違う)。
  */
+function findLastDayEvent(
+  eventResults: ChampionsleagueEventResultType[],
+): ChampionsleagueEventResultType | undefined {
+  return [...eventResults].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+  )[eventResults.length - 1];
+}
+
 function findLastDayWinner(
   eventResults: ChampionsleagueEventResultType[],
 ): ChampionsleagueResult | undefined {
-  const lastDay = [...eventResults].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-  )[eventResults.length - 1];
-
-  return lastDay?.results.find((result) => result.rank === 1);
+  return findLastDayEvent(eventResults)?.results.find((result) => result.rank === 1);
 }
 
 function buildDescription(
@@ -69,11 +75,12 @@ function buildDescription(
   leagueType: number,
   eventResults: ChampionsleagueEventResultType[],
   deckSummaries: Record<string, DeckSummaryType>,
+  deckArchetypes: DeckArchetypeMap,
 ): string {
   const results = eventResults.flatMap((eventResult) => eventResult.results);
   const winner = findLastDayWinner(eventResults);
   const winnerText = winner
-    ? `優勝は${formatChampionsleagueWinner(winner, deckSummaries)}。`
+    ? `優勝は${formatChampionsleagueWinner(winner, deckSummaries, deckArchetypes)}。`
     : "";
 
   return (
@@ -111,9 +118,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const eventResults = championsleagueResult?.event_results ?? [];
 
-  // 説明文に載せるのは優勝デッキだけなので、ここでは1件しか引かない。
-  const winnerDeckCode = findLastDayWinner(eventResults)?.deck_code;
-  const winnerSummary = winnerDeckCode ? await getDeckSummary(winnerDeckCode) : null;
+  // 説明文に載せるのは優勝デッキだけなので、カード内訳は1件しか引かない。
+  // 種類(デッキ分類)は最終日のイベントぶんをまとめて引く(本文が同じ照会をするので、
+  // 同じ描画の中では1回しか取りに行かない)。
+  const lastDay = findLastDayEvent(eventResults);
+  const winnerDeckCode = lastDay?.results.find((result) => result.rank === 1)?.deck_code;
+  const [winnerSummary, lastDayOfficialEvents] = await Promise.all([
+    winnerDeckCode ? getDeckSummary(winnerDeckCode) : Promise.resolve(null),
+    lastDay ? getOfficialEventsByIds([lastDay.official_event_id]) : Promise.resolve({}),
+  ]);
+  const deckArchetypes = lastDay
+    ? await getChampionsleagueDeckArchetypes(schedule.id, [lastDay], lastDayOfficialEvents)
+    : {};
 
   const title = buildTitle(schedule, leagueType);
   const description = buildDescription(
@@ -121,6 +137,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     leagueType,
     eventResults,
     winnerDeckCode && winnerSummary ? { [winnerDeckCode]: winnerSummary } : {},
+    deckArchetypes,
   );
   const path = `/cityleague_results/championsleagues/${schedule.id}/${league}`;
 
@@ -174,15 +191,25 @@ export default async function Page({ params }: Props) {
   );
 
   // 入賞デッキのカード内訳と、イベント名・会場のための公式イベント情報。
-  const [deckSummaries, officialEvents] = await Promise.all([
+  const officialEventsPromise = getOfficialEventsByIds(
+    eventResults.map((eventResult) => eventResult.official_event_id),
+  );
+
+  // 入賞デッキの種類(バトラボのデッキ分類。2027 シーズン以降の大会だけ)。
+  // 環境は公式イベント情報にしか無いので、その取得を待ってから引く(カード内訳の取得とは並行)。
+  // 取れなかったデッキは種類の行が無いだけで、ページは出す
+  const deckArchetypesPromise = officialEventsPromise.then((events) =>
+    getChampionsleagueDeckArchetypes(schedule.id, eventResults, events),
+  );
+
+  const [deckSummaries, officialEvents, deckArchetypes] = await Promise.all([
     getDeckSummaries(
       eventResults.flatMap((eventResult) =>
         eventResult.results.map((result) => result.deck_code),
       ),
     ),
-    getOfficialEventsByIds(
-      eventResults.map((eventResult) => eventResult.official_event_id),
-    ),
+    officialEventsPromise,
+    deckArchetypesPromise,
   ]);
 
   const description = buildDescription(
@@ -190,6 +217,7 @@ export default async function Page({ params }: Props) {
     leagueType,
     eventResults,
     deckSummaries,
+    deckArchetypes,
   );
 
   const scheduleTitle = schedule.title.trim();
@@ -282,6 +310,7 @@ export default async function Page({ params }: Props) {
         eventResults={eventResults}
         officialEvents={officialEvents}
         deckSummaries={deckSummaries}
+        deckArchetypes={deckArchetypes}
         relatedSection={
           <ChampionsleagueLeagueRelatedSection
             schedule={schedule}

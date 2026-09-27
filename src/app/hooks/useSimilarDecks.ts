@@ -2,7 +2,7 @@
 
 import { SeededResource, useSeededResource } from "@app/hooks/useSeededResource";
 import { SimilarDecksGetResponseType } from "@app/types/similar_deck";
-import { parseSimilarDecksResponse, similarDecksApiPath } from "@app/utils/similarDecks";
+import { readSimilarDecksBody, similarDecksApiPath } from "@app/utils/similarDecks";
 
 /*
  * 類似している入賞デッキ(バトラボの類似デッキ検索)を BFF から取る。
@@ -35,7 +35,8 @@ async function fetchSimilarDecks(code: string): Promise<SimilarDecksView> {
 
   if (!res.ok) throw new Error(`similar decks: HTTP ${res.status}`);
 
-  const data = parseSimilarDecksResponse(await res.json());
+  // BFF が表示用の形に直して返すので、ここでは形を確かめるだけにする(組み替えない)
+  const data = readSimilarDecksBody(await res.json());
   if (!data) throw new Error("similar decks: unexpected body");
 
   return { kind: "ok", data };

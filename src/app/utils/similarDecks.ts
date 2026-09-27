@@ -135,7 +135,24 @@ function parseSource(value: unknown): SimilarDecksSourceType | null {
 }
 
 /*
- * バトラボの GET /api/similar の応答を、表示に使う形にする。
+ * BFF(/api/deckcards/{code}/similar)の応答を読む。クライアント用。
+ *
+ * BFF はバトラボの応答を parseSimilarDecksResponse で表示用の形に直してから返す。
+ * クライアントでもう一度 parseSimilarDecksResponse を通してはいけない。バトラボの形
+ * (種類は deckType)を前提にしているので、表示用の形(種類は archetype)を通すと種類が
+ * 読めず、すべてのデッキが「デッキ名：不明」・スプライト無しになる(実際に起きた)。
+ * ここでは形を確かめるだけで、中身は組み替えない
+ */
+export function readSimilarDecksBody(body: unknown): SimilarDecksGetResponseType | null {
+  if (!isRecord(body) || !isRecord(body.source)) return null;
+  if (typeof body.source.deckCode !== "string" || !isRecord(body.source.archetype)) return null;
+  if (!Array.isArray(body.similar)) return null;
+
+  return body as SimilarDecksGetResponseType;
+}
+
+/*
+ * バトラボの GET /api/similar の応答を、表示に使う形にする。サーバ(BFF)用。
  * 形が合わなければ null(呼び出し側が「取れなかった」として扱う)。
  * 一覧の 1 件が壊れていても、その 1 件だけ落として残りは出す
  */

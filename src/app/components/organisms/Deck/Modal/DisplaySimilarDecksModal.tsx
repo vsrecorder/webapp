@@ -1,11 +1,9 @@
 "use client";
 
-import { useState } from "react";
-
 import { Chip, Skeleton } from "@heroui/react";
 import { ModalContent, ModalHeader, ModalBody } from "@heroui/react";
 
-import { LuChevronDown, LuExternalLink } from "react-icons/lu";
+import { LuExternalLink } from "react-icons/lu";
 
 import { Modal } from "@app/components/atoms/AppModal";
 import CopyableDeckCode from "@app/components/atoms/CopyableDeckCode";
@@ -36,8 +34,9 @@ import {
  * 自分のデッキにカード構成が近いシティリーグの入賞デッキを、下からのシートで出す。
  *
  * 中身はバトラボの類似デッキ検索(BFF: /api/deckcards/{code}/similar)。類似度の高い順に
- * 並び、各行にデッキの種類(バトラボの分類)と、自分のデッキとの差分カードを添える。
- * 行を押すとデッキ画像とデッキコードが開く。
+ * 並び、各行にデッキの種類(バトラボの分類)・自分のデッキとの差分カード・デッキ画像・
+ * デッキコードを添える。デッキ画像は最初から出す(見比べるのに画像がいちばん早い)。
+ * 画面外の行の画像は lazy にして、開いた直後に 12 枚ぶんを一度に取りにいかない。
  *
  * 取りにいくのはシートを開いたとき。デッキ詳細を開いただけでは、デッキの中身を
  * バトラボ(と公式サイト)に渡さない。
@@ -109,19 +108,12 @@ function SimilarDeckRow({
   sourceArchetypeId: string | null;
   environmentId: string;
 }) {
-  // 行を押すとデッキ画像とデッキコードが開く(一覧の高さを抑えるため既定は閉じる)
-  const [open, setOpen] = useState(false);
   const percent = percentLabel(deck.similarity);
   const hasDiff = deck.diffIn.length > 0 || deck.diffOut.length > 0;
 
   return (
-    <li className="border-t border-divider first:border-t-0">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        className="w-full py-2.5 text-left active:opacity-70"
-      >
+    <li className="flex flex-col gap-2 border-t border-divider py-3 first:border-t-0">
+      <div>
         <div className="flex items-center gap-2">
           <span className="w-13 shrink-0 font-bold text-small tabular-nums">{percent}</span>
           <span className="h-1.5 min-w-8 flex-1 overflow-hidden rounded-full bg-default-200">
@@ -134,9 +126,6 @@ function SimilarDeckRow({
             {formatEventDateShort(deck.eventDate)} ・ {deck.prefectureName} ・{" "}
             {cityleagueRankLabel(deck.rank, false)}
           </span>
-          <LuChevronDown
-            className={`shrink-0 text-default-400 transition-transform ${open ? "rotate-180" : ""}`}
-          />
         </div>
         <div className="mt-1.5 flex items-center gap-2">
           <DeckSprites sprites={deck.archetype.sprites.map((id) => ({ id }))} size={24} />
@@ -170,26 +159,23 @@ function SimilarDeckRow({
             ))}
           </div>
         )}
-      </button>
-      {open && (
-        <div className="flex flex-col gap-2 pb-3">
-          <ZoomableDeckImage
-            code={deck.deckCode}
-            alt={`${deck.archetype.label ?? "入賞デッキ"}（${deck.deckCode}）`}
-          />
-          <CopyableDeckCode code={deck.deckCode} label="コード" />
-          {deck.archetype.archetypeId && (
-            <a
-              href={vslabArchetypePageUrl(deck.archetype.archetypeId, environmentId)}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center gap-1 self-start text-tiny text-primary underline-offset-2 hover:underline"
-            >
-              この種類の採用カード・入賞デッキをバトラボで見る
-              <LuExternalLink />
-            </a>
-          )}
-        </div>
+      </div>
+      <ZoomableDeckImage
+        code={deck.deckCode}
+        alt={`${deck.archetype.label ?? "入賞デッキ"}（${deck.deckCode}）`}
+        loading="lazy"
+      />
+      <CopyableDeckCode code={deck.deckCode} label="コード" />
+      {deck.archetype.archetypeId && (
+        <a
+          href={vslabArchetypePageUrl(deck.archetype.archetypeId, environmentId)}
+          target="_blank"
+          rel="noreferrer"
+          className="flex items-center gap-1 self-start text-tiny text-primary underline-offset-2 hover:underline"
+        >
+          この種類の採用カード・入賞デッキをバトラボで見る
+          <LuExternalLink />
+        </a>
       )}
     </li>
   );
@@ -208,7 +194,7 @@ function SimilarDecksList({ data }: { data: SimilarDecksGetResponseType }) {
       ) : (
         <>
           <div className="px-1 text-tiny text-default-500">
-            候補 {candidates} 件から上位 {similar.length} 件。行を押すとデッキ画像とデッキコードが開きます
+            候補 {candidates} 件から上位 {similar.length} 件
           </div>
           <ul className="px-1">
             {similar.map((deck) => (

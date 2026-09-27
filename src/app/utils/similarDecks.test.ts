@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   formatEventDateShort,
   parseSimilarDecksResponse,
+  readSimilarDecksBody,
   similarDecksApiPath,
   spriteIdFromUrl,
   vslabArchetypePageUrl,
@@ -139,6 +140,35 @@ describe("parseSimilarDecksResponse", () => {
     expect(parseSimilarDecksResponse(null)).toBeNull();
     expect(parseSimilarDecksResponse({ error: "not found" })).toBeNull();
     expect(parseSimilarDecksResponse({ source: { deckCode: "" }, similar: [] })).toBeNull();
+  });
+});
+
+describe("readSimilarDecksBody", () => {
+  it("BFF が返した形(parse 済み)を読んでも、デッキ名とスプライトが残る", () => {
+    // BFF は parseSimilarDecksResponse の結果を JSON にして返す
+    const bff = JSON.parse(JSON.stringify(parseSimilarDecksResponse(body)));
+
+    const read = readSimilarDecksBody(bff);
+
+    expect(read?.source.archetype).toEqual({
+      archetypeId: "dragapult",
+      label: "ドラパルトex バシャーモ型",
+      sprites: ["0887", "0257"],
+    });
+    expect(read?.similar[0].archetype.label).toBe("ドラパルトex バシャーモ型");
+    expect(read?.similar[0].archetype.sprites).toEqual(["0887", "0257"]);
+  });
+
+  it("parse 済みの形をもう一度 parseSimilarDecksResponse に通すと種類が消える(使ってはいけない理由)", () => {
+    const bff = JSON.parse(JSON.stringify(parseSimilarDecksResponse(body)));
+
+    expect(parseSimilarDecksResponse(bff)?.source.archetype.label).toBeNull();
+  });
+
+  it("形が違えば null", () => {
+    expect(readSimilarDecksBody(null)).toBeNull();
+    expect(readSimilarDecksBody({ error: "x" })).toBeNull();
+    expect(readSimilarDecksBody(body)).toBeNull();
   });
 });
 

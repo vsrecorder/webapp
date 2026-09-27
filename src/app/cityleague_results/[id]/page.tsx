@@ -7,7 +7,8 @@ import CityleagueRelatedSection from "@app/components/organisms/Cityleague/Cityl
 import CityleagueResultDetailSkeleton from "@app/components/organisms/Cityleague/Skeleton/CityleagueResultDetailSkeleton";
 import TemplateCityleagueResultByOfficialEventId from "@app/components/templates/CityleagueResultByOfficialEventId";
 
-import { CityleagueResultType, CityleagueWinnerType } from "@app/types/cityleague_result";
+import { CityleagueResultType } from "@app/types/cityleague_result";
+import { DeckArchetypeMap } from "@app/types/deck_archetype";
 import { OfficialEventType } from "@app/types/official_event";
 import {
   formatEventDate,
@@ -16,9 +17,8 @@ import {
 } from "@app/utils/cityleague";
 import { OG_SIZE, renderCityleagueEventOgImage } from "@app/utils/ogImage";
 import { serializeJsonLd } from "@app/utils/breadcrumb";
-import { isDeckArchetypeSeason } from "@app/utils/deckArchetype";
+import { deckDisplayName, isDeckArchetypeSeason } from "@app/utils/deckArchetype";
 import { getDeckArchetypesByEvent } from "@app/utils/deckArchetypeServer";
-import { formatMainPokemon } from "@app/utils/deckSummary";
 import { getDeckSummaries, getDeckSummary } from "@app/utils/deckSummaryServer";
 import { ogImageUrlFor } from "@app/utils/ogStorage";
 
@@ -32,23 +32,36 @@ function buildTitle(event: OfficialEventType): string {
   return `${event.title} ${event.shop_name}(${event.prefecture_name}) 結果・優勝デッキ`;
 }
 
-// 優勝者と、その優勝デッキの主なポケモン。description と本文の冒頭で「何のデッキが勝ったか」に答える。
-function toWinner(
-  cityleagueResult: CityleagueResultType | null,
-  mainPokemon: string[],
-): CityleagueWinnerType | null {
-  const winner = cityleagueResult?.results.find((result) => result.rank === 1);
+// description と構造化データに載せる優勝者と、その優勝デッキの呼び名。
+// 呼び名はデッキ分類(バトラボ)の名前を優先し、無ければ主なポケモン(deckDisplayName)。
+// 本文の冒頭(CityleagueResultByOfficialEventId)と同じ決め方にして、文言が食い違わないようにする
+type DescriptionWinner = { playerName: string; deckName: string };
 
-  return winner ? { playerName: winner.player_name, mainPokemon } : null;
+async function getDescriptionWinner(
+  officialEventId: number,
+  cityleagueResult: CityleagueResultType | null,
+): Promise<DescriptionWinner | null> {
+  const winner = cityleagueResult?.results.find((result) => result.rank === 1);
+  if (!winner) return null;
+
+  // 本文と同じ URL・オプションの fetch なので、同じ描画の中では1回しか取りに行かない(メモ化)
+  const [summary, archetypes] = await Promise.all([
+    winner.deck_code ? getDeckSummary(winner.deck_code) : Promise.resolve(null),
+    isDeckArchetypeSeason(cityleagueResult?.cityleague_schedule_id)
+      ? getDeckArchetypesByEvent(officialEventId)
+      : Promise.resolve<DeckArchetypeMap>({}),
+  ]);
+
+  return {
+    playerName: winner.player_name,
+    deckName: deckDisplayName(archetypes[winner.deck_code], summary ?? undefined),
+  };
 }
 
-function buildDescription(
-  event: OfficialEventType,
-  winner: CityleagueWinnerType | null,
-): string {
+function buildDescription(event: OfficialEventType, winner: DescriptionWinner | null): string {
   const winnerText = winner
-    ? winner.mainPokemon.length > 0
-      ? `優勝は${formatMainPokemon(winner.mainPokemon)}デッキ（${winner.playerName}選手）。`
+    ? winner.deckName
+      ? `優勝は${winner.playerName}選手（${winner.deckName}）。`
       : `優勝は${winner.playerName}選手。`
     : "";
 
@@ -73,15 +86,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return { title: "シティリーグ結果" };
   }
 
-  const winnerDeckCode = cityleagueResult?.results.find(
-    (result) => result.rank === 1,
-  )?.deck_code;
-  const winnerSummary = winnerDeckCode ? await getDeckSummary(winnerDeckCode) : null;
-
   const title = buildTitle(event);
   const description = buildDescription(
     event,
-    toWinner(cityleagueResult, winnerSummary?.mainPokemon ?? []),
+    await getDescriptionWinner(officialEventId, cityleagueResult),
   );
   const path = `/cityleague_results/${event.id}`;
 
@@ -135,14 +143,11 @@ export default async function Page({ params }: Props) {
   /*
    * 構造化データ(と description)に載せる優勝デッキだけ、ここで待つ。
    *
-   * generateMetadata が同じデッキコードで同じ取得をしているので、1回の描画の中では
-   * fetch がまとめられ、上流への往復は増えない。入賞16件を全部待つのとは桁が違う。
+   * generateMetadata が同じ取得をしているので、1回の描画の中では fetch がまとめられ、
+   * 上流への往復は増えない。入賞16件のカード内訳を全部待つのとは桁が違う
+   * (デッキ分類は大会単位の 1 本で、本文側の取得とも同じ URL なのでまとめられる)。
    */
-  const winnerDeckCode = cityleagueResult.results.find(
-    (result) => result.rank === 1,
-  )?.deck_code;
-  const winnerSummary = winnerDeckCode ? await getDeckSummary(winnerDeckCode) : null;
-  const winner = toWinner(cityleagueResult, winnerSummary?.mainPokemon ?? []);
+  const winner = await getDescriptionWinner(officialEventId, cityleagueResult);
 
   const domain = process.env.VSRECORDER_DOMAIN;
   const pageUrl = `https://${domain}/cityleague_results/${event.id}`;

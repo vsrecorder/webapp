@@ -95,10 +95,17 @@ function parseSimilarDeck(value: unknown): SimilarDeckType | null {
   if (typeof value.deckCode !== "string" || value.deckCode === "") return null;
   if (typeof value.similarity !== "number" || !Number.isFinite(value.similarity)) return null;
 
+  const eventDate = typeof value.eventDate === "string" ? value.eventDate : "";
+
   return {
+    // 古い応答(entryId が無い)はデッキコードと大会日で代える
+    entryId:
+      typeof value.entryId === "string" && value.entryId !== ""
+        ? value.entryId
+        : `${value.deckCode}|${eventDate}`,
     deckCode: value.deckCode,
     similarity: Math.min(1, Math.max(0, value.similarity)),
-    eventDate: typeof value.eventDate === "string" ? value.eventDate : "",
+    eventDate,
     prefectureName: typeof value.prefectureName === "string" ? value.prefectureName : "",
     leagueName: typeof value.leagueName === "string" ? value.leagueName : "",
     rank: typeof value.rank === "number" ? value.rank : 0,
@@ -106,6 +113,7 @@ function parseSimilarDeck(value: unknown): SimilarDeckType | null {
     diffOut: stringList(value.diffOut),
     archetype: parseArchetype(value.deckType),
     sameArchetype: value.sameArchetype === true,
+    sameCode: value.sameCode === true,
   };
 }
 
@@ -130,6 +138,7 @@ function parseSource(value: unknown): SimilarDecksSourceType | null {
     environmentTitle: typeof value.environmentTitle === "string" ? value.environmentTitle : "",
     archetype: parseArchetype(value.deckType),
     archetypeSkipped: value.deckTypeSkipped === true,
+    placements: typeof value.placements === "number" ? value.placements : 0,
     unresolved,
   };
 }

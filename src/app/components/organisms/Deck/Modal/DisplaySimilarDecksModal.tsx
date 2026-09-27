@@ -83,6 +83,12 @@ function SourceSummary({ source }: { source: SimilarDecksSourceType }) {
           <div className="text-tiny text-default-500">
             {source.environmentTitle} の入賞デッキと比較
           </div>
+          {/* 同じデッキコードで入賞していれば、その入賞は一覧の先頭に類似度 100% で並ぶ */}
+          {source.placements > 0 && (
+            <div className="text-tiny font-bold text-primary">
+              このデッキコードで {source.placements} 回入賞しています
+            </div>
+          )}
         </div>
       </div>
       {/* カードマスタに無いカード(新弾の取り込み前など)。類似度から外れており、
@@ -160,6 +166,11 @@ function SimilarDeckRow({
             {deck.archetype.label ?? "デッキ名：不明"}
           </span>
           {/* 構成は近いが分類上は別の種類。自分の種類が決まっていないときは比べようが無いので出さない */}
+          {deck.sameCode && (
+            <Chip size="sm" color="primary" variant="flat" className="h-5 shrink-0 text-[10px]">
+              同じデッキコード
+            </Chip>
+          )}
           {sourceArchetypeId && !deck.sameArchetype && deck.archetype.archetypeId && (
             <Chip size="sm" variant="bordered" className="h-5 shrink-0 text-[10px]">
               別のデッキ種類
@@ -228,7 +239,7 @@ function SimilarDecksList({ data }: { data: SimilarDecksGetResponseType }) {
           <ul className="px-1">
             {similar.map((deck) => (
               <SimilarDeckRow
-                key={deck.deckCode}
+                key={deck.entryId}
                 deck={deck}
                 sourceArchetypeId={source.archetype.archetypeId}
                 environmentId={source.environmentId}

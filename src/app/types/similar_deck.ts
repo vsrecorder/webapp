@@ -15,6 +15,9 @@ export type SimilarDeckArchetypeType = {
 
 // 構成が近い入賞デッキ 1 件
 export type SimilarDeckType = {
+  // 行を見分ける ID(バトラボの索引の文書 ID)。自分のデッキと同じコードの入賞は大会ごとに
+  // 別の行になるので、デッキコードでは一意にならない
+  entryId: string;
   deckCode: string;
   // 類似度(0〜1)
   similarity: number;
@@ -31,6 +34,8 @@ export type SimilarDeckType = {
   archetype: SimilarDeckArchetypeType;
   // 検索元と同じ主デッキか(型は問わない)。どちらかが未分類なら false
   sameArchetype: boolean;
+  // 自分のデッキと同じデッキコードの入賞か(類似度 100% で先頭に並ぶ)
+  sameCode: boolean;
 };
 
 // 検索元(自分のデッキ)
@@ -44,6 +49,8 @@ export type SimilarDecksSourceType = {
   archetype: SimilarDeckArchetypeType;
   // カードマスタと照合できないカードがあって、種類を判定しなかったとき true
   archetypeSkipped: boolean;
+  // 自分のデッキと同じデッキコードの入賞の件数(提供範囲の中)。0 なら入賞していない
+  placements: number;
   // 照合できず類似度から外したカード
   unresolved: { name: string; count: number }[];
 };

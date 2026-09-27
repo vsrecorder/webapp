@@ -25,6 +25,7 @@ const data = {
     environmentTitle: "30th CELEBRATION",
     archetype: { archetypeId: "dragapult", label: "ドラパルトex", sprites: ["0887"] },
     archetypeSkipped: false,
+    placements: 0,
     unresolved: [],
   },
   similar: [],

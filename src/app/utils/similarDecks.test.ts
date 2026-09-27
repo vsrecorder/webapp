@@ -78,6 +78,7 @@ describe("parseSimilarDecksResponse", () => {
     expect(parsed).not.toBeNull();
     expect(parsed?.source).toEqual({
       deckCode: "FkVdfF-xyOrPQ-FvbvdF",
+      placements: 0,
       origin: "external",
       environmentId: "m6a",
       environmentTitle: "30th CELEBRATION",
@@ -92,6 +93,9 @@ describe("parseSimilarDecksResponse", () => {
     expect(parsed?.candidates).toBe(109);
     expect(parsed?.similar).toHaveLength(1);
     expect(parsed?.similar[0]).toMatchObject({
+      // entryId の無い古い応答はデッキコードと大会日で代える
+      entryId: "pRyy3y-SSokZ3-SMySp3|2026-09-26T00:00:00+09:00",
+      sameCode: false,
       deckCode: "pRyy3y-SSokZ3-SMySp3",
       similarity: 0.935,
       prefectureName: "北海道",
@@ -101,6 +105,28 @@ describe("parseSimilarDecksResponse", () => {
       sameArchetype: true,
     });
     expect(parsed?.similar[0].archetype.sprites).toEqual(["0887", "0257"]);
+  });
+
+  it("同じデッキコードの入賞は、大会ごとに別の行として entryId・sameCode・入賞件数を読む", () => {
+    const row = body.similar[0];
+    const withSameCode = {
+      ...body,
+      source: { ...body.source, origin: "cityleague", placements: 2 },
+      similar: [
+        { ...row, deckCode: "6QQngg", entryId: "2027s1_1_a", similarity: 1, sameCode: true },
+        { ...row, deckCode: "6QQngg", entryId: "2027s1_2_b", similarity: 1, sameCode: true },
+        row,
+      ],
+    };
+
+    const parsed = parseSimilarDecksResponse(withSameCode);
+
+    expect(parsed?.source.placements).toBe(2);
+    expect(parsed?.similar.map((d) => [d.entryId, d.sameCode])).toEqual([
+      ["2027s1_1_a", true],
+      ["2027s1_2_b", true],
+      ["pRyy3y-SSokZ3-SMySp3|2026-09-26T00:00:00+09:00", false],
+    ]);
   });
 
   it("応答に sprites(ID)が付いていればそちらを使う", () => {

@@ -65,10 +65,14 @@ async function openCreateDeckModal() {
 
 describe("CityleagueResultCard の詳細モーダル", () => {
   it("モーダルのデッキ情報は、カードの画像と同じ幅(パネルの内側まで)の列にまとめて中央に置く", async () => {
-    // jsdom はレイアウトを持たないので、カードの画像枠の幅を 346px(個別ページの実測)に固定する
+    // jsdom はレイアウトを持たないので、カードの画像枠のレイアウト上の幅を 346px に固定する。
+    // 見た目の幅(getBoundingClientRect)は押下中の縮小を含むので、それとは違う値にしておき、
+    // offsetWidth のほうで測っていることも確かめる
+    const offsetWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "offsetWidth");
+    Object.defineProperty(HTMLElement.prototype, "offsetWidth", { configurable: true, get: () => 346 });
     const original = HTMLElement.prototype.getBoundingClientRect;
     HTMLElement.prototype.getBoundingClientRect = function () {
-      return { ...original.call(this), width: 346 } as DOMRect;
+      return { ...original.call(this), width: 346 * 0.98 } as DOMRect;
     };
 
     try {
@@ -88,6 +92,7 @@ describe("CityleagueResultCard の詳細モーダル", () => {
       expect(column.textContent).toContain(DECK_CODE);
     } finally {
       HTMLElement.prototype.getBoundingClientRect = original;
+      if (offsetWidth) Object.defineProperty(HTMLElement.prototype, "offsetWidth", offsetWidth);
     }
   });
 });

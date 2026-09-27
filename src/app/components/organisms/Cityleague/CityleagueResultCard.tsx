@@ -162,8 +162,13 @@ export default function CityleagueResultCard({
   const cardImageRef = useRef<HTMLDivElement>(null);
   const [modalImageWidth, setModalImageWidth] = useState<number | null>(null);
 
+  /*
+   * 幅は offsetWidth(レイアウト上の幅)で測る。getBoundingClientRect は変形後の見た目の幅を返すため、
+   * カードの押下中の縮小(active:scale-[0.98])を拾ってしまい、マウスで押すとモーダルの画像が
+   * 2% 狭くなっていた(PC の実測で 385px → 379px)。offsetWidth は整数だが、差は 1px 未満。
+   */
   const measureCardImage = () => {
-    const width = cardImageRef.current?.getBoundingClientRect().width ?? 0;
+    const width = cardImageRef.current?.offsetWidth ?? 0;
     setModalImageWidth(width > 0 ? width : null);
   };
 

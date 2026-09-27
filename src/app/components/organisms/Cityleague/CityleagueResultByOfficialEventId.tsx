@@ -24,7 +24,7 @@ import {
   cityleagueResultPath,
   cityleagueResultXIntentUrl,
 } from "@app/utils/cityleagueResultShare";
-import { formatMainPokemon } from "@app/utils/deckSummary";
+import { deckDisplayName } from "@app/utils/deckArchetype";
 import { safeExternalUrl } from "@app/utils/url";
 import { formatJSTDateWithWeekday } from "@app/utils/date";
 
@@ -55,20 +55,24 @@ export default function CityleagueResultByOfficialEventId({
     (result) => !!result.deck_code,
   ).length;
 
-  const winner = cityleagueResult.results.find((result) => result.rank === 1);
-  const winnerMainPokemon = winner
-    ? formatMainPokemon(deckSummaries[winner.deck_code]?.mainPokemon ?? [])
-    : "";
+  /*
+   * デッキの呼び名。デッキ分類(バトラボ)の表示名を優先し、分類が無い(旧シーズン・索引に無い)か
+   * 未分類のときは主なポケモンで呼ぶ(deckDisplayName)。入賞カードに出る種類と、冒頭の要約文・
+   * 順位ごとの一覧の呼び名を揃えるため。
+   */
+  const deckNameOf = (deckCode: string) =>
+    deckDisplayName(deckArchetypes[deckCode], deckSummaries[deckCode]);
 
-  // 順位ごとの「主なポケモン」。検索結果から来た人が最初に知りたい「何のデッキが勝ったか」を
-  // 冒頭で答える。要約が取れなかったデッキは省き、1つも無い順位は行ごと出さない。
+  const winner = cityleagueResult.results.find((result) => result.rank === 1);
+  const winnerDeckName = winner ? deckNameOf(winner.deck_code) : "";
+
+  // 順位ごとのデッキ。検索結果から来た人が最初に知りたい「何のデッキが勝ったか」を
+  // 冒頭で答える。名前が取れなかったデッキは省き、1つも無い順位は行ごと出さない。
   const deckOverview = sections
     .map((section) => ({
       label: section.label,
       decks: section.results
-        .map((result) =>
-          formatMainPokemon(deckSummaries[result.deck_code]?.mainPokemon ?? []),
-        )
+        .map((result) => deckNameOf(result.deck_code))
         .filter((text) => text !== ""),
     }))
     .filter(({ decks }) => decks.length > 0);
@@ -80,7 +84,7 @@ export default function CityleagueResultByOfficialEventId({
     `${date}に${event.prefecture_name}の${event.shop_name}で開催された` +
     `${event.title}（${event.league_title}リーグ / 環境『${event.environment_title}』）の結果です。` +
     (winner
-      ? `優勝は${winner.player_name}選手${winnerMainPokemon ? `（${winnerMainPokemon}）` : ""}。`
+      ? `優勝は${winner.player_name}選手${winnerDeckName ? `（${winnerDeckName}）` : ""}。`
       : "") +
     `入賞${cityleagueResult.results.length}名のうち、${deckCodeCount}名のデッキコードを掲載しています。`;
 

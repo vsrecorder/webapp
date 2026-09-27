@@ -1,7 +1,9 @@
 import { CityleagueResultType } from "@app/types/cityleague_result";
 import { DeckArchetypeMap, DeckArchetypeType } from "@app/types/deck_archetype";
+import { DeckSummaryType } from "@app/types/deckcard";
 import { DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
 import { isCityleagueListRank } from "@app/utils/cityleagueRank";
+import { formatMainPokemon } from "@app/utils/deckSummary";
 
 /*
  * 入賞デッキの種類(デッキ分類)まわりの純粋な変換。
@@ -163,4 +165,29 @@ export function deckArchetypeToDeckDraft(archetype: DeckArchetypeType | undefine
     name: archetype.archetypeName.replace(/\s+/g, " ").trim(),
     sprites: archetype.sprites.slice(0, 2).map((id, index) => ({ id, position: index + 1 })),
   };
+}
+
+/*
+ * 入賞デッキを文章の中で呼ぶときの名前。大会の個別ページの冒頭(要約文・順位ごとのデッキ一覧)で使う。
+ *
+ * デッキ分類(バトラボ)の名前を優先し、型名は括弧で囲む(「ドラパルトex(バシャーモ型)」)。
+ * 一覧では「 / 」で区切って並べるので、主デッキ名と型名が空白で並ぶと、どこまでが 1 つのデッキか
+ * 読み取りにくいため。分類が無い(2027 シーズンより前・vslab の索引に無い)か未分類のときは、
+ * カード内訳から選んだ主なポケモン(「ヨマワル・ヨノワール」)で呼ぶ。未分類で「デッキ名：不明」と
+ * 書くより、何のデッキかの目安になるため。どちらも無ければ空文字(呼び出し側が省く)。
+ * 名前の空白は 1 つに詰める(定義側で 2 つ続くものがある)。
+ */
+export function deckDisplayName(
+  archetype: DeckArchetypeType | undefined,
+  summary: DeckSummaryType | undefined,
+): string {
+  const tidy = (text: string | null | undefined) => (text ?? "").replace(/\s+/g, " ").trim();
+
+  const name = archetype?.label ? tidy(archetype.archetypeName) : "";
+  if (name) {
+    const variant = tidy(archetype?.variantName);
+    return variant ? `${name}(${variant})` : name;
+  }
+
+  return formatMainPokemon(summary?.mainPokemon ?? []);
 }

@@ -6,6 +6,7 @@ import {
   chunkDeckCodes,
   collectListedDeckCodes,
   deckArchetypeToDeckDraft,
+  deckDisplayName,
   isDeckArchetypeSeason,
   normalizeDeckCodes,
   parseDeckArchetypeResponse,
@@ -218,5 +219,59 @@ describe("deckArchetypeToDeckDraft", () => {
         sprites: [],
       }),
     ).toEqual({ name: "", sprites: [] });
+  });
+});
+
+describe("deckDisplayName", () => {
+  const summary = {
+    code: "a-1",
+    total: 60,
+    mainPokemon: ["ヨマワル", "ヨノワール"],
+    aceSpec: null,
+    groups: [],
+  };
+
+  it("分類の名前を優先し、型名は括弧で囲む(空白の連続は詰める)", () => {
+    expect(
+      deckDisplayName(
+        {
+          deckCode: "a-1",
+          archetypeName: "メガミミロップex ",
+          variantName: "メガユキメノコ型",
+          label: "メガミミロップex  メガユキメノコ型",
+          sprites: [],
+        },
+        summary,
+      ),
+    ).toBe("メガミミロップex(メガユキメノコ型)");
+  });
+
+  it("型を持たない主デッキは名前だけ", () => {
+    expect(
+      deckDisplayName(
+        {
+          deckCode: "a-1",
+          archetypeName: "ガチグマ  アカツキex",
+          variantName: null,
+          label: "ガチグマ  アカツキex",
+          sprites: [],
+        },
+        summary,
+      ),
+    ).toBe("ガチグマ アカツキex");
+  });
+
+  it("分類が無い・未分類なら主なポケモンで呼ぶ", () => {
+    expect(deckDisplayName(undefined, summary)).toBe("ヨマワル・ヨノワール");
+    expect(
+      deckDisplayName(
+        { deckCode: "a-1", archetypeName: null, variantName: null, label: null, sprites: [] },
+        summary,
+      ),
+    ).toBe("ヨマワル・ヨノワール");
+  });
+
+  it("どちらも無ければ空文字", () => {
+    expect(deckDisplayName(undefined, undefined)).toBe("");
   });
 });

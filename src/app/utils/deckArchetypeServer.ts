@@ -1,3 +1,5 @@
+import { cache } from "react";
+
 import { DeckArchetypeMap } from "@app/types/deck_archetype";
 import {
   chunkDeckCodes,
@@ -58,7 +60,17 @@ function vslabOrigin(): string {
   return process.env.VSLAB_ORIGIN || DEFAULT_VSLAB_ORIGIN;
 }
 
-async function fetchClassify(query: string): Promise<DeckArchetypeMap> {
+/*
+ * 1 回の描画(generateMetadata とページ本体)の中では、同じ照会を 1 回にまとめる(React の cache)。
+ *
+ * fetch の重複排除は成功した応答にしか効かない。vslab が応答しないと、説明文用の取得が
+ * 3 秒待って失敗したあと、本文用の取得がもう一度 3 秒待つので、入賞カードが出るまで 6 秒かかっていた
+ * (シティリーグの個別ページで実測 6.4 秒)。失敗も「空の辞書」という結果として覚えておけば、
+ * 2 回目は待たずに返る。cache は描画をまたがないので、次の閲覧では取り直す。
+ */
+const fetchClassify = cache(async function fetchClassify(
+  query: string,
+): Promise<DeckArchetypeMap> {
   const url = `${vslabOrigin()}/api/archetypes/classify?${query}`;
 
   let res: Response;
@@ -91,7 +103,7 @@ async function fetchClassify(query: string): Promise<DeckArchetypeMap> {
   const body: unknown = await res.json().catch(() => null);
 
   return parseDeckArchetypeResponse(body);
-}
+});
 
 // 大会(official_event_id)の入賞デッキをまとめて引く(個別ページ向け)
 export async function getDeckArchetypesByEvent(

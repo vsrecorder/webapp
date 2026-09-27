@@ -29,11 +29,19 @@ const DEFAULT_VSLAB_ORIGIN = "https://lab.vsrecorder.mobi";
 const LIST_CODES_PER_REQUEST = 20;
 
 /*
- * Data Cache に置く時間。vslab 側のキャッシュ(10 分、取り込みバッチの完了通知で捨てる)と同じ。
- * 定義の更新を追いたいので日単位にはしない。個別ページは大会ごとに 1 本、一覧は 1 日ぶんで
- * 数本なので、この間隔でも vslab への往復はわずか。
+ * Data Cache に置く時間。
+ *
+ * 大会結果は core-apiserver に先に入り、vslab の索引に載るのは数分遅れる(2026-09-27 の本番で
+ * 実測。当日の大会が一覧に出た時点では vslab がまだ「無い」と答える)。その間に引いた応答
+ * (大会の 404、コード照会の notFound 混じり)も Data Cache は区別せず置くので、以前の 10 分では
+ * 「一覧・個別ページに分類が出ない」状態が最大 10 分(期限切れ後の最初の 1 回は古い応答を返す
+ * ので実際はそれ以上)続いていた。応答の中身で置く時間を変える手段は fetch には無いので、
+ * すべて 1 分にする。vslab は数十 ms で返し、自前のキャッシュも持つので往復が増えても軽い。
+ *
+ * 環境付きの照会(索引に無い大型大会のデッキ)も同じ 1 分。vslab が 1 件ずつ上流から中身を
+ * 取り寄せるため一部だけ取れない応答がありうるが、その欠けも 1 分で引き直される。
  */
-const REVALIDATE_SECONDS = 600;
+const REVALIDATE_SECONDS = 60;
 
 /*
  * vslab が応答しないときにページを止めない上限。通常は数十 ms で返る。
@@ -47,16 +55,7 @@ function vslabOrigin(): string {
   return process.env.VSLAB_ORIGIN || DEFAULT_VSLAB_ORIGIN;
 }
 
-/*
- * 索引に無いデッキ(大型大会)の照会を Data Cache に置く時間。
- *
- * この照会は vslab が 1 件ずつ上流からデッキの中身を取り寄せるため、一部だけ取れない応答
- * (notFound 混じりの 200)が返ることがある。10 分置くとその欠けが 10 分残るので短くする。
- * 中身は vslab 側が 1 日置いていて判定も軽いので、1 分ごとに引き直しても vslab の負担は小さい。
- */
-const LIST_REVALIDATE_SECONDS = 60;
-
-async function fetchClassify(query: string, revalidate = REVALIDATE_SECONDS): Promise<DeckArchetypeMap> {
+async function fetchClassify(query: string): Promise<DeckArchetypeMap> {
   const url = `${vslabOrigin()}/api/archetypes/classify?${query}`;
 
   let res: Response;
@@ -67,7 +66,7 @@ async function fetchClassify(query: string, revalidate = REVALIDATE_SECONDS): Pr
       headers: { Accept: "application/json" },
       // cache を明示しないと revalidate が効かない(理由は utils/coreApi.ts)
       cache: "force-cache",
-      next: { revalidate },
+      next: { revalidate: REVALIDATE_SECONDS },
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
   } catch (error) {
@@ -124,10 +123,7 @@ export async function getDeckArchetypesByCodes(
 
   const maps = await Promise.all(
     chunks.map((chunk) =>
-      fetchClassify(
-        `codes=${encodeURIComponent(chunk.join(","))}${contextQuery}`,
-        context ? LIST_REVALIDATE_SECONDS : REVALIDATE_SECONDS,
-      ),
+      fetchClassify(`codes=${encodeURIComponent(chunk.join(","))}${contextQuery}`),
     ),
   );
 

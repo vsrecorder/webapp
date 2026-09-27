@@ -42,6 +42,19 @@ describe("getDeckArchetypesByEvent", () => {
     expect(map["a-1"].label).toBe("ドラパルトex");
   });
 
+  it("vslab の索引の遅れで欠けた応答が長く残らないよう、Data Cache には 1 分だけ置く", async () => {
+    fetchMock.mockResolvedValue(new Response("not found", { status: 404 }));
+
+    await getDeckArchetypesByEvent(1115603);
+    await getDeckArchetypesByCodes(["a-1"]);
+    await getDeckArchetypesByCodes(["a-1"], { environmentId: "m6a", date: "2026-09-22" });
+
+    for (const [, init] of fetchMock.mock.calls) {
+      expect(init.cache).toBe("force-cache");
+      expect(init.next).toEqual({ revalidate: 60 });
+    }
+  });
+
   it("VSLAB_ORIGIN で向き先を変えられる", async () => {
     process.env.VSLAB_ORIGIN = "http://localhost:6757";
     fetchMock.mockResolvedValue(Response.json({ decks: {} }));
@@ -100,8 +113,6 @@ describe("getDeckArchetypesByCodes", () => {
     expect(fetchMock.mock.calls[0][0]).toBe(
       "https://lab.vsrecorder.mobi/api/archetypes/classify?codes=a-1&environment=m6a&date=2026-09-22",
     );
-    // 一部だけ取れない応答が長く残らないよう、環境付きの照会は Data Cache に短く置く
-    expect(fetchMock.mock.calls[0][1].next).toEqual({ revalidate: 60 });
   });
 
   it("環境付きの照会は 20 件ごとに分ける(vslab 側の上限が索引のデッキより小さい)", async () => {

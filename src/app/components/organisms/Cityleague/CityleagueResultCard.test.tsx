@@ -102,6 +102,30 @@ describe("CityleagueResultCard の詳細モーダル", () => {
   });
 });
 
+describe("CityleagueResultCard の表示", () => {
+  it("「主なポケモン」の行は出さない(デッキ分類の表示に置き換えた)", () => {
+    render(
+      <CityleagueResultCard
+        result={result}
+        date={new Date()}
+        deckArchetype={archetype}
+        deckSummary={{
+          code: DECK_CODE,
+          total: 60,
+          mainPokemon: ["ドラパルトex", "バシャーモex"],
+          aceSpec: null,
+          groups: [],
+        }}
+      />,
+    );
+
+    expect(screen.queryByText(/主なポケモン/)).toBeNull();
+    expect(screen.getByText(`デッキコード ${DECK_CODE}`)).toBeTruthy();
+    // 画像の alt は分類の名前で呼ぶ
+    expect(screen.getByAltText(/ドラパルトex バシャーモ型/)).toBeTruthy();
+  });
+});
+
 describe("CityleagueResultCard のデッキ登録", () => {
   it("分類が付いていれば、主デッキ名(型名は含めない)とアイコンを入れた状態で登録モーダルを開く", async () => {
     render(<CityleagueResultCard result={result} date={new Date()} deckArchetype={archetype} />);

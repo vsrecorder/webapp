@@ -129,7 +129,6 @@ export default function CityleagueResultDetailSkeleton({ withDeckArchetype = fal
               <CityleagueResultCardSkeleton
                 key={cardIndex}
                 showRankLabel={false}
-                withMainPokemon
                 withDeckArchetype={withDeckArchetype}
               />
             ))}

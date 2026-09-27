@@ -16,12 +16,6 @@ type Props = {
   // カード側の順位ラベルを出さない。
   showRankLabel?: boolean;
   /*
-   * 実体が「主なポケモン」の行を出す場所か。実体はデッキの内訳(deckSummary)を渡された
-   * ときだけこの行を出す(大会の個別ページ・大型大会のページ。一覧のカードは出さない)。
-   * 出す場所で骨格に行が無いと、切り替わった瞬間にカードが 18px 伸びていた(実測 264 → 282px)。
-   */
-  withMainPokemon?: boolean;
-  /*
    * 実体がデッキの種類(バトラボのデッキ分類)の行を出す場所か。実体は種類(deckArchetype)を
    * 渡されたときだけこの行を出す。分類は 2027 シーズン以降の大会にしか付かないので、
    * 一覧(常に直近のシーズン)は出す前提、個別ページはそのイベントのシーズンで決める。
@@ -31,7 +25,6 @@ type Props = {
 
 export default function CityleagueResultCardSkeleton({
   showRankLabel = true,
-  withMainPokemon = false,
   withDeckArchetype = false,
 }: Props) {
 
@@ -101,24 +94,12 @@ export default function CityleagueResultCardSkeleton({
         </div>
 
         {/*
-          主なポケモン(出す場所だけ)。実体は pt-1.5 + text-tiny の1行 = 22px。
-          幅は「主なポケモン：ドラパルトex・ニャースex」相当。
-        */}
-        {withMainPokemon && (
-          <div className="pt-1.5">
-            <div className="h-4 flex items-center justify-center">
-              <Skeleton className="h-3 w-56 rounded-md" />
-            </div>
-          </div>
-        )}
-
-        {/*
-          デッキコード。実体は画像の下に text-tiny の1行があり、主なポケモンが無ければ
-          pt-1.5(6px)、有れば pt-0.5(2px) を空けて 16px の行を置く(22px / 18px)。
+          デッキコード。実体は画像の下に pt-1.5(6px) を空けて text-tiny の 16px の行を置く(22px)。
           ここが抜けていたため、骨格から実体に切り替わるたびにカードが伸びていた。
           幅は「デッキコード ○○○○○○-○○○○○○」の実測中央値 208px。
+          (以前はこの上に「主なポケモン」の行があったが、デッキ分類の表示に置き換えて廃止した)
         */}
-        <div className={withMainPokemon ? "pt-0.5" : "pt-1.5"}>
+        <div className="pt-1.5">
           <div className="h-4 flex items-center justify-center">
             <Skeleton className="h-3 w-52 rounded-md" />
           </div>

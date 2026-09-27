@@ -62,7 +62,8 @@ type Props = {
   date: Date;
   // 個別ページのように順位ごとの見出しがある場所では、カード側のラベルが冗長になるため隠す。
   showRankLabel?: boolean;
-  // デッキのカード内訳の要約(サーバ側で取得済み)。渡されたときだけ主なポケモンを出す。
+  // デッキのカード内訳の要約(サーバ側で取得済み)。画面には出さず、デッキ分類が無いときに
+  // 画像の alt でデッキを呼ぶのに使う(主なポケモン)。
   deckSummary?: DeckSummaryType;
   /*
    * デッキの種類(バトラボのデッキ分類)。渡されたときだけ種類の行を出す。
@@ -350,16 +351,10 @@ export default function CityleagueResultCard({
                     disableZoom
                   />
                 </div>
-                {/* デッキの中身は CDN の画像で文字では追えないため、主なポケモンとデッキコードを
-                    テキストでも出す。カードリストはカードには置かず、タップで開く詳細モーダルで見せる */}
-                {mainPokemon && (
-                  <span className="pt-1.5 text-center font-bold text-tiny text-default-600">
-                    主なポケモン：{mainPokemon}
-                  </span>
-                )}
-                <span
-                  className={`${mainPokemon ? "pt-0.5" : "pt-1.5"} text-center text-tiny text-default-400`}
-                >
+                {/* デッキコードはテキストでも出す(画像の文字は追えないため)。何のデッキかは上の
+                    デッキ分類で示し、以前ここにあった「主なポケモン」の行は廃止した。
+                    カードリストはカードには置かず、タップで開く詳細モーダルで見せる */}
+                <span className="pt-1.5 text-center text-tiny text-default-400">
                   デッキコード {result.deck_code}
                 </span>
               </>
@@ -369,22 +364,12 @@ export default function CityleagueResultCard({
                 <div className={CITYLEAGUE_CARD_IMAGE_WIDTH_CLASS}>
                   <NoDeckCodeImage />
                 </div>
-                {/* カードの高さはデッキコードがあるカードに揃える(一覧で1枚だけ短いと目立つ)。
-                    「主なポケモン」「デッキコード」の2行は同じ指定の行を見えない状態で置いて
-                    高さを決め、その中央に「デッキコードなし」を重ねる。台紙の画像だけだと
-                    読み込み失敗と見分けがつかないため、文字でも明示している */}
-                <div className="grid">
-                  <div
-                    aria-hidden="true"
-                    className="invisible col-start-1 row-start-1 flex flex-col text-center text-tiny"
-                  >
-                    <span className="pt-1.5 font-bold">主なポケモン</span>
-                    <span className="pt-0.5">デッキコード</span>
-                  </div>
-                  <span className="col-start-1 row-start-1 self-center pt-1.5 text-center text-tiny text-default-400">
-                    デッキコードなし
-                  </span>
-                </div>
+                {/* 「デッキコード」の行と同じ指定の 1 行で出し、カードの高さをデッキコードがある
+                    カードに揃える(一覧で1枚だけ短いと目立つ)。台紙の画像だけだと読み込み失敗と
+                    見分けがつかないため、文字でも明示している */}
+                <span className="pt-1.5 text-center text-tiny text-default-400">
+                  デッキコードなし
+                </span>
               </>
             )}
           </CardBody>

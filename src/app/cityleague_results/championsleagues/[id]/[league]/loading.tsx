@@ -95,7 +95,6 @@ export default function Loading() {
                 <CityleagueResultCardSkeleton
                   key={cardIndex}
                   showRankLabel={false}
-                  withMainPokemon
                 />
               ))}
             </div>

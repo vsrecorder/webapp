@@ -19,7 +19,7 @@ import { ogImageUrlFor } from "@app/utils/ogStorage";
 
 const title = "シティリーグ結果・優勝デッキ一覧";
 const description =
-  "全国のシティリーグの結果を日付順に掲載しています。優勝からベスト16までの入賞者のデッキコードとカードリスト、優勝デッキの主なポケモンを、オープン／ジュニア／シニアのリーグ区分ごとに確認できます。";
+  "全国のシティリーグの結果を日付順に掲載しています。優勝からベスト16までの入賞者のデッキコードとカードリスト、2027シーズン以降は入賞デッキの種類(デッキ分類)を、オープン／ジュニア／シニアのリーグ区分ごとに確認できます。";
 
 export async function generateMetadata(): Promise<Metadata> {
   const ogImageUrl = ogImageUrlFor("cityleague_results", renderCityleagueListOgImage);

@@ -14,6 +14,7 @@ import CityleagueResult from "@app/components/organisms/Cityleague/CityleagueRes
 
 import { OfficialEventListItemType } from "@app/types/official_event";
 import { CityleagueResultType } from "@app/types/cityleague_result";
+import { DeckArchetypeMap } from "@app/types/deck_archetype";
 import { formatJSTDateWithWeekday } from "@app/utils/date";
 
 type Props = {
@@ -21,9 +22,16 @@ type Props = {
   results: CityleagueResultType[];
   // モーダルの開閉を知らせる。並べている Swiper の自動スライドを、開いている間だけ止めるため
   onModalOpenChange?: (isOpen: boolean) => void;
+  // 入賞デッキの種類(バトラボのデッキ分類)。パネル(CityleagueEvent)が 1 日ぶんをまとめて取って配る
+  deck_archetypes?: DeckArchetypeMap;
 };
 
-export default function CityleagueEventCard({ event, results, onModalOpenChange }: Props) {
+export default function CityleagueEventCard({
+  event,
+  results,
+  onModalOpenChange,
+  deck_archetypes,
+}: Props) {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   /*
@@ -78,6 +86,7 @@ export default function CityleagueEventCard({ event, results, onModalOpenChange 
                   <CityleagueResult
                     event_result={matchedResult}
                     official_event={event}
+                    deck_archetypes={deck_archetypes}
                     eagerAllSlides
                   />
                 ) : (

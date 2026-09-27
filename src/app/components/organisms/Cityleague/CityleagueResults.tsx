@@ -17,10 +17,7 @@ import {
   CityleagueResultType,
 } from "@app/types/cityleague_result";
 import { CityleagueScheduleType } from "@app/types/cityleague_schedule";
-import {
-  DeckArchetypeMap,
-  DeckArchetypesGetResponseType,
-} from "@app/types/deck_archetype";
+import { DeckArchetypeMap } from "@app/types/deck_archetype";
 import {
   OfficialEventListItemType,
   OfficialEventResponseType,
@@ -35,11 +32,8 @@ import {
   CityleagueScheduleContext,
 } from "@app/utils/cityleagueListServer";
 import { toJSTDateString, todayJSTDateString } from "@app/utils/date";
-import {
-  chunkDeckCodes,
-  collectListedDeckCodes,
-  normalizeDeckCodes,
-} from "@app/utils/deckArchetype";
+import { collectListedDeckCodes } from "@app/utils/deckArchetype";
+import { fetchDeckArchetypes } from "@app/utils/deckArchetypeClient";
 import {
   CITYLEAGUE_SCROLL_TO_ID_KEY,
   CITYLEAGUE_SCROLL_TO_LEAGUE_TYPE_KEY,
@@ -149,40 +143,6 @@ async function fetchOfficialEventsByDate(
     ...data,
     official_events: Array.isArray(data?.official_events) ? data.official_events : [],
   };
-}
-
-/*
- * 入賞デッキの種類(バトラボのデッキ分類)を、1 日ぶんのデッキコードでまとめて引く。
- *
- * BFF の上限(100 件 = vslab の 1 回の照会)ごとに分けて並列に投げ、1 つの辞書にまとめる。
- * 取れなかった塊は落とす(その日のカードに種類の行が出ないだけで、一覧は出す)。
- */
-async function fetchDeckArchetypes(codes: string[]): Promise<DeckArchetypeMap> {
-  const chunks = chunkDeckCodes(normalizeDeckCodes(codes));
-
-  const maps = await Promise.all(
-    chunks.map(async (chunk) => {
-      try {
-        const res = await fetch(
-          `/api/cityleague_results/deck_archetypes?codes=${encodeURIComponent(chunk.join(","))}`,
-          {
-            cache: "no-store",
-            method: "GET",
-            headers: { Accept: "application/json" },
-          },
-        );
-        if (!res.ok) return {};
-
-        const data: DeckArchetypesGetResponseType = await res.json();
-
-        return data?.decks && typeof data.decks === "object" ? data.decks : {};
-      } catch {
-        return {};
-      }
-    }),
-  );
-
-  return Object.assign({}, ...maps);
 }
 
 type Props = {

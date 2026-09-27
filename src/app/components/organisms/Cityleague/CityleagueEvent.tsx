@@ -21,6 +21,9 @@ import CityleagueEventSkeleton from "@app/components/organisms/Cityleague/Skelet
 
 import { OfficialEventResponseType } from "@app/types/official_event";
 import { CityleagueResultGetResponseType } from "@app/types/cityleague_result";
+import { DeckArchetypeMap } from "@app/types/deck_archetype";
+import { collectListedDeckCodes } from "@app/utils/deckArchetype";
+import { fetchDeckArchetypes } from "@app/utils/deckArchetypeClient";
 import FetchErrorBox from "@app/components/molecules/FetchErrorBox";
 
 async function fetchCityleagueInfoByDate(league_type: number, date: string) {
@@ -120,6 +123,16 @@ export default function CityleagueEvent({ league_type, setLeagueTypeCount, date 
   const [isError, setIsError] = useState(false);
   // 「再読み込み」で取り直すためのキー。増やすと取得のeffectが走り直す
   const [reloadKey, setReloadKey] = useState(0);
+  /*
+   * デッキコード → 種類(バトラボのデッキ分類)。会場カードから開く結果モーダルの入賞カードへ配る。
+   *
+   * 結果が取れたあとに、その日の入賞ぶんを 1 回でまとめて引く(一覧ページと同じ BFF)。
+   * パネルの表示はこれを待たない(カード自体には種類を出さないので、待つと遅れるだけ)。
+   * 取れなかったデッキは入賞カードが種類の行を出さない。
+   */
+  const [deckArchetypes, setDeckArchetypes] = useState<DeckArchetypeMap>({});
+  // 取り直し・リーグ区分の切り替えのあとに、前の取得の結果で上書きしないための通し番号
+  const archetypeRequestRef = useRef(0);
 
   const sortedEvents = useMemo(() => {
     if (!cityleague?.official_events) return [];
@@ -226,6 +239,11 @@ export default function CityleagueEvent({ league_type, setLeagueTypeCount, date 
             await fetchCityleagueResultsByTerm(league_type, targetDate, targetDate);
           setCityleagueResults(data);
 
+          const request = ++archetypeRequestRef.current;
+          fetchDeckArchetypes(collectListedDeckCodes(data.event_results)).then((map) => {
+            if (archetypeRequestRef.current === request) setDeckArchetypes(map);
+          });
+
           return;
         } catch (error) {
           console.error("Error loading items:", error);
@@ -324,6 +342,7 @@ export default function CityleagueEvent({ league_type, setLeagueTypeCount, date 
                     <CityleagueEventCard
                       event={event}
                       onModalOpenChange={handleModalOpenChange}
+                      deck_archetypes={deckArchetypes}
                       results={
                         cityleagueResults
                           ? cityleagueResults?.event_results

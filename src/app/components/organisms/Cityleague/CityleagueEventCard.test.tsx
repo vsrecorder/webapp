@@ -8,8 +8,11 @@ import { OfficialEventListItemType } from "@app/types/official_event";
 import { CityleagueResultType } from "@app/types/cityleague_result";
 
 // 結果の中身(Swiper など)はここの関心事ではない。出たかどうかだけを見る
+// 分類は受け取った辞書のキーだけを書き出して、渡っているかを確かめる
 vi.mock("@app/components/organisms/Cityleague/CityleagueResult", () => ({
-  default: () => <div data-testid="result" />,
+  default: ({ deck_archetypes }: { deck_archetypes?: Record<string, unknown> }) => (
+    <div data-testid="result" data-archetypes={Object.keys(deck_archetypes ?? {}).join(",")} />
+  ),
 }));
 
 const EVENT = {
@@ -58,6 +61,20 @@ describe("CityleagueEventCard のタップ", () => {
     await waitFor(() => expect(screen.getByText("シティリーグの結果発表！")).toBeTruthy());
     expect(screen.getByTestId("result")).toBeTruthy();
     expect(screen.queryByText("シティリーグの開催情報")).toBeNull();
+  });
+
+  // 以前はパネルが分類を取っておらず、結果発表のモーダルだけ入賞デッキの種類が出なかった
+  it("結果のモーダルへ入賞デッキの種類を渡す", async () => {
+    const results = [{ official_event_id: EVENT.id }] as unknown as CityleagueResultType[];
+    const deckArchetypes = {
+      "a-1": { deckCode: "a-1", archetypeName: "ドラパルトex", variantName: null, label: "ドラパルトex", sprites: [] },
+    };
+    render(<CityleagueEventCard event={EVENT} results={results} deck_archetypes={deckArchetypes} />);
+
+    fireEvent.click(screen.getByTitle("宝島可児店"));
+
+    await waitFor(() => expect(screen.getByTestId("result")).toBeTruthy());
+    expect(screen.getByTestId("result").getAttribute("data-archetypes")).toBe("a-1");
   });
 
   // 並べている Swiper の自動スライドを、開いている間だけ止めるための知らせ

@@ -144,3 +144,65 @@ describe("CityleagueEvent の最初の描画", () => {
     expect(html).toContain('data-testid="event-skeleton"');
   });
 });
+
+describe("CityleagueEvent の入賞デッキの種類", () => {
+  // 結果発表のモーダルに種類を出すため、その日の入賞(8 位まで)をまとめて 1 回で引く
+  it("結果が出ていれば、その日の入賞デッキの種類を BFF でまとめて引く", async () => {
+    const requestedUrls: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        requestedUrls.push(url);
+        if (url.includes("/api/official_events")) {
+          return Response.json({ count: 1, official_events: [{ id: 1, shop_name: "店", date: "2026-09-27T00:00:00+09:00" }] });
+        }
+        if (url.includes("/deck_archetypes")) return Response.json({ decks: {} });
+        return Response.json({
+          count: 1,
+          event_results: [
+            {
+              official_event_id: 1,
+              cityleague_schedule_id: "2027s1",
+              results: [
+                { rank: 1, deck_code: "b-1" },
+                { rank: 2, deck_code: "a-1" },
+                { rank: 16, deck_code: "c-1" },
+              ],
+            },
+          ],
+        });
+      }),
+    );
+
+    render(<CityleagueEvent league_type={1} setLeagueTypeCount={() => {}} />);
+
+    await waitFor(() =>
+      expect(requestedUrls.filter((url) => url.includes("/deck_archetypes"))).toHaveLength(1),
+    );
+    const url = requestedUrls.find((u) => u.includes("/deck_archetypes"))!;
+    // 一覧に出ない順位(ベスト 16)は引かない
+    expect(decodeURIComponent(url)).toBe("/api/cityleague_results/deck_archetypes?codes=a-1,b-1");
+  });
+
+  it("分類の提供範囲より前のシーズンでは引かない", async () => {
+    const requestedUrls: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        requestedUrls.push(url);
+        if (url.includes("/api/official_events")) return Response.json(EMPTY_EVENTS);
+        return Response.json({
+          count: 1,
+          event_results: [
+            { official_event_id: 1, cityleague_schedule_id: "2026s4", results: [{ rank: 1, deck_code: "a-1" }] },
+          ],
+        });
+      }),
+    );
+
+    render(<CityleagueEvent league_type={1} setLeagueTypeCount={() => {}} />);
+
+    await waitFor(() => expect(screen.getByText("本日の開催はありません")).toBeTruthy());
+    expect(requestedUrls.some((url) => url.includes("/deck_archetypes"))).toBe(false);
+  });
+});

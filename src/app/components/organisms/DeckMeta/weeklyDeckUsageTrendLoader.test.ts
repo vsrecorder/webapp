@@ -77,10 +77,10 @@ describe("weeklyDeckUsageTrendLoader", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
-  it("URL の期間が無い・不正なら先週までの6週から始める", async () => {
+  it("URL の期間が無い・不正なら先週までの4週から始める", async () => {
     const m = await loadModule();
     expect(m.initialTrendRange(new URLSearchParams())).toEqual({
-      from: "2026-08-10",
+      from: "2026-08-24",
       to: "2026-09-14",
     });
     expect(

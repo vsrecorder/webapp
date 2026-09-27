@@ -87,7 +87,7 @@ export function trendWeekOptions() {
   return generateWeekOptions(DECK_USAGE_TREND_SELECTABLE_WEEKS);
 }
 
-// URL の from / to から最初に表示する期間を決める。無い・不正なら先週までの6週
+// URL の from / to から最初に表示する期間を決める。無い・不正なら先週までの4週
 export function initialTrendRange(searchParams: {
   get(name: string): string | null;
 }): DeckUsageTrendRange {

@@ -12,7 +12,7 @@ import {
 } from "@app/types/weekly_deck_usage_trend";
 
 // 推移グラフの既定の週数と、線を引く順位の範囲
-export const DECK_USAGE_TREND_WEEKS = 6;
+export const DECK_USAGE_TREND_WEEKS = 4;
 export const DECK_USAGE_TREND_LIMIT = 30;
 
 // 指定できる期間の週数。上限は、1週ごとに上流の集計を1回ずつ呼ぶための負荷と、
@@ -81,7 +81,7 @@ export function normalizeTrendRange(
 
 /*
  * サーバ側(推移 API・ページの OGP)で URL の from / to を期間へ正規化する。
- * 未指定・不正な値や週数の上限を超える指定は既定の期間(先週までの6週)にする。
+ * 未指定・不正な値や週数の上限を超える指定は既定の期間(先週までの4週)にする。
  * 週数の上限は上流を呼ぶ回数の上限でもある。
  *
  * 画面で選べる範囲(今週を含む直近 DECK_USAGE_TREND_SELECTABLE_WEEKS 週)より前も受け付けない。

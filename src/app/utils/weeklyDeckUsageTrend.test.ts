@@ -101,8 +101,8 @@ describe("期間の扱い", () => {
     expect(trendWeeks(range)).toEqual(["2026-08-31", "2026-09-07", "2026-09-14"]);
   });
 
-  it("未指定や不正な指定は先週までの6週にする", () => {
-    const def = { from: "2026-08-10", to: "2026-09-14" };
+  it("未指定や不正な指定は先週までの4週にする", () => {
+    const def = { from: "2026-08-24", to: "2026-09-14" };
     expect(normalizeTrendRange(null, null, CURRENT)).toEqual(def);
     // 月曜日でない
     expect(normalizeTrendRange("2026-08-11", "2026-09-14", CURRENT)).toEqual(def);
@@ -191,7 +191,7 @@ describe("期間の扱い", () => {
 
 describe("trendRangeFromQuery(サーバ側の期間の検証)", () => {
   const CURRENT = "2026-09-21";
-  const def = { from: "2026-08-10", to: "2026-09-14" };
+  const def = { from: "2026-08-24", to: "2026-09-14" };
 
   it("画面で選べる26週に1週の余裕を足した範囲まで受け付ける", () => {
     // 画面の最古の週(26週前 = 2026-03-30)と、その1週前(月曜0時をまたいだ画面向けの余裕)

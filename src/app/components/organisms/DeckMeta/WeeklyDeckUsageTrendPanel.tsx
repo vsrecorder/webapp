@@ -327,7 +327,7 @@ export default function WeeklyDeckUsageTrendPanel() {
   const latestWeek = weekOptions[0].value;
   const earliestWeek = weekOptions[weekOptions.length - 1].value;
 
-  // 対象期間。URL の from / to があれば引き継ぐ(共有・再訪用)。無い・不正なら先週までの6週
+  // 対象期間。URL の from / to があれば引き継ぐ(共有・再訪用)。無い・不正なら先週までの4週
   const searchParams = useSearchParams();
   const [range, setRange] = useState<DeckUsageTrendRange>(() =>
     initialTrendRange(searchParams),

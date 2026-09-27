@@ -32,8 +32,13 @@ const DEFAULT_VSLAB_ORIGIN = "https://lab.vsrecorder.mobi";
  */
 const REVALIDATE_SECONDS = 600;
 
-// vslab が応答しないときにページを止めない上限。通常は数十 ms で返る
-const TIMEOUT_MS = 5000;
+/*
+ * vslab が応答しないときにページを止めない上限。通常は数十 ms で返る。
+ *
+ * 一覧(/cityleague_results)は 1 ページ目のデータを待ってから HTML を返し、個別ページも本文を
+ * カード内訳と一緒に待つので、ここがそのまま表示の遅れの上限になる。3 秒で諦めて種類の行なしで出す
+ */
+const TIMEOUT_MS = 3000;
 
 function vslabOrigin(): string {
   return process.env.VSLAB_ORIGIN || DEFAULT_VSLAB_ORIGIN;

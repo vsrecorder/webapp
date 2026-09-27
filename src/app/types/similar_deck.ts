@@ -1,0 +1,57 @@
+// バトラボ(vslab)の類似デッキ検索(GET /api/similar)の応答から、表示に使う項目だけを抜き出したもの。
+//
+// 検索元(自分のデッキ)と、カード構成が近いシティリーグの入賞デッキの一覧。
+// 類似度は多重集合 Jaccard(0〜1)。デッキの種類はバトラボのデッキ分類ルールで決まる
+// (シティリーグ結果の入賞デッキに付けている種類と同じ規則)。
+
+// デッキの種類(要約)。未分類なら archetypeId と label が null で、sprites は空
+export type SimilarDeckArchetypeType = {
+  archetypeId: string | null;
+  // 表示名。「主デッキ名 型名」、型が無ければ主デッキ名だけ
+  label: string | null;
+  // 図鑑 ID(DeckPokemonSpriteType.id と同じ体系)。DeckSprites にそのまま渡せる
+  sprites: string[];
+};
+
+// 構成が近い入賞デッキ 1 件
+export type SimilarDeckType = {
+  deckCode: string;
+  // 類似度(0〜1)
+  similarity: number;
+  // 大会日(ISO 8601)
+  eventDate: string;
+  prefectureName: string;
+  leagueName: string;
+  // 順位(1 / 2 / 3 / 5 / 9 / 17。cityleagueRankLabel で表記にする)
+  rank: number;
+  // 入賞デッキにあって自分のデッキに無い(または少ない)カード名。最大 6 種類
+  diffIn: string[];
+  // 自分のデッキにあって入賞デッキに無い(または少ない)カード名。最大 6 種類
+  diffOut: string[];
+  archetype: SimilarDeckArchetypeType;
+  // 検索元と同じ主デッキか(型は問わない)。どちらかが未分類なら false
+  sameArchetype: boolean;
+};
+
+// 検索元(自分のデッキ)
+export type SimilarDecksSourceType = {
+  deckCode: string;
+  // cityleague: バトラボの索引にある入賞デッキ / external: 索引に無く、中身を取り寄せたデッキ
+  origin: "cityleague" | "external";
+  environmentId: string;
+  // 比べた環境の名前(例「30th CELEBRATION」)
+  environmentTitle: string;
+  archetype: SimilarDeckArchetypeType;
+  // カードマスタと照合できないカードがあって、種類を判定しなかったとき true
+  archetypeSkipped: boolean;
+  // 照合できず類似度から外したカード
+  unresolved: { name: string; count: number }[];
+};
+
+// GET /api/deckcards/{code}/similar の応答
+export type SimilarDecksGetResponseType = {
+  source: SimilarDecksSourceType;
+  similar: SimilarDeckType[];
+  // 類似度を計算した候補の数
+  candidates: number;
+};

@@ -24,6 +24,7 @@ import InspectDeckModal from "@app/components/organisms/Deck/Modal/InspectDeckMo
 import DisplayRecordsModal from "@app/components/organisms/Deck/Modal/DisplayRecordsModal";
 import DisplayDeckCodesModal from "@app/components/organisms/Deck/Modal/DisplayDeckCodes";
 import DisplayDeckOpponentAnalysisModal from "@app/components/organisms/Deck/Modal/DisplayDeckOpponentAnalysisModal";
+import DisplaySimilarDecksModal from "@app/components/organisms/Deck/Modal/DisplaySimilarDecksModal";
 
 import DeckCodeCard from "@app/components/organisms/Deck/DeckCodeCard";
 import CardListAccordion from "@app/components/organisms/Deck/CardListAccordion";
@@ -48,6 +49,7 @@ import { LuEllipsis } from "react-icons/lu";
 import { LuChartPie } from "react-icons/lu";
 import { LuStar } from "react-icons/lu";
 import { LuShuffle } from "react-icons/lu";
+import { LuTrophy } from "react-icons/lu";
 
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
@@ -152,6 +154,13 @@ export default function ShowDeckModal({
     onOpen: onOpenForDisplayDeckOpponentAnalysisModal,
     onOpenChange: onOpenChangeForDisplayDeckOpponentAnalysisModal,
     onClose: onCloseForDisplayDeckOpponentAnalysisModal,
+  } = useDisclosure();
+
+  const {
+    isOpen: isOpenForDisplaySimilarDecksModal,
+    onOpen: onOpenForDisplaySimilarDecksModal,
+    onOpenChange: onOpenChangeForDisplaySimilarDecksModal,
+    onClose: onCloseForDisplaySimilarDecksModal,
   } = useDisclosure();
 
   const {
@@ -374,18 +383,20 @@ export default function ShowDeckModal({
               <ModalFooter className="px-3 pt-0 pb-3 flex flex-col">
                 {/* ModalFooterは既定でflex flex-row justify-endのため、明示的にflex-colへ
                     上書きしないと直下のgrid要素が中身の幅に縮んで右寄せされてしまう。
-                    4列グリッドに統一し、バージョン履歴(3列分)+新バージョン(1列)を1行目、
-                    残りの操作を2行目に配置する。新バージョンとその他を同じ4列目に置くことで
+                    バージョン履歴(残りの列ぶん)+新バージョン(1列)を1行目、残りの操作を
+                    2行目に配置する。新バージョンとその他を同じ末尾の列に置くことで
                     縦に一直線に揃え、バージョン管理系の操作としてのまとまりを出す。
-                    デッキコード未登録の場合、バージョン履歴・新バージョンはいずれも表示しない
-                    （新バージョン作成の導線はDeckCodeCard側の案内に譲る） */}
-                <div className="grid grid-cols-4 gap-1.5">
+                    デッキコード未登録の場合、バージョン履歴・新バージョン・入賞デッキは
+                    いずれも表示しない（新バージョン作成の導線はDeckCodeCard側の案内に譲る）。
+                    列数はデッキコードの有無で変える: 入賞デッキ(似ている入賞デッキ)は
+                    デッキコードが要るので、あるときだけ2行目に足して5列、無ければ4列にする */}
+                <div className={`grid gap-1.5 ${deckcode?.code ? "grid-cols-5" : "grid-cols-4"}`}>
                   {deckcode?.code && (
                     <>
                       <button
                         type="button"
                         onClick={onOpenForDisplayDeckCodesModal}
-                        className="col-span-3 flex items-center gap-2 bg-primary text-white rounded-xl px-4 py-1.5 active:opacity-85 transition-opacity"
+                        className="col-span-4 flex items-center gap-2 bg-primary text-white rounded-xl px-4 py-1.5 active:opacity-85 transition-opacity"
                       >
                         <LuLayers className="text-base shrink-0" />
                         <span className="font-bold text-small">バージョン履歴</span>
@@ -457,6 +468,20 @@ export default function ShowDeckModal({
                     <LuChartPie className="text-base" />
                     <span className="text-tiny font-medium">対戦分析</span>
                   </button>
+                  {/* 似ている入賞デッキ(バトラボの類似デッキ検索)。デッキコードが要るので
+                      あるときだけ出す(5列目。列数は上のgridで切り替えている) */}
+                  {deckcode?.code && (
+                    <button
+                      type="button"
+                      onClick={onOpenForDisplaySimilarDecksModal}
+                      className="flex flex-col items-center justify-center gap-1 rounded-lg bg-default-100 py-2 active:opacity-70"
+                    >
+                      <LuTrophy className="text-base" />
+                      <span className="text-tiny font-medium whitespace-nowrap tracking-tight">
+                        入賞デッキ
+                      </span>
+                    </button>
+                  )}
 
                   {/* ユーザメニューと同じく、メニューを開いている間は周囲のタップを塞ぐ */}
                   <Dropdown placement="top" backdrop="opaque">
@@ -599,6 +624,13 @@ export default function ShowDeckModal({
         isOpen={isOpenForDisplayDeckOpponentAnalysisModal}
         onOpenChange={onOpenChangeForDisplayDeckOpponentAnalysisModal}
         onClose={onCloseForDisplayDeckOpponentAnalysisModal}
+      />
+
+      <DisplaySimilarDecksModal
+        deckcode={deckcode}
+        isOpen={isOpenForDisplaySimilarDecksModal}
+        onOpenChange={onOpenChangeForDisplaySimilarDecksModal}
+        onClose={onCloseForDisplaySimilarDecksModal}
       />
 
       <DisplayDeckCodesModal

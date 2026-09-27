@@ -18,7 +18,8 @@ type Props = {
  * 重ね文字が読みづらいため(ギャラリー表示と同じ判断)。
  *
  * 主デッキ名は text-large の太字、型の名前(「バシャーモ型」)はその下の行に text-tiny で出す。
- * 型の行は leading-5 で 20px に固定する(文字を小さくしても行の高さを変えず、骨格との一致を保つ)。
+ * 型の行は leading-4 で 16px に固定する(内容によらず高さを変えず、骨格との一致を保つ)。
+ * 型名の無いデッキでは空の行になり、そのぶん名前と画像のあいだが開くので、文字に対して最小の高さにしてある。
  * 型を持たない主デッキでも型の行は空けたままにする(ギャラリー表示がタグの無いデッキでも
  * タグの行を空けておくのと同じ)。同じ大会の中で型の有無によってカードの高さが変わると、
  * Swiper の高さが一番高いカードに合わせられて他のカードの下に余白が出るため。
@@ -31,7 +32,7 @@ type Props = {
  * この部品ごと出さないので、両者は見た目で区別できる。
  * 名前の行は text-large と同じ 28px にして、分類の有無でも高さが変わらないようにする。
  *
- * 高さは スプライト 48 + gap 4 + 名前 28 + 型 20 = 100px。骨格(CityleagueResultCardSkeleton)が
+ * 高さは スプライト 48 + gap 4 + 名前 28 + 型 16 = 96px。骨格(CityleagueResultCardSkeleton)が
  * 同じ寸法で枠を取っているので、変えるときは両方直すこと。
  */
 export default function DeckArchetypeLabel({ archetype, size = 48 }: Props) {
@@ -51,8 +52,8 @@ export default function DeckArchetypeLabel({ archetype, size = 48 }: Props) {
             デッキ名：不明
           </div>
         )}
-        {/* 型の行。無くても高さ(h-5)を空けたままにする */}
-        <div className="h-5 w-full min-w-0 truncate text-center font-bold text-tiny leading-5 text-default-500">
+        {/* 型の行。無くても高さ(h-4)を空けたままにする */}
+        <div className="h-4 w-full min-w-0 truncate text-center font-bold text-tiny leading-4 text-default-500">
           {archetype.variantName}
         </div>
       </div>

@@ -332,10 +332,11 @@ export default function CityleagueResultCard({
             {result.deck_code ? (
               <>
                 {/* デッキの種類(バトラボのデッキ分類)。デッキ一覧のギャラリー表示と同じく、
-                    スプライトを上・名前を下に置いて画像の上に載せる。下の余白(pb-2)は
-                    骨格(CityleagueResultCardSkeleton)と揃えているので、変えるときは両方直すこと */}
+                    スプライトを上・名前を下に置いて画像の上に載せる。画像との間は pb-1(4px)で、
+                    モーダルとも同じ間隔にしてある。骨格(CityleagueResultCardSkeleton)と揃えているので、
+                    変えるときは両方直すこと */}
                 {deckArchetype && (
-                  <div className="pb-2">
+                  <div className="pb-1">
                     <DeckArchetypeLabel archetype={deckArchetype} />
                   </div>
                 )}
@@ -446,8 +447,13 @@ export default function CityleagueResultCard({
                       >
                         {result.deck_code ? (
                           <>
-                            {/* デッキの種類。カードと同じ形(スプライトの下に名前)で画像の上に置く */}
-                            {deckArchetype && <DeckArchetypeLabel archetype={deckArchetype} />}
+                            {/* デッキの種類。カードと同じ形(スプライトの下に名前)で画像の上に置く。
+                                列の gap-2.5(10px)を -mb-1.5 で打ち消し、画像との間をカードと同じ 4px にする */}
+                            {deckArchetype && (
+                              <div className="-mb-1.5">
+                                <DeckArchetypeLabel archetype={deckArchetype} />
+                              </div>
+                            )}
 
                             {/* デッキ画像の表示・タップ全画面表示は共通コンポーネントに委譲する */}
                             <ZoomableDeckImage code={result.deck_code} loading="lazy" />

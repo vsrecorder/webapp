@@ -59,7 +59,7 @@ describe("DeckArchetypeLabel", () => {
     // 型が無くても型の行は空のまま残す(同じ大会の中でカードの高さを揃えるため)
     const variantLine = name.nextElementSibling as HTMLElement;
     expect(variantLine.textContent).toBe("");
-    expect(variantLine.className).toContain("h-5");
+    expect(variantLine.className).toContain("h-4");
 
     const srcs = [...container.querySelectorAll("img")].map((img) => img.getAttribute("src"));
     expect(srcs).toEqual([
@@ -83,7 +83,7 @@ describe("DeckArchetypeLabel", () => {
 
     const name = screen.getByText("デッキ名：不明");
     expect(name).toBeTruthy();
-    expect((name.nextElementSibling as HTMLElement).className).toContain("h-5");
+    expect((name.nextElementSibling as HTMLElement).className).toContain("h-4");
     expect(container.querySelectorAll("img")).toHaveLength(2);
     expect(
       [...container.querySelectorAll("img")].every((img) =>

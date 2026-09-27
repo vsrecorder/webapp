@@ -1,34 +1,7 @@
 import { DeckArchetypeType } from "@app/types/deck_archetype";
 
-// 開催日ごとのシティリーグ入賞デッキ一覧(/cityleague_results/dates/[date])をシェアするための
-// URL・文言と、OGP 画像に載せる「その日の優勝デッキ」の集計。
-
-export function cityleagueDatePath(dateParam: string): string {
-  return `/cityleague_results/dates/${dateParam}`;
-}
-
-// X のポスト文(URL は intent の url に別で渡す)。dateLabel は「2026年9月26日(土)」
-export function cityleagueDatePostText(dateLabel: string): string {
-  return [`${dateLabel}のシティリーグ入賞デッキ一覧`, "#バトレコ #ポケカ"].join("\n");
-}
-
-// X の投稿画面を開く URL。個別ページのシェアと同じく utm を付け、流入を追えるようにする
-export function cityleagueDateXIntentUrl(
-  dateParam: string,
-  dateLabel: string,
-  origin: string,
-): string {
-  const url = new URL(cityleagueDatePath(dateParam), origin);
-  url.searchParams.set("utm_source", "x");
-  url.searchParams.set("utm_medium", "share");
-  url.searchParams.set("utm_campaign", "cityleague_date");
-
-  const intent = new URL("https://x.com/intent/post");
-  intent.searchParams.set("text", cityleagueDatePostText(dateLabel));
-  intent.searchParams.set("url", url.toString());
-
-  return intent.toString();
-}
+// 開催日ごとのシティリーグ入賞デッキ一覧(/cityleague_results/dates/[date])の OGP 画像に載せる
+// 「その日の優勝デッキ」の集計。シェアの文言と URL は cityleagueHubShare.ts。
 
 export type DateWinnerDeck = {
   // 主デッキ名(型は束ねる。例「ドラパルトex」)

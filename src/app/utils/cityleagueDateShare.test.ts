@@ -1,12 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { DeckArchetypeType } from "@app/types/deck_archetype";
-import {
-  cityleagueDatePath,
-  cityleagueDatePostText,
-  cityleagueDateXIntentUrl,
-  summarizeDateWinners,
-} from "@app/utils/cityleagueDateShare";
+import { summarizeDateWinners } from "@app/utils/cityleagueDateShare";
 
 const archetype = (
   name: string | null,
@@ -18,34 +13,6 @@ const archetype = (
   variantName: variant,
   label: name ? [name, variant].filter(Boolean).join(" ") : null,
   sprites,
-});
-
-describe("開催日ページのシェア", () => {
-  it("ページの URL", () => {
-    expect(cityleagueDatePath("2026-09-26")).toBe("/cityleague_results/dates/2026-09-26");
-  });
-
-  it("ポスト文はページ名とハッシュタグ", () => {
-    expect(cityleagueDatePostText("2026年9月26日(土)")).toBe(
-      "2026年9月26日(土)のシティリーグ入賞デッキ一覧\n#バトレコ #ポケカ",
-    );
-  });
-
-  it("X の intent に文言と utm 付きの URL を渡す", () => {
-    const intent = new URL(
-      cityleagueDateXIntentUrl("2026-09-26", "2026年9月26日(土)", "https://vsrecorder.mobi"),
-    );
-    expect(intent.origin + intent.pathname).toBe("https://x.com/intent/post");
-    expect(intent.searchParams.get("text")).toBe(cityleagueDatePostText("2026年9月26日(土)"));
-
-    const url = new URL(intent.searchParams.get("url")!);
-    expect(url.origin + url.pathname).toBe(
-      "https://vsrecorder.mobi/cityleague_results/dates/2026-09-26",
-    );
-    expect(url.searchParams.get("utm_source")).toBe("x");
-    expect(url.searchParams.get("utm_medium")).toBe("share");
-    expect(url.searchParams.get("utm_campaign")).toBe("cityleague_date");
-  });
 });
 
 describe("summarizeDateWinners", () => {

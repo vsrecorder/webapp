@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import CityleagueHubShareButtons from "@app/components/molecules/CityleagueHubShareButtons";
 import CityleagueEventLinkList from "@app/components/organisms/Cityleague/CityleagueEventLinkList";
 import CityleagueHubHeader from "@app/components/organisms/Cityleague/CityleagueHubHeader";
 
@@ -111,6 +112,13 @@ export default async function Page({ params }: Props) {
           title={buildTitle(month)}
           titleLines={buildTitleLines(month)}
           count={events.length}
+          actions={
+            <CityleagueHubShareButtons
+              path={`/cityleague_results/months/${month}`}
+              title={buildTitle(month)}
+              utmCampaign="cityleague_month"
+            />
+          }
         />
 
         <CityleagueEventLinkList events={events} />

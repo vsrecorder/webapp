@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import CityleagueDateShareButtons from "@app/components/molecules/CityleagueDateShareButtons";
+import CityleagueHubShareButtons from "@app/components/molecules/CityleagueHubShareButtons";
 
 const addToast = vi.fn();
 vi.mock("@heroui/react", () => ({ addToast: (...args: unknown[]) => addToast(...args) }));
@@ -17,11 +17,15 @@ afterEach(() => {
   addToast.mockClear();
 });
 
-const props = { dateParam: "2026-09-26", dateLabel: "2026年9月26日(土)" };
+const props = {
+  path: "/cityleague_results/dates/2026-09-26",
+  title: "2026年9月26日(土)のシティリーグ入賞デッキ一覧",
+  utmCampaign: "cityleague_date",
+};
 
-describe("CityleagueDateShareButtons", () => {
+describe("CityleagueHubShareButtons", () => {
   it("X ボタンは、開いているオリジンのこのページの URL で投稿画面を開く", () => {
-    render(<CityleagueDateShareButtons {...props} />);
+    render(<CityleagueHubShareButtons {...props} />);
 
     fireEvent.click(screen.getByRole("button", { name: /X にポストする/ }));
 
@@ -32,6 +36,7 @@ describe("CityleagueDateShareButtons", () => {
     const url = new URL(intent.searchParams.get("url")!);
     expect(url.origin).toBe(window.location.origin);
     expect(url.pathname).toBe("/cityleague_results/dates/2026-09-26");
+    expect(url.searchParams.get("utm_campaign")).toBe("cityleague_date");
     expect(target).toBe("_blank");
   });
 
@@ -39,7 +44,7 @@ describe("CityleagueDateShareButtons", () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } });
 
-    render(<CityleagueDateShareButtons {...props} />);
+    render(<CityleagueHubShareButtons {...props} />);
     fireEvent.click(screen.getByRole("button", { name: /リンクをコピーする/ }));
 
     await waitFor(() => expect(addToast).toHaveBeenCalled());

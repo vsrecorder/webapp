@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 
 import { LuCalendar, LuChevronRight } from "react-icons/lu";
 
-import CityleagueDateShareButtons from "@app/components/molecules/CityleagueDateShareButtons";
+import CityleagueHubShareButtons from "@app/components/molecules/CityleagueHubShareButtons";
 import CityleagueEventLinkList from "@app/components/organisms/Cityleague/CityleagueEventLinkList";
 import CityleagueHubHeader from "@app/components/organisms/Cityleague/CityleagueHubHeader";
 
@@ -121,7 +121,13 @@ export default async function Page({ params }: Props) {
           title={buildTitle(dateLabel)}
           titleLines={buildTitleLines(dateLabel)}
           count={events.length}
-          actions={<CityleagueDateShareButtons dateParam={dateParam} dateLabel={dateLabel} />}
+          actions={
+            <CityleagueHubShareButtons
+              path={`/cityleague_results/dates/${dateParam}`}
+              title={buildTitle(dateLabel)}
+              utmCampaign="cityleague_date"
+            />
+          }
         />
 
         <CityleagueEventLinkList events={events} showDateLink={false} />

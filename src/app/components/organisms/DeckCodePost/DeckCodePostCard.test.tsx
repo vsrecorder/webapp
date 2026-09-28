@@ -112,6 +112,7 @@ describe("DeckCodePostCard", () => {
           diffOut: ["ネストボール"],
           archetype: { archetypeId: "a1", label: "リザードンex", sprites: ["0006"] },
           sameArchetype: true,
+          sameList: false,
           sameCode: false,
         },
       ],

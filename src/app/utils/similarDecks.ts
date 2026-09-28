@@ -137,7 +137,9 @@ function parseSimilarDeck(value: unknown): SimilarDeckType | null {
     diffOut: stringList(value.diffOut),
     archetype: parseArchetype(value.deckType),
     sameArchetype: value.sameArchetype === true,
-    sameCode: value.sameCode === true,
+    // 同じカードリストの入賞か。sameList を返す前のバトラボ(同じデッキコードだけを見ていた)の
+    // 応答は sameCode で代える。同じコードなら必ず同じリスト
+    sameList: typeof value.sameList === "boolean" ? value.sameList : value.sameCode === true,
   };
 }
 

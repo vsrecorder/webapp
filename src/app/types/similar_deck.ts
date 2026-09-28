@@ -38,8 +38,9 @@ export type SimilarDeckType = {
   archetype: SimilarDeckArchetypeType;
   // 検索元と同じ主デッキか(型は問わない)。どちらかが未分類なら false
   sameArchetype: boolean;
-  // 自分のデッキと同じデッキコードの入賞か(類似度 100% で先頭に並ぶ)
-  sameCode: boolean;
+  // 検索元と同じカードリストの入賞か(類似度 100% で先頭に並ぶ)。デッキコードは違うことがある。
+  // 同じリストかは、カード(アート違いは束ねる)と枚数がすべて同じかでバトラボが決める
+  sameList: boolean;
 };
 
 // 検索元(自分のデッキ)
@@ -53,7 +54,8 @@ export type SimilarDecksSourceType = {
   archetype: SimilarDeckArchetypeType;
   // カードマスタと照合できないカードがあって、種類を判定しなかったとき true
   archetypeSkipped: boolean;
-  // 自分のデッキと同じデッキコードの入賞の件数(提供範囲の中)。0 なら入賞していない
+  // 検索元と同じカードリストの入賞の件数(提供範囲の中。デッキコードが違っても数える)。
+  // 0 なら同じリストでは入賞していない
   placements: number;
   // 照合できず類似度から外したカード
   unresolved: { name: string; count: number }[];

@@ -93,10 +93,11 @@ function SourceSummary({
           <div className="text-tiny text-default-500">
             {source.environmentTitle} の入賞デッキと比較
           </div>
-          {/* 同じデッキコードで入賞していれば、その入賞は一覧の先頭に類似度 100% で並ぶ */}
+          {/* 同じカードリストで入賞していれば(デッキコードは違ってもよい)、
+              その入賞は一覧の先頭に類似度 100% で並ぶ */}
           {source.placements > 0 && (
             <div className="text-tiny font-bold text-primary">
-              このデッキコードで {source.placements} 回入賞しています
+              同じカードリストで {source.placements} 回入賞しています
             </div>
           )}
         </div>
@@ -179,9 +180,9 @@ function SimilarDeckRow({
             {archetypeName ?? "デッキ名：不明"}
           </span>
           {/* 構成は近いが分類上は別の種類。自分の種類が決まっていないときは比べようが無いので出さない */}
-          {deck.sameCode && (
+          {deck.sameList && (
             <Chip size="sm" color="primary" variant="flat" className="h-5 shrink-0 text-[10px]">
-              同じデッキコード
+              同じカードリスト
             </Chip>
           )}
           {sourceArchetypeId && !deck.sameArchetype && deck.archetype.archetypeId && (

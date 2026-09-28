@@ -30,6 +30,25 @@ const FAILED_KEY_RETRY_MS = 10 * 60 * 1000;
 // 裏で用意している最中のキー。同じ画像に同時にアクセスが来ても、確認と生成を重ねて走らせない。
 const inFlightKeys = new Set<string>();
 
+/*
+ * 描画関数が「まだ描けない」(null)と答えたキーの扱い。
+ *
+ * 画像は一度置いたら作り直さないので、材料が揃う前に描くと欠けた画像が残り続ける。
+ * 例: 開催日の OGP は優勝デッキの分類(バトラボ)を使うが、バトラボの索引は結果の登録から
+ * 最大 1 時間ほど遅れる(取り込みが毎時動くため)。その間に描くと、索引に無い優勝デッキが
+ * 抜けた画像が置かれていた(2026-09-28 の 2 大会ぶんの画像に 1 デッキしか載らなかった)。
+ *
+ * null のときは置かずに短い間隔で描き直す。ただし材料がいつまでも揃わないこともあるので、
+ * 最初に null が返ってから NOT_READY_GIVE_UP_MS を過ぎたら giveUp: true で呼び、手元の分で描かせる。
+ * 時刻はプロセス内の記憶なので、再起動をまたぐと数え直しになる(描けないまま残るよりはよい)。
+ */
+const notReadySince = new Map<string, number>();
+const NOT_READY_RETRY_MS = 5 * 60 * 1000;
+const NOT_READY_GIVE_UP_MS = 3 * 60 * 60 * 1000;
+
+// 描画関数。null を返すと「まだ描けない」(置かずに後で描き直す)。giveUp が true なら待つのをやめて描く
+export type OgImageRender = (options: { giveUp: boolean }) => Promise<Buffer | null>;
+
 function buildS3Client(): S3Client {
   return new S3Client({
     region,
@@ -100,10 +119,7 @@ async function exists(s3Client: S3Client, key: string): Promise<boolean> {
  * 引き換えに、一度も描画されたことのない画像は最初のシェアに間に合わないことがある
  * (次のシェアからは出る)。既存のページは生成済みなので、実際に当たるのは新規イベント。
  */
-export function ogImageUrlFor(
-  name: string,
-  render: () => Promise<Buffer>,
-): string | null {
+export function ogImageUrlFor(name: string, render: OgImageRender): string | null {
   // 配信元が無ければURLを組み立てられない(og:image が欠けるだけでページは出る)
   if (!cdnUrl) {
     return null;
@@ -124,10 +140,7 @@ export function ogImageUrlFor(
  * 描画の経路からは呼ばないこと。生成は satori 経由で数百ms、存在確認もネットワークを
  * 1往復するため、待つとその分だけ初回描画が遅くなる。描画側は ogImageUrlFor を使う。
  */
-export async function ensureOgImage(
-  name: string,
-  render: () => Promise<Buffer>,
-): Promise<void> {
+export async function ensureOgImage(name: string, render: OgImageRender): Promise<void> {
   const key = buildOgImageKey(name);
 
   if (ensuredKeys.has(key)) {
@@ -143,7 +156,7 @@ export async function ensureOgImage(
  * 失敗しても投げない。この処理の成否はページの描画に影響しない(og:image が
  * 遅れて揃うだけ)うえ、裏で走らせたときに未処理の rejection にしないため。
  */
-async function ensureStored(key: string, render: () => Promise<Buffer>): Promise<void> {
+async function ensureStored(key: string, render: OgImageRender): Promise<void> {
   if (inFlightKeys.has(key)) {
     return;
   }
@@ -163,7 +176,17 @@ async function ensureStored(key: string, render: () => Promise<Buffer>): Promise
       return;
     }
 
-    const body = await render();
+    const firstNotReadyAt = notReadySince.get(key);
+    const giveUp =
+      firstNotReadyAt !== undefined && Date.now() - firstNotReadyAt >= NOT_READY_GIVE_UP_MS;
+    const body = await render({ giveUp });
+
+    if (body === null) {
+      // 失敗ではないのでログは出さない。次の確認までの間隔だけ空ける
+      if (firstNotReadyAt === undefined) notReadySince.set(key, Date.now());
+      failedKeys.set(key, Date.now() + NOT_READY_RETRY_MS);
+      return;
+    }
 
     await s3Client.send(
       new PutObjectCommand({
@@ -181,6 +204,7 @@ async function ensureStored(key: string, render: () => Promise<Buffer>): Promise
 
     ensuredKeys.add(key);
     failedKeys.delete(key);
+    notReadySince.delete(key);
   } catch (error) {
     console.error("failed to ensure ogp image", { key, error });
     failedKeys.set(key, Date.now() + FAILED_KEY_RETRY_MS);
@@ -190,6 +214,6 @@ async function ensureStored(key: string, render: () => Promise<Buffer>): Promise
 }
 
 // 描画を止めずに実体を用意させる。ensureStored は失敗を内側で閉じるので投げっぱなしでよい。
-function ensureInBackground(key: string, render: () => Promise<Buffer>): void {
+function ensureInBackground(key: string, render: OgImageRender): void {
   void ensureStored(key, render);
 }

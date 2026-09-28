@@ -11,6 +11,17 @@ const RESULT_CONCURRENCY = 10;
 // OGP 画像に並べる優勝デッキの数(横に 4 枚)
 const OG_WINNER_LIMIT = 4;
 
+// 開催日の OGP 画像に載せる優勝デッキと、まだ数えられない優勝デッキの数
+export type DateWinnerDecksResult = {
+  winners: DateWinnerDeck[];
+  /*
+   * 分類を付ける大会(2027 シーズン以降)の優勝デッキのうち、バトラボの応答に含まれなかったものの数。
+   * 索引への取り込みが結果の登録より遅れている(最大 1 時間ほど)か、バトラボが応答しなかったときに増える。
+   * 0 でなければ、今描くと優勝デッキが欠ける。未分類(索引にはあるがどの主デッキにも当たらない)は含めない
+   */
+  pending: number;
+};
+
 /*
  * 開催日の OGP 画像に載せる「その日の優勝デッキ」を集める。
  *
@@ -23,7 +34,9 @@ const OG_WINNER_LIMIT = 4;
  * 結果は個別ページと同じ取得関数(24時間キャッシュ)で引くので、個別ページ側と二重には取りに行かない。
  * 取れなかった大会は数えないだけで、全体は落とさない。
  */
-export async function getDateWinnerDecks(events: OfficialEventType[]): Promise<DateWinnerDeck[]> {
+export async function getDateWinnerDecks(
+  events: OfficialEventType[],
+): Promise<DateWinnerDecksResult> {
   const results = await mapWithConcurrency(events, RESULT_CONCURRENCY, (event) =>
     getCityleagueResultByOfficialEventId(event.id).catch(() => null),
   );
@@ -34,13 +47,16 @@ export async function getDateWinnerDecks(events: OfficialEventType[]): Promise<D
     return winner?.deck_code ? [winner.deck_code] : [];
   });
 
-  if (winnerCodes.length === 0) return [];
+  if (winnerCodes.length === 0) return { winners: [], pending: 0 };
 
   const archetypes = await getDeckArchetypesByCodes(winnerCodes);
 
-  // 同じデッキコードで複数の大会に優勝していれば、その回数ぶん数える
-  return summarizeDateWinners(
-    winnerCodes.map((code) => archetypes[code]),
-    OG_WINNER_LIMIT,
-  );
+  return {
+    // 同じデッキコードで複数の大会に優勝していれば、その回数ぶん数える
+    winners: summarizeDateWinners(
+      winnerCodes.map((code) => archetypes[code]),
+      OG_WINNER_LIMIT,
+    ),
+    pending: winnerCodes.filter((code) => !archetypes[code]).length,
+  };
 }

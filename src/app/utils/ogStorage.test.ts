@@ -132,4 +132,85 @@ describe("ogImageUrlFor", () => {
 
     expect(send).toHaveBeenCalledTimes(1);
   });
+
+  describe("描画関数が「まだ描けない」(null)と答えたとき", () => {
+    const MINUTE = 60 * 1000;
+
+    it("置かず、失敗のログも出さない", async () => {
+      const { ogImageUrlFor } = await loadModule();
+      send.mockRejectedValue(new FakeNotFound()); // HeadObject: 無い
+      const render = vi.fn(async () => null);
+      const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      ogImageUrlFor("cityleague_results/dates/2026-09-28-n2-r2", render);
+      await flush();
+
+      expect(render).toHaveBeenCalledWith({ giveUp: false });
+      // HeadObject の 1 回だけで、PutObject は送らない
+      expect(send).toHaveBeenCalledTimes(1);
+      expect(consoleError).not.toHaveBeenCalled();
+    });
+
+    it("数分おいてから描き直し、置けたら次からは確認しない", async () => {
+      const { ogImageUrlFor } = await loadModule();
+      const now = vi.spyOn(Date, "now").mockReturnValue(0);
+      send.mockImplementation(async (command: { input: unknown }) => {
+        // HeadObject は無い、PutObject は置けた
+        if ((command.input as { Body?: unknown }).Body === undefined) throw new FakeNotFound();
+        return {};
+      });
+      const render = vi
+        .fn<(options: { giveUp: boolean }) => Promise<Buffer | null>>()
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(Buffer.from("png"));
+      const name = "cityleague_results/dates/2026-09-28-n2-r2";
+
+      ogImageUrlFor(name, render);
+      await flush();
+      // すぐに開き直しても描き直さない
+      now.mockReturnValue(1 * MINUTE);
+      ogImageUrlFor(name, render);
+      await flush();
+      expect(render).toHaveBeenCalledTimes(1);
+
+      now.mockReturnValue(6 * MINUTE);
+      ogImageUrlFor(name, render);
+      await flush();
+      expect(render).toHaveBeenCalledTimes(2);
+      expect(render).toHaveBeenLastCalledWith({ giveUp: false });
+
+      const sent = send.mock.calls.length;
+      ogImageUrlFor(name, render);
+      await flush();
+      expect(send.mock.calls.length).toBe(sent);
+    });
+
+    it("最初に断られてから 3 時間を過ぎたら giveUp で描かせる", async () => {
+      const { ogImageUrlFor } = await loadModule();
+      const now = vi.spyOn(Date, "now").mockReturnValue(0);
+      send.mockRejectedValueOnce(new FakeNotFound());
+      const render = vi.fn(async ({ giveUp }: { giveUp: boolean }) =>
+        giveUp ? Buffer.from("png") : null,
+      );
+      const name = "cityleague_results/dates/2026-09-28-n2-r2";
+
+      ogImageUrlFor(name, render);
+      await flush();
+
+      // 3 時間に満たないうちは待たせる
+      now.mockReturnValue(170 * MINUTE);
+      send.mockRejectedValueOnce(new FakeNotFound());
+      ogImageUrlFor(name, render);
+      await flush();
+      expect(render).toHaveBeenLastCalledWith({ giveUp: false });
+
+      now.mockReturnValue(181 * MINUTE);
+      send.mockRejectedValueOnce(new FakeNotFound()).mockResolvedValueOnce({});
+      ogImageUrlFor(name, render);
+      await flush();
+      expect(render).toHaveBeenLastCalledWith({ giveUp: true });
+      // 最後は PutObject まで送る
+      expect(send).toHaveBeenCalledTimes(4);
+    });
+  });
 });

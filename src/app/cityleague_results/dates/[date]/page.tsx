@@ -15,6 +15,12 @@ import { getDateWinnerDecks } from "@app/utils/cityleagueDateWinnersServer";
 import { OG_SIZE, renderCityleagueDateOgImage } from "@app/utils/ogImage";
 import { ogImageUrlFor } from "@app/utils/ogStorage";
 
+/*
+ * 開催日の OGP 画像のキーの改訂番号。集計の仕方を直して、既に置いた画像を作り直させたいときに上げる。
+ * 2: 分類の取り込み待ちの間に描いて優勝デッキが欠けた画像を作り直す(2026-09-28 など)
+ */
+const DATE_OG_REVISION = 2;
+
 type Props = {
   params: Promise<{
     date: string;
@@ -52,11 +58,19 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
    * 画像にはその日の優勝デッキ(デッキ分類ごとの優勝回数)を載せる。結果は開催日のあとに
    * 少しずつ登録されるので、大会数をキーに含めて、増えたら新しい画像を作らせる
    * (画像は一度置いたら作り直さないため。ogStorage)。優勝デッキの集計は画像を作るときにだけ走る。
+   *
+   * 分類(バトラボの索引)は結果の登録より遅れるので、まだ分類の無い優勝デッキがあるうちは描かずに
+   * 待つ(null。ogStorage が数分おきに描き直す)。待ちきれないとき(giveUp)は手元の分で描く。
    */
   const ogImageUrl =
     events.length > 0
-      ? ogImageUrlFor(`cityleague_results/dates/${dateParam}-n${events.length}`, async () =>
-          renderCityleagueDateOgImage(dateLabel, await getDateWinnerDecks(events), events.length),
+      ? ogImageUrlFor(
+          `cityleague_results/dates/${dateParam}-n${events.length}-r${DATE_OG_REVISION}`,
+          async ({ giveUp }) => {
+            const { winners, pending } = await getDateWinnerDecks(events);
+            if (pending > 0 && !giveUp) return null;
+            return renderCityleagueDateOgImage(dateLabel, winners, events.length);
+          },
         )
       : null;
 

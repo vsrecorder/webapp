@@ -122,7 +122,7 @@ export default function TemplateSharedDecksByUser({ userId, viewerId, initial }:
                 href="/decks"
                 className="rounded-full bg-primary/10 px-4 py-2 font-bold text-primary active:opacity-70"
               >
-                マイデッキから公開する
+                自分のデッキから公開する
               </NextLink>
             )}
           </div>

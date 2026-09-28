@@ -499,7 +499,7 @@ export default function Decks({
   return (
     <div className="flex flex-col items-center space-y-3 pb-3">
       {/* 一覧ヘッダー(状態切替・表示切替)。中身は親が決め、ここは位置だけを受け持つ。
-          固定セグメント（マイデッキ｜みんなの公開デッキ。top-15＋高さ≒100px）の直下に、
+          固定セグメント（自分のデッキ｜みんなの公開デッキ。top-15＋高さ≒100px）の直下に、
           それと同じ position:fixed で貼り付ける（sticky だとスクロール中に間隔が揺れて見えるため。
           詳細は DeckViewToggleBar のコメント）。
           空状態の表示より前に置く: 固定バーの空き枠(useFixedBarAlignment)は「一覧の最初の要素」として

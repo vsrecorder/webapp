@@ -10,20 +10,20 @@ import { HEADER_BAR } from "@app/utils/headerBar";
 type Props = {
   // いま開いている側
   selected: "mine" | "shared";
-  // 閲覧者がログイン済みか(未ログインなら「マイデッキ」に鍵を付け、押すとログイン案内)。
+  // 閲覧者がログイン済みか(未ログインなら「自分のデッキ」に鍵を付け、押すとログイン案内)。
   // ID そのものは使わないので真偽値で受ける。読み込み中(loading.tsx)からも
   // セッション Cookie の有無だけで同じ見た目を出せるようにするため
   isLoggedIn: boolean;
-  // 未ログインで「マイデッキ」を押したとき
+  // 未ログインで「自分のデッキ」を押したとき
   onRequireLogin?: () => void;
 };
 
 /*
- * 「マイデッキ｜みんなの公開デッキ」の切り替え。デッキ一覧(/decks)とみんなの公開デッキ(/shared_decks)の
+ * 「自分のデッキ｜みんなの公開デッキ」の切り替え。デッキ一覧(/decks)とみんなの公開デッキ(/shared_decks)の
  * 両方で、ヘッダ直下に固定して常に出す(デッキが1つも無いときも隠さない)。
  *
  * 見た目はデッキ一覧の「利用中／アーカイブ済み」タブと同じ部品で揃え、色だけ変えて
- * 「上段＝どちらのデッキか、下段＝マイデッキの中の絞り込み」と読めるようにする。
+ * 「上段＝どちらのデッキか、下段＝自分のデッキの中の絞り込み」と読めるようにする。
  * 高さは 2.5rem(タブ h-8 ＋ 余白)。下に別の固定バーを置くときはこの分ずらす。
  *
  * 両ページの loading.tsx も骨格ではなくこれを直接描く。タブの見た目はデータに依存しないので、
@@ -38,7 +38,7 @@ export default function DeckSegmentedControl({ selected, isLoggedIn, onRequireLo
     <Tabs
       fullWidth
       size="md"
-      aria-label="マイデッキとみんなの公開デッキの切り替え"
+      aria-label="自分のデッキとみんなの公開デッキの切り替え"
       selectedKey={selected}
       onSelectionChange={(key) => {
         if (key === selected) return;
@@ -68,7 +68,7 @@ export default function DeckSegmentedControl({ selected, isLoggedIn, onRequireLo
         tabContent: "font-bold",
       }}
     >
-      <Tab key="mine" title={isLoggedIn ? "マイデッキ" : "🔒 マイデッキ"} />
+      <Tab key="mine" title={isLoggedIn ? "自分のデッキ" : "🔒 自分のデッキ"} />
       <Tab key="shared" title="みんなの公開デッキ" />
     </Tabs>
   );

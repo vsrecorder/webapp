@@ -26,7 +26,7 @@ export default async function Loading() {
   return (
     <DeckListViewProvider initialView={view}>
       <div className="pt-12 w-full">
-        {/* マイデッキ｜みんなの公開デッキ。骨格ではなく実体をそのまま出す
+        {/* 自分のデッキ｜みんなの公開デッキ。骨格ではなく実体をそのまま出す
           (タブの見た目はデータに依存しないので、骨格に差し替えるとラベルと選択位置が
           一瞬グレーの棒になって戻るだけのちらつきになる)。
           /decks は proxy.ts が未ログインを弾くので、ここに来るのはログイン済みだけ。

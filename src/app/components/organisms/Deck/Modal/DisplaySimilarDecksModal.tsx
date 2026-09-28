@@ -64,8 +64,9 @@ function SimilarDecksSkeleton() {
       <Skeleton className="h-16 rounded-xl" />
       {Array.from({ length: 4 }).map((_, i) => (
         <div key={i} className="flex flex-col gap-2 py-2">
-          <Skeleton className="h-4 w-full rounded-md" />
+          {/* 実物と同じ並び(スプライト＋デッキ名 → 類似度と大会の情報) */}
           <Skeleton className="h-6 w-2/3 rounded-md" />
+          <Skeleton className="h-4 w-full rounded-md" />
           <Skeleton className="h-4 w-4/5 rounded-md" />
         </div>
       ))}
@@ -161,7 +162,25 @@ function SimilarDeckRow({
   return (
     <li className="flex flex-col gap-2 border-t border-divider py-3 first:border-t-0">
       <div>
+        {/* 何のデッキかを先に見せ、その下に類似度と大会の情報を置く */}
         <div className="flex items-center gap-2">
+          <DeckSprites sprites={deck.archetype.sprites.map((id) => ({ id }))} size={24} />
+          <span className="min-w-0 truncate text-small font-bold">
+            {archetypeName ?? "デッキ名：不明"}
+          </span>
+          {deck.sameList && (
+            <Chip size="sm" color="primary" variant="flat" className="h-5 shrink-0 text-[10px]">
+              同じカードリスト
+            </Chip>
+          )}
+          {/* 構成は近いが分類上は別の種類。自分の種類が決まっていないときは比べようが無いので出さない */}
+          {sourceArchetypeId && !deck.sameArchetype && deck.archetype.archetypeId && (
+            <Chip size="sm" variant="bordered" className="h-5 shrink-0 text-[10px]">
+              別のデッキ種類
+            </Chip>
+          )}
+        </div>
+        <div className="mt-1.5 flex items-center gap-2">
           <span className="w-13 shrink-0 font-bold text-small tabular-nums">{percent}</span>
           <span className="h-1.5 min-w-8 flex-1 overflow-hidden rounded-full bg-default-200">
             <span
@@ -173,23 +192,6 @@ function SimilarDeckRow({
             {formatEventDateShort(deck.eventDate)} ・ {deck.prefectureName} ・{" "}
             {cityleagueRankLabel(deck.rank, false)}
           </span>
-        </div>
-        <div className="mt-1.5 flex items-center gap-2">
-          <DeckSprites sprites={deck.archetype.sprites.map((id) => ({ id }))} size={24} />
-          <span className="min-w-0 truncate text-small font-bold">
-            {archetypeName ?? "デッキ名：不明"}
-          </span>
-          {/* 構成は近いが分類上は別の種類。自分の種類が決まっていないときは比べようが無いので出さない */}
-          {deck.sameList && (
-            <Chip size="sm" color="primary" variant="flat" className="h-5 shrink-0 text-[10px]">
-              同じカードリスト
-            </Chip>
-          )}
-          {sourceArchetypeId && !deck.sameArchetype && deck.archetype.archetypeId && (
-            <Chip size="sm" variant="bordered" className="h-5 shrink-0 text-[10px]">
-              別のデッキ種類
-            </Chip>
-          )}
         </div>
         {/* 差分カード。入賞デッキにだけあるカードと、自分のデッキにだけあるカードを
             上下の段に分ける(1 行に混ぜると、どちらのカードか色でしか見分けられないため) */}

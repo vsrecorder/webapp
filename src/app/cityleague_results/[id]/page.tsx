@@ -8,7 +8,7 @@ import CityleagueResultDetailSkeleton from "@app/components/organisms/Cityleague
 import TemplateCityleagueResultByOfficialEventId from "@app/components/templates/CityleagueResultByOfficialEventId";
 
 import { CityleagueResultType } from "@app/types/cityleague_result";
-import { DeckArchetypeMap } from "@app/types/deck_archetype";
+import { DeckArchetypeMap, DeckArchetypeType } from "@app/types/deck_archetype";
 import { OfficialEventType } from "@app/types/official_event";
 import {
   formatEventDate,
@@ -17,6 +17,7 @@ import {
 } from "@app/utils/cityleague";
 import { OG_SIZE, renderCityleagueEventOgImage } from "@app/utils/ogImage";
 import { serializeJsonLd } from "@app/utils/breadcrumb";
+import { cityleagueEventOgName, eventOgWinner } from "@app/utils/cityleagueEventOg";
 import { deckDisplayName, isDeckArchetypeSeason } from "@app/utils/deckArchetype";
 import { getDeckArchetypesByEvent } from "@app/utils/deckArchetypeServer";
 import { getDeckSummaries, getDeckSummary } from "@app/utils/deckSummaryServer";
@@ -35,7 +36,12 @@ function buildTitle(event: OfficialEventType): string {
 // description と構造化データに載せる優勝者と、その優勝デッキの呼び名。
 // 呼び名はデッキ分類(バトラボ)の名前を優先し、無ければ主なポケモン(deckDisplayName)。
 // 本文の冒頭(CityleagueResultByOfficialEventId)と同じ決め方にして、文言が食い違わないようにする
-type DescriptionWinner = { playerName: string; deckName: string };
+// archetype は OGP 画像に優勝デッキを載せるために持ち回る(分類が無ければ undefined)
+type DescriptionWinner = {
+  playerName: string;
+  deckName: string;
+  archetype: DeckArchetypeType | undefined;
+};
 
 async function getDescriptionWinner(
   officialEventId: number,
@@ -52,9 +58,12 @@ async function getDescriptionWinner(
       : Promise.resolve<DeckArchetypeMap>({}),
   ]);
 
+  const archetype = archetypes[winner.deck_code];
+
   return {
     playerName: winner.player_name,
-    deckName: deckDisplayName(archetypes[winner.deck_code], summary ?? undefined),
+    deckName: deckDisplayName(archetype, summary ?? undefined),
+    archetype,
   };
 }
 
@@ -87,14 +96,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   const title = buildTitle(event);
-  const description = buildDescription(
-    event,
-    await getDescriptionWinner(officialEventId, cityleagueResult),
-  );
+  const winner = await getDescriptionWinner(officialEventId, cityleagueResult);
+  const description = buildDescription(event, winner);
   const path = `/cityleague_results/${event.id}`;
 
-  const ogImageUrl = ogImageUrlFor(`cityleague_results/${event.id}`, () =>
-    renderCityleagueEventOgImage(event),
+  // 優勝デッキの分類が分かれば、画像にスプライトとデッキ名を載せる。分類は description のために
+  // 既に引いてあるので、画像のために待ち時間は増えない。キーは載せる中身ごとに変わる(cityleagueEventOg)
+  const ogWinner = eventOgWinner(winner?.archetype);
+  const ogImageUrl = ogImageUrlFor(cityleagueEventOgName(event.id, ogWinner), () =>
+    renderCityleagueEventOgImage(event, ogWinner),
   );
 
   return {

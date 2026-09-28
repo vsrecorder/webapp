@@ -13,8 +13,9 @@ import { spriteFitBox } from "@app/utils/spriteFit";
 import { deckImageUrl } from "@app/utils/deckImage";
 import { isTrustedImageUrl } from "@app/utils/trustedImageUrl";
 import { ChampionsleagueScheduleType } from "@app/types/championsleague_schedule";
-import { deckNameFontSize } from "@app/utils/ogText";
+import { deckNameFontSize, textWidthEm } from "@app/utils/ogText";
 import type { DateWinnerDeck } from "@app/utils/cityleagueDateShare";
+import type { EventOgWinner } from "@app/utils/cityleagueEventOg";
 import { CityleagueTerm, formatEventDate, formatTermRange } from "@app/utils/cityleague";
 
 // OGP画像の規定サイズ。X(Twitter)の summary_large_image と Facebook の推奨に合わせる。
@@ -321,24 +322,75 @@ function shopNameFontSize(shopName: string): number {
   return 38;
 }
 
-// シティリーグの個別イベント用。
+// 優勝デッキの行(個別イベントの OGP)の寸法。スプライト 2 体を少し重ねて並べ、右にデッキ名を置く
+const OG_EVENT_WINNER_SPRITE = 88;
+const OG_EVENT_WINNER_OVERLAP = 16;
+const OG_EVENT_WINNER_NAME_FONT_MAX = 48;
+const OG_EVENT_WINNER_VARIANT_FONT = 28;
+const OG_EVENT_WINNER_NAME_FONT_MIN = 30;
+// 優勝デッキを載せるときの定型文(「優勝からベスト16まで…」)の文字サイズ。デッキが主役なので小さく添える
+const OG_EVENT_WINNER_NOTE_FONT = 24;
+// 優勝デッキを載せるときの店舗名(1 行に収める)のフォントサイズの上限・下限
+const OG_EVENT_SHOP_FONT_MAX = 52;
+const OG_EVENT_SHOP_FONT_MIN = 32;
+
+/*
+ * シティリーグの個別イベント用。
+ *
+ * winner(優勝デッキの分類。cityleagueEventOg の eventOgWinner)を渡すと、日付の下に
+ * 優勝デッキのスプライトと名前を載せ、定型文はその下に小さく添える。シェアされたときに「何が勝ったか」が
+ * 画像だけで伝わるようにするため。縦に余裕が無いので、そのときは店舗名を 1 行に収める(長い名前は縮める)。
+ * デッキの行は枠(背景・角丸)を付けず、スプライトと文字だけを置く。
+ * 渡さない(分類の無い旧シーズン・索引にまだ無い)ときは従来どおり店舗名と日付だけの画像にする。
+ */
 export async function renderCityleagueEventOgImage(
   event: OfficialEventType,
+  winner: EventOgWinner | null = null,
 ): Promise<Buffer> {
   const assets = await loadOgAssets();
 
+  const spriteCount = winner?.spriteIds.length ?? 0;
+  const spritesWidth =
+    spriteCount > 0
+      ? spriteCount * OG_EVENT_WINNER_SPRITE - (spriteCount - 1) * OG_EVENT_WINNER_OVERLAP
+      : 0;
+  // デッキ名の枠: 全幅から、スプライト・その右の間隔(20)・横に並べる型名(間隔 14 を含む)を除いた幅。
+  // 型名は短い(「バシャーモ型」「その他」)ので縮めない
+  const variantWidth = winner?.variant
+    ? Math.ceil(textWidthEm(winner.variant) * OG_EVENT_WINNER_VARIANT_FONT) + 14
+    : 0;
+  const winnerNameWidth =
+    OG_RESULT_TITLE_WIDTH - (spritesWidth > 0 ? spritesWidth + 20 : 0) - variantWidth;
+  const winnerNameFontSize = winner
+    ? deckNameFontSize(
+        winner.name,
+        winnerNameWidth,
+        OG_EVENT_WINNER_NAME_FONT_MAX,
+        OG_EVENT_WINNER_NAME_FONT_MIN,
+      )
+    : 0;
+
   return toPngBuffer(
     <div style={canvasStyle}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      {/* 優勝デッキを載せると 1 段増えるので行間を詰める。縦は X のカード表示の下端の被り
+          (X_CARD_OVERLAY_SAFE_AREA)を除いた範囲に収め、フッターの区切り線に重ねない */}
+      <div style={{ display: "flex", flexDirection: "column", gap: winner ? 10 : 20 }}>
         <Chip>{event.title}</Chip>
 
         <div
           style={{
             display: "flex",
-            fontSize: shopNameFontSize(event.shop_name),
+            fontSize: winner
+              ? deckNameFontSize(
+                  event.shop_name,
+                  OG_RESULT_TITLE_WIDTH,
+                  OG_EVENT_SHOP_FONT_MAX,
+                  OG_EVENT_SHOP_FONT_MIN,
+                )
+              : shopNameFontSize(event.shop_name),
             fontWeight: 700,
             lineHeight: 1.3,
-            lineClamp: 2,
+            lineClamp: winner ? 1 : 2,
           }}
         >
           {event.shop_name}
@@ -352,8 +404,64 @@ export async function renderCityleagueEventOgImage(
           <span>{event.league_title}リーグ</span>
         </div>
 
+        {winner ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+            {winner.spriteIds.length > 0 ? (
+              <div style={{ display: "flex" }}>
+                {winner.spriteIds.map((id, index) => (
+                  <OgSprite
+                    key={index}
+                    id={id}
+                    size={OG_EVENT_WINNER_SPRITE}
+                    unknownSrc={assets.unknownSpriteSrc}
+                    style={{ marginLeft: index === 0 ? 0 : -OG_EVENT_WINNER_OVERLAP }}
+                  />
+                ))}
+              </div>
+            ) : null}
+
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <div
+                style={{ display: "flex", fontSize: 24, fontWeight: 700, color: COLORS.accent }}
+              >
+                優勝デッキ
+              </div>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 14 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    maxWidth: winnerNameWidth,
+                    fontSize: winnerNameFontSize,
+                    fontWeight: 700,
+                    lineHeight: 1.2,
+                    lineClamp: 1,
+                  }}
+                >
+                  {winner.name}
+                </div>
+                {winner.variant ? (
+                  <div
+                    style={{
+                      display: "flex",
+                      fontSize: OG_EVENT_WINNER_VARIANT_FONT,
+                      color: COLORS.muted,
+                    }}
+                  >
+                    {winner.variant}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         <div
-          style={{ display: "flex", fontSize: 34, fontWeight: 700, color: COLORS.accent }}
+          style={{
+            display: "flex",
+            fontSize: winner ? OG_EVENT_WINNER_NOTE_FONT : 34,
+            fontWeight: 700,
+            color: COLORS.accent,
+          }}
         >
           優勝からベスト16までのデッキコードを掲載
         </div>

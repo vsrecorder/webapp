@@ -138,4 +138,23 @@ describe("DeckCodePostCard", () => {
       `/api/deckcards/${POST.code}/similar`,
     );
   });
+
+  // 一覧でカードを触ったはずみに個別ページへ飛ばないよう、デッキ名はリンクにしない
+  it("個別ページへは「詳細」ボタンだけで行け、デッキ名はリンクにせず個別ページでだけ見出し(h1)にする", () => {
+    const { container, unmount } = render(<DeckCodePostCard post={POST} viewerId={null} />);
+
+    // 個別ページへ行けるのは「詳細」ボタンだけ(デッキ名は押しても飛ばない)
+    const detailLinks = Array.from(container.querySelectorAll("a")).filter(
+      (a) => a.getAttribute("href") === `/shared_decks/${POST.id}`,
+    );
+    expect(detailLinks.map((a) => a.textContent)).toEqual(["詳細"]);
+    expect(screen.getByText(POST.deck_name).tagName).toBe("DIV");
+    expect(screen.queryByRole("heading", { name: POST.deck_name })).toBeNull();
+    unmount();
+
+    // 個別ページでは「詳細」ボタンを出さない
+    const detail = render(<DeckCodePostCard post={POST} viewerId={null} isDetailPage />);
+    expect(screen.getByRole("heading", { level: 1, name: POST.deck_name })).toBeTruthy();
+    expect(detail.container.querySelector(`a[href="/shared_decks/${POST.id}"]`)).toBeNull();
+  });
 });

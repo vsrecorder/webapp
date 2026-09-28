@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { Avatar, Card, CardBody, addToast, useDisclosure } from "@heroui/react";
 
 import { FaXTwitter } from "react-icons/fa6";
-import { LuExternalLink, LuHeart, LuLayers, LuTrophy } from "react-icons/lu";
+import { LuChevronRight, LuExternalLink, LuHeart, LuLayers, LuTrophy } from "react-icons/lu";
 
 import CopyableDeckCode from "@app/components/atoms/CopyableDeckCode";
 import ZoomableDeckImage from "@app/components/atoms/ZoomableDeckImage";
@@ -55,8 +55,12 @@ type Props = {
   viewerId: string | null;
   // 未ログインでログインが要る操作をしたとき(いいね・類似デッキ・取り込み)
   onRequireLogin?: (title: string) => void;
-  // デッキ名を個別ページへのリンクにする(一覧で true、個別ページでは false)
-  linkToDetail?: boolean;
+  // 個別ページに置くとき true。デッキ名をページの見出し(h1)にする。一覧・投稿者ページでは
+  // 見出しにせずただの文字にする(カードの中のカードリストの折りたたみが h2 を使うので、
+  // デッキ名を h2 にすると同じ階層に並んでしまう)。デッキ名は個別ページへのリンクにしない
+  // (一覧でカードを触ったはずみに個別ページへ飛んでしまうため。2026-09-29 に運営者の指示で外した)。
+  // 代わりに投稿者行の右端に「詳細」ボタンを出す(個別ページでは出さない)
+  isDetailPage?: boolean;
   // デッキ画像・アイコンの読み込み方。一覧では最初の数枚だけ "eager"、残りは "lazy" にして
   // 画面外のカードの画像(1枚 120〜140 KB)を初回リクエストから外す
   imageLoading?: "lazy" | "eager";
@@ -74,7 +78,7 @@ function DeckCodePostCard({
   onChange,
   viewerId,
   onRequireLogin,
-  linkToDetail = true,
+  isDetailPage = false,
   imageLoading = "eager",
 }: Props) {
   const hydrated = useHydrated();
@@ -167,6 +171,19 @@ function DeckCodePostCard({
           <span className="shrink-0 text-tiny text-default-400">
             {hydrated ? formatRelativeTime(post.published_at) : formatPublishedDate(post.published_at)}
           </span>
+          {/* 個別ページへの入口。デッキ名はリンクにしていない(触ったはずみに飛ばないように)ので、
+              はっきり押すための小さなボタンとして置く。検索エンジンが一覧から個別ページを
+              辿れるように、ふつうのリンク(<a>)にしてある */}
+          {!isDetailPage && (
+            <NextLink
+              href={deckCodePostPath(post.id)}
+              aria-label={`${post.deck_name}の詳細を見る`}
+              className="flex shrink-0 items-center gap-0.5 rounded-full bg-default-100 py-1 pl-2.5 pr-1.5 text-tiny font-bold text-default-600 active:opacity-70"
+            >
+              詳細
+              <LuChevronRight className="shrink-0" aria-hidden />
+            </NextLink>
+          )}
         </div>
 
         {/* スプライトを上、デッキ名を下に中央揃えで置く(自分のデッキのギャラリー表示と同じ形)。
@@ -175,17 +192,14 @@ function DeckCodePostCard({
             名前の全長まで広がり、カードごと横に伸びてしまう。 */}
         <div className="flex w-full min-w-0 flex-col items-center gap-1">
           <DeckSprites sprites={post.pokemon_sprites} size={48} loading={imageLoading} />
-          {linkToDetail ? (
-            <NextLink
-              href={deckCodePostPath(post.id)}
-              className="w-full min-w-0 truncate text-center font-bold text-large active:opacity-70"
-            >
-              {post.deck_name}
-            </NextLink>
-          ) : (
+          {isDetailPage ? (
             <h1 className="w-full min-w-0 truncate text-center font-bold text-large">
               {post.deck_name}
             </h1>
+          ) : (
+            <div className="w-full min-w-0 truncate text-center font-bold text-large">
+              {post.deck_name}
+            </div>
           )}
         </div>
 

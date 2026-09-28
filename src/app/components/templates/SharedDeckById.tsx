@@ -68,7 +68,7 @@ export default function TemplateSharedDeckById({ post: initial, viewerId }: Prop
           viewerId={viewerId}
           onChange={setPost}
           onRequireLogin={requireLogin}
-          linkToDetail={false}
+          isDetailPage
         />
 
         {!viewerId && (

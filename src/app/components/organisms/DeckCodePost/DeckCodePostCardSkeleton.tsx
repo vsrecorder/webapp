@@ -16,12 +16,13 @@ export default function DeckCodePostCardSkeleton() {
   return (
     <Card shadow="sm" className="w-full" data-testid="deck-code-post-card-skeleton">
       <CardBody className="flex flex-col gap-2.5 p-3">
-        {/* 投稿者: アイコン・名前・称号チップ / 右端に時刻 */}
+        {/* 投稿者: アイコン・名前・称号チップ / 右端に時刻と「詳細」ボタン */}
         <div className="flex h-9 items-center gap-2">
           <Skeleton className="h-9 w-9 shrink-0 rounded-full" />
           <Skeleton className="h-4 w-20 rounded-lg" />
           <Skeleton className="h-4 w-24 rounded-full" />
           <Skeleton className="ml-auto h-3 w-12 rounded" />
+          <Skeleton className="h-6 w-12 shrink-0 rounded-full" />
         </div>
 
         {/* スプライト2体(48px)を上、デッキ名を下に中央揃え(実物と同じギャラリー形式) */}

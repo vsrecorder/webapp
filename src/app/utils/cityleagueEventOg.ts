@@ -15,6 +15,9 @@ export type EventOgWinner = {
   spriteIds: string[];
 };
 
+// 優勝デッキ入りの画像のレイアウトの版(1: デッキ名の下に小さなスプライト、2: 右に大きなスプライト)
+const EVENT_WINNER_OG_LAYOUT = 2;
+
 const tidy = (text: string | null | undefined) => (text ?? "").replace(/\s+/g, " ").trim();
 
 /*
@@ -42,6 +45,9 @@ export function eventOgWinner(archetype: DeckArchetypeType | undefined): EventOg
  * 分類の名前やスプライトが後から直った場合も別の画像になる。
  *
  * 優勝デッキが無いときは従来のキーのまま(既に置いてある画像をそのまま使い、作り直させない)。
+ *
+ * 優勝デッキ入りの画像のデザインを変えたら EVENT_WINNER_OG_LAYOUT を上げる(OG_IMAGE_VERSION を
+ * 上げると全ページの画像が作り直しになるため、この画像だけの版を持つ)。
  */
 export function cityleagueEventOgName(eventId: number, winner: EventOgWinner | null): string {
   const base = `cityleague_results/${eventId}`;
@@ -52,5 +58,5 @@ export function cityleagueEventOgName(eventId: number, winner: EventOgWinner | n
     .digest("hex")
     .slice(0, 12);
 
-  return `${base}-w${digest}`;
+  return `${base}-w${EVENT_WINNER_OG_LAYOUT}-${digest}`;
 }

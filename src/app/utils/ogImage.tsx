@@ -154,6 +154,8 @@ const X_CARD_OVERLAY_SAFE_AREA = 130;
 const OG_SPRITE_FRAME = 280;
 // 2体目を左に食い込ませる量(px)。2体で 280×2−36 = 524px を占める。
 const OG_SPRITE_OVERLAP = 36;
+// スプライトの縦の中心(上端 110 + 280/2)。枠を小さくしても同じ高さに揃える
+const OG_SPRITE_CENTER_Y = 110 + OG_SPRITE_FRAME / 2;
 // スプライトが1体だけのときに2枠目へ出すプレースホルダ(白いモンスターボール)の枠の割合。
 // キャラと同じ大きさで置くと「無い方」が主役に見えてしまうため、一回り小さくする。
 const OG_UNKNOWN_FRAME_RATIO = 0.65;
@@ -322,75 +324,52 @@ function shopNameFontSize(shopName: string): number {
   return 38;
 }
 
-// 優勝デッキの行(個別イベントの OGP)の寸法。スプライト 2 体を少し重ねて並べ、右にデッキ名を置く
-const OG_EVENT_WINNER_SPRITE = 88;
-const OG_EVENT_WINNER_OVERLAP = 16;
-const OG_EVENT_WINNER_NAME_FONT_MAX = 48;
-const OG_EVENT_WINNER_VARIANT_FONT = 28;
-const OG_EVENT_WINNER_NAME_FONT_MIN = 30;
-// 優勝デッキを載せるときの定型文(「優勝からベスト16まで…」)の文字サイズ。デッキが主役なので小さく添える
-const OG_EVENT_WINNER_NOTE_FONT = 24;
-// 優勝デッキを載せるときの店舗名(1 行に収める)のフォントサイズの上限・下限
-const OG_EVENT_SHOP_FONT_MAX = 52;
-const OG_EVENT_SHOP_FONT_MIN = 32;
+// 優勝デッキを載せるときの、左の列の文字の寸法。スプライトはみんなの公開デッキの OGP と同じく
+// 右に大きく置く(OgLargeSprites)ので、文字は左の列(2 体なら幅 612)に縦に積む。
+// 店舗名は折り返さず、全幅(スプライトの上を通る)で 1 行に収まるまで縮める。それでも溢れる名前は末尾を省略する
+const OG_EVENT_SHOP_FONT_MAX = 48;
+const OG_EVENT_SHOP_FONT_MIN = 28;
+const OG_EVENT_WINNER_NAME_FONT_MAX = 40;
+const OG_EVENT_WINNER_NAME_FONT_MIN = 28;
+const OG_EVENT_WINNER_VARIANT_FONT = 24;
+// 左の列とスプライトの間隔(公開デッキの OGP と同じ: 左端 616 − 本文の右端 572)
+const OG_SPRITE_COLUMN_GAP = 44;
+// 優勝デッキのスプライトの枠と重ね幅。公開デッキ(280・36)より小さくする。
+// 2 体で 412 幅になり、左の列は 612 幅まで使える
+const OG_EVENT_SPRITE_FRAME = 220;
+const OG_EVENT_SPRITE_OVERLAP = 28;
+// スプライトの上端。店舗名の行(チップの下、最大 48px で下端 y≈185)より下に置き、店舗名に全幅を使わせる。
+// 下端(420)はフッターの高さに掛かるが、フッターの文字は左(x<672)にしか無いので重ならない
+const OG_EVENT_SPRITE_TOP = 200;
 
 /*
  * シティリーグの個別イベント用。
  *
- * winner(優勝デッキの分類。cityleagueEventOg の eventOgWinner)を渡すと、日付の下に
- * 優勝デッキのスプライトと名前を載せ、定型文はその下に小さく添える。シェアされたときに「何が勝ったか」が
- * 画像だけで伝わるようにするため。縦に余裕が無いので、そのときは店舗名を 1 行に収める(長い名前は縮める)。
- * デッキの行は枠(背景・角丸)を付けず、スプライトと文字だけを置く。
+ * winner(優勝デッキの分類。cityleagueEventOg の eventOgWinner)を渡すと、みんなの公開デッキの OGP と
+ * 同じく右に優勝デッキのスプライトを大きく置き、左の列に大会名・店舗名・日付・優勝デッキ名・定型文を積む。
+ * シェアされたときに「何が勝ったか」が画像だけで伝わるようにするため。
  * 渡さない(分類の無い旧シーズン・索引にまだ無い)ときは従来どおり店舗名と日付だけの画像にする。
  */
 export async function renderCityleagueEventOgImage(
   event: OfficialEventType,
   winner: EventOgWinner | null = null,
 ): Promise<Buffer> {
-  const assets = await loadOgAssets();
+  if (winner) return renderCityleagueEventWinnerOgImage(event, winner);
 
-  const spriteCount = winner?.spriteIds.length ?? 0;
-  const spritesWidth =
-    spriteCount > 0
-      ? spriteCount * OG_EVENT_WINNER_SPRITE - (spriteCount - 1) * OG_EVENT_WINNER_OVERLAP
-      : 0;
-  // デッキ名の枠: 全幅から、スプライト・その右の間隔(20)・横に並べる型名(間隔 14 を含む)を除いた幅。
-  // 型名は短い(「バシャーモ型」「その他」)ので縮めない
-  const variantWidth = winner?.variant
-    ? Math.ceil(textWidthEm(winner.variant) * OG_EVENT_WINNER_VARIANT_FONT) + 14
-    : 0;
-  const winnerNameWidth =
-    OG_RESULT_TITLE_WIDTH - (spritesWidth > 0 ? spritesWidth + 20 : 0) - variantWidth;
-  const winnerNameFontSize = winner
-    ? deckNameFontSize(
-        winner.name,
-        winnerNameWidth,
-        OG_EVENT_WINNER_NAME_FONT_MAX,
-        OG_EVENT_WINNER_NAME_FONT_MIN,
-      )
-    : 0;
+  const assets = await loadOgAssets();
 
   return toPngBuffer(
     <div style={canvasStyle}>
-      {/* 優勝デッキを載せると 1 段増えるので行間を詰める。縦は X のカード表示の下端の被り
-          (X_CARD_OVERLAY_SAFE_AREA)を除いた範囲に収め、フッターの区切り線に重ねない */}
-      <div style={{ display: "flex", flexDirection: "column", gap: winner ? 10 : 20 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         <Chip>{event.title}</Chip>
 
         <div
           style={{
             display: "flex",
-            fontSize: winner
-              ? deckNameFontSize(
-                  event.shop_name,
-                  OG_RESULT_TITLE_WIDTH,
-                  OG_EVENT_SHOP_FONT_MAX,
-                  OG_EVENT_SHOP_FONT_MIN,
-                )
-              : shopNameFontSize(event.shop_name),
+            fontSize: shopNameFontSize(event.shop_name),
             fontWeight: 700,
             lineHeight: 1.3,
-            lineClamp: winner ? 1 : 2,
+            lineClamp: 2,
           }}
         >
           {event.shop_name}
@@ -404,61 +383,133 @@ export async function renderCityleagueEventOgImage(
           <span>{event.league_title}リーグ</span>
         </div>
 
-        {winner ? (
-          <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-            {winner.spriteIds.length > 0 ? (
-              <div style={{ display: "flex" }}>
-                {winner.spriteIds.map((id, index) => (
-                  <OgSprite
-                    key={index}
-                    id={id}
-                    size={OG_EVENT_WINNER_SPRITE}
-                    unknownSrc={assets.unknownSpriteSrc}
-                    style={{ marginLeft: index === 0 ? 0 : -OG_EVENT_WINNER_OVERLAP }}
-                  />
-                ))}
-              </div>
-            ) : null}
+        <div
+          style={{ display: "flex", fontSize: 34, fontWeight: 700, color: COLORS.accent }}
+        >
+          優勝からベスト16までのデッキコードを掲載
+        </div>
+      </div>
 
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              <div
-                style={{ display: "flex", fontSize: 24, fontWeight: 700, color: COLORS.accent }}
-              >
-                優勝デッキ
-              </div>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 14 }}>
-                <div
-                  style={{
-                    display: "flex",
-                    maxWidth: winnerNameWidth,
-                    fontSize: winnerNameFontSize,
-                    fontWeight: 700,
-                    lineHeight: 1.2,
-                    lineClamp: 1,
-                  }}
-                >
-                  {winner.name}
-                </div>
-                {winner.variant ? (
-                  <div
-                    style={{
-                      display: "flex",
-                      fontSize: OG_EVENT_WINNER_VARIANT_FONT,
-                      color: COLORS.muted,
-                    }}
-                  >
-                    {winner.variant}
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          </div>
-        ) : null}
+      <Footer iconSrc={assets.iconSrc} />
+    </div>,
+    assets,
+  );
+}
+
+async function renderCityleagueEventWinnerOgImage(
+  event: OfficialEventType,
+  winner: EventOgWinner,
+): Promise<Buffer> {
+  const assets = await loadOgAssets();
+
+  // 左の列の幅: スプライトの左端から間隔を空けたところまで。スプライトが無ければ全幅
+  const spritesWidth = largeSpritesWidth(
+    winner.spriteIds.length,
+    OG_EVENT_SPRITE_FRAME,
+    OG_EVENT_SPRITE_OVERLAP,
+  );
+  const columnWidth =
+    spritesWidth > 0
+      ? OG_SIZE.width - 60 - spritesWidth - OG_SPRITE_COLUMN_GAP - 72
+      : OG_RESULT_TITLE_WIDTH;
+
+  const shopFontSize = deckNameFontSize(
+    event.shop_name,
+    OG_RESULT_TITLE_WIDTH,
+    OG_EVENT_SHOP_FONT_MAX,
+    OG_EVENT_SHOP_FONT_MIN,
+  );
+
+  // デッキ名は横に並べる型名(間隔 12 を含む)を除いた幅に収める。型名は短いので縮めない
+  const variantWidth = winner.variant
+    ? Math.ceil(textWidthEm(winner.variant) * OG_EVENT_WINNER_VARIANT_FONT) + 12
+    : 0;
+  const nameWidth = columnWidth - variantWidth;
+  const nameFontSize = deckNameFontSize(
+    winner.name,
+    nameWidth,
+    OG_EVENT_WINNER_NAME_FONT_MAX,
+    OG_EVENT_WINNER_NAME_FONT_MIN,
+  );
+
+  return toPngBuffer(
+    <div style={{ ...canvasStyle, justifyContent: "flex-start", position: "relative" }}>
+      {/* 縦は X のカード表示の下端の被り(X_CARD_OVERLAY_SAFE_AREA)とフッターを除いた範囲に収める */}
+      {/* 列は全幅にして店舗名だけスプライトの上まで伸ばす。その下の行は columnWidth
+          (デッキ名は nameWidth)に収まる長さなので、スプライトには掛からない */}
+      <div style={{ display: "flex", flexDirection: "column", width: OG_RESULT_TITLE_WIDTH }}>
+        <Chip>{event.title}</Chip>
 
         <div
           style={{
             display: "flex",
-            fontSize: winner ? OG_EVENT_WINNER_NOTE_FONT : 34,
+            marginTop: 10,
+            fontSize: shopFontSize,
+            fontWeight: 700,
+            lineHeight: 1.2,
+            lineClamp: 1,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
+          {event.shop_name}
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            marginTop: 8,
+            gap: 10,
+            fontSize: 22,
+            color: COLORS.muted,
+          }}
+        >
+          <span>{formatEventDate(event.date)}</span>
+          <span style={{ color: COLORS.separator }}>/</span>
+          <span>{event.prefecture_name}</span>
+          <span style={{ color: COLORS.separator }}>/</span>
+          <span>{event.league_title}リーグ</span>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            marginTop: 16,
+            fontSize: 22,
+            fontWeight: 700,
+            color: COLORS.accent,
+          }}
+        >
+          優勝デッキ
+        </div>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
+          <div
+            style={{
+              display: "flex",
+              maxWidth: nameWidth,
+              fontSize: nameFontSize,
+              fontWeight: 700,
+              lineHeight: 1.2,
+              lineClamp: 1,
+            }}
+          >
+            {winner.name}
+          </div>
+          {winner.variant ? (
+            <div
+              style={{ display: "flex", fontSize: OG_EVENT_WINNER_VARIANT_FONT, color: COLORS.muted }}
+            >
+              {winner.variant}
+            </div>
+          ) : null}
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            marginTop: 10,
+            fontSize: 22,
             fontWeight: 700,
             color: COLORS.accent,
           }}
@@ -467,7 +518,15 @@ export async function renderCityleagueEventOgImage(
         </div>
       </div>
 
-      <Footer iconSrc={assets.iconSrc} />
+      <OgLargeSprites
+        spriteIds={winner.spriteIds}
+        unknownSrc={assets.unknownSpriteSrc}
+        frame={OG_EVENT_SPRITE_FRAME}
+        overlap={OG_EVENT_SPRITE_OVERLAP}
+        top={OG_EVENT_SPRITE_TOP}
+      />
+
+      <FooterAtBottom iconSrc={assets.iconSrc} />
     </div>,
     assets,
   );
@@ -746,6 +805,91 @@ async function fetchImageAsDataUri(url: string, timeoutMs: number): Promise<stri
   }
 }
 
+// スプライトを並べたときの横幅(2 体目以降は overlap ずつ重ねる)
+function largeSpritesWidth(
+  count: number,
+  frame: number = OG_SPRITE_FRAME,
+  overlap: number = OG_SPRITE_OVERLAP,
+): number {
+  return count > 0 ? count * frame - (count - 1) * overlap : 0;
+}
+
+/*
+ * 右上にスプライトを大きく並べる(みんなの公開デッキ・大会の個別ページの優勝デッキ)。
+ *
+ * 枠(背景・角丸)は出さず、キャラだけを大きく置く。元画像はキャラの周りに余白があり大きさもまちまちなので、
+ * アプリ内と同じ正規化(spriteFitBox: 身長に応じた枠占有率・水平中央・下端接地)で枠いっぱいに揃える。
+ * 右端 60 に寄せ、既定の枠(280)なら 2 体で 524 幅(左端 1200−60−524 = 616)。左の本文はそれより
+ * 手前で止めること。枠を変えても、top を渡さなければ縦の中心(y=250)は同じ位置に置く。
+ * id が無い枠は同梱の白いモンスターボールを小さめに置く。
+ */
+function OgLargeSprites({
+  spriteIds,
+  unknownSrc,
+  frame = OG_SPRITE_FRAME,
+  overlap = OG_SPRITE_OVERLAP,
+  top = OG_SPRITE_CENTER_Y - frame / 2,
+}: {
+  spriteIds: (string | undefined)[];
+  unknownSrc: string;
+  frame?: number;
+  overlap?: number;
+  // 上端。省略すると縦の中心を公開デッキと同じ高さ(y=250)に揃える
+  top?: number;
+}) {
+  return (
+    <div style={{ position: "absolute", right: 60, top, display: "flex" }}>
+      {spriteIds.map((id, index) => {
+        // プレースホルダは小さい枠で正規化し、その枠を大枠の中央に置く
+        const inner = id ? frame : Math.round(frame * OG_UNKNOWN_FRAME_RATIO);
+        const inset = (frame - inner) / 2;
+        const fit = spriteFitBox(id, inner);
+        return (
+          <div
+            key={index}
+            style={{
+              position: "relative",
+              overflow: "hidden",
+              display: "flex",
+              width: frame,
+              height: frame,
+              marginLeft: index === 0 ? 0 : -overlap,
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={id ? spriteImageUrl(id) : unknownSrc}
+              alt=""
+              width={fit.width}
+              height={fit.height}
+              style={{ position: "absolute", left: fit.left + inset, top: fit.top + inset }}
+            />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// フッターを下端(X の被りの上)に固定する。本文を上から積むレイアウト(justifyContent: flex-start)で使う
+function FooterAtBottom({ iconSrc }: { iconSrc: string }) {
+  return (
+    <div
+      style={{
+        position: "absolute",
+        left: 72,
+        right: 72,
+        bottom: X_CARD_OVERLAY_SAFE_AREA,
+        display: "flex",
+      }}
+    >
+      <div style={{ display: "flex", flex: 1 }}>
+        <Footer iconSrc={iconSrc} />
+      </div>
+    </div>
+  );
+}
+
 // 背景に敷くデッキ画像に重ねる幕。上はカードを見せ、下(投稿者・ACE SPEC・フッター)へ向けて
 // 紺の単色に落とす。文字が乗る帯をほぼ不透明にすることで、現行と同じ読みやすさを保つ。
 //
@@ -898,49 +1042,12 @@ export async function renderDeckCodePostOgImage(post: DeckCodePostType): Promise
         ) : null}
       </div>
 
-      {/* スプライトは枠(背景・角丸)を出さず、キャラだけを大きく置く。
-          元画像はキャラの周りに余白があり大きさもまちまちなので、アプリ内と同じ正規化
-          (spriteFitBox: 身長に応じた枠占有率・水平中央・下端接地)で枠いっぱいに揃える。
-          左の本文(x=72 から 500 幅 → 572 まで)に被らないよう、2体で 524 に収めて右端 60 に寄せる
-          (左端は 1200−60−524 = 616)。 */}
+      {/* 左の本文(x=72 から 500 幅 → 572 まで)に被らないよう、2体で 524 に収めて右端 60 に寄せる */}
       {spriteIds.length > 0 ? (
-        <div style={{ position: "absolute", right: 60, top: 110, display: "flex" }}>
-          {spriteIds.map((id, index) => {
-            // プレースホルダは小さい枠で正規化し、その枠を大枠の中央に置く
-            const inner = id ? OG_SPRITE_FRAME : Math.round(OG_SPRITE_FRAME * OG_UNKNOWN_FRAME_RATIO);
-            const inset = (OG_SPRITE_FRAME - inner) / 2;
-            const fit = spriteFitBox(id, inner);
-            return (
-              <div
-                key={index}
-                style={{
-                  position: "relative",
-                  overflow: "hidden",
-                  display: "flex",
-                  width: OG_SPRITE_FRAME,
-                  height: OG_SPRITE_FRAME,
-                  marginLeft: index === 0 ? 0 : -OG_SPRITE_OVERLAP,
-                }}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={id ? spriteImageUrl(id) : assets.unknownSpriteSrc}
-                  alt=""
-                  width={fit.width}
-                  height={fit.height}
-                  style={{ position: "absolute", left: fit.left + inset, top: fit.top + inset }}
-                />
-              </div>
-            );
-          })}
-        </div>
+        <OgLargeSprites spriteIds={spriteIds} unknownSrc={assets.unknownSpriteSrc} />
       ) : null}
 
-      <div style={{ position: "absolute", left: 72, right: 72, bottom: X_CARD_OVERLAY_SAFE_AREA, display: "flex" }}>
-        <div style={{ display: "flex", flex: 1 }}>
-          <Footer iconSrc={assets.iconSrc} />
-        </div>
-      </div>
+      <FooterAtBottom iconSrc={assets.iconSrc} />
     </div>,
     assets,
   );

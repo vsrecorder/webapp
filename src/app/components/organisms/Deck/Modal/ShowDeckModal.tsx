@@ -538,7 +538,7 @@ export default function ShowDeckModal({
                                 startContent={<LuShuffle />}
                                 onPress={onOpenForInspectDeckModal}
                               >
-                                初動チェックをする
+                                初動をチェックする
                               </DropdownItem>,
                             ]
                           : []),

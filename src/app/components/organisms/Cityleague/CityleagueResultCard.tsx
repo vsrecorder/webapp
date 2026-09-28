@@ -55,6 +55,8 @@ import {
 import { CITYLEAGUE_CARD_IMAGE_WIDTH_CLASS } from "@app/utils/cityleagueCardImage";
 import { deckArchetypeToDeckDraft } from "@app/utils/deckArchetype";
 import { formatMainPokemon } from "@app/utils/deckSummary";
+import { toJSTDateString } from "@app/utils/date";
+import { isSimilarDecksAvailableOn } from "@app/utils/similarDecks";
 
 type Props = {
   // point を含まない最小の形で受ける。大型大会(championsleague_results)の入賞も
@@ -143,6 +145,7 @@ function NoDeckCodeImage() {
 
 export default function CityleagueResultCard({
   result,
+  date,
   showRankLabel = true,
   deckSummary,
   deckArchetype,
@@ -163,6 +166,10 @@ export default function CityleagueResultCard({
   } = useDisclosure();
 
   const { status } = useSession();
+
+  // 類似デッキは『30th CELEBRATION』以降の大会の入賞デッキでだけ使える(それより前の環境の入賞は
+  // バトラボに無く、今の環境の入賞と比べることになるため)
+  const similarAvailable = Boolean(result.deck_code) && isSimilarDecksAvailableOn(toJSTDateString(date));
 
   /*
    * 詳細モーダルのデッキ画像を、カードの画像と同じ幅で出すための実測値。
@@ -306,13 +313,15 @@ export default function CityleagueResultCard({
       />
 
       {/* 入賞デッキも自分のデッキではないので、検索元は「このデッキ」と呼ぶ(みんなの公開デッキと同じ) */}
-      <DisplaySimilarDecksModal
-        code={result.deck_code || null}
-        sourceLabel="このデッキ"
-        isOpen={isOpenForSimilarDecksModal}
-        onOpenChange={onOpenChangeForSimilarDecksModal}
-        onClose={onCloseForSimilarDecksModal}
-      />
+      {similarAvailable && (
+        <DisplaySimilarDecksModal
+          code={result.deck_code}
+          sourceLabel="このデッキ"
+          isOpen={isOpenForSimilarDecksModal}
+          onOpenChange={onOpenChangeForSimilarDecksModal}
+          onClose={onCloseForSimilarDecksModal}
+        />
+      )}
 
       <div
         onClick={() => {
@@ -504,20 +513,23 @@ export default function CityleagueResultCard({
                   会員かつデッキコードがあるときだけ明示的なボタンとして配置する。
                   類似デッキ(類似している入賞デッキ)も同じ条件で上に並べる。BFF がログイン必須
                   (1 回ごとにバトラボが公式サイトまでデッキの中身を取りに行くため)なので、
-                  非会員には出さない。主役はデッキ登録なので、そちらを色付きで下(指の届く側)に置く */}
+                  非会員には出さない。『30th CELEBRATION』より前の大会の入賞にも出さない。
+                  主役はデッキ登録なので、そちらを色付きで下(指の届く側)に置く */}
               {status === "authenticated" && result.deck_code && (
                 /* 左右の余白は ModalBody(p-3)と同じにして、ボタンの幅を上のトレーナー情報・
                    デッキ情報のカードと揃える(フッター既定の px-6 だと左右 12px ずつ狭くなる) */
                 <ModalFooter className="flex flex-col gap-2 px-3 pt-0">
-                  <Button
-                    fullWidth
-                    variant="flat"
-                    startContent={<LuTrophy className="text-lg" />}
-                    onPress={onOpenForSimilarDecksModal}
-                    className="font-bold"
-                  >
-                    類似している入賞デッキを見る
-                  </Button>
+                  {similarAvailable && (
+                    <Button
+                      fullWidth
+                      variant="flat"
+                      startContent={<LuTrophy className="text-lg" />}
+                      onPress={onOpenForSimilarDecksModal}
+                      className="font-bold"
+                    >
+                      類似している入賞デッキを見る
+                    </Button>
+                  )}
                   <Button
                     fullWidth
                     color="primary"

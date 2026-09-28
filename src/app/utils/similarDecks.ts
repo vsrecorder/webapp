@@ -5,6 +5,8 @@ import {
   SimilarDecksSourceType,
 } from "@app/types/similar_deck";
 
+import { toJSTDateString } from "@app/utils/date";
+
 /*
  * 類似デッキ検索(バトラボ)まわりの純粋な変換。
  * 取得(サーバ側)は similarDecksServer.ts にあり、こちらはクライアントからも import できる。
@@ -13,9 +15,56 @@ import {
 // バトラボの公開オリジン。画面から「バトラボで詳しく見る」で飛ぶ先(BFF は VSLAB_ORIGIN を見る)
 export const VSLAB_PUBLIC_ORIGIN = "https://lab.vsrecorder.mobi";
 
-// BFF のパス。デッキコードで引く(deckcards の各口と同じく、コード文字列が鍵)
-export function similarDecksApiPath(code: string): string {
-  return `/api/deckcards/${encodeURIComponent(code)}/similar`;
+// BFF のパス。デッキコードで引く(deckcards の各口と同じく、コード文字列が鍵)。
+// date(JST の暦日 YYYY-MM-DD)を添えると、その日の環境の入賞デッキと比べる
+// (みんなの公開デッキは投稿された日の環境で比べる)
+export function similarDecksApiPath(code: string, date?: string | null): string {
+  const path = `/api/deckcards/${encodeURIComponent(code)}/similar`;
+
+  return date ? `${path}?date=${encodeURIComponent(date)}` : path;
+}
+
+/*
+ * 類似デッキを使える最初の日(JST の暦日)。環境『30th CELEBRATION』(m6a)の開始日。
+ *
+ * バトラボは 2027 シーズン(『30th CELEBRATION』)以降の入賞デッキしか扱わない。それより前の
+ * 環境のデッキ(その頃に公開された投稿・その頃の大会の入賞デッキ)は同じ環境の比べる相手が
+ * いないので、類似デッキのボタンを出さない(2026-09-29 に運営者の指示で制限した)。
+ * 自分のデッキは常に今の環境と比べるので、この制限は掛けない
+ */
+export const SIMILAR_DECKS_FIRST_DATE = "2026-09-16";
+
+// その日(JST の暦日 YYYY-MM-DD)のデッキで類似デッキを使えるか
+export function isSimilarDecksAvailableOn(date: string): boolean {
+  return date >= SIMILAR_DECKS_FIRST_DATE;
+}
+
+// date の形(YYYY-MM-DD)
+export const SIMILAR_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+/*
+ * JST の暦日(YYYY-MM-DD)が属する環境。開始日がその日以前の環境のうち、いちばん新しいもの。
+ *
+ * core-apiserver の GET /environments?date=(Environment.FindByDate)と同じ規則にそろえる。
+ * 終了日では区切らない(次の環境が始まるまでは前の環境が続く扱い)。開始日は JST の暦日で
+ * 比べる(バックエンドは "2026-09-16T00:00:00+09:00" の形で返す)。当たらなければ null
+ */
+export function environmentOnDate<T extends { from_date: Date | string }>(
+  environments: T[],
+  date: string,
+): T | null {
+  let found: T | null = null;
+  let foundFrom = "";
+
+  for (const env of environments) {
+    const from = toJSTDateString(env.from_date);
+    if (from <= date && from > foundFrom) {
+      found = env;
+      foundFrom = from;
+    }
+  }
+
+  return found;
 }
 
 // バトラボの類似デッキ検索ページ(同じ検索を画面で見る)

@@ -15,6 +15,16 @@ vi.mock("@app/utils/similarDecksServer", () => ({
   getSimilarDecks: (...args: unknown[]) => getSimilarDecks(...args),
 }));
 
+// 投稿日から環境を決めるときの環境一覧(core-apiserver)
+const getJson = vi.fn();
+vi.mock("@app/utils/coreApi", () => ({ getJson: (...args: unknown[]) => getJson(...args) }));
+
+const ENVIRONMENTS = [
+  { id: "m5", title: "前の環境", from_date: "2026-07-18T00:00:00+09:00", to_date: "2026-09-15T00:00:00+09:00" },
+  { id: "m6a", title: "30th CELEBRATION", from_date: "2026-09-16T00:00:00+09:00", to_date: "2026-11-26T00:00:00+09:00" },
+  { id: "m6b", title: "次の環境", from_date: "2026-11-27T00:00:00+09:00", to_date: "2027-01-22T00:00:00+09:00" },
+];
+
 const { GET } = await import("@app/api/deckcards/[code]/similar/route");
 
 const data = {
@@ -90,5 +100,51 @@ describe("GET /api/deckcards/{code}/similar", () => {
     const res = await call("a");
     expect(res.status).toBe(502);
     expect((await res.json()).error).toContain("やり直してください");
+  });
+
+  it("date を渡すと、その日の環境を決めて env として渡す(env が無いとき)", async () => {
+    auth.mockResolvedValue({ user: { id: "u1" } });
+    getJson.mockResolvedValue(ENVIRONMENTS);
+    getSimilarDecks.mockResolvedValue({ status: "ok", data });
+
+    expect((await call("FkVdfF-xyOrPQ-FvbvdF", "?date=2026-11-26")).status).toBe(200);
+    expect(getSimilarDecks).toHaveBeenLastCalledWith("FkVdfF-xyOrPQ-FvbvdF", "m6a");
+
+    // 新しい環境の初日からはその環境
+    await call("FkVdfF-xyOrPQ-FvbvdF", "?date=2026-11-27");
+    expect(getSimilarDecks).toHaveBeenLastCalledWith("FkVdfF-xyOrPQ-FvbvdF", "m6b");
+  });
+
+  it("date の環境がバトラボに無ければ、環境名を添えて 422 にする", async () => {
+    auth.mockResolvedValue({ user: { id: "u1" } });
+    getJson.mockResolvedValue(ENVIRONMENTS);
+    getSimilarDecks.mockResolvedValue({ status: "unknown_env" });
+
+    const res = await call("FkVdfF-xyOrPQ-FvbvdF", "?date=2026-12-01");
+
+    expect(res.status).toBe(422);
+    expect((await res.json()).error).toContain("『次の環境』");
+  });
+
+  it("環境一覧が取れなければ、直近の環境で比べずに 502 にする", async () => {
+    auth.mockResolvedValue({ user: { id: "u1" } });
+    getJson.mockResolvedValue(null);
+
+    const res = await call("FkVdfF-xyOrPQ-FvbvdF", "?date=2026-09-20");
+
+    expect(res.status).toBe(502);
+    expect(getSimilarDecks).not.toHaveBeenCalled();
+  });
+
+  it("書式外の date は 400、『30th CELEBRATION』より前の日付は 422 で、バトラボへは引かない", async () => {
+    auth.mockResolvedValue({ user: { id: "u1" } });
+    getJson.mockResolvedValue(ENVIRONMENTS);
+
+    expect((await call("FkVdfF-xyOrPQ-FvbvdF", "?date=2026/09/10")).status).toBe(400);
+
+    const res = await call("FkVdfF-xyOrPQ-FvbvdF", "?date=2026-09-15");
+    expect(res.status).toBe(422);
+    expect((await res.json()).error).toContain("『30th CELEBRATION』より前");
+    expect(getSimilarDecks).not.toHaveBeenCalled();
   });
 });

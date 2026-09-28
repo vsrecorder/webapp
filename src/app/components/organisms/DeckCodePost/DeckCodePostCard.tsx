@@ -20,7 +20,9 @@ import DeckCodePostLikersModal from "@app/components/organisms/DeckCodePost/Deck
 
 import { useHydrated } from "@app/hooks/useHydrated";
 import { useInView } from "@app/hooks/useInView";
+import { toJSTDateString } from "@app/utils/date";
 import { createLazyModal } from "@app/utils/lazyModal";
+import { isSimilarDecksAvailableOn } from "@app/utils/similarDecks";
 import {
   deckCodePostPath,
   deckCodePostShareUrl,
@@ -91,6 +93,9 @@ function DeckCodePostCard({
   const likersModal = useDisclosure();
   const importModal = useDisclosure();
   const similarModal = useDisclosure();
+  // 公開された日(JST の暦日)。類似デッキはこの日の環境で比べ、『30th CELEBRATION』より前なら出さない
+  const publishedDate = toJSTDateString(post.published_at);
+  const similarAvailable = isSimilarDecksAvailableOn(publishedDate);
 
   const toggleLike = async () => {
     if (!viewerId) {
@@ -281,8 +286,9 @@ function DeckCodePostCard({
         {/* 操作。アイコンだけでは何をするか分からないため、名前を添えた同じ幅のボタンを4つ並べる。
             「デッキ登録」はこの機能の主目的(自分のデッキとして使う)なので色を付けて目立たせる。
             4列だとスマホ幅で「デッキ構築」が収まりきらないため、文字を詰めて折り返さない。
-            360px 未満(iPhone SE 初代など)では詰めても溢れるので、アイコンを外して名前だけにする */}
-        <div className="grid grid-cols-4 gap-1.5">
+            360px 未満(iPhone SE 初代など)では詰めても溢れるので、アイコンを外して名前だけにする。
+            『30th CELEBRATION』より前に公開された投稿は類似デッキを出さず 3 列にする(高さは同じ) */}
+        <div className={`grid gap-1.5 ${similarAvailable ? "grid-cols-4" : "grid-cols-3"}`}>
           <button
             type="button"
             onClick={share}
@@ -292,16 +298,18 @@ function DeckCodePostCard({
             <FaXTwitter className="shrink-0 max-[359px]:hidden" />
             ポスト
           </button>
-          <button
-            type="button"
-            onClick={openSimilar}
-            aria-label="類似している入賞デッキを見る"
-            className="flex h-8 min-w-0 items-center justify-center gap-0.5 whitespace-nowrap rounded-lg bg-default-100 text-[11px] font-bold tracking-tight text-default-600 active:opacity-70"
-          >
-            {/* デッキ詳細の「類似デッキ」と同じアイコン */}
-            <LuTrophy className="shrink-0 max-[359px]:hidden" />
-            類似デッキ
-          </button>
+          {similarAvailable && (
+            <button
+              type="button"
+              onClick={openSimilar}
+              aria-label="類似している入賞デッキを見る"
+              className="flex h-8 min-w-0 items-center justify-center gap-0.5 whitespace-nowrap rounded-lg bg-default-100 text-[11px] font-bold tracking-tight text-default-600 active:opacity-70"
+            >
+              {/* デッキ詳細の「類似デッキ」と同じアイコン */}
+              <LuTrophy className="shrink-0 max-[359px]:hidden" />
+              類似デッキ
+            </button>
+          )}
           <a
             href={officialDeckUrl(post.code)}
             target="_blank"
@@ -332,14 +340,18 @@ function DeckCodePostCard({
         onClose={likersModal.onClose}
       />
 
-      {/* 公開デッキは他人のデッキなので、検索元は「このデッキ」と呼ぶ */}
-      <DisplaySimilarDecksModal
-        code={post.code}
-        sourceLabel="このデッキ"
-        isOpen={similarModal.isOpen}
-        onOpenChange={similarModal.onOpenChange}
-        onClose={similarModal.onClose}
-      />
+      {/* 公開デッキは他人のデッキなので、検索元は「このデッキ」と呼ぶ。
+          比べる相手は投稿された日の環境の入賞デッキ(過去の環境の投稿を今の環境と比べない) */}
+      {similarAvailable && (
+        <DisplaySimilarDecksModal
+          code={post.code}
+          sourceLabel="このデッキ"
+          environmentDate={publishedDate}
+          isOpen={similarModal.isOpen}
+          onOpenChange={similarModal.onOpenChange}
+          onClose={similarModal.onClose}
+        />
+      )}
 
       {/* 取り込む: コード・デッキ名・スプライトを入れた状態でデッキ作成モーダルを開く
           (投稿を見た人がそのまま登録できるように。名前もアイコンも登録前に変えられる) */}

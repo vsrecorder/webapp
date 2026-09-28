@@ -12,7 +12,7 @@ vi.mock("next/navigation", () => ({
 
 const POST: DeckCodePostType = {
   id: "post-1",
-  published_at: "2026-09-01T00:00:00Z",
+  published_at: "2026-09-20T00:00:00Z",
   unpublished_at: "0001-01-01T00:00:00Z",
   hidden: false,
   user: { id: "u1", name: "テスト", image_url: "", designation_tier: 0 },
@@ -134,8 +134,9 @@ describe("DeckCodePostCard", () => {
     const dialog = await screen.findByRole("dialog");
     await waitFor(() => expect(dialog.textContent).toContain("このデッキにだけある"));
     expect(dialog.textContent).not.toContain("あなたのデッキ");
+    // 投稿された日(JST の暦日)の環境と比べる
     expect(fetchMock.mock.calls.map(([input]) => String(input))).toContain(
-      `/api/deckcards/${POST.code}/similar`,
+      `/api/deckcards/${POST.code}/similar?date=2026-09-20`,
     );
   });
 
@@ -156,5 +157,14 @@ describe("DeckCodePostCard", () => {
     const detail = render(<DeckCodePostCard post={POST} viewerId={null} isDetailPage />);
     expect(screen.getByRole("heading", { level: 1, name: POST.deck_name })).toBeTruthy();
     expect(detail.container.querySelector(`a[href="/shared_decks/${POST.id}"]`)).toBeNull();
+  });
+
+  it("『30th CELEBRATION』より前に公開された投稿には類似デッキのボタンを出さない", () => {
+    // 2026-09-15 23:30 JST(前の環境の最終日)
+    render(<DeckCodePostCard post={{ ...POST, published_at: "2026-09-15T14:30:00Z" }} viewerId="u2" />);
+
+    expect(screen.queryByRole("button", { name: "類似している入賞デッキを見る" })).toBeNull();
+    // ほかの操作は残る
+    expect(screen.getByRole("button", { name: "自分のデッキとして登録する" })).toBeTruthy();
   });
 });

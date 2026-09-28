@@ -205,4 +205,19 @@ describe("CityleagueResultCard のデッキ登録", () => {
 
     expect(screen.queryByRole("button", { name: "類似している入賞デッキを見る" })).toBeNull();
   });
+
+  it("『30th CELEBRATION』より前の大会の入賞には類似デッキのボタンを出さない", async () => {
+    render(
+      <CityleagueResultCard
+        result={result}
+        date={new Date("2026-09-13T00:00:00+09:00")}
+        deckArchetype={archetype}
+      />,
+    );
+
+    fireEvent.click(screen.getByText(`デッキコード ${DECK_CODE}`));
+    await screen.findByRole("button", { name: "このデッキコードでデッキを登録" });
+
+    expect(screen.queryByRole("button", { name: "類似している入賞デッキを見る" })).toBeNull();
+  });
 });

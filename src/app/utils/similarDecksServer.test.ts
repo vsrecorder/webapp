@@ -76,6 +76,10 @@ describe("getSimilarDecks", () => {
     fetchMock.mockResolvedValueOnce(Response.json({ error: "x" }, { status: 400 }));
     expect((await getSimilarDecks("a")).status).toBe("invalid");
 
+    // 環境を指定して 400 なら、知らない環境(コードの書式は BFF が先に確かめている)
+    fetchMock.mockResolvedValueOnce(Response.json({ error: "x" }, { status: 400 }));
+    expect((await getSimilarDecks("a", "m5")).status).toBe("unknown_env");
+
     fetchMock.mockResolvedValueOnce(Response.json({ error: "x" }, { status: 422 }));
     expect((await getSimilarDecks("a")).status).toBe("unreadable");
   });

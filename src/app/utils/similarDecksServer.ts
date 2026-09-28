@@ -38,8 +38,9 @@ const ENVIRONMENT_ID_PATTERN = /^[A-Za-z0-9_-]{1,32}$/;
 export type SimilarDecksResult =
   | { status: "ok"; data: SimilarDecksGetResponseType }
   // バトラボが理由を返した。not_found: 索引にも公式サイトにも無い / invalid: 書式外 /
-  // unreadable: 60 枚になっていないなど、デッキとして読めない
-  | { status: "not_found" | "invalid" | "unreadable" }
+  // unreadable: 60 枚になっていないなど、デッキとして読めない /
+  // unknown_env: 指定した環境の入賞デッキがバトラボに無い(提供範囲より前の環境など)
+  | { status: "not_found" | "invalid" | "unreadable" | "unknown_env" }
   // 届かない・時間切れ・応答が壊れている。やり直せば通るかもしれない
   | { status: "unavailable" };
 
@@ -52,8 +53,9 @@ export async function getSimilarDecks(
   environmentId?: string | null,
 ): Promise<SimilarDecksResult> {
   const query = new URLSearchParams({ deckCode: code });
-  if (environmentId && ENVIRONMENT_ID_PATTERN.test(environmentId)) {
-    query.set("env", environmentId);
+  const withEnv = Boolean(environmentId && ENVIRONMENT_ID_PATTERN.test(environmentId));
+  if (withEnv) {
+    query.set("env", environmentId as string);
   }
 
   const url = `${vslabOrigin()}/api/similar?${query.toString()}`;
@@ -76,7 +78,12 @@ export async function getSimilarDecks(
   }
 
   if (res.status === 404) return { status: "not_found" };
-  if (res.status === 400) return { status: "invalid" };
+  /*
+   * バトラボは書式外のコードも知らない環境も 400 で返す。コードの書式は BFF が先に確かめて
+   * いるので、環境を指定して 400 なら知らない環境とみなす(書式外のまま届くことはまず無い)。
+   * 索引に入っているデッキは env を見ないので、この 400 は索引に無いデッキでだけ起きる
+   */
+  if (res.status === 400) return { status: withEnv ? "unknown_env" : "invalid" };
   if (res.status === 422) return { status: "unreadable" };
 
   if (!res.ok) {

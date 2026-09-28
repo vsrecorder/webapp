@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  environmentOnDate,
+  isSimilarDecksAvailableOn,
   formatEventDateShort,
   parseSimilarDecksResponse,
   readSimilarDecksBody,
@@ -316,5 +318,40 @@ describe("similarDeckArchetypeName", () => {
         sprites: [],
       }),
     ).toBeNull();
+  });
+});
+
+describe("environmentOnDate", () => {
+  const environments = [
+    { id: "m6a", from_date: "2026-09-16T00:00:00+09:00" },
+    { id: "m5", from_date: "2026-07-18T00:00:00+09:00" },
+  ];
+
+  it("開始日がその日以前の環境のうち、いちばん新しいものを返す(並び順によらない)", () => {
+    expect(environmentOnDate(environments, "2026-09-15")?.id).toBe("m5");
+    expect(environmentOnDate(environments, "2026-09-16")?.id).toBe("m6a");
+    // 終了日では区切らない(次の環境が始まるまでは続く)
+    expect(environmentOnDate(environments, "2027-03-01")?.id).toBe("m6a");
+  });
+
+  it("どの環境よりも前なら null", () => {
+    expect(environmentOnDate(environments, "2026-01-01")).toBeNull();
+  });
+});
+
+describe("similarDecksApiPath", () => {
+  it("date を添えると ?date= を付ける", () => {
+    expect(similarDecksApiPath("aaaaaa-bbbbbb-cccccc")).toBe("/api/deckcards/aaaaaa-bbbbbb-cccccc/similar");
+    expect(similarDecksApiPath("aaaaaa-bbbbbb-cccccc", "2026-09-10")).toBe(
+      "/api/deckcards/aaaaaa-bbbbbb-cccccc/similar?date=2026-09-10",
+    );
+  });
+});
+
+describe("isSimilarDecksAvailableOn", () => {
+  it("『30th CELEBRATION』の開始日(2026-09-16)から使える", () => {
+    expect(isSimilarDecksAvailableOn("2026-09-15")).toBe(false);
+    expect(isSimilarDecksAvailableOn("2026-09-16")).toBe(true);
+    expect(isSimilarDecksAvailableOn("2027-01-01")).toBe(true);
   });
 });

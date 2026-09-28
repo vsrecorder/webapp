@@ -18,8 +18,12 @@ export type SimilarDecksView =
 
 const UNAVAILABLE_STATUSES = new Set([400, 404, 422]);
 
-async function fetchSimilarDecks(code: string): Promise<SimilarDecksView> {
-  const res = await fetch(similarDecksApiPath(code), {
+// useSeededResource の鍵は 1 つの文字列なので、コードと日付を区切って持つ(デッキコードに | は出てこない)
+const KEY_SEPARATOR = "|";
+
+async function fetchSimilarDecks(key: string): Promise<SimilarDecksView> {
+  const [code, date] = key.split(KEY_SEPARATOR);
+  const res = await fetch(similarDecksApiPath(code, date || null), {
     headers: { Accept: "application/json" },
   });
 
@@ -42,7 +46,11 @@ async function fetchSimilarDecks(code: string): Promise<SimilarDecksView> {
   return { kind: "ok", data };
 }
 
-// code が null のあいだは取りにいかない(シートを開いたときだけ渡す)
-export function useSimilarDecks(code: string | null): SeededResource<SimilarDecksView> {
-  return useSeededResource(code, fetchSimilarDecks);
+// code が null のあいだは取りにいかない(シートを開いたときだけ渡す)。
+// date(JST の暦日 YYYY-MM-DD)を渡すと、その日の環境の入賞デッキと比べる
+export function useSimilarDecks(
+  code: string | null,
+  date?: string | null,
+): SeededResource<SimilarDecksView> {
+  return useSeededResource(code ? `${code}${KEY_SEPARATOR}${date ?? ""}` : null, fetchSimilarDecks);
 }

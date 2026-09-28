@@ -48,6 +48,9 @@ type Props = {
   // 検索元のデッキの呼び名。自分のデッキなら「あなたのデッキ」、公開デッキなら「このデッキ」。
   // 検索元の欄の見出しと、差分カードの「〜にだけある」に使う
   sourceLabel?: string;
+  // この日(JST の暦日 YYYY-MM-DD)の環境の入賞デッキと比べる。みんなの公開デッキは投稿日を渡す。
+  // 省略するとバトラボが直近の環境で比べる(自分のデッキ・大会の入賞デッキ)
+  environmentDate?: string | null;
   isOpen: boolean;
   onOpenChange: () => void;
   onClose: () => void;
@@ -292,6 +295,7 @@ function SimilarDecksList({
 export default function DisplaySimilarDecksModal({
   code,
   sourceLabel = "あなたのデッキ",
+  environmentDate = null,
   isOpen,
   onOpenChange,
   onClose,
@@ -302,7 +306,7 @@ export default function DisplaySimilarDecksModal({
   // (着地前に大きなコミットが走るとシートの動きが止まるため)。
   const entered = useModalEntered(isOpen);
 
-  const { data, loading, error, retry } = useSimilarDecks(isOpen ? code : null);
+  const { data, loading, error, retry } = useSimilarDecks(isOpen ? code : null, environmentDate);
 
   if (!code) {
     return null;

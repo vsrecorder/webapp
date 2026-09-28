@@ -627,7 +627,7 @@ export default function ShowDeckModal({
       />
 
       <DisplaySimilarDecksModal
-        deckcode={deckcode}
+        code={deckcode?.code ?? null}
         isOpen={isOpenForDisplaySimilarDecksModal}
         onOpenChange={onOpenChangeForDisplaySimilarDecksModal}
         onClose={onCloseForDisplaySimilarDecksModal}

@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { Avatar, Card, CardBody, addToast, useDisclosure } from "@heroui/react";
 
 import { FaXTwitter } from "react-icons/fa6";
-import { LuExternalLink, LuHeart, LuLayers } from "react-icons/lu";
+import { LuExternalLink, LuHeart, LuLayers, LuTrophy } from "react-icons/lu";
 
 import CopyableDeckCode from "@app/components/atoms/CopyableDeckCode";
 import ZoomableDeckImage from "@app/components/atoms/ZoomableDeckImage";
@@ -39,6 +39,11 @@ const CreateDeckModal = createLazyModal(
   () => import("@app/components/organisms/Deck/Modal/CreateDeckModal"),
 );
 
+// 類似している入賞デッキのシートも、押すまで読み込まない(一覧のカードの枚数ぶんマウントしない)
+const DisplaySimilarDecksModal = createLazyModal(
+  () => import("@app/components/organisms/Deck/Modal/DisplaySimilarDecksModal"),
+);
+
 // 重ねて出す「いいねした人」のアイコン数(バックエンドが埋め込む人数と同じ)
 const MAX_STACKED_LIKERS = 5;
 
@@ -48,7 +53,7 @@ type Props = {
   onChange?: (post: DeckCodePostType) => void;
   // 閲覧者のユーザID。未ログインなら null
   viewerId: string | null;
-  // 未ログインでログインが要る操作をしたとき(いいね・取り込み)
+  // 未ログインでログインが要る操作をしたとき(いいね・類似デッキ・取り込み)
   onRequireLogin?: (title: string) => void;
   // デッキ名を個別ページへのリンクにする(一覧で true、個別ページでは false)
   linkToDetail?: boolean;
@@ -81,6 +86,7 @@ function DeckCodePostCard({
   const [liking, setLiking] = useState(false);
   const likersModal = useDisclosure();
   const importModal = useDisclosure();
+  const similarModal = useDisclosure();
 
   const toggleLike = async () => {
     if (!viewerId) {
@@ -118,6 +124,16 @@ function DeckCodePostCard({
       return;
     }
     importModal.onOpen();
+  };
+
+  // 類似している入賞デッキ。BFF がログイン必須(1 回ごとにバトラボが公式サイトまで
+  // デッキの中身を取りに行くため)なので、未ログインならログインを促す
+  const openSimilar = () => {
+    if (!viewerId) {
+      onRequireLogin?.("類似デッキを見るにはログインが必要です");
+      return;
+    }
+    similarModal.onOpen();
   };
 
   const share = () => {
@@ -248,36 +264,48 @@ function DeckCodePostCard({
 
         </div>
 
-        {/* 操作。アイコンだけでは何をするか分からないため、名前を添えた同じ幅のボタンを3つ並べる。
-            「デッキ登録」はこの機能の主目的(自分のデッキとして使う)なので色を付けて目立たせる */}
-        <div className="grid grid-cols-3 gap-1.5">
+        {/* 操作。アイコンだけでは何をするか分からないため、名前を添えた同じ幅のボタンを4つ並べる。
+            「デッキ登録」はこの機能の主目的(自分のデッキとして使う)なので色を付けて目立たせる。
+            4列だとスマホ幅で「デッキ構築」が収まりきらないため、文字を詰めて折り返さない。
+            360px 未満(iPhone SE 初代など)では詰めても溢れるので、アイコンを外して名前だけにする */}
+        <div className="grid grid-cols-4 gap-1.5">
           <button
             type="button"
             onClick={share}
             aria-label="X にポストする"
-            className="flex h-8 items-center justify-center gap-1 rounded-lg bg-default-100 text-xs font-bold text-default-600 active:opacity-70"
+            className="flex h-8 min-w-0 items-center justify-center gap-0.5 whitespace-nowrap rounded-lg bg-default-100 text-[11px] font-bold tracking-tight text-default-600 active:opacity-70"
           >
-            <FaXTwitter className="shrink-0" />
+            <FaXTwitter className="shrink-0 max-[359px]:hidden" />
             ポスト
+          </button>
+          <button
+            type="button"
+            onClick={openSimilar}
+            aria-label="類似している入賞デッキを見る"
+            className="flex h-8 min-w-0 items-center justify-center gap-0.5 whitespace-nowrap rounded-lg bg-default-100 text-[11px] font-bold tracking-tight text-default-600 active:opacity-70"
+          >
+            {/* デッキ詳細の「類似デッキ」と同じアイコン */}
+            <LuTrophy className="shrink-0 max-[359px]:hidden" />
+            類似デッキ
           </button>
           <a
             href={officialDeckUrl(post.code)}
             target="_blank"
             rel="noopener noreferrer"
             aria-label="公式サイトのデッキ構築で開く"
-            className="flex h-8 items-center justify-center gap-1 rounded-lg bg-default-100 text-xs font-bold text-default-600 active:opacity-70"
+            className="flex h-8 min-w-0 items-center justify-center gap-0.5 whitespace-nowrap rounded-lg bg-default-100 text-[11px] font-bold tracking-tight text-default-600 active:opacity-70"
           >
-            <LuExternalLink className="shrink-0" />
+            <LuExternalLink className="shrink-0 max-[359px]:hidden" />
             デッキ構築
           </a>
           <button
             type="button"
             onClick={openImport}
             aria-label="自分のデッキとして登録する"
-            className="flex h-8 items-center justify-center gap-1 rounded-lg bg-primary/10 text-xs font-bold text-primary active:opacity-70"
+            className="flex h-8 min-w-0 items-center justify-center gap-0.5 whitespace-nowrap rounded-lg bg-primary/10 text-[11px] font-bold tracking-tight text-primary active:opacity-70"
           >
             {/* ナビバーの「デッキ一覧」と同じアイコンにして、登録先がデッキ一覧だと分かるようにする */}
-            <LuLayers className="shrink-0" />
+            <LuLayers className="shrink-0 max-[359px]:hidden" />
             デッキ登録
           </button>
         </div>
@@ -288,6 +316,15 @@ function DeckCodePostCard({
         isOpen={likersModal.isOpen}
         onOpenChange={likersModal.onOpenChange}
         onClose={likersModal.onClose}
+      />
+
+      {/* 公開デッキは他人のデッキなので、検索元は「このデッキ」と呼ぶ */}
+      <DisplaySimilarDecksModal
+        code={post.code}
+        sourceLabel="このデッキ"
+        isOpen={similarModal.isOpen}
+        onOpenChange={similarModal.onOpenChange}
+        onClose={similarModal.onClose}
       />
 
       {/* 取り込む: コード・デッキ名・スプライトを入れた状態でデッキ作成モーダルを開く

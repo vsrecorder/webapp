@@ -15,7 +15,6 @@ import { useSimilarDecks } from "@app/hooks/useSimilarDecks";
 import { useModalDragToClose } from "@app/hooks/useModalDragToClose";
 import { useModalEntered } from "@app/hooks/useModalEntered";
 
-import { DeckCodeType } from "@app/types/deck_code";
 import {
   SimilarDeckType,
   SimilarDecksGetResponseType,
@@ -31,7 +30,8 @@ import {
 } from "@app/utils/similarDecks";
 
 /*
- * 自分のデッキにカード構成が近いシティリーグの入賞デッキを、下からのシートで出す。
+ * デッキにカード構成が近いシティリーグの入賞デッキを、下からのシートで出す。
+ * デッキ詳細(自分のデッキ)と、みんなの公開デッキの投稿カード(他人のデッキ)の両方から開く。
  *
  * 中身はバトラボの類似デッキ検索(BFF: /api/deckcards/{code}/similar)。類似度の高い順に
  * 並び、各行にデッキの種類(バトラボの分類)・自分のデッキとの差分カード・デッキ画像・
@@ -43,7 +43,10 @@ import {
  */
 
 type Props = {
-  deckcode: DeckCodeType | null;
+  code: string | null;
+  // 検索元のデッキの呼び名。自分のデッキなら「あなたのデッキ」、公開デッキなら「このデッキ」。
+  // 検索元の欄の見出しと、差分カードの「〜にだけある」に使う
+  sourceLabel?: string;
   isOpen: boolean;
   onOpenChange: () => void;
   onClose: () => void;
@@ -70,10 +73,16 @@ function SimilarDecksSkeleton() {
 }
 
 // 検索元(自分のデッキ)。種類と、比べた環境を出す
-function SourceSummary({ source }: { source: SimilarDecksSourceType }) {
+function SourceSummary({
+  source,
+  sourceLabel,
+}: {
+  source: SimilarDecksSourceType;
+  sourceLabel: string;
+}) {
   return (
     <div className="rounded-xl bg-default-100 px-3 py-2.5">
-      <div className="text-tiny font-bold text-default-500">あなたのデッキ</div>
+      <div className="text-tiny font-bold text-default-500">{sourceLabel}</div>
       <div className="mt-1 flex items-center gap-2">
         <DeckSprites sprites={source.archetype.sprites.map((id) => ({ id }))} size={36} />
         <div className="min-w-0">
@@ -136,10 +145,12 @@ function SimilarDeckRow({
   deck,
   sourceArchetypeId,
   environmentId,
+  sourceLabel,
 }: {
   deck: SimilarDeckType;
   sourceArchetypeId: string | null;
   environmentId: string;
+  sourceLabel: string;
 }) {
   const percent = percentLabel(deck.similarity);
   const hasDiff = deck.diffIn.length > 0 || deck.diffOut.length > 0;
@@ -191,7 +202,7 @@ function SimilarDeckRow({
             )}
             {deck.diffOut.length > 0 && (
               <DiffCards
-                label="あなたのデッキにだけある"
+                label={`${sourceLabel}にだけある`}
                 names={deck.diffOut}
                 sign="−"
                 chipClassName="bg-danger-50 text-danger-700"
@@ -221,12 +232,18 @@ function SimilarDeckRow({
   );
 }
 
-function SimilarDecksList({ data }: { data: SimilarDecksGetResponseType }) {
+function SimilarDecksList({
+  data,
+  sourceLabel,
+}: {
+  data: SimilarDecksGetResponseType;
+  sourceLabel: string;
+}) {
   const { source, similar, candidates } = data;
 
   return (
     <>
-      <SourceSummary source={source} />
+      <SourceSummary source={source} sourceLabel={sourceLabel} />
       {similar.length === 0 ? (
         <div className="rounded-xl bg-default-100 px-3 py-4 text-center text-small text-default-600">
           類似している入賞デッキが見つかりませんでした
@@ -243,6 +260,7 @@ function SimilarDecksList({ data }: { data: SimilarDecksGetResponseType }) {
                 deck={deck}
                 sourceArchetypeId={source.archetype.archetypeId}
                 environmentId={source.environmentId}
+                sourceLabel={sourceLabel}
               />
             ))}
           </ul>
@@ -262,7 +280,8 @@ function SimilarDecksList({ data }: { data: SimilarDecksGetResponseType }) {
 }
 
 export default function DisplaySimilarDecksModal({
-  deckcode,
+  code,
+  sourceLabel = "あなたのデッキ",
   isOpen,
   onOpenChange,
   onClose,
@@ -273,7 +292,6 @@ export default function DisplaySimilarDecksModal({
   // (着地前に大きなコミットが走るとシートの動きが止まるため)。
   const entered = useModalEntered(isOpen);
 
-  const code = deckcode?.code ?? null;
   const { data, loading, error, retry } = useSimilarDecks(isOpen ? code : null);
 
   if (!code) {
@@ -325,7 +343,7 @@ export default function DisplaySimilarDecksModal({
                   {data.message}
                 </div>
               ) : data?.kind === "ok" ? (
-                <SimilarDecksList data={data.data} />
+                <SimilarDecksList data={data.data} sourceLabel={sourceLabel} />
               ) : null}
             </ModalBody>
           </>

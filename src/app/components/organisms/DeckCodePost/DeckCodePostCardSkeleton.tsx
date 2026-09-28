@@ -9,7 +9,7 @@ import { Card, CardBody, Skeleton } from "@heroui/react";
  * 一覧全体が飛ぶため、行の高さは実物を実測した値に合わせてある(幅390px):
  *   投稿者行 36px(アイコン h-9) / スプライト(48px)＋デッキ名 80px(48 + gap-1 + text-large の行 28px) /
  *   デッキ画像 2:1 / コード欄 36px / カードリスト(閉) 32px / ACE SPEC 44px /
- *   いいね行 28px(min-h-7。上余白 2px を含む) / 操作ボタン行 32px(h-8 のボタン3つ)。
+ *   いいね行 28px(min-h-7。上余白 2px を含む) / 操作ボタン行 32px(h-8 のボタン4つ)。
  * ACE SPEC は入っていないデッキでは出ない行だが、多数派の「入っている」側に合わせる。
  */
 export default function DeckCodePostCardSkeleton() {
@@ -58,9 +58,9 @@ export default function DeckCodePostCardSkeleton() {
           </div>
         </div>
 
-        {/* 操作ボタン3つ(シェア／公式サイト／取り込む)。実物と同じ h-8 の3列 */}
-        <div className="grid grid-cols-3 gap-1.5">
-          {[0, 1, 2].map((i) => (
+        {/* 操作ボタン4つ(ポスト／類似デッキ／デッキ構築／デッキ登録)。実物と同じ h-8 の4列 */}
+        <div className="grid grid-cols-4 gap-1.5">
+          {[0, 1, 2, 3].map((i) => (
             <Skeleton key={i} className="h-8 w-full rounded-lg" />
           ))}
         </div>

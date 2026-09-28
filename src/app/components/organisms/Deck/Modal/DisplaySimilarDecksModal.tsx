@@ -181,7 +181,12 @@ function SimilarDeckRow({
           )}
         </div>
         <div className="mt-1.5 flex items-center gap-2">
-          <span className="w-13 shrink-0 font-bold text-small tabular-nums">{percent}</span>
+          {/* 「類似度 93.5%」。数字だけだと何の割合か分からないので名前を添える。
+              幅は「類似度 100.0%」が収まる大きさに固定し、行ごとにバーの始まりを揃える */}
+          <span className="w-22 shrink-0 whitespace-nowrap text-small">
+            <span className="text-tiny text-default-500">類似度</span>{" "}
+            <span className="font-bold tabular-nums">{percent}</span>
+          </span>
           <span className="h-1.5 min-w-8 flex-1 overflow-hidden rounded-full bg-default-200">
             <span
               className="block h-full rounded-full bg-primary"

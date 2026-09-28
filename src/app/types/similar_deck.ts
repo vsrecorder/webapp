@@ -7,7 +7,11 @@
 // デッキの種類(要約)。未分類なら archetypeId と label が null で、sprites は空
 export type SimilarDeckArchetypeType = {
   archetypeId: string | null;
-  // 表示名。「主デッキ名 型名」、型が無ければ主デッキ名だけ
+  // 主デッキ名(「ドラパルトex」)と型名(「バシャーモ型」)。型が無ければ variantName は null。
+  // 画面には similarDeckArchetypeName で「ドラパルトex(バシャーモ型)」の形にして出す
+  archetypeName: string | null;
+  variantName: string | null;
+  // 表示名。「主デッキ名 型名」、型が無ければ主デッキ名だけ(主デッキ名・型名の無い古い応答の代わり)
   label: string | null;
   // 図鑑 ID(DeckPokemonSpriteType.id と同じ体系)。DeckSprites にそのまま渡せる
   sprites: string[];

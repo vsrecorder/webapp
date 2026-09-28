@@ -25,6 +25,7 @@ import { cityleagueRankLabel } from "@app/utils/cityleagueRank";
 import { closingPassthroughClassNames } from "@app/utils/modal";
 import {
   formatEventDateShort,
+  similarDeckArchetypeName,
   vslabArchetypePageUrl,
   vslabSimilarPageUrl,
 } from "@app/utils/similarDecks";
@@ -87,7 +88,7 @@ function SourceSummary({
         <DeckSprites sprites={source.archetype.sprites.map((id) => ({ id }))} size={36} />
         <div className="min-w-0">
           <div className="truncate font-bold text-small">
-            {source.archetype.label ?? "デッキ名：不明"}
+            {similarDeckArchetypeName(source.archetype) ?? "デッキ名：不明"}
           </div>
           <div className="text-tiny text-default-500">
             {source.environmentTitle} の入賞デッキと比較
@@ -153,6 +154,7 @@ function SimilarDeckRow({
   sourceLabel: string;
 }) {
   const percent = percentLabel(deck.similarity);
+  const archetypeName = similarDeckArchetypeName(deck.archetype);
   const hasDiff = deck.diffIn.length > 0 || deck.diffOut.length > 0;
 
   return (
@@ -174,7 +176,7 @@ function SimilarDeckRow({
         <div className="mt-1.5 flex items-center gap-2">
           <DeckSprites sprites={deck.archetype.sprites.map((id) => ({ id }))} size={24} />
           <span className="min-w-0 truncate text-small font-bold">
-            {deck.archetype.label ?? "デッキ名：不明"}
+            {archetypeName ?? "デッキ名：不明"}
           </span>
           {/* 構成は近いが分類上は別の種類。自分の種類が決まっていないときは比べようが無いので出さない */}
           {deck.sameCode && (
@@ -213,7 +215,7 @@ function SimilarDeckRow({
       </div>
       <ZoomableDeckImage
         code={deck.deckCode}
-        alt={`${deck.archetype.label ?? "入賞デッキ"}（${deck.deckCode}）`}
+        alt={`${archetypeName ?? "入賞デッキ"}（${deck.deckCode}）`}
         loading="lazy"
       />
       <CopyableDeckCode code={deck.deckCode} label="コード" />

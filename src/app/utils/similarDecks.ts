@@ -59,6 +59,26 @@ function stringList(value: unknown): string[] {
 }
 
 /*
+ * デッキの種類の表示名。型名は括弧で囲む(「ドラパルトex(バシャーモ型)」)。
+ *
+ * バトラボの label は「ドラパルトex バシャーモ型」と空白で並べただけなので、どこまでが
+ * 主デッキ名か読み取りにくい。シティリーグ結果の入賞デッキ(deckDisplayName)と同じ形にそろえる。
+ * 主デッキ名の無い古い応答は label をそのまま使う。未分類なら null(呼び出し側が「デッキ名：不明」)。
+ * 名前の空白は 1 つに詰める(定義側で 2 つ続くものがある)。
+ */
+export function similarDeckArchetypeName(archetype: SimilarDeckArchetypeType): string | null {
+  const tidy = (text: string | null | undefined) => (text ?? "").replace(/\s+/g, " ").trim();
+
+  const name = tidy(archetype.archetypeName);
+  if (name) {
+    const variant = tidy(archetype.variantName);
+    return variant ? `${name}(${variant})` : name;
+  }
+
+  return tidy(archetype.label) || null;
+}
+
+/*
  * スプライトの画像 URL から図鑑 ID を戻す。
  *
  * バトラボの類似デッキ検索は種類のスプライトを画像 URL(spriteUrls)で返す。
@@ -75,7 +95,9 @@ export function spriteIdFromUrl(url: string): string | null {
 }
 
 function parseArchetype(value: unknown): SimilarDeckArchetypeType {
-  if (!isRecord(value)) return { archetypeId: null, label: null, sprites: [] };
+  if (!isRecord(value)) {
+    return { archetypeId: null, archetypeName: null, variantName: null, label: null, sprites: [] };
+  }
 
   const sprites = Array.isArray(value.sprites)
     ? stringList(value.sprites)
@@ -85,6 +107,8 @@ function parseArchetype(value: unknown): SimilarDeckArchetypeType {
 
   return {
     archetypeId: stringOrNull(value.archetypeId),
+    archetypeName: stringOrNull(value.archetypeName),
+    variantName: stringOrNull(value.variantName),
     label: stringOrNull(value.label),
     sprites,
   };

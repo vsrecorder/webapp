@@ -4,6 +4,7 @@ import {
   formatEventDateShort,
   parseSimilarDecksResponse,
   readSimilarDecksBody,
+  similarDeckArchetypeName,
   similarDecksApiPath,
   spriteIdFromUrl,
   vslabArchetypePageUrl,
@@ -23,6 +24,8 @@ const body = {
     deckType: {
       archetypeId: "dragapult",
       variantId: "blaziken",
+      archetypeName: "ドラパルトex",
+      variantName: "バシャーモ型",
       label: "ドラパルトex バシャーモ型",
       spriteUrls: [`${SPRITE_BASE}/887.png`, `${SPRITE_BASE}/257.png`],
     },
@@ -45,6 +48,8 @@ const body = {
       deckType: {
         archetypeId: "dragapult",
         variantId: "blaziken",
+        archetypeName: "ドラパルトex",
+        variantName: "バシャーモ型",
         label: "ドラパルトex バシャーモ型",
         spriteUrls: [`${SPRITE_BASE}/887.png`, `${SPRITE_BASE}/257.png`],
       },
@@ -84,6 +89,8 @@ describe("parseSimilarDecksResponse", () => {
       environmentTitle: "30th CELEBRATION",
       archetype: {
         archetypeId: "dragapult",
+        archetypeName: "ドラパルトex",
+        variantName: "バシャーモ型",
         label: "ドラパルトex バシャーモ型",
         sprites: ["0887", "0257"],
       },
@@ -151,7 +158,13 @@ describe("parseSimilarDecksResponse", () => {
 
     const parsed = parseSimilarDecksResponse(unclassified);
 
-    expect(parsed?.source.archetype).toEqual({ archetypeId: null, label: null, sprites: [] });
+    expect(parsed?.source.archetype).toEqual({
+      archetypeId: null,
+      archetypeName: null,
+      variantName: null,
+      label: null,
+      sprites: [],
+    });
     expect(parsed?.source.archetypeSkipped).toBe(true);
     expect(parsed?.source.unresolved).toEqual([{ name: "新弾のカード", count: 2 }]);
   });
@@ -178,6 +191,8 @@ describe("readSimilarDecksBody", () => {
 
     expect(read?.source.archetype).toEqual({
       archetypeId: "dragapult",
+      archetypeName: "ドラパルトex",
+      variantName: "バシャーモ型",
       label: "ドラパルトex バシャーモ型",
       sprites: ["0887", "0257"],
     });
@@ -219,5 +234,62 @@ describe("formatEventDateShort", () => {
   it("大会日を JST の月/日にする", () => {
     expect(formatEventDateShort("2026-09-26T00:00:00+09:00")).toBe("9/26");
     expect(formatEventDateShort("")).toBe("");
+  });
+});
+
+describe("similarDeckArchetypeName", () => {
+  const base = { archetypeId: "dragapult", sprites: [] };
+
+  it("型名は括弧で囲む", () => {
+    expect(
+      similarDeckArchetypeName({
+        ...base,
+        archetypeName: "ドラパルトex",
+        variantName: "バシャーモ型",
+        label: "ドラパルトex バシャーモ型",
+      }),
+    ).toBe("ドラパルトex(バシャーモ型)");
+  });
+
+  it("型が無ければ主デッキ名だけ", () => {
+    expect(
+      similarDeckArchetypeName({
+        ...base,
+        archetypeName: "ドラパルトex",
+        variantName: null,
+        label: "ドラパルトex",
+      }),
+    ).toBe("ドラパルトex");
+  });
+
+  it("空白の続く名前は 1 つに詰める", () => {
+    expect(
+      similarDeckArchetypeName({
+        ...base,
+        archetypeName: "ばけ  がくれ",
+        variantName: " ",
+        label: "ばけ  がくれ",
+      }),
+    ).toBe("ばけ がくれ");
+  });
+
+  it("主デッキ名の無い古い応答は label を使い、未分類は null", () => {
+    expect(
+      similarDeckArchetypeName({
+        ...base,
+        archetypeName: null,
+        variantName: null,
+        label: "ドラパルトex バシャーモ型",
+      }),
+    ).toBe("ドラパルトex バシャーモ型");
+    expect(
+      similarDeckArchetypeName({
+        archetypeId: null,
+        archetypeName: null,
+        variantName: null,
+        label: null,
+        sprites: [],
+      }),
+    ).toBeNull();
   });
 });

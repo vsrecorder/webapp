@@ -18,6 +18,7 @@ import {
 } from "@heroui/react";
 
 import { LuLayers } from "react-icons/lu";
+import { LuTrophy } from "react-icons/lu";
 import { LuUser } from "react-icons/lu";
 
 import { Modal } from "@app/components/atoms/AppModal";
@@ -87,6 +88,14 @@ const CreateDeckModal = createLazyModal(
   () => import("@app/components/organisms/Deck/Modal/CreateDeckModal"),
 );
 
+/*
+ * 類似している入賞デッキのシートも、押すまで読み込まない(結果カードの枚数ぶんマウントしない)。
+ * デッキ詳細・みんなの公開デッキと同じシートを使う。
+ */
+const DisplaySimilarDecksModal = createLazyModal(
+  () => import("@app/components/organisms/Deck/Modal/DisplaySimilarDecksModal"),
+);
+
 // デッキコードを持たない結果で出す「空のデッキ台紙」。公式のデッキ画像URLは deckID が
 // 空でもデッキ画像と同じ寸法(1024×512)の台紙を返すので、それをそのまま置く。
 const NO_DECK_CODE_IMAGE_URL = "https://www.pokemon-card.com/deck/deckView.php/deckID/";
@@ -144,6 +153,13 @@ export default function CityleagueResultCard({
     isOpen: isOpenForCreateDeckModal,
     onOpen: onOpenForCreateDeckModal,
     onOpenChange: onOpenChangeForCreateDeckModal,
+  } = useDisclosure();
+
+  const {
+    isOpen: isOpenForSimilarDecksModal,
+    onOpen: onOpenForSimilarDecksModal,
+    onOpenChange: onOpenChangeForSimilarDecksModal,
+    onClose: onCloseForSimilarDecksModal,
   } = useDisclosure();
 
   const { status } = useSession();
@@ -287,6 +303,15 @@ export default function CityleagueResultCard({
         isOpen={isOpenForCreateDeckModal}
         onOpenChange={onOpenChangeForCreateDeckModal}
         onCreated={() => {}}
+      />
+
+      {/* 入賞デッキも自分のデッキではないので、検索元は「このデッキ」と呼ぶ(みんなの公開デッキと同じ) */}
+      <DisplaySimilarDecksModal
+        code={result.deck_code || null}
+        sourceLabel="このデッキ"
+        isOpen={isOpenForSimilarDecksModal}
+        onOpenChange={onOpenChangeForSimilarDecksModal}
+        onClose={onCloseForSimilarDecksModal}
       />
 
       <div
@@ -476,11 +501,23 @@ export default function CityleagueResultCard({
                 </Card>
               </ModalBody>
               {/* 廃止したヘッダー右上のデッキ登録機能を、
-                  会員かつデッキコードがあるときだけ明示的なボタンとして配置する */}
+                  会員かつデッキコードがあるときだけ明示的なボタンとして配置する。
+                  類似デッキ(類似している入賞デッキ)も同じ条件で上に並べる。BFF がログイン必須
+                  (1 回ごとにバトラボが公式サイトまでデッキの中身を取りに行くため)なので、
+                  非会員には出さない。主役はデッキ登録なので、そちらを色付きで下(指の届く側)に置く */}
               {status === "authenticated" && result.deck_code && (
                 /* 左右の余白は ModalBody(p-3)と同じにして、ボタンの幅を上のトレーナー情報・
                    デッキ情報のカードと揃える(フッター既定の px-6 だと左右 12px ずつ狭くなる) */
-                <ModalFooter className="px-3 pt-0">
+                <ModalFooter className="flex flex-col gap-2 px-3 pt-0">
+                  <Button
+                    fullWidth
+                    variant="flat"
+                    startContent={<LuTrophy className="text-lg" />}
+                    onPress={onOpenForSimilarDecksModal}
+                    className="font-bold"
+                  >
+                    類似している入賞デッキを見る
+                  </Button>
                   <Button
                     fullWidth
                     color="primary"

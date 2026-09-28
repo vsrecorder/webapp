@@ -30,8 +30,18 @@ beforeEach(() => {
   );
 });
 
+// 類似デッキのシートも createLazyModal 経由。ここでは渡すデッキコードと呼び名だけを見る
+const similarDecksModalProps = vi.fn();
+vi.mock("@app/components/organisms/Deck/Modal/DisplaySimilarDecksModal", () => ({
+  default: (props: { isOpen: boolean }) => {
+    similarDecksModalProps(props);
+    return props.isOpen ? <div data-testid="similar-decks-modal" /> : null;
+  },
+}));
+
 afterEach(() => {
   cleanup();
+  similarDecksModalProps.mockClear();
   vi.unstubAllGlobals();
   createDeckModalProps.mockClear();
 });
@@ -171,5 +181,28 @@ describe("CityleagueResultCard のデッキ登録", () => {
     expect(createDeckModalProps).toHaveBeenLastCalledWith(
       expect.objectContaining({ initialName: "", initialSprites: [] }),
     );
+  });
+
+  it("「類似している入賞デッキを見る」で、この入賞デッキのコードを「このデッキ」として比べるシートを開く", async () => {
+    render(<CityleagueResultCard result={result} date={new Date()} deckArchetype={archetype} />);
+
+    fireEvent.click(screen.getByText(`デッキコード ${DECK_CODE}`));
+    fireEvent.click(await screen.findByRole("button", { name: "類似している入賞デッキを見る" }));
+
+    await waitFor(() => expect(screen.getByTestId("similar-decks-modal")).toBeTruthy());
+    expect(similarDecksModalProps).toHaveBeenLastCalledWith(
+      expect.objectContaining({ code: DECK_CODE, sourceLabel: "このデッキ", isOpen: true }),
+    );
+  });
+
+  it("デッキコードの無い入賞には類似デッキのボタンを出さない", async () => {
+    render(
+      <CityleagueResultCard result={{ ...result, deck_code: "" }} date={new Date()} />,
+    );
+
+    fireEvent.click(screen.getByText("デッキコードなし"));
+    await screen.findByRole("dialog");
+
+    expect(screen.queryByRole("button", { name: "類似している入賞デッキを見る" })).toBeNull();
   });
 });

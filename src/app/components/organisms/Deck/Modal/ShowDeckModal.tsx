@@ -386,10 +386,12 @@ export default function ShowDeckModal({
                     バージョン履歴(残りの列ぶん)+新バージョン(1列)を1行目、残りの操作を
                     2行目に配置する。新バージョンとその他を同じ末尾の列に置くことで
                     縦に一直線に揃え、バージョン管理系の操作としてのまとまりを出す。
-                    デッキコード未登録の場合、バージョン履歴・新バージョン・入賞デッキは
+                    デッキコード未登録の場合、バージョン履歴・新バージョン・類似デッキは
                     いずれも表示しない（新バージョン作成の導線はDeckCodeCard側の案内に譲る）。
                     列数はデッキコードの有無で変える: 類似デッキ(類似している入賞デッキ)は
-                    デッキコードが要るので、あるときだけ2行目に足して5列、無ければ4列にする */}
+                    デッキコードが要るので、あるときだけ2行目に足して5列、無ければ4列にする。
+                    5列だと1列が幅 360px の端末で約 61px になり、「新バージョン」(12px で約 72px)が
+                    折り返して 3 行になる。折り返さず、仮名を詰めて組み(palt)、390px 未満では 11px にして収める */}
                 <div className={`grid gap-1.5 ${deckcode?.code ? "grid-cols-5" : "grid-cols-4"}`}>
                   {deckcode?.code && (
                     <>
@@ -419,7 +421,9 @@ export default function ShowDeckModal({
                       {isArchived ? (
                         <div className="flex flex-col items-center justify-center gap-1 rounded-xl bg-default-50 py-1.5 text-default-300">
                           <LuBookPlus className="text-base" />
-                          <span className="text-tiny font-medium">新バージョン</span>
+                          <span className="whitespace-nowrap text-[11px] font-medium tracking-tight [font-feature-settings:'palt'] min-[390px]:text-tiny">
+                            新バージョン
+                          </span>
                         </div>
                       ) : (
                         <button
@@ -428,7 +432,9 @@ export default function ShowDeckModal({
                           className="flex flex-col items-center justify-center gap-1 rounded-xl bg-default-100 py-1.5 active:opacity-70"
                         >
                           <LuBookPlus className="text-base" />
-                          <span className="text-tiny font-medium">新バージョン</span>
+                          <span className="whitespace-nowrap text-[11px] font-medium tracking-tight [font-feature-settings:'palt'] min-[390px]:text-tiny">
+                            新バージョン
+                          </span>
                         </button>
                       )}
                     </>

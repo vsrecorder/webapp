@@ -123,10 +123,18 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ["@heroui/react"],
   },
   images: {
-    // 最適化画像のキャッシュ最小保持時間（秒）
-    // 画像の更新を早く反映したいので短めに設定。長くすると再最適化の負荷は減る。
-    // 注意: 元画像のCache-Controlのmax-ageの方が長い場合はそちらが優先される。
-    minimumCacheTTL: 3600,
+    /*
+     * 最適化画像のキャッシュ保持時間（秒）。30 日。
+     *
+     * 最適化 API を通る外部画像は、カード画像（公式サイト。URL ごとに絵柄が変わらない）と
+     * CDN の固定素材（称号・バッジ・アイコン）、Tonamel のカバー画像で、URL が同じまま中身が
+     * 変わるものは実質無い（アバターは HeroUI の Avatar で素の img）。
+     * 以前は 3600 だったが、カード画像の最適化は初回に元画像の取得と変換で 1 枚 300〜540ms
+     * かかり（直リンクの 125ms より遅い）、1 時間で切れると利用者がその初回を何度も引く
+     * （2026-09-29 の実測）。温めた結果を長く持ち、scripts/warm-card-images.mjs で先に一巡しておく。
+     * 元画像の Cache-Control の max-age の方が長い場合はそちらが優先される。
+     */
+    minimumCacheTTL: 30 * 24 * 60 * 60,
     remotePatterns: [
       {
         protocol: "https",

@@ -119,6 +119,8 @@ standalone 出力には `.next/static` が含まれず、`public/` もビルド�
 コピー内容を変えるときは Dockerfile 側と揃えること。
 
 
+- `scripts/warm-card-images.mjs` — カード画像のキャッシュを温める。今環境の入賞デッキが使う印刷（バトラボ `/api/cards/prints`）を next/image の最適化 API に 2 サイズで通しておく。本番では `make warm-images`（毎日 05:17 JST の cron と、デプロイ直後）。手元では `WARM_ORIGIN=https://local.vsrecorder.mobi VSLAB_ORIGIN=http://localhost:6757 WARM_LIMIT=20 node scripts/warm-card-images.mjs`
+
 ## テスト
 
 テストランナーは vitest(`vitest.config.ts`)。テストは実装ファイルの隣に `*.test.ts` / `*.test.tsx`

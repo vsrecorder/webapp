@@ -60,6 +60,20 @@ warmup:
 		docker compose exec -T webapp wget --spider -q -T 30 http://127.0.0.1:3003/ || true; \
 	done
 
+#
+# カード画像のキャッシュを温める。
+#
+# 今環境の入賞デッキに入っているカードの印刷（バトラボ /api/cards/prints、約 1,900 枚）を、
+# サムネイル用（w=256）とモーダル用（w=828）の 2 サイズで最適化 API に通しておく。
+# 最適化の初回は 1 枚 300〜540ms かかって直リンクより遅いので、利用者に引かせない。
+# 温めた画像は next.config の minimumCacheTTL（30 日）のあいだ残る。
+# ホストに node は無いので、コンテナの node に stdin でスクリプトを渡して走らせる。
+# 毎日 05:17 JST に cron で回す（crontab は本番ホストの ubuntu ユーザー）。デプロイ直後にも手で流せる。
+#
+.PHONY: warm-images
+warm-images:
+	docker compose exec -T webapp node --input-type=module - < scripts/warm-card-images.mjs
+
 .PHONY: restart
 restart:
 	docker compose down

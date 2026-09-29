@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import { useCallback, useMemo } from "react";
 import { useEffect, useRef, useState } from "react";
 
@@ -294,10 +296,21 @@ export default function CityleagueEvent({ league_type, setLeagueTypeCount, date 
             <div className="text-center">
               <div className="">
                 {/* 骨格(CityleagueEventSkeleton)・会場カードと同じ 136px にする。
-                    pb-9 だと 138px で、開催の無い日は骨格から替わる瞬間に 2px 伸びていた */}
+                    pb-9 だと 138px で、開催の無い日は骨格から替わる瞬間に 2px 伸びていた。
+                    ロゴ(36px)と gap-2(8px)、text-sm の行(20px)を足した残りが上下の余白 */}
                 <Card className="pt-3 w-full">
-                  <CardHeader className="pt-11.5 pb-8.5 px-3 flex-col items-center gap-0.5">
-                    <div className="text-center">
+                  <CardHeader className="py-5 px-3 flex-col items-center gap-2">
+                    {/* シティリーグのロゴ。開催期間外のカード(CityleagueOffSeasonCard)や
+                        結果カードと同じ画像・同じ寸法に揃える。
+                        文言で何の節かは分かるので、装飾として alt は空にする */}
+                    <Image
+                      src="https://xx8nnpgt.user.webaccel.jp/images/icons/city.png"
+                      alt=""
+                      width={36}
+                      height={36}
+                      className="h-9 w-9 object-contain"
+                    />
+                    <div className="text-center text-sm text-default-600">
                       {isPreview ? "この日の開催はありません" : "本日の開催はありません"}
                     </div>
                   </CardHeader>

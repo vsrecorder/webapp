@@ -23,7 +23,7 @@ type Props = {
 const ITEM_KEY = "tags";
 
 // 展開アニメーション(framer-motion)の所要時間。TRANSITION_VARIANTS.collapse の
-// height は duration 0.3s の spring なので、それより少しだけ後に最終位置を取る。
+// height は duration 0.3s の spring なので、それより少しだけ長く見る。
 const EXPAND_DURATION_MS = 340;
 
 // 実際に動くスクロールコンテナ(overflow を持つ最も近い祖先)を探す。
@@ -56,7 +56,7 @@ export default function TagSelectorAccordion({
 
   const rootRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
-  const scrollTimerRef = useRef<number | null>(null);
+  const followRafRef = useRef<number | null>(null);
   // HeroUI(@react-types)の Key は string | number で React の Key(bigint を含む)とは
   // 別物なので、そのまま持つと selectedKeys に渡せない。文字列に寄せて保持する。
   const [openKeys, setOpenKeys] = useState<Set<string>>(() => new Set());
@@ -87,36 +87,26 @@ export default function TagSelectorAccordion({
     return () => window.clearTimeout(id);
   }, []);
 
-  useEffect(() => {
-    return () => {
-      if (scrollTimerRef.current !== null) {
-        window.clearTimeout(scrollTimerRef.current);
-      }
-    };
-  }, []);
-
-  // 展開後にコンテンツが占める高さ。たたんでいる間も中身はDOMに居て、外側の
-  // section が height:0 / overflow:hidden で隠しているだけなので、開く前に実寸を測れる。
-  const measureExpandedHeight = () => {
-    const content = contentRef.current?.closest('[data-slot="content"]');
-    return content ? content.getBoundingClientRect().height : 0;
+  const stopFollowing = () => {
+    if (followRafRef.current !== null) {
+      window.cancelAnimationFrame(followRafRef.current);
+      followRafRef.current = null;
+    }
   };
 
-  // 展開後の下端がスクロールコンテナからはみ出るぶんだけ、下方向に寄せる。
-  // extraHeight には、これから展開する(まだ高さに現れていない)ぶんを渡す。
+  useEffect(() => stopFollowing, []);
+
+  // 下端がスクロールコンテナからはみ出ているぶんだけ、下方向に寄せる。
   //
   // 上方向には決して動かさない。scrollIntoView(block:"end") のように下端を「揃える」と、
   // 展開前は要素が小さいぶん上に戻され、展開後に今度は下がるので上下にバウンドする。
   // ここでは「はみ出ていたら、はみ出たぶんだけ下げる」に限定する。
-  //
-  // 目標はスクロール量ではなく絶対位置として求まるので、アニメーション中に何度呼んでも
-  // 同じ位置に収束する(scrollTop が増えたぶん要素の下端は上がるため相殺される)。
-  const scrollToShowWhole = (extraHeight: number) => {
+  const scrollToShowWhole = () => {
     const root = rootRef.current;
     if (!root) return;
 
     const container = findScrollContainer(root);
-    const bottom = root.getBoundingClientRect().bottom + extraHeight;
+    const bottom = root.getBoundingClientRect().bottom;
     const viewportBottom = container
       ? container.getBoundingClientRect().bottom
       : window.innerHeight;
@@ -124,15 +114,43 @@ export default function TagSelectorAccordion({
     const overflow = bottom - viewportBottom;
     if (overflow <= 0) return;
 
+    // 展開のあいだ毎フレーム呼ぶので、1回ぶんは数pxしか動かない。
+    // ここで smooth を使うと、その数pxの移動それぞれが尾を引いて追従が遅れる。
     if (container) {
-      container.scrollTo({
-        top: container.scrollTop + overflow,
-        behavior: "smooth",
-      });
+      container.scrollTop += overflow;
       return;
     }
 
-    window.scrollBy({ top: overflow, behavior: "smooth" });
+    window.scrollBy({ top: overflow });
+  };
+
+  /*
+   * 展開に追従してスクロールする。
+   *
+   * 「展開後の高さを見込んで一度で動かす」やり方は成り立たない。押した時点の中身は
+   * まだ高さ0で、スクロールコンテナ自身もまだ伸びていないため、見込み値を足しても
+   * その位置までスクロールできない(実測: 押した直後の呼び出しは空振りし、
+   * 保険の340msタイマーだけが効いて、展開し終えてから127px動いていた)。
+   * 「展開 → 一拍おいてガクッとスクロール」の二段の動きに見えるのはこれが原因。
+   *
+   * 高さが伸びるあいだ毎フレーム測って、はみ出たぶんだけ即時に寄せる。
+   * 1フレームの移動は数pxなので、伸びる動きとスクロールが1つの動きとして見える。
+   */
+  const followExpansion = () => {
+    stopFollowing();
+
+    const start = performance.now();
+    const step = () => {
+      scrollToShowWhole();
+
+      if (performance.now() - start < EXPAND_DURATION_MS) {
+        followRafRef.current = window.requestAnimationFrame(step);
+        return;
+      }
+      followRafRef.current = null;
+    };
+
+    followRafRef.current = window.requestAnimationFrame(step);
   };
 
   const handleSelectionChange = (keys: "all" | Set<Key>) => {
@@ -141,27 +159,14 @@ export default function TagSelectorAccordion({
         ? new Set([ITEM_KEY])
         : new Set(Array.from(keys, (key) => String(key)));
     setOpenKeys(next);
-
-    if (scrollTimerRef.current !== null) {
-      window.clearTimeout(scrollTimerRef.current);
-      scrollTimerRef.current = null;
-    }
+    stopFollowing();
 
     if (!next.has(ITEM_KEY)) return;
 
     // アイドル待ちが終わる前に開かれた場合に備えて、ここでも中身を出す。
     setIsContentReady(true);
 
-    // 展開後の高さを見込んで、最終位置へ一度で動かす。
-    scrollToShowWhole(measureExpandedHeight());
-
-    // 測り損ねたぶんの保険。展開し終えた時点でまだはみ出ていれば追加で寄せる。
-    // この時点の高さは実測値に含まれているので extraHeight は 0。
-    // 下方向にしか動かさないため、既に収まっていれば何も起きない。
-    scrollTimerRef.current = window.setTimeout(() => {
-      scrollTimerRef.current = null;
-      scrollToShowWhole(0);
-    }, EXPAND_DURATION_MS);
+    followExpansion();
   };
 
   return (

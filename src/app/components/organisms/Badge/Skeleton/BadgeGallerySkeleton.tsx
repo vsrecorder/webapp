@@ -36,7 +36,7 @@ function BadgeFlowRowSkeleton({ count, nameSample }: { count: number; nameSample
 
 export default function BadgeGallerySkeleton() {
   return (
-    <Card className="shadow-md">
+    <Card>
       <CardBody className="p-4 flex flex-col gap-4">
         {/* 獲得数(text-xs = 16px の行)とシーズン選択(border + py-1.5 + text-xs = 30px) */}
         <div className="flex items-center justify-between gap-2">

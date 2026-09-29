@@ -85,7 +85,7 @@ export default function StreakPanel({ userId, initialStreak }: Props) {
     showFreeze && freezeUsedCount > 0 && freezeRegenRemainingWeeks > 0;
 
   return (
-    <Card className="shadow-md">
+    <Card>
       <CardBody className="flex flex-row items-center gap-4 p-4">
         <div
           className={`flex items-center justify-center w-14 h-14 rounded-2xl shrink-0 ${

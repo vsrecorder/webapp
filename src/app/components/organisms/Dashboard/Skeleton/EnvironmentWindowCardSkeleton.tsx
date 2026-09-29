@@ -8,7 +8,7 @@ import { Card, CardBody } from "@heroui/react";
 // 読み込み完了時のレイアウトシフトを抑える。
 export default function EnvironmentWindowCardSkeleton() {
   return (
-    <Card className="shadow-md">
+    <Card>
       <CardBody className="gap-3 p-4">
         <div className="flex items-start gap-2">
           <div className="h-5 w-11 rounded-full bg-default-100 animate-pulse shrink-0" />

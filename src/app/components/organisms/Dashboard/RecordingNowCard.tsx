@@ -155,7 +155,7 @@ export default function RecordingNowCard({
   }
 
   return (
-    <Card className="shadow-md border-2 border-primary bg-primary/5">
+    <Card className="border-2 border-primary bg-primary/5">
       <CardBody className="p-4 flex flex-col gap-3">
         <div className="flex items-center gap-2">
           {/* 記録中であることの合図。動きを抑えている人には点滅させない */}

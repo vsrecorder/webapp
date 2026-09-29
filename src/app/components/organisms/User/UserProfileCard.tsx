@@ -459,7 +459,7 @@ export default function UserProfileCard({
         onOpenChange={onOpenChange}
         onUpdated={setProfile}
       />
-      <Card className="overflow-hidden shadow-md">
+      <Card className="overflow-hidden">
         {/* グラデーションヘッダー（dev環境は本番と一目で区別できるようオレンジ系にする） */}
         <div
           className={`px-3 pt-4 pb-5 flex items-center gap-3.5 ${

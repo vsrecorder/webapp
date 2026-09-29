@@ -59,7 +59,7 @@ export default function DesignationPanelSkeleton({
   cityleagueHeight = DEFAULT_CITYLEAGUE_RESULTS_HEIGHT,
 }: Props) {
   return (
-    <Card className="shadow-md">
+    <Card>
       <CardBody className="p-4 flex flex-col gap-6">
         {/* シーズン選択(border + py-1.5 + text-xs = 30px) */}
         <div className="flex items-center justify-end">

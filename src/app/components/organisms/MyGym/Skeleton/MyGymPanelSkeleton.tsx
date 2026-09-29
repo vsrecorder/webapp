@@ -37,7 +37,7 @@ export default function MyGymPanelSkeleton({ shape = DEFAULT_MY_GYM_SKELETON }: 
   // 未登録。実体はパネル全体が登録への導線(アイコン・2種の文言・ボタンを中央に積む)
   if (shape.kind === "unregistered") {
     return (
-      <Card className="w-full shadow-md" style={style}>
+      <Card className="w-full" style={style}>
         <CardBody className="flex flex-col items-center gap-3 px-4 py-6">
           <div className="h-6 w-6 animate-pulse rounded-lg bg-default-100" />
           {/* 見出し(text-sm の行 = 1.25rem)と説明の2行(text-xs = 1rem) */}
@@ -62,7 +62,7 @@ export default function MyGymPanelSkeleton({ shape = DEFAULT_MY_GYM_SKELETON }: 
   // 登録済みで予定なし。実体は登録中の行の下に文言が1行(py-4)だけ入る
   if (shape.kind === "noEvents") {
     return (
-      <Card className="w-full shadow-md" style={style}>
+      <Card className="w-full" style={style}>
         <CardBody className="flex flex-col gap-2.5 p-3">
           <div className="h-6 w-full animate-pulse rounded-lg bg-default-100" />
           <div className="flex h-12 items-center justify-center">
@@ -74,7 +74,7 @@ export default function MyGymPanelSkeleton({ shape = DEFAULT_MY_GYM_SKELETON }: 
   }
 
   return (
-    <Card className="w-full shadow-md" style={style}>
+    <Card className="w-full" style={style}>
       <CardBody className="flex flex-col gap-2.5 p-3">
         <div className="h-6 w-full animate-pulse rounded-lg bg-default-100" />
         <div className="flex flex-col gap-3">

@@ -37,7 +37,7 @@ const MIN_HEIGHT_CLASS = "min-h-51";
 
 export default function CityleagueOffSeasonCard({ next }: Props) {
   return (
-    <Card className={`w-full shadow-md ${MIN_HEIGHT_CLASS}`}>
+    <Card className={`w-full ${MIN_HEIGHT_CLASS}`}>
       <CardBody className="flex flex-col items-center justify-center gap-3 px-4 py-6 text-center">
         {/* シティリーグのロゴ。結果カード(CityleagueResult)と同じ画像・同じ寸法に揃える。
             見出しと本文で「シティリーグ」と分かるので、装飾として alt は空にする */}

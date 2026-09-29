@@ -318,7 +318,7 @@ export default function MyGymPanel({ initialEvents, initialRange }: Props) {
   if (userGyms.length === 0) {
     return (
       <>
-        <Card className="w-full shadow-md">
+        <Card className="w-full">
           <CardBody className="flex flex-col items-center gap-3 px-4 py-6 text-center">
             <LuHouse className="h-6 w-6 text-default-400" />
             <div className="flex flex-col gap-1">
@@ -351,7 +351,7 @@ export default function MyGymPanel({ initialEvents, initialRange }: Props) {
 
   return (
     <>
-      <Card className="w-full shadow-md">
+      <Card className="w-full">
         <CardBody className="flex flex-col gap-2.5 p-3">
           {/* 登録中の店舗と編集への導線。
               店舗の見せ方(家アイコン + 店舗名 + 都道府県・住所)は設定モーダルの

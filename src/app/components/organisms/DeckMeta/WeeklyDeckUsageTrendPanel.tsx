@@ -522,7 +522,7 @@ export default function WeeklyDeckUsageTrendPanel() {
   }, [active, trend, updateDetailEdges]);
 
   return (
-    <Card className="shadow-md">
+    <Card>
       <CardBody className="gap-3 p-3">
         <div className="flex items-start gap-2">
           <LuChartSpline className="w-4 h-4 mt-0.5 text-primary shrink-0" />

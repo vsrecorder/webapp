@@ -70,7 +70,7 @@ export default function OnboardingBadgePanel({ userId, initialBadges }: Props) {
   const achievedCount = badges?.filter((b) => b.achieved).length ?? 0;
 
   return (
-    <Card className="shadow-md">
+    <Card>
       <CardBody className="p-4 flex flex-col gap-2">
         <span className="text-xs font-bold text-default-500 shrink-0">
           獲得数 {achievedCount} / {badges?.length ?? 0}

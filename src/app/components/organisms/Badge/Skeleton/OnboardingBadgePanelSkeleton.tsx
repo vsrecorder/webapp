@@ -6,7 +6,7 @@ import { BadgeTileSkeleton } from "@app/components/organisms/Badge/badgeUi";
 // ホームの Suspense 骨格(DashboardSkeleton)の両方から使う。
 export default function OnboardingBadgePanelSkeleton() {
   return (
-    <Card className="shadow-md">
+    <Card>
       <CardBody className="p-4 flex flex-col gap-2">
         {/* 獲得数(text-xs = 16px の行) */}
         <div className="h-4 flex items-center">

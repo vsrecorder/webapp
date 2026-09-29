@@ -23,7 +23,7 @@ function DashboardCalendarBox({ message }: { message?: string }) {
   const placeholder = isError ? "invisible" : "";
 
   return (
-    <Card shadow="none" className="border border-divider">
+    <Card>
       <CardHeader
         className={`flex items-center justify-between px-2 pt-3 pb-1 ${placeholder}`}
       >

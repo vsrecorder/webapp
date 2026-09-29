@@ -18,7 +18,7 @@ type Props = {
 // ダークテーマのときチップの背景(bg-default-100)とほぼ同色になって見えなくなるため。
 export default function UserProfileCardSkeleton({ isDevEnv = false }: Props) {
   return (
-    <Card className="overflow-hidden shadow-md">
+    <Card className="overflow-hidden">
       {/* グラデーションヘッダー（dev環境の色分けも実カードに合わせる） */}
       <div
         className={`px-3 pt-4 pb-5 flex items-center gap-3.5 ${

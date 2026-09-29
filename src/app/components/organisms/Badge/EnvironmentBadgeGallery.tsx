@@ -140,7 +140,7 @@ export default function EnvironmentBadgeGallery({ userId, initialBadges }: Props
     : (badges ?? []).slice(0, ENVIRONMENT_BADGE_INITIAL_VISIBLE_COUNT);
 
   return (
-    <Card className="shadow-md">
+    <Card>
       <CardBody className="p-3 flex flex-col gap-2">
         <span className="text-xs font-bold text-default-500 shrink-0">
           獲得数 {achievedCount} / {badges?.length ?? 0}

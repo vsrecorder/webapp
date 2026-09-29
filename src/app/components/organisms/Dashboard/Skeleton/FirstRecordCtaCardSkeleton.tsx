@@ -7,7 +7,7 @@ import SkeletonTextLine from "@app/components/molecules/Skeleton/SkeletonTextLin
 // 二重に飛んでしまうため、同じ寸法の骨格をここに別途持つ。
 export default function FirstRecordCtaCardSkeleton() {
   return (
-    <Card className="shadow-md border-2 border-primary bg-primary/5">
+    <Card className="border-2 border-primary bg-primary/5">
       <CardBody className="p-5 flex flex-col gap-3">
         <div className="flex flex-col gap-1">
           {/* 「クイックスタート」(text-xs の行 = 16px) */}

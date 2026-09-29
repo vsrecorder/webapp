@@ -174,7 +174,7 @@ export default function BadgeGallery({
   const achievedCount = visibleBadges.filter((b) => b.achieved).length;
 
   return (
-    <Card className="shadow-md">
+    <Card>
       <CardBody className="p-4 flex flex-col gap-4">
         <div className="flex items-center justify-between gap-2">
           <span className="text-xs font-bold text-default-500 shrink-0">

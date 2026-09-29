@@ -68,7 +68,7 @@ function EnvironmentBadgeTileSkeleton({ titleSample }: { titleSample: string }) 
 
 export default function EnvironmentBadgeGallerySkeleton() {
   return (
-    <Card className="shadow-md">
+    <Card>
       {/* 余白・グリッド・行数は実カードと同じにする(p-3 / -mx-3 なし) */}
       <CardBody className="p-3 flex flex-col gap-2">
         {/* 獲得数(text-xs = 16px の行) */}

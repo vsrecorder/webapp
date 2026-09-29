@@ -275,7 +275,7 @@ export default function WeeklyDeckUsagePanel({ limit }: Props) {
   }
 
   return (
-    <Card className="shadow-md">
+    <Card>
       <CardBody className="gap-4 p-3">
         {/* β機能の注記 */}
         <WeeklyDeckUsageBetaNote />

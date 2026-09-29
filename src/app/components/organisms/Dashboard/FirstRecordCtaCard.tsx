@@ -51,7 +51,7 @@ export default function FirstRecordCtaCard({ cohortWeek, daysSinceSignup }: Prop
 
   return (
     <>
-      <Card className="shadow-md border-2 border-primary bg-primary/5">
+      <Card className="border-2 border-primary bg-primary/5">
         <CardBody className="p-5 flex flex-col gap-3">
           <div className="flex flex-col gap-1">
             <span className="text-xs font-bold text-primary tracking-wider">

@@ -156,7 +156,7 @@ type Props = {
 
 export default function WeeklyDeckUsagePanelSkeleton({ limit = 5 }: Props) {
   return (
-    <Card className="shadow-md">
+    <Card>
       <CardBody className="gap-4 p-3">
         {/* β機能の注記(固定文言。パネルは読み込み中も実物を出すので骨格でも同じものを置く) */}
         <WeeklyDeckUsageBetaNote />

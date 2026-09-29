@@ -17,7 +17,7 @@ import { Card, CardBody } from "@heroui/react";
  */
 export default function RecordingNowCardSkeleton({ withDeck = true }: { withDeck?: boolean }) {
   return (
-    <Card className="shadow-md border-2 border-primary bg-primary/5">
+    <Card className="border-2 border-primary bg-primary/5">
       <CardBody className="p-4 flex flex-col gap-3">
         {/* 「●記録中」「最後の記録から◯分」「記録を終える」の行 */}
         <div className="flex h-7 items-center gap-2">

@@ -84,7 +84,7 @@ function SkeletonLine({
 // 骨格も2行にする。TextColumn が3行ぶんを確保するので、案内が出る場合も高さは動かない。
 export default function StreakPanelSkeleton() {
   return (
-    <Card className="shadow-md">
+    <Card>
       <CardBody className="flex flex-row items-center gap-4 p-4">
         <div className="flex items-center justify-center w-14 h-14 rounded-2xl shrink-0 bg-default-100 text-default-200">
           <LuFlame className="w-7 h-7" />

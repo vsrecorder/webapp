@@ -337,7 +337,7 @@ export default function DesignationPanel({
   const ladderRows = chunkRows(ladder, DESIGNATION_LADDER_ROW_SIZE);
 
   return (
-    <Card className="shadow-md">
+    <Card>
       <CardBody className="p-4 flex flex-col gap-6">
         <div className="flex items-center justify-end">
           <div className="relative inline-block">

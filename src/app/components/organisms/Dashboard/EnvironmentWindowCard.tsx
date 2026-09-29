@@ -756,7 +756,7 @@ function EmptyStateCard({
   failed: boolean;
 }) {
   return (
-    <Card className="shadow-md">
+    <Card>
       <CardBody className="gap-3 p-4">
         {stat != null && <BetaHeader stat={stat} />}
 
@@ -1133,7 +1133,7 @@ export default function EnvironmentWindowCard({
 
   return (
     <>
-      <Card className="shadow-md">
+      <Card>
         <CardBody className="gap-3 p-4">
           <BetaHeader stat={stat} />
           <GroupingTabs

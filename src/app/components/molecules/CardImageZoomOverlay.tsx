@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 
-import { Image, Skeleton } from "@heroui/react";
+import { Skeleton } from "@heroui/react";
 import { ModalContent, ModalBody } from "@heroui/react";
 
 import { Modal } from "@app/components/atoms/AppModal";
+
+import { cardImageProps } from "@app/utils/cardImage";
 
 type Props = {
   // 見せるカードの名前(代替テキストと、出せなかったときの文言に使う)
@@ -23,7 +25,8 @@ type Props = {
  * そのカードの絵を確かめるために使う。出し方・大きさ・画像をタップして閉じる操作は、
  * カードリスト(DeckCardDetailRow)のカードをタップしたときのモーダルと同じにしてある。
  * 画像の URL は呼び出し側が持っている(バトラボが差分カードに添えてくる)ので、
- * ここで取りに行くものは無い。画像が届くまでの間だけ、カードと同じ形の骨格を出す
+ * ここで取りに行くものは無い。画像が届くまでの間だけ、カードと同じ形の骨格を出す。
+ * 画像は next/image の最適化 API を通す(utils/cardImage.ts。公式サイトの 233KB → 53KB)
  */
 export default function CardImageZoomOverlay({ cardName, imageUrl, isOpen, onClose }: Props) {
   /*
@@ -34,10 +37,7 @@ export default function CardImageZoomOverlay({ cardName, imageUrl, isOpen, onClo
   const [imageLoaded, setImageLoaded] = useState(false);
   /*
    * 画像を読めなかった(URL はあるが 404 など)。骨格を止めて文言に切り替えるために使う。
-   * これが無いと、いつまでも読み込み中に見える。
-   *
-   * HeroUI Image は onLoad / onError を img ではなく内部の detached な Image に張るので、
-   * jsdom では発火しない(テストで縛れない)。実ブラウザで 404 の URL を渡して確認してある
+   * これが無いと、いつまでも読み込み中に見える
    */
   const [imageFailed, setImageFailed] = useState(false);
   const [lastImageUrl, setLastImageUrl] = useState(imageUrl);
@@ -83,31 +83,23 @@ export default function CardImageZoomOverlay({ cardName, imageUrl, isOpen, onClo
                */
               <div className="relative mx-auto aspect-63/88 w-full max-w-[min(24rem,calc(78svh*63/88))]">
                 {!imageLoaded && <Skeleton className="absolute inset-0 rounded-[20px]" />}
-                <Image
-                  radius="none"
-                  shadow="none"
+                {/*
+                 * 素の <img> で、読み終わるまで伏せておき、骨格を外すのと画像が出るのを同じ瞬間にする。
+                 * HeroUI Image は読み終わった時点で自前の下地を外してから img を 280ms かけて
+                 * フェードさせるため、その間だけ下地も画像も無い透明な枠になり、背面のシートが
+                 * 透けて「一瞬すけてからじわっと出る」ちらつきになっていた(実測)。
+                 * 画像タップでも閉じる(カードリストのモーダルと同じ)
+                 */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  {...cardImageProps(imageUrl, cardName, "modal", "eager")}
                   alt={cardName}
-                  src={imageUrl}
-                  /*
-                   * 骨格を外すのと画像が出るのを同じ瞬間にする。
-                   *
-                   * HeroUI Image は既定で、読み終わった時点で自前の下地(wrapper の地色)を
-                   * 外してから img を 280ms かけて opacity 0 → 1 でフェードさせる。
-                   * その間は下地も画像も無い透明な枠になり、背面のシートが透けて
-                   * 「一瞬すけてからじわっと出る」ちらつきになる(実測: 骨格が消えてから
-                   * 画像が見え始めるまで空白)。カードリストは画像を先読みしてあって
-                   * 読み込み待ちが無いので、この隙間が表に出ない。
-                   * 下地は枠側の骨格で持つので、HeroUI 側の下地も要らない
-                   */
-                  disableAnimation
-                  disableSkeleton
                   onLoad={() => setImageLoaded(true)}
                   onError={() => setImageFailed(true)}
                   onClick={close}
-                  // HeroUI Image は img を max-width:fit-content のラッパーで包むので、
-                  // ラッパーごと枠の幅へ広げないと画像が本来の大きさのまま出る
-                  classNames={{ wrapper: "w-full !max-w-full" }}
-                  className="w-full rounded-[20px] cursor-pointer"
+                  className={`h-auto w-full rounded-[20px] cursor-pointer ${
+                    imageLoaded ? "" : "opacity-0"
+                  }`}
                 />
               </div>
             )}

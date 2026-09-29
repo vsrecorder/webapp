@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 
 import { Chip } from "@heroui/react";
-import { Image } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
 import { Tabs, Tab } from "@heroui/tabs";
 
@@ -14,6 +13,7 @@ import { LuImage, LuTags } from "react-icons/lu";
 import { Modal } from "@app/components/atoms/AppModal";
 import FetchError from "@app/components/molecules/FetchError";
 
+import { cardImageProps } from "@app/utils/cardImage";
 import { fetchDeckCardDetail } from "@app/utils/deckcard";
 import { writeLocalStorage } from "@app/utils/localStorageStore";
 import { useLocalStorageItem } from "@app/hooks/useLocalStorageItem";
@@ -170,9 +170,9 @@ function ChipRow<T extends { card_name: string; card_count: number }>({
 // カード1枚分のサムネイル。内訳の取得完了後に画像の読み込みが始まるため、
 // 読み込み中は CardSkelton と同じ寸法（ポケモンカード比 63:88）の骨格を
 // 重ねておき、空白のポップインとレイアウトシフトを防ぐ。
-// 幅は親(CardRow のボタン)から受け取るため w-full で追従させる。HeroUI Image は
-// img を max-width:fit-content のラッパーで包むため、ラッパー側も w-full へ広げないと
-// 画像が本来の幅のまま親からはみ出す。
+// 幅は親(CardRow のボタン)から受け取るため w-full で追従させる。
+// 画像は next/image の最適化 API を通す(utils/cardImage.ts)。公式サイトの画像は 868×1212 で
+// 1 枚 80〜240KB あり、56px のサムネイルにそのまま読むと 1 デッキで 6MB を超えていた。
 function CardThumbnail({ alt, src }: { alt: string; src: string }) {
   const [loaded, setLoaded] = useState(false);
 
@@ -181,27 +181,21 @@ function CardThumbnail({ alt, src }: { alt: string; src: string }) {
       {!loaded && <Skeleton className={`absolute inset-0 ${CARD_RADIUS_CLASS}`} />}
       {/* カード画像タップで開くモーダルと同じ「拡大しながらフェードイン」するポップ
           インにする。スケルトンと実画像の寸法差によるちらつきを、拡大の動きで目立た
-          なくする狙いもあるため拡大量はやや大きめ(scale-90 → scale-100)にしている。
-          HeroUI Image は内部で img の opacity/transform を独自制御するため、その影響
-          を受けない自前のラッパーでアニメーションを掛ける。 */}
+          なくする狙いもあるため拡大量はやや大きめ(scale-90 → scale-100)にしている。 */}
       <div
         className={`w-full transition duration-300 ease-out ${
           loaded ? "scale-100 opacity-100" : "scale-90 opacity-0"
         }`}
       >
-        <Image
-          // 角丸はカードモーダルの画像と同じ指定方法（radius は none にして
-          // className 側で明示）に揃える。HeroUI の radius="sm" は 8px 固定のため、
-          // サムネイルの幅では比率が合わない。
-          radius="none"
-          shadow="none"
+        {/* 角丸はカードモーダルの画像と同じ指定方法(className で明示)に揃える。
+            decoding は getImageProps が async にする。開いた直後は複数枚の画像が同時に
+            届くので、同期デコードだとその分だけメインスレッドが止まり、モーダルの
+            アニメーションがカクつく。 */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          {...cardImageProps(src, alt, "thumbnail")}
           alt={alt}
-          src={src}
-          // 開いた直後は複数枚の画像が同時に届く。同期デコードだとその分だけ
-          // メインスレッドが止まり、モーダルのアニメーションがカクつく。
-          decoding="async"
-          classNames={{ wrapper: "w-full !max-w-full" }}
-          className={`w-full ${CARD_RADIUS_CLASS}`}
+          className={`h-auto w-full ${CARD_RADIUS_CLASS}`}
           onLoad={() => setLoaded(true)}
         />
       </div>
@@ -392,12 +386,16 @@ export default function DeckCardDetailRow({ code }: Props) {
       const url = uniqueUrls[cursor];
       cursor += 1;
 
+      // サムネイルと同じ srcset を持たせ、ブラウザに同じ候補(端末の DPR に応じた幅)を
+      // 選ばせる。表示のときにキャッシュが当たるのはこの候補が一致しているから
+      const { src, srcSet } = cardImageProps(url, "", "thumbnail");
       const img = new window.Image();
       img.decoding = "async";
       const next = () => scheduleIdle(preloadNext);
       img.onload = next;
       img.onerror = next;
-      img.src = url;
+      if (srcSet) img.srcset = srcSet;
+      img.src = src;
     };
 
     timers.push(
@@ -548,15 +546,17 @@ export default function DeckCardDetailRow({ code }: Props) {
           {(onClose) => (
             <>
               <ModalBody>
-                <Image
-                  radius="none"
-                  shadow="none"
-                  alt={pkecard?.card_name}
-                  src={pkecard?.image_url}
-                  onLoad={() => {}}
-                  onClick={onClose}
-                  className="rounded-[20px] cursor-pointer"
-                />
+                {pkecard && (
+                  /* 最適化 API を通した画像(公式サイトの 868px をそのまま読まない)。
+                     幅はカード 1 枚ぶん(24rem)までにして、広い画面で伸びすぎないようにする */
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    {...cardImageProps(pkecard.image_url, pkecard.card_name, "modal", "eager")}
+                    alt={pkecard.card_name}
+                    onClick={onClose}
+                    className="mx-auto h-auto w-full max-w-96 rounded-[20px] cursor-pointer"
+                  />
+                )}
               </ModalBody>
             </>
           )}
@@ -578,15 +578,15 @@ export default function DeckCardDetailRow({ code }: Props) {
           {(onClose) => (
             <>
               <ModalBody>
-                <Image
-                  radius="none"
-                  shadow="none"
-                  alt={card?.card_name}
-                  src={card?.image_url}
-                  onLoad={() => {}}
-                  onClick={onClose}
-                  className="rounded-[20px] cursor-pointer"
-                />
+                {card && (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    {...cardImageProps(card.image_url, card.card_name, "modal", "eager")}
+                    alt={card.card_name}
+                    onClick={onClose}
+                    className="mx-auto h-auto w-full max-w-96 rounded-[20px] cursor-pointer"
+                  />
+                )}
               </ModalBody>
             </>
           )}

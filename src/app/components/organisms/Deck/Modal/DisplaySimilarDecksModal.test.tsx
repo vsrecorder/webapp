@@ -109,6 +109,14 @@ const openModal = async () => {
 const tapCard = (name: string) =>
   fireEvent.click(screen.getByRole("button", { name: `${name}のカード画像を表示する` }));
 
+// 画像は next/image の最適化 API(/_next/image?url=...)を通るので、元の URL は url= の中にある
+const originalSrcOf = (image: HTMLElement) => {
+  const src = image.getAttribute("src") ?? "";
+  expect(src.startsWith("/_next/image?")).toBe(true);
+
+  return decodeURIComponent(src).replace(/^\/_next\/image\?url=/, "").replace(/&w=.*$/, "");
+};
+
 describe("DisplaySimilarDecksModal の差分カード", () => {
   it("入賞デッキにだけあるカードは、その入賞デッキに入っている印刷の画像を出す", async () => {
     stubSimilar(
@@ -124,7 +132,7 @@ describe("DisplaySimilarDecksModal の差分カード", () => {
     const image = await waitFor(() => screen.getByAltText("ロストスイーパー"));
 
     // 代表画像(images)ではなく、添えられた印刷の画像
-    expect(image.getAttribute("src")).toBe(WINNER_PRINT);
+    expect(originalSrcOf(image)).toBe(WINNER_PRINT);
   });
 
   it("自分のデッキにだけあるカードは、自分のデッキに入っている印刷の画像を出す", async () => {
@@ -140,7 +148,7 @@ describe("DisplaySimilarDecksModal の差分カード", () => {
 
     const image = await waitFor(() => screen.getByAltText("ネストボール"));
 
-    expect(image.getAttribute("src")).toBe(SOURCE_PRINT);
+    expect(originalSrcOf(image)).toBe(SOURCE_PRINT);
   });
 
   // 画像は応答に入っているので、タップしても何も取りに行かない(以前はデッキの内訳を引いていた)
@@ -175,7 +183,28 @@ describe("DisplaySimilarDecksModal の差分カード", () => {
 
     const image = await waitFor(() => screen.getByAltText("ロストスイーパー"));
 
-    expect(image.getAttribute("src")).toBe(REPRESENTATIVE);
+    expect(originalSrcOf(image)).toBe(REPRESENTATIVE);
+  });
+
+  // URL はあるが読めなかった(404 など)。骨格のまま待たせない
+  it("画像を読めなかったときは、見つからなかったことを伝える", async () => {
+    stubSimilar(
+      similarBody({
+        in: [{ name: "ロストスイーパー", imageUrl: WINNER_PRINT }],
+        out: [],
+      }),
+    );
+    await openModal();
+
+    tapCard("ロストスイーパー");
+
+    fireEvent.error(await waitFor(() => screen.getByAltText("ロストスイーパー")));
+
+    await waitFor(() =>
+      expect(
+        screen.getByText("「ロストスイーパー」のカード画像が見つかりませんでした"),
+      ).toBeTruthy(),
+    );
   });
 
   it("印刷の画像も代表画像も無ければ、見つからなかったことを伝える", async () => {
@@ -212,7 +241,7 @@ describe("DisplaySimilarDecksModal の差分カード", () => {
 
     const image = await waitFor(() => screen.getByAltText("ネストボール"));
 
-    expect(image.getAttribute("src")).toBe(SOURCE_PRINT);
+    expect(originalSrcOf(image)).toBe(SOURCE_PRINT);
     expect(screen.queryByAltText("ロストスイーパー")).toBeNull();
   });
 });

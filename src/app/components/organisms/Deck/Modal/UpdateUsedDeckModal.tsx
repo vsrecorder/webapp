@@ -2,6 +2,7 @@ import useSWR from "swr";
 
 import WindowedSelect from "react-windowed-select";
 import Select from "react-select";
+import PulseSkeleton from "@app/components/molecules/Skeleton/PulseSkeleton";
 import { Modal } from "@app/components/atoms/AppModal";
 import DeckSprites from "@app/components/molecules/DeckSprites";
 import { reactSelectTheme } from "@app/components/molecules/Select/reactSelectStyles";
@@ -12,7 +13,6 @@ import { useEffect, useRef, useState } from "react";
 import { addToast, closeToast } from "@heroui/react";
 import { Image } from "@heroui/react";
 import { Button } from "@heroui/react";
-import { Skeleton } from "@heroui/react";
 
 import { CgSearch } from "react-icons/cg";
 import { LuStar } from "react-icons/lu";
@@ -597,7 +597,7 @@ export default function UpdateUsedDeckModal({
                                 <span className="pt-1">
                                   <div className="relative w-full aspect-2/1 overflow-hidden">
                                     {!imageLoadedForDeck && (
-                                      <Skeleton className="absolute inset-0 rounded-lg" />
+                                      <PulseSkeleton className="absolute inset-0 rounded-lg" />
                                     )}
                                     <Image
                                       radius="none"
@@ -692,7 +692,7 @@ export default function UpdateUsedDeckModal({
                                 <span className="pt-1">
                                   <div className="relative w-full aspect-2/1">
                                     {!imageLoadedForDeckCode && (
-                                      <Skeleton className="absolute inset-0 rounded-lg" />
+                                      <PulseSkeleton className="absolute inset-0 rounded-lg" />
                                     )}
                                     <Image
                                       radius="none"
@@ -723,7 +723,7 @@ export default function UpdateUsedDeckModal({
 
                 <div className="relative w-full aspect-2/1">
                   {!imageLoadedForDeckCode && (
-                    <Skeleton className="absolute inset-0 rounded-lg" />
+                    <PulseSkeleton className="absolute inset-0 rounded-lg" />
                   )}
                   <Image
                     radius="sm"

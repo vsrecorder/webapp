@@ -10,7 +10,6 @@ import {
   Button,
   Input,
   Image,
-  Skeleton,
   Link,
   useDisclosure,
   addToast,
@@ -19,6 +18,7 @@ import {
 import { LuLayers } from "react-icons/lu";
 import { sendGAEvent } from "@next/third-parties/google";
 
+import PulseSkeleton from "@app/components/molecules/Skeleton/PulseSkeleton";
 import { Modal } from "@app/components/atoms/AppModal";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import PokemonSpriteModal from "@app/components/organisms/Match/Modal/PokemonSpriteModal";
@@ -312,7 +312,7 @@ export default function DeckCodeQuickStartModal({ isOpen, onOpenChange }: Props)
 
                 {deckCode ? (
                   <div className="relative w-full aspect-2/1">
-                    {!imageLoaded && <Skeleton className="absolute inset-0 rounded-lg" />}
+                    {!imageLoaded && <PulseSkeleton className="absolute inset-0 rounded-lg" />}
                     <Image
                       radius="sm"
                       shadow="none"

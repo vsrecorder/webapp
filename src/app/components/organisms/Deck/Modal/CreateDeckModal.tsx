@@ -10,13 +10,13 @@ import { Input } from "@heroui/react";
 //import { Checkbox } from "@heroui/react";
 import { Link } from "@heroui/react";
 import { addToast, closeToast } from "@heroui/react";
-import { Skeleton } from "@heroui/react";
 import { useDisclosure } from "@heroui/react";
 
 import { LuLayers } from "react-icons/lu";
 
 import { sendGAEvent } from "@next/third-parties/google";
 
+import PulseSkeleton from "@app/components/molecules/Skeleton/PulseSkeleton";
 import { Modal } from "@app/components/atoms/AppModal";
 import PokemonSpriteModal from "@app/components/organisms/Match/Modal/PokemonSpriteModal";
 
@@ -430,7 +430,7 @@ export default function CreateDeckModal({
 
                 {deckcode ? (
                   <div className="relative w-full aspect-2/1">
-                    {!imageLoaded && <Skeleton className="absolute inset-0 rounded-lg" />}
+                    {!imageLoaded && <PulseSkeleton className="absolute inset-0 rounded-lg" />}
                     <Image
                       radius="sm"
                       shadow="none"

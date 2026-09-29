@@ -1,10 +1,10 @@
 import { useState } from "react";
 
-import { Skeleton } from "@heroui/react";
 import { Image } from "@heroui/react";
 
 import { ModalContent, ModalHeader, ModalBody } from "@heroui/react";
 
+import PulseSkeleton from "@app/components/molecules/Skeleton/PulseSkeleton";
 import { Modal } from "@app/components/atoms/AppModal";
 import InspectDeck from "@app/components/organisms/Deck/InspectDeck";
 import CopyableDeckCode from "@app/components/atoms/CopyableDeckCode";
@@ -83,7 +83,7 @@ export default function InspectDeckModal({
                 ) : (
                   <div className="relative w-full aspect-2/1">
                     {!imageLoaded && (
-                      <Skeleton className="absolute inset-0 rounded-lg" />
+                      <PulseSkeleton className="absolute inset-0 rounded-lg" />
                     )}
                     <Image
                       radius="sm"

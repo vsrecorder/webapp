@@ -6,11 +6,11 @@ import { Input } from "@heroui/react";
 import { Textarea } from "@heroui/react";
 //import { Checkbox } from "@heroui/react";
 import { Image } from "@heroui/react";
-import { Skeleton } from "@heroui/react";
 import { Link } from "@heroui/react";
 
 import { addToast, closeToast } from "@heroui/react";
 
+import PulseSkeleton from "@app/components/molecules/Skeleton/PulseSkeleton";
 import { Modal } from "@app/components/atoms/AppModal";
 import DeckCardDiff from "@app/components/organisms/Deck/DeckCardDiff";
 
@@ -281,7 +281,7 @@ export default function CreateDeckCodeModal({
                 */}
 
                 <div className="relative w-full aspect-2/1">
-                  {!imageLoaded && <Skeleton className="absolute inset-0 rounded-lg" />}
+                  {!imageLoaded && <PulseSkeleton className="absolute inset-0 rounded-lg" />}
                   <Image
                     radius="sm"
                     shadow="none"

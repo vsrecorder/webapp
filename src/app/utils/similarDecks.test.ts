@@ -233,6 +233,70 @@ describe("parseSimilarDecksResponse", () => {
     expect(parseSimilarDecksResponse(body)?.images).toEqual({});
   });
 
+  /*
+   * 差分カードに添えられた「そのデッキに入っている印刷」の画像。差分カードのタグを
+   * タップしたときの画像はここから出す(images は種類の代表画像で絵柄が違うことがある)
+   */
+  it("差分カードの印刷の画像(cards.in / cards.out)を読む", () => {
+    const row = body.similar[0];
+    const withCards = {
+      ...body,
+      similar: [
+        {
+          ...row,
+          cards: {
+            in: [{ key: "k1", name: "リーリエのピッピex", imageUrl: "https://www.pokemon-card.com/a.jpg" }],
+            out: [
+              { key: "k2", name: "ふしぎなアメ", imageUrl: "https://www.pokemon-card.com/b.jpg" },
+              // 索引に画像が無いカード
+              { key: "k3", name: "アカマツ", imageUrl: null },
+            ],
+          },
+        },
+      ],
+    };
+
+    expect(parseSimilarDecksResponse(withCards)?.similar[0].cards).toEqual({
+      in: [{ name: "リーリエのピッピex", imageUrl: "https://www.pokemon-card.com/a.jpg" }],
+      out: [
+        { name: "ふしぎなアメ", imageUrl: "https://www.pokemon-card.com/b.jpg" },
+        { name: "アカマツ", imageUrl: null },
+      ],
+    });
+  });
+
+  // cards を付ける前の古い応答は、diffIn / diffOut の名前だけで組む(画像は null)
+  it("cards が無ければ diffIn / diffOut の名前だけの差分カードにする", () => {
+    expect(parseSimilarDecksResponse(body)?.similar[0].cards).toEqual({
+      in: [{ name: "リーリエのピッピex", imageUrl: null }],
+      out: [
+        { name: "ふしぎなアメ", imageUrl: null },
+        { name: "アカマツ", imageUrl: null },
+      ],
+    });
+  });
+
+  it("差分カードの画像は http(s) の URL だけ通す", () => {
+    const row = body.similar[0];
+    const withCards = {
+      ...body,
+      similar: [
+        {
+          ...row,
+          cards: {
+            in: [{ name: "リーリエのピッピex", imageUrl: "javascript:alert(1)" }, "壊れた要素", { imageUrl: "x" }],
+            out: [],
+          },
+        },
+      ],
+    };
+
+    expect(parseSimilarDecksResponse(withCards)?.similar[0].cards).toEqual({
+      in: [{ name: "リーリエのピッピex", imageUrl: null }],
+      out: [],
+    });
+  });
+
   it("検索元が無い・形が違う応答は null", () => {
     expect(parseSimilarDecksResponse(null)).toBeNull();
     expect(parseSimilarDecksResponse({ error: "not found" })).toBeNull();
@@ -256,6 +320,20 @@ describe("readSimilarDecksBody", () => {
     });
     expect(read?.similar[0].archetype.label).toBe("ドラパルトex バシャーモ型");
     expect(read?.similar[0].archetype.sprites).toEqual(["0887", "0257"]);
+  });
+
+  // cards を付ける前の BFF の応答が Data Cache に残っていることがある
+  it("cards の無い BFF の応答は、名前だけの差分カードを補って読む", () => {
+    const bff = JSON.parse(JSON.stringify(parseSimilarDecksResponse(body)));
+    delete bff.similar[0].cards;
+
+    expect(readSimilarDecksBody(bff)?.similar[0].cards).toEqual({
+      in: [{ name: "リーリエのピッピex", imageUrl: null }],
+      out: [
+        { name: "ふしぎなアメ", imageUrl: null },
+        { name: "アカマツ", imageUrl: null },
+      ],
+    });
   });
 
   it("parse 済みの形をもう一度 parseSimilarDecksResponse に通すと種類が消える(使ってはいけない理由)", () => {

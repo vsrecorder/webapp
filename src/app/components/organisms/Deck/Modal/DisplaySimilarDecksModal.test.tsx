@@ -4,36 +4,42 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import DisplaySimilarDecksModal from "@app/components/organisms/Deck/Modal/DisplaySimilarDecksModal";
 
-import { clearDeckCardImageMapCache } from "@app/utils/deckCardImages";
-
 /*
  * 差分カードのタグをタップしたら、そのカードの画像が出ることの確認。
  *
- * ふつうはバトラボが差分カードのぶんの画像 URL(images)を添えてくるので、それを引く。
- * 添えられていないときだけ、そのカードが入っているデッキの内訳から引き直す。このとき
- * 見るべきは「どちらのデッキの内訳を引くか」で、入賞デッキにだけあるカードは入賞デッキ、
- * 検索元のデッキにだけあるカードは検索元のデッキを引く(取り違えると、そのデッキに無い
- * カードを探すことになり画像が出ない)。
+ * 画像 URL はバトラボが差分カードに添えてくる(cards.in / cards.out。そのデッキに入っている
+ * 印刷の画像)。それをそのまま出し、どこにも取りに行かない。添えられていないカードだけ
+ * images(種類の代表画像)を控えにし、それも無ければ見つからなかったと伝える
  */
 
 const SOURCE_CODE = "aaaaaa-bbbbbb-cccccc";
 const WINNER_CODE = "dddddd-eeeeee-ffffff";
 const IMAGE_BASE = "https://www.pokemon-card.com/assets/images/card_images/large";
 
+// 入賞デッキの印刷・自分のデッキの印刷・カードマスタの代表画像は、どれも別の絵柄にしておく
+const WINNER_PRINT = `${IMAGE_BASE}/MC/winner-lost-sweeper.jpg`;
+const SOURCE_PRINT = `${IMAGE_BASE}/M-P/source-nest-ball.jpg`;
+const REPRESENTATIVE = `${IMAGE_BASE}/SV6/representative.jpg`;
+
+const archetype = {
+  archetypeId: "dragapult",
+  archetypeName: "ドラパルトex",
+  variantName: null,
+  label: "ドラパルトex",
+  sprites: [],
+};
+
 // BFF(/api/deckcards/{code}/similar)が返す形。表示に要る項目だけ
-const similarBody = {
+const similarBody = (cards: {
+  in: { name: string; imageUrl: string | null }[];
+  out: { name: string; imageUrl: string | null }[];
+}) => ({
   source: {
     deckCode: SOURCE_CODE,
     origin: "external",
     environmentId: "m6a",
     environmentTitle: "30th CELEBRATION",
-    archetype: {
-      archetypeId: "dragapult",
-      archetypeName: "ドラパルトex",
-      variantName: null,
-      label: "ドラパルトex",
-      sprites: [],
-    },
+    archetype,
     archetypeSkipped: false,
     placements: 0,
     unresolved: [],
@@ -47,45 +53,16 @@ const similarBody = {
       prefectureName: "東京都",
       leagueName: "シティリーグ",
       rank: 1,
-      diffIn: ["ロストスイーパー"],
-      diffOut: ["ネストボール"],
-      archetype: {
-        archetypeId: "dragapult",
-        archetypeName: "ドラパルトex",
-        variantName: null,
-        label: "ドラパルトex",
-        sprites: [],
-      },
+      diffIn: cards.in.map((c) => c.name),
+      diffOut: cards.out.map((c) => c.name),
+      cards,
+      archetype,
       sameArchetype: true,
       sameList: false,
     },
   ],
   candidates: 120,
-};
-
-const card = (name: string, id: string) => ({
-  card_id: id,
-  card_name: name,
-  card_count: 1,
-  detail_url: "",
-  image_url: `${IMAGE_BASE}/${id}.jpg`,
-});
-
-const detailOf = (cards: ReturnType<typeof card>[]) => ({
-  card_pke: [],
-  card_pke_count: 0,
-  card_gds: cards,
-  card_gds_count: cards.length,
-  card_tool: [],
-  card_tool_count: 0,
-  card_tech: [],
-  card_tech_count: 0,
-  card_sup: [],
-  card_sup_count: 0,
-  card_sta: [],
-  card_sta_count: 0,
-  card_ene: [],
-  card_ene_count: 0,
+  images: { ロストスイーパー: REPRESENTATIVE, ネストボール: REPRESENTATIVE },
 });
 
 const json = (body: unknown) =>
@@ -93,30 +70,19 @@ const json = (body: unknown) =>
 
 let requested: string[] = [];
 
-beforeEach(() => {
-  requested = [];
-  // 内訳はデッキコードごとに覚えられるので、テストごとに捨てる
-  clearDeckCardImageMapCache();
-
+const stubSimilar = (body: unknown) => {
   vi.stubGlobal(
     "fetch",
     vi.fn(async (input: string) => {
-      const url = String(input);
-      requested.push(url);
+      requested.push(String(input));
 
-      if (url.includes("/similar")) return json(similarBody);
-
-      if (url.includes("/detail")) {
-        return json(
-          url.includes(WINNER_CODE)
-            ? detailOf([card("ロストスイーパー", "5")])
-            : detailOf([card("ネストボール", "3")]),
-        );
-      }
-
-      return json({});
+      return json(body);
     }),
   );
+};
+
+beforeEach(() => {
+  requested = [];
 });
 
 afterEach(() => {
@@ -143,103 +109,80 @@ const openModal = async () => {
 const tapCard = (name: string) =>
   fireEvent.click(screen.getByRole("button", { name: `${name}のカード画像を表示する` }));
 
-const IMAGE_FROM_VSLAB = `${IMAGE_BASE}/from-vslab.jpg`;
-
 describe("DisplaySimilarDecksModal の差分カード", () => {
-  /*
-   * バトラボが添えてくる画像 URL。鍵は差分カードの名前そのもので、技名が付くことがある。
-   * デッキの内訳(card_name)とは一致しないので、内訳から引き直してはいけない
-   */
-  it("バトラボが画像を添えていれば、内訳を引かずにそれを出す", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async (input: string) => {
-        const url = String(input);
-        requested.push(url);
-
-        if (url.includes("/similar")) {
-          return json({
-            ...similarBody,
-            images: { ロストスイーパー: IMAGE_FROM_VSLAB },
-          });
-        }
-
-        return json(detailOf([card("ロストスイーパー", "5")]));
+  it("入賞デッキにだけあるカードは、その入賞デッキに入っている印刷の画像を出す", async () => {
+    stubSimilar(
+      similarBody({
+        in: [{ name: "ロストスイーパー", imageUrl: WINNER_PRINT }],
+        out: [{ name: "ネストボール", imageUrl: SOURCE_PRINT }],
       }),
     );
-
     await openModal();
 
     tapCard("ロストスイーパー");
 
     const image = await waitFor(() => screen.getByAltText("ロストスイーパー"));
 
-    expect(image.getAttribute("src")).toBe(IMAGE_FROM_VSLAB);
-    expect(requested.some((url) => url.includes("/detail"))).toBe(false);
+    // 代表画像(images)ではなく、添えられた印刷の画像
+    expect(image.getAttribute("src")).toBe(WINNER_PRINT);
   });
 
+  it("自分のデッキにだけあるカードは、自分のデッキに入っている印刷の画像を出す", async () => {
+    stubSimilar(
+      similarBody({
+        in: [{ name: "ロストスイーパー", imageUrl: WINNER_PRINT }],
+        out: [{ name: "ネストボール", imageUrl: SOURCE_PRINT }],
+      }),
+    );
+    await openModal();
 
-  it("入賞デッキにだけあるカードは、その入賞デッキの内訳から画像を出す", async () => {
+    tapCard("ネストボール");
+
+    const image = await waitFor(() => screen.getByAltText("ネストボール"));
+
+    expect(image.getAttribute("src")).toBe(SOURCE_PRINT);
+  });
+
+  // 画像は応答に入っているので、タップしても何も取りに行かない(以前はデッキの内訳を引いていた)
+  it("タップしても追加の取得をしない", async () => {
+    stubSimilar(
+      similarBody({
+        in: [{ name: "ロストスイーパー", imageUrl: WINNER_PRINT }],
+        out: [],
+      }),
+    );
+    await openModal();
+    const before = requested.length;
+
+    tapCard("ロストスイーパー");
+    await waitFor(() => screen.getByAltText("ロストスイーパー"));
+
+    expect(requested.length).toBe(before);
+    expect(requested.every((url) => url.includes("/similar"))).toBe(true);
+  });
+
+  // 印刷の画像が無いカード(索引に画像が無い・cards を返す前の古い応答)は代表画像で代える
+  it("印刷の画像が無ければ、バトラボの代表画像を出す", async () => {
+    stubSimilar(
+      similarBody({
+        in: [{ name: "ロストスイーパー", imageUrl: null }],
+        out: [],
+      }),
+    );
     await openModal();
 
     tapCard("ロストスイーパー");
 
     const image = await waitFor(() => screen.getByAltText("ロストスイーパー"));
 
-    expect(image.getAttribute("src")).toBe(`${IMAGE_BASE}/5.jpg`);
-    expect(requested.some((url) => url.includes(`${WINNER_CODE}/detail`))).toBe(true);
+    expect(image.getAttribute("src")).toBe(REPRESENTATIVE);
   });
 
-  it("検索元のデッキにだけあるカードは、検索元の内訳から画像を出す", async () => {
-    await openModal();
-
-    tapCard("ネストボール");
-
-    const image = await waitFor(() => screen.getByAltText("ネストボール"));
-
-    expect(image.getAttribute("src")).toBe(`${IMAGE_BASE}/3.jpg`);
-    expect(requested.some((url) => url.includes(`${SOURCE_CODE}/detail`))).toBe(true);
-  });
-
-  /*
-   * 差分カードの名前(バトラボのカードマスタ)と内訳の名前(deckcard-api)は出どころが違うので、
-   * 突き合わせられないことがありうる。そのときは骨格のまま待たせず、見つからなかったと伝える
-   */
-  /*
-   * 内訳の取得は前の結果を持ったまま走るので、そのまま出すと別のカードを開いた瞬間に
-   * 前のカードの画像が見えてしまう
-   */
-  it("別のカードを開いたとき、前のカードの画像を出したままにしない", async () => {
-    await openModal();
-
-    tapCard("ロストスイーパー");
-    await waitFor(() => expect(screen.getByAltText("ロストスイーパー")).toBeTruthy());
-
-    // 画像をタップして閉じ、続けて別のデッキの差分カードを開く
-    fireEvent.click(screen.getByAltText("ロストスイーパー"));
-    tapCard("ネストボール");
-
-    // 内訳を引き直しているあいだは画像を出さない(出すと前のカードの絵が見えてしまう)
-    expect(screen.queryByAltText("ネストボール")).toBeNull();
-
-    const image = await waitFor(() => screen.getByAltText("ネストボール"));
-
-    expect(image.getAttribute("src")).toBe(`${IMAGE_BASE}/3.jpg`);
-  });
-
-  it("内訳に見当たらないカードは、見つからなかったことを伝える", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async (input: string) => {
-        const url = String(input);
-
-        if (url.includes("/similar")) return json(similarBody);
-        if (url.includes("/detail")) return json(detailOf([]));
-
-        return json({});
-      }),
-    );
-
+  it("印刷の画像も代表画像も無ければ、見つからなかったことを伝える", async () => {
+    stubSimilar({
+      ...similarBody({ in: [{ name: "ロストスイーパー", imageUrl: null }], out: [] }),
+      images: {},
+    });
     await openModal();
 
     tapCard("ロストスイーパー");
@@ -249,5 +192,27 @@ describe("DisplaySimilarDecksModal の差分カード", () => {
         screen.getByText("「ロストスイーパー」のカード画像が見つかりませんでした"),
       ).toBeTruthy(),
     );
+  });
+
+  it("別のカードを開いたとき、前のカードの画像を出したままにしない", async () => {
+    stubSimilar(
+      similarBody({
+        in: [{ name: "ロストスイーパー", imageUrl: WINNER_PRINT }],
+        out: [{ name: "ネストボール", imageUrl: SOURCE_PRINT }],
+      }),
+    );
+    await openModal();
+
+    tapCard("ロストスイーパー");
+    await waitFor(() => expect(screen.getByAltText("ロストスイーパー")).toBeTruthy());
+
+    // 画像をタップして閉じ、続けて別のカードを開く
+    fireEvent.click(screen.getByAltText("ロストスイーパー"));
+    tapCard("ネストボール");
+
+    const image = await waitFor(() => screen.getByAltText("ネストボール"));
+
+    expect(image.getAttribute("src")).toBe(SOURCE_PRINT);
+    expect(screen.queryByAltText("ロストスイーパー")).toBeNull();
   });
 });

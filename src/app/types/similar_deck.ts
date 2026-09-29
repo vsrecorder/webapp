@@ -17,6 +17,13 @@ export type SimilarDeckArchetypeType = {
   sprites: string[];
 };
 
+// 差分カード 1 種類。imageUrl はそのカードが入っているデッキの印刷(絵柄)の画像。
+// バトラボの索引に画像が無いカード・cards を返す前の古い応答では null
+export type SimilarDiffCardType = {
+  name: string;
+  imageUrl: string | null;
+};
+
 // 構成が近い入賞デッキ 1 件
 export type SimilarDeckType = {
   // 行を見分ける ID(バトラボの索引の文書 ID)。自分のデッキと同じコードの入賞は大会ごとに
@@ -35,6 +42,12 @@ export type SimilarDeckType = {
   diffIn: string[];
   // 自分のデッキにあって入賞デッキに無い(または少ない)カード名。最大 6 種類
   diffOut: string[];
+  /*
+   * diffIn / diffOut と同じ差分に、画像を添えたもの。差分カードのタグをタップしたときの
+   * 画像はここから出す。in はその入賞デッキに入っている印刷、out は自分のデッキに入っている
+   * 印刷なので、カードリストに並ぶ絵柄と一致する(images は種類の代表画像で、絵柄が違うことがある)
+   */
+  cards: { in: SimilarDiffCardType[]; out: SimilarDiffCardType[] };
   archetype: SimilarDeckArchetypeType;
   // 検索元と同じ主デッキか(型は問わない)。どちらかが未分類なら false
   sameArchetype: boolean;
@@ -68,12 +81,9 @@ export type SimilarDecksGetResponseType = {
   // 類似度を計算した候補の数
   candidates: number;
   /*
-   * カード名 → カード画像(公式サイト)の URL。差分カード(diffIn / diffOut)に出るカードの分だけ
-   * バトラボが添えてくる。差分カードのタグをタップしたときの画像はここから引く。
-   *
-   * 鍵は diffIn / diffOut の要素そのもの(バトラボの表示名)。技名の付く「ドロンチ(ていさつしれい)」の
-   * ような名前もあり、デッキの内訳(deckcard-api)の card_name とは一致しないので、
-   * 内訳から引き直そうとしてはいけない。古いバトラボの応答には無いので省略可
+   * カード名 → カードマスタの代表画像(公式サイト)の URL。差分カードに出るカードの分だけ
+   * バトラボが添えてくる。デッキに入っている印刷とは限らない(絵柄違い)ので、
+   * cards[].imageUrl が無いときの控えにだけ使う。鍵は diffIn / diffOut の要素そのもの
    */
   images?: Record<string, string>;
 };

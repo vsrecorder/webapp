@@ -14,7 +14,6 @@ import CardImageZoomOverlay from "@app/components/molecules/CardImageZoomOverlay
 import DeckSprites from "@app/components/molecules/DeckSprites";
 import FetchError from "@app/components/molecules/FetchError";
 
-import { DeckCardImageTarget, useDeckCardImage } from "@app/hooks/useDeckCardImage";
 import { useSimilarDecks } from "@app/hooks/useSimilarDecks";
 import { useModalDragToClose } from "@app/hooks/useModalDragToClose";
 import { useModalEntered } from "@app/hooks/useModalEntered";
@@ -23,6 +22,7 @@ import {
   SimilarDeckType,
   SimilarDecksGetResponseType,
   SimilarDecksSourceType,
+  SimilarDiffCardType,
 } from "@app/types/similar_deck";
 
 import { cityleagueRankLabel } from "@app/utils/cityleagueRank";
@@ -40,9 +40,8 @@ import {
  *
  * 中身はバトラボの類似デッキ検索(BFF: /api/deckcards/{code}/similar)。類似度の高い順に
  * 並び、各行にデッキの種類(バトラボの分類)・自分のデッキとの差分カード・デッキ画像・
- * デッキコードを添える。差分カードのタグはタップするとそのカードの画像を全画面で出す
- * (画像の URL はカード名からは引けないので、そのカードが入っているデッキの内訳を経由する。
- * useDeckCardImage を参照)。デッキ画像は最初から出す(見比べるのに画像がいちばん早い)。
+ * デッキコードを添える。差分カードのタグはタップするとそのカードの画像を出す
+ * (バトラボがそのデッキに入っている印刷の画像 URL を添えてくる。cards[].imageUrl)。デッキ画像は最初から出す(見比べるのに画像がいちばん早い)。
  * 画面外の行の画像は lazy にして、開いた直後に 12 枚ぶんを一度に取りにいかない。
  *
  * 取りにいくのはシートを開いたとき。デッキ詳細を開いただけでは、デッキの中身を
@@ -128,40 +127,35 @@ function SourceSummary({
 
 /*
  * 差分カードの 1 段。見出しとカード名のタグを並べる。
- *
- * タグはタップでそのカードの画像を出す。画像はカード名だけでは引けないので、その段の
- * カードが入っているデッキ(入賞デッキにだけあるカードなら入賞デッキ、検索元にだけある
- * カードなら検索元のデッキ)のコードを添えて呼び出し側へ渡す。
+ * タグはタップでそのカードの画像(そのデッキに入っている印刷。バトラボが添えてくる)を出す
  */
 function DiffCards({
   label,
-  names,
+  cards,
   sign,
   chipClassName,
-  deckCode,
   onSelectCard,
 }: {
   label: string;
-  names: string[];
+  cards: SimilarDiffCardType[];
   sign: string;
   chipClassName: string;
-  deckCode: string;
-  onSelectCard: (card: DeckCardImageTarget) => void;
+  onSelectCard: (card: SimilarDiffCardType) => void;
 }) {
   return (
     <div>
       <div className="text-[11px] font-bold text-default-500">{label}</div>
       <div className="mt-0.5 flex flex-wrap gap-1">
-        {names.map((name) => (
+        {cards.map((card) => (
           <button
-            key={name}
+            key={card.name}
             type="button"
-            onClick={() => onSelectCard({ deckCode, cardName: name })}
-            aria-label={`${name}のカード画像を表示する`}
+            onClick={() => onSelectCard(card)}
+            aria-label={`${card.name}のカード画像を表示する`}
             className={`cursor-zoom-in rounded-md px-1.5 py-1 text-[11px] active:opacity-70 ${chipClassName}`}
           >
             {sign}
-            {name}
+            {card.name}
           </button>
         ))}
       </div>
@@ -171,22 +165,20 @@ function DiffCards({
 
 function SimilarDeckRow({
   deck,
-  sourceDeckCode,
   sourceArchetypeId,
   environmentId,
   sourceLabel,
   onSelectCard,
 }: {
   deck: SimilarDeckType;
-  sourceDeckCode: string;
   sourceArchetypeId: string | null;
   environmentId: string;
   sourceLabel: string;
-  onSelectCard: (card: DeckCardImageTarget) => void;
+  onSelectCard: (card: SimilarDiffCardType) => void;
 }) {
   const percent = percentLabel(deck.similarity);
   const archetypeName = similarDeckArchetypeName(deck.archetype);
-  const hasDiff = deck.diffIn.length > 0 || deck.diffOut.length > 0;
+  const hasDiff = deck.cards.in.length > 0 || deck.cards.out.length > 0;
 
   return (
     <li className="flex flex-col gap-2 border-t border-divider py-3 first:border-t-0">
@@ -231,23 +223,21 @@ function SimilarDeckRow({
             上下の段に分ける(1 行に混ぜると、どちらのカードか色でしか見分けられないため) */}
         {hasDiff && (
           <div className="mt-2 flex flex-col gap-1.5">
-            {deck.diffIn.length > 0 && (
+            {deck.cards.in.length > 0 && (
               <DiffCards
                 label="入賞デッキにだけある"
-                names={deck.diffIn}
+                cards={deck.cards.in}
                 sign="+"
                 chipClassName="bg-success-50 text-success-700"
-                deckCode={deck.deckCode}
                 onSelectCard={onSelectCard}
               />
             )}
-            {deck.diffOut.length > 0 && (
+            {deck.cards.out.length > 0 && (
               <DiffCards
                 label={`${sourceLabel}にだけある`}
-                names={deck.diffOut}
+                cards={deck.cards.out}
                 sign="−"
                 chipClassName="bg-danger-50 text-danger-700"
-                deckCode={sourceDeckCode}
                 onSelectCard={onSelectCard}
               />
             )}
@@ -288,28 +278,23 @@ function SimilarDecksList({
    * タップされた差分カード。閉じても残すのは、退場アニメーションのあいだも画像を出したままに
    * するため(消してしまうと、画像だけ先に消えて空の枠が縮んでいく)。開いているかは別に持つ
    */
-  const [selectedCard, setSelectedCard] = useState<DeckCardImageTarget | null>(null);
+  const [selectedCard, setSelectedCard] = useState<SimilarDiffCardType | null>(null);
   const [isCardImageOpen, setIsCardImageOpen] = useState(false);
 
   /*
-   * カード画像の URL。ふつうはバトラボが差分カードのぶんを添えてくる(images)ので、
-   * タップした瞬間に出せる。
-   *
-   * 添えられていないカード(古い応答・バトラボのカードマスタに画像が無いカード)だけ、
-   * そのカードが入っているデッキの内訳から引き直す(useDeckCardImage)。ただし差分カードの
-   * 名前は「ドロンチ(ていさつしれい)」のように技名が付くことがあり、内訳の card_name とは
-   * 一致しないので、これは当てにできる道ではない
+   * カード画像の URL。差分カードにはバトラボが「そのデッキに入っている印刷」の画像を
+   * 添えてくる(cards[].imageUrl)ので、タップした瞬間に出せる。
+   * 無いとき(索引に画像が無いカード・cards を返す前の古い応答)は images(種類の代表画像)を
+   * 控えにする。代表画像は絵柄が違うことがあるので、あくまで控え
    */
-  const knownImageUrl = selectedCard ? (images?.[selectedCard.cardName] ?? null) : null;
-  const cardImage = useDeckCardImage(knownImageUrl ? null : selectedCard);
-  /*
-   * 取得中は前のカードの URL を使わない。useDeckCardImage は取り直しのあいだ前の結果を
-   * 持ったままなので、そのまま渡すと別のカードを開いた瞬間に前のカードの画像が出てしまう
-   */
-  const cardImageUrl = knownImageUrl ?? (cardImage.loading ? null : (cardImage.data?.url ?? null));
+  const cardImageUrl = selectedCard
+    ? (selectedCard.imageUrl ?? images?.[selectedCard.name] ?? null)
+    : null;
 
   // 差分カードがどこかの行にあるか。タップで画像が出ることの案内を出すかの判定に使う
-  const hasDiffCards = similar.some((deck) => deck.diffIn.length > 0 || deck.diffOut.length > 0);
+  const hasDiffCards = similar.some(
+    (deck) => deck.cards.in.length > 0 || deck.cards.out.length > 0,
+  );
 
   return (
     <>
@@ -331,7 +316,6 @@ function SimilarDecksList({
               <SimilarDeckRow
                 key={deck.entryId}
                 deck={deck}
-                sourceDeckCode={source.deckCode}
                 sourceArchetypeId={source.archetype.archetypeId}
                 environmentId={source.environmentId}
                 sourceLabel={sourceLabel}
@@ -357,11 +341,8 @@ function SimilarDecksList({
       {/* 差分カードのタグをタップしたときのカード画像。カードリストのカードを
           タップしたときと同じモーダルで、このシートの上に重なる */}
       <CardImageZoomOverlay
-        cardName={selectedCard?.cardName ?? ""}
+        cardName={selectedCard?.name ?? ""}
         imageUrl={cardImageUrl}
-        loading={cardImage.loading}
-        error={cardImage.error}
-        onRetry={cardImage.retry}
         isOpen={isCardImageOpen}
         onClose={() => setIsCardImageOpen(false)}
       />

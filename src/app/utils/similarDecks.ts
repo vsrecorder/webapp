@@ -3,6 +3,7 @@ import {
   SimilarDeckType,
   SimilarDecksGetResponseType,
   SimilarDecksSourceType,
+  SimilarDiffCardType,
 } from "@app/types/similar_deck";
 
 import { toJSTDateString } from "@app/utils/date";
@@ -178,6 +179,24 @@ function parseImages(value: unknown): Record<string, string> {
   return images;
 }
 
+/*
+ * 差分カード(名前と、そのデッキに入っている印刷の画像)。
+ * バトラボの cards.in / cards.out を読み、無ければ diffIn / diffOut の名前だけで組む
+ * (画像は null。画面は images の代表画像を控えにする)。画像は http(s) の URL だけ通す
+ */
+function parseDiffCards(value: unknown, names: string[]): SimilarDiffCardType[] {
+  if (!Array.isArray(value)) return names.map((name) => ({ name, imageUrl: null }));
+
+  return value
+    .filter(isRecord)
+    .filter((c): c is Record<string, unknown> & { name: string } => typeof c.name === "string")
+    .map((c) => ({
+      name: c.name,
+      imageUrl:
+        typeof c.imageUrl === "string" && /^https?:\/\//.test(c.imageUrl) ? c.imageUrl : null,
+    }));
+}
+
 function parseSimilarDeck(value: unknown): SimilarDeckType | null {
   if (!isRecord(value)) return null;
   if (typeof value.deckCode !== "string" || value.deckCode === "") return null;
@@ -199,6 +218,13 @@ function parseSimilarDeck(value: unknown): SimilarDeckType | null {
     rank: typeof value.rank === "number" ? value.rank : 0,
     diffIn: stringList(value.diffIn),
     diffOut: stringList(value.diffOut),
+    cards: {
+      in: parseDiffCards(isRecord(value.cards) ? value.cards.in : undefined, stringList(value.diffIn)),
+      out: parseDiffCards(
+        isRecord(value.cards) ? value.cards.out : undefined,
+        stringList(value.diffOut),
+      ),
+    },
     archetype: parseArchetype(value.deckType),
     sameArchetype: value.sameArchetype === true,
     // 同じカードリストの入賞か。sameList を返す前のバトラボ(同じデッキコードだけを見ていた)の
@@ -247,7 +273,24 @@ export function readSimilarDecksBody(body: unknown): SimilarDecksGetResponseType
   if (typeof body.source.deckCode !== "string" || !isRecord(body.source.archetype)) return null;
   if (!Array.isArray(body.similar)) return null;
 
-  return body as SimilarDecksGetResponseType;
+  const data = body as SimilarDecksGetResponseType;
+
+  // cards を付ける前の BFF の応答が Data Cache(10 分)に残っていることがある。
+  // 名前だけの差分カードに組み直して、形を 1 つにそろえる(中身は組み替えない)
+  return {
+    ...data,
+    similar: data.similar.map((deck) =>
+      isRecord(deck.cards)
+        ? deck
+        : {
+            ...deck,
+            cards: {
+              in: parseDiffCards(undefined, deck.diffIn ?? []),
+              out: parseDiffCards(undefined, deck.diffOut ?? []),
+            },
+          },
+    ),
+  };
 }
 
 /*

@@ -9,10 +9,11 @@ import { clearDeckCardImageMapCache } from "@app/utils/deckCardImages";
 /*
  * 差分カードのタグをタップしたら、そのカードの画像が出ることの確認。
  *
- * 見るべきは「どちらのデッキの内訳を引くか」。カード名から画像は引けないので、
- * 入賞デッキにだけあるカードは入賞デッキの内訳、検索元のデッキにだけあるカードは
- * 検索元のデッキの内訳を引く(取り違えると、そのデッキに無いカードを探すことになり
- * いつまでも画像が出ない)。
+ * ふつうはバトラボが差分カードのぶんの画像 URL(images)を添えてくるので、それを引く。
+ * 添えられていないときだけ、そのカードが入っているデッキの内訳から引き直す。このとき
+ * 見るべきは「どちらのデッキの内訳を引くか」で、入賞デッキにだけあるカードは入賞デッキ、
+ * 検索元のデッキにだけあるカードは検索元のデッキを引く(取り違えると、そのデッキに無い
+ * カードを探すことになり画像が出ない)。
  */
 
 const SOURCE_CODE = "aaaaaa-bbbbbb-cccccc";
@@ -142,7 +143,42 @@ const openModal = async () => {
 const tapCard = (name: string) =>
   fireEvent.click(screen.getByRole("button", { name: `${name}のカード画像を表示する` }));
 
+const IMAGE_FROM_VSLAB = `${IMAGE_BASE}/from-vslab.jpg`;
+
 describe("DisplaySimilarDecksModal の差分カード", () => {
+  /*
+   * バトラボが添えてくる画像 URL。鍵は差分カードの名前そのもので、技名が付くことがある。
+   * デッキの内訳(card_name)とは一致しないので、内訳から引き直してはいけない
+   */
+  it("バトラボが画像を添えていれば、内訳を引かずにそれを出す", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: string) => {
+        const url = String(input);
+        requested.push(url);
+
+        if (url.includes("/similar")) {
+          return json({
+            ...similarBody,
+            images: { ロストスイーパー: IMAGE_FROM_VSLAB },
+          });
+        }
+
+        return json(detailOf([card("ロストスイーパー", "5")]));
+      }),
+    );
+
+    await openModal();
+
+    tapCard("ロストスイーパー");
+
+    const image = await waitFor(() => screen.getByAltText("ロストスイーパー"));
+
+    expect(image.getAttribute("src")).toBe(IMAGE_FROM_VSLAB);
+    expect(requested.some((url) => url.includes("/detail"))).toBe(false);
+  });
+
+
   it("入賞デッキにだけあるカードは、その入賞デッキの内訳から画像を出す", async () => {
     await openModal();
 
@@ -169,6 +205,28 @@ describe("DisplaySimilarDecksModal の差分カード", () => {
    * 差分カードの名前(バトラボのカードマスタ)と内訳の名前(deckcard-api)は出どころが違うので、
    * 突き合わせられないことがありうる。そのときは骨格のまま待たせず、見つからなかったと伝える
    */
+  /*
+   * 内訳の取得は前の結果を持ったまま走るので、そのまま出すと別のカードを開いた瞬間に
+   * 前のカードの画像が見えてしまう
+   */
+  it("別のカードを開いたとき、前のカードの画像を出したままにしない", async () => {
+    await openModal();
+
+    tapCard("ロストスイーパー");
+    await waitFor(() => expect(screen.getByAltText("ロストスイーパー")).toBeTruthy());
+
+    // 画像をタップして閉じ、続けて別のデッキの差分カードを開く
+    fireEvent.click(screen.getByAltText("ロストスイーパー"));
+    tapCard("ネストボール");
+
+    // 内訳を引き直しているあいだは画像を出さない(出すと前のカードの絵が見えてしまう)
+    expect(screen.queryByAltText("ネストボール")).toBeNull();
+
+    const image = await waitFor(() => screen.getByAltText("ネストボール"));
+
+    expect(image.getAttribute("src")).toBe(`${IMAGE_BASE}/3.jpg`);
+  });
+
   it("内訳に見当たらないカードは、見つからなかったことを伝える", async () => {
     vi.stubGlobal(
       "fetch",

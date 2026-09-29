@@ -67,4 +67,13 @@ export type SimilarDecksGetResponseType = {
   similar: SimilarDeckType[];
   // 類似度を計算した候補の数
   candidates: number;
+  /*
+   * カード名 → カード画像(公式サイト)の URL。差分カード(diffIn / diffOut)に出るカードの分だけ
+   * バトラボが添えてくる。差分カードのタグをタップしたときの画像はここから引く。
+   *
+   * 鍵は diffIn / diffOut の要素そのもの(バトラボの表示名)。技名の付く「ドロンチ(ていさつしれい)」の
+   * ような名前もあり、デッキの内訳(deckcard-api)の card_name とは一致しないので、
+   * 内訳から引き直そうとしてはいけない。古いバトラボの応答には無いので省略可
+   */
+  images?: Record<string, string>;
 };

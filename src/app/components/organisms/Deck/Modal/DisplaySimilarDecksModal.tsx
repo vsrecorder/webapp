@@ -8,9 +8,9 @@ import { ModalContent, ModalHeader, ModalBody } from "@heroui/react";
 import { LuExternalLink } from "react-icons/lu";
 
 import { Modal } from "@app/components/atoms/AppModal";
-import CardImageZoomOverlay from "@app/components/atoms/CardImageZoomOverlay";
 import CopyableDeckCode from "@app/components/atoms/CopyableDeckCode";
 import ZoomableDeckImage from "@app/components/atoms/ZoomableDeckImage";
+import CardImageZoomOverlay from "@app/components/molecules/CardImageZoomOverlay";
 import DeckSprites from "@app/components/molecules/DeckSprites";
 import FetchError from "@app/components/molecules/FetchError";
 
@@ -282,11 +282,31 @@ function SimilarDecksList({
   data: SimilarDecksGetResponseType;
   sourceLabel: string;
 }) {
-  const { source, similar, candidates } = data;
+  const { source, similar, candidates, images } = data;
 
-  // タップされた差分カード。全画面のカード画像を出しているあいだだけ入る
+  /*
+   * タップされた差分カード。閉じても残すのは、退場アニメーションのあいだも画像を出したままに
+   * するため(消してしまうと、画像だけ先に消えて空の枠が縮んでいく)。開いているかは別に持つ
+   */
   const [selectedCard, setSelectedCard] = useState<DeckCardImageTarget | null>(null);
-  const cardImage = useDeckCardImage(selectedCard);
+  const [isCardImageOpen, setIsCardImageOpen] = useState(false);
+
+  /*
+   * カード画像の URL。ふつうはバトラボが差分カードのぶんを添えてくる(images)ので、
+   * タップした瞬間に出せる。
+   *
+   * 添えられていないカード(古い応答・バトラボのカードマスタに画像が無いカード)だけ、
+   * そのカードが入っているデッキの内訳から引き直す(useDeckCardImage)。ただし差分カードの
+   * 名前は「ドロンチ(ていさつしれい)」のように技名が付くことがあり、内訳の card_name とは
+   * 一致しないので、これは当てにできる道ではない
+   */
+  const knownImageUrl = selectedCard ? (images?.[selectedCard.cardName] ?? null) : null;
+  const cardImage = useDeckCardImage(knownImageUrl ? null : selectedCard);
+  /*
+   * 取得中は前のカードの URL を使わない。useDeckCardImage は取り直しのあいだ前の結果を
+   * 持ったままなので、そのまま渡すと別のカードを開いた瞬間に前のカードの画像が出てしまう
+   */
+  const cardImageUrl = knownImageUrl ?? (cardImage.loading ? null : (cardImage.data?.url ?? null));
 
   // 差分カードがどこかの行にあるか。タップで画像が出ることの案内を出すかの判定に使う
   const hasDiffCards = similar.some((deck) => deck.diffIn.length > 0 || deck.diffOut.length > 0);
@@ -315,7 +335,10 @@ function SimilarDecksList({
                 sourceArchetypeId={source.archetype.archetypeId}
                 environmentId={source.environmentId}
                 sourceLabel={sourceLabel}
-                onSelectCard={setSelectedCard}
+                onSelectCard={(card) => {
+                  setSelectedCard(card);
+                  setIsCardImageOpen(true);
+                }}
               />
             ))}
           </ul>
@@ -335,12 +358,12 @@ function SimilarDecksList({
           タップしたときと同じモーダルで、このシートの上に重なる */}
       <CardImageZoomOverlay
         cardName={selectedCard?.cardName ?? ""}
-        imageUrl={cardImage.data?.url ?? null}
+        imageUrl={cardImageUrl}
         loading={cardImage.loading}
         error={cardImage.error}
         onRetry={cardImage.retry}
-        isOpen={selectedCard !== null}
-        onClose={() => setSelectedCard(null)}
+        isOpen={isCardImageOpen}
+        onClose={() => setIsCardImageOpen(false)}
       />
     </>
   );

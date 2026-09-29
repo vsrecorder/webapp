@@ -202,6 +202,37 @@ describe("parseSimilarDecksResponse", () => {
     expect(parseSimilarDecksResponse(broken)?.similar).toHaveLength(1);
   });
 
+  /*
+   * 差分カードのタグをタップしたときの画像は、この表から引く。鍵は diffIn / diffOut の
+   * 要素そのもので、「ドロンチ(ていさつしれい)」のように技名が付くこともある
+   */
+  it("カード名 → カード画像の表を読む", () => {
+    const images = {
+      "リーリエのピッピex": "https://www.pokemon-card.com/assets/images/card_images/large/a.jpg",
+      "ドロンチ（ていさつしれい）": "https://www.pokemon-card.com/assets/images/card_images/large/b.jpg",
+    };
+
+    expect(parseSimilarDecksResponse({ ...body, images })?.images).toEqual(images);
+  });
+
+  // 画像として読み込めない値(URL でない・文字列でない)は落とす
+  it("画像の表に混ざった読めない値は落とす", () => {
+    const images = {
+      よい: "https://www.pokemon-card.com/assets/images/card_images/large/a.jpg",
+      わるい: "javascript:alert(1)",
+      かず: 1,
+    };
+
+    expect(parseSimilarDecksResponse({ ...body, images })?.images).toEqual({
+      よい: "https://www.pokemon-card.com/assets/images/card_images/large/a.jpg",
+    });
+  });
+
+  // 画像の表を付ける前のバトラボの応答
+  it("画像の表が無ければ空の表にする", () => {
+    expect(parseSimilarDecksResponse(body)?.images).toEqual({});
+  });
+
   it("検索元が無い・形が違う応答は null", () => {
     expect(parseSimilarDecksResponse(null)).toBeNull();
     expect(parseSimilarDecksResponse({ error: "not found" })).toBeNull();

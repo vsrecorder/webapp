@@ -163,6 +163,21 @@ function parseArchetype(value: unknown): SimilarDeckArchetypeType {
   };
 }
 
+/*
+ * カード名 → カード画像の URL。バトラボが差分カードのぶんだけ添えてくる。
+ * 文字列でない値と、画像として読み込めない値(http(s) 以外)は落とす
+ */
+function parseImages(value: unknown): Record<string, string> {
+  if (!isRecord(value)) return {};
+
+  const images: Record<string, string> = {};
+  for (const [name, url] of Object.entries(value)) {
+    if (typeof url === "string" && /^https?:\/\//.test(url)) images[name] = url;
+  }
+
+  return images;
+}
+
 function parseSimilarDeck(value: unknown): SimilarDeckType | null {
   if (!isRecord(value)) return null;
   if (typeof value.deckCode !== "string" || value.deckCode === "") return null;
@@ -254,5 +269,6 @@ export function parseSimilarDecksResponse(body: unknown): SimilarDecksGetRespons
     source,
     similar,
     candidates: typeof body.candidates === "number" ? body.candidates : similar.length,
+    images: parseImages(body.images),
   };
 }

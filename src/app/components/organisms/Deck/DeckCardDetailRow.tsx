@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Chip } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
-import { Tabs, Tab } from "@heroui/tabs";
+import { Tabs, Tab, type TabsProps } from "@heroui/tabs";
 
 import { ModalContent, ModalBody, useDisclosure } from "@heroui/react";
 
@@ -16,6 +16,7 @@ import FetchError from "@app/components/molecules/FetchError";
 import { cardImageProps } from "@app/utils/cardImage";
 import { fetchDeckCardDetail } from "@app/utils/deckcard";
 import { writeLocalStorage } from "@app/utils/localStorageStore";
+import { useHorizontalScrollEdges } from "@app/hooks/useHorizontalScrollEdges";
 import { useLocalStorageItem } from "@app/hooks/useLocalStorageItem";
 import { useSeededResource } from "@app/hooks/useSeededResource";
 
@@ -101,7 +102,7 @@ const CARD_ROW_CONTAINER_CLASS = "h-full [container-type:size]";
 // これ以上詰めると、行の高さからくる上限(CARD_WIDTH_CLASS)に当たってカードが小さくなる。
 const CARD_DETAIL_HEIGHT_CLASS = "h-48 sm:h-[clamp(12.5rem,45dvh,18rem)]";
 
-// カテゴリータブの見た目。読み込み中の骨格と実体で必ず同じものを使う。
+// カテゴリータブの見た目。読み込み中の骨格と実体で必ず同じものを使う(CategoryTabs)。
 // panel を flex-1 にして高さを確定させるのが要点で、これが無いとパネルの高さが
 // 内容依存になり、h-full で高さを引くカード行（CARD_ROW_CONTAINER_CLASS）が潰れる。
 const TABS_CLASS_NAMES = {
@@ -112,6 +113,52 @@ const TABS_CLASS_NAMES = {
   // カード画像1枚分の高さを確保するため、パネルの上下余白は既定より詰める
   panel: "flex-1 overflow-hidden py-2",
 } as const;
+
+/*
+ * タブバーの左右の端に重ねる影。横にスクロールできて、その側に隠れたタブがあるときだけ出す。
+ *
+ * タブバー(tabList)は 6 カテゴリーが 1 列に並ぶので、スマホでは右端の「サポート」以降が
+ * 画面外に隠れる。スクロールできることが見た目で分からず、隠れたタブに気づけなかった。
+ *
+ * 影はタブバーそのものではなく、その外側の base に疑似要素で重ねる(スクロールする箱の中に
+ * 置くとタブと一緒に流れてしまう)。HeroUI の Tabs は base が tabList だけを包み、
+ * パネルは base の外に並ぶので、base の大きさはタブバーと同じになる。
+ * 見た目(色・幅・フェード)はデッキのバージョン比較(DeckVersionStats)の端の影に揃える。
+ * 角丸はタブバー(size="sm" の rounded-medium)と同じ値を base に持たせ、影はそれを引き継ぐ。
+ * z-1 は、タブと選択中の下地(どちらも z-0)より上に出すため
+ */
+const TAB_EDGE_SHADOW_BASE =
+  "relative rounded-medium " +
+  "before:pointer-events-none before:absolute before:inset-y-0 before:left-0 before:z-1 before:w-8 " +
+  "before:rounded-l-[inherit] before:bg-linear-to-r before:from-black/25 before:via-black/8 before:to-transparent " +
+  "before:transition-opacity before:duration-200 dark:before:from-black/75 dark:before:via-black/30 " +
+  "after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:z-1 after:w-8 " +
+  "after:rounded-r-[inherit] after:bg-linear-to-l after:from-black/25 after:via-black/8 after:to-transparent " +
+  "after:transition-opacity after:duration-200 dark:after:from-black/75 dark:after:via-black/30";
+
+// カテゴリータブ。読み込み中の骨格と実体の両方で使い、見た目と影の出方を揃える
+function CategoryTabs({ children }: { children: TabsProps["children"] }) {
+  // HeroUI の Tabs は ref を横スクロールする tabList に渡す
+  const tabListRef = useRef<HTMLDivElement>(null);
+  const { left, right } = useHorizontalScrollEdges(tabListRef);
+
+  // Tailwind はクラス名を静的な文字列としてしか拾えないため、出し分けは完全なクラス名で書く
+  const edgeClassName = `${TAB_EDGE_SHADOW_BASE} ${left ? "before:opacity-100" : "before:opacity-0"} ${
+    right ? "after:opacity-100" : "after:opacity-0"
+  }`;
+
+  return (
+    <Tabs
+      ref={tabListRef}
+      fullWidth
+      size="sm"
+      className="flex flex-col"
+      classNames={{ ...TABS_CLASS_NAMES, base: `${TABS_CLASS_NAMES.base} ${edgeClassName}` }}
+    >
+      {children}
+    </Tabs>
+  );
+}
 
 // カード画像の角丸。タップで開くカードモーダルの画像（幅約336pxに対して20px＝約6%）と
 // 見た目の比率を揃える。サムネイルは幅約56pxなのでその6%にあたる4pxを使う。
@@ -420,7 +467,7 @@ export default function DeckCardDetailRow({ code }: Props) {
     return (
       <div className={`w-full flex flex-col gap-1.5 ${CARD_DETAIL_HEIGHT_CLASS}`}>
         <ViewToggle view={view} onChange={handleChangeView} />
-        <Tabs fullWidth size="sm" className="flex flex-col" classNames={TABS_CLASS_NAMES}>
+        <CategoryTabs>
           <Tab key="card_pke" title={`ポケモン：??`}>
             {skelton}
           </Tab>
@@ -444,7 +491,7 @@ export default function DeckCardDetailRow({ code }: Props) {
           <Tab key="card_ene" title={`エネルギー：??`}>
             {skelton}
           </Tab>
-        </Tabs>
+        </CategoryTabs>
       </div>
     );
   }
@@ -464,7 +511,7 @@ export default function DeckCardDetailRow({ code }: Props) {
     <>
       <div className={`w-full flex flex-col gap-1.5 ${CARD_DETAIL_HEIGHT_CLASS}`}>
         <ViewToggle view={view} onChange={handleChangeView} />
-        <Tabs fullWidth size="sm" className="flex flex-col" classNames={TABS_CLASS_NAMES}>
+        <CategoryTabs>
           <Tab key="card_pke" title={`ポケモン：${deckcardDetail.card_pke_count}`}>
             <CategoryCardRow
               view={view}
@@ -528,7 +575,7 @@ export default function DeckCardDetailRow({ code }: Props) {
               }}
             />
           </Tab>
-        </Tabs>
+        </CategoryTabs>
       </div>
 
       <Modal

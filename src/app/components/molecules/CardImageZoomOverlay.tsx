@@ -94,9 +94,15 @@ export default function CardImageZoomOverlay({
                * カードと同じ形(63:88)の枠を先に取り、画像が来るまで骨格を重ねる。
                * 画像の大きさが決まるまで枠を持たないと、URL を引くあいだ・画像が届くまでの
                * 二段でモーダルの大きさが変わる(カードリストは内訳も画像も持っているので
-               * その待ちが無い)。角丸は骨格と画像で同じ値にする
+               * その待ちが無い)。角丸は骨格と画像で同じ値にする。
+               *
+               * 幅には上限が要る。このモーダルは sm 以上で幅の制限を外してある
+               * (classNames.base の sm:max-w-full)ので、枠を幅なりに広げると
+               * デスクトップでカードが 1184×1654 まで伸び、画面の上下にはみ出す(実測)。
+               * カード 1 枚ぶんの大きさ(24rem)と、画面の高さに収まる幅の小さいほうを採る。
+               * 横向きのスマホのように縦が短い画面では高さ側が先に効く
                */
-              <div className="relative aspect-63/88 w-full">
+              <div className="relative mx-auto aspect-63/88 w-full max-w-[min(24rem,calc(78svh*63/88))]">
                 {!imageLoaded && <Skeleton className="absolute inset-0 rounded-[20px]" />}
                 {imageUrl && (
                   <Image
@@ -104,6 +110,19 @@ export default function CardImageZoomOverlay({
                     shadow="none"
                     alt={cardName}
                     src={imageUrl}
+                    /*
+                     * 骨格を外すのと画像が出るのを同じ瞬間にする。
+                     *
+                     * HeroUI Image は既定で、読み終わった時点で自前の下地(wrapper の地色)を
+                     * 外してから img を 280ms かけて opacity 0 → 1 でフェードさせる。
+                     * その間は下地も画像も無い透明な枠になり、背面のシートが透けて
+                     * 「一瞬すけてからじわっと出る」ちらつきになる(実測: 骨格が消えてから
+                     * 画像が見え始めるまで空白)。カードリストは画像を先読みしてあって
+                     * 読み込み待ちが無いので、この隙間が表に出ない。
+                     * 下地は枠側の骨格で持つので、HeroUI 側の下地も要らない
+                     */
+                    disableAnimation
+                    disableSkeleton
                     onLoad={() => setImageLoaded(true)}
                     onError={() => setImageFailed(true)}
                     onClick={close}

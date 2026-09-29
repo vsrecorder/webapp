@@ -39,3 +39,37 @@ export function cardImageProps(
 
   return props;
 }
+
+/*
+ * カード画像を開く前に、読み込みとデコードを待つ上限。
+ *
+ * モーダルは絵を持って入場させたい。骨格で入場して着地の瞬間に画像へ差し替えると、Android の
+ * Chrome では差し替えが入場アニメーションの終わり(合成レイヤーが解除されて背面と一緒に
+ * 描き直される瞬間)と重なり、古いタイル(暗幕も何も無い開く前の画面)が 1〜2 フレーム出る
+ * (2026-09-29 の実機動画)。温まった画像は 60〜130ms で届く(本番実測)ので、その程度なら待ってから
+ * 開く。それより遅い(初回の最適化など)ときは待たずに骨格で開く。タップから開くまでの遅れとして
+ * 体感できる手前に収める
+ */
+export const PRE_DECODE_WAIT_MS = 150;
+
+// モーダル用の大きさで先に読んでデコードしておく。上限までに終わらなければそのまま返す(開くのを止めない)
+export function preDecodeCardImage(src: string): Promise<void> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(resolve, PRE_DECODE_WAIT_MS);
+    const done = () => {
+      clearTimeout(timer);
+      resolve();
+    };
+    const img = new window.Image();
+    const props = cardImageProps(src, "", "modal", "eager");
+    // モーダルの <img> と同じ srcset を持たせ、同じ候補をブラウザに選ばせる(キャッシュが当たる)
+    if (props.srcSet) img.srcset = props.srcSet;
+    img.src = props.src;
+    if (typeof img.decode === "function") {
+      img.decode().then(done, done);
+    } else {
+      img.onload = done;
+      img.onerror = done;
+    }
+  });
+}

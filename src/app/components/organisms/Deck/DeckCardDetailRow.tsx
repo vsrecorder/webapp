@@ -6,22 +6,19 @@ import { Chip } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
 import { Tabs, Tab, type TabsProps } from "@heroui/tabs";
 
-import { ModalContent, ModalBody, useDisclosure } from "@heroui/react";
 
 import { LuImage, LuTags } from "react-icons/lu";
 
-import { Modal } from "@app/components/atoms/AppModal";
+import CardImageZoomOverlay from "@app/components/molecules/CardImageZoomOverlay";
 import FetchError from "@app/components/molecules/FetchError";
 
-import { cardImageProps } from "@app/utils/cardImage";
+import { cardImageProps, preDecodeCardImage } from "@app/utils/cardImage";
 import { fetchDeckCardDetail } from "@app/utils/deckcard";
 import { writeLocalStorage } from "@app/utils/localStorageStore";
 import { useHorizontalScrollEdges } from "@app/hooks/useHorizontalScrollEdges";
 import { useLocalStorageItem } from "@app/hooks/useLocalStorageItem";
 import { useSeededResource } from "@app/hooks/useSeededResource";
 
-import { PkeCardType } from "@app/types/deckcard";
-import { CardType } from "@app/types/deckcard";
 
 // カードの表示モードを localStorage に保存するキー。
 // 表示の好みはユーザーごとの習慣なので、次回アクセス時も同じ状態で開く。
@@ -373,19 +370,22 @@ export default function DeckCardDetailRow({ code }: Props) {
   const savedView = useLocalStorageItem(DECK_CARD_VIEW_STORAGE_KEY);
   const view: DeckCardDetailView = savedView === "image" ? "image" : "chip";
 
-  const [pkecard, setPkeCard] = useState<PkeCardType>();
-  const {
-    isOpen: isOpenForShowPkeCardModal,
-    onOpen: onOpenForShowPkeCardModal,
-    onOpenChange: onOpenChangeForShowPkeCardModal,
-  } = useDisclosure();
+  /*
+   * タップしたカード。閉じても残すのは、退場アニメーションのあいだも画像を出したままにするため。
+   * 開いているかは別に持つ(類似している入賞デッキの差分カードと同じ作り)
+   */
+  const [selectedCard, setSelectedCard] = useState<{ name: string; imageUrl: string } | null>(null);
+  const [isCardImageOpen, setIsCardImageOpen] = useState(false);
 
-  const [card, setCard] = useState<CardType>();
-  const {
-    isOpen: isOpenForShowCardModal,
-    onOpen: onOpenForShowCardModal,
-    onOpenChange: onOpenChangeForShowCardModal,
-  } = useDisclosure();
+  /*
+   * カード画像を開く。モーダル用の大きさ(w=828)はサムネイル(w=256)とは別の URL なので、
+   * サムネイルや先読みでは手元に無い。少しだけ待って読み終えてから開き、絵を持って入場させる
+   * (骨格で入場して着地の瞬間に差し替えると Android の Chrome でちらつく。utils/cardImage.ts)
+   */
+  const openCardImage = (deckcard: { card_name: string; image_url: string }) => {
+    setSelectedCard({ name: deckcard.card_name, imageUrl: deckcard.image_url });
+    void preDecodeCardImage(deckcard.image_url).then(() => setIsCardImageOpen(true));
+  };
 
   const handleChangeView = (next: DeckCardDetailView) => {
     writeLocalStorage(DECK_CARD_VIEW_STORAGE_KEY, next);
@@ -516,20 +516,14 @@ export default function DeckCardDetailRow({ code }: Props) {
             <CategoryCardRow
               view={view}
               cards={deckcardDetail.card_pke}
-              onSelect={(deckcard) => {
-                setPkeCard(deckcard);
-                onOpenForShowPkeCardModal();
-              }}
+              onSelect={openCardImage}
             />
           </Tab>
           <Tab key="card_gds" title={`グッズ：${deckcardDetail.card_gds_count}`}>
             <CategoryCardRow
               view={view}
               cards={deckcardDetail.card_gds}
-              onSelect={(deckcard) => {
-                setCard(deckcard);
-                onOpenForShowCardModal();
-              }}
+              onSelect={openCardImage}
             />
           </Tab>
           <Tab
@@ -539,106 +533,40 @@ export default function DeckCardDetailRow({ code }: Props) {
             <CategoryCardRow
               view={view}
               cards={deckcardDetail.card_tool}
-              onSelect={(deckcard) => {
-                setCard(deckcard);
-                onOpenForShowCardModal();
-              }}
+              onSelect={openCardImage}
             />
           </Tab>
           <Tab key="card_sup" title={`サポート：${deckcardDetail.card_sup_count}`}>
             <CategoryCardRow
               view={view}
               cards={deckcardDetail.card_sup}
-              onSelect={(deckcard) => {
-                setCard(deckcard);
-                onOpenForShowCardModal();
-              }}
+              onSelect={openCardImage}
             />
           </Tab>
           <Tab key="card_sta" title={`スタジアム：${deckcardDetail.card_sta_count}`}>
             <CategoryCardRow
               view={view}
               cards={deckcardDetail.card_sta}
-              onSelect={(deckcard) => {
-                setCard(deckcard);
-                onOpenForShowCardModal();
-              }}
+              onSelect={openCardImage}
             />
           </Tab>
           <Tab key="card_ene" title={`エネルギー：${deckcardDetail.card_ene_count}`}>
             <CategoryCardRow
               view={view}
               cards={deckcardDetail.card_ene}
-              onSelect={(deckcard) => {
-                setCard(deckcard);
-                onOpenForShowCardModal();
-              }}
+              onSelect={openCardImage}
             />
           </Tab>
         </CategoryTabs>
       </div>
 
-      <Modal
-        isOpen={isOpenForShowPkeCardModal}
-        size={"sm"}
-        placement="center"
-        hideCloseButton
-        onOpenChange={onOpenChangeForShowPkeCardModal}
-        onClose={() => {}}
-        classNames={{
-          base: "sm:max-w-full bg-transparent shadow-none border-none",
-        }}
-      >
-        <ModalContent>
-          {(onClose) => (
-            <>
-              <ModalBody>
-                {pkecard && (
-                  /* 最適化 API を通した画像(公式サイトの 868px をそのまま読まない)。
-                     幅はカード 1 枚ぶん(24rem)までにして、広い画面で伸びすぎないようにする */
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img
-                    {...cardImageProps(pkecard.image_url, pkecard.card_name, "modal", "eager")}
-                    alt={pkecard.card_name}
-                    onClick={onClose}
-                    className="mx-auto h-auto w-full max-w-96 rounded-[20px] cursor-pointer"
-                  />
-                )}
-              </ModalBody>
-            </>
-          )}
-        </ModalContent>
-      </Modal>
-
-      <Modal
-        isOpen={isOpenForShowCardModal}
-        size={"sm"}
-        placement="center"
-        hideCloseButton
-        onOpenChange={onOpenChangeForShowCardModal}
-        onClose={() => {}}
-        classNames={{
-          base: "sm:max-w-full bg-transparent shadow-none border-none",
-        }}
-      >
-        <ModalContent>
-          {(onClose) => (
-            <>
-              <ModalBody>
-                {card && (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img
-                    {...cardImageProps(card.image_url, card.card_name, "modal", "eager")}
-                    alt={card.card_name}
-                    onClick={onClose}
-                    className="mx-auto h-auto w-full max-w-96 rounded-[20px] cursor-pointer"
-                  />
-                )}
-              </ModalBody>
-            </>
-          )}
-        </ModalContent>
-      </Modal>
+      {/* タップしたカードの画像。類似している入賞デッキの差分カードと同じモーダル */}
+      <CardImageZoomOverlay
+        cardName={selectedCard?.name ?? ""}
+        imageUrl={selectedCard?.imageUrl ?? null}
+        isOpen={isCardImageOpen}
+        onClose={() => setIsCardImageOpen(false)}
+      />
     </>
   );
 }

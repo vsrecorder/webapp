@@ -25,6 +25,7 @@ import {
   SimilarDiffCardType,
 } from "@app/types/similar_deck";
 
+import { preDecodeCardImage } from "@app/utils/cardImage";
 import { cityleagueRankLabel } from "@app/utils/cityleagueRank";
 import { closingPassthroughClassNames } from "@app/utils/modal";
 import {
@@ -321,7 +322,13 @@ function SimilarDecksList({
                 sourceLabel={sourceLabel}
                 onSelectCard={(card) => {
                   setSelectedCard(card);
-                  setIsCardImageOpen(true);
+                  const url = card.imageUrl ?? images?.[card.name] ?? null;
+                  if (!url) {
+                    setIsCardImageOpen(true);
+                    return;
+                  }
+                  // 画像が手元に届くのを少しだけ待ってから開く(理由は utils/cardImage.ts の PRE_DECODE_WAIT_MS)
+                  void preDecodeCardImage(url).then(() => setIsCardImageOpen(true));
                 }}
               />
             ))}

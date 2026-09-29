@@ -21,12 +21,11 @@ type Props = {
 /*
  * カード 1 枚の画像を中央に大きく見せるモーダル。
  *
- * カード名だけを出している場所(類似している入賞デッキの差分カード)から、タップで
- * そのカードの絵を確かめるために使う。出し方・大きさ・画像をタップして閉じる操作は、
- * カードリスト(DeckCardDetailRow)のカードをタップしたときのモーダルと同じにしてある。
- * 画像の URL は呼び出し側が持っている(バトラボが差分カードに添えてくる)ので、
- * ここで取りに行くものは無い。画像が届くまでの間だけ、カードと同じ形の骨格を出す。
- * 画像は next/image の最適化 API を通す(utils/cardImage.ts。公式サイトの 233KB → 53KB)
+ * カードリスト(DeckCardDetailRow)のカードと、類似している入賞デッキの差分カードから、
+ * タップでそのカードの絵を確かめるために使う。画像の URL は呼び出し側が持っている(内訳・
+ * バトラボが添えてくる)ので、ここで取りに行くものは無い。画像が届くまでの間だけ、カードと
+ * 同じ形の骨格を出す(呼び出し側は preDecodeCardImage で少しだけ待ってから開くので、
+ * ふつうは絵を持って入場する)。画像は next/image の最適化 API を通す(utils/cardImage.ts)
  */
 export default function CardImageZoomOverlay({ cardName, imageUrl, isOpen, onClose }: Props) {
   /*
@@ -94,7 +93,23 @@ export default function CardImageZoomOverlay({ cardName, imageUrl, isOpen, onClo
                 <img
                   {...cardImageProps(imageUrl, cardName, "modal", "eager")}
                   alt={cardName}
-                  onLoad={() => setImageLoaded(true)}
+                  /*
+                   * 読み終わっただけでは差し替えず、デコードまで済ませてから骨格を外す。
+                   *
+                   * decoding=async の画像は load の時点ではまだ絵になっておらず、差し替えの
+                   * コミットとデコード・貼り付けが同じフレームに重なる。Android の Chrome では、
+                   * これがモーダルの入場アニメーションの終わり(合成レイヤーが解除されて背面と
+                   * 一緒に描き直される瞬間)と重なると、描き直しが間に合わずに古いタイル
+                   * (暗幕も何も無い、開く前のシート)が 1〜2 フレーム出る(2026-09-29 の実機動画)。
+                   * decode() が終わっていれば描き直しはビットマップを置くだけで済む。
+                   * decode() の無い環境や失敗時は、従来どおり load で差し替える
+                   */
+                  onLoad={(e) => {
+                    const img = e.currentTarget;
+                    const decoded =
+                      typeof img.decode === "function" ? img.decode().catch(() => {}) : Promise.resolve();
+                    void decoded.then(() => setImageLoaded(true));
+                  }}
                   onError={() => setImageFailed(true)}
                   onClick={close}
                   className={`h-auto w-full rounded-[20px] cursor-pointer ${

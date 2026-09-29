@@ -223,6 +223,54 @@ describe("DisplaySimilarDecksModal の差分カード", () => {
     );
   });
 
+  /*
+   * 画像が届くのを少しだけ待ってから開く(PRE_DECODE_WAIT_MS)。届かなくても上限で開く
+   * (開けなくなることはない)。「すぐ届けば待たない」の時間は jsdom の描画時間が混ざって
+   * 測れないので、実ブラウザの画面キャプチャで確かめてある(温まった画像で骨格 0 フレーム)
+   */
+  it("開く前に画像のデコードを試み、届かなくても上限で開く", async () => {
+    stubSimilar(
+      similarBody({
+        in: [{ name: "ロストスイーパー", imageUrl: WINNER_PRINT }],
+        out: [{ name: "ネストボール", imageUrl: SOURCE_PRINT }],
+      }),
+    );
+    await openModal();
+
+    // jsdom の Image は読み込まない。decode の結末をテストから決められる形に差し替える。
+    // コードは new window.Image() を使うので、vi.stubGlobal(globalThis)ではなく window 側を差し替える。
+    // class で継承すると jsdom の Image は別の要素を返すので decode が付かない。関数で作って足す
+    const RealImage = window.Image;
+    let decodeResult: Promise<void> = Promise.resolve();
+    const decodedSrcs: string[] = [];
+    const FakeImage = function () {
+      const img = new RealImage();
+      img.decode = () => {
+        decodedSrcs.push(decodeURIComponent(img.src));
+        return decodeResult;
+      };
+      return img;
+    } as unknown as typeof Image;
+    window.Image = FakeImage;
+    try {
+      // すぐ届く
+      tapCard("ロストスイーパー");
+      await waitFor(() => screen.getByAltText("ロストスイーパー"));
+      expect(decodedSrcs).toHaveLength(1);
+      expect(decodedSrcs[0]).toContain(WINNER_PRINT);
+
+      fireEvent.click(screen.getByAltText("ロストスイーパー"));
+      await waitFor(() => expect(screen.queryByAltText("ロストスイーパー")).toBeNull());
+
+      // 届かない: 上限(150ms)で開く
+      decodeResult = new Promise(() => {});
+      tapCard("ネストボール");
+      await waitFor(() => screen.getByAltText("ネストボール"), { timeout: 1000 });
+    } finally {
+      window.Image = RealImage;
+    }
+  });
+
   it("別のカードを開いたとき、前のカードの画像を出したままにしない", async () => {
     stubSimilar(
       similarBody({

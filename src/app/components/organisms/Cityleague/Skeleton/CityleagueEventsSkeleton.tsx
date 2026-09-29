@@ -10,7 +10,7 @@ type Props = {
   withPreviewBanner?: boolean;
 };
 
-// ホーム(ダッシュボード)の「本日のシティリーグ結果」に置く骨格。
+// ホーム(ダッシュボード)の「本日のシティリーグ情報」に置く骨格。
 // 実体は Card の中にタブ(オープン/シニア/ジュニア)と、その下に Swiper で並ぶイベントカード。
 // カードは横スワイプで並ぶが、縦の高さは1枚ぶんなので骨格も1枚だけ置く。
 export default function CityleagueEventsSkeleton({ withPreviewBanner = false }: Props) {

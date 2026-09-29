@@ -214,7 +214,7 @@ describe("mergeIntoStoredOrder", () => {
   /*
    * 実際に起きた不具合の再現。
    *
-   * 「本日のシティリーグ結果」は開催日にしか出ていなかったため、既存ユーザーの保存済みの
+   * 「本日のシティリーグ情報」は開催日にしか出ていなかったため、既存ユーザーの保存済みの
    * 並び(localStorage)には入っていない。常に出すようにしたあと末尾に足していたので、
    * ホームでも表示設定でも一番下に現れていた。ストリークの直後に入ること。
    */
@@ -273,7 +273,7 @@ describe("applyOrderMigrations", () => {
     expect(applyOrderMigrations(already, undefined)).toEqual(already);
   });
 
-  // 「ストリーク → 本日のシティリーグ結果 → Myジムのイベント」になること
+  // 「ストリーク → 本日のシティリーグ情報 → Myジムのイベント」になること
   it("差し込みと組み合わせても Myジムの手前に入る", () => {
     const real = splitDashboardLayout(DEFAULT_DASHBOARD_LAYOUT).sections.map(
       sectionIdOfBlock,
@@ -297,7 +297,7 @@ describe("sectionIdOfBlock", () => {
   });
 
   // 先出しプレビュー(次シーズン初日の会場一覧)も、開催期間外の骨格と同じく
-  // 「本日のシティリーグ結果」の節として拾えること
+  // 「本日のシティリーグ情報」の節として拾えること
   it("先出しプレビューの骨格IDも同じ節として拾う", () => {
     expect(sectionIdOfBlock("cityleague_preview")).toBe("cityleague");
   });

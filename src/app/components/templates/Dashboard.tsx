@@ -266,7 +266,7 @@ export default async function TemplateDashboard({
 
   /*
    * 今日がシーズン(開催期間)の中かどうかと、期間外なら次に始まるシーズン。
-   * 「本日のシティリーグ結果」はどちらの場合も出し、中身だけ入れ替える。
+   * 「本日のシティリーグ情報」はどちらの場合も出し、中身だけ入れ替える。
    *
    * schedules が undefined なのは取得に失敗したとき。期間の判定ができないので
    * 「開催期間外」と言い切らず、当日の会場を自分で取りに行く CityleagueEvents に任せる
@@ -363,7 +363,7 @@ export default async function TemplateDashboard({
   });
 
   /*
-   * 本日のシティリーグ結果。
+   * 本日のシティリーグ情報。
    *
    * シティリーグは年に数回のシーズンにまとまって開催される。以前は開催期間外だと
    * この節ごと消していたが、それだとホームの構成が時期によって変わり、利用者からは
@@ -375,7 +375,7 @@ export default async function TemplateDashboard({
    */
   sections.push({
     id: "cityleague",
-    label: "本日のシティリーグ結果",
+    label: "本日のシティリーグ情報",
     skeletonId: showPreview
       ? "cityleague_preview"
       : showOffSeasonCard
@@ -384,7 +384,7 @@ export default async function TemplateDashboard({
     node: (
       <section key="cityleague" className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold text-default-700">本日のシティリーグ結果</h2>
+          <h2 className="text-sm font-bold text-default-700">本日のシティリーグ情報</h2>
           <LinkButton
             href="/cityleague_results"
             size="sm"

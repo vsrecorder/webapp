@@ -2,7 +2,7 @@ import { CityleagueScheduleType } from "@app/types/cityleague_schedule";
 import { toJSTDateString } from "@app/utils/date";
 
 /*
- * シティリーグのシーズン(開催期間)一覧から、ホームの「本日のシティリーグ結果」パネルが
+ * シティリーグのシーズン(開催期間)一覧から、ホームの「本日のシティリーグ情報」パネルが
  * 必要とする2つ ——「今まさに開催期間中のシーズン」と「次に始まるシーズン」—— を選ぶ。
  *
  * 上流には期間中のシーズンを1件返す `cityleague_schedules?date=` もあるが、
@@ -28,7 +28,7 @@ function jstDateString(value: Date | string): string | null {
   return toJSTDateString(value);
 }
 
-// シティリーグの先出しプレビュー(ホームの「本日のシティリーグ結果」)を解禁するまでの、
+// シティリーグの先出しプレビュー(ホームの「本日のシティリーグ情報」)を解禁するまでの、
 // 次シーズン開催日(from_date)からの巻き戻り時間(時間)。
 // schedules の from_date は常にJST 0:00 なので、6時間前は前日18時になる。
 export const PREVIEW_REVEAL_LEAD_HOURS = 6;

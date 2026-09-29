@@ -144,7 +144,7 @@ export default function DashboardBlockSkeleton({
     case "cityleague":
       return (
         <Section gap="gap-3">
-          <SectionHeading label="本日のシティリーグ結果" action="結果を見る" />
+          <SectionHeading label="本日のシティリーグ情報" action="結果を見る" />
           <CityleagueEventsSkeleton />
         </Section>
       );
@@ -153,7 +153,7 @@ export default function DashboardBlockSkeleton({
     case "cityleague_off_season":
       return (
         <Section gap="gap-3">
-          <SectionHeading label="本日のシティリーグ結果" action="結果を見る" />
+          <SectionHeading label="本日のシティリーグ情報" action="結果を見る" />
           <CityleagueOffSeasonCardSkeleton />
         </Section>
       );
@@ -163,7 +163,7 @@ export default function DashboardBlockSkeleton({
     case "cityleague_preview":
       return (
         <Section gap="gap-3">
-          <SectionHeading label="本日のシティリーグ結果" action="結果を見る" />
+          <SectionHeading label="本日のシティリーグ情報" action="結果を見る" />
           <CityleagueEventsSkeleton withPreviewBanner />
         </Section>
       );

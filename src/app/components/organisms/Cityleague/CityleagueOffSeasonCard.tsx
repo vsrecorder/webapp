@@ -6,7 +6,7 @@ import { CityleagueScheduleType } from "@app/types/cityleague_schedule";
 import { formatJSTDate } from "@app/utils/date";
 
 /*
- * ホーム(ダッシュボード)の「本日のシティリーグ結果」を、開催期間外に出すときの中身。
+ * ホーム(ダッシュボード)の「本日のシティリーグ情報」を、開催期間外に出すときの中身。
  *
  * シティリーグは年に数回のシーズンにまとまって開催されるため、期間外は
  * 当日の会場を出す CityleagueEvents に見せるものが何も無い。以前はこの節ごと

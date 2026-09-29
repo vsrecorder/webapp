@@ -100,7 +100,7 @@ export default function CityleagueEventCard({
 
       <div className="w-full cursor-pointer" onClick={onOpen}>
         {/*
-          カードの高さはデータによらず一定にする(ホームの「本日のシティリーグ結果」が
+          カードの高さはデータによらず一定にする(ホームの「本日のシティリーグ情報」が
           読み込みのたびに揺れないように)。
           Swiper は並んだカードのうち一番高いものに全体の高さを合わせるため、1枚でも背が伸びると
           パネルごと伸び、骨格(CityleagueEventSkeleton)から実体に替わる瞬間に下が押し下がっていた。

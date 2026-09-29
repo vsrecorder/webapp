@@ -543,6 +543,8 @@ export default function DisplayDeckCodesModal({
                     selectedTagIds={editTagIds}
                     onChange={setEditTagIds}
                     label="このバージョンのタグ"
+                    // 付与済みチップをタグ一覧の到着より先に描くため、対象バージョンのタグを渡す
+                    knownTags={editMemoDeckCode?.tags ?? undefined}
                     onManageModeChange={setIsTagManaging}
                   />
                 )}

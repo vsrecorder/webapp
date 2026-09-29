@@ -7,7 +7,7 @@ import { LuTag } from "react-icons/lu";
 
 import TagSelector from "@app/components/organisms/Tag/TagSelector";
 
-import { TagPresetCategory } from "@app/types/tag";
+import { TagPresetCategory, TagType } from "@app/types/tag";
 
 type Props = {
   selectedTagIds: string[];
@@ -15,6 +15,8 @@ type Props = {
   title?: string;
   // 別枠で見せるプリセットタグの群(TagSelector にそのまま渡す)。
   presetCategory?: TagPresetCategory;
+  // 付与先のレスポンスに入っているタグの実体(TagSelector にそのまま渡す)。
+  knownTags?: TagType[];
   onManageModeChange?: (managing: boolean) => void;
 };
 
@@ -46,6 +48,7 @@ export default function TagSelectorAccordion({
   onChange,
   title = "タグを付ける",
   presetCategory,
+  knownTags,
   onManageModeChange,
 }: Props) {
   const heading =
@@ -194,6 +197,7 @@ export default function TagSelectorAccordion({
                 onChange={onChange}
                 showLabel={false}
                 presetCategory={presetCategory}
+                knownTags={knownTags}
                 onManageModeChange={onManageModeChange}
               />
             )}

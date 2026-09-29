@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { Button, Chip, Input, addToast } from "@heroui/react";
 import { LuPlus, LuTag, LuX } from "react-icons/lu";
+
+import HScrollRow from "@app/components/atoms/HScrollRow";
 
 import { useTags } from "@app/hooks/useTags";
 import { TagType, TagPresetCategory } from "@app/types/tag";
@@ -50,6 +52,40 @@ const EXCLUSIVE_PRESET_CATEGORIES: readonly TagPresetCategory[] = [
 // プリセットだと分かる見た目を保つため、無彩色ではなく既定色を当てる。
 const PRESET_FALLBACK_COLOR = "#6E7175";
 
+/*
+ * 候補の行(自分のタグ・プリセット)は、読み込み中・0件・絞り込みで該当なしの
+ * どの状態でも同じ高さを保つ。状態で行が出たり消えたりすると、
+ * 取得が返った瞬間にアコーディオンの中身が伸びて跳ねて見えるし、
+ * 絞り込みを打つたびに下の内容が上下する。
+ * 高さはチップ1つぶん(h-6=24px)で、行の下余白(pb-1)はスクロールバーの逃げ。
+ */
+const ROW_CLASS = "flex flex-nowrap items-center gap-1 pb-1";
+
+// 候補チップの代わりに出す骨格。実体のチップ(h-6 の角丸)と同じ形・高さにする。
+// 幅は実データの名前の長さがまちまちなことに合わせて3つを散らす。
+function ChipSkeletons() {
+  return (
+    <>
+      {["w-20", "w-28", "w-16"].map((w) => (
+        <div
+          key={w}
+          aria-hidden
+          className={`h-6 ${w} shrink-0 animate-pulse rounded-full bg-default-200`}
+        />
+      ))}
+    </>
+  );
+}
+
+// 候補が無いときに行へ置く一言。チップと同じ高さの枠に入れて行の高さを保つ。
+function RowMessage({ children }: { children: ReactNode }) {
+  return (
+    <span className="flex h-6 items-center whitespace-nowrap text-[0.6875rem] text-default-400">
+      {children}
+    </span>
+  );
+}
+
 type Props = {
   // 現在付与しているタグID。
   selectedTagIds: string[];
@@ -57,6 +93,14 @@ type Props = {
   label?: string;
   // 見出し(ラベル)を出すか。アコーディオン等、外側に見出しがある場合は false。
   showLabel?: boolean;
+  /*
+   * 呼び出し側が既に持っているタグの実体(デッキ・バージョン・対戦結果のレスポンスに
+   * 入っている tags)。付与済みチップは名前と色が要るのに、ここでは selectedTagIds しか
+   * 受け取らないため、これが無いと /api/tags が返るまでチップを描けない。
+   * 編集モーダルでは付与済みが後から生えて枠が伸びる(実測: 24px→52px、
+   * placement="center" のモーダルは全体も上へずれる)ので、分かっているぶんは先に渡す。
+   */
+  knownTags?: TagType[];
   // 別枠で見せるプリセットタグの群。付与先ごとに関係のあるものだけを出す
   // (デッキ・対戦結果は ACE SPEC、記録は大会順位)。
   presetCategory?: TagPresetCategory;
@@ -73,11 +117,20 @@ export default function TagSelector({
   onChange,
   label = "タグ",
   showLabel = true,
+  knownTags,
   presetCategory = "acespec",
   onManageModeChange,
 }: Props) {
-  const { tags, presetTags, isLoading, createTag, deleteTag } =
-    useTags(presetCategory);
+  const {
+    tags,
+    presetTags,
+    isLoading,
+    isPresetsLoading,
+    error,
+    presetsError,
+    createTag,
+    deleteTag,
+  } = useTags(presetCategory);
   const [query, setQuery] = useState("");
   const [creating, setCreating] = useState(false);
   // 管理モード。ONの間だけ自分のタグに削除(×)を出す。プリセットは対象外。
@@ -107,12 +160,14 @@ export default function TagSelector({
   }, [manageMode, onManageModeChange]);
 
   // 選択中チップの表示に使うため、自分のタグとプリセットの両方をIDで引けるようにする。
+  // 呼び出し側が持っているぶんを先に入れ、一覧が届いたら上書きする(名前や色の変更に追従する)。
   const tagById = useMemo(() => {
     const map = new Map<string, TagType>();
+    (knownTags ?? []).forEach((tag) => map.set(tag.id, tag));
     (tags ?? []).forEach((tag) => map.set(tag.id, tag));
     (presetTags ?? []).forEach((tag) => map.set(tag.id, tag));
     return map;
-  }, [tags, presetTags]);
+  }, [knownTags, tags, presetTags]);
 
   /*
    * 付与済みのタグ。まだ一覧に載っていないIDは表示から落とす。
@@ -236,6 +291,22 @@ export default function TagSelector({
     }
   }
 
+  // 候補が1つも無いときに行へ置く一言。なぜ空なのかで出し分ける
+  // (取得失敗・絞り込みで該当なし・そもそも作っていない・全部付け終えた)。
+  const suggestionsEmptyMessage = error
+    ? "タグを取得できませんでした"
+    : normalizedQuery !== ""
+      ? "該当するタグがありません"
+      : (tags?.length ?? 0) === 0
+        ? "入力すると自分のタグを作成できます"
+        : "自分のタグはすべて付いています";
+
+  const presetsEmptyMessage = presetsError
+    ? "プリセットを取得できませんでした"
+    : normalizedQuery !== ""
+      ? "該当するプリセットがありません"
+      : "選べるプリセットがありません";
+
   // 管理モードで削除対象にする、自分のタグ(クエリで絞り込み)。
   const manageTags = (tags ?? []).filter(matchesQuery);
   // 管理トグルは、自分のタグがある場合か、既に管理モード中のときだけ出す。
@@ -247,17 +318,24 @@ export default function TagSelector({
       className="flex flex-col gap-2"
       style={manageMinHeight ? { minHeight: manageMinHeight } : undefined}
     >
-      {(showLabel || showManageToggle) && (
-        <div className="flex items-center justify-between gap-2">
-          {showLabel ? (
-            <div className="flex items-center gap-1 text-sm text-default-600">
-              <LuTag size={14} />
-              <span>{label}</span>
-            </div>
-          ) : (
-            <span />
-          )}
-          {showManageToggle && (
+      {/* 見出しと管理トグルの行。トグルは自分のタグがあるときだけ出すが、
+          出たり消えたりで下が動かないよう行そのものは常に置く(text-tiny の行=1rem)。 */}
+      <div className="flex min-h-4 items-center justify-between gap-2">
+        {showLabel ? (
+          <div className="flex items-center gap-1 text-sm text-default-600">
+            <LuTag size={14} />
+            <span>{label}</span>
+          </div>
+        ) : (
+          <span />
+        )}
+        {isLoading ? (
+          <div
+            aria-hidden
+            className="h-2.5 w-14 animate-pulse rounded-full bg-default-200"
+          />
+        ) : (
+          showManageToggle && (
             <button
               type="button"
               onClick={toggleManageMode}
@@ -275,9 +353,9 @@ export default function TagSelector({
             >
               {manageMode ? "管理を終了" : "タグを管理"}
             </button>
-          )}
-        </div>
-      )}
+          )
+        )}
+      </div>
 
       {/* 付与済みのタグ。1つも付いていなくてもチップ1行ぶん(24px)の高さを残し、
           付け外しで入力欄から下がずれないようにする
@@ -377,10 +455,15 @@ export default function TagSelector({
       ) : (
         <>
           {/* 候補（未選択の自分のタグ）。クリックで付与する。
-              プリセットと同様、折り返さず横1列に並べ、収まらない分は横スクロールで見せる。 */}
-          {!isLoading && suggestions.length > 0 && (
-            <div className="flex flex-nowrap items-center gap-1 overflow-x-auto pb-1 [scrollbar-width:thin]">
-              {suggestions.slice(0, 40).map((tag) => (
+              プリセットと同様、折り返さず横1列に並べ、収まらない分は横スクロールで見せる。
+              読み込み中・0件・該当なしでも行は残す(ROW_CLASS の狙い)。 */}
+          <HScrollRow className={`${ROW_CLASS} [scrollbar-width:thin]`}>
+            {isLoading ? (
+              <ChipSkeletons />
+            ) : suggestions.length === 0 ? (
+              <RowMessage>{suggestionsEmptyMessage}</RowMessage>
+            ) : (
+              suggestions.slice(0, 40).map((tag) => (
                 <Chip
                   key={tag.id}
                   as="button"
@@ -400,19 +483,24 @@ export default function TagSelector({
                 >
                   {tag.name}
                 </Chip>
-              ))}
-            </div>
-          )}
+              ))
+            )}
+          </HScrollRow>
 
           {/* プリセット候補（運営が用意した全ユーザー共通タグ）。付与先に関係する群だけを出す。
-              折り返さず横1列に並べ、収まらない分は横スクロールで見せる。 */}
-          {presetSuggestions.length > 0 && (
-            <div className="flex flex-col gap-1">
-              <span className="text-[0.6875rem] font-semibold text-default-500">
-                {PRESET_SECTION_LABEL[presetCategory]}
-              </span>
-              <div className="flex flex-nowrap items-center gap-1 overflow-x-auto pb-1 [scrollbar-width:thin]">
-                {presetSuggestions.slice(0, 40).map((tag) => {
+              折り返さず横1列に並べ、収まらない分は横スクロールで見せる。
+              見出しは取得結果に依らない固定の文言なので、読み込み中もそのまま出す。 */}
+          <div className="flex flex-col gap-1">
+            <span className="text-[0.6875rem] font-semibold text-default-500">
+              {PRESET_SECTION_LABEL[presetCategory]}
+            </span>
+            <HScrollRow className={`${ROW_CLASS} [scrollbar-width:thin]`}>
+              {isPresetsLoading ? (
+                <ChipSkeletons />
+              ) : presetSuggestions.length === 0 ? (
+                <RowMessage>{presetsEmptyMessage}</RowMessage>
+              ) : (
+                presetSuggestions.slice(0, 40).map((tag) => {
                   const color = tag.color || PRESET_FALLBACK_COLOR;
 
                   return (
@@ -432,10 +520,10 @@ export default function TagSelector({
                       {tag.name}
                     </Chip>
                   );
-                })}
-              </div>
-            </div>
-          )}
+                })
+              )}
+            </HScrollRow>
+          </div>
 
           {/* 入力名の新規作成（同名の自分のタグ・プリセットが無いときだけ出す）。 */}
           {normalizedQuery !== "" && !exactMatch && (

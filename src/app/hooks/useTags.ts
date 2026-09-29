@@ -49,10 +49,11 @@ export function useTags(presetCategory?: TagPresetCategory) {
 
   // 全ユーザー共通のプリセットタグ(ACE SPEC・大会順位)。ほぼ不変なので長めにキャッシュする。
   // 群ごとにURLが変わるので、SWRのキャッシュも群ごとに分かれる。
-  const { data: presetData, isLoading: isPresetsLoading } = useSWR<
-    TagType[],
-    Error
-  >(
+  const {
+    data: presetData,
+    error: presetsError,
+    isLoading: isPresetsLoading,
+  } = useSWR<TagType[], Error>(
     presetCategory
       ? `/api/tags/presets?category=${presetCategory}`
       : "/api/tags/presets",
@@ -118,6 +119,7 @@ export function useTags(presetCategory?: TagPresetCategory) {
     isLoading,
     isPresetsLoading,
     error,
+    presetsError,
     mutate,
     createTag,
     updateTag,

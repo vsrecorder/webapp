@@ -354,6 +354,8 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
                   <TagSelector
                     selectedTagIds={tagIds}
                     onChange={setTagIds}
+                    // 付与済みチップをタグ一覧の到着より先に描くため、デッキが持っているタグを渡す
+                    knownTags={deck?.tags ?? undefined}
                     onManageModeChange={setIsTagManaging}
                   />
                 )}

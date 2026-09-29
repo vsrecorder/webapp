@@ -7,6 +7,13 @@ import UpdateDeckModal from "@app/components/organisms/Deck/Modal/UpdateDeckModa
 
 import { DeckGetByIdResponseType } from "@app/types/deck";
 
+// jsdom は ResizeObserver を持たない。タグの候補行(HScrollRow)が溢れ判定に使う
+globalThis.ResizeObserver = class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+} as unknown as typeof ResizeObserver;
+
 // アイコン一覧(/api/pokemon-sprites)・タグ一覧(/api/tags)とも、ここでは空で返しておく。
 beforeEach(() => {
   vi.stubGlobal(

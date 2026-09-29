@@ -19,6 +19,13 @@ const tag = (id: string, name: string, preset_flg: boolean): TagType =>
     preset_flg,
   }) as TagType;
 
+// jsdom は ResizeObserver を持たない。候補行の HScrollRow が溢れ判定に使う
+globalThis.ResizeObserver = class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+} as unknown as typeof ResizeObserver;
+
 const MINE = [tag("mine-1", "大会用", false)];
 const ACESPEC = [
   tag("ace-1", "シークレットボックス", true),
@@ -97,6 +104,87 @@ describe("TagSelector", () => {
     // 付与済みの行は入力欄より前にある
     const head = container.innerHTML.split("<input")[0];
     expect(head).toContain("min-h-6");
+  });
+
+  it("読み込み中も候補・プリセットの行を空けておく", async () => {
+    // 取得が返った瞬間に候補行が生まれると、開いたアコーディオンの中身が
+    // そのぶん伸びて跳ねる(実測: 中身 74px → 190.5px)。行の数は最初から最後まで変えない
+    const pending: { url: string; send: (body: TagType[]) => void }[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        (url: string) =>
+          new Promise<Response>((resolve) => {
+            pending.push({
+              url: String(url),
+              send: (body) =>
+                resolve(
+                  new Response(JSON.stringify(body), {
+                    headers: { "content-type": "application/json" },
+                  }),
+                ),
+            });
+          }),
+      ),
+    );
+
+    const { container } = render(<Harness />);
+    const root = container.querySelector(".flex.flex-col.gap-2")!;
+    const rowsWhileLoading = root.children.length;
+
+    // 取得結果に依らない見出しは骨格に置き換えず、そのまま出す
+    expect(screen.getByText("ACE SPEC・プリセット")).toBeTruthy();
+    // 候補の場所はチップの骨格で取っておく
+    expect(container.querySelectorAll(".animate-pulse").length).toBeGreaterThan(0);
+
+    pending.forEach((req) => req.send(req.url.includes("/presets") ? ACESPEC : MINE));
+    await waitFor(() => chip("大会用"));
+
+    expect(container.querySelectorAll(".animate-pulse").length).toBe(0);
+    expect(root.children.length).toBe(rowsWhileLoading);
+  });
+
+  it("付与済みのタグは、一覧が届く前でも knownTags から描く", async () => {
+    // 編集モーダルは付与済みのタグを持って開く。一覧待ちでチップが後から生えると、
+    // チップが2行に折り返した瞬間に枠が伸びる(実測: 24px → 52px、モーダルごと上へずれる)
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => new Promise<Response>(() => {})),
+    );
+
+    render(
+      <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
+        <TagSelector
+          selectedTagIds={["mine-1", "ace-1"]}
+          onChange={() => {}}
+          knownTags={[...MINE, ...ACESPEC]}
+        />
+      </SWRConfig>,
+    );
+
+    expect(screen.getByText("大会用")).toBeTruthy();
+    expect(screen.getByText("シークレットボックス")).toBeTruthy();
+  });
+
+  it("自分のタグが1つも無くても候補の行は残す", async () => {
+    // 0件だけ行が消えると、タグを初めて作った瞬間に下がずれる
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        const body = String(url).includes("/presets") ? ACESPEC : [];
+        return new Response(JSON.stringify(body), {
+          headers: { "content-type": "application/json" },
+        });
+      }),
+    );
+
+    const { container } = render(<Harness />);
+    await waitFor(() => chip("マスターボール"));
+
+    const root = container.querySelector(".flex.flex-col.gap-2")!;
+    // 見出し・付与済み・入力欄・自分のタグ・プリセット の5行
+    expect(root.children.length).toBe(5);
+    expect(screen.getByText("入力すると自分のタグを作成できます")).toBeTruthy();
   });
 
   it("差し替わるのは同じ群のプリセットだけで、自分のタグは残る", async () => {

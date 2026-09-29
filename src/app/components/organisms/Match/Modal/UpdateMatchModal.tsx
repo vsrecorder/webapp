@@ -1048,6 +1048,8 @@ export default function UpdateMatchModal({
                     <TagSelectorAccordion
                       selectedTagIds={tagIds}
                       onChange={setTagIds}
+                      // 付与済みチップをタグ一覧の到着より先に描くため、対戦結果が持っているタグを渡す
+                      knownTags={match?.tags ?? undefined}
                       onManageModeChange={setIsTagManaging}
                     />
                   </div>

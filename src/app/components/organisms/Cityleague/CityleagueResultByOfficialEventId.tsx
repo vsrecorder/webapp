@@ -181,10 +181,10 @@ export default function CityleagueResultByOfficialEventId({
 
           <div className="flex flex-wrap items-start gap-1">
             <Chip size="sm" radius="md" variant="bordered">
-              <small className="font-bold">{event.prefecture_name}</small>
+              <small className="font-bold">{event.league_title}リーグ</small>
             </Chip>
             <Chip size="sm" radius="md" variant="bordered">
-              <small className="font-bold">{event.league_title}リーグ</small>
+              <small className="font-bold">{event.prefecture_name}</small>
             </Chip>
             <Chip size="sm" radius="md" variant="bordered">
               <small className="font-bold">『{event.environment_title}』</small>

@@ -83,7 +83,7 @@ export default function CityleagueEventLinkList({
                       {event.shop_name}
                     </span>
                     <span className="text-tiny text-default-400">
-                      {event.prefecture_name} / {event.league_title}リーグ
+                      {event.league_title}リーグ / {event.prefecture_name}
                     </span>
                     {winners?.[event.id] && (
                       <span className="truncate text-tiny text-default-500">

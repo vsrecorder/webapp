@@ -51,7 +51,7 @@ describe("cityleagueEventOgName", () => {
     const winner = eventOgWinner(archetype())!;
     const name = cityleagueEventOgName(1115603, winner);
 
-    expect(name).toMatch(/^cityleague_results\/1115603-w2-[0-9a-f]{12}$/);
+    expect(name).toMatch(/^cityleague_results\/1115603-w3-[0-9a-f]{12}$/);
     // 同じ中身なら同じキー(描き直さない)
     expect(cityleagueEventOgName(1115603, { ...winner })).toBe(name);
     // 型やスプライトが変われば別のキー

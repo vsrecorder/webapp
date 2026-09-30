@@ -79,15 +79,15 @@ export default function PlayerCityleagueResultsSkeleton({
           {/* 順位バッジ(h-7・実測82.3px) */}
           <div className="h-7 w-20 animate-pulse rounded-full bg-default-100" />
 
-          {/* 会場名(text-base の行ボックス24px)と、県・リーグ・環境のタグ
-              (Chip size="sm" = 24px / radius 12px。実測 48.8・86.6・102.9px) */}
+          {/* 会場名(text-base の行ボックス24px)と、リーグ・県・環境のタグ
+              (Chip size="sm" = 24px / radius 12px。実測 86.6・48.8・102.9px) */}
           <div className="flex flex-col gap-1">
             <div className="flex h-6 items-center">
               <div className="h-4 w-32 animate-pulse rounded-md bg-default-100" />
             </div>
             <div className="flex gap-1">
-              <div className="h-6 w-12 animate-pulse rounded-xl bg-default-100" />
               <div className="h-6 w-22 animate-pulse rounded-xl bg-default-100" />
+              <div className="h-6 w-12 animate-pulse rounded-xl bg-default-100" />
               <div className="h-6 w-26 animate-pulse rounded-xl bg-default-100" />
             </div>
           </div>

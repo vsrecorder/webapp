@@ -15,8 +15,9 @@ export type EventOgWinner = {
   spriteIds: string[];
 };
 
-// 優勝デッキ入りの画像のレイアウトの版(1: デッキ名の下に小さなスプライト、2: 右に大きなスプライト)
-const EVENT_WINNER_OG_LAYOUT = 2;
+// 優勝デッキ入りの画像のレイアウトの版(1: デッキ名の下に小さなスプライト、2: 右に大きなスプライト、
+// 3: 日付の行をリーグ名 → 都道府県の順に)
+const EVENT_WINNER_OG_LAYOUT = 3;
 
 const tidy = (text: string | null | undefined) => (text ?? "").replace(/\s+/g, " ").trim();
 

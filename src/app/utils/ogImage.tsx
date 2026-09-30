@@ -378,9 +378,9 @@ export async function renderCityleagueEventOgImage(
         <div style={{ display: "flex", gap: 14, fontSize: 30, color: COLORS.muted }}>
           <span>{formatEventDate(event.date)}</span>
           <span style={{ color: COLORS.separator }}>/</span>
-          <span>{event.prefecture_name}</span>
-          <span style={{ color: COLORS.separator }}>/</span>
           <span>{event.league_title}リーグ</span>
+          <span style={{ color: COLORS.separator }}>/</span>
+          <span>{event.prefecture_name}</span>
         </div>
 
         <div
@@ -467,9 +467,9 @@ async function renderCityleagueEventWinnerOgImage(
         >
           <span>{formatEventDate(event.date)}</span>
           <span style={{ color: COLORS.separator }}>/</span>
-          <span>{event.prefecture_name}</span>
-          <span style={{ color: COLORS.separator }}>/</span>
           <span>{event.league_title}リーグ</span>
+          <span style={{ color: COLORS.separator }}>/</span>
+          <span>{event.prefecture_name}</span>
         </div>
 
         <div

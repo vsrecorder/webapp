@@ -68,10 +68,10 @@ export default function CityleagueResultDetailSkeleton({ withDeckArchetype = fal
             <Skeleton className="h-9 w-9 shrink-0 rounded-md" />
           </div>
 
-          {/* 都道府県・リーグ区分・環境のチップ */}
+          {/* リーグ区分・都道府県・環境のチップ */}
           <div className="flex flex-wrap items-start gap-1">
-            <Skeleton className="h-6 w-14 rounded-md" />
             <Skeleton className="h-6 w-20 rounded-md" />
+            <Skeleton className="h-6 w-14 rounded-md" />
             <Skeleton className="h-6 w-24 rounded-md" />
           </div>
         </CardHeader>

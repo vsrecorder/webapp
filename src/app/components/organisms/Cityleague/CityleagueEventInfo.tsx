@@ -50,10 +50,10 @@ export default function CityleagueEventInfo({ event }: Props) {
               <div className="pt-1 pb-1 font-bold text-[0.8125rem]">{shopName}</div>
               <div className="flex flex-wrap items-start gap-1 pt-0.5">
                 <Chip size="sm" radius="md" variant="bordered">
-                  <small className="font-bold">{event.prefecture_name}</small>
+                  <small className="font-bold">{event.league_title}リーグ</small>
                 </Chip>
                 <Chip size="sm" radius="md" variant="bordered">
-                  <small className="font-bold">{event.league_title}リーグ</small>
+                  <small className="font-bold">{event.prefecture_name}</small>
                 </Chip>
                 <Chip size="sm" radius="md" variant="bordered">
                   <small className="font-bold">『{event.environment_title}』</small>

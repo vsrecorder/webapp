@@ -112,14 +112,14 @@ function ResultCard({ result }: { result: UserPlayerCityleagueResultType }) {
         <div className="flex min-w-0 flex-col gap-1">
           {shopName && <span className="truncate text-base font-bold">{shopName}</span>}
           <div className="flex flex-wrap items-start gap-1">
-            {result.prefecture_name && (
-              <Chip size="sm" radius="md" variant="bordered">
-                <small className="font-bold">{result.prefecture_name}</small>
-              </Chip>
-            )}
             {leagueTitle && (
               <Chip size="sm" radius="md" variant="bordered">
                 <small className="font-bold">{leagueTitle}リーグ</small>
+              </Chip>
+            )}
+            {result.prefecture_name && (
+              <Chip size="sm" radius="md" variant="bordered">
+                <small className="font-bold">{result.prefecture_name}</small>
               </Chip>
             )}
             {result.environment_title && (

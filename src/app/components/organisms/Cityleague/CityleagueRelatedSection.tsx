@@ -92,8 +92,8 @@ export default async function CityleagueRelatedSection({ event }: Props) {
                       {related.shop_name}
                     </span>
                     <span className="text-tiny text-default-400">
-                      {formatEventDate(related.date)} / {related.prefecture_name} /{" "}
-                      {related.league_title}リーグ
+                      {formatEventDate(related.date)} / {related.league_title}リーグ /{" "}
+                      {related.prefecture_name}
                     </span>
                   </span>
                   <LuChevronRight className="shrink-0 text-default-300" />

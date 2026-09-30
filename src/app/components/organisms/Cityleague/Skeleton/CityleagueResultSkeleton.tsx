@@ -40,11 +40,11 @@ export function CityleagueResultSkeleton() {
                 </div>
               </div>
 
-              {/* 都道府県・リーグ区分・環境のチップ。
-                  幅は実測(48.8px / 86.6px / 115.5px)に合わせる */}
+              {/* リーグ区分・都道府県・環境のチップ(実体と同じ並び)。
+                  幅は実測(86.6px / 48.8px / 115.5px)に合わせる */}
               <div className="flex flex-wrap items-start gap-1 pt-0.5">
-                <Skeleton className="h-6 w-12 rounded-md" />
                 <Skeleton className="h-6 w-22 rounded-md" />
+                <Skeleton className="h-6 w-12 rounded-md" />
                 <Skeleton className="h-6 w-29 rounded-md" />
               </div>
             </div>

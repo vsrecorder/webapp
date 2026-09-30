@@ -141,10 +141,10 @@ export default function CityleagueEventCard({
               </div>
               <div className="flex flex-nowrap items-start gap-1 overflow-hidden pt-0.5">
                 <Chip size="sm" radius="md" variant="bordered" className="shrink-0">
-                  <small className="font-bold">{event.prefecture_name}</small>
+                  <small className="font-bold">{event.league_title}リーグ</small>
                 </Chip>
                 <Chip size="sm" radius="md" variant="bordered" className="shrink-0">
-                  <small className="font-bold">{event.league_title}リーグ</small>
+                  <small className="font-bold">{event.prefecture_name}</small>
                 </Chip>
                 <Chip
                   size="sm"

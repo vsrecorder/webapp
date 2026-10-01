@@ -91,6 +91,7 @@ describe("parseSimilarDecksResponse", () => {
       environmentTitle: "30th CELEBRATION",
       archetype: {
         archetypeId: "dragapult",
+        variantId: "blaziken",
         archetypeName: "ドラパルトex",
         variantName: "バシャーモ型",
         label: "ドラパルトex バシャーモ型",
@@ -187,6 +188,7 @@ describe("parseSimilarDecksResponse", () => {
 
     expect(parsed?.source.archetype).toEqual({
       archetypeId: null,
+      variantId: null,
       archetypeName: null,
       variantName: null,
       label: null,
@@ -319,6 +321,7 @@ describe("readSimilarDecksBody", () => {
 
     expect(read?.source.archetype).toEqual({
       archetypeId: "dragapult",
+      variantId: "blaziken",
       archetypeName: "ドラパルトex",
       variantName: "バシャーモ型",
       label: "ドラパルトex バシャーモ型",
@@ -369,6 +372,13 @@ describe("URL とパス", () => {
     expect(vslabArchetypePageUrl("dragapult", "m6a")).toBe(
       "https://lab.vsrecorder.mobi/archetypes/dragapult?env=m6a",
     );
+    // 型があれば、その型に絞った種類ページを開く
+    expect(vslabArchetypePageUrl("dragapult", "m6a", "blaziken")).toBe(
+      "https://lab.vsrecorder.mobi/archetypes/dragapult?variant=blaziken&env=m6a",
+    );
+    expect(vslabArchetypePageUrl("dragapult", null, null)).toBe(
+      "https://lab.vsrecorder.mobi/archetypes/dragapult",
+    );
   });
 });
 
@@ -380,7 +390,7 @@ describe("formatEventDateShort", () => {
 });
 
 describe("similarDeckArchetypeName", () => {
-  const base = { archetypeId: "dragapult", sprites: [] };
+  const base = { archetypeId: "dragapult", variantId: null, sprites: [] };
 
   it("型名は括弧で囲む", () => {
     expect(
@@ -427,6 +437,7 @@ describe("similarDeckArchetypeName", () => {
     expect(
       similarDeckArchetypeName({
         archetypeId: null,
+        variantId: null,
         archetypeName: null,
         variantName: null,
         label: null,

@@ -7,6 +7,8 @@
 // デッキの種類(要約)。未分類なら archetypeId と label が null で、sprites は空
 export type SimilarDeckArchetypeType = {
   archetypeId: string | null;
+  // 型の ID(「blaziken」)。型が無い・未分類なら null。バトラボの種類ページを型で開くのに使う
+  variantId: string | null;
   // 主デッキ名(「ドラパルトex」)と型名(「バシャーモ型」)。型が無ければ variantName は null。
   // 画面には similarDeckArchetypeName で「ドラパルトex(バシャーモ型)」の形にして出す
   archetypeName: string | null;

@@ -23,6 +23,7 @@ const REPRESENTATIVE = `${IMAGE_BASE}/SV6/representative.jpg`;
 
 const archetype = {
   archetypeId: "dragapult",
+  variantId: null,
   archetypeName: "ドラパルトex",
   variantName: null,
   label: "ドラパルトex",
@@ -324,5 +325,43 @@ describe("DisplaySimilarDecksModal の差分カード", () => {
 
     expect(originalSrcOf(image)).toBe(SOURCE_PRINT);
     expect(screen.queryByAltText("ロストスイーパー")).toBeNull();
+  });
+});
+
+describe("DisplaySimilarDecksModal のバトラボへのリンク", () => {
+  const linkHref = () =>
+    screen
+      .getByRole("link", { name: "この種類の採用カード・入賞デッキをバトラボで見る" })
+      .getAttribute("href");
+
+  it("型がある入賞デッキは、その型に絞った種類ページを開く", async () => {
+    const body = similarBody({ in: [], out: [] });
+    stubSimilar({
+      ...body,
+      similar: [
+        {
+          ...body.similar[0],
+          archetype: { ...archetype, variantId: "blaziken", variantName: "バシャーモ型" },
+        },
+      ],
+    });
+    render(
+      <DisplaySimilarDecksModal code={SOURCE_CODE} isOpen onOpenChange={() => {}} onClose={() => {}} />,
+    );
+
+    await waitFor(() => expect(linkHref()).toBeTruthy(), { timeout: 3000 });
+    expect(linkHref()).toBe(
+      "https://lab.vsrecorder.mobi/archetypes/dragapult?variant=blaziken&env=m6a",
+    );
+  });
+
+  it("型が無ければ種類ページをそのまま開く", async () => {
+    stubSimilar(similarBody({ in: [], out: [] }));
+    render(
+      <DisplaySimilarDecksModal code={SOURCE_CODE} isOpen onOpenChange={() => {}} onClose={() => {}} />,
+    );
+
+    await waitFor(() => expect(linkHref()).toBeTruthy(), { timeout: 3000 });
+    expect(linkHref()).toBe("https://lab.vsrecorder.mobi/archetypes/dragapult?env=m6a");
   });
 });

@@ -258,7 +258,11 @@ function SimilarDeckRow({
       <CopyableDeckCode code={deck.deckCode} label="コード" />
       {deck.archetype.archetypeId && (
         <a
-          href={vslabArchetypePageUrl(deck.archetype.archetypeId, environmentId)}
+          href={vslabArchetypePageUrl(
+            deck.archetype.archetypeId,
+            environmentId,
+            deck.archetype.variantId,
+          )}
           target="_blank"
           rel="noreferrer"
           className="flex items-center gap-1 self-start text-tiny text-primary underline-offset-2 hover:underline"

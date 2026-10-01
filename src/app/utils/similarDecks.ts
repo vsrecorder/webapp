@@ -76,11 +76,18 @@ export function vslabSimilarPageUrl(code: string, environmentId?: string | null)
   return `${VSLAB_PUBLIC_ORIGIN}/similar?${query.toString()}`;
 }
 
-// バトラボのデッキ種類ページ(採用カード・入賞デッキ)
-export function vslabArchetypePageUrl(archetypeId: string, environmentId?: string | null): string {
-  const query = environmentId ? `?env=${encodeURIComponent(environmentId)}` : "";
+// バトラボのデッキ種類ページ(採用カード・入賞デッキ)。型があれば ?variant= でその型に絞って開く
+export function vslabArchetypePageUrl(
+  archetypeId: string,
+  environmentId?: string | null,
+  variantId?: string | null,
+): string {
+  const query = new URLSearchParams();
+  if (variantId) query.set("variant", variantId);
+  if (environmentId) query.set("env", environmentId);
+  const search = query.toString();
 
-  return `${VSLAB_PUBLIC_ORIGIN}/archetypes/${encodeURIComponent(archetypeId)}${query}`;
+  return `${VSLAB_PUBLIC_ORIGIN}/archetypes/${encodeURIComponent(archetypeId)}${search ? `?${search}` : ""}`;
 }
 
 // 大会日を「9/26」の短い形にする(シートの 1 行に日付・都道府県・順位を並べるため)。読めない値は空文字
@@ -146,7 +153,14 @@ export function spriteIdFromUrl(url: string): string | null {
 
 function parseArchetype(value: unknown): SimilarDeckArchetypeType {
   if (!isRecord(value)) {
-    return { archetypeId: null, archetypeName: null, variantName: null, label: null, sprites: [] };
+    return {
+      archetypeId: null,
+      variantId: null,
+      archetypeName: null,
+      variantName: null,
+      label: null,
+      sprites: [],
+    };
   }
 
   const sprites = Array.isArray(value.sprites)
@@ -157,6 +171,7 @@ function parseArchetype(value: unknown): SimilarDeckArchetypeType {
 
   return {
     archetypeId: stringOrNull(value.archetypeId),
+    variantId: stringOrNull(value.variantId),
     archetypeName: stringOrNull(value.archetypeName),
     variantName: stringOrNull(value.variantName),
     label: stringOrNull(value.label),

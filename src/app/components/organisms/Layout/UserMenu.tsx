@@ -26,6 +26,7 @@ import {
   LuSparkles,
   LuCopy,
   LuCheck,
+  LuPencilLine,
 } from "react-icons/lu";
 import { FaXTwitter } from "react-icons/fa6";
 
@@ -206,6 +207,17 @@ export default function UserMenu({ user, iconUrl, isDevEnv }: Props) {
               }}
             >
               バトルレポート
+            </DropdownItem>
+            <DropdownItem
+              key="opponent-decks"
+              color="default"
+              startContent={<LuPencilLine className="w-4 h-4" />}
+              description="相手デッキの表記ゆれをまとめて直す"
+              onPress={() => {
+                router.push("/users/opponent_decks");
+              }}
+            >
+              相手デッキの一括編集
             </DropdownItem>
             <DropdownItem
               key="deck_meta"

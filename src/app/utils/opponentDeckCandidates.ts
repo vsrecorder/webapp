@@ -28,7 +28,7 @@ export type DeckHistory = {
 };
 
 // スプライトIDから画像URLを組み立てる。IDは4桁ゼロ埋めだが、画像のファイル名はゼロ埋めなし。
-function toSprite(id: string | undefined): PokemonSpriteType | null {
+export function toSprite(id: string | undefined): PokemonSpriteType | null {
   if (!id) return null;
 
   return {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import useSWR, { useSWRConfig } from "swr";
 
@@ -52,6 +52,47 @@ import { MAX_OPPONENTS_DECK_INFO_LENGTH, exceedsTextLength } from "@app/utils/te
  */
 
 const OPPONENT_DECKS_URL = "/api/matches/opponent_decks";
+
+/*
+ * 一覧と編集の切り替えをブラウザの履歴に載せる。編集中は URL に ?edit=<組み合わせ> を付け、
+ * 一覧から開くときに履歴を 1 つ積む。こうするとブラウザの「戻る」(スマホのスワイプ・Android の
+ * 戻るボタン)で一覧に戻れる。以前はページ内の状態だけで切り替えていたので、「戻る」で
+ * ページごと前の画面(ホームなど)へ戻ってしまっていた。
+ *
+ * URL の読み取りは useSyncExternalStore で popstate と、ここで履歴を書き換えたときの合図を購読する
+ * (Next.js の useSearchParams に頼らず、ページ内の切り替えで再描画が確実に走るように)
+ */
+const EDIT_PARAM = "edit";
+const EDIT_CHANGE_EVENT = "opponent-decks:edit-change";
+
+function subscribeEditKey(onChange: () => void): () => void {
+  window.addEventListener("popstate", onChange);
+  window.addEventListener(EDIT_CHANGE_EVENT, onChange);
+  return () => {
+    window.removeEventListener("popstate", onChange);
+    window.removeEventListener(EDIT_CHANGE_EVENT, onChange);
+  };
+}
+
+function readEditKey(): string | null {
+  return new URLSearchParams(window.location.search).get(EDIT_PARAM);
+}
+
+// 編集中の組み合わせを URL に書く。push は履歴を積み、replace は今の履歴を書き換える
+function writeEditKey(key: string | null, mode: "push" | "replace") {
+  const url = new URL(window.location.href);
+  if (key === null) {
+    url.searchParams.delete(EDIT_PARAM);
+  } else {
+    url.searchParams.set(EDIT_PARAM, key);
+  }
+  if (mode === "push") {
+    window.history.pushState(null, "", url);
+  } else {
+    window.history.replaceState(null, "", url);
+  }
+  window.dispatchEvent(new Event(EDIT_CHANGE_EVENT));
+}
 
 // 編集画面で「作成済みの相手のデッキに揃える」に並べる数
 const MAX_SUGGESTIONS = 20;
@@ -344,7 +385,9 @@ function EditOpponentDeck({
       <div className="flex flex-col gap-2">
         {suggestions.length > 0 && (
           <>
-            <div className="text-tiny text-default-500">作成済みの相手のデッキに揃える</div>
+            <div className="text-tiny text-default-500">
+              作成済みの相手のデッキに揃える
+            </div>
             <HScrollRow className="flex gap-2 pb-1">
               {suggestions.map((s) => {
                 const [s1, s2] = spritesOf(s);
@@ -477,16 +520,54 @@ export default function OpponentDecks() {
     });
 
   const [query, setQuery] = useState("");
-  const [order, setOrder] = useState<OpponentDeckOrder>("count");
-  const [editing, setEditingState] = useState<OpponentDeckType | null>(null);
+  // 既定は新しい順(最後に対戦した日が新しいものから)。いま当たっている相手から直せるように
+  const [order, setOrder] = useState<OpponentDeckOrder>("recent");
+  const decks = useMemo(() => data?.data ?? [], [data]);
 
-  // 一覧と編集を切り替えたら先頭から見せる(一覧の下の方で選ぶと、編集画面が途中から始まるため)
-  function setEditing(deck: OpponentDeckType | null) {
-    setEditingState(deck);
-    window.scrollTo({ top: 0 });
+  // 編集中の組み合わせは URL(?edit=)から決める。サーバ側の描画では常に一覧
+  const editKey = useSyncExternalStore(subscribeEditKey, readEditKey, () => null);
+  const editing = useMemo(
+    () =>
+      editKey === null
+        ? null
+        : (decks.find((d) => opponentDeckKey(d) === editKey) ?? null),
+    [decks, editKey],
+  );
+
+  // このページの中で編集画面へ進むときに履歴を積んだか。積んでいれば「一覧に戻る」は履歴を
+  // 1 つ戻す(ブラウザの「戻る」と同じ動きにして、履歴に一覧が 2 つ並ばないようにする)。
+  // ?edit= 付きの URL を直接開いた・再読み込みしたときは積んでいないので、URL を書き換えて戻る
+  const pushedRef = useRef(false);
+  // 編集画面へ進む前の一覧のスクロール位置。一覧に戻ったときにその位置から見せる
+  const listScrollRef = useRef(0);
+
+  function openEdit(deck: OpponentDeckType) {
+    listScrollRef.current = window.scrollY;
+    pushedRef.current = true;
+    writeEditKey(opponentDeckKey(deck), "push");
   }
 
-  const decks = useMemo(() => data?.data ?? [], [data]);
+  function closeEdit() {
+    if (pushedRef.current) {
+      pushedRef.current = false;
+      window.history.back();
+    } else {
+      writeEditKey(null, "replace");
+    }
+  }
+
+  // 編集画面は先頭から、一覧は離れたときの位置から見せる
+  const isEditing = editing !== null;
+  useEffect(() => {
+    window.scrollTo({ top: isEditing ? 0 : listScrollRef.current });
+  }, [isEditing]);
+
+  // ?edit= の組み合わせが一覧に無い(置き換え済み・古い URL)なら、一覧を出して URL から外す
+  useEffect(() => {
+    if (data && editKey !== null && editing === null) {
+      writeEditKey(null, "replace");
+    }
+  }, [data, editKey, editing]);
   const shown = useMemo(
     () => sortOpponentDecks(filterOpponentDecks(decks, query), order),
     [decks, query, order],
@@ -510,7 +591,7 @@ export default function OpponentDecks() {
             timeout: 5000,
           },
     );
-    setEditing(null);
+    closeEdit();
     await mutate();
     // 対戦結果の入力フォームの候補にも、変更後の表記を出す
     void mutateGlobal(
@@ -533,10 +614,10 @@ export default function OpponentDecks() {
 
       {editing ? (
         <EditOpponentDeck
-          key={opponentDeckKey(editing)}
+          key={editKey ?? ""}
           deck={editing}
           decks={decks}
-          onBack={() => setEditing(null)}
+          onBack={closeEdit}
           onReplaced={handleReplaced}
         />
       ) : (
@@ -559,6 +640,7 @@ export default function OpponentDecks() {
               onSelectionChange={(key) => setOrder(key as OpponentDeckOrder)}
               classNames={{ base: "shrink-0" }}
             >
+              <Tab key="recent" title="新しい順" />
               <Tab key="count" title="件数順" />
               <Tab key="name" title="名前順" />
             </Tabs>
@@ -591,7 +673,7 @@ export default function OpponentDecks() {
                   <OpponentDeckRow
                     key={opponentDeckKey(deck)}
                     deck={deck}
-                    onSelect={setEditing}
+                    onSelect={openEdit}
                   />
                 ))}
               </ul>

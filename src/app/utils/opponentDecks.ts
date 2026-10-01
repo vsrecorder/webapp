@@ -4,7 +4,7 @@ import { OpponentDeckSpecType, OpponentDeckType } from "@app/types/opponent_deck
 import { MatchPokemonSpriteType, PokemonSpriteType } from "@app/types/pokemon_sprite";
 import { getSpriteBySlot } from "@app/utils/spriteSlot";
 
-export type OpponentDeckOrder = "count" | "name";
+export type OpponentDeckOrder = "recent" | "count" | "name";
 
 // 組み合わせ(表記 × 1体目 × 2体目)を一意に表す文字列。一覧の key と同一判定に使う
 export function opponentDeckKey(spec: OpponentDeckSpecType): string {
@@ -38,15 +38,24 @@ export function filterOpponentDecks(
 }
 
 /*
- * 並び替え。件数順は上流の並び(対戦の多い順・同数は最近対戦した順)をそのまま使う。
- * 名前順は表記ゆれ(「ドラパ」「ドラパルト」「ドラパルトex」)が隣に並ぶので見つけやすい。
- * 同じ表記はスプライト違いなので、対戦の多い順にする
+ * 並び替え。
+ *   - 新しい順: 最後に対戦した開催日の新しい順。いまの環境で当たっている相手デッキから直せる。
+ *     同じ日なら対戦の多い順(開催日は YYYY-MM-DD なので文字列の比較で日付順になる)
+ *   - 件数順: 上流の並び(対戦の多い順・同数は最近対戦した順)をそのまま使う
+ *   - 名前順: 表記ゆれ(「ドラパ」「ドラパルト」「ドラパルトex」)が隣に並ぶので見つけやすい。
+ *     同じ表記はスプライト違いなので、対戦の多い順にする
  */
 export function sortOpponentDecks(
   decks: OpponentDeckType[],
   order: OpponentDeckOrder,
 ): OpponentDeckType[] {
   if (order === "count") return decks;
+
+  if (order === "recent") {
+    return [...decks].sort(
+      (a, b) => b.last_event_date.localeCompare(a.last_event_date) || b.count - a.count,
+    );
+  }
 
   const collator = new Intl.Collator("ja");
   return [...decks].sort(
@@ -73,7 +82,10 @@ export function toOpponentDeckSpec(
 export function specOfOpponentDeck(deck: OpponentDeckType): OpponentDeckSpecType {
   return {
     opponents_deck_info: deck.opponents_deck_info,
-    pokemon_sprites: deck.pokemon_sprites.map((s) => ({ id: s.id, position: s.position })),
+    pokemon_sprites: deck.pokemon_sprites.map((s) => ({
+      id: s.id,
+      position: s.position,
+    })),
   };
 }
 

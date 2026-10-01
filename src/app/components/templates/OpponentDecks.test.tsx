@@ -1,5 +1,12 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { SWRConfig } from "swr";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -35,7 +42,12 @@ const decksBody = {
       count: 12,
       last_event_date: "2026-09-28",
     },
-    { opponents_deck_info: "ドラパ", pokemon_sprites: [], count: 3, last_event_date: "2026-08-01" },
+    {
+      opponents_deck_info: "ドラパ",
+      pokemon_sprites: [],
+      count: 3,
+      last_event_date: "2026-08-01",
+    },
   ],
 };
 
@@ -47,6 +59,8 @@ window.scrollTo = vi.fn() as unknown as typeof window.scrollTo;
 
 afterEach(() => {
   cleanup();
+  // 編集中は URL に ?edit= が付く。次のテストへ持ち越さない
+  window.history.replaceState(null, "", "/");
   vi.unstubAllGlobals();
 });
 
@@ -77,7 +91,9 @@ describe("OpponentDecks(相手デッキの一括編集)", () => {
     expect(screen.getByText("12戦")).toBeTruthy();
     expect(screen.getByText("最終 2026/9/28")).toBeTruthy();
 
-    fireEvent.change(screen.getByLabelText("相手デッキを検索"), { target: { value: "どらぱると" } });
+    fireEvent.change(screen.getByLabelText("相手デッキを検索"), {
+      target: { value: "どらぱると" },
+    });
 
     await waitFor(() => expect(screen.queryByText("ドラパ")).toBeNull());
     expect(screen.getByText("ドラパルトex")).toBeTruthy();
@@ -91,7 +107,9 @@ describe("OpponentDecks(相手デッキの一括編集)", () => {
 
     // 変更前と同じままでは押せない
     const submit = await screen.findByRole("button", { name: "3戦をまとめて変更" });
-    expect(submit.hasAttribute("disabled") || submit.getAttribute("data-disabled") === "true").toBe(true);
+    expect(
+      submit.hasAttribute("disabled") || submit.getAttribute("data-disabled") === "true",
+    ).toBe(true);
 
     // 「作成済みの相手のデッキに揃える」から既存の組み合わせを選ぶ
     const suggestionLabel = screen.getByText("作成済みの相手のデッキに揃える");
@@ -101,7 +119,9 @@ describe("OpponentDecks(相手デッキの一括編集)", () => {
     fireEvent.click(screen.getByRole("button", { name: "3戦をまとめて変更" }));
 
     // 既存の組み合わせとまとめて数えられることを確認画面で伝える
-    expect(await screen.findByText(/「ドラパルトex」の12戦とまとめて数えられる/)).toBeTruthy();
+    expect(
+      await screen.findByText(/「ドラパルトex」の12戦とまとめて数えられる/),
+    ).toBeTruthy();
     // 変更前 → 変更後を並べ、まとめた後の対戦数も出す
     expect(screen.getByText("12戦 → 15戦")).toBeTruthy();
 
@@ -127,10 +147,14 @@ describe("OpponentDecks(相手デッキの一括編集)", () => {
     // 置き換えたあとは一覧に戻り、取り直す(初回 + 置き換え後)
     await waitFor(() =>
       expect(
-        fetchMock.mock.calls.filter(([input, init]) => !init?.method && String(input) === "/api/matches/opponent_decks"),
+        fetchMock.mock.calls.filter(
+          ([input, init]) =>
+            !init?.method && String(input) === "/api/matches/opponent_decks",
+        ),
       ).toHaveLength(2),
     );
-    expect(screen.getByLabelText("相手デッキを検索")).toBeTruthy();
+    expect(await screen.findByLabelText("相手デッキを検索")).toBeTruthy();
+    expect(window.location.search).toBe("");
   });
 
   it("表記を空にしては置き換えられない", async () => {
@@ -138,10 +162,14 @@ describe("OpponentDecks(相手デッキの一括編集)", () => {
     await waitForList();
 
     fireEvent.click(screen.getByText("ドラパ"));
-    fireEvent.change(await screen.findByLabelText("変更後の相手デッキ"), { target: { value: "  " } });
+    fireEvent.change(await screen.findByLabelText("変更後の相手デッキ"), {
+      target: { value: "  " },
+    });
 
     const submit = screen.getByRole("button", { name: "3戦をまとめて変更" });
-    expect(submit.hasAttribute("disabled") || submit.getAttribute("data-disabled") === "true").toBe(true);
+    expect(
+      submit.hasAttribute("disabled") || submit.getAttribute("data-disabled") === "true",
+    ).toBe(true);
     // 押せない理由を入力欄で伝える
     expect(screen.getByText("相手デッキの表記を入力してください")).toBeTruthy();
   });
@@ -172,5 +200,57 @@ describe("OpponentDecks(相手デッキの一括編集)", () => {
         expect.objectContaining({ title: "変更する対戦が見つかりませんでした" }),
       ),
     );
+  });
+
+  describe("ブラウザの履歴", () => {
+    it("編集画面でブラウザの「戻る」を押すと、ページを離れず一覧に戻る", async () => {
+      renderPage();
+      await waitForList();
+
+      fireEvent.click(screen.getByText("ドラパ"));
+      expect(await screen.findByLabelText("変更後の相手デッキ")).toBeTruthy();
+      expect(new URLSearchParams(window.location.search).get("edit")).toBe("ドラパ||");
+
+      window.history.back();
+
+      expect(await screen.findByLabelText("相手デッキを検索")).toBeTruthy();
+      expect(screen.queryByLabelText("変更後の相手デッキ")).toBeNull();
+      expect(window.location.search).toBe("");
+    });
+
+    it("「一覧に戻る」も履歴を戻して一覧に戻る", async () => {
+      renderPage();
+      await waitForList();
+
+      fireEvent.click(screen.getByText("ドラパ"));
+      fireEvent.click(await screen.findByText("一覧に戻る"));
+
+      expect(await screen.findByLabelText("相手デッキを検索")).toBeTruthy();
+      expect(window.location.search).toBe("");
+    });
+
+    it("?edit= 付きの URL を開くと、その組み合わせの編集画面から始まる", async () => {
+      window.history.replaceState(null, "", `/?edit=${encodeURIComponent("ドラパ||")}`);
+      renderPage();
+
+      const input = (await screen.findByLabelText("変更後の相手デッキ", undefined, {
+        timeout: 3000,
+      })) as HTMLInputElement;
+      expect(input.value).toBe("ドラパ");
+
+      // 積んだ履歴が無いので、「一覧に戻る」は URL を書き換えて一覧を出す
+      fireEvent.click(screen.getByText("一覧に戻る"));
+      expect(await screen.findByLabelText("相手デッキを検索")).toBeTruthy();
+      expect(window.location.search).toBe("");
+    });
+
+    it("一覧に無い組み合わせの ?edit= は、一覧を出して URL から外す", async () => {
+      window.history.replaceState(null, "", "/?edit=" + encodeURIComponent("無い表記||"));
+      renderPage();
+      await waitForList();
+
+      await waitFor(() => expect(window.location.search).toBe(""));
+      expect(screen.queryByLabelText("変更後の相手デッキ")).toBeNull();
+    });
   });
 });

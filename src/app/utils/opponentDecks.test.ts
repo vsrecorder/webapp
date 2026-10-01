@@ -34,7 +34,9 @@ describe("opponentDeckKey", () => {
     expect(opponentDeckKey(decks[0])).toBe("ドラパルトex|0887|");
     expect(opponentDeckKey(decks[3])).toBe("ドラパルトex||");
     // 2体目だけのスプライト
-    expect(opponentDeckKey(deck("サナ", 1, [{ id: "0282", position: 2 }]))).toBe("サナ||0282");
+    expect(opponentDeckKey(deck("サナ", 1, [{ id: "0282", position: 2 }]))).toBe(
+      "サナ||0282",
+    );
   });
 });
 
@@ -50,17 +52,29 @@ describe("normalizeForSearch / filterOpponentDecks", () => {
 });
 
 describe("sortOpponentDecks", () => {
+  it("新しい順は最後に対戦した日の新しい順で、同じ日は対戦の多い順", () => {
+    const dated = [
+      { ...deck("A", 12), last_event_date: "2026-08-01" },
+      { ...deck("B", 2), last_event_date: "2026-09-28" },
+      { ...deck("C", 5), last_event_date: "2026-09-28" },
+      { ...deck("D", 30), last_event_date: "2026-07-19" },
+    ];
+    expect(sortOpponentDecks(dated, "recent").map((d) => d.opponents_deck_info)).toEqual([
+      "C",
+      "B",
+      "A",
+      "D",
+    ]);
+  });
+
   it("件数順は上流の並びのまま", () => {
     expect(sortOpponentDecks(decks, "count")).toBe(decks);
   });
 
   it("名前順は表記ゆれが隣に並び、同じ表記は対戦の多い順", () => {
-    expect(sortOpponentDecks(decks, "name").map((d) => `${d.opponents_deck_info}:${d.count}`)).toEqual([
-      "サーナイトex:5",
-      "ドラパ:3",
-      "ドラパルトex:12",
-      "ドラパルトex:2",
-    ]);
+    expect(
+      sortOpponentDecks(decks, "name").map((d) => `${d.opponents_deck_info}:${d.count}`),
+    ).toEqual(["サーナイトex:5", "ドラパ:3", "ドラパルトex:12", "ドラパルトex:2"]);
   });
 });
 
@@ -72,7 +86,9 @@ describe("toOpponentDeckSpec / specOfOpponentDeck", () => {
       opponents_deck_info: "ドラパルトex",
       pokemon_sprites: [{ id: "0006", position: 2 }],
     });
-    expect(toOpponentDeckSpec("ドラパルトex", sprite("0887"), sprite("0006")).pokemon_sprites).toEqual([
+    expect(
+      toOpponentDeckSpec("ドラパルトex", sprite("0887"), sprite("0006")).pokemon_sprites,
+    ).toEqual([
       { id: "0887", position: 1 },
       { id: "0006", position: 2 },
     ]);

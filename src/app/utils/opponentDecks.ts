@@ -1,6 +1,10 @@
 // 相手デッキの一括編集で使う、一覧の絞り込み・並び替えと、置き換えの指定の組み立て。
 
-import { OpponentDeckSpecType, OpponentDeckType } from "@app/types/opponent_deck";
+import {
+  OpponentDeckMatchType,
+  OpponentDeckSpecType,
+  OpponentDeckType,
+} from "@app/types/opponent_deck";
 import { MatchPokemonSpriteType, PokemonSpriteType } from "@app/types/pokemon_sprite";
 import { getSpriteBySlot } from "@app/utils/spriteSlot";
 
@@ -95,4 +99,41 @@ export function formatLastEventDate(value: string): string {
   if (!m) return "";
 
   return `${m[1]}/${Number(m[2])}/${Number(m[3])}`;
+}
+
+// 組み合わせ 1 つの対戦の一覧を取る URL。表記・1体目・2体目で指定し、空いた枠は送らない
+// (上流は省略を「その枠が空いている組み合わせ」として扱う)
+export function opponentDeckMatchesUrl(spec: OpponentDeckSpecType): string {
+  const params = new URLSearchParams();
+  if (spec.opponents_deck_info) params.set("opponents_deck_info", spec.opponents_deck_info);
+
+  const sprite1 = getSpriteBySlot(spec.pokemon_sprites, 1)?.id;
+  const sprite2 = getSpriteBySlot(spec.pokemon_sprites, 2)?.id;
+  if (sprite1) params.set("pokemon_sprite_id_1", sprite1);
+  if (sprite2) params.set("pokemon_sprite_id_2", sprite2);
+
+  return `/api/matches/opponent_decks/matches?${params}`;
+}
+
+export type OpponentDeckMatchResult = {
+  label: string;
+  tone: "win" | "lose" | "draw";
+};
+
+/*
+ * 対戦結果の勝敗の表記。相手デッキと当たった本人の結果なので、チーム戦も個人の勝敗で色を付け、
+ * チームの勝敗は括弧で添える。両者引き分け(BO3のみ)は勝ちでも負けでもない色にする
+ */
+export function opponentDeckMatchResult(match: OpponentDeckMatchType): OpponentDeckMatchResult {
+  if (match.default_victory_flg) return { label: "不戦勝", tone: "win" };
+  if (match.default_defeat_flg) return { label: "不戦敗", tone: "lose" };
+  if (match.draw_flg) return { label: "引き分け", tone: "draw" };
+
+  const label = match.victory_flg ? "勝ち" : "負け";
+  const tone = match.victory_flg ? "win" : "lose";
+  if (match.group_match_flg) {
+    return { label: `${label}（チーム${match.group_match_victory_flg ? "勝ち" : "負け"}）`, tone };
+  }
+
+  return { label, tone };
 }

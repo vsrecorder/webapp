@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { OpponentDeckType } from "@app/types/opponent_deck";
+import { OpponentDeckMatchType, OpponentDeckType } from "@app/types/opponent_deck";
 import {
   filterOpponentDecks,
   formatLastEventDate,
   normalizeForSearch,
   opponentDeckKey,
+  opponentDeckMatchResult,
+  opponentDeckMatchesUrl,
   sortOpponentDecks,
   specOfOpponentDeck,
   toOpponentDeckSpec,
@@ -106,5 +108,77 @@ describe("formatLastEventDate", () => {
   it("YYYY-MM-DD を 2026/9/28 の形にする。読めない値は空文字", () => {
     expect(formatLastEventDate("2026-09-28")).toBe("2026/9/28");
     expect(formatLastEventDate("")).toBe("");
+  });
+});
+
+describe("opponentDeckMatchesUrl", () => {
+  it("表記と、埋まっている枠のスプライトだけをクエリにする", () => {
+    expect(
+      opponentDeckMatchesUrl({
+        opponents_deck_info: "ドラパルト ex",
+        pokemon_sprites: [{ id: "0887", position: 2 }],
+      }),
+    ).toBe(
+      "/api/matches/opponent_decks/matches?opponents_deck_info=%E3%83%89%E3%83%A9%E3%83%91%E3%83%AB%E3%83%88+ex&pokemon_sprite_id_2=0887",
+    );
+  });
+
+  it("表記の無い組み合わせはスプライトだけで指定する", () => {
+    expect(
+      opponentDeckMatchesUrl({
+        opponents_deck_info: "",
+        pokemon_sprites: [
+          { id: "0887", position: 1 },
+          { id: "0006", position: 2 },
+        ],
+      }),
+    ).toBe("/api/matches/opponent_decks/matches?pokemon_sprite_id_1=0887&pokemon_sprite_id_2=0006");
+  });
+});
+
+describe("opponentDeckMatchResult", () => {
+  const match = (flags: Partial<OpponentDeckMatchType>): OpponentDeckMatchType => ({
+    id: "m1",
+    record_id: "r1",
+    event_date: "2026-09-28",
+    event_type: "official",
+    event_title: "シティリーグ",
+    deck_name: "",
+    bo3_flg: false,
+    group_match_flg: false,
+    group_match_victory_flg: false,
+    default_victory_flg: false,
+    default_defeat_flg: false,
+    victory_flg: false,
+    draw_flg: false,
+    games: [],
+    ...flags,
+  });
+
+  it("勝ち・負け・引き分け・不戦勝・不戦敗を出し分ける", () => {
+    expect(opponentDeckMatchResult(match({ victory_flg: true }))).toEqual({
+      label: "勝ち",
+      tone: "win",
+    });
+    expect(opponentDeckMatchResult(match({}))).toEqual({ label: "負け", tone: "lose" });
+    expect(opponentDeckMatchResult(match({ bo3_flg: true, draw_flg: true }))).toEqual({
+      label: "引き分け",
+      tone: "draw",
+    });
+    expect(
+      opponentDeckMatchResult(match({ default_victory_flg: true, victory_flg: true })),
+    ).toEqual({ label: "不戦勝", tone: "win" });
+    expect(opponentDeckMatchResult(match({ default_defeat_flg: true }))).toEqual({
+      label: "不戦敗",
+      tone: "lose",
+    });
+  });
+
+  it("チーム戦は個人の勝敗で色を付け、チームの勝敗を添える", () => {
+    expect(
+      opponentDeckMatchResult(
+        match({ group_match_flg: true, victory_flg: false, group_match_victory_flg: true }),
+      ),
+    ).toEqual({ label: "負け（チーム勝ち）", tone: "lose" });
   });
 });

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
+import Link from "next/link";
 import useSWR, { useSWRConfig } from "swr";
 
 import { useDisclosure } from "@heroui/react";
@@ -9,16 +10,28 @@ import { Button, Input, Skeleton, Tab, Tabs } from "@heroui/react";
 import { addToast } from "@heroui/react";
 
 import { CgSearch } from "react-icons/cg";
-import { LuArrowDown, LuArrowRight, LuChevronLeft, LuChevronRight } from "react-icons/lu";
+import {
+  LuArrowDown,
+  LuArrowRight,
+  LuChevronDown,
+  LuChevronLeft,
+  LuChevronRight,
+  LuChevronUp,
+} from "react-icons/lu";
 
 import HScrollRow from "@app/components/atoms/HScrollRow";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import FetchError from "@app/components/molecules/FetchError";
 import PokemonSpriteSelectButton from "@app/components/molecules/PokemonSpriteSelectButton";
 import type { SpriteSlot } from "@app/components/molecules/PokemonSpriteSelectButton";
+import GameStreak from "@app/components/organisms/Match/GameStreak";
 import PokemonSpriteModal from "@app/components/organisms/Match/Modal/PokemonSpriteModal";
 
+import { useSessionStorageItem } from "@app/hooks/useSessionStorageItem";
+
 import {
+  OpponentDeckMatchesGetResponseType,
+  OpponentDeckMatchType,
   OpponentDeckReplaceRequestType,
   OpponentDeckReplaceResponseType,
   OpponentDecksGetResponseType,
@@ -28,14 +41,18 @@ import { PokemonSpriteType } from "@app/types/pokemon_sprite";
 
 import { toSprite } from "@app/utils/opponentDeckCandidates";
 import {
+  OpponentDeckMatchResult,
   OpponentDeckOrder,
   filterOpponentDecks,
   formatLastEventDate,
   opponentDeckKey,
+  opponentDeckMatchResult,
+  opponentDeckMatchesUrl,
   sortOpponentDecks,
   specOfOpponentDeck,
   toOpponentDeckSpec,
 } from "@app/utils/opponentDecks";
+import { writeSessionStorage } from "@app/utils/sessionStorageStore";
 import { getSpriteBySlot } from "@app/utils/spriteSlot";
 import { MAX_OPPONENTS_DECK_INFO_LENGTH, exceedsTextLength } from "@app/utils/textLength";
 
@@ -97,7 +114,7 @@ function writeEditKey(key: string | null, mode: "push" | "replace") {
 // 編集画面で「作成済みの相手のデッキに揃える」に並べる数
 const MAX_SUGGESTIONS = 20;
 
-async function fetchOpponentDecks(url: string): Promise<OpponentDecksGetResponseType> {
+async function fetchNoStore<T>(url: string): Promise<T> {
   const res = await fetch(url, {
     headers: { Accept: "application/json" },
     cache: "no-store",
@@ -208,6 +225,171 @@ function ListSkeleton() {
         </li>
       ))}
     </ul>
+  );
+}
+
+/*
+ * 編集画面の「どの記録の対戦か見る」。選んだ組み合わせの対戦を、記録(開催日・イベント名・使用デッキ)と
+ * 対戦結果(勝敗・先攻/後攻)付きで新しい順に並べる。「ドラパ」が本当にドラパルトだったのか、
+ * いつの対戦なのかを思い出してから直せるようにするため。
+ *
+ * 開くまでは取りに行かない。開閉は sessionStorage に覚えておき、行から記録を開いて「戻る」で
+ * 帰ってきたときも開いたままにする(続けて別の対戦も確かめられるように)
+ */
+const MATCHES_OPEN_STORAGE_KEY = "opponent-decks:matches-open";
+
+// 対戦の一覧で最初に出す数。残りは「さらに表示」で出す
+const INITIAL_MATCHES = 5;
+
+const RESULT_TONE_CLASS: Record<OpponentDeckMatchResult["tone"], string> = {
+  win: "bg-success/15 text-success",
+  lose: "bg-danger/15 text-danger",
+  draw: "bg-default-300/40 text-default-600",
+};
+
+function OpponentDeckMatchRow({ match }: { match: OpponentDeckMatchType }) {
+  const result = opponentDeckMatchResult(match);
+  const date = formatLastEventDate(match.event_date);
+  const firstGame = match.games[0];
+
+  return (
+    <li className="border-t border-divider first:border-t-0">
+      <Link
+        href={`/records/${match.record_id}`}
+        className="flex items-center gap-2 py-2 text-left active:opacity-70"
+      >
+        <span className="min-w-0 flex-1">
+          <span className="flex min-w-0 items-baseline gap-1.5">
+            {date && (
+              <span className="shrink-0 text-tiny tabular-nums text-default-500">{date}</span>
+            )}
+            <span className="truncate text-small font-bold">{match.event_title}</span>
+          </span>
+          <span className="mt-0.5 flex min-w-0 items-center gap-1">
+            <span
+              className={`shrink-0 rounded px-1.5 text-[0.625rem] font-bold leading-4 ${RESULT_TONE_CLASS[result.tone]}`}
+            >
+              {result.label}
+            </span>
+            {/* BO3 は 1 本ごとの勝敗の推移、BO1 は先攻・後攻。不戦勝・不戦敗は対局が無いので出さない */}
+            {match.bo3_flg
+              ? match.games.length > 0 && (
+                  <span className="shrink-0 rounded bg-default-200/70 px-1 py-0.5">
+                    <GameStreak games={match.games} size={11} isDraw={match.draw_flg} />
+                  </span>
+                )
+              : firstGame && (
+                  <span className="shrink-0 rounded bg-default-200/70 px-1.5 text-[0.625rem] font-bold leading-4 text-default-600">
+                    {firstGame.go_first ? "先攻" : "後攻"}
+                  </span>
+                )}
+            {match.deck_name && (
+              <span className="min-w-0 truncate text-[0.625rem] text-default-500">
+                使用『{match.deck_name}』
+              </span>
+            )}
+          </span>
+        </span>
+        <LuChevronRight className="shrink-0 text-default-400" />
+      </Link>
+    </li>
+  );
+}
+
+function OpponentDeckMatches({ deck }: { deck: OpponentDeckType }) {
+  const isOpen = useSessionStorageItem(MATCHES_OPEN_STORAGE_KEY) === "1";
+  const [showAll, setShowAll] = useState(false);
+
+  const { data, error, isLoading, isValidating, mutate } =
+    useSWR<OpponentDeckMatchesGetResponseType>(
+      isOpen ? opponentDeckMatchesUrl(specOfOpponentDeck(deck)) : null,
+      fetchNoStore,
+      { revalidateOnFocus: false },
+    );
+  const matches = data?.data ?? [];
+  const shown = showAll ? matches : matches.slice(0, INITIAL_MATCHES);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  function toggle() {
+    writeSessionStorage(MATCHES_OPEN_STORAGE_KEY, isOpen ? null : "1");
+  }
+
+  // 一覧の下の「対戦を閉じる」。長い一覧を閉じると、見ていた位置より下の内容が繰り上がって
+  // どこにいるのか分からなくなるので、閉じたあとに開閉ボタンの位置まで戻す
+  // (scroll-mt で固定ヘッダーの下に来るようにしてある)
+  function closeFromBottom() {
+    writeSessionStorage(MATCHES_OPEN_STORAGE_KEY, null);
+    requestAnimationFrame(() => {
+      containerRef.current?.scrollIntoView?.({ block: "nearest" });
+    });
+  }
+
+  return (
+    <div ref={containerRef} className="flex scroll-mt-20 flex-col gap-1">
+      <button
+        type="button"
+        aria-expanded={isOpen}
+        onClick={toggle}
+        className="flex items-center gap-0.5 self-start text-tiny text-primary active:opacity-70"
+      >
+        {isOpen ? <LuChevronUp /> : <LuChevronDown />}
+        {isOpen ? "対戦を閉じる" : "どの記録の対戦か見る"}
+      </button>
+
+      {isOpen &&
+        (isLoading ? (
+          <div className="flex flex-col gap-2 rounded-lg bg-background px-2.5 py-2">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-8 w-full rounded-md" />
+            ))}
+          </div>
+        ) : error ? (
+          <FetchError
+            message="対戦を取得できませんでした"
+            onRetry={() => void mutate()}
+            isRetrying={isValidating}
+            compact
+          />
+        ) : matches.length === 0 ? (
+          <div className="rounded-lg bg-background px-2.5 py-2 text-tiny text-default-500">
+            対戦が見つかりませんでした。すでに変更されている可能性があります
+          </div>
+        ) : (
+          <>
+            <ul className="rounded-lg bg-background px-2.5">
+              {shown.map((match) => (
+                <OpponentDeckMatchRow key={match.id} match={match} />
+              ))}
+            </ul>
+            {/* 一覧を下まで見たあと、上の開閉ボタンまで戻らずに閉じられるよう下にも置く */}
+            <div className="flex items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={closeFromBottom}
+                className="flex items-center gap-0.5 py-1 text-tiny text-primary active:opacity-70"
+              >
+                <LuChevronUp />
+                対戦を閉じる
+              </button>
+              {!showAll && matches.length > INITIAL_MATCHES && (
+                <button
+                  type="button"
+                  onClick={() => setShowAll(true)}
+                  className="py-1 text-tiny text-primary active:opacity-70"
+                >
+                  さらに表示（残り{matches.length - INITIAL_MATCHES}戦）
+                </button>
+              )}
+            </div>
+            {showAll && deck.count > matches.length && (
+              <p className="text-center text-tiny text-default-400">
+                新しい{matches.length}戦を表示しています
+              </p>
+            )}
+          </>
+        ))}
+    </div>
   );
 }
 
@@ -331,6 +513,7 @@ function EditOpponentDeck({
               </span>
             </div>
           </div>
+          <OpponentDeckMatches deck={deck} />
         </div>
 
         <div className="relative z-10 -my-2 flex justify-center" aria-hidden>
@@ -515,7 +698,7 @@ export default function OpponentDecks() {
   const { mutate: mutateGlobal } = useSWRConfig();
 
   const { data, error, isLoading, isValidating, mutate } =
-    useSWR<OpponentDecksGetResponseType>(OPPONENT_DECKS_URL, fetchOpponentDecks, {
+    useSWR<OpponentDecksGetResponseType>(OPPONENT_DECKS_URL, fetchNoStore, {
       revalidateOnFocus: false,
     });
 

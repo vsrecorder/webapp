@@ -51,6 +51,64 @@ const decksBody = {
   ],
 };
 
+// 「ドラパ」(スプライト無し)の対戦。新しい順に、BO1 の勝ち・BO3 の負け・不戦勝・チーム戦
+const matchesBody = {
+  data: [
+    {
+      id: "m1",
+      record_id: "rec-city",
+      event_date: "2026-08-01",
+      event_type: "official",
+      event_title: "シティリーグ 東京",
+      deck_name: "サーナイト",
+      bo3_flg: false,
+      group_match_flg: false,
+      group_match_victory_flg: false,
+      default_victory_flg: false,
+      default_defeat_flg: false,
+      victory_flg: true,
+      draw_flg: false,
+      games: [{ go_first: true, winnging_flg: true }],
+    },
+    {
+      id: "m2",
+      record_id: "rec-cl",
+      event_date: "2026-07-20",
+      event_type: "official",
+      event_title: "チャンピオンズリーグ",
+      deck_name: "",
+      bo3_flg: true,
+      group_match_flg: false,
+      group_match_victory_flg: false,
+      default_victory_flg: false,
+      default_defeat_flg: false,
+      victory_flg: false,
+      draw_flg: false,
+      games: [
+        { go_first: true, winnging_flg: true },
+        { go_first: false, winnging_flg: false },
+        { go_first: true, winnging_flg: false },
+      ],
+    },
+    {
+      id: "m3",
+      record_id: "rec-free",
+      event_date: "2026-07-01",
+      event_type: "unofficial",
+      event_title: "身内の大会",
+      deck_name: "",
+      bo3_flg: false,
+      group_match_flg: true,
+      group_match_victory_flg: false,
+      default_victory_flg: false,
+      default_defeat_flg: false,
+      victory_flg: true,
+      draw_flg: false,
+      games: [{ go_first: false, winnging_flg: true }],
+    },
+  ],
+};
+
 const json = (body: unknown) =>
   new Response(JSON.stringify(body), { headers: { "content-type": "application/json" } });
 
@@ -61,12 +119,18 @@ afterEach(() => {
   cleanup();
   // 編集中は URL に ?edit= が付く。次のテストへ持ち越さない
   window.history.replaceState(null, "", "/");
+  // 対戦の一覧の開閉を次のテストへ持ち越さない
+  window.sessionStorage.clear();
   vi.unstubAllGlobals();
 });
 
 const renderPage = () => {
-  const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) =>
-    init?.method === "PUT" ? json({ updated_count: 3 }) : json(decksBody),
+  const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) =>
+    init?.method === "PUT"
+      ? json({ updated_count: 3 })
+      : String(input).startsWith("/api/matches/opponent_decks/matches")
+        ? json(matchesBody)
+        : json(decksBody),
   );
   vi.stubGlobal("fetch", fetchMock);
 
@@ -155,6 +219,54 @@ describe("OpponentDecks(相手デッキの一括編集)", () => {
     );
     expect(await screen.findByLabelText("相手デッキを検索")).toBeTruthy();
     expect(window.location.search).toBe("");
+  });
+
+  it("どの記録でどんな結果の対戦に付けたかを、開いたときに取得して記録へのリンクつきで並べる", async () => {
+    const { fetchMock } = renderPage();
+    await waitForList();
+
+    fireEvent.click(screen.getByText("ドラパ"));
+    const toggle = await screen.findByRole("button", { name: "どの記録の対戦か見る" });
+
+    // 開くまでは取りに行かない
+    const matchesCalls = () =>
+      fetchMock.mock.calls.filter(([input]) =>
+        String(input).startsWith("/api/matches/opponent_decks/matches"),
+      );
+    expect(matchesCalls()).toHaveLength(0);
+
+    fireEvent.click(toggle);
+
+    const cityLink = (await screen.findByText("シティリーグ 東京")).closest("a");
+    // スプライトの無い組み合わせは表記だけで指定する
+    expect(String(matchesCalls()[0][0])).toBe(
+      "/api/matches/opponent_decks/matches?opponents_deck_info=%E3%83%89%E3%83%A9%E3%83%91",
+    );
+    expect(cityLink?.getAttribute("href")).toBe("/records/rec-city");
+    expect(within(cityLink as HTMLElement).getByText("2026/8/1")).toBeTruthy();
+    expect(within(cityLink as HTMLElement).getByText("勝ち")).toBeTruthy();
+    expect(within(cityLink as HTMLElement).getByText("先攻")).toBeTruthy();
+    expect(within(cityLink as HTMLElement).getByText("使用『サーナイト』")).toBeTruthy();
+
+    // BO3 は 1 本ごとの勝敗、チーム戦は個人の勝敗にチームの勝敗を添える
+    const clLink = screen.getByText("チャンピオンズリーグ").closest("a") as HTMLElement;
+    expect(within(clLink).getByText("負け")).toBeTruthy();
+    expect(within(clLink).getAllByText(/^[WL]$/).map((e) => e.textContent)).toEqual([
+      "W",
+      "L",
+      "L",
+    ]);
+    const freeLink = screen.getByText("身内の大会").closest("a") as HTMLElement;
+    expect(within(freeLink).getByText("勝ち（チーム負け）")).toBeTruthy();
+
+    // 閉じても、開いていたことは覚えておく(記録を開いて「戻る」で帰ってきたとき用)
+    expect(window.sessionStorage.getItem("opponent-decks:matches-open")).toBe("1");
+    // 「対戦を閉じる」は一覧の上と下の両方にある。下のものでも閉じられる
+    const closeButtons = screen.getAllByRole("button", { name: "対戦を閉じる" });
+    expect(closeButtons).toHaveLength(2);
+    fireEvent.click(closeButtons[1]);
+    await waitFor(() => expect(screen.queryByText("シティリーグ 東京")).toBeNull());
+    expect(window.sessionStorage.getItem("opponent-decks:matches-open")).toBeNull();
   });
 
   it("表記を空にしては置き換えられない", async () => {

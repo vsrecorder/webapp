@@ -3,7 +3,8 @@
 import { GameType } from "@app/types/game";
 
 type Props = {
-  games: GameType[];
+  // 勝敗だけを見る(相手デッキの一括編集のように、対局の一部の項目しか持たない一覧からも使う)
+  games: Pick<GameType, "winnging_flg">[];
   // ドットの直径(px)。一覧のチップ内では小さめ、詳細では大きめに使う
   size?: number;
   // 両者引き分け(BO3のみ)。true のとき推移の末尾に「D」ドットを付ける。

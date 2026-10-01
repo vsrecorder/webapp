@@ -31,3 +31,38 @@ export type OpponentDeckReplaceResponseType = {
   // 置き換えた対戦の数
   updated_count: number;
 };
+
+// 記録のイベントの種類。どれでもない記録(古いデータなど)は空文字
+export type OpponentDeckMatchEventType = "official" | "tonamel" | "unofficial" | "";
+
+// 対局 1 本の先攻・後攻と勝敗。勝敗の項目名は対局(GameType)と揃えてある
+export type OpponentDeckMatchGameType = {
+  go_first: boolean;
+  winnging_flg: boolean;
+};
+
+// 相手デッキの組み合わせに当てはまる対戦 1 件と、その対戦を付けた記録の見出し。
+// 上流の GET /api/v1beta/matches/opponent_decks/matches が返す(開催日の新しい順・最大 100 件)
+export type OpponentDeckMatchType = {
+  id: string;
+  record_id: string;
+  // 記録の開催日(YYYY-MM-DD)。未設定の記録は空文字
+  event_date: string;
+  event_type: OpponentDeckMatchEventType;
+  // イベント名。BFF で公式イベントの冗長な部分を除き、取得できなければ「(タイトル不明)」にしてある
+  event_title: string;
+  // 記録に登録した自分のデッキの名前。未登録なら空文字
+  deck_name: string;
+  bo3_flg: boolean;
+  group_match_flg: boolean;
+  group_match_victory_flg: boolean;
+  default_victory_flg: boolean;
+  default_defeat_flg: boolean;
+  victory_flg: boolean;
+  draw_flg: boolean;
+  games: OpponentDeckMatchGameType[];
+};
+
+export type OpponentDeckMatchesGetResponseType = {
+  data: OpponentDeckMatchType[];
+};

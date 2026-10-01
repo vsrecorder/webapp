@@ -52,7 +52,7 @@ import {
 type Props = {
   code: string | null;
   // 検索元のデッキの呼び名。自分のデッキなら「あなたのデッキ」、公開デッキなら「このデッキ」。
-  // 検索元の欄の見出しと、差分カードの「〜にだけある」に使う
+  // 検索元の欄の見出しと、差分カードの「〜の方が多い」に使う
   sourceLabel?: string;
   // この日(JST の暦日 YYYY-MM-DD)の環境の入賞デッキと比べる。みんなの公開デッキは投稿日を渡す。
   // 省略するとバトラボが直近の環境で比べる(自分のデッキ・大会の入賞デッキ)
@@ -128,6 +128,7 @@ function SourceSummary({
 
 /*
  * 差分カードの 1 段。見出しとカード名のタグを並べる。
+ * タグは「+カード名 ×2」の形で、枚数の差を添える(枚数を返す前の古い応答では名前だけ)。
  * タグはタップでそのカードの画像(そのデッキに入っている印刷。バトラボが添えてくる)を出す
  */
 function DiffCards({
@@ -157,6 +158,8 @@ function DiffCards({
           >
             {sign}
             {card.name}
+            {/* 枚数を付ける前の BFF の応答が Data Cache に残っていると count が無い(undefined) */}
+            {card.count ? ` ×${card.count}` : null}
           </button>
         ))}
       </div>
@@ -220,13 +223,15 @@ function SimilarDeckRow({
             {cityleagueRankLabel(deck.rank, false)}
           </span>
         </div>
-        {/* 差分カード。入賞デッキにだけあるカードと、自分のデッキにだけあるカードを
-            上下の段に分ける(1 行に混ぜると、どちらのカードか色でしか見分けられないため) */}
+        {/* 差分カード。入賞デッキの方が多いカードと、自分のデッキの方が多いカードを
+            上下の段に分ける(1 行に混ぜると、どちらのカードか色でしか見分けられないため)。
+            片方にしか無いカードだけでなく、両方に入っていて枚数が違うカードも並ぶので
+            「〜にだけある」とは書かない */}
         {hasDiff && (
           <div className="mt-2 flex flex-col gap-1.5">
             {deck.cards.in.length > 0 && (
               <DiffCards
-                label="入賞デッキにだけある"
+                label="入賞デッキの方が多い"
                 cards={deck.cards.in}
                 sign="+"
                 chipClassName="bg-success-50 text-success-700"
@@ -235,7 +240,7 @@ function SimilarDeckRow({
             )}
             {deck.cards.out.length > 0 && (
               <DiffCards
-                label={`${sourceLabel}にだけある`}
+                label={`${sourceLabel}の方が多い`}
                 cards={deck.cards.out}
                 sign="−"
                 chipClassName="bg-danger-50 text-danger-700"

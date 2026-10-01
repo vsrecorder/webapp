@@ -21,6 +21,10 @@ export type SimilarDeckArchetypeType = {
 // バトラボの索引に画像が無いカード・cards を返す前の古い応答では null
 export type SimilarDiffCardType = {
   name: string;
+  // 枚数の差(1 以上)。in なら入賞デッキの方が、out なら自分のデッキの方が何枚多いか。
+  // 片方にしか無いカードは、そのデッキの採用枚数がそのまま差になる。
+  // 枚数を返す前の古い応答では null
+  count: number | null;
   imageUrl: string | null;
 };
 

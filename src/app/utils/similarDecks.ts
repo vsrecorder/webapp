@@ -185,13 +185,15 @@ function parseImages(value: unknown): Record<string, string> {
  * (画像は null。画面は images の代表画像を控えにする)。画像は http(s) の URL だけ通す
  */
 function parseDiffCards(value: unknown, names: string[]): SimilarDiffCardType[] {
-  if (!Array.isArray(value)) return names.map((name) => ({ name, imageUrl: null }));
+  if (!Array.isArray(value)) return names.map((name) => ({ name, count: null, imageUrl: null }));
 
   return value
     .filter(isRecord)
     .filter((c): c is Record<string, unknown> & { name: string } => typeof c.name === "string")
     .map((c) => ({
       name: c.name,
+      count:
+        typeof c.count === "number" && Number.isInteger(c.count) && c.count > 0 ? c.count : null,
       imageUrl:
         typeof c.imageUrl === "string" && /^https?:\/\//.test(c.imageUrl) ? c.imageUrl : null,
     }));

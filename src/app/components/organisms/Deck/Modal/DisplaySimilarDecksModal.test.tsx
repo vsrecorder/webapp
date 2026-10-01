@@ -31,8 +31,8 @@ const archetype = {
 
 // BFF(/api/deckcards/{code}/similar)が返す形。表示に要る項目だけ
 const similarBody = (cards: {
-  in: { name: string; imageUrl: string | null }[];
-  out: { name: string; imageUrl: string | null }[];
+  in: { name: string; count?: number | null; imageUrl: string | null }[];
+  out: { name: string; count?: number | null; imageUrl: string | null }[];
 }) => ({
   source: {
     deckCode: SOURCE_CODE,
@@ -101,7 +101,7 @@ const openModal = async () => {
     />,
   );
 
-  await waitFor(() => expect(screen.getByText("入賞デッキにだけある")).toBeTruthy(), {
+  await waitFor(() => expect(screen.getByText("入賞デッキの方が多い")).toBeTruthy(), {
     timeout: 3000,
   });
 };
@@ -118,7 +118,7 @@ const originalSrcOf = (image: HTMLElement) => {
 };
 
 describe("DisplaySimilarDecksModal の差分カード", () => {
-  it("入賞デッキにだけあるカードは、その入賞デッキに入っている印刷の画像を出す", async () => {
+  it("入賞デッキの方が多いカードは、その入賞デッキに入っている印刷の画像を出す", async () => {
     stubSimilar(
       similarBody({
         in: [{ name: "ロストスイーパー", imageUrl: WINNER_PRINT }],
@@ -135,7 +135,7 @@ describe("DisplaySimilarDecksModal の差分カード", () => {
     expect(originalSrcOf(image)).toBe(WINNER_PRINT);
   });
 
-  it("自分のデッキにだけあるカードは、自分のデッキに入っている印刷の画像を出す", async () => {
+  it("自分のデッキの方が多いカードは、自分のデッキに入っている印刷の画像を出す", async () => {
     stubSimilar(
       similarBody({
         in: [{ name: "ロストスイーパー", imageUrl: WINNER_PRINT }],
@@ -149,6 +149,39 @@ describe("DisplaySimilarDecksModal の差分カード", () => {
     const image = await waitFor(() => screen.getByAltText("ネストボール"));
 
     expect(originalSrcOf(image)).toBe(SOURCE_PRINT);
+  });
+
+  it("差分カードに枚数の差を「+カード名 ×2」の形で添える", async () => {
+    stubSimilar(
+      similarBody({
+        in: [{ name: "ロストスイーパー", count: 2, imageUrl: WINNER_PRINT }],
+        out: [{ name: "ネストボール", count: 1, imageUrl: SOURCE_PRINT }],
+      }),
+    );
+    await openModal();
+
+    expect(screen.getByText("あなたのデッキの方が多い")).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "ロストスイーパーのカード画像を表示する" }).textContent,
+    ).toBe("+ロストスイーパー ×2");
+    expect(
+      screen.getByRole("button", { name: "ネストボールのカード画像を表示する" }).textContent,
+    ).toBe("−ネストボール ×1");
+  });
+
+  // 枚数を返す前の古い応答(キャッシュに残ったもの)は名前だけ
+  it("枚数の差が無い応答では、カード名だけを出す", async () => {
+    stubSimilar(
+      similarBody({
+        in: [{ name: "ロストスイーパー", imageUrl: WINNER_PRINT }],
+        out: [],
+      }),
+    );
+    await openModal();
+
+    expect(
+      screen.getByRole("button", { name: "ロストスイーパーのカード画像を表示する" }).textContent,
+    ).toBe("+ロストスイーパー");
   });
 
   // 画像は応答に入っているので、タップしても何も取りに行かない(以前はデッキの内訳を引いていた)

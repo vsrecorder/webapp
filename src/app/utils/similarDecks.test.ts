@@ -245,10 +245,12 @@ describe("parseSimilarDecksResponse", () => {
         {
           ...row,
           cards: {
-            in: [{ key: "k1", name: "リーリエのピッピex", imageUrl: "https://www.pokemon-card.com/a.jpg" }],
+            in: [
+              { key: "k1", name: "リーリエのピッピex", count: 2, imageUrl: "https://www.pokemon-card.com/a.jpg" },
+            ],
             out: [
-              { key: "k2", name: "ふしぎなアメ", imageUrl: "https://www.pokemon-card.com/b.jpg" },
-              // 索引に画像が無いカード
+              { key: "k2", name: "ふしぎなアメ", count: 1, imageUrl: "https://www.pokemon-card.com/b.jpg" },
+              // 索引に画像が無いカード。枚数を返す前の古い応答(count が無い)も混ぜる
               { key: "k3", name: "アカマツ", imageUrl: null },
             ],
           },
@@ -257,10 +259,10 @@ describe("parseSimilarDecksResponse", () => {
     };
 
     expect(parseSimilarDecksResponse(withCards)?.similar[0].cards).toEqual({
-      in: [{ name: "リーリエのピッピex", imageUrl: "https://www.pokemon-card.com/a.jpg" }],
+      in: [{ name: "リーリエのピッピex", count: 2, imageUrl: "https://www.pokemon-card.com/a.jpg" }],
       out: [
-        { name: "ふしぎなアメ", imageUrl: "https://www.pokemon-card.com/b.jpg" },
-        { name: "アカマツ", imageUrl: null },
+        { name: "ふしぎなアメ", count: 1, imageUrl: "https://www.pokemon-card.com/b.jpg" },
+        { name: "アカマツ", count: null, imageUrl: null },
       ],
     });
   });
@@ -268,15 +270,15 @@ describe("parseSimilarDecksResponse", () => {
   // cards を付ける前の古い応答は、diffIn / diffOut の名前だけで組む(画像は null)
   it("cards が無ければ diffIn / diffOut の名前だけの差分カードにする", () => {
     expect(parseSimilarDecksResponse(body)?.similar[0].cards).toEqual({
-      in: [{ name: "リーリエのピッピex", imageUrl: null }],
+      in: [{ name: "リーリエのピッピex", count: null, imageUrl: null }],
       out: [
-        { name: "ふしぎなアメ", imageUrl: null },
-        { name: "アカマツ", imageUrl: null },
+        { name: "ふしぎなアメ", count: null, imageUrl: null },
+        { name: "アカマツ", count: null, imageUrl: null },
       ],
     });
   });
 
-  it("差分カードの画像は http(s) の URL だけ通す", () => {
+  it("差分カードの画像は http(s) の URL だけ、枚数の差は 1 以上の整数だけ通す", () => {
     const row = body.similar[0];
     const withCards = {
       ...body,
@@ -284,7 +286,11 @@ describe("parseSimilarDecksResponse", () => {
         {
           ...row,
           cards: {
-            in: [{ name: "リーリエのピッピex", imageUrl: "javascript:alert(1)" }, "壊れた要素", { imageUrl: "x" }],
+            in: [
+              { name: "リーリエのピッピex", count: -1, imageUrl: "javascript:alert(1)" },
+              "壊れた要素",
+              { imageUrl: "x" },
+            ],
             out: [],
           },
         },
@@ -292,7 +298,7 @@ describe("parseSimilarDecksResponse", () => {
     };
 
     expect(parseSimilarDecksResponse(withCards)?.similar[0].cards).toEqual({
-      in: [{ name: "リーリエのピッピex", imageUrl: null }],
+      in: [{ name: "リーリエのピッピex", count: null, imageUrl: null }],
       out: [],
     });
   });
@@ -328,10 +334,10 @@ describe("readSimilarDecksBody", () => {
     delete bff.similar[0].cards;
 
     expect(readSimilarDecksBody(bff)?.similar[0].cards).toEqual({
-      in: [{ name: "リーリエのピッピex", imageUrl: null }],
+      in: [{ name: "リーリエのピッピex", count: null, imageUrl: null }],
       out: [
-        { name: "ふしぎなアメ", imageUrl: null },
-        { name: "アカマツ", imageUrl: null },
+        { name: "ふしぎなアメ", count: null, imageUrl: null },
+        { name: "アカマツ", count: null, imageUrl: null },
       ],
     });
   });

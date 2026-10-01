@@ -132,7 +132,7 @@ describe("DeckCodePostCard", () => {
     });
 
     const dialog = await screen.findByRole("dialog");
-    await waitFor(() => expect(dialog.textContent).toContain("このデッキにだけある"));
+    await waitFor(() => expect(dialog.textContent).toContain("このデッキの方が多い"));
     expect(dialog.textContent).not.toContain("あなたのデッキ");
     // 投稿された日(JST の暦日)の環境と比べる
     expect(fetchMock.mock.calls.map(([input]) => String(input))).toContain(

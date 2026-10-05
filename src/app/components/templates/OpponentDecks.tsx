@@ -751,8 +751,7 @@ export default function OpponentDecks() {
     shownEditingRef.current = isEditing;
 
     // 最初に画面が決まったとき(ページを開いた・再読み込みした)は動かさない。
-    // ページ表示時の位置は useScrollResetOnNavigation 側が決める(再読み込みなら直前の位置)。
-    // 以前はここでも 0 へ当てていたため、再読み込みで戻した位置から先頭へ飛ばされていた
+    // ページ表示時の位置は useScrollResetOnNavigation 側が決める
     if (previous === undefined || previous === isEditing) return;
 
     window.scrollTo({ top: isEditing ? 0 : listScrollRef.current });

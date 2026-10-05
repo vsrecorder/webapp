@@ -363,7 +363,7 @@ describe("OpponentDecks(相手デッキの一括編集)", () => {
         scrollTo().mockClear();
         renderPage();
         await waitForList();
-        // 開いた直後は動かさない(ページ表示時の位置は共通処理と再読み込みの復元に任せる)
+        // 開いた直後は動かさない(ページ表示時の位置は共通処理に任せる)
         expect(scrollTo()).not.toHaveBeenCalled();
 
         Object.defineProperty(window, "scrollY", { configurable: true, value: 700 });
@@ -381,7 +381,6 @@ describe("OpponentDecks(相手デッキの一括編集)", () => {
       });
 
       it("?edit= 付きで開いた(再読み込みした)ときは、一覧の取得後に編集画面になっても動かさない", async () => {
-        // 再読み込みでは、直前に見ていた位置へ戻した直後にここで先頭へ飛ばされていた
         window.history.replaceState(null, "", `/?edit=${encodeURIComponent("ドラパ||")}`);
         scrollTo().mockClear();
         renderPage();

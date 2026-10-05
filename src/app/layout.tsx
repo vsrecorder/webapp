@@ -8,7 +8,6 @@ import LazyGoogleAnalytics from "@app/components/atoms/LazyGoogleAnalytics";
 import Layout from "@app/components/templates/Layout";
 import { isDevEnv } from "@app/utils/appIcon";
 import { platformDetectScript } from "@app/utils/platformDetectScript";
-import { reloadScrollRestoreScript } from "@app/utils/reloadScrollRestore";
 import { getStatusBarColor } from "@app/utils/pwaColors";
 import { OG_SIZE, renderSiteOgImage } from "@app/utils/ogImage";
 import { ogImageUrlFor } from "@app/utils/ogStorage";
@@ -102,12 +101,6 @@ export default function RootLayout({
             __html: platformDetectScript(getStatusBarColor()),
           }}
         />
-        {/*
-          リロードしたときに、ハイドレーションを待たずに直前の位置へ戻す。
-          最初の描画から元の位置(に並ぶスケルトン)が見えるよう、ペイント前に始める。
-          内容と理由は reloadScrollRestore.ts を参照。
-        */}
-        <script dangerouslySetInnerHTML={{ __html: reloadScrollRestoreScript() }} />
         {/*
           dev環境では debugMode を有効にし、GA4のDebugViewでイベントを即時検証できるようにする。
           (gtag('config') に debug_mode を渡すだけで、本番の計測には影響しない)

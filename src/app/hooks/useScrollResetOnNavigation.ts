@@ -1,19 +1,14 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { isModalHistoryPop } from "@app/utils/modalHistory";
-import {
-  consumeReloadRestoreStarted,
-  saveScrollForReload,
-} from "@app/utils/reloadScrollRestore";
 
 /*
  * ページを表示したとき、必ずページ先頭から表示する。
  * 対象は「戻る/進む(履歴移動)」と「リンクによるページ遷移」の両方。
  *
- * 例外はリロードで、こちらは直前の位置にとどまる(長い一覧を見ている途中で
- * 再読み込みしたときに先頭へ飛ばされないようにするため)。
- * 復元はペイント前のインラインスクリプトが行い、ここでは位置の保存と、
- * 復元中に先頭へ戻さないことだけを受け持つ。詳細は utils/reloadScrollRestore.ts を参照。
+ * リロードも同じく先頭から表示する。scrollRestoration を manual にしてあるので
+ * ブラウザ自身の位置復元は働かず、読み込んだ時点で先頭にいる。
+ * (2026-10 に一度「直前の位置にとどまる」を入れたが、先頭に戻す方針へ戻した)
  *
  * --- 履歴移動(戻る/進む) ---
  *
@@ -76,10 +71,6 @@ import {
 export function useScrollResetOnNavigation() {
   const pathname = usePathname();
 
-  // 直前に処理した pathname。初回の判定と、StrictMode で effect が
-  // 2回走ったときに同じページを処理し直さないために使う。
-  const handledPathnameRef = useRef<string | null>(null);
-
   useEffect(() => {
     if (!("scrollRestoration" in window.history)) return;
 
@@ -116,24 +107,8 @@ export function useScrollResetOnNavigation() {
 
     window.addEventListener("popstate", handlePopState);
 
-    /*
-     * リロード用の保存。
-     *
-     * pagehide はモバイルで beforeunload より確実に呼ばれる。ただし iOS では
-     * アプリ切り替えなどで pagehide を経ずに破棄されることがあるため、
-     * 非表示になった時点でも保存しておく。
-     */
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "hidden") saveScrollForReload();
-    };
-
-    window.addEventListener("pagehide", saveScrollForReload);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
     return () => {
       window.removeEventListener("popstate", handlePopState);
-      window.removeEventListener("pagehide", saveScrollForReload);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.history.scrollRestoration = previous;
     };
   }, []);
@@ -141,14 +116,6 @@ export function useScrollResetOnNavigation() {
   // リンク遷移。ページが変わった最初の描画で先頭へ戻す。
   // ハッシュ付きのURLへ移動したときは、その移動先(App Router が処理する)を優先して何もしない。
   useEffect(() => {
-    const previous = handledPathnameRef.current;
-    if (previous === pathname) return;
-    handledPathnameRef.current = pathname;
-
-    // リロード直後の最初のページは、インラインスクリプトが戻した位置を尊重する。
-    // 復元が終わっていても先頭へは戻さない。見送るのは初回だけ。
-    if (previous === null && consumeReloadRestoreStarted()) return;
-
     if (window.location.hash.length > 1) return;
 
     window.scrollTo({ top: 0, left: 0, behavior: "instant" });

@@ -98,9 +98,8 @@ export default function TemplateCityleagueResults({
   const restoredKeyRef = useRef<CityleagueTab>(selectedKey);
 
   // タブ切り替え後にスクロール復元。
-  // 初回マウントでは何もしない(ページ表示時の位置はリロード時の復元も含めて
-  // useScrollResetOnNavigation 側が決める)。以前は初回にも保存値の 0 へ当てていたため、
-  // リロードで元の位置へ戻した直後に、ハイドレーションのタイミングで先頭へ飛ばされていた
+  // 初回マウントでは何もしない(ページ表示時の位置は useScrollResetOnNavigation 側が決める。
+  // 一覧からモーダル/詳細へ入って戻ったときの対象カードへの移動も、ここで上書きしない)
   useEffect(() => {
     if (restoredKeyRef.current === selectedKey) return;
     restoredKeyRef.current = selectedKey;

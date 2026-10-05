@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { findTermByDate, toMonthKey, type CityleagueTerm } from "@app/utils/cityleague";
+import {
+  countEventsByLeagueTitle,
+  findTermByDate,
+  toMonthKey,
+  type CityleagueTerm,
+} from "@app/utils/cityleague";
+import type { OfficialEventType } from "@app/types/official_event";
 
 // バックエンドは日付を JST の 0:00 として "+09:00" 付きの文字列で返す
 // (実測: /api/environments → "2026-09-16T00:00:00+09:00")。
@@ -47,5 +53,41 @@ describe("toMonthKey", () => {
   it("JSTでの年月を返す(月初・月末で前月に寄らない)", () => {
     expect(toMonthKey("2026-04-01T00:00:00+09:00")).toBe("2026-04");
     expect(toMonthKey("2026-04-30T00:00:00+09:00")).toBe("2026-04");
+  });
+});
+
+function makeEvent(leagueTitle: string): OfficialEventType {
+  return { league_title: leagueTitle } as OfficialEventType;
+}
+
+describe("countEventsByLeagueTitle", () => {
+  it("league_title ごとに件数を数え、オープン→シニア→ジュニアの順で返す", () => {
+    const events = [
+      makeEvent("ジュニア"),
+      makeEvent("オープン"),
+      makeEvent("シニア"),
+      makeEvent("オープン"),
+      makeEvent("ジュニア"),
+      makeEvent("オープン"),
+    ];
+
+    expect(countEventsByLeagueTitle(events)).toEqual([
+      { leagueTitle: "オープン", count: 3 },
+      { leagueTitle: "シニア", count: 1 },
+      { leagueTitle: "ジュニア", count: 2 },
+    ]);
+  });
+
+  it("既知の3区分に無いリーグ名は末尾に残す", () => {
+    const events = [makeEvent("オープン"), makeEvent("マスター")];
+
+    expect(countEventsByLeagueTitle(events)).toEqual([
+      { leagueTitle: "オープン", count: 1 },
+      { leagueTitle: "マスター", count: 1 },
+    ]);
+  });
+
+  it("空配列を渡すと空配列を返す", () => {
+    expect(countEventsByLeagueTitle([])).toEqual([]);
   });
 });

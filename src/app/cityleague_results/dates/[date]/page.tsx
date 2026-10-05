@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { Chip } from "@heroui/react";
 import { LuCalendar, LuChevronRight } from "react-icons/lu";
 
 import CityleagueHubShareButtons from "@app/components/molecules/CityleagueHubShareButtons";
@@ -9,7 +10,11 @@ import CityleagueEventLinkList from "@app/components/organisms/Cityleague/Cityle
 import CityleagueHubHeader from "@app/components/organisms/Cityleague/CityleagueHubHeader";
 
 import { buildBreadcrumbJsonLd, JsonLd } from "@app/utils/breadcrumb";
-import { formatMonthKey, getCityleagueEventsInTerm } from "@app/utils/cityleague";
+import {
+  countEventsByLeagueTitle,
+  formatMonthKey,
+  getCityleagueEventsInTerm,
+} from "@app/utils/cityleague";
 import { dateParamToMonthKey, formatDateParam, parseDateParam } from "@app/utils/cityleagueDate";
 import { getDateWinnerDecks } from "@app/utils/cityleagueDateWinnersServer";
 import { OG_SIZE, renderCityleagueDateOgImage } from "@app/utils/ogImage";
@@ -115,6 +120,7 @@ export default async function Page({ params }: Props) {
 
   const dateLabel = formatDateParam(dateParam);
   const monthKey = dateParamToMonthKey(dateParam);
+  const leagueCounts = countEventsByLeagueTitle(events);
 
   const jsonLd = buildBreadcrumbJsonLd([
     { name: "バトレコ", path: "/" },
@@ -143,6 +149,17 @@ export default async function Page({ params }: Props) {
             />
           }
         />
+
+        {/* 合計件数だけでは各リーグの開催規模が分からないため、区分ごとの開催数を添える */}
+        <div className="flex flex-wrap gap-1.5">
+          {leagueCounts.map((item) => (
+            <Chip key={item.leagueTitle} size="sm" radius="md" variant="bordered">
+              <small className="font-bold">
+                {item.leagueTitle}リーグ {item.count}件
+              </small>
+            </Chip>
+          ))}
+        </div>
 
         <CityleagueEventLinkList events={events} showDateLink={false} />
 

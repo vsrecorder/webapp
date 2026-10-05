@@ -31,18 +31,18 @@ const EVENTS = [
 afterEach(() => cleanup());
 
 describe("CityleagueDateEventTabs", () => {
-  it("初期表示ではすべての会場を出す", () => {
+  it("初期表示では先頭のリーグ(オープン)の会場だけを出す", () => {
     render(<CityleagueDateEventTabs events={EVENTS} />);
 
     expect(screen.getByText("オープン会場")).toBeTruthy();
-    expect(screen.getByText("シニア会場")).toBeTruthy();
-    expect(screen.getByText("ジュニア会場")).toBeTruthy();
+    expect(screen.queryByText("シニア会場")).toBeNull();
+    expect(screen.queryByText("ジュニア会場")).toBeNull();
   });
 
-  it("タブに区分ごとの件数を出す", () => {
+  it("タブに区分ごとの件数を出す(「すべて」は出さない)", () => {
     render(<CityleagueDateEventTabs events={EVENTS} />);
 
-    expect(screen.getByRole("tab", { name: "すべて 3件" })).toBeTruthy();
+    expect(screen.queryByRole("tab", { name: /すべて/ })).toBeNull();
     expect(screen.getByRole("tab", { name: "オープン 1件" })).toBeTruthy();
     expect(screen.getByRole("tab", { name: "シニア 1件" })).toBeTruthy();
     expect(screen.getByRole("tab", { name: "ジュニア 1件" })).toBeTruthy();
@@ -58,14 +58,14 @@ describe("CityleagueDateEventTabs", () => {
     expect(screen.queryByText("ジュニア会場")).toBeNull();
   });
 
-  it("「すべて」タブへ戻すと再び全件が出る", () => {
+  it("タブを行き来しても、選んだリーグの会場だけに絞られ続ける", () => {
     render(<CityleagueDateEventTabs events={EVENTS} />);
 
     fireEvent.click(screen.getByRole("tab", { name: "シニア 1件" }));
-    fireEvent.click(screen.getByRole("tab", { name: "すべて 3件" }));
+    fireEvent.click(screen.getByRole("tab", { name: "ジュニア 1件" }));
 
-    expect(screen.getByText("オープン会場")).toBeTruthy();
-    expect(screen.getByText("シニア会場")).toBeTruthy();
     expect(screen.getByText("ジュニア会場")).toBeTruthy();
+    expect(screen.queryByText("オープン会場")).toBeNull();
+    expect(screen.queryByText("シニア会場")).toBeNull();
   });
 });

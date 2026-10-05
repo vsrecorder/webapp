@@ -9,23 +9,18 @@ import CityleagueEventLinkList from "@app/components/organisms/Cityleague/Cityle
 import { OfficialEventType } from "@app/types/official_event";
 import { countEventsByLeagueTitle } from "@app/utils/cityleague";
 
-const ALL_KEY = "all";
-
 type Props = {
   events: OfficialEventType[];
 };
 
 // 開催日ページの会場一覧を、リーグ区分で絞り込めるようにするタブ。
-// 「すべて」は常に全件を見られるよう残し、その後に登録されているリーグ区分を並べる。
+// その日に実際に登録されているリーグ区分だけを並べる(開催の無い区分のタブは出さない)。
 export default function CityleagueDateEventTabs({ events }: Props) {
-  const [selectedKey, setSelectedKey] = useState<string>(ALL_KEY);
-
   const leagueCounts = countEventsByLeagueTitle(events);
 
-  const filteredEvents =
-    selectedKey === ALL_KEY
-      ? events
-      : events.filter((event) => event.league_title === selectedKey);
+  const [selectedKey, setSelectedKey] = useState<string>(leagueCounts[0].leagueTitle);
+
+  const filteredEvents = events.filter((event) => event.league_title === selectedKey);
 
   return (
     <div className="flex flex-col gap-3">
@@ -36,7 +31,6 @@ export default function CityleagueDateEventTabs({ events }: Props) {
         onSelectionChange={(key) => setSelectedKey(key as string)}
         classNames={{ tabContent: "font-bold" }}
       >
-        <Tab key={ALL_KEY} title={`すべて ${events.length}件`} />
         {leagueCounts.map((item) => (
           <Tab key={item.leagueTitle} title={`${item.leagueTitle} ${item.count}件`} />
         ))}

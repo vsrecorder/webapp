@@ -356,6 +356,41 @@ describe("OpponentDecks(相手デッキの一括編集)", () => {
       expect(window.location.search).toBe("");
     });
 
+    describe("スクロール位置", () => {
+      const scrollTo = () => vi.mocked(window.scrollTo);
+
+      it("編集画面へ進むと先頭から、「戻る」で一覧に戻ると離れた位置から見せる", async () => {
+        scrollTo().mockClear();
+        renderPage();
+        await waitForList();
+        // 開いた直後は動かさない(ページ表示時の位置は共通処理と再読み込みの復元に任せる)
+        expect(scrollTo()).not.toHaveBeenCalled();
+
+        Object.defineProperty(window, "scrollY", { configurable: true, value: 700 });
+        try {
+          fireEvent.click(screen.getByText("ドラパ"));
+          await screen.findByLabelText("変更後の相手デッキ");
+          await waitFor(() => expect(scrollTo()).toHaveBeenLastCalledWith({ top: 0 }));
+
+          window.history.back();
+          await screen.findByLabelText("相手デッキを検索");
+          await waitFor(() => expect(scrollTo()).toHaveBeenLastCalledWith({ top: 700 }));
+        } finally {
+          Object.defineProperty(window, "scrollY", { configurable: true, value: 0 });
+        }
+      });
+
+      it("?edit= 付きで開いた(再読み込みした)ときは、一覧の取得後に編集画面になっても動かさない", async () => {
+        // 再読み込みでは、直前に見ていた位置へ戻した直後にここで先頭へ飛ばされていた
+        window.history.replaceState(null, "", `/?edit=${encodeURIComponent("ドラパ||")}`);
+        scrollTo().mockClear();
+        renderPage();
+
+        await screen.findByLabelText("変更後の相手デッキ", undefined, { timeout: 3000 });
+        expect(scrollTo()).not.toHaveBeenCalled();
+      });
+    });
+
     it("一覧に無い組み合わせの ?edit= は、一覧を出して URL から外す", async () => {
       window.history.replaceState(null, "", "/?edit=" + encodeURIComponent("無い表記||"));
       renderPage();

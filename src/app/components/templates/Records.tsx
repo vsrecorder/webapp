@@ -78,8 +78,17 @@ export default function TemplateRecords({ initial, initialTab = "all" }: Props) 
     setMountedTabs((prev) => (prev.has(tab) ? prev : new Set(prev).add(tab)));
   };
 
-  // タブ切り替え後にスクロール復元
+  // スクロール位置を当てたタブ。初回マウントでは当てないための前回値
+  const restoredKeyRef = useRef<RecordsTab>(selectedKey);
+
+  // タブ切り替え後にスクロール復元。
+  // 初回マウントでは何もしない(ページ表示時の位置はリロード時の復元も含めて
+  // useScrollResetOnNavigation 側が決める)。以前は初回にも保存値の 0 へ当てていたため、
+  // リロードで元の位置へ戻した直後に、ハイドレーションのタイミングで先頭へ飛ばされていた
   useEffect(() => {
+    if (restoredKeyRef.current === selectedKey) return;
+    restoredKeyRef.current = selectedKey;
+
     window.scrollTo({
       top: scrollPositions.current[selectedKey],
       behavior: "auto",

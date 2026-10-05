@@ -741,9 +741,22 @@ export default function OpponentDecks() {
 
   // 編集画面は先頭から、一覧は離れたときの位置から見せる
   const isEditing = editing !== null;
+  // 前回見せていた画面(編集画面なら true)。最初に画面が決まる前は undefined
+  const shownEditingRef = useRef<boolean | undefined>(undefined);
   useEffect(() => {
+    // 一覧の取得前は ?edit= の行き先が決まらない(編集画面でも一旦は一覧扱いになる)ので待つ
+    if (!data) return;
+
+    const previous = shownEditingRef.current;
+    shownEditingRef.current = isEditing;
+
+    // 最初に画面が決まったとき(ページを開いた・再読み込みした)は動かさない。
+    // ページ表示時の位置は useScrollResetOnNavigation 側が決める(再読み込みなら直前の位置)。
+    // 以前はここでも 0 へ当てていたため、再読み込みで戻した位置から先頭へ飛ばされていた
+    if (previous === undefined || previous === isEditing) return;
+
     window.scrollTo({ top: isEditing ? 0 : listScrollRef.current });
-  }, [isEditing]);
+  }, [data, isEditing]);
 
   // ?edit= の組み合わせが一覧に無い(置き換え済み・古い URL)なら、一覧を出して URL から外す
   useEffect(() => {

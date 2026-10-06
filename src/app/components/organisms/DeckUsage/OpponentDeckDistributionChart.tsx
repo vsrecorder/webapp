@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  memo,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -14,6 +16,7 @@ import {
   Chart as ChartJS,
   Tooltip as ChartTooltip,
   type ActiveElement,
+  type UpdateMode,
 } from "chart.js";
 import { Pie } from "react-chartjs-2";
 import { AnimatePresence, motion } from "framer-motion";
@@ -32,12 +35,12 @@ import {
   getSpriteBadgeIndexAt,
   type PieSpriteDatasetProps,
 } from "@app/utils/pieSlicesSpritePlugin";
-import usePieChartPadding from "@app/hooks/usePieChartPadding";
 import {
   CHART_BOX_DETAIL,
   CHART_BOX_NORMAL,
-  toChartPadding,
+  paddingByChartHeight,
 } from "@app/components/organisms/DeckUsage/pieChartLayout";
+import usePieChartFlip from "@app/hooks/usePieChartFlip";
 import DeckUsageEmptyState from "@app/components/organisms/DeckUsage/DeckUsageEmptyState";
 
 ChartJS.register(ArcElement, ChartTooltip);
@@ -224,6 +227,108 @@ function OpponentDeckLegendRow({
   );
 }
 
+type LegendItemProps = {
+  deck: DisplayDeckItem;
+  idx: number;
+  color: string;
+  isSelected: boolean;
+  isOtherExpanded: boolean;
+  onSelect: (idx: number) => void;
+  onOtherExpandedChange: (expanded: boolean) => void;
+};
+
+// 凡例の1項目。「その他」に集約された行だけは、集約前の個々のデッキをアコーディオンで展開して一覧できる。
+// 選択を切り替えたときに描き直すのを、選択が変わった行だけにするためメモ化する
+// (タップのたびに全行のスプライト画像・チップ・アコーディオンを描き直していた)
+const OpponentDeckLegendItem = memo(function OpponentDeckLegendItem({
+  deck,
+  idx,
+  color,
+  isSelected,
+  isOtherExpanded,
+  onSelect,
+  onOtherExpandedChange,
+}: LegendItemProps) {
+  const others = deck.others;
+  if (others && others.length > 0) {
+    return (
+      <Accordion
+        isCompact
+        className="px-0"
+        selectedKeys={isOtherExpanded ? OTHER_EXPANDED_KEYS : OTHER_COLLAPSED_KEYS}
+        onSelectionChange={(keys: Selection) =>
+          onOtherExpandedChange(keys === "all" || keys.size > 0)
+        }
+        itemClasses={{
+          base: `rounded-xl px-3 ${
+            isSelected
+              ? "bg-default-200 ring-1 ring-default-400"
+              : "bg-default-100"
+          }`,
+          trigger: "py-1.5 gap-2",
+          title: "min-w-0",
+          content: "pt-0 pb-2",
+        }}
+      >
+        <AccordionItem
+          key="other"
+          aria-label={`${deck.deck_info}の内訳`}
+          // 既定のアイコンは行の右端に出て数値ブロックを押し込むため隠し、
+          // 代わりにデッキ名の直後へ自前で置く（閉じているとき「>」、開くと下向き）。
+          hideIndicator
+          title={
+            <div className="flex items-center gap-2">
+              <span
+                className="w-2.5 h-2.5 rounded-full shrink-0"
+                style={{ backgroundColor: color }}
+              />
+              <OpponentDeckLegendRow
+                deck={deck}
+                indicator={
+                  <LuChevronDown
+                    aria-hidden
+                    className={`w-4 h-4 shrink-0 text-default-400 transition-transform ${
+                      isOtherExpanded ? "rotate-0" : "-rotate-90"
+                    }`}
+                  />
+                }
+              />
+            </div>
+          }
+        >
+          <div className="flex flex-col gap-1.5">
+            {others.map((otherDeck, otherIdx) => (
+              <div
+                key={`${otherDeck.deck_info}-${otherIdx}`}
+                className="flex items-center gap-2 rounded-lg bg-content1 px-2 py-1.5"
+              >
+                <OpponentDeckLegendRow deck={otherDeck} />
+              </div>
+            ))}
+          </div>
+        </AccordionItem>
+      </Accordion>
+    );
+  }
+
+  return (
+    <div
+      onClick={() => onSelect(idx)}
+      className={`flex items-center gap-2 rounded-xl px-3 py-1.5 cursor-pointer transition-colors duration-150 ${
+        isSelected
+          ? "bg-default-200 ring-1 ring-default-400"
+          : "bg-default-100 hover:bg-default-200"
+      }`}
+    >
+      <span
+        className="w-2.5 h-2.5 rounded-full shrink-0"
+        style={{ backgroundColor: color }}
+      />
+      <OpponentDeckLegendRow deck={deck} />
+    </div>
+  );
+});
+
 // 対戦相手のデッキ分析を表す円グラフ＋凡例＋詳細カードの表示・操作をまとめた共通コンポーネント。
 // データ取得やフィルタUIは呼び出し側の責務とし、ここでは受け取った集計結果の描画のみを担当する。
 export default function OpponentDeckDistributionChart({
@@ -233,13 +338,20 @@ export default function OpponentDeckDistributionChart({
   emptyMessage,
   replayEntryAnimation = false,
 }: Props) {
+  // 選択中のデッキ(凡例・スライスの位置)。詳細カードの中身はここから求める
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
-  const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+  // 円グラフのデータを差し替えるときの更新モード(react-chartjs-2 の updateMode)。
+  // 選択の切り替えでは "none"(アニメ無し)、集計の切り替えでは既定のアニメにする
+  // (理由は DeckUsagePanel の同名の state を参照)。
+  const [chartUpdateMode, setChartUpdateMode] = useState<UpdateMode | undefined>(undefined);
   // 「その他」の内訳が開いているか。展開アイコンを既定の位置から動かして自前で描くため、
   // 向きを切り替えられるようアコーディオンを制御する（「その他」の行は常に高々1つ）。
   const [isOtherExpanded, setIsOtherExpanded] = useState(false);
 
   const chartRef = useRef<ChartJS<"pie">>(null);
+  // 円グラフの入れ物(開閉後の寸法をすぐに持つ)と、開閉の動きの transform をかける要素
+  const chartBoxRef = useRef<HTMLDivElement>(null);
+  const chartFlipRef = useRef<HTMLDivElement>(null);
 
   // ▼ モーダル用の入場アニメ再生（replayEntryAnimation=false のページ内では一切使わない）
   const chartContainerRef = useRef<HTMLDivElement>(null);
@@ -270,19 +382,14 @@ export default function OpponentDeckDistributionChart({
   // 詳細カード表示中、選択中のデッキのスプライトと対面率を円の中心に表示する
   const centerSpritePlugin = useMemo(() => createPieCenterSpritePlugin(), []);
 
-  // プラグインに渡す描画内容(PieSpriteDatasetProps)
-  const spriteDatasetProps: PieSpriteDatasetProps = {
-    spriteUrls: displayDecks.map((deck) => deckSpriteUrls(deck.pokemon_sprites)),
-    sliceColors: displayDecks.map((_, idx) => deckColors[idx] ?? OTHER_COLOR),
-    percentTexts: displayDecks.map((deck) =>
-      deck.usage_rate != null ? `${roundToSignificantDigits(deck.usage_rate * 100, 3)}%` : null,
-    ),
-    hideSliceBadges: tooltip != null,
-    centerSpriteUrls: tooltip ? deckSpriteUrls(tooltip.deck.pokemon_sprites) : null,
-    centerPercentText: tooltip
-      ? `${roundToSignificantDigits(tooltip.deck.usage_rate * 100, 3)}%`
-      : null,
-  };
+  // 詳細カードに出すデッキ
+  const tooltip = useMemo<TooltipState | null>(
+    () =>
+      selectedIdx != null && displayDecks[selectedIdx]
+        ? { deck: displayDecks[selectedIdx], color: deckColors[selectedIdx] }
+        : null,
+    [selectedIdx, displayDecks, deckColors],
+  );
 
   // データが切り替わったら選択状態をリセット。
   // effect で戻すと前のデータに前の選択が乗った描画が一度挟まるので、前回のデータを控えて描画中に戻す
@@ -290,7 +397,7 @@ export default function OpponentDeckDistributionChart({
   if (prevDecks !== decks) {
     setPrevDecks(decks);
     setSelectedIdx(null);
-    setTooltip(null);
+    setChartUpdateMode(undefined);
   }
 
   // モーダルが開き切って寸法が確定したら、ネイティブの入場アニメ(animateRotate)を
@@ -359,30 +466,17 @@ export default function OpponentDeckDistributionChart({
   }, [replayEntryAnimation, isLoading, hasData, decks]);
 
   // 詳細表示を閉じて円グラフのみの表示に戻す
-  function closeDetail() {
+  const closeDetail = useCallback(() => {
     setSelectedIdx(null);
-    setTooltip(null);
-  }
+    setChartUpdateMode("none");
+  }, []);
 
-  function handleLegendClick(idx: number) {
-    if (selectedIdx === idx) {
-      closeDetail();
-      return;
-    }
-
-    const nextTooltip = { deck: displayDecks[idx], color: deckColors[idx] };
-    setSelectedIdx(idx);
-    setTooltip(nextTooltip);
-  }
-
-  // 「その他」の内訳アコーディオンの開閉。アイコンを自前で描いている都合で制御している。
-  const otherSelectedKeys: Selection = isOtherExpanded
-    ? OTHER_EXPANDED_KEYS
-    : OTHER_COLLAPSED_KEYS;
-
-  function handleOtherSelectionChange(keys: Selection) {
-    setIsOtherExpanded(keys === "all" || keys.size > 0);
-  }
+  // 凡例・スライスのタップ。同じ項目を再タップしたら詳細表示を消す。
+  // 凡例の項目(メモ化)に渡すので、選択状態に依存しない形で作る
+  const selectDeck = useCallback((idx: number) => {
+    setSelectedIdx((prev) => (prev === idx ? null : idx));
+    setChartUpdateMode("none");
+  }, []);
 
   // 円グラフのコンテナ（スライス部分＋外側の余白）のクリックを自前でヒットテストする。
   // chart.jsのoptions.onClickは「chartArea」の外側（＝スプライトバッジを描く余白部分）を
@@ -397,72 +491,91 @@ export default function OpponentDeckDistributionChart({
       false,
     ) as ActiveElement[];
     if (elements.length > 0) {
-      handleLegendClick(elements[0].index);
+      selectDeck(elements[0].index);
       return;
     }
 
     // スライス本体に当たらなかった場合、外周のスプライトバッジをタップしていないか確認する
     const badgeIndex = getSpriteBadgeIndexAt(chart, e.nativeEvent);
     if (badgeIndex !== null) {
-      handleLegendClick(badgeIndex);
+      selectDeck(badgeIndex);
       return;
     }
 
     closeDetail();
   }
 
-  const chartData = {
-    labels: displayDecks.map((d) => d.deck_info),
-    datasets: [
-      {
-        data: displayDecks.map((d) => d.count),
-        // 通常時は薄色にして無機質さを抑え、選択中のスライスだけ元の鮮やかな色にして目立たせる。
-        // chart.jsのhover/active機構(setActiveElements・hoverBackgroundColor)は、
-        // 選択時にグラフの横幅が変わって発生するresize処理の途中でリセットされてしまうため使わず、
-        // 通常のデータ(backgroundColor)として選択状態を表現する。
-        //
-        // 選択中のスライスを外側に押し出す(dataset.offset)強調は使わない。
-        // chart.jsのoffsetはスライスを中心角方向へずらすと同時に外半径も広げるため、
-        // 詳細カード表示中(円の中心に白いバッジを敷いてドーナツ状に見せている状態)では
-        // 選択スライスだけリングの太さが太くなってしまう。
-        // 特にデッキが1件だけのときは円全体がずれて、リングの太さが上下で不均等になる。
-        backgroundColor: displayDecks.map((_, i) =>
-          i === selectedIdx ? deckColors[i] : deckColorsSoft[i],
-        ),
-        borderColor: "#ffffff",
-        // スライス同士の境界を白線で区切る。ただしデッキが1件だけのときは円弧が360°になり、
-        // 始点と終点が同じ位置で重なるため、区切る相手がいないのに12時方向へ白線が引かれて
-        // 円(詳細表示中はリング)が切れて見えてしまう。1件のときは枠線を引かない。
-        borderWidth: displayDecks.length > 1 ? 2 : 0,
-        // スプライトバッジ・中心表示の材料(プラグインが描画時に読む)
-        ...spriteDatasetProps,
-      },
-    ],
-  };
+  // 円グラフのデータ。描画のたびに作り直すと、react-chartjs-2 が再描画のたびに
+  // chart.update() を呼び、既定の更新アニメ(1000ms)で1秒間円グラフを描き直し続ける
+  // (「その他」の内訳の開閉など、円グラフに関係の無い再描画でも)。中身が変わるときだけ作る。
+  const chartData = useMemo(() => {
+    // プラグインに渡す描画内容(PieSpriteDatasetProps)
+    const selectedDeck = selectedIdx != null ? displayDecks[selectedIdx] : undefined;
+    const spriteDatasetProps: PieSpriteDatasetProps = {
+      spriteUrls: displayDecks.map((deck) => deckSpriteUrls(deck.pokemon_sprites)),
+      sliceColors: displayDecks.map((_, idx) => deckColors[idx] ?? OTHER_COLOR),
+      percentTexts: displayDecks.map((deck) =>
+        deck.usage_rate != null ? `${roundToSignificantDigits(deck.usage_rate * 100, 3)}%` : null,
+      ),
+      hideSliceBadges: selectedDeck != null,
+      centerSpriteUrls: selectedDeck ? deckSpriteUrls(selectedDeck.pokemon_sprites) : null,
+      centerPercentText: selectedDeck
+        ? `${roundToSignificantDigits(selectedDeck.usage_rate * 100, 3)}%`
+        : null,
+    };
 
-  // 詳細カード表示中は外周バッジを描画しないため余白は最低限でよく、その分円を大きく表示できる。
-  // 開閉アニメーションの最中はキャンバスの実寸に合わせて余白を補間する。
-  usePieChartPadding({
-    containerRef: chartContainerRef,
+    return {
+      labels: displayDecks.map((d) => d.deck_info),
+      datasets: [
+        {
+          data: displayDecks.map((d) => d.count),
+          // 通常時は薄色にして無機質さを抑え、選択中のスライスだけ元の鮮やかな色にして目立たせる。
+          // chart.jsのhover/active機構(setActiveElements・hoverBackgroundColor)は、
+          // 選択時にグラフの横幅が変わって発生するresize処理の途中でリセットされてしまうため使わず、
+          // 通常のデータ(backgroundColor)として選択状態を表現する。
+          //
+          // 選択中のスライスを外側に押し出す(dataset.offset)強調は使わない。
+          // chart.jsのoffsetはスライスを中心角方向へずらすと同時に外半径も広げるため、
+          // 詳細カード表示中(円の中心に白いバッジを敷いてドーナツ状に見せている状態)では
+          // 選択スライスだけリングの太さが太くなってしまう。
+          // 特にデッキが1件だけのときは円全体がずれて、リングの太さが上下で不均等になる。
+          backgroundColor: displayDecks.map((_, i) =>
+            i === selectedIdx ? deckColors[i] : deckColorsSoft[i],
+          ),
+          borderColor: "#ffffff",
+          // スライス同士の境界を白線で区切る。ただしデッキが1件だけのときは円弧が360°になり、
+          // 始点と終点が同じ位置で重なるため、区切る相手がいないのに12時方向へ白線が引かれて
+          // 円(詳細表示中はリング)が切れて見えてしまう。1件のときは枠線を引かない。
+          borderWidth: displayDecks.length > 1 ? 2 : 0,
+          // スプライトバッジ・中心表示の材料(プラグインが描画時に読む)
+          ...spriteDatasetProps,
+        },
+      ],
+    };
+  }, [displayDecks, deckColors, deckColorsSoft, selectedIdx]);
+
+  // 詳細カード表示中は外周バッジを描画しないため余白は最低限でよく、その分円を大きく表示できる
+  // (余白はキャンバスの高さから決まる。paddingByChartHeight)。
+  // 開閉の動きは寸法ではなく transform で見せる(usePieChartFlip)。
+  usePieChartFlip({
     chartRef,
+    boxRef: chartBoxRef,
+    flipRef: chartFlipRef,
     isDetail: tooltip != null,
-    normal: CHART_BOX_NORMAL,
-    detail: CHART_BOX_DETAIL,
   });
-  // コンテナの高さはCSSのtransitionの目標値なので、補間中の余白ではなく定常値から決める
+  // 入れ物の高さ(通常表示・詳細表示の定常値)
   const containerHeight = (tooltip ? CHART_BOX_DETAIL : CHART_BOX_NORMAL).height;
 
   // options オブジェクトは作り直さない。react-chartjs-2 は options prop が変わるたびに
-  // chart.options を差し替えるため、作り直すと usePieChartPadding が補間中に書き込んだ
-  // layout.padding が初期値に巻き戻ってしまう。
+  // chart.options を差し替えて円グラフを更新し直すため。
   const chartOptions = useMemo(
     () => ({
       responsive: true,
       maintainAspectRatio: false,
       // 狭いスライスのスプライトを円の外側に描画するための余白
       // （円自体は縮小しない。下記コンテナの高さ側で吸収する）。
-      // 詳細カードの開閉中は usePieChartPadding が実寸に合わせて書き換える。
-      layout: { padding: toChartPadding(CHART_BOX_NORMAL) },
+      // 詳細カードの開閉中は、キャンバスの高さに合わせて通常表示と詳細表示の間を補間する。
+      layout: { padding: paddingByChartHeight },
       // クリック判定は下のコンテナdiv側(handleChartAreaClick)で行うため、ここでは何もしない
       // (chart.jsのoptions.onClickはchartArea外側=余白部分のタップを検知できないため)
       plugins: {
@@ -491,14 +604,31 @@ export default function OpponentDeckDistributionChart({
   return (
     <>
       {/* グラフ領域＋詳細カード。選択時はグラフを左に寄せ、右側に詳細カードを表示する（グラフには重ねない） */}
-      <div className="flex items-stretch gap-3">
+      <div className="relative flex items-stretch gap-3">
+        {/* 場所取り。幅・高さだけを CSS の transition で動かし、詳細カードと下の凡例を
+            滑らかに動かす。円グラフ本体はこの上に重ねる(usePieChartFlip 参照) */}
         <div
           ref={chartContainerRef}
-          onClick={handleChartAreaClick}
-          className={`relative shrink-0 transition-all duration-300 ${chartHidden ? "opacity-0 pointer-events-none" : isLoading ? "opacity-30" : "opacity-100"} ${tooltip ? "w-3/5" : "w-full"}`}
+          className={`shrink-0 transition-all duration-300 ${tooltip ? "w-3/5" : "w-full"}`}
           style={{ height: containerHeight }}
+        />
+        {/* 円グラフ本体。寸法はアニメさせず開閉後の値(場所取りの w-3/5 と同じ 60%)を
+            すぐに持ち、開閉の動きは中の要素の transform で見せる */}
+        <div
+          ref={chartBoxRef}
+          onClick={handleChartAreaClick}
+          className={`absolute left-0 top-0 transition-opacity duration-300 ${chartHidden ? "opacity-0 pointer-events-none" : isLoading ? "opacity-30" : "opacity-100"}`}
+          style={{ width: tooltip ? "60%" : "100%", height: containerHeight }}
         >
-          <Pie ref={chartRef} data={chartData} options={chartOptions} plugins={[spritePlugin, centerSpritePlugin]} />
+          <div ref={chartFlipRef} className="h-full w-full">
+            <Pie
+              ref={chartRef}
+              data={chartData}
+              options={chartOptions}
+              plugins={[spritePlugin, centerSpritePlugin]}
+              updateMode={chartUpdateMode}
+            />
+          </div>
         </div>
 
         {/* タップしたデッキの詳細（再タップで閉じて円グラフのみの表示に戻す。閉じる際は右にフェードアウトする） */}
@@ -545,86 +675,19 @@ export default function OpponentDeckDistributionChart({
       {/* 凡例リスト（スプライト画像 + デッキ名 + 対面率）。
           「その他」に集約された行だけは、集約前の個々のデッキをアコーディオンで展開して一覧できる。 */}
       <div className="flex flex-col gap-1.5">
-        {displayDecks.map((deck, idx) => {
-          const others = deck.others;
-          if (others && others.length > 0) {
-            return (
-              <Accordion
-                key={`${deck.deck_info}-${idx}`}
-                isCompact
-                className="px-0"
-                selectedKeys={otherSelectedKeys}
-                onSelectionChange={handleOtherSelectionChange}
-                itemClasses={{
-                  base: `rounded-xl px-3 ${
-                    selectedIdx === idx
-                      ? "bg-default-200 ring-1 ring-default-400"
-                      : "bg-default-100"
-                  }`,
-                  trigger: "py-1.5 gap-2",
-                  title: "min-w-0",
-                  content: "pt-0 pb-2",
-                }}
-              >
-                <AccordionItem
-                  key="other"
-                  aria-label={`${deck.deck_info}の内訳`}
-                  // 既定のアイコンは行の右端に出て数値ブロックを押し込むため隠し、
-                  // 代わりにデッキ名の直後へ自前で置く（閉じているとき「>」、開くと下向き）。
-                  hideIndicator
-                  title={
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="w-2.5 h-2.5 rounded-full shrink-0"
-                        style={{ backgroundColor: deckColors[idx] }}
-                      />
-                      <OpponentDeckLegendRow
-                        deck={deck}
-                        indicator={
-                          <LuChevronDown
-                            aria-hidden
-                            className={`w-4 h-4 shrink-0 text-default-400 transition-transform ${
-                              isOtherExpanded ? "rotate-0" : "-rotate-90"
-                            }`}
-                          />
-                        }
-                      />
-                    </div>
-                  }
-                >
-                  <div className="flex flex-col gap-1.5">
-                    {others.map((otherDeck, otherIdx) => (
-                      <div
-                        key={`${otherDeck.deck_info}-${otherIdx}`}
-                        className="flex items-center gap-2 rounded-lg bg-content1 px-2 py-1.5"
-                      >
-                        <OpponentDeckLegendRow deck={otherDeck} />
-                      </div>
-                    ))}
-                  </div>
-                </AccordionItem>
-              </Accordion>
-            );
-          }
-
-          return (
-            <div
-              key={`${deck.deck_info}-${idx}`}
-              onClick={() => handleLegendClick(idx)}
-              className={`flex items-center gap-2 rounded-xl px-3 py-1.5 cursor-pointer transition-colors duration-150 ${
-                selectedIdx === idx
-                  ? "bg-default-200 ring-1 ring-default-400"
-                  : "bg-default-100 hover:bg-default-200"
-              }`}
-            >
-              <span
-                className="w-2.5 h-2.5 rounded-full shrink-0"
-                style={{ backgroundColor: deckColors[idx] }}
-              />
-              <OpponentDeckLegendRow deck={deck} />
-            </div>
-          );
-        })}
+        {displayDecks.map((deck, idx) => (
+          <OpponentDeckLegendItem
+            key={`${deck.deck_info}-${idx}`}
+            deck={deck}
+            idx={idx}
+            color={deckColors[idx]}
+            isSelected={selectedIdx === idx}
+            // 内訳を持たない行には開閉状態を渡さない(開閉で全行を描き直さないように)
+            isOtherExpanded={deck.others && deck.others.length > 0 ? isOtherExpanded : false}
+            onSelect={selectDeck}
+            onOtherExpandedChange={setIsOtherExpanded}
+          />
+        ))}
       </div>
     </>
   );

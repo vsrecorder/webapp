@@ -9,6 +9,7 @@ import {
   CHART_BOX_NORMAL,
   CHART_SIZE,
   CHART_SIZE_DETAIL,
+  paddingByChartHeight,
   toChartPadding,
 } from "@app/components/organisms/DeckUsage/pieChartLayout";
 
@@ -47,6 +48,31 @@ describe("toChartPadding", () => {
   });
 });
 
+describe("paddingByChartHeight", () => {
+  const at = (height: number) => paddingByChartHeight({ chart: { height } });
+
+  it("通常表示・詳細表示の高さでは、それぞれの余白そのものになる", () => {
+    expect(at(CHART_BOX_NORMAL.height)).toEqual(toChartPadding(CHART_BOX_NORMAL));
+    expect(at(CHART_BOX_DETAIL.height)).toEqual(toChartPadding(CHART_BOX_DETAIL));
+  });
+
+  it("途中の高さでは、高さの進み具合に合わせて余白も同じだけ進む", () => {
+    // 余白と寸法の進み具合が食い違うと、円の大きさが目標と逆向きに振れる
+    const mid = (CHART_BOX_NORMAL.height + CHART_BOX_DETAIL.height) / 2;
+    expect(at(mid)).toEqual({
+      top: (CHART_BOX_NORMAL.padding.y + CHART_BOX_DETAIL.padding.y) / 2,
+      bottom: (CHART_BOX_NORMAL.padding.y + CHART_BOX_DETAIL.padding.y) / 2,
+      left: (CHART_BOX_NORMAL.padding.x + CHART_BOX_DETAIL.padding.x) / 2,
+      right: (CHART_BOX_NORMAL.padding.x + CHART_BOX_DETAIL.padding.x) / 2,
+    });
+  });
+
+  it("どちらの高さの外側でも、近い方の余白に収める", () => {
+    expect(at(CHART_BOX_NORMAL.height + 50)).toEqual(toChartPadding(CHART_BOX_NORMAL));
+    expect(at(CHART_BOX_DETAIL.height - 50)).toEqual(toChartPadding(CHART_BOX_DETAIL));
+  });
+});
+
 describe("円グラフの寸法の持ち方", () => {
   // データが無いときのダミー円グラフ(DeckUsageEmptyState)だけが上下の余白を64pxで
   // 持っていたため、データの有無が切り替わると円の中心が24px上下にずれ、
@@ -63,6 +89,7 @@ describe("円グラフの寸法の持ち方", () => {
     const src = readFileSync(join(dir, file), "utf8");
 
     expect(src).toMatch(/CHART_BOX_NORMAL/);
-    expect(src).toMatch(/toChartPadding\(CHART_BOX_NORMAL\)/);
+    // 詳細カードを開閉するグラフは、高さに合わせて補間する paddingByChartHeight を渡す
+    expect(src).toMatch(/toChartPadding\(CHART_BOX_NORMAL\)|padding: paddingByChartHeight/);
   });
 });

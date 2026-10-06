@@ -1,4 +1,8 @@
-import type { PieChartBox } from "@app/hooks/usePieChartPadding";
+// 円グラフの外側に確保する余白（左右 x / 上下 y）
+export type PieChartPadding = { x: number; y: number };
+
+// 通常表示・詳細カード表示それぞれの「余白」と「キャンバスを包む要素の高さ」
+export type PieChartBox = { padding: PieChartPadding; height: number };
 
 /*
  * デッキ使用率・対戦相手のデッキ分布で使う円グラフの寸法。
@@ -26,9 +30,7 @@ export const EXTERNAL_SPRITE_PADDING_Y = 88;
 export const EXTERNAL_SPRITE_PADDING_Y_NARROW = 28;
 
 // 通常表示・詳細カード表示それぞれの余白と、キャンバスを包む要素の高さ。
-// 開閉アニメーションの最中は、この2つの間をキャンバスの実寸に合わせて補間する
-// （切り替えた瞬間に余白だけ新しい値にすると円の大きさが逆向きに振れる。
-//   usePieChartPadding のコメント参照）
+// 余白はキャンバスの高さに合わせて決める（paddingByChartHeight を参照）
 export const CHART_BOX_NORMAL: PieChartBox = {
   padding: { x: EXTERNAL_SPRITE_PADDING_X, y: EXTERNAL_SPRITE_PADDING_Y },
   height: CHART_SIZE + EXTERNAL_SPRITE_PADDING_Y * 2,
@@ -49,4 +51,33 @@ export function toChartPadding(box: PieChartBox) {
     left: box.padding.x,
     right: box.padding.x,
   };
+}
+
+function lerp(from: number, to: number, ratio: number): number {
+  return from + (to - from) * ratio;
+}
+
+/*
+ * 詳細カードの開閉に対応する円グラフの layout.padding。chart.js の options に関数のまま渡す
+ * (layout.padding は scriptable で、chart.js はレイアウトを計算するたびにこれを呼ぶ)。
+ *
+ * 余白を「詳細カードを表示中か」から直接決めると、余白は切り替えた瞬間に新しい値になるのに
+ * キャンバスの寸法は遅れて追従するため、その間だけ「狭いキャンバスに広い余白」
+ * 「広いキャンバスに狭い余白」になり、円が目標と逆向きに大きく振れる
+ * (chart.js は描画領域の短辺から半径を決める。実測: 閉じたとき半径 66→53→94px)。
+ * キャンバス自身の高さ(chart.height)から決めれば、いつ更新されても余白と寸法は食い違わない。
+ *
+ * 開閉では寸法を最終の値へ一度に変え、動きは transform で見せる(usePieChartFlip)ので、
+ * 実際に使うのは両端の値だけ。途中の高さでは間を補間する(ウインドウの幅を変えたときなど、
+ * 開閉以外でキャンバスの寸法が動いても破綻しないように)。
+ */
+export function paddingByChartHeight({ chart }: { chart: { height: number } }) {
+  const span = CHART_BOX_NORMAL.height - CHART_BOX_DETAIL.height;
+  const progress =
+    span === 0
+      ? 1
+      : Math.min(1, Math.max(0, (chart.height - CHART_BOX_DETAIL.height) / span));
+  const x = lerp(CHART_BOX_DETAIL.padding.x, CHART_BOX_NORMAL.padding.x, progress);
+  const y = lerp(CHART_BOX_DETAIL.padding.y, CHART_BOX_NORMAL.padding.y, progress);
+  return { top: y, bottom: y, left: x, right: x };
 }

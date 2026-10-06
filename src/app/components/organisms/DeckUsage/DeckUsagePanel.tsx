@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  memo,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -13,6 +15,7 @@ import {
   Chart as ChartJS,
   Tooltip as ChartTooltip,
   type ActiveElement,
+  type UpdateMode,
 } from "chart.js";
 import { Pie } from "react-chartjs-2";
 import { AnimatePresence, motion } from "framer-motion";
@@ -51,12 +54,12 @@ import {
   getSpriteBadgeIndexAt,
   type PieSpriteDatasetProps,
 } from "@app/utils/pieSlicesSpritePlugin";
-import usePieChartPadding from "@app/hooks/usePieChartPadding";
 import {
   CHART_BOX_DETAIL,
   CHART_BOX_NORMAL,
-  toChartPadding,
+  paddingByChartHeight,
 } from "@app/components/organisms/DeckUsage/pieChartLayout";
+import usePieChartFlip from "@app/hooks/usePieChartFlip";
 import DeckUsageEmptyState from "@app/components/organisms/DeckUsage/DeckUsageEmptyState";
 import FetchError from "@app/components/molecules/FetchError";
 import useOldestRecordEventDate from "@app/hooks/useOldestRecordEventDate";
@@ -139,6 +142,61 @@ type TooltipState = {
   color: string;
 };
 
+type LegendRowProps = {
+  deck: DeckUsageItemType;
+  idx: number;
+  color: string;
+  isSelected: boolean;
+  onSelect: (idx: number) => void;
+};
+
+// 凡例の1行。選択を切り替えたときに描き直すのを、選択が変わった行だけにするためメモ化する
+// (タップのたびに全行のスプライト画像・チップを描き直していた)
+const DeckUsageLegendRow = memo(function DeckUsageLegendRow({
+  deck,
+  idx,
+  color,
+  isSelected,
+  onSelect,
+}: LegendRowProps) {
+  return (
+    <div
+      onClick={() => onSelect(idx)}
+      className={`flex items-center gap-2 rounded-xl px-3 py-1.5 cursor-pointer transition-colors duration-150 ${
+        isSelected
+          ? "bg-default-200 ring-1 ring-default-400"
+          : "bg-default-100 hover:bg-default-200"
+      }`}
+    >
+      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+      <div className="w-16 flex justify-center shrink-0">
+        <DeckSprites sprites={deck.pokemon_sprites} size={32} />
+      </div>
+      <span className="font-bold text-xs text-default-700 truncate flex-1 min-w-0">
+        {deck.name}
+      </span>
+      {/* 区切り線は引かない
+          (OpponentDeckDistributionChart の凡例と同じ理由)。 */}
+      <div className="flex flex-col items-end gap-1 shrink-0 whitespace-nowrap pl-3">
+        <span className="font-black text-xs text-default-700 tabular-nums">
+          {(deck.usage_rate * 100).toFixed(1)}%({deck.count}件)
+        </span>
+        <Chip
+          size="sm"
+          variant="flat"
+          color={winRateChipColor(deck.win_rate)}
+          classNames={{
+            base: "h-4 px-0.5",
+            content: "text-[0.5625rem] font-black tabular-nums px-1",
+          }}
+        >
+          勝率 {(deck.win_rate * 100).toFixed(1)}%
+        </Chip>
+      </div>
+    </div>
+  );
+});
+
 
 export default function DeckUsagePanel({
   userId,
@@ -171,23 +229,36 @@ export default function DeckUsagePanel({
   const [isError, setIsError] = useState(false);
   // 「再読み込み」で取り直すためのキー。増やすと取得のeffectが走り直す
   const [reloadKey, setReloadKey] = useState(0);
+  // 選択中のデッキ(凡例・スライスの位置)。詳細カードの中身はここから求める
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
-  const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+  // 円グラフのデータを差し替えるときの更新モード(react-chartjs-2 の updateMode)。
+  // 選択の切り替えでは "none"(アニメ無し)、集計の切り替えでは既定のアニメにする。
+  //
+  // 選択の切り替えに chart.js 既定の更新アニメ(1000ms)を使うと、値の変わらない角度・半径まで
+  // アニメ対象になり、1秒間毎フレーム円グラフを描き直す。色が変わる様子も、以前は開閉中に
+  // 毎フレーム走っていた即時更新で直後のフレームに確定していて、実際には見えていなかった。
+  const [chartUpdateMode, setChartUpdateMode] = useState<UpdateMode | undefined>(undefined);
   // シェアモーダルの開閉
   const [shareOpen, setShareOpen] = useState(false);
 
   const chartRef = useRef<ChartJS<"pie">>(null);
-  // 詳細カードの開閉に合わせて幅・高さがCSSのtransitionで変化する、キャンバスの入れ物
-  const chartContainerRef = useRef<HTMLDivElement>(null);
+  // 円グラフの入れ物(開閉後の寸法をすぐに持つ)と、開閉の動きの transform をかける要素
+  const chartBoxRef = useRef<HTMLDivElement>(null);
+  const chartFlipRef = useRef<HTMLDivElement>(null);
 
   // 「月次」の選択肢は、実際に記録されている最も古い対戦のevent_dateを起点にする。
   // 取得前・取得失敗時はユーザー登録日、それも無ければ直近12ヶ月にフォールバックする
   // (対戦相手のデッキ分析パネルと同じ扱い。どちらも同じ値を使うので取得は共有される)。
   const oldestEventDate = useOldestRecordEventDate(userId);
-  const yearMonthOptions = generateYearMonthOptions(
-    oldestEventDate ?? userCreatedAt ?? undefined,
+  // 下の絞り込み部分をメモ化するので、選択肢も描画のたびに作り直さない
+  const yearMonthOptions = useMemo(
+    () => generateYearMonthOptions(oldestEventDate ?? userCreatedAt ?? undefined),
+    [oldestEventDate, userCreatedAt],
   );
-  const seasonOptions = seasonOptionsFromChampionshipSeries(championshipSeries);
+  const seasonOptions = useMemo(
+    () => seasonOptionsFromChampionshipSeries(championshipSeries),
+    [championshipSeries],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -346,19 +417,14 @@ export default function DeckUsagePanel({
   // 詳細カード表示中、選択中のデッキのスプライトと使用率を円の中心に表示する
   const centerSpritePlugin = useMemo(() => createPieCenterSpritePlugin(), []);
 
-  // プラグインに渡す描画内容(PieSpriteDatasetProps)
-  const spriteDatasetProps: PieSpriteDatasetProps = {
-    spriteUrls: displayDecks.map((deck) => deckSpriteUrls(deck.pokemon_sprites)),
-    sliceColors: displayDecks.map((_, idx) => deckColors[idx] ?? OTHER_COLOR),
-    percentTexts: displayDecks.map((deck) =>
-      deck.usage_rate != null ? `${roundToSignificantDigits(deck.usage_rate * 100, 3)}%` : null,
-    ),
-    hideSliceBadges: tooltip != null,
-    centerSpriteUrls: tooltip ? deckSpriteUrls(tooltip.deck.pokemon_sprites) : null,
-    centerPercentText: tooltip
-      ? `${roundToSignificantDigits(tooltip.deck.usage_rate * 100, 3)}%`
-      : null,
-  };
+  // 詳細カードに出すデッキ
+  const tooltip = useMemo<TooltipState | null>(
+    () =>
+      selectedIdx != null && displayDecks[selectedIdx]
+        ? { deck: displayDecks[selectedIdx], color: deckColors[selectedIdx] }
+        : null,
+    [selectedIdx, displayDecks, deckColors],
+  );
 
   // データが切り替わったら選択状態をリセット。
   // effect で戻すと前のデータに前の選択が乗った描画が一度挟まるので、前回のデータを控えて描画中に戻す
@@ -366,26 +432,21 @@ export default function DeckUsagePanel({
   if (prevStat !== stat) {
     setPrevStat(stat);
     setSelectedIdx(null);
-    setTooltip(null);
+    setChartUpdateMode(undefined);
   }
 
   // 詳細表示を閉じて円グラフのみの表示に戻す
-  function closeDetail() {
+  const closeDetail = useCallback(() => {
     setSelectedIdx(null);
-    setTooltip(null);
-  }
+    setChartUpdateMode("none");
+  }, []);
 
-  function handleLegendClick(idx: number) {
-    if (selectedIdx === idx) {
-      // 同じ項目を再タップ → 詳細表示を消す
-      closeDetail();
-      return;
-    }
-
-    const nextTooltip = { deck: displayDecks[idx], color: deckColors[idx] };
-    setSelectedIdx(idx);
-    setTooltip(nextTooltip);
-  }
+  // 凡例・スライスのタップ。同じ項目を再タップしたら詳細表示を消す。
+  // 凡例の行(メモ化)に渡すので、選択状態に依存しない形で作る
+  const selectDeck = useCallback((idx: number) => {
+    setSelectedIdx((prev) => (prev === idx ? null : idx));
+    setChartUpdateMode("none");
+  }, []);
 
   // 円グラフのコンテナ（スライス部分＋外側の余白）のクリックを自前でヒットテストする。
   // chart.jsのoptions.onClickは「chartArea」の外側（＝スプライトバッジを描く余白部分）を
@@ -400,53 +461,20 @@ export default function DeckUsagePanel({
       false,
     ) as ActiveElement[];
     if (elements.length > 0) {
-      handleLegendClick(elements[0].index);
+      selectDeck(elements[0].index);
       return;
     }
 
     // スライス本体に当たらなかった場合、外周のスプライトバッジをタップしていないか確認する
     const badgeIndex = getSpriteBadgeIndexAt(chart, e.nativeEvent);
     if (badgeIndex !== null) {
-      handleLegendClick(badgeIndex);
+      selectDeck(badgeIndex);
       return;
     }
 
     closeDetail();
   }
 
-
-  // 「環境」と「レギュレーションマーク」はスタンダードのカードプールを前提にした区切りのため、
-  // エクストラ・殿堂では月次とシーズンだけを出す。
-  const isStandardRegulation = regulationId === DEFAULT_REGULATION_ID;
-
-  const filterTabs: { key: FilterMode; title: string }[] = [
-    { key: "month", title: "月次" },
-    ...(isStandardRegulation
-      ? [{ key: "environment" as FilterMode, title: "環境" }]
-      : []),
-    { key: "season", title: "シーズン" },
-    ...(isStandardRegulation
-      ? [{ key: "regulation" as FilterMode, title: "レギュレーションマーク" }]
-      : []),
-  ];
-
-  // レギュレーションを切り替えると選べる集計タブも変わるため、集計の選択もそれに合わせる。
-  //  ・スタンダードへ戻したとき: 既定の集計である環境へ戻す。
-  //  ・エクストラ・殿堂へ切り替えたとき: 消えるタブ(環境・レギュレーションマーク)を選んだ
-  //    ままだと、その条件で集計され続けてしまうためシーズンへ寄せる
-  //    (エクストラ・殿堂でも母数を確保しやすい区切り)。
-  const handleRegulationChange = (nextRegulationId: number) => {
-    setRegulationId(nextRegulationId);
-
-    if (nextRegulationId === DEFAULT_REGULATION_ID) {
-      setFilterMode("environment");
-      return;
-    }
-
-    if (filterMode === "environment" || filterMode === "regulation") {
-      setFilterMode("season");
-    }
-  };
 
   const periodFilterLabel =
     filterMode === "month"
@@ -464,58 +492,77 @@ export default function DeckUsagePanel({
       ? periodFilterLabel
       : `${periodFilterLabel}(${regulationDisplay(regulationId).name})`;
 
-  const chartData = {
-    labels: displayDecks.map((d) => d.name),
-    datasets: [
-      {
-        data: displayDecks.map((d) => d.count),
-        // 通常時は薄色にして無機質さを抑え、選択中のスライスだけ元の鮮やかな色にして目立たせる。
-        // chart.jsのhover/active機構(setActiveElements・hoverBackgroundColor)は、
-        // 選択時にグラフの横幅が変わって発生するresize処理の途中でリセットされてしまうため使わず、
-        // 通常のデータ(backgroundColor)として選択状態を表現する。
-        //
-        // 選択中のスライスを外側に押し出す(dataset.offset)強調は使わない。
-        // chart.jsのoffsetはスライスを中心角方向へずらすと同時に外半径も広げるため、
-        // 詳細カード表示中(円の中心に白いバッジを敷いてドーナツ状に見せている状態)では
-        // 選択スライスだけリングの太さが太くなってしまう。
-        // 特にデッキが1件だけのときは円全体がずれて、リングの太さが上下で不均等になる。
-        backgroundColor: displayDecks.map((_, i) =>
-          i === selectedIdx ? deckColors[i] : deckColorsSoft[i],
-        ),
-        borderColor: "#ffffff",
-        // スライス同士の境界を白線で区切る。ただしデッキが1件だけのときは円弧が360°になり、
-        // 始点と終点が同じ位置で重なるため、区切る相手がいないのに12時方向へ白線が引かれて
-        // 円(詳細表示中はリング)が切れて見えてしまう。1件のときは枠線を引かない。
-        borderWidth: displayDecks.length > 1 ? 2 : 0,
-        // スプライトバッジ・中心表示の材料(プラグインが描画時に読む)
-        ...spriteDatasetProps,
-      },
-    ],
-  };
+  // 円グラフのデータ。描画のたびに作り直すと、react-chartjs-2 がパネルの再描画のたびに
+  // chart.update() を呼び、既定の更新アニメ(1000ms)で1秒間円グラフを描き直し続ける
+  // (シェアボタンを押すなど、円グラフに関係の無い再描画でも)。中身が変わるときだけ作る。
+  const chartData = useMemo(() => {
+    // プラグインに渡す描画内容(PieSpriteDatasetProps)
+    const selectedDeck = selectedIdx != null ? displayDecks[selectedIdx] : undefined;
+    const spriteDatasetProps: PieSpriteDatasetProps = {
+      spriteUrls: displayDecks.map((deck) => deckSpriteUrls(deck.pokemon_sprites)),
+      sliceColors: displayDecks.map((_, idx) => deckColors[idx] ?? OTHER_COLOR),
+      percentTexts: displayDecks.map((deck) =>
+        deck.usage_rate != null ? `${roundToSignificantDigits(deck.usage_rate * 100, 3)}%` : null,
+      ),
+      hideSliceBadges: selectedDeck != null,
+      centerSpriteUrls: selectedDeck ? deckSpriteUrls(selectedDeck.pokemon_sprites) : null,
+      centerPercentText: selectedDeck
+        ? `${roundToSignificantDigits(selectedDeck.usage_rate * 100, 3)}%`
+        : null,
+    };
 
-  // 詳細カード表示中は外周バッジを描画しないため余白は最低限でよく、その分円を大きく表示できる。
-  // 開閉アニメーションの最中はキャンバスの実寸に合わせて余白を補間する。
-  usePieChartPadding({
-    containerRef: chartContainerRef,
+    return {
+      labels: displayDecks.map((d) => d.name),
+      datasets: [
+        {
+          data: displayDecks.map((d) => d.count),
+          // 通常時は薄色にして無機質さを抑え、選択中のスライスだけ元の鮮やかな色にして目立たせる。
+          // chart.jsのhover/active機構(setActiveElements・hoverBackgroundColor)は、
+          // 選択時にグラフの横幅が変わって発生するresize処理の途中でリセットされてしまうため使わず、
+          // 通常のデータ(backgroundColor)として選択状態を表現する。
+          //
+          // 選択中のスライスを外側に押し出す(dataset.offset)強調は使わない。
+          // chart.jsのoffsetはスライスを中心角方向へずらすと同時に外半径も広げるため、
+          // 詳細カード表示中(円の中心に白いバッジを敷いてドーナツ状に見せている状態)では
+          // 選択スライスだけリングの太さが太くなってしまう。
+          // 特にデッキが1件だけのときは円全体がずれて、リングの太さが上下で不均等になる。
+          backgroundColor: displayDecks.map((_, i) =>
+            i === selectedIdx ? deckColors[i] : deckColorsSoft[i],
+          ),
+          borderColor: "#ffffff",
+          // スライス同士の境界を白線で区切る。ただしデッキが1件だけのときは円弧が360°になり、
+          // 始点と終点が同じ位置で重なるため、区切る相手がいないのに12時方向へ白線が引かれて
+          // 円(詳細表示中はリング)が切れて見えてしまう。1件のときは枠線を引かない。
+          borderWidth: displayDecks.length > 1 ? 2 : 0,
+          // スプライトバッジ・中心表示の材料(プラグインが描画時に読む)
+          ...spriteDatasetProps,
+        },
+      ],
+    };
+  }, [displayDecks, deckColors, deckColorsSoft, selectedIdx]);
+
+  // 詳細カード表示中は外周バッジを描画しないため余白は最低限でよく、その分円を大きく表示できる
+  // (余白はキャンバスの高さから決まる。paddingByChartHeight)。
+  // 開閉の動きは寸法ではなく transform で見せる(usePieChartFlip)。
+  usePieChartFlip({
     chartRef,
+    boxRef: chartBoxRef,
+    flipRef: chartFlipRef,
     isDetail: tooltip != null,
-    normal: CHART_BOX_NORMAL,
-    detail: CHART_BOX_DETAIL,
   });
-  // コンテナの高さはCSSのtransitionの目標値なので、補間中の余白ではなく定常値から決める
+  // 入れ物の高さ(通常表示・詳細表示の定常値)
   const containerHeight = (tooltip ? CHART_BOX_DETAIL : CHART_BOX_NORMAL).height;
 
   // options オブジェクトは作り直さない。react-chartjs-2 は options prop が変わるたびに
-  // chart.options を差し替えるため、作り直すと usePieChartPadding が補間中に書き込んだ
-  // layout.padding が初期値に巻き戻ってしまう。
+  // chart.options を差し替えて円グラフを更新し直すため。
   const chartOptions = useMemo(
     () => ({
       responsive: true,
       maintainAspectRatio: false,
       // 狭いスライスのスプライトを円の外側に描画するための余白
       // （円自体は縮小しない。下記コンテナの高さ側で吸収する）。
-      // 詳細カードの開閉中は usePieChartPadding が実寸に合わせて書き換える。
-      layout: { padding: toChartPadding(CHART_BOX_NORMAL) },
+      // 詳細カードの開閉中は、キャンバスの高さに合わせて通常表示と詳細表示の間を補間する。
+      layout: { padding: paddingByChartHeight },
       // クリック判定は下のコンテナdiv側(handleChartAreaClick)で行うため、ここでは何もしない
       // (chart.jsのoptions.onClickはchartArea外側=余白部分のタップを検知できないため)
       plugins: {
@@ -527,107 +574,197 @@ export default function DeckUsagePanel({
     [],
   );
 
+  /*
+   * 見出し行と絞り込み部分は、詳細カードの開閉(選択の切り替え)とは関係が無い。
+   * タップのたびに HeroUI の Tabs やセグメント、セレクトまで描き直していたので、
+   * 要素ごとメモ化して、関係する値が変わったときだけ作り直す。
+   */
+  // セクション見出し行。タイトルを左、シェアボタンを右端に置く（ダッシュボードの
+  // 「対戦環境データ」の見出し行と同じ配置ルール）。集計が空の間は画像に載せる
+  // 中身が無いためシェアを押させない。
+  const isShareDisabled = isLoading || decks.length === 0;
+  const header = useMemo(
+    () => (
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-sm font-bold text-default-700">{sectionTitle}</h2>
+        <PanelShareButton isDisabled={isShareDisabled} onPress={() => setShareOpen(true)} />
+      </div>
+    ),
+    [sectionTitle, isShareDisabled],
+  );
+
+  const filterControls = useMemo(() => {
+    // 「環境」と「レギュレーションマーク」はスタンダードのカードプールを前提にした区切りのため、
+    // エクストラ・殿堂では月次とシーズンだけを出す。
+    const isStandardRegulation = regulationId === DEFAULT_REGULATION_ID;
+
+    const filterTabs: { key: FilterMode; title: string }[] = [
+      { key: "month", title: "月次" },
+      ...(isStandardRegulation
+        ? [{ key: "environment" as FilterMode, title: "環境" }]
+        : []),
+      { key: "season", title: "シーズン" },
+      ...(isStandardRegulation
+        ? [{ key: "regulation" as FilterMode, title: "レギュレーションマーク" }]
+        : []),
+    ];
+
+    // レギュレーションを切り替えると選べる集計タブも変わるため、集計の選択もそれに合わせる。
+    //  ・スタンダードへ戻したとき: 既定の集計である環境へ戻す。
+    //  ・エクストラ・殿堂へ切り替えたとき: 消えるタブ(環境・レギュレーションマーク)を選んだ
+    //    ままだと、その条件で集計され続けてしまうためシーズンへ寄せる
+    //    (エクストラ・殿堂でも母数を確保しやすい区切り)。
+    const handleRegulationChange = (nextRegulationId: number) => {
+      setRegulationId(nextRegulationId);
+
+      if (nextRegulationId === DEFAULT_REGULATION_ID) {
+        setFilterMode("environment");
+        return;
+      }
+
+      if (filterMode === "environment" || filterMode === "regulation") {
+        setFilterMode("season");
+      }
+    };
+
+    return (
+      <>
+        {/* レギュレーション区分の絞り込み(期間の絞り込みとは独立に効く) */}
+        <RegulationSegmentedControl
+          regulationId={regulationId}
+          onChange={handleRegulationChange}
+        />
+
+        {/* フィルタータブ */}
+        <Tabs
+          fullWidth
+          size="sm"
+          selectedKey={filterMode}
+          onSelectionChange={(key) => setFilterMode(key as FilterMode)}
+          classNames={{
+            tab: "h-7",
+            tabContent: "font-bold text-xs",
+          }}
+        >
+          {filterTabs.map((tab) => (
+            <Tab key={tab.key} title={tab.title} />
+          ))}
+        </Tabs>
+
+        {/* セレクタ */}
+        <div className="relative">
+          <select
+            name="deck-usage-period"
+            value={
+              filterMode === "month"
+                ? yearMonth
+                : filterMode === "environment"
+                  ? environmentId
+                  : filterMode === "season"
+                    ? season
+                    : standardRegulationId
+            }
+            onChange={(e) => {
+              if (filterMode === "month") {
+                setYearMonth(e.target.value);
+              } else if (filterMode === "environment") {
+                setEnvironmentId(e.target.value);
+              } else if (filterMode === "season") {
+                setSeason(e.target.value);
+              } else {
+                setStandardRegulationId(e.target.value);
+              }
+            }}
+            className="w-full appearance-none rounded-xl border border-default-200 bg-default-100 px-4 py-2.5 pr-10 text-sm font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
+          >
+            {filterMode === "month"
+              ? yearMonthOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))
+              : filterMode === "environment"
+                ? environments.map((env) => (
+                    <option key={env.id} value={env.id}>
+                      『{env.title}』
+                    </option>
+                  ))
+                : filterMode === "season"
+                  ? seasonOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))
+                  : standardRegulations.map((reg) => (
+                      <option key={reg.id} value={reg.id}>
+                        『{reg.marks}』
+                      </option>
+                    ))}
+          </select>
+          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-default-400 text-xs">
+            ▼
+          </span>
+        </div>
+
+        {/* 期間ラベル */}
+        <p className="text-center text-xs text-default-400 -mt-2">
+          {filterLabel} のデッキ使用率
+        </p>
+      </>
+    );
+  }, [
+    regulationId,
+    filterMode,
+    yearMonth,
+    environmentId,
+    season,
+    standardRegulationId,
+    yearMonthOptions,
+    seasonOptions,
+    environments,
+    standardRegulations,
+    filterLabel,
+  ]);
+
   // ポスト文の見出し。集計条件の但し書きは入れない(utils/panelPostText)
   const postSubtitle = `${filterLabel} のデッキ使用率`;
   // シェア画像の見出し。断りは画像の中だけに置く
   // (対戦相手のデッキ分析パネルと同じ組み方。画像側は whitespace-pre-line で受ける)。
   const shareSubtitle = `${postSubtitle}\n不戦勝・不戦敗を除く`;
 
+  // シェアモーダル。選択の切り替えとは関係が無いので、上と同じ理由でメモ化する
+  const shareModal = useMemo(
+    () => (
+      <PanelShareModal
+        isOpen={shareOpen}
+        onOpenChange={() => setShareOpen((open) => !open)}
+        onClose={() => setShareOpen(false)}
+        description="デッキ使用率分析を画像にして、ポスト文と一緒にシェアできます。"
+        postText={buildDeckDistributionPostText(postSubtitle, shareRows)}
+        filenamePrefix="deck_usage"
+      >
+        {(width) => (
+          <DeckDistributionShareCard
+            title="デッキ使用率分析"
+            subtitle={shareSubtitle}
+            rows={shareRows}
+            colors={deckColors}
+            softColors={deckColorsSoft}
+            usageLabel="使用率"
+            width={width}
+          />
+        )}
+      </PanelShareModal>
+    ),
+    [shareOpen, postSubtitle, shareRows, shareSubtitle, deckColors, deckColorsSoft],
+  );
+
   return (
     <>
-      {/* セクション見出し行。タイトルを左、シェアボタンを右端に置く（ダッシュボードの
-          「対戦環境データ」の見出し行と同じ配置ルール）。集計が空の間は画像に載せる
-          中身が無いためシェアを押させない。 */}
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="text-sm font-bold text-default-700">{sectionTitle}</h2>
-        <PanelShareButton
-          isDisabled={isLoading || decks.length === 0}
-          onPress={() => setShareOpen(true)}
-        />
-      </div>
+      {header}
       <Card>
         <CardBody className="gap-4 p-4">
-          {/* レギュレーション区分の絞り込み(期間の絞り込みとは独立に効く) */}
-          <RegulationSegmentedControl
-            regulationId={regulationId}
-            onChange={handleRegulationChange}
-          />
-
-          {/* フィルタータブ */}
-          <Tabs
-            fullWidth
-            size="sm"
-            selectedKey={filterMode}
-            onSelectionChange={(key) => setFilterMode(key as FilterMode)}
-            classNames={{
-              tab: "h-7",
-              tabContent: "font-bold text-xs",
-            }}
-          >
-            {filterTabs.map((tab) => (
-              <Tab key={tab.key} title={tab.title} />
-            ))}
-          </Tabs>
-
-          {/* セレクタ */}
-          <div className="relative">
-            <select
-              name="deck-usage-period"
-              value={
-                filterMode === "month"
-                  ? yearMonth
-                  : filterMode === "environment"
-                    ? environmentId
-                    : filterMode === "season"
-                      ? season
-                      : standardRegulationId
-              }
-              onChange={(e) => {
-                if (filterMode === "month") {
-                  setYearMonth(e.target.value);
-                } else if (filterMode === "environment") {
-                  setEnvironmentId(e.target.value);
-                } else if (filterMode === "season") {
-                  setSeason(e.target.value);
-                } else {
-                  setStandardRegulationId(e.target.value);
-                }
-              }}
-              className="w-full appearance-none rounded-xl border border-default-200 bg-default-100 px-4 py-2.5 pr-10 text-sm font-bold text-default-700 focus:outline-none focus:ring-2 focus:ring-primary/50"
-            >
-              {filterMode === "month"
-                ? yearMonthOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))
-                : filterMode === "environment"
-                  ? environments.map((env) => (
-                      <option key={env.id} value={env.id}>
-                        『{env.title}』
-                      </option>
-                    ))
-                  : filterMode === "season"
-                    ? seasonOptions.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))
-                    : standardRegulations.map((reg) => (
-                        <option key={reg.id} value={reg.id}>
-                          『{reg.marks}』
-                        </option>
-                      ))}
-            </select>
-            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-default-400 text-xs">
-              ▼
-            </span>
-          </div>
-
-          {/* 期間ラベル */}
-          <p className="text-center text-xs text-default-400 -mt-2">
-            {filterLabel} のデッキ使用率
-          </p>
+          {filterControls}
 
           {/* グラフ + 凡例 */}
           {isError ? (
@@ -659,19 +796,30 @@ export default function DeckUsagePanel({
           ) : (
             <>
               {/* グラフ領域＋詳細カード。選択時はグラフを左に寄せ、右側に詳細カードを表示する（グラフには重ねない） */}
-              <div className="flex items-stretch gap-3">
+              <div className="relative flex items-stretch gap-3">
+                {/* 場所取り。幅・高さだけを CSS の transition で動かし、詳細カードと下の凡例を
+                    滑らかに動かす。円グラフ本体はこの上に重ねる(usePieChartFlip 参照) */}
                 <div
-                  ref={chartContainerRef}
-                  onClick={handleChartAreaClick}
-                  className={`relative shrink-0 transition-all duration-300 ${isLoading ? "opacity-30" : "opacity-100"} ${tooltip ? "w-3/5" : "w-full"}`}
+                  className={`shrink-0 transition-all duration-300 ${tooltip ? "w-3/5" : "w-full"}`}
                   style={{ height: containerHeight }}
+                />
+                {/* 円グラフ本体。寸法はアニメさせず開閉後の値(場所取りの w-3/5 と同じ 60%)を
+                    すぐに持ち、開閉の動きは中の要素の transform で見せる */}
+                <div
+                  ref={chartBoxRef}
+                  onClick={handleChartAreaClick}
+                  className={`absolute left-0 top-0 transition-opacity duration-300 ${isLoading ? "opacity-30" : "opacity-100"}`}
+                  style={{ width: tooltip ? "60%" : "100%", height: containerHeight }}
                 >
-                  <Pie
-                    ref={chartRef}
-                    data={chartData}
-                    options={chartOptions}
-                    plugins={[spritePlugin, centerSpritePlugin]}
-                  />
+                  <div ref={chartFlipRef} className="h-full w-full">
+                    <Pie
+                      ref={chartRef}
+                      data={chartData}
+                      options={chartOptions}
+                      plugins={[spritePlugin, centerSpritePlugin]}
+                      updateMode={chartUpdateMode}
+                    />
+                  </div>
                 </div>
 
                 {/* タップしたデッキの詳細（再タップで閉じて円グラフのみの表示に戻す。閉じる際は右にフェードアウトする） */}
@@ -720,44 +868,14 @@ export default function DeckUsagePanel({
               {/* 凡例リスト（スプライト画像 + デッキ名 + 使用率） */}
               <div className="flex flex-col gap-1.5">
                 {displayDecks.map((deck, idx) => (
-                  <div
+                  <DeckUsageLegendRow
                     key={deck.deck_id || `unknown-${idx}`}
-                    onClick={() => handleLegendClick(idx)}
-                    className={`flex items-center gap-2 rounded-xl px-3 py-1.5 cursor-pointer transition-colors duration-150 ${
-                      selectedIdx === idx
-                        ? "bg-default-200 ring-1 ring-default-400"
-                        : "bg-default-100 hover:bg-default-200"
-                    }`}
-                  >
-                    <span
-                      className="w-2.5 h-2.5 rounded-full shrink-0"
-                      style={{ backgroundColor: deckColors[idx] }}
-                    />
-                    <div className="w-16 flex justify-center shrink-0">
-                      <DeckSprites sprites={deck.pokemon_sprites} size={32} />
-                    </div>
-                    <span className="font-bold text-xs text-default-700 truncate flex-1 min-w-0">
-                      {deck.name}
-                    </span>
-                    {/* 区切り線は引かない
-                        (OpponentDeckDistributionChart の凡例と同じ理由)。 */}
-                    <div className="flex flex-col items-end gap-1 shrink-0 whitespace-nowrap pl-3">
-                      <span className="font-black text-xs text-default-700 tabular-nums">
-                        {(deck.usage_rate * 100).toFixed(1)}%({deck.count}件)
-                      </span>
-                      <Chip
-                        size="sm"
-                        variant="flat"
-                        color={winRateChipColor(deck.win_rate)}
-                        classNames={{
-                          base: "h-4 px-0.5",
-                          content: "text-[0.5625rem] font-black tabular-nums px-1",
-                        }}
-                      >
-                        勝率 {(deck.win_rate * 100).toFixed(1)}%
-                      </Chip>
-                    </div>
-                  </div>
+                    deck={deck}
+                    idx={idx}
+                    color={deckColors[idx]}
+                    isSelected={selectedIdx === idx}
+                    onSelect={selectDeck}
+                  />
                 ))}
               </div>
 
@@ -775,26 +893,7 @@ export default function DeckUsagePanel({
         </CardBody>
       </Card>
 
-      <PanelShareModal
-        isOpen={shareOpen}
-        onOpenChange={() => setShareOpen((open) => !open)}
-        onClose={() => setShareOpen(false)}
-        description="デッキ使用率分析を画像にして、ポスト文と一緒にシェアできます。"
-        postText={buildDeckDistributionPostText(postSubtitle, shareRows)}
-        filenamePrefix="deck_usage"
-      >
-        {(width) => (
-          <DeckDistributionShareCard
-            title="デッキ使用率分析"
-            subtitle={shareSubtitle}
-            rows={shareRows}
-            colors={deckColors}
-            softColors={deckColorsSoft}
-            usageLabel="使用率"
-            width={width}
-          />
-        )}
-      </PanelShareModal>
+      {shareModal}
     </>
   );
 }

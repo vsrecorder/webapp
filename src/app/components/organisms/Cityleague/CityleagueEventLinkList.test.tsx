@@ -52,4 +52,19 @@ describe("CityleagueEventLinkList", () => {
     expect(screen.queryByRole("link", { name: /この日の結果をまとめて見る/ })).toBeNull();
     expect(screen.getAllByRole("link")).toHaveLength(2);
   });
+
+  it("優勝デッキの呼び名と選手名を添える。呼び名が無ければ選手名だけ", () => {
+    render(
+      <CityleagueEventLinkList
+        events={EVENTS}
+        winners={{
+          1115269: { playerName: "さとりく", deckName: "ドラパルトex(カーストボム型)" },
+          1115148: { playerName: "なすほーみ", deckName: "" },
+        }}
+      />,
+    );
+
+    expect(screen.getByText("優勝：ドラパルトex(カーストボム型)（さとりく選手）")).toBeTruthy();
+    expect(screen.getByText("優勝：なすほーみ選手")).toBeTruthy();
+  });
 });

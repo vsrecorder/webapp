@@ -6,7 +6,6 @@ import { CityleagueWinnerType } from "@app/types/cityleague_result";
 import { OfficialEventType } from "@app/types/official_event";
 import { formatEventDate } from "@app/utils/cityleague";
 import { toDateParam } from "@app/utils/cityleagueDate";
-import { formatMainPokemon } from "@app/utils/deckSummary";
 
 type Props = {
   events: OfficialEventType[];
@@ -18,10 +17,8 @@ type Props = {
 };
 
 function formatWinner(winner: CityleagueWinnerType): string {
-  const mainPokemon = formatMainPokemon(winner.mainPokemon);
-
-  return mainPokemon
-    ? `${mainPokemon}（${winner.playerName}選手）`
+  return winner.deckName
+    ? `${winner.deckName}（${winner.playerName}選手）`
     : `${winner.playerName}選手`;
 }
 

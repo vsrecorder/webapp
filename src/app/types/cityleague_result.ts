@@ -38,8 +38,8 @@ export type CityleagueResultEventType = {
 // 一覧・ハブで各イベントの優勝者をひと言で示すための要約
 export type CityleagueWinnerType = {
   playerName: string;
-  // 優勝デッキの主なポケモン。デッキの内訳が取れなかったときは空
-  mainPokemon: string[];
+  // 優勝デッキの呼び名(個別ページと同じ deckDisplayName)。デッキの内訳も分類も取れなかったときは空
+  deckName: string;
 };
 
 export type CityleagueResultGetEventsResponseType = {

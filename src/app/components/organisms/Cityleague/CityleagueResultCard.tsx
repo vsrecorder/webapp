@@ -53,8 +53,7 @@ import {
   cityleagueRankLabel,
 } from "@app/utils/cityleagueRank";
 import { CITYLEAGUE_CARD_IMAGE_WIDTH_CLASS } from "@app/utils/cityleagueCardImage";
-import { deckArchetypeToDeckDraft } from "@app/utils/deckArchetype";
-import { formatMainPokemon } from "@app/utils/deckSummary";
+import { deckArchetypeToDeckDraft, deckDisplayName } from "@app/utils/deckArchetype";
 import { toJSTDateString } from "@app/utils/date";
 import { isSimilarDecksAvailableOn } from "@app/utils/similarDecks";
 
@@ -286,12 +285,12 @@ export default function CityleagueResultCard({
   const getBorderColor = cityleagueRankBorderClass;
   const getRankBadgeClass = cityleagueRankBadgeClass;
 
-  const mainPokemon = formatMainPokemon(deckSummary?.mainPokemon ?? []);
-
   // 画像の alt。デッキコードだけでは何の画像か伝わらないため、順位・選手・デッキの種類を入れる。
-  // 種類はルールで決めた名前(「ドラパルトex バシャーモ型」)を優先し、無ければ主なポケモン。
+  // 種類はページの他の箇所(冒頭の要約文・順位ごとのデッキ・一覧ハブの「優勝：」)と同じ
+  // deckDisplayName で呼ぶ(「ドラパルトex(バシャーモ型)」、未分類なら主なポケモン)。
+  // 以前は分類の表示名(「ドラパルトex バシャーモ型」)をそのまま使っていて、書き方だけ食い違っていた。
   const rankText = cityleagueRankLabel(result.rank, false) || `${result.rank}位`;
-  const deckName = deckArchetype?.label ?? mainPokemon;
+  const deckName = deckDisplayName(deckArchetype, deckSummary);
   const deckImageAlt =
     `${rankText} ${result.player_name}選手のデッキ` +
     (deckName ? `（${deckName}）` : "") +

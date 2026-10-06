@@ -113,6 +113,29 @@ describe("CityleagueResultCard の詳細モーダル", () => {
 });
 
 describe("CityleagueResultCard の表示", () => {
+  it("デッキ画像の代替テキストは、ページの他の箇所と同じ「主デッキ名(型名)」で呼ぶ", () => {
+    // 以前は分類の表示名(「ドラパルトex バシャーモ型」)をそのまま使い、書き方だけ食い違っていた
+    render(<CityleagueResultCard result={result} date={new Date()} deckArchetype={archetype} />);
+
+    expect(
+      screen.getByAltText(`優勝 たけこ選手のデッキ（ドラパルトex(バシャーモ型)） デッキコード ${DECK_CODE}`),
+    ).toBeTruthy();
+  });
+
+  it("分類が無ければ代替テキストは主なポケモンで呼ぶ", () => {
+    render(
+      <CityleagueResultCard
+        result={result}
+        date={new Date()}
+        deckSummary={{ mainPokemon: ["ドラパルトex", "ヨノワール"] } as never}
+      />,
+    );
+
+    expect(
+      screen.getByAltText(`優勝 たけこ選手のデッキ（ドラパルトex・ヨノワール） デッキコード ${DECK_CODE}`),
+    ).toBeTruthy();
+  });
+
   it("「主なポケモン」の行は出さない(デッキ分類の表示に置き換えた)", () => {
     render(
       <CityleagueResultCard
@@ -131,8 +154,8 @@ describe("CityleagueResultCard の表示", () => {
 
     expect(screen.queryByText(/主なポケモン/)).toBeNull();
     expect(screen.getByText(`デッキコード ${DECK_CODE}`)).toBeTruthy();
-    // 画像の alt は分類の名前で呼ぶ
-    expect(screen.getByAltText(/ドラパルトex バシャーモ型/)).toBeTruthy();
+    // 画像の alt は分類の名前で呼ぶ(書き方はページの他の箇所と同じ「主デッキ名(型名)」)
+    expect(screen.getByAltText(/ドラパルトex\(バシャーモ型\)/)).toBeTruthy();
   });
 });
 

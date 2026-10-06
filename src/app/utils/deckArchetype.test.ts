@@ -1,3 +1,7 @@
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join, relative } from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { describe, expect, it } from "vitest";
 
 import { CityleagueResultType } from "@app/types/cityleague_result";
@@ -285,5 +289,31 @@ describe("isDeckArchetypeChampionsleague", () => {
     expect(isDeckArchetypeChampionsleague("cl2026_fukuoka")).toBe(false);
     expect(isDeckArchetypeChampionsleague("")).toBe(false);
     expect(isDeckArchetypeChampionsleague(undefined)).toBe(false);
+  });
+});
+
+describe("デッキの呼び名の決め方", () => {
+  // src/app 以下の .ts / .tsx(テストを除く)
+  const appDir = fileURLToPath(new URL("..", import.meta.url));
+  const sources = (dir: string): string[] =>
+    readdirSync(dir).flatMap((name) => {
+      const path = join(dir, name);
+      if (statSync(path).isDirectory()) return sources(path);
+      return /\.tsx?$/.test(name) && !/\.test\.tsx?$/.test(name) ? [path] : [];
+    });
+
+  /*
+   * 大会結果のデッキの呼び名は deckDisplayName(分類の「主デッキ名(型名)」、未分類なら主なポケモン)
+   * だけで決める。一覧ハブの「優勝：」だけが主なポケモンを直接使っていて、個別ページの呼び名と
+   * 100 行中 96 行食い違っていた(「ケーシィ・ユンゲラー」と「フーディン(ノココッチ型)」など)。
+   * 主なポケモンを文字列にする formatMainPokemon は、deckDisplayName の中からしか使わない。
+   */
+  it("formatMainPokemon は deckArchetype.ts(deckDisplayName)の中からしか使わない", () => {
+    const users = sources(appDir)
+      .filter((path) => /\bformatMainPokemon\b/.test(readFileSync(path, "utf8")))
+      .map((path) => relative(appDir, path))
+      .sort();
+
+    expect(users).toEqual(["utils/deckArchetype.ts", "utils/deckSummary.ts"]);
   });
 });

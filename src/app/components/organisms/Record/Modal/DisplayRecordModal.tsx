@@ -43,7 +43,7 @@ import { UnofficialEventGetByIdResponseType } from "@app/types/unofficial_event"
 import { DeckGetByIdResponseType } from "@app/types/deck";
 
 import { summarizeMatches } from "@app/utils/matchStats";
-import { writeSessionStorage } from "@app/utils/sessionStorageStore";
+import { writeReturnTarget } from "@app/utils/returnTarget";
 import { useModalDragToClose } from "@app/hooks/useModalDragToClose";
 import { useRecordMatches } from "@app/hooks/useRecordMatches";
 import { useModalEntered } from "@app/hooks/useModalEntered";
@@ -374,21 +374,24 @@ export default function DisplayRecordModal({
                                 : record.tonamel_event_id !== ""
                                   ? "tonamel"
                                   : "unofficial";
-                            writeSessionStorage("reopenModalRecordId", record.id);
-                            writeSessionStorage("reopenModalEventType", eventType);
+                            // 戻ってきたときにこのモーダルを開き直すための対象。今表示している一覧
+                            // (このモーダルの持ち主)には受け取らせない(writeReturnTarget)。
+                            // 受け取るとその場で開き直してフラグを消し、詳細ページへ何も渡らない
+                            writeReturnTarget("reopenModalEventType", eventType);
+                            writeReturnTarget("reopenModalRecordId", record.id);
                             // デッキの記録一覧モーダル内から開いた場合は、戻り遷移で
                             // デッキモーダル＋記録一覧モーダルを再開するため deck.id も保存する。
                             const activeDeckId = sessionStorage.getItem(
                               "activeDeckRecordsModalDeckId",
                             );
                             if (activeDeckId) {
-                              writeSessionStorage(
+                              writeReturnTarget(
                                 "reopenDeckModalDeckId",
                                 activeDeckId,
                               );
                               // この経路は記録一覧モーダルまで開き直す
                               // （デッキモーダルの「詳細」「記録する」経路では立てない）
-                              writeSessionStorage(
+                              writeReturnTarget(
                                 "reopenDeckModalWithRecords",
                                 "1",
                               );
@@ -397,7 +400,7 @@ export default function DisplayRecordModal({
                                 "activeDeckRecordsModalArchived",
                               );
                               if (activeArchived) {
-                                writeSessionStorage(
+                                writeReturnTarget(
                                   "reopenDeckModalArchived",
                                   activeArchived,
                                 );

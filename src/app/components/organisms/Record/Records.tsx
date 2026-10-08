@@ -20,7 +20,7 @@ import { formatJSTYearMonth, nonZeroDate } from "@app/utils/date";
 import { resolveRecordEventType, stepRecordPage } from "@app/utils/recordListPage";
 import { REOPEN_MODAL_EVENT_TYPE, REOPEN_MODAL_RECORD_ID } from "@app/utils/recordModalReopen";
 import { writeSessionStorage } from "@app/utils/sessionStorageStore";
-import { useSessionStorageItem } from "@app/hooks/useSessionStorageItem";
+import { useReturnTargetItem } from "@app/hooks/useReturnTargetItem";
 
 // 月見出し("YYYY年M月")の判定に使う日付（開催日が無ければ作成日）。
 // JST の暦日で決める(サーバ描画とブラウザで同じ見出しになるように。utils/date 参照)
@@ -162,8 +162,9 @@ export default function Records({
    * すべて表示では全種別を含むため、保存された種別に関わらず再開対象とする。
    * フラグはカード側がモーダルを開く直前(handleReopenComplete)に消し、その場で null になる
    */
-  const savedReopenId = useSessionStorageItem(REOPEN_MODAL_RECORD_ID);
-  const savedReopenEventType = useSessionStorageItem(REOPEN_MODAL_EVENT_TYPE);
+  // 表示中に書かれたフラグ(モーダルから詳細ページへ進む直前)は受け取らない(useReturnTargetItem)
+  const savedReopenId = useReturnTargetItem(REOPEN_MODAL_RECORD_ID);
+  const savedReopenEventType = useReturnTargetItem(REOPEN_MODAL_EVENT_TYPE);
   const pendingReopenId =
     isActive && savedReopenId && (event_type === "all" || savedReopenEventType === event_type)
       ? savedReopenId

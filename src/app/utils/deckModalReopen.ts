@@ -9,7 +9,7 @@
  *                          (このフラグは DeckCard が reopenDeckModalWithRecords を見て立てる)
  */
 
-import { writeSessionStorage } from "@app/utils/sessionStorageStore";
+import { writeReturnTarget } from "@app/utils/returnTarget";
 
 // 再開対象のデッキ id。これが立っているとデッキモーダルが再開する。
 export const REOPEN_DECK_MODAL_DECK_ID = "reopenDeckModalDeckId";
@@ -35,7 +35,8 @@ export function deckAnchorId(deckId: string): string {
 
 // デッキモーダルから別ページへ遷移する直前に呼ぶ。
 // 戻ってきたときに、このデッキのデッキモーダルが再度開くようになる。
+// 今表示している一覧には受け取らせない(writeReturnTarget)
 export function markDeckModalReopen(deckId: string, isArchived: boolean) {
-  writeSessionStorage(REOPEN_DECK_MODAL_DECK_ID, deckId);
-  writeSessionStorage(REOPEN_DECK_MODAL_ARCHIVED, isArchived ? "1" : "0");
+  writeReturnTarget(REOPEN_DECK_MODAL_ARCHIVED, isArchived ? "1" : "0");
+  writeReturnTarget(REOPEN_DECK_MODAL_DECK_ID, deckId);
 }

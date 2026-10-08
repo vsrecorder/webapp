@@ -14,7 +14,7 @@ import { UnofficialEventGetByIdResponseType } from "@app/types/unofficial_event"
 import { summarizeMatches } from "@app/utils/match";
 import { REOPEN_MODAL_RECORD_ID } from "@app/utils/recordModalReopen";
 import { writeSessionStorage } from "@app/utils/sessionStorageStore";
-import { useSessionStorageItem } from "@app/hooks/useSessionStorageItem";
+import { useReturnTargetItem } from "@app/hooks/useReturnTargetItem";
 
 /*
  * 記録カード(公式 / Tonamel / 自由形式)で共通の状態。
@@ -151,7 +151,9 @@ export function useRecordCard({
    * 開いたらフラグを消す(一覧側の handleReopenComplete でも消す)ので、その場で false に戻る
    */
   const recordId = recordData.data.id;
-  const pendingId = useSessionStorageItem(REOPEN_MODAL_RECORD_ID);
+  // 表示中に書かれたフラグ(このモーダルから詳細ページへ進む直前)は受け取らない。
+  // 受け取るとその場で開き直してフラグを消し、戻ってきたときに開き直せなくなる(useReturnTargetItem)
+  const pendingId = useReturnTargetItem(REOPEN_MODAL_RECORD_ID);
   const shouldReopen = enableReopen && pendingId !== null && pendingId === recordId;
   // 一度開いたら、同じ再開で開き直さない
   const reopenedRef = useRef(false);

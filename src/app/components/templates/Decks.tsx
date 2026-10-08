@@ -4,7 +4,7 @@
 import { useState, useCallback, useEffect } from "react";
 
 import { useClientValue } from "@app/hooks/useClientValue";
-import { useSessionStorageItem } from "@app/hooks/useSessionStorageItem";
+import { useReturnTargetItem } from "@app/hooks/useReturnTargetItem";
 import {
   REOPEN_DECK_MODAL_ARCHIVED,
   REOPEN_DECK_MODAL_DECK_ID,
@@ -93,8 +93,9 @@ export default function TemplateDecks({ userId, initial, initialTab }: Props) {
    * 対象デッキのフラグは DeckCard が再開したときに消え、アーカイブ側かのフラグは
    * 再開の一連の処理が終わったとき(handleReopenSettled)に消す
    */
-  const reopenDeckId = useSessionStorageItem(REOPEN_DECK_MODAL_DECK_ID);
-  const reopenArchivedFlag = useSessionStorageItem(REOPEN_DECK_MODAL_ARCHIVED);
+  // 表示中に書かれたフラグ(デッキモーダルから別ページへ進む直前)は受け取らない(useReturnTargetItem)
+  const reopenDeckId = useReturnTargetItem(REOPEN_DECK_MODAL_DECK_ID);
+  const reopenArchivedFlag = useReturnTargetItem(REOPEN_DECK_MODAL_ARCHIVED);
   const reopenTargetArchived =
     reopenDeckId !== null && reopenArchivedFlag !== null ? reopenArchivedFlag === "1" : null;
   /*

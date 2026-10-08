@@ -42,7 +42,7 @@ import {
 } from "@app/utils/deckModalReopen";
 import { ZERO_DATE } from "@app/utils/date";
 import { writeSessionStorage } from "@app/utils/sessionStorageStore";
-import { useSessionStorageItem } from "@app/hooks/useSessionStorageItem";
+import { useReturnTargetItem } from "@app/hooks/useReturnTargetItem";
 
 // 再開時のスクロール位置。画面上部に固定されたヘッダー＋タブの分だけ手前で止め、
 // 対象デッキのカードがそれらに隠れないようにする。
@@ -273,7 +273,8 @@ export default function Decks({
    * 見つかった後の再開(モーダルを開く・フラグの削除)は DeckCard 側が担い、
    * フラグが消えるとその場で null になる
    */
-  const savedReopenDeckId = useSessionStorageItem(REOPEN_DECK_MODAL_DECK_ID);
+  // 表示中に書かれたフラグ(デッキモーダルから別ページへ進む直前)は受け取らない(useReturnTargetItem)
+  const savedReopenDeckId = useReturnTargetItem(REOPEN_DECK_MODAL_DECK_ID);
   const pendingReopenDeckId = isReopenTargetTab ? savedReopenDeckId : null;
   const reopenTargetFound =
     pendingReopenDeckId !== null &&

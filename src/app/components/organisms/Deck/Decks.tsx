@@ -36,17 +36,13 @@ const CreateDeckModal = createLazyModal(
   () => import("@app/components/organisms/Deck/Modal/CreateDeckModal"),
 );
 import {
-  deckAnchorId,
+  scrollToDeckCard,
   REOPEN_DECK_MODAL_DECK_ID,
   REOPEN_DECK_MODAL_WITH_RECORDS,
 } from "@app/utils/deckModalReopen";
 import { ZERO_DATE } from "@app/utils/date";
 import { writeSessionStorage } from "@app/utils/sessionStorageStore";
 import { useReturnTargetItem } from "@app/hooks/useReturnTargetItem";
-
-// 再開時のスクロール位置。画面上部に固定されたヘッダー＋タブの分だけ手前で止め、
-// 対象デッキのカードがそれらに隠れないようにする。
-const REOPEN_SCROLL_OFFSET = 100;
 
 // APIが「未設定」を表すために返す日時のゼロ値(Goのtime.Timeのゼロ値)。
 // お気に入りの解除を再取得を待たずに画面へ反映するとき、この値を入れる。
@@ -438,11 +434,7 @@ export default function Decks({
     if (kizunaLoading) return;
     if (!items.some((item) => item.data.id === pendingReopenDeckId)) return;
 
-    const el = document.getElementById(deckAnchorId(pendingReopenDeckId));
-    if (el) {
-      const y = el.getBoundingClientRect().top + window.scrollY - REOPEN_SCROLL_OFFSET;
-      window.scrollTo({ top: Math.max(0, y), behavior: "auto" });
-    }
+    scrollToDeckCard(pendingReopenDeckId);
 
     // 対象デッキが描画されてスクロールも済んだ時点で、再開処理としては終わり。
     // 追加読み込みの完了（次ページの先読み）まで待つと、その間ずっと覆いが残って

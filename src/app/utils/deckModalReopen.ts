@@ -33,6 +33,27 @@ export function deckAnchorId(deckId: string): string {
   return `deck-card-${deckId}`;
 }
 
+// 再開時のスクロール位置。画面上部に固定されたヘッダー＋タブの分だけ手前で止め、
+// 対象デッキのカードがそれらに隠れないようにする。
+const REOPEN_SCROLL_OFFSET = 100;
+
+/*
+ * 戻り遷移でデッキモーダルを再開するとき、対象デッキのカードの位置まで移動する。
+ *
+ * モーダルが開くと背面がその時点の位置で固定され、閉じたときの戻り先になるので、
+ * 開く前に呼ぶこと。なめらかに動かすと固定される頃に移動が終わっていないので瞬間移動にする。
+ * 利用中/アーカイブ済みのタブは両方マウントされうるので、見えている方のカードを使う。
+ */
+export function scrollToDeckCard(deckId: string): void {
+  const el = Array.from(
+    document.querySelectorAll<HTMLElement>(`[id="${deckAnchorId(deckId)}"]`),
+  ).find((candidate) => candidate.getBoundingClientRect().width > 0);
+  if (!el) return;
+
+  const y = el.getBoundingClientRect().top + window.scrollY - REOPEN_SCROLL_OFFSET;
+  window.scrollTo({ top: Math.max(0, y), behavior: "auto" });
+}
+
 // デッキモーダルから別ページへ遷移する直前に呼ぶ。
 // 戻ってきたときに、このデッキのデッキモーダルが再度開くようになる。
 // 今表示している一覧には受け取らせない(writeReturnTarget)

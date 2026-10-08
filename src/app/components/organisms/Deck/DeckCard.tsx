@@ -36,6 +36,7 @@ import { DeckUsageItemType } from "@app/types/deck_usage_stat";
 
 import {
   deckAnchorId,
+  scrollToDeckCard,
   REOPEN_DECK_MODAL_DECK_ID,
   REOPEN_DECK_MODAL_WITH_RECORDS,
 } from "@app/utils/deckModalReopen";
@@ -178,6 +179,13 @@ export default function DeckCard({
         // ShowDeckModal が開いたときに記録一覧モーダルも開くための意図フラグ
         sessionStorage.setItem("reopenRecordsModalForDeckId", deck.id);
       }
+      /*
+       * 開く前にこのカードの位置まで移動する(開くと背面がその位置で固定され、閉じたときの戻り先になる)。
+       * 一覧(Decks)側にも同じ移動があるが、記録詳細・デッキ詳細ページから戻ったときは届かない。
+       * それらのページは離れるとき(アンマウント)にフラグを書き戻すので、一覧が描かれた後に
+       * フラグが立ち、一覧が描き直されるより先にこの effect がフラグを消してしまう。
+       */
+      scrollToDeckCard(deck.id);
       onOpen();
     }
     // deck.id を依存に含め、対象デッキのカードでのみ一度だけ実行する。

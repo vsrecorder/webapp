@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { Spinner } from "@heroui/spinner";
@@ -31,6 +31,12 @@ import {
   CityleagueListInitialData,
   CityleagueScheduleContext,
 } from "@app/utils/cityleagueListServer";
+import {
+  isHeadRefreshDue,
+  mergeHeadResults,
+  pickLatestDay,
+  planHeadRefresh,
+} from "@app/utils/cityleagueListRefresh";
 import { toJSTDateString, todayJSTDateString } from "@app/utils/date";
 import { collectListedDeckCodes } from "@app/utils/deckArchetype";
 import { fetchDeckArchetypes } from "@app/utils/deckArchetypeClient";
@@ -40,6 +46,7 @@ import {
   clearCityleagueResultScrollTarget,
 } from "@app/utils/cityleagueScrollRestore";
 import { useSessionStorageItem } from "@app/hooks/useSessionStorageItem";
+import { applyWithScrollCompensation, forceRepaint } from "@app/utils/scrollRepaint";
 import FetchError from "@app/components/molecules/FetchError";
 
 async function fetchCityleagueResultsByTerm(
@@ -145,6 +152,29 @@ async function fetchOfficialEventsByDate(
   };
 }
 
+/*
+ * 上端を取り直したぶんを差し込むときに、画面上の位置を保つ基準にするカード。
+ * 差し込み後も残るカードのうち、画面に掛かっている最初のもの。
+ *
+ * ページの最上部にいるときは基準を持たない(null)。新しい結果が上に現れるのを見せたいので、
+ * 位置を保たずにそのまま差し込む(Chrome のスクロールアンカリングも最上部では効かない)。
+ */
+function findAnchorCard(
+  list: HTMLElement | null,
+  keepIds: ReadonlySet<number>,
+): HTMLElement | null {
+  if (!list || window.scrollY < 1) return null;
+
+  for (const el of Array.from(list.children)) {
+    if (!(el instanceof HTMLElement)) continue;
+    const id = Number(el.dataset.officialEventId);
+    if (!keepIds.has(id)) continue;
+    if (el.getBoundingClientRect().bottom > 0) return el;
+  }
+
+  return null;
+}
+
 type Props = {
   league_type: number;
   /*
@@ -162,12 +192,18 @@ type Props = {
    * スケジュールAPI(開催中の確認 → 空振りなら全件)の2往復が要らない。
    */
   scheduleContext?: CityleagueScheduleContext | null;
+  /*
+   * 選択中のタブか。一覧のテンプレートは選ばれていないタブも hidden で残すので、
+   * 見えていないものはアプリへの復帰時に取り直さない。選び直されたときに取り直す。
+   */
+  isActive?: boolean;
 };
 
 export default function CityleagueResults({
   league_type,
   initial,
   scheduleContext,
+  isActive = true,
 }: Props) {
   // JSTでの今日。マウント時に確定させる(描画のたびに取り直すと、
   // 開催中かどうかの判定が描画ごとに変わりうる)。useMemo は値の保持を保証しない
@@ -199,6 +235,52 @@ export default function CityleagueResults({
   const [isInitialLoaded, setIsInitialLoaded] = useState(!!initial);
   // 「更に読み込む」を押して、続きを待っている間
   const [manualLoadPending, setManualLoadPending] = useState(false);
+
+  /*
+   * 一覧の上端(新しい側)を取り直す要求。
+   *
+   * サーバで取った1ページ目は、個別ページから「戻る」とルーターのキャッシュにある当時の描画が
+   * そのまま使われ、アプリを開いたまま時間を置いて戻ってきても描き直されない。結果は1日の中でも
+   * 順に登録されていくため、再読み込みするまで最新が出なかった。記録一覧・デッキ一覧と同じく
+   * マウント直後に取り直し、加えてアプリへの復帰時とタブを選び直したときにも取り直す
+   * (間引きは isHeadRefreshDue)。取り直しは読み込み済みのぶんを残したまま上に差し込む。
+   */
+  const [refreshRequested, setRefreshRequested] = useState(!!initial);
+  // 最後に上端をそろえた時刻。サーバで取った1ページ目のままなら null(まだそろえていない)
+  const lastSyncedAtRef = useRef<number | null>(null);
+  // 一覧の描画範囲。差し込むときに位置を保つ基準のカードを探す
+  const listRef = useRef<HTMLDivElement>(null);
+
+  // タブを選び直したとき。隠れている間はアプリへの復帰を拾っていないので取り直す
+  const [prevIsActive, setPrevIsActive] = useState(isActive);
+  if (prevIsActive !== isActive) {
+    setPrevIsActive(isActive);
+    if (isActive) setRefreshRequested(true);
+  }
+
+  // アプリ(ブラウザのタブ)へ戻ってきたとき。ページごと戻る bfcache からの復帰も含める
+  useEffect(() => {
+    if (!isActive) return;
+
+    const request = () => setRefreshRequested(true);
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") request();
+    };
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) request();
+    };
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("pageshow", onPageShow);
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("pageshow", onPageShow);
+    };
+  }, [isActive]);
+
+  // 取り直しは最初の読み込みが済んでから。その間は続きの読み込みを止める(同じ一覧を同時に触らない)
+  const isRefreshing = refreshRequested && isInitialLoaded;
 
   /*
    * 個別ページから戻ってきたとき、対象カードまで自動スクロールするための対象。
@@ -265,7 +347,10 @@ export default function CityleagueResults({
    * 足し終えると(nextDate が進むので)条件を見直し、まだ立っていれば次の続きを取る
    */
   const isLoading =
-    isScheduleInitialized && hasMore && (!isInitialLoaded || autoLoadPending || manualLoadPending);
+    isScheduleInitialized &&
+    !isRefreshing &&
+    hasMore &&
+    (!isInitialLoaded || autoLoadPending || manualLoadPending);
 
   useEffect(() => {
     if (!isLoading) return;
@@ -307,6 +392,8 @@ export default function CityleagueResults({
           setItems((prev) => [...prev, ...newItems.event_results]);
           setNextDate(shiftDateString(date, -1));
           setIsError(false);
+          // 1ページ目を自分で取ったときは、それが最新。直後に取り直さない
+          if (!isInitialLoaded) lastSyncedAtRef.current = Date.now();
 
           return;
         }
@@ -330,7 +417,105 @@ export default function CityleagueResults({
     return () => {
       cancelled = true;
     };
-  }, [isLoading, nextDate, league_type, schedule]);
+  }, [isLoading, nextDate, league_type, schedule, isInitialLoaded]);
+
+  useEffect(() => {
+    if (!isRefreshing) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        if (!isHeadRefreshDue(lastSyncedAtRef.current)) return;
+
+        // 「今日」は取り直すたびに取り直す(開いたまま日付をまたいで戻ってくることがある)
+        const scheduleFromDate = schedule ? toJSTDateString(schedule.from_date) : null;
+        const toDate = resolveSearchStartDate(
+          schedule ? toJSTDateString(schedule.to_date) : null,
+          todayJSTDateString(),
+        );
+        const plan = planHeadRefresh(
+          items.length > 0 ? toJSTDateString(items[0].date) : null,
+          toDate,
+          scheduleFromDate,
+        );
+
+        if (plan) {
+          const fetched = await fetchCityleagueResultsByTerm(
+            league_type,
+            plan.fromDate,
+            plan.toDate,
+          );
+          if (cancelled) return;
+
+          const latest = plan.mode === "reset" ? pickLatestDay(fetched.event_results) : null;
+          const nextItems =
+            plan.mode === "merge"
+              ? mergeHeadResults(items, fetched.event_results, plan.fromDate)
+              : latest?.results ?? null;
+
+          if (nextItems) {
+            // 新しく出るカードの店舗名など(日単位)とデッキの種類を、出す前にそろえる(初回の読み込みと同じ)
+            const added = nextItems.filter((item) => !eventsById.has(item.official_event_id));
+            const addedDates = [...new Set(added.map((item) => toJSTDateString(item.date)))];
+            const [dayEvents, addedArchetypes] = await Promise.all([
+              Promise.all(
+                addedDates.map((date) =>
+                  fetchOfficialEventsByDate(league_type, date).catch(() => null),
+                ),
+              ),
+              fetchDeckArchetypes(collectListedDeckCodes(added)),
+            ]);
+            if (cancelled) return;
+
+            const newEvents = dayEvents
+              .flatMap((res) => res?.official_events ?? [])
+              .filter((event) => !eventsById.has(event.id));
+
+            // 差し込み(merge)は見ている位置を保つ。出し直し(reset)は元のカードが残らないので保たない
+            const anchor =
+              plan.mode === "merge"
+                ? findAnchorCard(
+                    listRef.current,
+                    new Set(nextItems.map((item) => item.official_event_id)),
+                  )
+                : null;
+
+            /*
+             * 反映は flushSync で同期的に描かれ、items が変わるのでこの effect が掛け直される。
+             * その前にそろえた時刻と要求の取り下げを済ませ、掛け直しで同じ取り直しが走らないようにする
+             */
+            lastSyncedAtRef.current = Date.now();
+            applyWithScrollCompensation(anchor, () => {
+              setRefreshRequested(false);
+              if (newEvents.length > 0) setEvents((prev) => [...prev, ...newEvents]);
+              if (Object.keys(addedArchetypes).length > 0) {
+                setDeckArchetypes((prev) => ({ ...prev, ...addedArchetypes }));
+              }
+              setItems(nextItems);
+              if (latest) {
+                setNextDate(latest.nextFromDate);
+                setHasMore(true);
+                setIsError(false);
+              }
+            });
+            // 位置を戻しただけでは iOS が描き直さないことがある(scrollRepaint 参照)
+            if (anchor) forceRepaint(listRef.current);
+          }
+        }
+
+        lastSyncedAtRef.current = Date.now();
+      } catch (error) {
+        // 取り直せなくても、出ている一覧はそのまま残す
+        console.error("Error refreshing items:", error);
+      } finally {
+        if (!cancelled) setRefreshRequested(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isRefreshing, items, eventsById, league_type, schedule]);
 
   // 失敗したぶんを取り直す。打ち切っていた続きの読み込みを再開する
   const retryLoad = () => {
@@ -347,8 +532,9 @@ export default function CityleagueResults({
 
   // 対象カードが見つかったら、スクロール対象を消して(覆いが外れる)その位置までスクロールする。
   // このカードは描画済み(items にある)なので、フレームを1つ待ってから測る
+  // 取り直しで上にカードが差し込まれると位置がずれるので、取り直しが済んでから測る
   useEffect(() => {
-    if (pendingScrollId === null || !scrollTargetFound) return;
+    if (pendingScrollId === null || !scrollTargetFound || isRefreshing) return;
 
     clearCityleagueResultScrollTarget();
 
@@ -359,15 +545,15 @@ export default function CityleagueResults({
       const y = el.getBoundingClientRect().top + window.scrollY - 80;
       window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
     });
-  }, [pendingScrollId, scrollTargetFound]);
+  }, [pendingScrollId, scrollTargetFound, isRefreshing]);
 
   // 全件読み込んでも見つからなかった場合は諦める(対象を消して覆いを外す)
   useEffect(() => {
     if (pendingScrollId === null || scrollTargetFound) return;
-    if (!isInitialLoaded || hasMore) return;
+    if (!isInitialLoaded || isRefreshing || hasMore) return;
 
     clearCityleagueResultScrollTarget();
-  }, [pendingScrollId, scrollTargetFound, isInitialLoaded, hasMore]);
+  }, [pendingScrollId, scrollTargetFound, isInitialLoaded, isRefreshing, hasMore]);
 
   // 「2026/09/07」。toJSTDate() の戻り値はUTCゲッターで読む前提のズラした値なので、
   // getFullYear() 等(端末のタイムゾーン基準)で読むとUTCより西の端末で前日にずれる。
@@ -462,11 +648,12 @@ export default function CityleagueResults({
         </div>
       )}
 
-      <div className="flex flex-col w-full gap-3">
+      <div ref={listRef} className="flex flex-col w-full gap-3">
         {items.map((event_result) => (
           <div
             key={event_result.official_event_id}
             id={`cityleague-result-${event_result.official_event_id}`}
+            data-official-event-id={event_result.official_event_id}
           >
             <CityleagueResult
               event_result={event_result}

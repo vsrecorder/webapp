@@ -90,6 +90,7 @@ export default function TemplateCityleagueResults({
           league_type={cityleagueTabToLeagueType(tab)}
           initial={tab === initialTab ? initial : undefined}
           scheduleContext={initial}
+          isActive={selectedKey === tab}
         />
       </div>
     ) : null;

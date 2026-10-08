@@ -6,6 +6,10 @@ import CityleagueResults from "@app/components/organisms/Cityleague/CityleagueRe
 
 import { CityleagueResultType } from "@app/types/cityleague_result";
 import {
+  clearCityleagueResultScrollTarget,
+  markCityleagueResultScrollTarget,
+} from "@app/utils/cityleagueScrollRestore";
+import {
   CityleagueListInitialData,
   CityleagueScheduleContext,
 } from "@app/utils/cityleagueListServer";
@@ -267,5 +271,59 @@ describe("CityleagueResults の上端の取り直し", () => {
     // 選び直されたら取り直す
     rerender(<CityleagueResults league_type={1} initial={INITIAL} scheduleContext={ONGOING} />);
     await waitFor(() => expect(resultCalls()).toBe(2));
+  });
+});
+
+describe("CityleagueResults の戻り先カードへのスクロール", () => {
+  const ONGOING: CityleagueScheduleContext = {
+    schedule: {
+      id: "2027s1",
+      title: "テストシーズン",
+      from_date: new Date("2026-09-26T00:00:00+09:00"),
+      to_date: new Date("2026-11-15T00:00:00+09:00"),
+    } as CityleagueScheduleContext["schedule"],
+    isOngoing: true,
+    startDate: "2026-10-07",
+  };
+  const result = (id: number) =>
+    ({
+      official_event_id: id,
+      league_type: 1,
+      date: "2026-10-07T00:00:00+09:00",
+    }) as unknown as CityleagueResultType;
+  const INITIAL: CityleagueListInitialData = {
+    ...ONGOING,
+    results: [result(11), result(12)],
+    events: [],
+    deckArchetypes: {},
+    nextFromDate: "2026-10-06",
+    hasMore: true,
+  };
+
+  afterEach(() => {
+    clearCityleagueResultScrollTarget();
+  });
+
+  it("表示中に書かれた対象は受け取らない(戻ってきた一覧のために残す)", async () => {
+    stubFetch(["ok"]);
+    vi.stubGlobal("scrollTo", vi.fn());
+    render(<CityleagueResults league_type={1} initial={INITIAL} scheduleContext={ONGOING} />);
+    await act(async () => {});
+
+    // カードのリンクを押した直後(遷移が終わるまで一覧は画面に残っている)
+    act(() => markCityleagueResultScrollTarget(12, 1));
+    await act(async () => {});
+
+    expect(sessionStorage.getItem("cityleagueResultScrollToId")).toBe("12");
+  });
+
+  it("戻ってきたときに既に書かれていた対象は受け取って消す", async () => {
+    stubFetch(["ok"]);
+    vi.stubGlobal("scrollTo", vi.fn());
+    markCityleagueResultScrollTarget(12, 1);
+
+    render(<CityleagueResults league_type={1} initial={INITIAL} scheduleContext={ONGOING} />);
+
+    await waitFor(() => expect(sessionStorage.getItem("cityleagueResultScrollToId")).toBeNull());
   });
 });

@@ -45,6 +45,7 @@ import {
   CITYLEAGUE_SCROLL_TO_LEAGUE_TYPE_KEY,
   clearCityleagueResultScrollTarget,
 } from "@app/utils/cityleagueScrollRestore";
+import { useClientValue } from "@app/hooks/useClientValue";
 import { useSessionStorageItem } from "@app/hooks/useSessionStorageItem";
 import { applyWithScrollCompensation, forceRepaint } from "@app/utils/scrollRepaint";
 import FetchError from "@app/components/molecules/FetchError";
@@ -289,8 +290,35 @@ export default function CityleagueResults({
    */
   const savedScrollId = useSessionStorageItem(CITYLEAGUE_SCROLL_TO_ID_KEY);
   const savedScrollLeagueType = useSessionStorageItem(CITYLEAGUE_SCROLL_TO_LEAGUE_TYPE_KEY);
+  /*
+   * 受け取るのは、この一覧が現れた時点で既に書かれていた対象だけ。
+   *
+   * 対象は一覧のカードから個別ページへ進む直前に書かれる。描画中に購読しているので、
+   * そのままだと遷移が終わるまで画面に残っている「この」一覧が受け取ってしまい、その場で
+   * スクロールして対象を消していた。戻ってきた一覧には何も残っておらず、先頭から表示されていた
+   * (2026-09-08 に購読する形へ変えてから)。ブラウザ側で最初に描いた時点の値を控え、
+   * それから変わったら(消えた・書き換わった)以後は受け取らない。
+   */
+  const isClient = useClientValue(() => true, false);
+  const [scrollTargetAtMount, setScrollTargetAtMount] = useState<string | null | undefined>(
+    undefined,
+  );
+  const [scrollTargetSettled, setScrollTargetSettled] = useState(false);
+  if (isClient) {
+    if (scrollTargetAtMount === undefined) {
+      setScrollTargetAtMount(savedScrollId);
+    } else if (!scrollTargetSettled && savedScrollId !== scrollTargetAtMount) {
+      setScrollTargetSettled(true);
+    }
+  }
+  const acceptsScrollTarget =
+    !scrollTargetSettled &&
+    (scrollTargetAtMount === undefined || savedScrollId === scrollTargetAtMount);
   const pendingScrollId =
-    savedScrollId && savedScrollLeagueType && Number(savedScrollLeagueType) === league_type
+    acceptsScrollTarget &&
+    savedScrollId &&
+    savedScrollLeagueType &&
+    Number(savedScrollLeagueType) === league_type
       ? Number(savedScrollId)
       : null;
   const scrollTargetFound =

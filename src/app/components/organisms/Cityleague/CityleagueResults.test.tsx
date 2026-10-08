@@ -194,6 +194,8 @@ describe("CityleagueResults の上端の取り直し", () => {
   }
 
   const cardIds = () => screen.getAllByTestId("card").map((el) => Number(el.textContent));
+  // 進行中の取得(fetch → json → 反映)を最後まで流す
+  const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 0)));
 
   afterEach(() => {
     vi.useRealTimers();
@@ -224,6 +226,8 @@ describe("CityleagueResults の上端の取り直し", () => {
 
     render(<CityleagueResults league_type={1} initial={INITIAL} scheduleContext={ONGOING} />);
     await waitFor(() => expect(resultCalls()).toBe(1));
+    // マウント直後の取り直しが終わるまで待つ(途中で重なった要求は、その取り直しに吸収される)
+    await settle();
 
     // すぐ戻ってきたぶんは間引く
     registered = [result(1, "2026-10-08"), ...registered];
@@ -252,6 +256,8 @@ describe("CityleagueResults の上端の取り直し", () => {
       <CityleagueResults league_type={1} initial={INITIAL} scheduleContext={ONGOING} />,
     );
     await waitFor(() => expect(resultCalls()).toBe(1));
+    // マウント直後の取り直しが終わるまで待つ(途中で重なった要求は、その取り直しに吸収される)
+    await settle();
 
     rerender(
       <CityleagueResults

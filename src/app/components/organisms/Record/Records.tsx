@@ -21,6 +21,7 @@ import { resolveRecordEventType, stepRecordPage } from "@app/utils/recordListPag
 import { REOPEN_MODAL_EVENT_TYPE, REOPEN_MODAL_RECORD_ID } from "@app/utils/recordModalReopen";
 import { writeSessionStorage } from "@app/utils/sessionStorageStore";
 import { useReturnTargetItem } from "@app/hooks/useReturnTargetItem";
+import { scrollBackToAnchor } from "@app/utils/returnTarget";
 
 // 月見出し("YYYY年M月")の判定に使う日付（開催日が無ければ作成日）。
 // JST の暦日で決める(サーバ描画とブラウザで同じ見出しになるように。utils/date 参照)
@@ -215,28 +216,23 @@ export default function Records({
    * ここで合わせておくと閉じた後も対象カードが同じ位置に残る。
    *
    * 覆いの下で動かすので、なめらかに見せる必要はなく瞬間移動（behavior:auto）にする。
+   * 位置は「離れる直前にそのカードがあった画面上の高さ」(元の位置)。
    */
   const scrollToCard = useCallback(
     (id: string) => {
       // 記録一覧では「すべて」タブと種別タブが同時にマウントされ、同じ記録のカードが
       // 同じ id で重複して存在しうる。document 全体から引くと非表示タブ側の
       // カード（位置が取れない）を掴んでしまうため、この一覧の中だけから探す。
-      const el = listRef.current?.querySelector<HTMLElement>(`[id="record-card-${id}"]`);
-      if (!el) return;
+      const root = listRef.current;
+      if (!root) return;
 
-      const container = scrollContainerRef?.current;
-      if (container) {
-        // モーダル内：ModalBody（コンテナ）をスクロールする。
-        // 固定タブに隠れないよう少し上に余白(56px)を取る。
-        const elRect = el.getBoundingClientRect();
-        const containerRect = container.getBoundingClientRect();
-        const y = container.scrollTop + (elRect.top - containerRect.top) - 56;
-        container.scrollTo({ top: Math.max(0, y), behavior: "auto" });
-      } else {
-        // 通常ページ：window をスクロールする。
-        const y = el.getBoundingClientRect().top + window.scrollY - 80;
-        window.scrollTo({ top: Math.max(0, y), behavior: "auto" });
-      }
+      /*
+       * 離れる直前にカードがあった画面上の高さ(saveReturnAnchorTop)へ戻す。覚えていなければ
+       * 固定タブ・ヘッダーに隠れない位置(モーダル内はコンテナ上端から 56px、ページは 80px)。
+       */
+      const container = scrollContainerRef?.current ?? null;
+      const fallbackTop = container ? container.getBoundingClientRect().top + 56 : 80;
+      scrollBackToAnchor(`record-card-${id}`, fallbackTop, { root, container });
     },
     [scrollContainerRef],
   );

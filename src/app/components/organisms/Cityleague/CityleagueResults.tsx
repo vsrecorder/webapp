@@ -43,8 +43,10 @@ import { fetchDeckArchetypes } from "@app/utils/deckArchetypeClient";
 import {
   CITYLEAGUE_SCROLL_TO_ID_KEY,
   CITYLEAGUE_SCROLL_TO_LEAGUE_TYPE_KEY,
+  cityleagueResultAnchorId,
   clearCityleagueResultScrollTarget,
 } from "@app/utils/cityleagueScrollRestore";
+import { scrollBackToAnchor } from "@app/utils/returnTarget";
 import { useReturnTargetItem } from "@app/hooks/useReturnTargetItem";
 import { applyWithScrollCompensation, forceRepaint } from "@app/utils/scrollRepaint";
 import FetchError from "@app/components/molecules/FetchError";
@@ -538,6 +540,8 @@ export default function CityleagueResults({
   // 対象カードが見つかったら、スクロール対象を消して(覆いが外れる)その位置までスクロールする。
   // このカードは描画済み(items にある)なので、フレームを1つ待ってから測る
   // 取り直しで上にカードが差し込まれると位置がずれるので、取り直しが済んでから測る
+  // 位置は元の位置(離れる直前にこのカードがあった画面上の高さ)。覚えていなければヘッダーの下。
+  // 元の位置へ戻ったように見せたいので、なめらかには動かさない
   useEffect(() => {
     if (pendingScrollId === null || !scrollTargetFound || isRefreshing) return;
 
@@ -545,10 +549,7 @@ export default function CityleagueResults({
 
     const id = pendingScrollId;
     requestAnimationFrame(() => {
-      const el = document.getElementById(`cityleague-result-${id}`);
-      if (!el) return;
-      const y = el.getBoundingClientRect().top + window.scrollY - 80;
-      window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+      scrollBackToAnchor(cityleagueResultAnchorId(id), 80);
     });
   }, [pendingScrollId, scrollTargetFound, isRefreshing]);
 

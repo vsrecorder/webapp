@@ -9,7 +9,7 @@
  *                          (このフラグは DeckCard が reopenDeckModalWithRecords を見て立てる)
  */
 
-import { writeReturnTarget } from "@app/utils/returnTarget";
+import { saveReturnAnchorTop, scrollBackToAnchor, writeReturnTarget } from "@app/utils/returnTarget";
 
 // 再開対象のデッキ id。これが立っているとデッキモーダルが再開する。
 export const REOPEN_DECK_MODAL_DECK_ID = "reopenDeckModalDeckId";
@@ -38,26 +38,22 @@ export function deckAnchorId(deckId: string): string {
 const REOPEN_SCROLL_OFFSET = 100;
 
 /*
- * 戻り遷移でデッキモーダルを再開するとき、対象デッキのカードの位置まで移動する。
+ * 戻り遷移でデッキモーダルを再開するとき、対象デッキのカードを元の位置(離れる直前に
+ * 画面上にあった高さ。markDeckModalReopen で覚える)へ戻す。覚えていなければ固定バーの下。
  *
  * モーダルが開くと背面がその時点の位置で固定され、閉じたときの戻り先になるので、
- * 開く前に呼ぶこと。なめらかに動かすと固定される頃に移動が終わっていないので瞬間移動にする。
+ * 開く前に呼ぶこと。瞬間移動にする(scrollBackToAnchor)。
  * 利用中/アーカイブ済みのタブは両方マウントされうるので、見えている方のカードを使う。
  */
 export function scrollToDeckCard(deckId: string): void {
-  const el = Array.from(
-    document.querySelectorAll<HTMLElement>(`[id="${deckAnchorId(deckId)}"]`),
-  ).find((candidate) => candidate.getBoundingClientRect().width > 0);
-  if (!el) return;
-
-  const y = el.getBoundingClientRect().top + window.scrollY - REOPEN_SCROLL_OFFSET;
-  window.scrollTo({ top: Math.max(0, y), behavior: "auto" });
+  scrollBackToAnchor(deckAnchorId(deckId), REOPEN_SCROLL_OFFSET);
 }
 
 // デッキモーダルから別ページへ遷移する直前に呼ぶ。
 // 戻ってきたときに、このデッキのデッキモーダルが再度開くようになる。
 // 今表示している一覧には受け取らせない(writeReturnTarget)
 export function markDeckModalReopen(deckId: string, isArchived: boolean) {
+  saveReturnAnchorTop(deckAnchorId(deckId));
   writeReturnTarget(REOPEN_DECK_MODAL_ARCHIVED, isArchived ? "1" : "0");
   writeReturnTarget(REOPEN_DECK_MODAL_DECK_ID, deckId);
 }

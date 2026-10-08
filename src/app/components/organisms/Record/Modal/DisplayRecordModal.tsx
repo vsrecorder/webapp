@@ -43,7 +43,8 @@ import { UnofficialEventGetByIdResponseType } from "@app/types/unofficial_event"
 import { DeckGetByIdResponseType } from "@app/types/deck";
 
 import { summarizeMatches } from "@app/utils/matchStats";
-import { writeReturnTarget } from "@app/utils/returnTarget";
+import { deckAnchorId } from "@app/utils/deckModalReopen";
+import { saveReturnAnchorTop, writeReturnTarget } from "@app/utils/returnTarget";
 import { useModalDragToClose } from "@app/hooks/useModalDragToClose";
 import { useRecordMatches } from "@app/hooks/useRecordMatches";
 import { useModalEntered } from "@app/hooks/useModalEntered";
@@ -379,12 +380,15 @@ export default function DisplayRecordModal({
                             // 受け取るとその場で開き直してフラグを消し、詳細ページへ何も渡らない
                             writeReturnTarget("reopenModalEventType", eventType);
                             writeReturnTarget("reopenModalRecordId", record.id);
+                            // 戻ったときに元の位置(このカードがあった画面上の高さ)へ戻すため
+                            saveReturnAnchorTop(`record-card-${record.id}`);
                             // デッキの記録一覧モーダル内から開いた場合は、戻り遷移で
                             // デッキモーダル＋記録一覧モーダルを再開するため deck.id も保存する。
                             const activeDeckId = sessionStorage.getItem(
                               "activeDeckRecordsModalDeckId",
                             );
                             if (activeDeckId) {
+                              saveReturnAnchorTop(deckAnchorId(activeDeckId));
                               writeReturnTarget(
                                 "reopenDeckModalDeckId",
                                 activeDeckId,

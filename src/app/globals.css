@@ -698,6 +698,24 @@ body {
 */
 
 /*
+ * デスクトップ(マウス主体の端末)ではページの縦スクロールバーを出さない。
+ * スマホはもともとオーバーレイ型で幅を取らないので対象外にし、判定は
+ * sheetCloseButton.ts の FINE_POINTER_QUERY と同じ (pointer: fine) に揃える。
+ * スクロールバーが幅を取らなくなるので、モーダルを開いたときに react-aria が
+ * スクロールバー幅ぶんの padding-right を足してページが横にずれることもなくなる。
+ * ホイール・キーボード・ドラッグによるスクロール自体はそのまま効く。
+ */
+@media (pointer: fine) {
+  html {
+    scrollbar-width: none;
+  }
+
+  html::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/*
  * iOS で入力欄にフォーカスすると、Safari がキーボードに隠れないよう
  * レイアウトビューポートごとページを押し上げることがある(visualViewport.offsetTop > 0)。
  * position:fixed のモーダルは可視領域から上へずれ、上部が画面外に隠れてしまう

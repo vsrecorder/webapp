@@ -1,12 +1,16 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   countEventsByLeagueTitle,
   findTermByDate,
+  getCityleagueResultByOfficialEventId,
+  getCityleagueSeasons,
+  getEnvironments,
   toMonthKey,
   type CityleagueTerm,
 } from "@app/utils/cityleague";
 import type { OfficialEventType } from "@app/types/official_event";
+import { LIST_REVALIDATE_SECONDS } from "@app/utils/coreApi";
 
 // バックエンドは日付を JST の 0:00 として "+09:00" 付きの文字列で返す
 // (実測: /api/environments → "2026-09-16T00:00:00+09:00")。
@@ -89,5 +93,55 @@ describe("countEventsByLeagueTitle", () => {
 
   it("空配列を渡すと空配列を返す", () => {
     expect(countEventsByLeagueTitle([])).toEqual([]);
+  });
+});
+
+describe("結果・期間の取得のキャッシュ期間", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  /*
+   * 結果は取り込みの途中で見に来られることがあり、そのときの一部の入賞者だけの応答が
+   * キャッシュに残る。既定の1日で持つと残りが丸一日出ないので、一覧と同じ間隔で持つ
+   * (2026-10-14 の 1115370 で、5人だけの応答を持ってベスト8の途中で切れていた)。
+   */
+  it("取り込み途中の応答を長く持たないよう、一覧と同じ間隔でキャッシュする", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ official_event_id: 1115370, results: [{ rank: 1 }] }),
+    } as unknown as Response);
+    vi.stubGlobal("fetch", fetchMock);
+
+    await getCityleagueResultByOfficialEventId(1115370);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/api/v1beta/cityleague_results?official_event_id=1115370"),
+      expect.objectContaining({ next: { revalidate: LIST_REVALIDATE_SECONDS } }),
+    );
+  });
+
+  /*
+   * シーズン・環境は新しい行が後から足される。一覧は同じシーズン一覧を短い間隔で引くので、
+   * こちらだけ1日持つと、一覧にあるシーズンのページが404になる食い違いが最大1日続く。
+   */
+  it.each([
+    ["getCityleagueSeasons", getCityleagueSeasons, "/api/v1beta/cityleague_schedules"],
+    ["getEnvironments", getEnvironments, "/api/v1beta/environments"],
+  ])("%s も一覧と同じ間隔でキャッシュする", async (_name, get, path) => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => [],
+    } as unknown as Response);
+    vi.stubGlobal("fetch", fetchMock);
+
+    await get();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringMatching(new RegExp(`${path}$`)),
+      expect.objectContaining({ next: { revalidate: LIST_REVALIDATE_SECONDS } }),
+    );
   });
 });

@@ -34,11 +34,18 @@ export async function getChampionsleagueEventRefs(): Promise<
   return ret?.events ?? [];
 }
 
+/*
+ * 大会の日程は新しい大会が後から足される。一覧(getChampionsleagueScheduleSummaries)は
+ * 日程と結果のイベント一覧(LIST_REVALIDATE_SECONDS)を突き合わせて作るので、日程だけ
+ * 既定の1日で持つと、結果が出ているのに一覧に出ない・大会ページが404の状態が最大1日続く。
+ * 一覧と同じ間隔で持つ。
+ */
 export async function getChampionsleagueSchedules(): Promise<
   ChampionsleagueScheduleType[]
 > {
   const ret = await getJson<ChampionsleagueScheduleType[]>(
     `/api/v1beta/championsleague_schedules`,
+    LIST_REVALIDATE_SECONDS,
   );
 
   return ret ?? [];
@@ -47,8 +54,10 @@ export async function getChampionsleagueSchedules(): Promise<
 export async function getChampionsleagueScheduleById(
   id: string,
 ): Promise<ChampionsleagueScheduleType | null> {
+  // 間隔の理由は getChampionsleagueSchedules と同じ
   const ret = await getJson<ChampionsleagueScheduleType>(
     `/api/v1beta/championsleague_schedules/${encodeURIComponent(id)}`,
+    LIST_REVALIDATE_SECONDS,
   );
 
   return ret?.id ? ret : null;

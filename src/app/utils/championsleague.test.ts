@@ -1,10 +1,13 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   formatLeagueDates,
+  getChampionsleagueScheduleById,
+  getChampionsleagueSchedules,
   groupEventsByLeagueType,
   leagueSlugFromType,
 } from "@app/utils/championsleague";
+import { LIST_REVALIDATE_SECONDS } from "@app/utils/coreApi";
 
 // core-apiserver が返す形（リーグ区分 × Day のイベント）。テストに要るのは2つの列だけ。
 function event(leagueType: number, date: string) {
@@ -109,5 +112,42 @@ describe("formatLeagueDates", () => {
 
   it("イベントが無ければ空文字", () => {
     expect(formatLeagueDates([])).toBe("");
+  });
+});
+
+describe("大会の日程の取得のキャッシュ期間", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  /*
+   * 新しい大会は後から足される。大会一覧は日程と結果のイベント一覧(短い間隔)を突き合わせるので、
+   * 日程だけ1日持つと、結果が出ているのに一覧に出ない・大会ページが404の状態が最大1日続く。
+   */
+  it.each([
+    [
+      "getChampionsleagueSchedules",
+      () => getChampionsleagueSchedules(),
+      "/api/v1beta/championsleague_schedules",
+    ],
+    [
+      "getChampionsleagueScheduleById",
+      () => getChampionsleagueScheduleById("cl2027_aichi"),
+      "/api/v1beta/championsleague_schedules/cl2027_aichi",
+    ],
+  ])("%s は一覧と同じ間隔でキャッシュする", async (_name, get, path) => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => [],
+    } as unknown as Response);
+    vi.stubGlobal("fetch", fetchMock);
+
+    await get();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringMatching(new RegExp(`${path}$`)),
+      expect.objectContaining({ next: { revalidate: LIST_REVALIDATE_SECONDS } }),
+    );
   });
 });

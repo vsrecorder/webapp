@@ -23,8 +23,15 @@ export async function getOfficialEventById(
 export async function getCityleagueResultByOfficialEventId(
   id: number,
 ): Promise<CityleagueResultType | null> {
+  /*
+   * 結果は一度に全員ぶん入るとは限らない。取り込みの途中で最初に見に来られると、その時点の
+   * 一部の入賞者だけの応答をキャッシュしてしまう。既定の1日で持つと、残りが丸一日出ない
+   * (2026-10-14 の 1115370 は5人だけの応答を19時に持ち、ベスト8の途中で切れていた)。
+   * 大型大会の結果と同じく、一覧と同じ間隔で持つ。
+   */
   const ret = await getJson<CityleagueResultType>(
     `/api/v1beta/cityleague_results?official_event_id=${id}`,
+    LIST_REVALIDATE_SECONDS,
   );
 
   // 入賞者が1人もいないイベントは表示するものが無いため、存在しない扱いにする。
@@ -89,14 +96,27 @@ export type CityleagueTerm = {
   to_date: Date;
 };
 
+/*
+ * シーズン・環境は新しい行が後から足される。一覧(cityleagueListServer)は同じシーズン一覧を
+ * LIST_REVALIDATE_SECONDS で引くので、こちらだけ既定の1日で持つと、一覧には新しいシーズンが
+ * 出ているのに、そのシーズンのページは404、関連リンクにも出ない状態が最大1日続く。
+ * どちらも小さい一覧なので、一覧と同じ間隔で持つ。
+ */
 export async function getCityleagueSeasons(): Promise<CityleagueTerm[]> {
-  const ret = await getJson<CityleagueScheduleType[]>(`/api/v1beta/cityleague_schedules`);
+  const ret = await getJson<CityleagueScheduleType[]>(
+    `/api/v1beta/cityleague_schedules`,
+    LIST_REVALIDATE_SECONDS,
+  );
 
   return ret ?? [];
 }
 
 export async function getEnvironments(): Promise<CityleagueTerm[]> {
-  const ret = await getJson<EnvironmentType[]>(`/api/v1beta/environments`);
+  // 間隔の理由は getCityleagueSeasons と同じ
+  const ret = await getJson<EnvironmentType[]>(
+    `/api/v1beta/environments`,
+    LIST_REVALIDATE_SECONDS,
+  );
 
   return ret ?? [];
 }

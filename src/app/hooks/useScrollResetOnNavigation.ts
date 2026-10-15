@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
+import { noteReturnNavigation } from "@app/utils/returnNavigation";
 import { isModalHistoryPop } from "@app/utils/modalHistory";
 
 /*
@@ -92,6 +93,9 @@ export function useScrollResetOnNavigation() {
       // モーダルを閉じただけで背面が勝手に先頭へ飛んでしまう
       if (isModalHistoryPop(event)) return;
 
+      // 戻ってきたときだけ前の状態を戻す一覧のために、戻ってきたことを控える
+      noteReturnNavigation();
+
       const hash = window.location.hash;
 
       if (hash.length > 1) {
@@ -111,6 +115,29 @@ export function useScrollResetOnNavigation() {
       window.removeEventListener("popstate", handlePopState);
       window.history.scrollRestoration = previous;
     };
+  }, []);
+
+  /*
+   * ページ内の戻るリンク(BackLink)で戻ったことも控える。ホーム画面に追加したアプリには
+   * ブラウザの戻るボタンが無いので、戻るリンクがそれの代わりになる(utils/returnNavigation)。
+   * BackLink はサーバコンポーネントからも使うので、部品にはしるし(data-back-link)だけを付け、
+   * 押下はここでまとめて拾う。新しいタブで開く押し方は、このタブの移動ではないので除く。
+   */
+  useEffect(() => {
+    const handleClick = (event: MouseEvent) => {
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+        return;
+      }
+
+      const link = (event.target as Element | null)?.closest?.("a[data-back-link][href]");
+      if (!(link instanceof HTMLAnchorElement)) return;
+
+      noteReturnNavigation(new URL(link.href).pathname);
+    };
+
+    document.addEventListener("click", handleClick, true);
+
+    return () => document.removeEventListener("click", handleClick, true);
   }, []);
 
   // リンク遷移。ページが変わった最初の描画で先頭へ戻す。

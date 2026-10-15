@@ -24,6 +24,13 @@ type Params = {
   // サーバ側で取った1ページ目(新着・現在の環境・絞り込みなし)。初回の取得を省き、
   // HTML に投稿へのリンクを載せる(クローラが個別ページを見つけられるようにする)
   initial?: DeckCodePostGetResponseType;
+  // 個別ページ・投稿者ページから戻ってきたときの、離れる前に読み込んであった投稿
+  // (utils/sharedDecksReturn)。絞り込みもそのときのものが渡ってくるので、条件を問わず最初に使う
+  restored?: {
+    posts: DeckCodePostType[];
+    environment: DeckCodePostEnvironmentType | null;
+    hasMore: boolean;
+  };
 };
 
 /*
@@ -38,6 +45,7 @@ export function useDeckCodePosts({
   pokemonSpriteIds = [],
   acespecCardName = "",
   initial,
+  restored,
 }: Params) {
   // 配列のまま依存に入れると描画ごとに別物になるため、ID は "," で結んだ文字列で持ち回る
   // (ID に "," は含まれない)
@@ -62,13 +70,25 @@ export function useDeckCodePosts({
     [environmentId, acespecCardName, spriteKey],
   );
 
-  // 初期値は同じ条件(現在の環境・絞り込みなし)のときだけ使う
-  const seed =
-    initial && !environmentId && !spriteKey && !acespecCardName
+  // サーバの1ページ目は同じ条件(現在の環境・絞り込みなし)のときだけ使う
+  const seed = restored
+    ? { items: restored.posts, meta: restored.environment, hasMore: restored.hasMore }
+    : initial && !environmentId && !spriteKey && !acespecCardName
       ? { items: initial.posts, meta: initial.environment }
       : undefined;
 
-  const { items, meta, lastMeta, isLoading, isLoadingMore, hasMore, error, loadMore, updateItem } =
+  const {
+    items,
+    meta,
+    lastMeta,
+    isLoading,
+    isLoadingMore,
+    hasMore,
+    error,
+    loadMore,
+    updateItem,
+    refreshItems,
+  } =
     useOffsetPagination<DeckCodePostType, DeckCodePostEnvironmentType | null>({
       key: `${environmentId}|${acespecCardName}|${spriteKey}`,
       pageSize: PAGE_SIZE,
@@ -89,5 +109,6 @@ export function useDeckCodePosts({
     error,
     loadMore,
     updatePost: updateItem,
+    refreshPosts: refreshItems,
   };
 }

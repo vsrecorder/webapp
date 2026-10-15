@@ -13,13 +13,27 @@ import LoginPromptModal from "@app/components/organisms/DeckCodePost/LoginPrompt
 
 import { useOffsetPagination } from "@app/hooks/useOffsetPagination";
 import {
+  usePostListLeaveRecorder,
+  useRefreshOnRestore,
+  useRestoredPostList,
+  useScrollBackOnRestore,
+} from "@app/hooks/usePostListReturn";
+import {
   DeckCodePostGetByUserIdResponseType,
   DeckCodePostType,
   DeckCodePostUserType,
 } from "@app/types/deck_code_post";
 import { swrFetcher, sharedDecksPath } from "@app/utils/deckCodePost";
+import {
+  SHARED_DECKS_USER_RETURN_KEY,
+  SharedDecksUserReturnState,
+  sharedDeckPostAnchorId,
+} from "@app/utils/sharedDecksReturn";
 
 const PAGE_SIZE = 20;
+
+// 戻ってきたとき、押したカードを置く高さ(離れる前の高さを覚えていなかったとき)。ヘッダーの下あたり
+const RETURN_FALLBACK_TOP = 80;
 
 const postId = (post: DeckCodePostType) => post.id;
 
@@ -45,8 +59,33 @@ type Props = {
  * 投稿者ページ。公開情報(アイコン・名前・ランクと称号・公開デッキ数・もらったいいね)と
  * 公開中の投稿だけで組み、対戦記録や非公開デッキは出さない。ログイン不要。
  * 1ページ目はサーバ描画(HTML に投稿へのリンクが載る)で、「もっと見る」だけをここで取る。
+ *
+ * 個別ページや別の投稿者ページから戻ってきたときは、離れる前に読み込んであった投稿を
+ * そのまま出し、押したカードを元の高さへ戻す(みんなの公開デッキの一覧と同じ仕組み。
+ * utils/sharedDecksReturn)。控えは同じ投稿者のページでだけ使う。
  */
-export default function TemplateSharedDecksByUser({ userId, viewerId, initial }: Props) {
+export default function TemplateSharedDecksByUser(props: Props) {
+  const { userId } = props;
+  const restored = useRestoredPostList<SharedDecksUserReturnState>(
+    SHARED_DECKS_USER_RETURN_KEY,
+    (state) => state.userId === userId,
+  );
+
+  return (
+    <SharedDecksByUserList
+      key={restored ? `restored-${userId}` : `fresh-${userId}`}
+      {...props}
+      restored={restored}
+    />
+  );
+}
+
+function SharedDecksByUserList({
+  userId,
+  viewerId,
+  initial,
+  restored,
+}: Props & { restored: SharedDecksUserReturnState | null }) {
   const fetchPage = useCallback(
     async (offset: number) => {
       const data = await swrFetcher<DeckCodePostGetByUserIdResponseType>(
@@ -65,13 +104,28 @@ export default function TemplateSharedDecksByUser({ userId, viewerId, initial }:
     error,
     loadMore,
     updateItem: updatePost,
+    refreshItems: refreshPosts,
   } = useOffsetPagination<DeckCodePostType, UserSummary>({
     key: userId,
     pageSize: PAGE_SIZE,
     fetchPage,
     getId: postId,
-    initial: { items: initial.posts, meta: toSummary(initial) },
+    // 戻ってきたときは離れる前に読み込んであった投稿を出す。投稿者の集計はサーバで取った新しい値
+    initial: restored
+      ? { items: restored.posts, meta: toSummary(initial), hasMore: restored.hasMore }
+      : { items: initial.posts, meta: toSummary(initial) },
   });
+
+  // 戻ってきたら、押したカードを離れる前と同じ画面上の高さへ置く
+  useScrollBackOnRestore(SHARED_DECKS_USER_RETURN_KEY, restored, RETURN_FALLBACK_TOP);
+  // 控えから描いた一覧の中身(いいねなど)を、位置を動かさずに最新へ寄せる
+  useRefreshOnRestore(restored, refreshPosts);
+
+  // 一覧を離れるリンクが押されたら、戻ってきたときのために今の一覧を控える
+  const rememberLeavingFrom = usePostListLeaveRecorder<SharedDecksUserReturnState>(
+    SHARED_DECKS_USER_RETURN_KEY,
+    { userId, posts, hasMore },
+  );
   const { user, postCount, likeCountTotal } = meta ?? toSummary(initial);
 
   const loginModal = useDisclosure();
@@ -128,15 +182,22 @@ export default function TemplateSharedDecksByUser({ userId, viewerId, initial }:
           </div>
         )}
 
+        {/* 外側の要素は戻ってきたときの目印と、一覧を離れるリンクの押下を拾うためのもの
+            (いいねした人のモーダルの中のリンクも、React のイベントの伝わり方でここに届く) */}
         {posts.map((post, index) => (
-          <DeckCodePostCard
+          <div
             key={post.id}
-            post={post}
-            viewerId={viewerId}
-            onChange={updatePost}
-            onRequireLogin={requireLogin}
-            imageLoading={index < 2 ? "eager" : "lazy"}
-          />
+            id={sharedDeckPostAnchorId(SHARED_DECKS_USER_RETURN_KEY, post.id)}
+            onClickCapture={(event) => rememberLeavingFrom(post.id, event)}
+          >
+            <DeckCodePostCard
+              post={post}
+              viewerId={viewerId}
+              onChange={updatePost}
+              onRequireLogin={requireLogin}
+              imageLoading={index < 2 ? "eager" : "lazy"}
+            />
+          </div>
         ))}
 
         {error && (

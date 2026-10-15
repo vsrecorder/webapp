@@ -118,6 +118,75 @@ describe("useOffsetPagination", () => {
     expect(fetchPage).not.toHaveBeenCalled();
   });
 
+  // 戻ってきたときに読み込み済みの数ページぶんを戻す用途。件数が pageSize の倍数でなくても、
+  // 渡した続きの有無をそのまま使う(件数から決めると「もっと見る」が出たり消えたりする)
+  it("初期値に hasMore があれば件数ではなくその値を使う", () => {
+    const fetchPage = vi.fn(async () => page([]));
+    const { result } = renderHook(() =>
+      useOffsetPagination<Item>({
+        key: "k",
+        pageSize: 2,
+        fetchPage,
+        getId,
+        initial: { ...page(["a", "b", "c", "d"]), hasMore: false },
+      }),
+    );
+
+    expect(result.current.items.map(getId)).toEqual(["a", "b", "c", "d"]);
+    expect(result.current.hasMore).toBe(false);
+  });
+
+  /*
+   * 戻ってきて控えから描いた一覧を、位置を動かさずに最新へ寄せる。読み込み済みの範囲を
+   * ページごとに取り直し、手元にある項目の中身だけを差し替える(足さない・除かない)。
+   * 取り直しの最中に手元で差し替えた項目(いいねを押した直後など)は上書きしない。
+   */
+  it("refreshItems は読み込み済みの範囲を取り直し、手元の項目の中身だけを新しくする", async () => {
+    type Liked = { id: string; likes: number };
+    const pending = deferred<OffsetPage<Liked, undefined>>();
+    const second = deferred<OffsetPage<Liked, undefined>>();
+    const fetchPage = vi.fn((offset: number) => (offset === 0 ? pending.promise : second.promise));
+    const { result } = renderHook(() =>
+      useOffsetPagination<Liked>({
+        key: "k",
+        pageSize: 2,
+        fetchPage,
+        getId: (item) => item.id,
+        initial: {
+          items: [
+            { id: "a", likes: 0 },
+            { id: "b", likes: 0 },
+            { id: "c", likes: 0 },
+          ],
+          meta: undefined,
+          hasMore: false,
+        },
+      }),
+    );
+
+    let refreshing!: Promise<void>;
+    act(() => {
+      refreshing = result.current.refreshItems();
+    });
+    expect(fetchPage.mock.calls.map(([offset]) => offset)).toEqual([0, 2]);
+
+    // 取り直しの最中に c にいいねした
+    act(() => result.current.updateItem({ id: "c", likes: 1 }));
+
+    await act(async () => {
+      pending.resolve({ items: [{ id: "new", likes: 0 }, { id: "a", likes: 3 }], meta: undefined });
+      second.resolve({ items: [{ id: "b", likes: 5 }, { id: "c", likes: 0 }], meta: undefined });
+      await refreshing;
+    });
+
+    expect(result.current.items).toEqual([
+      { id: "a", likes: 3 },
+      { id: "b", likes: 5 },
+      { id: "c", likes: 1 },
+    ]);
+    expect(result.current.hasMore).toBe(false);
+  });
+
   it("もっと見るの途中で key が変わっても読み込み中のままにならず、古い応答も混ざらない", async () => {
     const more = deferred<OffsetPage<Item, undefined>>();
     const fetchPage = vi.fn((offset: number) => {

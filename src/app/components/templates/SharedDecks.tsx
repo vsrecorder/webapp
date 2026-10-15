@@ -17,6 +17,12 @@ import LoginPromptModal from "@app/components/organisms/DeckCodePost/LoginPrompt
 import PokemonSpriteModal from "@app/components/organisms/Match/Modal/PokemonSpriteModal";
 
 import { useDeckCodePosts } from "@app/hooks/useDeckCodePosts";
+import {
+  usePostListLeaveRecorder,
+  useRefreshOnRestore,
+  useRestoredPostList,
+  useScrollBackOnRestore,
+} from "@app/hooks/usePostListReturn";
 
 import {
   DeckCodePostAceSpecCountType,
@@ -24,6 +30,11 @@ import {
 } from "@app/types/deck_code_post";
 import { EnvironmentType } from "@app/types/environment";
 import { PokemonSpriteType } from "@app/types/pokemon_sprite";
+import {
+  SHARED_DECKS_RETURN_KEY,
+  SharedDecksReturnState,
+  sharedDeckPostAnchorId,
+} from "@app/utils/sharedDecksReturn";
 
 /*
  * 絞り込みチップの共通の形。高さは 32px(h-8)で固定する。
@@ -49,23 +60,41 @@ type Props = {
   initial?: DeckCodePostGetResponseType;
 };
 
+// 戻ってきたとき、押したカードを置く高さ(離れる前の高さを覚えていなかったとき)。
+// 固定しているセグメントと絞り込みの行の下あたり
+const RETURN_FALLBACK_TOP = 160;
+
 /*
  * みんなの公開デッキ(公開されたデッキコードのタイムライン)。ログイン不要で見られる。
  *
  * 入口はデッキ一覧のセグメント「自分のデッキ｜みんなの公開デッキ」だけにしている。
  * ここでも同じセグメントを最上部に固定し、「自分のデッキ」を選ぶとデッキ一覧へ戻る
  * (未ログインならログイン案内)。
+ *
+ * 個別ページ・投稿者ページから戻ってきたときは、離れる前の一覧(絞り込み・読み込んだ投稿)を
+ * そのまま出し、押したカードを元の高さへ戻す(utils/sharedDecksReturn)。
  */
-export default function TemplateSharedDecks({ viewerId, initial }: Props) {
+export default function TemplateSharedDecks(props: Props) {
+  // 戻ってきたときの控え(受け取り方は usePostListReturn)。戻すかどうかで一覧を作り直す
+  const restored = useRestoredPostList<SharedDecksReturnState>(SHARED_DECKS_RETURN_KEY, () => true);
+
+  return <SharedDecksList key={restored ? "restored" : "fresh"} {...props} restored={restored} />;
+}
+
+function SharedDecksList({
+  viewerId,
+  initial,
+  restored,
+}: Props & { restored: SharedDecksReturnState | null }) {
   // 選んだ環境。null は「現在の環境」(バックエンドが今日から決める)
   const [selectedEnvironment, setSelectedEnvironment] = useState<EnvironmentType | null>(
-    null,
+    restored?.environment ?? null,
   );
   const environmentId = selectedEnvironment?.id ?? "";
   // スプライトでの絞り込み。デッキのスプライト選択と同じ2枠(1体目・2体目)で、
   // 指定したスプライトをすべて持つデッキに絞る。どちらも null なら絞り込みなし
-  const [sprite1, setSprite1] = useState<PokemonSpriteType | null>(null);
-  const [sprite2, setSprite2] = useState<PokemonSpriteType | null>(null);
+  const [sprite1, setSprite1] = useState<PokemonSpriteType | null>(restored?.sprite1 ?? null);
+  const [sprite2, setSprite2] = useState<PokemonSpriteType | null>(restored?.sprite2 ?? null);
   const spriteFilters = [sprite1, sprite2].filter(
     (s): s is PokemonSpriteType => s !== null,
   );
@@ -74,7 +103,9 @@ export default function TemplateSharedDecks({ viewerId, initial }: Props) {
     setSprite2(null);
   };
   // ACE SPEC での絞り込み(null は絞り込みなし)
-  const [aceSpecFilter, setAceSpecFilter] = useState<DeckCodePostAceSpecCountType | null>(null);
+  const [aceSpecFilter, setAceSpecFilter] = useState<DeckCodePostAceSpecCountType | null>(
+    restored?.aceSpec ?? null,
+  );
 
   /*
    * 絞り込みのチップは横に並べて溢れたぶんはスクロールして見る作りで、選ぶとチップが
@@ -87,16 +118,27 @@ export default function TemplateSharedDecks({ viewerId, initial }: Props) {
     chip?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "end" });
   };
 
+  /*
+   * 送るのは選び直したときだけ。戻ってきて絞り込みを控えから戻したときは、最初の値のまま
+   * 動かさない(押したカードの位置へ戻すスクロールと重ねない)。前回の値と比べて決める。
+   */
   const spriteKey = spriteFilters.map((s) => s.id).join(",");
+  const lastSpriteKey = useRef(spriteKey);
   useEffect(() => {
-    if (!spriteKey) return;
+    const previous = lastSpriteKey.current;
+    lastSpriteKey.current = spriteKey;
+    if (!spriteKey || spriteKey === previous) return;
     revealChip(spriteChipRef.current);
   }, [spriteKey]);
 
+  const aceSpecName = aceSpecFilter?.card_name ?? "";
+  const lastAceSpecName = useRef(aceSpecName);
   useEffect(() => {
-    if (!aceSpecFilter) return;
+    const previous = lastAceSpecName.current;
+    lastAceSpecName.current = aceSpecName;
+    if (!aceSpecName || aceSpecName === previous) return;
     revealChip(aceSpecChipRef.current);
-  }, [aceSpecFilter]);
+  }, [aceSpecName]);
 
   const {
     posts,
@@ -107,12 +149,35 @@ export default function TemplateSharedDecks({ viewerId, initial }: Props) {
     error,
     loadMore,
     updatePost,
+    refreshPosts,
   } = useDeckCodePosts({
     environmentId,
     pokemonSpriteIds: spriteFilters.map((s) => s.id),
     acespecCardName: aceSpecFilter?.card_name ?? "",
     initial,
+    restored: restored
+      ? { posts: restored.posts, environment: restored.postsEnvironment, hasMore: restored.hasMore }
+      : undefined,
   });
+
+  // 戻ってきたら、押したカードを離れる前と同じ画面上の高さへ置く
+  useScrollBackOnRestore(SHARED_DECKS_RETURN_KEY, restored, RETURN_FALLBACK_TOP);
+  // 控えから描いた一覧の中身(いいねなど)を、位置を動かさずに最新へ寄せる
+  useRefreshOnRestore(restored, refreshPosts);
+
+  // 一覧を離れるリンクが押されたら、戻ってきたときのために今の一覧(絞り込みごと)を控える
+  const rememberLeavingFrom = usePostListLeaveRecorder<SharedDecksReturnState>(
+    SHARED_DECKS_RETURN_KEY,
+    {
+      environment: selectedEnvironment,
+      sprite1,
+      sprite2,
+      aceSpec: aceSpecFilter,
+      posts,
+      postsEnvironment: environment,
+      hasMore,
+    },
+  );
 
   const loginModal = useDisclosure();
   const [loginTitle, setLoginTitle] = useState("ログインが必要です");
@@ -328,16 +393,24 @@ export default function TemplateSharedDecks({ viewerId, initial }: Props) {
             </div>
           )}
 
+          {/* 外側の要素は戻ってきたときの目印と、一覧を離れるリンクの押下を拾うためのもの。
+              いいねした人のモーダルはポータルで外に描かれるが、React のイベントは部品の
+              親子関係で伝わるので、その中のリンクもここで拾える */}
           {posts.map((post, index) => (
-            <DeckCodePostCard
+            <div
               key={post.id}
-              post={post}
-              viewerId={viewerId}
-              onChange={updatePost}
-              onRequireLogin={requireLogin}
-              // 画面に入る最初の2枚だけ即時に読み、残りは表示されるまで取りに行かない
-              imageLoading={index < 2 ? "eager" : "lazy"}
-            />
+              id={sharedDeckPostAnchorId(SHARED_DECKS_RETURN_KEY, post.id)}
+              onClickCapture={(event) => rememberLeavingFrom(post.id, event)}
+            >
+              <DeckCodePostCard
+                post={post}
+                viewerId={viewerId}
+                onChange={updatePost}
+                onRequireLogin={requireLogin}
+                // 画面に入る最初の2枚だけ即時に読み、残りは表示されるまで取りに行かない
+                imageLoading={index < 2 ? "eager" : "lazy"}
+              />
+            </div>
           ))}
 
           {hasMore && (

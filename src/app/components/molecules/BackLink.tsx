@@ -22,6 +22,9 @@ export default function BackLink({ href, label, ariaLabel, className = "" }: Pro
     <NextLink
       href={href}
       aria-label={ariaLabel}
+      // 戻るリンクで戻ったことを控えるしるし(戻ってきたときだけ前の状態を戻す一覧のため。
+      // 押下は useScrollResetOnNavigation が拾う)
+      data-back-link=""
       className={`inline-flex w-fit max-w-full items-center gap-1 rounded-full bg-content1 py-1.5 pl-2 pr-3.5 text-sm font-bold text-default-600 shadow-small hover:text-default-800 active:opacity-70 ${className}`}
     >
       <LuChevronLeft className="shrink-0 text-base" />

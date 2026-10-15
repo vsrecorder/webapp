@@ -15,8 +15,10 @@ type Options<T, M> = {
   // offset から1ページ取る。常に最新の関数を使うので、条件を閉じ込めた関数を渡してよい
   fetchPage: (offset: number) => Promise<OffsetPage<T, M>>;
   getId: (item: T) => string;
-  // サーバで取った1ページ目。最初の key に対してだけ使い、初回の取得を省く
-  initial?: OffsetPage<T, M>;
+  // サーバで取った1ページ目。最初の key に対してだけ使い、初回の取得を省く。
+  // 戻ってきたときに読み込み済みの数ページぶんを丸ごと戻す用途にも使うので、続きの有無が
+  // 分かっていれば hasMore で渡す(省略時は件数が pageSize 以上かで決める)
+  initial?: OffsetPage<T, M> & { hasMore?: boolean };
 };
 
 type Loaded<T, M> = {
@@ -50,7 +52,12 @@ export function useOffsetPagination<T, M = undefined>({
 }: Options<T, M>) {
   const [loaded, setLoaded] = useState<Loaded<T, M> | null>(() =>
     initial && key !== null
-      ? { key, items: initial.items, meta: initial.meta, hasMore: initial.items.length >= pageSize }
+      ? {
+          key,
+          items: initial.items,
+          meta: initial.meta,
+          hasMore: initial.hasMore ?? initial.items.length >= pageSize,
+        }
       : null,
   );
   const [failure, setFailure] = useState<{ key: string; error: Error } | null>(null);
@@ -129,13 +136,71 @@ export function useOffsetPagination<T, M = undefined>({
     }
   }, [key, current, isLoadingMore, hasMore, pageSize]);
 
+  // 取り直し(refreshItems)の途中で手元で差し替えた項目。取り直しの結果で上書きしない
+  const editedDuringRefresh = useRef<Set<string> | null>(null);
+
   // いいねなどで1件だけ差し替える(ページをまたいで同じ項目に反映する)
   const updateItem = useCallback((item: T) => {
     const id = getIdRef.current(item);
+    editedDuringRefresh.current?.add(id);
     setLoaded((prev) =>
       prev ? { ...prev, items: prev.items.map((i) => (getIdRef.current(i) === id ? item : i)) } : prev,
     );
   }, []);
 
-  return { items, meta, lastMeta, isLoading, isLoadingMore, hasMore, error, loadMore, updateItem };
+  /*
+   * 読み込み済みの範囲を取り直し、手元にある項目の中身だけを新しくする。並び・件数は変えない。
+   *
+   * 戻ってきたときに控えから描いた一覧(みんなの公開デッキ)を、位置を動かさずに最新へ寄せるため。
+   * 進んだ先の個別ページで押したいいねが、戻った一覧で押す前の表示のまま残らないようにする。
+   * 項目を足したり除いたりしないのは、カードの位置が変わって戻した位置からずれるため
+   * (新着や取り下げは、絞り込みを変えるか開き直したときに反映される)。
+   * 取り直せなくても今の表示のままにする。
+   */
+  const refreshItems = useCallback(async () => {
+    if (key === null || !current || current.items.length === 0) return;
+
+    const myKey = key;
+    const offsets: number[] = [];
+    for (let offset = 0; offset < current.items.length; offset += pageSize) offsets.push(offset);
+
+    const edited = new Set<string>();
+    editedDuringRefresh.current = edited;
+
+    try {
+      const pages = await Promise.all(offsets.map((offset) => fetchPageRef.current(offset)));
+      const fresh = new Map<string, T>();
+      for (const page of pages) {
+        for (const item of page.items) fresh.set(getIdRef.current(item), item);
+      }
+
+      setLoaded((prev) => {
+        if (!prev || prev.key !== myKey) return prev;
+        return {
+          ...prev,
+          items: prev.items.map((item) => {
+            const id = getIdRef.current(item);
+            return edited.has(id) ? item : (fresh.get(id) ?? item);
+          }),
+        };
+      });
+    } catch {
+      // 取り直せなければ今の表示のまま
+    } finally {
+      if (editedDuringRefresh.current === edited) editedDuringRefresh.current = null;
+    }
+  }, [key, current, pageSize]);
+
+  return {
+    items,
+    meta,
+    lastMeta,
+    isLoading,
+    isLoadingMore,
+    hasMore,
+    error,
+    loadMore,
+    updateItem,
+    refreshItems,
+  };
 }

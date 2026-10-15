@@ -12,11 +12,22 @@ import { isActiveRoute } from "./navItems";
  *
  * pathname が遷移先になれば isActiveRoute が真になるので、そのまま「選択中」に繋がる。
  * 遷移が起きなかったとき(押したのが今いるページ・失敗)のために、時間で解除する。
+ *
+ * pathname が変わったら(どこへ着いたにせよ)押した項目は捨てる。着いた後も残しておくと、
+ * ナビ以外(ページ内のリンク・戻る)でそのページを離れたときに「まだ着いていない」と見なされ、
+ * 開いていない項目が時間で解除されるまで選択中の色になっていた。
  */
 const PENDING_RESET_MS = 5000;
 
 export function useNavPendingHref(pathname: string) {
   const [pendingHref, setPendingHref] = useState<string | null>(null);
+
+  // effect で捨てると古い pending のまま一度描かれるので、前回の pathname を控えて描画中に捨てる
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (prevPathname !== pathname) {
+    setPrevPathname(pathname);
+    setPendingHref(null);
+  }
 
   // 遷移先に着いたら(または元から居たら)もう pending ではない
   const pending = pendingHref != null && !isActiveRoute(pathname, pendingHref) ? pendingHref : null;

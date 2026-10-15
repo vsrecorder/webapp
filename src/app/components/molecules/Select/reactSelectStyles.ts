@@ -22,7 +22,7 @@ export const reactSelectControlStyle = (base: CSSObjectWithLabel): CSSObjectWith
 });
 
 /*
- * react-select / react-windowed-select の配色。各 <Select> / <WindowedSelect> の
+ * react-select / WindowedSelect の配色。各 <Select> / <WindowedSelect> の
  * theme プロップに渡して使う(これらは HeroUI のテーマに自動追従しない)。
  *
  * 色の実体は CSS 変数(globals.css の --rs-*)に置く。ここで JS からダーク/ライトを

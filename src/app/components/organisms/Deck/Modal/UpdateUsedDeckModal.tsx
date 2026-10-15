@@ -1,6 +1,6 @@
 import useSWR from "swr";
 
-import WindowedSelect from "react-windowed-select";
+import WindowedSelect from "@app/components/molecules/Select/WindowedSelect";
 import Select from "react-select";
 import PulseSkeleton from "@app/components/molecules/Skeleton/PulseSkeleton";
 import { Modal } from "@app/components/atoms/AppModal";

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import useSWR from "swr";
-import WindowedSelect from "react-windowed-select";
+import WindowedSelect from "@app/components/molecules/Select/WindowedSelect";
 import {
   components as reactSelectComponents,
   GroupBase,
@@ -70,7 +70,9 @@ async function fetcher(url: string): Promise<RecordCreateOfficialEventType[]> {
  */
 const TAP_MOVE_THRESHOLD = 5; // react-select が control のドラッグ判定に使うのと同じ
 
-function TouchFriendlyOption(props: OptionProps<unknown, boolean, GroupBase<unknown>>) {
+function TouchFriendlyOption(
+  props: OptionProps<OfficialEventOption, boolean, GroupBase<OfficialEventOption>>,
+) {
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
   return (

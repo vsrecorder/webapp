@@ -2,6 +2,8 @@ import { auth } from "@app/auth";
 
 import DesktopNavigation from "@app/components/molecules/Navigation/DesktopNavigation";
 import MobileNavigation from "@app/components/molecules/Navigation/MobileNavigation";
+import Logo from "@app/components/organisms/Layout/Logo";
+import { getAppIconUrl } from "@app/utils/appIcon";
 
 export default async function Navigation() {
   const session = await auth();
@@ -30,7 +32,8 @@ export default async function Navigation() {
             </linearGradient>
           </defs>
         </svg>
-        <DesktopNavigation />
+        {/* アイコンの URL は実行時の ENV で決まりクライアントでは読めない(utils/appIcon.ts)ので、ロゴはここで作って渡す */}
+        <DesktopNavigation brand={<Logo iconUrl={getAppIconUrl()} withName />} />
         <MobileNavigation />
       </>
     );

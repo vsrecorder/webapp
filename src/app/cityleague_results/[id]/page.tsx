@@ -18,7 +18,14 @@ import {
 import { OG_SIZE, renderCityleagueEventOgImage } from "@app/utils/ogImage";
 import { serializeJsonLd } from "@app/utils/breadcrumb";
 import { cityleagueEventOgName, eventOgWinner } from "@app/utils/cityleagueEventOg";
-import { deckDisplayName, isDeckArchetypeSeason } from "@app/utils/deckArchetype";
+import { getRecentDeckArchetypes } from "@app/utils/cityleagueAwaitingServer";
+import { todayJSTDateString } from "@app/utils/date";
+import {
+  deckDisplayName,
+  isDeckArchetypeSeason,
+  isHiddenWhileAwaiting,
+  isWithinDeckArchetypeWait,
+} from "@app/utils/deckArchetype";
 import { getDeckArchetypesByEvent } from "@app/utils/deckArchetypeServer";
 import { getDeckSummaries, getDeckSummary } from "@app/utils/deckSummaryServer";
 import { ogImageUrlFor } from "@app/utils/ogStorage";
@@ -67,6 +74,29 @@ async function getDescriptionWinner(
   };
 }
 
+/*
+ * 入賞デッキの分類(バトラボ)がまだ揃わない大会か。
+ *
+ * 大会結果はバトラボの索引より 15〜35 分早く入る。その間は一覧・ホームでも出していないので、
+ * ここでも結果の登録前と同じく「無い」ものとして扱う。判定は一覧・ハブと同じサーバの 1 枚
+ * (cityleagueAwaitingServer)を見る(この大会だけを別に照会すると、照会ごとのキャッシュの差で
+ * 一覧と食い違う)。判定を作れなければ出す。開催日が待つ期間(今日・昨日)を過ぎた大会は、
+ * 分類が無くても出す。
+ */
+async function isEventAwaitingArchetypes(
+  officialEventId: number,
+  cityleagueResult: CityleagueResultType,
+): Promise<boolean> {
+  if (!isDeckArchetypeSeason(cityleagueResult.cityleague_schedule_id)) return false;
+  if (!isWithinDeckArchetypeWait(cityleagueResult.date, todayJSTDateString())) return false;
+
+  return isHiddenWhileAwaiting(
+    officialEventId,
+    cityleagueResult.date,
+    await getRecentDeckArchetypes(),
+  );
+}
+
 function buildDescription(event: OfficialEventType, winner: DescriptionWinner | null): string {
   const winnerText = winner
     ? winner.deckName
@@ -91,7 +121,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     getCityleagueResultByOfficialEventId(officialEventId),
   ]);
 
-  if (!event) {
+  // 本文が 404 になる大会では、説明文や OGP 画像を作らない
+  if (
+    !event ||
+    (cityleagueResult && (await isEventAwaitingArchetypes(officialEventId, cityleagueResult)))
+  ) {
     return { title: "シティリーグ結果" };
   }
 
@@ -151,13 +185,20 @@ export default async function Page({ params }: Props) {
   }
 
   /*
-   * 構造化データ(と description)に載せる優勝デッキだけ、ここで待つ。
+   * 構造化データ(と description)に載せる優勝デッキと、分類が揃っているか(揃っていなければ 404)だけ、ここで待つ。
    *
    * generateMetadata が同じ取得をしているので、1回の描画の中では fetch がまとめられ、
    * 上流への往復は増えない。入賞16件のカード内訳を全部待つのとは桁が違う
    * (デッキ分類は大会単位の 1 本で、本文側の取得とも同じ URL なのでまとめられる)。
    */
-  const winner = await getDescriptionWinner(officialEventId, cityleagueResult);
+  const [winner, isAwaiting] = await Promise.all([
+    getDescriptionWinner(officialEventId, cityleagueResult),
+    isEventAwaitingArchetypes(officialEventId, cityleagueResult),
+  ]);
+
+  if (isAwaiting) {
+    notFound();
+  }
 
   const domain = process.env.VSRECORDER_DOMAIN;
   const pageUrl = `https://${domain}/cityleague_results/${event.id}`;

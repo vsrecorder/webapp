@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   getDeckArchetypesByCodes,
   getDeckArchetypesByEvent,
+  lookupDeckArchetypesByCodes,
 } from "@app/utils/deckArchetypeServer";
 
 const entry = (deckCode: string) => ({
@@ -141,5 +142,46 @@ describe("getDeckArchetypesByCodes", () => {
     const map = await getDeckArchetypesByCodes(codes);
 
     expect(map).toEqual({ "a-1": entry("a-1") });
+  });
+});
+
+describe("lookupDeckArchetypesByCodes", () => {
+  it("応答の辞書に無いコードを、まだ分類できないもの(pending)として返す", async () => {
+    fetchMock.mockResolvedValue(
+      Response.json({ decks: { "a-1": entry("a-1") }, notFound: ["b-1"] }),
+    );
+
+    expect(await lookupDeckArchetypesByCodes(["b-1", "a-1"])).toEqual({
+      decks: { "a-1": entry("a-1") },
+      pending: ["b-1"],
+    });
+  });
+
+  // vslab の障害で大会結果がまるごと隠れないよう、応答の無い塊は「待ち」に数えない
+  it("失敗した塊・形の違う応答のコードは pending に入れない", async () => {
+    fetchMock
+      .mockResolvedValueOnce(Response.json({ decks: {} }))
+      .mockResolvedValueOnce(new Response("error", { status: 502 }));
+
+    const codes = Array.from({ length: 101 }, (_, i) => `code-${String(i).padStart(3, "0")}`);
+    const lookup = await lookupDeckArchetypesByCodes(codes);
+
+    expect(lookup.pending).toHaveLength(100);
+    expect(lookup.pending).not.toContain("code-100");
+
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValue(Response.json({ error: "oops" }));
+    expect(await lookupDeckArchetypesByCodes(["a-1"])).toEqual({ decks: {}, pending: [] });
+  });
+
+  // 分類待ちの判定は 1 枚のスナップショットで持つ。URL ごとに切れる Data Cache を通すと画面ごとに食い違う
+  it("fresh なら Data Cache を通さず今の答えを聞く", async () => {
+    fetchMock.mockResolvedValue(Response.json({ decks: {} }));
+
+    await lookupDeckArchetypesByCodes(["a-1"], { fresh: true });
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init.cache).toBe("no-store");
+    expect(init).not.toHaveProperty("next");
   });
 });

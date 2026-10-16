@@ -13,6 +13,8 @@ import {
   CityleagueListInitialData,
   CityleagueScheduleContext,
 } from "@app/utils/cityleagueListServer";
+import { shiftDateString } from "@app/utils/cityleagueListPage";
+import { todayJSTDateString } from "@app/utils/date";
 
 vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
@@ -160,6 +162,15 @@ describe("CityleagueResults の上端の取り直し", () => {
   const result = (id: number, date: string) =>
     ({ official_event_id: id, date: `${date}T00:00:00+09:00` }) as unknown as CityleagueResultType;
 
+  // デッキ分類の対象シーズンの結果(優勝デッキのコード付き)
+  const resultWithDeck = (id: number, date: string, deckCode: string) =>
+    ({
+      official_event_id: id,
+      date: `${date}T00:00:00+09:00`,
+      cityleague_schedule_id: "2027s1",
+      results: [{ rank: 1, deck_code: deckCode }],
+    }) as unknown as CityleagueResultType;
+
   const INITIAL: CityleagueListInitialData = {
     ...ONGOING,
     results: [result(11, "2026-10-07"), result(12, "2026-10-07")],
@@ -169,8 +180,12 @@ describe("CityleagueResults の上端の取り直し", () => {
     hasMore: true,
   };
 
-  // 範囲指定の取得には、その時点で登録されている結果を返す
-  function stubUpstream(registered: () => CityleagueResultType[]) {
+  // 範囲指定の取得には、その時点で登録されている結果を返す。
+  // デッキ分類は、pending に入っているコードを「まだ分類できない」と答える
+  function stubUpstream(
+    registered: () => CityleagueResultType[],
+    pending: () => ReadonlySet<string> = () => new Set(),
+  ) {
     const calls: string[] = [];
     vi.stubGlobal(
       "fetch",
@@ -187,6 +202,29 @@ describe("CityleagueResults の上端の取り直し", () => {
           return Response.json({ count: hits.length, event_results: hits });
         }
         if (url.includes("/api/official_events")) return Response.json({ official_events: [] });
+        // サーバの判定(1 枚)。今日・昨日の結果について、pending のコードを含む大会を分類待ちにする
+        if (url.includes("/recent_deck_archetypes")) {
+          const today = todayJSTDateString();
+          const date = new URL(url, "http://localhost").searchParams.get("date");
+          const recent = registered().filter((r) => {
+            const d = String(r.date).slice(0, 10);
+            return d >= shiftDateString(today, -1) && d <= today && (!date || d === date);
+          });
+          const waiting = pending();
+          const codesOf = (r: CityleagueResultType) => (r.results ?? []).map((x) => x.deck_code);
+          const ready = recent.filter((r) => !codesOf(r).some((code) => waiting.has(code)));
+          return Response.json({
+            today,
+            checked: recent.map((r) => r.official_event_id),
+            awaiting: recent.filter((r) => !ready.includes(r)).map((r) => r.official_event_id),
+            decks: Object.fromEntries(
+              ready.flatMap(codesOf).map((code) => [
+                code,
+                { deckCode: code, archetypeName: "ドラパルトex", variantName: null, label: "ドラパルトex", sprites: [] },
+              ]),
+            ),
+          });
+        }
         return Response.json({ decks: {} });
       }),
     );
@@ -245,6 +283,104 @@ describe("CityleagueResults の上端の取り直し", () => {
     });
     await waitFor(() => expect(cardIds()).toEqual([1, 11, 12]));
     expect(resultCalls()).toBe(2);
+  });
+
+  // 結果はバトラボの索引より数分早く入る。分類が揃うまでは出さず、揃ったら取り直しで差し込む
+  it("デッキ分類がまだ揃わない大会は出さず、揃ってから取り直したときに差し込む", async () => {
+    vi.useFakeTimers({ toFake: ["Date"], now: new Date("2026-10-08T12:00:00+09:00") });
+    const waiting = new Set(["P-1"]);
+    stubUpstream(
+      () => [
+        resultWithDeck(1, "2026-10-08", "P-1"),
+        resultWithDeck(2, "2026-10-08", "R-1"),
+        result(11, "2026-10-07"),
+        result(12, "2026-10-07"),
+      ],
+      () => waiting,
+    );
+
+    render(<CityleagueResults league_type={1} initial={INITIAL} scheduleContext={ONGOING} />);
+
+    await waitFor(() => expect(cardIds()).toEqual([2, 11, 12]));
+    await settle();
+
+    // 分類が揃ってから戻ってくると、出さずにいた大会が入る
+    waiting.clear();
+    vi.setSystemTime(new Date("2026-10-08T21:00:00+09:00"));
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await waitFor(() => expect(cardIds()).toEqual([1, 2, 11, 12]));
+  });
+
+  it("分類待ちの大会がある間は、開いたままでも間を置いて取り直す", async () => {
+    vi.useFakeTimers({
+      toFake: ["Date", "setInterval", "clearInterval"],
+      now: new Date("2026-10-08T21:00:00+09:00"),
+    });
+    const waiting = new Set(["P-1"]);
+    const calls = stubUpstream(
+      () => [resultWithDeck(1, "2026-10-08", "P-1"), result(11, "2026-10-07"), result(12, "2026-10-07")],
+      () => waiting,
+    );
+    const resultCalls = () => calls.filter((url) => url.includes("/api/cityleague_results?")).length;
+
+    render(<CityleagueResults league_type={1} initial={INITIAL} scheduleContext={ONGOING} />);
+    await waitFor(() => expect(resultCalls()).toBe(1));
+    await settle();
+    expect(cardIds()).toEqual([11, 12]);
+
+    // 索引に載ったあと、操作しなくても次の取り直しで入る
+    waiting.clear();
+    await act(async () => {
+      vi.advanceTimersByTime(90 * 1000);
+    });
+
+    await waitFor(() => expect(cardIds()).toEqual([1, 11, 12]));
+    const settled = resultCalls();
+
+    // 出さずにいる大会が無くなれば、取り直しは止まる
+    await act(async () => {
+      vi.advanceTimersByTime(5 * 60 * 1000);
+    });
+    expect(resultCalls()).toBe(settled);
+  });
+
+  // 索引に入らないまま終わる大会を永久に隠さない
+  it("開催日が一昨日以前の大会は、分類待ちでも出す", async () => {
+    vi.useFakeTimers({ toFake: ["Date"], now: new Date("2026-10-10T21:00:00+09:00") });
+    stubUpstream(
+      () => [resultWithDeck(1, "2026-10-08", "P-1"), result(11, "2026-10-07"), result(12, "2026-10-07")],
+      () => new Set(["P-1"]),
+    );
+
+    render(
+      <CityleagueResults league_type={1} scheduleContext={{ ...ONGOING, startDate: "2026-10-08" }} />,
+    );
+
+    await waitFor(() => expect(cardIds()).toEqual([1]));
+  });
+
+  it("その日の大会が全部分類待ちなら、1ページ目は前の日から出す", async () => {
+    vi.useFakeTimers({ toFake: ["Date"], now: new Date("2026-10-08T21:00:00+09:00") });
+    stubUpstream(
+      () => [
+        resultWithDeck(1, "2026-10-08", "P-1"),
+        result(11, "2026-10-07"),
+        result(12, "2026-10-07"),
+      ],
+      () => new Set(["P-1"]),
+    );
+
+    // サーバで取れなかったとき(ブラウザ側で1ページ目を探す)
+    render(
+      <CityleagueResults
+        league_type={1}
+        scheduleContext={{ ...ONGOING, startDate: "2026-10-08" }}
+      />,
+    );
+
+    await waitFor(() => expect(cardIds()).toEqual([11, 12]));
   });
 
   it("選ばれていないタブは、アプリへ戻ってきても取りに行かない", async () => {

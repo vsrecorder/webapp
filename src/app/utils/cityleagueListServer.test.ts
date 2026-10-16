@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { resetRecentDeckArchetypesForTest } from "@app/utils/cityleagueAwaitingServer";
 import { getCityleagueListInitialData } from "@app/utils/cityleagueListServer";
 import { LIST_REVALIDATE_SECONDS } from "@app/utils/coreApi";
+import { lookupDeckArchetypesByCodes } from "@app/utils/deckArchetypeServer";
 
 // 一覧の組み立てに要る周辺の取得は、ここでは中身を問わない
 vi.mock("@app/utils/officialEventListServer", () => ({
@@ -9,6 +11,7 @@ vi.mock("@app/utils/officialEventListServer", () => ({
 }));
 vi.mock("@app/utils/deckArchetypeServer", () => ({
   getDeckArchetypesByCodes: vi.fn().mockResolvedValue({}),
+  lookupDeckArchetypesByCodes: vi.fn().mockResolvedValue({ decks: {}, pending: [] }),
 }));
 
 const SCHEDULE = {
@@ -26,6 +29,7 @@ describe("getCityleagueListInitialData", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-10-16T12:00:00+09:00"));
+    resetRecentDeckArchetypesForTest();
   });
 
   afterEach(() => {
@@ -73,5 +77,55 @@ describe("getCityleagueListInitialData", () => {
         next: { revalidate: LIST_REVALIDATE_SECONDS },
       }),
     );
+  });
+
+  /*
+   * 大会結果はバトラボの索引より数分早く入る。分類が揃わない大会は出さず、
+   * その日の大会が全部そうなら前の日を1ページ目にする。
+   */
+  it("デッキ分類がまだ揃わない大会を除き、全部そうなら前の日から出す(判定はハブと同じ 1 枚)", async () => {
+    const winner = (deckCode: string) => [{ rank: 1, deck_code: deckCode }];
+    const byDate: Record<string, unknown[]> = {
+      "2026-10-16": [
+        { official_event_id: 1, league_type: 2, date: "2026-10-16T00:00:00+09:00", cityleague_schedule_id: "2027s1", results: winner("P-1") },
+      ],
+      "2026-10-15": [
+        { official_event_id: 2, league_type: 2, date: "2026-10-15T00:00:00+09:00", cityleague_schedule_id: "2027s1", results: winner("P-2") },
+        { official_event_id: 3, league_type: 2, date: "2026-10-15T00:00:00+09:00", cityleague_schedule_id: "2027s1", results: winner("R-1") },
+      ],
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        if (url.includes("/cityleague_schedules")) return jsonResponse(SCHEDULE);
+
+        // 一覧は 1 日ずつ、分類待ちの判定は今日・昨日をまとめて取る
+        const params = new URL(url, "http://localhost").searchParams;
+        const from = params.get("from_date")!;
+        const to = params.get("to_date")!;
+        const hits = Object.entries(byDate)
+          .filter(([date]) => from <= date && date <= to)
+          .flatMap(([, results]) => results);
+        return jsonResponse({ count: hits.length, event_results: hits });
+      }),
+    );
+    vi.mocked(lookupDeckArchetypesByCodes).mockImplementation(async (codes) => ({
+      decks: Object.fromEntries(
+        codes
+          .filter((code) => !code.startsWith("P-"))
+          .map((code) => [
+            code,
+            { deckCode: code, archetypeName: "x", variantName: null, label: "x", sprites: [] },
+          ]),
+      ),
+      pending: codes.filter((code) => code.startsWith("P-")),
+    }));
+
+    const data = await getCityleagueListInitialData(2);
+
+    expect(data?.results.map((result) => result.official_event_id)).toEqual([3]);
+    expect(data?.nextFromDate).toBe("2026-10-14");
+    // 出した大会の種類は判定と同じ答えから取る(別に照会すると古いキャッシュで欠けることがある)
+    expect(Object.keys(data?.deckArchetypes ?? {})).toEqual(["R-1"]);
   });
 });

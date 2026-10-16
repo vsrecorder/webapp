@@ -7,7 +7,8 @@ import {
   CITYLEAGUE_REFRESH_MIN_INTERVAL_MS,
   isHeadRefreshDue,
   mergeHeadResults,
-  pickLatestDay,
+  groupResultsByDayDesc,
+  isSameEventOrder,
   planHeadRefresh,
 } from "@app/utils/cityleagueListRefresh";
 
@@ -111,20 +112,31 @@ describe("mergeHeadResults", () => {
   });
 });
 
-describe("pickLatestDay", () => {
-  it("最も新しい日のぶんと、続きの起点を返す", () => {
-    const picked = pickLatestDay([
+describe("groupResultsByDayDesc", () => {
+  it("日ごとに分けて新しい日から並べ、それぞれに続きの起点を添える", () => {
+    const days = groupResultsByDayDesc([
+      result(3, "2026-10-07"),
       result(1, "2026-10-08"),
       result(2, "2026-10-08"),
-      result(3, "2026-10-07"),
     ]);
 
-    expect(picked?.date).toBe("2026-10-08");
-    expect(ids(picked?.results ?? null)).toEqual([1, 2]);
-    expect(picked?.nextFromDate).toBe("2026-10-07");
+    expect(days.map((day) => day.date)).toEqual(["2026-10-08", "2026-10-07"]);
+    expect(ids(days[0].results)).toEqual([1, 2]);
+    expect(days[0].nextFromDate).toBe("2026-10-07");
+    expect(days[1].nextFromDate).toBe("2026-10-06");
   });
 
-  it("結果が無ければ null", () => {
-    expect(pickLatestDay([])).toBeNull();
+  it("結果が無ければ空", () => {
+    expect(groupResultsByDayDesc([])).toEqual([]);
+  });
+});
+
+describe("isSameEventOrder", () => {
+  it("同じ大会が同じ順に並んでいるときだけ true", () => {
+    const a = [result(1, "2026-10-08"), result(2, "2026-10-08")];
+
+    expect(isSameEventOrder(a, [result(1, "2026-10-08"), result(2, "2026-10-08")])).toBe(true);
+    expect(isSameEventOrder(a, [result(2, "2026-10-08"), result(1, "2026-10-08")])).toBe(false);
+    expect(isSameEventOrder(a, [result(1, "2026-10-08")])).toBe(false);
   });
 });

@@ -1,10 +1,11 @@
 import { cache } from "react";
 
-import { DeckArchetypeMap } from "@app/types/deck_archetype";
+import { DeckArchetypeLookup, DeckArchetypeMap } from "@app/types/deck_archetype";
 import {
   chunkDeckCodes,
   normalizeDeckCodes,
   parseDeckArchetypeResponse,
+  pendingDeckCodes,
 } from "@app/utils/deckArchetype";
 
 /*
@@ -33,8 +34,8 @@ const LIST_CODES_PER_REQUEST = 20;
 /*
  * Data Cache に置く時間。
  *
- * 大会結果は core-apiserver に先に入り、vslab の索引に載るのは数分遅れる(2026-09-27 の本番で
- * 実測。当日の大会が一覧に出た時点では vslab がまだ「無い」と答える)。コード照会はその間も
+ * 大会結果は core-apiserver に先に入り、vslab の索引に載るのは 15〜35 分遅れる(索引の取り込みは
+ * :15 と :45。当日の大会が一覧に出た時点では vslab がまだ「無い」と答える)。コード照会はその間も
  * 200 で返り(索引に無いコードは notFound に入るだけ)、Data Cache は 200 なら中身を問わず置くので、
  * 以前の 10 分では「一覧に分類が出ない」状態が最大 10 分(期限切れ後の最初の 1 回は古い応答を
  * 返すので実際はそれ以上)続いていた。応答の中身で置く時間を変える手段は fetch には無いので、
@@ -67,10 +68,19 @@ function vslabOrigin(): string {
  * 3 秒待って失敗したあと、本文用の取得がもう一度 3 秒待つので、入賞カードが出るまで 6 秒かかっていた
  * (シティリーグの個別ページで実測 6.4 秒)。失敗も「空の辞書」という結果として覚えておけば、
  * 2 回目は待たずに返る。cache は描画をまたがないので、次の閲覧では取り直す。
+ *
+ * 応答が得られなかった(通信の失敗・タイムアウト・404 以外のエラー)ときは null を返す。
+ * 「索引に無い」(404 や辞書に入っていないコード)とは分けておき、呼び出し側が
+ * 「まだ分類できない大会」を隠すときに、vslab の障害まで隠す理由に数えないようにする。
+ *
+ * fresh なら Data Cache を通さず、vslab の今の答えを聞く。分類待ちの判定(cityleagueAwaitingServer)が
+ * 自前の 1 枚のスナップショットに使う。Data Cache は URL ごとに別々の時刻で切れるので、
+ * 通すと画面ごとに答えが食い違う。
  */
 const fetchClassify = cache(async function fetchClassify(
   query: string,
-): Promise<DeckArchetypeMap> {
+  fresh: boolean = false,
+): Promise<DeckArchetypeMap | null> {
   const url = `${vslabOrigin()}/api/archetypes/classify?${query}`;
 
   let res: Response;
@@ -79,15 +89,17 @@ const fetchClassify = cache(async function fetchClassify(
     res = await fetch(url, {
       method: "GET",
       headers: { Accept: "application/json" },
-      // cache を明示しないと revalidate が効かない(理由は utils/coreApi.ts)
-      cache: "force-cache",
-      next: { revalidate: REVALIDATE_SECONDS },
+      // cache を明示しないと revalidate が効かない(理由は utils/coreApi.ts)。
+      // no-store と revalidate は併用すると両方無視されるので、片方だけ渡す
+      ...(fresh
+        ? { cache: "no-store" as const }
+        : { cache: "force-cache" as const, next: { revalidate: REVALIDATE_SECONDS } }),
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
   } catch (error) {
     console.warn(`failed to fetch deck archetypes from vslab: ${url}`, error);
 
-    return {};
+    return null;
   }
 
   // 404 は「その大会(コード)が vslab の索引に無い」。取り込みの遅れや提供範囲外で
@@ -97,10 +109,18 @@ const fetchClassify = cache(async function fetchClassify(
   if (!res.ok) {
     console.warn(`vslab responded ${res.status}: ${url}`);
 
-    return {};
+    return null;
   }
 
   const body: unknown = await res.json().catch(() => null);
+
+  // 形の違う応答は答えが無いものとして扱う(全部「索引に無い」と読むと結果がまるごと隠れる)
+  const decks = body && typeof body === "object" ? (body as { decks?: unknown }).decks : undefined;
+  if (!decks || typeof decks !== "object" || Array.isArray(decks)) {
+    console.warn(`vslab responded an unexpected body: ${url}`);
+
+    return null;
+  }
 
   return parseDeckArchetypeResponse(body);
 });
@@ -111,7 +131,7 @@ export async function getDeckArchetypesByEvent(
 ): Promise<DeckArchetypeMap> {
   if (!Number.isInteger(officialEventId) || officialEventId <= 0) return {};
 
-  return fetchClassify(`event=${officialEventId}`);
+  return (await fetchClassify(`event=${officialEventId}`)) ?? {};
 }
 
 /*
@@ -124,11 +144,25 @@ export async function getDeckArchetypesByCodes(
   codes: string[],
   context?: DeckArchetypeContext,
 ): Promise<DeckArchetypeMap> {
+  return (await lookupDeckArchetypesByCodes(codes, { context })).decks;
+}
+
+/*
+ * デッキコードで引き、まだ分類できないデッキ(pending)も返す(分類待ちの判定向け)。
+ *
+ * pending に入れるのは、応答が得られた塊のうち辞書に無かったコードだけ。
+ * 失敗した塊のコードは分類できるかどうか分からないので入れない。
+ * fresh の意味は fetchClassify と同じ。
+ */
+export async function lookupDeckArchetypesByCodes(
+  codes: string[],
+  { context, fresh = false }: { context?: DeckArchetypeContext; fresh?: boolean } = {},
+): Promise<DeckArchetypeLookup> {
   // 環境付きの照会は vslab 側の 1 回の上限が 20 件(1 件ずつ上流へ取りに行くため)。
   // 呼び出し側はイベント(区分×日)ごとに引くので、入賞 16 件で収まる
   const chunks = chunkDeckCodes(normalizeDeckCodes(codes), context ? LIST_CODES_PER_REQUEST : undefined);
 
-  if (chunks.length === 0) return {};
+  if (chunks.length === 0) return { decks: {}, pending: [] };
 
   // 大会の環境と日付を添えると、vslab の索引に無いデッキ(大型大会の入賞など)も
   // vslab がデッキの中身を取り寄せて同じ規則で判定する
@@ -138,11 +172,17 @@ export async function getDeckArchetypesByCodes(
 
   const maps = await Promise.all(
     chunks.map((chunk) =>
-      fetchClassify(`codes=${encodeURIComponent(chunk.join(","))}${contextQuery}`),
+      fetchClassify(`codes=${encodeURIComponent(chunk.join(","))}${contextQuery}`, fresh),
     ),
   );
 
-  return Object.assign({}, ...maps);
+  return {
+    decks: Object.assign({}, ...maps.map((map) => map ?? {})),
+    pending: chunks.flatMap((chunk, index) => {
+      const map = maps[index];
+      return map ? pendingDeckCodes(chunk, map) : [];
+    }),
+  };
 }
 
 /*

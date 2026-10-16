@@ -3,10 +3,12 @@ import type { ReactNode } from "react";
 
 import { renderToString } from "react-dom/server";
 
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import CityleagueEvent from "@app/components/organisms/Cityleague/CityleagueEvent";
+
+import { todayJSTDateString } from "@app/utils/date";
 
 // カルーセル本体はここの関心事ではない。中身をそのまま描くだけの箱に置き換える
 vi.mock("swiper/react", () => ({
@@ -46,6 +48,7 @@ function stubFetch(responses: (typeof EMPTY_EVENTS | null)[]) {
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  vi.useRealTimers();
 });
 
 describe("CityleagueEvent の取得失敗", () => {
@@ -182,6 +185,110 @@ describe("CityleagueEvent の入賞デッキの種類", () => {
     const url = requestedUrls.find((u) => u.includes("/deck_archetypes"))!;
     // 一覧に出ない順位(ベスト 16)は引かない
     expect(decodeURIComponent(url)).toBe("/api/cityleague_results/deck_archetypes?codes=a-1,b-1");
+  });
+
+  // 結果はバトラボの索引より 15〜35 分早く入る。分類が揃うまでは、結果がまだ無い会場と同じに見せる
+  function stubAwaitingDay(isIndexed: () => boolean) {
+    const event = (id: number, shop: string) => ({
+      id,
+      title: "シティリーグ",
+      shop_name: shop,
+      date: "2026-09-27T00:00:00+09:00",
+      league_title: "オープン",
+      prefecture_name: "東京都",
+      environment_title: "環境",
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        if (url.includes("/api/official_events")) {
+          return Response.json({ count: 2, official_events: [event(1, "店A"), event(2, "店B")] });
+        }
+        // サーバの判定(1 枚)。判定した日は今の時刻から決まる(日付をまたぐと進む)
+        if (url.includes("/recent_deck_archetypes")) {
+          return Response.json({
+            today: todayJSTDateString(),
+            checked: [1, 2],
+            awaiting: isIndexed() ? [] : [1],
+            decks: isIndexed()
+              ? { "a-1": { deckCode: "a-1", archetypeName: "x", variantName: null, label: "x", sprites: [] } }
+              : {},
+          });
+        }
+        if (url.includes("/deck_archetypes")) return Response.json({ decks: {} });
+        const date = "2026-10-17T00:00:00+09:00";
+        return Response.json({
+          count: 2,
+          event_results: [
+            { official_event_id: 1, date, cityleague_schedule_id: "2027s1", results: [{ rank: 1, deck_code: "a-1" }] },
+            { official_event_id: 2, date, cityleague_schedule_id: "2026s4", results: [{ rank: 1, deck_code: "b-1" }] },
+          ],
+        });
+      }),
+    );
+  }
+
+  it("デッキ分類がまだ揃わない大会は、結果が出ていない扱いにする", async () => {
+    vi.useFakeTimers({ toFake: ["Date"], now: new Date("2026-10-17T18:00:00+09:00") });
+    stubAwaitingDay(() => false);
+
+    render(<CityleagueEvent league_type={1} setLeagueTypeCount={() => {}} />);
+
+    // 分類の対象外のシーズン(店B)だけが「大会終了」になる
+    await waitFor(() => expect(screen.getAllByText("大会終了")).toHaveLength(1));
+    const finishedCard = screen.getByText("大会終了").closest("[class*='cursor-pointer']")!;
+    expect(finishedCard.textContent).toContain("店B");
+  });
+
+  // 開いたまま待っている人にも、索引に載りしだい結果を出す
+  // 索引に入らないまま終わる大会を、開いたままのパネルで隠し続けない
+  it("開いたまま待つ期間(今日・昨日)を過ぎたら、分類待ちでも結果を出して確かめ直しをやめる", async () => {
+    vi.useFakeTimers({
+      toFake: ["Date", "setInterval", "clearInterval"],
+      now: new Date("2026-10-18T23:59:30+09:00"),
+    });
+    const requests: string[] = [];
+    stubAwaitingDay(() => false);
+    const stubbed = vi.mocked(fetch);
+    stubbed.mockImplementation(((original) => async (url: string) => {
+      requests.push(url);
+      return original(url);
+    })(stubbed.getMockImplementation()!) as typeof fetch);
+
+    render(<CityleagueEvent league_type={1} setLeagueTypeCount={() => {}} date="2026-10-17" />);
+    await waitFor(() => expect(screen.getAllByText("大会終了")).toHaveLength(1));
+
+    // 日付が 10/19 に変わってから最初の確かめ直し
+    await act(async () => {
+      vi.advanceTimersByTime(60 * 1000);
+    });
+    await waitFor(() => expect(screen.getAllByText("大会終了")).toHaveLength(2));
+
+    const archetypeRequests = () => requests.filter((url) => url.includes("/deck_archetypes")).length;
+    const settled = archetypeRequests();
+    await act(async () => {
+      vi.advanceTimersByTime(5 * 60 * 1000);
+    });
+    expect(archetypeRequests()).toBe(settled);
+  });
+
+  it("分類待ちの間は確かめ直し、揃ったら結果を出す", async () => {
+    vi.useFakeTimers({
+      toFake: ["Date", "setInterval", "clearInterval"],
+      now: new Date("2026-10-17T18:00:00+09:00"),
+    });
+    let indexed = false;
+    stubAwaitingDay(() => indexed);
+
+    render(<CityleagueEvent league_type={1} setLeagueTypeCount={() => {}} />);
+    await waitFor(() => expect(screen.getAllByText("大会終了")).toHaveLength(1));
+
+    indexed = true;
+    await act(async () => {
+      vi.advanceTimersByTime(60 * 1000);
+    });
+
+    await waitFor(() => expect(screen.getAllByText("大会終了")).toHaveLength(2));
   });
 
   it("分類の提供範囲より前のシーズンでは引かない", async () => {

@@ -4,6 +4,7 @@ import { auth } from "@app/auth";
 
 import { UserPlayerCityleagueResultsGetResponseType } from "@app/types/user_player";
 
+import { withoutAwaitingCityleagueEvents } from "@app/utils/cityleagueAwaitingServer";
 import {
   UpstreamError,
   fetchUpstream,
@@ -54,7 +55,19 @@ export async function GET(request: NextRequest) {
       },
     );
 
-    return NextResponse.json(results, { status: 200 });
+    // デッキ分類(バトラボ)がまだ揃わない直近の大会は、結果一覧・個別ページと同じく出さない
+    // (リンク先の個別ページがまだ 404 になるため)。直近でなければ何も取らずに素通しする
+    const visible = await withoutAwaitingCityleagueEvents(results.results ?? [], (result) => ({
+      id: result.official_event_id,
+      date: result.date,
+    }));
+
+    return NextResponse.json(
+      visible.length === (results.results ?? []).length
+        ? results
+        : { ...results, count: visible.length, results: visible },
+      { status: 200 },
+    );
   } catch (error) {
     if (error instanceof UpstreamError && error.status === 404) {
       const empty: UserPlayerCityleagueResultsGetResponseType = {

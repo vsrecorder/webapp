@@ -32,14 +32,16 @@ import {
   CityleagueScheduleContext,
 } from "@app/utils/cityleagueListServer";
 import {
+  CITYLEAGUE_AWAITING_POLL_MS,
+  CityleagueResultDay,
+  groupResultsByDayDesc,
   isHeadRefreshDue,
+  isSameEventOrder,
   mergeHeadResults,
-  pickLatestDay,
   planHeadRefresh,
 } from "@app/utils/cityleagueListRefresh";
 import { toJSTDateString, todayJSTDateString } from "@app/utils/date";
-import { collectListedDeckCodes } from "@app/utils/deckArchetype";
-import { fetchDeckArchetypes } from "@app/utils/deckArchetypeClient";
+import { resolveDeckArchetypes } from "@app/utils/deckArchetypeClient";
 import {
   CITYLEAGUE_SCROLL_TO_ID_KEY,
   CITYLEAGUE_SCROLL_TO_LEAGUE_TYPE_KEY,
@@ -248,6 +250,14 @@ export default function CityleagueResults({
    * (間引きは isHeadRefreshDue)。取り直しは読み込み済みのぶんを残したまま上に差し込む。
    */
   const [refreshRequested, setRefreshRequested] = useState(!!initial);
+  /*
+   * デッキ分類(バトラボ)が揃わず出さずにいる大会があるか。
+   *
+   * 大会結果はバトラボの索引より 15〜35 分早く入るので、その間は一覧に出さない。開いたまま
+   * 待っている人にも揃いしだい出るよう、ある間だけ上端の取り直しを繰り返す
+   * (サーバで描いた1ページ目で隠したぶんは、マウント直後の取り直しで分かる)。
+   */
+  const [hasAwaiting, setHasAwaiting] = useState(false);
   // 最後に上端をそろえた時刻。サーバで取った1ページ目のままなら null(まだそろえていない)
   const lastSyncedAtRef = useRef<number | null>(null);
   // 一覧の描画範囲。差し込むときに位置を保つ基準のカードを探す
@@ -280,6 +290,20 @@ export default function CityleagueResults({
       window.removeEventListener("pageshow", onPageShow);
     };
   }, [isActive]);
+
+  // 出さずにいる大会がある間は、見えているときだけ間を置いて取り直す(間引きは isHeadRefreshDue)
+  useEffect(() => {
+    if (!isActive || !hasAwaiting) return;
+
+    const timer = setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      if (!isHeadRefreshDue(lastSyncedAtRef.current)) return;
+
+      setRefreshRequested(true);
+    }, CITYLEAGUE_AWAITING_POLL_MS);
+
+    return () => clearInterval(timer);
+  }, [isActive, hasAwaiting]);
 
   // 取り直しは最初の読み込みが済んでから。その間は続きの読み込みを止める(同じ一覧を同時に触らない)
   const isRefreshing = refreshRequested && isInitialLoaded;
@@ -381,22 +405,29 @@ export default function CityleagueResults({
            *
            * デッキの種類(バトラボ)も同時に引く。結果を出してから後で足すと、
            * 種類の行が後から現れてカードが伸びる(Swiper の高さも動く)ので、揃ってから出す。
+           * 分類がまだ揃わない大会(バトラボの索引への取り込み待ち)は出さない(判定はサーバの 1 枚で、
+           * ハブ・個別ページと同じ。resolveDeckArchetypes)。その日の大会が全部そうなら、
+           * 結果が無い日と同じく前の日へ進む。
            */
-          const [dayEvents, dayArchetypes] = await Promise.all([
+          const [dayEvents, resolved] = await Promise.all([
             fetchOfficialEventsByDate(league_type, date).catch(() => null),
-            fetchDeckArchetypes(collectListedDeckCodes(newItems.event_results)),
+            resolveDeckArchetypes(newItems.event_results, { leagueType: league_type, date }),
           ]);
           if (cancelled) return;
+
+          const readyItems = resolved.visible;
+          if (resolved.hasAwaiting) setHasAwaiting(true);
+          if (readyItems.length === 0) continue;
 
           if (dayEvents?.official_events.length) {
             setEvents((prev) => [...prev, ...dayEvents.official_events]);
           }
 
-          if (Object.keys(dayArchetypes).length > 0) {
-            setDeckArchetypes((prev) => ({ ...prev, ...dayArchetypes }));
+          if (Object.keys(resolved.decks).length > 0) {
+            setDeckArchetypes((prev) => ({ ...prev, ...resolved.decks }));
           }
 
-          setItems((prev) => [...prev, ...newItems.event_results]);
+          setItems((prev) => [...prev, ...readyItems]);
           setNextDate(shiftDateString(date, -1));
           setIsError(false);
           // 1ページ目を自分で取ったときは、それが最新。直後に取り直さない
@@ -454,29 +485,81 @@ export default function CityleagueResults({
           );
           if (cancelled) return;
 
-          const latest = plan.mode === "reset" ? pickLatestDay(fetched.event_results) : null;
-          const nextItems =
-            plan.mode === "merge"
-              ? mergeHeadResults(items, fetched.event_results, plan.fromDate)
-              : latest?.results ?? null;
-
-          if (nextItems) {
-            // 新しく出るカードの店舗名など(日単位)とデッキの種類を、出す前にそろえる(初回の読み込みと同じ)
-            const added = nextItems.filter((item) => !eventsById.has(item.official_event_id));
-            const addedDates = [...new Set(added.map((item) => toJSTDateString(item.date)))];
-            const [dayEvents, addedArchetypes] = await Promise.all([
+          /*
+           * 新しく出るカードの店舗名など(日単位)とデッキの種類を、出す前にそろえる(初回の読み込みと同じ)。
+           * 分類がまだ揃わない大会は除く。前回の取り直しで除いた大会も「今出ていない」ので
+           * ここで分類を引き直し、揃っていれば差し込む。
+           */
+          const shownIds = new Set(items.map((item) => item.official_event_id));
+          const prepare = async (candidates: CityleagueResultType[]) => {
+            const added = candidates.filter((item) => !shownIds.has(item.official_event_id));
+            const addedDates = [
+              ...new Set(
+                added
+                  .filter((item) => !eventsById.has(item.official_event_id))
+                  .map((item) => toJSTDateString(item.date)),
+              ),
+            ];
+            const [dayEvents, resolved] = await Promise.all([
               Promise.all(
                 addedDates.map((date) =>
                   fetchOfficialEventsByDate(league_type, date).catch(() => null),
                 ),
               ),
-              fetchDeckArchetypes(collectListedDeckCodes(added)),
+              resolveDeckArchetypes(added, { leagueType: league_type }),
             ]);
-            if (cancelled) return;
 
-            const newEvents = dayEvents
-              .flatMap((res) => res?.official_events ?? [])
-              .filter((event) => !eventsById.has(event.id));
+            // 出ている大会はそのまま残し、新しく出る大会は判定で出してよいものだけを足す
+            const visibleAdded = new Set(resolved.visible.map((item) => item.official_event_id));
+            const nextItems = candidates.filter(
+              (item) =>
+                shownIds.has(item.official_event_id) || visibleAdded.has(item.official_event_id),
+            );
+
+            return {
+              nextItems,
+              // 分類待ちで出さなかった大会があるか
+              hasAwaiting: resolved.hasAwaiting,
+              newEvents: dayEvents
+                .flatMap((res) => res?.official_events ?? [])
+                .filter((event) => !eventsById.has(event.id)),
+              addedArchetypes: resolved.decks,
+            };
+          };
+
+          let prepared: Awaited<ReturnType<typeof prepare>> | null = null;
+          // 出し直し(reset)で1ページ目に採った日
+          let latest: CityleagueResultDay | null = null;
+          // 取り直した範囲に、分類待ちで出さない大会が残っているか
+          let awaitingFound = false;
+
+          if (plan.mode === "merge") {
+            const merged = mergeHeadResults(items, fetched.event_results, plan.fromDate);
+            if (merged) {
+              const candidate = await prepare(merged);
+              awaitingFound = candidate.hasAwaiting;
+              // 増えたのが分類待ちの大会だけなら、並びは変わらないので描き直さない
+              if (!isSameEventOrder(candidate.nextItems, items)) prepared = candidate;
+            }
+          } else {
+            // 最も新しい日から、出せる大会がある日を探す(全部分類待ちの日は飛ばす)
+            for (const day of groupResultsByDayDesc(fetched.event_results)) {
+              const candidate = await prepare(day.results);
+              if (cancelled) return;
+              awaitingFound ||= candidate.hasAwaiting;
+              if (candidate.nextItems.length === 0) continue;
+
+              prepared = candidate;
+              latest = day;
+              break;
+            }
+          }
+          if (cancelled) return;
+
+          setHasAwaiting(awaitingFound);
+
+          if (prepared) {
+            const { nextItems, newEvents, addedArchetypes } = prepared;
 
             // 差し込み(merge)は見ている位置を保つ。出し直し(reset)は元のカードが残らないので保たない
             const anchor =

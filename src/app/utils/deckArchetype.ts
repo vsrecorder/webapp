@@ -1,8 +1,14 @@
 import { CityleagueResultType } from "@app/types/cityleague_result";
-import { DeckArchetypeMap, DeckArchetypeType } from "@app/types/deck_archetype";
+import {
+  DeckArchetypeMap,
+  DeckArchetypeType,
+  RecentDeckArchetypesType,
+} from "@app/types/deck_archetype";
 import { DeckSummaryType } from "@app/types/deckcard";
 import { DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
+import { shiftDateString } from "@app/utils/cityleagueListPage";
 import { isCityleagueListRank } from "@app/utils/cityleagueRank";
+import { toJSTDateString } from "@app/utils/date";
 import { formatMainPokemon } from "@app/utils/deckSummary";
 
 /*
@@ -70,6 +76,96 @@ export function collectListedDeckCodes(eventResults: CityleagueResultType[]): st
   }
 
   return [...codes];
+}
+
+/*
+ * 照会したデッキコードのうち、応答の辞書に無いもの(vslab の索引にまだ載っていない)。
+ *
+ * 照会に失敗した(応答が無い)ときは呼ばない。失敗まで「載っていない」と数えると、
+ * vslab が落ちている間に大会結果がまるごと見えなくなる。
+ */
+export function pendingDeckCodes(queried: string[], decks: DeckArchetypeMap): string[] {
+  return normalizeDeckCodes(queried).filter((code) => !decks[code]);
+}
+
+/*
+ * デッキ分類が揃うまで結果を出さずに待つ期間(開催日から何日前まで)。1 なら今日と昨日(JST)。
+ *
+ * 結果の取り込み(import-cityleague-result-job)は当日開催の大会を投入し、結果が公開されるまで
+ * 同じ日の夕方から夜に取り直すので、登録はほぼ当日中、遅くても翌日になる。vslab の索引は
+ * その 15〜35 分後に追いつく(索引の取り込みは :15 と :45)。
+ *
+ * 期間を区切るのは、索引に入らないまま終わる大会を永久に隠さないため。vslab の索引の取り込みは
+ * 入賞デッキが 1 件でも取れないと大会ごと飛ばし、取り込み後のキャッシュ破棄が届かなければ
+ * 「無い」という答えが最大 3 時間残る。期間を過ぎた大会は、分類が無くても従来どおり出す。
+ */
+export const DECK_ARCHETYPE_WAIT_DAYS = 1;
+
+// 開催日(date)が、分類を待つ期間に入っているか。today は JST の今日 "YYYY-MM-DD"。
+// 開催日が読めないときは期間外として扱う(隠さずに出す。日付の変換で一覧ごと落とさない)
+export function isWithinDeckArchetypeWait(
+  date: Date | string | null | undefined,
+  today: string,
+): boolean {
+  if (date === null || date === undefined || Number.isNaN(new Date(date).getTime())) {
+    return false;
+  }
+
+  return toJSTDateString(date) >= shiftDateString(today, -DECK_ARCHETYPE_WAIT_DAYS);
+}
+
+/*
+ * その大会の結果を、デッキ分類が揃うまで出さずにおくか。
+ *
+ * 入賞デッキのどれかが「まだ分類できない」(pending)なら出さない。大会結果は vslab の索引より
+ * 15〜35 分早く core-apiserver に入るので、その間に出すと種類の行が無いカードが並び、索引に
+ * 載ったあとで種類の行が足されてカードが伸びる。結果の登録前と同じく、まだ無いものとして扱う。
+ * 開催日が待つ期間(DECK_ARCHETYPE_WAIT_DAYS)を過ぎた大会は、分類が無くても出す。
+ */
+export function isAwaitingDeckArchetypes(
+  eventResult: CityleagueResultType,
+  pending: ReadonlySet<string>,
+  today: string,
+): boolean {
+  if (pending.size === 0) return false;
+  if (!isWithinDeckArchetypeWait(eventResult.date, today)) return false;
+
+  // 入賞の配列が欠けた応答でも一覧ごと止めない
+  return (eventResult.results ?? []).some((result) =>
+    pending.has(result.deck_code?.trim() ?? ""),
+  );
+}
+
+/*
+ * 直近の判定(RecentDeckArchetypesType)で、その大会をまだ出さずにおくか。
+ *
+ * 開催日が待つ期間を過ぎていれば出す。期間内なら、判定で確かめられていて分類が揃っている
+ * ときだけ出す(確かめられていない大会は、判定を作ったあとに登録されたもので、次の判定まで待つ)。
+ * 判定が無い(作れなかった)ときは何も隠さない。期間の境目は判定を作った日で決めるので、
+ * 端末の時計がずれていても画面ごとに食い違わない。
+ */
+export function isHiddenWhileAwaiting(
+  officialEventId: number,
+  date: Date | string | null | undefined,
+  recent: Pick<RecentDeckArchetypesType, "today" | "checked" | "awaiting"> | null | undefined,
+): boolean {
+  if (!recent) return false;
+  if (!isWithinDeckArchetypeWait(date, recent.today)) return false;
+
+  return !recent.checked.includes(officialEventId) || recent.awaiting.includes(officialEventId);
+}
+
+// 分類が揃っている大会の結果だけを残す(並びは保つ)。today は JST の今日 "YYYY-MM-DD"
+export function withoutAwaitingDeckArchetypes(
+  eventResults: CityleagueResultType[],
+  pending: string[],
+  today: string,
+): CityleagueResultType[] {
+  const pendingSet = new Set(pending);
+
+  return eventResults.filter(
+    (eventResult) => !isAwaitingDeckArchetypes(eventResult, pendingSet, today),
+  );
 }
 
 /*

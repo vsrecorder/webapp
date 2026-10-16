@@ -29,6 +29,16 @@ export const CITYLEAGUE_REFRESH_MERGE_DAYS = 7;
 export const CITYLEAGUE_REFRESH_MIN_INTERVAL_MS = 60 * 1000;
 
 /*
+ * デッキ分類が揃わず出さずにいる大会があるときに、取り直す頃合いかを確かめる間隔。
+ *
+ * 取り直すのは前回そろえてから CITYLEAGUE_REFRESH_MIN_INTERVAL_MS 経ったときだけ(isHeadRefreshDue)。
+ * 頃合いでないのに取り直しを求めると、その間「更に読み込む」の読み込みが打ち切られてやり直しになる
+ * (取り直しの間は続きの読み込みを止める作りのため)ので、求める前に確かめる。
+ * 確かめるのは安いので細かく刻み、揃ってから出るまでをほぼ 1 分に収める。
+ */
+export const CITYLEAGUE_AWAITING_POLL_MS = 10 * 1000;
+
+/*
  * 取り直す頃合いか。lastSyncedAt は最後に上端をそろえた時刻(ミリ秒)。
  * まだ一度もそろえていない(サーバで取った1ページ目のまま)なら null を渡す。
  */
@@ -89,29 +99,44 @@ export function mergeHeadResults(
   const older = current.filter((item) => toJSTDateString(item.date) < fromDate);
   const merged = [...fetched, ...older];
 
-  const unchanged =
-    merged.length === current.length &&
-    merged.every((item, i) => item.official_event_id === current[i].official_event_id);
-
-  return unchanged ? null : merged;
+  return isSameEventOrder(merged, current) ? null : merged;
 }
 
+// 同じ大会が同じ順に並んでいるか(描き直しが要らないか)
+export function isSameEventOrder(
+  a: CityleagueResultType[],
+  b: CityleagueResultType[],
+): boolean {
+  return (
+    a.length === b.length &&
+    a.every((item, i) => item.official_event_id === b[i].official_event_id)
+  );
+}
+
+export type CityleagueResultDay = {
+  date: string;
+  results: CityleagueResultType[];
+  // 続きを読み込むときの起点(その日の前日)
+  nextFromDate: string;
+};
+
 /*
- * 取り直した結果のうち、最も新しい日のぶんと、続きを読み込むときの起点。
- * 結果が無ければ null。
+ * 取り直した結果を日ごとに分け、新しい日から並べる。日の中の並びは保つ。
+ *
+ * 出し直し(reset)では最も新しい日を1ページ目にするが、その日の大会が全部デッキ分類待ちで
+ * 出せないときは次に新しい日を使うので、日の順に候補を渡す。
  */
-export function pickLatestDay(
-  fetched: CityleagueResultType[],
-): { date: string; results: CityleagueResultType[]; nextFromDate: string } | null {
-  if (fetched.length === 0) return null;
+export function groupResultsByDayDesc(fetched: CityleagueResultType[]): CityleagueResultDay[] {
+  const byDate = new Map<string, CityleagueResultType[]>();
 
-  const date = fetched
-    .map((item) => toJSTDateString(item.date))
-    .reduce((latest, d) => (d > latest ? d : latest));
+  for (const item of fetched) {
+    const date = toJSTDateString(item.date);
+    const list = byDate.get(date);
+    if (list) list.push(item);
+    else byDate.set(date, [item]);
+  }
 
-  return {
-    date,
-    results: fetched.filter((item) => toJSTDateString(item.date) === date),
-    nextFromDate: shiftDateString(date, -1),
-  };
+  return [...byDate.entries()]
+    .sort(([a], [b]) => (a < b ? 1 : a > b ? -1 : 0))
+    .map(([date, results]) => ({ date, results, nextFromDate: shiftDateString(date, -1) }));
 }

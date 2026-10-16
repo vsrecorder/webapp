@@ -6,6 +6,7 @@ import {
   OfficialEventType,
   OfficialEventUpstreamResponseType,
 } from "@app/types/official_event";
+import { withoutAwaitingCityleagueEvents } from "@app/utils/cityleagueAwaitingServer";
 import { LIST_REVALIDATE_SECONDS, getJson } from "@app/utils/coreApi";
 import { toJSTDateString } from "@app/utils/date";
 
@@ -46,6 +47,10 @@ export type CityleagueEventRef = {
 // 結果が登録されている全イベントを返す。sitemap と各ハブページの絞り込みに使う。
 // 入賞者まで返す /cityleague_results は全期間で十数MBに達するため、イベント単位に畳んだ
 // /cityleague_results/events を使う。league_type を省略すると全リーグが対象になる。
+//
+// デッキ分類(バトラボ)がまだ揃わない直近の大会は含めない。結果一覧と個別ページはその大会を
+// まだ出さないので、ハブや関連リンクに残すと一覧に無い大会が並び、押すと 404 になる
+// (cityleagueAwaitingServer)。
 export async function getAllCityleagueEventRefs(): Promise<CityleagueEventRef[]> {
   // 新しい結果が登録されると増えるので、確定した個別ページより短く持つ
   const ret = await getJson<CityleagueResultGetEventsResponseType>(
@@ -53,39 +58,19 @@ export async function getAllCityleagueEventRefs(): Promise<CityleagueEventRef[]>
     LIST_REVALIDATE_SECONDS,
   );
 
-  return (ret?.events ?? []).map((event) => ({
+  const refs = (ret?.events ?? []).map((event) => ({
     id: event.official_event_id,
     date: String(event.date),
   }));
+
+  return withoutAwaitingCityleagueEvents(refs, (ref) => ref);
 }
 
-// 開催日ページでリーグ区分ごとの開催数を見せるときの並び順。
-// タブ一覧(cityleagueListPrefs.CITYLEAGUE_TABS)と同じオープン→シニア→ジュニア
-const LEAGUE_TITLE_ORDER = ["オープン", "シニア", "ジュニア"];
-
-export type CityleagueLeagueCount = {
-  leagueTitle: string;
-  count: number;
-};
-
-// events を league_title でグルーピングし、区分ごとの開催数を返す。
-export function countEventsByLeagueTitle(
-  events: OfficialEventType[],
-): CityleagueLeagueCount[] {
-  const counts = new Map<string, number>();
-  for (const event of events) {
-    counts.set(event.league_title, (counts.get(event.league_title) ?? 0) + 1);
-  }
-
-  const indexOf = (leagueTitle: string) => {
-    const index = LEAGUE_TITLE_ORDER.indexOf(leagueTitle);
-    return index === -1 ? LEAGUE_TITLE_ORDER.length : index;
-  };
-
-  return [...counts.entries()]
-    .map(([leagueTitle, count]) => ({ leagueTitle, count }))
-    .sort((a, b) => indexOf(a.leagueTitle) - indexOf(b.leagueTitle));
-}
+// リーグ区分ごとの開催数は、クライアント部品からも使うので別ファイルに置く(このファイルはサーバ側の取得を含む)
+export {
+  type CityleagueLeagueCount,
+  countEventsByLeagueTitle,
+} from "@app/utils/cityleagueLeagueCount";
 
 // 期間で区切られたグルーピングの軸。シーズン（cityleague_schedules）と環境（environments）は
 // どちらも id / title / from_date / to_date を持つため、同じ形で扱える。

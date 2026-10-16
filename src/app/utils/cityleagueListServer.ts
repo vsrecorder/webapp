@@ -14,7 +14,15 @@ import {
 } from "@app/utils/cityleagueListPage";
 import { LIST_REVALIDATE_SECONDS, NO_STORE, getJson } from "@app/utils/coreApi";
 import { todayJSTDateString, toJSTDateString } from "@app/utils/date";
-import { collectListedDeckCodes } from "@app/utils/deckArchetype";
+import {
+  getRecentDeckArchetypes,
+  pickRecentDeckArchetypes,
+} from "@app/utils/cityleagueAwaitingServer";
+import {
+  collectListedDeckCodes,
+  isHiddenWhileAwaiting,
+  isWithinDeckArchetypeWait,
+} from "@app/utils/deckArchetype";
 import { getDeckArchetypesByCodes } from "@app/utils/deckArchetypeServer";
 import { getOfficialEventList } from "@app/utils/officialEventListServer";
 
@@ -57,7 +65,11 @@ export type CityleagueScheduleContext = {
 };
 
 export type CityleagueListInitialData = CityleagueScheduleContext & {
-  // 1ページ目(結果が登録されている直近1日ぶん)
+  /*
+   * 1ページ目(結果が登録されている直近1日ぶん)。
+   * デッキ分類がまだ揃わない大会(cityleagueAwaitingServer の判定)は含めない。
+   * その日の大会が全部そうなら、さらに前の日を1ページ目にする
+   */
   results: CityleagueResultType[];
   /*
    * その日の公式イベント。カードが店舗名・都道府県・リーグ区分に使う。
@@ -146,6 +158,10 @@ export const getCityleagueListInitialData = cache(
       /*
        * 結果が登録されている最初の日を探す。
        *
+       * デッキ分類(バトラボ)がまだ揃わない大会は出さないので、その日の大会が全部そうなら
+       * 結果が無い日と同じく前の日へ進む(開催日の夕方、最初の数大会が登録された直後など)。
+       * 出さなかった大会は、一覧が上端を取り直したときに分類が揃っていれば差し込まれる。
+       *
        * 並列に14日ぶん投げると上流への往復が常に14本になる。ここは1日目で当たることが
        * ほとんど(スケジュールの最終日は開催日)で、外れても上流は p50 15ms なので、
        * 素直に近い日から順に見る。
@@ -157,19 +173,36 @@ export const getCityleagueListInitialData = cache(
 
         // カードが使う店舗名などは日単位の一覧でまとめて取る(カードごとの取得を避ける)。
         // 取れなくてもカード側に個別取得のフォールバックがあるので、結果は返す。
-        // デッキの種類(バトラボ)も同じく 1 日ぶんをまとめて引き、取れなければ行が無いだけにする
-        const [events, deckArchetypes] = await Promise.all([
+        // デッキの種類(バトラボ)も同じく 1 日ぶんをまとめて引き、取れなければ行が無いだけにする。
+        // 直近(今日・昨日)の日は、出すかどうかと種類をサーバの判定 1 枚から取る(ハブ・個別ページと
+        // 食い違わないように。cityleagueAwaitingServer)。判定が無ければ何も隠さず、種類だけを引く
+        const isRecent = isWithinDeckArchetypeWait(date, today);
+        const fetchDecks = () =>
+          getDeckArchetypesByCodes(collectListedDeckCodes(results)).catch(
+            (): DeckArchetypeMap => ({}),
+          );
+        const [events, snapshot, olderDecks] = await Promise.all([
           getOfficialEventList("2", String(leagueType), date)
             .then((res) => res.official_events ?? [])
             .catch(() => []),
-          getDeckArchetypesByCodes(collectListedDeckCodes(results)).catch(() => ({})),
+          isRecent ? getRecentDeckArchetypes() : Promise.resolve(null),
+          isRecent ? Promise.resolve(null) : fetchDecks(),
         ]);
+        const recent = snapshot ? pickRecentDeckArchetypes(snapshot, { leagueType, date }) : null;
+
+        const readyResults = results.filter(
+          (result) => !isHiddenWhileAwaiting(result.official_event_id, result.date, recent),
+        );
+
+        if (readyResults.length === 0) continue;
+
+        const deckArchetypes = recent?.decks ?? olderDecks ?? (await fetchDecks());
 
         return {
           schedule,
           isOngoing,
           startDate,
-          results,
+          results: readyResults,
           events,
           deckArchetypes,
           nextFromDate: shiftDateString(date, -1),

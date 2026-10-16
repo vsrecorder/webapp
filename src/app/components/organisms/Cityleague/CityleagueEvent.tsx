@@ -22,10 +22,16 @@ import CityleagueEventCard from "@app/components/organisms/Cityleague/Cityleague
 import CityleagueEventSkeleton from "@app/components/organisms/Cityleague/Skeleton/CityleagueEventSkeleton";
 
 import { OfficialEventResponseType } from "@app/types/official_event";
-import { CityleagueResultGetResponseType } from "@app/types/cityleague_result";
+import {
+  CityleagueResultGetResponseType,
+  CityleagueResultType,
+} from "@app/types/cityleague_result";
 import { DeckArchetypeMap } from "@app/types/deck_archetype";
-import { collectListedDeckCodes } from "@app/utils/deckArchetype";
-import { fetchDeckArchetypes } from "@app/utils/deckArchetypeClient";
+import { isHiddenWhileAwaiting } from "@app/utils/deckArchetype";
+import {
+  fetchRecentDeckArchetypes,
+  resolveDeckArchetypes,
+} from "@app/utils/deckArchetypeClient";
 import FetchErrorBox from "@app/components/molecules/FetchErrorBox";
 
 async function fetchCityleagueInfoByDate(league_type: number, date: string) {
@@ -94,6 +100,18 @@ async function fetchCityleagueResultsByTerm(
   }
 }
 
+/*
+ * 結果の表示を、デッキ分類の照会のためにこれ以上待たせない上限。
+ *
+ * 分類がまだ揃わない大会を隠すには照会の答えが要るので、パネルは照会を待ってから結果を出す。
+ * 通常は数十 ms で返るが、vslab が応答しないと BFF が 3 秒待つ。それより早く諦めて、
+ * 判定できなかった大会は隠さずに出す(一覧と同じく、障害で結果が消えないほうに倒す)。
+ */
+const ARCHETYPE_TIMEOUT_MS = 1500;
+
+// 分類待ちの大会があるときに、揃ったかを確かめ直す間隔(BFF の先の Data Cache が 1 分)
+const AWAITING_POLL_MS = 60 * 1000;
+
 type Props = {
   league_type: number;
   setLeagueTypeCount: Dispatch<SetStateAction<number | undefined>>;
@@ -108,8 +126,16 @@ export default function CityleagueEvent({ league_type, setLeagueTypeCount, date 
   // プレビュー表示か(=今日以外の日付を指定されている)。空状態・エラーの文言を「本日」から変える
   const isPreview = date !== undefined;
   const [cityleague, setCityleague] = useState<OfficialEventResponseType | null>(null);
-  const [cityleagueResults, setCityleagueResults] =
-    useState<CityleagueResultGetResponseType | null>(null);
+  /*
+   * その日の結果。results は取ったまま、visible は分類待ちの大会を除いたもの(会場カードはこれを見て
+   * 「大会終了」と結果発表を出す)。hasAwaiting の間は揃ったかを確かめ直す。date は取った日。
+   */
+  const [cityleagueResults, setCityleagueResults] = useState<{
+    results: CityleagueResultType[];
+    visible: CityleagueResultType[];
+    hasAwaiting: boolean;
+    date: string;
+  } | null>(null);
   /*
    * 取得中かどうか。初期値は true(マウントするとすぐ取りに行くため)。
    *
@@ -128,23 +154,24 @@ export default function CityleagueEvent({ league_type, setLeagueTypeCount, date 
   /*
    * デッキコード → 種類(バトラボのデッキ分類)。会場カードから開く結果モーダルの入賞カードへ配る。
    *
-   * 結果が取れたあとに、その日の入賞ぶんを 1 回でまとめて引く(一覧ページと同じ BFF)。
-   * パネルの表示はこれを待たない(カード自体には種類を出さないので、待つと遅れるだけ)。
-   * 取れなかったデッキは入賞カードが種類の行を出さない。
+   * 結果が取れたあとに、出してよい大会と一緒にまとめて決める(resolveDeckArchetypes。一覧と同じ)。
+   * 分類がまだ揃わない大会(バトラボの索引への取り込み待ち)は、結果がまだ無いものとして扱う
+   * (「大会終了」を付けず、開くと開催情報を出す)。その判定はサーバの 1 枚で、一覧・ハブ・個別ページと
+   * 食い違わない。そのため結果はこの判定を待ってから確定させる。判定が取れなければ何も隠さない。
    */
   const [deckArchetypes, setDeckArchetypes] = useState<DeckArchetypeMap>({});
-  // 取り直し・リーグ区分の切り替えのあとに、前の取得の結果で上書きしないための通し番号
-  const archetypeRequestRef = useRef(0);
+
+  const visibleResults = useMemo(() => cityleagueResults?.visible ?? [], [cityleagueResults]);
 
   const sortedEvents = useMemo(() => {
     if (!cityleague?.official_events) return [];
 
-    if (!cityleagueResults?.event_results) {
+    if (visibleResults.length === 0) {
       return cityleague.official_events;
     }
 
     const orderMap = new Map(
-      cityleagueResults.event_results.map((result, index) => [
+      visibleResults.map((result, index) => [
         result.official_event_id,
         index,
       ]),
@@ -166,7 +193,7 @@ export default function CityleagueEvent({ league_type, setLeagueTypeCount, date 
       // 両方存在しない → 元順
       return 0;
     });
-  }, [cityleague, cityleagueResults]);
+  }, [cityleague, visibleResults]);
 
   /*
    * 取得中かどうかの二重起動ガード。
@@ -239,12 +266,20 @@ export default function CityleagueEvent({ league_type, setLeagueTypeCount, date 
         try {
           const data: CityleagueResultGetResponseType =
             await fetchCityleagueResultsByTerm(league_type, targetDate, targetDate);
-          setCityleagueResults(data);
 
-          const request = ++archetypeRequestRef.current;
-          fetchDeckArchetypes(collectListedDeckCodes(data.event_results)).then((map) => {
-            if (archetypeRequestRef.current === request) setDeckArchetypes(map);
+          const { visible, hasAwaiting, decks } = await resolveDeckArchetypes(data.event_results, {
+            leagueType: league_type,
+            date: targetDate,
+            timeoutMs: ARCHETYPE_TIMEOUT_MS,
           });
+
+          setCityleagueResults({
+            results: data.event_results,
+            visible,
+            hasAwaiting,
+            date: targetDate,
+          });
+          setDeckArchetypes(decks);
 
           return;
         } catch (error) {
@@ -264,6 +299,43 @@ export default function CityleagueEvent({ league_type, setLeagueTypeCount, date 
 
     load();
   }, [league_type, setLeagueTypeCount, reloadKey, date]);
+
+  /*
+   * 分類待ちの大会がある間は、見えているときだけサーバの判定を取り直す。揃った大会には
+   * 「大会終了」が付く。結果そのものは取り直さない(登録済みの結果は変わらない)。
+   *
+   * 判定が取れなかったとき(429 や障害)は今の表示のままにする。待ちを解くと分類の無いまま出てしまう。
+   * 開いたまま日付をまたいで待つ期間(今日・昨日)を過ぎた大会は、判定の日付が進むので出る
+   * (索引に入らないまま終わる大会を隠し続けない)。隠す大会が無くなれば取り直しもやめる。
+   */
+  useEffect(() => {
+    if (!cityleagueResults?.hasAwaiting) return;
+
+    const { results, date: resultsDate } = cityleagueResults;
+    let cancelled = false;
+    const timer = setInterval(async () => {
+      if (document.visibilityState !== "visible") return;
+
+      const recent = await fetchRecentDeckArchetypes({ leagueType: league_type, date: resultsDate });
+      if (cancelled || !recent) return;
+
+      const visible = results.filter(
+        (result) => !isHiddenWhileAwaiting(result.official_event_id, result.date, recent),
+      );
+
+      setDeckArchetypes((prev) => ({ ...prev, ...recent.decks }));
+      setCityleagueResults((prev) =>
+        prev && prev.results === results
+          ? { ...prev, visible, hasAwaiting: visible.length < results.length }
+          : prev,
+      );
+    }, AWAITING_POLL_MS);
+
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [cityleagueResults, league_type]);
 
   return (
     <>
@@ -356,13 +428,7 @@ export default function CityleagueEvent({ league_type, setLeagueTypeCount, date 
                       event={event}
                       onModalOpenChange={handleModalOpenChange}
                       deck_archetypes={deckArchetypes}
-                      results={
-                        cityleagueResults
-                          ? cityleagueResults?.event_results
-                            ? cityleagueResults.event_results
-                            : []
-                          : []
-                      }
+                      results={visibleResults}
                     />
                   </SwiperSlide>
                 ))}

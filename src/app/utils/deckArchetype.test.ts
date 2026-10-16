@@ -13,9 +13,13 @@ import {
   deckDisplayName,
   isDeckArchetypeChampionsleague,
   isDeckArchetypeSeason,
+  isHiddenWhileAwaiting,
+  isWithinDeckArchetypeWait,
   normalizeDeckCodes,
   parseDeckArchetypeResponse,
+  pendingDeckCodes,
   seasonYearOfScheduleId,
+  withoutAwaitingDeckArchetypes,
 } from "@app/utils/deckArchetype";
 
 function eventResult(
@@ -79,6 +83,97 @@ describe("collectListedDeckCodes", () => {
     ]);
 
     expect(codes).toEqual(["AAAAAA-111111-AAAAAA", "BBBBBB-222222-BBBBBB"]);
+  });
+});
+
+describe("pendingDeckCodes", () => {
+  it("照会したコードのうち、応答の辞書に無いもの(索引への取り込み待ち)を返す", () => {
+    const decks = {
+      "AAAAAA-111111-AAAAAA": {
+        deckCode: "AAAAAA-111111-AAAAAA",
+        archetypeName: null,
+        variantName: null,
+        label: null,
+        sprites: [],
+      },
+    };
+
+    // 未分類(label が null)は索引にはあるので待たない。空や形の違うコードは数えない
+    expect(
+      pendingDeckCodes(["AAAAAA-111111-AAAAAA", "BBBBBB-222222-BBBBBB", "", "bad code"], decks),
+    ).toEqual(["BBBBBB-222222-BBBBBB"]);
+  });
+});
+
+describe("withoutAwaitingDeckArchetypes", () => {
+  // 結果は vslab の索引より先に入る。揃うまでは結果の登録前と同じく出さない
+  it("入賞デッキのどれかが分類待ちの大会を除き、並びは保つ", () => {
+    const ready1 = { ...eventResult("2027s1", [{ rank: 1, deck_code: "A-1" }]), official_event_id: 1 };
+    const awaiting = {
+      ...eventResult("2027s1", [
+        { rank: 1, deck_code: "B-1" },
+        { rank: 5, deck_code: "B-2" },
+      ]),
+      official_event_id: 2,
+    };
+    const ready2 = { ...eventResult("2026s4", [{ rank: 1, deck_code: "C-1" }]), official_event_id: 3 };
+
+    // 開催日(2026-09-26)の翌日に見ている
+    const ids = withoutAwaitingDeckArchetypes([ready1, awaiting, ready2], ["B-2"], "2026-09-27").map(
+      (result) => result.official_event_id,
+    );
+
+    expect(ids).toEqual([1, 3]);
+  });
+
+  it("分類待ちが無ければ(vslab が応答しなかったときも)そのまま返す", () => {
+    const results = [eventResult("2027s1", [{ rank: 1, deck_code: "A-1" }])];
+
+    expect(withoutAwaitingDeckArchetypes(results, [], "2026-09-26")).toEqual(results);
+  });
+
+  // vslab の索引に入らないまま終わる大会(デッキ詳細が取れず大会ごと飛ばされた等)を永久に隠さない
+  it("開催日が待つ期間(今日・昨日)を過ぎた大会は、分類待ちでも出す", () => {
+    const results = [eventResult("2027s1", [{ rank: 1, deck_code: "A-1" }])];
+
+    expect(withoutAwaitingDeckArchetypes(results, ["A-1"], "2026-09-27")).toEqual([]);
+    expect(withoutAwaitingDeckArchetypes(results, ["A-1"], "2026-09-28")).toEqual(results);
+  });
+});
+
+describe("isHiddenWhileAwaiting", () => {
+  const recent = { today: "2026-10-17", checked: [1, 2], awaiting: [1] };
+  const day = (date: string) => `${date}T00:00:00+09:00`;
+
+  it("直近の大会は、判定で確かめられていて分類が揃っているときだけ出す", () => {
+    expect(isHiddenWhileAwaiting(1, day("2026-10-17"), recent)).toBe(true);
+    expect(isHiddenWhileAwaiting(2, day("2026-10-16"), recent)).toBe(false);
+    // 判定を作ったあとに登録された大会は、次の判定まで待つ
+    expect(isHiddenWhileAwaiting(3, day("2026-10-17"), recent)).toBe(true);
+  });
+
+  it("待つ期間を過ぎた大会と、判定が無いときは隠さない", () => {
+    expect(isHiddenWhileAwaiting(1, day("2026-10-15"), recent)).toBe(false);
+    expect(isHiddenWhileAwaiting(1, day("2026-10-17"), null)).toBe(false);
+  });
+
+  // 端末の時計がずれていても画面ごとに食い違わないよう、期間の境目は判定を作った日で決める
+  it("期間の境目は判定の日(today)で決める", () => {
+    expect(isHiddenWhileAwaiting(1, day("2026-10-17"), { ...recent, today: "2026-10-19" })).toBe(false);
+  });
+});
+
+describe("isWithinDeckArchetypeWait", () => {
+  it("JST の開催日が今日か昨日なら期間内", () => {
+    // JST 2026-10-16 0:00 は UTC では前日
+    expect(isWithinDeckArchetypeWait("2026-10-16T00:00:00+09:00", "2026-10-17")).toBe(true);
+    expect(isWithinDeckArchetypeWait("2026-10-17T00:00:00+09:00", "2026-10-17")).toBe(true);
+    expect(isWithinDeckArchetypeWait("2026-10-15T00:00:00+09:00", "2026-10-17")).toBe(false);
+  });
+
+  it("開催日が読めなければ期間外(隠さない)", () => {
+    expect(isWithinDeckArchetypeWait(undefined, "2026-10-17")).toBe(false);
+    expect(isWithinDeckArchetypeWait("not a date", "2026-10-17")).toBe(false);
   });
 });
 

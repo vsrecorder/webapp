@@ -7,7 +7,7 @@ import { Tabs, Tab } from "@heroui/react";
 import CityleagueEventLinkList from "@app/components/organisms/Cityleague/CityleagueEventLinkList";
 
 import { OfficialEventType } from "@app/types/official_event";
-import { countEventsByLeagueTitle } from "@app/utils/cityleague";
+import { countEventsByLeagueTitle } from "@app/utils/cityleagueLeagueCount";
 
 type Props = {
   events: OfficialEventType[];

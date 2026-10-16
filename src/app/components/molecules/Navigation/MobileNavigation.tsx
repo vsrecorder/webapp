@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 import { navItems, isActiveRoute } from "./navItems";
 import { useNavPendingHref } from "./useNavPendingHref";
+import { useTapDuringScroll } from "./useTapDuringScroll";
 
 // 下部ナビを出さないページ。
 // /kizuna は新機能のプロモーションページで、1枚の縦長LPとして最後まで読ませたいため、
@@ -15,6 +16,12 @@ export default function MobileNavigation() {
   const pathname = usePathname();
   // タップした項目を遷移先が描かれるまで選択中の見た目にする(useNavPendingHref 参照)
   const { pending, markPending } = useNavPendingHref(pathname);
+  const router = useRouter();
+  // スクロール中に押すと click が出ず遷移しないので、そのときだけ touchend で遷移させる(useTapDuringScroll 参照)
+  const { handlersFor } = useTapDuringScroll((href) => {
+    markPending(href);
+    router.push(href);
+  });
 
   if (HIDDEN_PATHNAMES.includes(pathname)) return null;
 
@@ -51,6 +58,7 @@ export default function MobileNavigation() {
         {navItems.map(({ href, label, icon: Icon, prefetch }) => {
           const current = isActiveRoute(pathname, href);
           const active = current || pending === href;
+          const tapHandlers = handlersFor(href);
           return (
             <Link
               key={href}
@@ -59,7 +67,14 @@ export default function MobileNavigation() {
               prefetch={prefetch}
               aria-label={label}
               aria-current={current ? "page" : undefined}
-              onClick={() => markPending(href)}
+              onTouchStart={tapHandlers.onTouchStart}
+              onTouchEnd={tapHandlers.onTouchEnd}
+              onTouchCancel={tapHandlers.onTouchCancel}
+              onClick={(e) => {
+                // touchend で遷移させた直後の click は打ち消される(Link は遷移しない)
+                tapHandlers.onClick(e);
+                if (!e.defaultPrevented) markPending(href);
+              }}
               /*
                 選択中は色だけで示す。面を敷くと、丸めた角に四角い塗りがぶつかって
                 両端の項目だけ角が欠けて見える。

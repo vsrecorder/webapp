@@ -12,7 +12,7 @@ import {
   resolveSearchStartDate,
   shiftDateString,
 } from "@app/utils/cityleagueListPage";
-import { LIST_REVALIDATE_SECONDS, getJson } from "@app/utils/coreApi";
+import { LIST_REVALIDATE_SECONDS, NO_STORE, getJson } from "@app/utils/coreApi";
 import { todayJSTDateString, toJSTDateString } from "@app/utils/date";
 import { collectListedDeckCodes } from "@app/utils/deckArchetype";
 import { getDeckArchetypesByCodes } from "@app/utils/deckArchetypeServer";
@@ -28,9 +28,9 @@ import { getOfficialEventList } from "@app/utils/officialEventListServer";
  * (API 自体の合計は 380ms で、待ちの大半は往復の直列と JS の実行)。
  * 記録一覧・デッキ一覧・ダッシュボードと同じく、ここで取って HTML に載せる。
  *
- * 一覧の中身は利用者によらず全員同じなので、上流の取得は Data Cache に載る
- * (getJson / getOfficialEventList はどちらも force-cache + 5分)。同じ時間帯に
- * 見る人が増えても上流への往復は増えない。
+ * 一覧の中身は利用者によらず全員同じなので、スケジュールと公式イベントは Data Cache に載る
+ * (getJson / getOfficialEventList はどちらも force-cache + 5分)。結果だけは新着が
+ * 古く見えないよう毎回取る(getResultsByDate)。
  *
  * 取得に失敗したら null を返す。ページはこれまでどおりブラウザ側が取り直すので、
  * 一覧が出なくなることはない(遅くなるだけ)。
@@ -99,13 +99,25 @@ async function getCurrentOrLatestSchedule(
   return past[0] ?? null;
 }
 
+/*
+ * 結果は Data Cache を通さず毎回取る。
+ *
+ * 一覧はマウント直後に先頭の日を BFF(no-store)で取り直す(cityleagueListRefresh)。
+ * ここが 5 分キャッシュだと、その間に登録された結果がサーバ描画には無く、
+ * 「直近の結果が一瞬出てから最新が差し込まれる」見え方になっていた。
+ * しかも期限切れ後の最初の1回はまだ古い値を返す(裏で更新する)ので、見る人が少ない
+ * 時間帯ほど古さは 5 分を超える。取り直しと同じ鮮度にそろえれば、取り直しは差分なしで
+ * 何も描き直さない(mergeHeadResults が null を返す)。
+ *
+ * 1ページ目はほぼ1日目で当たるので、上流への往復は1表示あたり1本程度。
+ */
 async function getResultsByDate(
   leagueType: number,
   date: string,
 ): Promise<CityleagueResultType[]> {
   const ret = await getJson<CityleagueResultGetResponseType>(
     `/api/v1beta/cityleague_results?league_type=${leagueType}&from_date=${date}&to_date=${date}`,
-    LIST_REVALIDATE_SECONDS,
+    NO_STORE,
   );
 
   return ret?.count ? ret.event_results : [];

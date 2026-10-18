@@ -1,6 +1,7 @@
 "use client";
 
 import { MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 
 import { useReturnTargetItem } from "@app/hooks/useReturnTargetItem";
 import { hasReturnedHereSince } from "@app/utils/returnNavigation";
@@ -30,6 +31,7 @@ export function useRestoredPostList<S extends PostListReturnState>(
   key: string,
   belongsHere: (state: S) => boolean,
 ): S | null {
+  const pathname = usePathname();
   const saved = useReturnTargetItem(key);
   const [restoredRaw, setRestoredRaw] = useState<string | null>(null);
   if (saved !== null && saved !== restoredRaw) setRestoredRaw(saved);
@@ -38,7 +40,7 @@ export function useRestoredPostList<S extends PostListReturnState>(
   const mine = state !== null && belongsHere(state);
   // 戻ってきたとき(ブラウザの戻る/進む・ページ内の戻るリンク)だけ戻す。控えを置いたまま
   // 別の経路で開き直したときは先頭から(utils/returnNavigation)
-  const accepted = mine && hasReturnedHereSince(state.savedAt);
+  const accepted = mine && hasReturnedHereSince(state.savedAt, pathname ?? undefined);
 
   /*
    * この一覧の控えなのに使わなかったら消す。残すと、この一覧から別のページへ進んで

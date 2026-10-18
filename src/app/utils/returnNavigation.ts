@@ -38,9 +38,18 @@ function loadedHereByHistoryTraversal(): boolean {
   }
 }
 
-// time(Date.now() の値)より後に、今いるページへ戻ってきたか
-export function hasReturnedHereSince(time: number): boolean {
-  if (lastReturn.at > time && lastReturn.path === window.location.pathname) return true;
+/*
+ * time(Date.now() の値)より後に、今いるページへ戻ってきたか。
+ *
+ * 描画中に呼ぶときは path に usePathname() を渡す。リンクでの移動(戻るリンク)では、
+ * 移動先の最初の描画の時点で URL がまだ移動前のページのままで、location で比べると
+ * その描画だけ「戻ってきていない」になる(バトルレポートの一覧で1フレームだけ取得中の表示が出た)。
+ */
+export function hasReturnedHereSince(
+  time: number,
+  path: string = window.location.pathname,
+): boolean {
+  if (lastReturn.at > time && lastReturn.path === path) return true;
 
   // ページごと読み込まれた場合は、読み込んだ時刻をこのページへ戻った時刻とみなす
   return loadedHereByHistoryTraversal() && performance.timeOrigin > time;

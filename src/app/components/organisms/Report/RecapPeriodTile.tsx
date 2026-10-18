@@ -51,6 +51,10 @@ export function gridTileColorIndex(index: number): number {
 
 type Props = {
   href: string;
+  // 目印(id)。戻ってきたときにこのタイルの位置へ戻すのに使う
+  id?: string;
+  // このタイルから同じタブでページを移るとき(新しいタブで開く押し方では呼ばれない)
+  onNavigate?: () => void;
   // TILE_PALETTE のインデックス
   colorIndex: number;
   // 上に置く英字ラベル（MONTHLY REPORT / ENVIRONMENT など）
@@ -75,6 +79,8 @@ type Props = {
 
 export default function RecapPeriodTile({
   href,
+  id,
+  onNavigate,
   colorIndex,
   kindLabel,
   title,
@@ -91,6 +97,8 @@ export default function RecapPeriodTile({
   return (
     <Link
       href={href}
+      id={id}
+      onNavigate={onNavigate}
       style={{
         backgroundColor: color.bg,
         backgroundImage: color.bgImage,

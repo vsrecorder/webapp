@@ -1,7 +1,12 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 
+import {
+  useRefreshOnReportIndexRestore,
+  useRestoredReportIndex,
+  useScrollBackToReportTile,
+} from "@app/hooks/useReportIndexReturn";
 import { useSeededResource } from "@app/hooks/useSeededResource";
 
 import { Card, CardBody, Spinner } from "@heroui/react";
@@ -18,6 +23,7 @@ import { OldestRecordEventDateType } from "@app/types/oldest_record_event_date";
 import { UserStatHistoryType, UserStatMonthlyType } from "@app/types/user_stat_history";
 
 import { environmentBadgeImageUrl } from "@app/utils/badgeImage";
+import { markReportIndexReturn, reportTileAnchorId } from "@app/utils/reportIndexReturn";
 import { selectableEnvironments } from "@app/utils/recapPeriod";
 import { lastWeekValue, weekRangeLabel } from "@app/utils/week";
 import { EXCLUDE_DEFAULT_MATCHES_QUERY } from "@app/utils/excludeDefaultMatches";
@@ -25,6 +31,13 @@ import { currentYearMonth, daysInMonth, yearMonthLabel } from "@app/utils/yearMo
 
 // 月・環境それぞれの表示上限。古い期間まで無制限に並べても選ぶ意味がないため区切る。
 const MAX_TILES_PER_KIND = 6;
+
+// 戻ってきたとき、離れる前の高さを覚えていなかったタイルを置く高さ(ヘッダーのすぐ下)
+const RETURN_FALLBACK_TOP = 80;
+
+// 今月・先週のタイルの目印に使うキー(月や環境のタイルは TimelineItem.key)
+const HERO_TILE_KEY = "this-month";
+const LAST_WEEK_TILE_KEY = "last-week";
 
 type Props = {
   userId: string;
@@ -165,13 +178,34 @@ async function fetchReportIndexData(userId: string): Promise<ReportIndexData> {
 export default function TemplateUserReportIndex({ userId }: Props) {
   // 先週の戦績は、先週に記録があるときだけグリッドの先頭に週次のタイルを出すのに使う
 
+  // 各期間のレポートから戻ってきたときの控え。あれば一覧をそこから描き、押したタイルの位置へ戻す
+  const restored = useRestoredReportIndex<ReportIndexData>(userId);
+
   // 入口の材料。失敗時は retry(load)で取り直す
   const {
     data: index,
     loading: isLoading,
     error: hasError,
     retry: load,
-  } = useSeededResource(userId, fetchReportIndexData);
+  } = useSeededResource(userId, fetchReportIndexData, restored?.data);
+
+  /*
+   * 控えから描いたら裏で取り直す。取り直している間も、取り直しに失敗しても控えの一覧を
+   * 出し続ける(下の `!index` の条件)。失敗でエラー表示に替えると、戻った位置で見ていた
+   * 一覧が消えて先頭へ飛ぶ。控えは直前に見ていたのと同じ一覧なので、出し続けても誤解は生まない
+   * (SWR の自動再検証の失敗と同じ扱い)。
+   */
+  useRefreshOnReportIndexRestore(restored, load);
+  useScrollBackToReportTile(restored, index !== null, RETURN_FALLBACK_TOP);
+
+  // タイルから各期間のレポートへ進む直前に、今の一覧と押したタイルの高さを控える
+  const markReturn = useCallback(
+    (tileKey: string) => {
+      if (!index) return;
+      markReportIndexReturn({ userId, anchorId: reportTileAnchorId(tileKey), data: index });
+    },
+    [userId, index],
+  );
   const history = useMemo(() => index?.history ?? [], [index]);
   const environmentStats = useMemo(() => index?.environmentStats ?? [], [index]);
   const lastWeekStat = index?.lastWeekStat ?? null;
@@ -236,13 +270,13 @@ export default function TemplateUserReportIndex({ userId }: Props) {
   return (
     <div className="mx-auto flex w-full max-w-md flex-col gap-6 pt-4 pb-6">
 
-      {hasError ? (
+      {hasError && !index ? (
         <Card className="shadow-md">
           <CardBody className="py-10">
             <FetchError message="バトルレポートを取得できませんでした" onRetry={load} />
           </CardBody>
         </Card>
-      ) : isLoading ? (
+      ) : isLoading && !index ? (
         <div className="flex flex-col items-center justify-center gap-2 py-24">
           <Spinner size="sm" />
           <span className="text-[0.6875rem] text-default-400">
@@ -267,6 +301,8 @@ export default function TemplateUserReportIndex({ userId }: Props) {
             <RecapPeriodTile
               variant="hero"
               href={`/users/report/${thisMonth}`}
+              id={reportTileAnchorId(HERO_TILE_KEY)}
+              onNavigate={() => markReturn(HERO_TILE_KEY)}
               colorIndex={0}
               kindLabel="MONTHLY REPORT"
               title={yearMonthLabel(thisMonth)}
@@ -284,6 +320,8 @@ export default function TemplateUserReportIndex({ userId }: Props) {
               {lastWeekTile && (
                 <RecapPeriodTile
                   href={`/users/report/weeks/${lastWeek}`}
+                  id={reportTileAnchorId(LAST_WEEK_TILE_KEY)}
+                  onNavigate={() => markReturn(LAST_WEEK_TILE_KEY)}
                   variant="wide"
                   colorIndex={gridTileColorIndex(0)}
                   kindLabel="WEEKLY REPORT"
@@ -295,6 +333,8 @@ export default function TemplateUserReportIndex({ userId }: Props) {
                 <RecapPeriodTile
                   key={item.key}
                   href={item.href}
+                  id={reportTileAnchorId(item.key)}
+                  onNavigate={() => markReturn(item.key)}
                   variant={item.isWide ? "wide" : "tile"}
                   // 先週のタイルがあるときは1つずらし、隣り合う面が同じ色にならないようにする
                   colorIndex={gridTileColorIndex(index + (lastWeekTile ? 1 : 0))}

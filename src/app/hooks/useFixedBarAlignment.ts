@@ -108,6 +108,14 @@ export function useFixedBarAlignment() {
     const observer = new ResizeObserver(sync);
     observer.observe(slot);
     observer.observe(bar);
+    /*
+     * 空き枠の大きさが変わらずに位置だけ動くこともある。中身が伸びて縦のスクロールバーが
+     * 出ると(Windows・Linux の既定のスクロールバー)、中央寄せの列は横へずれるが、幅の上限
+     * (max-w-md など)がある列の中の空き枠は大きさが変わらず、上の監視では気付けない
+     * (個別のバトルレポートで、戻るリンクが本文より 7px 右にずれていた)。
+     * ルート要素の大きさはスクロールバーの出入りで変わるので、これも見ておく。
+     */
+    observer.observe(document.documentElement);
     window.addEventListener("resize", sync);
 
     return () => {

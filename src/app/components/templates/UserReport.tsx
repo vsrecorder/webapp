@@ -9,7 +9,7 @@ import { LuImages, LuShare2 } from "react-icons/lu";
 import { motion, useReducedMotion } from "framer-motion";
 
 import FetchError from "@app/components/molecules/FetchError";
-import BackLink from "@app/components/molecules/BackLink";
+import FixedBackLinkBar from "@app/components/molecules/FixedBackLinkBar";
 import LinkButton from "@app/components/molecules/LinkButton";
 import PanelShareModal from "@app/components/organisms/Share/PanelShareModal";
 
@@ -236,10 +236,16 @@ export default function TemplateUserReport({ userId, period }: Props) {
     : null;
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col gap-3 pt-3 pb-6">
+    // 上の余白(pt-3)は先頭の戻るバーが持つ
+    <div className="mx-auto flex w-full max-w-md flex-col gap-3 pb-6">
       {/* 期間はここでは切り替えない。入口の一覧へ戻す導線と、いま見ている期間の名前だけ置く。
-          期間名までを1つのリンクにして、矢印だけでなく名前をタップしても戻れるようにする。 */}
-      <BackLink href="/users/report" label={periodTitle(period)} ariaLabel="バトルレポートの一覧へ戻る" />
+          期間名までを1つのリンクにして、矢印だけでなく名前をタップしても戻れるようにする。
+          カードが縦に長く続くので、スクロールしてもヘッダーの下に残す。 */}
+      <FixedBackLinkBar
+        href="/users/report"
+        label={periodTitle(period)}
+        ariaLabel="バトルレポートの一覧へ戻る"
+      />
 
       {hasError ? (
         <Card className="shadow-md">

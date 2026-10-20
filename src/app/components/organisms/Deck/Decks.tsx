@@ -169,11 +169,19 @@ export default function Decks({
   // きずな行(リスト29px/ギャラリー34px)が後から足されて一覧全体が伸びる二段ジャンプになる。
   // デッキ一覧ときずなは並行して取り、応答時間もほぼ同じ(本番 p50 でともに 30ms 台)なので、
   // 待つことで遅れる時間はごくわずか
-  const { decks: kizunaDecks, isLoading: kizunaLoading } = useKizunaDecksState(
-    userId,
-    initialKizuna,
-    isInitialFresh,
-  );
+  const {
+    decks: kizunaDecks,
+    isLoading: kizunaInitialLoading,
+    isValidating: kizunaValidating,
+  } = useKizunaDecksState(userId, initialKizuna, isInitialFresh);
+  // カードを一度でも出したか。出した後は骨格へ戻さない(下の待ち合わせは最初の表示だけに効かせる)
+  const [hasShownCards, setHasShownCards] = useState(false);
+  // 手元のきずな(キャッシュ)に無いデッキが一覧にあり、取り直している最中か。
+  // 登録直後は新しいデッキが古いキャッシュに無く、そのまま出すときずな行が無いカードになり、
+  // 取り直しが届いた時点で行が足されて一覧が伸びる。最初の表示はこれも待つ
+  const kizunaMissing =
+    kizunaValidating && items.some((item) => !kizunaDecks.has(item.data.id));
+  const kizunaLoading = kizunaInitialLoading || (!hasShownCards && kizunaMissing);
 
   const handleRemove = (id: string) => {
     setItems((prev) => prev.filter((d) => d.data.id !== id));
@@ -477,6 +485,7 @@ export default function Decks({
   // 初回の読み込み(デッキ一覧ときずな)が済み、カードを出せる状態か。
   // 親へ通知する読み込み状態や、空状態・「更に読み込む」の出し分けはこれを基準にする
   const settled = isInitialLoaded && !kizunaLoading;
+  if (settled && !hasShownCards) setHasShownCards(true);
   // 初回読み込み中(サーバ描画を含む)と追加読み込み中は骨格を出す。
   // isLoading の初期値は false なので、settled を見ないとサーバ描画の HTML に骨格が入らず、
   // ハイドレーションまで一覧が空のままになる(PWA 起動やリロードで目立つ)

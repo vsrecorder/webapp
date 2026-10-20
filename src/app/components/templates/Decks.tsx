@@ -63,10 +63,15 @@ export default function TemplateDecks({ userId, initial, initialTab }: Props) {
    *
    * タブの切り替えや登録で Decks が作り直されるときは渡さない。作り直す時点では
    * アーカイブや削除で一覧が変わっている可能性があり、ページを開いた時点の値を
-   * 出し直すと消したはずのデッキが戻ってしまう。きずな・戦績はこの画面で変わらないので、
-   * 作り直しても同じ値を渡してよい。
+   * 出し直すと消したはずのデッキが戻ってしまう。
    */
   const [initialDecks, setInitialDecks] = useState(initial?.decks ?? undefined);
+  /*
+   * サーバで取ったきずな・戦績を Decks に渡してよいか。タブの切り替えでは変わらないので渡し続けるが、
+   * 登録したら渡さない。新しいデッキが入っていない値で、渡すと Decks は(いま取られた値として)
+   * 取り直しをやめ、SWR のキャッシュまでその値で上書きするため、新しいデッキのきずなLv.が出なくなる。
+   */
+  const [isServerAggregateUsable, setIsServerAggregateUsable] = useState(true);
   /*
    * 選択中のタブ。利用者が切り替える(userTab)までは、ブラウザで決め直した初期タブ:
    * 遷移再開フラグ(reopenDeckModalArchived)が立っていればそちらを優先し、なければ cookie に
@@ -131,6 +136,7 @@ export default function TemplateDecks({ userId, initial, initialTab }: Props) {
 
   const handleCreatedDeck = useCallback(() => {
     setInitialDecks(undefined);
+    setIsServerAggregateUsable(false);
     setRefreshKey((prev) => prev + 1);
     setUserTab("inuse");
   }, []);
@@ -280,8 +286,8 @@ export default function TemplateDecks({ userId, initial, initialTab }: Props) {
             userId={userId}
             isArchived={selectedKey === "archived"}
             initialDecks={selectedKey === serverTab ? initialDecks : undefined}
-            initialKizuna={initial?.kizuna}
-            initialUsage={initial?.usage}
+            initialKizuna={isServerAggregateUsable ? initial?.kizuna : undefined}
+            initialUsage={isServerAggregateUsable ? initial?.usage : undefined}
             isInitialFresh={isInitialFresh}
             onCreated={handleCreatedDeck}
             onLoadStateChange={handleLoadStateChange}

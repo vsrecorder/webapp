@@ -74,7 +74,7 @@ export function useKizunaDecksState(
   const initialDecks = initial?.decks;
   const canSkipRevalidation = isInitialFresh && initialDecks !== undefined;
 
-  const { data, isLoading, mutate } = useSWR<KizunaDeckType[], Error>(
+  const { data, isLoading, isValidating, mutate } = useSWR<KizunaDeckType[], Error>(
     userId ? `/api/users/${userId}/kizuna` : null,
     fetcher,
     {
@@ -98,8 +98,10 @@ export function useKizunaDecksState(
   const decks = useMemo(() => (data ? toMap(data) : EMPTY), [data]);
 
   // SWR の isLoading は fallbackData を「読み込み済み」とみなさず、マウント時の取り直し中も true になる。
-  // 一覧が待つべきなのは「まだ何も無い」ときだけなので、data の有無で決める
-  return { decks, isLoading: isLoading && data === undefined };
+  // 一覧が待つべきなのは「まだ何も無い」ときだけなので、data の有無で決める。
+  // isValidating は取り直し中か(古い値を出したまま)。手元の値に無いデッキが一覧にあるとき、
+  // 取り直しを待つかどうかの判断に使う(登録直後の新しいデッキなど)
+  return { decks, isLoading: isLoading && data === undefined, isValidating };
 }
 
 // deck_id → きずなの算出結果。取得中・失敗時は空の Map

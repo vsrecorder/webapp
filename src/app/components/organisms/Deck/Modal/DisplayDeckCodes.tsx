@@ -593,7 +593,6 @@ export default function DisplayDeckCodesModal({
         className="h-[min(calc(100dvh-104px),var(--visual-viewport-height,100dvh))] max-h-[min(calc(100dvh-104px),var(--visual-viewport-height,100dvh))] mt-26 my-0 mx-0 rounded-b-none"
         classNames={{
           base: "sm:max-w-full lg:max-w-2xl",
-          closeButton: "text-xl",
           ...closingPassthroughClassNames(isOpen),
         }}
       >

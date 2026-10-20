@@ -236,7 +236,6 @@ export default function CreateDeckCodeModal({
         // scrollBehavior="inside" 既定の max-h(100%-8rem) は特にキーボード表示中に
         // 窮屈なため、余白を 3rem まで縮めてモーダルを大きく使う
         base: "sm:max-w-full max-h-[calc(100%-2rem)]",
-        closeButton: "text-xl",
       }}
     >
       <ModalContent>

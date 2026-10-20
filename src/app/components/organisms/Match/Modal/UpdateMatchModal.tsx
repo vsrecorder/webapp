@@ -961,7 +961,6 @@ export default function UpdateMatchModal({
         className="h-[min(calc(100dvh-108px),var(--visual-viewport-height,100dvh))] max-h-[min(calc(100dvh-108px),var(--visual-viewport-height,100dvh))] my-0 rounded-b-none"
         classNames={{
           base: "sm:max-w-full",
-          closeButton: "text-xl",
           ...closingPassthroughClassNames(isOpen),
         }}
       >

@@ -121,7 +121,6 @@ export default function QuickStartModal({ cohortWeek, daysSinceSignup }: Props) 
         classNames={{
           // モバイル幅では画面いっぱいに広げ、デスクトップ幅では横に伸びすぎないよう抑える
           base: "sm:max-w-full lg:max-w-md max-h-[calc(100%-3rem)]",
-          closeButton: "text-xl",
         }}
       >
         <ModalContent>

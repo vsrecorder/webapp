@@ -105,6 +105,15 @@ const reducedMotion: Variants = {
  */
 const BOTTOM_SHEET_BASE = "sm:my-0";
 
+/*
+ * 閉じるボタン(×)の大きさ。アイコンは 1em なので文字サイズで決まり、p-2 込みで
+ * text-xl なら 36px 四方になる。以前はモーダルごとに既定(16px→32px)・text-xl(36px)・
+ * text-2xl(40px)とばらばらだったので、ここで一律に揃える。
+ * 位置や色だけ変えたいモーダルは classNames.closeButton で上書きでき、大きさも
+ * 後勝ち(tailwind-merge)で変えられるが、揃えるために原則として指定しない
+ */
+const CLOSE_BUTTON_SIZE = "text-xl";
+
 // マウス主体の端末か(pointer: fine)。タブレットにマウスを繋ぐ等で変わるので変化を購読する。
 // MediaQueryList はモジュールで1つを共有する。getSnapshot は描画のたびに(閉じているモーダルでも)
 // 呼ばれるので、毎回 matchMedia でクエリを作り直さず、プロパティを読むだけにする。
@@ -170,7 +179,7 @@ export function Modal({
     isFinePointer,
   });
   const isSheet = placement === "bottom";
-  // × はシート右上(top-1 right-1、約 32〜36px 四方)に絶対配置される。pe-14(56px)で 16px 以上空く。ヘッダーの右端に
+  // × はシート右上(top-1 right-1、36px 四方)に絶対配置される。pe-14(56px)で 16px 以上空く。ヘッダーの右端に
   // 操作(記録情報の共有/メニュー、対戦結果編集の削除、絞り込みの解除など)を置くシートで
   // 重ならないよう、× を出す条件と同じ pointer-fine: でヘッダーの右余白をここで確保する。
   // 各シートに余白を書かせると、右端に操作を足したときに漏れる(実際に1件漏れた)。
@@ -182,15 +191,14 @@ export function Modal({
       {...props}
       placement={placement}
       hideCloseButton={resolvedHideCloseButton}
-      classNames={
-        isSheet
-          ? {
-              ...classNames,
-              base: cn(BOTTOM_SHEET_BASE, classNames?.base),
-              header: cn(sheetHeaderClass, classNames?.header),
-            }
-          : classNames
-      }
+      classNames={{
+        ...classNames,
+        closeButton: cn(CLOSE_BUTTON_SIZE, classNames?.closeButton),
+        ...(isSheet && {
+          base: cn(BOTTOM_SHEET_BASE, classNames?.base),
+          header: cn(sheetHeaderClass, classNames?.header),
+        }),
+      }}
       // 呼び出し側が明示した motionProps があればそちらを優先する
       motionProps={motionProps ?? { variants: getMotionVariants(placement, shouldReduceMotion) }}
     />

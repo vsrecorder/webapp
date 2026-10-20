@@ -69,7 +69,6 @@ export default function CityleagueEventCard({
         onOpenChange={onOpenChange}
         classNames={{
           base: "sm:max-w-full",
-          closeButton: "text-xl",
         }}
       >
         <ModalContent>

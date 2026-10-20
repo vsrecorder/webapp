@@ -54,7 +54,7 @@ export default function PhoneMock({
           // 左右に余白を残すため最大幅を絞り、横マージンを確保する
           base: "bg-transparent shadow-none max-w-[240px] mx-12 overflow-visible",
           // 画像に隠れないよう、ボタンを画像の上部外側に配置して前面に出す
-          closeButton: "z-50 -top-12 -right-6 text-2xl text-white hover:bg-white/20",
+          closeButton: "z-50 -top-12 -right-6 text-white hover:bg-white/20",
         }}
       >
         <ModalContent>

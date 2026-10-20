@@ -78,7 +78,6 @@ export default function PokemonSpriteModal({
       className="max-h-[min(calc(100dvh-2rem),var(--visual-viewport-height,100dvh))]"
       classNames={{
         base: "sm:max-w-full",
-        closeButton: "text-xl",
       }}
     >
       <ModalContent>

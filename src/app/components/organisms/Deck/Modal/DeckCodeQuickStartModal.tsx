@@ -245,7 +245,6 @@ export default function DeckCodeQuickStartModal({ isOpen, onOpenChange }: Props)
         onClose={resetState}
         classNames={{
           base: "sm:max-w-full max-h-[calc(100%-3rem)]",
-          closeButton: "text-xl",
         }}
       >
         <ModalContent>

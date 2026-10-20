@@ -414,7 +414,6 @@ export default function CalendarDayDetailModal({
       className="z-20 h-[calc(100dvh-128px)] max-h-[calc(100dvh-128px)] mt-26 my-0 rounded-b-none overscroll-contain"
       classNames={{
         base: "sm:max-w-full",
-        closeButton: "text-xl",
         ...closingPassthroughClassNames(isOpen),
       }}
     >

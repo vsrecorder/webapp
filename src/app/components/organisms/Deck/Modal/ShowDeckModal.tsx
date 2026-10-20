@@ -280,7 +280,6 @@ export default function ShowDeckModal({
         //className="h-[calc(100dvh-256px)] max-h-[calc(100dvh-256px)]"
         classNames={{
           base: "sm:max-w-full lg:max-w-2xl",
-          closeButton: "text-2xl",
           ...closingPassthroughClassNames(isOpen),
         }}
       >
@@ -291,13 +290,13 @@ export default function ShowDeckModal({
                   描画される絶対配置の閉じるボタン（HeroUI標準）の上にヘッダーが重なって
                   クリックを奪ってしまう。ヘッダー自体は pointer-events-none にして
                   クリックを透過させ、操作が必要な詳細リンクだけ pointer-events-auto で戻す。 */}
-              {/* 上の余白(pt-12=48px)は「詳細」リンク・閉じるボタン(いずれも top-1 の 40px角＝
-                  下端44px)を避けるための寸法。pt-8 だとスプライトの上端が44pxより上に来て
+              {/* 上の余白(pt-12=48px)は「詳細」リンク・閉じるボタン(いずれも top-1 の 36px角＝
+                  下端40px)を避けるための寸法。pt-8 だとスプライトの上端が40pxより上に来て
                   ボタンの行と重なり、詰まって見える */}
               <ModalHeader className="relative px-3 pt-12 pb-1 flex items-center gap-3 pointer-events-none">
                 <>
                   {/* 詳細ページへの遷移導線。右上はHeroUIの閉じるボタンが占めるため左上に置く。
-                      閉じるボタン（top-1 end-1・40px角）と同じラインに揃うよう、高さ40px(h-10)・
+                      閉じるボタン（top-1 end-1・36px角）と同じラインに揃うよう、高さ36px(h-9)・
                       top-1・start-1で左右対称に配置し、中央のスプライト・デッキ名レイアウトを
                       崩さないよう絶対配置にする。
                       文字だけだと見出しの装飾に紛れて押せると気づかれないため(本番ログでも
@@ -308,7 +307,7 @@ export default function ShowDeckModal({
                     aria-label="デッキ詳細ページを開く"
                     // 戻ってきたときにこのモーダルを開き直す
                     onClick={() => markDeckModalReopen(deck.id, isArchived)}
-                    className="absolute inset-s-1 top-1 flex h-10 items-center gap-1 rounded-full bg-primary/10 px-3 text-small font-bold text-primary hover:bg-primary/20 active:opacity-70 pointer-events-auto"
+                    className="absolute inset-s-1 top-1 flex h-9 items-center gap-1 rounded-full bg-primary/10 px-3 text-small font-bold text-primary hover:bg-primary/20 active:opacity-70 pointer-events-auto"
                   >
                     <LuExternalLink className="text-base" />
                     詳細

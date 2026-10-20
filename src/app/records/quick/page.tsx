@@ -13,6 +13,7 @@ type Props = {
     deck_id?: string;
     deck_code_id?: string;
     deck_name?: string;
+    pd?: string;
   }>;
 };
 
@@ -89,7 +90,7 @@ export default async function Page({ searchParams }: Props) {
   // 先に走らせておき、リダイレクトする場合は待たずに捨てる。
   const decksPromise = getDecks(session.user.id).catch(() => null);
 
-  const [{ deck_id, deck_code_id, deck_name }, hasRecord] = await Promise.all([
+  const [{ deck_id, deck_code_id, deck_name, pd }, hasRecord] = await Promise.all([
     searchParams,
     hasAnyRecord(session.user.id).catch(() => null),
   ]);
@@ -100,6 +101,10 @@ export default async function Page({ searchParams }: Props) {
     const params = new URLSearchParams();
     if (deck_id) params.set("deck_id", deck_id);
     if (deck_code_id) params.set("deck_code_id", deck_code_id);
+    // push のタップ計測(PushClickTracker が ?pd= を読む)も引き継ぐ。
+    // 落とすと、このページへリンクした push のタップが記録されない
+    // (B-2 週末リマインドで 2026-10-20 まで全件が落ちていた)。
+    if (pd) params.set("pd", pd);
 
     const query = params.toString();
     redirect(query ? `/records/create?${query}` : "/records/create");

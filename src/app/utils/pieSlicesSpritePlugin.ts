@@ -512,6 +512,96 @@ function drawBadgePercent(
   ctx.restore();
 }
 
+// バッジ1つ分(枠・スプライト・パーセント)を、中心(cx, cy)に描く
+function drawBadgeContents(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  item: BadgeItem & { images: HTMLImageElement[] },
+  spriteSize: number,
+) {
+  drawBadge(ctx, cx, cy, item.width, item.height, item.color);
+  // パーセンテージ表示分だけスプライトを上にずらし、その下の空きに文字を描画する
+  const spriteCy = item.percentText ? cy - PERCENT_BLOCK_HEIGHT / 2 : cy;
+  drawSprites(ctx, item.images, cx, spriteCy, spriteSize);
+  if (item.percentText) {
+    const percentCy =
+      spriteCy + spriteSize / 2 + BADGE_PERCENT_GAP + BADGE_PERCENT_FONT_SIZE / 2;
+    drawBadgePercent(ctx, item.percentText, cx, percentCy, BADGE_PERCENT_FONT_SIZE);
+  }
+}
+
+/*
+ * 外周バッジを1枚の画像にして作り置く。
+ *
+ * afterDatasetsDraw はアニメーションの間毎フレーム呼ばれるが、バッジの見た目はその間変わらない
+ * (入場アニメでは位置も最終角度で固定し、不透明度だけを動かしている)。影付きの枠から毎フレーム
+ * 描き直すとそれが描画の大半を占め、モーダルの入場スイープでフレームが落ちていた
+ * (CPU 4倍の実測: スイープ1.1秒で描けたのが約40フレーム、バッジを描かなければ約63フレーム)。
+ * 作り置いた画像を貼るだけにする。
+ */
+// 枠の外にはみ出す影(shadowBlur 6 + 下へ1px)と縁取りを収める余白
+const BADGE_BITMAP_PAD = 12;
+// 作り置きの上限。円の大きさが変わるとバッジの寸法も変わり、古いものは使われなくなる
+const BADGE_BITMAP_CACHE_LIMIT = 24;
+// 作れなかった(2D コンテキストが無い環境)ときは null を覚え、直接描く
+const badgeBitmaps = new WeakMap<Chart, Map<string, HTMLCanvasElement | null>>();
+
+// 作り置きを捨てる。iOS の Safari はキャンバスのメモリを GC まで手放さないことがあるため、
+// 寸法を0にしてその場で解放させる
+function releaseBadgeBitmaps(cache: Map<string, HTMLCanvasElement | null> | undefined) {
+  cache?.forEach((canvas) => {
+    if (canvas) canvas.width = canvas.height = 0;
+  });
+  cache?.clear();
+}
+
+function badgeBitmap(
+  chart: Chart,
+  item: BadgeItem & { images: HTMLImageElement[] },
+  spriteSize: number,
+  dpr: number,
+): HTMLCanvasElement | null {
+  const key = [
+    item.width.toFixed(2),
+    item.height.toFixed(2),
+    spriteSize.toFixed(2),
+    item.color,
+    item.percentText ?? "",
+    isDarkMode() ? "dark" : "light",
+    dpr,
+    ...item.images.map((img) => img.src),
+  ].join("|");
+
+  let cache = badgeBitmaps.get(chart);
+  if (!cache) {
+    cache = new Map();
+    badgeBitmaps.set(chart, cache);
+  }
+  const cached = cache.get(key);
+  if (cached !== undefined) return cached;
+  if (cache.size >= BADGE_BITMAP_CACHE_LIMIT) releaseBadgeBitmaps(cache);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.ceil((item.width + BADGE_BITMAP_PAD * 2) * dpr);
+  canvas.height = Math.ceil((item.height + BADGE_BITMAP_PAD * 2) * dpr);
+  const bctx = canvas.getContext("2d");
+  if (!bctx) {
+    cache.set(key, null);
+    return null;
+  }
+  bctx.scale(dpr, dpr);
+  drawBadgeContents(
+    bctx,
+    BADGE_BITMAP_PAD + item.width / 2,
+    BADGE_BITMAP_PAD + item.height / 2,
+    item,
+    spriteSize,
+  );
+  cache.set(key, canvas);
+  return canvas;
+}
+
 /*
  * データセットに載せるスプライト表示の材料。
  *
@@ -611,6 +701,8 @@ export function createPieSlicesSpritePlugin(
 
       unwatchChartResize(chart);
       enteringSlices.delete(chart);
+      releaseBadgeBitmaps(badgeBitmaps.get(chart));
+      badgeBitmaps.delete(chart);
       forgetImageWaiters(chart);
     },
     afterDatasetsDraw(chart: Chart<"pie">) {
@@ -707,10 +799,12 @@ export function createPieSlicesSpritePlugin(
 
       resolveBadgeCollisions(items);
 
+      const dpr = chart.currentDevicePixelRatio || 1;
       const hitAreas: BadgeHitArea[] = [];
       items.forEach((item) => {
         // 画像がまだ揃っていないバッジは、位置だけ確保して描画を見送る
-        if (!item.images) return;
+        const { images } = item;
+        if (!images) return;
         // 入場アニメでスライスが姿を現すのに合わせてバッジも現す。位置は最終角度で
         // 固定してあるため、動かずにその場でフェードインするだけになる。
         if (item.revealRatio <= 0) return;
@@ -720,14 +814,15 @@ export function createPieSlicesSpritePlugin(
 
         ctx.save();
         ctx.globalAlpha = item.revealRatio;
-        drawBadge(ctx, cx, cy, item.width, item.height, item.color);
-        // パーセンテージ表示分だけスプライトを上にずらし、その下の空きに文字を描画する
-        const spriteCy = item.percentText ? cy - PERCENT_BLOCK_HEIGHT / 2 : cy;
-        drawSprites(ctx, item.images, cx, spriteCy, spriteSize);
-        if (item.percentText) {
-          const percentCy =
-            spriteCy + spriteSize / 2 + BADGE_PERCENT_GAP + BADGE_PERCENT_FONT_SIZE / 2;
-          drawBadgePercent(ctx, item.percentText, cx, percentCy, BADGE_PERCENT_FONT_SIZE);
+        const loadedItem = { ...item, images };
+        const bitmap = badgeBitmap(chart, loadedItem, spriteSize, dpr);
+        if (bitmap) {
+          // デバイスピクセルの境目に揃えて等倍で貼る(半端な位置だと補間がかかってにじむ)
+          const x = Math.round((cx - item.width / 2 - BADGE_BITMAP_PAD) * dpr) / dpr;
+          const y = Math.round((cy - item.height / 2 - BADGE_BITMAP_PAD) * dpr) / dpr;
+          ctx.drawImage(bitmap, x, y, bitmap.width / dpr, bitmap.height / dpr);
+        } else {
+          drawBadgeContents(ctx, cx, cy, loadedItem, spriteSize);
         }
         ctx.restore();
 

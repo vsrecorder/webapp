@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { animator, type Chart } from "chart.js";
 
@@ -100,9 +100,53 @@ function datasetProps(overrides: Partial<PieSpriteDatasetProps> = {}): PieSprite
   };
 }
 
+// バッジを作り置く画像(オフスクリーンの canvas)の 2D コンテキスト。jsdom には無いので偽物を返し、
+// 作り置きに描いた枠の数を数える
+let bitmapFills = 0;
+function stubBitmapContext() {
+  bitmapFills = 0;
+  const noop = () => {};
+  const bctx = {
+    scale: noop, save: noop, restore: noop, beginPath: noop, moveTo: noop, lineTo: noop,
+    arc: noop, closePath: noop, stroke: noop, fillText: noop, drawImage: noop,
+    fill: () => {
+      bitmapFills += 1;
+    },
+  };
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(
+    () => bctx as unknown as CanvasRenderingContext2D,
+  );
+}
+
 describe("createPieSlicesSpritePlugin", () => {
   beforeEach(() => {
     vi.stubGlobal("Image", LoadedImage);
+    stubBitmapContext();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("バッジは画像に作り置いて、次の描画では作り直さない", () => {
+    const plugin = createPieSlicesSpritePlugin();
+    const arcs = [makeArc(0, Math.PI), makeArc(Math.PI, Math.PI * 2)];
+    const { chart, drawnAlphas } = makeChart(arcs, datasetProps());
+
+    plugin.afterInit?.(chart, {} as never, {});
+    plugin.afterUpdate?.(chart, {} as never, {});
+    // 1回目の描画で画像の読み込みが始まり、2回目から描かれる
+    plugin.afterDatasetsDraw?.(chart, {} as never, {}, false);
+    plugin.afterDatasetsDraw?.(chart, {} as never, {}, false);
+    expect(bitmapFills).toBe(2);
+
+    // アニメーション中は毎フレーム呼ばれる。影付きの枠を描き直さず、作り置きを貼るだけにする
+    plugin.afterDatasetsDraw?.(chart, {} as never, {}, false);
+    plugin.afterDatasetsDraw?.(chart, {} as never, {}, false);
+    expect(bitmapFills).toBe(2);
+    expect(drawnAlphas).toHaveLength(6);
+
+    plugin.beforeDestroy?.(chart, {} as never, {});
   });
 
   it("入場アニメ（円弧が空から広がる）ではバッジも一緒に現れる", () => {

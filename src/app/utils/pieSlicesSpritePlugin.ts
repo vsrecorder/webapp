@@ -1,6 +1,6 @@
 "use client";
 
-import type { ArcElement, Chart, Plugin } from "chart.js";
+import { animator, type ArcElement, type Chart, type Plugin } from "chart.js";
 import { getRelativePosition } from "chart.js/helpers";
 
 import { spriteDrawRect } from "@app/utils/spriteFit";
@@ -102,6 +102,27 @@ const failedImageUrls = new Set<string>();
  */
 const imageWaiters = new Map<string, Set<Chart>>();
 
+/*
+ * 画像の到着による描き直しを、チャートごとに次のフレームの1回へまとめる。
+ *
+ * 到着のたびにその場で draw() すると、スプライトが続けて届いたとき(1デッキ2体×最大11件)に
+ * 1フレームの間に全体の描き直しが何度も走る。モーダルで円グラフの入場アニメを
+ * 再生した直後がちょうど画像の到着と重なり、スイープが100ms超の間隔で止まって見えていた
+ * (CPU 4倍の実測: 描き直し12回、1回あたり約13msのキャンバス確定処理つき)。
+ * chart.js のアニメ中は毎フレーム描かれて届いた画像も拾われるので、描き直さない。
+ */
+const pendingRedraws = new Map<Chart, number>();
+
+function scheduleRedraw(chart: Chart) {
+  if (pendingRedraws.has(chart)) return;
+  const id = requestAnimationFrame(() => {
+    pendingRedraws.delete(chart);
+    if (animator.running(chart)) return;
+    chart.draw();
+  });
+  pendingRedraws.set(chart, id);
+}
+
 function loadImage(url: string, chart: Chart): HTMLImageElement | null {
   const cached = imageCache.get(url);
   if (cached?.complete && cached.naturalWidth > 0) return cached;
@@ -117,7 +138,7 @@ function loadImage(url: string, chart: Chart): HTMLImageElement | null {
   const img = new Image();
   // 読み込み(または失敗)が確定したら、待っていたチャートをまとめて描き直す
   const notify = () => {
-    imageWaiters.get(url)?.forEach((waiter) => waiter.draw());
+    imageWaiters.get(url)?.forEach(scheduleRedraw);
     imageWaiters.delete(url);
   };
   img.onload = notify;
@@ -156,6 +177,11 @@ function forgetImageWaiters(chart: Chart) {
     waiters.delete(chart);
     if (waiters.size === 0) imageWaiters.delete(url);
   });
+  const redraw = pendingRedraws.get(chart);
+  if (redraw !== undefined) {
+    cancelAnimationFrame(redraw);
+    pendingRedraws.delete(chart);
+  }
 }
 
 // next-themesが<html>に付与する"dark"クラスを見て、現在ダークモードかどうかを判定する

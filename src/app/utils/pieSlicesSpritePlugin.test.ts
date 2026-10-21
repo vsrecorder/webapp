@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { Chart } from "chart.js";
+import { animator, type Chart } from "chart.js";
 
 import {
   createPieSlicesSpritePlugin,
@@ -175,5 +175,101 @@ describe("createPieSlicesSpritePlugin", () => {
     expect(getSpriteBadgeIndexAt(chart, new MouseEvent("click"))).toBeNull();
 
     plugin.beforeDestroy?.(chart, {} as never, {});
+  });
+});
+
+// 読み込み中の画像。load() で到着させる
+const pendingImages: PendingImage[] = [];
+class PendingImage {
+  complete = false;
+  naturalWidth = 0;
+  naturalHeight = 0;
+  onload: (() => void) | null = null;
+  onerror: (() => void) | null = null;
+  private url = "";
+  get src() {
+    return this.url;
+  }
+  set src(url: string) {
+    this.url = url;
+    pendingImages.push(this);
+  }
+  load() {
+    this.complete = true;
+    this.naturalWidth = 68;
+    this.naturalHeight = 68;
+    this.onload?.();
+  }
+}
+
+describe("画像の到着による描き直し", () => {
+  let frameCallbacks: FrameRequestCallback[];
+
+  beforeEach(() => {
+    pendingImages.length = 0;
+    frameCallbacks = [];
+    vi.stubGlobal("Image", PendingImage);
+    vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
+      frameCallbacks.push(cb);
+      return frameCallbacks.length;
+    });
+    vi.stubGlobal("cancelAnimationFrame", (id: number) => {
+      frameCallbacks[id - 1] = () => {};
+    });
+    vi.restoreAllMocks();
+  });
+
+  function runFrame() {
+    const callbacks = frameCallbacks;
+    frameCallbacks = [];
+    callbacks.forEach((cb) => cb(0));
+  }
+
+  function setup() {
+    const plugin = createPieSlicesSpritePlugin();
+    const arcs = [makeArc(0, Math.PI), makeArc(Math.PI, Math.PI * 2)];
+    const { chart } = makeChart(arcs, datasetProps());
+    const draw = vi.spyOn(chart, "draw");
+    plugin.afterInit?.(chart, {} as never, {});
+    plugin.afterUpdate?.(chart, {} as never, {});
+    // 1回目の描画で2枚の読み込みが始まる
+    plugin.afterDatasetsDraw?.(chart, {} as never, {}, false);
+    expect(pendingImages).toHaveLength(2);
+    // 寸法の監視ループ(rAF)は対象外にする
+    frameCallbacks = [];
+    return { plugin, chart, draw };
+  }
+
+  it("続けて届いた画像は次のフレームで1回だけ描き直す", () => {
+    const { plugin, chart, draw } = setup();
+
+    pendingImages.forEach((img) => img.load());
+    // 到着した時点では描き直さない(到着のたびに全体を描き直すと1フレームに何度も走る)
+    expect(draw).not.toHaveBeenCalled();
+
+    runFrame();
+    expect(draw).toHaveBeenCalledTimes(1);
+
+    plugin.beforeDestroy?.(chart, {} as never, {});
+  });
+
+  it("chart.js のアニメ中は描き直さない(次のアニメの描画で拾われる)", () => {
+    const { plugin, chart, draw } = setup();
+    vi.spyOn(animator, "running").mockReturnValue(true);
+
+    pendingImages.forEach((img) => img.load());
+    runFrame();
+    expect(draw).not.toHaveBeenCalled();
+
+    plugin.beforeDestroy?.(chart, {} as never, {});
+  });
+
+  it("描き直しを待つ間に破棄されたチャートは描かない", () => {
+    const { plugin, chart, draw } = setup();
+
+    pendingImages.forEach((img) => img.load());
+    plugin.beforeDestroy?.(chart, {} as never, {});
+    runFrame();
+    expect(draw).not.toHaveBeenCalled();
   });
 });

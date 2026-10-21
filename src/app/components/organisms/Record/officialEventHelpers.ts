@@ -20,6 +20,8 @@ export function cleanOfficialEventTitle(title: string): string {
   const cleaned = title
     .replace(/【.*?】ポケモンカードジム\s*/g, "")
     .replace(/【.*?】エクストラバトルの日/g, "エクストラバトルの日")
+    // 「【10_11月開催】30th CELEBRATION スペシャルメダルグランプリ」の開催時期の注記
+    .replace(/【.*?】(?=30th CELEBRATION スペシャルメダルグランプリ)/g, "")
     .replace(/【.*?】ポケモンカードゲーム　/g, "")
     .replace(/ポケモンカードゲーム /g, "")
     .replace(/カードゲーム部門/g, "")
@@ -154,6 +156,9 @@ export function getEventIconUrl(officialEvent: OfficialEventKind): string {
     if (officialEvent.title.includes("マイジムNo.1決定戦")) {
       return `${ICON_BASE}mygym_no1.png`;
     }
+    if (officialEvent.title.includes("30th CELEBRATION スペシャルメダルグランプリ")) {
+      return `${ICON_BASE}30th-celebration-special-medal-grand-prix.png`;
+    }
     return `${ICON_BASE}pokemon_card_game.png`;
   }
   if (officialEvent.type_id === 6) {
@@ -197,6 +202,8 @@ const ICON_ALT: Record<string, string> = {
   "gym.png": "ジムバトル",
   "mega_winter_league.png": "MEGAウインターリーグ",
   "mygym_no1.png": "マイジムNo.1決定戦",
+  "30th-celebration-special-medal-grand-prix.png":
+    "30th CELEBRATION スペシャルメダルグランプリ",
   "organizer.png": "公認自主イベント",
   "classroom.png": "ポケモンカードゲーム教室",
   "victini_bwr.png": "ビクティニBWR争奪戦",

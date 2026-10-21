@@ -4,6 +4,8 @@ import {
   cleanOfficialEventTitle,
   defaultRegulationIdForOfficialEvent,
   defaultRegulationIdForRecordForm,
+  getEventIconAlt,
+  getEventIconUrl,
 } from "@app/components/organisms/Record/officialEventHelpers";
 import { DEFAULT_REGULATION_ID, REGULATION_ID_EXTRA } from "@app/types/regulation";
 
@@ -48,5 +50,29 @@ describe("defaultRegulationIdForRecordForm", () => {
   it("イベント未選択はどちらのタブでもスタンダード", () => {
     expect(defaultRegulationIdForRecordForm(true, null)).toBe(DEFAULT_REGULATION_ID);
     expect(defaultRegulationIdForRecordForm(false, null)).toBe(DEFAULT_REGULATION_ID);
+  });
+});
+
+describe("30th CELEBRATION スペシャルメダルグランプリ", () => {
+  const event = {
+    type_id: 4,
+    title: "【10_11月開催】30th CELEBRATION スペシャルメダルグランプリ",
+  };
+
+  it("タイトルから先頭の【】の注記を外す", () => {
+    expect(cleanOfficialEventTitle(event.title)).toBe(
+      "30th CELEBRATION スペシャルメダルグランプリ",
+    );
+  });
+
+  it("専用のアイコンを使う(整形後のタイトルでも同じ)", () => {
+    for (const title of [event.title, cleanOfficialEventTitle(event.title)]) {
+      expect(getEventIconUrl({ ...event, title })).toMatch(
+        /\/30th-celebration-special-medal-grand-prix\.png$/,
+      );
+      expect(getEventIconAlt({ ...event, title })).toBe(
+        "30th CELEBRATION スペシャルメダルグランプリ",
+      );
+    }
   });
 });

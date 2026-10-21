@@ -91,4 +91,22 @@ describe("DeckArchetypeLabel", () => {
       ),
     ).toBe(true);
   });
+
+  it("未分類の文言は unclassifiedName で差し替えられる(デッキコードが無い入賞)", () => {
+    render(
+      <DeckArchetypeLabel
+        archetype={{
+          deckCode: "",
+          archetypeName: null,
+          variantName: null,
+          label: null,
+          sprites: [],
+        }}
+        unclassifiedName="デッキコード未掲載"
+      />,
+    );
+
+    expect(screen.getByText("デッキコード未掲載")).toBeTruthy();
+    expect(screen.queryByText("デッキ名：不明")).toBeNull();
+  });
 });

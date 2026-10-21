@@ -24,7 +24,7 @@ import {
   cityleagueResultPath,
   cityleagueResultXIntentUrl,
 } from "@app/utils/cityleagueResultShare";
-import { deckDisplayName } from "@app/utils/deckArchetype";
+import { deckDisplayName, isDeckArchetypeSeason } from "@app/utils/deckArchetype";
 import { safeExternalUrl } from "@app/utils/url";
 import { formatJSTDateWithWeekday } from "@app/utils/date";
 
@@ -51,6 +51,9 @@ export default function CityleagueResultByOfficialEventId({
   const date = formatJSTDateWithWeekday(event.date);
 
   const sections = buildRankSections(cityleagueResult.results);
+  // デッキの種類の行を出す大会か(分類は 2027 シーズン以降の大会にしか付かない)。
+  // デッキコードが無い入賞にも同じ形の行を出し、カードの見た目を揃えるのに使う
+  const withDeckArchetype = isDeckArchetypeSeason(cityleagueResult.cityleague_schedule_id);
   const deckCodeCount = cityleagueResult.results.filter(
     (result) => !!result.deck_code,
   ).length;
@@ -249,6 +252,7 @@ export default function CityleagueResultByOfficialEventId({
                 showRankLabel={false}
                 deckSummary={deckSummaries[result.deck_code]}
                 deckArchetype={deckArchetypes[result.deck_code]}
+                withDeckArchetype={withDeckArchetype}
               />
             ))}
           </div>

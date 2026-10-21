@@ -157,6 +157,40 @@ describe("CityleagueResultCard の表示", () => {
     // 画像の alt は分類の名前で呼ぶ(書き方はページの他の箇所と同じ「主デッキ名(型名)」)
     expect(screen.getByAltText(/ドラパルトex\(バシャーモ型\)/)).toBeTruthy();
   });
+
+  it("分類の付く大会では、デッキコードの無い入賞にも unknown の 2 枠と「デッキコード未掲載」を出す", async () => {
+    const { container } = render(
+      <CityleagueResultCard
+        result={{ ...result, deck_code: "" }}
+        date={new Date()}
+        withDeckArchetype
+      />,
+    );
+
+    expect(screen.getByText("デッキコード未掲載")).toBeTruthy();
+    const unknownSprites = [...container.querySelectorAll("img")].filter((img) =>
+      img.getAttribute("src")?.endsWith("/unknown.png"),
+    );
+    expect(unknownSprites).toHaveLength(2);
+    // 「デッキコードなし」は重複するので見えなくする(高さを揃えるため行は残す)
+    expect(screen.getByText("デッキコードなし").className).toContain("invisible");
+
+    // 詳細モーダルでも同じ形で出す
+    fireEvent.click(screen.getByText("デッキコード未掲載"));
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog.textContent).toContain("デッキコード未掲載");
+    const modalLine = [...dialog.querySelectorAll("span")].find(
+      (el) => el.textContent === "デッキコードなし",
+    )!;
+    expect(modalLine.className).toContain("invisible");
+  });
+
+  it("分類の付かない大会では、デッキコードの無い入賞に種類の行を出さない", () => {
+    render(<CityleagueResultCard result={{ ...result, deck_code: "" }} date={new Date()} />);
+
+    expect(screen.queryByText("デッキコード未掲載")).toBeNull();
+    expect(screen.getByText("デッキコードなし").className).not.toContain("invisible");
+  });
 });
 
 describe("CityleagueResultCard のデッキ登録", () => {

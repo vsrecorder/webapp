@@ -8,6 +8,8 @@ type Props = {
   archetype: DeckArchetypeType;
   // スプライト 1 枠の一辺(px)。デッキ一覧のギャラリー表示・みんなの公開デッキと同じ 48
   size?: number;
+  // 未分類(label が null)のときに名前の行へ出す文言。デッキコードが無い入賞では「デッキコード未掲載」
+  unclassifiedName?: string;
 };
 
 /*
@@ -31,11 +33,16 @@ type Props = {
  * 「取れなかった」のかも見分けられない。取れなかった(索引に無い)ときは呼び出し側が
  * この部品ごと出さないので、両者は見た目で区別できる。
  * 名前の行は text-large と同じ 28px にして、分類の有無でも高さが変わらないようにする。
+ * デッキコードが無い入賞も同じ形(unknown の 2 枠)で出し、文言だけ unclassifiedName で差し替える。
  *
  * 高さは スプライト 48 + gap 4 + 名前 28 + 型 16 = 96px。骨格(CityleagueResultCardSkeleton)が
  * 同じ寸法で枠を取っているので、変えるときは両方直すこと。
  */
-export default function DeckArchetypeLabel({ archetype, size = 48 }: Props) {
+export default function DeckArchetypeLabel({
+  archetype,
+  size = 48,
+  unclassifiedName = "デッキ名：不明",
+}: Props) {
   // position は持たせない(添字で 1 枠目・2 枠目に入る)。3 体以上の定義でも先頭 2 体だけ出す
   const sprites = archetype.sprites.map((id) => ({ id }));
 
@@ -49,7 +56,7 @@ export default function DeckArchetypeLabel({ archetype, size = 48 }: Props) {
           </div>
         ) : (
           <div className="flex h-7 items-center justify-center font-bold text-medium text-default-400">
-            デッキ名：不明
+            {unclassifiedName}
           </div>
         )}
         {/* 型の行。無くても高さ(h-4)を空けたままにする */}

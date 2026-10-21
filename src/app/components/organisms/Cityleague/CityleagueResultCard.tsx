@@ -74,6 +74,12 @@ type Props = {
    * 索引に無い(未取り込み・2027 シーズンより前)デッキは渡されず、行ごと出ない。
    */
   deckArchetype?: DeckArchetypeType;
+  /*
+   * デッキの種類の行を出す場所(分類の付くシーズンの大会)か。true なら、デッキコードが無い入賞にも
+   * 同じ形の行(unknown の 2 枠と「デッキコード未掲載」)を出す。分類が付いた他の入賞と
+   * カードの見た目と高さを揃えるため(骨格 CityleagueResultCardSkeleton の withDeckArchetype と同じ意味)。
+   */
+  withDeckArchetype?: boolean;
 };
 
 
@@ -100,6 +106,16 @@ const DisplaySimilarDecksModal = createLazyModal(
 // デッキコードを持たない結果で出す「空のデッキ台紙」。公式のデッキ画像URLは deckID が
 // 空でもデッキ画像と同じ寸法(1024×512)の台紙を返すので、それをそのまま置く。
 const NO_DECK_CODE_IMAGE_URL = "https://www.pokemon-card.com/deck/deckView.php/deckID/";
+
+// デッキコードを持たない結果で種類の行に渡す分類。未分類と同じく sprites を空にして unknown の 2 枠を出す
+const NO_DECK_CODE_ARCHETYPE: DeckArchetypeType = {
+  deckCode: "",
+  archetypeName: null,
+  variantName: null,
+  label: null,
+  sprites: [],
+};
+const NO_DECK_CODE_NAME = "デッキコード未掲載";
 
 /*
  * デッキコードなしのときのデッキ画像。枠と読み込み中の見せ方は、デッキコードがあるときに
@@ -148,6 +164,7 @@ export default function CityleagueResultCard({
   showRankLabel = true,
   deckSummary,
   deckArchetype,
+  withDeckArchetype = false,
 }: Props) {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
@@ -393,14 +410,27 @@ export default function CityleagueResultCard({
               </>
             ) : (
               <>
+                {/* 種類の行。分類の付くシーズンでは、デッキコードがある入賞と同じ形で画像の上に置く */}
+                {withDeckArchetype && (
+                  <div className="pb-1">
+                    <DeckArchetypeLabel
+                      archetype={NO_DECK_CODE_ARCHETYPE}
+                      unclassifiedName={NO_DECK_CODE_NAME}
+                    />
+                  </div>
+                )}
                 {/* 画像の幅はデッキコードがあるカードと同じ上限にする(同じ大会の中で高さが揃うように) */}
                 <div className={CITYLEAGUE_CARD_IMAGE_WIDTH_CLASS}>
                   <NoDeckCodeImage />
                 </div>
                 {/* 「デッキコード」の行と同じ指定の 1 行で出し、カードの高さをデッキコードがある
                     カードに揃える(一覧で1枚だけ短いと目立つ)。台紙の画像だけだと読み込み失敗と
-                    見分けがつかないため、文字でも明示している */}
-                <span className="pt-1.5 text-center text-tiny text-default-400">
+                    見分けがつかないため、文字でも明示している。
+                    種類の行に「デッキコード未掲載」を出すときは重複するので、行の高さだけ残して見えなくする */}
+                <span
+                  aria-hidden={withDeckArchetype || undefined}
+                  className={`pt-1.5 text-center text-tiny text-default-400 ${withDeckArchetype ? "invisible" : ""}`}
+                >
                   デッキコードなし
                 </span>
               </>
@@ -496,8 +526,21 @@ export default function CityleagueResultCard({
                           </>
                         ) : (
                           <>
+                            {/* 種類の行。カードと同じく、デッキコードがある入賞と同じ形で出す */}
+                            {withDeckArchetype && (
+                              <div className="-mb-1.5">
+                                <DeckArchetypeLabel
+                                  archetype={NO_DECK_CODE_ARCHETYPE}
+                                  unclassifiedName={NO_DECK_CODE_NAME}
+                                />
+                              </div>
+                            )}
                             <NoDeckCodeImage />
-                            <span className="text-center text-tiny text-default-400">
+                            {/* 種類の行に「デッキコード未掲載」を出すときは、カードと同じく高さだけ残して見えなくする */}
+                            <span
+                              aria-hidden={withDeckArchetype || undefined}
+                              className={`text-center text-tiny text-default-400 ${withDeckArchetype ? "invisible" : ""}`}
+                            >
                               デッキコードなし
                             </span>
                           </>

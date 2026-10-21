@@ -359,7 +359,15 @@ export default function OpponentDeckDistributionChart({
   // モーダルでは開くアニメ中に見えてしまう「静止した満円」を隠しておき、スイープと同時に現す
   // （満円→空への逆戻りのちらつきを防ぐ）。ページ内では常に表示のままで挙動不変。
   const [chartHidden, setChartHidden] = useState(replayEntryAnimation);
+  // モーダルでは円グラフ本体(<Pie>)を凡例より1フレーム遅らせて作る。
+  // 凡例などの挿入・レイアウトと chart.js の初期化(キャンバス確保・初回描画)が同じタスクに重なると、
+  // 着地直後に約200ms(CPU 4倍の実測)止まる。円グラフは入場アニメの再生まで隠しているので、
+  // 遅らせても見た目は変わらない。
+  const [pieReady, setPieReady] = useState(!replayEntryAnimation);
   // ▲
+
+  // <Pie> が実際に描画される条件（下の return 分岐と一致）
+  const chartWillRender = !(isLoading && !hasData) && decks.length > 0;
 
   // 対面率が低い（出現頻度が低い）デッキをまとめて「その他」として1件に集約する。
   // 集約前の個々のデッキは others に保持し、凡例側でアコーディオン展開して一覧できるようにする。
@@ -402,11 +410,23 @@ export default function OpponentDeckDistributionChart({
 
   // モーダルが開き切って寸法が確定したら、ネイティブの入場アニメ(animateRotate)を
   // reset()+update() で1回だけ再生し直す。ページ内(replayEntryAnimation=false)では何もしない。
+  // 凡例などを入れたフレームを描き終えてから(2回目の rAF)、円グラフ本体を作る
+  useEffect(() => {
+    if (pieReady || !chartWillRender) return;
+    let innerId = 0;
+    const outerId = requestAnimationFrame(() => {
+      innerId = requestAnimationFrame(() => setPieReady(true));
+    });
+    return () => {
+      cancelAnimationFrame(outerId);
+      cancelAnimationFrame(innerId);
+    };
+  }, [pieReady, chartWillRender]);
+
   useEffect(() => {
     if (!replayEntryAnimation || replayDoneRef.current) return;
-    // <Pie> が実際に描画される条件（下の return 分岐と一致）を満たすまで待つ
-    const chartWillRender = !(isLoading && !hasData) && decks.length > 0;
-    if (!chartWillRender) return;
+    // <Pie> が実際に描画されるまで待つ
+    if (!chartWillRender || !pieReady) return;
 
     const container = chartContainerRef.current;
     if (!container) return;
@@ -463,7 +483,7 @@ export default function OpponentDeckDistributionChart({
     rafId = requestAnimationFrame(tick);
 
     return () => cancelAnimationFrame(rafId);
-  }, [replayEntryAnimation, isLoading, hasData, decks]);
+  }, [replayEntryAnimation, chartWillRender, pieReady, decks]);
 
   // 詳細表示を閉じて円グラフのみの表示に戻す
   const closeDetail = useCallback(() => {
@@ -621,13 +641,15 @@ export default function OpponentDeckDistributionChart({
           style={{ width: tooltip ? "60%" : "100%", height: containerHeight }}
         >
           <div ref={chartFlipRef} className="h-full w-full">
-            <Pie
-              ref={chartRef}
-              data={chartData}
-              options={chartOptions}
-              plugins={[spritePlugin, centerSpritePlugin]}
-              updateMode={chartUpdateMode}
-            />
+            {pieReady && (
+              <Pie
+                ref={chartRef}
+                data={chartData}
+                options={chartOptions}
+                plugins={[spritePlugin, centerSpritePlugin]}
+                updateMode={chartUpdateMode}
+              />
+            )}
           </div>
         </div>
 

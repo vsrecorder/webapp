@@ -21,50 +21,38 @@ import StatsCounter from "@app/components/molecules/StatsCounter";
 import PhoneMock from "@app/components/molecules/PhoneMock";
 
 import { isDevEnv } from "@app/utils/appIcon";
+import { upstreamUrl } from "@app/utils/upstream";
 
-const GRAFANA_DASHBOARD_UID = "55c83543db74465b895ff8301f4b9d5d";
+type SiteStats = {
+  userCount?: number;
+  matchCount?: number;
+  deckCodeCount?: number;
+};
 
-async function getGrafanaStat(panelId: number): Promise<number | undefined> {
+// 数値以外(項目の欠落・null)は「取れなかった」として扱い、その項目だけ出さない
+function toCount(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? Math.floor(value) : undefined;
+}
+
+// サービス全体の件数を core-apiserver から取る。未削除の行だけを数えた現在値で、
+// Grafana の「規模・成長サマリー」の現在値と同じ定義(core-apiserver の infrastructure/site_stat.go)。
+// 失敗してもトップページは出したいので、例外にせず空で返す。
+async function getSiteStats(): Promise<SiteStats> {
   try {
-    const res = await fetch(
-      `https://dashboard.vsrecorder.mobi/api/public/dashboards/${GRAFANA_DASHBOARD_UID}/panels/${panelId}/query`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        // 対象パネルは「その日時点の生存ベース累計」を日次で返す。範囲の開始位置に関わらず
-        // 各点が累計値なので、最新値だけ欲しい here では短い範囲で十分(日数分の行数を抑える)。
-        // 範囲を明示することで、ダッシュボード側の既定期間の変更に影響されない。
-        body: JSON.stringify({
-          timeRange: { from: "now-2d", to: "now", timezone: "Asia/Tokyo" },
-        }),
-        next: { revalidate: 300 },
-      },
-    );
-    if (!res.ok) return undefined;
+    const res = await fetch(upstreamUrl`/api/v1beta/site_stats`, {
+      // 件数は数分遅れても困らない。API 側も1分保持している。
+      next: { revalidate: 300 },
+    });
+    if (!res.ok) return {};
     const data = await res.json();
 
-    const frame = data?.results?.A?.frames?.[0];
-    const fields = frame?.schema?.fields;
-    const columns = frame?.data?.values;
-    if (!Array.isArray(fields) || !Array.isArray(columns)) return undefined;
-
-    // 時系列パネルは [Time, value] の2列を返すため、時刻列を読むとエポックミリ秒になる。
-    // 時刻以外の最後の列を値列とみなす(単一値を返すパネルにもそのまま通用する)。
-    let valueIndex = -1;
-    for (let i = 0; i < fields.length; i++) {
-      if (fields[i]?.type !== "time") valueIndex = i;
-    }
-    if (valueIndex < 0) return undefined;
-
-    // 日次系列は末尾が最新。null を挟むことがあるため後ろから最初の数値を採る。
-    const column = columns[valueIndex];
-    if (!Array.isArray(column)) return undefined;
-    for (let i = column.length - 1; i >= 0; i--) {
-      if (typeof column[i] === "number") return Math.floor(column[i]);
-    }
-    return undefined;
+    return {
+      userCount: toCount(data?.user_count),
+      matchCount: toCount(data?.match_count),
+      deckCodeCount: toCount(data?.deck_code_count),
+    };
   } catch {
-    return undefined;
+    return {};
   }
 }
 
@@ -200,19 +188,14 @@ const steps = [
   },
 ];
 
-// 統計カウンター。Grafanaへの往復(パネルID: 7=デッキコード数, 5=対戦数, 2=ユーザ数)を
-// 抱えるため、ページ本体から切り離して Suspense の内側に置く。
-// 直列にawaitするとfetch分だけTTFBが積み上がるので3本は並列で取る。
+// 統計カウンター。core-apiserver への往復を抱えるため、ページ本体から切り離して
+// Suspense の内側に置く。
 async function StatsSection() {
-  const [deckCodeCount, recordCount, userCount] = await Promise.all([
-    getGrafanaStat(7),
-    getGrafanaStat(5),
-    getGrafanaStat(2),
-  ]);
+  const { deckCodeCount, matchCount, userCount } = await getSiteStats();
 
   const statsItems = [
     { value: deckCodeCount, label: "デッキコード数" },
-    { value: recordCount, label: "対戦数" },
+    { value: matchCount, label: "対戦数" },
     { value: userCount, label: "ユーザ数" },
   ].filter((item) => item.value !== undefined) as { value: number; label: string }[];
 

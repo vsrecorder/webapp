@@ -6,6 +6,8 @@ import useSWR from "swr";
 
 import { KizunaDeckType, KizunaType } from "@app/types/kizuna";
 
+import { fetchKizunaDecks, kizunaSwrKey } from "@app/utils/kizunaClient";
+
 /*
  * デッキごとのきずなLv.（0〜255）。スプライトの揺れ方を決めるのに使う。
  *
@@ -23,33 +25,10 @@ import { KizunaDeckType, KizunaType } from "@app/types/kizuna";
  * 配列なら中身で比較されるので、値が変わったときだけ再描画される。
  */
 
-// これ以上待つと一覧が出ない。デッキ一覧はきずなが揃うまでカードを出さないので、
-// 上流が固まったときに一覧まで道連れにしないための上限(本番の応答は p90 でも 0.06 秒)
-const TIMEOUT_MS = 8000;
-
-async function fetcher(url: string): Promise<KizunaDeckType[]> {
-  let res: Response;
-  try {
-    res = await fetch(url, {
-      cache: "no-store",
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-    });
-  } catch {
-    // タイムアウト・通信断。演出が出ないだけで済ませる
-    return [];
-  }
-
-  // 失敗しても空で済ませる。きずなLv.はデッキ一覧に添える演出で、出ないだけなら
-  // 一覧の用は足りる(数字を誤って 0 や Lv.1 と見せることにもならない)
-  if (!res.ok) return [];
-
-  const kizuna: KizunaType = await res.json();
-
-  return Array.isArray(kizuna?.decks) ? kizuna.decks : [];
+// 失敗(タイムアウト・通信断・HTTPエラー)しても空で済ませる。きずなLv.はデッキ一覧に添える
+// 演出で、出ないだけなら一覧の用は足りる(数字を誤って 0 や Lv.1 と見せることにもならない)
+function fetcher(url: string): Promise<KizunaDeckType[]> {
+  return fetchKizunaDecks(url).catch(() => []);
 }
 
 function toMap(decks: KizunaDeckType[]): Map<string, KizunaDeckType> {
@@ -75,10 +54,11 @@ export function useKizunaDecksState(
   const canSkipRevalidation = isInitialFresh && initialDecks !== undefined;
 
   const { data, isLoading, isValidating, mutate } = useSWR<KizunaDeckType[], Error>(
-    userId ? `/api/users/${userId}/kizuna` : null,
+    userId ? kizunaSwrKey(userId) : null,
     fetcher,
     {
-      // きずなLv.は対戦を記録しない限り変わらない。画面を戻るたびに取り直さない。
+      // きずなLv.は記録・対戦・デッキを書き換えない限り変わらない。画面を戻るたびに取り直さない。
+      // 書き換えたときは、書き込んだ側が refreshKizuna(utils/kizunaClient)で取り直させる。
       revalidateOnFocus: false,
       // 失敗しても演出が出ないだけなので、再試行で無駄に叩かない
       shouldRetryOnError: false,

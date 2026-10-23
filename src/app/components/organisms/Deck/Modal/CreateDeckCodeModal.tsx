@@ -19,6 +19,7 @@ import { DeckCodeType, DeckCodeCreateRequestType } from "@app/types/deck_code";
 import TagSelectorAccordion from "@app/components/organisms/Tag/TagSelectorAccordion";
 import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
 import { normalizeDeckCode } from "@app/utils/deckCode";
+import { refreshKizuna } from "@app/utils/kizunaClient";
 import { useSyncOnChange } from "@app/hooks/useSyncOnChange";
 import { useRevalidateDeckCodes } from "@app/hooks/useDeckCodes";
 
@@ -174,6 +175,8 @@ export default function CreateDeckCodeModal({
 
       // 件数を出している側は SWR キャッシュを見ているので、ここで取り直す
       revalidateDeckCodes(deck.id);
+      // バージョンの数(調整の跡)できずなLv.が動く
+      refreshKizuna();
 
       onClose();
     } catch (error) {

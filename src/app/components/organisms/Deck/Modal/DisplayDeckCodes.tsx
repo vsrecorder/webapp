@@ -66,6 +66,7 @@ import { useDeckCodeUsage } from "@app/hooks/useDeckCodeUsage";
 import { pickBestVersionId } from "@app/utils/deckVersionStats";
 import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
 import { closingPassthroughClassNames } from "@app/utils/modal";
+import { refreshKizuna } from "@app/utils/kizunaClient";
 import { formatJSTDateTimeWithWeekday, isZeroDate } from "@app/utils/date";
 
 async function fetchDeckCodesByDeckId(deck_id: string) {
@@ -261,6 +262,8 @@ export default function DisplayDeckCodesModal({
       // 表示中でないバージョンを消したときは deckcode の ID が変わらず、
       // useDeckCodes 側の取り直しが働かないため、この呼び出しが必要になる
       revalidateDeckCodes(deck?.id);
+      // バージョンの数(調整の跡)できずなLv.が動く
+      refreshKizuna();
 
       // サーバはバージョンの削除と同時に、そのバージョンの投稿(みんなの公開デッキ)も
       // 取り下げる(DeckCode.Delete の UnpublishByDeckCodeId)。公開中の数を出している

@@ -13,6 +13,7 @@ import { DeckCardSkeleton } from "@app/components/organisms/Deck/Skeleton/DeckCa
 import FetchError from "@app/components/molecules/FetchError";
 
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
+import { refreshKizuna } from "@app/utils/kizunaClient";
 
 import {
   RecordGetByIdResponseType,
@@ -173,6 +174,8 @@ export default function UsedDeckById({
       );
 
       triggerNotificationsRefresh();
+      // 使用デッキが変わると、新旧両方のデッキのきずなLv.が動く
+      refreshKizuna();
     } catch (error) {
       console.error(error);
 

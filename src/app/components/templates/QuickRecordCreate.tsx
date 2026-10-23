@@ -49,6 +49,7 @@ import { DeckData, isFavoritedDeck } from "@app/types/deck";
 import { OpponentDeckCandidatesGetResponseType } from "@app/types/opponent_deck_candidate";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 import { refreshRecordingNow } from "@app/utils/recordingNowClient";
+import { refreshKizuna } from "@app/utils/kizunaClient";
 import { markRecordCreatedForPushPrompt } from "@app/utils/pushPrompt";
 import { getSpriteBySlot } from "@app/utils/spriteSlot";
 import {
@@ -431,6 +432,8 @@ export default function TemplateQuickRecordCreate({
       triggerNotificationsRefresh();
       // 作ったばかりの記録が「記録中」になる。画面下のバーにすぐ出す
       refreshRecordingNow();
+      // 使用デッキのきずなLv.が動く(記録と対戦の分)
+      refreshKizuna();
       // 価値を体験した直後に通知の許諾を求める(遷移先で PushPermissionPrompt が出す)
       markRecordCreatedForPushPrompt();
 

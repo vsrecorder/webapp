@@ -58,6 +58,7 @@ import {
 } from "@app/utils/opponentDeckCandidates";
 import { OpponentDeckCandidatesGetResponseType } from "@app/types/opponent_deck_candidate";
 import { closingPassthroughClassNames } from "@app/utils/modal";
+import { refreshKizuna } from "@app/utils/kizunaClient";
 import {
   MAX_OPPONENTS_DECK_INFO_LENGTH,
   exceedsTextLength,
@@ -568,6 +569,9 @@ export default function UpdateMatchModal({
 
         return prev.map((m) => (m.id === ret.id ? ret : m));
       });
+
+      // 勝敗・メモの変更で使用デッキのきずなLv.が動く
+      refreshKizuna();
 
       onClose();
     } catch (error) {

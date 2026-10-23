@@ -50,6 +50,7 @@ import { MAX_EVENT_TITLE_LENGTH, exceedsTextLength } from "@app/utils/textLength
 import { useOfficialEventGuide } from "@app/hooks/useOfficialEventGuide";
 import { useSyncOnChange } from "@app/hooks/useSyncOnChange";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
+import { refreshKizuna } from "@app/utils/kizunaClient";
 import { JST_TIME_ZONE, isZeroDate, toJSTDateString } from "@app/utils/date";
 
 type EventType = "official" | "tonamel" | "unofficial";
@@ -413,6 +414,8 @@ export default function EditEventInfoModal({
       });
 
       triggerNotificationsRefresh();
+      // 開催日・イベントの格が変わると使用デッキのきずなLv.が動く
+      refreshKizuna();
       onUpdated?.();
 
       onClose();

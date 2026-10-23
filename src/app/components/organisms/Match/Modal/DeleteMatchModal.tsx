@@ -9,6 +9,7 @@ import { addToast, closeToast } from "@heroui/react";
 
 import { Modal } from "@app/components/atoms/AppModal";
 import { MatchGetResponseType } from "@app/types/match";
+import { refreshKizuna } from "@app/utils/kizunaClient";
 
 type Props = {
   match: MatchGetResponseType | null;
@@ -66,6 +67,9 @@ export default function DeleteMatchModal({
         if (!prev) return prev;
         return prev.filter((m) => m.id !== match?.id);
       });
+
+      // 使用デッキのきずなLv.が動く(対戦の数・勝敗・メモ)
+      refreshKizuna();
 
       onClose();
       setIsSelected(false);

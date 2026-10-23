@@ -11,6 +11,7 @@ import { Modal } from "@app/components/atoms/AppModal";
 import { RecordGetByIdResponseType } from "@app/types/record";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 import { refreshRecordingNow } from "@app/utils/recordingNowClient";
+import { refreshKizuna } from "@app/utils/kizunaClient";
 
 type Props = {
   record: RecordGetByIdResponseType;
@@ -78,6 +79,8 @@ export default function DeleteRecordModal({
        * 押すと無い記録へ飛んでしまう。
        */
       refreshRecordingNow();
+      // 使用デッキのきずなLv.が動く(記録と、その対戦の分が抜ける)
+      refreshKizuna();
 
       onClose();
       setIsSelected(false);

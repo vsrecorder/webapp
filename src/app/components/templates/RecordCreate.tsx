@@ -57,6 +57,7 @@ import { OfficialEventOption } from "@app/components/organisms/Record/officialEv
 import { defaultRegulationIdForRecordForm } from "@app/components/organisms/Record/officialEventHelpers";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 import { refreshRecordingNow } from "@app/utils/recordingNowClient";
+import { refreshKizuna } from "@app/utils/kizunaClient";
 import { markRecordCreatedForPushPrompt } from "@app/utils/pushPrompt";
 import { JST_TIME_ZONE, formatJSTDateWithWeekday, toJSTDateString } from "@app/utils/date";
 import { toOfficialEventDateKey } from "@app/utils/officialEventList";
@@ -860,6 +861,8 @@ export default function TemplateRecordCreate({
       triggerNotificationsRefresh();
       // 作ったばかりの記録が「記録中」になる。画面下のバーにすぐ出す
       refreshRecordingNow();
+      // 使用デッキのきずなLv.が動く(記録の数・日数・舞台)
+      refreshKizuna();
       // 価値を体験した直後に通知の許諾を求める(遷移先で PushPermissionPrompt が出す)
       markRecordCreatedForPushPrompt();
 
@@ -982,6 +985,8 @@ export default function TemplateRecordCreate({
       triggerNotificationsRefresh();
       // 作ったばかりの記録が「記録中」になる。画面下のバーにすぐ出す
       refreshRecordingNow();
+      // 使用デッキのきずなLv.が動く(記録の数・日数・舞台)
+      refreshKizuna();
       // 価値を体験した直後に通知の許諾を求める(遷移先で PushPermissionPrompt が出す)
       markRecordCreatedForPushPrompt();
 
@@ -1131,6 +1136,8 @@ export default function TemplateRecordCreate({
       triggerNotificationsRefresh();
       // 作ったばかりの記録が「記録中」になる。画面下のバーにすぐ出す
       refreshRecordingNow();
+      // 使用デッキのきずなLv.が動く(記録の数・日数・舞台)
+      refreshKizuna();
       // 価値を体験した直後に通知の許諾を求める(遷移先で PushPermissionPrompt が出す)
       markRecordCreatedForPushPrompt();
 

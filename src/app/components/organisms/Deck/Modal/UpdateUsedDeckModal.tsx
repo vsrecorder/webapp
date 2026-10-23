@@ -31,6 +31,7 @@ import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 import { formatJSTDateWithWeekday } from "@app/utils/date";
 import { deckImageUrl } from "@app/utils/deckImage";
 import { useSyncOnChange } from "@app/hooks/useSyncOnChange";
+import { refreshKizuna } from "@app/utils/kizunaClient";
 import { katakanaToHiragana } from "@app/utils/kana";
 
 // 失敗レスポンスのボディをそのまま返すと、選択肢を組み立てるmap/forEachがレンダー中に
@@ -458,6 +459,8 @@ export default function UpdateUsedDeckModal({
       });
 
       triggerNotificationsRefresh();
+      // 使用デッキが変わると、新旧両方のデッキのきずなLv.が動く
+      refreshKizuna();
 
       onClose();
     } catch (error) {

@@ -63,6 +63,7 @@ import { OpponentDeckCandidatesGetResponseType } from "@app/types/opponent_deck_
 import { isIOS } from "@app/utils/platform";
 import { useClientValue } from "@app/hooks/useClientValue";
 import { closingPassthroughClassNames } from "@app/utils/modal";
+import { refreshKizuna } from "@app/utils/kizunaClient";
 import { MAX_OPPONENTS_DECK_INFO_LENGTH, exceedsTextLength } from "@app/utils/textLength";
 import {
   GameInput,
@@ -459,6 +460,8 @@ export default function CreateMatchModal({
       });
 
       triggerNotificationsRefresh();
+      // 使用デッキのきずなLv.が動く(対戦の数・勝敗・メモ)
+      refreshKizuna();
 
       // 「続けて対戦結果を追加する」で直前に入力した相手デッキ(スプライト含む)が候補に出るよう、
       // 相手デッキ候補を取り直しておく(自身の履歴は上流でキャッシュしていないので即座に反映される)。

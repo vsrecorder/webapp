@@ -22,6 +22,14 @@ export type PushPermission = NotificationPermission | "unsupported";
 
 const RESYNC_KEY = "vsrec:push:resynced-on";
 
+// サインアウトで購読を外したときに RESYNC_KEY へ入れる印。日付ではないので「今日は同期済み」と
+// 読まれず、次にログインしたときに購読を作り直して(または再送して)そのアカウントに繋ぎ直す。
+// null(自分でオフにした)とも区別するので、サインアウトしただけで通知がオフにはならない。
+const SIGNED_OUT_MARK = "signed-out";
+
+// サインアウト時の解除リクエストの上限。通信が詰まってもサインアウト自体は待たせない
+const SIGN_OUT_UNSUBSCRIBE_TIMEOUT_MS = 3000;
+
 // 通信そのものが失敗したときの結果。登録できていないので失効の判定もできない
 const failedSubscribe = { ok: false, wasRevoked: false } as const;
 
@@ -141,6 +149,40 @@ async function resubscribe(
       applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
     })
     .catch(() => null);
+}
+
+/*
+ * サインアウトの直前に呼び、この端末の購読をサーバから外してブラウザ側も解除する。
+ *
+ * 外さないと、ログアウトした端末にもそのアカウントの push(週次レポートの戦績など)が届き続け、
+ * 同じ端末で別のアカウントにログインしても、その日の再同期までは前のアカウントの通知が届く。
+ * サーバへの解除はセッションが要るので、必ず signOut() より前に呼ぶこと。
+ * 失敗してもサインアウトは止めない(外し損ねた購読は、届かなければ 410 で失効する)。
+ */
+export async function detachPushSubscriptionOnSignOut(): Promise<void> {
+  if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
+
+  try {
+    // ready は SW が無いと解決しないので、登録済みのものだけをその場で引く
+    const registration = await navigator.serviceWorker.getRegistration();
+    const subscription = await registration?.pushManager?.getSubscription();
+    if (!subscription) return;
+
+    await fetch("/api/users/push/unsubscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ endpoint: subscription.endpoint }),
+      signal: AbortSignal.timeout(SIGN_OUT_UNSUBSCRIBE_TIMEOUT_MS),
+    }).catch(() => {});
+    await subscription.unsubscribe();
+
+    // オンにしていた端末だけ印を付け替える(オフにしていた端末を勝手にオンにしない)
+    if (localStorage.getItem(RESYNC_KEY) !== null) {
+      localStorage.setItem(RESYNC_KEY, SIGNED_OUT_MARK);
+    }
+  } catch (e) {
+    console.error("Failed to detach push subscription on sign out:", e);
+  }
 }
 
 export function usePushSubscription() {

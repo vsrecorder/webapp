@@ -2,7 +2,10 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { usePushSubscription } from "@app/hooks/usePushSubscription";
+import {
+  detachPushSubscriptionOnSignOut,
+  usePushSubscription,
+} from "@app/hooks/usePushSubscription";
 
 // 実装と同じキー。再同期の日付であると同時に「自分でオフにしていない」印も兼ねる
 const RESYNC_KEY = "vsrec:push:resynced-on";
@@ -178,5 +181,78 @@ describe("usePushSubscription の購読の自動復旧", () => {
     await waitFor(() => expect(subscribeCalls(fetchMock)).toHaveLength(1));
     // 送れたら当日として記録し、次の表示では送らない
     expect(localStorage.getItem(RESYNC_KEY)).not.toBe("2020-01-01");
+  });
+});
+
+describe("detachPushSubscriptionOnSignOut(サインアウト時の購読の解除)", () => {
+  // サインアウトの経路では ready を待たず、登録済みの SW をその場で引く
+  function stubRegistration(existing: PushSubscription | null, fetchImpl?: () => Promise<unknown>) {
+    const registration = { pushManager: { getSubscription: vi.fn().mockResolvedValue(existing) } };
+    Object.defineProperty(navigator, "serviceWorker", {
+      value: { getRegistration: vi.fn().mockResolvedValue(registration) },
+      configurable: true,
+    });
+    const fetchMock = vi.fn(fetchImpl ?? (() => Promise.resolve({ ok: true })));
+    vi.stubGlobal("fetch", fetchMock);
+    return { fetchMock };
+  }
+
+  it("サーバから外してからブラウザ側も解除し、次のログインで繋ぎ直せる印を残す", async () => {
+    localStorage.setItem(RESYNC_KEY, "2020-01-01");
+    const existing = makeSubscription("https://push.example/existing");
+    const { fetchMock } = stubRegistration(existing);
+
+    await detachPushSubscriptionOnSignOut();
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe("/api/users/push/unsubscribe");
+    expect(JSON.parse(init.body as string)).toEqual({ endpoint: "https://push.example/existing" });
+    expect(existing.unsubscribe).toHaveBeenCalledTimes(1);
+    // 日付でも null でもない印。null だと「自分でオフにした」扱いになり、ログインし直しても戻らない
+    const mark = localStorage.getItem(RESYNC_KEY);
+    expect(mark).not.toBeNull();
+    expect(mark).not.toBe("2020-01-01");
+  });
+
+  it("サーバへの解除が失敗してもブラウザ側は解除する", async () => {
+    localStorage.setItem(RESYNC_KEY, "2020-01-01");
+    const existing = makeSubscription("https://push.example/existing");
+    stubRegistration(existing, () => Promise.reject(new Error("network")));
+
+    await detachPushSubscriptionOnSignOut();
+
+    expect(existing.unsubscribe).toHaveBeenCalledTimes(1);
+  });
+
+  it("購読が無ければ何も送らない", async () => {
+    const { fetchMock } = stubRegistration(null);
+
+    await detachPushSubscriptionOnSignOut();
+
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("自分でオフにしていた端末(印が無い)をオンの扱いにしない", async () => {
+    const existing = makeSubscription("https://push.example/existing");
+    stubRegistration(existing);
+
+    await detachPushSubscriptionOnSignOut();
+
+    expect(localStorage.getItem(RESYNC_KEY)).toBeNull();
+  });
+
+  it("サインアウト後にログインし直すと、購読を作り直してそのアカウントで登録する", async () => {
+    localStorage.setItem(RESYNC_KEY, "2020-01-01");
+    stubRegistration(makeSubscription("https://push.example/existing"));
+    await detachPushSubscriptionOnSignOut();
+
+    // ログインし直した後の表示。ブラウザ側の購読は消えているが許諾は残っている
+    const { subscribe, fetchMock } = stubPushEnvironment({ existing: null, permission: "granted" });
+    const { result } = renderHook(() => usePushSubscription());
+    await waitFor(() => expect(result.current.ready).toBe(true));
+
+    expect(subscribe).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(subscribeCalls(fetchMock)).toHaveLength(1));
   });
 });

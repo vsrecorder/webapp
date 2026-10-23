@@ -1,9 +1,13 @@
 import { signOut } from "next-auth/react";
 
+import { detachPushSubscriptionOnSignOut } from "@app/hooks/usePushSubscription";
+
 // Firebase のクライアント SDK(圧縮後 約25KB)は、サインアウトを実行するときだけ読む。
 // 静的に import すると、ログイン後の全ページ(ヘッダーのメニューがこの関数を参照する)の
 // 初期JSに常に載ってしまう。
 export const handleSignOut = async () => {
+  // push 購読の解除はセッションが要るので、next-auth のサインアウトより前に行う
+  await detachPushSubscriptionOnSignOut();
   await signOutFromFirebase();
   await signOut({ redirect: true, callbackUrl: "/" });
 };

@@ -84,6 +84,21 @@ type Props = {
    * 開いた直後に 1 個から 8 個へ変わって見えてしまう。そこでは最初から全部描く。
    */
   eagerAllSlides?: boolean;
+  /*
+   * 個別ページへ進む直前に呼ぶ。渡さなければ一覧(CityleagueResults)の戻り位置を控える。
+   * 一覧以外の場所(開催日ページ)は、自分の戻り位置の控えに差し替える(理由は cityleagueScrollRestore)。
+   */
+  onOpenDetail?: () => void;
+  /*
+   * 画面に近づくまで Swiper を作らず、同じ形の HTML で優勝の1枚だけを置いておくか。
+   *
+   * Swiper は作るときに枠の幅を読み、その都度レイアウトの計算を強いる。開催日ページは1つのタブに
+   * 30件を超えるカードを最初から並べるので、全部の Swiper が続けて作られ、本番ビルド・CPU 4倍の
+   * 実測(2026-10-29、10/18 の 35件)でハイドレーション直後に 0.2 秒の長いタスクになっていた。
+   * 置いておく HTML は Swiper がサーバ描画で出すものと同じ(swiper / swiper-wrapper / swiper-slide と
+   * 空の swiper-pagination)なので、差し替えても見た目は変わらない。
+   */
+  deferSwiper?: boolean;
 };
 
 /*
@@ -144,6 +159,8 @@ export default function CityleagueResult({
   official_event,
   deck_archetypes,
   eagerAllSlides = false,
+  onOpenDetail,
+  deferSwiper = false,
 }: Props) {
   // 公式イベント情報。親からイベント情報が渡されていれば取得は不要(鍵を無しにする)。
   // 失敗時は retry(FetchError のリロード)でこのイベントだけ取り直す
@@ -269,28 +286,47 @@ export default function CityleagueResult({
           </div>
         </CardHeader>
         <CardBody className="px-0 py-1">
-          <div>
-            <Swiper
-              modules={[A11y, Pagination]}
-              slidesPerView={"auto"}
-              centeredSlides={true}
-              loop={false}
-              speed={500}
-              pagination={{
-                clickable: true,
-              }}
-            >
-              {slideResults.map((result, index) => (
-                <SwiperSlide key={index} className="px-2 pt-2 pb-10">
-                  <CityleagueResultCard
-                    result={result}
-                    date={event_result.date}
-                    deckArchetype={deck_archetypes?.[result.deck_code]}
-                  />
-                </SwiperSlide>
-              ))}
-            </Swiper>
-          </div>
+          {deferSwiper && !showAllSlides ? (
+            <div>
+              <div className="swiper">
+                <div className="swiper-wrapper">
+                  {slideResults.map((result, index) => (
+                    <div key={index} className="swiper-slide px-2 pt-2 pb-10">
+                      <CityleagueResultCard
+                        result={result}
+                        date={event_result.date}
+                        deckArchetype={deck_archetypes?.[result.deck_code]}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div className="swiper-pagination" />
+              </div>
+            </div>
+          ) : (
+            <div>
+              <Swiper
+                modules={[A11y, Pagination]}
+                slidesPerView={"auto"}
+                centeredSlides={true}
+                loop={false}
+                speed={500}
+                pagination={{
+                  clickable: true,
+                }}
+              >
+                {slideResults.map((result, index) => (
+                  <SwiperSlide key={index} className="px-2 pt-2 pb-10">
+                    <CityleagueResultCard
+                      result={result}
+                      date={event_result.date}
+                      deckArchetype={deck_archetypes?.[result.deck_code]}
+                    />
+                  </SwiperSlide>
+                ))}
+              </Swiper>
+            </div>
+          )}
         </CardBody>
         <CardFooter className="pt-1 pb-2">
           <div>
@@ -307,6 +343,11 @@ export default function CityleagueResult({
               href={`/cityleague_results/${event.id}`}
               className="text-xs"
               onPress={() => {
+                if (onOpenDetail) {
+                  onOpenDetail();
+                  return;
+                }
+
                 // 個別ページから戻ってきたとき、対象カードまで自動スクロールするための保存
                 markCityleagueResultScrollTarget(
                   event_result.official_event_id,

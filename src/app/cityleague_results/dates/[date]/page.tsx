@@ -11,6 +11,7 @@ import CityleagueHubHeader from "@app/components/organisms/Cityleague/Cityleague
 import { buildBreadcrumbJsonLd, JsonLd } from "@app/utils/breadcrumb";
 import { formatMonthKey, getCityleagueEventsInTerm } from "@app/utils/cityleague";
 import { dateParamToMonthKey, formatDateParam, parseDateParam } from "@app/utils/cityleagueDate";
+import { getCityleagueDateResults } from "@app/utils/cityleagueDateResultsServer";
 import { getDateWinnerDecks } from "@app/utils/cityleagueDateWinnersServer";
 import { OG_SIZE, renderCityleagueDateOgImage } from "@app/utils/ogImage";
 import { ogImageUrlFor } from "@app/utils/ogStorage";
@@ -113,6 +114,9 @@ export default async function Page({ params }: Props) {
     notFound();
   }
 
+  // 一覧と同じ結果カード(入賞デッキ入り)で並べるための、その日の全リーグの結果
+  const dateResults = await getCityleagueDateResults(dateParam, events);
+
   const dateLabel = formatDateParam(dateParam);
   const monthKey = dateParamToMonthKey(dateParam);
 
@@ -144,8 +148,13 @@ export default async function Page({ params }: Props) {
           }
         />
 
-        {/* 合計だけでは各リーグの開催規模が分からないため、タブでリーグ別に絞り込める */}
-        <CityleagueDateEventTabs events={events} />
+        {/* その日の結果を、一覧と同じカードでまとめて見せる。合計だけでは各リーグの開催規模が
+            分からないため、タブでリーグ別に絞り込める */}
+        <CityleagueDateEventTabs
+          events={events}
+          results={dateResults?.results}
+          deckArchetypes={dateResults?.deckArchetypes}
+        />
 
         {/* 同じ月の他の開催日へ横に辿れるよう、開催月のページへ繋ぐ */}
         <Link

@@ -101,3 +101,58 @@ export function parseCityleagueDateReturn(raw: string | null): CityleagueDateRet
     return null;
   }
 }
+
+/*
+ * 大会結果一覧の末尾「最近開催されたシティリーグ」(CityleagueLatestSection)の戻り位置。
+ *
+ * このリンク集は一覧(タブ)の下にあり、開催日ページや個別ページへ進んで戻ると先頭から表示されていた
+ * (一覧の控え CITYLEAGUE_SCROLL_TO_* は一覧のカードから進んだときにしか書かれない)。
+ * 開催日ページと同じく、ページが外れるときに画面の上端にあったリンク(href)とその画面上の高さを控え、
+ * 戻ったらそのリンクを同じ高さに置く。高さはリンクの位置で合わせるので、戻ったときに上の一覧の
+ * 長さが変わっていても(読み込んだ続きは戻ると1ページ目に戻る)リンク集の中の同じ所が出る。
+ */
+export const CITYLEAGUE_LATEST_RETURN_KEY = "cityleagueLatestReturn";
+
+export type CityleagueLatestReturnState = {
+  // 画面の上端にあったリンクの href
+  href: string;
+  // そのリンクの画面上の高さ(getBoundingClientRect().top)
+  top: number;
+  // 控えた時刻。これより後に戻ってきたときだけ使う(utils/returnNavigation)
+  savedAt: number;
+};
+
+// ページが外れるときに呼ぶ。今いるページには受け取らせない(writeReturnTarget)
+export function markCityleagueLatestReturn(state: Omit<CityleagueLatestReturnState, "savedAt">) {
+  writeReturnTarget(
+    CITYLEAGUE_LATEST_RETURN_KEY,
+    JSON.stringify({ ...state, savedAt: Date.now() }),
+  );
+}
+
+export function clearCityleagueLatestReturn() {
+  writeSessionStorage(CITYLEAGUE_LATEST_RETURN_KEY, null);
+}
+
+// 読めない控えは null
+export function parseCityleagueLatestReturn(
+  raw: string | null,
+): CityleagueLatestReturnState | null {
+  if (raw === null) return null;
+
+  try {
+    const state = JSON.parse(raw) as Partial<CityleagueLatestReturnState>;
+    if (
+      typeof state.href !== "string" ||
+      typeof state.top !== "number" ||
+      !Number.isFinite(state.top) ||
+      typeof state.savedAt !== "number"
+    ) {
+      return null;
+    }
+
+    return state as CityleagueLatestReturnState;
+  } catch {
+    return null;
+  }
+}

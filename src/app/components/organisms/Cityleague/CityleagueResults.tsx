@@ -159,6 +159,8 @@ async function fetchOfficialEventsByDate(
 /*
  * 上端を取り直したぶんを差し込むときに、画面上の位置を保つ基準にするカード。
  * 差し込み後も残るカードのうち、画面に掛かっている最初のもの。
+ * どれも画面より上にあるとき(一覧の下のリンク集を見ているときなど)は、残るカードの最後のもの。
+ * 基準が無いと iOS(スクロールアンカリングが無い)では差し込んだぶんだけ見ている所が下へずれる。
  *
  * ページの最上部にいるときは基準を持たない(null)。新しい結果が上に現れるのを見せたいので、
  * 位置を保たずにそのまま差し込む(Chrome のスクロールアンカリングも最上部では効かない)。
@@ -169,14 +171,16 @@ function findAnchorCard(
 ): HTMLElement | null {
   if (!list || window.scrollY < 1) return null;
 
+  let lastKept: HTMLElement | null = null;
   for (const el of Array.from(list.children)) {
     if (!(el instanceof HTMLElement)) continue;
     const id = Number(el.dataset.officialEventId);
     if (!keepIds.has(id)) continue;
     if (el.getBoundingClientRect().bottom > 0) return el;
+    lastKept = el;
   }
 
-  return null;
+  return lastKept;
 }
 
 type Props = {

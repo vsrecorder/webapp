@@ -237,6 +237,7 @@ describe("CityleagueResults の上端の取り直し", () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
   it("マウント直後に取り直し、後から登録された結果を上に差し込む", async () => {
@@ -413,6 +414,39 @@ describe("CityleagueResults の上端の取り直し", () => {
     // 選び直されたら取り直す
     rerender(<CityleagueResults league_type={1} initial={INITIAL} scheduleContext={ONGOING} />);
     await waitFor(() => expect(resultCalls()).toBe(2));
+  });
+
+  /*
+   * 一覧の下のリンク集(最近開催されたシティリーグ)を見ているときは、カードがどれも画面より上にある。
+   * 基準が無いと、スクロールアンカリングの無い iOS では差し込んだぶんだけ見ている所が下へずれる
+   */
+  it("カードがどれも画面より上にあっても、残るカードの位置を保って差し込む", async () => {
+    vi.useFakeTimers({ toFake: ["Date"], now: new Date("2026-10-08T21:00:00+09:00") });
+    stubUpstream(() => [result(1, "2026-10-08"), result(11, "2026-10-07"), result(12, "2026-10-07")]);
+
+    // カードは 500px ずつ並び、画面はその下(3000px 送った所)にある扱い
+    const scrollY = 3000;
+    vi.spyOn(window, "scrollY", "get").mockReturnValue(scrollY);
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (
+      this: Element,
+    ) {
+      const el = this as HTMLElement;
+      if (!el.dataset.officialEventId || !el.parentElement) {
+        return { top: 0, bottom: 0, width: 0, height: 0 } as DOMRect;
+      }
+      const top = Array.from(el.parentElement.children).indexOf(el) * 500 - scrollY;
+      return { top, bottom: top + 500, width: 300, height: 500 } as DOMRect;
+    });
+    // jsdom は scrollingElement が null で、scrollTop も書いても 0 のまま。補正で足された量を読めるようにする
+    const scrolling = { scrollTop: 0 } as Element;
+    Object.defineProperty(document, "scrollingElement", { value: scrolling, configurable: true });
+
+    render(<CityleagueResults league_type={1} initial={INITIAL} scheduleContext={ONGOING} />);
+
+    await waitFor(() => expect(cardIds()).toEqual([1, 11, 12]));
+    // 1枚増えて最後のカード(12)が 500px 下がったぶん送る
+    expect(scrolling.scrollTop).toBe(500);
+    delete (document as { scrollingElement?: Element }).scrollingElement;
   });
 });
 

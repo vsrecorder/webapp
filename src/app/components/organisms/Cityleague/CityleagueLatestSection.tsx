@@ -3,6 +3,7 @@ import Link from "next/link";
 import { LuChevronRight } from "react-icons/lu";
 
 import CityleagueEventLinkList from "@app/components/organisms/Cityleague/CityleagueEventLinkList";
+import CityleagueLatestReturnArea from "@app/components/organisms/Cityleague/CityleagueLatestReturnArea";
 
 import { getLatestCityleagueEvents } from "@app/utils/cityleague";
 import { getCityleagueWinners } from "@app/utils/cityleagueWinner";
@@ -23,27 +24,30 @@ export default async function CityleagueLatestSection() {
   // 各行に添える優勝デッキの要約。付随情報なので、取れなくてもリンク集は出す。
   const winners = await getCityleagueWinners(events).catch(() => ({}));
 
+  // 開催日ページ・個別ページへ進んで戻ったときに、元の位置で見せる
   return (
-    <section className="mx-auto flex w-full max-w-2xl flex-col gap-3 px-3 pt-10 pb-6">
-      <div className="flex flex-col gap-1">
-        <span className="font-bold text-tiny text-primary">LATEST</span>
-        <h2 className="font-black text-large leading-snug text-default-800">
-          最近開催されたシティリーグ
-        </h2>
-        <p className="text-tiny text-default-500">
-          店舗ごとの結果ページで、入賞者のデッキコードとカードリストをまとめて確認できます。
-        </p>
-      </div>
+    <CityleagueLatestReturnArea>
+      <section className="mx-auto flex w-full max-w-2xl flex-col gap-3 px-3 pt-10 pb-6">
+        <div className="flex flex-col gap-1">
+          <span className="font-bold text-tiny text-primary">LATEST</span>
+          <h2 className="font-black text-large leading-snug text-default-800">
+            最近開催されたシティリーグ
+          </h2>
+          <p className="text-tiny text-default-500">
+            店舗ごとの結果ページで、入賞者のデッキコードとカードリストをまとめて確認できます。
+          </p>
+        </div>
 
-      <CityleagueEventLinkList events={events} winners={winners} />
+        <CityleagueEventLinkList events={events} winners={winners} />
 
-      <Link
-        href="/cityleague_results/months"
-        className="flex w-fit items-center gap-0.5 pl-0.5 font-bold text-tiny text-default-500 hover:text-default-700"
-      >
-        <span>開催月から過去の結果を探す</span>
-        <LuChevronRight />
-      </Link>
-    </section>
+        <Link
+          href="/cityleague_results/months"
+          className="flex w-fit items-center gap-0.5 pl-0.5 font-bold text-tiny text-default-500 hover:text-default-700"
+        >
+          <span>開催月から過去の結果を探す</span>
+          <LuChevronRight />
+        </Link>
+      </section>
+    </CityleagueLatestReturnArea>
   );
 }

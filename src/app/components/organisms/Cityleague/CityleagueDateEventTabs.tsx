@@ -1,6 +1,15 @@
 "use client";
 
-import { memo, startTransition, useEffect, useMemo, useState } from "react";
+import {
+  memo,
+  startTransition,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { usePathname } from "next/navigation";
 
 import { Tabs, Tab } from "@heroui/react";
 
@@ -13,15 +22,18 @@ import { DeckArchetypeMap } from "@app/types/deck_archetype";
 import { OfficialEventType } from "@app/types/official_event";
 import { countEventsByLeagueTitle } from "@app/utils/cityleagueLeagueCount";
 import {
-  CITYLEAGUE_DATE_SCROLL_TO_ID_KEY,
-  CITYLEAGUE_DATE_SCROLL_TO_LEAGUE_KEY,
+  CITYLEAGUE_DATE_RETURN_KEY,
   cityleagueDateResultAnchorId,
-  clearCityleagueDateScrollTarget,
-  markCityleagueDateScrollTarget,
+  clearCityleagueDateReturn,
+  markCityleagueDateReturn,
+  parseCityleagueDateReturn,
 } from "@app/utils/cityleagueScrollRestore";
+import { hasReturnedHereSince } from "@app/utils/returnNavigation";
 import { scrollBackToAnchor } from "@app/utils/returnTarget";
 
 type Props = {
+  // 開催日 "YYYY-MM-DD"。戻り位置の控えがこの日のものかを見分ける
+  dateParam: string;
   events: OfficialEventType[];
   /*
    * その日の結果(cityleagueDateResultsServer)。渡されたら、一覧と同じ結果カード(入賞デッキ入り)を並べる。
@@ -51,6 +63,42 @@ const CARD_BATCH = 4;
  * 開いた時点で画面に入る先頭のカードまで遅らせると、表示した直後に作り直すことになるため。
  */
 const EAGER_SWIPER_COUNT = 3;
+
+/*
+ * 離れるときに控えるカードを選ぶ境目(画面上端からの距離)。上部の固定ヘッダーに隠れている
+ * カードは見ていたカードではないので、下端がこれより下にある最初のカードを選ぶ。
+ */
+const ANCHOR_MIN_BOTTOM = 80;
+
+// 戻ったときに控えたカードの高さが分からなければ、ヘッダーのすぐ下に置く
+const RETURN_FALLBACK_TOP = 80;
+
+// 個別ページへ進むときの一覧の控えは書かせない(このページは自分が外れるときに控える)
+function skipListReturn() {}
+
+type TopCard = {
+  anchorEventId: number;
+  // 画面上の高さ
+  top: number;
+};
+
+// 画面の上端にあるカード(見えているタブの中で、下端が固定ヘッダーより下にある最初の1枚)
+function findTopVisibleCard(): TopCard | null {
+  const cards = document.querySelectorAll<HTMLElement>('[id^="cityleague-date-result-"]');
+
+  for (const card of cards) {
+    const rect = card.getBoundingClientRect();
+    if (rect.width === 0) continue;
+    if (rect.bottom > ANCHOR_MIN_BOTTOM) {
+      return {
+        anchorEventId: Number(card.id.slice("cityleague-date-result-".length)),
+        top: rect.top,
+      };
+    }
+  }
+
+  return null;
+}
 
 type PanelProps = {
   items: Item[];
@@ -98,7 +146,7 @@ const DateResultPanel = memo(function DateResultPanel({
             event_result={result}
             official_event={event}
             deck_archetypes={deckArchetypes}
-            onOpenDetail={() => markCityleagueDateScrollTarget(event.id, event.league_title)}
+            onOpenDetail={skipListReturn}
             deferSwiper={index >= EAGER_SWIPER_COUNT}
           />
         </div>
@@ -109,7 +157,14 @@ const DateResultPanel = memo(function DateResultPanel({
 
 // 開催日ページの結果を、リーグ区分で絞り込めるようにするタブ。
 // その日に実際に登録されているリーグ区分だけを並べる(開催の無い区分のタブは出さない)。
-export default function CityleagueDateEventTabs({ events, results, deckArchetypes }: Props) {
+export default function CityleagueDateEventTabs({
+  dateParam,
+  events,
+  results,
+  deckArchetypes,
+}: Props) {
+  const pathname = usePathname();
+
   const eventsById = useMemo(() => new Map(events.map((event) => [event.id, event])), [events]);
 
   // カードを並べるのは、結果があって店舗名などが引ける大会だけ
@@ -139,20 +194,25 @@ export default function CityleagueDateEventTabs({ events, results, deckArchetype
   const firstKey = leagueCounts[0].leagueTitle;
 
   /*
-   * 個別ページから戻ってきたとき、開いたカードのタブに合わせてその位置まで戻す(一覧と同じ)。
+   * 別のページから戻ってきたら、離れたときのタブとカードの位置まで戻す(控えは離れる直前に書く。下の effect)。
    * 受け取るのは、このページが現れた時点で既に書かれていた控えだけ(useReturnTargetItem)。
+   * 使うのは、戻ってきたとき(ブラウザの戻る/進む・ページ内の戻るリンク)だけ。控えを置いたまま
+   * 別の経路(下部ナビ・ヘッダーなど)で開き直したときは、ふつうに先頭から見せる(utils/returnNavigation)。
    */
-  const savedScrollId = useReturnTargetItem(CITYLEAGUE_DATE_SCROLL_TO_ID_KEY);
-  const savedScrollLeague = useReturnTargetItem(CITYLEAGUE_DATE_SCROLL_TO_LEAGUE_KEY);
+  const savedReturn = useReturnTargetItem(CITYLEAGUE_DATE_RETURN_KEY);
+  const returnState = useMemo(() => parseCityleagueDateReturn(savedReturn), [savedReturn]);
+  const isOwnReturn = returnState?.date === dateParam;
   const pendingScrollId =
-    savedScrollId !== null &&
-    items.some((item) => item.result.official_event_id === Number(savedScrollId))
-      ? Number(savedScrollId)
+    returnState !== null &&
+    isOwnReturn &&
+    items.some((item) => item.result.official_event_id === returnState.anchorEventId) &&
+    hasReturnedHereSince(returnState.savedAt, pathname ?? undefined)
+      ? returnState.anchorEventId
       : null;
   const restoreLeague =
     pendingScrollId !== null &&
-    leagueCounts.some((item) => item.leagueTitle === savedScrollLeague)
-      ? savedScrollLeague
+    leagueCounts.some((item) => item.leagueTitle === returnState?.league)
+      ? (returnState?.league ?? null)
       : null;
 
   // 利用者が選んだタブ。選ぶまでは、戻り先のタブか先頭のタブ
@@ -164,33 +224,97 @@ export default function CityleagueDateEventTabs({ events, results, deckArchetype
    * 利用者がタブを押して初めて開いた列だけを描き足しにする。初期表示と戻ってきたときの列は全部描く。
    * 新しいタブを開いたら、その描画の中で足す(描画中の更新。effect で足すと1回ぶん空の列が出る)。
    */
+  /*
+   * 最初の列は今のタブ(初期表示は先頭のタブ。クライアント側の移動で戻ってきたときは、最初の描画から
+   * 戻り先のタブ)。先頭のタブで始めると、戻り先が別のタブのとき使わない列まで全部描くことになる。
+   */
   const [mountedPanels, setMountedPanels] = useState<Map<string, boolean>>(
-    () => new Map([[firstKey, false]]),
+    () => new Map([[selectedKey, false]]),
   );
   if (showCards && !mountedPanels.has(selectedKey)) {
     setMountedPanels(new Map(mountedPanels).set(selectedKey, chosenKey === selectedKey));
   }
 
   useEffect(() => {
-    if (savedScrollId === null) return;
+    // 別の開催日の控えは消さない(開催日A → 開催月 → 開催日B と進んで2回戻ったとき、Aで使う)
+    if (savedReturn === null || (returnState !== null && !isOwnReturn)) return;
 
-    // 別の開催日で控えたもの(このページに無い大会)は使わずに消す。残すと、次にその日を開いたとき
-    // 戻ってきたわけでもないのに途中まで送られる
+    // この日の控えでも、戻ってきたのでなければ(開き直したなら)使わずに消す。読めない控えも消す。
+    // 残すと、このページから別のページへ進んで戻ったとき(このときは戻ってきたことになる)に古い位置へ送られる
     if (pendingScrollId === null) {
-      clearCityleagueDateScrollTarget();
+      clearCityleagueDateReturn();
       return;
     }
 
-    // 戻り先のタブのカードはこの描画で並んでいるので、フレームを1つ待ってから測る。
+    // 戻り先のタブのカードはこの描画で並んでいるので、フレームを1つ待ってから測る。ページ遷移の
+    // 先頭リセット(useScrollResetOnNavigation)もこれより先に済んでいる。
     // 控えを消すと戻り先のタブ(restoreLeague)も消えるので、先に選んだタブとして持ち直す
     const frame = requestAnimationFrame(() => {
       if (restoreLeague) setChosenKey(restoreLeague);
-      clearCityleagueDateScrollTarget();
-      scrollBackToAnchor(cityleagueDateResultAnchorId(pendingScrollId), 80);
+      clearCityleagueDateReturn();
+      scrollBackToAnchor(cityleagueDateResultAnchorId(pendingScrollId), RETURN_FALLBACK_TOP);
     });
 
     return () => cancelAnimationFrame(frame);
-  }, [savedScrollId, pendingScrollId, restoreLeague]);
+  }, [savedReturn, returnState, isOwnReturn, pendingScrollId, restoreLeague]);
+
+  /*
+   * このページから離れたら、戻ってきたときのために今のタブと画面上端のカードを控える。
+   *
+   * リンクの押下ではなく、この部品が外れるときに控える。ユーザーメニュー・通知・記録中のバーは
+   * router.push で移り、下部ナビもスクロールの慣性中に押すと click を出さずに touchend で移るので、
+   * リンクの押下を拾うだけでは控えられない経路があった。
+   *
+   * 控える位置は、外れるときに測るのではなく、スクロールのたびに覚えておいた値を使う。ブラウザの
+   * 戻る/進むで離れるときは、先頭リセット(useScrollResetOnNavigation)が popstate の中でページが
+   * 外れるより先に走り、外れる時点ではもう先頭にいる(実測。リスナーの順番では先回りできなかった)。
+   * リセットのスクロールイベントは次のフレームまで届かないので、覚えた値は離れる前のまま残る。
+   * 念のため、別のページへの popstate を受けたら、以後のスクロールでは覚え直さない。
+   * タブを切り替えたときも、見えるカードが変わるので覚え直す。
+   */
+  const selectedKeyRef = useRef(selectedKey);
+  const pathnameRef = useRef(pathname);
+  useEffect(() => {
+    selectedKeyRef.current = selectedKey;
+    pathnameRef.current = pathname;
+  });
+  const topCardRef = useRef<TopCard | null>(null);
+  const leavingRef = useRef(false);
+
+  useEffect(() => {
+    if (!showCards) return;
+
+    const remember = () => {
+      if (!leavingRef.current) topCardRef.current = findTopVisibleCard();
+    };
+    const handlePopState = () => {
+      // モーダルを閉じるためのバックのように、このページにとどまる popstate は除く
+      if (window.location.pathname !== pathnameRef.current) leavingRef.current = true;
+    };
+
+    remember();
+    window.addEventListener("scroll", remember, { passive: true });
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("scroll", remember);
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [showCards, selectedKey]);
+
+  useLayoutEffect(() => {
+    if (!showCards) return;
+
+    return () => {
+      const topCard = topCardRef.current;
+      if (!topCard) return;
+
+      markCityleagueDateReturn(
+        { date: dateParam, league: selectedKeyRef.current, anchorEventId: topCard.anchorEventId },
+        topCard.top,
+      );
+    };
+  }, [showCards, dateParam]);
 
   return (
     <div className="flex flex-col gap-3">

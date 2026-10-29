@@ -151,6 +151,9 @@ export default async function Page({ params }: Props) {
         {/* その日の結果を、一覧と同じカードでまとめて見せる。合計だけでは各リーグの開催規模が
             分からないため、タブでリーグ別に絞り込める */}
         <CityleagueDateEventTabs
+          // 開催日ごとに作り直す(タブや戻り位置の状態を別の日へ持ち越さない)
+          key={dateParam}
+          dateParam={dateParam}
           events={events}
           results={dateResults?.results}
           deckArchetypes={dateResults?.deckArchetypes}

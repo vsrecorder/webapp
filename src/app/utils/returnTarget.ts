@@ -60,14 +60,17 @@ function findVisibleAnchor(anchorId: string, root: ParentNode = document): HTMLE
   );
 }
 
-// 別のページへ進む直前に、目印のカードの画面上の高さを覚える(見つからなければ何もしない)
-export function saveReturnAnchorTop(anchorId: string): void {
-  const el = findVisibleAnchor(anchorId);
+/*
+ * 別のページへ進む直前に、目印のカードの画面上の高さを覚える(見つからなければ何もしない)。
+ * top を渡すとその値を覚える(画面がもう動いた後に、先に測っておいた高さで控えるとき)
+ */
+export function saveReturnAnchorTop(anchorId: string, top?: number): void {
+  const measuredTop = top ?? findVisibleAnchor(anchorId)?.getBoundingClientRect().top;
 
   try {
     // 見つからなければ前回のぶんを消す(古い高さで戻さない)
-    if (!el) sessionStorage.removeItem(ANCHOR_TOP_PREFIX + anchorId);
-    else sessionStorage.setItem(ANCHOR_TOP_PREFIX + anchorId, String(el.getBoundingClientRect().top));
+    if (measuredTop === undefined) sessionStorage.removeItem(ANCHOR_TOP_PREFIX + anchorId);
+    else sessionStorage.setItem(ANCHOR_TOP_PREFIX + anchorId, String(measuredTop));
   } catch {
     // 保存できない環境では、戻ったときに既定の位置へ合わせるだけ
   }

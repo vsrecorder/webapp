@@ -12,7 +12,16 @@ import CityleagueResultCardSkeleton from "@app/components/organisms/Cityleague/S
  * 自身の line-height ぶんの高さを取る。Skeleton はブロック要素でこの分を持たないため、
  * 同じ高さの枠を用意してからバーを入れないと骨格のほうが縮む。
  */
-export function CityleagueResultSkeleton() {
+type Props = {
+  /*
+   * 入賞カードにデッキの種類の行を取っておくか(CityleagueResultCardSkeleton と同じ意味)。
+   * 実体は種類が付く 2027 シーズン以降の大会だけこの行を出す。一覧は常に直近のシーズンなので既定は取る。
+   * 旧シーズンの大会を並べる場所(古い開催日のページなど)では外す
+   */
+  withDeckArchetype?: boolean;
+};
+
+export function CityleagueResultSkeleton({ withDeckArchetype = true }: Props = {}) {
   return (
     <div className="">
       <Card className="pt-3 w-full">
@@ -66,10 +75,9 @@ export function CityleagueResultSkeleton() {
           </div>
         </CardHeader>
         <CardBody className="px-0 py-1">
-          {/* Swiper のスライド（px-2 pt-2 pb-10：ドット分の下余白を含む）1枚ぶん。
-              一覧は常に直近のシーズン(2027 以降)なので、デッキの種類の行も取る */}
+          {/* Swiper のスライド（px-2 pt-2 pb-10：ドット分の下余白を含む）1枚ぶん */}
           <div className="px-2 pt-2 pb-10">
-            <CityleagueResultCardSkeleton withDeckArchetype />
+            <CityleagueResultCardSkeleton withDeckArchetype={withDeckArchetype} />
           </div>
         </CardBody>
         <CardFooter className="pt-1 pb-2">
@@ -84,11 +92,11 @@ export function CityleagueResultSkeleton() {
   );
 }
 
-export function CityleagueResultSkeletons() {
+export function CityleagueResultSkeletons({ withDeckArchetype = true }: Props = {}) {
   return (
     <>
-      <CityleagueResultSkeleton />
-      <CityleagueResultSkeleton />
+      <CityleagueResultSkeleton withDeckArchetype={withDeckArchetype} />
+      <CityleagueResultSkeleton withDeckArchetype={withDeckArchetype} />
     </>
   );
 }

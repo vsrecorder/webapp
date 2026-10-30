@@ -1,4 +1,10 @@
+"use client";
+
+import { useParams } from "next/navigation";
+
 import CityleagueResultDetailSkeleton from "@app/components/organisms/Cityleague/Skeleton/CityleagueResultDetailSkeleton";
+
+import { isDeckArchetypeEventId } from "@app/utils/deckArchetype";
 
 /*
  * /cityleague_results/[id] の Suspense 境界。
@@ -10,12 +16,18 @@ import CityleagueResultDetailSkeleton from "@app/components/organisms/Cityleague
  *
  * 骨格の中身は page.tsx の fallback と同じものを使う。
  *
- * この時点ではどのシーズンの大会か分からないが、入賞カードにはデッキの種類(バトラボのデッキ分類)の
- * 行を取っておく。分類が付くのは 2027 シーズン以降で、閲覧の中心はそちらになるため。
- * 取らずにおくと、page.tsx の fallback(シーズンに合わせて行を取る)へ差し替わるときに、
- * 新しいシーズンのページでカードが 1 枚あたり 100px 伸びていた。旧シーズンのページでは
- * 逆に縮むことになるが、そちらを少数側として受け入れる。
+ * 入賞カードのデッキの種類(バトラボのデッキ分類)の行は、分類が付く 2027 シーズン以降の大会だけ取る。
+ * この時点ではまだ大会のシーズンが分からないので、URL の大会 ID で見分ける(isDeckArchetypeEventId)。
+ * 以前は常に取っていて、旧シーズン(『30th CELEBRATION』環境より前)の大会では骨格にだけスプライトと
+ * デッキ名の枠が出て、実体に差し替わるとカードが 1 枚あたり 100px 縮んでいた。
+ * loading.tsx は props を受け取らないので、ID はクライアント側で URL から読む(useParams)。
  */
 export default function Loading() {
-  return <CityleagueResultDetailSkeleton withDeckArchetype />;
+  const { id } = useParams<{ id: string }>();
+
+  return (
+    <CityleagueResultDetailSkeleton
+      withDeckArchetype={isDeckArchetypeEventId(Number(id))}
+    />
+  );
 }

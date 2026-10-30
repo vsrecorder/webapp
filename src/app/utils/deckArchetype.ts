@@ -48,6 +48,35 @@ export function isDeckArchetypeSeason(scheduleId: string | null | undefined): bo
 }
 
 /*
+ * 読み込み中の骨格(loading.tsx)で、入賞カードにデッキの種類の行を取っておくかの判定。
+ *
+ * 骨格の時点ではまだ大会のシーズン(cityleague_schedule_id)が分からないので、URL から分かる
+ * 値で決める。旧シーズン(『30th CELEBRATION』環境より前)の大会にはスプライト・デッキ名・型が無く、
+ * 行を取っておくと骨格だけに出て、実体に差し替わるときにカードが 1 枚あたり 100px 縮む。
+ */
+
+// 分類が付く最初のシーズン(2027s1)の初日。『30th CELEBRATION』環境(2026-09-16〜)の最初のシティリーグ
+export const DECK_ARCHETYPE_FIRST_DATE = "2026-09-26";
+
+// 開催日("YYYY-MM-DD")の大会にデッキ分類が付くか
+export function isDeckArchetypeDate(dateParam: string | null | undefined): boolean {
+  return !!dateParam && dateParam >= DECK_ARCHETYPE_FIRST_DATE;
+}
+
+/*
+ * 公式イベントの ID がこれ以上なら、分類が付くシーズンの大会とみなす(個別ページの URL には ID しか無い)。
+ *
+ * ID は公式サイトがイベントの登録順に振るので、シーズンごとにまとまる。本番の結果で 2027s1 は
+ * 1114995〜1140559(402件)、その前の 2026s3〜s4 は 953415 以下(1371件)で、重なりは無かった
+ * (2026-10-30 実測)。境目はその間に置く。外れても骨格の行の有無がずれるだけ
+ */
+export const DECK_ARCHETYPE_FIRST_EVENT_ID = 1_000_000;
+
+export function isDeckArchetypeEventId(officialEventId: number): boolean {
+  return Number.isInteger(officialEventId) && officialEventId >= DECK_ARCHETYPE_FIRST_EVENT_ID;
+}
+
+/*
  * 大型大会(チャンピオンズリーグ等)のスケジュールにデッキ分類が付くか。
  *
  * 大型大会の ID はシーズンの年を含む("cl2027_yokohama"、"pjcs2026")。シティリーグと同じく

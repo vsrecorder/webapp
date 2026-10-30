@@ -28,6 +28,7 @@ import {
   OfficialEventListItemType,
 } from "@app/types/official_event";
 import { isCityleagueListRank } from "@app/utils/cityleagueRank";
+import { isDeckArchetypeSeason } from "@app/utils/deckArchetype";
 import { formatJSTDateWithWeekday } from "@app/utils/date";
 import { useClientValue } from "@app/hooks/useClientValue";
 import { useHydrated } from "@app/hooks/useHydrated";
@@ -215,14 +216,21 @@ export default function CityleagueResult({
     return () => observer.disconnect();
   }, [showAllSlides]);
 
+  // 骨格にデッキの種類の行を取るか。実体と同じく、種類が付くシーズンの大会だけ取る
+  const withDeckArchetype = isDeckArchetypeSeason(event_result.cityleague_schedule_id);
+
   if (loading) {
-    return <CityleagueResultSkeleton />;
+    return <CityleagueResultSkeleton withDeckArchetype={withDeckArchetype} />;
   }
 
   if (error) {
     // 骨格・実体と同じ高さで出す(一覧に並ぶので、欠けると下の行がずれる)
     return (
-      <FetchErrorBox sizer={<CityleagueResultSkeleton />} onRetry={loadEvent} compact />
+      <FetchErrorBox
+        sizer={<CityleagueResultSkeleton withDeckArchetype={withDeckArchetype} />}
+        onRetry={loadEvent}
+        compact
+      />
     );
   }
 

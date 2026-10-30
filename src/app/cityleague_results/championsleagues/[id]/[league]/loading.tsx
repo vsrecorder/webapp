@@ -1,6 +1,12 @@
+"use client";
+
+import { useParams } from "next/navigation";
+
 import { Card, CardBody, CardHeader, Skeleton } from "@heroui/react";
 
 import CityleagueResultCardSkeleton from "@app/components/organisms/Cityleague/Skeleton/CityleagueResultCardSkeleton";
+
+import { isDeckArchetypeChampionsleague } from "@app/utils/deckArchetype";
 
 // 順位セクション（優勝／準優勝／ベスト4／ベスト8）の人数。
 // 実体(ChampionsleagueResultByLeague)の順位セクションと同じ並びにする。
@@ -12,7 +18,14 @@ const RANK_SECTION_CARD_COUNTS = [1, 1, 2, 4];
 // 動的ルートは loading.tsx が無いと <Link> のプリフェッチ対象から外れる。
 // つまりこのファイルが無いと、区分一覧からタップしてもサーバの描画が終わるまで
 // 画面が前のページのまま固まる。
+//
+// loading.tsx は props を受け取らないので、大会の ID はクライアント側で URL から読む(useParams)。
 export default function Loading() {
+  const { id } = useParams<{ id: string }>();
+  // 2027 シーズン以降の大会(ID に年が入っている)だけ、入賞カードにデッキの種類の行を取る。
+  // 旧シーズン(『30th CELEBRATION』環境より前)の大会には種類が無く、取ると骨格にだけ出る
+  const withDeckArchetype = isDeckArchetypeChampionsleague(id);
+
   return (
     <div className="flex flex-col gap-3 pt-1 pb-3">
       {/* 一覧への戻り導線（実体と同じくヘッダー直下に sticky で置く） */}
@@ -95,10 +108,7 @@ export default function Loading() {
                 <CityleagueResultCardSkeleton
                   key={cardIndex}
                   showRankLabel={false}
-                  // 2027 シーズン以降の大会にはデッキの種類(バトラボのデッキ分類)が付く。この時点では
-                  // どの大会か分からないが、閲覧の中心になる新しい大会に合わせて行を取っておく
-                  // (シティリーグの個別ページの loading.tsx と同じ判断)
-                  withDeckArchetype
+                  withDeckArchetype={withDeckArchetype}
                 />
               ))}
             </div>

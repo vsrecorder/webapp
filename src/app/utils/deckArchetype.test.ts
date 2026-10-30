@@ -12,6 +12,8 @@ import {
   deckArchetypeToDeckDraft,
   deckDisplayName,
   isDeckArchetypeChampionsleague,
+  isDeckArchetypeDate,
+  isDeckArchetypeEventId,
   isDeckArchetypeSeason,
   isHiddenWhileAwaiting,
   isWithinDeckArchetypeWait,
@@ -60,6 +62,23 @@ describe("seasonYearOfScheduleId / isDeckArchetypeSeason", () => {
     expect(isDeckArchetypeSeason("2028s1")).toBe(true);
     expect(isDeckArchetypeSeason("2026s4")).toBe(false);
     expect(isDeckArchetypeSeason(null)).toBe(false);
+  });
+});
+
+describe("isDeckArchetypeDate / isDeckArchetypeEventId(骨格に種類の行を取るか)", () => {
+  it("2027s1 の初日以降の開催日だけ", () => {
+    expect(isDeckArchetypeDate("2026-09-26")).toBe(true);
+    expect(isDeckArchetypeDate("2027-01-10")).toBe(true);
+    expect(isDeckArchetypeDate("2026-09-25")).toBe(false);
+    expect(isDeckArchetypeDate("2026-05-06")).toBe(false);
+    expect(isDeckArchetypeDate(undefined)).toBe(false);
+  });
+
+  it("大会 ID はシーズンの境目(2026s4 の最大 953415 と 2027s1 の最小 1114995 の間)で分ける", () => {
+    expect(isDeckArchetypeEventId(1114995)).toBe(true);
+    expect(isDeckArchetypeEventId(1140559)).toBe(true);
+    expect(isDeckArchetypeEventId(953415)).toBe(false);
+    expect(isDeckArchetypeEventId(Number.NaN)).toBe(false);
   });
 });
 

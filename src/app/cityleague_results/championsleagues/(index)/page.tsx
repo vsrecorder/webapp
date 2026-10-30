@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import ReturnPositionArea from "@app/components/molecules/ReturnPositionArea";
 import CityleagueHubHeader from "@app/components/organisms/Cityleague/CityleagueHubHeader";
 import CityleagueIndexList from "@app/components/organisms/Cityleague/CityleagueIndexList";
 
@@ -64,25 +65,28 @@ export default async function Page() {
     <>
       <JsonLd data={jsonLd} />
 
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-3 pt-4 pb-8">
-        <CityleagueHubHeader
-          backHref="/cityleague_results"
-          backLabel="シティリーグ結果"
-          eyebrow="CHAMPIONS LEAGUE"
-          title="大型大会の結果"
-          subtitle="チャンピオンズリーグ / ポケモンジャパンチャンピオンシップス"
-          count={items.length}
-          countLabel="結果が登録された大会"
-        />
+      {/* 個別の結果などへ進んで戻ったとき、元の位置で見せる */}
+      <ReturnPositionArea>
+        <div className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-3 pt-4 pb-8">
+          <CityleagueHubHeader
+            backHref="/cityleague_results"
+            backLabel="シティリーグ結果"
+            eyebrow="CHAMPIONS LEAGUE"
+            title="大型大会の結果"
+            subtitle="チャンピオンズリーグ / ポケモンジャパンチャンピオンシップス"
+            count={items.length}
+            countLabel="結果が登録された大会"
+          />
 
-        {items.length > 0 ? (
-          <CityleagueIndexList items={items} countUnit="区分" />
-        ) : (
-          <p className="py-10 text-center text-small text-default-400">
-            結果が登録された大型大会はまだありません。
-          </p>
-        )}
-      </div>
+          {items.length > 0 ? (
+            <CityleagueIndexList items={items} countUnit="区分" />
+          ) : (
+            <p className="py-10 text-center text-small text-default-400">
+              結果が登録された大型大会はまだありません。
+            </p>
+          )}
+        </div>
+      </ReturnPositionArea>
     </>
   );
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import ReturnPositionArea from "@app/components/molecules/ReturnPositionArea";
 import ChampionsleagueLeagueRelatedSection from "@app/components/organisms/Championsleague/ChampionsleagueLeagueRelatedSection";
 import ChampionsleagueResultByLeague, {
   formatChampionsleagueWinner,
@@ -304,20 +305,23 @@ export default async function Page({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
-      <ChampionsleagueResultByLeague
-        schedule={schedule}
-        leagueType={leagueType}
-        eventResults={eventResults}
-        officialEvents={officialEvents}
-        deckSummaries={deckSummaries}
-        deckArchetypes={deckArchetypes}
-        relatedSection={
-          <ChampionsleagueLeagueRelatedSection
-            schedule={schedule}
-            leagueType={leagueType}
-          />
-        }
-      />
+      {/* 公式サイトや別の区分へ進んで戻ったとき、元の位置で見せる */}
+      <ReturnPositionArea>
+        <ChampionsleagueResultByLeague
+          schedule={schedule}
+          leagueType={leagueType}
+          eventResults={eventResults}
+          officialEvents={officialEvents}
+          deckSummaries={deckSummaries}
+          deckArchetypes={deckArchetypes}
+          relatedSection={
+            <ChampionsleagueLeagueRelatedSection
+              schedule={schedule}
+              leagueType={leagueType}
+            />
+          }
+        />
+      </ReturnPositionArea>
     </>
   );
 }

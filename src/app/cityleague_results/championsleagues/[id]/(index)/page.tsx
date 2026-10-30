@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { Card, CardBody, CardHeader, Chip } from "@heroui/react";
 
+import ReturnPositionArea from "@app/components/molecules/ReturnPositionArea";
 import ChampionsleagueLeagueList, {
   ChampionsleagueLeagueListItem,
 } from "@app/components/organisms/Championsleague/ChampionsleagueLeagueList";
@@ -288,35 +289,38 @@ export default async function Page({ params }: Props) {
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
 
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-3 pt-4 pb-8">
-        <CityleagueHubHeader
-          backHref="/cityleague_results/championsleagues"
-          backLabel="大型大会の結果一覧"
-          eyebrow="CHAMPIONS LEAGUE"
-          title={scheduleTitle}
-          subtitle={formatTermRange(schedule)}
-          count={items.length}
-          countLabel="結果が登録されたリーグ区分"
-        />
+      {/* 個別の結果などへ進んで戻ったとき、元の位置で見せる */}
+      <ReturnPositionArea>
+        <div className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-3 pt-4 pb-8">
+          <CityleagueHubHeader
+            backHref="/cityleague_results/championsleagues"
+            backLabel="大型大会の結果一覧"
+            eyebrow="CHAMPIONS LEAGUE"
+            title={scheduleTitle}
+            subtitle={formatTermRange(schedule)}
+            count={items.length}
+            countLabel="結果が登録されたリーグ区分"
+          />
 
-        <Card className="w-full">
-          <CardHeader className="flex-col items-start gap-2 px-3 py-3">
-            {venueEvent?.venue && (
-              <Chip size="sm" radius="md" variant="bordered">
-                <small className="font-bold">{venueEvent.venue}</small>
-              </Chip>
-            )}
-          </CardHeader>
-          <CardBody className="gap-2 px-3 pt-0 pb-3">
-            <p className="text-tiny leading-relaxed text-default-500">{description}</p>
-            <p className="text-tiny text-default-400">入賞 {resultCount}名</p>
-          </CardBody>
-        </Card>
+          <Card className="w-full">
+            <CardHeader className="flex-col items-start gap-2 px-3 py-3">
+              {venueEvent?.venue && (
+                <Chip size="sm" radius="md" variant="bordered">
+                  <small className="font-bold">{venueEvent.venue}</small>
+                </Chip>
+              )}
+            </CardHeader>
+            <CardBody className="gap-2 px-3 pt-0 pb-3">
+              <p className="text-tiny leading-relaxed text-default-500">{description}</p>
+              <p className="text-tiny text-default-400">入賞 {resultCount}名</p>
+            </CardBody>
+          </Card>
 
-        <ChampionsleagueLeagueList items={items} />
+          <ChampionsleagueLeagueList items={items} />
 
-        <ChampionsleagueRelatedSection schedule={schedule} />
-      </div>
+          <ChampionsleagueRelatedSection schedule={schedule} />
+        </div>
+      </ReturnPositionArea>
     </>
   );
 }

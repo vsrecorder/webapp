@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import ReturnPositionArea from "@app/components/molecules/ReturnPositionArea";
 import CityleagueRelatedSection from "@app/components/organisms/Cityleague/CityleagueRelatedSection";
 import CityleagueResultDetailSkeleton from "@app/components/organisms/Cityleague/Skeleton/CityleagueResultDetailSkeleton";
 import TemplateCityleagueResultByOfficialEventId from "@app/components/templates/CityleagueResultByOfficialEventId";
@@ -274,15 +275,18 @@ export default async function Page({ params }: Props) {
        * 先に出せるものを止めておく理由が無い。検索エンジンもストリーミングされた
        * 最終的な HTML を読むため、テキストは従来どおり載る。
        */}
-      <Suspense
-        fallback={
-          <CityleagueResultDetailSkeleton
-            withDeckArchetype={isDeckArchetypeSeason(cityleagueResult.cityleague_schedule_id)}
-          />
-        }
-      >
-        <ResultsWithDeckSummaries event={event} cityleagueResult={cityleagueResult} />
-      </Suspense>
+      {/* 関連する大会などへ進んで戻ったとき、元の位置で見せる */}
+      <ReturnPositionArea>
+        <Suspense
+          fallback={
+            <CityleagueResultDetailSkeleton
+              withDeckArchetype={isDeckArchetypeSeason(cityleagueResult.cityleague_schedule_id)}
+            />
+          }
+        >
+          <ResultsWithDeckSummaries event={event} cityleagueResult={cityleagueResult} />
+        </Suspense>
+      </ReturnPositionArea>
     </>
   );
 }

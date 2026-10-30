@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import ReturnPositionArea from "@app/components/molecules/ReturnPositionArea";
 import CityleagueHubHeader from "@app/components/organisms/Cityleague/CityleagueHubHeader";
 import CityleagueIndexList from "@app/components/organisms/Cityleague/CityleagueIndexList";
 
@@ -74,24 +75,27 @@ export default async function Page() {
     <>
       <JsonLd data={jsonLd} />
 
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-3 pt-4 pb-8">
-        <CityleagueHubHeader
-          backHref="/cityleague_results"
-          backLabel="シティリーグ結果"
-          eyebrow="DATE"
-          title="開催日から探す"
-          count={eventRefs.length}
-        />
+      {/* 個別の結果などへ進んで戻ったとき、元の位置で見せる */}
+      <ReturnPositionArea>
+        <div className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-3 pt-4 pb-8">
+          <CityleagueHubHeader
+            backHref="/cityleague_results"
+            backLabel="シティリーグ結果"
+            eyebrow="DATE"
+            title="開催日から探す"
+            count={eventRefs.length}
+          />
 
-        {[...months.entries()].map(([monthKey, items]) => (
-          <section key={monthKey} className="flex flex-col gap-1.5">
-            <h2 className="px-0.5 font-bold text-small text-default-700">
-              {formatMonthKey(monthKey)}
-            </h2>
-            <CityleagueIndexList items={items} />
-          </section>
-        ))}
-      </div>
+          {[...months.entries()].map(([monthKey, items]) => (
+            <section key={monthKey} className="flex flex-col gap-1.5">
+              <h2 className="px-0.5 font-bold text-small text-default-700">
+                {formatMonthKey(monthKey)}
+              </h2>
+              <CityleagueIndexList items={items} />
+            </section>
+          ))}
+        </div>
+      </ReturnPositionArea>
     </>
   );
 }

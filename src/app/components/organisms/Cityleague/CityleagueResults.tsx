@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { usePathname } from "next/navigation";
 
 import { Spinner } from "@heroui/spinner";
 import { Button } from "@heroui/react";
@@ -43,12 +44,21 @@ import {
 import { toJSTDateString, todayJSTDateString } from "@app/utils/date";
 import { resolveDeckArchetypes } from "@app/utils/deckArchetypeClient";
 import {
+  CITYLEAGUE_LATEST_RETURN_KEY,
   CITYLEAGUE_SCROLL_TO_ID_KEY,
   CITYLEAGUE_SCROLL_TO_LEAGUE_TYPE_KEY,
+  CITYLEAGUE_SCROLL_TO_SAVED_AT_KEY,
   cityleagueResultAnchorId,
   clearCityleagueResultScrollTarget,
+  markCityleagueResultDeparture,
 } from "@app/utils/cityleagueScrollRestore";
-import { scrollBackToAnchor } from "@app/utils/returnTarget";
+import { hasReturnedHereSince } from "@app/utils/returnNavigation";
+import { readSessionStorage } from "@app/utils/sessionStorageStore";
+import {
+  currentReturnTargetSequence,
+  isReturnTargetMarkedAfter,
+  scrollBackToAnchor,
+} from "@app/utils/returnTarget";
 import { useReturnTargetItem } from "@app/hooks/useReturnTargetItem";
 import { applyWithScrollCompensation, forceRepaint } from "@app/utils/scrollRepaint";
 import FetchError from "@app/components/molecules/FetchError";
@@ -181,6 +191,39 @@ function findAnchorCard(
   }
 
   return lastKept;
+}
+
+/*
+ * 画面に掛かっている最後のカード。離れるときに控える(一覧が画面に入っていなければ null)。
+ *
+ * 戻ると一覧は1ページ目に戻り、控えたカードが出るまで続きを読む。最初のカードを控えると、
+ * それが1ページ目にあるとき画面の下側に見えていた続きのカードが読まれず、「更に読み込む」に
+ * 置き換わって見えていた(実測)。最後のカードなら、画面に見えていたカードがすべて揃う。
+ */
+function findLastVisibleCard(list: HTMLElement | null): { id: number; top: number } | null {
+  if (!list) return null;
+
+  let last: { id: number; top: number } | null = null;
+  for (const el of Array.from(list.children)) {
+    if (!(el instanceof HTMLElement) || !el.dataset.officialEventId) continue;
+    const rect = el.getBoundingClientRect();
+    if (rect.width === 0 || rect.bottom <= 0) continue;
+    if (rect.top >= window.innerHeight) break;
+
+    last = { id: Number(el.dataset.officialEventId), top: rect.top };
+  }
+
+  return last;
+}
+
+/*
+ * ページの先頭にいるか。モーダルを開いている間は背面が position:fixed で固定され
+ * (useModalBackgroundScrollLock)、scrollY が 0 になるので、ページ内容のラッパーの位置で見る
+ */
+function isAtPageTop(): boolean {
+  const lockRoot = document.querySelector("[data-scroll-lock-root]");
+  const offset = lockRoot ? -lockRoot.getBoundingClientRect().top : window.scrollY;
+  return offset < 1;
 }
 
 type Props = {
@@ -324,8 +367,21 @@ export default function CityleagueResults({
    */
   const savedScrollId = useReturnTargetItem(CITYLEAGUE_SCROLL_TO_ID_KEY);
   const savedScrollLeagueType = useReturnTargetItem(CITYLEAGUE_SCROLL_TO_LEAGUE_TYPE_KEY);
+  /*
+   * 離れるときに控えた対象(時刻つき)は、戻ってきたとき(ブラウザの戻る/進む・ページ内の戻るリンク)
+   * だけ使う。下部ナビなどで開き直したときは、ふつうに先頭から見せる(utils/returnNavigation)。
+   * 描画中に判定するので usePathname を渡す(リンクで来た直後は location がまだ前のページ)
+   */
+  const savedScrollAt = useReturnTargetItem(CITYLEAGUE_SCROLL_TO_SAVED_AT_KEY);
+  const pathname = usePathname();
+  const isStaleDeparture =
+    savedScrollAt !== null &&
+    !hasReturnedHereSince(Number(savedScrollAt), pathname ?? undefined);
   const pendingScrollId =
-    savedScrollId && savedScrollLeagueType && Number(savedScrollLeagueType) === league_type
+    savedScrollId &&
+    savedScrollLeagueType &&
+    Number(savedScrollLeagueType) === league_type &&
+    !isStaleDeparture
       ? Number(savedScrollId)
       : null;
   const scrollTargetFound =
@@ -626,11 +682,14 @@ export default function CityleagueResults({
 
   // 対象カードが見つかったら、スクロール対象を消して(覆いが外れる)その位置までスクロールする。
   // このカードは描画済み(items にある)なので、フレームを1つ待ってから測る
-  // 取り直しで上にカードが差し込まれると位置がずれるので、取り直しが済んでから測る
   // 位置は元の位置(離れる直前にこのカードがあった画面上の高さ)。覚えていなければヘッダーの下。
   // 元の位置へ戻ったように見せたいので、なめらかには動かさない
+  //
+  // 上端の取り直し(マウント直後に必ず走る)は待たない。以前は取り直しが済んでから測っていて、
+  // 戻るたびに全画面の覆いが通信1往復ぶん出ていた(dev 実測で約 0.2 秒)。取り直しで上に
+  // カードが差し込まれても、見えているカードを基準に位置を保つ(applyWithScrollCompensation)
   useEffect(() => {
-    if (pendingScrollId === null || !scrollTargetFound || isRefreshing) return;
+    if (pendingScrollId === null || !scrollTargetFound) return;
 
     clearCityleagueResultScrollTarget();
 
@@ -638,7 +697,90 @@ export default function CityleagueResults({
     requestAnimationFrame(() => {
       scrollBackToAnchor(cityleagueResultAnchorId(id), 80);
     });
-  }, [pendingScrollId, scrollTargetFound, isRefreshing]);
+  }, [pendingScrollId, scrollTargetFound]);
+
+  /*
+   * 離れるときに控えた対象でも、戻ってきたのでなければ(開き直したなら)使わずに消す。
+   * 別のリーグのタブで控えたものも消す(離れたときに見ていたタブで戻ってくるので、
+   * 合わないのは残り物。残すと後で戻ってきたときに古い位置へ送られる)
+   */
+  const isOtherLeagueDeparture =
+    savedScrollAt !== null &&
+    savedScrollLeagueType !== null &&
+    Number(savedScrollLeagueType) !== league_type;
+  useEffect(() => {
+    if (!isActive || savedScrollId === null) return;
+    if (isStaleDeparture || isOtherLeagueDeparture) clearCityleagueResultScrollTarget();
+  }, [isActive, savedScrollId, isStaleDeparture, isOtherLeagueDeparture]);
+
+  /*
+   * このページから離れたら(上部のチップ・ヘッダーのナビ・戻る/進むなど、どこからでも)、
+   * 戻ってきたときのために画面に見えていたカード(最後のもの)を控える。カードから個別ページへ進んだときは
+   * そのカードを控え済みなので(時刻の無い対象)、上書きしない。
+   *
+   * 控え方は開催日ページ(CityleagueDateEventTabs)と同じ。位置は外れるときに測らず、
+   * スクロールのたびに覚えた値を使う(戻る/進むで離れるときは、外れる時点でもう先頭に
+   * 戻されている)。別のページへの popstate を受けたら以後は覚え直さない。
+   * 選ばれていないタブ(hidden)は見えていないので控えない。
+   */
+  const isActiveRef = useRef(isActive);
+  const pathnameRef = useRef(pathname);
+  useEffect(() => {
+    isActiveRef.current = isActive;
+    pathnameRef.current = pathname;
+  });
+  const topCardRef = useRef<{ id: number; top: number } | null>(null);
+  const leavingRef = useRef(false);
+  // 現れた時点の書き込みの番号。カードから進んだ(この一覧が表示中に書いた)対象かを見分ける
+  const [sequenceAtMount] = useState(currentReturnTargetSequence);
+
+  useEffect(() => {
+    if (!isActive) return;
+
+    const remember = () => {
+      if (leavingRef.current) return;
+      // 先頭にいるときは控えない(戻っても先頭なので、探す間の覆いを出さずに済む)
+      topCardRef.current = isAtPageTop() ? null : findLastVisibleCard(listRef.current);
+    };
+    const handlePopState = () => {
+      // モーダルを閉じるためのバックのように、このページにとどまる popstate は除く
+      if (window.location.pathname !== pathnameRef.current) leavingRef.current = true;
+    };
+
+    remember();
+    window.addEventListener("scroll", remember, { passive: true });
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("scroll", remember);
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [isActive]);
+
+  useLayoutEffect(() => {
+    return () => {
+      if (!isActiveRef.current) return;
+
+      // カードから個別ページへ進んだとき(表示中に書かれた、時刻の無い対象)は、そのカードへ戻す。
+      // 現れる前から残っている対象は見ない(古い対象のせいで、いつまでも控えられなくなる)
+      const hasCardTarget =
+        isReturnTargetMarkedAfter(CITYLEAGUE_SCROLL_TO_ID_KEY, sequenceAtMount) &&
+        readSessionStorage(CITYLEAGUE_SCROLL_TO_SAVED_AT_KEY) === null;
+      if (hasCardTarget) return;
+
+      // 末尾のリンク集が先にこの離れ方を控えていたら、そちらに任せる(両方で動かすと位置がずれる。
+      // 一覧の方が先に外れるので、ふつうは一覧が控えてリンク集が控えない。CityleagueLatestReturnArea)
+      if (isReturnTargetMarkedAfter(CITYLEAGUE_LATEST_RETURN_KEY, sequenceAtMount)) return;
+
+      const topCard = topCardRef.current;
+      if (topCard) {
+        markCityleagueResultDeparture(topCard.id, league_type, topCard.top);
+      } else if (readSessionStorage(CITYLEAGUE_SCROLL_TO_SAVED_AT_KEY) !== null) {
+        // 一覧が見えていなかった(先頭・末尾のリンク集を見ていた)ので、前に控えた対象は捨てる
+        clearCityleagueResultScrollTarget();
+      }
+    };
+  }, [league_type, sequenceAtMount]);
 
   // 全件読み込んでも見つからなかった場合は諦める(対象を消して覆いを外す)
   useEffect(() => {

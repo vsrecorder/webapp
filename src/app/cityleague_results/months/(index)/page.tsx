@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import ReturnPositionArea from "@app/components/molecules/ReturnPositionArea";
 import CityleagueHubHeader from "@app/components/organisms/Cityleague/CityleagueHubHeader";
 import CityleagueIndexList from "@app/components/organisms/Cityleague/CityleagueIndexList";
 
@@ -73,17 +74,20 @@ export default async function Page() {
     <>
       <JsonLd data={jsonLd} />
 
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-3 pt-4 pb-8">
-        <CityleagueHubHeader
-          backHref="/cityleague_results"
-          backLabel="シティリーグ結果"
-          eyebrow="MONTH"
-          title="開催月から探す"
-          count={eventRefs.length}
-        />
+      {/* 個別の結果などへ進んで戻ったとき、元の位置で見せる */}
+      <ReturnPositionArea>
+        <div className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-3 pt-4 pb-8">
+          <CityleagueHubHeader
+            backHref="/cityleague_results"
+            backLabel="シティリーグ結果"
+            eyebrow="MONTH"
+            title="開催月から探す"
+            count={eventRefs.length}
+          />
 
-        <CityleagueIndexList items={items} />
-      </div>
+          <CityleagueIndexList items={items} />
+        </div>
+      </ReturnPositionArea>
     </>
   );
 }

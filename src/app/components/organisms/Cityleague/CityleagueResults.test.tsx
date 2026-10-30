@@ -6,9 +6,14 @@ import CityleagueResults from "@app/components/organisms/Cityleague/CityleagueRe
 
 import { CityleagueResultType } from "@app/types/cityleague_result";
 import {
+  CITYLEAGUE_LATEST_RETURN_KEY,
+  CITYLEAGUE_SCROLL_TO_SAVED_AT_KEY,
   clearCityleagueResultScrollTarget,
+  markCityleagueResultDeparture,
   markCityleagueResultScrollTarget,
 } from "@app/utils/cityleagueScrollRestore";
+import { noteReturnNavigation } from "@app/utils/returnNavigation";
+import { writeReturnTarget } from "@app/utils/returnTarget";
 import {
   CityleagueListInitialData,
   CityleagueScheduleContext,
@@ -501,5 +506,183 @@ describe("CityleagueResults の戻り先カードへのスクロール", () => {
     render(<CityleagueResults league_type={1} initial={INITIAL} scheduleContext={ONGOING} />);
 
     await waitFor(() => expect(sessionStorage.getItem("cityleagueResultScrollToId")).toBeNull());
+  });
+
+  /*
+   * 上部のチップ(シーズン・環境・大型大会…)やヘッダーから離れて戻ったときも、元の位置で見せる。
+   * jsdom は配置を計算しないので、カードは上端 300px から 500px ずつ並び、画面は scrollY だけ送った所にある扱い
+   */
+  function stubCardLayout(scrollY: number) {
+    vi.spyOn(window, "scrollY", "get").mockReturnValue(scrollY);
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (
+      this: Element,
+    ) {
+      const el = this as HTMLElement;
+      if (!el.dataset.officialEventId || !el.parentElement) {
+        return { top: 0, bottom: 0, width: 0, height: 0 } as DOMRect;
+      }
+      const top = 300 + Array.from(el.parentElement.children).indexOf(el) * 500 - scrollY;
+      return { top, bottom: top + 500, width: 300, height: 500 } as DOMRect;
+    });
+  }
+
+  const savedTarget = () => ({
+    id: sessionStorage.getItem("cityleagueResultScrollToId"),
+    leagueType: sessionStorage.getItem("cityleagueResultScrollToLeagueType"),
+    savedAt: sessionStorage.getItem(CITYLEAGUE_SCROLL_TO_SAVED_AT_KEY),
+  });
+
+  it("どこから離れても、画面に見えているカードを時刻つきで控える", async () => {
+    stubFetch(["ok"]);
+    stubCardLayout(1000);
+    const { unmount } = render(
+      <CityleagueResults league_type={1} initial={INITIAL} scheduleContext={ONGOING} />,
+    );
+    await act(async () => {});
+
+    act(() => {
+      window.dispatchEvent(new Event("scroll"));
+    });
+    unmount();
+
+    // 1枚目(300〜800px)は画面の上へ抜け、2枚目(800px〜)が上端に掛かっている
+    expect(savedTarget()).toMatchObject({ id: "12", leagueType: "1" });
+    expect(savedTarget().savedAt).not.toBeNull();
+    vi.restoreAllMocks();
+  });
+
+  /*
+   * 戻ると一覧は1ページ目に戻り、控えたカードが出るまで続きを読む。最初のカードを控えると、
+   * 画面の下側に見えていた続きのカードが読まれない
+   */
+  it("画面に複数のカードが見えているときは、最後のカードを控える", async () => {
+    stubFetch(["ok"]);
+    stubCardLayout(400);
+    const { unmount } = render(
+      <CityleagueResults league_type={1} initial={INITIAL} scheduleContext={ONGOING} />,
+    );
+    await act(async () => {});
+
+    act(() => {
+      window.dispatchEvent(new Event("scroll"));
+    });
+    unmount();
+
+    // 1枚目(-100〜400px)と2枚目(400〜900px)が画面に掛かっている
+    expect(savedTarget()).toMatchObject({ id: "12" });
+    vi.restoreAllMocks();
+  });
+
+  it("末尾のリンク集がこの離れ方を先に控えていたら、一覧は控えない", async () => {
+    stubFetch(["ok"]);
+    stubCardLayout(1000);
+    const { unmount } = render(
+      <CityleagueResults league_type={1} initial={INITIAL} scheduleContext={ONGOING} />,
+    );
+    await act(async () => {});
+    act(() => {
+      window.dispatchEvent(new Event("scroll"));
+    });
+
+    writeReturnTarget(CITYLEAGUE_LATEST_RETURN_KEY, "{}");
+    unmount();
+
+    expect(savedTarget().id).toBeNull();
+    sessionStorage.removeItem(CITYLEAGUE_LATEST_RETURN_KEY);
+    vi.restoreAllMocks();
+  });
+
+  it("先頭にいるときは控えない(戻っても先頭のまま)", async () => {
+    stubFetch(["ok"]);
+    stubCardLayout(0);
+    const { unmount } = render(
+      <CityleagueResults league_type={1} initial={INITIAL} scheduleContext={ONGOING} />,
+    );
+    await act(async () => {});
+
+    unmount();
+
+    expect(savedTarget().id).toBeNull();
+    vi.restoreAllMocks();
+  });
+
+  it("カードから個別ページへ進んだときは、そのカードの控えを上書きしない", async () => {
+    stubFetch(["ok"]);
+    stubCardLayout(1000);
+    const { unmount } = render(
+      <CityleagueResults league_type={1} initial={INITIAL} scheduleContext={ONGOING} />,
+    );
+    await act(async () => {});
+    act(() => {
+      window.dispatchEvent(new Event("scroll"));
+    });
+
+    act(() => markCityleagueResultScrollTarget(11, 1));
+    unmount();
+
+    expect(savedTarget()).toEqual({ id: "11", leagueType: "1", savedAt: null });
+    vi.restoreAllMocks();
+  });
+
+  it("離れるときに控えた対象は、戻ってきたときに使う", async () => {
+    stubFetch(["ok"]);
+    const scrollTo = vi.fn();
+    vi.stubGlobal("scrollTo", scrollTo);
+    markCityleagueResultDeparture(12, 1, 120);
+    await new Promise((resolve) => setTimeout(resolve, 2));
+    noteReturnNavigation("/cityleague_results");
+    stubCardLayout(0);
+
+    render(<CityleagueResults league_type={1} initial={INITIAL} scheduleContext={ONGOING} />);
+
+    await waitFor(() => expect(savedTarget().id).toBeNull());
+    // 2枚目(今 800px)を控えた 120px に置く
+    await waitFor(() => expect(scrollTo).toHaveBeenCalledWith({ top: 680, behavior: "auto" }));
+    vi.restoreAllMocks();
+  });
+
+  it("現れる前から残っているカードの対象があっても、離れるときは画面に見えているカードを控える", async () => {
+    stubFetch(["ok"]);
+    vi.stubGlobal("scrollTo", vi.fn());
+    // 別のリーグのタブでカードから進んだ残り物(このタブでは受け取らないので消えずに残る)
+    markCityleagueResultScrollTarget(99, 3);
+    stubCardLayout(1000);
+    const { unmount } = render(
+      <CityleagueResults league_type={1} initial={INITIAL} scheduleContext={ONGOING} />,
+    );
+    await act(async () => {});
+    act(() => {
+      window.dispatchEvent(new Event("scroll"));
+    });
+
+    unmount();
+
+    expect(savedTarget()).toMatchObject({ id: "12", leagueType: "1" });
+    expect(savedTarget().savedAt).not.toBeNull();
+    vi.restoreAllMocks();
+  });
+
+  it("別のリーグのタブで離れるときに控えた対象は、残り物として消す", async () => {
+    stubFetch(["ok"]);
+    markCityleagueResultDeparture(99, 3, 120);
+    await new Promise((resolve) => setTimeout(resolve, 2));
+    noteReturnNavigation("/cityleague_results");
+
+    render(<CityleagueResults league_type={1} initial={INITIAL} scheduleContext={ONGOING} />);
+
+    await waitFor(() => expect(savedTarget().id).toBeNull());
+  });
+
+  it("離れるときに控えた対象でも、戻ってきたのでなければ(開き直した)使わずに消す", async () => {
+    stubFetch(["ok"]);
+    const scrollTo = vi.fn();
+    vi.stubGlobal("scrollTo", scrollTo);
+    markCityleagueResultDeparture(12, 1, 120);
+
+    render(<CityleagueResults league_type={1} initial={INITIAL} scheduleContext={ONGOING} />);
+
+    await waitFor(() => expect(savedTarget().id).toBeNull());
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    expect(scrollTo).not.toHaveBeenCalled();
   });
 });

@@ -3,6 +3,7 @@
  * 対象カードまで自動スクロールするための sessionStorage キーと、遷移直前に立てるヘルパー。
  *
  * 一覧側は useSessionStorageItem でこれを描画中に読み、見つかったら/諦めたら消す。
+ * カードから進むときのほか、どこから離れるときにも控える(markCityleagueResultDeparture)。
  */
 
 import { saveReturnAnchorTop, writeReturnTarget } from "@app/utils/returnTarget";
@@ -12,6 +13,13 @@ import { writeSessionStorage } from "@app/utils/sessionStorageStore";
 export const CITYLEAGUE_SCROLL_TO_ID_KEY = "cityleagueResultScrollToId";
 // そのカードが属するリーグ種別(別のリーグ種別のタブでは受け取らない)
 export const CITYLEAGUE_SCROLL_TO_LEAGUE_TYPE_KEY = "cityleagueResultScrollToLeagueType";
+
+/*
+ * 対象を控えた時刻。ページを離れるとき(markCityleagueResultDeparture)にだけ書く。
+ * これがある対象は、戻ってきたとき(utils/returnNavigation)だけ使う。カードから個別ページへ進むときの
+ * 対象(markCityleagueResultScrollTarget)には書かない(従来どおり、次に一覧が現れたら使う)
+ */
+export const CITYLEAGUE_SCROLL_TO_SAVED_AT_KEY = "cityleagueResultScrollToSavedAt";
 
 // 一覧のカードの目印(id)。戻ったときにこの位置まで移動する
 export function cityleagueResultAnchorId(officialEventId: number): string {
@@ -23,6 +31,23 @@ export function cityleagueResultAnchorId(officialEventId: number): string {
 export function markCityleagueResultScrollTarget(officialEventId: number, leagueType: number) {
   // 戻ったときに元の位置(このカードがあった画面上の高さ)へ戻すため
   saveReturnAnchorTop(cityleagueResultAnchorId(officialEventId));
+  writeSessionStorage(CITYLEAGUE_SCROLL_TO_SAVED_AT_KEY, null);
+  writeReturnTarget(CITYLEAGUE_SCROLL_TO_LEAGUE_TYPE_KEY, String(leagueType));
+  writeReturnTarget(CITYLEAGUE_SCROLL_TO_ID_KEY, String(officialEventId));
+}
+
+/*
+ * 一覧のページを離れるときに呼ぶ(上部の「シーズン・環境・大型大会…」のチップ、ヘッダーのナビ、戻る/進むなど)。
+ * 戻ってきたら、離れたときに画面に見えていたカード(最後のもの)を同じ高さに置く。top はそのカードの画面上の高さ
+ * (外れる時点ではもう先頭へ戻されていることがあるので、先に測った値を渡す)
+ */
+export function markCityleagueResultDeparture(
+  officialEventId: number,
+  leagueType: number,
+  top: number,
+) {
+  saveReturnAnchorTop(cityleagueResultAnchorId(officialEventId), top);
+  writeReturnTarget(CITYLEAGUE_SCROLL_TO_SAVED_AT_KEY, String(Date.now()));
   writeReturnTarget(CITYLEAGUE_SCROLL_TO_LEAGUE_TYPE_KEY, String(leagueType));
   writeReturnTarget(CITYLEAGUE_SCROLL_TO_ID_KEY, String(officialEventId));
 }
@@ -31,6 +56,7 @@ export function markCityleagueResultScrollTarget(officialEventId: number, league
 export function clearCityleagueResultScrollTarget() {
   writeSessionStorage(CITYLEAGUE_SCROLL_TO_ID_KEY, null);
   writeSessionStorage(CITYLEAGUE_SCROLL_TO_LEAGUE_TYPE_KEY, null);
+  writeSessionStorage(CITYLEAGUE_SCROLL_TO_SAVED_AT_KEY, null);
 }
 
 /*
@@ -103,56 +129,7 @@ export function parseCityleagueDateReturn(raw: string | null): CityleagueDateRet
 }
 
 /*
- * 大会結果一覧の末尾「最近開催されたシティリーグ」(CityleagueLatestSection)の戻り位置。
- *
- * このリンク集は一覧(タブ)の下にあり、開催日ページや個別ページへ進んで戻ると先頭から表示されていた
- * (一覧の控え CITYLEAGUE_SCROLL_TO_* は一覧のカードから進んだときにしか書かれない)。
- * 開催日ページと同じく、ページが外れるときに画面の上端にあったリンク(href)とその画面上の高さを控え、
- * 戻ったらそのリンクを同じ高さに置く。高さはリンクの位置で合わせるので、戻ったときに上の一覧の
- * 長さが変わっていても(読み込んだ続きは戻ると1ページ目に戻る)リンク集の中の同じ所が出る。
+ * 大会結果一覧の末尾「最近開催されたシティリーグ」(CityleagueLatestReturnArea)の戻り位置の置き場所。
+ * このリンク集は一覧(タブ)の下にあり、一覧の控え(上の CITYLEAGUE_SCROLL_TO_*)とは別に持つ。
  */
 export const CITYLEAGUE_LATEST_RETURN_KEY = "cityleagueLatestReturn";
-
-export type CityleagueLatestReturnState = {
-  // 画面の上端にあったリンクの href
-  href: string;
-  // そのリンクの画面上の高さ(getBoundingClientRect().top)
-  top: number;
-  // 控えた時刻。これより後に戻ってきたときだけ使う(utils/returnNavigation)
-  savedAt: number;
-};
-
-// ページが外れるときに呼ぶ。今いるページには受け取らせない(writeReturnTarget)
-export function markCityleagueLatestReturn(state: Omit<CityleagueLatestReturnState, "savedAt">) {
-  writeReturnTarget(
-    CITYLEAGUE_LATEST_RETURN_KEY,
-    JSON.stringify({ ...state, savedAt: Date.now() }),
-  );
-}
-
-export function clearCityleagueLatestReturn() {
-  writeSessionStorage(CITYLEAGUE_LATEST_RETURN_KEY, null);
-}
-
-// 読めない控えは null
-export function parseCityleagueLatestReturn(
-  raw: string | null,
-): CityleagueLatestReturnState | null {
-  if (raw === null) return null;
-
-  try {
-    const state = JSON.parse(raw) as Partial<CityleagueLatestReturnState>;
-    if (
-      typeof state.href !== "string" ||
-      typeof state.top !== "number" ||
-      !Number.isFinite(state.top) ||
-      typeof state.savedAt !== "number"
-    ) {
-      return null;
-    }
-
-    return state as CityleagueLatestReturnState;
-  } catch {
-    return null;
-  }
-}

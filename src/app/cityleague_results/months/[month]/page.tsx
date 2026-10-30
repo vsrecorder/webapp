@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import ReturnPositionArea from "@app/components/molecules/ReturnPositionArea";
 import CityleagueHubShareButtons from "@app/components/molecules/CityleagueHubShareButtons";
 import CityleagueEventLinkList from "@app/components/organisms/Cityleague/CityleagueEventLinkList";
 import CityleagueHubHeader from "@app/components/organisms/Cityleague/CityleagueHubHeader";
@@ -104,25 +105,28 @@ export default async function Page({ params }: Props) {
     <>
       <JsonLd data={jsonLd} />
 
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-3 pt-4 pb-8">
-        <CityleagueHubHeader
-          backHref="/cityleague_results/months"
-          backLabel="開催月から探す"
-          eyebrow="MONTH"
-          title={buildTitle(month)}
-          titleLines={buildTitleLines(month)}
-          count={events.length}
-          actions={
-            <CityleagueHubShareButtons
-              path={`/cityleague_results/months/${month}`}
-              title={buildTitle(month)}
-              utmCampaign="cityleague_month"
-            />
-          }
-        />
+      {/* 個別の結果などへ進んで戻ったとき、元の位置で見せる */}
+      <ReturnPositionArea>
+        <div className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-3 pt-4 pb-8">
+          <CityleagueHubHeader
+            backHref="/cityleague_results/months"
+            backLabel="開催月から探す"
+            eyebrow="MONTH"
+            title={buildTitle(month)}
+            titleLines={buildTitleLines(month)}
+            count={events.length}
+            actions={
+              <CityleagueHubShareButtons
+                path={`/cityleague_results/months/${month}`}
+                title={buildTitle(month)}
+                utmCampaign="cityleague_month"
+              />
+            }
+          />
 
-        <CityleagueEventLinkList events={events} />
-      </div>
+          <CityleagueEventLinkList events={events} />
+        </div>
+      </ReturnPositionArea>
     </>
   );
 }

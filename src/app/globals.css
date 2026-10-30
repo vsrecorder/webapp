@@ -329,20 +329,20 @@ main[data-authed] {
 }
 
 /*
- * 未ログインのランディング(Home)では、ページの外側の地をフッターの色に揃える。
+ * フッターが画面に入っているあいだ(FooterCanvasColor が html に目印を付ける)、
+ * ページの外側の地をフッターの色に揃える。
  *
  * iOS の Safari は、最下部まで送ったときの引っ張り余白やツールバーの裏など、文書の外を
  * ルート要素の背景色で塗る。その色は HeroUI が :root に付ける地(ライトで白)なので、
  * 濃いフッターの下端に白い線が覗いていた。ダークは地が黒なので目立たないが、同じく揃える。
- *
- * ログイン後のページ(ダッシュボード)には当てない。iOS の standalone PWA では
- * 画面最下端のセーフエリアも同じ色で塗られるため、常に濃い帯が出てしまう。
+ * ダークを強制しているページ(/kizuna)はフッターが neutral-950 になるので、それに合わせる。
  */
-html:has(main:not([data-authed]) .app-footer) {
+html[data-footer-in-view] {
   background-color: var(--color-neutral-900);
 }
 
-html.dark:has(main:not([data-authed]) .app-footer) {
+html.dark[data-footer-in-view],
+html[data-footer-in-view]:has(.dark .app-footer) {
   background-color: var(--color-neutral-950);
 }
 

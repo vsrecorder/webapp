@@ -3,6 +3,7 @@ import Link from "next/link";
 import { LuExternalLink } from "react-icons/lu";
 
 import { auth } from "@app/auth";
+import FooterCanvasColor from "@app/components/organisms/Layout/FooterCanvasColor";
 import FooterWithdrawLink from "@app/components/organisms/Layout/FooterWithdrawLink";
 import { getAppIconUrl } from "@app/utils/appIcon";
 import { todayJSTDateString } from "@app/utils/date";
@@ -25,6 +26,9 @@ export default async function Footer() {
         paddingBottom: "var(--page-bottom-space)",
       }}
     >
+      {/* 見えているあいだ、iOS で文書の外に覗く地をフッターの色に揃える */}
+      <FooterCanvasColor />
+
       {/* 本体コンテンツ(Home/Dashboard)と同じ最大幅に揃える。
           片方だけ狭いとデスクトップでフッターの中身が中央に寄って見える */}
       <div className="max-w-2xl lg:max-w-6xl xl:max-w-7xl mx-auto px-6 lg:px-8 pt-10 pb-8">

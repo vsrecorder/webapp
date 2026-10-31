@@ -106,6 +106,33 @@ const reducedMotion: Variants = {
 const BOTTOM_SHEET_BASE = "sm:my-0";
 
 /*
+ * 中央ダイアログ(placement="center")の wrapper の高さ。
+ *
+ * HeroUI は wrapper の高さを h-(--visual-viewport-height)、つまり react-aria の useViewportSize が
+ * 返す visualViewport.height の実測値にしていて(テーマの h-[100dvh] は後勝ちで上書きされる)、
+ * visualViewport の resize のたびに更新する。中央寄せ(items-center)なので、この高さが変わるたびに
+ * ダイアログの位置が動く。
+ *
+ * モバイルではブラウザのツールバー(iOS Safari の下部バー、Android Chrome の URL バー)の出し入れでも
+ * visualViewport.height が変わる。とくにログインのポップアップ(別タブ)から戻ったときはツールバーが
+ * 展開された状態で復帰するので、開いた時点でツールバーが畳まれていると、復帰の瞬間にダイアログが
+ * 数十 px 跳ね、暗幕ごと描き直されてちらつく(キャンセル検知の有無に関わらず起きる)。
+ *
+ * 一方この追従には、キーボード表示時に中央ダイアログを可視領域へ収める役目がある(キーボードが
+ * 出ると visualViewport.height が大きく縮む)。そこで min(100svh, visualViewport の高さ) にする。
+ * svh はツールバーを出した状態の高さなので、ツールバーの出し入れ(常に svh 以上の範囲で変わる)には
+ * 追従せず、キーボードで svh を下回ったときだけ追従する。ツールバーが畳まれている間はその分(半分)
+ * だけ上寄りになるが、暗幕(backdrop)は別要素で inset-0 のまま全面を覆うので隙間は出ない。
+ * 下寄せシート(bottom。未指定の auto もモバイルでは下端)は下端に貼り付く前提なので触らない。
+ *
+ * svh を知らないブラウザ(iOS 15.3 以前、Chrome 107 以前)では min() ごと無効になるので、
+ * @supports で囲んで HeroUI の既定(実測値に追従)をそのまま残す。変種付きなので tailwind-merge は
+ * 既定の h-(--visual-viewport-height) を消さず、対応ブラウザでは後に出るこちらが勝つ。
+ */
+const CENTER_DIALOG_WRAPPER =
+  "supports-[height:100svh]:h-[min(100svh,var(--visual-viewport-height,100dvh))]";
+
+/*
  * 閉じるボタン(×)の大きさ。アイコンは 1em なので文字サイズで決まり、p-2 込みで
  * text-xl なら 36px 四方になる。以前はモーダルごとに既定(16px→32px)・text-xl(36px)・
  * text-2xl(40px)とばらばらだったので、ここで一律に揃える。
@@ -179,6 +206,7 @@ export function Modal({
     isFinePointer,
   });
   const isSheet = placement === "bottom";
+  const isCenteredDialog = placement === "center";
   // × はシート右上(top-1 right-1、36px 四方)に絶対配置される。pe-14(56px)で 16px 以上空く。ヘッダーの右端に
   // 操作(記録情報の共有/メニュー、対戦結果編集の削除、絞り込みの解除など)を置くシートで
   // 重ならないよう、× を出す条件と同じ pointer-fine: でヘッダーの右余白をここで確保する。
@@ -197,6 +225,9 @@ export function Modal({
         ...(isSheet && {
           base: cn(BOTTOM_SHEET_BASE, classNames?.base),
           header: cn(sheetHeaderClass, classNames?.header),
+        }),
+        ...(isCenteredDialog && {
+          wrapper: cn(CENTER_DIALOG_WRAPPER, classNames?.wrapper),
         }),
       }}
       // 呼び出し側が明示した motionProps があればそちらを優先する

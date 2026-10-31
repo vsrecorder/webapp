@@ -52,6 +52,19 @@ describe("SocialSignIn のログイン結果の表示", () => {
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
+  it("案内が無いときも 1 行分の枠を確保しておき、案内はその枠の中に出す(モーダルの高さが変わらない)", async () => {
+    endWith("cancelled");
+    const { container } = render(<SocialSignIn />);
+
+    const slot = container.querySelector(".min-h-4");
+    expect(slot).not.toBeNull();
+    expect(slot!.textContent).toBe("");
+
+    pressGoogle();
+    const status = await screen.findByRole("status");
+    expect(slot!.contains(status)).toBe(true);
+  });
+
   it("新規登録の文脈では「登録をキャンセルしました」になる", async () => {
     endWith("cancelled");
     render(<SocialSignIn mode="signup" />);

@@ -105,17 +105,21 @@ export default function SocialSignIn({
         でつづける
       </Button>
 
-      {cancelledMessage && (
-        <p role="status" className="text-center text-xs text-default-500">
-          {cancelledMessage}
-        </p>
-      )}
+      {/* 案内の行。出し入れでモーダルの高さが変わらないよう、1 行分(text-xs の行高 16px)を常に確保する。
+          読み込み中の骨格(LazySocialSignIn の Placeholder)もこの分を含めた高さにしている */}
+      <div className="min-h-4 text-center text-xs leading-4">
+        {cancelledMessage && (
+          <p role="status" className="text-default-500">
+            {cancelledMessage}
+          </p>
+        )}
 
-      {errorMessage && (
-        <p role="alert" className="text-center text-xs text-danger">
-          {errorMessage}
-        </p>
-      )}
+        {errorMessage && (
+          <p role="alert" className="text-danger">
+            {errorMessage}
+          </p>
+        )}
+      </div>
     </div>
   );
 }

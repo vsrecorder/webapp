@@ -6,7 +6,7 @@ import Image from "next/image";
 
 import { useDisclosure } from "@heroui/react";
 import { Button } from "@heroui/react";
-import { ModalContent, ModalBody, ModalFooter } from "@heroui/react";
+import { ModalContent, ModalBody } from "@heroui/react";
 
 import { Modal } from "@app/components/atoms/AppModal";
 
@@ -75,14 +75,14 @@ export default function DesktopSignIn({ iconUrl, isDevEnv }: Props) {
                 </div>
               </div>
 
-              <ModalBody className="px-6 pt-6 pb-2 flex flex-col gap-4">
+              {/* 下端はフッターを置かず、ボタン群が常に確保する案内の行(SocialSignIn)と余白で取る。
+                  空の ModalFooter(32px)を残すと、案内の行の分だけ下が間延びする */}
+              <ModalBody className="px-6 pt-6 pb-3 flex flex-col gap-4">
                 <p className="text-center text-sm text-default-500">
                   アカウントでログイン
                 </p>
                 <SocialSignIn onLoadingChange={setIsSigningIn} onClose={onClose} />
               </ModalBody>
-
-              <ModalFooter />
             </>
           )}
         </ModalContent>

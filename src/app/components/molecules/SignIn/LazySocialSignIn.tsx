@@ -53,14 +53,16 @@ export function preloadSocialSignIn(): void {
 }
 
 /*
- * 読み込み中の枠。実体は size="md"(高さ40px)のボタン2つを gap-3 で縦に並べるので、
- * 同じ高さ(40 + 12 + 40 = 92px)を確保してモーダルの中身が伸び縮みしないようにする。
+ * 読み込み中の枠。実体は size="md"(高さ40px)のボタン2つと、キャンセルや失敗の案内用の行(16px)を
+ * gap-3 で縦に並べるので、同じ高さ(40 + 12 + 40 + 12 + 16 = 120px)を確保して
+ * モーダルの中身が伸び縮みしないようにする。
  */
 function Placeholder() {
   return (
     <div className="flex w-full flex-col gap-3" aria-hidden>
       <Skeleton className="h-10 w-full rounded-medium" />
       <Skeleton className="h-10 w-full rounded-medium" />
+      <div className="min-h-4" />
     </div>
   );
 }

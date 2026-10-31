@@ -2,7 +2,7 @@
 
 import { ReactNode, useState } from "react";
 
-import { ModalBody, ModalContent, ModalFooter } from "@heroui/react";
+import { ModalBody, ModalContent } from "@heroui/react";
 
 import { Modal } from "@app/components/atoms/AppModal";
 
@@ -17,6 +17,7 @@ type Props = {
   intro?: ReactNode;
   backdrop?: "transparent" | "opaque" | "blur";
   hideCloseButton?: boolean;
+  // 下端はフッターを置かず、ボタン群が常に確保する案内の行(SocialSignIn)と本文の余白で取る
   bodyClassName?: string;
 };
 
@@ -33,7 +34,7 @@ export default function SignInModal({
   intro,
   backdrop,
   hideCloseButton = false,
-  bodyClassName = "flex flex-col gap-4 pb-2",
+  bodyClassName = "flex flex-col gap-4 pb-3",
 }: Props) {
   const [isSigningIn, setIsSigningIn] = useState(false);
 
@@ -56,7 +57,6 @@ export default function SignInModal({
               {intro}
               <SocialSignIn onLoadingChange={setIsSigningIn} onClose={onClose} />
             </ModalBody>
-            <ModalFooter />
           </>
         )}
       </ModalContent>

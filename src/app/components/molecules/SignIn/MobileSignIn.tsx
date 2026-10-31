@@ -33,7 +33,7 @@ export default function MobileSignIn({ iconUrl, isDevEnv }: Props) {
         onOpenChange={onOpenChange}
         backdrop="blur"
         hideCloseButton
-        bodyClassName="px-6 pt-6 pb-2 flex flex-col gap-4"
+        bodyClassName="px-6 pt-6 pb-3 flex flex-col gap-4"
         header={
           <div
             className={`px-6 pt-8 pb-7 flex flex-col items-center gap-3 rounded-t-xl ${

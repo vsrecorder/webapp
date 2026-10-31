@@ -4,16 +4,9 @@ import { useRef, useState } from "react";
 import Image from "next/image";
 
 import { Avatar } from "@heroui/avatar";
-import {
-  Dropdown,
-  DropdownTrigger,
-  DropdownMenu,
-  DropdownItem,
-  DropdownSection,
-} from "@heroui/dropdown";
+import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, DropdownSection } from "@heroui/dropdown";
 
 import { addToast, useDisclosure } from "@heroui/react";
-import { ModalContent, ModalBody, ModalFooter } from "@heroui/modal";
 import { useRouter } from "next/navigation";
 import {
   LuLayoutDashboard,
@@ -30,10 +23,8 @@ import {
 } from "react-icons/lu";
 import { FaXTwitter } from "react-icons/fa6";
 
-import { Modal } from "@app/components/atoms/AppModal";
-import { handleSignOut } from "@app/handlers/handleSignOut";
+import SignOutModal from "@app/components/organisms/Layout/SignOutModal";
 
-import { Button } from "@heroui/react";
 import { UserType } from "@app/types/user";
 import { UserDesignationType } from "@app/types/designation";
 import { useUserAvatar } from "@app/contexts/UserAvatarContext";
@@ -281,70 +272,12 @@ export default function UserMenu({ user, iconUrl, isDevEnv }: Props) {
         </DropdownMenu>
       </Dropdown>
 
-      <Modal
-        backdrop="blur"
-        placement="center"
-        size="sm"
-        hideCloseButton
+      <SignOutModal
+        iconUrl={iconUrl}
+        isDevEnv={isDevEnv}
         isOpen={isOpen}
         onOpenChange={onOpenChange}
-      >
-        <ModalContent>
-          {(onClose) => (
-            <>
-              <div
-                className={`px-6 pt-8 pb-7 flex flex-col items-center gap-3 rounded-t-xl ${
-                  isDevEnv
-                    ? "bg-linear-to-br from-orange-500 via-orange-600 to-amber-700"
-                    : "bg-linear-to-br from-blue-600 via-indigo-600 to-violet-700"
-                }`}
-              >
-                <div className="w-14 h-14 relative">
-                  <Image
-                    src={iconUrl}
-                    alt="バトレコ"
-                    fill
-                    // モーダルを開いたときにだけ描画されるので、head に preload を
-                    // 入れても間に合わない。遅延読み込みを外すだけにする。
-                    loading="eager"
-                    sizes="56px"
-                    className="object-contain rounded-xl shadow-lg"
-                  />
-                </div>
-                <div className="text-center">
-                  <p className="text-white font-bold text-lg leading-tight">バトレコ</p>
-                  <p className="text-white/70 text-xs mt-1">
-                    バトレコからログアウトしますか？
-                  </p>
-                </div>
-              </div>
-
-              <ModalBody className="px-6 pt-6 pb-2 flex flex-col gap-3">
-                <Button
-                  size="md"
-                  color="danger"
-                  fullWidth
-                  className="font-medium"
-                  onPress={() => handleSignOut()}
-                >
-                  ログアウト
-                </Button>
-                <Button
-                  size="md"
-                  variant="bordered"
-                  fullWidth
-                  className="border-default-200 font-medium"
-                  onPress={onClose}
-                >
-                  キャンセル
-                </Button>
-              </ModalBody>
-
-              <ModalFooter />
-            </>
-          )}
-        </ModalContent>
-      </Modal>
+      />
     </>
   );
 }

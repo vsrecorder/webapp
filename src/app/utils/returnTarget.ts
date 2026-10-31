@@ -46,7 +46,7 @@ export function isReturnTargetMarkedAfter(key: string, sequence: number): boolea
  * ではなくカードの画面上の高さを覚えるのは、戻ったときに上側の中身が変わっていても
  * (シティリーグの新着の差し込みなど)そのカードを同じ高さに置けるようにするため。
  *
- * モーダルを開いている間は背面が position:fixed で固定されるが、見た目の位置は変わらないので
+ * モーダルの中の入力にフォーカスしている間は背面が position:fixed で固定されるが、見た目の位置は変わらないので
  * getBoundingClientRect の top はそのまま使える。
  */
 const ANCHOR_TOP_PREFIX = "returnAnchorTop:";

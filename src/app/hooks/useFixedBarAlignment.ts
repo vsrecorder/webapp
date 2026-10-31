@@ -5,7 +5,8 @@ import { useLayoutEffect, useRef, useState } from "react";
 /*
  * 要素の「ページ先頭からの縦位置」。
  *
- * `getBoundingClientRect().top + window.scrollY` は使えない。モーダル表示中は
+ * `getBoundingClientRect().top + window.scrollY` は使えない。モーダルの中の入力に
+ * フォーカスしている間(キーボードが出うる間)は、
  * 背面のページ内容ラッパー([data-scroll-lock-root])が position:fixed かつ
  * top:-スクロール量 で固定される(useModalBackgroundScrollLock)。このとき文書の
  * スクロール範囲はビューポート寸法まで縮んで window.scrollY が 0 に折りたたまれる

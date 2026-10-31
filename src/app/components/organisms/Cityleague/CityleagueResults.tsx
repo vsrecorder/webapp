@@ -217,8 +217,8 @@ function findLastVisibleCard(list: HTMLElement | null): { id: number; top: numbe
 }
 
 /*
- * ページの先頭にいるか。モーダルを開いている間は背面が position:fixed で固定され
- * (useModalBackgroundScrollLock)、scrollY が 0 になるので、ページ内容のラッパーの位置で見る
+ * ページの先頭にいるか。モーダルの中の入力にフォーカスしている間は背面が position:fixed で
+ * 固定され(useModalBackgroundScrollLock)、scrollY が 0 になるので、ページ内容のラッパーの位置で見る
  */
 function isAtPageTop(): boolean {
   const lockRoot = document.querySelector("[data-scroll-lock-root]");

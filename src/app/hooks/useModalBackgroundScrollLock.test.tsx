@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   hasDocumentAnchoredOverlay,
   useModalBackgroundScrollLock,
+  willOpenKeyboard,
 } from "@app/hooks/useModalBackgroundScrollLock";
 
 // MutationObserver の通知はマイクロタスクで届く。フェイクタイマー中でも本物のまま
@@ -30,6 +31,21 @@ function openModal(): HTMLElement {
 function closeModal(dialog: HTMLElement) {
   dialog.remove();
   document.documentElement.style.overflow = "";
+}
+
+// モーダルの中の文字入力にフォーカスする(キーボードが出る操作)
+function focusInput(dialog: HTMLElement, tag: "input" | "textarea" = "input"): HTMLElement {
+  const input = document.createElement(tag);
+  dialog.appendChild(input);
+  input.focus();
+  return input;
+}
+
+function focusButton(dialog: HTMLElement): HTMLElement {
+  const button = document.createElement("button");
+  dialog.appendChild(button);
+  button.focus();
+  return button;
 }
 
 // HeroUI の Popover/Dropdown が body 直下に置く、文書座標のラッパー(中身は data-slot="base" の箱)
@@ -58,6 +74,39 @@ function appendResidentAbsolute(): HTMLElement {
   document.body.appendChild(el);
   return el;
 }
+
+describe("willOpenKeyboard", () => {
+  const input = (type: string) => {
+    const el = document.createElement("input");
+    el.type = type;
+    return el;
+  };
+
+  it("文字を打つ input・textarea・contenteditable はキーボードが出る", () => {
+    expect(willOpenKeyboard(input("text"))).toBe(true);
+    expect(willOpenKeyboard(input("number"))).toBe(true);
+    expect(willOpenKeyboard(input("search"))).toBe(true);
+    expect(willOpenKeyboard(document.createElement("textarea"))).toBe(true);
+    const editable = document.createElement("div");
+    editable.setAttribute("contenteditable", "true");
+    document.body.appendChild(editable);
+    expect(willOpenKeyboard(editable)).toBe(true);
+    const notEditable = document.createElement("div");
+    notEditable.setAttribute("contenteditable", "false");
+    expect(willOpenKeyboard(notEditable)).toBe(false);
+  });
+
+  it("ボタン類・チェックボックス・読み取り専用・ボタン要素では出ない", () => {
+    expect(willOpenKeyboard(input("checkbox"))).toBe(false);
+    expect(willOpenKeyboard(input("submit"))).toBe(false);
+    expect(willOpenKeyboard(input("range"))).toBe(false);
+    const readOnly = input("text");
+    readOnly.readOnly = true;
+    expect(willOpenKeyboard(readOnly)).toBe(false);
+    expect(willOpenKeyboard(document.createElement("button"))).toBe(false);
+    expect(willOpenKeyboard(null)).toBe(false);
+  });
+});
 
 describe("hasDocumentAnchoredOverlay", () => {
   let lockRoot: HTMLElement;
@@ -157,14 +206,35 @@ describe("useModalBackgroundScrollLock", () => {
     }
   });
 
-  it("モーダルが開くとページ内容ラッパーを今の位置で固定し、閉じると戻す", async () => {
+  it("モーダルを開いただけでは固定せず、閉じてもスクロール位置を触らない", async () => {
     renderHook(() => useModalBackgroundScrollLock());
 
     const dialog = openModal();
     await flushObservers();
+    expect(lockRoot.style.position).toBe("");
+
+    // ボタンへのフォーカス(キーボードは出ない)でも固定しない
+    focusButton(dialog);
+    expect(lockRoot.style.position).toBe("");
+
+    closeModal(dialog);
+    await flushObservers();
+    expect(scrollToSpy).not.toHaveBeenCalled();
+  });
+
+  it("モーダルの中の入力にフォーカスするとページ内容ラッパーを今の位置で固定し、閉じると戻す", async () => {
+    renderHook(() => useModalBackgroundScrollLock());
+
+    const dialog = openModal();
+    await flushObservers();
+    focusInput(dialog);
 
     expect(lockRoot.style.position).toBe("fixed");
     expect(lockRoot.style.top).toBe("-1500px");
+
+    // フォーカスが外れても閉じるまで固定を保つ(出入りのたびに切り替えない)
+    focusButton(dialog);
+    expect(lockRoot.style.position).toBe("fixed");
 
     closeModal(dialog);
     await flushObservers();
@@ -173,13 +243,50 @@ describe("useModalBackgroundScrollLock", () => {
     expect(scrollToSpy).toHaveBeenCalledWith({ top: 1500, behavior: "instant" });
   });
 
+  it("textarea や contenteditable(DatePicker の桁)でも固定する", async () => {
+    renderHook(() => useModalBackgroundScrollLock());
+
+    const dialog = openModal();
+    await flushObservers();
+    focusInput(dialog, "textarea");
+    expect(lockRoot.style.position).toBe("fixed");
+    closeModal(dialog);
+    await flushObservers();
+
+    const dialog2 = openModal();
+    await flushObservers();
+    const editable = document.createElement("div");
+    editable.setAttribute("contenteditable", "true");
+    editable.tabIndex = 0;
+    dialog2.appendChild(editable);
+    editable.focus();
+    expect(lockRoot.style.position).toBe("fixed");
+    closeModal(dialog2);
+    await flushObservers();
+  });
+
+  it("開いた時点で入力にフォーカスがある(autoFocus)なら、その場で固定する", async () => {
+    renderHook(() => useModalBackgroundScrollLock());
+
+    const dialog = document.createElement("section");
+    dialog.setAttribute("role", "dialog");
+    dialog.setAttribute("aria-modal", "true");
+    document.body.appendChild(dialog);
+    focusInput(dialog);
+    document.documentElement.style.overflow = "hidden";
+    await flushObservers();
+
+    expect(lockRoot.style.position).toBe("fixed");
+  });
+
   it("閉じかけのメニュー(文書座標のオーバーレイ)が残っている間は固定を待ち、消えたら固定する", async () => {
     renderHook(() => useModalBackgroundScrollLock());
 
-    // メニューを開いたまま、その項目からモーダルを開いた状態
+    // メニューを開いたまま、その項目から入力のあるモーダルを開き、すぐ入力にフォーカスした状態
     const menu = appendAnchoredOverlay(1555);
     const dialog = openModal();
     await flushObservers();
+    focusInput(dialog);
 
     expect(lockRoot.style.position).toBe("");
 
@@ -199,8 +306,9 @@ describe("useModalBackgroundScrollLock", () => {
     renderHook(() => useModalBackgroundScrollLock());
 
     appendAnchoredOverlay(1555);
-    openModal();
+    const dialog = openModal();
     await flushObservers();
+    focusInput(dialog);
     expect(lockRoot.style.position).toBe("");
 
     vi.advanceTimersByTime(499);
@@ -216,6 +324,7 @@ describe("useModalBackgroundScrollLock", () => {
     const menu = appendAnchoredOverlay(1555);
     const dialog = openModal();
     await flushObservers();
+    focusInput(dialog);
     expect(lockRoot.style.position).toBe("");
 
     closeModal(dialog);
@@ -245,6 +354,7 @@ describe("useModalBackgroundScrollLock", () => {
     document.body.appendChild(dialog);
     setAppRootAriaHidden(true);
     await flushObservers();
+    focusInput(dialog);
     expect(lockRoot.style.position).toBe("");
 
     // メニューの退場アニメーションが終わる
@@ -266,6 +376,7 @@ describe("useModalBackgroundScrollLock", () => {
 
     const dialog = openModal();
     await flushObservers();
+    focusInput(dialog);
     expect(lockRoot.style.position).toBe("fixed");
 
     const select = appendAnchoredOverlay(300);
@@ -286,6 +397,7 @@ describe("useModalBackgroundScrollLock", () => {
     const menu = appendAnchoredOverlay(1555);
     const dialog = openModal();
     await flushObservers();
+    focusInput(dialog);
     expect(lockRoot.style.position).toBe("");
 
     // iOS がキーボード表示に合わせてページを動かしたとする
@@ -306,8 +418,9 @@ describe("useModalBackgroundScrollLock", () => {
     renderHook(() => useModalBackgroundScrollLock());
 
     const menu = appendAnchoredOverlay(1555);
-    openModal();
+    const dialog = openModal();
     await flushObservers();
+    focusInput(dialog);
     expect(lockRoot.style.position).toBe("");
 
     menu.style.display = "none";
@@ -319,8 +432,9 @@ describe("useModalBackgroundScrollLock", () => {
     renderHook(() => useModalBackgroundScrollLock());
 
     const first = appendAnchoredOverlay(1555);
-    openModal();
+    const dialog = openModal();
     await flushObservers();
+    focusInput(dialog);
     expect(lockRoot.style.position).toBe("");
 
     const second = appendAnchoredOverlay(900);
@@ -338,8 +452,9 @@ describe("useModalBackgroundScrollLock", () => {
     renderHook(() => useModalBackgroundScrollLock());
 
     appendResidentAbsolute();
-    openModal();
+    const dialog = openModal();
     await flushObservers();
+    focusInput(dialog);
 
     expect(lockRoot.style.position).toBe("fixed");
   });
@@ -350,8 +465,9 @@ describe("useModalBackgroundScrollLock", () => {
     const announcer = document.createElement("next-route-announcer");
     announcer.style.position = "absolute";
     document.body.appendChild(announcer);
-    openModal();
+    const dialog = openModal();
     await flushObservers();
+    focusInput(dialog);
 
     expect(lockRoot.style.position).toBe("fixed");
   });

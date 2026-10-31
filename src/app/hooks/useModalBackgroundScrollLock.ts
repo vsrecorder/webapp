@@ -23,8 +23,7 @@ const DEFER_APPLY_MAX_MS = 500;
  * オーバーレイの下端」まで縮んで window.scrollY が折りたたまれ、文書座標のオーバーレイは
  * 折りたたまれた分だけ画面上で下へ飛ぶ(ホームを 1500px スクロールした状態でユーザメニューの
  * ログアウトを選ぶと、消えかけのメニューが 205px 下へ瞬間移動した。実測)。
- * ページの先頭では文書が縮んでも scrollY が変わらないので起きない。これが
- * 「背面によってちらつくことがある」の正体。残っている間は固定を待つ(sync 参照)。
+ * ページの先頭では文書が縮んでも scrollY が変わらないので起きない。残っている間は固定を待つ。
  *
  * Next.js の next-route-announcer も absolute だが top を指定しておらず、
  * 文書末尾のフロー位置に置かれるだけなので対象にしない。
@@ -53,6 +52,37 @@ export function hasDocumentAnchoredOverlay(body: HTMLElement, lockRoot: Element)
  */
 const OVERLAY_CONTENT_SELECTOR =
   '[data-slot="base"], [role="menu"], [role="listbox"], [role="dialog"], [role="tooltip"]';
+
+// フォーカスしてもソフトウェアキーボードが出ない input の種類
+const NON_TEXT_INPUT_TYPES = new Set([
+  "button",
+  "checkbox",
+  "color",
+  "file",
+  "hidden",
+  "image",
+  "radio",
+  "range",
+  "reset",
+  "submit",
+]);
+
+/*
+ * フォーカスするとソフトウェアキーボードが出る要素か(react-aria の willOpenKeyboard と同じ見方)。
+ * 文字を打つ input・textarea・contenteditable(HeroUI の DatePicker の各桁もこれ)。
+ * 読み取り専用の input はキーボードが出ないので含めない。
+ */
+export function willOpenKeyboard(target: EventTarget | null): boolean {
+  if (target instanceof HTMLInputElement) {
+    return !NON_TEXT_INPUT_TYPES.has(target.type) && !target.readOnly;
+  }
+  if (target instanceof HTMLTextAreaElement) return !target.readOnly;
+  if (!(target instanceof HTMLElement)) return false;
+  // isContentEditable は継承まで見た実効値。jsdom には無いので属性でも見る
+  if (target.isContentEditable === true) return true;
+  const attr = target.getAttribute("contenteditable");
+  return attr === "" || attr === "true" || attr === "plaintext-only";
+}
 
 /*
  * モーダル表示中に「背面ページがスクロールできる余地」を構造的になくすグローバル対策。
@@ -84,6 +114,17 @@ const OVERLAY_CONTENT_SELECTOR =
  *    Android ではキーボード表示時にレイアウトビューポート自体が縮み、visual viewport
  *    とのずれ(=パンの余地)が生じなくなる。iOS/未対応ブラウザでは単に無視される。
  *
+ * 固定(1)は、モーダルを開いただけでは行わず、モーダルの中でキーボードが出る要素
+ * (willOpenKeyboard)にフォーカスが入ったときに行う。問題はキーボード表示中にしか起きない一方、
+ * 固定そのものには見える副作用があるため:
+ * - 文書が 1 画面に縮むので、iOS Safari ではスクロールして畳まれていたツールバーが戻り、
+ *   表示領域の高さが変わって背面(下部ナビなど)や暗幕が描き直される。
+ * - ページ全体を新しい固定の層として描き直すので、重いページでは一瞬ちらつく。
+ * - window.scrollY が 0 に折りたたまれる(文書座標で測るものが狂う。pageTop 参照)。
+ * ログアウトの確認のように入力の無いモーダルでは、これらを一切起こさずに済む。
+ * 一度固定したらモーダルを閉じるまで保つ(フォーカスの出入りのたびに切り替えない)。
+ * meta(2)は見た目に影響しないので、モーダルを開いた時点で付ける(キーボードより先に効かせる)。
+ *
  * モーダルの開閉検知は、react-aria が documentElement の style.overflow を
  * hidden にする/戻すことを利用する(scrollIntoViewAfterKeyboard と同じ判定)。
  * これにより個々のモーダルへの変更なしで、全モーダルに適用される。
@@ -96,6 +137,9 @@ export function useModalBackgroundScrollLock() {
 
     const html = document.documentElement;
 
+    // モーダルが開いている(meta を付け、入力へのフォーカスを見張っている)か
+    let modalActive = false;
+    // 背面を固定しているか
     let applied = false;
     let savedY = 0;
     let savedHref = "";
@@ -118,30 +162,9 @@ export function useModalBackgroundScrollLock() {
       };
     };
 
-    // restoreY: 閉じたときに戻すスクロール位置。固定を保留していた場合は、保留を始めた
-    // (メニューの項目を選んだ)時点の位置。待っている間にページが動いても、開く前の位置へ戻す
-    const apply = (lockRoot: HTMLElement, restoreY: number) => {
-      savedY = restoreY;
-      savedHref = window.location.href;
-      const fixedY = window.scrollY;
-
-      // 現在見えている位置(top: -scrollY)のままページ内容ラッパーを固定する。
-      // fixed 化で文書フローから外れるため、文書のスクロール範囲が
-      // ビューポート寸法まで縮み、背面をスクロールさせる余地がなくなる。
-      // overflow:hidden は、はみ出した背面コンテンツが文書のスクロール範囲を
-      // 再び押し広げないための保険(fixed 内の Header 等は clip されない)。
-      const restores = [
-        setStyle(lockRoot, "position", "fixed"),
-        setStyle(lockRoot, "top", `${-fixedY}px`),
-        setStyle(lockRoot, "left", "0"),
-        setStyle(lockRoot, "right", "0"),
-        setStyle(lockRoot, "bottom", "0"),
-        setStyle(lockRoot, "overflow", "hidden"),
-      ];
-      restoreStyles = () => restores.forEach((fn) => fn());
-
-      // Android: キーボード表示時にレイアウトビューポートごと縮めて、
-      // visual viewport のパン(背面が動いて見える原因)を根本的になくす。
+    // Android: キーボード表示時にレイアウトビューポートごと縮めて、
+    // visual viewport のパン(背面が動いて見える原因)を根本的になくす。
+    const applyMeta = () => {
       const meta = document.querySelector<HTMLMetaElement>(
         'meta[name="viewport"]',
       );
@@ -160,11 +183,32 @@ export function useModalBackgroundScrollLock() {
       }
     };
 
-    const release = () => {
+    // restoreY: 閉じたときに戻すスクロール位置。固定を保留していた場合は、保留を始めた
+    // 時点の位置。待っている間にページが動いても、その前の位置へ戻す
+    const applyFixed = (lockRoot: HTMLElement, restoreY: number) => {
+      savedY = restoreY;
+      savedHref = window.location.href;
+      const fixedY = window.scrollY;
+
+      // 現在見えている位置(top: -scrollY)のままページ内容ラッパーを固定する。
+      // fixed 化で文書フローから外れるため、文書のスクロール範囲が
+      // ビューポート寸法まで縮み、背面をスクロールさせる余地がなくなる。
+      // overflow:hidden は、はみ出した背面コンテンツが文書のスクロール範囲を
+      // 再び押し広げないための保険(fixed 内の Header 等は clip されない)。
+      const restores = [
+        setStyle(lockRoot, "position", "fixed"),
+        setStyle(lockRoot, "top", `${-fixedY}px`),
+        setStyle(lockRoot, "left", "0"),
+        setStyle(lockRoot, "right", "0"),
+        setStyle(lockRoot, "bottom", "0"),
+        setStyle(lockRoot, "overflow", "hidden"),
+      ];
+      restoreStyles = () => restores.forEach((fn) => fn());
+    };
+
+    const releaseFixed = () => {
       restoreStyles?.();
       restoreStyles = null;
-      restoreMeta?.();
-      restoreMeta = null;
 
       // モーダルから他ページへ遷移した場合は、旧ページのスクロール位置を
       // 新ページへ持ち込まない(Next.js のスクロールリセットを尊重する)
@@ -175,7 +219,7 @@ export function useModalBackgroundScrollLock() {
 
     /*
      * 背面固定の保留。文書座標のオーバーレイ(閉じかけのメニュー)が body 直下に残っている間は
-     * apply() を待ち、それが外れたら(body の子が変わったら)sync し直す。
+     * applyFixed() を待ち、それが外れたら(body の子が変わったら)やり直す。
      * 上限を過ぎたら残っていても固定する(deferExpired)。
      */
     let deferObserver: MutationObserver | null = null;
@@ -209,15 +253,63 @@ export function useModalBackgroundScrollLock() {
       };
       deferObserver = new MutationObserver((records) => {
         for (const record of records) record.addedNodes.forEach(watchStyle);
-        sync();
+        tryLock();
       });
       deferObserver.observe(document.body, { childList: true });
       Array.from(document.body.children).forEach(watchStyle);
       deferTimer = setTimeout(() => {
         deferTimer = null;
         deferExpired = true;
-        sync();
+        tryLock();
       }, DEFER_APPLY_MAX_MS);
+    };
+
+    // 背面を固定する(閉じかけのメニューが残っていれば消えるまで待つ)
+    const tryLock = () => {
+      if (!modalActive || applied) return;
+
+      const lockRoot = document.querySelector<HTMLElement>("[data-scroll-lock-root]");
+      if (!lockRoot) {
+        // 固定する相手が無い(Providers の外で描かれている等)。待ちも残さない
+        cancelDefer();
+        return;
+      }
+      // 先に固定すると文書が縮んで scrollY が折りたたまれ、メニューが画面上で飛ぶ
+      // (hasDocumentAnchoredOverlay 参照)
+      if (!deferExpired && hasDocumentAnchoredOverlay(document.body, lockRoot)) {
+        deferApply();
+        return;
+      }
+      const restoreY = deferredFromY ?? window.scrollY;
+      cancelDefer();
+      applied = true;
+      applyFixed(lockRoot, restoreY);
+    };
+
+    // モーダルの中でキーボードが出る要素にフォーカスが入ったら固定する。
+    // focus はバブルしないので捕捉段階で受ける(モーダルは外へフォーカスを出さない)
+    const onFocus = (event: FocusEvent) => {
+      if (modalActive && willOpenKeyboard(event.target)) tryLock();
+    };
+
+    const enterModal = () => {
+      modalActive = true;
+      applyMeta();
+      document.addEventListener("focus", onFocus, true);
+      // 開いた時点で既に入力にフォーカスがある(autoFocus)なら、その場で固定する
+      if (willOpenKeyboard(document.activeElement)) tryLock();
+    };
+
+    const leaveModal = () => {
+      modalActive = false;
+      document.removeEventListener("focus", onFocus, true);
+      cancelDefer();
+      if (applied) {
+        applied = false;
+        releaseFixed();
+      }
+      restoreMeta?.();
+      restoreMeta = null;
     };
 
     const sync = () => {
@@ -228,7 +320,7 @@ export function useModalBackgroundScrollLock() {
       // ただし overflow:hidden はモーダルに限らず、スクロールをブロックする
       // ポップオーバー(HeroUI の Dropdown/Select 等。既定で shouldBlockScroll=true)
       // を開いたときにも設定される。これらまで背面固定してしまうと、少しスクロール
-      // した状態でメニューを開いた瞬間に apply() が背面を position:fixed 化 →
+      // した状態でメニューを開いた瞬間に背面を position:fixed 化 →
       // 文書のスクロール可能領域が消えて window.scrollY が 0 に折りたたまれ、その
       // scroll イベントで非モーダルのポップオーバーが即座に閉じてしまう(=メニューが
       // 開けない)。そこで「実際にモーダルが開いているか」を aria-modal で併せて確認する。
@@ -238,31 +330,10 @@ export function useModalBackgroundScrollLock() {
       // observer 発火時点で必ず参照でき、判定にレースは生じない。
       const modalOpen = document.querySelector('[aria-modal="true"]') !== null;
 
-      if (locked && modalOpen && !applied) {
-        // 閉じかけのメニュー(文書座標のオーバーレイ)が残っていれば、消えるまで固定を待つ。
-        // 先に固定すると文書が縮んで scrollY が折りたたまれ、メニューが画面上で飛ぶ
-        // (hasDocumentAnchoredOverlay 参照)
-        const lockRoot = document.querySelector<HTMLElement>("[data-scroll-lock-root]");
-        if (!lockRoot) {
-          // 固定する相手が無い(Providers の外で描かれている等)。待ちも残さない
-          cancelDefer();
-          return;
-        }
-        if (!deferExpired && hasDocumentAnchoredOverlay(document.body, lockRoot)) {
-          deferApply();
-          return;
-        }
-        const restoreY = deferredFromY ?? window.scrollY;
-        cancelDefer();
-        applied = true;
-        apply(lockRoot, restoreY);
-      } else if (!locked || !modalOpen) {
-        // 保留中にモーダルが閉じたら、固定せずに待ちだけ取り消す
-        cancelDefer();
-        if (applied) {
-          applied = false;
-          release();
-        }
+      if (locked && modalOpen) {
+        if (!modalActive) enterModal();
+      } else if (modalActive) {
+        leaveModal();
       }
     };
 
@@ -289,11 +360,7 @@ export function useModalBackgroundScrollLock() {
 
     return () => {
       observer.disconnect();
-      cancelDefer();
-      if (applied) {
-        applied = false;
-        release();
-      }
+      if (modalActive) leaveModal();
     };
   }, []);
 }

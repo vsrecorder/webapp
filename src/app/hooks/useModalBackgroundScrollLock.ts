@@ -3,6 +3,58 @@
 import { useEffect } from "react";
 
 /*
+ * 文書座標で置かれたオーバーレイが残っているとき、背面固定を待つ上限。
+ *
+ * HeroUI の Popover/Dropdown の退場アニメーションは本体 0.15 秒・暗幕 0.3 秒(framer-utils の
+ * scaleSpringOpacity.exit / fade.exit)で、実測でも選んでから約 0.3 秒で DOM から消えた。
+ * 待っている間は背面固定が無い(react-aria の overflow:hidden だけ)ので、閉じないオーバーレイが
+ * 残っていても固定を諦めないよう、これを過ぎたら残っていても固定する。長くすると、その穴の
+ * 時間がそのまま延びるので、退場アニメーションに少し余裕を見た値に留める。
+ */
+const DEFER_APPLY_MAX_MS = 500;
+
+/*
+ * ページ内容ラッパーの外(body 直下)に、文書座標で絶対配置されたオーバーレイが残っているか。
+ *
+ * HeroUI の Dropdown/Popover(react-aria の Overlay)は body 直下に
+ * `position:absolute; top:<文書座標>px` のラッパーをポータルで置く。メニューの項目から
+ * モーダルを開くと、メニューは閉じ始める(退場アニメーション中)が、その間この要素は残る。
+ * ここでページ内容ラッパーを position:fixed にすると、文書のスクロール範囲が「残った
+ * オーバーレイの下端」まで縮んで window.scrollY が折りたたまれ、文書座標のオーバーレイは
+ * 折りたたまれた分だけ画面上で下へ飛ぶ(ホームを 1500px スクロールした状態でユーザメニューの
+ * ログアウトを選ぶと、消えかけのメニューが 205px 下へ瞬間移動した。実測)。
+ * ページの先頭では文書が縮んでも scrollY が変わらないので起きない。これが
+ * 「背面によってちらつくことがある」の正体。残っている間は固定を待つ(sync 参照)。
+ *
+ * Next.js の next-route-announcer も absolute だが top を指定しておらず、
+ * 文書末尾のフロー位置に置かれるだけなので対象にしない。
+ */
+export function hasDocumentAnchoredOverlay(body: HTMLElement, lockRoot: Element): boolean {
+  for (const el of Array.from(body.children)) {
+    if (!(el instanceof HTMLElement)) continue;
+    if (el.contains(lockRoot)) continue;
+    // 判定は要素のインラインスタイル。react-aria の useOverlayPosition は位置を計算した結果を
+    // style 属性(position:absolute; top:…px; left:…px)として書く。クラス指定ではないので
+    // ここで読める。表示されていない(display:none)ものは文書の高さに関わらない
+    if (el.style.position !== "absolute" || el.style.top === "") continue;
+    if (getComputedStyle(el).display === "none") continue;
+    // 中身がオーバーレイのものに限る。body 直下に absolute＋top で常駐する別物(Firebase Auth の
+    // 認証 iframe など)まで待つと、全モーダルの固定が毎回上限まで遅れる
+    if (!el.querySelector(OVERLAY_CONTENT_SELECTOR)) continue;
+    return true;
+  }
+  return false;
+}
+
+/*
+ * オーバーレイの中身と見なすもの。HeroUI の Popover/Dropdown/Select/Tooltip の中身は
+ * data-slot="base" の箱(実測: ラッパー > div > div[data-slot=base][role=dialog] > …)。
+ * 素の react-aria のオーバーレイなら role で分かる
+ */
+const OVERLAY_CONTENT_SELECTOR =
+  '[data-slot="base"], [role="menu"], [role="listbox"], [role="dialog"], [role="tooltip"]';
+
+/*
  * モーダル表示中に「背面ページがスクロールできる余地」を構造的になくすグローバル対策。
  *
  * HeroUI(react-aria の usePreventScroll)は、モーダル表示中に documentElement へ
@@ -66,14 +118,12 @@ export function useModalBackgroundScrollLock() {
       };
     };
 
-    const apply = () => {
-      const lockRoot = document.querySelector<HTMLElement>(
-        "[data-scroll-lock-root]",
-      );
-      if (!lockRoot) return;
-
-      savedY = window.scrollY;
+    // restoreY: 閉じたときに戻すスクロール位置。固定を保留していた場合は、保留を始めた
+    // (メニューの項目を選んだ)時点の位置。待っている間にページが動いても、開く前の位置へ戻す
+    const apply = (lockRoot: HTMLElement, restoreY: number) => {
+      savedY = restoreY;
       savedHref = window.location.href;
+      const fixedY = window.scrollY;
 
       // 現在見えている位置(top: -scrollY)のままページ内容ラッパーを固定する。
       // fixed 化で文書フローから外れるため、文書のスクロール範囲が
@@ -82,7 +132,7 @@ export function useModalBackgroundScrollLock() {
       // 再び押し広げないための保険(fixed 内の Header 等は clip されない)。
       const restores = [
         setStyle(lockRoot, "position", "fixed"),
-        setStyle(lockRoot, "top", `${-savedY}px`),
+        setStyle(lockRoot, "top", `${-fixedY}px`),
         setStyle(lockRoot, "left", "0"),
         setStyle(lockRoot, "right", "0"),
         setStyle(lockRoot, "bottom", "0"),
@@ -123,6 +173,53 @@ export function useModalBackgroundScrollLock() {
       }
     };
 
+    /*
+     * 背面固定の保留。文書座標のオーバーレイ(閉じかけのメニュー)が body 直下に残っている間は
+     * apply() を待ち、それが外れたら(body の子が変わったら)sync し直す。
+     * 上限を過ぎたら残っていても固定する(deferExpired)。
+     */
+    let deferObserver: MutationObserver | null = null;
+    let deferTimer: ReturnType<typeof setTimeout> | null = null;
+    let deferExpired = false;
+    // 保留を始めた時点のスクロール位置(閉じたときの戻り先)
+    let deferredFromY: number | null = null;
+
+    const cancelDefer = () => {
+      deferObserver?.disconnect();
+      deferObserver = null;
+      if (deferTimer !== null) {
+        clearTimeout(deferTimer);
+        deferTimer = null;
+      }
+      deferExpired = false;
+      deferredFromY = null;
+    };
+
+    const deferApply = () => {
+      if (deferObserver) return;
+      deferredFromY = window.scrollY;
+      // オーバーレイは DOM から外れて消える(body の子が減る)。style で隠れる・位置指定が
+      // 外れる形も hasDocumentAnchoredOverlay は「消えた」と見るので、body 直下の要素の
+      // style 変化も見ておく(モーダルの中の変化までは拾わないよう、子孫は見ない)。
+      // 待っている間に body 直下へ増えた要素も同じように見る
+      const watchStyle = (el: Node) => {
+        if (el instanceof HTMLElement) {
+          deferObserver?.observe(el, { attributes: true, attributeFilter: ["style"] });
+        }
+      };
+      deferObserver = new MutationObserver((records) => {
+        for (const record of records) record.addedNodes.forEach(watchStyle);
+        sync();
+      });
+      deferObserver.observe(document.body, { childList: true });
+      Array.from(document.body.children).forEach(watchStyle);
+      deferTimer = setTimeout(() => {
+        deferTimer = null;
+        deferExpired = true;
+        sync();
+      }, DEFER_APPLY_MAX_MS);
+    };
+
     const sync = () => {
       // react-aria の usePreventScroll はモーダル表示中(入れ子があれば
       // その全体の間)だけ documentElement を overflow:hidden にする。
@@ -142,11 +239,30 @@ export function useModalBackgroundScrollLock() {
       const modalOpen = document.querySelector('[aria-modal="true"]') !== null;
 
       if (locked && modalOpen && !applied) {
+        // 閉じかけのメニュー(文書座標のオーバーレイ)が残っていれば、消えるまで固定を待つ。
+        // 先に固定すると文書が縮んで scrollY が折りたたまれ、メニューが画面上で飛ぶ
+        // (hasDocumentAnchoredOverlay 参照)
+        const lockRoot = document.querySelector<HTMLElement>("[data-scroll-lock-root]");
+        if (!lockRoot) {
+          // 固定する相手が無い(Providers の外で描かれている等)。待ちも残さない
+          cancelDefer();
+          return;
+        }
+        if (!deferExpired && hasDocumentAnchoredOverlay(document.body, lockRoot)) {
+          deferApply();
+          return;
+        }
+        const restoreY = deferredFromY ?? window.scrollY;
+        cancelDefer();
         applied = true;
-        apply();
-      } else if ((!locked || !modalOpen) && applied) {
-        applied = false;
-        release();
+        apply(lockRoot, restoreY);
+      } else if (!locked || !modalOpen) {
+        // 保留中にモーダルが閉じたら、固定せずに待ちだけ取り消す
+        cancelDefer();
+        if (applied) {
+          applied = false;
+          release();
+        }
       }
     };
 
@@ -173,6 +289,7 @@ export function useModalBackgroundScrollLock() {
 
     return () => {
       observer.disconnect();
+      cancelDefer();
       if (applied) {
         applied = false;
         release();

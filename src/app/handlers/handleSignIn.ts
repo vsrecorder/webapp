@@ -8,6 +8,9 @@ import { firebaseClientAuth } from "@firebase/client";
 
 import { markAcquisitionSurveyPending } from "@app/utils/acquisitionSurvey";
 import { readAttributionCookie } from "@app/utils/attribution";
+import { watchFetchStart } from "@app/utils/fetchStartWatch";
+import { navigateFullPage, reloadPage } from "@app/utils/fullPageNavigation";
+import { watchPopupClosed } from "@app/utils/popupClosedWatch";
 
 // ユーザ自身の操作でポップアップを閉じた／認可を拒否した場合に発生するエラーコード
 const CANCELLED_ERROR_CODES = [
@@ -17,7 +20,7 @@ const CANCELLED_ERROR_CODES = [
 ];
 
 // ポップアップ内でブラウザバックされた場合、ウィンドウ自体は閉じられないため
-// Firebase の popup-closed 検知（window.closed のポーリング）が働かず
+// Firebase の popup-closed 検知（window.closed のポーリング）も自前の見張り(下記)も働かず
 // signInWithPopup が解決も拒否もされないまま止まってしまう。
 // クロスオリジンの都合上その状態を直接検知する手段がないため、タイムアウトで打ち切る。
 //
@@ -26,11 +29,27 @@ const CANCELLED_ERROR_CODES = [
 // ユーザまで打ち切ってしまい、しかも認証が遅れて成功した場合は
 // rollbackNewFirebaseUser で作成済みのアカウントを消してしまう。
 // 一方、長くしても実害は「ポップアップを放置した場合にボタンのローディングが続く」だけで、
-// ユーザがポップアップを閉じれば popup-closed-by-user が発火して即座にエラーになる。
+// ユーザがポップアップを閉じれば閉じ検知が働いて即座にキャンセル扱いになる。
 // そのため誤って打ち切らない側に倒して長めに取る。
 const POPUP_TIMEOUT_MS = 300_000;
 
+// 認可が済んだあと SDK が結果(ID トークン)を取りに行く要求。これが始まっていれば認証は
+// 成功しているので、ポップアップが閉じていても「利用者がやめた」ではない
+const isSignInResultRequest = (url: string) => url.includes("/v1/accounts:signInWithIdp");
+
 export type SignInErrorStatus = "cancelled" | "timeout" | "failed";
+
+// Firebase の結果を待つのをこちらから打ち切った理由
+type AbandonReason = "timeout" | "popup-closed";
+
+class SignInAbandonedError extends Error {
+  readonly reason: AbandonReason;
+
+  constructor(reason: AbandonReason) {
+    super(`sign-in abandoned: ${reason}`);
+    this.reason = reason;
+  }
+}
 
 // ロールバック前のDB登録確認1回あたりのタイムアウト（ミリ秒）。
 // エラー画面へ遷移する経路ではこの確認の完了を待ってから遷移するため、
@@ -122,54 +141,118 @@ const signOutFromFirebase = async () => {
   }
 };
 
-export const handleSignIn = async (
+/*
+ * Firebase のポップアップでサインインし、結果(UserCredential)を待つ。
+ *
+ * 利用者がポップアップを閉じたときは、Firebase の通知(閉じてから 8〜10 秒後。utils/popupClosedWatch)
+ * を待たず、自前の見張りで打ち切る。ポップアップを閉じずに放置された場合はタイムアウトで打ち切る。
+ *
+ * ただし「閉じた」が「やめた」とは限らない。モバイルブラウザと Firefox では、認可が成功すると
+ * Firebase のハンドラがポップアップを自分で閉じ、その後に SDK が結果を取りに行く(デスクトップの
+ * Chrome/Safari は SDK が結果を解決してから閉じる)。そこで結果の要求(signInWithIdp)が始まったことを
+ * fetch の見張りで捉え、始まっていれば閉じても打ち切らずに Firebase の結果を待つ。
+ *
+ * 打ち切った後に遅れて結果が届いたときは onLateSuccess に渡す。誰も受け取らないと
+ * Firebase にだけアカウントが残るので、受け取る側で続けるか取り消すかを決める。
+ */
+const signInWithPopupWatched = (
   provider: AuthProvider,
+  onLateSuccess: (credential: UserCredential, reason: AbandonReason) => void,
+): Promise<UserCredential> => {
+  let abandoned: AbandonReason | null = null;
+  let resultInFlight = false;
+
+  // 見張りは window.open / window.fetch を包むので、signInWithPopup を呼ぶ前に仕掛ける
+  const stopFetchWatch = watchFetchStart(isSignInResultRequest, () => {
+    resultInFlight = true;
+  });
+
+  let stopPopupWatch: () => void = () => {};
+  const popupClosed = new Promise<never>((_, reject) => {
+    stopPopupWatch = watchPopupClosed(
+      () => {
+        abandoned = "popup-closed";
+        reject(new SignInAbandonedError("popup-closed"));
+      },
+      { shouldIgnoreClose: () => resultInFlight },
+    );
+  });
+
+  const signInPromise = signInWithPopup(firebaseClientAuth, provider);
+
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timedOut = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      abandoned = "timeout";
+      reject(new SignInAbandonedError("timeout"));
+    }, POPUP_TIMEOUT_MS);
+  });
+
+  signInPromise.then(
+    (credential) => {
+      if (abandoned) {
+        onLateSuccess(credential, abandoned);
+      }
+    },
+    (error) => {
+      // 打ち切る前の失敗は下の race が受ける。打ち切った後に届く失敗のうち、閉じ検知の後に
+      // Firebase 側から来る popup-closed-by-user などのキャンセルは想定どおりなので何もしない。
+      // それ以外(通信失敗など)は画面には出せないが、調査のために記録だけ残す
+      if (
+        abandoned &&
+        !(error instanceof FirebaseError && CANCELLED_ERROR_CODES.includes(error.code))
+      ) {
+        console.error("Sign-in failed after being abandoned:", error);
+      }
+    },
+  );
+
+  return Promise.race([signInPromise, popupClosed, timedOut]).finally(() => {
+    clearTimeout(timer);
+    stopPopupWatch();
+    stopFetchWatch();
+  });
+};
+
+// Firebase の結果を待っている間に起きたエラーを、画面に出す状態へ写す
+const toSignInErrorStatus = (error: unknown): SignInErrorStatus => {
+  if (error instanceof SignInAbandonedError) {
+    return error.reason === "timeout" ? "timeout" : "cancelled";
+  }
+
+  if (error instanceof FirebaseError && CANCELLED_ERROR_CODES.includes(error.code)) {
+    return "cancelled";
+  }
+
+  console.error(error);
+  return "failed";
+};
+
+// 今いるページ(パスとクエリ)。押した時点と遅れて結果が届いた時点を比べるのに使う
+const currentLocation = () => window.location.pathname + window.location.search;
+
+type CompleteSignInOptions = {
+  // 成功したとき、押した時点の戻り先へ飛ばさずに今いるページを読み直す
+  stayOnCurrentPage?: boolean;
+};
+
+/*
+ * Firebase の認証が済んだあと、NextAuth へ渡してサインインを完了させ、画面を遷移する。
+ * 辿り着けなかった場合は、このサインインで作られた Firebase の認証ユーザを取り消す。
+ */
+const completeSignIn = async (
+  credential: UserCredential,
   redirectPathname: string,
   setIsLoading: React.Dispatch<React.SetStateAction<boolean>>,
   setErrorStatus?: React.Dispatch<React.SetStateAction<SignInErrorStatus | null>>,
+  { stayOnCurrentPage = false }: CompleteSignInOptions = {},
 ) => {
-  let timedOut = false;
-  let credential: UserCredential | null = null;
+  // 通常はもう立っている。閉じ検知の後に遅れて届いた経路では、いちどキャンセルの表示へ
+  // 戻しているのでここで立て直す
+  setIsLoading(true);
+  setErrorStatus?.(null);
 
   try {
-    setIsLoading(true);
-    setErrorStatus?.(null);
-
-    const signInPromise = signInWithPopup(firebaseClientAuth, provider);
-
-    // タイムアウトで打ち切った後にポップアップ側の認証が完了した場合、
-    // その結果は誰にも受け取られないまま Firebase にだけアカウントが残る。
-    // 遅れて解決したときも取りこぼさないようここでロールバックする。
-    signInPromise.then(
-      (result) => {
-        if (timedOut) {
-          void rollbackNewFirebaseUser(result);
-        }
-      },
-      () => {
-        // 認証自体の失敗はアカウントが作られないため、下の catch 側の処理に任せる
-      },
-    );
-
-    // Firebase でログイン（タイムアウトとの競争にする）
-    credential = await new Promise<UserCredential>((resolve, reject) => {
-      const timer = setTimeout(() => {
-        timedOut = true;
-        reject(new Error("signInWithPopup timed out"));
-      }, POPUP_TIMEOUT_MS);
-
-      signInPromise.then(
-        (result) => {
-          clearTimeout(timer);
-          resolve(result);
-        },
-        (error) => {
-          clearTimeout(timer);
-          reject(error);
-        },
-      );
-    });
-
     const idToken = await credential.user.getIdToken(true);
 
     // NextAuth に渡してサインイン。
@@ -198,8 +281,8 @@ export const handleSignIn = async (
       // GA4の推奨イベント(sign_up / login)。流入(utm_*)から新規登録までを
       // 一つのプロパティ内で繋ぐための基点になるので、この2つは必ず送る。
       //
-      // 直後に window.location.href で画面ごと遷移するが、gtag は送信に sendBeacon を
-      // 使うため遷移が始まってもビーコンは飛ぶ。ただし順序は必ず「送信 → 遷移」にすること。
+      // 直後に画面ごと遷移するが、gtag は送信に sendBeacon を使うため遷移が始まっても
+      // ビーコンは飛ぶ。ただし順序は必ず「送信 → 遷移」にすること。
       const additionalUserInfo = getAdditionalUserInfo(credential);
       sendGAEvent("event", additionalUserInfo?.isNewUser ? "sign_up" : "login", {
         // GA4推奨の method パラメータ。値は "google.com" / "twitter.com" 等
@@ -213,7 +296,11 @@ export const handleSignIn = async (
       }
 
       // 成功。サーバ側で発行されたセッションを読み込ませるため画面ごと遷移する
-      window.location.href = result.url ?? redirectPathname;
+      if (stayOnCurrentPage) {
+        reloadPage();
+      } else {
+        navigateFullPage(result.url ?? redirectPathname);
+      }
       return result;
     }
 
@@ -229,6 +316,8 @@ export const handleSignIn = async (
     // ページ遷移する経路では、遷移によってロールバック中のfetchが中断されないよう
     // 完了を待ってから遷移する。同一画面でエラー表示する経路では、
     // 表示がロールバック(DB確認で数秒かかる)待ちにならないよう先に表示する。
+    // 遷移はいずれもフルロード(utils/fullPageNavigation)。直前に Firebase のサインイン状態を
+    // 触っており、サーバ側のセッション Cookie を読み直させる必要があるため。
 
     if (result.code === "withdrawn") {
       // 退会済みのアカウント。認証ユーザはサーバ側で削除済みなので、
@@ -236,21 +325,13 @@ export const handleSignIn = async (
       // (既存アカウントのためロールバックは実質no-op)
       await rollbackNewFirebaseUser(credential);
       await signOutFromFirebase();
-      /* eslint-disable-next-line @next/next/no-location-assign-relative-destination --
-         router.push ではなく意図的にフルロードする。直前に Firebase のサインイン状態を
-         触っており、サーバ側のセッション Cookie を読み直させる必要があるため
-         (成功時の遷移も同じ理由で window.location.href を使っている)。 */
-      window.location.href = "/?notice=withdrawn";
+      navigateFullPage("/?notice=withdrawn");
       return result;
     }
 
     if (result.code === "backend_unavailable" || result.code === "registration_failed") {
       await rollbackNewFirebaseUser(credential);
-      /* eslint-disable-next-line @next/next/no-location-assign-relative-destination --
-         router.push ではなく意図的にフルロードする。直前に Firebase のサインイン状態を
-         触っており、サーバ側のセッション Cookie を読み直させる必要があるため
-         (成功時の遷移も同じ理由で window.location.href を使っている)。 */
-      window.location.href = `/auth/error?code=${result.code}`;
+      navigateFullPage(`/auth/error?code=${result.code}`);
       return result;
     }
 
@@ -260,26 +341,54 @@ export const handleSignIn = async (
     return result;
   } catch (error) {
     setIsLoading(false);
+    console.error(error);
 
     // エラー表示がロールバック(DB確認で数秒かかる)待ちにならないよう先に表示する
-    if (timedOut) {
-      setErrorStatus?.("timeout");
-    } else {
-      console.error(error);
-
-      if (error instanceof FirebaseError && CANCELLED_ERROR_CODES.includes(error.code)) {
-        setErrorStatus?.("cancelled");
-      } else {
-        setErrorStatus?.("failed");
-      }
-    }
+    setErrorStatus?.("failed");
 
     // Firebase の認証だけ成功して NextAuth へ渡せなかった場合（回線断など）は、
     // DB未登録のアカウントが残らないよう Firebase 側を取り消す。
     // ただし回線断の場合、サーバ側ではDB登録まで成功していて応答だけが
     // 届かなかった可能性もある。その見極めも rollbackNewFirebaseUser に委ねる。
-    if (credential) {
-      await rollbackNewFirebaseUser(credential);
-    }
+    await rollbackNewFirebaseUser(credential);
   }
+};
+
+export const handleSignIn = async (
+  provider: AuthProvider,
+  redirectPathname: string,
+  setIsLoading: React.Dispatch<React.SetStateAction<boolean>>,
+  setErrorStatus?: React.Dispatch<React.SetStateAction<SignInErrorStatus | null>>,
+) => {
+  setIsLoading(true);
+  setErrorStatus?.(null);
+
+  const pressedAt = currentLocation();
+  let credential: UserCredential;
+
+  try {
+    credential = await signInWithPopupWatched(provider, (lateCredential, reason) => {
+      if (reason === "popup-closed") {
+        // 閉じた直後に認証が済んでいた。利用者は認可まで終えているので、キャンセルの表示を
+        // 取り下げてそのままログインする。Firebase 側が「閉じられた」と判断して拒否するまで
+        // (閉じてから 10 秒ほど)の間にしか起きない。
+        // その間に利用者が別のページへ移っていたら、押した時点の戻り先へ引き戻さず、
+        // 今いるページを読み直してログイン済みの表示にする
+        void completeSignIn(lateCredential, redirectPathname, setIsLoading, setErrorStatus, {
+          stayOnCurrentPage: currentLocation() !== pressedAt,
+        });
+      } else {
+        // タイムアウト(5 分)の後に届いた結果。利用者はもう別のことをしているので受け取らず、
+        // Firebase にだけアカウントが残らないよう取り消す
+        void rollbackNewFirebaseUser(lateCredential);
+      }
+    });
+  } catch (error) {
+    // 認証自体の失敗・キャンセル・打ち切り。アカウントは作られていないので取り消すものは無い
+    setIsLoading(false);
+    setErrorStatus?.(toSignInErrorStatus(error));
+    return;
+  }
+
+  return completeSignIn(credential, redirectPathname, setIsLoading, setErrorStatus);
 };

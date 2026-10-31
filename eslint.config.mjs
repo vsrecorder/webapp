@@ -29,7 +29,8 @@ const eslintConfig = defineConfig([
     //   immutability                 4件 → props の書き換えを廃止(2件)/ ref コールバックは誤検知
     //   static-components            1件 → iconForKey は react-icons の実体を返すだけ(誤検知)
     //   exhaustive-deps              7件 → 依存を正しく列挙。二重起動ガードは state から ref へ
-    //   no-location-assign-…         2件 → セッション確立のため意図的なフルロード(誤検知)
+    //   no-location-assign-…         2件 → セッション確立のため意図的なフルロード(誤検知)。
+    //                                     2026-10-31 に utils/fullPageNavigation へ集約(引数経由なので検出されず、disable 行は不要)
     // 誤検知だったものは該当行に理由付きの eslint-disable-next-line を置いてある。
     //
     // 2026-09-08 に残りも潰し、warning への降格をやめた(0件):

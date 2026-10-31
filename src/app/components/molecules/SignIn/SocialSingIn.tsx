@@ -61,14 +61,17 @@ export default function SocialSignIn({
     return <InAppBrowserNotice actionLabel={actionLabel} onCopied={onClose} />;
   }
 
+  // キャンセルは利用者自身の操作(ポップアップを閉じた・認可を拒否した)なので、失敗と同じ赤い警告には
+  // せず、通常色の小さな案内で「気づいている」ことだけ伝える
+  const cancelledMessage =
+    errorStatus === "cancelled" ? `${actionLabel}をキャンセルしました` : null;
+
   const errorMessage =
-    errorStatus === "cancelled"
-      ? `${actionLabel}がキャンセルされました`
-      : errorStatus === "timeout"
-        ? `${actionLabel}が完了しませんでした。もう一度お試しください`
-        : errorStatus === "failed"
-          ? `${actionLabel}に失敗しました。時間をおいて再度お試しください`
-          : null;
+    errorStatus === "timeout"
+      ? `${actionLabel}が完了しませんでした。もう一度お試しください`
+      : errorStatus === "failed"
+        ? `${actionLabel}に失敗しました。時間をおいて再度お試しください`
+        : null;
 
   return (
     <div className="flex flex-col gap-3 w-full">
@@ -101,6 +104,12 @@ export default function SocialSignIn({
         <RiTwitterXLine className="text-xl shrink-0" />
         でつづける
       </Button>
+
+      {cancelledMessage && (
+        <p role="status" className="text-center text-xs text-default-500">
+          {cancelledMessage}
+        </p>
+      )}
 
       {errorMessage && (
         <p role="alert" className="text-center text-xs text-danger">

@@ -1,8 +1,10 @@
 "use client";
 
-import { Popover, PopoverContent, PopoverTrigger } from "@heroui/react";
+import { PopoverContent, PopoverTrigger } from "@heroui/react";
 
 import { LuInfo } from "react-icons/lu";
+
+import { Popover } from "@app/components/atoms/AppPopover";
 
 /*
  * 「きずなとは？」の入口と、その説明の吹き出し。

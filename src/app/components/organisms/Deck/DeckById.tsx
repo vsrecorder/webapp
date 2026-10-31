@@ -8,7 +8,7 @@ import { useSession } from "next-auth/react";
 
 import { Button, Card, CardBody, CardHeader } from "@heroui/react";
 import { Chip, Tabs, Tab, useDisclosure, addToast } from "@heroui/react";
-import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/dropdown";
+import { DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/dropdown";
 
 import { LuCalendar } from "react-icons/lu";
 import { LuSwords } from "react-icons/lu";
@@ -26,6 +26,7 @@ import { LuCheck } from "react-icons/lu";
 import { LuShare2 } from "react-icons/lu";
 import { LuCirclePlus } from "react-icons/lu";
 
+import { Dropdown } from "@app/components/atoms/AppDropdown";
 import { useKizunaDeck } from "@app/hooks/useKizunaLevels";
 import {
   useReopenFlagsOnBack,

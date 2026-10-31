@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import Image from "next/image";
 
 import { Avatar } from "@heroui/avatar";
-import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, DropdownSection } from "@heroui/dropdown";
+import { DropdownTrigger, DropdownMenu, DropdownItem, DropdownSection } from "@heroui/dropdown";
 
 import { addToast, useDisclosure } from "@heroui/react";
 import { useRouter } from "next/navigation";
@@ -23,6 +23,7 @@ import {
 } from "react-icons/lu";
 import { FaXTwitter } from "react-icons/fa6";
 
+import { Dropdown } from "@app/components/atoms/AppDropdown";
 import SignOutModal from "@app/components/organisms/Layout/SignOutModal";
 
 import { UserType } from "@app/types/user";
@@ -95,6 +96,7 @@ export default function UserMenu({ user, iconUrl, isDevEnv }: Props) {
   return (
     <>
       <Dropdown
+        // 画面幅いっぱいの大きなメニューなので暗幕を見せる(閉じ始めの層の扱いは AppDropdown)
         backdrop="opaque"
         onOpenChange={(open) => {
           if (open) loadRank();

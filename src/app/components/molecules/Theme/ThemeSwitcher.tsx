@@ -3,14 +3,10 @@
 import { useTheme } from "next-themes";
 import { Button } from "@heroui/react";
 import type { Selection } from "@heroui/react";
-import {
-  Dropdown,
-  DropdownTrigger,
-  DropdownMenu,
-  DropdownItem,
-} from "@heroui/dropdown";
+import { DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/dropdown";
 import { LuSun, LuMoon, LuMonitor } from "react-icons/lu";
 
+import { Dropdown } from "@app/components/atoms/AppDropdown";
 import { useHydrated } from "@app/hooks/useHydrated";
 
 // メニューに並べる選択肢。キーは next-themes の theme 値、並びはそのままメニューの表示順

@@ -1,10 +1,11 @@
 import { Card, CardBody } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
 import { Chip } from "@heroui/react";
-import { Popover, PopoverTrigger, PopoverContent } from "@heroui/react";
+import { PopoverTrigger, PopoverContent } from "@heroui/react";
 
 import { LuRotateCw } from "react-icons/lu";
 
+import { Popover } from "@app/components/atoms/AppPopover";
 import ScrollingText from "@app/components/molecules/ScrollingText";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import { RecordDeckRowSkeleton } from "@app/components/organisms/Record/Skeleton/RecordCardSkeleton";

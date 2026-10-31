@@ -16,7 +16,7 @@ import {
   CardBody,
   addToast,
 } from "@heroui/react";
-import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/dropdown";
+import { DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/dropdown";
 
 import {
   LuEllipsisVertical,
@@ -26,6 +26,7 @@ import {
   LuShare2,
 } from "react-icons/lu";
 
+import { Dropdown } from "@app/components/atoms/AppDropdown";
 import { Modal } from "@app/components/atoms/AppModal";
 import RecordHero from "@app/components/organisms/Record/Hero/RecordHero";
 import BoardPanel from "@app/components/organisms/Record/BoardPanel";

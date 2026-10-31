@@ -12,8 +12,9 @@ import {
   ModalFooter,
   useDisclosure,
 } from "@heroui/react";
-import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/dropdown";
+import { DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/dropdown";
 
+import { Dropdown } from "@app/components/atoms/AppDropdown";
 import { Modal } from "@app/components/atoms/AppModal";
 import UpdateDeckModal from "@app/components/organisms/Deck/Modal/UpdateDeckModal";
 import CreateDeckCodeModal from "@app/components/organisms/Deck/Modal/CreateDeckCodeModal";

@@ -5,7 +5,7 @@ import { RefObject, Dispatch, SetStateAction, useEffect, useState } from "react"
 import { useRouter } from "next/navigation";
 
 import { Button, useDisclosure, addToast } from "@heroui/react";
-import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/dropdown";
+import { DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/dropdown";
 
 import {
   LuEllipsisVertical,
@@ -15,6 +15,7 @@ import {
   LuLayers,
 } from "react-icons/lu";
 
+import { Dropdown } from "@app/components/atoms/AppDropdown";
 import DeleteRecordModal from "@app/components/organisms/Record/Modal/DeleteRecordModal";
 import EditEventInfoModal from "@app/components/organisms/Record/Modal/EditEventInfoModal";
 import UpdateUsedDeckModal from "@app/components/organisms/Deck/Modal/UpdateUsedDeckModal";

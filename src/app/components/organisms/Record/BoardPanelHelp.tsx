@@ -1,8 +1,10 @@
 "use client";
 
-import { Popover, PopoverContent, PopoverTrigger } from "@heroui/react";
+import { PopoverContent, PopoverTrigger } from "@heroui/react";
 
 import { LuCircleHelp } from "react-icons/lu";
+
+import { Popover } from "@app/components/atoms/AppPopover";
 
 type Props = {
   // 何の説明かをスクリーンリーダーへ伝えるための見出し(パネルのラベル)

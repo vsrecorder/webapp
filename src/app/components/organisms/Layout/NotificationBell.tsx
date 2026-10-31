@@ -4,16 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import {
-  Badge,
-  Button,
-  Chip,
-  Dropdown,
-  DropdownTrigger,
-  DropdownMenu,
-  DropdownItem,
-  DropdownSection,
-} from "@heroui/react";
+import { Badge, Button, Chip, DropdownTrigger, DropdownMenu, DropdownItem, DropdownSection } from "@heroui/react";
 import {
   LuBell,
   LuAward,
@@ -28,6 +19,7 @@ import {
   LuHeart,
 } from "react-icons/lu";
 
+import { Dropdown } from "@app/components/atoms/AppDropdown";
 import { NotificationType, NotificationCategory } from "@app/types/notification";
 import { UserEnvironmentBadgeType } from "@app/types/environment_badge";
 import { onNotificationsRefreshRequested } from "@app/utils/notificationEvents";

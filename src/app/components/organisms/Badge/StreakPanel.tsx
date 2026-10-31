@@ -1,8 +1,9 @@
 "use client";
 
-import { Card, CardBody, Popover, PopoverContent, PopoverTrigger } from "@heroui/react";
+import { Card, CardBody, PopoverContent, PopoverTrigger } from "@heroui/react";
 import { LuFlame, LuInfo, LuSnowflake } from "react-icons/lu";
 
+import { Popover } from "@app/components/atoms/AppPopover";
 import FetchErrorBox from "@app/components/molecules/FetchErrorBox";
 
 import StreakPanelSkeleton, {

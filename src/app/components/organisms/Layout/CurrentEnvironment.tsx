@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Image, Popover, PopoverContent, PopoverTrigger, Skeleton } from "@heroui/react";
+import { Image, PopoverContent, PopoverTrigger, Skeleton } from "@heroui/react";
 
+import { Popover } from "@app/components/atoms/AppPopover";
 import ScrollingText from "@app/components/molecules/ScrollingText";
 import { EnvironmentType } from "@app/types/environment";
 import { environmentBadgeImageUrl } from "@app/utils/badgeImage";

@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
 import { auth } from "@app/auth";
+import { redirectToSignIn, type SearchParams } from "@app/utils/signInReturnServer";
 
 import TemplateUserReport from "@app/components/templates/UserReport";
 import { isValidWeekValue, weekRangeLabel } from "@app/utils/week";
@@ -11,6 +12,7 @@ type Props = {
     // 週の月曜日 "YYYY-MM-DD"（core-api の week パラメータと同じ形式）
     week: string;
   }>;
+  searchParams: Promise<SearchParams>;
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -30,13 +32,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 // 週次のバトルレポート（施策P-2「記録の配当」の着地先）。
 // 毎週月曜の通知 /users/report/weeks/{先週の月曜} から入ってくる。
-export default async function Page({ params }: Props) {
+export default async function Page({ params, searchParams }: Props) {
   const session = await auth();
+  const { week } = await params;
   if (!session) {
-    redirect("/");
+    redirectToSignIn(`/users/report/weeks/${encodeURIComponent(week)}`, await searchParams);
   }
 
-  const { week } = await params;
   // 月曜以外や存在しない日付でAPIを叩きに行かせない。
   // 月曜に正規化して受け入れると同じ週に7つのURLができるため、正規形だけを許す。
   if (!isValidWeekValue(week)) {

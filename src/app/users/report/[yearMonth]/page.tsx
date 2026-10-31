@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
 import { auth } from "@app/auth";
+import { redirectToSignIn, type SearchParams } from "@app/utils/signInReturnServer";
 
 import TemplateUserReport from "@app/components/templates/UserReport";
 import { isValidYearMonth, yearMonthLabel } from "@app/utils/yearMonth";
@@ -10,6 +11,7 @@ type Props = {
   params: Promise<{
     yearMonth: string;
   }>;
+  searchParams: Promise<SearchParams>;
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -27,13 +29,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function Page({ params }: Props) {
+export default async function Page({ params, searchParams }: Props) {
   const session = await auth();
+  const { yearMonth } = await params;
   if (!session) {
-    redirect("/");
+    redirectToSignIn(`/users/report/${encodeURIComponent(yearMonth)}`, await searchParams);
   }
 
-  const { yearMonth } = await params;
   // "2026-13" のような値でAPIを叩きに行かせない
   if (!isValidYearMonth(yearMonth)) {
     notFound();

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 
 import { auth } from "@app/auth";
+import { redirectToSignIn, type SearchParams } from "@app/utils/signInReturnServer";
 
 import TemplateOpponentDecks from "@app/components/templates/OpponentDecks";
 
@@ -14,11 +14,15 @@ export const metadata: Metadata = {
   },
 };
 
+type Props = {
+  searchParams: Promise<SearchParams>;
+};
+
 // 相手デッキの一括編集。ユーザメニューから開く。
-export default async function Page() {
+export default async function Page({ searchParams }: Props) {
   const session = await auth();
   if (!session) {
-    redirect("/");
+    redirectToSignIn("/users/opponent_decks", await searchParams);
   }
 
   return <TemplateOpponentDecks />;

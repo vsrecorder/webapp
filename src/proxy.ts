@@ -1,10 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { hasSessionCookie } from "@app/utils/sessionCookie";
+import { signInQuery } from "@app/utils/signInReturn";
 
 // このファイルは2つの役目を持つ。
 //
 //   1. ログイン必須ページへの未認証アクセスを、描画に入る前に 307 で / へ返す
+//      (/?next=<元のパスとクエリ> で返し、ログイン後に元のページへ戻す。utils/signInReturn)
 //   2. UTM付きリンクからの着地で、流入元を first-party Cookie に保存する(施策0-4)
 //
 // Next.js 16 では middleware.ts が proxy.ts に改名された。1プロジェクトに1ファイルしか
@@ -27,7 +29,7 @@ import { hasSessionCookie } from "@app/utils/sessionCookie";
 //
 // 判定は hasSessionCookie に寄せてある(loading.tsx のフォールバックでも同じ判定が要るため)。
 
-// ログイン必須のルート。ページ側で auth() → redirect("/") しているものと同じ範囲。
+// ログイン必須のルート。ページ側で auth() → redirectToSignIn しているものと同じ範囲。
 // 以前は config.matcher でこの範囲だけを対象にしていたが、UTM の着地はトップページや
 // /deck_meta など未ログインのページで起きるため、matcher は全ページに広げ、
 // 「どこをガードするか」はこの配列で持つようにした。
@@ -184,10 +186,13 @@ function saveAttribution(request: NextRequest, response: NextResponse): NextResp
 
 export function proxy(request: NextRequest) {
   if (isProtectedPath(request.nextUrl.pathname) && !hasSessionCookie(request.cookies.getAll())) {
-    // ページ側の redirect("/") と同じ行き先。ホストはリクエストのものをそのまま使う。
+    // ページ側の redirectToSignIn と同じ行き先。ホストはリクエストのものをそのまま使う。
+    // 元のクエリは next の中に入れて持ち越す。セッション Cookie は14日で消えるので、
+    // しばらく来ていない人が push をタップするとここを通る。クエリを捨てると
+    // タップ計測(?pd=)ごと失い、ログインし直してもトップに着いてしまう。
     const url = request.nextUrl.clone();
+    url.search = signInQuery(request.nextUrl.pathname + request.nextUrl.search);
     url.pathname = "/";
-    url.search = "";
 
     // リダイレクトでも Set-Cookie は届く。UTM付きリンクがログイン必須ページを
     // 指していた場合(例: /records/quick)に流入元を落とさないよう、ここでも記録する。

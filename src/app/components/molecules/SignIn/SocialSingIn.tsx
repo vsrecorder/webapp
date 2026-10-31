@@ -14,6 +14,7 @@ import { RiTwitterXLine } from "react-icons/ri";
 import { handleSignIn } from "@app/handlers/handleSignIn";
 import type { SignInErrorStatus } from "@app/handlers/handleSignIn";
 import { isInAppBrowser } from "@app/utils/platform";
+import { resolveSignInReturnPath } from "@app/utils/signInReturn";
 import { useClientValue } from "@app/hooks/useClientValue";
 
 import InAppBrowserNotice from "./InAppBrowserNotice";
@@ -42,7 +43,12 @@ export default function SocialSignIn({
     onLoadingChange?.(isLoadingGoogle || isLoadingX);
   }, [isLoadingGoogle, isLoadingX, onLoadingChange]);
 
-  const redirectPathname = usePathname();
+  const pathname = usePathname();
+
+  // ログイン後の戻り先。ふだんは今いるページだが、ログインが要るページから飛ばされてきた
+  // トップ(/?next=...)では、開こうとしていたページへ戻す(utils/signInReturn)。
+  // URL は押した時点で読む(useSearchParams だと静的に描くページで Suspense 境界が要る)
+  const returnPath = () => resolveSignInReturnPath(pathname, window.location.search);
 
   const googleProvider = new GoogleAuthProvider();
   const twitterProvider = new TwitterAuthProvider();
@@ -74,12 +80,7 @@ export default function SocialSignIn({
         isLoading={isLoadingGoogle}
         isDisabled={isLoadingX}
         onPress={() =>
-          handleSignIn(
-            googleProvider,
-            redirectPathname,
-            setIsLoadingGoogle,
-            setErrorStatus,
-          )
+          handleSignIn(googleProvider, returnPath(), setIsLoadingGoogle, setErrorStatus)
         }
       >
         <FcGoogle className="text-xl shrink-0" />
@@ -94,7 +95,7 @@ export default function SocialSignIn({
         isLoading={isLoadingX}
         isDisabled={isLoadingGoogle}
         onPress={() =>
-          handleSignIn(twitterProvider, redirectPathname, setIsLoadingX, setErrorStatus)
+          handleSignIn(twitterProvider, returnPath(), setIsLoadingX, setErrorStatus)
         }
       >
         <RiTwitterXLine className="text-xl shrink-0" />

@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
 import { auth } from "@app/auth";
+import { redirectToSignIn, type SearchParams } from "@app/utils/signInReturnServer";
 
 import TemplateUserReport from "@app/components/templates/UserReport";
 import { EnvironmentType } from "@app/types/environment";
@@ -11,6 +12,7 @@ type Props = {
   params: Promise<{
     id: string;
   }>;
+  searchParams: Promise<SearchParams>;
 };
 
 // 環境の情報（名前・期間）はレポートの見出しにも一覧の表示にも要るため、描画前に確定させる。
@@ -45,13 +47,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function Page({ params }: Props) {
+export default async function Page({ params, searchParams }: Props) {
   const session = await auth();
+  const { id } = await params;
   if (!session) {
-    redirect("/");
+    redirectToSignIn(`/users/report/environments/${encodeURIComponent(id)}`, await searchParams);
   }
 
-  const { id } = await params;
   const environment = await getEnvironment(id);
   if (!environment) {
     notFound();

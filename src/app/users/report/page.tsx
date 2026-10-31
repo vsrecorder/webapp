@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 
 import { auth } from "@app/auth";
+import { redirectToSignIn, type SearchParams } from "@app/utils/signInReturnServer";
 
 import TemplateUserReportIndex from "@app/components/templates/UserReportIndex";
 
@@ -14,11 +14,15 @@ export const metadata: Metadata = {
   },
 };
 
+type Props = {
+  searchParams: Promise<SearchParams>;
+};
+
 // バトルレポートの入口。開ける期間をタイルで並べ、そこから各期間のレポートへ入る。
-export default async function Page() {
+export default async function Page({ searchParams }: Props) {
   const session = await auth();
   if (!session) {
-    redirect("/");
+    redirectToSignIn("/users/report", await searchParams);
   }
 
   return <TemplateUserReportIndex userId={session.user.id} />;

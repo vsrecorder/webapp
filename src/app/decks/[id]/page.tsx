@@ -1,5 +1,5 @@
 import { auth } from "@app/auth";
-import { redirect } from "next/navigation";
+import { redirectToSignIn, type SearchParams } from "@app/utils/signInReturnServer";
 
 import TemplateDeckById from "@app/components/templates/DeckById";
 import { isValueMeterEnabled } from "@app/utils/featureFlags";
@@ -8,15 +8,16 @@ type Props = {
   params: Promise<{
     id: string;
   }>;
+  searchParams: Promise<SearchParams>;
 };
 
-export default async function Page({ params }: Props) {
+export default async function Page({ params, searchParams }: Props) {
   const session = await auth();
+  const { id } = await params;
   if (!session) {
-    redirect("/");
+    redirectToSignIn(`/decks/${encodeURIComponent(id)}`, await searchParams);
   }
 
-  const { id } = await params;
 
   return (
     <TemplateDeckById id={id} valueMeterEnabled={isValueMeterEnabled()} />

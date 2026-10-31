@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 
 import { auth } from "@app/auth";
+import { redirectToSignIn, type SearchParams } from "@app/utils/signInReturnServer";
 
 import TemplateDecks from "@app/components/templates/Decks";
 
@@ -14,10 +14,14 @@ import {
 } from "@app/utils/deckListPrefs";
 import { getDecksInitialData } from "@app/utils/deckListServer";
 
-export default async function Page() {
+type Props = {
+  searchParams: Promise<SearchParams>;
+};
+
+export default async function Page({ searchParams }: Props) {
   const session = await auth();
   if (!session) {
-    redirect("/");
+    redirectToSignIn("/decks", await searchParams);
   }
 
   // 表示モード(リスト/ギャラリー)と選択中タブは cookie に保存されている。サーバ描画の時点で

@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
 import { auth } from "@app/auth";
 
@@ -7,6 +8,7 @@ import TemplateHome from "@app/components/templates/Home";
 import TemplateDashboard from "@app/components/templates/Dashboard";
 import DashboardSkeleton from "@app/components/organisms/Dashboard/Skeleton/DashboardSkeleton";
 import WithdrawnNotice from "@app/components/molecules/WithdrawnNotice";
+import SignInRequiredPrompt from "@app/components/molecules/SignIn/SignInRequiredPrompt";
 
 import { getAppIconUrl } from "@app/utils/appIcon";
 import { serializeJsonLd } from "@app/utils/breadcrumb";
@@ -26,6 +28,7 @@ import {
 } from "@app/utils/excludeDefaultMatches";
 import { RECORDING_DISMISSED_COOKIE } from "@app/utils/recordingNow";
 import { STATS_VISIBLE_COOKIE, parseStatsVisibleCookie } from "@app/utils/statsVisible";
+import { parseNextPath } from "@app/utils/signInReturn";
 
 const description = SITE_DESCRIPTION;
 
@@ -81,17 +84,27 @@ function buildJsonLd(domain: string | undefined) {
 
 type Props = {
   searchParams: Promise<{
+    // 退会済みアカウントでサインインを試みた場合に /auth/error から転送されてくる
     notice?: string;
+    // ログインが要るページから飛ばされてきたときの戻り先(utils/signInReturn)
+    next?: string | string[];
   }>;
 };
 
 export default async function Home({ searchParams }: Props) {
-  const session = await auth();
+  const [session, { notice, next }] = await Promise.all([auth(), searchParams]);
+  const nextPath = parseNextPath(next);
 
   // スケルトンはこの分岐の内側に置く。ページ全体の loading.tsx にすると
   // セッションを見る前に表示が始まり、非会員のランディングでもダッシュボードの
   // スケルトンが一瞬映り込む。
   if (session) {
+    // ログイン済みなのに戻り先が付いている(別のタブでログインした後に開き直したなど)。
+    // ホームを描かずに、行こうとしていたページへそのまま進める
+    if (nextPath) {
+      redirect(nextPath);
+    }
+
     // 骨格はこのユーザーのホームが前回描いた構成で出す。並べ替え・非表示の設定は
     // localStorage にあってサーバからは読めないため、実際に描いた並びを cookie 経由で受け取る
     // (DashboardSections が書く)。初回訪問など cookie が無ければ既定の並び。
@@ -134,9 +147,6 @@ export default async function Home({ searchParams }: Props) {
     );
   }
 
-  // 退会済みアカウントでサインインを試みた場合に /auth/error から転送されてくる
-  const { notice } = await searchParams;
-
   const jsonLd = buildJsonLd(process.env.VSRECORDER_DOMAIN);
 
   return (
@@ -146,6 +156,7 @@ export default async function Home({ searchParams }: Props) {
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
       {notice === "withdrawn" && <WithdrawnNotice />}
+      {nextPath && <SignInRequiredPrompt />}
       <TemplateHome />
     </>
   );

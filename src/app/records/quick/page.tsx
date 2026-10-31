@@ -7,6 +7,7 @@ import { RecordGetResponseType } from "@app/types/record";
 import { isEnvReturnEnabled } from "@app/utils/featureFlags";
 import { upstreamUrl } from "@app/utils/upstream";
 import { signUpstreamToken } from "@app/utils/upstreamToken";
+import { redirectToSignIn } from "@app/utils/signInReturnServer";
 
 type Props = {
   searchParams: Promise<{
@@ -82,7 +83,7 @@ async function hasAnyRecord(userId: string): Promise<boolean | null> {
 export default async function Page({ searchParams }: Props) {
   const session = await auth();
   if (!session) {
-    redirect("/");
+    redirectToSignIn("/records/quick", await searchParams);
   }
 
   // decks はリダイレクトしない場合にだけ必要だが、記録件数の判定を待ってから取りに行くと

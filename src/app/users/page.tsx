@@ -1,13 +1,17 @@
 import { auth } from "@app/auth";
-import { redirect } from "next/navigation";
+import { redirectToSignIn, type SearchParams } from "@app/utils/signInReturnServer";
 
 import TemplateUser from "@app/components/templates/User";
 import { getAllChampionshipSeries } from "@app/utils/championshipSeriesServer";
 
-export default async function Page() {
+type Props = {
+  searchParams: Promise<SearchParams>;
+};
+
+export default async function Page({ searchParams }: Props) {
   const session = await auth();
   if (!session) {
-    redirect("/");
+    redirectToSignIn("/users", await searchParams);
   }
 
   // 称号とランク・バッジのパネルは、渡された一覧から現在シーズンを決めてデータを取得する。

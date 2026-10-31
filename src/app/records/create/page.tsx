@@ -1,6 +1,5 @@
 import { auth } from "@app/auth";
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 import { parseDate } from "@internationalized/date";
 
 import TemplateRecordCreate from "@app/components/templates/RecordCreate";
@@ -8,6 +7,7 @@ import { DeckGetAllType } from "@app/types/deck";
 import { todayJSTDateString } from "@app/utils/date";
 import { upstreamUrl } from "@app/utils/upstream";
 import { signUpstreamToken } from "@app/utils/upstreamToken";
+import { redirectToSignIn } from "@app/utils/signInReturnServer";
 import { toRecordCreateOfficialEvent } from "@app/types/official_event";
 import { toOfficialEventDateKey } from "@app/utils/officialEventList";
 import { getOfficialEventList } from "@app/utils/officialEventListServer";
@@ -76,12 +76,14 @@ async function getDecks(userId: string): Promise<DeckGetAllType | null> {
 export default async function Page({ searchParams }: Props) {
   // searchParams は auth() と並行して解決してよい。直列にすると、開催日が決まるまで
   // 公式イベントの先読みを始められない
-  const [session, { deck_id, deck_code_id, event_type, official_event_id, event_date }] =
-    await Promise.all([auth(), searchParams]);
+  const [session, query] = await Promise.all([auth(), searchParams]);
 
   if (!session) {
-    redirect("/");
+    // 型に無いクエリ(push のタップ計測の pd など)も、ログイン後の戻り先に残す
+    redirectToSignIn("/records/create", query);
   }
+
+  const { deck_id, deck_code_id, event_type, official_event_id, event_date } = query;
 
   /*
    * 開くタブはここで確定させる。最後に選んだタブは cookie にあるので

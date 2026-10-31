@@ -1,17 +1,21 @@
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 
 import { auth } from "@app/auth";
+import { redirectToSignIn, type SearchParams } from "@app/utils/signInReturnServer";
 
 import TemplateRecords from "@app/components/templates/Records";
 
 import { RECORDS_SELECTED_TAB_COOKIE, parseRecordsTab } from "@app/utils/recordListPrefs";
 import { getRecordsInitialData } from "@app/utils/recordListServer";
 
-export default async function Page() {
+type Props = {
+  searchParams: Promise<SearchParams>;
+};
+
+export default async function Page({ searchParams }: Props) {
   const session = await auth();
   if (!session) {
-    redirect("/");
+    redirectToSignIn("/records", await searchParams);
   }
 
   // 選択中タブは cookie に保存されている(recordListPrefs)。サーバ描画の時点でそのタブで描き、

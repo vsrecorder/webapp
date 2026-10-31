@@ -4,6 +4,8 @@ import { LuLayers, LuUsers } from "react-icons/lu";
 
 import ScrollUpFloating from "@app/components/atoms/Floating/ScrollUpFloating";
 import BackLink from "@app/components/molecules/BackLink";
+import PinnedBar from "@app/components/molecules/PinnedBar";
+import { CHAMPIONSLEAGUE_RESULT_BAR_CLASS } from "@app/components/organisms/Championsleague/championsleagueResultBar";
 import CityleagueResultCard from "@app/components/organisms/Cityleague/CityleagueResultCard";
 
 import {
@@ -133,22 +135,19 @@ export default function ChampionsleagueResultByLeague({
     `入賞${resultCount}名のうち、${deckCodeCount}名のデッキコードとカードリストを掲載しています。`;
 
   return (
-    <div className="flex flex-col gap-3 pt-1 pb-3">
+    // 上の余白(旧 pt-1)は先頭の固定バーの中身(pt-3 = 旧 pt-1 + py-2)が持つ
+    <div className="flex flex-col gap-3 pb-3">
       <ScrollUpFloating />
 
       {/*
         SEO流入で直接開かれることが多いため、大会ページへの導線を先頭に置く。
-        入賞者が16名並んで縦に長くなるので、スクロールしても常に戻れるよう sticky にする。
-        top はヘッダー(fixed / h-14・lg:h-28)の直下に合わせる。
+        入賞者が16名並んで縦に長くなるので、スクロールしても常に戻れるようヘッダーの直下に
+        固定する(PinnedBar。sticky にしない理由はそちら)。PinnedBar はクライアントの入れ物で、
+        中の BackLink はサーバコンポーネントのまま(next/link)HTML に載る。
       */}
-      <div className="sticky top-14 z-40 -mx-2 lg:top-28">
-        {/* デッキ画像が裏を流れても文字が埋もれないよう、不透明度を上げ、下端に境界線を引く */}
-        <div className="absolute inset-0 border-b border-default-200/60 bg-white/90 backdrop-blur-md dark:bg-neutral-950/90" />
-        {/* BackLink はサーバコンポーネントから使えるよう next/link で組んである */}
-        <div className="relative w-fit max-w-full px-2 py-2">
-          <BackLink href={`/cityleague_results/championsleagues/${schedule.id}`} label={scheduleTitle} />
-        </div>
-      </div>
+      <PinnedBar className={CHAMPIONSLEAGUE_RESULT_BAR_CLASS}>
+        <BackLink href={`/cityleague_results/championsleagues/${schedule.id}`} label={scheduleTitle} />
+      </PinnedBar>
 
       <Card className="w-full">
         <CardHeader className="flex-col items-start gap-2 bg-linear-to-br from-indigo-500/10 to-pink-500/10 px-3 py-3">

@@ -1,4 +1,6 @@
 import { Card, CardBody, CardHeader, Skeleton } from "@heroui/react";
+import PinnedBar from "@app/components/molecules/PinnedBar";
+import { CITYLEAGUE_RESULT_BAR_CLASS } from "@app/components/organisms/Cityleague/cityleagueResultBar";
 
 import CityleagueResultCardSkeleton from "@app/components/organisms/Cityleague/Skeleton/CityleagueResultCardSkeleton";
 
@@ -30,20 +32,18 @@ type Props = {
 
 export default function CityleagueResultDetailSkeleton({ withDeckArchetype = false }: Props) {
   return (
-    <div className="flex flex-col gap-3 pt-1 pb-3">
-      {/* 一覧への戻り導線（実体と同じくヘッダー直下に sticky で置く） */}
-      <div className="sticky top-14 z-40 -mx-2 lg:top-28">
-        <div className="absolute inset-0 border-b border-default-200/60 bg-white/90 backdrop-blur-md dark:bg-neutral-950/90" />
-        <div className="relative flex items-center justify-between gap-2 px-2 py-2">
-          {/* 実体の戻るリンク(BackLink、ピル型・実測 34px)と同じ大きさ */}
-          <Skeleton className="h-[2.125rem] w-36 rounded-full" />
-          {/* 右端のシェアボタン(X へのポスト・リンクのコピー、丸型 2rem) */}
-          <div className="flex shrink-0 items-center gap-1.5">
-            <Skeleton className="h-8 w-8 rounded-full" />
-            <Skeleton className="h-8 w-8 rounded-full" />
-          </div>
+    // 上の余白(旧 pt-1)は実体と同じく先頭の固定バーの中身が持つ
+    <div className="flex flex-col gap-3 pb-3">
+      {/* 一覧への戻り導線（実体と同じ固定バー・同じクラス） */}
+      <PinnedBar className={CITYLEAGUE_RESULT_BAR_CLASS}>
+        {/* 実体の戻るリンク(BackLink、ピル型・実測 34px)と同じ大きさ */}
+        <Skeleton className="h-[2.125rem] w-36 rounded-full" />
+        {/* 右端のシェアボタン(X へのポスト・リンクのコピー、丸型 2rem) */}
+        <div className="flex shrink-0 items-center gap-1.5">
+          <Skeleton className="h-8 w-8 rounded-full" />
+          <Skeleton className="h-8 w-8 rounded-full" />
         </div>
-      </div>
+      </PinnedBar>
 
       {/* イベントヘッダー */}
       <Card className="w-full">

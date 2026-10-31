@@ -11,6 +11,8 @@ import { LuLayers, LuLink, LuUsers } from "react-icons/lu";
 
 import ScrollUpFloating from "@app/components/atoms/Floating/ScrollUpFloating";
 import BackLink from "@app/components/molecules/BackLink";
+import PinnedBar from "@app/components/molecules/PinnedBar";
+import { CITYLEAGUE_RESULT_BAR_CLASS } from "@app/components/organisms/Cityleague/cityleagueResultBar";
 
 import CityleagueResultCard from "@app/components/organisms/Cityleague/CityleagueResultCard";
 
@@ -111,44 +113,39 @@ export default function CityleagueResultByOfficialEventId({
   };
 
   return (
-    <div className="flex flex-col gap-3 pt-1 pb-3">
+    // 上の余白(旧 pt-1)は先頭の固定バーの中身(pt-3 = 旧 pt-1 + py-2)が持つ
+    <div className="flex flex-col gap-3 pb-3">
       <ScrollUpFloating />
 
       {/*
         SEO流入で直接開かれることが多いため、一覧への導線を先頭に置く。
-        入賞者が16名並ぶと縦に長くなるので、スクロールしても常に戻れるよう sticky にする。
-        top はヘッダー（fixed / h-14・lg:h-28）の直下に合わせる。
-        Header と同様、iOS の standalone PWA で backdrop-blur が悪さをしないよう、
-        ぼかし背景は別レイヤー（absolute）に分離する。
+        入賞者が16名並ぶと縦に長くなるので、スクロールしても常に戻れるようヘッダーの直下に
+        固定する(PinnedBar。sticky にしない理由はそちら)。
       */}
-      <div className="sticky top-14 z-40 -mx-2 lg:top-28">
-        {/* デッキ画像が裏を流れても文字が埋もれないよう、不透明度を上げ、下端に境界線を引く */}
-        <div className="absolute inset-0 border-b border-default-200/60 bg-white/90 backdrop-blur-md dark:bg-neutral-950/90" />
-        <div className="relative flex items-center justify-between gap-2 px-2 py-2">
-          <BackLink href="/cityleague_results" label="シティリーグ結果一覧" />
+      <PinnedBar className={CITYLEAGUE_RESULT_BAR_CLASS}>
+        <BackLink href="/cityleague_results" label="シティリーグ結果一覧" />
 
-          {/* このページのシェア。戻る導線と同じ高さ(2rem)・同じ見た目の丸ボタンにして、
-              スクロールしても常に押せるようにする */}
-          <div className="flex shrink-0 items-center gap-1.5">
-            <button
-              type="button"
-              aria-label="この大会結果を X にポストする"
-              onClick={postToX}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-content1 text-default-600 shadow-small hover:text-default-800 active:opacity-70"
-            >
-              <FaXTwitter className="text-sm" />
-            </button>
-            <button
-              type="button"
-              aria-label="この大会結果のリンクをコピーする"
-              onClick={() => void copyLink()}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-content1 text-default-600 shadow-small hover:text-default-800 active:opacity-70"
-            >
-              <LuLink className="text-base" />
-            </button>
-          </div>
+        {/* このページのシェア。戻る導線と同じ高さ(2rem)・同じ見た目の丸ボタンにして、
+            スクロールしても常に押せるようにする */}
+        <div className="flex shrink-0 items-center gap-1.5">
+          <button
+            type="button"
+            aria-label="この大会結果を X にポストする"
+            onClick={postToX}
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-content1 text-default-600 shadow-small hover:text-default-800 active:opacity-70"
+          >
+            <FaXTwitter className="text-sm" />
+          </button>
+          <button
+            type="button"
+            aria-label="この大会結果のリンクをコピーする"
+            onClick={() => void copyLink()}
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-content1 text-default-600 shadow-small hover:text-default-800 active:opacity-70"
+          >
+            <LuLink className="text-base" />
+          </button>
         </div>
-      </div>
+      </PinnedBar>
 
       <Card className="w-full">
         <CardHeader className="flex-col items-start gap-2 bg-linear-to-br from-indigo-500/10 to-pink-500/10 px-3 py-3">

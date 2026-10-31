@@ -4,6 +4,9 @@ import { useParams } from "next/navigation";
 
 import { Card, CardBody, CardHeader, Skeleton } from "@heroui/react";
 
+import PinnedBar from "@app/components/molecules/PinnedBar";
+import { CHAMPIONSLEAGUE_RESULT_BAR_CLASS } from "@app/components/organisms/Championsleague/championsleagueResultBar";
+
 import CityleagueResultCardSkeleton from "@app/components/organisms/Cityleague/Skeleton/CityleagueResultCardSkeleton";
 
 import { isDeckArchetypeChampionsleague } from "@app/utils/deckArchetype";
@@ -27,16 +30,14 @@ export default function Loading() {
   const withDeckArchetype = isDeckArchetypeChampionsleague(id);
 
   return (
-    <div className="flex flex-col gap-3 pt-1 pb-3">
-      {/* 一覧への戻り導線（実体と同じくヘッダー直下に sticky で置く） */}
-      <div className="sticky top-14 z-40 -mx-2 lg:top-28">
-        <div className="absolute inset-0 border-b border-default-200/60 bg-white/90 backdrop-blur-md dark:bg-neutral-950/90" />
-        <div className="relative w-fit px-2 py-2">
-          {/* 実体の戻るリンク(BackLink、ピル型)と同じ大きさ */}
-          {/* 実測 34px */}
-          <Skeleton className="h-[2.125rem] w-32 rounded-full" />
-        </div>
-      </div>
+    // 上の余白(旧 pt-1)は実体と同じく先頭の固定バーの中身が持つ
+    <div className="flex flex-col gap-3 pb-3">
+      {/* 一覧への戻り導線（実体と同じ固定バー・同じクラス） */}
+      <PinnedBar className={CHAMPIONSLEAGUE_RESULT_BAR_CLASS}>
+        {/* 実体の戻るリンク(BackLink、ピル型)と同じ大きさ */}
+        {/* 実測 34px */}
+        <Skeleton className="h-[2.125rem] w-32 rounded-full" />
+      </PinnedBar>
 
       {/* 大会名＋リーグ区分のヘッダー */}
       <Card className="w-full">

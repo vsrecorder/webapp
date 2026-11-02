@@ -165,6 +165,11 @@ export default function UpdateNameModal({
           body: formData,
         });
 
+        // 429 は回数の上限(アカウントごと・送信元ごと)。数字だけでは何をすればよいか分からないので言葉で返す
+        if (uploadRes.status === 429) {
+          throw new Error("画像の変更が続いたため、受け付けを一時的に止めています。しばらく時間をおいてからお試しください");
+        }
+
         if (!uploadRes.ok) {
           throw new Error(`画像アップロード失敗: ${uploadRes.status}`);
         }

@@ -289,7 +289,13 @@ function HeroShell({
                   // 幅の上限はパネルの 45%。バッジは絶対配置で日付を押しのけないため、
                   // 上限が無いと長い順位名(「予選抜けベスト16」など)が 320px 端末で
                   // 日付に重なる。45% なら実在する順位名(最長「ベスト16」)は truncate されない。
-                  className={`absolute top-0 right-0 z-10 flex max-w-[45%] items-center rounded-tr-2xl rounded-bl-xl px-2.5 py-1.5 text-[0.8125rem] leading-none font-bold ${
+                  //
+                  // top-0/right-0 で枠線の内側にちょうど合わせると、左カラムの幅が端数になる
+                  // 端末(幅は calc の残りなので大半がそう)で丸めがずれ、バッジと枠線のあいだに
+                  // 1px の隙間が出る。1px はみ出させてパネルの overflow-hidden に切らせれば、
+                  // 切り口は枠線の内側と同じ位置に揃う。右上の角もその切り抜き(枠線の内側の
+                  // 角丸)が作るので、バッジ自身には rounded-tr を付けない。
+                  className={`absolute -top-px -right-px z-10 flex max-w-[45%] items-center rounded-bl-xl px-2.5 py-1.5 text-[0.8125rem] leading-none font-bold ${
                     placementTag.color ? "" : "bg-default-200 text-default-700"
                   }`}
                   style={

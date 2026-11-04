@@ -45,6 +45,8 @@ const CATEGORY_ICON: Record<
   official_event: LuCalendarDays,
   announcement: LuMegaphone,
   weekly_report: LuFileChartColumn,
+  monthly_report: LuFileChartColumn,
+  environment_report: LuFileChartColumn,
   reminder: LuBellRing,
   env_news: LuChartColumn,
   like: LuHeart,

@@ -6,6 +6,9 @@ export type NotificationCategory =
   | "official_event"
   | "announcement"
   | "weekly_report"
+  // 月の切り替わり・環境の切り替わりに届く、終わった期間のバトルレポート
+  | "monthly_report"
+  | "environment_report"
   | "reminder"
   | "env_news"
   // みんなの公開デッキの投稿へのいいね(日次のまとめ)

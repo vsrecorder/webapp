@@ -1,6 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 
 import { auth } from "@app/auth";
+import { AVATAR_IMAGE_SIZE } from "@app/utils/avatarImage";
 import { FixedWindowLimiter } from "@app/utils/fixedWindowLimiter";
 
 import {
@@ -26,6 +27,15 @@ const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 // public-readで公開ストレージに置く以上、PNGであることは中身で確認する。
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
+// PNGはシグネチャの直後に必ずIHDRチャンクが来る。
+// 長さ(4バイト、値は13)・"IHDR"(4バイト)の後ろに、幅と高さが4バイトずつ並ぶ。
+const IHDR_LENGTH = 13;
+const IHDR_TYPE = "IHDR";
+const IHDR_LENGTH_OFFSET = PNG_SIGNATURE.length;
+const IHDR_TYPE_OFFSET = IHDR_LENGTH_OFFSET + 4;
+const IHDR_WIDTH_OFFSET = IHDR_TYPE_OFFSET + 4;
+const IHDR_HEIGHT_OFFSET = IHDR_WIDTH_OFFSET + 4;
+
 // アカウントごとのアップロード回数の上限(1 時間に 10 回)。
 //
 // アップロードのたびに日時入りの別キーで公開ストレージへ書くため、上限が無いと 1 アカウントで
@@ -37,8 +47,21 @@ const UPLOADS_PER_WINDOW = 10;
 const UPLOAD_WINDOW_MS = 60 * 60 * 1000;
 const uploadLimiter = new FixedWindowLimiter(UPLOADS_PER_WINDOW, UPLOAD_WINDOW_MS);
 
-function isPng(buffer: Buffer): boolean {
-  return buffer.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE);
+// アイコンの寸法のPNGかを、先頭のヘッダだけを読んで判定する。
+//
+// 保存した画像はOGP画像の生成や/_next/imageでサーバ側のデコーダに渡りうる。小さなファイルでも
+// 幅と高さを巨大に宣言すれば、デコードで大量のメモリとCPUを使わせられる(展開爆弾)。
+// ここで画像をデコードすると同じ問題を抱えるので、宣言された寸法の確認にとどめる。
+function isAvatarPng(buffer: Buffer): boolean {
+  if (buffer.length < IHDR_HEIGHT_OFFSET + 4) return false;
+  if (!buffer.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE)) return false;
+  if (buffer.readUInt32BE(IHDR_LENGTH_OFFSET) !== IHDR_LENGTH) return false;
+  if (buffer.toString("latin1", IHDR_TYPE_OFFSET, IHDR_WIDTH_OFFSET) !== IHDR_TYPE) return false;
+
+  return (
+    buffer.readUInt32BE(IHDR_WIDTH_OFFSET) === AVATAR_IMAGE_SIZE &&
+    buffer.readUInt32BE(IHDR_HEIGHT_OFFSET) === AVATAR_IMAGE_SIZE
+  );
 }
 
 function buildDatetimeString(date: Date): string {
@@ -100,8 +123,11 @@ export async function POST(
 
     const buffer = Buffer.from(await image.arrayBuffer());
 
-    if (!isPng(buffer)) {
-      return NextResponse.json({ error: "image must be a PNG" }, { status: 400 });
+    if (!isAvatarPng(buffer)) {
+      return NextResponse.json(
+        { error: `image must be a ${AVATAR_IMAGE_SIZE}x${AVATAR_IMAGE_SIZE} PNG` },
+        { status: 400 },
+      );
     }
 
     const datetime = buildDatetimeString(new Date());

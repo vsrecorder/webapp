@@ -35,7 +35,8 @@ const CSP = [
   `script-src 'self' 'unsafe-inline' ${isDev ? `'unsafe-eval' ` : ""}https://www.googletagmanager.com https://apis.google.com`,
   `style-src 'self' 'unsafe-inline'`,
   `font-src 'self' data:`,
-  // next/imageの最適化元(remotePatterns)と、canvasで画像を組み立てるためのdata:/blob:
+  // 画像の読み込み元と、canvasで画像を組み立てるためのdata:/blob:。
+  // 最適化APIを通さない素の<img>(利用者のアイコン等)も対象なので、images.remotePatterns より広い。
   // tonamel.com はイベントのog:image(core-apiserverが競技ページから抽出した値)を
   // そのまま<img>で表示するため。カバー画像がサブドメインのCDNから配信される場合に
   // 備えてワイルドカードも許可する。
@@ -135,19 +136,24 @@ const nextConfig: NextConfig = {
      * 元画像の Cache-Control の max-age の方が長い場合はそちらが優先される。
      */
     minimumCacheTTL: 30 * 24 * 60 * 60,
+    /*
+     * 最適化APIの取得でリダイレクトを追わない。
+     *
+     * Next はリダイレクト先を remotePatterns で検査しないので、許可したホストにオープンリダイレクトが
+     * あると、下の許可先の絞り込みをすり抜けて任意の画像を sharp に渡せてしまう。
+     * 実際に使っている画像にリダイレクトするものは無い(2026-11-05 に本番ログの URL で確認)。
+     */
+    maximumRedirects: 0,
+    /*
+     * 最適化API(/_next/image)はURLを指定すれば誰でも呼べて、取得した画像をサーバの sharp で
+     * デコードする。利用者が内容を決められる画像をここへ通さないよう、許可先は必要な範囲に限る。
+     *
+     * CDN は images/users(利用者のアップロード先)を外し、固定素材のパスだけを許可する。
+     * アイコンは HeroUI の Avatar の素の <img> で表示するので、最適化APIは通らない。
+     * Google / X のアイコンも同じ理由で不要。オブジェクトストレージのエンドポイントは、
+     * 許可すると CDN と同じファイルに別のURLで届いてしまうので入れない。
+     */
     remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "lh3.googleusercontent.com",
-        port: "",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "pbs.twimg.com",
-        port: "",
-        pathname: "/**",
-      },
       {
         protocol: "https",
         hostname: "pokemon-card.com",
@@ -168,15 +174,15 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-        hostname: "s3.isk01.sakurastorage.jp",
+        hostname: "xx8nnpgt.user.webaccel.jp",
         port: "",
-        pathname: "/**",
+        pathname: "/images/icons/**",
       },
       {
         protocol: "https",
         hostname: "xx8nnpgt.user.webaccel.jp",
         port: "",
-        pathname: "/**",
+        pathname: "/images/badges/**",
       },
       /*
        * Tonamelイベントのカバー画像(競技ページの og:image)。

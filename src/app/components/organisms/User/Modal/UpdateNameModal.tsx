@@ -18,6 +18,7 @@ import { LuCamera } from "react-icons/lu";
 
 import { Modal } from "@app/components/atoms/AppModal";
 import { UserUpdateRequestType } from "@app/types/user";
+import { AVATAR_IMAGE_SIZE } from "@app/utils/avatarImage";
 import { useUserAvatar } from "@app/contexts/UserAvatarContext";
 import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
 import { useSyncOnChange } from "@app/hooks/useSyncOnChange";
@@ -43,8 +44,8 @@ async function getCroppedBlob(imageSrc: string, cropPixels: Area): Promise<Blob>
     const image = new Image();
     image.onload = () => {
       const canvas = document.createElement("canvas");
-      canvas.width = 400;
-      canvas.height = 400;
+      canvas.width = AVATAR_IMAGE_SIZE;
+      canvas.height = AVATAR_IMAGE_SIZE;
       const ctx = canvas.getContext("2d");
       if (!ctx) {
         reject(new Error("canvas context unavailable"));
@@ -58,8 +59,8 @@ async function getCroppedBlob(imageSrc: string, cropPixels: Area): Promise<Blob>
         cropPixels.height,
         0,
         0,
-        400,
-        400,
+        AVATAR_IMAGE_SIZE,
+        AVATAR_IMAGE_SIZE,
       );
       canvas.toBlob((blob) => {
         if (blob) resolve(blob);

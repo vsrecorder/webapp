@@ -11,7 +11,6 @@ import { CDN_ORIGIN } from "@app/utils/cdn";
  * 正規の値は次の 3 系統しか無いので、ホストをこの集合に限定する。
  *   - CDN: 既定アイコン(auth.ts)、アップロード結果(api/users/[id]/images)、デッキ画像
  *   - Google / X: 認証プロバイダのアイコンをそのまま持っているユーザ
- *     (next.config.ts の images.remotePatterns と同じ集合)
  *
  * PUT /api/users/{id} の image_url もこの判定で受け入れを決める(保存する時点で絞れば、
  * 取りに行く側の判定が漏れても内部へは届かない)。

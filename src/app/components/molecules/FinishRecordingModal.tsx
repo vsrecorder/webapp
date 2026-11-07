@@ -3,6 +3,7 @@
 import { Button, ModalBody, ModalContent, ModalFooter, ModalHeader } from "@heroui/react";
 
 import { Modal } from "@app/components/atoms/AppModal";
+import { keepNamesUnbroken } from "@app/utils/titleBreak";
 
 /*
  * 「記録を終える」の確認。ホーム上部のカードと画面下のバーが共有する。
@@ -51,7 +52,9 @@ export default function FinishRecordingModal({
               <p className="text-sm text-default-600">
                 {eventTitle !== "" ? (
                   <>
-                    <span className="font-bold text-default-900">{eventTitle}</span>{" "}
+                    <span className="font-bold text-default-900">
+                      {keepNamesUnbroken(eventTitle)}
+                    </span>{" "}
                     を「記録中」として表示するのをやめます。
                   </>
                 ) : (

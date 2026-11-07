@@ -2,6 +2,8 @@ import { Card, CardBody } from "@heroui/react";
 
 import { LuCalendar } from "react-icons/lu";
 
+import { keepNamesUnbroken } from "@app/utils/titleBreak";
+
 export type RecordInfoMetaRow = {
   icon: React.ReactNode;
   label: string;
@@ -63,7 +65,9 @@ export default function RecordInfoCardBase({
               <LuCalendar className="w-3.5 h-3.5 shrink-0" />
               <span>{date}</span>
             </div>
-            <h3 className="font-bold text-lg leading-snug wrap-break-word">{title}</h3>
+            <h3 className="font-bold text-lg leading-snug wrap-break-word">
+              {keepNamesUnbroken(title)}
+            </h3>
             {/* チップが1つも無いときは行ごと消して、親の gap ぶんの余白を残さない */}
             <div className="flex items-center justify-center gap-1.5 flex-wrap empty:hidden">
               {chips}

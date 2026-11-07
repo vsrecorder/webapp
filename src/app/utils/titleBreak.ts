@@ -32,3 +32,19 @@ export function splitAtBreakPoints(title: string): TitleSegment[] {
 
   return segments;
 }
+
+/*
+ * 空白を含むが、途中で改行すると名前として読みづらくなるもの。
+ * 「30th / CELEBRATION」と割れないよう、表示するときだけ空白を NBSP に置き換える。
+ *
+ * cleanOfficialEventTitle には入れない。整形後のタイトルはアイコンの判定(半角空白で照合)や
+ * カレンダー・投稿文にも使うので、NBSP が混ざると一致しなくなる。
+ */
+const UNBROKEN_NAMES = ["30th CELEBRATION"];
+
+export function keepNamesUnbroken(title: string): string {
+  return UNBROKEN_NAMES.reduce(
+    (result, name) => result.replaceAll(name, name.replaceAll(" ", " ")),
+    title,
+  );
+}

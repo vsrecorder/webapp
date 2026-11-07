@@ -28,7 +28,7 @@ const record = {
 } as unknown as RecordGetByIdResponseType;
 
 // イベント(自由形式)と使用デッキの取得をまとめてモックする
-function stubEventFetch() {
+function stubEventFetch(title = "ジムバトル") {
   vi.stubGlobal(
     "fetch",
     vi.fn(async (input: RequestInfo | URL) => {
@@ -42,7 +42,7 @@ function stubEventFetch() {
       }
       return Response.json({
         id: "unofficial-1",
-        title: "ジムバトル",
+        title,
         date: "2026-09-01T00:00:00Z",
       });
     }),
@@ -59,6 +59,25 @@ afterEach(() => {
  * document に残るので、document 全体を見る screen ではなく container の中で探す。
  */
 describe("RecordHero", () => {
+  it("イベント名は空白で行を分けるが、「30th CELEBRATION」は割らない", async () => {
+    stubEventFetch("30th CELEBRATION スペシャルメダルグランプリ");
+
+    const { container } = render(
+      <RecordHero record={record} setRecord={() => {}} stats={summarizeMatches([])} />,
+    );
+
+    const heading = await waitFor(() => {
+      const found = container.querySelector("h3");
+      expect(found?.textContent).toContain("スペシャルメダルグランプリ");
+      return found!;
+    });
+
+    expect(Array.from(heading.children).map((line) => line.textContent)).toEqual([
+      "30th CELEBRATION",
+      "スペシャルメダルグランプリ",
+    ]);
+  });
+
   it("対戦結果が0件でも戦績パネルを出す", async () => {
     stubEventFetch();
 

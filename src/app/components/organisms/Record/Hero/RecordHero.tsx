@@ -46,6 +46,7 @@ import RecordMetaRows, {
 } from "@app/components/organisms/Record/RecordMetaRows";
 
 import { tagTextColor } from "@app/utils/tagColor";
+import { keepNamesUnbroken } from "@app/utils/titleBreak";
 
 import { MatchStats } from "@app/utils/matchStats";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
@@ -120,12 +121,17 @@ function formatEventTime(value: Date | string | undefined | null): string {
 
 // イベント名にスペースや空白(半角/全角スペース・タブ等)が含まれる場合、
 // その位置で改行して表示する。空白の連なりは1つの区切りとして扱う。
+// 「30th CELEBRATION」のような名前は1行にまとめる(\s は NBSP にも一致するので区切りから除く)。
+// 行の中では普通の空白へ戻す。NBSP のままだと、1行に入らない狭い画面(幅320px)で
+// wrap-break-word が「CELEBRATIO / N」と語の途中で切ってしまう。普通の空白ならそこで折り返す
 function renderEventTitle(title: string): React.ReactNode {
-  const segments = title.split(/\s+/).filter((s) => s.length > 0);
+  const segments = keepNamesUnbroken(title)
+    .split(/[^\S\u00A0]+/)
+    .filter((s) => s.length > 0);
   if (segments.length <= 1) return title;
   return segments.map((seg, i) => (
     <span key={i} className="block">
-      {seg}
+      {seg.replaceAll("\u00A0", " ")}
     </span>
   ));
 }

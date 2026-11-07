@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { splitAtBreakPoints } from "@app/utils/titleBreak";
+import { keepNamesUnbroken, splitAtBreakPoints } from "@app/utils/titleBreak";
 
 describe("splitAtBreakPoints", () => {
   it("「/」の後ろで区切り、「/」は前の部分に付ける", () => {
@@ -38,5 +38,19 @@ describe("splitAtBreakPoints", () => {
         .join("");
       expect(joined).toBe(title);
     }
+  });
+});
+
+describe("keepNamesUnbroken", () => {
+  it("名前の中の空白だけを NBSP にする(名前の後ろの空白では改行できる)", () => {
+    expect(keepNamesUnbroken("30th CELEBRATION スペシャルメダルグランプリ")).toBe(
+      "30th\u00A0CELEBRATION スペシャルメダルグランプリ",
+    );
+  });
+
+  it("対象の名前を含まないイベント名は変えない", () => {
+    const title = "ジムバトル スペシャル";
+
+    expect(keepNamesUnbroken(title)).toBe(title);
   });
 });

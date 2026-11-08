@@ -78,6 +78,51 @@ describe("RecordHero", () => {
     ]);
   });
 
+  it("イベント名は【】の後ろでも行を分ける", async () => {
+    stubEventFetch("【初心者歓迎】ジムバトル スペシャル");
+
+    const { container } = render(
+      <RecordHero record={record} setRecord={() => {}} stats={summarizeMatches([])} />,
+    );
+
+    const heading = await waitFor(() => {
+      const found = container.querySelector("h3");
+      expect(found?.textContent).toContain("スペシャル");
+      return found!;
+    });
+
+    expect(Array.from(heading.children).map((line) => line.textContent)).toEqual([
+      "【初心者歓迎】",
+      "ジムバトル",
+      "スペシャル",
+    ]);
+  });
+
+  it("Tonamel のイベント名も【】の後ろで行を分ける", async () => {
+    stubEventFetch("【第3回】バトルフェス スタンダード");
+    const tonamelRecord = {
+      ...record,
+      tonamel_event_id: "ABCDE",
+      unofficial_event_id: "",
+    } as RecordGetByIdResponseType;
+
+    const { container } = render(
+      <RecordHero record={tonamelRecord} setRecord={() => {}} stats={summarizeMatches([])} />,
+    );
+
+    const heading = await waitFor(() => {
+      const found = container.querySelector("h3");
+      expect(found?.textContent).toContain("スタンダード");
+      return found!;
+    });
+
+    expect(Array.from(heading.children).map((line) => line.textContent)).toEqual([
+      "【第3回】",
+      "バトルフェス",
+      "スタンダード",
+    ]);
+  });
+
   it("対戦結果が0件でも戦績パネルを出す", async () => {
     stubEventFetch();
 

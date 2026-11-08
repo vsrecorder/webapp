@@ -22,7 +22,7 @@ import DeckCardDiff from "@app/components/organisms/Deck/DeckCardDiff";
 import { useModalDragToClose } from "@app/hooks/useModalDragToClose";
 import { closingPassthroughClassNames } from "@app/utils/modal";
 import { hasPrizeCards } from "@app/utils/match";
-import { keepNamesUnbroken } from "@app/utils/titleBreak";
+import EventTitleText from "@app/components/atoms/EventTitleText";
 
 type Props = {
   isOpen: boolean;
@@ -87,7 +87,7 @@ function EventContent({ event }: { event: CalendarEvent }) {
           <LuClipboardList className="text-xl text-default-500 shrink-0 mr-2" />
           <div className="text-sm min-w-0">
             <div>
-              <span className="font-bold">{keepNamesUnbroken(event.event_title)}</span>
+              <span className="font-bold"><EventTitleText title={event.event_title} /></span>
               <span className="text-xs text-default-500 whitespace-nowrap">
                 {" "}
                 の記録を作成
@@ -151,7 +151,7 @@ function EventContent({ event }: { event: CalendarEvent }) {
           <LuSwords className="text-xl text-default-500 shrink-0 mr-2" />
           <div className="text-sm min-w-0">
             <div>
-              <span className="font-bold">{keepNamesUnbroken(event.event_title)}</span>
+              <span className="font-bold"><EventTitleText title={event.event_title} /></span>
               <span className="text-xs text-default-500 whitespace-nowrap">
                 {" "}
                 の対戦結果を追加

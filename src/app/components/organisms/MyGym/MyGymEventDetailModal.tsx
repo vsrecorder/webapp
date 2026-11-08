@@ -34,7 +34,7 @@ import { OfficialEventType } from "@app/types/official_event";
 import { toDateKey } from "@app/utils/calendar";
 import { navigateAfterModalClose } from "@app/utils/modalHistory";
 import { formatJSTDateWithWeekday } from "@app/utils/date";
-import { keepNamesUnbroken } from "@app/utils/titleBreak";
+import EventTitleText from "@app/components/atoms/EventTitleText";
 
 type Props = {
   isOpen: boolean;
@@ -147,7 +147,7 @@ export default function MyGymEventDetailModal({ isOpen, onOpenChange, event }: P
 
                 <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                   <span className="text-xs font-bold text-default-700 wrap-break-word">
-                    {keepNamesUnbroken(cleanOfficialEventTitle(event.title))}
+                    <EventTitleText title={cleanOfficialEventTitle(event.title)} />
                   </span>
 
                   <div className="flex flex-wrap items-center gap-1 empty:hidden">

@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { keepNamesUnbroken, splitAtBreakPoints } from "@app/utils/titleBreak";
+import {
+  keepNamesUnbroken,
+  splitAfterBracketLabels,
+  splitAtBreakPoints,
+} from "@app/utils/titleBreak";
 
 describe("splitAtBreakPoints", () => {
   it("「/」の後ろで区切り、「/」は前の部分に付ける", () => {
@@ -52,5 +56,31 @@ describe("keepNamesUnbroken", () => {
     const title = "ジムバトル スペシャル";
 
     expect(keepNamesUnbroken(title)).toBe(title);
+  });
+});
+
+describe("splitAfterBracketLabels", () => {
+  it("【】の後ろで行を分ける", () => {
+    expect(splitAfterBracketLabels("【26/9】ポケモンカードジム　ジムバトル")).toEqual([
+      "【26/9】",
+      "ポケモンカードジム　ジムバトル",
+    ]);
+  });
+
+  it("】の直後の空白は行頭に残さない", () => {
+    expect(splitAfterBracketLabels("【初心者歓迎】　ジムバトル")).toEqual(["【初心者歓迎】", "ジムバトル"]);
+  });
+
+  it("途中や複数の【】でも、それぞれの後ろで分ける", () => {
+    expect(splitAfterBracketLabels("ジムバトル【S1】【決勝】トーナメント")).toEqual([
+      "ジムバトル【S1】",
+      "【決勝】",
+      "トーナメント",
+    ]);
+  });
+
+  it("末尾の【】や【】の無い名前は分けない", () => {
+    expect(splitAfterBracketLabels("ジムバトル【S1】")).toEqual(["ジムバトル【S1】"]);
+    expect(splitAfterBracketLabels("ジムバトル")).toEqual(["ジムバトル"]);
   });
 });

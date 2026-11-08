@@ -48,3 +48,14 @@ export function keepNamesUnbroken(title: string): string {
     title,
   );
 }
+
+/*
+ * イベント名を【】で囲まれた注記の後ろで行に分ける。
+ * 「【10_11月開催】30th CELEBRATION」→「【10_11月開催】」「30th CELEBRATION」。
+ *
+ * 】の直後の空白は区切りに吸収する(行頭に空白を残さない)。
+ * 】の後ろに文字が続かないとき(末尾の【】)は分けない。
+ */
+export function splitAfterBracketLabels(title: string): string[] {
+  return title.replace(/(【[^【】]*】)\s*(?=\S)/g, "$1\n").split("\n");
+}

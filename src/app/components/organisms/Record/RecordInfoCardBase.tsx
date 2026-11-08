@@ -2,7 +2,7 @@ import { Card, CardBody } from "@heroui/react";
 
 import { LuCalendar } from "react-icons/lu";
 
-import { keepNamesUnbroken } from "@app/utils/titleBreak";
+import EventTitleText from "@app/components/atoms/EventTitleText";
 
 export type RecordInfoMetaRow = {
   icon: React.ReactNode;
@@ -66,7 +66,7 @@ export default function RecordInfoCardBase({
               <span>{date}</span>
             </div>
             <h3 className="font-bold text-lg leading-snug wrap-break-word">
-              {keepNamesUnbroken(title)}
+              <EventTitleText title={title} />
             </h3>
             {/* チップが1つも無いときは行ごと消して、親の gap ぶんの余白を残さない */}
             <div className="flex items-center justify-center gap-1.5 flex-wrap empty:hidden">

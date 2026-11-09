@@ -19,7 +19,7 @@
     "chart.js": "^4.6.1",
     "firebase": "^13.2.0",
     "firebase-admin": "^14.5.0",
-    "framer-motion": "^12.33.0",
+    "framer-motion": "^14.11.1",
     "html-to-image": "^1.11.13",
     "jsonwebtoken": "^9.0.3",
     "modern-screenshot": "^4.7.0",

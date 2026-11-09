@@ -37,10 +37,14 @@ services:
     # 最初の閲覧者が Node の起動と初回レンダリングを丸ごと引き受けていた
     # (2026-09-12 の実測: デプロイ直後の / が 11.7 秒、温まった後は 0.13 秒)。
     #
-    # 叩き先は /health(本文が "health" の1語だけのページ)。ホーム(/)にすると上流APIを
+    # 叩き先は /health/web(本文が "health" の1語だけのページ)。ホーム(/)にすると上流APIを
     # 呼ぶため、30秒ごとに無駄な負荷がかかる。
     #
-    # /health は静的ではない。共通レイアウトの中で描かれ、レイアウトが auth()(Cookie の
+    # /health(外形監視の口)にしてはいけない。あちらは core-apiserver と DB までたどるので、
+    # DB の不調で unhealthy になり、コンテナは正常なのに `docker compose up --wait` が終わらず
+    # デプロイが止まる。2026-11-10 までは /health がこのページだった(src/app/health/route.ts)。
+    #
+    # /health/web は静的ではない。共通レイアウトの中で描かれ、レイアウトが auth()(Cookie の
     # 読み取り)を呼ぶため、リクエストのたびに動的に描画される(ヘッダ・ナビ込みで約 33KB、
     # Cache-Control: no-store)。healthcheck は Cookie を送らないので、auth() の退会チェックも
     # 含めて上流APIは呼ばれない。
@@ -53,7 +57,7 @@ services:
     #
     healthcheck:
       # alpine なので curl は入っていない。wget は busybox 版
-      test: ["CMD", "wget", "--spider", "-q", "-T", "10", "http://127.0.0.1:3003/health"]
+      test: ["CMD", "wget", "--spider", "-q", "-T", "10", "http://127.0.0.1:3003/health/web"]
       interval: 30s
       timeout: 12s
       retries: 3

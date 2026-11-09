@@ -13,6 +13,7 @@ import VisualViewportOffsetSync from "@app/components/organisms/Layout/VisualVie
 import ModalBackgroundScrollLock from "@app/components/organisms/Layout/ModalBackgroundScrollLock";
 import CloseModalOnBack from "@app/components/organisms/Layout/CloseModalOnBack";
 import ScrollResetOnNavigation from "@app/components/organisms/Layout/ScrollResetOnNavigation";
+import UpdateOverlay from "@app/components/organisms/Layout/UpdateOverlay";
 
 export default function Providers({
   children,
@@ -82,6 +83,9 @@ export default function Providers({
                 モーダルの背後に描画されてしまうため、トースト領域を除いた
                 ページ内容だけをこのラッパーで括って固定対象にする */}
             <div data-scroll-lock-root="">{children}</div>
+            {/* アップデート中の覆い。トースト領域と同じ理由で、背面スクロール対策の
+                固定対象(data-scroll-lock-root)の外に置く(中に入れるとモーダルの背後に回る) */}
+            <UpdateOverlay />
           </UserAvatarProvider>
         </NextThemesProvider>
       </HeroUIProvider>

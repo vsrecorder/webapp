@@ -53,6 +53,7 @@ import {
 } from "@app/utils/featureFlags";
 
 import { upstreamUrl } from "@app/utils/upstream";
+import { fetchCoreApi } from "@app/utils/coreApiFetch";
 import { getAllChampionshipSeries } from "@app/utils/championshipSeriesServer";
 import { getDashboardInitialData } from "@app/utils/dashboardServer";
 import { getHomeRecordsHead, getRecordingNow } from "@app/utils/recordingNowServer";
@@ -84,7 +85,7 @@ const DAILY_DATA_REVALIDATE_SEC = 300;
  * /cityleague_results が引くのと同じエントリに相乗りできる。
  */
 async function getAllCityleagueSchedules(): Promise<CityleagueScheduleType[]> {
-  const res = await fetch(upstreamUrl`/api/v1beta/cityleague_schedules`, {
+  const res = await fetchCoreApi(upstreamUrl`/api/v1beta/cityleague_schedules`, {
     // シティリーグの開催情報は最大でも日次更新のため、毎回取得(no-store)は不要。
     // キャッシュしてサーバ応答(TTFB)を短縮する。
     next: { revalidate: DAILY_DATA_REVALIDATE_SEC },
@@ -99,7 +100,7 @@ async function getAllCityleagueSchedules(): Promise<CityleagueScheduleType[]> {
 async function getEnvironmentByDate(date: Date): Promise<EnvironmentType> {
   const today = date.toISOString().split("T")[0];
 
-  const res = await fetch(upstreamUrl`/api/v1beta/environments?date=${today}`, {
+  const res = await fetchCoreApi(upstreamUrl`/api/v1beta/environments?date=${today}`, {
     // 対戦環境情報も日次更新のため、キャッシュしてTTFBを短縮する。
     next: { revalidate: DAILY_DATA_REVALIDATE_SEC },
     method: "GET",
@@ -137,7 +138,7 @@ type Props = {
 };
 
 async function getUser(userId: string): Promise<UserType | null> {
-  const res = await fetch(upstreamUrl`/api/v1beta/users/${userId}`, {
+  const res = await fetchCoreApi(upstreamUrl`/api/v1beta/users/${userId}`, {
     // ユーザ自身が編集した名前・アイコンを即座に反映したいため、ここはキャッシュしない。
     cache: "no-store",
     method: "GET",
@@ -192,7 +193,7 @@ function computeCohort(createdAt: UserType["created_at"] | undefined): {
 }
 
 async function getAllEnvironments(): Promise<EnvironmentType[]> {
-  const res = await fetch(upstreamUrl`/api/v1beta/environments`, {
+  const res = await fetchCoreApi(upstreamUrl`/api/v1beta/environments`, {
     next: { revalidate: MASTER_DATA_REVALIDATE_SEC },
     method: "GET",
     headers: { Accept: "application/json" },
@@ -203,7 +204,7 @@ async function getAllEnvironments(): Promise<EnvironmentType[]> {
 }
 
 async function getAllStandardRegulations(): Promise<StandardRegulationType[]> {
-  const res = await fetch(upstreamUrl`/api/v1beta/standard_regulations`, {
+  const res = await fetchCoreApi(upstreamUrl`/api/v1beta/standard_regulations`, {
     next: { revalidate: MASTER_DATA_REVALIDATE_SEC },
     method: "GET",
     headers: { Accept: "application/json" },

@@ -12,6 +12,7 @@ import { UserStatType } from "@app/types/user_stat";
 import { MyGymEventRange, getMyGymEventRange } from "@app/utils/myGymEventRange";
 import { currentSeasonValue } from "@app/utils/season";
 import { fetchUpstream, upstreamUrl } from "@app/utils/upstream";
+import { fetchCoreApi } from "@app/utils/coreApiFetch";
 import { signUpstreamToken } from "@app/utils/upstreamToken";
 import { getCurrentYearMonth } from "@app/utils/yearMonthOptions";
 
@@ -53,7 +54,7 @@ async function getPanel<T>(label: string, url: string, headers: HeadersInit): Pr
 // BFF(/api/usersplayers)と同じく、未連携は null(取れた上で「無い」)として扱う
 async function getUserPlayer(headers: HeadersInit): Promise<UserPlayerType | null | undefined> {
   try {
-    const res = await fetch(upstreamUrl`/api/v1beta/usersplayers`, {
+    const res = await fetchCoreApi(upstreamUrl`/api/v1beta/usersplayers`, {
       cache: "no-store",
       method: "GET",
       headers,

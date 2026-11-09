@@ -22,6 +22,8 @@ export const LIST_REVALIDATE_SECONDS = 300;
 export const NO_STORE = "no-store";
 
 import { upstreamOrigin } from "@app/utils/upstream";
+import { UpstreamUnavailableError, fetchCoreApi } from "@app/utils/coreApiFetch";
+import { isProxyOutageResponse } from "@app/utils/upstreamOutage";
 
 // 向き先は utils/upstream と同じ(VSRECORDER_UPSTREAM_ORIGIN があれば直接、無ければ公開ドメイン経由)
 export function coreApiUrl(path: string): string {
@@ -32,7 +34,8 @@ export async function getJson<T>(
   path: string,
   revalidateSeconds: number | typeof NO_STORE = DEFAULT_REVALIDATE_SECONDS,
 ): Promise<T | null> {
-  const res = await fetch(coreApiUrl(path), {
+  // 繋がらなければ数秒つなぎ直す(utils/coreApiFetch.ts)
+  const res = await fetchCoreApi(coreApiUrl(path), {
     method: "GET",
     headers: { Accept: "application/json" },
     // no-store と revalidate は併用すると両方無視される(Next.js の fetch の仕様)ので、片方だけ渡す
@@ -60,6 +63,12 @@ export async function getJson<T>(
   // 流れ、生きているページが noindex 付きで返る。noindex は 404 や 500 と違って
   // 「意図的にインデックスするな」という指示なので、障害中にクロールされた分だけ
   // 検索結果から外れてしまう。例外にして 500 を返し、クローラに再訪させる。
+  // 繋ぎ直しても届かなかった(アップデート中)。digest 付きの例外にして、error.tsx に
+  // アップデート中の覆いを出させる(utils/upstreamOutage.ts)。500 で返るのは下と同じ
+  if (isProxyOutageResponse(res)) {
+    throw new UpstreamUnavailableError(`core-apiserver に繋がりません: ${path}`);
+  }
+
   if (!res.ok) {
     throw new Error(`core-apiserver responded ${res.status}: ${path}`);
   }

@@ -1,12 +1,19 @@
 "use client";
 
-import { useEffect } from "react";
+import { startTransition, useEffect } from "react";
 
 import { Button } from "@heroui/react";
 
 import { isChunkLoadError } from "@app/utils/chunkLoadError";
+import { UPSTREAM_UNAVAILABLE_DIGEST } from "@app/utils/upstreamOutage";
+import {
+  checkUpstream,
+  enterUpstreamOutage,
+  onUpstreamRecovered,
+} from "@app/utils/upstreamOutageClient";
 import { LuTriangleAlert } from "react-icons/lu";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const isDev = process.env.NODE_ENV === "development";
 
@@ -22,6 +29,44 @@ export default function Error({
   useEffect(() => {
     console.error("クライアントサイドでエラーが発生しました:", error);
   }, [error]);
+
+  const router = useRouter();
+
+  // core-apiserver の入れ替え中に落ちたのなら、このエラー画面ではなくアップデート中の覆いを出す
+  // (components/organisms/Layout/UpdateOverlay.tsx。流れは utils/upstreamOutage.ts)。
+  //
+  // 上流に届かなかったサーバコンポーネントは digest 付きの例外を投げる(utils/coreApiFetch.ts)。
+  // ただし上流を呼ぶ箇所の中には、失敗を自前の Error に包み直して投げるものもあるので、
+  // digest が違っても一度だけ届くかを確かめる(エラー画面が出たときだけなので負荷にはならない)。
+  useEffect(() => {
+    if (isChunkLoadError(error)) return;
+    if (error.digest === UPSTREAM_UNAVAILABLE_DIGEST) {
+      enterUpstreamOutage("core");
+      return;
+    }
+    // 503 の応答が返ったときだけ覆う。通信の失敗・時間切れ(unreachable)は利用者の回線の問題で
+    // ありうるので数えない(ただの描画のバグで、回線が悪いだけなのに覆いが出て外れなくなる)
+    let cancelled = false;
+    void checkUpstream().then((result) => {
+      if (!cancelled && result === "unavailable") enterUpstreamOutage("core");
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [error]);
+
+  // 覆いが外れたら(復旧したら)このページを描き直す。サーバコンポーネントの失敗は
+  // reset() だけでは直らない(同じ RSC を描き直すだけ)ので、refresh で取り直してから戻す
+  useEffect(
+    () =>
+      onUpstreamRecovered(() => {
+        startTransition(() => {
+          router.refresh();
+          reset();
+        });
+      }),
+    [router, reset],
+  );
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[60svh] gap-4 px-4 text-center">

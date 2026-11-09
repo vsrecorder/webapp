@@ -838,3 +838,45 @@ textarea {
   --rs-neutral80: #f4f4f5;
   --rs-neutral90: #fafafa;
 }
+
+/*
+ * アップデート中の覆い(components/organisms/Layout/UpdateOverlay.tsx)の動き。
+ * proxy リポジトリの deploying.html の .status-dot / .retry-progress-bar と同じ動きにしてある
+ * (どちらの経路で出ても同じ画面に見えるように。片方だけ直さないこと)。
+ * 覆いは position:fixed なので、iOS の PWA で止まらないよう will-change で専用レイヤーに乗せる
+ * (上の marquee と同じ理由)。
+ */
+@keyframes update-overlay-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes update-overlay-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+
+.update-overlay-dot {
+  animation: update-overlay-pulse 1.8s ease-in-out infinite;
+}
+
+.update-overlay-progress {
+  animation: update-overlay-slide 1.6s ease-in-out infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .update-overlay-dot,
+  .update-overlay-progress {
+    animation: none;
+  }
+}

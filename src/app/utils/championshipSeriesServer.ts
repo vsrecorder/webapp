@@ -1,5 +1,6 @@
 import { ChampionshipSeriesType } from "@app/types/championship_series";
 import { upstreamUrl } from "@app/utils/upstream";
+import { fetchCoreApi } from "@app/utils/coreApiFetch";
 
 // チャンピオンシップシリーズ一覧を、サーバコンポーネントで取得する。
 //
@@ -12,7 +13,7 @@ import { upstreamUrl } from "@app/utils/upstream";
 const REVALIDATE_SEC = 3600;
 
 export async function getAllChampionshipSeries(): Promise<ChampionshipSeriesType[]> {
-  const res = await fetch(upstreamUrl`/api/v1beta/championship_series`, {
+  const res = await fetchCoreApi(upstreamUrl`/api/v1beta/championship_series`, {
     next: { revalidate: REVALIDATE_SEC },
     method: "GET",
     headers: { Accept: "application/json" },

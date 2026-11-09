@@ -22,6 +22,7 @@ import PhoneMock from "@app/components/molecules/PhoneMock";
 
 import { isDevEnv } from "@app/utils/appIcon";
 import { upstreamUrl } from "@app/utils/upstream";
+import { fetchCoreApi } from "@app/utils/coreApiFetch";
 
 type SiteStats = {
   userCount?: number;
@@ -39,7 +40,7 @@ function toCount(value: unknown): number | undefined {
 // 失敗してもトップページは出したいので、例外にせず空で返す。
 async function getSiteStats(): Promise<SiteStats> {
   try {
-    const res = await fetch(upstreamUrl`/api/v1beta/site_stats`, {
+    const res = await fetchCoreApi(upstreamUrl`/api/v1beta/site_stats`, {
       // 件数は数分遅れても困らない。API 側も1分保持している。
       next: { revalidate: 300 },
     });

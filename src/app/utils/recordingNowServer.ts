@@ -25,6 +25,7 @@ import {
   recordingActivityOf,
 } from "@app/utils/recordingNow";
 import { fetchUpstream, upstreamUrl } from "@app/utils/upstream";
+import { fetchCoreApi } from "@app/utils/coreApiFetch";
 import { signUpstreamToken } from "@app/utils/upstreamToken";
 
 /*
@@ -98,7 +99,7 @@ async function getOptional<T>(label: string, url: string, headers: HeadersInit):
  */
 export const getHomeRecordsHead = cache(
   async (userId: string): Promise<RecordType[] | null> => {
-    const res = await fetch(
+    const res = await fetchCoreApi(
       upstreamUrl`/api/v1beta/records?limit=${HOME_RECORDS_HEAD_LIMIT}`,
       {
         cache: "no-store",

@@ -1,5 +1,13 @@
 import { NextResponse } from "next/server";
 
+import { UpstreamUnavailableError, fetchCoreApi, isUnreachableError } from "@app/utils/coreApiFetch";
+import {
+  UPSTREAM_UNAVAILABLE_CODE,
+  UPSTREAM_UNAVAILABLE_HEADER,
+  UPSTREAM_UNAVAILABLE_MESSAGE,
+  isCoreApiUrl,
+} from "@app/utils/upstreamOutage";
+
 /*
  * BFF（src/app/api配下のルートハンドラ）から上流APIを叩くための共通処理。
  *
@@ -103,13 +111,28 @@ export class UpstreamError extends Error {
   // 場合に使う。nginx はデプロイ中の 502/504 を deploying.html の 503 に、手動メンテナンスを
   // maintenance.html の 503 に変えるため、上流の失敗がHTMLで返ることがある。
   readonly bodyIsJson: boolean;
+  // core-apiserver への呼び出しか。deckcard-api などが落ちたのをアップデート中と扱わないために使う
+  // (utils/upstreamOutage.ts の isCoreApiUrl)。
+  readonly fromCoreApi: boolean;
 
-  constructor(status: number, body: unknown, bodyIsJson: boolean = true) {
+  constructor(
+    status: number,
+    body: unknown,
+    bodyIsJson: boolean = true,
+    fromCoreApi: boolean = true,
+  ) {
     super(`upstream responded with ${status}`);
     this.name = "UpstreamError";
     this.status = status;
     this.body = body;
     this.bodyIsJson = bodyIsJson;
+    this.fromCoreApi = fromCoreApi;
+  }
+
+  // core-apiserver に届かなかった(アップデート中)か。nginx が上流に繋がらないときの 502/503/504 は
+  // HTML で返るので、JSON で読めなかったものに限る(core-apiserver 自身の 503 は JSON)。
+  get isUnavailable(): boolean {
+    return this.fromCoreApi && [502, 503, 504].includes(this.status) && !this.bodyIsJson;
   }
 }
 
@@ -128,11 +151,23 @@ function parseJson(text: string): unknown | undefined {
 
 // 上流APIを叩いてJSONを返す。上流が失敗したらUpstreamErrorを投げる。
 // 204や空ボディの場合はnullを返す。
+//
+// 上流に繋がらないときは数秒つなぎ直す(utils/coreApiFetch.ts)。それでも駄目なら
+// isUnavailable が true の UpstreamError を投げ、upstreamErrorResponse がアップデート中の 503 にする。
 export async function fetchUpstream<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(url, {
-    cache: "no-store",
-    ...init,
-  });
+  let res: Response;
+  try {
+    res = await fetchCoreApi(url, {
+      cache: "no-store",
+      ...init,
+    });
+  } catch (error) {
+    // 直接つなぐ構成(VSRECORDER_UPSTREAM_ORIGIN)では、止まっている間は応答ではなく接続の失敗になる
+    if (error instanceof UpstreamUnavailableError || isUnreachableError(error)) {
+      throw new UpstreamError(503, { error: "upstream unreachable" }, false, isCoreApiUrl(url));
+    }
+    throw error;
+  }
 
   const text = await res.text();
   const body = parseJson(text);
@@ -142,6 +177,7 @@ export async function fetchUpstream<T>(url: string, init?: RequestInit): Promise
       res.status,
       body ?? { error: "upstream request failed" },
       body !== undefined,
+      isCoreApiUrl(url),
     );
   }
 
@@ -156,6 +192,10 @@ export async function fetchUpstream<T>(url: string, init?: RequestInit): Promise
 // ルートハンドラのcatchで使う。上流の失敗はそのステータスのまま返し、リクエスト側の不備は
 // 400 で返す。それ以外の想定外のエラーはNext.jsに委ねる（500になる）。
 export function upstreamErrorResponse(error: unknown): NextResponse {
+  if (error instanceof UpstreamError && error.isUnavailable) {
+    return upstreamUnavailableResponse();
+  }
+
   if (error instanceof UpstreamError) {
     return NextResponse.json(error.body, { status: error.status });
   }
@@ -165,4 +205,23 @@ export function upstreamErrorResponse(error: unknown): NextResponse {
   }
 
   throw error;
+}
+
+// 上流に届かない(アップデート中)ことをブラウザへ伝える応答。
+//
+// ブラウザ側(components/organisms/Layout/UpdateOverlay.tsx)はヘッダを見てアップデート中の
+// 覆いを出す。本文の error は従来どおりの形(呼び出し側がトーストに出すことがある)。
+// 503 + Retry-After なので、たまたまクローラが叩いても一時的な不在として扱われる。
+export function upstreamUnavailableResponse(): NextResponse {
+  return NextResponse.json(
+    { error: UPSTREAM_UNAVAILABLE_MESSAGE, code: UPSTREAM_UNAVAILABLE_CODE },
+    {
+      status: 503,
+      headers: {
+        [UPSTREAM_UNAVAILABLE_HEADER]: "1",
+        "Retry-After": "5",
+        "Cache-Control": "no-store",
+      },
+    },
+  );
 }

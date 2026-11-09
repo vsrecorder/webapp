@@ -72,18 +72,32 @@ describe("WindowedSelect", () => {
     } as DOMRect);
 
     const rows = renderSelect(150);
+    // react-window は行を translateY で並べる。menuList の上の余白は先頭行の padding に持たせてある
     const tops = () =>
       screen
         .getAllByRole("option")
         .slice(0, 3)
-        .map((row) => (row.parentElement?.parentElement as HTMLElement).style.top);
+        .map((row) => {
+          const style = (row.parentElement?.parentElement as HTMLElement).style;
+          const offset = Number(/translateY\((-?[\d.]+)px\)/.exec(style.transform)?.[1] ?? NaN);
+
+          return offset + (parseFloat(style.paddingTop) || 0);
+        });
 
     // menuList の上の余白(4px)の分だけ下げて並ぶ
-    expect(tops()).toEqual(["4px", "94px", "184px"]);
+    expect(tops()).toEqual([4, 94, 184]);
 
     fireEvent.mouseMove(rows[2]);
     fireEvent.mouseOver(rows[2]);
 
-    expect(tops()).toEqual(["4px", "94px", "184px"]);
+    expect(tops()).toEqual([4, 94, 184]);
+  });
+
+  // react-window v2 は既定で role="list" を付けるので、react-select の innerProps で上書きしている
+  it("メニューは listbox として combobox から参照される", () => {
+    renderSelect(150);
+
+    const list = screen.getByRole("listbox");
+    expect(screen.getByRole("combobox").getAttribute("aria-controls")).toBe(list.id);
   });
 });

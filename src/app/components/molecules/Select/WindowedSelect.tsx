@@ -3,15 +3,12 @@
 import {
   Children,
   cloneElement,
-  createContext,
   CSSProperties,
-  forwardRef,
-  HTMLAttributes,
   isValidElement,
   ReactElement,
   ReactNode,
+  Ref,
   useCallback,
-  useContext,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -19,7 +16,7 @@ import {
   useState,
 } from "react";
 import Select, { GroupBase, MenuListProps, OptionsOrGroups, Props as SelectProps } from "react-select";
-import { ListChildComponentProps, VariableSizeList } from "react-window";
+import { List, ListImperativeAPI, RowComponentProps } from "react-window";
 
 /*
  * 候補が多いときだけメニューを仮想化する react-select(react-windowed-select の置き換え)。
@@ -79,7 +76,11 @@ function countOptions<Option, Group extends GroupBase<Option>>(
 
 type RowData = {
   items: MenuItem[];
+  // 各行の高さ。測った値か見積もりに、先頭・末尾の行は menuList の余白を足したもの。
+  // 配列ごと差し替えると react-window が行の位置を測り直す
+  heights: number[];
   paddingTop: number;
+  paddingBottom: number;
   onMeasure: (key: string, height: number) => void;
 };
 
@@ -87,44 +88,52 @@ type RowData = {
  * 1行。描画のたびに高さを測って親へ知らせる(変わっていなければ親は何もしない)。
  * 作り直されないので、マウント時だけ測るとフォーカスの縁取りなどで高さが変わっても追えない。
  */
-function MenuRow({ data, index, style }: ListChildComponentProps<RowData>) {
+function MenuRow({
+  items,
+  paddingTop,
+  paddingBottom,
+  onMeasure,
+  index,
+  style,
+}: RowComponentProps<RowData>) {
   const ref = useRef<HTMLDivElement>(null);
-  const item = data.items[index];
-  const { onMeasure } = data;
+  const item = items[index];
 
   useLayoutEffect(() => {
     if (ref.current) onMeasure(String(item.key), ref.current.getBoundingClientRect().height);
   });
 
+  /*
+   * menuList の上下の余白は、先頭と末尾の行の中に持たせる。
+   * リスト自体に padding を付けると、react-window は余白を知らないまま送り先を決め、
+   * スクロール量も「行の高さの合計」で頭打ちにするので、末尾の候補が余白の分だけ切れる。
+   */
   return (
-    <div style={{ ...style, top: parseFloat(String(style.top)) + data.paddingTop }}>
+    <div
+      style={{
+        ...style,
+        boxSizing: "border-box",
+        paddingTop: index === 0 ? paddingTop : 0,
+        paddingBottom: index === items.length - 1 ? paddingBottom : 0,
+      }}
+    >
       <div ref={ref}>{item}</div>
     </div>
   );
 }
 
-// react-select の menuList の上下の余白。行の位置と中身の高さに足す
-const MenuPaddingContext = createContext({ top: 0, bottom: 0 });
-
-const MenuInner = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
-  function MenuInner({ style, ...rest }, ref) {
-    const padding = useContext(MenuPaddingContext);
-
-    return (
-      <div
-        ref={ref}
-        style={{
-          ...style,
-          height: parseFloat(String(style?.height ?? 0)) + padding.top + padding.bottom,
-        }}
-        {...rest}
-      />
-    );
-  },
-);
-
-function itemKey(index: number, data: RowData) {
+function rowKey(index: number, data: RowData) {
   return String(data.items[index].key);
+}
+
+function rowHeight(index: number, data: RowData) {
+  return data.heights[index];
+}
+
+// 関数の ref にもオブジェクトの ref にも値を渡す
+function assignRef<T>(ref: Ref<T> | undefined, value: T | null) {
+  if (typeof ref === "function") ref(value);
+  else if (ref) ref.current = value;
 }
 
 export function WindowedMenuList<
@@ -132,7 +141,7 @@ export function WindowedMenuList<
   IsMulti extends boolean,
   Group extends GroupBase<Option>,
 >(props: MenuListProps<Option, IsMulti, Group>) {
-  const { children, getStyles, innerRef, selectProps } = props;
+  const { children, getStyles, innerProps, innerRef, selectProps } = props;
 
   const items = useMemo(() => flattenMenuItems(children), [children]);
   // react-select は候補を描画のたびに作り直すので、並びが変わったかは key で見る
@@ -157,20 +166,31 @@ export function WindowedMenuList<
   } = getStyles("menuList", props) as CSSProperties;
   const top = Number(paddingTop) || 0;
   const bottom = Number(paddingBottom) || 0;
-  const padding = useMemo(() => ({ top, bottom }), [top, bottom]);
 
-  const totalHeight = useMemo(
-    () => keys.reduce((sum, key) => sum + (measured[key] ?? ESTIMATED_ROW_HEIGHT), 0),
-    [keys, measured],
+  const heights = useMemo(
+    () =>
+      keys.map(
+        (key, index) =>
+          (measured[key] ?? ESTIMATED_ROW_HEIGHT) +
+          (index === 0 ? top : 0) +
+          (index === keys.length - 1 ? bottom : 0),
+      ),
+    [keys, measured, top, bottom],
   );
-  const menuHeight = Math.min(Number(maxHeight) || Infinity, totalHeight + top + bottom);
+  const totalHeight = useMemo(() => heights.reduce((sum, height) => sum + height, 0), [heights]);
+  const menuHeight = Math.min(Number(maxHeight) || Infinity, totalHeight);
 
-  const listRef = useRef<VariableSizeList<RowData>>(null);
+  const listRef = useRef<ListImperativeAPI | null>(null);
 
-  // react-window は行の位置を覚えておくので、並びか高さが変わったら捨てさせる
-  useLayoutEffect(() => {
-    listRef.current?.resetAfterIndex(0);
-  }, [keySignature, measured]);
+  // react-select はメニューの DOM を innerRef で受け取り、キー操作の送りに使う。
+  // react-window v2 は外側の DOM を ref で渡さないので、命令 API の element から渡す
+  const setListRef = useCallback(
+    (api: ListImperativeAPI | null) => {
+      listRef.current = api;
+      assignRef(innerRef, api?.element ?? null);
+    },
+    [innerRef],
+  );
 
   // キー操作や絞り込みでフォーカスが移ったら、その候補が見える位置まで送る
   const focusedIndex = Math.max(
@@ -178,40 +198,80 @@ export function WindowedMenuList<
     0,
   );
 
-  useEffect(() => {
-    listRef.current?.scrollToItem(focusedIndex);
-  }, [focusedIndex, keySignature]);
+  const rowCount = items.length;
 
-  const itemData = useMemo<RowData>(
-    () => ({ items, paddingTop: top, onMeasure }),
-    [items, top, onMeasure],
+  /*
+   * 送り先は見積もりの高さで決まるので、送った先の行を測ると位置がずれて、
+   * フォーカスした候補が見えないまま止まる(↑で末尾へ回ったときなど)。
+   * 送った候補を覚えておき、行の高さが変わるたびに送り直す(見えていれば何もしない)。
+   * react-window が描く中身の高さは見積もりなので、送り先が中身より先だとブラウザに
+   * 手前で止められる。スクロールのあと中身が描き直されてから、次のフレームでも送り直す。
+   * 利用者が自分でスクロールし始めたら、引き戻さないよう送り直しをやめる。
+   */
+  const scrollTargetRef = useRef<number | null>(null);
+  const rowCountRef = useRef(rowCount);
+
+  const followFocus = useCallback(() => {
+    const target = scrollTargetRef.current;
+    if (target !== null && target < rowCountRef.current) {
+      listRef.current?.scrollToRow({ index: target });
+    }
+  }, []);
+
+  // items は描画のたびに作り直されるので、並びの変化は keySignature で見る
+  useEffect(() => {
+    if (focusedIndex >= rowCount) return;
+    scrollTargetRef.current = focusedIndex;
+    listRef.current?.scrollToRow({ index: focusedIndex });
+  }, [focusedIndex, keySignature, rowCount]);
+
+  useLayoutEffect(() => {
+    rowCountRef.current = rowCount;
+    followFocus();
+  }, [heights, rowCount, followFocus]);
+
+  const onListScroll = useCallback(() => {
+    if (scrollTargetRef.current !== null) requestAnimationFrame(followFocus);
+  }, [followFocus]);
+
+  const stopFollowingFocus = useCallback(() => {
+    scrollTargetRef.current = null;
+  }, []);
+
+  const rowProps = useMemo<RowData>(
+    () => ({ items, heights, paddingTop: top, paddingBottom: bottom, onMeasure }),
+    [items, heights, top, bottom, onMeasure],
   );
 
   const { classNamePrefix, isMulti } = selectProps;
 
+  // innerProps は react-select が渡す role="listbox" と id。
+  // react-window v2 は既定で role="list" を付けるので、後から渡して上書きする
   return (
-    <MenuPaddingContext.Provider value={padding}>
-      <VariableSizeList<RowData>
-        className={
-          classNamePrefix
-            ? `${classNamePrefix}__menu-list${isMulti ? ` ${classNamePrefix}__menu-list--is-multi` : ""}`
-            : ""
-        }
-        style={menuListStyle}
-        ref={listRef}
-        outerRef={innerRef}
-        innerElementType={MenuInner}
-        height={menuHeight}
-        width="100%"
-        itemCount={items.length}
-        itemData={itemData}
-        itemKey={itemKey}
-        itemSize={(index) => measured[keys[index]] ?? ESTIMATED_ROW_HEIGHT}
-        estimatedItemSize={items.length ? Math.floor(totalHeight / items.length) : undefined}
-      >
-        {MenuRow}
-      </VariableSizeList>
-    </MenuPaddingContext.Provider>
+    <List<RowData>
+      {...innerProps}
+      className={
+        classNamePrefix
+          ? `${classNamePrefix}__menu-list${isMulti ? ` ${classNamePrefix}__menu-list--is-multi` : ""}`
+          : ""
+      }
+      style={{
+        ...menuListStyle,
+        boxSizing: "border-box",
+        height: menuHeight,
+        width: "100%",
+      }}
+      listRef={setListRef}
+      onScroll={onListScroll}
+      onWheel={stopFollowingFocus}
+      onTouchStart={stopFollowingFocus}
+      onPointerDown={stopFollowingFocus}
+      rowComponent={MenuRow}
+      rowCount={items.length}
+      rowProps={rowProps}
+      rowKey={rowKey}
+      rowHeight={rowHeight}
+    />
   );
 }
 

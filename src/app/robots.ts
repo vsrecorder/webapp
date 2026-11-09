@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 //   /decks /records /users /calendar
 //              ログイン必須ページ。未認証は proxy.ts が 307 で返すが、クロール自体を止める
 //   /auth/     サインインエラー画面
-//   /health    死活監視
+//   /health    死活監視(外形監視の /health と、前方一致で docker の healthcheck の /health/web も含む)
 //
 // 前方一致なので /decks は /decks/xxx も含む。/deck_meta は "/decks" に一致しない。
 const DISALLOW_PATHS = [

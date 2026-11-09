@@ -14,9 +14,10 @@ import { getStatusBarColor } from "@app/utils/pwaColors";
 import { todayJSTDateString } from "@app/utils/date";
 
 import { upstreamUrl } from "@app/utils/upstream";
+import { fetchCoreApi } from "@app/utils/coreApiFetch";
 
 async function fetchUser(id: string): Promise<UserType> {
-  const res = await fetch(upstreamUrl`/api/v1beta/users/${id}`, {
+  const res = await fetchCoreApi(upstreamUrl`/api/v1beta/users/${id}`, {
     cache: "no-store",
     method: "GET",
     headers: { Accept: "application/json" },
@@ -33,7 +34,7 @@ async function fetchCurrentEnvironment(): Promise<EnvironmentType | null> {
   const today = todayJSTDateString();
 
   try {
-    const res = await fetch(upstreamUrl`/api/v1beta/environments?date=${today}`, {
+    const res = await fetchCoreApi(upstreamUrl`/api/v1beta/environments?date=${today}`, {
       cache: "no-store",
       method: "GET",
       headers: { Accept: "application/json" },

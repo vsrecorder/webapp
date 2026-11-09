@@ -108,6 +108,77 @@ describe("fetchUpstream", () => {
   });
 });
 
+describe("上流に届かないとき(アップデート中)", () => {
+  const CORE_URL = "https://example.test/api/v1beta/records";
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("HTML の 503 は isUnavailable になり、BFF はアップデート中のヘッダ付き 503 を返す", async () => {
+    stubFetch(503, DEPLOYING_HTML);
+
+    const error = await fetchUpstream(CORE_URL).catch((e) => e);
+    expect((error as UpstreamError).isUnavailable).toBe(true);
+
+    const res = upstreamErrorResponse(error);
+    expect(res.status).toBe(503);
+    expect(res.headers.get("x-vsrecorder-upstream-unavailable")).toBe("1");
+    expect(await res.json()).toMatchObject({ code: "UPSTREAM_UNAVAILABLE" });
+  });
+
+  it("core-apiserver が JSON で返した 503 はアップデート中扱いにせず、そのまま返す", async () => {
+    stubFetch(503, JSON.stringify({ error: "busy" }));
+
+    const error = await fetchUpstream(CORE_URL).catch((e) => e);
+    expect((error as UpstreamError).isUnavailable).toBe(false);
+
+    const res = upstreamErrorResponse(error);
+    expect(res.headers.get("x-vsrecorder-upstream-unavailable")).toBeNull();
+    expect(await res.json()).toEqual({ error: "busy" });
+  });
+
+  it("直接つなぐ構成で繋がらない(送ったあとに切れた POST)ときもアップデート中の 503 にする", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockRejectedValue(
+        new TypeError("fetch failed", {
+          cause: Object.assign(new Error("reset"), { code: "ECONNRESET" }),
+        }),
+      ),
+    );
+
+    const error = await fetchUpstream(CORE_URL, {
+      method: "POST",
+      body: "{}",
+    }).catch((e) => e);
+
+    expect(error).toBeInstanceOf(UpstreamError);
+    expect(upstreamErrorResponse(error).status).toBe(503);
+    expect(
+      upstreamErrorResponse(error).headers.get("x-vsrecorder-upstream-unavailable"),
+    ).toBe("1");
+  });
+
+  // deckcard-api などが落ちても core-apiserver は動いている。アップデート中と扱うと、
+  // 覆いの復旧確認(core-apiserver を見る)ですぐ外れ、また出る、を繰り返す
+  it("core-apiserver 以外(deckcard-api・pokemon-sprites)の HTML の 503 はアップデート中扱いにしない", async () => {
+    for (const url of [
+      "https://example.test/api/v1beta/deckcards/abc/detail",
+      "https://example.test/api/v1beta/pokemon-sprites?names=x",
+    ]) {
+      stubFetch(503, DEPLOYING_HTML);
+      const error = await fetchUpstream(url).catch((e) => e);
+      expect((error as UpstreamError).isUnavailable).toBe(false);
+      const res = upstreamErrorResponse(error);
+      expect(res.status).toBe(503);
+      expect(res.headers.get("x-vsrecorder-upstream-unavailable")).toBeNull();
+    }
+  });
+});
+
 describe("upstreamUrl", () => {
   afterEach(() => {
     vi.unstubAllEnvs();

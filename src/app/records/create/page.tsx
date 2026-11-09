@@ -6,6 +6,7 @@ import TemplateRecordCreate from "@app/components/templates/RecordCreate";
 import { DeckGetAllType } from "@app/types/deck";
 import { todayJSTDateString } from "@app/utils/date";
 import { upstreamUrl } from "@app/utils/upstream";
+import { fetchCoreApi } from "@app/utils/coreApiFetch";
 import { signUpstreamToken } from "@app/utils/upstreamToken";
 import { redirectToSignIn } from "@app/utils/signInReturnServer";
 import { toRecordCreateOfficialEvent } from "@app/types/official_event";
@@ -58,7 +59,7 @@ function initialOfficialEventDate(eventDate?: string): string {
  * 失敗時は null を返し、クライアント側の取得に委ねる(「デッキ0件」と区別する)。
  */
 async function getDecks(userId: string): Promise<DeckGetAllType | null> {
-  const res = await fetch(upstreamUrl`/api/v1beta/decks/all`, {
+  const res = await fetchCoreApi(upstreamUrl`/api/v1beta/decks/all`, {
     cache: "no-store",
     method: "GET",
     headers: {

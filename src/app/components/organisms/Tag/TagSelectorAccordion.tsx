@@ -26,6 +26,11 @@ const ITEM_KEY = "tags";
 // height は duration 0.3s の spring なので、それより少しだけ長く見る。
 const EXPAND_DURATION_MS = 340;
 
+// アコーディオンの下に残る高さがこれ以下なら「余白だけ」とみなし、開いたときに
+// スクロール領域の一番下まで送る。置き場所の下余白(pb-5=20px)とモーダル本体の
+// padding を足しても収まる値。これより大きければ後続の内容があるので、下端までにとどめる。
+const TRAILING_SPACE_MAX_PX = 64;
+
 // 実際に動くスクロールコンテナ(overflow を持つ最も近い祖先)を探す。
 // 見つからなければ null を返し、呼び出し側でウィンドウスクロールにフォールバックする。
 function findScrollContainer(el: HTMLElement): HTMLElement | null {
@@ -101,27 +106,36 @@ export default function TagSelectorAccordion({
   // 上方向には決して動かさない。scrollIntoView(block:"end") のように下端を「揃える」と、
   // 展開前は要素が小さいぶん上に戻され、展開後に今度は下がるので上下にバウンドする。
   // ここでは「はみ出ていたら、はみ出たぶんだけ下げる」に限定する。
+  //
+  // アコーディオンの下に残るのが余白だけなら、その余白ぶんまで含めて一番下まで送る。
+  // 下端ちょうどで止めると、枠がフッターに貼り付いて見え、あと少しだけスクロールできる
+  // 中途半端な位置になる(対戦結果の編集で 20px 残っていた)。
   const scrollToShowWhole = () => {
     const root = rootRef.current;
     if (!root) return;
 
     const container = findScrollContainer(root);
     const bottom = root.getBoundingClientRect().bottom;
-    const viewportBottom = container
-      ? container.getBoundingClientRect().bottom
-      : window.innerHeight;
-
-    const overflow = bottom - viewportBottom;
-    if (overflow <= 0) return;
 
     // 展開のあいだ毎フレーム呼ぶので、1回ぶんは数pxしか動かない。
     // ここで smooth を使うと、その数pxの移動それぞれが尾を引いて追従が遅れる。
     if (container) {
-      container.scrollTop += overflow;
+      const overflow = bottom - container.getBoundingClientRect().bottom;
+      const untilEnd = container.scrollHeight - container.clientHeight - container.scrollTop;
+      // アコーディオンの下端から中身の末尾までの残り(余白や後続の内容)
+      const trailing = untilEnd - overflow;
+
+      if (trailing <= TRAILING_SPACE_MAX_PX) {
+        if (untilEnd > 0) container.scrollTop += untilEnd;
+        return;
+      }
+
+      if (overflow > 0) container.scrollTop += overflow;
       return;
     }
 
-    window.scrollBy({ top: overflow });
+    const overflow = bottom - window.innerHeight;
+    if (overflow > 0) window.scrollBy({ top: overflow });
   };
 
   /*

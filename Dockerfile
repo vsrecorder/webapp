@@ -172,6 +172,24 @@ ENV PIDUSAGE_SILENT=1
 # 子プロセスを作る処理を足すときは、ここを思い出すこと。
 #
 
+#
+# glibc の malloc が使うアリーナ(スレッドごとのメモリ置き場)を 2 つまでに抑える。
+#
+# 既定ではスレッド数に応じてアリーナが増え(64bit は CPU 数 × 8 まで)、sharp(libvips)の
+# 画像処理のように複数スレッドが大きな確保と解放を繰り返すと、解放した分が OS へ返らず
+# RSS が膨らんだままになる(sharp の文書にも glibc の断片化として書かれている)。
+# alpine(musl)のときには無かった問題で、ディストロレス(glibc)にした直後の本番で
+# ワーカーの RSS が 25 分で 282MB まで伸びた(alpine は 9 日稼働後で 176MB)。
+# pm2 の max_memory_restart(384M。ecosystem.config.cjs)に届くと、ワーカーが入れ替わる。
+#
+# 同じ負荷(画像最適化 約 1,000 回)をかけた後の 1 ワーカーあたりの RSS(2026-11-13、手元):
+#   alpine 約 245MB / glibc 既定 約 305MB / この設定 約 265MB
+# 処理時間は変わらなかった(カード画像 320 枚: 5.4 秒 → 5.3 秒)。
+# jemalloc(LD_PRELOAD)は負荷後に約 230MB まで戻るが、負荷中のピークが 331MB と最も高く、
+# ライブラリを別途持ち込む必要もあるので採らなかった。
+#
+ENV MALLOC_ARENA_MAX=2
+
 # ステージをまたぐ COPY は元の所有者をそのまま引き継ぐ(prep で付けた uid 1001 が残る)。
 COPY --from=prep /out/etc/passwd /out/etc/group /etc/
 COPY --from=prep --chown=1001:1001 /out/home/nextjs /home/nextjs

@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import { DeckArchetypeType } from "@app/types/deck_archetype";
+import { NO_DECK_CODE_DECK_NAME } from "@app/utils/deckArchetype";
 
 // シティリーグの大会個別ページ(/cityleague_results/[id])の OGP 画像に載せる優勝デッキ。
 
@@ -11,8 +12,9 @@ export type EventOgWinner = {
   variant: string | null;
   // 分類のスプライト(図鑑 ID)。デッキのアイコンと同じく先頭 2 体まで。
   // 型があれば vslab がその型の組み合わせ(例 バシャーモ型 → ドラパルト＋バシャーモ)を返すので、
-  // そのまま使えば型ごとの 2 体になる(型にスプライトの定義が無ければ主デッキのもの)
-  spriteIds: string[];
+  // そのまま使えば型ごとの 2 体になる(型にスプライトの定義が無ければ主デッキのもの)。
+  // undefined の枠は unknown(同梱の白いモンスターボール)で描く(デッキコード未掲載の優勝)
+  spriteIds: (string | undefined)[];
 };
 
 // 優勝デッキ入りの画像のレイアウトの版(1: デッキ名の下に小さなスプライト、2: 右に大きなスプライト、
@@ -37,6 +39,19 @@ export function eventOgWinner(archetype: DeckArchetypeType | undefined): EventOg
     spriteIds: (archetype?.sprites ?? []).slice(0, 2),
   };
 }
+
+/*
+ * 優勝者がデッキコードを掲載していないときの優勝デッキ。入賞カードと同じく unknown を 2 枠並べ、
+ * デッキ名を「デッキコード未掲載」にする(分類が付くシーズンの大会だけで使う。旧シーズンは
+ * 従来の店舗名と日付だけの画像のまま)。
+ *
+ * 以前は分類が無いので null になり、デッキコードのある優勝の大会と違う、店舗名と日付だけの画像になっていた。
+ */
+export const NO_DECK_CODE_OG_WINNER: EventOgWinner = {
+  name: NO_DECK_CODE_DECK_NAME,
+  variant: null,
+  spriteIds: [undefined, undefined],
+};
 
 /*
  * 個別ページの OGP 画像のキー(ogImageUrlFor に渡す名前)。

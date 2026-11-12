@@ -216,7 +216,8 @@ export default function CityleagueResult({
     return () => observer.disconnect();
   }, [showAllSlides]);
 
-  // 骨格にデッキの種類の行を取るか。実体と同じく、種類が付くシーズンの大会だけ取る
+  // デッキの種類の行を取るか。種類が付くシーズンの大会だけ取る。骨格のほか、デッキコードの無い入賞
+  // (unknown の 2 枠＋「デッキコード未掲載」)を出すかの判定にも使う
   const withDeckArchetype = isDeckArchetypeSeason(event_result.cityleague_schedule_id);
 
   if (loading) {
@@ -304,6 +305,7 @@ export default function CityleagueResult({
                         result={result}
                         date={event_result.date}
                         deckArchetype={deck_archetypes?.[result.deck_code]}
+                        withDeckArchetype={withDeckArchetype}
                       />
                     </div>
                   ))}
@@ -329,6 +331,7 @@ export default function CityleagueResult({
                       result={result}
                       date={event_result.date}
                       deckArchetype={deck_archetypes?.[result.deck_code]}
+                      withDeckArchetype={withDeckArchetype}
                     />
                   </SwiperSlide>
                 ))}

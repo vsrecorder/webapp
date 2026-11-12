@@ -18,7 +18,11 @@ import {
 } from "@app/utils/cityleague";
 import { OG_SIZE, renderCityleagueEventOgImage } from "@app/utils/ogImage";
 import { serializeJsonLd } from "@app/utils/breadcrumb";
-import { cityleagueEventOgName, eventOgWinner } from "@app/utils/cityleagueEventOg";
+import {
+  cityleagueEventOgName,
+  eventOgWinner,
+  NO_DECK_CODE_OG_WINNER,
+} from "@app/utils/cityleagueEventOg";
 import { getRecentDeckArchetypes } from "@app/utils/cityleagueAwaitingServer";
 import { todayJSTDateString } from "@app/utils/date";
 import {
@@ -49,6 +53,8 @@ type DescriptionWinner = {
   playerName: string;
   deckName: string;
   archetype: DeckArchetypeType | undefined;
+  // 分類が付くシーズンの大会で、優勝者がデッキコードを掲載していない(OGP 画像を「デッキコード未掲載」にする)
+  missingDeckCode: boolean;
 };
 
 async function getDescriptionWinner(
@@ -72,6 +78,8 @@ async function getDescriptionWinner(
     playerName: winner.player_name,
     deckName: deckDisplayName(archetype, summary ?? undefined),
     archetype,
+    missingDeckCode:
+      !winner.deck_code && isDeckArchetypeSeason(cityleagueResult?.cityleague_schedule_id),
   };
 }
 
@@ -136,8 +144,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const path = `/cityleague_results/${event.id}`;
 
   // 優勝デッキの分類が分かれば、画像にスプライトとデッキ名を載せる。分類は description のために
-  // 既に引いてあるので、画像のために待ち時間は増えない。キーは載せる中身ごとに変わる(cityleagueEventOg)
-  const ogWinner = eventOgWinner(winner?.archetype);
+  // 既に引いてあるので、画像のために待ち時間は増えない。キーは載せる中身ごとに変わる(cityleagueEventOg)。
+  // 優勝者がデッキコードを掲載していなければ、入賞カードと同じく unknown の 2 枠と「デッキコード未掲載」を載せる
+  const ogWinner =
+    eventOgWinner(winner?.archetype) ?? (winner?.missingDeckCode ? NO_DECK_CODE_OG_WINNER : null);
   const ogImageUrl = ogImageUrlFor(cityleagueEventOgName(event.id, ogWinner), () =>
     renderCityleagueEventOgImage(event, ogWinner),
   );

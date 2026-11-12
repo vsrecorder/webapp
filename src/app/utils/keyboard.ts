@@ -148,3 +148,112 @@ export function scrollToTopAfterKeyboard(element: Element | null, offset = 8) {
     align(resizedByKeyboard);
   }, 1000);
 }
+
+/*
+ * ソフトウェアキーボードが出たあと、対象の範囲(top の上端〜 bottom の下端)が
+ * スクロール領域の見える範囲に収まるよう、スクロール親だけを動かす。モーダルの中で使える。
+ *
+ * タップではなくプログラムからフォーカスした入力欄(ボタンを押すと現れて autoFocus する欄)向け。
+ * ブラウザがフォーカス要素を見せるスクロールはキーボードが出る前に走るので、キーボードで
+ * シートが縮んだあとは入力欄が下へ隠れたままになる(Android で実際に起きた: タグ名の変更)。
+ * タップした入力欄ならブラウザが縮んだあとに合わせ直すが、この経路では合わせ直されない。
+ *
+ * 動かすのは「隠れているぶんだけ」で、見えていれば何もしない。入力欄の下に続く
+ * 操作(保存ボタンなど)まで見せたいときは bottom にその要素を渡す。範囲が見える高さに
+ * 収まらないときは上端(入力欄)を優先する。
+ *
+ * scrollIntoView は使わない(iOS ではレイアウトビューポートごと動き、fixed のシートが
+ * ずれたまま戻らなくなる。scrollIntoViewAfterKeyboard のコメント参照)。
+ *
+ *   <Input autoFocus onFocus={(e) => revealAfterKeyboard(e.currentTarget, () => buttonsRef.current)} />
+ */
+export function revealAfterKeyboard(
+  top: Element | null,
+  // 関数でも渡せる。autoFocus の onFocus はコミットの途中で呼ばれ、後ろに並ぶ要素の
+  // ref がまだ入っていないことがあるので、測るときに取りに行けるようにする
+  bottom?: Element | null | (() => Element | null),
+  margin = 8,
+) {
+  if (typeof window === "undefined" || !top) return;
+
+  const viewport = window.visualViewport;
+
+  const align = () => {
+    // フォーカスが外れているなら、ユーザーは次の操作に移っている。割り込まない
+    if (!top.contains(document.activeElement)) return;
+
+    // スクロール親は測るたびに探す。キーボードが出る前は中身が収まっていて
+    // スクロール領域になっておらず、縮んで初めて溢れることがある
+    const container = findScrollContainer(top);
+    if (!container) return;
+
+    const bottomElement = (typeof bottom === "function" ? bottom() : bottom) ?? top;
+
+    const box = container.getBoundingClientRect();
+    const rangeTop = top.getBoundingClientRect().top;
+    const rangeBottom = bottomElement.getBoundingClientRect().bottom;
+
+    // 見える範囲はスクロール領域とキーボードを除いた画面の重なり。シートの高さは
+    // キーボードに合わせて縮むが、その反映がこの呼び出しより後になることがあるので両方で見る
+    const visibleTop = Math.max(box.top, viewport?.offsetTop ?? 0);
+    const visibleBottom = Math.min(
+      box.bottom,
+      viewport ? viewport.offsetTop + viewport.height : window.innerHeight,
+    );
+
+    let delta = 0;
+    if (rangeBottom > visibleBottom - margin) {
+      // 下が隠れている: 下端が見えるところまで送る。ただし上端を画面の上へ追い出さない
+      delta = Math.min(
+        rangeBottom - (visibleBottom - margin),
+        rangeTop - (visibleTop + margin),
+      );
+    } else if (rangeTop < visibleTop + margin) {
+      // 上が隠れている: 上端が見えるところまで戻す
+      delta = rangeTop - (visibleTop + margin);
+    }
+
+    if (Math.abs(delta) < 2) return;
+
+    container.scrollTo({
+      top: container.scrollTop + delta,
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
+    });
+  };
+
+  /*
+   * キーボードは段階的に開くため、変化のたびに合わせ直す。
+   *
+   * ただし resize の通知を受けたその場では測らない。シートの高さは HeroUI が同じ通知を受けて
+   * CSS 変数(--visual-viewport-height)へ書き直すが、その反映は React の描画を挟むぶん遅れる。
+   * その場で測ると「画面は縮んだのにシートは縮む前」の配置から行き先を出してしまい、
+   * いったん行き過ぎてから戻る(実測: 913px へ向かい、32ms 後に 805px へ戻った)。
+   * 描画を 2 フレーム待ってから測り、シートの大きさが変わったときにも測り直す。
+   */
+  let frame = 0;
+  const alignSoon = () => {
+    cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(align);
+    });
+  };
+
+  viewport?.addEventListener("resize", alignSoon);
+
+  const watched =
+    top.closest<HTMLElement>("[data-keyboard-scroll-container]") ?? findScrollContainer(top);
+  const observer =
+    watched && typeof ResizeObserver !== "undefined" ? new ResizeObserver(alignSoon) : null;
+  if (watched) observer?.observe(watched);
+
+  // キーボードが既に出ている(= resize が発火しない)場合の分
+  setTimeout(align, 250);
+
+  // キーボードが出そろうころに最終位置へ合わせ、後片付けする
+  setTimeout(() => {
+    viewport?.removeEventListener("resize", alignSoon);
+    observer?.disconnect();
+    cancelAnimationFrame(frame);
+    align();
+  }, 1000);
+}

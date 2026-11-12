@@ -55,7 +55,7 @@ src/
 
 ### 必要環境
 
-- Node.js 24 系（Dockerfile では `node:24.18.0-alpine`）
+- Node.js 26 系（Dockerfile ではビルドが `node:26.13.1-trixie-slim`、実行がディストロレスの `gcr.io/distroless/nodejs26-debian13`）
 - npm
 
 ### 環境変数
@@ -171,6 +171,12 @@ make up        # docker compose up -d
 make down      # docker compose down
 make restart   # 再起動
 ```
+
+実行用イメージはディストロレス（`gcr.io/distroless/nodejs26-debian13`）で、シェルも `wget` も `ps` も入っていません。
+
+- コンテナの中で何かを確かめるときは node に直接やらせます: `docker compose exec -T webapp node -e '...'`
+- キャッシュの volume を覗く・掃除するときは、別のコンテナに付けて触ります（手順は `docker-compose.yml` の volumes のコメント）
+- 実行時の Node の版はディストロレスのダイジェストで決まります。上げ方は `Dockerfile` の冒頭を参照
 
 ## 関連リポジトリ
 

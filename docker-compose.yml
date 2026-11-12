@@ -56,8 +56,13 @@ services:
     # healthcheck の失敗でコンテナが再起動することはない(restart policy とは無関係)。
     #
     healthcheck:
-      # alpine なので curl は入っていない。wget は busybox 版
-      test: ["CMD", "wget", "--spider", "-q", "-T", "10", "http://127.0.0.1:3003/health/web"]
+      # ディストロレスなので wget も curl もシェルも無い。node の fetch で叩く
+      # (2xx 以外・接続失敗・10 秒で応答なしを失敗にする)。
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3003/health/web',{signal:AbortSignal.timeout(10000)}).then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"
       interval: 30s
       timeout: 12s
       retries: 3
@@ -115,7 +120,8 @@ services:
       # 年 1〜2GB 程度の増加を見込む(2026-09-07 時点のディスク空き 84GB)。
       # 増えすぎたら、最長の revalidate(30日)を超えて触られていないものは
       # どのみち再取得されるので、次のように消してよい:
-      #   docker exec webapp-webapp-1 find .next/cache/fetch-cache -type f -mtime +35 -delete
+      #   docker run --rm -v webapp_webapp-next-cache:/c alpine find /c/fetch-cache -type f -mtime +35 -delete
+      # (実行用イメージはディストロレスで find もシェルも無いので、volume を別のコンテナに付けて触る)
       #
       # 【重要】この volume は Dockerfile 側で .next/cache を nextjs 所有で作ってあることが前提。
       # イメージにそのディレクトリが無い状態で volume を割り当てると docker が root 所有で作り、
@@ -125,7 +131,8 @@ services:
       # 順序を誤った・キャッシュが溜まらない場合は volume を消してから作り直すこと:
       #   docker compose down && docker volume rm webapp_webapp-next-cache && docker compose up -d
       # 溜まっているかの確認:
-      #   docker exec webapp-webapp-1 sh -c 'ls -ld .next/cache/fetch-cache; ls .next/cache/fetch-cache | wc -l'
+      #   docker run --rm -v webapp_webapp-next-cache:/c alpine sh -c 'ls -ldn /c/fetch-cache; ls /c/fetch-cache | wc -l'
+      # (所有者が 1001 になっていること)
       #
       - webapp-next-cache:/app/.next/cache
 

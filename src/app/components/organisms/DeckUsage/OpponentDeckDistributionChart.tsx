@@ -42,6 +42,7 @@ import {
 } from "@app/components/organisms/DeckUsage/pieChartLayout";
 import usePieChartFlip from "@app/hooks/usePieChartFlip";
 import DeckUsageEmptyState from "@app/components/organisms/DeckUsage/DeckUsageEmptyState";
+import { ACCORDION_MOTION_PROPS } from "@app/utils/accordionMotion";
 
 ChartJS.register(ArcElement, ChartTooltip);
 
@@ -273,6 +274,7 @@ const OpponentDeckLegendItem = memo(function OpponentDeckLegendItem({
         <AccordionItem
           key="other"
           aria-label={`${deck.deck_info}の内訳`}
+          motionProps={ACCORDION_MOTION_PROPS}
           // 既定のアイコンは行の右端に出て数値ブロックを押し込むため隠し、
           // 代わりにデッキ名の直後へ自前で置く（閉じているとき「>」、開くと下向き）。
           hideIndicator

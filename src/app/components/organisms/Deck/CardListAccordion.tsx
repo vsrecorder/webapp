@@ -7,6 +7,7 @@ import { Accordion, AccordionItem, type Selection } from "@heroui/react";
 import { LuList } from "react-icons/lu";
 
 import DeckCardDetailRow from "@app/components/organisms/Deck/DeckCardDetailRow";
+import { ACCORDION_MOTION_PROPS } from "@app/utils/accordionMotion";
 
 type Props = {
   // 表示するカードリストのデッキコード
@@ -117,6 +118,7 @@ export default function CardListAccordion({
           title="カードリスト"
           startContent={<LuList className="text-sm text-primary" />}
           keepContentMounted={hasOpened}
+          motionProps={ACCORDION_MOTION_PROPS}
         >
           {hasOpened && <DeckCardDetailRow code={code} />}
         </AccordionItem>

@@ -57,58 +57,51 @@ afterEach(() => {
 });
 
 describe("revealAfterKeyboard", () => {
-  it("キーボードで縮んで隠れた入力欄を、下の操作の行まで見える位置へ送る", () => {
-    // 開く前: 領域は 100〜700、入力欄は 500、ボタン行の下端は 640(見えている)
-    const { input, actions, box, scrolled } = setup({
-      boxBottom: 700,
-      inputTop: 500,
-      actionsBottom: 640,
-    });
+  it("キーボードで縮んで隠れた入力欄を、見える位置へ送る", () => {
+    // 開く前: 領域は 100〜700、入力欄は 500〜540(見えている)
+    const { input, box, scrolled } = setup({ boxBottom: 700, inputTop: 500, actionsBottom: 640 });
 
-    revealAfterKeyboard(input, () => actions);
+    revealAfterKeyboard(input);
     vi.advanceTimersByTime(250);
     expect(scrolled()).toBe(0);
 
-    // キーボードが出て領域の下端が 400 へ上がる → ボタン行の下端(640)が 392 に来るまで送る
+    // キーボードが出て領域の下端が 400 へ上がる → 入力欄の下端(540)が 392 に来るまで送る
     box.bottom = 400;
     vi.advanceTimersByTime(750);
-    expect(scrolled()).toBe(248);
+    expect(scrolled()).toBe(148);
   });
 
-  it("範囲が見える高さに収まらないときは入力欄の上端を優先する", () => {
-    // 見える高さは 100〜200 しかない。ボタン行まで送ると入力欄が上へ出てしまう
-    const { input, actions, scrolled } = setup({
-      boxBottom: 200,
-      inputTop: 500,
-      actionsBottom: 640,
-    });
+  it("toEnd なら、見えていても一番下まで送る", () => {
+    // scrollHeight 2000・clientHeight 600 なので一番下は 1400。ただし入力欄(300)の上端を
+    // 見える範囲の上(108)へ追い出さないところで止める → 192
+    const { input, scrolled } = setup({ boxBottom: 700, inputTop: 300, actionsBottom: 440 });
 
-    revealAfterKeyboard(input, () => actions);
+    revealAfterKeyboard(input, { toEnd: true });
     vi.advanceTimersByTime(1000);
-    // 入力欄の上端が 108(領域の上端 + 余白)に来る
-    expect(scrolled()).toBe(392);
+    expect(scrolled()).toBe(192);
+  });
+
+  it("toEnd で末尾が近ければ、ちょうど一番下で止まる", () => {
+    // 入力欄が十分下(1800)にあれば、上端の制限より先に末尾(1400)へ着く
+    const { input, scrolled } = setup({ boxBottom: 700, inputTop: 1800, actionsBottom: 1940 });
+
+    revealAfterKeyboard(input, { toEnd: true });
+    vi.advanceTimersByTime(1000);
+    expect(scrolled()).toBe(1400);
   });
 
   it("見えていれば動かさない", () => {
-    const { input, actions, scrollTo } = setup({
-      boxBottom: 700,
-      inputTop: 300,
-      actionsBottom: 440,
-    });
+    const { input, scrollTo } = setup({ boxBottom: 700, inputTop: 300, actionsBottom: 440 });
 
-    revealAfterKeyboard(input, () => actions);
+    revealAfterKeyboard(input);
     vi.advanceTimersByTime(1000);
     expect(scrollTo).not.toHaveBeenCalled();
   });
 
   it("フォーカスが外れていたら割り込まない", () => {
-    const { input, actions, box, scrollTo } = setup({
-      boxBottom: 700,
-      inputTop: 500,
-      actionsBottom: 640,
-    });
+    const { input, box, scrollTo } = setup({ boxBottom: 700, inputTop: 500, actionsBottom: 640 });
 
-    revealAfterKeyboard(input, () => actions);
+    revealAfterKeyboard(input, { toEnd: true });
     input.blur();
     box.bottom = 400;
     vi.advanceTimersByTime(1000);

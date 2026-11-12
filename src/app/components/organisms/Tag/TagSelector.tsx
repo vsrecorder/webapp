@@ -10,6 +10,7 @@ import HScrollRow from "@app/components/atoms/HScrollRow";
 import { TagNameConflictError, useTags } from "@app/hooks/useTags";
 import { TagType, TagPresetCategory } from "@app/types/tag";
 import { katakanaToHiragana } from "@app/utils/kana";
+import { revealAfterKeyboard } from "@app/utils/keyboard";
 import { sortTagsPresetFirst } from "@app/utils/tagOrder";
 import { tagTextColor } from "@app/utils/tagColor";
 
@@ -152,6 +153,9 @@ export default function TagSelector({
    */
   const rootRef = useRef<HTMLDivElement>(null);
   const [manageMinHeight, setManageMinHeight] = useState<number | null>(null);
+  // 名前の変更中に出す「キャンセル / 変更を保存」の行。キーボードが出たあと、
+  // 入力欄からここまでを見える位置へ送るために測る。
+  const renameActionsRef = useRef<HTMLDivElement>(null);
 
   function toggleManageMode() {
     setManageMinHeight(
@@ -482,6 +486,14 @@ export default function TagSelector({
           value={draftName}
           onValueChange={setDraftName}
           maxLength={MAX_TAG_NAME_LENGTH}
+          /*
+           * この欄はタップではなく autoFocus でフォーカスが入るので、キーボードで
+           * シートが縮んだあとにブラウザが位置を合わせ直してくれない(Android で、
+           * 入力欄がキーボードの裏に隠れたままになった)。保存ボタンの行まで含めて送る。
+           */
+          onFocus={(e) =>
+            revealAfterKeyboard(e.currentTarget, () => renameActionsRef.current)
+          }
           isInvalid={draftConflicts}
           errorMessage={draftConflicts ? "同じ名前のタグが既にあります" : undefined}
           onKeyDown={(e) => {
@@ -518,7 +530,7 @@ export default function TagSelector({
           <p className="text-[0.6875rem] text-default-400">
             「{editingTag.name}」の名前を変更します。付与済みのデッキ・バージョン・記録・対戦結果にもそのまま反映されます。
           </p>
-          <div className="flex items-center gap-2">
+          <div ref={renameActionsRef} className="flex items-center gap-2">
             <Button
               size="sm"
               variant="flat"

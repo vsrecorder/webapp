@@ -1,10 +1,15 @@
 // @vitest-environment jsdom
-import { cleanup, render } from "@testing-library/react";
+import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import TagChips from "@app/components/molecules/TagChips";
 
 import { TagType } from "@app/types/tag";
+import {
+  noteTagDeleted,
+  noteTagRenamed,
+  resetTagOverridesForTest,
+} from "@app/utils/tagOverrides";
 
 const TAG: TagType = {
   id: "tag-1",
@@ -15,7 +20,10 @@ const TAG: TagType = {
   preset_flg: false,
 };
 
-afterEach(() => cleanup());
+afterEach(() => {
+  cleanup();
+  resetTagOverridesForTest();
+});
 
 describe("TagChips", () => {
   it("タグが無ければ何も描かない", () => {
@@ -50,5 +58,22 @@ describe("TagChips", () => {
   it("タグがあればチップを並べる(reserveSpace の有無で変わらない)", () => {
     const { container } = render(<TagChips tags={[TAG]} reserveSpace />);
     expect(container.textContent).toContain("たねポケモン");
+  });
+
+  it("表示中にタグの名前を変えたら、取り直さなくても新しい名前に変わる", () => {
+    // 渡している tags は付与先の応答に埋め込まれた古いもののまま
+    const { container } = render(<TagChips tags={[TAG]} />);
+
+    act(() => noteTagRenamed("tag-1", "たねポケモン", "非エク"));
+    expect(container.textContent).toContain("非エク");
+    expect(container.textContent).not.toContain("たねポケモン");
+  });
+
+  it("表示中にタグを削除したら消え、reserveSpace の枠は残る", () => {
+    const { container } = render(<TagChips tags={[TAG]} reserveSpace />);
+
+    act(() => noteTagDeleted("tag-1"));
+    expect(container.textContent).toBe("");
+    expect((container.firstElementChild as HTMLElement).className).toContain("h-5");
   });
 });

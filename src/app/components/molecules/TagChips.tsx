@@ -2,6 +2,7 @@
 
 import { Chip } from "@heroui/react";
 
+import { useTagResolver } from "@app/hooks/useTagResolver";
 import { TagType } from "@app/types/tag";
 import { tagTextColor } from "@app/utils/tagColor";
 
@@ -24,14 +25,19 @@ type Props = {
 // 色を持つタグ(＝ACE SPEC・大会順位などのプリセット)は、背景をその色にして名前を太字で描く。
 // 文字色はタグが持っていればそれを、無ければ背景の明るさから決める(tagTextColor)。
 // 色を持たないユーザータグは既定の見た目のまま。
+//
+// 渡された tags は付与先の応答に埋め込まれたもので、この端末でタグの名前を変えた・
+// 削除した直後は古い。描く前に読み替える(useTagResolver)。
 export default function TagChips({
-  tags,
+  tags: embeddedTags,
   onRemove,
   size = "sm",
   nowrap = false,
   reserveSpace = false,
   className,
 }: Props) {
+  const tags = useTagResolver()(embeddedTags);
+
   if (!tags || tags.length === 0) {
     // 中身が無い＝読み上げるものも無いので、高さだけを持つ枠にする。
     // 高さはチップ本体の h-5 と同じ 20px（size によらずチップは 20px 固定）。

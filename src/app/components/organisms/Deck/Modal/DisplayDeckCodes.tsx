@@ -68,6 +68,7 @@ import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
 import { closingPassthroughClassNames } from "@app/utils/modal";
 import { refreshKizuna } from "@app/utils/kizunaClient";
 import { formatJSTDateTimeWithWeekday, isZeroDate } from "@app/utils/date";
+import { useTagResolver } from "@app/hooks/useTagResolver";
 
 async function fetchDeckCodesByDeckId(deck_id: string) {
   try {
@@ -115,6 +116,8 @@ export default function DisplayDeckCodesModal({
   // この一覧は SWR ではなく useSeededResource で持っているので、件数側とは別のキャッシュになる
   const revalidateDeckCodes = useRevalidateDeckCodes();
 
+  // 「タグなし」の出し分けを、この端末での削除を当てたあとのタグで決める
+  const resolveTags = useTagResolver();
   const [displayDeckCode, setDisplayDeckCode] = useState<DeckCodeType | null>(null);
   // バージョン一覧。開いている間だけ取り(閉じている間は鍵なし)、失敗時は retry で取り直す。
   // 作成・削除の結果は setData で一覧へ反映する
@@ -835,8 +838,8 @@ export default function DisplayDeckCodesModal({
 
                                         {(index !== displayDeckCodes.length - 1 ||
                                           deckcode.memo ||
-                                          (deckcode.tags &&
-                                            deckcode.tags.length > 0) ||
+                                          (resolveTags(deckcode.tags)?.length ?? 0) >
+                                            0 ||
                                           !isArchived) && (
                                           <div className="flex flex-col gap-2 pt-2 border-t border-default-200">
                                             {index !== displayDeckCodes.length - 1 && (
@@ -905,8 +908,8 @@ export default function DisplayDeckCodesModal({
                                                   </button>
                                                 )}
                                               </div>
-                                              {deckcode.tags &&
-                                              deckcode.tags.length > 0 ? (
+                                              {(resolveTags(deckcode.tags)?.length ??
+                                                0) > 0 ? (
                                                 <TagChips tags={deckcode.tags} />
                                               ) : (
                                                 <div className="text-tiny text-default-400">

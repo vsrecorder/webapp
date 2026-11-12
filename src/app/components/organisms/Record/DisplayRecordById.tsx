@@ -25,6 +25,7 @@ import { useRecordMatches } from "@app/hooks/useRecordMatches";
 import { summarizeMatches } from "@app/utils/matchStats";
 
 import { RecordGetByIdResponseType } from "@app/types/record";
+import { useTagResolver } from "@app/hooks/useTagResolver";
 
 type Props = {
   recordData: RecordGetByIdResponseType;
@@ -32,6 +33,8 @@ type Props = {
 
 export default function DisplayRecordById({ recordData }: Props) {
   const [record, setRecord] = useState<RecordGetByIdResponseType | null>(recordData);
+  // タグの件数表示へ、この端末での削除を当てる
+  const resolveTags = useTagResolver();
 
   // 対戦一覧を親で一元管理し、ヒーローの戦績と対戦結果表示で共有する。
   // 取得に失敗したときは空配列にせず failed で伝える(0件と混ぜない)
@@ -142,7 +145,7 @@ export default function DisplayRecordById({ recordData }: Props) {
               <BoardPanel
                 icon={<LuTag />}
                 label="タグ"
-                value={tagSummary(record)}
+                value={tagSummary({ ...record, tags: resolveTags(record.tags) })}
                 help={RECORD_SETTING_DESCRIPTIONS.tag}
               >
                 <RecordTagSetting

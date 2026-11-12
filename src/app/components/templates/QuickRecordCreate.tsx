@@ -71,6 +71,7 @@ import {
   FirstSpriteEnvPosition,
 } from "@app/utils/deckEnv";
 import { JST_TIME_ZONE } from "@app/utils/date";
+import { ACCORDION_MOTION_PROPS } from "@app/utils/accordionMotion";
 
 // ひらがなをカタカナに統一して比較できるようにする
 const toKatakana = (str: string) =>
@@ -790,6 +791,7 @@ export default function TemplateQuickRecordCreate({
             <AccordionItem
               key="detail"
               aria-label="詳細を追加"
+              motionProps={ACCORDION_MOTION_PROPS}
               startContent={<LuSlidersHorizontal className="w-5 h-5 text-primary" />}
               title={<span className="text-sm font-bold">詳細を追加</span>}
               subtitle={

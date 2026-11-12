@@ -20,7 +20,7 @@ import { OfficialEventType } from "@app/types/official_event";
 import { championsleagueLeagueTitle } from "@app/utils/championsleague";
 import { formatEventDate, formatTermRange } from "@app/utils/cityleague";
 import { buildRankSections } from "@app/utils/cityleagueRank";
-import { deckDisplayName } from "@app/utils/deckArchetype";
+import { deckDisplayName, isDeckArchetypeChampionsleague } from "@app/utils/deckArchetype";
 import { safeExternalUrl } from "@app/utils/url";
 
 type Props = {
@@ -105,6 +105,10 @@ export default function ChampionsleagueResultByLeague({
 }: Props) {
   const scheduleTitle = schedule.title.trim();
   const leagueTitle = championsleagueLeagueTitle(leagueType);
+
+  // デッキの種類が付く大会か。デッキコードの無い入賞にも unknown の 2 枠と「デッキコード未掲載」を
+  // 出し、他の入賞と同じ形にする(骨格の loading.tsx と同じ判定)
+  const withDeckArchetype = isDeckArchetypeChampionsleague(schedule.id);
 
   const resultCount = eventResults.reduce(
     (total, eventResult) => total + eventResult.results.length,
@@ -251,6 +255,7 @@ export default function ChampionsleagueResultByLeague({
                       showRankLabel={false}
                       deckSummary={deckSummaries[result.deck_code]}
                       deckArchetype={deckArchetypes[result.deck_code]}
+                      withDeckArchetype={withDeckArchetype}
                     />
                   ))}
                 </div>

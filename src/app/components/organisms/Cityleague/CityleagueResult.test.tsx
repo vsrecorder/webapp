@@ -16,8 +16,16 @@ vi.mock("swiper/react", () => ({
 }));
 vi.mock("swiper/modules", () => ({ A11y: {}, Pagination: {} }));
 vi.mock("@app/components/organisms/Cityleague/CityleagueResultCard", () => ({
-  default: ({ result }: { result: { rank: number } }) => (
-    <div data-testid="slide">{result.rank}位</div>
+  default: ({
+    result,
+    withDeckArchetype,
+  }: {
+    result: { rank: number };
+    withDeckArchetype?: boolean;
+  }) => (
+    <div data-testid="slide" data-with-deck-archetype={String(!!withDeckArchetype)}>
+      {result.rank}位
+    </div>
   ),
 }));
 
@@ -98,5 +106,35 @@ describe("CityleagueResult の deferSwiper", () => {
     render(<CityleagueResult event_result={EVENT_RESULT} official_event={EVENT} />);
 
     expect(screen.getByTestId("swiper")).toBeTruthy();
+  });
+});
+
+describe("CityleagueResult の withDeckArchetype", () => {
+  const slideFlags = () =>
+    screen.getAllByTestId("slide").map((slide) => slide.dataset.withDeckArchetype);
+
+  it("種類が付くシーズンの大会では、カードに種類の行を出させる(デッキコードの無い入賞も unknown＋未掲載で揃える)", () => {
+    render(<CityleagueResult event_result={EVENT_RESULT} official_event={EVENT} />);
+    act(() => intersect());
+
+    expect(slideFlags()).toEqual(["true", "true", "true"]);
+  });
+
+  it("deferSwiper の仮置きの1枚にも渡す", () => {
+    render(<CityleagueResult event_result={EVENT_RESULT} official_event={EVENT} deferSwiper />);
+
+    expect(slideFlags()).toEqual(["true"]);
+  });
+
+  it("旧シーズンの大会では出させない", () => {
+    render(
+      <CityleagueResult
+        event_result={{ ...EVENT_RESULT, cityleague_schedule_id: "2026s4" }}
+        official_event={EVENT}
+      />,
+    );
+    act(() => intersect());
+
+    expect(slideFlags()).toEqual(["false", "false", "false"]);
   });
 });

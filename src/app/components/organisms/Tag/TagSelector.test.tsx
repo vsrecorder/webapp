@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import TagSelector from "@app/components/organisms/Tag/TagSelector";
 
 import { TagPresetCategory, TagType } from "@app/types/tag";
+import { resetTagOverridesForTest } from "@app/utils/tagOverrides";
 
 const tag = (id: string, name: string, preset_flg: boolean): TagType =>
   ({
@@ -45,7 +46,10 @@ beforeEach(() => {
   );
 });
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  resetTagOverridesForTest();
+});
 
 // 付与するIDの集合は親が持つ。選択の結果をそのまま読めるよう、テスト側で持って表示する
 function Harness({ presetCategory }: { presetCategory?: TagPresetCategory }) {
@@ -197,5 +201,103 @@ describe("TagSelector", () => {
 
     fireEvent.click(chip("マスターボール"));
     expect(selected()).toBe("mine-1,ace-2");
+  });
+
+  describe("管理モードでの名前の変更", () => {
+    // PUT /api/tags/:id を受けて、以降の GET /api/tags に反映する
+    function stubTagsApi(putStatus = 200) {
+      let mine = [...MINE, tag("mine-2", "練習用", false)];
+      const puts: { url: string; body: unknown }[] = [];
+
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async (url: string, init?: RequestInit) => {
+          const json = (body: unknown, status = 200) =>
+            new Response(JSON.stringify(body), {
+              status,
+              headers: { "content-type": "application/json" },
+            });
+
+          if (init?.method === "PUT") {
+            const body = JSON.parse(String(init.body));
+            puts.push({ url: String(url), body });
+            if (putStatus !== 200) return json({ error: "conflict" }, putStatus);
+
+            const id = String(url).split("/").pop();
+            mine = mine.map((t) => (t.id === id ? { ...t, name: body.name } : t));
+            return json(mine.find((t) => t.id === id));
+          }
+
+          return json(String(url).includes("/presets") ? ACESPEC : mine);
+        }),
+      );
+
+      return puts;
+    }
+
+    async function openRename(container: HTMLElement, name: string) {
+      await waitFor(() => chip(name));
+      fireEvent.click(screen.getByText("タグを管理"));
+      fireEvent.click(chip(`タグ「${name}」の名前を変更`));
+      return container.querySelector("input")!;
+    }
+
+    it("タグをタップして名前を変えられる(色は引き継ぐ)", async () => {
+      const puts = stubTagsApi();
+      const { container } = render(<Harness />);
+
+      const input = await openRename(container, "大会用");
+      expect(input.value).toBe("大会用");
+
+      fireEvent.change(input, { target: { value: " シティ用 " } });
+      fireEvent.click(chip("変更を保存"));
+
+      // 一覧へ戻り、新しい名前で並ぶ
+      await waitFor(() => chip("タグ「シティ用」の名前を変更"));
+      expect(puts).toEqual([
+        { url: "/api/tags/mine-1", body: { name: "シティ用", color: "" } },
+      ]);
+    });
+
+    it("他のタグ・プリセットと同じ名前には変えられない", async () => {
+      // かな違いも同名扱い。新規作成の同名判定と揃える
+      const puts = stubTagsApi();
+      const { container } = render(<Harness />);
+
+      const input = await openRename(container, "大会用");
+
+      fireEvent.change(input, { target: { value: "練習用" } });
+      expect(screen.getByText("同じ名前のタグが既にあります")).toBeTruthy();
+
+      fireEvent.change(input, { target: { value: "ますたーぼーる" } });
+      expect(screen.getByText("同じ名前のタグが既にあります")).toBeTruthy();
+
+      fireEvent.keyDown(input, { key: "Enter" });
+      expect(puts).toEqual([]);
+    });
+
+    it("上流に同名で断られたら入力欄に出し、編集を続けられる", async () => {
+      const puts = stubTagsApi(409);
+      const { container } = render(<Harness />);
+
+      const input = await openRename(container, "大会用");
+      fireEvent.change(input, { target: { value: "シティ用" } });
+      fireEvent.keyDown(input, { key: "Enter" });
+
+      await waitFor(() => screen.getByText("同じ名前のタグが既にあります"));
+      expect(puts.length).toBe(1);
+      expect(container.querySelector("input")!.value).toBe("シティ用");
+    });
+
+    it("名前を変えずに保存したら何も送らずに一覧へ戻る", async () => {
+      const puts = stubTagsApi();
+      const { container } = render(<Harness />);
+
+      await openRename(container, "大会用");
+      fireEvent.click(chip("変更を保存"));
+
+      await waitFor(() => chip("タグ「大会用」の名前を変更"));
+      expect(puts).toEqual([]);
+    });
   });
 });

@@ -3,11 +3,11 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { Button, Chip, Input, addToast } from "@heroui/react";
-import { LuPlus, LuTag, LuX } from "react-icons/lu";
+import { LuPencil, LuPlus, LuTag, LuX } from "react-icons/lu";
 
 import HScrollRow from "@app/components/atoms/HScrollRow";
 
-import { useTags } from "@app/hooks/useTags";
+import { TagNameConflictError, useTags } from "@app/hooks/useTags";
 import { TagType, TagPresetCategory } from "@app/types/tag";
 import { katakanaToHiragana } from "@app/utils/kana";
 import { sortTagsPresetFirst } from "@app/utils/tagOrder";
@@ -129,12 +129,19 @@ export default function TagSelector({
     error,
     presetsError,
     createTag,
+    updateTag,
     deleteTag,
   } = useTags(presetCategory);
   const [query, setQuery] = useState("");
   const [creating, setCreating] = useState(false);
-  // 管理モード。ONの間だけ自分のタグに削除(×)を出す。プリセットは対象外。
+  // 管理モード。ONの間だけ自分のタグの名前変更・削除ができる。プリセットは対象外。
   const [manageMode, setManageMode] = useState(false);
+  // 名前を変更中のタグID(管理モード中のみ)。null なら一覧を出している。
+  const [editingTagId, setEditingTagId] = useState<string | null>(null);
+  const [draftName, setDraftName] = useState("");
+  const [renaming, setRenaming] = useState(false);
+  // 上流に「同名あり」で断られた名前。手元の一覧が古くて事前に弾けなかったとき用。
+  const [rejectedName, setRejectedName] = useState<string | null>(null);
 
   /*
    * 管理モードに入ると、候補チップ・プリセットの並びが削除用の一覧へ入れ替わる。
@@ -151,6 +158,7 @@ export default function TagSelector({
       manageMode ? null : (rootRef.current?.offsetHeight ?? null),
     );
     setManageMode((m) => !m);
+    setEditingTagId(null);
   }
 
   // 管理モードの変化を親へ通知する。マウント時に false も通知されるため、
@@ -291,6 +299,70 @@ export default function TagSelector({
     }
   }
 
+  const editingTag =
+    manageMode && editingTagId
+      ? ((tags ?? []).find((tag) => tag.id === editingTagId) ?? null)
+      : null;
+  const trimmedDraft = draftName.trim();
+
+  /*
+   * 変更後の名前が他のタグと重なるか。新規作成の同名判定(exactMatch)と同じく、
+   * かな・大文字小文字・絵文字の違いは同名として扱い、プリセットとの重複も弾く。
+   * 絵文字だけの名前は正規化すると空になるので、その場合は完全一致だけを見る
+   * (空どうしを同名扱いにすると、絵文字だけのタグが1つしか作れなくなる)。
+   */
+  const draftForMatch = normalizeForSearch(trimmedDraft);
+  const draftConflicts =
+    editingTag !== null &&
+    (trimmedDraft === rejectedName ||
+      [...(tags ?? []), ...(presetTags ?? [])].some(
+        (tag) =>
+          tag.id !== editingTag.id &&
+          (tag.name === trimmedDraft ||
+            (draftForMatch !== "" &&
+              normalizeForSearch(tag.name) === draftForMatch)),
+      ));
+
+  function startRename(tag: TagType) {
+    setEditingTagId(tag.id);
+    setDraftName(tag.name);
+    setRejectedName(null);
+  }
+
+  // タグ(自分のもの)の名前を変更する。色はそのまま引き継ぐ。
+  // 付与先はタグをIDで持っているので、付け直しは要らない。
+  async function handleRename() {
+    if (!editingTag || renaming || trimmedDraft === "" || draftConflicts) return;
+
+    // 変えていないなら何も送らずに閉じる。
+    if (trimmedDraft === editingTag.name) {
+      setEditingTagId(null);
+      return;
+    }
+
+    setRenaming(true);
+    try {
+      await updateTag(editingTag.id, {
+        name: trimmedDraft,
+        color: editingTag.color,
+      });
+      setEditingTagId(null);
+      addToast({
+        title: `タグ名を「${trimmedDraft}」に変更しました`,
+        color: "success",
+        timeout: 2000,
+      });
+    } catch (e) {
+      if (e instanceof TagNameConflictError) {
+        setRejectedName(trimmedDraft);
+      } else {
+        addToast({ title: "タグ名の変更に失敗しました", color: "danger" });
+      }
+    } finally {
+      setRenaming(false);
+    }
+  }
+
   // 候補が1つも無いときに行へ置く一言。なぜ空なのかで出し分ける
   // (取得失敗・絞り込みで該当なし・そもそも作っていない・全部付け終えた)。
   const suggestionsEmptyMessage = error
@@ -398,37 +470,95 @@ export default function TagSelector({
         </div>
       )}
 
-      <Input
-        size="sm"
-        variant="bordered"
-        placeholder={
-          manageMode ? "タグ名で絞り込み" : "タグ名を入力して選択・作成"
-        }
-        value={query}
-        onValueChange={setQuery}
-        maxLength={MAX_TAG_NAME_LENGTH}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
+      {editingTag ? (
+        /* 名前の変更中は、絞り込み欄と同じ場所に入力欄を出す(下の一覧が上下しない)。 */
+        <Input
+          key="rename"
+          autoFocus
+          size="sm"
+          variant="bordered"
+          aria-label="新しいタグ名"
+          placeholder="新しいタグ名"
+          value={draftName}
+          onValueChange={setDraftName}
+          maxLength={MAX_TAG_NAME_LENGTH}
+          isInvalid={draftConflicts}
+          errorMessage={draftConflicts ? "同じ名前のタグが既にあります" : undefined}
+          onKeyDown={(e) => {
+            if (e.key !== "Enter") return;
             e.preventDefault();
-            if (!manageMode) handleCreate();
+            // かな漢字変換の確定の Enter では保存しない(Safari は isComposing が
+            // 立たないことがあるので keyCode 229 も見る)。
+            if (e.nativeEvent.isComposing || e.keyCode === 229) return;
+            handleRename();
+          }}
+        />
+      ) : (
+        <Input
+          size="sm"
+          variant="bordered"
+          placeholder={
+            manageMode ? "タグ名で絞り込み" : "タグ名を入力して選択・作成"
           }
-        }}
-      />
+          value={query}
+          onValueChange={setQuery}
+          maxLength={MAX_TAG_NAME_LENGTH}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              if (!manageMode) handleCreate();
+            }
+          }}
+        />
+      )}
 
-      {manageMode ? (
-        /* 管理モード: 自分のタグ一覧に削除(×)を出す。プリセットは対象外。 */
+      {editingTag ? (
+        /* 名前の変更: 保存するまで一覧には戻さない。 */
+        <div className="flex flex-col gap-2">
+          <p className="text-[0.6875rem] text-default-400">
+            「{editingTag.name}」の名前を変更します。付与済みのデッキ・バージョン・記録・対戦結果にもそのまま反映されます。
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="flat"
+              isDisabled={renaming}
+              onPress={() => setEditingTagId(null)}
+            >
+              キャンセル
+            </Button>
+            <Button
+              size="sm"
+              color="primary"
+              isLoading={renaming}
+              isDisabled={trimmedDraft === "" || draftConflicts}
+              onPress={handleRename}
+            >
+              変更を保存
+            </Button>
+          </div>
+        </div>
+      ) : manageMode ? (
+        /* 管理モード: 自分のタグ一覧で名前の変更と削除(×)を受ける。プリセットは対象外。 */
         <div className="flex flex-col gap-1">
           <p className="text-[0.6875rem] text-default-400">
-            × で削除できます。削除すると、そのタグが付いた全ての対象からも外れます。
+            タグをタップで名前を変更、× で削除できます。削除すると、そのタグが付いた全ての対象からも外れます。
           </p>
           {manageTags.length > 0 ? (
             <div className="flex flex-wrap items-center gap-1">
               {manageTags.map((tag) => (
-                <Chip
+                /*
+                 * 名前の変更と削除の2つの操作を持つので、HeroUI の Chip ではなく
+                 * 素の button を2つ並べた自前のチップにする。
+                 * Chip の onClose は react-aria の usePress で、押下が取り消されると
+                 * click を stopPropagation して本体の onClick ごと無反応になる
+                 * (付与済みチップのコメント参照)。見た目は Chip(sm / flat)に合わせる。
+                 */
+                <span
                   key={tag.id}
-                  size="sm"
-                  variant="flat"
-                  className="h-6 text-[0.6875rem]"
+                  className={`inline-flex h-6 max-w-full items-center rounded-full bg-default/40 text-[0.6875rem] text-default-700 ${
+                    tag.color ? "font-bold" : ""
+                  }`}
                   style={
                     tag.color
                       ? {
@@ -437,18 +567,32 @@ export default function TagSelector({
                         }
                       : undefined
                   }
-                  classNames={tag.color ? { content: "font-bold" } : undefined}
-                  onClose={() => handleDelete(tag)}
                 >
-                  {tag.name}
-                </Chip>
+                  <button
+                    type="button"
+                    aria-label={`タグ「${tag.name}」の名前を変更`}
+                    onClick={() => startRename(tag)}
+                    className="flex h-full min-w-0 items-center gap-1 pl-2 pr-1 active:opacity-70"
+                  >
+                    <LuPencil className="shrink-0 opacity-70" size={11} />
+                    <span className="truncate">{tag.name}</span>
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`タグ「${tag.name}」を削除`}
+                    onClick={() => handleDelete(tag)}
+                    className="flex h-full shrink-0 items-center pl-1 pr-2 opacity-70 active:opacity-40"
+                  >
+                    <LuX size={12} />
+                  </button>
+                </span>
               ))}
             </div>
           ) : (
             <div className="text-tiny text-default-400">
               {normalizedQuery
                 ? "該当するタグがありません"
-                : "削除できるタグがありません"}
+                : "変更・削除できるタグがありません"}
             </div>
           )}
         </div>

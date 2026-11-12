@@ -32,6 +32,7 @@ import {
 } from "@app/components/organisms/Record/recordSettings";
 
 import { RecordGetByIdResponseType } from "@app/types/record";
+import { useTagResolver } from "@app/hooks/useTagResolver";
 
 type SettingKey = "regulation" | "tag" | "ignoreStats";
 
@@ -76,7 +77,8 @@ export default function RecordSettingList({
     onBlockCloseChange?.(openKey !== null || isUpdating);
   }, [openKey, isUpdating, onBlockCloseChange]);
 
-  const tags = record.tags ?? [];
+  // 件数(+N)がずれないよう、この端末での削除を当ててから数える
+  const tags = useTagResolver()(record.tags ?? []);
   const shownTags = tags.slice(0, MAX_TAGS_IN_ROW);
   const restTagCount = tags.length - shownTags.length;
 

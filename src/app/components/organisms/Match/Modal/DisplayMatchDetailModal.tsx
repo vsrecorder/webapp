@@ -29,6 +29,7 @@ import { RecordGetByIdResponseType } from "@app/types/record";
 import { WeeklyDeckUsageStatType } from "@app/types/weekly_deck_usage_stat";
 import { isZeroDate } from "@app/utils/date";
 import { hasPrizeCards } from "@app/utils/match";
+import { useTagResolver } from "@app/hooks/useTagResolver";
 
 // 記録情報モーダル(閲覧モード)で対戦結果をタップしたときに開く詳細モーダル。
 // その1戦を振り返るための情報をまとめて表示する:
@@ -118,6 +119,8 @@ export default function DisplayMatchDetailModal({
   // 理由は HScrollRow と同じ(iOS では overflow スタイルを持つのに溢れていない要素から
   // 始まるスワイプが react-aria に殺されるため。溢れていないときは visible に切り替える)。
   const memoRef = useRef<HTMLDivElement>(null);
+  // 見出しを出すかどうかも、削除を当てたあとのタグで決める
+  const resolveTags = useTagResolver();
   const [memoOverflows, setMemoOverflows] = useState(true);
   useLayoutEffect(() => {
     const el = memoRef.current;
@@ -367,7 +370,7 @@ export default function DisplayMatchDetailModal({
                   )}
 
                   {/* 付与タグ */}
-                  {match.tags && match.tags.length > 0 && (
+                  {(resolveTags(match.tags)?.length ?? 0) > 0 && (
                     <div className="flex flex-col gap-1.5 px-0.5">
                       <div className="flex items-center gap-1 text-[0.625rem] font-bold tracking-wide text-default-400">
                         <LuTags className="text-sm" />

@@ -38,6 +38,7 @@ import { MatchGetResponseType, MatchOrderItemType } from "@app/types/match";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
 import { getSpriteBySlot } from "@app/utils/spriteSlot";
 import { hasPrizeCards } from "@app/utils/match";
+import { useTagResolver } from "@app/hooks/useTagResolver";
 
 type SectionKey = "qualifying" | "final" | "other";
 
@@ -210,6 +211,8 @@ export default function Matches({
   matchCardRef,
   flat = false,
 }: Props) {
+  // この端末でのタグの名前変更・削除を、行のタグ表示へ当てる
+  const resolveTags = useTagResolver();
   const [selectedMatch, setSelectedMatch] = useState<MatchGetResponseType | null>(null);
 
   const {
@@ -704,7 +707,7 @@ export default function Matches({
                                                       )}
                                                       {/* 付与タグ。先攻/後攻・サイド数などの後ろに、
                                                           同じ横スクロール行で続ける。表示は付与順(position 昇順)。 */}
-                                                      {match.tags?.map((tag) => (
+                                                      {resolveTags(match.tags)?.map((tag) => (
                                                         <Chip
                                                           key={tag.id}
                                                           size="sm"

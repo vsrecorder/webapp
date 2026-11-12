@@ -8,6 +8,16 @@ import {
   TagUpdateRequestType,
   TagPresetCategory,
 } from "@app/types/tag";
+import { noteTagDeleted, noteTagRenamed } from "@app/utils/tagOverrides";
+
+// 変更後の名前が自分の別のタグと重なったとき(上流の 409)。
+// 呼び出し側が「失敗」ではなく「同名あり」として入力欄に出せるよう、型で区別する。
+export class TagNameConflictError extends Error {
+  constructor() {
+    super("Tag name already exists");
+    this.name = "TagNameConflictError";
+  }
+}
 
 async function fetcher(url: string): Promise<TagType[]> {
   const res = await fetch(url, {
@@ -91,11 +101,21 @@ export function useTags(presetCategory?: TagPresetCategory) {
       body: JSON.stringify(param),
     });
 
+    if (res.status === 409) {
+      throw new TagNameConflictError();
+    }
+
     if (!res.ok) {
       throw new Error("Failed to update tag");
     }
 
     const updated: TagType = await res.json();
+
+    // 画面のあちこちが応答に埋め込みで持っている古い名前を、表示の時点で読み替えさせる
+    // (utils/tagOverrides.ts)。変える前の名前は、手元の一覧から拾う。
+    const before = data?.find((tag) => tag.id === id);
+    if (before) noteTagRenamed(id, before.name, updated.name);
+
     await mutate();
 
     return updated;
@@ -109,6 +129,9 @@ export function useTags(presetCategory?: TagPresetCategory) {
     if (!res.ok) {
       throw new Error("Failed to delete tag");
     }
+
+    // 付与先の表示からも、取り直しを待たずに外す(utils/tagOverrides.ts)。
+    noteTagDeleted(id);
 
     await mutate();
   }

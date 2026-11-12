@@ -53,7 +53,11 @@ import {
   cityleagueRankLabel,
 } from "@app/utils/cityleagueRank";
 import { CITYLEAGUE_CARD_IMAGE_WIDTH_CLASS } from "@app/utils/cityleagueCardImage";
-import { deckArchetypeToDeckDraft, deckDisplayName } from "@app/utils/deckArchetype";
+import {
+  deckArchetypeToDeckDraft,
+  deckDisplayName,
+  NO_DECK_CODE_DECK_NAME,
+} from "@app/utils/deckArchetype";
 import { toJSTDateString } from "@app/utils/date";
 import { isSimilarDecksAvailableOn } from "@app/utils/similarDecks";
 
@@ -115,7 +119,6 @@ const NO_DECK_CODE_ARCHETYPE: DeckArchetypeType = {
   label: null,
   sprites: [],
 };
-const NO_DECK_CODE_NAME = "デッキコード未掲載";
 
 /*
  * デッキコードなしのときのデッキ画像。枠と読み込み中の見せ方は、デッキコードがあるときに
@@ -415,7 +418,7 @@ export default function CityleagueResultCard({
                   <div className="pb-1">
                     <DeckArchetypeLabel
                       archetype={NO_DECK_CODE_ARCHETYPE}
-                      unclassifiedName={NO_DECK_CODE_NAME}
+                      unclassifiedName={NO_DECK_CODE_DECK_NAME}
                     />
                   </div>
                 )}
@@ -531,7 +534,7 @@ export default function CityleagueResultCard({
                               <div className="-mb-1.5">
                                 <DeckArchetypeLabel
                                   archetype={NO_DECK_CODE_ARCHETYPE}
-                                  unclassifiedName={NO_DECK_CODE_NAME}
+                                  unclassifiedName={NO_DECK_CODE_DECK_NAME}
                                 />
                               </div>
                             )}

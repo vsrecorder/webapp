@@ -26,6 +26,10 @@ import { formatMainPokemon } from "@app/utils/deckSummary";
  */
 export const DECK_ARCHETYPE_FIRST_SEASON = 2027;
 
+// デッキコードを掲載していない入賞のデッキ名。入賞カード(unknown の 2 枠と並べる)と、
+// 個別ページの OGP 画像の優勝デッキで同じ呼び名にする
+export const NO_DECK_CODE_DECK_NAME = "デッキコード未掲載";
+
 // vslab が 1 回の照会で受け付けるデッキコードの上限(vslab の MAX_DECK_CODES と同じ)
 export const DECK_ARCHETYPE_CODES_PER_REQUEST = 100;
 

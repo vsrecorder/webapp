@@ -27,6 +27,7 @@ import { rankInfoForName } from "@app/utils/designationRank";
 import { environmentBadgeImageUrl } from "@app/utils/badgeImage";
 import { formatJSTDateNumeric } from "@app/utils/date";
 import { isSameOriginPath } from "@app/utils/url";
+import { useLastPositive } from "@app/hooks/useLastPositive";
 
 const NOTIFICATIONS_LIMIT = 30;
 const POLL_INTERVAL_MS = 60 * 1000;
@@ -112,6 +113,9 @@ export default function NotificationBell({ userId }: Props) {
     () => notifications.filter((n) => !n.is_read).length,
     [notifications],
   );
+  // 未読が 0 件になってバッジがフェードアウトする間、中身が「0」に変わってちらつかないよう、
+  // 消えている間は最後の件数を出しておく
+  const badgeCount = useLastPositive(unreadCount);
 
   // 環境バッジ通知(body内の対戦環境名)に対応する画像を引くためのタイトル→environment_idマップ
   const environmentIdByTitle = useMemo(
@@ -233,7 +237,7 @@ export default function NotificationBell({ userId }: Props) {
           className="text-white/70 hover:text-white"
         >
           <Badge
-            content={unreadCount}
+            content={badgeCount}
             color="danger"
             shape="circle"
             size="sm"
@@ -375,9 +379,12 @@ export default function NotificationBell({ userId }: Props) {
                   }
                   className={[
                     !isLast && "border-b border-default-200 dark:border-default-200",
+                    // 「すべて既読にする」でメニューを開いたまま既読に変わるとき、未読行の上下の余白と
+                    // 背景が1フレームで消えると一覧全体が跳ねてちらつくので、余白と背景は動かして変える
+                    "transition-[margin,background-color] duration-200 motion-reduce:transition-none",
                     notification.is_read
-                      ? ""
-                      : "mt-1.5 mb-1.5 bg-primary-50 dark:bg-primary-950/30",
+                      ? "my-0"
+                      : "my-1.5 bg-primary-50 dark:bg-primary-950/30",
                   ]
                     .filter(Boolean)
                     .join(" ")}
@@ -385,9 +392,16 @@ export default function NotificationBell({ userId }: Props) {
                 >
                   <div className="flex flex-col gap-1 py-1">
                     <div className="flex items-center gap-1.5">
-                      {!notification.is_read && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-primary-500 shrink-0" />
-                      )}
+                      {/*
+                       * 未読の点。既読で要素ごと消すとタイトルが点と gap の分(12px)だけ左へ跳ぶので、
+                       * 常に置いておき、既読では幅 0 ＋ 負の margin で gap を打ち消して畳む
+                       */}
+                      <span
+                        aria-hidden
+                        className={`h-1.5 rounded-full bg-primary-500 shrink-0 transition-[width,margin,opacity] duration-200 motion-reduce:transition-none ${
+                          notification.is_read ? "w-0 -mr-1.5 opacity-0" : "w-1.5 opacity-100"
+                        }`}
+                      />
                       <span className="text-sm font-medium truncate">
                         {notification.title}
                       </span>

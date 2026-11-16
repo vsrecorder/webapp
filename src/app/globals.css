@@ -880,3 +880,98 @@ textarea {
     animation: none;
   }
 }
+
+/*
+ * 記録中バーの暗幕(components/molecules/BottomBanner.tsx の dimBackground)。
+ *
+ * バーが出ているあいだ、バー以外(ヘッダー・タブなどの固定バー・本文)を暗くしてバーを
+ * 目立たせる。下部ナビは押す場所なので暗くしない。タップは背面へ通す
+ * (pointer-events:none はクラス側)。
+ *
+ * 重なりの段。暗幕が出ているあいだは次のとおりで、どれも違う値にしてある。同じ値どうしだと
+ * 前後が DOM の並びで決まり、置き場所が変わっただけで重なりが入れ替わるため。
+ *
+ *   44  上部の固定要素(ヘッダー・タブのバー。目印 .app-top-chrome)  普段は 50。下の規則で下げる
+ *   45  暗幕(.bottom-banner-dim)
+ *   46  記録中バー(BottomBanner の外枠)                              普段は 40
+ *   47  下部ナビ(目印 .mobile-nav)                                   普段は 50。暗幕より上で暗くならない
+ *   50  HeroUI のモーダル(backdrop・wrapper)
+ *   95〜 アップデート中の覆い・トースト(100)・メニューやセレクト(react-aria が 100000)
+ *
+ * 上部に z-50 の固定要素を新しく作るときは .app-top-chrome を付けること(utils/headerBar の
+ * TOP_CHROME。HEADER_BAR には含まれている)。付け忘れると暗幕の上に出て暗くならない。
+ * 下の規則は Tailwind の z-50(@layer utilities)より強い(このファイルの規則はレイヤーの外)。
+ *
+ * 自前の暗幕を持つものが開いているあいだは、この暗幕を消す(重なると二重に暗くなる)。
+ *   ・モーダル … HeroUI Modal は開いている間 aria-modal="true" を付ける
+ *   ・暗幕付きのメニュー・吹き出し(ユーザーメニュー・通知・対戦環境など) … AppDropdown /
+ *     AppPopover の暗幕には目印 .app-overlay-backdrop が付く(utils/closingBackdrop)。
+ *     見た目が透明な層(指定なしの既定)は .bg-transparent も付くので除く
+ *   ・記録詳細の「…」メニューの暗幕(RecordActionsFloating) … data-dims-page
+ */
+:root {
+  --banner-dim-color: rgb(0 0 0 / 0.4);
+}
+
+.dark:not(.light *) {
+  /* 暗い地では同じ濃さだと差が出ないので濃くする */
+  --banner-dim-color: rgb(0 0 0 / 0.6);
+}
+
+.bottom-banner-dim {
+  background-color: var(--banner-dim-color);
+  transition: opacity 200ms ease-out;
+  animation: bottom-banner-dim-in 300ms ease-out;
+}
+
+/*
+ * ホーム画面アプリでは、真上の通知バーを OS が単色で塗る(暗幕は届かない)。ヘッダーを上端から
+ * 暗くすると、明るい通知バーと暗いヘッダーの境目がくっきり出て、.header-statusbar-blend で
+ * 溶かした継ぎ目が台無しになる。上端は暗くせず、ヘッダーの下端(h-14 / lg は帯込みで 7rem)に
+ * かけて暗くする。その下のタブのバーと本文は普段どおり暗い。
+ */
+:root[data-standalone="true"] .bottom-banner-dim {
+  --banner-dim-fade-end: 3.5rem;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 var(--banner-dim-fade-end)
+  );
+  mask-image: linear-gradient(to bottom, transparent, #000 var(--banner-dim-fade-end));
+}
+
+@media (min-width: 64rem) {
+  :root[data-standalone="true"] .bottom-banner-dim {
+    --banner-dim-fade-end: 7rem;
+  }
+}
+
+body:has(.bottom-banner-dim) .app-top-chrome {
+  z-index: 44;
+}
+
+body:has(.bottom-banner-dim) .mobile-nav {
+  z-index: 47;
+}
+
+body:has(
+    [aria-modal="true"],
+    .app-overlay-backdrop:not(.bg-transparent),
+    [data-dims-page]
+  )
+  .bottom-banner-dim {
+  opacity: 0;
+}
+
+@keyframes bottom-banner-dim-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bottom-banner-dim {
+    transition: none;
+    animation: none;
+  }
+}

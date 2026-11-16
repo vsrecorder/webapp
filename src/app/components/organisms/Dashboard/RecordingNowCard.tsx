@@ -30,6 +30,9 @@ import {
   recordingDismissedValue,
 } from "@app/utils/recordingNow";
 import { writeSessionStorage } from "@app/utils/sessionStorageStore";
+import { useDayChangedSince } from "@app/hooks/useDayChangedSince";
+import { isFetchedOnAnotherDay, useRecordingNow } from "@app/hooks/useRecordingNow";
+import { useTodayJST } from "@app/hooks/useTodayJST";
 
 // 経過時間の表示を更新する間隔。分単位でしか出さないので1分で足りる
 const ELAPSED_REFRESH_MS = 60 * 1000;
@@ -67,9 +70,10 @@ type Props = {
  *
  * 出す・出さないの判定はサーバ側(utils/recordingNowServer)が済ませてあり、
  * このコンポーネントは「出すと決まったとき」だけ描画される。
- * クライアントで面倒を見るのは、描画したあとに変わる次の2つだけ:
+ * クライアントで面倒を見るのは、描画したあとに変わる次の3つだけ:
  *   ・「記録を終える」を押した(cookie に残して消す)
  *   ・開いたまま窓を過ぎた(消す)
+ *   ・開いたまま日付が変わった(記録中は開催日が今日の記録だけなので消す)
  */
 export default function RecordingNowCard({
   record,
@@ -89,6 +93,31 @@ export default function RecordingNowCard({
   const [elapsedLabel, setElapsedLabel] = useState(initialElapsedLabel);
   // 開いたまま窓を過ぎたら消す(PWAでホームを出しっぱなしにしている場合)
   const [expired, setExpired] = useState(false);
+
+  /*
+   * 日付が変わったら消す。記録中は開催日が今日の記録だけで、それはサーバが判定済み
+   * (utils/recordingNow)。端末の時計で開催日とは比べない(hooks/useRecordingNow)。
+   *
+   * このカードはサーバ描画だが、描画結果はブラウザの戻る・進むや先読みで使い回されるので、
+   * 0時前に描いたものが0時過ぎに出てくることがある。そこで画面下のバーと同じ取得結果
+   * (サーバの今の答え)も見て、次のどれかなら消す。
+   *   ・同じ記録を取得した日から、端末の日付が変わっている
+   *   ・表示を始めたあとに取り直した結果が、記録中なし・別の記録
+   *   ・表示してから端末の日付が変わった(取得に失敗していても0時には消す)
+   *
+   * 取り直す前の結果で「記録中なし・別の記録」を信じないのは、取得が古いだけのことがあるため
+   * (前日の夜に取った「記録中なし」のまま朝ホームを開くと、今日の記録が一瞬消えてまた出る)。
+   * 表示を始めたときの結果を控え、それと参照が違えば取り直したとみなす。
+   */
+  const today = useTodayJST();
+  const { data: snapshot } = useRecordingNow();
+  const [snapshotAtMount] = useState(snapshot);
+  const fetchedAfterMount = snapshot !== undefined && snapshot !== snapshotAtMount;
+  const sameRecord = snapshot?.recording?.recordId === record.id;
+  const dayPassed =
+    useDayChangedSince(record.id) ||
+    (snapshot !== undefined && sameRecord && isFetchedOnAnotherDay(snapshot, today)) ||
+    (fetchedAfterMount && !sameRecord);
 
   // 「記録を終える」の確認。押し間違いで今日のあいだ消えてしまうのを防ぐ
   const {
@@ -121,13 +150,13 @@ export default function RecordingNowCard({
    * ときに DashboardSections が古い pinnedIds から並びを書き戻してしまう。
    */
   useEffect(() => {
-    if (!dismissed && !expired) return;
+    if (!dismissed && !expired && !dayPassed) return;
 
     dropRecordingNowFromStoredLayout();
     router.refresh();
-  }, [dismissed, expired, router]);
+  }, [dismissed, expired, dayPassed, router]);
 
-  if (dismissed || expired) return null;
+  if (dismissed || expired || dayPassed) return null;
 
   const total = summary?.total ?? 0;
   const draws = summary?.draws ?? 0;
@@ -143,7 +172,7 @@ export default function RecordingNowCard({
   // 確認モーダルで了解を得てから呼ぶ
   function handleFinish() {
     sendGAEvent("event", "recording_now_finish_click");
-    // 日付を含めた値にしておくと、日が変わった時点で古い値は一致しなくなる
+    // 終えた記録のIDを残す(値の形は recordingDismissedValue の説明)
     writeClientCookie(
       RECORDING_DISMISSED_COOKIE,
       recordingDismissedValue(record.id),

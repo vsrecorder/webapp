@@ -11,6 +11,7 @@ import { UserType } from "@app/types/user";
 import { EnvironmentType } from "@app/types/environment";
 import { getAppIconUrl, isDevEnv } from "@app/utils/appIcon";
 import { getStatusBarColor } from "@app/utils/pwaColors";
+import { TOP_CHROME } from "@app/utils/headerBar";
 import { todayJSTDateString } from "@app/utils/date";
 
 import { upstreamUrl } from "@app/utils/upstream";
@@ -68,11 +69,13 @@ function HeaderShell({
         本サービスはモバイル専用のため、デスクトップ幅（lg以上）でのみ非対応の旨を表示する。
         サイドバーの上も含めた画面全幅の帯にする(サイドバーとヘッダーはこの下に並ぶ)
       */}
-      <div className="fixed z-50 top-0 left-0 right-0 hidden lg:flex items-center justify-center h-8 bg-amber-400 text-amber-950 text-xs font-semibold">
+      <div
+        className={`fixed z-50 ${TOP_CHROME} top-0 left-0 right-0 hidden lg:flex items-center justify-center h-8 bg-amber-400 text-amber-950 text-xs font-semibold`}
+      >
         本サービスはモバイル専用です。デスクトップでの動作は保証されません。
       </div>
       <header
-        className={`fixed z-50 top-0 lg:top-8 left-0 right-0 h-14 lg:h-20 ${hasSidebar ? "lg:left-56" : ""}`}
+        className={`fixed z-50 ${TOP_CHROME} top-0 lg:top-8 left-0 right-0 h-14 lg:h-20 ${hasSidebar ? "lg:left-56" : ""}`}
       >
         {/*
           iOS の standalone PWA では、position:fixed な要素に直接 backdrop-blur を

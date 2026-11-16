@@ -33,6 +33,11 @@ type Props = {
    * 見た目で、広い画面では作業領域を覆う異物になる)。出す場合は右下へ寄せる。
    */
   desktop?: boolean;
+  /*
+   * 出ているあいだ、帯以外の画面を暗くするか(記録中バーで使う)。下部ナビは暗くしない。
+   * 重なりの段は globals.css の .bottom-banner-dim の表に従う。
+   */
+  dimBackground?: boolean;
 };
 
 export default function BottomBanner({
@@ -40,6 +45,7 @@ export default function BottomBanner({
   dismissLabel,
   onDismiss,
   desktop = false,
+  dimBackground = false,
 }: Props) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -67,29 +73,45 @@ export default function BottomBanner({
   }, []);
 
   return (
-    /*
-     * 外枠は場所を決めるだけ。角丸・枠線・面は内側が持つ。
-     *
-     * 分けているのは、閉じるボタンが角から外へはみ出すため。角丸を外枠に持たせると
-     * 中身を切る(overflow-hidden)ためにボタンまで欠け、切らなければ中身(記録中バーの
-     * 左端のアクセント)が角からはみ出して枠線と合わなくなる。
-     */
-    <div
-      /*
+    <>
+      {/*
+        帯以外を暗くする幕。色・出入りの動き・モーダル中に消す指定、ほかの要素との重なりの段は
+        globals.css の .bottom-banner-dim が持つ。タップは背面へ通し、暗いだけで操作は止めない。
+      */}
+      {dimBackground && (
+        <div
+          aria-hidden
+          className="bottom-banner-dim pointer-events-none fixed inset-0 z-[45]"
+        />
+      )}
+      {/*
+       * 外枠は場所を決めるだけ。角丸・枠線・面は内側が持つ。
+       *
+       * 分けているのは、閉じるボタンが角から外へはみ出すため。角丸を外枠に持たせると
+       * 中身を切る(overflow-hidden)ためにボタンまで欠け、切らなければ中身(記録中バーの
+       * 左端のアクセント)が角からはみ出して枠線と合わなくなる。
+       */}
+      <div
+        ref={ref}
+        /*
         重なりは z-40。モーダル(HeroUI は backdrop ともに z-50)より下に置くためで、
         同値にすると重なり順が DOM の並び任せになり、記録一覧などでカードのモーダルを
-        開いたときに帯が前に出かねない。位置で重なるのは下部ナビ(z-50)だけだが、
+        開いたときに帯が前に出かねない。位置で重なるのは下部ナビ(z-50。暗幕中は 47)だけだが、
         帯はその上に浮いているので隠れることはない。
-      */
-      className={`fixed z-40 bottom-[calc(var(--mobile-nav-height)+env(safe-area-inset-bottom)+0.5rem)] left-2 right-2 ${
-        desktop ? "lg:bottom-6 lg:left-auto lg:right-6 lg:w-[26rem]" : ""
-      }`}
-    >
-      <DismissBadgeButton label={dismissLabel} onPress={onDismiss} />
 
-      <div className="overflow-hidden rounded-2xl border border-divider bg-content1 shadow-xl">
-        {children}
+        暗幕を出すときは z-[46](暗幕の 45 の一つ上)。重なりの段は globals.css の
+        .bottom-banner-dim の表のとおりで、どれも違う値にしてあり DOM の並びには頼らない。
+      */
+        className={`fixed ${dimBackground ? "z-[46]" : "z-40"} bottom-[calc(var(--mobile-nav-height)+env(safe-area-inset-bottom)+0.5rem)] left-2 right-2 ${
+          desktop ? "lg:bottom-6 lg:left-auto lg:right-6 lg:w-[26rem]" : ""
+        }`}
+      >
+        <DismissBadgeButton label={dismissLabel} onPress={onDismiss} />
+
+        <div className="overflow-hidden rounded-2xl border border-divider bg-content1 shadow-xl">
+          {children}
+        </div>
       </div>
-    </div>
+    </>
   );
 }

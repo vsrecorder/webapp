@@ -9,14 +9,15 @@ import { toJSTDateString, todayJSTDateString } from "@app/utils/date";
  * 記録カードを開いてメニューを辿らなくても、ホームから直接1件足せるようにする。
  *
  * 出す条件は3つとも満たすこと:
- *   1. event_date が今日か昨日(JST)の記録のうち、最新の1件
+ *   1. event_date が今日(JST)の記録のうち、最新の1件
  *   2. その記録の「最後の動き」から、起点ごとに決まる窓の内側にいること
  *      (対戦が1件以上 → last_match_at から6時間 / 対戦0件 → created_at から18時間)
  *   3. 「記録を終える」で閉じられていない
  *
  * 逆に、次のどれかで消える:
- *   ・最後の動きから窓のぶん経つ(日付が変わっただけでは消さない。深夜の記録を切らないため)
- *   ・「記録を終える」を押す(その日のあいだ出さない)
+ *   ・最後の動きから窓のぶん経つ
+ *   ・日付が変わる(開いたままの画面でも、カードとバーが0時にその場で消える)
+ *   ・「記録を終える」を押す
  *
  * 時刻の扱いに注意。event_date は DATE カラムで UTC 0時に寄って返るため、
  * 暦日の一致は toJSTDateString() の文字列比較で行う。一方 created_at /
@@ -51,7 +52,7 @@ export const RECORDING_WINDOW_AFTER_MATCH_MS = 6 * 60 * 60 * 1000;
  */
 export const RECORDING_DISMISSED_COOKIE = "recordingDismissed";
 
-// cookie の寿命。日付が変われば値自体が無効になるので、丸一日あれば足りる。
+// cookie の寿命。記録中は今日の記録だけなので、丸一日あれば足りる。
 export const RECORDING_DISMISSED_COOKIE_MAX_AGE = 60 * 60 * 24;
 
 /*
@@ -115,9 +116,10 @@ export function isRecordingBarHidden(
 /*
  * cookie に入れる値。終えた記録のIDそのもの。
  *
- * かつては "YYYY-MM-DD:recordId" として日付で失効させていたが、記録中が日付をまたぐように
- * なったので、日付で切ると「終えたはずの記録が0時に戻ってくる」ことになる。
- * 失効は cookie の寿命(24時間。窓の最長18時間より長い)に任せる。
+ * かつては "YYYY-MM-DD:recordId" として日付で失効させていた。記録中が日付をまたいでいた
+ * 時期に、日付で切ると「終えたはずの記録が0時に戻ってくる」ためにやめた。
+ * いまは記録中が今日の記録だけなので日付で切っても戻らないが、記録IDだけで足りるので
+ * このままにしている。失効は cookie の寿命(24時間)に任せる。
  */
 export function recordingDismissedValue(recordId: string): string {
   return recordId;
@@ -144,45 +146,46 @@ export function isRecordingDismissed(
 }
 
 /*
- * 記録中の候補になる記録(イベント日が今日か昨日)のうち、最新の1件を返す。
+ * 記録中の候補になる記録(イベント日が今日)のうち、最新の1件を返す。
  *
- * 昨日まで見るのは、日付をまたいで記録を続けることがあるため。PTCGL を深夜に回したり、
- * 大会のあと帰ってから入力したりすると、0時をまたいだ瞬間にイベント日が「今日」で
- * なくなる。そこで消えてしまうと、いちばん記録したい場面で使えない。
+ * 今日だけを見る。開催日を過ぎた記録は「大会の最中」ではないので、0時を過ぎたら
+ * ホームのカードも画面下のバーも出さない。今日かどうかはここ(サーバの時計)だけで決める。
+ * 開いたままの画面で0時を迎えた場合や、0時前の結果が0時過ぎに出てきた場合は、カードとバーが
+ * 「取得してから端末の日付が変わったか」を見て消える(hooks/useRecordingNow)。端末の時計で
+ * 開催日と比べ直さないのは、時計が日付単位でずれた端末で、記録中なのに出なくなるため。
  *
- * それ以上は遡らない。何日も前の記録に対戦を足すのは「あとから整理している」のであって
- * 記録中ではない。実際にいつ引っ込むかは、この先の窓(最後の動きから6時間/18時間)が決める。
+ * 経緯(2026-11-16): 以前は昨日まで見て、0時をまたいで入力する人(大会のあと帰ってから
+ * 入力するなど)のために出し続けていた。暗幕付きのバーを入れたのを機に、0時過ぎは
+ * 出さないことにした(行き来があったので、戻すときはバーとカードの扱いも併せて見ること)。
  *
  * 記録一覧は event_date DESC, created_at DESC で返るため、条件に合う最初の1件が
  * そのまま「最新」になる。候補が複数ある日(午前ジム・午後シティ)でも最新だけを見て、
  * それが窓を過ぎていれば2件目は見に行かない。
  *
- * 未来日の記録(大会の予定を先に作った場合)はどちらとも一致しないので自然に外れる。
+ * 未来日の記録(大会の予定を先に作った場合)は一致しないので自然に外れる。
  * event_date が未設定(ゼロ値)の記録も同じく外れる。
  */
 export function pickRecordingCandidate(
   records: readonly RecordType[],
   today: string = todayJSTDateString(),
 ): RecordType | null {
-  const yesterday = previousDate(today);
-
   for (const record of records) {
-    const eventDate = record.data.event_date;
-    if (!eventDate) continue;
-
-    const date = toJSTDateString(eventDate);
-    if (date === today || date === yesterday) return record;
+    if (isRecordingEventToday(record.data.event_date, today)) return record;
   }
 
   return null;
 }
 
-// "YYYY-MM-DD" の前日。暦日どうしの計算なので実行時刻に依存しない
-function previousDate(dateString: string): string {
-  const date = new Date(`${dateString}T00:00:00Z`);
-  date.setUTCDate(date.getUTCDate() - 1);
+/*
+ * 記録の開催日(API の生の値。UTC 0時に寄った日時)が今日(JST)か。未設定なら false。
+ */
+export function isRecordingEventToday(
+  eventDate: string | null | undefined,
+  today: string,
+): boolean {
+  if (!eventDate) return false;
 
-  return date.toISOString().split("T")[0];
+  return toJSTDateString(eventDate) === today;
 }
 
 export type RecordingActivity = {

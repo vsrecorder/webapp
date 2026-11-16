@@ -1,5 +1,7 @@
 import { Skeleton } from "@heroui/react";
 
+import { TOP_CHROME } from "@app/utils/headerBar";
+
 type Props = {
   // 表示するタブ数（実ページのタブ数に合わせる）。
   count: number;
@@ -39,7 +41,7 @@ export default function FixedTabBarSkeleton({
   barClassName = "bg-default-100",
 }: Props) {
   return (
-    <div className={`fixed z-50 pl-1 pr-1 ${positionClassName}`}>
+    <div className={`fixed z-50 ${TOP_CHROME} pl-1 pr-1 ${positionClassName}`}>
       <div className={`flex w-full gap-2 rounded-medium p-1 ${barClassName}`}>
         {Array.from({ length: count }).map((_, i) => (
           <Skeleton key={i} className="h-8 flex-1 rounded-small" />

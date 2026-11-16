@@ -1,9 +1,14 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { SWRConfig } from "swr";
+
+import { RecordingNowSnapshot } from "@app/hooks/useRecordingNow";
 import { MatchSummaryType } from "@app/types/match";
+import { RecordingNowBarType } from "@app/types/recording_now";
 import { RecordGetByIdResponseType } from "@app/types/record";
+import { todayJSTDateString } from "@app/utils/date";
 import {
   RECORDING_WINDOW_AFTER_MATCH_MS,
   RECORDING_WINDOW_NO_MATCH_MS,
@@ -41,7 +46,8 @@ const record = {
   regulation_id: 1,
   tcg_meister_url: "",
   memo: "",
-  event_date: "2026-09-15T00:00:00Z",
+  // 記録中は開催日が今日の記録だけ。DATE カラムは UTC 0時に寄って返る
+  event_date: `${todayJSTDateString()}T00:00:00Z`,
   unofficial_event_id: "e1",
   tags: [],
 } as unknown as RecordGetByIdResponseType;
@@ -62,20 +68,57 @@ function minutesAgo(minutes: number): string {
   return new Date(Date.now() - minutes * 60 * 1000).toISOString();
 }
 
-function renderCard(props: Partial<Parameters<typeof RecordingNowCard>[0]> = {}) {
+/*
+ * 画面下のバーと共有する取得結果(/api/recording_now)。カードはこれでも消える
+ * (hooks/useRecordingNow)。fallback を渡すと、それを「表示を始めたときに持っていた結果」にする。
+ */
+function snapshotOf(
+  recordId: string | null,
+  fetchedDay: string = todayJSTDateString(),
+): RecordingNowSnapshot {
+  return {
+    recording: recordId === null ? null : ({ recordId } as RecordingNowBarType),
+    fetchedDay,
+    fetchedAt: Date.now(),
+  };
+}
+
+function stubRecordingNowFetch(recordId: string | null) {
+  const fetchMock = vi.fn(async () => ({
+    ok: true,
+    json: async () => ({
+      recording: recordId === null ? null : ({ recordId } as RecordingNowBarType),
+    }),
+  }));
+  vi.stubGlobal("fetch", fetchMock);
+  return fetchMock;
+}
+
+function renderCard(
+  props: Partial<Parameters<typeof RecordingNowCard>[0]> = {},
+  fallback?: RecordingNowSnapshot,
+) {
   return render(
-    <RecordingNowCard
-      record={record}
-      eventTitle="第12回 ジムバトル"
-      eventIconUrl={null}
-      venue="カードショップ○○"
-      deck={{ id: "d1", name: "リザードンex", pokemon_sprites: [] }}
-      summary={summary}
-      lastActiveAt={minutesAgo(42)}
-      windowMs={RECORDING_WINDOW_AFTER_MATCH_MS}
-      initialElapsedLabel="42分前"
-      {...props}
-    />,
+    <SWRConfig
+      value={{
+        provider: () => new Map(),
+        dedupingInterval: 0,
+        fallback: fallback ? { "/api/recording_now": fallback } : {},
+      }}
+    >
+      <RecordingNowCard
+        record={record}
+        eventTitle="第12回 ジムバトル"
+        eventIconUrl={null}
+        venue="カードショップ○○"
+        deck={{ id: "d1", name: "リザードンex", pokemon_sprites: [] }}
+        summary={summary}
+        lastActiveAt={minutesAgo(42)}
+        windowMs={RECORDING_WINDOW_AFTER_MATCH_MS}
+        initialElapsedLabel="42分前"
+        {...props}
+      />
+    </SWRConfig>,
   );
 }
 
@@ -87,11 +130,19 @@ describe("RecordingNowCard", () => {
     sessionStorage.clear();
     push.mockClear();
     refresh.mockClear();
+    // 取り直しは既定では返ってこない(表示を始めたときの結果のまま見る)。返すテストだけ差し替える
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => new Promise(() => {})),
+    );
   });
 
   // vitest は globals を有効にしていないため、描画の後片付けは自分で行う
   // (残すと次のテストで同じ文言が2つ見つかる)
-  afterEach(cleanup);
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
 
   it("イベント名・使用デッキ・戦績と追加ボタンを出す", () => {
     renderCard();
@@ -211,5 +262,96 @@ describe("RecordingNowCard", () => {
 
     // ScrollingText は溢れ判定用の不可視コピーも持つため、1つ以上あることだけ見る
     expect(screen.getAllByText("無題のイベント").length).toBeGreaterThan(0);
+  });
+
+  // 今日の記録かはサーバが決める。端末の時計が日付単位でずれていても、渡されたものは出す
+  it("端末の日付が開催日と違っても出す", () => {
+    vi.useFakeTimers();
+    try {
+      // JST 2026-11-20 12:00(開催日は 11-16)
+      vi.setSystemTime(new Date("2026-11-20T03:00:00Z"));
+
+      renderCard({
+        record: { ...record, event_date: "2026-11-16T00:00:00Z" },
+        lastActiveAt: minutesAgo(10),
+      });
+
+      expect(screen.getAllByText("第12回 ジムバトル").length).toBeGreaterThan(0);
+      expect(refresh).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("開いたまま0時を迎えたら消える", () => {
+    vi.useFakeTimers();
+    try {
+      // JST 2026-11-16 23:59 = UTC 14:59
+      vi.setSystemTime(new Date("2026-11-16T14:59:00Z"));
+
+      renderCard({
+        record: { ...record, event_date: "2026-11-16T00:00:00Z" },
+        lastActiveAt: minutesAgo(10),
+      });
+      expect(screen.getAllByText("第12回 ジムバトル").length).toBeGreaterThan(0);
+
+      act(() => {
+        vi.advanceTimersByTime(60 * 1000);
+      });
+
+      expect(screen.queryByText("第12回 ジムバトル")).toBeNull();
+      // 骨格の並びから外し、サーバ側の構成も取り直す
+      expect(refresh).toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  /*
+   * ブラウザの戻る・先読みで、0時前の描画結果が0時過ぎに出てくる場合。描き始めたときを
+   * 起点にすると見抜けないので、取得したときの日付で消す。
+   */
+  it("同じ記録を取得したのが前の日なら、0時過ぎに描き始めても出さない", async () => {
+    renderCard({}, snapshotOf(record.id, "2026-01-01"));
+
+    expect(screen.queryByText("第12回 ジムバトル")).toBeNull();
+    await waitFor(() => expect(refresh).toHaveBeenCalled());
+  });
+
+  it("取り直した結果が「記録中なし」なら消え、サーバ側の構成も取り直す", async () => {
+    const fetchMock = stubRecordingNowFetch(null);
+
+    renderCard();
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    await waitFor(() => expect(screen.queryByText("第12回 ジムバトル")).toBeNull());
+    expect(refresh).toHaveBeenCalled();
+  });
+
+  it("取り直した結果が別の記録なら消える", async () => {
+    stubRecordingNowFetch("01OTHERRECORD0000000000000");
+
+    renderCard();
+
+    await waitFor(() => expect(screen.queryByText("第12回 ジムバトル")).toBeNull());
+  });
+
+  it("取り直して同じ記録なら出したまま", async () => {
+    const fetchMock = stubRecordingNowFetch(record.id);
+
+    renderCard();
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(screen.getAllByText("第12回 ジムバトル").length).toBeGreaterThan(0);
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
+  // 前日の夜に取った「記録中なし」が残ったまま、朝ホームを開いた場合など。取り直すまでは信じない
+  it("取り直す前の古い「記録中なし」では消さない", () => {
+    renderCard({}, snapshotOf(null, "2026-01-01"));
+
+    expect(screen.getAllByText("第12回 ジムバトル").length).toBeGreaterThan(0);
+    expect(refresh).not.toHaveBeenCalled();
   });
 });

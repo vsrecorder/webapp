@@ -11,6 +11,7 @@ import {
   formatJSTTime,
   formatJSTYearMonth,
   isZeroDate,
+  msUntilNextJSTMidnight,
   nonZeroDate,
   toJSTDateString,
 } from "@app/utils/date";
@@ -126,5 +127,19 @@ describe("JST固定の表示書式", () => {
 
   it("JST_TIME_ZONE は IANA のタイムゾーン名", () => {
     expect(JST_TIME_ZONE).toBe("Asia/Tokyo");
+  });
+});
+
+describe("msUntilNextJSTMidnight", () => {
+  it("JST の0時までの残りを返す(UTC の0時ではない)", () => {
+    // JST 2026-11-16 23:59:00 = UTC 14:59:00
+    expect(msUntilNextJSTMidnight(Date.parse("2026-11-16T14:59:00Z"))).toBe(60 * 1000);
+    // JST 2026-11-17 09:00:00 = UTC 00:00:00。次の JST 0時まで15時間
+    expect(msUntilNextJSTMidnight(Date.parse("2026-11-17T00:00:00Z"))).toBe(15 * 60 * 60 * 1000);
+  });
+
+  it("ちょうど0時なら丸1日先を返す(0 にしてタイマーを空回りさせない)", () => {
+    // JST 2026-11-17 00:00:00 = UTC 2026-11-16 15:00:00
+    expect(msUntilNextJSTMidnight(Date.parse("2026-11-16T15:00:00Z"))).toBe(24 * 60 * 60 * 1000);
   });
 });

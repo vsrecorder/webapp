@@ -20,5 +20,13 @@ export const HEADER_BAR_TOP = "top-15 lg:top-29";
 // 幅の var には 0px の既定値を付ける。万一この変数が無い文脈で使われても、幅が無効値(→ auto で
 // 中身ぶんに縮む)にならず全幅に倒れるようにするため(left は既存のとおり変数のまま)
 export const HEADER_BAR_X = "left-(--sidebar-width) w-[calc(100%-var(--sidebar-width,0px))]";
+/*
+ * 画面上部に貼り付く固定要素(ヘッダーと、その直下のタブなどのバー)の目印。
+ *
+ * 記録中バーの暗幕が出ているあいだ、これの付いた要素は z-50 から暗幕の下の段へ下がる
+ * (globals.css の .bottom-banner-dim の説明)。上部に z-50 の固定要素を新しく作るときは、
+ * HEADER_BAR を使うか、このクラスを付けること。付け忘れると暗幕の上に出て暗くならない。
+ */
+export const TOP_CHROME = "app-top-chrome";
 // ヘッダー直下に貼り付くバー(fixed)の位置ひとそろい。z-50 はヘッダーと同じ
-export const HEADER_BAR = `fixed z-50 ${HEADER_BAR_TOP} ${HEADER_BAR_X}`;
+export const HEADER_BAR = `fixed z-50 ${TOP_CHROME} ${HEADER_BAR_TOP} ${HEADER_BAR_X}`;

@@ -2,14 +2,8 @@ import { mutate } from "swr";
 
 import { refreshClientRouterCache } from "@app/actions/routerCache";
 
-import { readClientCookie, writeClientCookie } from "@app/utils/clientCookie";
-import {
-  DASHBOARD_LAYOUT_COOKIE,
-  DASHBOARD_LAYOUT_COOKIE_MAX_AGE,
-  RECORDING_NOW_BLOCK_IDS,
-  parseDashboardLayout,
-  serializeDashboardLayout,
-} from "@app/utils/dashboardLayout";
+import { RECORDING_NOW_BLOCK_IDS } from "@app/utils/dashboardLayout";
+import { dropBlocksFromStoredLayout } from "@app/utils/dashboardLayoutClient";
 
 /*
  * 「記録中」をブラウザ側で終わらせるときの後始末。
@@ -53,12 +47,5 @@ export function refreshRecordingNow(): void {
  * 使用デッキの行の有無でブロックIDが2種類あるため、どちらが書かれていても外す。
  */
 export function dropRecordingNowFromStoredLayout(): void {
-  const stored = parseDashboardLayout(readClientCookie(DASHBOARD_LAYOUT_COOKIE));
-  if (!stored?.some((id) => RECORDING_NOW_BLOCK_IDS.includes(id))) return;
-
-  writeClientCookie(
-    DASHBOARD_LAYOUT_COOKIE,
-    serializeDashboardLayout(stored.filter((id) => !RECORDING_NOW_BLOCK_IDS.includes(id))),
-    DASHBOARD_LAYOUT_COOKIE_MAX_AGE,
-  );
+  dropBlocksFromStoredLayout(RECORDING_NOW_BLOCK_IDS);
 }

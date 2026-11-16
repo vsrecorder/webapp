@@ -18,6 +18,7 @@ import ChartPanelFallback from "@app/components/organisms/Dashboard/ChartPanelFa
 import EnvironmentWindowCardSkeleton from "@app/components/organisms/Dashboard/Skeleton/EnvironmentWindowCardSkeleton";
 import FirstRecordCtaCardSkeleton from "@app/components/organisms/Dashboard/Skeleton/FirstRecordCtaCardSkeleton";
 import RecordingNowCardSkeleton from "@app/components/organisms/Dashboard/Skeleton/RecordingNowCardSkeleton";
+import WinbackCardSkeleton from "@app/components/organisms/Dashboard/Skeleton/WinbackCardSkeleton";
 
 import {
   DASHBOARD_RECENT_RECORDS_LIMIT,
@@ -119,6 +120,9 @@ export default function DashboardBlockSkeleton({
 
     case "first_record_cta":
       return <FirstRecordCtaCardSkeleton />;
+
+    case "winback":
+      return <WinbackCardSkeleton />;
 
     case "env_window":
       // プロフィール直下に置かれるときは見出しを持たない

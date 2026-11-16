@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { EnvironmentType } from "@app/types/environment";
-import { periodDateRange } from "@app/utils/recapPeriod";
+import { isPeriodEnded, periodDateRange } from "@app/utils/recapPeriod";
 
 // バックエンドは環境の期間を JST 0:00 として "+09:00" 付きで返す
 // (実測: /api/environments → "2026-09-16T00:00:00+09:00")。
@@ -41,5 +41,20 @@ describe("periodDateRange", () => {
       from: "2026-07-31",
       to: "2026-09-15",
     });
+  });
+});
+
+describe("isPeriodEnded", () => {
+  it("環境は最終日の翌日から「終わった」になる", () => {
+    const period = { kind: "environment", environment } as const;
+    expect(isPeriodEnded(period, "2026-09-15")).toBe(false);
+    expect(isPeriodEnded(period, "2026-09-16")).toBe(true);
+  });
+
+  it("週と月も最終日の翌日から", () => {
+    expect(isPeriodEnded({ kind: "week", week: "2026-08-31" }, "2026-09-06")).toBe(false);
+    expect(isPeriodEnded({ kind: "week", week: "2026-08-31" }, "2026-09-07")).toBe(true);
+    expect(isPeriodEnded({ kind: "month", yearMonth: "2026-09" }, "2026-09-30")).toBe(false);
+    expect(isPeriodEnded({ kind: "month", yearMonth: "2026-09" }, "2026-10-01")).toBe(true);
   });
 });

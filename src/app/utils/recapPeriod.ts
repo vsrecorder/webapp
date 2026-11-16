@@ -170,6 +170,13 @@ export function periodDateRange(period: RecapPeriod): { from: string; to: string
   };
 }
 
+// その期間がもう終わっているか(JSTの今日が、期間の最終日より後)。
+// 終わった環境のレポートに記録が無い人へ、いまの環境で記録を始める導線を出す判定に使う
+// (D4_WINBACK_PLAN.md §2.4。呼び戻しの投稿のリンクは、その環境に記録の無い人も踏む)。
+export function isPeriodEnded(period: RecapPeriod, today: string): boolean {
+  return periodDateRange(period).to < today;
+}
+
 // 選べる月を新しい順に返す。記録のある月だけに絞り、当月は記録が無くても必ず入れる
 // （その月のふりかえりを開いて「まだ対戦がありません」を見せたいのは当月だけのため）。
 export function selectableMonths(

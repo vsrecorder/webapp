@@ -19,6 +19,23 @@ export const ACTIVITY_ONBOARDING_CTA = "onboarding_cta";
 export const ACTIVITY_RECORD_FORM = "record_form";
 export const ACTIVITY_DECK_FORM = "deck_form";
 
+// D-4(ウィンバック)の効果測定(D4_WINBACK_PLAN.md §5.3)。
+// 登録済みの人が戻ってきても UTM では数えられないため、「おかえりカードを見た日」と
+// 「呼び戻しのリンクに着地した日」を残し、7日以内に記録したかを records と突き合わせる。
+export const ACTIVITY_WINBACK_CARD = "winback_card";
+export const ACTIVITY_WINBACK_LANDING = "winback_landing";
+
+// 呼び戻しの投稿に付ける utm_campaign の接頭辞。X の投稿文(x-post スキル)でもこの形を使う。
+export const WINBACK_UTM_CAMPAIGN_PREFIX = "winback_";
+
+// いまの URL が呼び戻しのリンクからの着地か(utm_campaign が winback_ で始まる)。
+// ログインして元のページへ戻った直後は、戻り先の URL にクエリがそのまま残っている
+// (utils/signInReturn が path+query を保つ)ので、ここで拾える。
+export function isWinbackLanding(search: string): boolean {
+  const campaign = new URLSearchParams(search).get("utm_campaign") ?? "";
+  return campaign.startsWith(WINBACK_UTM_CAMPAIGN_PREFIX);
+}
+
 const KEY_PREFIX = "vsrec:daily-activity:";
 
 // JSTの当日を "YYYY-MM-DD" で得る。端末のタイムゾーンに依存させない

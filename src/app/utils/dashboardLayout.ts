@@ -48,6 +48,8 @@ export const DASHBOARD_BLOCK_IDS = [
   "recording_now",
   "recording_now_no_deck",
   "first_record_cta",
+  // おかえりカード(D-4)。直前の4週すべてで対戦していない人にだけ出る
+  "winback",
   "env_window",
   // 並べ替え・非表示の対象になるセクション
   "onboarding_badges",
@@ -96,6 +98,7 @@ const PINNED_BLOCK_IDS: readonly DashboardBlockId[] = [
   "recording_now",
   "recording_now_no_deck",
   "first_record_cta",
+  "winback",
   "env_window",
 ];
 
@@ -115,6 +118,7 @@ export function isDashboardBlockId(value: string): value is DashboardBlockId {
  * ただしサーバ取得の結果で出方が変わるものは「出ない側」に倒す:
  *   ・recording_now … 今日のイベントを記録している最中だけ
  *   ・first_record_cta / env_window … 記録0件・3件未満のときだけ
+ *   ・winback … 直前の4週すべてで対戦していないときだけ
  * 骨格が実物より多いと、差し替わった瞬間に下の内容が「せり上がる」形でずれる。
  * 逆に少ないぶんは下へ伸びるだけなので、迷ったら出さない側に倒す。
  * 中身が入れ替わる節も同じ理由で背の低い側を既定にする。

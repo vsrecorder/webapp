@@ -15,6 +15,13 @@ export function isRecordingNowEnabled(): boolean {
   return process.env.RECORDING_NOW_ENABLED !== "false";
 }
 
+// ホーム上部の「おかえりカード」（施策D-4 ウィンバック）の表示可否。直前の4週すべてで
+// 対戦していない人がホームを開いたときに、記録を再開する入口を1つ置く(D4_WINBACK_PLAN.md §3)。
+// 既定は有効。緊急停止・判定後に外す場合のみ WINBACK_CARD_ENABLED=false を設定する。
+export function isWinbackCardEnabled(): boolean {
+  return process.env.WINBACK_CARD_ENABLED !== "false";
+}
+
 // 「環境の窓」カード（施策E-2）の表示可否。記録0件ユーザーの空状態で、自分の登録デッキが
 // 環境ランキングで何位かを先出しし、価値を前倒しする。
 // 既定は有効。緊急停止・段階公開したい場合のみ ENV_WINDOW_ENABLED=false を設定する。

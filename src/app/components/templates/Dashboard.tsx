@@ -21,6 +21,7 @@ import FirstRecordCtaCard from "@app/components/organisms/Dashboard/FirstRecordC
 import RecordingNowCard from "@app/components/organisms/Dashboard/RecordingNowCard";
 import QuickStartModal from "@app/components/organisms/Dashboard/QuickStartModal";
 import EnvironmentWindowCard from "@app/components/organisms/Dashboard/EnvironmentWindowCard";
+import WinbackCard from "@app/components/organisms/Dashboard/WinbackCard";
 import StreakPanel from "@app/components/organisms/Badge/StreakPanel";
 import OnboardingBadgePanel from "@app/components/organisms/Badge/OnboardingBadgePanel";
 import BadgeGallery from "@app/components/organisms/Badge/BadgeGallery";
@@ -49,6 +50,7 @@ import {
   isFirstRecordCtaEnabled,
   isEnvWindowEnabled,
   isQuickStartModalEnabled,
+  isWinbackCardEnabled,
   isRecordingNowEnabled,
 } from "@app/utils/featureFlags";
 
@@ -58,6 +60,7 @@ import { getAllChampionshipSeries } from "@app/utils/championshipSeriesServer";
 import { getDashboardInitialData } from "@app/utils/dashboardServer";
 import { getHomeRecordsHead, getRecordingNow } from "@app/utils/recordingNowServer";
 import { formatElapsedDuration } from "@app/utils/recordingNow";
+import { decideWinback } from "@app/utils/winback";
 import { DEFAULT_EXCLUDE_DEFAULT_MATCHES } from "@app/utils/excludeDefaultMatches";
 import {
   isPastCityleaguePreviewReveal,
@@ -135,6 +138,11 @@ type Props = {
    * 閉じたカードが初回描画に一瞬だけ出るのを防ぐため(utils/recordingNow)。
    */
   recordingDismissed?: string;
+  /*
+   * 「おかえり」カード(D-4)を × で閉じてから7日以内か(cookie 由来。page.tsx が読む)。
+   * 同じく、閉じたカードが初回描画に一瞬だけ出るのを防ぐためサーバで判定に混ぜる(utils/winback)。
+   */
+  winbackDismissed?: boolean;
 };
 
 async function getUser(userId: string): Promise<UserType | null> {
@@ -220,17 +228,21 @@ export default async function TemplateDashboard({
   excludeDefaultMatches,
   statsVisible,
   recordingDismissed,
+  winbackDismissed,
 }: Props) {
   const date = getJstNow();
 
   // 施策0-6: 記録0件のユーザーにだけ「最初の記録を作成する」CTAを出す。
   // 施策E-2: 同じく記録0件のユーザーに「環境の窓」カードを出す。
   // クイックスタートモーダル: 同じく記録0件のユーザーに、開いた直後の導線として自動表示する。
+  // 施策D-4: 記録はあるが直前の4週すべてで対戦していないユーザーに「おかえり」カードを出す。
   // どのトグルも無効なら件数取得自体をスキップして無駄な往復を省く。
   const ctaEnabled = isFirstRecordCtaEnabled();
   const envWindowEnabled = isEnvWindowEnabled();
   const quickStartModalEnabled = isQuickStartModalEnabled();
-  const needTotalRecords = ctaEnabled || envWindowEnabled || quickStartModalEnabled;
+  const winbackEnabled = isWinbackCardEnabled();
+  const needTotalRecords =
+    ctaEnabled || envWindowEnabled || quickStartModalEnabled || winbackEnabled;
   const recordingNowEnabled = isRecordingNowEnabled();
 
   // 各取得は互いに独立しているため、直列に await すると往復回数ぶん
@@ -336,6 +348,33 @@ export default async function TemplateDashboard({
   const combinedAtTop = combinedEnabled && (totalRecords as number) < 3;
   const combinedAtSection = combinedEnabled && (totalRecords as number) >= 3;
   const cohort = computeCohort(user?.created_at);
+
+  /*
+   * 「おかえり」カード(施策D-4 ウィンバック)。直前の4週すべてで対戦していない人にだけ出す。
+   * 判定に使う last_recorded_week はストリークパネルの初期値としてすでに取ってある
+   * (追加の往復は無い)。記録0件(CTA が出る)・記録中(「記録中」カードが出る)・閉じた直後は出さない。
+   */
+  const todayJst = todayJSTDateString();
+  const winback = winbackEnabled
+    ? decideWinback({
+        lastRecordedWeek: panels.streak?.last_recorded_week,
+        today: todayJst,
+        totalRecords,
+        recordingNow: recordingNow !== null,
+        dismissed: winbackDismissed === true,
+      })
+    : null;
+  // 最後に対戦した週が属する、終わった環境。いまの環境と違うときだけレポートへの導線を出す
+  // (その環境に記録があることが分かっている人にだけ出せる)。
+  const winbackLastEnvironment =
+    winback && env
+      ? (environments.find(
+          (e) =>
+            e.id !== env.id &&
+            toJSTDateString(e.from_date) <= winback.lastWeek &&
+            winback.lastWeek <= toJSTDateString(e.to_date),
+        ) ?? null)
+      : null;
 
   const sections: DashboardSection[] = [];
 
@@ -634,6 +673,7 @@ export default async function TemplateDashboard({
       ? ([recordingNow.deck ? "recording_now" : "recording_now_no_deck"] as const)
       : []),
     ...(showFirstRecordCta ? (["first_record_cta"] as const) : []),
+    ...(winback ? (["winback"] as const) : []),
     ...(combinedAtTop ? (["env_window"] as const) : []),
   ];
 
@@ -740,6 +780,25 @@ export default async function TemplateDashboard({
                 <FirstRecordCtaCard
                   cohortWeek={cohort.cohortWeek}
                   daysSinceSignup={cohort.daysSinceSignup}
+                />
+                )}
+                {/*
+                施策D-4 ウィンバック: 直前の4週すべてで対戦していない人に、プロフィールカードの
+                直後で記録の再開を促す。CTA 0-6 と同じ理由で pinned 内に固定で描画する
+                (記録0件の人には出ないので、CTA 0-6 と同時には出ない)。
+                環境の名前はマスタ(今日の環境)から出し、決め打ちしない。
+                */}
+                {winback && env && (
+                <WinbackCard
+                  lastWeek={winback.lastWeek}
+                  emptyWeeks={winback.emptyWeeks}
+                  environmentTitle={env.title}
+                  environmentFrom={toJSTDateString(env.from_date)}
+                  lastEnvironment={
+                    winbackLastEnvironment
+                      ? { id: winbackLastEnvironment.id, title: winbackLastEnvironment.title }
+                      : null
+                  }
                 />
                 )}
                 {/*

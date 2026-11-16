@@ -38,11 +38,13 @@ import {
   type RecapPostContext,
 } from "@app/utils/recapPostText";
 import {
+  isPeriodEnded,
   periodQuery,
   periodTitle,
   periodValue,
   type RecapPeriod,
 } from "@app/utils/recapPeriod";
+import { todayJSTDateString } from "@app/utils/date";
 import { EXCLUDE_DEFAULT_MATCHES_QUERY } from "@app/utils/excludeDefaultMatches";
 
 // 1080×1350 をそのまま @4x で焼くと canvas 上限に近づき、生成も重くなる。
@@ -390,7 +392,13 @@ function RecapSection({
 }
 
 // その期間に1戦も記録が無いとき。カードは作れないので、記録への導線だけ置く。
+//
+// 期間がもう終わっているなら(環境の切り替わり後に、終わった環境のレポートへ来た人など)、
+// その期間に記録を足しても意味が薄いので、いまの対戦を記録する方へ案内する
+// (D4_WINBACK_PLAN.md §2.4。呼び戻しの投稿のリンクは、その環境に記録の無い人も踏む)。
 function EmptyPeriod({ period }: { period: RecapPeriod }) {
+  const ended = isPeriodEnded(period, todayJSTDateString());
+
   return (
     <Card className="shadow-md">
       <CardBody className="flex flex-col gap-4 p-6">
@@ -399,14 +407,21 @@ function EmptyPeriod({ period }: { period: RecapPeriod }) {
             {periodTitle(period)}の対戦はまだありません
           </span>
           <span className="text-[0.6875rem] leading-relaxed text-default-500">
-            勝敗と相手デッキだけなら10秒で残せます。1戦記録すると、この期間の
-            レポートが作られます。
+            {ended
+              ? "この期間はもう終わっています。いまの対戦を1戦記録すると、新しい期間のレポートが作られます。"
+              : "勝敗と相手デッキだけなら10秒で残せます。1戦記録すると、この期間のレポートが作られます。"}
           </span>
         </div>
 
-        <LinkButton href="/records/quick" color="primary" className="w-full">
-          10秒で1戦を記録する
-        </LinkButton>
+        {ended ? (
+          <LinkButton href="/records/create" color="primary" className="w-full">
+            いまの対戦を記録する
+          </LinkButton>
+        ) : (
+          <LinkButton href="/records/quick" color="primary" className="w-full">
+            10秒で1戦を記録する
+          </LinkButton>
+        )}
       </CardBody>
     </Card>
   );

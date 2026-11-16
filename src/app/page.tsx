@@ -27,6 +27,7 @@ import {
   parseExcludeDefaultMatchesCookie,
 } from "@app/utils/excludeDefaultMatches";
 import { RECORDING_DISMISSED_COOKIE } from "@app/utils/recordingNow";
+import { WINBACK_DISMISSED_COOKIE, isWinbackDismissed } from "@app/utils/winback";
 import { STATS_VISIBLE_COOKIE, parseStatsVisibleCookie } from "@app/utils/statsVisible";
 import { parseNextPath } from "@app/utils/signInReturn";
 
@@ -122,6 +123,8 @@ export default async function Home({ searchParams }: Props) {
     // 「記録中」カードを今日すでに閉じたか。こちらは localStorage を正とせず cookie だけで
     // 持つ(サーバで判定に混ぜないと、閉じたカードが初回描画で一瞬出てしまうため)
     const recordingDismissed = store.get(RECORDING_DISMISSED_COOKIE)?.value;
+    // 「おかえり」カード(D-4)を7日以内に閉じたか。同じ理由で cookie だけで持つ(utils/winback)
+    const winbackDismissed = isWinbackDismissed(store.get(WINBACK_DISMISSED_COOKIE)?.value);
     // Myジムパネルの骨格が取る形。実体は中身で高さが3倍以上変わる(未登録 184px /
     // 予定0件 106px / 日付7本 354px)ので、前回描いた形を cookie から受け取る
     const myGymShape = parseMyGymSkeleton(store.get(MY_GYM_SKELETON_COOKIE)?.value);
@@ -142,6 +145,7 @@ export default async function Home({ searchParams }: Props) {
           excludeDefaultMatches={excludeDefaultMatches ?? undefined}
           statsVisible={statsVisible ?? undefined}
           recordingDismissed={recordingDismissed}
+          winbackDismissed={winbackDismissed}
         />
       </Suspense>
     );

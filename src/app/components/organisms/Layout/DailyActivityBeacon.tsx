@@ -11,6 +11,8 @@ import {
   ACTIVITY_RECORD_FORM,
   ACTIVITY_STANDALONE,
   ACTIVITY_VISIT,
+  ACTIVITY_WINBACK_LANDING,
+  isWinbackLanding,
   sendDailyActivity,
 } from "@app/utils/dailyActivity";
 
@@ -102,7 +104,12 @@ export default function DailyActivityBeacon() {
       rule.patterns.some((pattern) => pattern.test(pathname)),
     ).map((rule) => rule.category);
 
-    void sendDailyActivity([ACTIVITY_VISIT, ...matched, ...deviceCategories()]);
+    // 呼び戻しのリンク(utm_campaign=winback_*)からの着地。登録済みの人の流入は UTM では
+    // 数えられない(流入元は登録の時点で紐づける)ので、ここで日次シグナルとして残す
+    // (D4_WINBACK_PLAN.md §5.3)。クエリはルートではないので CATEGORY_RULES とは別に見る。
+    const landing = isWinbackLanding(window.location.search) ? [ACTIVITY_WINBACK_LANDING] : [];
+
+    void sendDailyActivity([ACTIVITY_VISIT, ...matched, ...landing, ...deviceCategories()]);
   }, [status, pathname]);
 
   return null;

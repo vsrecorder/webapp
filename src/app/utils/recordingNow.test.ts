@@ -9,6 +9,7 @@ import {
   formatElapsedDuration,
   isRecordingBarHidden,
   isRecordingDismissed,
+  isRecordingEventToday,
   isWithinRecordingWindow,
   pickRecordingCandidate,
   recordingActivityOf,
@@ -77,33 +78,37 @@ describe("pickRecordingCandidate", () => {
     expect(pickRecordingCandidate([future, today], "2026-09-15")?.data.id).toBe("r1");
   });
 
-  /*
-   * 日付をまたいで記録を続けることがある(PTCGL の深夜・大会のあとの入力)。
-   * 0時で消えると、いちばん記録したい場面で使えない。
-   */
-  it("昨日のイベント日でも候補にする", () => {
+  // 開催日を過ぎた記録は大会の最中ではない。0時を過ぎたら、続けて入力していても出さない
+  it("昨日のイベント日は候補にしない", () => {
     const yesterday = record("r1", "2026-09-14T00:00:00Z", "2026-09-14T22:00:00Z");
 
-    expect(pickRecordingCandidate([yesterday], "2026-09-15")?.data.id).toBe("r1");
+    expect(pickRecordingCandidate([yesterday], "2026-09-15")).toBeNull();
   });
 
-  it("一昨日より前は候補にしない", () => {
-    const older = record("r1", "2026-09-13T00:00:00Z", "2026-09-13T01:00:00Z");
+  it("昨日の記録が先頭にあっても、今日の記録を拾う", () => {
+    // 一覧は event_date DESC なので通常は今日が先に来るが、並びに頼らず日付で選ぶ
+    const yesterday = record("r2", "2026-09-14T00:00:00Z", "2026-09-14T22:00:00Z");
+    const today = record("r1", "2026-09-15T00:00:00Z", "2026-09-15T01:00:00Z");
 
-    // あとから整理しているだけなので、記録中とは見なさない
-    expect(pickRecordingCandidate([older], "2026-09-15")).toBeNull();
-  });
-
-  it("月をまたいでも前日として扱う", () => {
-    const lastMonth = record("r1", "2026-08-31T00:00:00Z", "2026-08-31T22:00:00Z");
-
-    expect(pickRecordingCandidate([lastMonth], "2026-09-01")?.data.id).toBe("r1");
+    expect(pickRecordingCandidate([yesterday, today], "2026-09-15")?.data.id).toBe("r1");
   });
 
   it("イベント日が未設定の記録は候補にしない", () => {
     const noDate = record("r1", "", "2026-09-15T01:00:00Z");
 
     expect(pickRecordingCandidate([noDate], "2026-09-15")).toBeNull();
+  });
+});
+
+describe("isRecordingEventToday", () => {
+  it("API の生の値(UTC 0時に寄った日時)を JST の暦日で比べる", () => {
+    expect(isRecordingEventToday("2026-09-15T00:00:00Z", "2026-09-15")).toBe(true);
+    expect(isRecordingEventToday("2026-09-14T00:00:00Z", "2026-09-15")).toBe(false);
+  });
+
+  it("開催日が未設定なら false", () => {
+    expect(isRecordingEventToday("", "2026-09-15")).toBe(false);
+    expect(isRecordingEventToday(null, "2026-09-15")).toBe(false);
   });
 });
 

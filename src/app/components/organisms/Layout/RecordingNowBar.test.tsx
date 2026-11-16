@@ -25,6 +25,22 @@ vi.mock("next/navigation", () => ({
   usePathname: () => pathname.current,
 }));
 
+/*
+ * 端末の今日の日付。既定は実行時の今日で、0時をまたぐテストだけ書き換えて描き直す。
+ * 取得したときの日付(useRecordingNow)と今の日付(useTodayJST)が同じ時計を見るよう、
+ * 日付の関数の側で差し替える。本物は0時のタイマーで描き直すが、ここでは rerender で代える。
+ */
+const { todayOverride } = vi.hoisted(() => ({
+  todayOverride: { current: null as string | null },
+}));
+vi.mock("@app/utils/date", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@app/utils/date")>();
+  return {
+    ...actual,
+    todayJSTDateString: () => todayOverride.current ?? actual.todayJSTDateString(),
+  };
+});
+
 // jsdom は ResizeObserver を持たない。イベント名を流す ScrollingText が使う
 globalThis.ResizeObserver = class {
   observe() {}
@@ -72,6 +88,7 @@ function mockFetch(body: { recording: RecordingNowBarType | null }) {
 describe("RecordingNowBar", () => {
   beforeEach(() => {
     pathname.current = "/decks";
+    todayOverride.current = null;
     sessionStorage.clear();
     document.cookie = "recordingDismissed=; Path=/; Max-Age=0";
     push.mockClear();
@@ -275,5 +292,93 @@ describe("RecordingNowBar", () => {
     renderBar();
 
     expect((await screen.findAllByText("ジムバトル")).length).toBeGreaterThan(0);
+  });
+
+  it("今日のイベントなら、帯以外の画面を暗くする", async () => {
+    const { container } = renderBar();
+
+    await screen.findAllByText("ジムバトル");
+    expect(container.querySelector(".bottom-banner-dim")).toBeTruthy();
+  });
+
+  function stubRecording(body: RecordingNowBarType) {
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ recording: body }),
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+    return fetchMock;
+  }
+
+  // 今日の記録かはサーバが決める。端末の時計が日付単位でずれていても、届いたものは出す
+  it("端末の日付がずれていても、記録中なら出す", async () => {
+    todayOverride.current = "2026-11-10";
+    stubRecording(recording);
+
+    const { container } = renderBar();
+
+    expect((await screen.findAllByText("ジムバトル")).length).toBeGreaterThan(0);
+    expect(container.querySelector(".bottom-banner-dim")).toBeTruthy();
+  });
+
+  // 取得の結果は SWR が持ち続けるので、日付が変わったことはバー自身が見て消える
+  it("開いたまま0時を迎えたら、バーも暗幕も消す", async () => {
+    todayOverride.current = "2026-11-16";
+    stubRecording(recording);
+
+    // 取得の結果を持ったまま描き直す(キャッシュを作り直すと、日付と関係なく消えてしまう)
+    const cache = new Map();
+    const tree = () => (
+      <SWRConfig value={{ provider: () => cache, dedupingInterval: 0 }}>
+        <RecordingNowBar />
+      </SWRConfig>
+    );
+    const { rerender, container } = render(tree());
+    await screen.findAllByText("ジムバトル");
+    expect(container.querySelector(".bottom-banner-dim")).toBeTruthy();
+
+    // 同じ日のうちは描き直しても残る
+    rerender(tree());
+    expect(screen.queryAllByText("ジムバトル").length).toBeGreaterThan(0);
+
+    todayOverride.current = "2026-11-17";
+    rerender(tree());
+
+    expect(screen.queryByText("ジムバトル")).toBeNull();
+    expect(container.querySelector(".bottom-banner-dim")).toBeNull();
+  });
+
+  /*
+   * 0時前に取った結果が SWR に残ったまま、0時過ぎにバーが付け直される場合(他の帯が出入り
+   * して PwaBanners が描き直す・ページの移動など)。描いたときではなく取得したときの日付で
+   * 判定するので、取り直しに失敗して昨日の結果しか無くても出さない。
+   */
+  it("0時過ぎに付け直しても、0時前に取った記録中は出さない", async () => {
+    todayOverride.current = "2026-11-16";
+    stubRecording(recording);
+
+    const cache = new Map();
+    const tree = () => (
+      <SWRConfig value={{ provider: () => cache, dedupingInterval: 0 }}>
+        <RecordingNowBar />
+      </SWRConfig>
+    );
+    const first = render(tree());
+    await screen.findAllByText("ジムバトル");
+    first.unmount();
+
+    todayOverride.current = "2026-11-17";
+    const fetchMock = vi.fn(async () => {
+      throw new Error("offline");
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { container } = render(tree());
+
+    expect(screen.queryByText("ジムバトル")).toBeNull();
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(screen.queryByText("ジムバトル")).toBeNull();
+    expect(container.querySelector(".bottom-banner-dim")).toBeNull();
   });
 });

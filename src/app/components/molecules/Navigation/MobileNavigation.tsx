@@ -39,7 +39,8 @@ export default function MobileNavigation() {
       スワイプは fixed 要素の上でもページへ伝わるので、スクロールは妨げない。
     */
     <nav
-      className="fixed z-50 bottom-0 left-0 right-0 px-4 lg:hidden"
+      // mobile-nav: 記録中バーの暗幕が出ているあいだ、暗幕より上の段に置く目印(globals.css)
+      className="mobile-nav fixed z-50 bottom-0 left-0 right-0 px-4 lg:hidden"
       style={{
         paddingBottom: "calc(env(safe-area-inset-bottom) + var(--mobile-nav-gap))",
       }}

@@ -272,6 +272,8 @@ export default function RecordActionsFloating({
       {/* ドロップダウン表示中の背景オーバーレイ */}
       {isDropdownOpen && (
         <div
+          // 記録中バーの暗幕と二重に暗くならないよう、出ているあいだあちらを消してもらう(globals.css)
+          data-dims-page=""
           className="fixed inset-0 z-25 bg-black/40 backdrop-blur-[1px] transition-opacity duration-200"
           onClick={() => setIsDropdownOpen(false)}
         />

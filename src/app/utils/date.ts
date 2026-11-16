@@ -24,6 +24,14 @@ export function todayJSTDateString(): string {
   return toJSTDateString(new Date());
 }
 
+// 次のJSTの0時までのミリ秒(1〜24時間)。日付の切り替わりにタイマーを張るのに使う
+export function msUntilNextJSTMidnight(now: number = Date.now()): number {
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+
+  return DAY_MS - ((now + JST_OFFSET_MS) % DAY_MS);
+}
+
 // "YYYY-MM-DD" 同士の日数差（to - from）。
 // 時刻成分を持たない暦日どうしの差なので、実行時刻に依存しない。
 export function diffInDays(fromDateString: string, toDateString: string): number {

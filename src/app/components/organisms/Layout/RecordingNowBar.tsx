@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useDisclosure } from "@heroui/react";
-import useSWR from "swr";
 
 import { LuCheck, LuCirclePlus, LuMapPin } from "react-icons/lu";
 import { sendGAEvent } from "@next/third-parties/google";
@@ -16,7 +15,6 @@ import EventIcon from "@app/components/molecules/EventIcon";
 import ScrollingText from "@app/components/molecules/ScrollingText";
 import DeckSprites from "@app/components/molecules/DeckSprites";
 
-import { RecordingNowGetResponseType } from "@app/types/recording_now";
 import { writeClientCookie } from "@app/utils/clientCookie";
 import { OPEN_CREATE_MATCH_RECORD_ID } from "@app/utils/createMatchIntent";
 import {
@@ -29,12 +27,13 @@ import {
   recordingDismissedValue,
 } from "@app/utils/recordingNow";
 import {
-  RECORDING_NOW_SWR_KEY,
   dropRecordingNowFromStoredLayout,
   refreshRecordingNow,
 } from "@app/utils/recordingNowClient";
 import { writeSessionStorage } from "@app/utils/sessionStorageStore";
 import { useSessionStorageItem } from "@app/hooks/useSessionStorageItem";
+import { isFetchedOnAnotherDay, useRecordingNow } from "@app/hooks/useRecordingNow";
+import { useTodayJST } from "@app/hooks/useTodayJST";
 
 /*
  * 画面下に常駐する「続きを記録」バー。
@@ -43,14 +42,12 @@ import { useSessionStorageItem } from "@app/hooks/useSessionStorageItem";
  * ホーム上部のカード(RecordingNowCard)と同じ記録を指すが、あちらはホームでしか見えない。
  *
  * 出す・出さないの判定は API(/api/recording_now)の向こうでカードと同じ関数が決める。
- * ここが持つのは「どの画面で出さないか」と「閉じられているか」だけ。
+ * ここが持つのは「どの画面で出さないか」「閉じられているか」と、開いたまま0時を
+ * 迎えたときに消すための日付の見直しだけ。
  *
  * 取得をブラウザからにしているのは、レイアウトのサーバ側で取ると記録中でない人を含む
  * 全ページのTTFBに往復が乗るため(詳しくは API 側のコメント)。
  */
-
-// 取得の間引き。ページを移るたびに投げ直さない
-const DEDUPING_INTERVAL_MS = 60 * 1000;
 
 /*
  * バーを出さない画面。
@@ -63,26 +60,11 @@ const DEDUPING_INTERVAL_MS = 60 * 1000;
  */
 const HIDDEN_PATHNAMES = ["/records/create", "/records/quick", "/kizuna"];
 
-async function fetcher(url: string): Promise<RecordingNowGetResponseType> {
-  const res = await fetch(url, {
-    method: "GET",
-    headers: { Accept: "application/json" },
-  });
-
-  if (!res.ok) throw new Error("Failed to fetch");
-
-  return res.json();
-}
-
 export default function RecordingNowBar() {
   const pathname = usePathname();
   const router = useRouter();
 
-  const { data } = useSWR<RecordingNowGetResponseType, Error>(
-    RECORDING_NOW_SWR_KEY,
-    fetcher,
-    { dedupingInterval: DEDUPING_INTERVAL_MS },
-  );
+  const { data } = useRecordingNow();
 
   const recording = data?.recording ?? null;
 
@@ -105,6 +87,17 @@ export default function RecordingNowBar() {
 
   const hidden =
     recording !== null && isRecordingBarHidden(hiddenValue, recording.recordId, now);
+
+  /*
+   * 開催日が今日のときだけ出す。0時を過ぎたら出さない(ホームのカードも同じ)。
+   *
+   * 今日の記録かは API の向こう(サーバの時計)で絞ってある。ただ取得の結果は SWR が
+   * 持ち続けるので、開いたまま0時を迎えると昨日の記録のまま残る。取得してから端末の日付が
+   * 変わっていたら出さない(hooks/useRecordingNow)。useTodayJST が0時に描き直すので、
+   * 出ているバーもその場で消える。次の取り直しで、今日の答えに入れ替わる。
+   */
+  const today = useTodayJST();
+  const dayChanged = data !== undefined && isFetchedOnAnotherDay(data, today);
 
   useEffect(() => {
     if (recording === null) return;
@@ -132,7 +125,7 @@ export default function RecordingNowBar() {
     // 当の記録を開いているなら、そこに追加ボタンがあるので要らない
     (recording !== null && pathname === `/records/${recording.recordId}`);
 
-  const visible = recording !== null && !hidden && !onHiddenPathname;
+  const visible = recording !== null && !dayChanged && !hidden && !onHiddenPathname;
 
   useEffect(() => {
     if (!visible) return;
@@ -261,7 +254,8 @@ export default function RecordingNowBar() {
   }
 
   return (
-    <BottomBanner dismissLabel="このバーを閉じる" onDismiss={handleHide}>
+    /* 出ているあいだは他を暗くして、この帯を目立たせる(タップは背面へ通す) */
+    <BottomBanner dimBackground dismissLabel="このバーを閉じる" onDismiss={handleHide}>
       <div className="flex items-stretch">
         {/*
           左端のアクセント。対戦記録カードと同じ言語で「記録の帯」だと示す。

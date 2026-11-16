@@ -34,6 +34,9 @@ WORKDIR /app
 
 # Install dependencies based on the preferred package manager
 COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* .npmrc* ./
+# package.json の "deepmerge": "file:vendor/deepmerge" が指す先。npm ci の前に要る
+# (node_modules/deepmerge は vendor/deepmerge へのシンボリックリンクになり、builder 段の COPY . . で中身が揃う)。
+COPY vendor ./vendor
 
 RUN \
   if [ -f yarn.lock ]; then yarn --frozen-lockfile; \

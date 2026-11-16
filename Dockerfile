@@ -25,7 +25,7 @@
 #
 FROM node:26.13.1-trixie-slim AS base
 
-FROM gcr.io/distroless/nodejs26-debian13:latest@sha256:b7141f720ffac6df9069d40ca8bd82c51ab5cdb21f1456b119382883e2971f53 AS runtime
+FROM gcr.io/distroless/nodejs26-debian13:latest@sha256:80631bd2f0e7ef192138a7409013b47d92fd11b8ff3bb35f5c0a65be3ecaea4c AS runtime
 
 # Install dependencies only when needed
 FROM base AS deps

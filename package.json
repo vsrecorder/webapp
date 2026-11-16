@@ -12,7 +12,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1161.0",
+    "@aws-sdk/client-s3": "^3.1164.0",
     "@heroui/dom-animation": "^2.1.10",
     "@heroui/react": "^2.8.9",
     "@next/third-parties": "^16.4.6",
@@ -52,8 +52,8 @@
     "react-window": "^2.5.3",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vite": "^8.3.5",
-    "vitest": "^5.0.5"
+    "vite": "^8.3.6",
+    "vitest": "^5.1.0"
   },
   "overrides": {
     "fast-xml-parser": "^5.10.1",

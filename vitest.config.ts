@@ -4,6 +4,8 @@ import { defineConfig } from "vitest/config";
 
 // vitest の設定。対象は src 配下の *.test.ts / *.test.tsx で、実装ファイルの隣に置く。
 //
+// vendor/ 配下(上流に修正版が無く、手を入れて同梱している依存)のテストも対象にする。
+//
 // 既定の実行環境は node(純粋関数のテスト)。フックやコンポーネントのテストは、
 // ファイル先頭に `// @vitest-environment jsdom` を書いて jsdom に切り替える。
 // パスの別名(@app, @firebase)は tsconfig.json の paths と揃える。
@@ -15,7 +17,7 @@ export default defineConfig({
     },
   },
   test: {
-    include: ["src/**/*.test.{ts,tsx}"],
+    include: ["src/**/*.test.{ts,tsx}", "vendor/**/*.test.ts"],
     // 全テスト共通の後始末(テスト終了時に scheduler の残りを流し切る)
     setupFiles: ["./vitest.setup.ts"],
     environment: "node",

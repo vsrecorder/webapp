@@ -132,6 +132,9 @@ standalone 出力には `.next/static` が含まれず、`public/` もビルド�
 状態機械を持つフック(`useOffsetPagination`)、見た目を共通化した小さな部品(`SegmentedButtons`)。
 ページ全体の描画やログイン必須の画面は対象外で、そこは `tsc` / `next build` と手動確認で見る。
 
+`vendor/` 配下(上流に修正版が無く、手を入れて同梱している依存。いまは `vendor/deepmerge`)の
+テストも対象にしている。同梱の理由と外し方は各ディレクトリの README を参照。
+
 ```
 npm test              # 一度だけ実行
 npm run test:watch    # 変更を監視して再実行

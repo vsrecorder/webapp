@@ -50,6 +50,12 @@ const eslintConfig = defineConfig([
     // なお rules-of-hooks(本来のフック規則)の違反は0件。
     rules: {},
   },
+  {
+    // vendor/ に同梱した上流のコード(原本のまま、または最小限の修正だけ)は書式も型も上流のものなので検査しない。
+    // ignores だけのオブジェクトは「全体の除外」として既定の除外(.next/** など)に足される。
+    // テスト(vendor/**/*.test.ts)はこちらで書いたものなので検査する。
+    ignores: ["vendor/**/index.js", "vendor/**/index.d.ts"],
+  },
 ]);
 
 export default eslintConfig;

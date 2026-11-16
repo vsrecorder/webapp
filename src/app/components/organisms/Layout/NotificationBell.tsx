@@ -28,6 +28,11 @@ import { environmentBadgeImageUrl } from "@app/utils/badgeImage";
 import { formatJSTDateNumeric } from "@app/utils/date";
 import { isSameOriginPath } from "@app/utils/url";
 import { useLastPositive } from "@app/hooks/useLastPositive";
+import {
+  type NotificationOpenSnapshot,
+  takeNotificationOpenSnapshot,
+  usesUnreadLayout,
+} from "@app/utils/notificationLayout";
 
 const NOTIFICATIONS_LIMIT = 30;
 const POLL_INTERVAL_MS = 60 * 1000;
@@ -116,6 +121,13 @@ export default function NotificationBell({ userId }: Props) {
   // 未読が 0 件になってバッジがフェードアウトする間、中身が「0」に変わってちらつかないよう、
   // 消えている間は最後の件数を出しておく
   const badgeCount = useLastPositive(unreadCount);
+  // メニューを開いた瞬間に未読だった通知の控え(閉じている間は null)。
+  // 開いている間に既読になった行の配置を変えないために使う(utils/notificationLayout 参照)
+  const [openSnapshot, setOpenSnapshot] = useState<NotificationOpenSnapshot | null>(null);
+  // 「すべて既読にする」は、開いた時点で未読があれば開いている間は置いたままにする。
+  // 押した瞬間に要素ごと消すと見出しの行が一瞬で変わり、押したボタンからフォーカスが外れて
+  // body → メニューへ飛ぶので、置いたままフェードアウトさせて触れなくする
+  const showMarkAllButton = unreadCount > 0 || (openSnapshot?.unreadIds.size ?? 0) > 0;
 
   // 環境バッジ通知(body内の対戦環境名)に対応する画像を引くためのタイトル→environment_idマップ
   const environmentIdByTitle = useMemo(
@@ -223,6 +235,9 @@ export default function NotificationBell({ userId }: Props) {
   return (
     <Dropdown
       backdrop="opaque"
+      onOpenChange={(open) => {
+        setOpenSnapshot(open ? takeNotificationOpenSnapshot(notifications) : null);
+      }}
       classNames={{
         content:
           "min-w-80 max-w-80 p-1.5 rounded-2xl shadow-xl border border-default-100 dark:border-default-50",
@@ -277,11 +292,15 @@ export default function NotificationBell({ userId }: Props) {
                   β機能
                 </Chip>
               </div>
-              {unreadCount > 0 && (
+              {showMarkAllButton && (
                 <button
                   type="button"
-                  onClick={markAllAsRead}
-                  className="text-tiny text-primary hover:underline"
+                  onClick={unreadCount > 0 ? markAllAsRead : undefined}
+                  tabIndex={unreadCount > 0 ? undefined : -1}
+                  aria-disabled={unreadCount === 0 || undefined}
+                  className={`text-tiny text-primary hover:underline transition-opacity duration-200 motion-reduce:transition-none ${
+                    unreadCount > 0 ? "opacity-100" : "opacity-0 pointer-events-none"
+                  }`}
                 >
                   すべて既読にする
                 </button>
@@ -311,6 +330,8 @@ export default function NotificationBell({ userId }: Props) {
               // ベルごと落ちないよう、未知のカテゴリは汎用のベルアイコンで表示する
               const Icon = CATEGORY_ICON[notification.category] ?? LuBell;
               const isLast = index === notifications.length - 1;
+              // 配置(上下の余白・点の幅)は開いている間に既読になっても変えない。色だけ今の状態で変える
+              const unreadLayout = usesUnreadLayout(notification, openSnapshot);
               const rankImage =
                 notification.category === "rank"
                   ? rankInfoForName(extractRankName(notification.body) ?? "")?.image
@@ -379,12 +400,12 @@ export default function NotificationBell({ userId }: Props) {
                   }
                   className={[
                     !isLast && "border-b border-default-200 dark:border-default-200",
-                    // 「すべて既読にする」でメニューを開いたまま既読に変わるとき、未読行の上下の余白と
-                    // 背景が1フレームで消えると一覧全体が跳ねてちらつくので、余白と背景は動かして変える
-                    "transition-[margin,background-color] duration-200 motion-reduce:transition-none",
-                    notification.is_read
-                      ? "my-0"
-                      : "my-1.5 bg-primary-50 dark:bg-primary-950/30",
+                    // 「すべて既読にする」でメニューを開いたまま既読に変わるとき、余白(配置)は変えず、
+                    // 背景だけをフェードさせる。余白を縮めるとスクロール領域の中身が動き、
+                    // iOS 実機では再描画が追いつかずにちらつく(utils/notificationLayout 参照)
+                    "transition-[background-color] duration-200 motion-reduce:transition-none",
+                    unreadLayout ? "my-1.5" : "my-0",
+                    !notification.is_read && "bg-primary-50 dark:bg-primary-950/30",
                   ]
                     .filter(Boolean)
                     .join(" ")}
@@ -393,14 +414,16 @@ export default function NotificationBell({ userId }: Props) {
                   <div className="flex flex-col gap-1 py-1">
                     <div className="flex items-center gap-1.5">
                       {/*
-                       * 未読の点。既読で要素ごと消すとタイトルが点と gap の分(12px)だけ左へ跳ぶので、
-                       * 常に置いておき、既読では幅 0 ＋ 負の margin で gap を打ち消して畳む
+                       * 未読の点。開いている間に既読になったときはタイトルが左へ動かないよう幅を残したまま
+                       * 透明にし、次に開いたとき(既読の配置)に幅 0 ＋ 負の margin で gap を打ち消して畳む
                        */}
                       <span
                         aria-hidden
-                        className={`h-1.5 rounded-full bg-primary-500 shrink-0 transition-[width,margin,opacity] duration-200 motion-reduce:transition-none ${
-                          notification.is_read ? "w-0 -mr-1.5 opacity-0" : "w-1.5 opacity-100"
-                        }`}
+                        className={[
+                          "h-1.5 rounded-full bg-primary-500 shrink-0 transition-opacity duration-200 motion-reduce:transition-none",
+                          unreadLayout ? "w-1.5" : "w-0 -mr-1.5",
+                          notification.is_read ? "opacity-0" : "opacity-100",
+                        ].join(" ")}
                       />
                       <span className="text-sm font-medium truncate">
                         {notification.title}

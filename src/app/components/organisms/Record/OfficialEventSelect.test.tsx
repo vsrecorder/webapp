@@ -47,6 +47,22 @@ const CITY: RecordCreateOfficialEventType = {
   type_id: 2,
 };
 
+// ジャッジの稼働。公式サイトでは大型大会として載るが、対戦の記録を付ける対象ではない
+const JUDGE: RecordCreateOfficialEventType = {
+  ...GYM,
+  id: 56,
+  title: "チャンピオンズリーグ2027千葉　ジャッジ稼働",
+  type_id: 1,
+};
+
+// オーガナイザーイベントの「ジャッジとバトル！」は実際に対戦するので候補に残す
+const ORGANIZER_JUDGE: RecordCreateOfficialEventType = {
+  ...GYM,
+  id: 78,
+  title: "ジャッジとバトル！",
+  type_id: 6,
+};
+
 beforeEach(() => {
   vi.stubGlobal(
     "fetch",
@@ -205,5 +221,45 @@ describe("OfficialEventSelect", () => {
       `/api/official_events?date=${DATE}`,
       expect.anything(),
     );
+  });
+  describe("ジャッジの募集・稼働", () => {
+    beforeEach(() => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () =>
+          Response.json({ count: 3, official_events: [GYM, JUDGE, ORGANIZER_JUDGE] }),
+        ),
+      );
+    });
+
+    it("大型大会のジャッジ稼働は候補に出さず、オーガナイザーイベントは出す", async () => {
+      render(<Harness />);
+
+      const options = await openMenu();
+
+      expect(options).toHaveLength(2);
+      expect(screen.queryByText(JUDGE.title)).toBeNull();
+      // ScrollingText は流すために同じ文字列を複数描くので、件数ではなく有無を見る
+      expect(screen.queryAllByText(ORGANIZER_JUDGE.title).length).toBeGreaterThan(0);
+    });
+
+    it("URL で指定されても選ばない", async () => {
+      render(<Harness presetId={JUDGE.id} />);
+
+      await waitFor(() => expect(fetch).toHaveBeenCalled());
+      expect(selectedTitle()).toBe("");
+    });
+
+    it("既に選ばれている(作成済みの記録を編集する)ときはプレビューに出す", async () => {
+      render(<Harness initialSelected={toOfficialEventOption(JUDGE)} />);
+
+      // 親の表示(selected)とは別に、プレビューカードにも出る。
+      // タイトルの全角スペースが既定の正規化で潰れないよう、正規化を切って照合する
+      await waitFor(() =>
+        expect(
+          screen.queryAllByText(JUDGE.title, { normalizer: (text) => text }).length,
+        ).toBeGreaterThan(1),
+      );
+    });
   });
 });

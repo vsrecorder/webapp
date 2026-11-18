@@ -21,6 +21,7 @@ import {
   OfficialEventOption,
   toOfficialEventOption,
 } from "@app/components/organisms/Record/officialEventOption";
+import { isJudgeStaffEvent } from "@app/components/organisms/Record/officialEventHelpers";
 import {
   OfficialEventResponseType,
   RecordCreateOfficialEventType,
@@ -172,12 +173,27 @@ export default function OfficialEventSelect({
   // イベント一覧の整形(正規表現・日付ローカライズ)はコストが高いため、
   // データが更新されたときだけ再計算する。これを怠ると、些細な state 変更による
   // 再レンダーごとに全件分の整形が走り重くなる。
+  //
+  // ジャッジの募集・稼働・研修(isJudgeStaffEvent)は対戦の記録を付ける対象ではないので候補から外す。
   const options = useMemo<OfficialEventOption[]>(
-    () => (data ?? []).map(toOfficialEventOption),
+    () => (data ?? []).filter((event) => !isJudgeStaffEvent(event)).map(toOfficialEventOption),
     [data],
   );
 
-  const selected = options.find((o) => o.id === selectedId) ?? null;
+  /*
+   * 選択中のイベントは候補から外したものでも表示する。外す前に作られた記録の
+   * イベント情報を編集する(EditEventInfoModal)と、元のイベントが選択欄から消えてしまうため。
+   * 候補から外したものは1件だけ整形するので、選択のたびに全件を整形し直すことはない。
+   */
+  const selected = useMemo<OfficialEventOption | null>(() => {
+    if (selectedId == null) return null;
+
+    const option = options.find((o) => o.id === selectedId);
+    if (option) return option;
+
+    const hidden = data?.find((event) => event.id === selectedId);
+    return hidden ? toOfficialEventOption(hidden) : null;
+  }, [data, options, selectedId]);
 
   /*
    * URL 指定のイベント(presetId)は、その候補が届いた時点で一度だけ選ぶ。
@@ -210,7 +226,7 @@ export default function OfficialEventSelect({
   let optionsMessage = "対象のイベントがありません";
   if (error) optionsMessage = "エラーが発生しました";
   else if (isLoading) optionsMessage = "検索中...";
-  else if (data?.length === 0) optionsMessage = "イベントがありません";
+  else if (data && options.length === 0) optionsMessage = "イベントがありません";
 
   return (
     /*

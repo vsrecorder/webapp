@@ -3,7 +3,10 @@
 import { useMemo } from "react";
 import useSWR from "swr";
 
-import { getEventTypeName } from "@app/components/organisms/Record/officialEventHelpers";
+import {
+  getEventTypeName,
+  isJudgeStaffEvent,
+} from "@app/components/organisms/Record/officialEventHelpers";
 import {
   OfficialEventListItemType,
   OfficialEventResponseType,
@@ -55,10 +58,14 @@ export function useOfficialEventGuide(
   return useMemo(() => {
     if (!keyword || !data) return null;
 
+    // 選択欄(OfficialEventSelect)が候補から外すジャッジの募集・稼働は数えない。
+    // 例えば CL の前日はジャッジ稼働だけが「チャンピオンズリーグ」として載っており、
+    // 数えると誘導先の選択欄が「イベントがありません」になる。
     const hasCandidate = data.some(
       (officialEvent) =>
-        getEventTypeName(officialEvent) === keyword ||
-        detectOfficialEventKeyword(officialEvent.title) === keyword,
+        !isJudgeStaffEvent(officialEvent) &&
+        (getEventTypeName(officialEvent) === keyword ||
+          detectOfficialEventKeyword(officialEvent.title) === keyword),
     );
     return hasCandidate ? keyword : null;
   }, [keyword, data]);

@@ -49,6 +49,23 @@ export function isPJCS(officialEvent: OfficialEventKind): boolean {
   );
 }
 
+/*
+ * ジャッジの募集・稼働・研修・セミナーのような、対戦の記録を付ける対象ではない公式イベントか。
+ * 記録作成のイベント選択(OfficialEventSelect)と自由形式の誘導判定から外すのに使う。
+ *
+ * これらは公式サイト上で「大型大会」(type_id: 1)として登録されているため、大型大会のうち
+ * タイトルに「ジャッジ」を含むものを外す(例:「チャンピオンズリーグ2027千葉　ジャッジ稼働」
+ * 「ジャッジセミナーinスクランブルバトル大阪【初級編】」)。
+ * 他の種別は外さない。オーガナイザーイベント(type_id: 6)の「ジャッジとバトル！」などは
+ * 実際に対戦するイベントで、ジャッジを含む名前でも記録を付ける対象になる。
+ *
+ * 判定は整形前のタイトルで行うこと。cleanOfficialEventTitle は括弧書きを消すため、
+ * 「スクランブルバトル 大阪（ジャッジ応募）」のような注記が落ちることがある。
+ */
+export function isJudgeStaffEvent(officialEvent: OfficialEventKind): boolean {
+  return officialEvent.type_id === 1 && officialEvent.title.includes("ジャッジ");
+}
+
 // エクストラバトルの日かどうかを判定する。
 // 判定は整形前後どちらのタイトルでも効く(cleanOfficialEventTitle が落とすのは
 // 店舗名の【】接頭辞だけで、「エクストラバトルの日」はそのまま残る)。

@@ -4,21 +4,16 @@ import { Fragment } from "react";
 
 import { Card, CardBody } from "@heroui/react";
 
-import PokemonSprite from "@app/components/atoms/PokemonSprite";
+import ShareDeckHeading, {
+  type ShareHeadingDeck,
+} from "@app/components/molecules/Share/ShareDeckHeading";
 import ShareWinRateLineChart from "@app/components/molecules/Share/ShareWinRateLineChart";
 import { UserStatMonthlyType } from "@app/types/user_stat_history";
 import { hasWinRate } from "@app/utils/winRate";
 import { formatShortYearMonth, spansMultipleYears } from "@app/utils/yearMonthLabel";
 
-// 絞り込んでいるデッキ。見出しにデッキ名とスプライトを出す
-export type ShareHistoryDeck = {
-  name: string;
-  // スロット順のスプライト(常に2枠。無い枠は unknown で表示される)
-  spriteIds: [string | undefined, string | undefined];
-  // スプライトが1体でも登録されているか。無ければスプライトは出さない
-  // (モンスターボール2つはデッキの手掛かりにならないため。画面のパネルと同じ扱い)
-  hasSprite: boolean;
-};
+// 絞り込んでいるデッキ。見出しにデッキ名とスプライトを出す(ShareDeckHeading)
+export type ShareHistoryDeck = ShareHeadingDeck;
 
 type Props = {
   // 集計期間(例: 「直近3ヶ月」「チャンピオンシップシリーズ2027(エクストラ)」)
@@ -31,9 +26,6 @@ type Props = {
   // シェア画像の幅(px)。グラフの幅を決めるのに使う
   width: number;
 };
-
-// 見出しに並べるデッキのスプライトの枠(px)
-const DECK_SPRITE_SIZE = 40;
 
 // カードの左右パディング(p-4 = 16px)。グラフはこの内側に描く
 const CARD_PADDING_X = 16;
@@ -70,23 +62,7 @@ export default function UserStatHistoryShareCard({
         <div className="flex flex-col items-center gap-1">
           <h2 className="text-sm font-bold text-default-700">月毎の勝率推移</h2>
           {/* どのデッキ使用時の推移か。デッキを選んでいればスプライトとデッキ名で示す */}
-          {deck ? (
-            <div className="flex flex-col items-center">
-              {deck.hasSprite && (
-                <div className="flex">
-                  <PokemonSprite id={deck.spriteIds[0]} size={DECK_SPRITE_SIZE} />
-                  <PokemonSprite id={deck.spriteIds[1]} size={DECK_SPRITE_SIZE} />
-                </div>
-              )}
-              {/* 長いデッキ名は折り返す。「使用時」は名前の途中で切れないよう一続きにする */}
-              <p className="text-center text-xs text-default-500">
-                <span className="font-bold text-default-700">『{deck.name}』</span>
-                <span className="whitespace-nowrap">使用時</span>
-              </p>
-            </div>
-          ) : (
-            <p className="text-center text-xs text-default-400">すべての使用デッキ</p>
-          )}
+          <ShareDeckHeading deck={deck} />
           <p className="text-center text-xs text-default-400">{periodLabel}</p>
           {/* 不戦勝・不戦敗を外した数字は公式のスイスドロー成績と一致しない。
               画像は文脈から切り離されて出回るので、断り書きを画像自体に載せる */}

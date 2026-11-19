@@ -20,6 +20,30 @@ on:
 # 空でもビルドは通る(画面で auth/invalid-api-key になるだけ。push しないので問題ない)。
 #
 jobs:
+  # lint(npm run lint)と vitest(npm test)。secrets は使わないので、Dependabot・fork の PR でもそのまま走る。
+  # ビルドとは並行に走らせ、互いの結果を待たない(lint・テストが落ちても develop の push は止めない)。
+  # 結果は notify-slack と PR のチェック欄に出る。
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          # Dockerfile の base(node:26.13.1-trixie-slim)と揃える。上げるときは両方を変える
+          node-version: "26.13.1"
+          cache: npm
+      - name: Install Dependencies
+        id: install
+        run: npm ci
+      - name: Run Lint
+        run: npm run lint
+      # lint が落ちてもテストは走らせ、両方の結果を一度に見られるようにする
+      - name: Run Tests
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm test
+
   build-and-push-container-image:
     runs-on: ubuntu-latest
     env:
@@ -61,6 +85,7 @@ jobs:
   notify-slack:
     if: ${{ always() }}
     needs:
+      - lint-and-test
       - build-and-push-container-image
     runs-on: ubuntu-latest
     env:

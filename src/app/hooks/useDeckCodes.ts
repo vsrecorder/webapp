@@ -87,6 +87,36 @@ export function useRevalidateDeckCodes() {
   );
 }
 
+/*
+ * 作ったばかりのバージョンを、バージョン一覧のキャッシュへ先に足してから取り直す。
+ *
+ * 取り直すだけ(useRevalidateDeckCodes)だと、応答が届くまでキャッシュに新しいバージョンが無い。
+ * 記録詳細は使用バージョンのスプライトをこのキャッシュから探すので、新しいバージョンを作って
+ * 記録に紐付けた直後は見つからず、そのあいだだけデッキのスプライトを出してしまう
+ * (新しいバージョンが元のスプライトを引き継いでいても、一度デッキのものへ切り替わって戻る)。
+ *
+ * 一覧は新しい順なので先頭に足す。キャッシュがまだ無いときは足さず、取得に任せる。
+ */
+export function useAddDeckCodeToCache() {
+  const { mutate } = useSWRConfig();
+
+  return useCallback(
+    (deckId: string | null | undefined, created: DeckCodeType) => {
+      if (!deckId) return;
+
+      return mutate<DeckCodeType[]>(
+        deckCodesKey(deckId),
+        (current) =>
+          Array.isArray(current)
+            ? [created, ...current.filter((deckcode) => deckcode.id !== created.id)]
+            : current,
+        { revalidate: true },
+      );
+    },
+    [mutate],
+  );
+}
+
 // deckcodes（作成日時降順で取得した全バージョン）の中から、
 // 指定したデッキコードの通し番号（登録が古い順で1, 2, 3...）を求める。
 // deckcodesが未取得、または対象のIDが見つからない場合はnullを返す。

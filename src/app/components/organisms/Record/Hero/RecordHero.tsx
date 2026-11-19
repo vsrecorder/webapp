@@ -50,7 +50,8 @@ import { keepNamesUnbroken, splitAfterBracketLabels } from "@app/utils/titleBrea
 
 import { MatchStats } from "@app/utils/matchStats";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
-import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
+import { getDeckSpriteBySlot, resolveVersionSprites } from "@app/utils/deckSprite";
+import { useDeckCodes } from "@app/hooks/useDeckCodes";
 
 import { RecordGetByIdResponseType } from "@app/types/record";
 import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
@@ -564,6 +565,28 @@ export default function RecordHero({
   } = useSeededResource(record.deck_id, fetchDeck);
   const deck = record.deck_id ? fetchedDeck : null;
 
+  /*
+   * 使用バージョン。バージョンにスプライトの設定があれば、デッキのスプライトより優先して出す。
+   *
+   * デッキの全バージョンを SWR(useDeckCodes)で引き、その中から記録のバージョンを探す。
+   * 記録詳細では下の「デッキ情報」(UsedDeckCard)が同じ鍵で引いているので往復は増えず、
+   * バージョン履歴でスプライトを変えたとき(useRevalidateDeckCodes)にもここへ反映される。
+   * バージョンが紐付いていない記録や、使用デッキを描かないとき(hideDeck)は引かない。
+   */
+  const usesVersionSprites = !hideDeck && !!record.deck_id && !!record.deck_code_id;
+  const {
+    deckcodes,
+    isLoading: loadingDeckCodes,
+    error: deckCodesError,
+  } = useDeckCodes(usesVersionSprites ? record.deck_id : null);
+  const usedDeckCode = usesVersionSprites
+    ? deckcodes?.find((deckcode) => deckcode.id === record.deck_code_id)
+    : undefined;
+  // 取得が決着したか。失敗も「決着」として扱い、デッキのスプライトで描く
+  // (スプライトがデッキのものに落ちるだけなので、行ごと失敗表示にはしない)
+  const versionSettled = !usesVersionSprites || !!deckcodes || !!deckCodesError || !loadingDeckCodes;
+  const deckSprites = resolveVersionSprites(deck?.pokemon_sprites, usedDeckCode?.pokemon_sprites);
+
   const {
     isOpen: isOpenForTCGMeisterURLModal,
     onOpen: onOpenForTCGMeisterURLModal,
@@ -587,7 +610,8 @@ export default function RecordHero({
       hideDeck ||
       !record.deck_id ||
       deckError ||
-      (!loadingDeck && deck?.id === record.deck_id);
+      // バージョンのスプライトが決まる前に撮ると、シェア画像にデッキのスプライトが写ってしまう
+      (!loadingDeck && deck?.id === record.deck_id && versionSettled);
     onReadyChange(!loadingEvent && !error && deckReady);
   }, [
     onReadyChange,
@@ -598,6 +622,7 @@ export default function RecordHero({
     deck,
     record.deck_id,
     hideDeck,
+    versionSettled,
   ]);
 
   if (error) {
@@ -646,11 +671,11 @@ export default function RecordHero({
         {/* スプライト(2枚は隣接) */}
         <div className="flex shrink-0 items-center">
           <PokemonSprite
-            id={getDeckSpriteBySlot(deck.pokemon_sprites, 1)?.id}
+            id={getDeckSpriteBySlot(deckSprites, 1)?.id}
             size={44}
           />
           <PokemonSprite
-            id={getDeckSpriteBySlot(deck.pokemon_sprites, 2)?.id}
+            id={getDeckSpriteBySlot(deckSprites, 2)?.id}
             size={44}
           />
         </div>
@@ -720,8 +745,12 @@ export default function RecordHero({
    * 代わりに下の失敗行を出して、その場で取り直せるようにする。
    */
   const isDeckFailed = !!record.deck_id && !loadingDeck && deckError;
+  // バージョンのスプライトが決まるまでもローディングにする。先にデッキのスプライトを出すと、
+  // バージョンに設定がある記録で「デッキのスプライト → バージョンのスプライト」と絵が入れ替わる
   const isDeckLoading =
-    !!record.deck_id && !deckError && (loadingDeck || deck?.id !== record.deck_id);
+    !!record.deck_id &&
+    !deckError &&
+    (loadingDeck || deck?.id !== record.deck_id || !versionSettled);
 
   // 使用デッキ取得中のローディング行(実表示と同じ骨格でガタつきを抑える)
   const deckLoadingRow = (

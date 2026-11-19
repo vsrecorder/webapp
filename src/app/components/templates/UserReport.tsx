@@ -76,6 +76,10 @@ async function fetchReportData(userId: string, period: RecapPeriod): Promise<Rep
   const query = `${periodQuery(period)}&${EXCLUDE_DEFAULT_MATCHES_QUERY}`;
   const [statRes, deckRes, opponentRes, streakRes] = await Promise.all([
     fetch(`/api/users/${userId}/stat?${query}`, { cache: "no-store" }),
+    // デッキは1デッキ1行で数える(相棒=スプライトの違いでは分けない)。レポート通知の
+    // 「相棒デッキは『◯◯』でした」(core-apiserver の topDeckName)がデッキ単位の1位を出すので、
+    // ここで分けると、同じデッキを相棒違いで使った期間に、通知とこの画面の1位が別のデッキになる。
+    // 行に出るアイコンは、その期間にいちばん多く使った組み合わせ。
     fetch(`/api/users/${userId}/deck-usage?${query}`, { cache: "no-store" }),
     fetch(`/api/users/${userId}/opponent-deck-usage?${query}`, {
       cache: "no-store",

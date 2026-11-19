@@ -1,4 +1,5 @@
 import { DeckData } from "@app/types/deck";
+import { DeckCodeType } from "@app/types/deck_code";
 import { MatchSummaryType } from "@app/types/match";
 import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
 import { TagType } from "@app/types/tag";
@@ -30,6 +31,10 @@ type Data = {
 // 記録カードに出す使用デッキの情報(名前とスプライトだけ)
 export type RecordCardDeckType = Pick<DeckData, "id" | "name" | "pokemon_sprites">;
 
+// 記録カードに出す使用バージョンの情報(スプライトだけ)。バージョンにスプライトの設定が
+// あればデッキのスプライトより優先して出す(resolveVersionSprites)
+export type RecordCardDeckCodeType = Pick<DeckCodeType, "id" | "pokemon_sprites">;
+
 /*
  * 記録カードの描画に要る周辺情報。BFF(/api/records)とサーバ描画(records/page.tsx)が
  * 一覧の取得と同時にサーバ側でまとめて取り、各記録に付ける。
@@ -43,6 +48,8 @@ export type RecordCardDeckType = Pick<DeckData, "id" | "name" | "pokemon_sprites
  */
 export type RecordCardDetailsType = {
   deck?: RecordCardDeckType;
+  // 使用バージョン。記録にバージョンが紐付いていない場合は無いまま
+  deck_code?: RecordCardDeckCodeType;
   official_event?: OfficialEventGetByIdResponseType;
   tonamel_event?: TonamelEventGetByIdResponseType;
   unofficial_event?: UnofficialEventGetByIdResponseType;

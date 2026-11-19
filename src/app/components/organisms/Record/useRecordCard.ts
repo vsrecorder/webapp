@@ -8,9 +8,15 @@ import { useSeededResource } from "@app/hooks/useSeededResource";
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { MatchGetResponseType, MatchSummaryType } from "@app/types/match";
 import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
-import { RecordCardDeckType, RecordGetByIdResponseType, RecordType } from "@app/types/record";
+import {
+  RecordCardDeckType,
+  RecordGetByIdResponseType,
+  RecordType,
+} from "@app/types/record";
 import { TonamelEventGetByIdResponseType } from "@app/types/tonamel_event";
 import { UnofficialEventGetByIdResponseType } from "@app/types/unofficial_event";
+import { fetchDeckCodeForCard, subscribeDeckCodeSprites } from "@app/utils/deckCodeSpriteClient";
+import { resolveVersionSprites } from "@app/utils/deckSprite";
 import { summarizeMatches } from "@app/utils/match";
 import { REOPEN_MODAL_RECORD_ID } from "@app/utils/recordModalReopen";
 import { writeSessionStorage } from "@app/utils/sessionStorageStore";
@@ -108,6 +114,48 @@ export function useRecordCard({
 
   const deck = useSeededResource(record?.deck_id, fetchDeckById, recordData.details?.deck);
 
+  /*
+   * 使用バージョン。バージョンにスプライトの設定があれば、デッキのスプライトより優先して出す。
+   * デッキが外れている記録では引かない(デッキ行ごと出さないため)。
+   *
+   * 取得できなくてもカードは出す(失敗を画面に出さない)。そのあいだはデッキのスプライトで
+   * 描くことになるが、名前も勝敗も合っていて、スプライトだけが「バージョン固有のもの」から
+   * 「デッキのもの」に落ちるだけなので、カードごとエラーにするより実害が小さい。
+   */
+  const deckCode = useSeededResource(
+    record?.deck_id ? record.deck_code_id : null,
+    // 同じバージョンの記録が並んでも、取得中の1本を分け合う
+    fetchDeckCodeForCard,
+    recordData.details?.deck_code,
+  );
+
+  /*
+   * 表示中にこのバージョンのスプライトが変えられたら(バージョン履歴での編集)、その場で追随する。
+   * 一覧 API が付けた値は state に持っているだけなので、知らされないと再読み込みまで前の絵のまま。
+   * いま出しているバージョンのものだけを差し替える(取得中なら、取得の結果に任せる)。
+   */
+  const setDeckCodeData = deckCode.setData;
+  useEffect(
+    () =>
+      subscribeDeckCodeSprites((changed) => {
+        setDeckCodeData((prev) =>
+          prev && prev.id === changed.id
+            ? { ...prev, pokemon_sprites: changed.pokemon_sprites }
+            : prev,
+        );
+      }),
+    [setDeckCodeData],
+  );
+  // 鍵(記録の使用バージョン)と一致する結果だけを使う。モーダルで使用バージョンを変えた直後は
+  // 前のバージョンの結果が残っているため、そのまま使うと一瞬だけ別バージョンのスプライトが出る
+  const deckCodeSprites =
+    deckCode.data && deckCode.data.id === record?.deck_code_id
+      ? deckCode.data.pokemon_sprites
+      : undefined;
+  const deckSprites = deck.data
+    ? resolveVersionSprites(deck.data.pokemon_sprites, deckCodeSprites)
+    : undefined;
+
   const matches = useSeededResource(
     record?.id,
     fetchMatchSummary,
@@ -177,6 +225,8 @@ export function useRecordCard({
     record,
     setRecord,
     deck,
+    // カードに出すスプライト(バージョンに設定があればそれ、無ければデッキのもの)
+    deckSprites,
     // 集計が無い間は 0 勝 0 敗(「対戦なし」)として描く。
     // 取得できなかったときは matchesFailed 側で分けるので、この値は使わない
     matchSummary: matches.data ?? EMPTY_MATCH_SUMMARY,

@@ -17,7 +17,11 @@ import FetchError from "@app/components/molecules/FetchError";
 import { Card, CardBody } from "@heroui/react";
 
 import { UserStatHistoryType, UserStatMonthlyType } from "@app/types/user_stat_history";
-import { DeckUsageItemType, DeckUsageStatType } from "@app/types/deck_usage_stat";
+import {
+  DeckUsageItemType,
+  DeckUsageStatType,
+  deckIdentitySprites,
+} from "@app/types/deck_usage_stat";
 import { ChampionshipSeriesType } from "@app/types/championship_series";
 import { seasonOptionsFromChampionshipSeries, currentSeasonValue } from "@app/utils/season";
 import { todayJSTDateString } from "@app/utils/date";
@@ -284,8 +288,11 @@ export default function UserStatHistoryChart({
   const selectedDeck = deckId
     ? ownDecks.find((deck) => deck.deck_id === deckId)
     : undefined;
-  const deckSprite1 = getDeckSpriteBySlot(selectedDeck?.pokemon_sprites, 1);
-  const deckSprite2 = getDeckSpriteBySlot(selectedDeck?.pokemon_sprites, 2);
+  // 出すのはいまのデッキのスプライト(デッキ一覧と同じもの)。行の pokemon_sprites は期間中に
+  // 使ったバージョンのもので、月ごとに引いて畳む「直近Nヶ月」では最初に使った月のものになってしまう
+  const selectedDeckSprites = deckIdentitySprites(selectedDeck);
+  const deckSprite1 = getDeckSpriteBySlot(selectedDeckSprites, 1);
+  const deckSprite2 = getDeckSpriteBySlot(selectedDeckSprites, 2);
   const hasDeckSprite = Boolean(deckSprite1 || deckSprite2);
 
   // 描画中の月次推移。ツールチップの計算は描画ごとに作り直す関数から参照する

@@ -35,7 +35,11 @@ import RegulationSegmentedControl from "@app/components/molecules/RegulationSegm
 import DeckSprites from "@app/components/molecules/DeckSprites";
 import { ChampionshipSeriesType } from "@app/types/championship_series";
 import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
-import { DeckUsageItemType, DeckUsageStatType } from "@app/types/deck_usage_stat";
+import {
+  DeckUsageItemType,
+  DeckUsageStatType,
+  deckUsageRowKey,
+} from "@app/types/deck_usage_stat";
 import { EXCLUDE_DEFAULT_MATCHES_QUERY } from "@app/utils/excludeDefaultMatches";
 import {
   seasonOptionsFromChampionshipSeries,
@@ -269,6 +273,8 @@ export default function DeckUsagePanel({
         // 勝率・対戦数は不戦勝・不戦敗を外して集計する(utils/excludeDefaultMatches)
         const params = new URLSearchParams(EXCLUDE_DEFAULT_MATCHES_QUERY);
         params.set("regulation_id", String(regulationId));
+        // 同じデッキでも、相棒(スプライト)を入れ替えた前後は別の行として出す
+        params.set("split_by_sprites", "true");
         if (filterMode === "month" && yearMonth) {
           params.set("year_month", yearMonth);
         } else if (filterMode === "environment" && environmentId) {
@@ -392,7 +398,7 @@ export default function DeckUsagePanel({
         const sprite1 = getDeckSpriteBySlot(deck.pokemon_sprites, 1);
         const sprite2 = getDeckSpriteBySlot(deck.pokemon_sprites, 2);
         return {
-          key: deck.deck_id || `other-${idx}`,
+          key: deckUsageRowKey(deck) || `other-${idx}`,
           name: deck.name,
           spriteIds: [sprite1?.id, sprite2?.id],
           hasSprite: Boolean(sprite1 || sprite2),
@@ -869,7 +875,7 @@ export default function DeckUsagePanel({
               <div className="flex flex-col gap-1.5">
                 {displayDecks.map((deck, idx) => (
                   <DeckUsageLegendRow
-                    key={deck.deck_id || `unknown-${idx}`}
+                    key={deckUsageRowKey(deck) || `unknown-${idx}`}
                     deck={deck}
                     idx={idx}
                     color={deckColors[idx]}

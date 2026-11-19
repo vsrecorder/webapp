@@ -17,6 +17,8 @@ import {
 import { TonamelEventGetByIdResponseType } from "@app/types/tonamel_event";
 import { UnofficialEventGetByIdResponseType } from "@app/types/unofficial_event";
 import { DeckGetByIdResponseType } from "@app/types/deck";
+import { DeckCodeType } from "@app/types/deck_code";
+import { resolveVersionSprites } from "@app/utils/deckSprite";
 import { todayJSTDateString } from "@app/utils/date";
 import {
   isRecordingDismissed,
@@ -188,22 +190,42 @@ async function fetchEventInfo(
   return NO_EVENT;
 }
 
-// カードに出すぶんだけに絞る(名前とスプライト)
+/*
+ * カードに出すぶんだけに絞る(名前とスプライト)。
+ *
+ * スプライトは、記録が使ったバージョンに設定があればそれを、無ければデッキのものを返す
+ * (resolveVersionSprites)。バージョンはデッキと並列に取るので段数は増えない。
+ * バージョンが取れなくてもデッキのスプライトで出す(カードごと消さない)。
+ */
 async function fetchCardDeck(
   userId: string,
   deckId: string,
+  deckCodeId: string,
 ): Promise<RecordCardDeckType | null> {
   if (!deckId) return null;
 
-  const deck = await getOptional<DeckGetByIdResponseType>(
-    "deck",
-    upstreamUrl`/api/v1beta/decks/${deckId}`,
-    authHeaders(userId),
-  );
+  const [deck, deckCode] = await Promise.all([
+    getOptional<DeckGetByIdResponseType>(
+      "deck",
+      upstreamUrl`/api/v1beta/decks/${deckId}`,
+      authHeaders(userId),
+    ),
+    deckCodeId
+      ? getOptional<DeckCodeType>(
+          "deck code",
+          upstreamUrl`/api/v1beta/deckcodes/${deckCodeId}`,
+          authHeaders(userId),
+        )
+      : null,
+  ]);
 
   if (!deck) return null;
 
-  return { id: deck.id, name: deck.name, pokemon_sprites: deck.pokemon_sprites ?? [] };
+  return {
+    id: deck.id,
+    name: deck.name,
+    pokemon_sprites: resolveVersionSprites(deck.pokemon_sprites, deckCode?.pokemon_sprites),
+  };
 }
 
 /*
@@ -236,7 +258,7 @@ export async function getRecordingNow(
   const [summary, event, deck] = await Promise.all([
     fetchSummary(userId, candidate.data.id),
     fetchEventInfo(userId, candidate.data),
-    fetchCardDeck(userId, candidate.data.deck_id),
+    fetchCardDeck(userId, candidate.data.deck_id, candidate.data.deck_code_id),
   ]);
 
   const { lastActiveAt, windowMs } = recordingActivityOf(candidate, summary);

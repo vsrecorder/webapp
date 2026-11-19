@@ -7,7 +7,12 @@ import {
   MatchSummaryType,
 } from "@app/types/match";
 import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
-import { RecordCardDeckType, RecordGetResponseType } from "@app/types/record";
+import { DeckCodeType } from "@app/types/deck_code";
+import {
+  RecordCardDeckCodeType,
+  RecordCardDeckType,
+  RecordGetResponseType,
+} from "@app/types/record";
 import { TonamelEventGetByIdResponseType } from "@app/types/tonamel_event";
 import { UnofficialEventGetByIdResponseType } from "@app/types/unofficial_event";
 import { summarizeMatches } from "@app/utils/match";
@@ -106,6 +111,11 @@ function toCardDeck(deck: DeckGetByIdResponseType): RecordCardDeckType {
   return { id: deck.id, name: deck.name, pokemon_sprites: deck.pokemon_sprites ?? [] };
 }
 
+// カードに要るバージョンの項目だけに絞る。スプライトを返さない古い上流なら空(=デッキのものを出す)
+function toCardDeckCode(deckCode: DeckCodeType): RecordCardDeckCodeType {
+  return { id: deckCode.id, pokemon_sprites: deckCode.pokemon_sprites ?? [] };
+}
+
 export type RecordPageQuery = {
   // 記録の種別。空文字なら全種別
   eventType: string;
@@ -137,6 +147,18 @@ export async function fetchRecordsPageWithDetails(
 
   // 周辺情報のトークンは別に切る。一覧本体が遅れても 10 秒の期限に掛からないように
   const detailHeaders = authHeaders(signUpstreamToken(userId));
+
+  // 使用バージョン。バージョンに設定したスプライトをデッキのものより優先して出すために引く。
+  // 同じバージョンの記録が並ぶことが多く、1ページで増えるのは数本。下の Promise.all と
+  // 並列に走らせる(先に投げておき、後でまとめて待つ)ので、一覧の待ち時間は伸びない
+  const deckCodesPromise = fetchMap(ids.deckCodeIds, async (id) => {
+    const deckCode = await getOptional<DeckCodeType>(
+      "deck code",
+      upstreamUrl`/api/v1beta/deckcodes/${id}`,
+      detailHeaders,
+    );
+    return deckCode ? toCardDeckCode(deckCode) : null;
+  });
 
   const [decks, officialEvents, tonamelEvents, unofficialEvents, matches] = await Promise.all([
     fetchMap(ids.deckIds, async (id) => {
@@ -185,10 +207,14 @@ export async function fetchRecordsPageWithDetails(
     })(),
   ]);
 
+  // getOptional は失敗を null にして投げないので、ここで reject することはない
+  const deckCodes = await deckCodesPromise;
+
   return {
     ...page,
     records: attachRecordCardDetails(page.records, {
       decks,
+      deckCodes,
       officialEvents,
       tonamelEvents,
       unofficialEvents,

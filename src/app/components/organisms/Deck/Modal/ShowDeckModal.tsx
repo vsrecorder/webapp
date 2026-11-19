@@ -578,6 +578,7 @@ export default function ShowDeckModal({
       <UpdateDeckModal
         deck={deck}
         setDeck={setDeck}
+        setDeckCode={setDeckCode}
         isOpen={isOpenForUpdateDeckModal}
         onOpenChange={onOpenChangeForUpdateDeckModal}
       />
@@ -643,6 +644,7 @@ export default function ShowDeckModal({
       <DisplayDeckCodesModal
         deck={deck}
         deckcode={deckcode}
+        setDeck={setDeck}
         setDeckCode={setDeckCode}
         isOpen={isOpenForDisplayDeckCodesModal}
         onOpenChange={onOpenChangeForDisplayDeckCodesModal}

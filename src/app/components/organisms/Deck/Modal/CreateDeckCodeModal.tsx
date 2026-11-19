@@ -13,15 +13,18 @@ import { addToast, closeToast } from "@heroui/react";
 import PulseSkeleton from "@app/components/molecules/Skeleton/PulseSkeleton";
 import { Modal } from "@app/components/atoms/AppModal";
 import DeckCardDiff from "@app/components/organisms/Deck/DeckCardDiff";
+import VersionSpriteField from "@app/components/organisms/Deck/VersionSpriteField";
 
 import { DeckGetByIdResponseType } from "@app/types/deck";
 import { DeckCodeType, DeckCodeCreateRequestType } from "@app/types/deck_code";
+import { DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
+import { applyLatestVersionSprites } from "@app/utils/deckSprite";
 import TagSelectorAccordion from "@app/components/organisms/Tag/TagSelectorAccordion";
 import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
 import { normalizeDeckCode } from "@app/utils/deckCode";
 import { refreshKizuna } from "@app/utils/kizunaClient";
 import { useSyncOnChange } from "@app/hooks/useSyncOnChange";
-import { useRevalidateDeckCodes } from "@app/hooks/useDeckCodes";
+import { useAddDeckCodeToCache } from "@app/hooks/useDeckCodes";
 
 const DECK_CODE_LENGTH = 20;
 const DECK_CODE_CHECK_DEBOUNCE_MS = 500;
@@ -37,19 +40,21 @@ type Props = {
 
 export default function CreateDeckCodeModal({
   deck,
-  //setDeck,
+  setDeck,
   deckcode,
   setDeckCode,
   isOpen,
   onOpenChange,
 }: Props) {
   // 作成後にバージョン件数(ShowDeckModal の「◯件」など)を取り直すため
-  const revalidateDeckCodes = useRevalidateDeckCodes();
+  const addDeckCodeToCache = useAddDeckCodeToCache();
 
   const [imageLoaded, setImageLoaded] = useState(false);
   const [newdeckcode, setNewDeckCode] = useState<string>("");
   const [memo, setMemo] = useState<string>("");
   const [tagIds, setTagIds] = useState<string[]>([]);
+  // このバージョンに設定するスプライト(空なら未設定＝デッキのスプライトを表示)
+  const [sprites, setSprites] = useState<DeckPokemonSpriteType[]>([]);
   // タグ管理中は「閉じる」「作成」やモーダルのクローズを無効化する
   const [isTagManaging, setIsTagManaging] = useState<boolean>(false);
   //const [isSelected, setIsSelected] = useState<boolean>(false);
@@ -117,8 +122,16 @@ export default function CreateDeckCodeModal({
   // モーダルを開くたびに、継承元 deckcode の付与タグでタグ選択状態を初期化する
   // (継承元が無い＝最初のバージョン作成時は空のまま)。
   // effect で初期化すると前回の選択での描画が一度挟まるので、前回の値を控えて描画中に初期化する
+  //
+  // スプライトも同じく、元にしたバージョンの設定を引き継ぐ(その場で変えられる)。
+  // 元のバージョンが未設定なら空のまま始める。デッキのスプライトで埋めると、作っただけで
+  // 「デッキと同じスプライトをバージョンに固定」してしまい、あとでデッキのスプライトを
+  // 変えてもこのバージョンに反映されなくなる(未設定ならデッキのスプライトが表示される)。
   useSyncOnChange({ isOpen, deckcode }, () => {
-    if (isOpen) setTagIds((deckcode?.tags ?? []).map((tag) => tag.id));
+    if (isOpen) {
+      setTagIds((deckcode?.tags ?? []).map((tag) => tag.id));
+      setSprites(deckcode?.pokemon_sprites ?? []);
+    }
   });
 
   if (!deck) {
@@ -133,6 +146,7 @@ export default function CreateDeckCodeModal({
       //private_code_flg: isSelected,
       memo: memo,
       tag_ids: tagIds,
+      pokemon_sprites: sprites,
     };
 
     setIsDisabled(true);
@@ -158,7 +172,12 @@ export default function CreateDeckCodeModal({
         throw new Error(`HTTP error: ${res.status} Message: ${t.message}`);
       }
 
-      const ret: DeckCodeType = await res.json();
+      const created: DeckCodeType = await res.json();
+      // スプライトを返さない古いバックエンドでは、送った内容をそのまま表示に使う
+      const ret: DeckCodeType = {
+        ...created,
+        pokemon_sprites: created.pokemon_sprites ?? sprites,
+      };
 
       if (toastId) {
         closeToast(toastId);
@@ -171,10 +190,28 @@ export default function CreateDeckCodeModal({
         timeout: 3000,
       });
 
+      // 件数を出している側と記録詳細は SWR キャッシュを見ているので、新しいバージョンを足して取り直す。
+      // setDeckCode より先に行う: 記録詳細では setDeckCode が記録の使用バージョンを付け替えるので、
+      // その時点でキャッシュに新しいバージョンが居ないと、スプライトが一度デッキのものへ切り替わる
+      addDeckCodeToCache(deck.id, ret);
+
+      // 作ったバージョンが最新になる。デッキのスプライトと最新バージョンのスプライトは常に揃える
+      // (サーバが揃えている。usecase/deck_sprite_sync.go)ので、手元のデッキにも当てる。
+      // デッキが持つ最新バージョンも入れ替える(デッキ詳細はデッキが差し替わるたびに、
+      // 表示中のバージョンをここから入れ直す)
+      const applied = applyLatestVersionSprites(deck.pokemon_sprites, [], ret.id, ret.pokemon_sprites);
+      setDeck((prev) =>
+        prev && prev.id === deck.id
+          ? {
+              ...prev,
+              pokemon_sprites: applied ? applied.deckSprites : prev.pokemon_sprites,
+              latest_deck_code: ret,
+            }
+          : prev,
+      );
+
       setDeckCode(ret);
 
-      // 件数を出している側は SWR キャッシュを見ているので、ここで取り直す
-      revalidateDeckCodes(deck.id);
       // バージョンの数(調整の跡)できずなLv.が動く
       refreshKizuna();
 
@@ -232,6 +269,7 @@ export default function CreateDeckCodeModal({
         setNewDeckCode("");
         setMemo("");
         setTagIds([]);
+        setSprites([]);
         setIsTagManaging(false);
         //setIsSelected(false);
       }}
@@ -361,6 +399,15 @@ export default function CreateDeckCodeModal({
               ) : (
                 <></>
               )}
+
+              {/* 元にしたバージョンのアイコンを引き継いで始める。相棒を入れ替えたときはここで変える */}
+              <VersionSpriteField
+                value={sprites}
+                onChange={setSprites}
+                deckSprites={deck.pokemon_sprites}
+                isDisabled={isDisabled}
+                syncsDeck
+              />
 
               <Textarea
                 size="md"

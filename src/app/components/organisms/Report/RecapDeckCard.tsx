@@ -7,7 +7,7 @@ import RecapStats, {
 } from "@app/components/organisms/Report/RecapStats";
 import RecapSprites from "@app/components/organisms/Report/RecapSprites";
 import RecapRankRow from "@app/components/organisms/Report/RecapRankRow";
-import { DeckUsageItemType } from "@app/types/deck_usage_stat";
+import { DeckUsageItemType, deckUsageRowKey } from "@app/types/deck_usage_stat";
 import {
   periodHeadingFontSize,
   periodPossessive,
@@ -120,7 +120,7 @@ export default function RecapDeckCard({ period, decks, totalMatches }: Props) {
           >
             {runnersUp.map((item, index) => (
               <RecapRankRow
-                key={item.deck_id || item.name || index}
+                key={deckUsageRowKey(item) || item.name || index}
                 tone="secondary"
                 rank={index + 2}
                 sprites={item.pokemon_sprites}

@@ -7,13 +7,29 @@ on:
       - "main"
       - "master"
 
+#
+# Dependabot(と fork)からの PR には、リポジトリの secrets が一切渡らない(すべて空文字になる)。
+# そのままだとレジストリへのログインと Slack 通知で必ず落ち、中身を何も検証しないまま
+# 「失敗」になっていた。secrets が無いときはログイン・push・通知を飛ばし、ビルドだけ行う。
+#
+# Dependabot 用の secrets(Settings → Secrets → Dependabot)を登録して通す手もあるが、採らない。
+# 依存の更新という一番疑ってかかるべき変更に Docker Hub の書き込み権限を渡し、
+# レビュー前の中身で develop のイメージを上書きさせることになるため。
+#
+# Firebase などの build-arg も空になる。NEXT_PUBLIC_* は値がビルド結果へ埋め込まれるだけで、
+# 空でもビルドは通る(画面で auth/invalid-api-key になるだけ。push しないので問題ない)。
+#
 jobs:
   build-and-push-container-image:
     runs-on: ubuntu-latest
+    env:
+      # secrets は steps の if で直接参照できないので、ジョブの env に真偽を移して使う
+      HAS_REGISTRY_CREDENTIALS: ${{ secrets.DOCKER_USERNAME != '' && secrets.DOCKER_PASSWORD != '' }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v7
       - name: Login to Container Registry
+        if: env.HAS_REGISTRY_CREDENTIALS == 'true'
         uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
@@ -32,18 +48,29 @@ jobs:
             --cache-from vsrecorder/webapp:develop \
             --tag vsrecorder/webapp:develop
       - name: Push Container Image
+        if: env.HAS_REGISTRY_CREDENTIALS == 'true'
         run: |
           docker push vsrecorder/webapp:develop
+      # 飛ばしたことを実行結果の画面に残す。secrets の名前を変えたり消したりしたときに、
+      # 自分の PR でも push されないまま「成功」になるのを見落とさないため。
+      - name: Report Skipped Push
+        if: env.HAS_REGISTRY_CREDENTIALS != 'true'
+        run: |
+          echo "::notice::レジストリの secrets が渡されていないため、ログインと push を飛ばしてビルドだけ行いました(Dependabot・fork の PR では正常)"
 
   notify-slack:
     if: ${{ always() }}
     needs:
       - build-and-push-container-image
     runs-on: ubuntu-latest
+    env:
+      HAS_SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL != '' }}
     steps:
       - name: Checkout Repository
+        if: env.HAS_SLACK_WEBHOOK == 'true'
         uses: actions/checkout@v7
       - name: Slack Notification
+        if: env.HAS_SLACK_WEBHOOK == 'true'
         run: |
           SLACK_WEBHOOK_URL="${{ secrets.SLACK_WEBHOOK_URL }}" \
           SUCCESS="${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') && !contains(needs.*.result, 'skipped') }}" \

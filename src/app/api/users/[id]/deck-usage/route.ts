@@ -35,6 +35,9 @@ export async function GET(
     const allTime = searchParams.get("all_time") ?? "";
     // 不戦勝・不戦敗を集計から外すかどうか(未指定なら上流の既定＝含める)
     const excludeDefaultMatches = searchParams.get("exclude_default_matches") ?? "";
+    // 同じデッキでも、対戦で使ったスプライトの組み合わせごとに行を分けるかどうか
+    // (未指定なら1デッキ1行。同じ deck_id の行が複数返るので、行を並べて見せる画面だけが付ける)
+    const splitBySprites = searchParams.get("split_by_sprites") ?? "";
 
     const queryParams = new URLSearchParams();
     if (week) queryParams.set("week", week);
@@ -47,6 +50,7 @@ export async function GET(
     if (allTime) queryParams.set("all_time", allTime);
     if (excludeDefaultMatches)
       queryParams.set("exclude_default_matches", excludeDefaultMatches);
+    if (splitBySprites) queryParams.set("split_by_sprites", splitBySprites);
 
     const stat = await fetchUpstream<DeckUsageStatType>(
       upstreamUrl`/api/v1beta/users/${id}/deck_usage?${queryParams}`,

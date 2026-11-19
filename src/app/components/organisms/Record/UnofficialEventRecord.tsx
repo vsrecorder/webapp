@@ -37,6 +37,7 @@ export default function UnofficialEventRecord(props: RecordCardProps) {
     record,
     setRecord,
     deck,
+    deckSprites,
     matchSummary,
     loadingMatches,
     matchesFailed,
@@ -107,7 +108,7 @@ export default function UnofficialEventRecord(props: RecordCardProps) {
         regulationId={record.regulation_id}
         icon={<LuPencilLine className="w-5 h-5 text-default-500" />}
         deckName={deck.data ? deck.data.name : null}
-        deckSprites={deck.data?.pokemon_sprites}
+        deckSprites={deckSprites}
         loadingDeck={deck.loading}
         winCount={matchSummary.wins}
         lossCount={matchSummary.losses}

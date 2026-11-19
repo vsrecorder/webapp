@@ -17,7 +17,11 @@ import { DEFAULT_REGULATION_ID, regulationDisplay } from "@app/types/regulation"
 import RegulationSegmentedControl from "@app/components/molecules/RegulationSegmentedControl";
 import { ChampionshipSeriesType } from "@app/types/championship_series";
 import { OpponentDeckUsageStatType } from "@app/types/opponent_deck_usage_stat";
-import { DeckUsageItemType, DeckUsageStatType } from "@app/types/deck_usage_stat";
+import {
+  DeckUsageItemType,
+  DeckUsageStatType,
+  deckIdentitySprites,
+} from "@app/types/deck_usage_stat";
 import {
   seasonOptionsFromChampionshipSeries,
   currentSeasonValue,
@@ -240,8 +244,11 @@ export default function OpponentDeckUsagePanel({
   const selectedOwnDeck = ownDeckId
     ? ownDecks.find((d) => d.deck_id === ownDeckId)
     : undefined;
-  const ownDeckSprite1 = getDeckSpriteBySlot(selectedOwnDeck?.pokemon_sprites, 1);
-  const ownDeckSprite2 = getDeckSpriteBySlot(selectedOwnDeck?.pokemon_sprites, 2);
+  // 出すのはいまのデッキのスプライト(デッキ一覧と同じもの)。行の pokemon_sprites は期間中に
+  // 使ったバージョンのもので、期間を変えるたびに同じデッキのアイコンが入れ替わってしまう
+  const ownDeckSprites = deckIdentitySprites(selectedOwnDeck);
+  const ownDeckSprite1 = getDeckSpriteBySlot(ownDeckSprites, 1);
+  const ownDeckSprite2 = getDeckSpriteBySlot(ownDeckSprites, 2);
   const hasOwnDeckSprite = Boolean(ownDeckSprite1 || ownDeckSprite2);
 
   // 「環境」と「レギュレーションマーク」はスタンダードのカードプールを前提にした区切りのため、
@@ -308,7 +315,7 @@ export default function OpponentDeckUsagePanel({
   const postHeading = `${filterLabel}\n${ownDeckLine}\n対戦相手のデッキ分析`;
   // シェア画像の見出しに添える使用デッキ。「月毎の勝率推移」のシェア画像と同じく、
   // デッキを選んでいればスプライトとデッキ名、選んでいなければ「すべての使用デッキ」になる。
-  // スプライトは画面のセレクタに添えているものと同じにする。
+  // スプライトは画面のセレクタに添えているもの(いまのデッキのスプライト)と同じにする。
   const shareDeck = selectedOwnDeck
     ? {
         name: selectedOwnDeck.name,

@@ -44,6 +44,8 @@ import FetchError from "@app/components/molecules/FetchError";
 import CopyableDeckCode from "@app/components/atoms/CopyableDeckCode";
 import ZoomableDeckImage from "@app/components/atoms/ZoomableDeckImage";
 import TagChips from "@app/components/molecules/TagChips";
+import DeckSprites from "@app/components/molecules/DeckSprites";
+import VersionSpriteField from "@app/components/organisms/Deck/VersionSpriteField";
 import TagSelector from "@app/components/organisms/Tag/TagSelector";
 import {
   DeckVersionRecordStrip,
@@ -64,6 +66,9 @@ import { deckActivePostsKey } from "@app/hooks/useDeckActivePosts";
 import { useModalEntered } from "@app/hooks/useModalEntered";
 import { useDeckCodeUsage } from "@app/hooks/useDeckCodeUsage";
 import { pickBestVersionId } from "@app/utils/deckVersionStats";
+import { applyLatestVersionSprites, resolveVersionSprites } from "@app/utils/deckSprite";
+import { notifyDeckCodeSpritesChanged } from "@app/utils/deckCodeSpriteClient";
+import { DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
 import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
 import { closingPassthroughClassNames } from "@app/utils/modal";
 import { refreshKizuna } from "@app/utils/kizunaClient";
@@ -94,6 +99,9 @@ async function fetchDeckCodesByDeckId(deck_id: string) {
 
 type Props = {
   deck: DeckGetByIdResponseType | null;
+  // 最新バージョンのスプライトを変えたとき・最新バージョンを消したときに、デッキのスプライトも
+  // 揃える(サーバが揃えた結果を手元の表示へ当てる)。渡さない画面ではデッキの表示は変えない
+  setDeck?: Dispatch<SetStateAction<DeckGetByIdResponseType | null>>;
   deckcode: DeckCodeType | null;
   setDeckCode: Dispatch<SetStateAction<DeckCodeType | null>>;
   isOpen: boolean;
@@ -105,6 +113,7 @@ type Props = {
 
 export default function DisplayDeckCodesModal({
   deck,
+  setDeck,
   deckcode,
   setDeckCode,
   isOpen,
@@ -132,6 +141,40 @@ export default function DisplayDeckCodesModal({
     fetchDeckCodesByDeckId,
   );
 
+  /*
+   * 最新バージョン(versions の先頭)のスプライトが決まったあとの、デッキとほかのバージョンの表示を揃える。
+   *
+   * デッキのスプライトと最新バージョンのスプライトは常に同じにする。サーバは最新バージョンの
+   * 編集・削除のたびにデッキのスプライトを置き換え、未設定だった過去のバージョンには置き換える前の
+   * デッキのスプライトを書き残す(usecase/deck_sprite_sync.go)。ここでは同じ規則を手元に当てる。
+   * 揃えたあとの一覧を返す(変わらなければ versions をそのまま返す)。
+   */
+  const syncDeckWithLatestVersion = (versions: DeckCodeType[]): DeckCodeType[] => {
+    const latest = versions[0];
+    if (!deck || !latest) return versions;
+
+    const applied = applyLatestVersionSprites(
+      deck.pokemon_sprites,
+      versions,
+      latest.id,
+      latest.pokemon_sprites,
+    );
+
+    // 最新バージョンが替わっただけ(スプライトは揃っている)でも、デッキが持つ最新バージョンは入れ替える。
+    // デッキ詳細はデッキが差し替わるたびに、表示中のバージョンをここから入れ直す
+    setDeck?.((prev) =>
+      prev && prev.id === deck.id
+        ? {
+            ...prev,
+            pokemon_sprites: applied ? applied.deckSprites : prev.pokemon_sprites,
+            latest_deck_code: latest,
+          }
+        : prev,
+    );
+
+    return applied ? applied.versions : versions;
+  };
+
   const {
     isOpen: isOpenForDeleteDeckCodeModal,
     onOpen: onOpenForDeleteDeckCodeModal,
@@ -151,6 +194,8 @@ export default function DisplayDeckCodesModal({
   const [editMemoDeckCode, setEditMemoDeckCode] = useState<DeckCodeType | null>(null);
   const [memoInput, setMemoInput] = useState<string>("");
   const [editTagIds, setEditTagIds] = useState<string[]>([]);
+  // 編集中のバージョンのスプライト(空なら未設定＝デッキのスプライトを表示)
+  const [editSprites, setEditSprites] = useState<DeckPokemonSpriteType[]>([]);
   const [isMemoSaving, setIsMemoSaving] = useState<boolean>(false);
   // タグ管理中は「閉じる」「保存」やモーダルのクローズを無効化する
   const [isTagManaging, setIsTagManaging] = useState<boolean>(false);
@@ -250,9 +295,11 @@ export default function DisplayDeckCodesModal({
       // 親の setDeckCode は、この更新関数の中ではなく外で呼ぶ
       // (別コンポーネントのレンダー中に親を更新すると React の警告対象になり、
       //  StrictMode では更新関数が二度走る)。
-      const filtered = (displayDeckCodes ?? []).filter(
-        (dc) => dc.id !== displayDeckCode?.id,
-      );
+      const remaining = (displayDeckCodes ?? []).filter((dc) => dc.id !== displayDeckCode?.id);
+
+      // 最新バージョンを消したら、繰り上がったバージョンのスプライトにデッキを揃える
+      const deletedLatest = displayDeckCodes?.[0]?.id === displayDeckCode?.id;
+      const filtered = deletedLatest ? syncDeckWithLatestVersion(remaining) : remaining;
 
       setDisplayDeckCodes(filtered);
 
@@ -306,11 +353,15 @@ export default function DisplayDeckCodesModal({
     }
   };
 
-  // バージョン編集モーダルを開く。対象バージョンの現在のメモ・付与タグを入力欄へ反映する
+  // バージョン編集モーダルを開く。対象バージョンの現在のメモ・付与タグ・スプライトを入力欄へ反映する。
+  // スプライトはバージョン自身の設定を入れる(未設定ならデッキのスプライトで埋めず、空のままにする。
+  // 埋めてしまうと、保存しただけで「デッキと同じスプライトをバージョンに固定」することになり、
+  // あとでデッキのスプライトを変えてもこのバージョンに反映されなくなる)
   const openEditMemo = (target: DeckCodeType) => {
     setEditMemoDeckCode(target);
     setMemoInput(target.memo ?? "");
     setEditTagIds((target.tags ?? []).map((tag) => tag.id));
+    setEditSprites(target.pokemon_sprites ?? []);
     onOpenForEditMemoModal();
   };
 
@@ -332,6 +383,8 @@ export default function DisplayDeckCodesModal({
         memo: memoInput,
         // メモと付与タグをまとめて更新する。
         tag_ids: editTagIds,
+        // スプライトも同じ保存で反映する(空配列は未設定に戻す)
+        pokemon_sprites: editSprites,
       };
 
       const res = await fetch(`/api/deckcodes/${editMemoDeckCode.id}`, {
@@ -359,27 +412,50 @@ export default function DisplayDeckCodesModal({
         timeout: 3000,
       });
 
-      // 一覧の該当バージョンのメモ・タグを更新
-      setDisplayDeckCodes((prev) =>
-        prev
-          ? prev.map((dc) =>
-              dc.id === updated.id
-                ? { ...dc, memo: updated.memo, tags: updated.tags }
-                : dc,
-            )
-          : prev,
+      // スプライトを返さない古いバックエンドでは、送った内容をそのまま表示に使う
+      // (保存自体は無視されているが、未定義のまま持つと一覧の表示がデッキのものへ戻ってしまう)
+      const updatedSprites = updated.pokemon_sprites ?? editSprites;
+
+      // 一覧の該当バージョンのメモ・タグ・スプライトを更新
+      const edited = (displayDeckCodes ?? []).map((dc) =>
+        dc.id === updated.id
+          ? {
+              ...dc,
+              memo: updated.memo,
+              tags: updated.tags,
+              pokemon_sprites: updatedSprites,
+            }
+          : dc,
       );
+
+      // 最新バージョンのスプライトを変えたら、デッキのスプライトもそれに揃える
+      const spritesChanged =
+        JSON.stringify(editMemoDeckCode.pokemon_sprites ?? []) !== JSON.stringify(updatedSprites);
+      const editedLatest = edited[0]?.id === updated.id;
+
+      if (displayDeckCodes) {
+        setDisplayDeckCodes(
+          spritesChanged && editedLatest ? syncDeckWithLatestVersion(edited) : edited,
+        );
+      }
 
       // 表示中のデッキコードが編集対象なら同期する
       setDeckCode((prev) =>
         prev && prev.id === updated.id
-          ? { ...prev, memo: updated.memo, tags: updated.tags }
+          ? { ...prev, memo: updated.memo, tags: updated.tags, pokemon_sprites: updatedSprites }
           : prev,
       );
 
       // デッキ詳細のバージョン一覧は SWR キャッシュのメモ・タグを出しているので取り直す。
+      // 記録詳細の「使用デッキ」(RecordHero)も同じキャッシュからバージョンのスプライトを引く。
       // 編集では deckcode の ID が変わらず、useDeckCodes 側の取り直しは働かない
       revalidateDeckCodes(deck?.id);
+
+      // 記録一覧のカード・カレンダー・「記録中」のバーは上のキャッシュを見ていないので、
+      // スプライトを変えたときだけ別に知らせる(メモ・タグだけの保存では何も起こさない)
+      if (spritesChanged) {
+        notifyDeckCodeSpritesChanged({ id: updated.id, pokemon_sprites: updatedSprites });
+      }
 
       onClose();
     } catch (error) {
@@ -522,6 +598,7 @@ export default function DisplayDeckCodesModal({
           setEditMemoDeckCode(null);
           setMemoInput("");
           setEditTagIds([]);
+          setEditSprites([]);
         }}
         classNames={{
           base: "sm:max-w-full",
@@ -531,9 +608,17 @@ export default function DisplayDeckCodesModal({
           {(onClose) => (
             <>
               <ModalHeader className="px-3 flex flex-col gap-1">
-                メモ・タグを編集
+                バージョンを編集
               </ModalHeader>
               <ModalBody className="px-3 py-1 gap-3">
+                <VersionSpriteField
+                  value={editSprites}
+                  onChange={setEditSprites}
+                  deckSprites={deck?.pokemon_sprites}
+                  isDisabled={isMemoSaving}
+                  syncsDeck={editMemoDeckCode?.id === displayDeckCodes?.[0]?.id}
+                />
+
                 <Textarea
                   size="md"
                   isDisabled={isMemoSaving}
@@ -767,6 +852,33 @@ export default function DisplayDeckCodesModal({
                                         <div className="flex items-center justify-between gap-2">
                                           {/* 左側 */}
                                           <div className="flex items-center gap-2">
+                                            {/* このバージョンのスプライト(未設定ならデッキのもの)。
+                                                タップでバージョンの編集を開き、ここから変えられる。
+                                                アーカイブ済みは編集できないので絵だけ出す */}
+                                            {isArchived ? (
+                                              <DeckSprites
+                                                sprites={resolveVersionSprites(
+                                                  deck?.pokemon_sprites,
+                                                  deckcode.pokemon_sprites,
+                                                )}
+                                                size={40}
+                                              />
+                                            ) : (
+                                              <button
+                                                type="button"
+                                                aria-label="このバージョンのアイコンを変更する"
+                                                onClick={() => openEditMemo(deckcode)}
+                                                className="shrink-0 rounded-lg active:opacity-70"
+                                              >
+                                                <DeckSprites
+                                                  sprites={resolveVersionSprites(
+                                                    deck?.pokemon_sprites,
+                                                    deckcode.pokemon_sprites,
+                                                  )}
+                                                  size={40}
+                                                />
+                                              </button>
+                                            )}
                                             <div className="font-bold text-small">
                                               バージョン{displayDeckCodes.length - index}
                                             </div>

@@ -75,6 +75,7 @@ import { DEFAULT_REGULATION_ID } from "@app/types/regulation";
 import { DeckGetAllType, DeckData, isFavoritedDeck } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
 import { DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
+import { deckSelectionSprites } from "@app/utils/deckSprite";
 import { RecordCreateRequestType, RecordCreateResponseType } from "@app/types/record";
 import {
   UnofficialEventCreateRequestType,
@@ -103,6 +104,8 @@ type DeckCodeOption = {
   created_at: string;
   code: string;
   private_code_flg: boolean;
+  // このバージョンに設定したスプライト(未設定なら空＝デッキのスプライトで表示)
+  pokemon_sprites: DeckPokemonSpriteType[];
 };
 
 async function fetcherForDeck(url: string) {
@@ -171,6 +174,7 @@ function convertToDeckCodeOption(
     created_at: created_at,
     code: data.code,
     private_code_flg: data.private_code_flg,
+    pokemon_sprites: data.pokemon_sprites ?? [],
   };
 }
 
@@ -553,6 +557,20 @@ export default function TemplateRecordCreate({
     selectedDeckCodeOption && selectedDeckCodeOption.label === ""
       ? (deckcodeOptions.find((o) => o.id === selectedDeckCodeOption.id) ?? selectedDeckCodeOption)
       : selectedDeckCodeOption;
+
+  /*
+   * 選択欄に出すスプライト。記録には「選んだバージョンのスプライト(未設定ならデッキのもの)」が
+   * 表示されるので、選んだ時点で同じ絵が見えるようにする。
+   *   - バージョンの選択肢: そのバージョンのスプライト
+   *   - 選択中のデッキ: 選んだバージョンのスプライト(バージョンを選ぶ前はデッキのもの)
+   * デッキの選択肢の一覧(メニュー)は、デッキ自体のスプライトのままにする。
+   */
+  const versionSpritesOf = (option: DeckCodeOption) =>
+    deckSelectionSprites(selectedDeckOption, option);
+  const selectedDeckSprites = deckSelectionSprites(
+    selectedDeckOption,
+    selectedDeckCodeOptionLabeled,
+  );
 
   let deckcodeOptionsMessage = "バージョンがありません";
   if (deckcodeError) {
@@ -1363,7 +1381,7 @@ export default function TemplateRecordCreate({
                       }
                       return (
                         <div className="pl-1 flex items-center gap-2 text-sm min-w-0">
-                          <DeckSprites sprites={option.pokemon_sprites} size={28} />
+                          <DeckSprites sprites={selectedDeckSprites} size={28} />
                           <span className="truncate">{option.name}</span>
                           {option.is_favorited && <FavoriteStar />}
                         </div>
@@ -1435,9 +1453,9 @@ export default function TemplateRecordCreate({
                               <span className="truncate">
                                 作成日：{option.created_at}
                               </span>
-                              <span className="truncate">
-                                バージョン：
-                                {option.label}
+                              <span className="flex items-center gap-2 min-w-0">
+                                <DeckSprites sprites={versionSpritesOf(option)} size={28} />
+                                <span className="truncate">バージョン：{option.label}</span>
                               </span>
                               <span className="truncate">
                                 デッキコード：{option.code}
@@ -1462,11 +1480,9 @@ export default function TemplateRecordCreate({
                         );
                       }
                       return (
-                        <div className="text-sm truncate">
-                          <span>
-                            バージョン：
-                            {option.label}
-                          </span>
+                        <div className="flex items-center gap-2 text-sm min-w-0">
+                          <DeckSprites sprites={versionSpritesOf(option)} size={28} />
+                          <span className="truncate">バージョン：{option.label}</span>
                         </div>
                       );
                     }}
@@ -1722,7 +1738,7 @@ export default function TemplateRecordCreate({
                       }
                       return (
                         <div className="flex items-center gap-2 text-sm min-w-0">
-                          <DeckSprites sprites={option.pokemon_sprites} size={28} />
+                          <DeckSprites sprites={selectedDeckSprites} size={28} />
                           <span className="truncate">{option.name}</span>
                           {option.is_favorited && <FavoriteStar />}
                         </div>
@@ -1794,9 +1810,9 @@ export default function TemplateRecordCreate({
                               <span className="truncate">
                                 作成日：{option.created_at}
                               </span>
-                              <span className="truncate">
-                                バージョン：
-                                {option.label}
+                              <span className="flex items-center gap-2 min-w-0">
+                                <DeckSprites sprites={versionSpritesOf(option)} size={28} />
+                                <span className="truncate">バージョン：{option.label}</span>
                               </span>
                               <span className="truncate">
                                 デッキコード：{option.code}
@@ -1821,11 +1837,9 @@ export default function TemplateRecordCreate({
                         );
                       }
                       return (
-                        <div className="text-sm truncate">
-                          <span>
-                            バージョン：
-                            {option.label}
-                          </span>
+                        <div className="flex items-center gap-2 text-sm min-w-0">
+                          <DeckSprites sprites={versionSpritesOf(option)} size={28} />
+                          <span className="truncate">バージョン：{option.label}</span>
                         </div>
                       );
                     }}
@@ -2048,7 +2062,7 @@ export default function TemplateRecordCreate({
                       }
                       return (
                         <div className="flex items-center gap-2 text-sm min-w-0">
-                          <DeckSprites sprites={option.pokemon_sprites} size={28} />
+                          <DeckSprites sprites={selectedDeckSprites} size={28} />
                           <span className="truncate">{option.name}</span>
                           {option.is_favorited && <FavoriteStar />}
                         </div>
@@ -2120,9 +2134,9 @@ export default function TemplateRecordCreate({
                               <span className="truncate">
                                 作成日：{option.created_at}
                               </span>
-                              <span className="truncate">
-                                バージョン：
-                                {option.label}
+                              <span className="flex items-center gap-2 min-w-0">
+                                <DeckSprites sprites={versionSpritesOf(option)} size={28} />
+                                <span className="truncate">バージョン：{option.label}</span>
                               </span>
                               <span className="truncate">
                                 デッキコード：{option.code}
@@ -2147,11 +2161,9 @@ export default function TemplateRecordCreate({
                         );
                       }
                       return (
-                        <div className="text-sm truncate">
-                          <span>
-                            バージョン：
-                            {option.label}
-                          </span>
+                        <div className="flex items-center gap-2 text-sm min-w-0">
+                          <DeckSprites sprites={versionSpritesOf(option)} size={28} />
+                          <span className="truncate">バージョン：{option.label}</span>
                         </div>
                       );
                     }}

@@ -26,6 +26,7 @@ import { RecordUpdateRequestType, RecordUpdateResponseType } from "@app/types/re
 import { DeckGetAllType, DeckData, isFavoritedDeck } from "@app/types/deck";
 import { DeckCodeType } from "@app/types/deck_code";
 import { DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
+import { deckSelectionSprites } from "@app/utils/deckSprite";
 
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 import { formatJSTDateWithWeekday } from "@app/utils/date";
@@ -108,6 +109,8 @@ type DeckCodeOption = {
   created_at: string;
   code: string;
   private_code_flg: boolean;
+  // このバージョンに設定したスプライト(未設定なら空＝デッキのスプライトで表示)
+  pokemon_sprites: DeckPokemonSpriteType[];
 };
 
 // versionNumber: 作成日時の昇順で数えた通し番号（1が初回）。
@@ -126,6 +129,7 @@ function convertToDeckCodeOption(
     created_at: created_at,
     code: data.code,
     private_code_flg: data.private_code_flg,
+    pokemon_sprites: data.pokemon_sprites ?? [],
   };
 }
 
@@ -327,6 +331,20 @@ export default function UpdateUsedDeckModal({
 
     return { ...selectedDeckCodeOption, label: String(deckcodeData.length - index) };
   })();
+
+  /*
+   * 選択欄に出すスプライト。記録には「選んだバージョンのスプライト(未設定ならデッキのもの)」が
+   * 表示されるので、選んだ時点で同じ絵が見えるようにする。
+   *   - バージョンの選択肢: そのバージョンのスプライト
+   *   - 選択中のデッキ: 選んだバージョンのスプライト(バージョンを選ぶ前はデッキのもの)
+   * デッキの選択肢の一覧(メニュー)は、デッキ自体のスプライトのままにする。
+   */
+  const versionSpritesOf = (option: DeckCodeOption) =>
+    deckSelectionSprites(selectedDeckOption, option);
+  const selectedDeckSprites = deckSelectionSprites(
+    selectedDeckOption,
+    selectedDeckCodeOptionLabeled,
+  );
 
   /*
    *
@@ -623,7 +641,7 @@ export default function UpdateUsedDeckModal({
                         }
                         return (
                           <div className="pl-1 flex items-center gap-2 text-sm min-w-0">
-                            <DeckSprites sprites={opt.pokemon_sprites} size={28} />
+                            <DeckSprites sprites={selectedDeckSprites} size={28} />
                             <span className="truncate">{opt.name}</span>
                             {opt.is_favorited && (
                               <LuStar
@@ -684,9 +702,9 @@ export default function UpdateUsedDeckModal({
                                 <span className="truncate">
                                   作成日：{option.created_at}
                                 </span>
-                                <span className="truncate">
-                                  バージョン：
-                                  {option.label}
+                                <span className="flex items-center gap-2 min-w-0">
+                                  <DeckSprites sprites={versionSpritesOf(option)} size={28} />
+                                  <span className="truncate">バージョン：{option.label}</span>
                                 </span>
                                 <span className="truncate">
                                   デッキコード：{option.code}
@@ -711,11 +729,9 @@ export default function UpdateUsedDeckModal({
                           );
                         }
                         return (
-                          <div className="text-sm truncate">
-                            <span>
-                              バージョン：
-                              {option.label}
-                            </span>
+                          <div className="flex items-center gap-2 text-sm min-w-0">
+                            <DeckSprites sprites={versionSpritesOf(option)} size={28} />
+                            <span className="truncate">バージョン：{option.label}</span>
                           </div>
                         );
                       }}

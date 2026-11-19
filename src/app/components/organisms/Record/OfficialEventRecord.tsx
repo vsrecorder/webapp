@@ -50,6 +50,7 @@ export default function OfficialEventRecord(props: RecordCardProps) {
     record,
     setRecord,
     deck,
+    deckSprites,
     matchSummary,
     loadingMatches,
     matchesFailed,
@@ -124,7 +125,7 @@ export default function OfficialEventRecord(props: RecordCardProps) {
           />
         }
         deckName={deck.data ? deck.data.name : null}
-        deckSprites={deck.data?.pokemon_sprites}
+        deckSprites={deckSprites}
         loadingDeck={deck.loading}
         winCount={matchSummary.wins}
         lossCount={matchSummary.losses}

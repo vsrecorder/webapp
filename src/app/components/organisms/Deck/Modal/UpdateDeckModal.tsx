@@ -14,7 +14,10 @@ import PokemonSpriteModal from "@app/components/organisms/Match/Modal/PokemonSpr
 
 import { PokemonSpriteType, DeckPokemonSpriteType } from "@app/types/pokemon_sprite";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
-import { getDeckSpriteBySlot } from "@app/utils/deckSprite";
+import { getDeckSpriteBySlot, sameSprites } from "@app/utils/deckSprite";
+import { notifyDeckCodeSpritesChanged } from "@app/utils/deckCodeSpriteClient";
+import { useRevalidateDeckCodes } from "@app/hooks/useDeckCodes";
+import { DeckCodeType } from "@app/types/deck_code";
 import { useSyncOnChange } from "@app/hooks/useSyncOnChange";
 import TagSelector from "@app/components/organisms/Tag/TagSelector";
 
@@ -54,11 +57,22 @@ async function fetcherForPokemonSprites(url: string) {
 type Props = {
   deck: DeckGetByIdResponseType | null;
   setDeck: Dispatch<SetStateAction<DeckGetByIdResponseType | null>>;
+  // 表示中のバージョンを別に持っている画面(デッキ一覧のモーダル)が渡す。デッキのスプライトを
+  // 変えると最新バージョンのスプライトも同じになるので、表示中がそのバージョンなら追随させる
+  setDeckCode?: Dispatch<SetStateAction<DeckCodeType | null>>;
   isOpen: boolean;
   onOpenChange: () => void;
 };
 
-export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }: Props) {
+export default function UpdateDeckModal({
+  deck,
+  setDeck,
+  setDeckCode,
+  isOpen,
+  onOpenChange,
+}: Props) {
+  const revalidateDeckCodes = useRevalidateDeckCodes();
+
   const [newDeckName, setNewDeckName] = useState<string>("");
   /*
   const [isSelectedPrivate, setIsSelectedPrivate] = useState<boolean>(
@@ -228,6 +242,27 @@ export default function UpdateDeckModal({ deck, setDeck, isOpen, onOpenChange }:
         ...ret,
         name: newDeckName,
       });
+
+      /*
+       * デッキのスプライトと最新バージョンのスプライトは常に揃える。最新バージョンに設定があると、
+       * サーバはデッキと同じものへ置き換えて返す(usecase/deck_sprite_sync.go)。
+       * 変わっていたら、そのバージョンを出している場所(表示中のバージョン・バージョン履歴・
+       * 記録一覧のカードなど)へ行き渡らせる。
+       */
+      const latest = ret.latest_deck_code;
+      const previous = deck.latest_deck_code;
+      if (
+        latest?.id &&
+        previous?.id === latest.id &&
+        !sameSprites(previous.pokemon_sprites, latest.pokemon_sprites)
+      ) {
+        const sprites = latest.pokemon_sprites ?? [];
+        setDeckCode?.((prev) =>
+          prev && prev.id === latest.id ? { ...prev, pokemon_sprites: sprites } : prev,
+        );
+        revalidateDeckCodes(deck.id);
+        notifyDeckCodeSpritesChanged({ id: latest.id, pokemon_sprites: sprites });
+      }
 
       onClose();
     } catch (error) {

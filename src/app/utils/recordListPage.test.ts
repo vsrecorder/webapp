@@ -92,14 +92,16 @@ describe("stepRecordPage", () => {
 describe("collectRecordCardIds", () => {
   it("デッキ・イベントの ID を種別ごとに重複なく集める", () => {
     const ids = collectRecordCardIds([
-      record("a", { deck_id: "d1", official_event_id: 10 }),
-      record("b", { deck_id: "d1", official_event_id: 10 }),
+      record("a", { deck_id: "d1", deck_code_id: "c1", official_event_id: 10 }),
+      record("b", { deck_id: "d1", deck_code_id: "c1", official_event_id: 10 }),
       record("c", { deck_id: "d2", tonamel_event_id: "t1" }),
-      record("d", { unofficial_event_id: "u1" }),
+      // デッキが外れている記録のバージョンは引かない(カードはデッキ行ごと出さない)
+      record("d", { deck_code_id: "c9", unofficial_event_id: "u1" }),
       record("e"),
     ]);
     expect(ids).toEqual({
       deckIds: ["d1", "d2"],
+      deckCodeIds: ["c1"],
       officialEventIds: [10],
       tonamelEventIds: ["t1"],
       unofficialEventIds: ["u1"],
@@ -122,6 +124,26 @@ describe("attachRecordCardDetails", () => {
   it("取れた周辺情報を各記録に付ける", () => {
     const [a] = attachRecordCardDetails([record("a", { deck_id: "d1", official_event_id: 10 })], lookups);
     expect(a.details).toEqual({ deck, official_event: officialEvent, matches });
+  });
+
+  it("使用バージョンが取れていれば付ける(バージョンのスプライトを出すため)", () => {
+    const deckCode = { id: "c1", pokemon_sprites: [{ id: "0006", position: 2 }] };
+    const withDeckCodes = { ...lookups, deckCodes: new Map([["c1", deckCode]]) };
+
+    const [a, b, c] = attachRecordCardDetails(
+      [
+        record("a", { deck_id: "d1", deck_code_id: "c1" }),
+        // 取れなかったバージョンは付けない(カードが自分で取る)
+        record("b", { deck_id: "d1", deck_code_id: "c9" }),
+        // デッキが外れていればバージョンも付けない
+        record("c", { deck_code_id: "c1" }),
+      ],
+      withDeckCodes,
+    );
+
+    expect(a.details?.deck_code).toEqual(deckCode);
+    expect(Object.hasOwn(b.details!, "deck_code")).toBe(false);
+    expect(Object.hasOwn(c.details!, "deck_code")).toBe(false);
   });
 
   it("取れなかった項目・紐付いていない項目は付けない(カードが自分で取る/取らない)", () => {

@@ -40,6 +40,8 @@ import PinnedBar from "@app/components/molecules/PinnedBar";
 import DeckValueMeter from "@app/components/organisms/Deck/DeckValueMeter";
 import { fetchDeckEnv } from "@app/utils/deckEnv";
 import CopyableDeckCode from "@app/components/atoms/CopyableDeckCode";
+import DeckSprites from "@app/components/molecules/DeckSprites";
+import { resolveVersionSprites } from "@app/utils/deckSprite";
 import KizunaDeckSprites from "@app/components/molecules/KizunaDeckSprites";
 import DeckCodeCard from "@app/components/organisms/Deck/DeckCodeCard";
 import DeckCardDetailRow from "@app/components/organisms/Deck/DeckCardDetailRow";
@@ -760,6 +762,13 @@ export default function DeckById({ id, valueMeterEnabled = false }: Props) {
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
+                        {/* このバージョンのスプライト(未設定ならデッキのもの)。
+                            相棒を入れ替えたバージョンを一覧で見分けられるようにする */}
+                        <DeckSprites
+                          sprites={resolveVersionSprites(deck.pokemon_sprites, dc.pokemon_sprites)}
+                          size={32}
+                          hideWhenEmpty
+                        />
                         <span className="font-bold text-small">
                           Ver.{versionNo ?? "-"}
                         </span>

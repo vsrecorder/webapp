@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   deckCodesKey,
   getDeckCodeVersionNumber,
+  useAddDeckCodeToCache,
   useDeckCodes,
   useRevalidateDeckCodes,
 } from "@app/hooks/useDeckCodes";
@@ -125,6 +126,65 @@ describe("useDeckCodes", () => {
   it("deckCodesKey は同じデッキで同じ鍵を返す", () => {
     expect(deckCodesKey("deck1")).toBe(deckCodesKey("deck1"));
     expect(deckCodesKey("deck1")).not.toBe(deckCodesKey("deck2"));
+  });
+});
+
+describe("useAddDeckCodeToCache", () => {
+  it("取り直しの応答を待たずに、作ったバージョンが一覧の先頭に入る", async () => {
+    stubFetch(2);
+    const { result } = renderHook(
+      () => ({ list: useDeckCodes("deck1", null), add: useAddDeckCodeToCache() }),
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current.list.deckcodes).toHaveLength(2));
+
+    // 取り直しの応答を止めておく。届く前に新しいバージョンが見えていること
+    let release: () => void = () => {};
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        () =>
+          new Promise((resolve) => {
+            release = () =>
+              resolve({ ok: true, json: async () => makeDeckCodes(3) } as Response);
+          }),
+      ),
+    );
+
+    const created = {
+      id: "dc3",
+      pokemon_sprites: [{ id: "0006", position: 1 }],
+    } as DeckCodeType;
+    act(() => {
+      void result.current.add("deck1", created);
+    });
+
+    await waitFor(() => expect(result.current.list.deckcodes?.[0]).toEqual(created));
+    expect(result.current.list.deckcodes).toHaveLength(3);
+
+    // 取り直しが届いたらサーバの一覧に置き換わる(同じバージョンを二重に持たない)
+    await act(async () => {
+      release();
+    });
+    await waitFor(() =>
+      expect(result.current.list.deckcodes?.map((dc) => dc.id)).toEqual(["dc3", "dc2", "dc1"]),
+    );
+  });
+
+  it("キャッシュが無いデッキには足さず、デッキIDが無ければ何もしない", async () => {
+    const server = stubFetch(2);
+    const { result } = renderHook(() => useAddDeckCodeToCache(), { wrapper });
+
+    await act(async () => {
+      await result.current(null, { id: "dc3" } as DeckCodeType);
+    });
+    expect(server.calls).toHaveLength(0);
+
+    // 一覧を出している部品が無ければ取り直しも走らない(次に開いたときの取得に任せる)
+    await act(async () => {
+      await result.current("deck1", { id: "dc3" } as DeckCodeType);
+    });
+    expect(server.calls).toHaveLength(0);
   });
 });
 

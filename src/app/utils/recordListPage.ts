@@ -1,6 +1,7 @@
 import { MatchSummaryType } from "@app/types/match";
 import { OfficialEventGetByIdResponseType } from "@app/types/official_event";
 import {
+  RecordCardDeckCodeType,
   RecordCardDeckType,
   RecordCardDetailsType,
   RecordGetResponseType,
@@ -82,6 +83,8 @@ export function stepRecordPage(
 
 export type RecordCardIds = {
   deckIds: string[];
+  // 使用バージョン(デッキコード)。バージョンに設定したスプライトを出すために引く
+  deckCodeIds: string[];
   officialEventIds: number[];
   tonamelEventIds: string[];
   unofficialEventIds: string[];
@@ -91,12 +94,15 @@ export type RecordCardIds = {
 // (同じデッキ・同じイベントの記録が並ぶことが多いので、取得はまとめて1回にする)
 export function collectRecordCardIds(records: RecordType[]): RecordCardIds {
   const deckIds = new Set<string>();
+  const deckCodeIds = new Set<string>();
   const officialEventIds = new Set<number>();
   const tonamelEventIds = new Set<string>();
   const unofficialEventIds = new Set<string>();
 
   for (const { data } of records) {
     if (data.deck_id) deckIds.add(data.deck_id);
+    // デッキが外れている記録のバージョンは引かない(カードはデッキ行ごと出さない)
+    if (data.deck_id && data.deck_code_id) deckCodeIds.add(data.deck_code_id);
 
     switch (resolveRecordEventType(data)) {
       case "official":
@@ -113,6 +119,7 @@ export function collectRecordCardIds(records: RecordType[]): RecordCardIds {
 
   return {
     deckIds: [...deckIds],
+    deckCodeIds: [...deckCodeIds],
     officialEventIds: [...officialEventIds],
     tonamelEventIds: [...tonamelEventIds],
     unofficialEventIds: [...unofficialEventIds],
@@ -121,6 +128,8 @@ export function collectRecordCardIds(records: RecordType[]): RecordCardIds {
 
 export type RecordCardLookups = {
   decks: ReadonlyMap<string, RecordCardDeckType>;
+  // 省略可: 取っていない(古い呼び出し側)なら付けず、カードが自分で取る
+  deckCodes?: ReadonlyMap<string, RecordCardDeckCodeType>;
   officialEvents: ReadonlyMap<number, OfficialEventGetByIdResponseType>;
   tonamelEvents: ReadonlyMap<string, TonamelEventGetByIdResponseType>;
   unofficialEvents: ReadonlyMap<string, UnofficialEventGetByIdResponseType>;
@@ -139,6 +148,10 @@ export function attachRecordCardDetails(
 
     const deck = data.deck_id ? lookups.decks.get(data.deck_id) : undefined;
     if (deck) details.deck = deck;
+
+    const deckCode =
+      data.deck_id && data.deck_code_id ? lookups.deckCodes?.get(data.deck_code_id) : undefined;
+    if (deckCode) details.deck_code = deckCode;
 
     switch (resolveRecordEventType(data)) {
       case "official": {

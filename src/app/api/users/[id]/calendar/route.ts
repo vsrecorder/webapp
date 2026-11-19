@@ -12,6 +12,7 @@ import {
   getEventVenueLabel,
 } from "@app/components/organisms/Record/officialEventHelpers";
 
+import { resolveVersionSprites } from "@app/utils/deckSprite";
 import { toDateKey } from "@app/utils/calendar";
 
 import {
@@ -58,6 +59,8 @@ type CalendarApiDeckCode = {
   id: string;
   created_at: string;
   code: string;
+  // バージョンに設定したスプライト(未設定なら空)。返さない古いバックエンドでは undefined
+  pokemon_sprites?: DeckPokemonSpriteType[];
 };
 
 type CalendarApiDeck = {
@@ -272,10 +275,25 @@ function buildCalendarData(calendar: CalendarApiResponse): CalendarDataType {
     ),
   );
 
+  // バージョンに設定したスプライト。記録・対戦は使ったバージョンのスプライトを優先して出す
+  const deckCodeSpritesById = new Map(
+    calendar.decks.flatMap((deck) =>
+      deck.deck_codes.map((deckCode) => [deckCode.id, deckCode.pokemon_sprites] as const),
+    ),
+  );
+
   const data: CalendarDataType = {};
 
   for (const record of calendar.records) {
     const deck = deckById.get(record.deck_id);
+    // 使ったバージョンにスプライトの設定があればそれ、無ければデッキのスプライト。
+    // デッキが外れている記録では、バージョンだけ残っていても出さない(デッキ名も出ないため)
+    const deckSprites = deck
+      ? resolveVersionSprites(
+          deck.pokemon_sprites,
+          deckCodeSpritesById.get(record.deck_code_id),
+        )
+      : [];
     const eventKind = resolveEventKind(record);
     const display = resolveDisplay(
       record,
@@ -290,7 +308,7 @@ function buildCalendarData(calendar: CalendarApiResponse): CalendarDataType {
       record_id: record.id,
       deck_id: record.deck_id,
       deck_name: deck?.name ?? "",
-      deck_pokemon_sprites: deck?.pokemon_sprites ?? [],
+      deck_pokemon_sprites: deckSprites,
       deck_code: deckCodeById.get(record.deck_code_id) ?? "",
       event_kind: eventKind,
       event_title: display.title,
@@ -317,7 +335,7 @@ function buildCalendarData(calendar: CalendarApiResponse): CalendarDataType {
         accent_color_class: display.accent_color_class,
         venue_label: display.venue_label,
         deck_name: deck?.name ?? "",
-        deck_pokemon_sprites: deck?.pokemon_sprites ?? [],
+        deck_pokemon_sprites: deckSprites,
         opponents_deck_info: match.opponents_deck_info,
         opponents_pokemon_sprites: match.pokemon_sprites ?? [],
         default_victory_flg: match.default_victory_flg,
@@ -375,7 +393,8 @@ function buildCalendarData(calendar: CalendarApiResponse): CalendarDataType {
         code: deckCode.code,
         // 初期バージョンも比較対象に含めるため、除外前の並びから直前を引く
         previous_code: sortedDeckCodes[index - 1]?.code ?? "",
-        pokemon_sprites: deck.pokemon_sprites ?? [],
+        // 追加したバージョンのスプライト(未設定ならデッキのもの)
+        pokemon_sprites: resolveVersionSprites(deck.pokemon_sprites, deckCode.pokemon_sprites),
         created_at: String(deckCode.created_at),
       });
     }

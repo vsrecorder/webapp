@@ -3,6 +3,9 @@
 import { Card, CardBody, Chip } from "@heroui/react";
 
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
+import ShareDeckHeading, {
+  type ShareHeadingDeck,
+} from "@app/components/molecules/Share/ShareDeckHeading";
 import SharePieChart, {
   type SharePieSlice,
 } from "@app/components/molecules/Share/SharePieChart";
@@ -29,6 +32,11 @@ type Props = {
   title: string;
   // 集計期間などの補足（例: 「『メガリザードンex』環境 のデッキ使用率」）
   subtitle: string;
+  // どの使用デッキでの集計か(「対戦相手のデッキ分析」で使う)。
+  // 渡すと見出しの直下に「月毎の勝率推移」のシェア画像と同じ形で出す。
+  // デッキを選んでいれば null ではなくそのデッキ、選んでいなければ null(「すべての使用デッキ」)。
+  // 省略すると行自体を出さない(「デッキ使用率分析」は自分のデッキの分布なので要らない)。
+  deck?: ShareHeadingDeck | null;
   // 円グラフ・凡例に出す項目（パネル側で「その他」に集約済みのもの）
   rows: ShareDeckRow[];
   // 各項目の色（凡例の色ドット・バッジの縁）と円の塗り色。パネルの配色をそのまま受け取る
@@ -63,6 +71,7 @@ const CARD_PADDING_X = 16;
 export default function DeckDistributionShareCard({
   title,
   subtitle,
+  deck,
   rows,
   colors,
   softColors,
@@ -83,6 +92,8 @@ export default function DeckDistributionShareCard({
       <CardBody className="gap-4 p-4">
         <div className="flex flex-col items-center gap-1">
           <h2 className="text-sm font-bold text-default-700">{title}</h2>
+          {/* どの使用デッキでの集計か。期間より先に置く(月毎の勝率推移のシェア画像と同じ並び) */}
+          {deck !== undefined && <ShareDeckHeading deck={deck} />}
           <p className="whitespace-pre-line text-center text-xs text-default-400">
             {subtitle}
           </p>

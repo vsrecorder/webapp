@@ -293,20 +293,32 @@ export default function OpponentDeckUsagePanel({
       ? periodFilterLabel
       : `${periodFilterLabel}(${regulationDisplay(regulationId).name})`;
 
-  // どのデッキ使用時の分布かを独立した行で添える。絞り込んでいないときも
-  // 「すべての使用デッキでの」を出して行数を変えない
-  // (行数が変わると、下の円グラフの位置がデッキ選択の有無でずれるため)。
-  const ownDeckLine = ownDeckId
-    ? `『${ownDecks.find((d) => d.deck_id === ownDeckId)?.name ?? ""}』使用時の`
+  // ポスト文に、どのデッキ使用時の分布かを独立した行で添える。絞り込んでいないときも
+  // 「すべての使用デッキでの」と書き、デッキで絞っていないことを明示する。
+  const ownDeckLine = selectedOwnDeck
+    ? `『${selectedOwnDeck.name}』使用時の`
     : "すべての使用デッキでの";
   /*
-   * 見出し。シェア画像とポスト文で同じものを使う。
+   * ポスト文の見出し。
    *
    * 集計条件の但し書き(「不戦勝・不戦敗を除く」)は入れない。この分析は相手デッキが
    * 記録されている対戦だけを対象にしており、相手のいない不戦勝・不戦敗はそもそも
    * 母数に入らない。断ると「入りうるものを外している」と読めて、かえって誤解を招く。
    */
-  const subtitle = `${filterLabel}\n${ownDeckLine}\n対戦相手のデッキ分析`;
+  const postHeading = `${filterLabel}\n${ownDeckLine}\n対戦相手のデッキ分析`;
+  // シェア画像の見出しに添える使用デッキ。「月毎の勝率推移」のシェア画像と同じく、
+  // デッキを選んでいればスプライトとデッキ名、選んでいなければ「すべての使用デッキ」になる。
+  // スプライトは画面のセレクタに添えているものと同じにする。
+  const shareDeck = selectedOwnDeck
+    ? {
+        name: selectedOwnDeck.name,
+        spriteIds: [ownDeckSprite1?.id, ownDeckSprite2?.id] as [
+          string | undefined,
+          string | undefined,
+        ],
+        hasSprite: hasOwnDeckSprite,
+      }
+    : null;
 
   // シェア画像・ポスト文に渡す表示データ。
   // 「その他」への集約と配色は画面の円グラフと同じ関数で求め、並び・色をずらさない。
@@ -494,13 +506,14 @@ export default function OpponentDeckUsagePanel({
         onOpenChange={() => setShareOpen((open) => !open)}
         onClose={() => setShareOpen(false)}
         description="対戦相手のデッキ分析を画像にして、ポスト文と一緒にシェアできます。"
-        postText={buildDeckDistributionPostText(subtitle, shareRows.rows)}
+        postText={buildDeckDistributionPostText(postHeading, shareRows.rows)}
         filenamePrefix="opponent_deck_usage"
       >
         {(width) => (
           <DeckDistributionShareCard
             title="対戦相手のデッキ分析"
-            subtitle={subtitle}
+            subtitle={filterLabel}
+            deck={shareDeck}
             rows={shareRows.rows}
             colors={shareRows.colors}
             softColors={shareRows.softColors}

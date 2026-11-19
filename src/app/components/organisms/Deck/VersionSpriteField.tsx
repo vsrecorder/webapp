@@ -154,7 +154,7 @@ export default function VersionSpriteField({
             バージョン履歴に表示されます
             {syncsDeck && (
               <span className="mt-0.5 block text-[0.625rem] leading-snug">
-                最新バージョンなので、デッキのアイコンにもなります
+                最新バージョンなので、デッキアイコンにもなります
               </span>
             )}
           </p>

@@ -125,7 +125,7 @@ describe("VersionSpriteField", () => {
   });
 
   it("最新バージョンに設定があるときだけ、デッキのアイコンにもなることを案内する", () => {
-    const hint = "最新バージョンなので、デッキのアイコンにもなります";
+    const hint = "最新バージョンなので、デッキアイコンにもなります";
     const set = [{ id: "0887", position: 1 }];
 
     const { rerender } = render(

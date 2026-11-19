@@ -288,6 +288,16 @@ export default function CreateDeckCodeModal({
               新しいバージョンを作成
             </ModalHeader>
             <ModalBody className="px-3 py-1 overflow-y-auto">
+              {/* 元にしたバージョンのアイコンを引き継いで始める。相棒を入れ替えたときはここで変える。
+                  デッキコードの入力欄より上に置く */}
+              <VersionSpriteField
+                value={sprites}
+                onChange={setSprites}
+                deckSprites={deck.pokemon_sprites}
+                isDisabled={isDisabled}
+                syncsDeck
+              />
+
               <div className="flex flex-col gap-2">
                 <Input
                   isRequired
@@ -399,15 +409,6 @@ export default function CreateDeckCodeModal({
               ) : (
                 <></>
               )}
-
-              {/* 元にしたバージョンのアイコンを引き継いで始める。相棒を入れ替えたときはここで変える */}
-              <VersionSpriteField
-                value={sprites}
-                onChange={setSprites}
-                deckSprites={deck.pokemon_sprites}
-                isDisabled={isDisabled}
-                syncsDeck
-              />
 
               <Textarea
                 size="md"

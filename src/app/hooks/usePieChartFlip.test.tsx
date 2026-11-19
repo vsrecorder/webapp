@@ -58,6 +58,18 @@ function watchStyle(el: HTMLElement) {
   };
 }
 
+// style の履歴に translate(x, y) scale(s) の transform があるか。
+// 数値を文字列にするときの桁数は jsdom の版で違う(31 からはブラウザと同じく有効数字 6 桁に丸める)。
+// そのため文字列で一致を見ず、読み取った数値で比べる。
+function hasTransform(history: string[], x: number, y: number, s: number) {
+  const pattern = /translate\(([-\d.e+]+)px, ([-\d.e+]+)px\) scale\(([-\d.e+]+)\)/;
+  const close = (a: number, b: number) => Math.abs(a - b) < 1e-3;
+  return history.some((v) => {
+    const m = v.match(pattern);
+    return m !== null && close(Number(m[1]), x) && close(Number(m[2]), y) && close(Number(m[3]), s);
+  });
+}
+
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
@@ -110,9 +122,7 @@ describe("usePieChartFlip", () => {
 
     // 新しい円(半径64・中心90,136)を、元の円(半径96・中心150,184)に重ねる
     const s = 96 / 64;
-    const start = `translate(${150 - s * 90}px, ${184 - s * 136}px) scale(${s})`;
-    const history = styles();
-    expect(history.some((v) => v.includes(start))).toBe(true);
+    expect(hasTransform(styles(), 150 - s * 90, 184 - s * 136, s)).toBe(true);
     // 最後は transform を外し、transition で動かす
     expect(flip.style.transform).toBe("");
     expect(flip.style.transition).toContain(`${PIE_FLIP_DURATION_MS}ms`);
@@ -187,7 +197,6 @@ describe("usePieChartFlip", () => {
 
     // 見えていた円: 中心(10+0.5*90, 20+0.5*136)=(55,88)、半径 0.5*64=32
     const s = 32 / 96;
-    const start = `translate(${55 - s * 150}px, ${88 - s * 184}px) scale(${s})`;
-    expect(styles().some((v) => v.includes(start))).toBe(true);
+    expect(hasTransform(styles(), 55 - s * 150, 88 - s * 184, s)).toBe(true);
   });
 });

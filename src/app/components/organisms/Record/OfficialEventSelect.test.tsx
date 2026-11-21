@@ -38,6 +38,7 @@ const GYM: RecordCreateOfficialEventType = {
   ended_at: new Date("2026-09-21T07:00:00Z"),
   type_id: 4,
   shop_name: "カードショップ町田店",
+  league_title: "その他",
 };
 
 const CITY: RecordCreateOfficialEventType = {

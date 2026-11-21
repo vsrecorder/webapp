@@ -18,6 +18,7 @@ function makeEvent(
     ended_at: new Date("2026-09-21T07:00:00Z"),
     type_id: 4,
     shop_name: "カードショップ町田店",
+    league_title: "その他",
     ...overrides,
   };
 }
@@ -89,5 +90,29 @@ describe("toOfficialEventOption の表示", () => {
     const other = toOfficialEventOption(makeEvent({ title: "なにかの催し", type_id: 99 }));
     expect(other.image_src).toMatch(/pokemon_card_game\.png$/);
     expect(other.image_alt).toBe("ポケモンカードゲーム");
+  });
+});
+
+describe("toOfficialEventOption のリーグ区分", () => {
+  it("トレーナーズリーグは区分を持ち、区分名でも引ける", () => {
+    const option = toOfficialEventOption(
+      makeEvent({
+        title: "【26/11】ポケモンカードジム　トレーナーズリーグ（シニアリーグ）",
+        type_id: 3,
+        league_title: "シニア",
+      }),
+    );
+
+    // タイトルからは区分の注記が消えるので、区分は league で持つ
+    expect(option.title).toBe("トレーナーズリーグ");
+    expect(option.league).toBe("シニア");
+    expect(option.label).toContain("シニア");
+    expect(option.label).toContain("しにあ");
+  });
+
+  it("区分の無いイベント(その他)は表示しない", () => {
+    const option = toOfficialEventOption(makeEvent());
+
+    expect(option.league).toBe("");
   });
 });

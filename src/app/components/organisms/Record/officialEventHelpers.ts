@@ -39,6 +39,20 @@ export function cleanOfficialEventTitle(title: string): string {
   return cleaned.replace(/（.*?）/g, "").trim();
 }
 
+/*
+ * リーグ区分(official_events.league_title)のうち、イベント情報に表示するもの。
+ *
+ * ジムバトルなど区分の無いイベントは「その他」が入るので出さない。
+ * 区分が分かれるのはトレーナーズリーグ・チャンピオンズリーグ・教室などで、
+ * タイトルの「（オープンリーグ）」は cleanOfficialEventTitle が消すため、ここで補う。
+ */
+const DISPLAY_LEAGUES = ["オープン", "マスター", "シニア", "ジュニア"] as const;
+
+export function getEventLeagueLabel(leagueTitle: string | null | undefined): string {
+  const league = leagueTitle?.trim() ?? "";
+  return (DISPLAY_LEAGUES as readonly string[]).includes(league) ? league : "";
+}
+
 // PJCS(ポケモンジャパンチャンピオンシップス)かどうかを判定する。
 // タイトルは整形後もフルネーム(ポケモンジャパンチャンピオンシップス)を保持するが、
 // 過去データ等で「PJCS」表記のものも判定できるよう両方を見る。

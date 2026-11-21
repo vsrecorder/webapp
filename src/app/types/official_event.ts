@@ -68,9 +68,13 @@ export type OfficialEventListItemType = Pick<
  * 記録の作成フォーム(templates/RecordCreate)が公式イベントの候補として使うフィールド。
  *
  * 一覧(OFFICIAL_EVENT_LIST_FIELDS)は全消費者の和集合だが、記録作成の選択肢が参照するのは
- * この 9 つだけ(convertToOfficialEventOption)。records/create/page.tsx はこの候補を
- * サーバで先読みして HTML(RSC)に載せるため、使わない prefecture_name / league_title /
- * environment_title を落として転送量を減らす。土日は 1,400 件を超えるので 3 フィールドでも効く。
+ * この 10 個だけ(toOfficialEventOption)。records/create/page.tsx はこの候補を
+ * サーバで先読みして HTML(RSC)に載せるため、使わない prefecture_name /
+ * environment_title を落として転送量を減らす。土日は 1,400 件を超えるので 2 フィールドでも効く。
+ *
+ * league_title はトレーナーズリーグ等のリーグ区分(オープン/マスター/シニア/ジュニア)の表示に使う。
+ * タイトルの「（オープンリーグ）」は cleanOfficialEventTitle が消すため、これが無いと
+ * 同じ店舗の4区分が同名で並んで見分けられない。
  */
 export const RECORD_CREATE_OFFICIAL_EVENT_FIELDS = [
   "id",
@@ -82,6 +86,7 @@ export const RECORD_CREATE_OFFICIAL_EVENT_FIELDS = [
   "ended_at",
   "type_id",
   "shop_name",
+  "league_title",
 ] as const satisfies readonly (typeof OFFICIAL_EVENT_LIST_FIELDS)[number][];
 
 export type RecordCreateOfficialEventType = Pick<

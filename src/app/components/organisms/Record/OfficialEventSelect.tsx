@@ -110,6 +110,24 @@ function TouchFriendlyOption(
   );
 }
 
+/*
+ * リーグ区分(オープン/マスター/シニア/ジュニア)のバッジ。タイトルの前に置く。
+ *
+ * トレーナーズリーグはタイトルから区分の注記が消えるため、同じ店舗の4区分が
+ * 同名で並ぶ。区分の無いイベント(ジムバトル等)では何も出さない。
+ * 枠線込みで16pxに収め、テキスト1行(text-xs)の行の高さを変えない
+ * (プレビューカードの骨格 RecordCreateFormSkeleton と行の高さを揃えるため)。
+ */
+function LeagueBadge({ league }: { league: string }) {
+  if (!league) return null;
+
+  return (
+    <span className="shrink-0 rounded border border-default-300 px-1 text-[10px] leading-[14px] text-default-600">
+      {league}
+    </span>
+  );
+}
+
 // 毎レンダー新しいオブジェクトを渡すと react-select が中の部品を作り直すため固定する
 const selectComponents = { Option: TouchFriendlyOption };
 
@@ -285,6 +303,7 @@ export default function OfficialEventSelect({
                       <span className="shrink-0">
                         <LuBookmark color="gray" />
                       </span>
+                      <LeagueBadge league={opt.league} />
                       <ScrollingText text={opt.title} className="flex-1 min-w-0 text-sm" />
                     </div>
                     <div className="flex items-center gap-2 min-w-0">
@@ -312,7 +331,10 @@ export default function OfficialEventSelect({
           }
 
           return (
-            <ScrollingText text={`${opt.title} - ${opt.shop_name}`} className="text-sm" />
+            <ScrollingText
+              text={`${opt.title}${opt.league ? `（${opt.league}）` : ""} - ${opt.shop_name}`}
+              className="text-sm"
+            />
           );
         }}
       />
@@ -342,6 +364,7 @@ export default function OfficialEventSelect({
                     <span className="shrink-0">
                       <LuBookmark color="gray" />
                     </span>
+                    {selected && <LeagueBadge league={selected.league} />}
                     <ScrollingText
                       text={selected ? selected.title : "イベント名"}
                       className="flex-1 min-w-0 text-xs text-default-600"

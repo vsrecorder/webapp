@@ -3,6 +3,7 @@ import {
   cleanOfficialEventTitle,
   getEventIconAlt,
   getEventIconUrl,
+  getEventLeagueLabel,
   getEventVenueLabel,
 } from "@app/components/organisms/Record/officialEventHelpers";
 import { formatJSTDateWithWeekday, formatJSTTime } from "@app/utils/date";
@@ -27,6 +28,8 @@ export type OfficialEventOption = {
   title: string;
   shop_name: string;
   address: string;
+  // リーグ区分(オープン/マスター/シニア/ジュニア)。区分の無いイベントは空文字
+  league: string;
   image_alt: string;
   image_src: string;
 };
@@ -60,12 +63,13 @@ export function toOfficialEventOption(
   // SWR のキャッシュに入っている元データを書き換えないよう、整形結果はローカルに持つ
   const title = cleanOfficialEventTitle(officialEvent.title);
   const venue = getEventVenueLabel(officialEvent);
+  const league = getEventLeagueLabel(officialEvent.league_title);
 
   // トレーナーズリーグは「とれり」「トレリ」の通称で探されるため、絞り込み文字列に足す
   const tag = officialEvent.type_id === 3 ? "とれり トレリ" : "";
 
   return {
-    // 絞り込みは会場名・住所・開催時刻でも効かせる(プレースホルダの「例）町田市」は住所の検索)。
+    // 絞り込みは会場名・住所・開催時刻・リーグ区分でも効かせる(プレースホルダの「例）町田市」は住所の検索)。
     // タイトルはカタカナをひらがなにしたものも混ぜ、かな入力のままでも引けるようにする。
     label:
       title +
@@ -77,6 +81,10 @@ export function toOfficialEventOption(
       eventTime +
       " " +
       officialEvent.address +
+      " " +
+      league +
+      " " +
+      katakanaToHiragana(league) +
       " " +
       tag,
     value: officialEvent.id.toString(),
@@ -90,6 +98,7 @@ export function toOfficialEventOption(
     title: title,
     shop_name: venue,
     address: officialEvent.address,
+    league: league,
     // アイコンの判定は整形前のタイトルで行う(cleanOfficialEventTitle が消す
     // 括弧書きに種目名が入ることがあるため)
     image_alt: getEventIconAlt(officialEvent),

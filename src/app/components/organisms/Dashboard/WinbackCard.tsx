@@ -100,7 +100,8 @@ export default function WinbackCard({
             </Button>
           </div>
           <h2 className="text-lg font-bold">
-            最後の対戦は {weekRangeLabel(lastWeek)} の週（{emptyWeeks}週間ぶり）
+            最後の対戦は {weekRangeLabel(lastWeek)} の週
+            <span className="block">（{emptyWeeks}週間ぶり）</span>
           </h2>
           <p className="text-sm text-default-500">
             いまは『{environmentTitle}』環境です（{monthDay(environmentFrom)}〜）

@@ -124,6 +124,10 @@ export default function DashboardBlockSkeleton({
     case "winback":
       return <WinbackCardSkeleton />;
 
+    case "winback_with_report":
+      // 最後の対戦が前の環境で、末尾にレポートへのリンクがある
+      return <WinbackCardSkeleton withReport />;
+
     case "env_window":
       // プロフィール直下に置かれるときは見出しを持たない
       return <EnvironmentWindowCardSkeleton />;

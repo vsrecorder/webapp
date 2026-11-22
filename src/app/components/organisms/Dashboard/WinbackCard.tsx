@@ -8,6 +8,7 @@ import { LuChevronRight, LuFilePen, LuX } from "react-icons/lu";
 import { sendGAEvent } from "@next/third-parties/google";
 
 import { writeClientCookie } from "@app/utils/clientCookie";
+import { WINBACK_BLOCK_IDS } from "@app/utils/dashboardLayout";
 import { dropBlocksFromStoredLayout } from "@app/utils/dashboardLayoutClient";
 import { ACTIVITY_WINBACK_CARD, sendDailyActivity } from "@app/utils/dailyActivity";
 import { weekRangeLabel } from "@app/utils/week";
@@ -69,7 +70,7 @@ export default function WinbackCard({
   useEffect(() => {
     if (!dismissed) return;
 
-    dropBlocksFromStoredLayout(["winback"]);
+    dropBlocksFromStoredLayout(WINBACK_BLOCK_IDS);
     router.refresh();
   }, [dismissed, router]);
 

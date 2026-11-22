@@ -673,7 +673,10 @@ export default async function TemplateDashboard({
       ? ([recordingNow.deck ? "recording_now" : "recording_now_no_deck"] as const)
       : []),
     ...(showFirstRecordCta ? (["first_record_cta"] as const) : []),
-    ...(winback ? (["winback"] as const) : []),
+    // レポートへのリンクがあるかで骨格の背丈が変わるので、描いたほうのIDを残す
+    ...(winback && env
+      ? ([winbackLastEnvironment ? "winback_with_report" : "winback"] as const)
+      : []),
     ...(combinedAtTop ? (["env_window"] as const) : []),
   ];
 

@@ -48,8 +48,10 @@ export const DASHBOARD_BLOCK_IDS = [
   "recording_now",
   "recording_now_no_deck",
   "first_record_cta",
-  // おかえりカード(D-4)。直前の4週すべてで対戦していない人にだけ出る
+  // おかえりカード(D-4)。直前の4週すべてで対戦していない人にだけ出る。
+  // 末尾のレポートへのリンク(最後の対戦が前の環境のとき)を持つかで背丈が変わるのでIDを分けている
   "winback",
+  "winback_with_report",
   "env_window",
   // 並べ替え・非表示の対象になるセクション
   "onboarding_badges",
@@ -92,6 +94,12 @@ export const RECORDING_NOW_BLOCK_IDS: readonly DashboardBlockId[] = [
   "recording_now_no_deck",
 ];
 
+/*
+ * おかえりカードのブロックID(レポートへのリンクを持つかで分かれている)。
+ * 閉じたときはどちらが書かれていても外す(RECORDING_NOW_BLOCK_IDS と同じ事情)。
+ */
+export const WINBACK_BLOCK_IDS: readonly DashboardBlockId[] = ["winback", "winback_with_report"];
+
 // pinned に置かれるブロック。骨格側は cookie の並びからこれらを拾って先頭のまとまりにする
 const PINNED_BLOCK_IDS: readonly DashboardBlockId[] = [
   "profile",
@@ -99,6 +107,7 @@ const PINNED_BLOCK_IDS: readonly DashboardBlockId[] = [
   "recording_now_no_deck",
   "first_record_cta",
   "winback",
+  "winback_with_report",
   "env_window",
 ];
 

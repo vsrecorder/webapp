@@ -56,8 +56,27 @@ const CSP = [
   `frame-ancestors 'none'`,
 ].join("; ");
 
+/*
+ * webapp のビルドごとに変わる値。公式イベント一覧の Data Cache のキーに混ぜる
+ * (utils/officialEventListServer.ts)。
+ *
+ * 本番の Data Cache は volume でデプロイをまたいで残り、キーにビルドIDを含まない。
+ * そのままだと、上流の応答に項目を足した直後も前の版の応答が URL ごとに1回返る
+ * (2026-11-22、league_id を足した直後に実際に起きた)。キーに版を混ぜて、
+ * webapp を出し直したら一覧のキャッシュを別物にする。
+ *
+ * next.config はビルド中に複数のワーカーで読み直されるので、最初に読んだプロセスで
+ * 決めた値を process.env に置き、後から起動するワーカーへ引き継ぐ(ワーカーごとに
+ * 値がずれると、同じビルドの中でキャッシュのキーが食い違う)。
+ */
+process.env.VSRECORDER_BUILD_VERSION ||= new Date().toISOString();
+
 const nextConfig: NextConfig = {
   /* config options here */
+  // サーバのコードへビルド時に埋め込む(実行時の環境変数ではない)
+  env: {
+    VSRECORDER_BUILD_VERSION: process.env.VSRECORDER_BUILD_VERSION,
+  },
   allowedDevOrigins: ["local.vsrecorder.mobi"],
   experimental: {
     // CSSを<head>へ<style>としてインライン化する設定。

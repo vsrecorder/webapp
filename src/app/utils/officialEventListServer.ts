@@ -22,6 +22,21 @@ import { fetchUpstream, upstreamUrl } from "@app/utils/upstream";
  */
 const REVALIDATE_SECONDS = 300;
 
+/*
+ * Data Cache のキーに混ぜる webapp のビルドの版(next.config.ts の env で埋め込む)。
+ *
+ * Next の fetch のキャッシュキーは URL とリクエストヘッダーから作られ、ビルドIDを含まない。
+ * 本番はキャッシュを volume に置いてデプロイをまたいで残すため、上流の応答に項目を
+ * 足しても、デプロイ直後は前の版の応答が URL ごとに1回返っていた(期限切れの値を先に
+ * 返して裏で取り直すため)。ヘッダーに版を載せてキーを分け、webapp を出し直したら
+ * 一覧は必ず取り直させる。上流(core-apiserver)はこのヘッダーを見ない。
+ *
+ * 代わりに、前の版のキャッシュファイルは volume に残る(1回のデプロイで数十MB)。
+ * 掃除は docker-compose.yml の webapp-next-cache の説明にあるコマンドで行う。
+ */
+export const BUILD_VERSION_HEADER = "X-Vsrecorder-Build";
+const BUILD_VERSION = process.env.VSRECORDER_BUILD_VERSION || "dev";
+
 // react の cache で包むのは、同じ描画の中で複数箇所から呼んでも1回で済ませるため。
 // リクエストを跨ぐキャッシュは上の fetch の Data Cache が受け持つ。
 export const getOfficialEventList = cache(async function getOfficialEventList(
@@ -35,6 +50,7 @@ export const getOfficialEventList = cache(async function getOfficialEventList(
       method: "GET",
       headers: {
         Accept: "application/json",
+        [BUILD_VERSION_HEADER]: BUILD_VERSION,
       },
       cache: "force-cache",
       next: { revalidate: REVALIDATE_SECONDS },

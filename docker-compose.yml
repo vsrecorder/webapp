@@ -118,6 +118,9 @@ services:
       #
       # 容量: Next はここを自動で掃除しない。デッキコードは 2 ヶ月で約 8.4 万種なので
       # 年 1〜2GB 程度の増加を見込む(2026-09-07 時点のディスク空き 84GB)。
+      # 公式イベントの一覧(1日ぶん 1件 数百KB)はキーに webapp のビルドの版を混ぜているため
+      # (utils/officialEventListServer.ts)、デプロイのたびに前の版のファイルが残る。
+      # 1回のデプロイで数十MB、週数回のデプロイで年数GBの見込み(2026-11-22 時点の空き 116GB)。
       # 増えすぎたら、最長の revalidate(30日)を超えて触られていないものは
       # どのみち再取得されるので、次のように消してよい:
       #   docker run --rm -v webapp_webapp-next-cache:/c alpine find /c/fetch-cache -type f -mtime +35 -delete

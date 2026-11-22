@@ -16,9 +16,14 @@ export default function WinbackCardSkeleton() {
             <div className="h-2.5 w-24 rounded-full bg-primary/20 animate-pulse" />
             <div className="h-6 w-6 rounded-full bg-default-100 animate-pulse" />
           </div>
-          {/* 見出し(text-lg の行 = 28px) */}
-          <div className="h-7 flex items-center">
-            <div className="h-5 w-72 max-w-full rounded-md bg-primary/20 animate-pulse" />
+          {/* 見出し(text-lg の行 = 28px)。「最後の対戦は〜の週」と「（◯週間ぶり）」の2行 */}
+          <div>
+            <div className="h-7 flex items-center">
+              <div className="h-5 w-64 max-w-full rounded-md bg-primary/20 animate-pulse" />
+            </div>
+            <div className="h-7 flex items-center">
+              <div className="h-5 w-28 max-w-full rounded-md bg-primary/20 animate-pulse" />
+            </div>
           </div>
           {/* 環境の1行(text-sm) */}
           <SkeletonTextLine textClassName="text-sm">

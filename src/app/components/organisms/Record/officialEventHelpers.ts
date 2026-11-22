@@ -54,25 +54,62 @@ export function getEventLeagueLabel(leagueTitle: string | null | undefined): str
 }
 
 /*
- * 公式イベントの選択欄に並べる順。種別(type_id) → リーグ(league_id) の昇順。
+ * 公式イベントの選択欄に並べる順。種別(type_id) → ジムバトル → リーグ区分 → リーグ(league_id) の昇順。
+ *
+ * 種別 4 の中ではジムバトル(「ジムバトル／小学生以下」も含む)を先頭に置き、
+ * トレーナーズリーグ(種別 3)のすぐ下に来るようにする。種別 4 にはポケモンセンターの
+ * フリーバトル・教室・スペシャルメダルグランプリなども入っていて、どれも区分が「その他」で
+ * league_id がジムバトル(2026 は 1411)より小さいため、そのままだとジムバトルが後ろへ回る。
+ * league_id はシーズンごとに変わるので、判定はタイトルで行う(isGymBattle)。
+ *
+ * リーグ区分は オープン → マスター → シニア → ジュニア(DISPLAY_LEAGUES の並び)。
+ * league_id の昇順だと、トレーナーズリーグ2026 は オープン=1410・ジュニア=1413・
+ * シニア=1414・マスター=1417 なので オープン → ジュニア → シニア → マスター になってしまう。
+ * 区分の無いもの(ジムバトルの「その他」など)は同じ種別の末尾に置く。
+ * 同じ区分の中は league_id で分け、同じ大会シリーズ同士をまとめる。
  *
  * 一覧APIは開催時刻の昇順で返す。シティリーグ結果のページなど他の利用者はその順を
  * 前提にしているので、API の並びは変えずに選択欄の候補だけここで並べ替える。
  * Array.prototype.sort は安定ソートなので、種別・リーグが同じものは開催時刻の順のまま残る。
  *
- * league_id が無い(0 / 未設定)ものは同じ種別の末尾に置く。API が league_id を返す
- * 前の版でも並びが崩れないようにするため(そのときは種別だけで並ぶ)。
+ * league_id が無い(0 / 未設定)ものは同じ種別・区分の末尾に置く。API が league_id を返す
+ * 前の版でも並びが崩れないようにするため(そのときは種別と区分だけで並ぶ)。
  *
  * 引数の配列は SWR のキャッシュなので書き換えず、並べ替えた新しい配列を返す。
  */
-type OfficialEventSortKey = { type_id: number; league_id?: number | null };
+type OfficialEventSortKey = {
+  type_id: number;
+  title: string;
+  league_title?: string | null;
+  league_id?: number | null;
+};
 
 export function sortOfficialEventsForSelect<T extends OfficialEventSortKey>(
   events: readonly T[],
 ): T[] {
+  // 表示しない区分(空文字)は indexOf が -1 になるので、末尾へ回す
+  const leagueRank = (event: T) => {
+    const rank = (DISPLAY_LEAGUES as readonly string[]).indexOf(
+      getEventLeagueLabel(event.league_title),
+    );
+    return rank === -1 ? DISPLAY_LEAGUES.length : rank;
+  };
   const leagueKey = (event: T) => event.league_id || Number.MAX_SAFE_INTEGER;
+  const gymBattleKey = (event: T) => (isGymBattle(event) ? 0 : 1);
 
-  return [...events].sort((a, b) => a.type_id - b.type_id || leagueKey(a) - leagueKey(b));
+  return [...events].sort(
+    (a, b) =>
+      a.type_id - b.type_id ||
+      gymBattleKey(a) - gymBattleKey(b) ||
+      leagueRank(a) - leagueRank(b) ||
+      leagueKey(a) - leagueKey(b),
+  );
+}
+
+// ジムバトルかどうか。種別 4(ジムイベント)のうちタイトルに「ジムバトル」を含むもの。
+// 「ジムバトル／小学生以下」も含む。アイコン・アクセント色の判定(getEventIconUrl など)と同じ条件。
+function isGymBattle(officialEvent: OfficialEventKind): boolean {
+  return officialEvent.type_id === 4 && officialEvent.title.includes("ジムバトル");
 }
 
 // PJCS(ポケモンジャパンチャンピオンシップス)かどうかを判定する。

@@ -20,6 +20,7 @@ const upstreamEvent: OfficialEventType = {
   ended_at: "2026-09-13T22:00:00+09:00" as unknown as Date,
   type_id: 6,
   type_name: "オーガナイザーイベント",
+  league_id: 1378,
   league_title: "その他",
   regulation_title: "スタンダード",
   csp_flg: false,
@@ -47,6 +48,7 @@ describe("toOfficialEventListItem", () => {
       type_id: 6,
       shop_name: "こあら",
       prefecture_name: "山梨県",
+      league_id: 1378,
       league_title: "その他",
       environment_title: "ストームエメラルダ",
     });

@@ -38,6 +38,7 @@ const GYM: RecordCreateOfficialEventType = {
   ended_at: new Date("2026-09-21T07:00:00Z"),
   type_id: 4,
   shop_name: "カードショップ町田店",
+  league_id: 1411,
   league_title: "その他",
 };
 
@@ -183,7 +184,8 @@ describe("OfficialEventSelect", () => {
     fireTouch(options[0], "touchStart", [{ clientX: 40, clientY: 120 }]);
     fireTouch(options[0], "touchEnd", [{ clientX: 41, clientY: 122 }]);
 
-    expect(selectedTitle()).toBe("ジムバトル");
+    // 候補は種別順(シティリーグ type_id: 2 → ジムバトル type_id: 4)に並ぶので、先頭はシティリーグ
+    expect(selectedTitle()).toBe("シティリーグ");
   });
 
   it("指が動いた(リスト送り)ときは選ばれない", async () => {
@@ -195,6 +197,37 @@ describe("OfficialEventSelect", () => {
     fireTouch(options[0], "touchEnd", [{ clientX: 40, clientY: 120 }]);
 
     expect(selectedTitle()).toBe("");
+  });
+
+  it("候補は API の順(開催時刻順)ではなく、種別 → リーグの順に並ぶ", async () => {
+    const TRAINERS_MASTER: RecordCreateOfficialEventType = {
+      ...GYM,
+      id: 91,
+      title: "【26/11】ポケモンカードジム　トレーナーズリーグ（マスターリーグ）",
+      type_id: 3,
+      league_id: 1417,
+      league_title: "マスター",
+    };
+    const TRAINERS_OPEN: RecordCreateOfficialEventType = {
+      ...TRAINERS_MASTER,
+      id: 92,
+      title: "【26/11】ポケモンカードジム　トレーナーズリーグ（オープンリーグ）",
+      league_id: 1410,
+      league_title: "オープン",
+    };
+    vi.mocked(fetch).mockImplementation(async () =>
+      Response.json({ count: 4, official_events: [GYM, TRAINERS_MASTER, TRAINERS_OPEN, CITY] }),
+    );
+
+    render(<Harness />);
+    const options = await openMenu();
+
+    expect(options.map((o) => o.textContent)).toEqual([
+      expect.stringContaining("シティリーグ"),
+      expect.stringContaining("オープン"),
+      expect.stringContaining("マスター"),
+      expect.stringContaining("ジムバトル"),
+    ]);
   });
 
   it("既にイベントが選ばれているときは URL 指定で上書きしない", async () => {

@@ -53,6 +53,28 @@ export function getEventLeagueLabel(leagueTitle: string | null | undefined): str
   return (DISPLAY_LEAGUES as readonly string[]).includes(league) ? league : "";
 }
 
+/*
+ * 公式イベントの選択欄に並べる順。種別(type_id) → リーグ(league_id) の昇順。
+ *
+ * 一覧APIは開催時刻の昇順で返す。シティリーグ結果のページなど他の利用者はその順を
+ * 前提にしているので、API の並びは変えずに選択欄の候補だけここで並べ替える。
+ * Array.prototype.sort は安定ソートなので、種別・リーグが同じものは開催時刻の順のまま残る。
+ *
+ * league_id が無い(0 / 未設定)ものは同じ種別の末尾に置く。API が league_id を返す
+ * 前の版でも並びが崩れないようにするため(そのときは種別だけで並ぶ)。
+ *
+ * 引数の配列は SWR のキャッシュなので書き換えず、並べ替えた新しい配列を返す。
+ */
+type OfficialEventSortKey = { type_id: number; league_id?: number | null };
+
+export function sortOfficialEventsForSelect<T extends OfficialEventSortKey>(
+  events: readonly T[],
+): T[] {
+  const leagueKey = (event: T) => event.league_id || Number.MAX_SAFE_INTEGER;
+
+  return [...events].sort((a, b) => a.type_id - b.type_id || leagueKey(a) - leagueKey(b));
+}
+
 // PJCS(ポケモンジャパンチャンピオンシップス)かどうかを判定する。
 // タイトルは整形後もフルネーム(ポケモンジャパンチャンピオンシップス)を保持するが、
 // 過去データ等で「PJCS」表記のものも判定できるよう両方を見る。

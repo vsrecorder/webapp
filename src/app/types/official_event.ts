@@ -77,7 +77,7 @@ export type OfficialEventListItemType = Pick<
  * タイトルの「（オープンリーグ）」は cleanOfficialEventTitle が消すため、これが無いと
  * 同じ店舗の4区分が同名で並んで見分けられない。
  *
- * league_id は候補を種別・リーグの順に並べるために使う(sortOfficialEventsForSelect)。
+ * league_title と league_id は候補を種別・区分の順に並べるのにも使う(sortOfficialEventsForSelect)。
  */
 export const RECORD_CREATE_OFFICIAL_EVENT_FIELDS = [
   "id",

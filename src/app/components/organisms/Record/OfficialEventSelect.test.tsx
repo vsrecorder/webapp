@@ -199,7 +199,7 @@ describe("OfficialEventSelect", () => {
     expect(selectedTitle()).toBe("");
   });
 
-  it("候補は API の順(開催時刻順)ではなく、種別 → リーグの順に並ぶ", async () => {
+  it("候補は API の順(開催時刻順)ではなく、種別 → 区分(オープン → マスター → シニア → ジュニア)の順に並ぶ", async () => {
     const TRAINERS_MASTER: RecordCreateOfficialEventType = {
       ...GYM,
       id: 91,
@@ -215,8 +215,26 @@ describe("OfficialEventSelect", () => {
       league_id: 1410,
       league_title: "オープン",
     };
+    // league_id はジュニア(1413)・シニア(1414)がマスター(1417)より小さい。区分の順で並ぶことを見る
+    const TRAINERS_JUNIOR: RecordCreateOfficialEventType = {
+      ...TRAINERS_MASTER,
+      id: 93,
+      title: "【26/11】ポケモンカードジム　トレーナーズリーグ（ジュニアリーグ）",
+      league_id: 1413,
+      league_title: "ジュニア",
+    };
+    const TRAINERS_SENIOR: RecordCreateOfficialEventType = {
+      ...TRAINERS_MASTER,
+      id: 94,
+      title: "【26/11】ポケモンカードジム　トレーナーズリーグ（シニアリーグ）",
+      league_id: 1414,
+      league_title: "シニア",
+    };
     vi.mocked(fetch).mockImplementation(async () =>
-      Response.json({ count: 4, official_events: [GYM, TRAINERS_MASTER, TRAINERS_OPEN, CITY] }),
+      Response.json({
+        count: 6,
+        official_events: [GYM, TRAINERS_JUNIOR, TRAINERS_MASTER, TRAINERS_SENIOR, TRAINERS_OPEN, CITY],
+      }),
     );
 
     render(<Harness />);
@@ -226,6 +244,8 @@ describe("OfficialEventSelect", () => {
       expect.stringContaining("シティリーグ"),
       expect.stringContaining("オープン"),
       expect.stringContaining("マスター"),
+      expect.stringContaining("シニア"),
+      expect.stringContaining("ジュニア"),
       expect.stringContaining("ジムバトル"),
     ]);
   });

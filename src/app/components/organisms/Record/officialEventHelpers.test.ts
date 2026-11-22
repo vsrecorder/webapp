@@ -113,16 +113,19 @@ describe("isJudgeStaffEvent", () => {
 describe("sortOfficialEventsForSelect", () => {
   // API は開催時刻順で返す。id はその順に振ってある
   const events = [
-    { id: 1, type_id: 4, league_id: 1411 }, // ジムバトル 10:00
-    { id: 2, type_id: 3, league_id: 1417 }, // トレリ マスター 10:00
-    { id: 3, type_id: 3, league_id: 1410 }, // トレリ オープン 11:00
-    { id: 4, type_id: 2, league_id: 1309 }, // シティ オープン 12:00
-    { id: 5, type_id: 3, league_id: 1410 }, // トレリ オープン 13:00
-    { id: 6, type_id: 3, league_id: 1413 }, // トレリ ジュニア 14:00
+    { id: 1, type_id: 4, title: "ジムバトル", league_id: 1411, league_title: "その他" }, // ジムバトル 10:00
+    { id: 2, type_id: 3, title: "", league_id: 1417, league_title: "マスター" }, // トレリ マスター 10:00
+    { id: 3, type_id: 3, title: "", league_id: 1413, league_title: "ジュニア" }, // トレリ ジュニア 10:00
+    { id: 4, type_id: 3, title: "", league_id: 1410, league_title: "オープン" }, // トレリ オープン 11:00
+    { id: 5, type_id: 2, title: "", league_id: 1309, league_title: "オープン" }, // シティ オープン 12:00
+    { id: 6, type_id: 3, title: "", league_id: 1414, league_title: "シニア" }, // トレリ シニア 12:00
+    { id: 7, type_id: 3, title: "", league_id: 1410, league_title: "オープン" }, // トレリ オープン 13:00
   ];
 
-  it("種別 → リーグの順に並べ、同じ種別・リーグの中は元の順(開催時刻順)を保つ", () => {
-    expect(sortOfficialEventsForSelect(events).map((e) => e.id)).toEqual([4, 3, 5, 6, 2, 1]);
+  it("種別 → 区分(オープン → マスター → シニア → ジュニア)の順に並べ、同じ種別・区分の中は元の順(開催時刻順)を保つ", () => {
+    expect(sortOfficialEventsForSelect(events).map((e) => e.id)).toEqual([
+      5, 4, 7, 2, 6, 3, 1,
+    ]);
   });
 
   it("元の配列(SWR のキャッシュ)は書き換えない", () => {
@@ -131,13 +134,74 @@ describe("sortOfficialEventsForSelect", () => {
     expect(events.map((e) => e.id)).toEqual(before);
   });
 
-  it("league_id が無いものは同じ種別の末尾に置く", () => {
+  it("区分の無いもの(その他・未設定)は同じ種別の末尾に置く", () => {
     const sorted = sortOfficialEventsForSelect([
-      { id: 1, type_id: 3, league_id: 0 },
-      { id: 2, type_id: 3 },
-      { id: 3, type_id: 3, league_id: 1414 },
-      { id: 4, type_id: 2, league_id: 0 },
+      { id: 1, type_id: 7, title: "", league_id: 1500, league_title: "その他" },
+      { id: 2, type_id: 7, title: "", league_id: 1501 },
+      { id: 3, type_id: 7, title: "", league_id: 1502, league_title: "ジュニア" },
+      { id: 4, type_id: 7, title: "", league_id: 1503, league_title: "オープン" },
     ]);
     expect(sorted.map((e) => e.id)).toEqual([4, 3, 1, 2]);
+  });
+
+  it("同じ区分の中は league_id 順に並べ、league_id が無いものはその末尾に置く", () => {
+    const sorted = sortOfficialEventsForSelect([
+      { id: 1, type_id: 1, title: "", league_id: 0, league_title: "マスター" },
+      { id: 2, type_id: 1, title: "", league_title: "マスター" },
+      { id: 3, type_id: 1, title: "", league_id: 1600, league_title: "マスター" },
+      { id: 4, type_id: 1, title: "", league_id: 1500, league_title: "マスター" },
+      { id: 5, type_id: 1, title: "", league_id: 1600, league_title: "シニア" },
+    ]);
+    expect(sorted.map((e) => e.id)).toEqual([4, 3, 1, 2, 5]);
+  });
+
+  it("種別 4 の中ではジムバトルを先頭に置き、トレーナーズリーグのすぐ下に来る", () => {
+    // 実データでは、ジムバトル(1411)より league_id の小さいイベントが種別 4 に並ぶ
+    const sorted = sortOfficialEventsForSelect([
+      {
+        id: 1,
+        type_id: 4,
+        title: "【東京】ポケモンセンター　フリーバトル",
+        league_id: 38,
+        league_title: "その他",
+      },
+      {
+        id: 2,
+        type_id: 4,
+        title: "【10_11月開催】30th CELEBRATION スペシャルメダルグランプリ",
+        league_id: 1346,
+        league_title: "その他",
+      },
+      {
+        id: 3,
+        type_id: 4,
+        title: "【店舗】ポケモンカードジム　ジムバトル／小学生以下",
+        league_id: 1412,
+        league_title: "その他",
+      },
+      {
+        id: 4,
+        type_id: 4,
+        title: "【店舗】ポケモンカードジム　ジムバトル",
+        league_id: 1411,
+        league_title: "その他",
+      },
+      {
+        id: 5,
+        type_id: 3,
+        title: "【26/11】ポケモンカードジム　トレーナーズリーグ（ジュニアリーグ）",
+        league_id: 1413,
+        league_title: "ジュニア",
+      },
+      {
+        id: 6,
+        type_id: 6,
+        title: "ジムバトル交流会",
+        league_id: 1379,
+        league_title: "その他",
+      },
+    ]);
+    // 公認自主イベント(種別 6)の「ジムバトル交流会」は種別の順のまま
+    expect(sorted.map((e) => e.id)).toEqual([5, 4, 3, 1, 2, 6]);
   });
 });

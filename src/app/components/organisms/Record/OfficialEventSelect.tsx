@@ -196,7 +196,8 @@ export default function OfficialEventSelect({
   // 再レンダーごとに全件分の整形が走り重くなる。
   //
   // ジャッジの募集・稼働・研修(isJudgeStaffEvent)は対戦の記録を付ける対象ではないので候補から外す。
-  // 候補は種別 → リーグの順に並べる(同じ種別・リーグの中は開催時刻順。sortOfficialEventsForSelect 参照)。
+  // 候補は種別 → 区分(オープン → マスター → シニア → ジュニア)の順に並べる
+  // (同じ種別・区分の中は開催時刻順。sortOfficialEventsForSelect 参照)。
   const options = useMemo<OfficialEventOption[]>(
     () =>
       sortOfficialEventsForSelect(

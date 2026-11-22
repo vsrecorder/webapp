@@ -47,6 +47,7 @@ export const OFFICIAL_EVENT_LIST_FIELDS = [
   "type_id",
   "shop_name",
   "prefecture_name",
+  "league_id",
   "league_title",
   "environment_title",
 ] as const satisfies readonly (keyof OfficialEventType)[];
@@ -68,13 +69,15 @@ export type OfficialEventListItemType = Pick<
  * 記録の作成フォーム(templates/RecordCreate)が公式イベントの候補として使うフィールド。
  *
  * 一覧(OFFICIAL_EVENT_LIST_FIELDS)は全消費者の和集合だが、記録作成の選択肢が参照するのは
- * この 10 個だけ(toOfficialEventOption)。records/create/page.tsx はこの候補を
+ * この 11 個だけ(toOfficialEventOption と、候補の並べ替え sortOfficialEventsForSelect)。records/create/page.tsx はこの候補を
  * サーバで先読みして HTML(RSC)に載せるため、使わない prefecture_name /
  * environment_title を落として転送量を減らす。土日は 1,400 件を超えるので 2 フィールドでも効く。
  *
  * league_title はトレーナーズリーグ等のリーグ区分(オープン/マスター/シニア/ジュニア)の表示に使う。
  * タイトルの「（オープンリーグ）」は cleanOfficialEventTitle が消すため、これが無いと
  * 同じ店舗の4区分が同名で並んで見分けられない。
+ *
+ * league_id は候補を種別・リーグの順に並べるために使う(sortOfficialEventsForSelect)。
  */
 export const RECORD_CREATE_OFFICIAL_EVENT_FIELDS = [
   "id",
@@ -86,6 +89,7 @@ export const RECORD_CREATE_OFFICIAL_EVENT_FIELDS = [
   "ended_at",
   "type_id",
   "shop_name",
+  "league_id",
   "league_title",
 ] as const satisfies readonly (typeof OFFICIAL_EVENT_LIST_FIELDS)[number][];
 
@@ -113,6 +117,10 @@ export type OfficialEventType = {
   ended_at: Date;
   type_id: number;
   type_name: string;
+  // 公式サイトのリーグID。リーグのシリーズごとに振られ、league_title が同じでも
+  // シリーズが違えば別の値になる(例: トレーナーズリーグ2026 はオープン=1410・ジュニア=1413・
+  // シニア=1414・マスター=1417)。DB で NULL のときは 0 が返る。
+  league_id: number;
   league_title: string;
   regulation_title: string;
   csp_flg: boolean;

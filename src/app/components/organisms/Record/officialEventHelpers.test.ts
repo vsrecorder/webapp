@@ -7,6 +7,7 @@ import {
   getEventIconAlt,
   getEventIconUrl,
   isJudgeStaffEvent,
+  sortOfficialEventsForSelect,
 } from "@app/components/organisms/Record/officialEventHelpers";
 import { DEFAULT_REGULATION_ID, REGULATION_ID_EXTRA } from "@app/types/regulation";
 
@@ -106,5 +107,37 @@ describe("isJudgeStaffEvent", () => {
     expect(
       isJudgeStaffEvent({ title: "チャンピオンズリーグ2027 千葉 マスターリーグ", type_id: 1 }),
     ).toBe(false);
+  });
+});
+
+describe("sortOfficialEventsForSelect", () => {
+  // API は開催時刻順で返す。id はその順に振ってある
+  const events = [
+    { id: 1, type_id: 4, league_id: 1411 }, // ジムバトル 10:00
+    { id: 2, type_id: 3, league_id: 1417 }, // トレリ マスター 10:00
+    { id: 3, type_id: 3, league_id: 1410 }, // トレリ オープン 11:00
+    { id: 4, type_id: 2, league_id: 1309 }, // シティ オープン 12:00
+    { id: 5, type_id: 3, league_id: 1410 }, // トレリ オープン 13:00
+    { id: 6, type_id: 3, league_id: 1413 }, // トレリ ジュニア 14:00
+  ];
+
+  it("種別 → リーグの順に並べ、同じ種別・リーグの中は元の順(開催時刻順)を保つ", () => {
+    expect(sortOfficialEventsForSelect(events).map((e) => e.id)).toEqual([4, 3, 5, 6, 2, 1]);
+  });
+
+  it("元の配列(SWR のキャッシュ)は書き換えない", () => {
+    const before = events.map((e) => e.id);
+    sortOfficialEventsForSelect(events);
+    expect(events.map((e) => e.id)).toEqual(before);
+  });
+
+  it("league_id が無いものは同じ種別の末尾に置く", () => {
+    const sorted = sortOfficialEventsForSelect([
+      { id: 1, type_id: 3, league_id: 0 },
+      { id: 2, type_id: 3 },
+      { id: 3, type_id: 3, league_id: 1414 },
+      { id: 4, type_id: 2, league_id: 0 },
+    ]);
+    expect(sorted.map((e) => e.id)).toEqual([4, 3, 1, 2]);
   });
 });

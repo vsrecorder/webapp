@@ -21,7 +21,10 @@ import {
   OfficialEventOption,
   toOfficialEventOption,
 } from "@app/components/organisms/Record/officialEventOption";
-import { isJudgeStaffEvent } from "@app/components/organisms/Record/officialEventHelpers";
+import {
+  isJudgeStaffEvent,
+  sortOfficialEventsForSelect,
+} from "@app/components/organisms/Record/officialEventHelpers";
 import {
   OfficialEventResponseType,
   RecordCreateOfficialEventType,
@@ -193,8 +196,12 @@ export default function OfficialEventSelect({
   // 再レンダーごとに全件分の整形が走り重くなる。
   //
   // ジャッジの募集・稼働・研修(isJudgeStaffEvent)は対戦の記録を付ける対象ではないので候補から外す。
+  // 候補は種別 → リーグの順に並べる(同じ種別・リーグの中は開催時刻順。sortOfficialEventsForSelect 参照)。
   const options = useMemo<OfficialEventOption[]>(
-    () => (data ?? []).filter((event) => !isJudgeStaffEvent(event)).map(toOfficialEventOption),
+    () =>
+      sortOfficialEventsForSelect(
+        (data ?? []).filter((event) => !isJudgeStaffEvent(event)),
+      ).map(toOfficialEventOption),
     [data],
   );
 

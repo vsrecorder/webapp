@@ -65,6 +65,21 @@ const ORGANIZER_JUDGE: RecordCreateOfficialEventType = {
   type_id: 6,
 };
 
+// CL のシニアの「どちらの日でも可」の応募枠。実際に対戦するのは 1日目か 2日目の大会
+const SENIOR_EITHER_DAY: RecordCreateOfficialEventType = {
+  ...GYM,
+  id: 90,
+  title: "チャンピオンズリーグ2027 横浜 シニアリーグ 1日目大会or2日目大会どちらでも可",
+  type_id: 1,
+  league_title: "シニア",
+};
+
+const SENIOR_DAY1: RecordCreateOfficialEventType = {
+  ...SENIOR_EITHER_DAY,
+  id: 91,
+  title: "チャンピオンズリーグ2027 横浜 シニアリーグ 1日目大会",
+};
+
 beforeEach(() => {
   vi.stubGlobal(
     "fetch",
@@ -314,6 +329,33 @@ describe("OfficialEventSelect", () => {
           screen.queryAllByText(JUDGE.title, { normalizer: (text) => text }).length,
         ).toBeGreaterThan(1),
       );
+    });
+  });
+
+  describe("CL の「どちらの日でも可」の応募枠", () => {
+    beforeEach(() => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () =>
+          Response.json({ count: 2, official_events: [SENIOR_DAY1, SENIOR_EITHER_DAY] }),
+        ),
+      );
+    });
+
+    it("候補に出さず、1日目大会は出す", async () => {
+      render(<Harness />);
+
+      const options = await openMenu();
+
+      expect(options).toHaveLength(1);
+      expect(screen.queryAllByText(/どちらでも可/)).toHaveLength(0);
+      expect(screen.queryAllByText(/シニアリーグ 1日目大会$/).length).toBeGreaterThan(0);
+    });
+
+    it("既に選ばれている(作成済みの記録を編集する)ときはプレビューに出す", async () => {
+      render(<Harness initialSelected={toOfficialEventOption(SENIOR_EITHER_DAY)} />);
+
+      await waitFor(() => expect(screen.queryAllByText(/どちらでも可/).length).toBeGreaterThan(0));
     });
   });
 });

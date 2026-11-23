@@ -139,6 +139,32 @@ export function isJudgeStaffEvent(officialEvent: OfficialEventKind): boolean {
   return officialEvent.type_id === 1 && officialEvent.title.includes("ジャッジ");
 }
 
+/*
+ * チャンピオンズリーグのシニア・ジュニアの「どちらの日でも出られる」応募枠か。
+ *
+ * 公式サイトには「1日目大会」「2日目大会」とは別に、どちらの日に回されてもよい人向けの
+ * 応募枠が大型大会(type_id: 1)として載る。実際に対戦するのは 1日目か 2日目の大会なので、
+ * 記録はそちらに付けてもらう(この枠に付けると、同じ大会の記録が 3 つに分かれる)。
+ *
+ * 表記はシーズンで変わっている。
+ *   - 2027 シーズン:「シニアリーグ 1日目大会or2日目大会どちらでも可」
+ *   - 2026 シーズンまで:「シニアリーグ 1日目大会もしくは2日目大会いずれか」
+ * どちらも「〇日目大会」を or / もしくは で 2 つ並べた形なので、その形で判定する。
+ */
+const EITHER_DAY_ENTRY = /\d日目大会(?:or|もしくは)\d日目大会/;
+
+export function isEitherDayEntryEvent(officialEvent: OfficialEventKind): boolean {
+  return officialEvent.type_id === 1 && EITHER_DAY_ENTRY.test(officialEvent.title);
+}
+
+/*
+ * 記録作成の公式イベント選択(OfficialEventSelect)の候補から外すイベントか。
+ * 自由形式からの誘導判定(useOfficialEventGuide)も、候補に出ないものは数えないよう同じ条件を使う。
+ */
+export function isHiddenFromOfficialEventSelect(officialEvent: OfficialEventKind): boolean {
+  return isJudgeStaffEvent(officialEvent) || isEitherDayEntryEvent(officialEvent);
+}
+
 // エクストラバトルの日かどうかを判定する。
 // 判定は整形前後どちらのタイトルでも効く(cleanOfficialEventTitle が落とすのは
 // 店舗名の【】接頭辞だけで、「エクストラバトルの日」はそのまま残る)。

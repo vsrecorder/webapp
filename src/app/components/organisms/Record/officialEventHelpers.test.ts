@@ -6,6 +6,8 @@ import {
   defaultRegulationIdForRecordForm,
   getEventIconAlt,
   getEventIconUrl,
+  isEitherDayEntryEvent,
+  isHiddenFromOfficialEventSelect,
   isJudgeStaffEvent,
   sortOfficialEventsForSelect,
 } from "@app/components/organisms/Record/officialEventHelpers";
@@ -106,6 +108,59 @@ describe("isJudgeStaffEvent", () => {
   it("ジャッジを含まない大会はそのまま", () => {
     expect(
       isJudgeStaffEvent({ title: "チャンピオンズリーグ2027 千葉 マスターリーグ", type_id: 1 }),
+    ).toBe(false);
+  });
+});
+
+describe("isEitherDayEntryEvent", () => {
+  it("CL のシニア・ジュニアの「どちらの日でも可」の応募枠を判定する(シーズンごとの表記)", () => {
+    for (const title of [
+      "チャンピオンズリーグ2027 横浜 シニアリーグ 1日目大会or2日目大会どちらでも可",
+      "チャンピオンズリーグ2027 千葉 ジュニアリーグ 1日目大会or2日目大会どちらでも可",
+      "チャンピオンズリーグ2026 大阪 シニアリーグ 1日目大会もしくは2日目大会いずれか",
+      "【追加募集】チャンピオンズリーグ2025 東京 ジュニアリーグ 1日目大会もしくは2日目大会いずれか",
+    ]) {
+      expect(isEitherDayEntryEvent({ title, type_id: 1 })).toBe(true);
+    }
+  });
+
+  it("1日目・2日目の大会そのものや予選・本戦は外さない", () => {
+    for (const title of [
+      "チャンピオンズリーグ2027 横浜 シニアリーグ 1日目大会",
+      "チャンピオンズリーグ2027 横浜 ジュニアリーグ 2日目大会",
+      "チャンピオンズリーグ2025 東京 シニアリーグ 1日目大会【2024年9月22日（日）開催】",
+      "チャンピオンズリーグ2027 横浜 マスターリーグ 1日目予選",
+      "チャンピオンズリーグ2027 横浜 マスターリーグ 本戦",
+    ]) {
+      expect(isEitherDayEntryEvent({ title, type_id: 1 })).toBe(false);
+    }
+  });
+
+  it("大型大会以外は判定しない", () => {
+    const title = "1日目大会or2日目大会どちらでも可";
+
+    for (const type_id of [2, 3, 4, 6, 7]) {
+      expect(isEitherDayEntryEvent({ title, type_id })).toBe(false);
+    }
+  });
+});
+
+describe("isHiddenFromOfficialEventSelect", () => {
+  it("ジャッジの募集・稼働と「どちらの日でも可」の応募枠を外し、大会は残す", () => {
+    expect(
+      isHiddenFromOfficialEventSelect({ title: "チャンピオンズリーグ2027千葉　ジャッジ稼働", type_id: 1 }),
+    ).toBe(true);
+    expect(
+      isHiddenFromOfficialEventSelect({
+        title: "チャンピオンズリーグ2027 千葉 シニアリーグ 1日目大会or2日目大会どちらでも可",
+        type_id: 1,
+      }),
+    ).toBe(true);
+    expect(
+      isHiddenFromOfficialEventSelect({
+        title: "チャンピオンズリーグ2027 千葉 シニアリーグ 1日目大会",
+        type_id: 1,
+      }),
     ).toBe(false);
   });
 });

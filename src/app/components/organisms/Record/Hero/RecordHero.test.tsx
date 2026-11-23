@@ -78,6 +78,29 @@ describe("RecordHero", () => {
     ]);
   });
 
+  it.each(["マスターリーグ 本戦", "シニアリーグ 1日目大会", "ジュニアリーグ 2日目大会"])(
+    "「%s」は 1 行にまとめる",
+    async (league) => {
+      stubEventFetch(`チャンピオンズリーグ2027 横浜 ${league}`);
+
+      const { container } = render(
+        <RecordHero record={record} setRecord={() => {}} stats={summarizeMatches([])} />,
+      );
+
+      const heading = await waitFor(() => {
+        const found = container.querySelector("h3");
+        expect(found?.textContent).toContain(league.split(" ")[1]);
+        return found!;
+      });
+
+      expect(Array.from(heading.children).map((line) => line.textContent)).toEqual([
+        "チャンピオンズリーグ2027",
+        "横浜",
+        league,
+      ]);
+    },
+  );
+
   it("イベント名は【】の後ろでも行を分ける", async () => {
     stubEventFetch("【初心者歓迎】ジムバトル スペシャル");
 

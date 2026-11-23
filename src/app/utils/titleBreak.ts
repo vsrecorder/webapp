@@ -35,16 +35,27 @@ export function splitAtBreakPoints(title: string): TitleSegment[] {
 
 /*
  * 空白を含むが、途中で改行すると名前として読みづらくなるもの。
- * 「30th / CELEBRATION」と割れないよう、表示するときだけ空白を NBSP に置き換える。
+ * 表示するときだけ、名前の中の空白を NBSP に置き換える。
+ *
+ * - 「30th CELEBRATION」: 「30th / CELEBRATION」と割れないようにする
+ * - 「〈区分〉リーグ 〈日程〉」: チャンピオンズリーグのイベント名の後半
+ *   (例:「チャンピオンズリーグ2027 横浜 マスターリーグ 本戦」「… シニアリーグ 1日目大会」
+ *   「… ジュニアリーグ 1日目大会or2日目大会どちらでも可」)。戦績カードの見出し(RecordHero)は
+ *   空白ごとに行を分けるので、そのままだと「本戦」「1日目大会」だけが 1 行になる。
+ *   日程の表記(予選・本戦・大会、何日目か)は大会ごとに変わり得るので、名前を列挙せず
+ *   区分名の直後の空白と、それに続く語をまとめる
  *
  * cleanOfficialEventTitle には入れない。整形後のタイトルはアイコンの判定(半角空白で照合)や
  * カレンダー・投稿文にも使うので、NBSP が混ざると一致しなくなる。
  */
-const UNBROKEN_NAMES = ["30th CELEBRATION"];
+const UNBROKEN_NAMES: readonly RegExp[] = [
+  /30th CELEBRATION/g,
+  /(?:マスター|シニア|ジュニア|オープン)リーグ \S+/g,
+];
 
 export function keepNamesUnbroken(title: string): string {
   return UNBROKEN_NAMES.reduce(
-    (result, name) => result.replaceAll(name, name.replaceAll(" ", " ")),
+    (result, name) => result.replace(name, (matched) => matched.replaceAll(" ", "\u00A0")),
     title,
   );
 }

@@ -70,3 +70,42 @@ export function keepNamesUnbroken(title: string): string {
 export function splitAfterBracketLabels(title: string): string[] {
   return title.replace(/(【[^【】]*】)\s*(?=\S)/g, "$1\n").split("\n");
 }
+
+/*
+ * 末尾の（）書きの前で行を分ける。半角・全角どちらの括弧でも、混ざっていても分ける。
+ * 「トレカアライブ決勝大会（ポケモンカード）」→「トレカアライブ決勝大会」「（ポケモンカード）」。
+ *
+ * Tonamel・自由形式のイベント名では、（）はほぼ末尾の補足(部・形式・会場・対戦相手など)に使われ、
+ * 先頭に付くものは無い(2026-11-24 に本番で確認: Tonamel 372 件中 63 件、自由形式 961 件中 19 件)。
+ * 途中の（）は日付の曜日「10/11(日)15:00〜」やレアリティ「リーリエの決心(SR)争奪戦」で、
+ * 分けると語が割れるので分けない。末尾でも中身が曜日だけのもの「Last Mycalinks杯 7/19(日)」は
+ * 日付から切り離さない。
+ *
+ * （の直前の空白は区切りに吸収する(行末に空白を残さない)。（）の前に文字が無いときは分けない。
+ */
+const TRAILING_PAREN_NOTE = /^(.*?\S)\s*([（(][^（()）]*[）)])\s*$/;
+const WEEKDAY_ONLY = /^[（(]\s*[月火水木金土日祝・]+\s*[）)]$/;
+
+export function splitBeforeTrailingParen(line: string): string[] {
+  const matched = TRAILING_PAREN_NOTE.exec(line);
+  if (!matched || WEEKDAY_ONLY.test(matched[2])) return [line];
+
+  return [matched[1], matched[2]];
+}
+
+// 末尾の（）書きだけの行か(splitBeforeTrailingParen で分けた後ろの行)
+export function isParenNoteLine(line: string): boolean {
+  return /^[（(][^（()）]*[）)]$/.test(line);
+}
+
+/*
+ * イベント名を行に分ける。【】の注記の後ろ(splitAfterBracketLabels)と、
+ * 末尾の（）書きの前(splitBeforeTrailingParen)で分ける。
+ * （）書きはタイトルの末尾にしか付かないので、最後の行だけを見る。
+ */
+export function splitTitleLines(title: string): string[] {
+  const lines = splitAfterBracketLabels(title);
+  const last = lines.pop() ?? "";
+
+  return [...lines, ...splitBeforeTrailingParen(last)];
+}

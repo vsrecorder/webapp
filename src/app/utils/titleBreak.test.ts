@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  isParenNoteLine,
   keepNamesUnbroken,
   splitAfterBracketLabels,
   splitAtBreakPoints,
+  splitBeforeTrailingParen,
+  splitTitleLines,
 } from "@app/utils/titleBreak";
 
 describe("splitAtBreakPoints", () => {
@@ -114,5 +117,68 @@ describe("splitAfterBracketLabels", () => {
   it("末尾の【】や【】の無い名前は分けない", () => {
     expect(splitAfterBracketLabels("ジムバトル【S1】")).toEqual(["ジムバトル【S1】"]);
     expect(splitAfterBracketLabels("ジムバトル")).toEqual(["ジムバトル"]);
+  });
+});
+
+describe("splitBeforeTrailingParen", () => {
+  it.each([
+    ["トレカアライブ決勝大会（ポケモンカード）", "トレカアライブ決勝大会", "（ポケモンカード）"],
+    ["第9回ポケカ交流会(春ポケ)", "第9回ポケカ交流会", "(春ポケ)"],
+    ["おのけん杯（30th CELEBRATION　BOX争奪戦）", "おのけん杯", "（30th CELEBRATION　BOX争奪戦）"],
+    // 半角と全角が混ざった括弧
+    ["第1回　広島段原杯(午前の部）", "第1回　広島段原杯", "(午前の部）"],
+    ["はるn杯 都道府県大会 千葉(10月24日開催)", "はるn杯 都道府県大会 千葉", "(10月24日開催)"],
+    ["フリー対戦（チーム練習）", "フリー対戦", "（チーム練習）"],
+  ])("末尾の（）書きの前で分ける: %s", (title, head, note) => {
+    expect(splitBeforeTrailingParen(title)).toEqual([head, note]);
+  });
+
+  // （の直前の空白は行末に残さない
+  it("（の直前の空白は区切りに吸収する", () => {
+    expect(splitBeforeTrailingParen("ハレツーバトル (13時の部)")).toEqual([
+      "ハレツーバトル",
+      "(13時の部)",
+    ]);
+  });
+
+  it.each([
+    // 途中の（）: 日付の曜日・レアリティ・月
+    "10/11(日)15:00〜30thBOX争奪戦",
+    "リーリエの決心(SR)争奪戦",
+    "シングルカード争奪戦「メガガルーラex(SAR)」",
+    "町トレリーグ（10月）オープン",
+    // 末尾でも中身が曜日だけのもの
+    "Last Mycalinks杯 7/19(日)",
+    "ポケカ交流会 11/23(月・祝)",
+    // （）の前に文字が無いもの・（）が無いもの
+    "（チーム戦）",
+    "ジムバトル スペシャル",
+  ])("分けない: %s", (title) => {
+    expect(splitBeforeTrailingParen(title)).toEqual([title]);
+  });
+});
+
+describe("isParenNoteLine", () => {
+  it("（）書きだけの行を判定する", () => {
+    expect(isParenNoteLine("（ポケモンカード）")).toBe(true);
+    expect(isParenNoteLine("(13時の部)")).toBe(true);
+    expect(isParenNoteLine("トレカアライブ決勝大会（ポケモンカード）")).toBe(false);
+  });
+});
+
+describe("splitTitleLines", () => {
+  it("【】の後ろと末尾の（）書きの前で分ける", () => {
+    expect(splitTitleLines("【ペア戦】第2回ぺあころ杯（同性ペアOK）")).toEqual([
+      "【ペア戦】",
+      "第2回ぺあころ杯",
+      "（同性ペアOK）",
+    ]);
+  });
+
+  it("（）書きが無ければ【】の分け方と同じ", () => {
+    expect(splitTitleLines("【26/9】ポケモンカードジム　ジムバトル")).toEqual([
+      "【26/9】",
+      "ポケモンカードジム　ジムバトル",
+    ]);
   });
 });

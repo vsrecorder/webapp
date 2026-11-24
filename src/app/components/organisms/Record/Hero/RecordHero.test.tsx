@@ -101,6 +101,41 @@ describe("RecordHero", () => {
     },
   );
 
+  it.each([
+    ["トレカアライブ決勝大会（ポケモンカード）", ["トレカアライブ決勝大会", "（ポケモンカード）"]],
+    // （）書きの中の空白では分けない
+    ["おのけん杯（30th CELEBRATION　BOX争奪戦）", ["おのけん杯", "（30th CELEBRATION　BOX争奪戦）"]],
+    // 空白の後ろの（）書き。空白でも分けるので、結果は 2 行になる
+    ["ハレツーバトル (13時の部)", ["ハレツーバトル", "(13時の部)"]],
+  ])("イベント名は末尾の（）書きの前でも行を分ける: %s", async (title, lines) => {
+    stubEventFetch(title);
+
+    const { container } = render(
+      <RecordHero record={record} setRecord={() => {}} stats={summarizeMatches([])} />,
+    );
+
+    const heading = await waitFor(() => {
+      const found = container.querySelector("h3");
+      expect(found?.children.length).toBe(lines.length);
+      return found!;
+    });
+
+    expect(Array.from(heading.children).map((line) => line.textContent)).toEqual(lines);
+  });
+
+  it("途中の（）では行を分けない", async () => {
+    stubEventFetch("リーリエの決心(SR)争奪戦");
+
+    const { container } = render(
+      <RecordHero record={record} setRecord={() => {}} stats={summarizeMatches([])} />,
+    );
+
+    await waitFor(() =>
+      expect(container.querySelector("h3")?.textContent).toBe("リーリエの決心(SR)争奪戦"),
+    );
+    expect(container.querySelector("h3")?.children.length).toBe(0);
+  });
+
   it("イベント名は【】の後ろでも行を分ける", async () => {
     stubEventFetch("【初心者歓迎】ジムバトル スペシャル");
 

@@ -46,7 +46,7 @@ import RecordMetaRows, {
 } from "@app/components/organisms/Record/RecordMetaRows";
 
 import { tagTextColor } from "@app/utils/tagColor";
-import { keepNamesUnbroken, splitAfterBracketLabels } from "@app/utils/titleBreak";
+import { isParenNoteLine, keepNamesUnbroken, splitTitleLines } from "@app/utils/titleBreak";
 
 import { MatchStats } from "@app/utils/matchStats";
 import PokemonSprite from "@app/components/atoms/PokemonSprite";
@@ -126,9 +126,13 @@ function formatEventTime(value: Date | string | undefined | null): string {
 // 行の中では普通の空白へ戻す。NBSP のままだと、1行に入らない狭い画面(幅320px)で
 // wrap-break-word が「CELEBRATIO / N」と語の途中で切ってしまう。普通の空白ならそこで折り返す
 // 【】で囲まれた注記の後ろも、空白が無くても改行する(「【26/9】 / ジムバトル」)
+// 末尾の（）書きの前でも改行する(「トレカアライブ決勝大会 / （ポケモンカード）」)。
+// （）書きの中は空白で分けない(「（30th CELEBRATION　BOX争奪戦）」を 1 行に保つ)
 function renderEventTitle(title: string): React.ReactNode {
-  const segments = splitAfterBracketLabels(title)
-    .flatMap((line) => keepNamesUnbroken(line).split(/[^\S\u00A0]+/))
+  const segments = splitTitleLines(title)
+    .flatMap((line) =>
+      isParenNoteLine(line) ? [line] : keepNamesUnbroken(line).split(/[^\S\u00A0]+/),
+    )
     .filter((s) => s.length > 0);
   if (segments.length <= 1) return title;
   return segments.map((seg, i) => (

@@ -9,6 +9,7 @@ import {
   isEitherDayEntryEvent,
   isHiddenFromOfficialEventSelect,
   isJudgeStaffEvent,
+  isOrganizerStaffEvent,
   sortOfficialEventsForSelect,
 } from "@app/components/organisms/Record/officialEventHelpers";
 import { DEFAULT_REGULATION_ID, REGULATION_ID_EXTRA } from "@app/types/regulation";
@@ -145,10 +146,42 @@ describe("isEitherDayEntryEvent", () => {
   });
 });
 
+describe("isOrganizerStaffEvent", () => {
+  it("大型大会として載るオーガナイザーの研修・資格試験・活動調査は対象外とみなす", () => {
+    for (const title of [
+      "イベントオーガナイザーオンライン研修",
+      "【2025年度公式資格試験】オーガナイザー研修（3月7日）",
+      "ポケモンカードゲーム 25年度公式資格試験　イベントオーガナイザー研修",
+      "ポケモンカードゲーム　イベントオーガナイザー活動調査",
+      "2026年度イベントオーガナイザー資格試験　受験応募",
+    ]) {
+      expect(isOrganizerStaffEvent({ title, type_id: 1 })).toBe(true);
+    }
+  });
+
+  it("オーガナイザーイベントは外さない", () => {
+    for (const title of ["オーガナイザーイベント！ (特殊構築ルール戦)", "MINT横浜オーガナイザーイベント (干支杯)"]) {
+      expect(isOrganizerStaffEvent({ title, type_id: 6 })).toBe(false);
+    }
+  });
+
+  it("オーガナイザーを含まない大会はそのまま", () => {
+    expect(
+      isOrganizerStaffEvent({ title: "チャンピオンズリーグ2027 千葉 マスターリーグ", type_id: 1 }),
+    ).toBe(false);
+  });
+});
+
 describe("isHiddenFromOfficialEventSelect", () => {
-  it("ジャッジの募集・稼働と「どちらの日でも可」の応募枠を外し、大会は残す", () => {
+  it("ジャッジ・オーガナイザーの募集や研修と「どちらの日でも可」の応募枠を外し、大会は残す", () => {
     expect(
       isHiddenFromOfficialEventSelect({ title: "チャンピオンズリーグ2027千葉　ジャッジ稼働", type_id: 1 }),
+    ).toBe(true);
+    expect(
+      isHiddenFromOfficialEventSelect({
+        title: "ポケモンカードゲーム 25年度公式資格試験　イベントオーガナイザー研修",
+        type_id: 1,
+      }),
     ).toBe(true);
     expect(
       isHiddenFromOfficialEventSelect({

@@ -158,11 +158,27 @@ export function isEitherDayEntryEvent(officialEvent: OfficialEventKind): boolean
 }
 
 /*
+ * イベントオーガナイザーの研修・資格試験・活動調査のような、対戦の記録を付ける対象ではない公式イベントか。
+ *
+ * ジャッジの研修(isJudgeStaffEvent)と同じく大型大会(type_id: 1)として載るので、大型大会のうち
+ * タイトルに「オーガナイザー」を含むものを外す(例:「ポケモンカードゲーム 25年度公式資格試験
+ * イベントオーガナイザー研修」「2026年度イベントオーガナイザー資格試験　受験応募」)。
+ * オーガナイザーイベント(type_id: 6)は実際に対戦するイベントなので外さない。
+ */
+export function isOrganizerStaffEvent(officialEvent: OfficialEventKind): boolean {
+  return officialEvent.type_id === 1 && officialEvent.title.includes("オーガナイザー");
+}
+
+/*
  * 記録作成の公式イベント選択(OfficialEventSelect)の候補から外すイベントか。
  * 自由形式からの誘導判定(useOfficialEventGuide)も、候補に出ないものは数えないよう同じ条件を使う。
  */
 export function isHiddenFromOfficialEventSelect(officialEvent: OfficialEventKind): boolean {
-  return isJudgeStaffEvent(officialEvent) || isEitherDayEntryEvent(officialEvent);
+  return (
+    isJudgeStaffEvent(officialEvent) ||
+    isOrganizerStaffEvent(officialEvent) ||
+    isEitherDayEntryEvent(officialEvent)
+  );
 }
 
 // エクストラバトルの日かどうかを判定する。

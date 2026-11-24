@@ -58,8 +58,8 @@ export function useOfficialEventGuide(
   return useMemo(() => {
     if (!keyword || !data) return null;
 
-    // 選択欄(OfficialEventSelect)が候補から外すもの(ジャッジの募集・稼働、CL の
-    // 「どちらの日でも可」の応募枠)は数えない。
+    // 選択欄(OfficialEventSelect)が候補から外すもの(ジャッジの募集・稼働、オーガナイザーの研修、
+    // CL の「どちらの日でも可」の応募枠)は数えない。
     // 例えば CL の前日はジャッジ稼働だけが「チャンピオンズリーグ」として載っており、
     // 数えると誘導先の選択欄が「イベントがありません」になる。
     const hasCandidate = data.some(

@@ -195,8 +195,9 @@ export default function OfficialEventSelect({
   // データが更新されたときだけ再計算する。これを怠ると、些細な state 変更による
   // 再レンダーごとに全件分の整形が走り重くなる。
   //
-  // ジャッジの募集・稼働・研修(isJudgeStaffEvent)と、CL のシニア・ジュニアの「どちらの日でも可」の
-  // 応募枠(isEitherDayEntryEvent)は、記録を付ける対象ではないので候補から外す。
+  // ジャッジの募集・稼働・研修(isJudgeStaffEvent)、オーガナイザーの研修・資格試験(isOrganizerStaffEvent)、
+  // CL のシニア・ジュニアの「どちらの日でも可」の応募枠(isEitherDayEntryEvent)は、
+  // 記録を付ける対象ではないので候補から外す。
   // 候補は種別 → 区分(オープン → マスター → シニア → ジュニア)の順に並べる
   // (同じ種別・区分の中は開催時刻順。sortOfficialEventsForSelect 参照)。
   const options = useMemo<OfficialEventOption[]>(

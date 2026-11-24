@@ -10,6 +10,7 @@ import {
   isHiddenFromOfficialEventSelect,
   isJudgeStaffEvent,
   isOrganizerStaffEvent,
+  isTestEvent,
   sortOfficialEventsForSelect,
 } from "@app/components/organisms/Record/officialEventHelpers";
 import { DEFAULT_REGULATION_ID, REGULATION_ID_EXTRA } from "@app/types/regulation";
@@ -169,6 +170,41 @@ describe("isOrganizerStaffEvent", () => {
     expect(
       isOrganizerStaffEvent({ title: "チャンピオンズリーグ2027 千葉 マスターリーグ", type_id: 1 }),
     ).toBe(false);
+  });
+});
+
+describe("isTestEvent", () => {
+  it.each([
+    ["test", 1],
+    ["test2", 1],
+    ["test4（マイページ表示確認）", 1],
+    ["【テストイベント】ジャッジ応募想定", 1],
+    ["テスト_同一日程における追加先着応募", 1],
+    ["【テスト】シティリーグ", 2],
+  ])("公式サイトのテスト用のイベントを判定する: %s", (title, type_id) => {
+    expect(isTestEvent({ title, type_id })).toBe(true);
+  });
+
+  it.each([
+    "第７回コンテストバトル☆わさびカップ",
+    "第30回トクサネ杯・デッキコンテスト",
+    "【ポケカテスト】souナンス教室【夏休み試験】",
+    "ポケカ交流会 【in　福島第一聖書バプテスト教会 大野チャペル 】",
+  ])("オーガナイザーイベントは「テスト」を含んでも外さない: %s", (title) => {
+    expect(isTestEvent({ title, type_id: 6 })).toBe(false);
+  });
+
+  it("ほかの種別でも「コンテスト」はテストとみなさない", () => {
+    for (const type_id of [1, 2, 3, 4, 7]) {
+      expect(isTestEvent({ title: "デッキコンテスト", type_id })).toBe(false);
+    }
+  });
+
+  it("「test」が名前の途中にあるだけの大会は外さない", () => {
+    expect(isTestEvent({ title: "Pokémon Contest Battle", type_id: 1 })).toBe(false);
+    expect(isTestEvent({ title: "チャンピオンズリーグ2027 千葉 マスターリーグ", type_id: 1 })).toBe(
+      false,
+    );
   });
 });
 

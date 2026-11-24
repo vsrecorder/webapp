@@ -170,6 +170,26 @@ export function isOrganizerStaffEvent(officialEvent: OfficialEventKind): boolean
 }
 
 /*
+ * 公式サイトの動作確認のために載ったテスト用のイベントか。
+ *
+ * 大型大会・シティリーグとして「test」「test4（マイページ表示確認）」「【テストイベント】ジャッジ応募想定」
+ * 「テスト_同一日程における追加先着応募」「【テスト】シティリーグ」のような名前で載ることがある。
+ *
+ * オーガナイザーイベント(type_id: 6)は外さない。「コンテストバトル☆わさびカップ」
+ * 「【ポケカテスト】souナンス教室」「バプテスト教会」での交流会のように、「テスト」を含む名前でも
+ * 実際に対戦するイベントがある。ほかの種別でも「コンテスト」は大会名に使われ得るので、テストとはみなさない。
+ *
+ * 「コンテスト」は消してから「テスト」を探す。後読み(?<!コン)は iOS 16.4 未満の Safari が
+ * 解釈できず、このファイルを含むチャンクごと読み込めなくなるので使わない。
+ */
+export function isTestEvent(officialEvent: OfficialEventKind): boolean {
+  if (officialEvent.type_id === 6) return false;
+
+  const title = officialEvent.title.replaceAll("コンテスト", "");
+  return title.includes("テスト") || /^test/i.test(title);
+}
+
+/*
  * 記録作成の公式イベント選択(OfficialEventSelect)の候補から外すイベントか。
  * 自由形式からの誘導判定(useOfficialEventGuide)も、候補に出ないものは数えないよう同じ条件を使う。
  */
@@ -177,7 +197,8 @@ export function isHiddenFromOfficialEventSelect(officialEvent: OfficialEventKind
   return (
     isJudgeStaffEvent(officialEvent) ||
     isOrganizerStaffEvent(officialEvent) ||
-    isEitherDayEntryEvent(officialEvent)
+    isEitherDayEntryEvent(officialEvent) ||
+    isTestEvent(officialEvent)
   );
 }
 

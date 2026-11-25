@@ -115,6 +115,10 @@ type Props = {
  * そのイベントを更新する。他の種別から自由形式へ変更した場合は参照先が無いため、
  * 記録作成時と同じ流れで新しい自由形式イベントを作成してから紐づける。
  * 逆に自由形式から他の種別へ変更した場合は、参照されなくなった自由形式イベントを削除する。
+ *
+ * 失敗したときは閉じない。閉じると、開き直したときに入力が記録の内容へ戻り、選んだイベントや
+ * 打ったイベント名を入れ直すことになる。入力を残したまま、同じボタンでやり直せるようにする。
+ * やり直しで自由形式イベントを作り直さないための扱いは pendingUnofficialEventRef を参照。
  */
 export default function EditEventInfoModal({
   record,
@@ -144,6 +148,20 @@ export default function EditEventInfoModal({
   // セレクターを閉じたときにフォーカスを引き受ける要素
   // (フォーカストラップを満たしつつキーボードを閉じるために使用)
   const focusSinkRef = useRef<HTMLDivElement>(null);
+
+  /*
+   * この画面で作ったが、まだ記録に紐づけられていない自由形式イベント。
+   *
+   * 他の種別から自由形式へ変えるときは、先に自由形式イベントを作り、そのIDで記録を更新する。
+   * 記録の更新で失敗したあとにやり直すと、そのたびにイベントを作り直すことになり、どの記録からも
+   * 参照されないイベントが増えていく。作ったものを覚えておき、やり直すときはそれを更新して使う。
+   *
+   * どの記録のために作ったかも持つ(このモーダルは記録詳細に置かれたままなので、別の記録へ
+   * 切り替わったあとに前の記録のぶんを使わないようにする)。
+   * 閉じただけでは消さない。記録の更新が失敗と見えても、応答だけが届かず実際には紐づいている
+   * ことがあり、そこで消すと記録のイベント名が引けなくなる。
+   */
+  const pendingUnofficialEventRef = useRef<{ recordId: string; eventId: string } | null>(null);
 
   /*
    * モーダルを開いたときに、記録の内容で入力欄を初期化する。
@@ -272,15 +290,26 @@ export default function EditEventInfoModal({
 
     const eventDateISO = `${calendarDateToYmd(eventDate)}T00:00:00Z`;
 
+    // 記録の更新が済んだか。済んだあとの後処理で例外が出た場合は、開いたままにしない
+    // (保存は済んでいるので、開いたままだと「失敗したのに反映されている」ように見える)
+    let saved = false;
+
+    // 前回の失敗でこの記録のために作ったまま、まだ紐づいていない自由形式イベント
+    const pending =
+      pendingUnofficialEventRef.current?.recordId === record.id
+        ? pendingUnofficialEventRef.current.eventId
+        : "";
+
     try {
       // 自由形式は先に自由形式イベント側を確定させ、そのIDを記録へ紐づける。
       let unofficialEventId = "";
       if (eventType === "unofficial") {
         // 既に自由形式イベントを参照しているならそれを更新する。参照先を作り直すと
         // 古いイベントがどこからも参照されないまま残ってしまう。
-        // 他の種別から変更した場合は参照先が無いので新規に作成する。
+        // 他の種別から変更した場合は参照先が無いので新規に作成する。ただし、前回の失敗で
+        // 作ったものが残っていれば、作り直さずそれを更新する(pendingUnofficialEventRef)。
         const editingEventId =
-          currentEventType === "unofficial" ? record.unofficial_event_id : "";
+          currentEventType === "unofficial" ? record.unofficial_event_id : pending;
 
         if (editingEventId) {
           const unofficialEventReq: UnofficialEventUpdateRequestType = {
@@ -329,6 +358,8 @@ export default function EditEventInfoModal({
           const unofficialEvent: UnofficialEventCreateResponseType =
             await unofficialEventRes.json();
           unofficialEventId = unofficialEvent.id;
+          // このあとの記録の更新で失敗しても、やり直しで作り直さないよう覚えておく
+          pendingUnofficialEventRef.current = { recordId: record.id, eventId: unofficialEvent.id };
         }
       }
 
@@ -365,6 +396,9 @@ export default function EditEventInfoModal({
         throw new Error(`HTTP error: ${res.status} Message: ${t.message}`);
       }
 
+      saved = true;
+      pendingUnofficialEventRef.current = null;
+
       if (toastId) {
         closeToast(toastId);
       }
@@ -391,6 +425,21 @@ export default function EditEventInfoModal({
             `/api/unofficial_events/${record.unofficial_event_id}`,
             { method: "DELETE" },
           );
+
+          if (!deleteRes.ok) {
+            throw new Error(`HTTP error: ${deleteRes.status}`);
+          }
+        } catch (error) {
+          console.error(error);
+        }
+      }
+
+      // 前回の失敗で作ったイベントを、やり直しで使わなかった場合(種別を変えてやり直した)。
+      // いま更新した記録はそれを参照していないと分かっているので、残さず消す。
+      // 記録自体の変更は完了しているため、削除に失敗しても操作は成功として扱う。
+      if (pending && pending !== unofficialEventId) {
+        try {
+          const deleteRes = await fetch(`/api/unofficial_events/${pending}`, { method: "DELETE" });
 
           if (!deleteRes.ok) {
             throw new Error(`HTTP error: ${deleteRes.status}`);
@@ -442,7 +491,14 @@ export default function EditEventInfoModal({
         timeout: 5000,
       });
 
-      onClose();
+      // 失敗時は閉じない。入力内容を保持したまま、そのままやり直せるようにする
+      // (閉じると、開き直したときに入力が記録の内容へ戻ってしまう)。
+      // 記録の更新が済んだあとの後処理で失敗した場合だけは、これまでどおり閉じる
+      if (saved) {
+        onClose();
+      } else {
+        setIsUpdating(false);
+      }
     }
   }
 

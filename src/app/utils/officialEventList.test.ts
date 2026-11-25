@@ -4,6 +4,8 @@ import { parseDate } from "@internationalized/date";
 
 import { OFFICIAL_EVENT_LIST_FIELDS, OfficialEventType } from "@app/types/official_event";
 import {
+  isOfficialEventDateKey,
+  officialEventListKey,
   officialEventListUrl,
   toOfficialEventDateKey,
   toOfficialEventListItem,
@@ -147,5 +149,46 @@ describe("toOfficialEventDateKey / officialEventListUrl", () => {
     expect(officialEventListUrl("2026-09-07")).toBe(
       "/api/official_events?date=2026-09-07",
     );
+  });
+});
+
+/*
+ * 開催日の入力欄は、年を1桁ずつ打ち直している途中でも値を渡してくる(2026 → 202 → 20 → 2)。
+ * そのまま引くと上流が 400 を返していた(本番のログで "date=202-11-24" など)。
+ */
+describe("isOfficialEventDateKey", () => {
+  it.each(["2026-11-24", "2026-02-28", "2028-02-29", "2000-01-01", "2100-12-31"])(
+    "妥当な開催日(%s)は引いてよい",
+    (key) => {
+      expect(isOfficialEventDateKey(key)).toBe(true);
+    },
+  );
+
+  it.each([
+    ["年を打ち直している途中(3桁)", "202-11-24"],
+    ["年を打ち直している途中(2桁)", "20-11-24"],
+    ["年を打ち直している途中(1桁)", "2-11-24"],
+    ["4桁でも扱わない年", "0202-11-24"],
+    ["先すぎる年", "2101-01-01"],
+    ["5桁の年", "20261-11-24"],
+    ["実在しない日", "2026-02-30"],
+    ["うるう年でない年の2月29日", "2026-02-29"],
+    ["月が範囲外", "2026-13-01"],
+    ["0埋めされていない月日", "2026-9-7"],
+    ["空", ""],
+    ["日付ではない", "today"],
+    ["余計な文字が付いている", "2026-11-24T00:00:00"],
+  ])("%s は引かない", (_label, key) => {
+    expect(isOfficialEventDateKey(key)).toBe(false);
+  });
+});
+
+describe("officialEventListKey", () => {
+  it("妥当な開催日なら取得URLを返す", () => {
+    expect(officialEventListKey("2026-09-07")).toBe("/api/official_events?date=2026-09-07");
+  });
+
+  it("入力途中の開催日なら null(SWR は取りに行かない)", () => {
+    expect(officialEventListKey("202-09-07")).toBeNull();
   });
 });

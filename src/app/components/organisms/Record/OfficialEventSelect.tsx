@@ -29,7 +29,7 @@ import {
   OfficialEventResponseType,
   RecordCreateOfficialEventType,
 } from "@app/types/official_event";
-import { officialEventListUrl } from "@app/utils/officialEventList";
+import { officialEventListKey } from "@app/utils/officialEventList";
 
 /*
  * 種別アイコンは HeroUI の <Image> を使わない。読み込み完了まで opacity-0 で、
@@ -173,7 +173,9 @@ export default function OfficialEventSelect({
   initialEventsDate,
   presetId,
 }: Props) {
-  const url = officialEventListUrl(date);
+  // 開催日を打ち直している途中の値("202-11-24" など)では引かない(isOfficialEventDateKey)。
+  // その間は候補が空になり、日付が揃った時点で引き直す
+  const url = officialEventListKey(date);
 
   /*
    * 再検証を切るのは、初期データがあるのにマウント直後へ同じ内容の取得

@@ -139,8 +139,9 @@ type Props = {
   date: string;
   selectedId: number | null;
   onChange: (option: OfficialEventOption | null) => void;
-  // 検索メニューを閉じたときの通知。モーダル内で使う場合に、フォーカスを
-  // 受け皿へ移してソフトウェアキーボードを閉じるために使う。
+  // 検索メニューを閉じたときの処理。渡さなければ検索欄からフォーカスを外して
+  // ソフトウェアキーボードを閉じる。モーダル内ではフォーカストラップがあるので、
+  // フォーカスを受け皿へ移す処理を渡すこと(EditEventInfoModal 参照)。
   onMenuClose?: () => void;
   // react-select の instanceId。同じページに2つ置く場合と、SSR済みのHTMLと
   // id を合わせたい場合に指定する。
@@ -251,6 +252,30 @@ export default function OfficialEventSelect({
     onChange(option);
   }, [date, options, onChange, selectedId]);
 
+  /*
+   * メニューを閉じたら検索欄からフォーカスを外し、ソフトウェアキーボードを閉じる。
+   *
+   * react-select がフォーカスを外すのは、タッチ端末で候補を選んだとき
+   * (blurInputOnSelect)と欄の外をタップしたときだけ。開いている欄や右端の矢印を
+   * もう一度タップして閉じた場合や Esc で閉じた場合は、検索欄にフォーカスが残り
+   * キーボードが出たままになる。閉じ方によらず外す。
+   * 他の欄へフォーカスが移って閉じた場合は、移った先を外さないよう自分の中だけを見る。
+   */
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const handleMenuClose = () => {
+    if (onMenuClose) {
+      onMenuClose();
+      return;
+    }
+
+    const active = document.activeElement;
+
+    if (active instanceof HTMLElement && containerRef.current?.contains(active)) {
+      active.blur();
+    }
+  };
+
   let optionsMessage = "対象のイベントがありません";
   if (error) optionsMessage = "エラーが発生しました";
   else if (isLoading) optionsMessage = "検索中...";
@@ -262,7 +287,7 @@ export default function OfficialEventSelect({
      * 骨格(RecordCreateFormSkeleton の OfficialEventFieldSkeleton)も同じ間隔で組んで
      * あるので、変えるときは両方を直すこと(ここだけ変えると骨格→実体で行がずれる)。
      */
-    <div className="flex flex-col gap-2">
+    <div ref={containerRef} className="flex flex-col gap-2">
       <WindowedSelect
         instanceId={instanceId}
         theme={reactSelectTheme}
@@ -284,7 +309,7 @@ export default function OfficialEventSelect({
         maxMenuHeight={485}
         windowThreshold={100}
         menuPosition="fixed"
-        onMenuClose={onMenuClose}
+        onMenuClose={handleMenuClose}
         menuPortalTarget={typeof document !== "undefined" ? document.body : null}
         styles={{
           control: reactSelectControlStyle,

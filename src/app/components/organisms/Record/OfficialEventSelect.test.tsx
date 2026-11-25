@@ -214,6 +214,39 @@ describe("OfficialEventSelect", () => {
     expect(selectedTitle()).toBe("");
   });
 
+  /*
+   * react-select は、開いている欄をもう一度タップして閉じたときや Esc で閉じたときに
+   * 検索欄へフォーカスを残すので、そのままではソフトウェアキーボードが出たままになる。
+   */
+  it("選ばずに Esc でメニューを閉じても、検索欄からフォーカスが外れる", async () => {
+    render(<Harness />);
+
+    const combobox = screen.getByRole("combobox");
+    combobox.focus();
+
+    await openMenu();
+    fireEvent.keyDown(combobox, { key: "Escape" });
+
+    expect(document.activeElement).not.toBe(combobox);
+  });
+
+  it("開いている欄をもう一度押して閉じても、検索欄からフォーカスが外れる", async () => {
+    const { container } = render(<Harness />);
+
+    const combobox = screen.getByRole("combobox");
+    combobox.focus();
+
+    await openMenu();
+
+    // 検索欄(INPUT)そのものを押しても閉じないので、欄の枠を押す
+    const control = container.querySelector('[class$="-control"]');
+    expect(control).not.toBeNull();
+    fireEvent.mouseDown(control as Element);
+
+    expect(screen.queryAllByRole("option")).toHaveLength(0);
+    expect(document.activeElement).not.toBe(combobox);
+  });
+
   it("候補は API の順(開催時刻順)ではなく、種別 → 区分(オープン → マスター → シニア → ジュニア)の順に並ぶ", async () => {
     const TRAINERS_MASTER: RecordCreateOfficialEventType = {
       ...GYM,

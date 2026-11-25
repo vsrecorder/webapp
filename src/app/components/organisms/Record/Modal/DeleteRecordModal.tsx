@@ -12,6 +12,7 @@ import { RecordGetByIdResponseType } from "@app/types/record";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 import { refreshRecordingNow } from "@app/utils/recordingNowClient";
 import { refreshKizuna } from "@app/utils/kizunaClient";
+import { httpErrorMessage } from "@app/utils/httpError";
 
 type Props = {
   record: RecordGetByIdResponseType;
@@ -53,8 +54,7 @@ export default function DeleteRecordModal({
       });
 
       if (!res.ok) {
-        const t = await res.json();
-        throw new Error(`HTTP error: ${res.status} Message: ${t.message}`);
+        throw new Error(await httpErrorMessage(res));
       }
 
       if (toastId) {

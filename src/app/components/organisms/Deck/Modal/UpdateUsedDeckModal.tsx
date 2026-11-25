@@ -34,6 +34,7 @@ import { deckImageUrl } from "@app/utils/deckImage";
 import { useSyncOnChange } from "@app/hooks/useSyncOnChange";
 import { refreshKizuna } from "@app/utils/kizunaClient";
 import { katakanaToHiragana } from "@app/utils/kana";
+import { httpErrorMessage } from "@app/utils/httpError";
 
 // 失敗レスポンスのボディをそのまま返すと、選択肢を組み立てるmap/forEachがレンダー中に
 // 例外になりページ全体が落ちる。取得できなかったことはSWRのerrorとして扱う。
@@ -449,8 +450,7 @@ export default function UpdateUsedDeckModal({
       });
 
       if (!res.ok) {
-        const t = await res.json();
-        throw new Error(`HTTP error: ${res.status} Message: ${t.message}`);
+        throw new Error(await httpErrorMessage(res));
       }
 
       if (toastId) {

@@ -32,6 +32,7 @@ import { swrFetcher } from "@app/utils/deckCodePost";
 import { spriteImageUrl } from "@app/utils/sprite";
 import { getSpriteBySlot } from "@app/utils/spriteSlot";
 import { useSyncOnChange } from "@app/hooks/useSyncOnChange";
+import { httpErrorMessage } from "@app/utils/httpError";
 
 const DECK_CODE_LENGTH = 20;
 const DECK_CODE_CHECK_DEBOUNCE_MS = 500;
@@ -274,8 +275,7 @@ export default function CreateDeckModal({
       });
 
       if (!res.ok) {
-        const t = await res.json();
-        throw new Error(`HTTP error: ${res.status} Message: ${t.message}`);
+        throw new Error(await httpErrorMessage(res));
       }
 
       saved = true;

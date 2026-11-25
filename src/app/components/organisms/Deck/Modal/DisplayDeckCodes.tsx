@@ -74,6 +74,7 @@ import { closingPassthroughClassNames } from "@app/utils/modal";
 import { refreshKizuna } from "@app/utils/kizunaClient";
 import { formatJSTDateTimeWithWeekday, isZeroDate } from "@app/utils/date";
 import { useTagResolver } from "@app/hooks/useTagResolver";
+import { httpErrorMessage } from "@app/utils/httpError";
 
 async function fetchDeckCodesByDeckId(deck_id: string) {
   try {
@@ -276,8 +277,7 @@ export default function DisplayDeckCodesModal({
       }
 
       if (!res.ok) {
-        const t = await res.json();
-        throw new Error(`HTTP error: ${res.status} Message: ${t.message}`);
+        throw new Error(await httpErrorMessage(res));
       }
 
       if (toastId) {
@@ -400,8 +400,7 @@ export default function DisplayDeckCodesModal({
       });
 
       if (!res.ok) {
-        const t = await res.json();
-        throw new Error(`HTTP error: ${res.status} Message: ${t.message}`);
+        throw new Error(await httpErrorMessage(res));
       }
 
       saved = true;

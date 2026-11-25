@@ -89,6 +89,7 @@ import {
   UnofficialEventCreateResponseType,
 } from "@app/types/unofficial_event";
 import { HEADER_BAR } from "@app/utils/headerBar";
+import { httpErrorMessage } from "@app/utils/httpError";
 
 type DeckOption = {
   label: string;
@@ -853,8 +854,7 @@ export default function TemplateRecordCreate({
       });
 
       if (!res.ok) {
-        const t = await res.json();
-        throw new Error(`HTTP error: ${res.status} Message: ${t.message}`);
+        throw new Error(await httpErrorMessage(res));
       }
 
       if (toastId) {
@@ -977,8 +977,7 @@ export default function TemplateRecordCreate({
       });
 
       if (!res.ok) {
-        const t = await res.json();
-        throw new Error(`HTTP error: ${res.status} Message: ${t.message}`);
+        throw new Error(await httpErrorMessage(res));
       }
 
       if (toastId) {
@@ -1093,8 +1092,7 @@ export default function TemplateRecordCreate({
       });
 
       if (!unofficialEventRes.ok) {
-        const t = await unofficialEventRes.json();
-        throw new Error(`HTTP error: ${unofficialEventRes.status} Message: ${t.message}`);
+        throw new Error(await httpErrorMessage(unofficialEventRes));
       }
 
       const unofficialEvent: UnofficialEventCreateResponseType =
@@ -1128,8 +1126,7 @@ export default function TemplateRecordCreate({
       });
 
       if (!res.ok) {
-        const t = await res.json();
-        throw new Error(`HTTP error: ${res.status} Message: ${t.message}`);
+        throw new Error(await httpErrorMessage(res));
       }
 
       if (toastId) {

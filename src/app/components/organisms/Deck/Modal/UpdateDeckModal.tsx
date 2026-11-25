@@ -35,6 +35,7 @@ import {
 } from "@app/types/deck";
 import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
 import { MAX_DECK_NAME_LENGTH, countTextLength } from "@app/utils/textLength";
+import { httpErrorMessage } from "@app/utils/httpError";
 
 async function fetcherForPokemonSprites(url: string) {
   const res = await fetch(url, {
@@ -225,8 +226,7 @@ export default function UpdateDeckModal({
       });
 
       if (!res.ok) {
-        const t = await res.json();
-        throw new Error(`HTTP error: ${res.status} Message: ${t.message}`);
+        throw new Error(await httpErrorMessage(res));
       }
 
       saved = true;

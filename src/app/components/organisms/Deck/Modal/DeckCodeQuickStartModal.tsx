@@ -29,6 +29,7 @@ import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 import { MAX_DECK_NAME_LENGTH, countTextLength } from "@app/utils/textLength";
 import { normalizeDeckCode } from "@app/utils/deckCode";
 import { ACTIVITY_DECK_FORM, sendDailyActivity } from "@app/utils/dailyActivity";
+import { httpErrorMessage } from "@app/utils/httpError";
 
 const DECK_CODE_LENGTH = 20;
 const DECK_CODE_CHECK_DEBOUNCE_MS = 500;
@@ -184,8 +185,7 @@ export default function DeckCodeQuickStartModal({ isOpen, onOpenChange }: Props)
       });
 
       if (!res.ok) {
-        const t = await res.json();
-        throw new Error(`HTTP error: ${res.status} Message: ${t.message}`);
+        throw new Error(await httpErrorMessage(res));
       }
 
       const created: DeckCreateResponseType = await res.json();

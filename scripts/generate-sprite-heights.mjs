@@ -1,159 +1,178 @@
-// スプライトの実身長データ src/app/utils/spriteHeights.ts を生成するスクリプト。
+// スプライトの図鑑の高さ src/app/utils/spriteHeights.ts を生成するスクリプト。
 //
-// 各ポケモン(フォーム含む)の公式身長[m]を PokéAPI の公開データ CSV から取得し、
-// スプライト id(padded "0006" / フォーム付き "0006_mega_x")をキーに書き出す。
-// このデータを spriteFit が使い、身長を反映したサイズ(対数圧縮)で表示する。
+// ポケモンずかん(https://zukan.pokemon.co.jp/)の「たかさ」を、スプライトの
+// 日本語名(なまえ・すがた)で突き合わせて引き、スプライト id をキーに書き出す。
+// このデータを spriteFit が使い、高さを反映したサイズ(対数圧縮)で表示する。
 //
-// 対象 id は既存の spriteBounds.ts のキー(=実際に表示する全スプライト)から読む。
-// そのためオフライン(dev サーバ不要)で、CSV に到達できれば再現できる。
+// 以前は PokéAPI の英語のフォーム名を id の接尾辞("amped" 等)から推測して
+// 引いていたが、基本の姿を候補から外していたため「ストリンダー ハイなすがた」が
+// キョダイマックス(24m)に、「ニャオニクス オスのすがた」がメガに化けるといった
+// 取り違えがあった。スプライトには公式図鑑と同じ表記の日本語名が付いているので、
+// 名前で直接引く。
 //
-// 実行方法:
+// 実行方法(スプライト一覧 API に到達できる状態で):
 //   node scripts/generate-sprite-heights.mjs
+//   SPRITE_LIST_URL=https://vsrecorder.mobi/api/v1beta/pokemon-sprites node scripts/generate-sprite-heights.mjs
 //
-// スプライトの追加・差し替えがあったら、まず spriteBounds.ts を更新してから
-// 本スクリプトを再実行して spriteHeights.ts を更新すること。
+// スプライトの追加・差し替えがあったら、generate-sprite-bounds.mjs と合わせて
+// 再実行すること。公式図鑑で決まらないスプライトがあると一覧を出して失敗するので、
+// 名前を直すか OVERRIDES に足す。
 
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const BOUNDS = path.join(__dirname, "../src/app/utils/spriteBounds.ts");
 const OUT = path.join(__dirname, "../src/app/utils/spriteHeights.ts");
+// generate-sprite-bounds.mjs と同じく、稼働中の webapp 経由でスプライト一覧を取得する
+const LIST_URL =
+  process.env.SPRITE_LIST_URL || "http://localhost:3000/api/pokemon-sprites";
+const ZUKAN_URL = "https://zukan.pokemon.co.jp/zukan-api/api/search/";
+const ZUKAN_PAGE_SIZE = 200;
 
-// PokéAPI 公式データ。pokemon.csv は 1 行 = 1 フォームで、
-// identifier(フォーム名 例 "charizard-mega-x"), species_id(全国図鑑番号),
-// height(デシメートル=0.1m 単位) を持つ。
-const CSV_URL =
-  process.env.SPRITE_HEIGHT_CSV_URL ||
-  "https://raw.githubusercontent.com/PokeAPI/pokeapi/master/data/v2/csv/pokemon.csv";
+// 公式図鑑の名前では決められないスプライトの高さ[m]。理由を必ず書く。
+const OVERRIDES = {
+  // ムゲンダイマックスは公式図鑑に載っていない。ゲーム内の高さ(100m)を使う。
+  "0890_eternamax": 100,
+};
 
-// CSV/図鑑に無い id のフォールバック身長[m](中庸な値)。
-const DEFAULT_HEIGHT_M = 1.0;
-
-// spriteBounds.ts のキー(スプライト id)を抽出する。unknown は身長を持たない。
-function readSpriteIds() {
-  const src = fs.readFileSync(BOUNDS, "utf8");
-  const ids = [];
-  for (const m of src.matchAll(/^\s*"([^"]+)":/gm)) {
-    if (m[1] !== "unknown") ids.push(m[1]);
-  }
-  return ids;
+// 表記揺れをならす。全角英数・記号(％ Ｘ)は NFKC で半角に、空白は 1 つに。
+// スプライト側は「コンバット種」、公式図鑑は「コンバットしゅ」と書くので揃える。
+function normalize(name) {
+  return name
+    .normalize("NFKC")
+    .replace(/種/g, "しゅ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
-// pokemon.csv を species_id(=全国図鑑番号) ごとにグループ化して返す。
-async function fetchPokemonRows() {
-  const res = await fetch(CSV_URL);
-  if (!res.ok) throw new Error(`CSV HTTP ${res.status}`);
-  const text = await res.text();
-  const lines = text.trim().split(/\r?\n/);
-  const header = lines[0].split(",");
-  const iIdent = header.indexOf("identifier");
-  const iSpecies = header.indexOf("species_id");
-  const iHeight = header.indexOf("height");
-  const iDefault = header.indexOf("is_default");
-
-  const byDex = new Map(); // dex(number) -> [{identifier, height(dm), isDefault}]
-  for (let i = 1; i < lines.length; i++) {
-    // identifier/height 等に「,」は含まれないため単純分割で十分。
-    const cols = lines[i].split(",");
-    const dex = Number(cols[iSpecies]);
-    const height = Number(cols[iHeight]);
-    if (!Number.isFinite(dex) || !Number.isFinite(height)) continue;
-    if (!byDex.has(dex)) byDex.set(dex, []);
-    byDex.get(dex).push({
-      identifier: cols[iIdent],
-      height,
-      isDefault: cols[iDefault] === "1",
-    });
-  }
-  return byDex;
+async function fetchJson(url) {
+  const res = await fetch(url, { headers: { Accept: "application/json" } });
+  if (!res.ok) throw new Error(`${url}: HTTP ${res.status}`);
+  return res.json();
 }
 
-// スプライト id("0006_mega_x") を dex(6) とサフィックス("mega_x") に分ける。
-function splitId(id) {
-  const us = id.indexOf("_");
-  if (us < 0) return { dex: Number(id), suffix: "" };
-  return { dex: Number(id.slice(0, us)), suffix: id.slice(us + 1) };
+async function fetchSprites() {
+  const sprites = await fetchJson(LIST_URL);
+  return sprites.map((s) => ({ id: s.id, name: normalize(s.name) }));
 }
 
-// あるポケモン(dex)の中から、サフィックスに対応するフォーム行の身長[dm]を探す。
-// 対応が取れない場合は null(呼び出し側で基本フォームにフォールバック)。
-function matchFormHeight(rows, defaultIdentifier, suffix) {
-  // サフィックス正規化: 大文字小文字を無視し、"_" を PokéAPI の "-" に合わせる。
-  const ns = suffix.toLowerCase().replace(/_/g, "-");
-  const nsToks = ns.split("-");
-  const firstTok = nsToks[0];
-  // identifier を "-" 区切りのトークン集合として持つ(境界単位の一致判定用)。
-  const idToks = (r) => r.identifier.split("-");
-
-  const strategies = [
-    (r) => r.identifier === `${defaultIdentifier}-${ns}`, // 完全一致
-    (r) => r.identifier.endsWith(`-${ns}`), // 末尾一致(mega-x / gmax / alola 等)
-    (r) => r.identifier.includes(`-${ns}`), // 中間一致(paldea-combat-breed 等)
-    // 全トークンが identifier のトークンとして存在(rapid_gmax→urshifu-rapid-strike-gmax 等)。
-    // 部分文字列でなく境界単位で見るので "m"/"f" が "mega" に誤マッチしない。
-    (r) => {
-      const t = idToks(r);
-      return nsToks.every((x) => t.includes(x));
-    },
-    // 先頭トークンの末尾一致(ice-rider→calyrex-ice 等)。
-    // 1〜2文字トークン(Unown の "a" や gender の "m"/"f")の誤マッチは避ける。
-    (r) => firstTok.length >= 3 && r.identifier.endsWith(`-${firstTok}`),
-  ];
-  for (const ok of strategies) {
-    const hit = rows.find((r) => !r.isDefault && ok(r));
-    if (hit) return hit.height;
+// 公式図鑑の全件(姿違いを含む)。1 件 = { no, sub, name, subName, fullName, height, kyodai }
+async function fetchZukan() {
+  const entries = [];
+  for (let page = 1; ; page++) {
+    const body = await fetchJson(`${ZUKAN_URL}?limit=${ZUKAN_PAGE_SIZE}&page=${page}`);
+    for (const r of body.results) {
+      const name = normalize(r.name);
+      const subName = normalize(r.sub_name);
+      entries.push({
+        no: r.no,
+        sub: r.sub,
+        name,
+        subName,
+        fullName: subName ? `${name} ${subName}` : name,
+        height: Number(r.takasa),
+        kyodai: r.kyodai_flg === 1,
+      });
+    }
+    if (!body.paging.nextPage) break;
   }
+  return entries;
+}
+
+// 候補の高さがすべて同じならその値、ばらつくなら null
+function uniqueHeight(candidates) {
+  const heights = new Set(candidates.map((c) => c.height));
+  return heights.size === 1 ? candidates[0].height : null;
+}
+
+// スプライト 1 体の高さ[m]と、どの規則で決めたかを返す。決まらなければ null。
+function resolveHeight(sprite, byFullName, byNo) {
+  if (sprite.id in OVERRIDES) return { height: OVERRIDES[sprite.id], rule: "override" };
+
+  // 1. なまえ・すがたが公式と完全に一致
+  const exact = byFullName.get(sprite.name);
+  if (exact) return { height: exact.height, rule: "exact" };
+
+  const no = sprite.id.slice(0, 4);
+  const all = byNo.get(no) ?? [];
+  if (all.length === 0) return null;
+
+  // キョダイマックスかどうかで候補を分ける(通常の姿と高さが桁違いのため)
+  const isKyodai = sprite.name.includes("キョダイマックス");
+  const candidates = all.filter((c) => c.kyodai === isKyodai);
+  const [head, ...rest] = sprite.name.split(" ");
+  const form = rest.join(" ");
+
+  // 2. すがたの書き方が短いだけ(「れいじゅう」→「れいじゅうフォルム」)、
+  //    または名前そのものが公式のすがた名(「ブラックキュレム」「ブラックキュレム オーバードライブ」)
+  const byForm = candidates.filter(
+    (c) => (form && c.subName.startsWith(form)) || c.subName === head,
+  );
+  const formHeight = byForm.length ? uniqueHeight(byForm) : null;
+  if (formHeight != null) return { height: formHeight, rule: "form" };
+
+  // 3. 同じ図鑑番号の姿がすべて同じ高さ(アンノーンの各文字、季節違いなど)
+  const sameHeight = candidates.length ? uniqueHeight(candidates) : null;
+  if (sameHeight != null) return { height: sameHeight, rule: "same-no" };
+
+  // 4. すがたの指定が無いスプライトは、公式の先頭の姿(基本の姿)
+  //    (「ギラティナ」→アナザーフォルム、「ジガルデ」→50%フォルム)
+  if (!form && !isKyodai) {
+    const base = all.find((c) => c.sub === 0);
+    if (base) return { height: base.height, rule: "base" };
+  }
+
   return null;
 }
 
 async function main() {
-  const ids = readSpriteIds();
-  const byDex = await fetchPokemonRows();
+  const [sprites, zukan] = await Promise.all([fetchSprites(), fetchZukan()]);
 
-  const out = {}; // id -> 身長[m]
-  const fellBack = []; // フォーム未マッチ(基本フォーム身長で代用)
-  const missingDex = []; // 図鑑データ自体が無い
+  const byFullName = new Map();
+  const byNo = new Map();
+  for (const z of zukan) {
+    // 同じ表記が複数あれば先に出てきた方(sub の小さい方)を使う
+    if (!byFullName.has(z.fullName)) byFullName.set(z.fullName, z);
+    if (!byNo.has(z.no)) byNo.set(z.no, []);
+    byNo.get(z.no).push(z);
+  }
 
-  for (const id of ids) {
-    const { dex, suffix } = splitId(id);
-    const rows = byDex.get(dex);
-    if (!rows || rows.length === 0) {
-      out[id] = DEFAULT_HEIGHT_M;
-      missingDex.push(id);
+  const out = {};
+  const unresolved = [];
+  const counts = {};
+  for (const sprite of sprites) {
+    if (sprite.id === "unknown") continue;
+    const resolved = resolveHeight(sprite, byFullName, byNo);
+    if (!resolved) {
+      unresolved.push(`${sprite.id}(${sprite.name})`);
       continue;
     }
-    const def = rows.find((r) => r.isDefault) || rows[0];
+    out[sprite.id] = resolved.height;
+    counts[resolved.rule] = (counts[resolved.rule] ?? 0) + 1;
+  }
 
-    let dm = def.height;
-    if (suffix) {
-      const formDm = matchFormHeight(rows, def.identifier, suffix);
-      if (formDm != null) dm = formDm;
-      else fellBack.push(id);
-    }
-    out[id] = dm / 10; // デシメートル → メートル
+  if (unresolved.length) {
+    console.error(
+      `公式図鑑で高さが決まらないスプライトがあります(${unresolved.length}件)。` +
+        "名前を直すか OVERRIDES に足してください:\n  " +
+        unresolved.join("\n  "),
+    );
+    process.exit(1);
   }
 
   const entries = Object.entries(out).sort((a, b) => (a[0] < b[0] ? -1 : 1));
   let ts =
-    "// 自動生成(scripts/generate-sprite-heights.mjs): 各スプライトの公式身長[m]。\n" +
-    "// キーは spriteBounds.ts と同じスプライト id。spriteFit が身長反映表示に使用する。\n" +
-    "// データ源: PokéAPI(pokemon.csv, height はデシメートル→m 変換済み)。\n" +
+    "// 自動生成(scripts/generate-sprite-heights.mjs): 各スプライトの図鑑の高さ[m]。\n" +
+    "// キーはスプライト id。spriteFit が高さを反映した表示に使用する。\n" +
+    "// データ源: ポケモンずかん(zukan.pokemon.co.jp)の「たかさ」。スプライトの日本語名で突き合わせ。\n" +
     "// スプライト追加時は spriteBounds 更新後に上記スクリプトを再実行して更新すること。\n" +
     "export const SPRITE_HEIGHTS: Record<string, number> = {\n";
   for (const [id, m] of entries) ts += `  "${id}": ${m},\n`;
   ts += "};\n";
   fs.writeFileSync(OUT, ts);
 
-  console.log(
-    `wrote ${OUT}: ${entries.length} entries ` +
-      `(form-fallback=${fellBack.length}, missing-dex=${missingDex.length})`,
-  );
-  if (fellBack.length)
-    console.log("form-fallback(基本フォーム身長で代用):", fellBack.join(", "));
-  if (missingDex.length)
-    console.log("missing-dex(図鑑データ無し→既定値):", missingDex.join(", "));
+  console.log(`wrote ${OUT}: ${entries.length} entries`, counts);
 }
 
 main().catch((e) => {

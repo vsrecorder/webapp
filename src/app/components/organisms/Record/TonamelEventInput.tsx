@@ -8,6 +8,10 @@ import { CalendarDate, today } from "@internationalized/date";
 import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
 import { JST_TIME_ZONE } from "@app/utils/date";
 import { useTonamelEventCheck } from "@app/hooks/useTonamelEventCheck";
+import {
+  TONAMEL_EVENT_INVALID_MESSAGE,
+  TONAMEL_EVENT_UNAVAILABLE_MESSAGE,
+} from "@app/utils/tonamelEvent";
 
 // 記録作成ページ(RecordCreate)のTonamelタブと同等のUI/挙動を提供する共有コンポーネント。
 // 開催日(DatePicker)＋イベントID(入力＋外部検証)＋イベント名/画像プレビュー。
@@ -32,6 +36,7 @@ export default function TonamelEventInput({
   const {
     isValid,
     isInvalidInput,
+    isUnavailable,
     title: tonamelEventTitle,
     image: tonamelEventImage,
   } = useTonamelEventCheck(eventId);
@@ -71,8 +76,11 @@ export default function TonamelEventInput({
           isRequired
           type="text"
           placeholder="例) YFUVY"
-          isInvalid={isInvalidInput}
-          errorMessage="無効なイベントIDです"
+          // 確認できなかったとき(通信の失敗など)も同じ行に出す。IDが間違っているとは言わない
+          isInvalid={isInvalidInput || isUnavailable}
+          errorMessage={
+            isUnavailable ? TONAMEL_EVENT_UNAVAILABLE_MESSAGE : TONAMEL_EVENT_INVALID_MESSAGE
+          }
           value={eventId}
           onChange={(e) => onEventIdChange(e.target.value)}
           onFocus={(e) => scrollIntoViewAfterKeyboard(e.currentTarget)}
@@ -87,7 +95,7 @@ export default function TonamelEventInput({
         </div>
         <div className="w-2/5 pb-1">
           <div className="relative w-full aspect-video overflow-hidden rounded-lg">
-            {isInvalidInput && <Skeleton className="absolute inset-0" />}
+            {(isInvalidInput || isUnavailable) && <Skeleton className="absolute inset-0" />}
             <Image
               removeWrapper
               className="absolute inset-0 z-0 w-full h-full object-contain"

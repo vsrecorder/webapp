@@ -4,6 +4,7 @@ import {
   buildEventHeading,
   buildEventLabel,
   formatChampionsleagueWinner,
+  formatHeadlineWinners,
 } from "@app/components/organisms/Championsleague/ChampionsleagueResultByLeague";
 
 import { ChampionsleagueEventResultType } from "@app/types/championsleague_result";
@@ -87,5 +88,88 @@ describe("buildEventLabel", () => {
 
   it.each(["シニアリーグ", "結果"])("区別できる語が残らなければ月日で呼ぶ(%s)", (heading) => {
     expect(buildEventLabel(heading, { league_type: 3, date })).toBe("11月22日");
+  });
+});
+
+describe("formatHeadlineWinners", () => {
+  const schedule = { title: "チャンピオンズリーグ2027 千葉" } as ChampionsleagueScheduleType;
+
+  function event(id: number, leagueType: number, date: string, playerName?: string) {
+    return {
+      official_event_id: id,
+      league_type: leagueType,
+      date: new Date(`${date}T00:00:00+09:00`),
+      results: playerName
+        ? [{ player_id: String(id), player_name: playerName, rank: 1, deck_code: `code-${id}` }]
+        : [],
+    } as unknown as ChampionsleagueEventResultType;
+  }
+
+  function titles(byId: Record<number, string>) {
+    return Object.fromEntries(
+      Object.entries(byId).map(([id, title]) => [
+        id,
+        { title: `${schedule.title} ${title}` } as OfficialEventType,
+      ]),
+    );
+  }
+
+  const senior = titles({ 1: "シニアリーグ 1日目大会", 2: "シニアリーグ 2日目大会" });
+
+  it("1日目大会と2日目大会は両方の優勝を載せる。並びは渡した順によらず1日目が先", () => {
+    expect(
+      formatHeadlineWinners(
+        schedule,
+        [event(2, 3, "2026-11-23", "りょうすけ"), event(1, 3, "2026-11-22", "シュウスケ")],
+        senior,
+        { "code-1": { ...summary, code: "code-1" } },
+      ),
+    ).toBe(
+      "優勝は、1日目大会がシュウスケ選手（メガドリュウズex・ゲノセクトex）、2日目大会がりょうすけ選手。",
+    );
+  });
+
+  it("片方の優勝が無ければ、ある方だけを大会名付きで載せる", () => {
+    expect(
+      formatHeadlineWinners(
+        schedule,
+        [event(1, 3, "2026-11-22", "シュウスケ"), event(2, 3, "2026-11-23")],
+        senior,
+        {},
+      ),
+    ).toBe("優勝は、1日目大会がシュウスケ選手。");
+  });
+
+  it("大会が1つの区分は大会名を付けない", () => {
+    expect(
+      formatHeadlineWinners(schedule, [event(2, 3, "2026-11-23", "りょうすけ")], senior, {}),
+    ).toBe("優勝はりょうすけ選手。");
+  });
+
+  it("予選の組と Day2 が並ぶ区分は最終日だけを載せる", () => {
+    expect(
+      formatHeadlineWinners(
+        schedule,
+        [event(1, 4, "2025-05-03", "グループの1位"), event(2, 4, "2025-05-04", "優勝者")],
+        titles({ 1: "マスターリーグ グループA", 2: "マスターリーグ Day2" }),
+        {},
+      ),
+    ).toBe("優勝は優勝者選手。");
+  });
+
+  it("大会名が引けなければ最終日だけを載せる", () => {
+    expect(
+      formatHeadlineWinners(
+        schedule,
+        [event(1, 3, "2026-11-22", "シュウスケ"), event(2, 3, "2026-11-23", "りょうすけ")],
+        { 2: senior[2] },
+        {},
+      ),
+    ).toBe("優勝はりょうすけ選手。");
+  });
+
+  it("優勝が無ければ空文字", () => {
+    expect(formatHeadlineWinners(schedule, [], {}, {})).toBe("");
+    expect(formatHeadlineWinners(schedule, [event(1, 3, "2026-11-22")], senior, {})).toBe("");
   });
 });

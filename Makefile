@@ -55,10 +55,24 @@ deploy:
 # 失敗してもデプロイ自体は成功扱いにする(予熱は最適化であって、可否の判定ではない)。
 # 実行用イメージはディストロレスで wget が無いので、コンテナの node に fetch させる。
 #
+# 画像の最適化 API(/_next/image)も同じように温める。Next はプロセスごとに、最初の画像リクエストで
+# ディスク上の画像キャッシュ(volume の .next/cache/images)を全件読み込んでから応答する
+# (容量上限の管理のため。next/dist/server/image-optimizer.js の initCacheEntries)。
+# キャッシュは volume でデプロイをまたいで残るので、溜まった分だけ待たされる。
+# 2026-11-25 の本番(6,446件・382MB)では、起動後の最初の1件がキャッシュ済みの画像でも 5〜16 秒かかっていた。
+# 読み込みはプロセスごとなので、こちらも複数回叩く。URL は実在する画像でなければならない
+# (400/404 になるリクエストでは読み込みが済まない)。ヘッダーのアイコンを使う。
+# pm2 がメモリ上限でプロセスを立ち上げ直したときの分までは温められない。
+#
+WARMUP_IMAGE_URL = http://127.0.0.1:3003/_next/image?url=https%3A%2F%2Fxx8nnpgt.user.webaccel.jp%2Fimages%2Ficons%2Ficon.png&w=48&q=75
+
 .PHONY: warmup
 warmup:
 	for i in 1 2 3 4; do \
 		docker compose exec -T webapp node -e "fetch('http://127.0.0.1:3003/',{signal:AbortSignal.timeout(30000)}).then(r=>r.arrayBuffer()).catch(()=>{})" || true; \
+	done
+	for i in 1 2 3 4; do \
+		docker compose exec -T webapp node -e "fetch('$(WARMUP_IMAGE_URL)',{signal:AbortSignal.timeout(60000)}).then(r=>r.arrayBuffer()).catch(()=>{})" || true; \
 	done
 
 #

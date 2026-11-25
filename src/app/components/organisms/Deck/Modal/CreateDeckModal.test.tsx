@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import CreateDeckModal from "@app/components/organisms/Deck/Modal/CreateDeckModal";
@@ -81,5 +81,109 @@ describe("CreateDeckModal", () => {
     renderModal({ isOpen: true });
 
     expect(spriteIds()).toEqual(["unknown", "unknown"]);
+  });
+  /*
+   * 登録の失敗(デッキコードが無効・公式サイトのメンテナンス・通信断など)で入力を消さない。
+   * 以前は失敗時にもモーダルを閉じる処理を呼んでおり、その後始末が入力を初期値へ戻していたので、
+   * デッキ名・デッキコード・アイコン・タグを入れ直すことになっていた。
+   */
+  describe("登録の結果", () => {
+    const json = { "content-type": "application/json" };
+    const registerButton = () => screen.getByRole("button", { name: "登録" });
+    const nameInput = () => screen.getByLabelText(/デッキ名/) as HTMLInputElement;
+
+    // POST /api/decks だけ指定の応答を返し、ほか(アイコン・タグの一覧など)は空で返す
+    const stubDeckPost = (respond: () => Response) => {
+      const fetchMock = vi.fn(async (url: string, init?: RequestInit) =>
+        String(url) === "/api/decks" && init?.method === "POST"
+          ? respond()
+          : new Response("[]", { headers: json }),
+      );
+      vi.stubGlobal("fetch", fetchMock);
+
+      return () =>
+        fetchMock.mock.calls.filter(
+          ([url, init]) => String(url) === "/api/decks" && init?.method === "POST",
+        ).length;
+    };
+
+    const renderOpen = (onOpenChange: () => void, onCreated: () => void) =>
+      render(
+        <CreateDeckModal deck_code="" isOpen onOpenChange={onOpenChange} onCreated={onCreated} />,
+      );
+
+    it("失敗しても閉じず、入力したデッキ名が残り、そのまま再送できる", async () => {
+      const postCount = stubDeckPost(
+        () => new Response(JSON.stringify({ message: "bad request" }), { status: 400, headers: json }),
+      );
+      const onOpenChange = vi.fn();
+      const onCreated = vi.fn();
+      renderOpen(onOpenChange, onCreated);
+
+      fireEvent.change(nameInput(), { target: { value: "入力したデッキ名" } });
+      fireEvent.click(registerButton());
+
+      await waitFor(() => expect(postCount()).toBe(1));
+      // 送信中は押せない。失敗の後始末が済むと、また押せる
+      await waitFor(() => expect(registerButton().hasAttribute("disabled")).toBe(false));
+
+      expect(nameInput().value).toBe("入力したデッキ名");
+      expect(onCreated).not.toHaveBeenCalled();
+      expect(onOpenChange).not.toHaveBeenCalled();
+
+      fireEvent.click(registerButton());
+      await waitFor(() => expect(postCount()).toBe(2));
+    });
+
+    it("通信に失敗しても閉じず、入力したデッキ名が残る", async () => {
+      const postCount = stubDeckPost(() => {
+        throw new TypeError("Failed to fetch");
+      });
+      const onOpenChange = vi.fn();
+      renderOpen(onOpenChange, () => {});
+
+      fireEvent.change(nameInput(), { target: { value: "入力したデッキ名" } });
+      fireEvent.click(registerButton());
+
+      await waitFor(() => expect(postCount()).toBe(1));
+      await waitFor(() => expect(registerButton().hasAttribute("disabled")).toBe(false));
+
+      expect(nameInput().value).toBe("入力したデッキ名");
+      expect(onOpenChange).not.toHaveBeenCalled();
+    });
+
+    it("成功したら登録を知らせて閉じる", async () => {
+      const postCount = stubDeckPost(() => new Response("{}", { status: 201, headers: json }));
+      const onOpenChange = vi.fn();
+      const onCreated = vi.fn();
+      renderOpen(onOpenChange, onCreated);
+
+      fireEvent.change(nameInput(), { target: { value: "入力したデッキ名" } });
+      fireEvent.click(registerButton());
+
+      await waitFor(() => expect(onCreated).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(onOpenChange).toHaveBeenCalled());
+      expect(postCount()).toBe(1);
+    });
+
+    // 保存は済んでいるので、開いたままにすると、もう一度押して同じデッキが二重に登録される
+    it("保存が済んだあとの後処理で失敗した場合は閉じる", async () => {
+      const postCount = stubDeckPost(() => new Response("{}", { status: 201, headers: json }));
+      const onOpenChange = vi.fn();
+      const onCreated = vi.fn(() => {
+        throw new Error("後処理の失敗");
+      });
+      const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+      renderOpen(onOpenChange, onCreated);
+
+      fireEvent.change(nameInput(), { target: { value: "入力したデッキ名" } });
+      fireEvent.click(registerButton());
+
+      await waitFor(() => expect(onCreated).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(onOpenChange).toHaveBeenCalled());
+      expect(postCount()).toBe(1);
+
+      consoleError.mockRestore();
+    });
   });
 });

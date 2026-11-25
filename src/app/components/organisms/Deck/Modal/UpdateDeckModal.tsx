@@ -208,6 +208,10 @@ export default function UpdateDeckModal({
       promise: new Promise(() => {}),
     });
 
+    // サーバへの保存が済んだか。済んだあとの後処理で例外が出た場合は、開いたままにしない
+    // (保存は済んでいるので、開いたままだと「失敗したのに反映されている」ように見える)
+    let saved = false;
+
     try {
       // URLの末尾に "/" を付けない。Next.js(trailingSlash: false)は
       // /api/decks/<id>/ を /api/decks/<id> へ308でリダイレクトするので、
@@ -224,6 +228,8 @@ export default function UpdateDeckModal({
         const t = await res.json();
         throw new Error(`HTTP error: ${res.status} Message: ${t.message}`);
       }
+
+      saved = true;
 
       const ret: DeckUpdateResponseType = await res.json();
 
@@ -288,7 +294,14 @@ export default function UpdateDeckModal({
         timeout: 5000,
       });
 
-      onClose();
+      // 失敗時は閉じない。入力内容を保持したまま、そのまま再送できるようにする
+      // (閉じると、閉じたときの後始末が入力を初期値に戻してしまい、デッキ名・アイコン・タグを入れ直すことになる)。
+      // 保存が済んだあとの後処理で失敗した場合だけは、これまでどおり閉じる
+      if (saved) {
+        onClose();
+      } else {
+        setIsDisabled(false);
+      }
     }
   };
 

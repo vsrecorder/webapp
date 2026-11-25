@@ -158,6 +158,10 @@ export default function CreateDeckCodeModal({
       promise: new Promise(() => {}),
     });
 
+    // サーバへの保存が済んだか。済んだあとの後処理で例外が出た場合は、開いたままにしない
+    // (もう一度押すと、同じバージョンが二重に作られるため)
+    let saved = false;
+
     try {
       const res = await fetch(`/api/deckcodes`, {
         method: "POST",
@@ -171,6 +175,8 @@ export default function CreateDeckCodeModal({
         const t = await res.json();
         throw new Error(`HTTP error: ${res.status} Message: ${t.message}`);
       }
+
+      saved = true;
 
       const created: DeckCodeType = await res.json();
       // スプライトを返さない古いバックエンドでは、送った内容をそのまま表示に使う
@@ -239,7 +245,14 @@ export default function CreateDeckCodeModal({
         timeout: 5000,
       });
 
-      onClose();
+      // 失敗時は閉じない。入力内容を保持したまま、そのまま再送できるようにする
+      // (閉じると、閉じたときの後始末が入力を初期値に戻してしまい、デッキコード・メモ・タグ・アイコンを入れ直すことになる)。
+      // 保存が済んだあとの後処理で失敗した場合だけは、これまでどおり閉じる
+      if (saved) {
+        onClose();
+      } else {
+        setIsDisabled(false);
+      }
     }
   };
 

@@ -260,6 +260,10 @@ export default function CreateDeckModal({
       promise: new Promise(() => {}),
     });
 
+    // サーバへの保存が済んだか。済んだあとの後処理で例外が出た場合は、開いたままにしない
+    // (もう一度押すと、同じデッキが二重に登録されるため)
+    let saved = false;
+
     try {
       const res = await fetch("/api/decks", {
         method: "POST",
@@ -273,6 +277,8 @@ export default function CreateDeckModal({
         const t = await res.json();
         throw new Error(`HTTP error: ${res.status} Message: ${t.message}`);
       }
+
+      saved = true;
 
       if (toastId) {
         closeToast(toastId);
@@ -319,7 +325,14 @@ export default function CreateDeckModal({
         timeout: 5000,
       });
 
-      onClose();
+      // 失敗時は閉じない。入力内容を保持したまま、そのまま再送できるようにする
+      // (閉じると、閉じたときの後始末が入力を初期値に戻してしまい、デッキ名・デッキコード・アイコン・タグを入れ直すことになる)。
+      // 保存が済んだあとの後処理で失敗した場合だけは、これまでどおり閉じる
+      if (saved) {
+        onClose();
+      } else {
+        setIsDisabled(false);
+      }
     }
   };
 

@@ -29,8 +29,16 @@ vi.mock("next/navigation", () => ({
 
 // カードの中身(Swiper や画像)はここでは試さない。どの大会がどの順で並ぶかだけを見る
 vi.mock("@app/components/organisms/Cityleague/CityleagueResult", () => ({
-  default: ({ event_result }: { event_result: CityleagueResultType }) => (
-    <div data-testid="card">{event_result.official_event_id}</div>
+  default: ({
+    event_result,
+    deferSwiper,
+  }: {
+    event_result: CityleagueResultType;
+    deferSwiper?: boolean;
+  }) => (
+    <div data-testid="card" data-defer-swiper={String(!!deferSwiper)}>
+      {event_result.official_event_id}
+    </div>
   ),
 }));
 
@@ -684,5 +692,56 @@ describe("CityleagueResults の戻り先カードへのスクロール", () => {
     await waitFor(() => expect(savedTarget().id).toBeNull());
     await new Promise((resolve) => requestAnimationFrame(resolve));
     expect(scrollTo).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * 1 日ぶんの一覧は数十枚のカードを最初から並べる。全部に Swiper を作ると、サーバ描画でもブラウザでも
+ * 枚数ぶんの組み立てが一度に走るので、画面に入る先頭のぶんだけ最初から作り、残りは近づいてからにする。
+ */
+describe("CityleagueResults の Swiper の出し惜しみ", () => {
+  const SCHEDULE: CityleagueScheduleContext = {
+    schedule: {
+      id: "2027s1",
+      title: "テストシーズン",
+      from_date: new Date("2026-09-01"),
+      to_date: new Date("2026-11-30"),
+    } as CityleagueScheduleContext["schedule"],
+    isOngoing: true,
+    startDate: "2026-10-07",
+  };
+
+  it("先頭の3枚は最初から Swiper を作り、4枚目以降は画面に近づくまで作らせない", () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json({ count: 0, event_results: [] })),
+    );
+    const results = [1, 2, 3, 4, 5, 6].map(
+      (id) =>
+        ({
+          official_event_id: id,
+          league_type: 1,
+          date: "2026-10-07T00:00:00+09:00",
+        }) as unknown as CityleagueResultType,
+    );
+
+    render(
+      <CityleagueResults
+        league_type={1}
+        scheduleContext={SCHEDULE}
+        initial={{
+          ...SCHEDULE,
+          results,
+          events: [],
+          deckArchetypes: {},
+          nextFromDate: "2026-10-06",
+          hasMore: true,
+        }}
+      />,
+    );
+
+    expect(
+      screen.getAllByTestId("card").map((el) => `${el.textContent}:${el.dataset.deferSwiper}`),
+    ).toEqual(["1:false", "2:false", "3:false", "4:true", "5:true", "6:true"]);
   });
 });

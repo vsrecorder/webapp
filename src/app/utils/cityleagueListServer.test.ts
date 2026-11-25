@@ -80,6 +80,42 @@ describe("getCityleagueListInitialData", () => {
   });
 
   /*
+   * 上流はベスト 16 まで返すが、一覧のカードが描くのは 8 位まで。使わない半分まで HTML に載せない
+   * (1 日 40 大会で入賞 320 人ぶん・約 55KB が余計になっていた)。
+   */
+  it("一覧に載る入賞(8 位まで)だけを返し、9 位以下は落とす", async () => {
+    // 優勝・準優勝・ベスト4×2・ベスト8×4・ベスト16×8(上流の rank は 1, 2, 3, 5, 9)
+    const ranks = [1, 2, 3, 3, 5, 5, 5, 5, 9, 9, 9, 9, 9, 9, 9, 9];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        if (url.includes("/cityleague_schedules")) return jsonResponse(SCHEDULE);
+        if (url.includes("/api/v1beta/cityleague_results")) {
+          return jsonResponse({
+            count: 1,
+            event_results: [
+              {
+                official_event_id: 1,
+                date: "2026-10-15T00:00:00+09:00",
+                results: ranks.map((rank, index) => ({ rank, player_id: `p${index}`, deck_code: "" })),
+              },
+            ],
+          });
+        }
+
+        return jsonResponse({ official_events: [] });
+      }),
+    );
+
+    const data = await getCityleagueListInitialData(1);
+
+    expect(data?.results).toHaveLength(1);
+    expect(data?.results[0].results.map((entry) => entry.rank)).toEqual([1, 2, 3, 3, 5, 5, 5, 5]);
+    // 大会そのものの項目はそのまま
+    expect(data?.results[0].official_event_id).toBe(1);
+  });
+
+  /*
    * 大会結果はバトラボの索引より数分早く入る。分類が揃わない大会は出さず、
    * その日の大会が全部そうなら前の日を1ページ目にする。
    */

@@ -12,6 +12,7 @@ import {
   resolveSearchStartDate,
   shiftDateString,
 } from "@app/utils/cityleagueListPage";
+import { isCityleagueListRank } from "@app/utils/cityleagueRank";
 import { LIST_REVALIDATE_SECONDS, NO_STORE, getJson } from "@app/utils/coreApi";
 import { todayJSTDateString, toJSTDateString } from "@app/utils/date";
 import {
@@ -135,6 +136,21 @@ async function getResultsByDate(
   return ret?.count ? ret.event_results : [];
 }
 
+/*
+ * 一覧に載る入賞(8 位まで)だけを残す。
+ *
+ * 上流は 1 大会につきベスト 16 まで返すが、一覧のカードが描くのは 8 位までで、9 位以下は
+ * 個別ページで見せる(utils/cityleagueRank)。この値はクライアント部品の props として HTML に
+ * 載るので、使わない半分まで送ると、1 日 40 大会で入賞 320 人ぶん(約 55KB)が余計になる。
+ * ブラウザが後から取る分(BFF)は 16 位まで返るが、カードは同じ線で区切るので見た目は変わらない。
+ */
+function withListedRanksOnly(result: CityleagueResultType): CityleagueResultType {
+  return {
+    ...result,
+    results: (result.results ?? []).filter((entry) => isCityleagueListRank(entry.rank)),
+  };
+}
+
 export const getCityleagueListInitialData = cache(
   async function getCityleagueListInitialData(
     leagueType: number,
@@ -202,7 +218,7 @@ export const getCityleagueListInitialData = cache(
           schedule,
           isOngoing,
           startDate,
-          results: readyResults,
+          results: readyResults.map(withListedRanksOnly),
           events,
           deckArchetypes,
           nextFromDate: shiftDateString(date, -1),

@@ -18,7 +18,7 @@ import { DeckSummaryType } from "@app/types/deckcard";
 import { OfficialEventType } from "@app/types/official_event";
 
 import { championsleagueLeagueTitle } from "@app/utils/championsleague";
-import { formatEventDate, formatTermRange } from "@app/utils/cityleague";
+import { formatEventDate, formatEventMonthDay, formatTermRange } from "@app/utils/cityleague";
 import { buildRankSections } from "@app/utils/cityleagueRank";
 import { deckDisplayName, isDeckArchetypeChampionsleague } from "@app/utils/deckArchetype";
 import { safeExternalUrl } from "@app/utils/url";
@@ -44,6 +44,7 @@ type Props = {
  *
  * official_events の大会名は「チャンピオンズリーグ2026 大阪 マスターリーグDay2」のように
  * 大会名を先頭に含む。ページの h1 と重複するので、その部分は落として区分だけを見出しにする。
+ * 末尾に付くことのある【2026年3月28日（土）開催】も、見出しのすぐ下に開催日を出すので落とす。
  * official_events が引けなかったときは league_type から組み立てる。
  */
 export function buildEventHeading(
@@ -58,7 +59,7 @@ export function buildEventHeading(
 
   // championsleague_schedules.title には末尾に空白を持つものがある(cl2025_aichi)
   const prefix = schedule.title.trim();
-  const title = officialEvent.title.trim();
+  const title = officialEvent.title.replace(/【[^】]*開催】/g, "").trim();
 
   if (title.startsWith(prefix)) {
     const rest = title.slice(prefix.length).trim();
@@ -67,6 +68,26 @@ export function buildEventHeading(
   }
 
   return title;
+}
+
+/**
+ * 同じ区分に複数のイベントがあるとき、イベント同士を見分けるための短い呼び名。
+ *
+ * 見出し(buildEventHeading)から、どのイベントにも共通する区分名を落とす。
+ *   「シニアリーグ 1日目大会」→「1日目大会」
+ *   「マスターリーグ グループA」→「グループA」
+ * 区分名しか残らないとき(official_events が引けなかったときなど)は開催日の月日で呼ぶ。
+ */
+export function buildEventLabel(
+  heading: string,
+  eventResult: Pick<ChampionsleagueEventResultType, "league_type" | "date">,
+): string {
+  const leagueTitle = championsleagueLeagueTitle(eventResult.league_type);
+
+  const prefix = leagueTitle ? `${leagueTitle}リーグ` : "";
+  const label = heading.startsWith(prefix) ? heading.slice(prefix.length).trim() : heading;
+
+  return label === "" || label === "結果" ? formatEventMonthDay(eventResult.date) : label;
 }
 
 // 「△△選手（デッキ分類名）」。シティリーグの個別ページの冒頭文と同じ形にする。
@@ -109,6 +130,10 @@ export default function ChampionsleagueResultByLeague({
   // デッキの種類が付く大会か。デッキコードの無い入賞にも unknown の 2 枠と「デッキコード未掲載」を
   // 出し、他の入賞と同じ形にする(骨格の loading.tsx と同じ判定)
   const withDeckArchetype = isDeckArchetypeChampionsleague(schedule.id);
+
+  // 1日目大会/2日目大会のように、別々の大会が1ページに並ぶ区分か。どちらも優勝〜ベスト16の
+  // 同じ並びなので、境目と「今どちらを見ているか」が分かる見せ方に切り替える
+  const hasMultipleEvents = eventResults.length > 1;
 
   const resultCount = eventResults.reduce(
     (total, eventResult) => total + eventResult.results.length,
@@ -198,25 +223,45 @@ export default function ChampionsleagueResultByLeague({
         </CardBody>
       </Card>
 
-      {eventResults.map((eventResult) => {
+      {eventResults.map((eventResult, eventIndex) => {
         const heading = buildEventHeading(
           schedule,
           eventResult,
           officialEvents[eventResult.official_event_id],
         );
+        const eventLabel = hasMultipleEvents ? buildEventLabel(heading, eventResult) : null;
         const sections = buildRankSections(eventResult.results);
 
         return (
           <section
             key={eventResult.official_event_id}
-            className="flex flex-col gap-2 pt-2"
+            // 2つ目以降は前のイベントの最後のカードから大きく離し、別の大会だと分かるようにする
+            className={`flex flex-col gap-2 ${eventIndex === 0 ? "pt-2" : "pt-10"}`}
           >
             {/* 開催日と公式サイトへの導線。Day1/Day2 に分かれた区分では
-                どちらのイベントかもここで分かるようにする。 */}
-            <Card shadow="sm" className="w-full">
+                どちらのイベントかもここで分かるようにする。
+                そのとき見出しが入賞カードと同じ白いカードだと、16枚並んだカードに埋もれて
+                境目に気づけないので、塗りの帯にする(順位の枠色に無い色)。
+                文字の大きさを変えても行の高さは変えず、骨格(loading.tsx)と高さを揃えておく。
+                クラスは HeroUI の cn で繋がない(text-tiny と text-white/90 を同じ種類とみなして
+                text-tiny を落とし、文字が大きくなる)。 */}
+            <Card
+              shadow="sm"
+              className={`w-full ${hasMultipleEvents ? "bg-indigo-600 text-white" : ""}`}
+            >
               <CardBody className="gap-1 px-3 py-2.5">
-                <h2 className="font-bold text-small leading-snug">{heading}</h2>
-                <div className="text-tiny text-default-500">
+                <h2
+                  className={`font-bold ${
+                    hasMultipleEvents ? "text-medium leading-5" : "text-small leading-snug"
+                  }`}
+                >
+                  {heading}
+                </h2>
+                <div
+                  className={`text-tiny ${
+                    hasMultipleEvents ? "text-white/90" : "text-default-500"
+                  }`}
+                >
                   {formatEventDate(eventResult.date)} / 入賞{" "}
                   {eventResult.results.length}名
                 </div>
@@ -225,7 +270,7 @@ export default function ChampionsleagueResultByLeague({
                   showAnchorIcon
                   underline="always"
                   href={safeExternalUrl(eventResult.event_detail_result_url)}
-                  className="w-fit text-tiny"
+                  className={`w-fit text-tiny ${hasMultipleEvents ? "text-white" : ""}`}
                 >
                   公式サイトの結果ページを見る
                 </HeroLink>
@@ -244,6 +289,12 @@ export default function ChampionsleagueResultByLeague({
                   <span className="text-tiny text-default-400">
                     {section.results.length}名
                   </span>
+                  {/* 見出しの帯が画面の外にあっても、どの大会の順位かが分かるようにする */}
+                  {eventLabel && (
+                    <span className="ml-auto truncate rounded-full bg-indigo-600 px-2 py-0.5 font-bold text-[0.6875rem] leading-4 text-white">
+                      {eventLabel}
+                    </span>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">

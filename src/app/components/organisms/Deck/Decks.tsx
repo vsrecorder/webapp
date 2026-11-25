@@ -43,6 +43,7 @@ import {
 import { ZERO_DATE } from "@app/utils/date";
 import { writeSessionStorage } from "@app/utils/sessionStorageStore";
 import { useReturnTargetItem } from "@app/hooks/useReturnTargetItem";
+import { httpErrorMessage } from "@app/utils/httpError";
 
 // APIが「未設定」を表すために返す日時のゼロ値(Goのtime.Timeのゼロ値)。
 // お気に入りの解除を再取得を待たずに画面へ反映するとき、この値を入れる。
@@ -208,8 +209,7 @@ export default function Decks({
       });
 
       if (!res.ok) {
-        const t = await res.json();
-        throw new Error(`HTTP error: ${res.status} Message: ${t.message}`);
+        throw new Error(await httpErrorMessage(res));
       }
 
       const updated: DeckData = await res.json();

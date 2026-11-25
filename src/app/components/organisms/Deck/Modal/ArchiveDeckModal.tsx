@@ -13,6 +13,7 @@ import { addToast, closeToast } from "@heroui/react";
 
 import { Modal } from "@app/components/atoms/AppModal";
 import { DeckGetByIdResponseType } from "@app/types/deck";
+import { httpErrorMessage } from "@app/utils/httpError";
 
 type Props = {
   deck: DeckGetByIdResponseType | null;
@@ -53,8 +54,7 @@ export default function ArchiveDeckModal({
       });
 
       if (!res.ok) {
-        const t = await res.json();
-        throw new Error(`HTTP error: ${res.status} Message: ${t.message}`);
+        throw new Error(await httpErrorMessage(res));
       }
 
       if (toastId) {

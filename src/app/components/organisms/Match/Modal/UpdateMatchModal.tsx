@@ -72,6 +72,7 @@ import {
   isBO3GamesFilled,
   toGameInputs,
 } from "@app/utils/bo3";
+import { httpErrorMessage } from "@app/utils/httpError";
 
 const SPRITE_BASE_URL = `${CDN_ORIGIN}/images/pokemon-sprites`;
 
@@ -547,8 +548,7 @@ export default function UpdateMatchModal({
       });
 
       if (!res.ok) {
-        const t = await res.json();
-        throw new Error(`HTTP error: ${res.status} Message: ${t.message}`);
+        throw new Error(await httpErrorMessage(res));
       }
 
       const ret: MatchUpdateResponseType = await res.json();

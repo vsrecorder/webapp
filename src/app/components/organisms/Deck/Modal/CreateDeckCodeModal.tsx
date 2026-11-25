@@ -25,6 +25,7 @@ import { normalizeDeckCode } from "@app/utils/deckCode";
 import { refreshKizuna } from "@app/utils/kizunaClient";
 import { useSyncOnChange } from "@app/hooks/useSyncOnChange";
 import { useAddDeckCodeToCache } from "@app/hooks/useDeckCodes";
+import { httpErrorMessage } from "@app/utils/httpError";
 
 const DECK_CODE_LENGTH = 20;
 const DECK_CODE_CHECK_DEBOUNCE_MS = 500;
@@ -172,8 +173,7 @@ export default function CreateDeckCodeModal({
       });
 
       if (!res.ok) {
-        const t = await res.json();
-        throw new Error(`HTTP error: ${res.status} Message: ${t.message}`);
+        throw new Error(await httpErrorMessage(res));
       }
 
       saved = true;

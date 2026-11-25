@@ -52,6 +52,7 @@ import { useSyncOnChange } from "@app/hooks/useSyncOnChange";
 import { triggerNotificationsRefresh } from "@app/utils/notificationEvents";
 import { refreshKizuna } from "@app/utils/kizunaClient";
 import { JST_TIME_ZONE, isZeroDate, toJSTDateString } from "@app/utils/date";
+import { httpErrorMessage } from "@app/utils/httpError";
 
 type EventType = "official" | "tonamel" | "unofficial";
 
@@ -327,10 +328,7 @@ export default function EditEventInfoModal({
           );
 
           if (!unofficialEventRes.ok) {
-            const t = await unofficialEventRes.json();
-            throw new Error(
-              `HTTP error: ${unofficialEventRes.status} Message: ${t.message}`,
-            );
+            throw new Error(await httpErrorMessage(unofficialEventRes));
           }
 
           const unofficialEvent: UnofficialEventUpdateResponseType =
@@ -349,10 +347,7 @@ export default function EditEventInfoModal({
           });
 
           if (!unofficialEventRes.ok) {
-            const t = await unofficialEventRes.json();
-            throw new Error(
-              `HTTP error: ${unofficialEventRes.status} Message: ${t.message}`,
-            );
+            throw new Error(await httpErrorMessage(unofficialEventRes));
           }
 
           const unofficialEvent: UnofficialEventCreateResponseType =
@@ -392,8 +387,7 @@ export default function EditEventInfoModal({
       });
 
       if (!res.ok) {
-        const t = await res.json();
-        throw new Error(`HTTP error: ${res.status} Message: ${t.message}`);
+        throw new Error(await httpErrorMessage(res));
       }
 
       saved = true;

@@ -17,6 +17,7 @@ import {
 import { Modal } from "@app/components/atoms/AppModal";
 import { safeExternalUrl } from "@app/utils/url";
 import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
+import { httpErrorMessage } from "@app/utils/httpError";
 
 type Props = {
   record: RecordGetByIdResponseType;
@@ -88,8 +89,7 @@ export default function UpdateUsedDeckModal({
       });
 
       if (!res.ok) {
-        const t = await res.json();
-        throw new Error(`HTTP error: ${res.status} Message: ${t.message}`);
+        throw new Error(await httpErrorMessage(res));
       }
 
       if (toastId) {

@@ -3,6 +3,7 @@ import {
   RecordUpdateRequestType,
   RecordUpdateResponseType,
 } from "@app/types/record";
+import { httpErrorMessage } from "@app/utils/httpError";
 
 /*
  * 記録の一部だけを変更するPUT。
@@ -43,8 +44,7 @@ export async function updateRecordFields(
   });
 
   if (!res.ok) {
-    const t = await res.json();
-    throw new Error(`HTTP error: ${res.status} Message: ${t.message}`);
+    throw new Error(await httpErrorMessage(res));
   }
 
   return (await res.json()) as RecordUpdateResponseType;

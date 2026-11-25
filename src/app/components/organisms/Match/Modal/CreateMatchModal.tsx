@@ -73,6 +73,7 @@ import {
   bo3DrawFlg,
   isBO3GamesFilled,
 } from "@app/utils/bo3";
+import { httpErrorMessage } from "@app/utils/httpError";
 
 // ひらがなをカタカナに統一して比較できるようにする
 const toKatakana = (str: string) =>
@@ -434,6 +435,13 @@ export default function CreateMatchModal({
       promise: new Promise(() => {}),
     });
 
+    // サーバへの保存が済んだか。済んだあとの後処理(一覧への追加・環境リターンの準備)で例外が出ても、
+    // 「追加に失敗」とは出さない。フォームは入力を残したまま開いているので、そう出すともう一度押されて、
+    // 同じ対戦が二重に入る
+    let saved = false;
+    // 一覧に足せたか
+    let listed = false;
+
     try {
       const res = await fetch("/api/matches", {
         method: "POST",
@@ -444,9 +452,10 @@ export default function CreateMatchModal({
       });
 
       if (!res.ok) {
-        const t = await res.json();
-        throw new Error(`HTTP error: ${res.status} Message: ${t.message}`);
+        throw new Error(await httpErrorMessage(res));
       }
+
+      saved = true;
 
       const ret: MatchCreateResponseType = await res.json();
 
@@ -458,6 +467,7 @@ export default function CreateMatchModal({
         if (!prev) return [ret];
         return [...prev, ret];
       });
+      listed = true;
 
       triggerNotificationsRefresh();
       // 使用デッキのきずなLv.が動く(対戦の数・勝敗・メモ)
@@ -478,10 +488,15 @@ export default function CreateMatchModal({
         record?.event_date,
         record?.created_at,
       );
-      const envRet =
-        includeInStats && isThisWeekRecord
-          ? await fetchOpponentEnv(pokemon_sprites)
-          : null;
+      // 環境リターンは添えもの。用意できなければ、出さずにいつもの完了へ進む
+      let envRet: Awaited<ReturnType<typeof fetchOpponentEnv>> = null;
+      if (includeInStats && isThisWeekRecord) {
+        try {
+          envRet = await fetchOpponentEnv(pokemon_sprites);
+        } catch (error) {
+          console.error(error);
+        }
+      }
       if (envRet && envRet.hasEnvData) {
         setReturnData({
           opponentName: opponentsDeckInfo,
@@ -509,6 +524,20 @@ export default function CreateMatchModal({
 
       if (toastId) {
         closeToast(toastId);
+      }
+
+      if (saved) {
+        // 保存は済んでいる。応答を読めず一覧に足せなかったときだけ、取り直しを促す
+        addToast({
+          title: "対戦結果の追加が完了",
+          description: listed
+            ? "対戦結果を追加しました"
+            : "対戦結果を追加しました。一覧に出ないときは、画面を読み込み直してください",
+          color: "success",
+          timeout: 5000,
+        });
+        onClose();
+        return;
       }
 
       addToast({

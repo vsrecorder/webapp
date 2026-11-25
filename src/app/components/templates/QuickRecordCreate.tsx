@@ -72,6 +72,7 @@ import {
 } from "@app/utils/deckEnv";
 import { JST_TIME_ZONE } from "@app/utils/date";
 import { ACCORDION_MOTION_PROPS } from "@app/utils/accordionMotion";
+import { httpErrorMessage } from "@app/utils/httpError";
 
 // ひらがなをカタカナに統一して比較できるようにする
 const toKatakana = (str: string) =>
@@ -384,8 +385,7 @@ export default function TemplateQuickRecordCreate({
               body: JSON.stringify(unofficialEventReq),
             });
             if (!eventRes.ok) {
-              const t = await eventRes.json();
-              throw new Error(`HTTP error: ${eventRes.status} Message: ${t.message}`);
+              throw new Error(await httpErrorMessage(eventRes));
             }
             const unofficialEvent: UnofficialEventCreateResponseType = await eventRes.json();
             unofficialEventId = unofficialEvent.id;
@@ -416,8 +416,7 @@ export default function TemplateQuickRecordCreate({
           body: JSON.stringify(recordReq),
         });
         if (!recordRes.ok) {
-          const t = await recordRes.json();
-          throw new Error(`HTTP error: ${recordRes.status} Message: ${t.message}`);
+          throw new Error(await httpErrorMessage(recordRes));
         }
         record = await recordRes.json();
         // 自由形式イベントはこの記録に紐づいたので、覚えておくのは記録だけでよい
@@ -464,8 +463,7 @@ export default function TemplateQuickRecordCreate({
         body: JSON.stringify(matchReq),
       });
       if (!matchRes.ok) {
-        const t = await matchRes.json();
-        throw new Error(`HTTP error: ${matchRes.status} Message: ${t.message}`);
+        throw new Error(await httpErrorMessage(matchRes));
       }
 
       // 記録と対戦がそろった。ここから先で失敗しても、もう一度押して作り直させない

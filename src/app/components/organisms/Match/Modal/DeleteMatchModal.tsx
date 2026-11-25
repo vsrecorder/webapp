@@ -10,6 +10,7 @@ import { addToast, closeToast } from "@heroui/react";
 import { Modal } from "@app/components/atoms/AppModal";
 import { MatchGetResponseType } from "@app/types/match";
 import { refreshKizuna } from "@app/utils/kizunaClient";
+import { httpErrorMessage } from "@app/utils/httpError";
 
 type Props = {
   match: MatchGetResponseType | null;
@@ -48,8 +49,7 @@ export default function DeleteMatchModal({
       });
 
       if (!res.ok) {
-        const t = await res.json();
-        throw new Error(`HTTP error: ${res.status} Message: ${t.message}`);
+        throw new Error(await httpErrorMessage(res));
       }
 
       if (toastId) {

@@ -9,9 +9,10 @@ import { SPRITE_HEIGHTS } from "@app/utils/spriteHeights";
 // - スプライト画像ごとにキャラの大きさ・キャンバス内の位置が異なるため、
 //   一律 scale では表示が安定しない。まず各画像のアルファ境界(bx,by,bw,bh)で
 //   キャラの実範囲を掴み、水平中央・下端接地になるよう translate する。
-// - キャラを枠内でどれだけの大きさにするか(枠占有率)は、各ポケモンの「公式身長」
+// - キャラの縦の大きさを枠の何割にするか(枠占有率)は、各ポケモンの図鑑の「高さ」
 //   を対数圧縮して決める(heightTargetRatio)。これで小型ポケモンは小さく、大型は
 //   大きく、実際の身長差が枠内に反映される(画像の描画サイズには依存しない)。
+//   横に長いキャラは枠からはみ出さない大きさで頭打ちにする(fitScale)。
 // - 枠側は position:relative + overflow-hidden、img は position:absolute + 本スタイル。
 //
 // bounds が無い id(画像欠損など)や未知IDは unknown 相当のフォールバックを返す。
@@ -21,36 +22,53 @@ import { SPRITE_HEIGHTS } from "@app/utils/spriteHeights";
 const UNKNOWN_TARGET_RATIO = 0.5;
 
 // --- 身長 → 枠占有率(対数圧縮) -----------------------------------------
+// 枠占有率は「キャラの縦の大きさが枠の何割か」。図鑑の高さが高いほど大きくする。
+//
 // 実身長は 0.1m〜100m級(GMAX等)まで幅が極端に広く、線形写像だと小型ポケモンが
-// 枠内で潰れて見えなくなる。そこで身長を対数で圧縮し、competitive でよく使う
-// 0.3〜6m 帯に効きを集中させて枠占有率 [MIN_RATIO, MAX_RATIO] に写像する。
-// 帯の外側はクランプ(巨大ポケモンは一律最大、極小は一律最小)。
-const MIN_H = 0.3; // これ以下の身長は最小比率に張り付く
+// 枠内で潰れて見えなくなる。そこで身長を対数で圧縮し、0.2〜6m 帯を枠占有率
+// [MIN_RATIO, MAX_RATIO] に写像する。帯の外側はクランプ(巨大ポケモンは一律最大、
+// 極小は一律最小)。
+//
+// 以前は 0.3〜6m を 0.58〜0.93 に写していたが、それだとピカチュウ(0.4m)と
+// リザードン(1.7m)が 0.61 と 0.69 にしかならず、高さの違いが見た目に出なかった。
+// 下限を 0.42 まで広げ、ピカチュウ 0.52・リザードン 0.74・ギャラドス 0.93 と
+// 差が目で分かる幅にしている(48px 枠で最小 20px ほどの高さは残る)。
+const MIN_H = 0.2; // これ以下の身長は最小比率に張り付く
 const MAX_H = 6.0; // これ以上の身長は最大比率に張り付く
-const MIN_RATIO = 0.58; // 最小ポケモンの枠占有率
+const MIN_RATIO = 0.42; // 最小ポケモンの枠占有率
 const MAX_RATIO = 0.93; // 最大ポケモンの枠占有率
-// 身長データが無い id(未知フォーム等)の既定占有率(1m 相当のおよそ中庸値)。
-const FALLBACK_RATIO = 0.72;
 
 const LOG_MIN_H = Math.log(MIN_H);
 const LOG_SPAN = Math.log(MAX_H) - LOG_MIN_H;
 
-// 身長[m] を枠占有率に変換する。身長 0/欠損は中庸値にフォールバックする。
+// 身長データが無い id(未知フォーム等)は 1m とみなす(およそ中庸の大きさ)。
+const FALLBACK_HEIGHT = 1.0;
+
+// 身長[m] を枠占有率に変換する。身長 0/欠損は 1m 相当にフォールバックする。
 function heightTargetRatio(height: number | undefined): number {
-  if (!height || height <= 0) return FALLBACK_RATIO;
-  const h = Math.min(MAX_H, Math.max(MIN_H, height));
+  const raw = height && height > 0 ? height : FALLBACK_HEIGHT;
+  const h = Math.min(MAX_H, Math.max(MIN_H, raw));
   const t = (Math.log(h) - LOG_MIN_H) / LOG_SPAN;
   return MIN_RATIO + t * (MAX_RATIO - MIN_RATIO);
 }
 // 枠下端からの余白(frame 比)
 const BOTTOM_PAD_RATIO = 0.04;
+// 横幅の上限(frame 比)。横に長いキャラが枠からはみ出さないための頭打ち。
+const MAX_WIDTH_RATIO = 0.96;
 // 極端な拡大/縮小を避けるクランプ。基準枠(REFERENCE_FRAME)での値。
 const MIN_SCALE = 0.7;
 const MAX_SCALE = 1.9;
 // クランプの基準となる枠の一辺(px)。デッキカードなど大半の箇所がこの大きさ。
 const REFERENCE_FRAME = 48;
 
-// キャラの最大辺を frame の targetRatio(身長由来の枠占有率)に合わせるための拡大率。
+// キャラの縦の大きさを frame の targetRatio(身長由来の枠占有率)に合わせるための拡大率。
+//
+// 縦で合わせるのは、図鑑の「高さ」と見た目の高さを対応させるため。以前は縦横の
+// 長い方の辺で合わせていて、横に長いスプライト(全体の約半分)は縦が小さくなり、
+// リザードン(1.7m)がゲンガー(1.5m)より低く表示されるといった逆転が起きていた。
+// 縦で合わせると横に長いキャラは枠から横にはみ出し得るので、横幅が
+// MAX_WIDTH_RATIO を超えるものだけ枠に収まるまで縮める(カイオーガ等の横長の
+// ポケモンはそのぶん低くなるが、見切れるよりよい)。
 //
 // クランプは「元画像(68px)に対する拡大率」の上下限だが、固定値のままだと枠の
 // 大きさによって効き方が変わり、同じポケモンでも箇所ごとに枠内での大きさが
@@ -63,12 +81,18 @@ const REFERENCE_FRAME = 48;
 // 枠占有率が frame に依存しなくなる ＝ どの枠サイズでも身長どおりの同じ比率で
 // 表示される(拡大率が上がるぶん元画像のドットは甘くなるが、枠ごとに大きさが
 // バラつく方が目につくため、見え方の統一を優先する)。
+// 枠に収める頭打ちはクランプの後にかけ、下限の拡大で見切れることも無くす。
 function fitScale(bw: number, bh: number, frame: number, targetRatio: number): number {
   const clampFactor = frame / REFERENCE_FRAME;
+  const clamped = Math.min(
+    MAX_SCALE * clampFactor,
+    Math.max(MIN_SCALE * clampFactor, (frame * targetRatio) / bh),
+  );
 
   return Math.min(
-    MAX_SCALE * clampFactor,
-    Math.max(MIN_SCALE * clampFactor, (frame * targetRatio) / Math.max(bw, bh)),
+    clamped,
+    (frame * MAX_WIDTH_RATIO) / bw,
+    (frame * (1 - BOTTOM_PAD_RATIO)) / bh,
   );
 }
 

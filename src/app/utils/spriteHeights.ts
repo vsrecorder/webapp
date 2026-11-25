@@ -1,6 +1,6 @@
-// 自動生成(scripts/generate-sprite-heights.mjs): 各スプライトの公式身長[m]。
-// キーは spriteBounds.ts と同じスプライト id。spriteFit が身長反映表示に使用する。
-// データ源: PokéAPI(pokemon.csv, height はデシメートル→m 変換済み)。
+// 自動生成(scripts/generate-sprite-heights.mjs): 各スプライトの図鑑の高さ[m]。
+// キーはスプライト id。spriteFit が高さを反映した表示に使用する。
+// データ源: ポケモンずかん(zukan.pokemon.co.jp)の「たかさ」。スプライトの日本語名で突き合わせ。
 // スプライト追加時は spriteBounds 更新後に上記スクリプトを再実行して更新すること。
 export const SPRITE_HEIGHTS: Record<string, number> = {
   "0001": 0.7,
@@ -476,6 +476,9 @@ export const SPRITE_HEIGHTS: Record<string, number> = {
   "0349": 0.6,
   "0350": 6.2,
   "0351": 0.3,
+  "0351_rainy": 0.3,
+  "0351_snowy": 0.3,
+  "0351_sunny": 0.3,
   "0352": 1,
   "0353": 0.6,
   "0354": 1.1,
@@ -587,6 +590,7 @@ export const SPRITE_HEIGHTS: Record<string, number> = {
   "0431": 0.5,
   "0432": 1,
   "0433": 0.2,
+  "0434": 0.4,
   "0435": 1,
   "0436": 0.5,
   "0437": 1.3,
@@ -759,7 +763,9 @@ export const SPRITE_HEIGHTS: Record<string, number> = {
   "0569": 1.9,
   "0569_gmax": 21,
   "0570": 0.7,
+  "0570_hisui": 0.7,
   "0571": 1.6,
+  "0571_hisui": 1.6,
   "0572": 0.4,
   "0573": 0.5,
   "0574": 0.4,
@@ -898,6 +904,7 @@ export const SPRITE_HEIGHTS: Record<string, number> = {
   "0668_mega": 1.5,
   "0669": 0.1,
   "0670": 0.2,
+  "0670_eternal": 0.2,
   "0670_eternal_mega": 0.2,
   "0671": 1.1,
   "0672": 0.9,
@@ -908,7 +915,7 @@ export const SPRITE_HEIGHTS: Record<string, number> = {
   "0677": 0.3,
   "0678": 0.6,
   "0678_f": 0.6,
-  "0678_m": 0.8,
+  "0678_m": 0.6,
   "0678_mega": 0.8,
   "0679": 0.8,
   "0680": 0.8,
@@ -1131,7 +1138,7 @@ export const SPRITE_HEIGHTS: Record<string, number> = {
   "0847": 1.3,
   "0848": 0.4,
   "0849": 1.6,
-  "0849_amped": 24,
+  "0849_amped": 1.6,
   "0849_gmax": 24,
   "0849_low-key": 1.6,
   "0850": 0.7,
@@ -1197,7 +1204,7 @@ export const SPRITE_HEIGHTS: Record<string, number> = {
   "0891": 0.6,
   "0892_rapid": 1.9,
   "0892_rapid_gmax": 26,
-  "0892_single": 29,
+  "0892_single": 1.9,
   "0892_single_gmax": 29,
   "0893": 1.8,
   "0894": 1.2,
@@ -1210,7 +1217,7 @@ export const SPRITE_HEIGHTS: Record<string, number> = {
   "0899": 1.8,
   "0900": 1.8,
   "0901": 2.4,
-  "0901_bloodmoon": 2.4,
+  "0901_bloodmoon": 2.7,
   "0902": 3,
   "0902_f": 3,
   "0902_m": 3,
@@ -1304,7 +1311,7 @@ export const SPRITE_HEIGHTS: Record<string, number> = {
   "0976": 2.5,
   "0977": 12,
   "0978": 0.3,
-  "0978_curly": 0.6,
+  "0978_curly": 0.3,
   "0978_curly_mega": 0.6,
   "0978_droopy": 0.3,
   "0978_droopy_mega": 0.6,

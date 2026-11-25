@@ -12,6 +12,7 @@ import {
   OfficialEventResponseType,
 } from "@app/types/official_event";
 import { detectOfficialEventKeyword } from "@app/utils/officialEventGuide";
+import { officialEventListKey } from "@app/utils/officialEventList";
 
 async function fetcher(url: string): Promise<OfficialEventListItemType[]> {
   const res = await fetch(url, {
@@ -50,7 +51,8 @@ export function useOfficialEventGuide(
   // キーワードを検出したときだけ取得する。URL は RecordCreate / OfficialEventSelect と
   // 同じ形式なので、同じ開催日を既に取得済みなら SWR のキャッシュを共有し再取得しない。
   const { data } = useSWR<OfficialEventListItemType[], Error>(
-    enabled && keyword ? `/api/official_events?date=${dateYmd}` : null,
+    // 開催日を打ち直している途中の値では引かない(officialEventListKey)
+    enabled && keyword ? officialEventListKey(dateYmd) : null,
     fetcher,
     { revalidateOnFocus: false },
   );

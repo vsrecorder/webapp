@@ -97,6 +97,8 @@ function Harness({
   initialSelected = null,
   ...props
 }: {
+  // 開催日。既定は DATE(入力途中の値を渡すテストだけ差し替える)
+  date?: string;
   enabled?: boolean;
   presetId?: number;
   initialEvents?: RecordCreateOfficialEventType[];
@@ -132,6 +134,16 @@ describe("OfficialEventSelect", () => {
 
     await waitFor(() => expect(fetch).toHaveBeenCalled());
     expect(selectedTitle()).toBe("");
+  });
+
+  // 年を打ち直している途中は "202-11-24" のような値が渡ってくる。上流は 400 を返すので引かない
+  it("開催日が入力途中の値のあいだは取りに行かず、エラーも出さない", async () => {
+    render(<Harness date="202-09-07" presetId={GYM.id} />);
+
+    await Promise.resolve();
+    expect(fetch).not.toHaveBeenCalled();
+    expect(selectedTitle()).toBe("");
+    expect(screen.queryByText("エラーが発生しました")).toBeNull();
   });
 
   it("enabled が false の間は取りに行かない", async () => {

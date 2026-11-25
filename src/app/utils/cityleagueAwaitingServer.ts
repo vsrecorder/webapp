@@ -139,7 +139,29 @@ export async function withoutAwaitingCityleagueEvents<T>(
   eventOf: (item: T) => { id: number; date: Date | string },
 ): Promise<T[]> {
   const today = todayJSTDateString();
-  if (!items.some((item) => isWithinDeckArchetypeWait(eventOf(item).date, today))) return items;
+
+  /*
+   * 同じ開催日は一度だけ判定する。
+   *
+   * ハブや「最近開催」は結果のある全大会(8,000 件超)を渡してくる。待つ期間の大会が無いときは
+   * 最後の 1 件まで判定することになり、1 件ごとに日付を読み直すと、それだけで 1 回 19ms かかっていた
+   * (2026-11-25 の実測。一覧ページの「最近開催」は 1 回の表示でこれを 2 度通り、その処理時間の
+   * 3 分の 2 を占めていた)。開催日は 800 通りほどしか無いので、日付ごとに覚えれば 10 分の 1 で済む。
+   */
+  const withinWaitByDate = new Map<string | number, boolean>();
+  const isWithinWait = (date: Date | string): boolean => {
+    const key = typeof date === "string" ? date : date.getTime();
+    let within = withinWaitByDate.get(key);
+
+    if (within === undefined) {
+      within = isWithinDeckArchetypeWait(date, today);
+      withinWaitByDate.set(key, within);
+    }
+
+    return within;
+  };
+
+  if (!items.some((item) => isWithinWait(eventOf(item).date))) return items;
 
   const recent = await getRecentDeckArchetypes();
   if (!recent) return items;

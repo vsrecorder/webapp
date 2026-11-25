@@ -51,6 +51,59 @@ export function scrollIntoViewAfterKeyboard(element: Element) {
   }
 }
 
+/*
+ * ソフトウェアキーボードの表示が終わったあとに、要素をページの上端(marginTop だけ下)へ送る。
+ *
+ * 記録作成のデッキ選択のように、入力欄の下へ長いメニューが開くもの向け。見えていても上端へ
+ * 送って、メニューの場所を空ける(scrollIntoViewAfterKeyboard は隠れているときだけ動かす)。
+ *
+ * キーボードは遅れて出たり段階的に開いたりするので、出そろうまでの1秒間は変化のたびに合わせ直す。
+ * キーボードが出る前は、ページの下端に当たって上端まで送りきれないことがあるため、1回では足りない。
+ *
+ * 1秒たつか、フォーカスが外れたら終わる。resize の待ちが残ると、あとで画面の高さが変わったときに
+ * 勝手にここへスクロールする。次の操作に移ったあとのスクロールは、開いたばかりのカレンダーを
+ * 閉じてしまう(HeroUI のポップオーバーはスクロールで閉じる)。
+ *
+ * 返り値を呼ぶと、まだ走っていないスクロールを取りやめる。フォーカスとメニューの開きの
+ * 両方から呼ぶときに、前の分を取りやめて二重に走らせないために使う。
+ */
+export function scrollToPageTopAfterKeyboard(
+  element: HTMLElement | null,
+  marginTop: number,
+): () => void {
+  if (typeof window === "undefined" || !element) return () => {};
+
+  const viewport = window.visualViewport;
+
+  const cancel = () => {
+    clearTimeout(alignTimer);
+    clearTimeout(endTimer);
+    viewport?.removeEventListener("resize", align);
+  };
+
+  const align = () => {
+    // フォーカスが外れているなら、ユーザーは次の操作に移っている。割り込まない
+    if (!element.contains(document.activeElement)) {
+      cancel();
+      return;
+    }
+
+    element.style.scrollMarginTop = `${marginTop}px`;
+    element.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  viewport?.addEventListener("resize", align);
+
+  // キーボードが出ない・既に出ている(= resize が発火しない)場合の分
+  const alignTimer = setTimeout(align, viewport ? 500 : 300);
+
+  // キーボードが出そろうころに後片付けする。監視を短く切りすぎると、
+  // キーボードの表示が遅い端末で取りこぼす
+  const endTimer = setTimeout(cancel, 1000);
+
+  return cancel;
+}
+
 // アニメーションを控える設定(OS のアクセシビリティ設定)かどうか
 function prefersReducedMotion(): boolean {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;

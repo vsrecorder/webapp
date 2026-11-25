@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { revealAfterKeyboard } from "@app/utils/keyboard";
+import { revealAfterKeyboard, scrollToPageTopAfterKeyboard } from "@app/utils/keyboard";
 
 /*
  * jsdom はレイアウトを持たないので、スクロール領域・入力欄・ボタン行の位置を手で与える。
@@ -106,5 +106,124 @@ describe("revealAfterKeyboard", () => {
     box.bottom = 400;
     vi.advanceTimersByTime(1000);
     expect(scrollTo).not.toHaveBeenCalled();
+  });
+});
+
+describe("scrollToPageTopAfterKeyboard", () => {
+  function setupSelect() {
+    const wrapper = document.createElement("div");
+    const input = document.createElement("input");
+    const other = document.createElement("button");
+    wrapper.append(input);
+    document.body.append(wrapper, other);
+
+    const scrollIntoView = vi.fn();
+    wrapper.scrollIntoView = scrollIntoView;
+
+    const viewport = new EventTarget();
+    vi.stubGlobal("visualViewport", viewport);
+
+    input.focus();
+
+    return {
+      wrapper,
+      input,
+      other,
+      scrollIntoView,
+      resize: () => viewport.dispatchEvent(new Event("resize")),
+    };
+  }
+
+  it("キーボードが出ないときは、0.5秒後に上端へ1回だけ送る", () => {
+    const { wrapper, scrollIntoView } = setupSelect();
+
+    scrollToPageTopAfterKeyboard(wrapper, 80);
+    vi.advanceTimersByTime(499);
+    expect(scrollIntoView).not.toHaveBeenCalled();
+
+    vi.advanceTimersByTime(1);
+    expect(scrollIntoView).toHaveBeenCalledExactlyOnceWith({
+      behavior: "smooth",
+      block: "start",
+    });
+    expect(wrapper.style.scrollMarginTop).toBe("80px");
+  });
+
+  it("キーボードが出たらすぐ送り、出そろうまで合わせ直す", () => {
+    const { wrapper, scrollIntoView, resize } = setupSelect();
+
+    scrollToPageTopAfterKeyboard(wrapper, 80);
+    vi.advanceTimersByTime(250);
+    resize();
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+
+    // 段階的に開くキーボード
+    vi.advanceTimersByTime(100);
+    resize();
+    expect(scrollIntoView).toHaveBeenCalledTimes(2);
+  });
+
+  it("キーボードの表示が0.5秒より遅くても、出たあとに送り直す", () => {
+    const { wrapper, scrollIntoView, resize } = setupSelect();
+
+    scrollToPageTopAfterKeyboard(wrapper, 80);
+    vi.advanceTimersByTime(800);
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+
+    resize();
+    expect(scrollIntoView).toHaveBeenCalledTimes(2);
+  });
+
+  it("1秒たったあとに画面の高さが変わっても、勝手に送らない", () => {
+    const { wrapper, scrollIntoView, resize } = setupSelect();
+
+    scrollToPageTopAfterKeyboard(wrapper, 80);
+    vi.advanceTimersByTime(1000);
+    scrollIntoView.mockClear();
+    resize();
+    vi.advanceTimersByTime(5000);
+
+    expect(scrollIntoView).not.toHaveBeenCalled();
+  });
+
+  it("送る前にフォーカスが外れていたら、時間が来ても画面の高さが変わっても送らない", () => {
+    const { wrapper, other, scrollIntoView, resize } = setupSelect();
+
+    scrollToPageTopAfterKeyboard(wrapper, 80);
+    vi.advanceTimersByTime(200);
+    other.focus();
+    vi.advanceTimersByTime(500);
+    resize();
+
+    expect(scrollIntoView).not.toHaveBeenCalled();
+  });
+
+  it("フォーカスが外れたあとに画面の高さが変わった場合も、戻ってきたときに送らない", () => {
+    const { wrapper, input, other, scrollIntoView, resize } = setupSelect();
+
+    scrollToPageTopAfterKeyboard(wrapper, 80);
+    other.focus();
+    resize();
+    input.focus();
+    vi.advanceTimersByTime(1000);
+    resize();
+
+    expect(scrollIntoView).not.toHaveBeenCalled();
+  });
+
+  it("続けて呼ぶときに前の分を取りやめると、二重に走らない", () => {
+    const { wrapper, scrollIntoView, resize } = setupSelect();
+
+    const cancel = scrollToPageTopAfterKeyboard(wrapper, 80);
+    cancel();
+    scrollToPageTopAfterKeyboard(wrapper, 80);
+    vi.advanceTimersByTime(1000);
+    resize();
+
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+  });
+
+  it("要素が無いときは何もしない", () => {
+    expect(() => scrollToPageTopAfterKeyboard(null, 80)()).not.toThrow();
   });
 });

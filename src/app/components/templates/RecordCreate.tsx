@@ -62,7 +62,10 @@ import { markRecordCreatedForPushPrompt } from "@app/utils/pushPrompt";
 import { JST_TIME_ZONE, formatJSTDateWithWeekday, toJSTDateString } from "@app/utils/date";
 import { toOfficialEventDateKey } from "@app/utils/officialEventList";
 import { katakanaToHiragana } from "@app/utils/kana";
-import { scrollIntoViewAfterKeyboard } from "@app/utils/keyboard";
+import {
+  scrollIntoViewAfterKeyboard,
+  scrollToPageTopAfterKeyboard,
+} from "@app/utils/keyboard";
 import { deckImageUrl } from "@app/utils/deckImage";
 import { MAX_EVENT_TITLE_LENGTH, exceedsTextLength } from "@app/utils/textLength";
 import { useOfficialEventGuide } from "@app/hooks/useOfficialEventGuide";
@@ -496,6 +499,7 @@ export default function TemplateRecordCreate({
   const [isDeckChangedByUser, setIsDeckChangedByUser] = useState(false);
 
   const deckSelectRef = useRef<HTMLDivElement | null>(null);
+  const cancelDeckSelectScrollRef = useRef<(() => void) | null>(null);
 
   // 先読み(page.tsx)と同じ規則で開催日のキーを組む。ずれると先読みが使われない
   const officialEventDateKey = toOfficialEventDateKey(selectedDate);
@@ -772,22 +776,17 @@ export default function TemplateRecordCreate({
   });
 
   /*
-   * デッキ選択セレクターのメニューを開いたときにキーボード上部へスクロールする
-   * visualViewport でキーボード表示完了を検知し、固定ヘッダー分オフセットして上部に配置
+   * デッキ選択セレクターのメニューを開いたときに、キーボードの表示を待ってから
+   * 固定ヘッダー分(80px)だけ下げた上部へスクロールし、メニューの場所を空ける。
+   *
+   * onFocus と onMenuOpen の両方から続けて呼ばれるので、前の分を取りやめて二重に走らせない
    */
   const handleDeckSelectOpen = () => {
-    const doScroll = () => {
-      if (!deckSelectRef.current) return;
-      deckSelectRef.current.style.scrollMarginTop = "80px";
-      deckSelectRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-    };
-
-    if (typeof window !== "undefined" && window.visualViewport) {
-      window.visualViewport.addEventListener("resize", doScroll, { once: true });
-      setTimeout(doScroll, 500);
-    } else {
-      setTimeout(doScroll, 300);
-    }
+    cancelDeckSelectScrollRef.current?.();
+    cancelDeckSelectScrollRef.current = scrollToPageTopAfterKeyboard(
+      deckSelectRef.current,
+      80,
+    );
   };
 
   /*

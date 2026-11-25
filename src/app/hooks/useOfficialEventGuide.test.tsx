@@ -11,7 +11,12 @@ const wrapper = ({ children }: { children: ReactNode }) => (
 );
 
 function stubFetch() {
-  const spy = vi.fn(async () => Response.json([{ id: 1, title: "ジムバトル", type_id: 4 }]));
+  // 引数の型を明示する(省くと呼び出しの引数が空の組と推論され、URL を読むところで型が合わない)
+  const spy = vi.fn(async (_url: string) => {
+    void _url;
+
+    return Response.json([{ id: 1, title: "ジムバトル", type_id: 4 }]);
+  });
   vi.stubGlobal("fetch", spy);
 
   return spy;

@@ -7,9 +7,16 @@ import {
   withoutAwaitingCityleagueEvents,
 } from "@app/utils/cityleagueAwaitingServer";
 import { NO_STORE, getJson } from "@app/utils/coreApi";
+import { isWithinDeckArchetypeWait } from "@app/utils/deckArchetype";
 import { lookupDeckArchetypesByCodes } from "@app/utils/deckArchetypeServer";
 
 vi.mock("@app/utils/coreApi", () => ({ NO_STORE: "no-store", getJson: vi.fn() }));
+// 待つ期間の判定が何回呼ばれたかを数えるために包む(中身は本物のまま)
+vi.mock("@app/utils/deckArchetype", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@app/utils/deckArchetype")>();
+
+  return { ...actual, isWithinDeckArchetypeWait: vi.fn(actual.isWithinDeckArchetypeWait) };
+});
 vi.mock("@app/utils/deckArchetypeServer", () => ({ lookupDeckArchetypesByCodes: vi.fn() }));
 
 const day = (date: string) => `${date}T00:00:00+09:00`;
@@ -137,6 +144,63 @@ describe("withoutAwaitingCityleagueEvents", () => {
     ];
 
     expect(ids(await withoutAwaitingCityleagueEvents(refs, (r) => r))).toEqual([2, 4]);
+  });
+
+  /*
+   * ハブや「最近開催」は結果のある全大会(8,000 件超)を渡してくる。1 件ごとに日付を読み直すと
+   * それだけで 1 回 19ms かかり、一覧ページの「最近開催」の処理時間の 3 分の 2 を占めていた。
+   * 開催日は限られた種類しか無いので、同じ日付は一度だけ判定する。
+   */
+  it("待つ期間の大会が無いとき、同じ開催日は一度だけ判定する", async () => {
+    // 100 日ぶんの開催日に、各 80 大会(計 8,000 件)。どれも待つ期間より前
+    const refs = Array.from({ length: 8000 }, (_, i) => {
+      const date = new Date(Date.UTC(2026, 5, 1 + (i % 100)));
+
+      return ref(i + 1, date.toISOString().slice(0, 10));
+    });
+    vi.mocked(isWithinDeckArchetypeWait).mockClear();
+
+    expect(await withoutAwaitingCityleagueEvents(refs, (r) => r)).toBe(refs);
+    expect(isWithinDeckArchetypeWait).toHaveBeenCalledTimes(100);
+    expect(getJson).not.toHaveBeenCalled();
+  });
+
+  it("同じ開催日の大会が並んでいても、1 件ずつ判定したときと同じ結果になる", async () => {
+    stubUpstream([
+      recent(1, "2026-10-17", "P-1"),
+      recent(2, "2026-10-17", "R-1"),
+      recent(3, "2026-10-16", "R-2"),
+    ]);
+
+    const refs = [
+      ref(10, "2026-10-15"), // 期間外(同じ日が続く)
+      ref(11, "2026-10-15"),
+      ref(1, "2026-10-17"), // 分類待ち
+      ref(2, "2026-10-17"), // 揃っている(分類待ちと同じ日)
+      ref(4, "2026-10-17"), // 判定を作ったあとに登録された(同じ日)
+      ref(3, "2026-10-16"), // 揃っている
+      ref(12, "2026-10-15"),
+    ];
+
+    expect(ids(await withoutAwaitingCityleagueEvents(refs, (r) => r))).toEqual([10, 11, 2, 3, 12]);
+  });
+
+  // 選手ページの結果は開催日を Date で持つことがある。文字列と同じ扱いになること
+  it("開催日が Date でも、日付が読めない値でも、文字列のときと同じ扱いにする", async () => {
+    stubUpstream([recent(1, "2026-10-17", "P-1"), recent(2, "2026-10-16", "R-1")]);
+
+    const items = [
+      { id: 1, date: new Date("2026-10-17T00:00:00+09:00") }, // 分類待ち
+      { id: 2, date: new Date("2026-10-16T00:00:00+09:00") }, // 揃っている
+      { id: 2, date: new Date("2026-10-16T00:00:00+09:00") }, // 同じ日時の別の Date
+      { id: 5, date: new Date("2026-10-15T00:00:00+09:00") }, // 期間外
+      { id: 6, date: "日付ではない" }, // 読めない日付は期間外として出す
+      { id: 7, date: new Date(NaN) },
+    ];
+
+    expect(ids(await withoutAwaitingCityleagueEvents(items, (item) => item))).toEqual([
+      2, 2, 5, 6, 7,
+    ]);
   });
 
   // 上流や vslab の障害で新しい結果がどこにも出なくなるのを避ける

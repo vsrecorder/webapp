@@ -1,3 +1,5 @@
+import { cache } from "react";
+
 import { CityleagueResultGetEventsResponseType } from "@app/types/cityleague_result";
 import { CityleagueResultType } from "@app/types/cityleague_result";
 import { CityleagueScheduleType } from "@app/types/cityleague_schedule";
@@ -51,7 +53,12 @@ export type CityleagueEventRef = {
 // デッキ分類(バトラボ)がまだ揃わない直近の大会は含めない。結果一覧と個別ページはその大会を
 // まだ出さないので、ハブや関連リンクに残すと一覧に無い大会が並び、押すと 404 になる
 // (cityleagueAwaitingServer)。
-export async function getAllCityleagueEventRefs(): Promise<CityleagueEventRef[]> {
+//
+// 1 回の表示の中では一度だけ組み立てる(React の cache)。「最近開催」は起点の日付を決めるのと
+// 期間内の大会を絞るのとで 2 度呼び、ハブの各ページも generateMetadata と本体の両方から呼ぶ。
+// 取得そのものは Next が同じ URL をまとめるが、660KB の読み取りと 8,000 件超の詰め替え・判定は
+// 呼ぶたびに走っていた。返す配列は呼び出し側で共有されるので、書き換えないこと。
+export const getAllCityleagueEventRefs = cache(async (): Promise<CityleagueEventRef[]> => {
   // 新しい結果が登録されると増えるので、確定した個別ページより短く持つ
   const ret = await getJson<CityleagueResultGetEventsResponseType>(
     `/api/v1beta/cityleague_results/events`,
@@ -64,7 +71,7 @@ export async function getAllCityleagueEventRefs(): Promise<CityleagueEventRef[]>
   }));
 
   return withoutAwaitingCityleagueEvents(refs, (ref) => ref);
-}
+});
 
 // リーグ区分ごとの開催数は、クライアント部品からも使うので別ファイルに置く(このファイルはサーバ側の取得を含む)
 export {

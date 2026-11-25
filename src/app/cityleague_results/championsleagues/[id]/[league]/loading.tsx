@@ -6,6 +6,7 @@ import { Card, CardBody, CardHeader, Skeleton } from "@heroui/react";
 
 import PinnedBar from "@app/components/molecules/PinnedBar";
 import { CHAMPIONSLEAGUE_RESULT_BAR_CLASS } from "@app/components/organisms/Championsleague/championsleagueResultBar";
+import { championsleagueSummarySkeletonLines } from "@app/components/organisms/Championsleague/championsleagueSummarySkeleton";
 
 import CityleagueResultCardSkeleton from "@app/components/organisms/Cityleague/Skeleton/CityleagueResultCardSkeleton";
 
@@ -22,12 +23,13 @@ const RANK_SECTION_CARD_COUNTS = [1, 1, 2, 4];
 // つまりこのファイルが無いと、区分一覧からタップしてもサーバの描画が終わるまで
 // 画面が前のページのまま固まる。
 //
-// loading.tsx は props を受け取らないので、大会の ID はクライアント側で URL から読む(useParams)。
+// loading.tsx は props を受け取らないので、大会の ID と区分はクライアント側で URL から読む(useParams)。
 export default function Loading() {
-  const { id } = useParams<{ id: string }>();
+  const { id, league } = useParams<{ id: string; league: string }>();
   // 2027 シーズン以降の大会(ID に年が入っている)だけ、入賞カードにデッキの種類の行を取る。
   // 旧シーズン(『30th CELEBRATION』環境より前)の大会には種類が無く、取ると骨格にだけ出る
   const withDeckArchetype = isDeckArchetypeChampionsleague(id);
+  const summaryLines = championsleagueSummarySkeletonLines(id, league);
 
   return (
     // 上の余白(旧 pt-1)は実体と同じく先頭の固定バーの中身が持つ
@@ -68,14 +70,16 @@ export default function Loading() {
             <Skeleton className="h-4 w-28 rounded-md" />
           </div>
 
-          {/* 冒頭の要約文。実体は text-tiny / leading-relaxed で、390px 幅では実測5行・98px
-              (区分6件中5件。残り1件は4行)。5本 × (h-3 + gap) で組む */}
+          {/* 冒頭の要約文。実体は text-tiny / leading-relaxed(1行 19.5px)。390px 幅の実測は多くが
+              4〜5行で、1日目大会と2日目大会に分かれた区分は6行。
+              1本 12px + 間隔 8px で、上下の 3px と合わせて実体の高さとほぼ揃う(5行 98px、6行 118px) */}
           <div className="flex flex-col gap-2 py-[3px]">
-            <Skeleton className="h-3 w-full rounded-md" />
-            <Skeleton className="h-3 w-full rounded-md" />
-            <Skeleton className="h-3 w-full rounded-md" />
-            <Skeleton className="h-3 w-full rounded-md" />
-            <Skeleton className="h-3 w-4/5 rounded-md" />
+            {Array.from({ length: summaryLines }).map((_, lineIndex) => (
+              <Skeleton
+                key={lineIndex}
+                className={`h-3 rounded-md ${lineIndex === summaryLines - 1 ? "w-4/5" : "w-full"}`}
+              />
+            ))}
           </div>
         </CardBody>
       </Card>

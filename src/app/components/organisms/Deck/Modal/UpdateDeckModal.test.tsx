@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { SWRConfig } from "swr";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -133,5 +133,66 @@ describe("UpdateDeckModal", () => {
     expect(screen.getByRole("button", { name: "更新" }).hasAttribute("disabled")).toBe(
       true,
     );
+  });
+  /*
+   * 更新の失敗で入力を消さない。以前は失敗時にもモーダルを閉じる処理を呼んでおり、
+   * その後始末が入力を元の値へ戻していたので、デッキ名・アイコン・タグを入れ直すことになっていた。
+   */
+  describe("更新の結果", () => {
+    const json = { "content-type": "application/json" };
+    const updateButton = () => screen.getByRole("button", { name: "更新" });
+
+    // PUT /api/decks/{id} だけ指定の応答を返し、ほか(アイコン・タグの一覧など)は空で返す
+    const stubDeckPut = (respond: () => Response) => {
+      const fetchMock = vi.fn(async (url: string, init?: RequestInit) =>
+        String(url) === `/api/decks/${deck.id}` && init?.method === "PUT"
+          ? respond()
+          : new Response("[]", { headers: json }),
+      );
+      vi.stubGlobal("fetch", fetchMock);
+
+      return () =>
+        fetchMock.mock.calls.filter(
+          ([url, init]) => String(url) === `/api/decks/${deck.id}` && init?.method === "PUT",
+        ).length;
+    };
+
+    it("失敗しても閉じず、入力したデッキ名が残り、そのまま再送できる", async () => {
+      const putCount = stubDeckPut(
+        () => new Response(JSON.stringify({ message: "bad request" }), { status: 400, headers: json }),
+      );
+      const onOpenChange = vi.fn();
+      const setDeck = vi.fn();
+      render(<UpdateDeckModal deck={deck} setDeck={setDeck} isOpen onOpenChange={onOpenChange} />);
+
+      fireEvent.change(deckNameInput(), { target: { value: "変更後のデッキ名" } });
+      fireEvent.click(updateButton());
+
+      await waitFor(() => expect(putCount()).toBe(1));
+      await waitFor(() => expect(updateButton().hasAttribute("disabled")).toBe(false));
+
+      expect(deckNameInput().value).toBe("変更後のデッキ名");
+      expect(setDeck).not.toHaveBeenCalled();
+      expect(onOpenChange).not.toHaveBeenCalled();
+
+      fireEvent.click(updateButton());
+      await waitFor(() => expect(putCount()).toBe(2));
+    });
+
+    it("成功したら反映して閉じる", async () => {
+      const putCount = stubDeckPut(
+        () => new Response(JSON.stringify({ ...deck, name: "変更後のデッキ名" }), { headers: json }),
+      );
+      const onOpenChange = vi.fn();
+      const setDeck = vi.fn();
+      render(<UpdateDeckModal deck={deck} setDeck={setDeck} isOpen onOpenChange={onOpenChange} />);
+
+      fireEvent.change(deckNameInput(), { target: { value: "変更後のデッキ名" } });
+      fireEvent.click(updateButton());
+
+      await waitFor(() => expect(setDeck).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(onOpenChange).toHaveBeenCalled());
+      expect(putCount()).toBe(1);
+    });
   });
 });

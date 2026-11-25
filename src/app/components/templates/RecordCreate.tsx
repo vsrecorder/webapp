@@ -37,6 +37,10 @@ import {
   reactSelectTheme,
 } from "@app/components/molecules/Select/reactSelectStyles";
 import { useTonamelEventCheck } from "@app/hooks/useTonamelEventCheck";
+import {
+  TONAMEL_EVENT_INVALID_MESSAGE,
+  TONAMEL_EVENT_UNAVAILABLE_MESSAGE,
+} from "@app/utils/tonamelEvent";
 import { Image } from "@heroui/react";
 import { Button } from "@heroui/react";
 import { Skeleton } from "@heroui/react";
@@ -458,20 +462,26 @@ export default function TemplateRecordCreate({
 
   const [tonamelEventId, setTonamelEventId] = useState<string>("");
   /*
-   * Tonamel API での確認結果。どのイベントIDの結果かも持ち、入力中のIDと一致するときだけ使う
-   * (未入力・確認中は前回の結果を出さない)。valid が false なら存在しないID。
+   * Tonamel API での確認結果(入力中のIDのものだけ。未入力・確認中は前回の結果を出さない)。
    *
-   * 妥当かどうか(isValidatedTonamelEventId)は、未入力・確認中は「無効」ではないので true。
-   * false にすると、サーバレンダリングされた HTML の時点で入力欄が赤くなり
+   * 入力欄を赤くするのは「実在しない」「確認できなかった」と分かったあとだけにする。
+   * 未入力・確認中も赤くすると、サーバレンダリングされた HTML の時点で入力欄が赤くなり
    * 「無効なイベントIDです」の行(24px)が入り、ハイドレーション直後にその行が消えて
    * 下のブロックが跳ね上がる。
+   *
+   * 一方、作成ボタンを押せるのは「実在する」と確認できたときだけにする(isValidTonamelEvent)。
+   * 以前は「無効と分かっていない」あいだ押せたので、IDを打ってすぐ押すと、確認が終わる前に
+   * 実在しないイベントの記録を作れた(上流はIDの形しか見ない)。
    */
   const {
+    isValid: isValidTonamelEvent,
     isInvalidInput: isInvalidTonamelEventId,
+    isUnavailable: isTonamelEventUnavailable,
     title: tonamelEventTitle,
     image: tonamelEventImage,
   } = useTonamelEventCheck(tonamelEventId);
-  const isValidatedTonamelEventId = !isInvalidTonamelEventId;
+  // 入力欄の下にメッセージを出すか(実在しない、または確認できなかった)
+  const showsTonamelEventError = isInvalidTonamelEventId || isTonamelEventUnavailable;
   const [tonamelEventDate, setTonamelEventDate] = useState<CalendarDate>(
     today(JST_TIME_ZONE),
   );
@@ -669,9 +679,8 @@ export default function TemplateRecordCreate({
   // 公式イベントは候補を選んでいれば作成できる
   const isDisabledCreateOfficialEventRecord = !selectedOfficialEventOption || isSubmitting;
 
-  // Tonamelは開催日(常に既定値あり)とイベントIDが必須。デッキは任意のため必須にしない
-  const isDisabledCreateTonamelEventRecord =
-    !(tonamelEventId && isValidatedTonamelEventId) || isSubmitting;
+  // Tonamelは開催日(常に既定値あり)と、実在を確認できたイベントIDが必須。デッキは任意のため必須にしない
+  const isDisabledCreateTonamelEventRecord = !isValidTonamelEvent || isSubmitting;
 
   // 上限を超えたままではAPIが400を返すため、作成させない
   const isUnofficialEventTitleTooLong = exceedsTextLength(
@@ -1582,8 +1591,12 @@ export default function TemplateRecordCreate({
                   type="text"
                   radius="none"
                   placeholder="例）YFUVY"
-                  isInvalid={!isValidatedTonamelEventId}
-                  errorMessage="無効なイベントIDです"
+                  isInvalid={showsTonamelEventError}
+                  errorMessage={
+                    isTonamelEventUnavailable
+                      ? TONAMEL_EVENT_UNAVAILABLE_MESSAGE
+                      : TONAMEL_EVENT_INVALID_MESSAGE
+                  }
                   value={tonamelEventId}
                   onChange={(e) => setTonamelEventId(e.target.value)}
                   onFocus={(e) => scrollIntoViewAfterKeyboard(e.currentTarget)}
@@ -1614,9 +1627,7 @@ export default function TemplateRecordCreate({
                 </div>
                 <div className="w-36 pb-0.75">
                   <div className="relative w-full aspect-video overflow-hidden rounded-lg">
-                    {!isValidatedTonamelEventId && (
-                      <Skeleton className="absolute inset-0" />
-                    )}
+                    {showsTonamelEventError && <Skeleton className="absolute inset-0" />}
                     <Image
                       removeWrapper
                       className="absolute inset-0 z-0 w-full h-full object-contain"
@@ -1879,11 +1890,7 @@ export default function TemplateRecordCreate({
 
               <Button
                 color="primary"
-                isDisabled={
-                  !isValidatedTonamelEventId ||
-                  isDisabledCreateTonamelEventRecord ||
-                  isDeckVersionInvalid
-                }
+                isDisabled={isDisabledCreateTonamelEventRecord || isDeckVersionInvalid}
                 onPress={async () => {
                   onOpen();
                   await createTonamelEventRecord(

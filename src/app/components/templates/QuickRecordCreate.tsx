@@ -180,6 +180,22 @@ export default function TemplateQuickRecordCreate({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const submittingRef = useRef(false);
 
+  /*
+   * 途中まで保存できたぶん。
+   *
+   * 保存は 自由形式イベント → 記録 → 対戦 の順に、別々の要求で行う。途中で失敗すると前の段だけが残り、
+   * もう一度押したときに最初からやり直すと、対戦の無い記録や、どの記録からも参照されない
+   * 自由形式イベントがもう 1 件できる(通信が切れた・デプロイ中に当たった、などで起きる)。
+   * 同じ内容でやり直すときは、できているぶんを使い回して続きから行う。
+   *
+   * key は、その段を作るのに使った入力。入力を変えてからやり直したときは一致しないので使い回さない
+   * (前のぶんは残るが、内容の違う記録に対戦を付けてしまうよりよい)。
+   */
+  const savedPartsRef = useRef<{
+    unofficialEvent?: { key: string; id: string };
+    record?: { key: string; record: RecordCreateResponseType };
+  }>({});
+
   // --- 相手デッキの履歴候補 ---
   // 自分の過去マッチ(頻度順)。無ければ全体の直近マッチをダミー候補にする。
   const { data: candidates } = useSWR<OpponentDeckCandidatesGetResponseType>(
@@ -288,90 +304,125 @@ export default function TemplateQuickRecordCreate({
     // 開催日は全種別とも DatePicker(CalendarDate)由来。
     const eventDateISO = `${calendarDateToYmd(eventDate)}T00:00:00Z`;
 
+    // 記録を作るのに使う入力。同じ内容でのやり直しかどうかを、これで見分ける
+    const recordKey = JSON.stringify({
+      eventType,
+      officialEventId: eventType === "official" ? officialEventId : null,
+      officialEventRegulationId: eventType === "official" ? officialEventRegulationId : null,
+      tonamelEventId: eventType === "tonamel" ? tonamelEventId.trim() : "",
+      eventTitle: eventType === "unofficial" ? eventTitle.trim() : "",
+      eventDateISO,
+      selectedDeckId,
+      selectedDeckCodeId,
+    });
+
+    // 記録と対戦の両方が保存できたときの記録ID。このあとの後処理で例外が出ても、失敗とは扱わない
+    let savedRecordId: string | null = null;
+
     try {
       // 1. 記録を作成する。公式は official_event_id、Tonamelは tonamel_event_id、
       //    自由形式は先に自由形式イベントを作ってから紐づける。
-      let recordReq: RecordCreateRequestType;
-      if (eventType === "official" && officialEventId !== null) {
-        recordReq = {
-          official_event_id: officialEventId,
-          tonamel_event_id: "",
-          friend_id: "",
-          deck_id: selectedDeckId,
-          deck_code_id: selectedDeckCodeId,
-          private_flg: true,
-          ignore_stats_flg: false,
-          regulation_id: officialEventRegulationId,
-          tcg_meister_url: "",
-          memo: "",
-          event_date: eventDateISO,
-          unofficial_event_id: "",
-          // タグは大会順位のように結果が出てから付けるものが多いため、
-          // 作成時は空にして記録詳細から付けてもらう。
-          tag_ids: [],
-        };
-      } else if (eventType === "tonamel") {
-        recordReq = {
-          official_event_id: 0,
-          tonamel_event_id: tonamelEventId.trim(),
-          friend_id: "",
-          deck_id: selectedDeckId,
-          deck_code_id: selectedDeckCodeId,
-          private_flg: true,
-          ignore_stats_flg: false,
-          regulation_id: DEFAULT_REGULATION_ID,
-          tcg_meister_url: "",
-          memo: "",
-          event_date: eventDateISO,
-          unofficial_event_id: "",
-          // タグは大会順位のように結果が出てから付けるものが多いため、
-          // 作成時は空にして記録詳細から付けてもらう。
-          tag_ids: [],
-        };
+      //    前回の失敗で同じ内容の記録を作ってあれば、作り直さずそれに対戦を付ける(savedPartsRef)。
+      let record: RecordCreateResponseType;
+
+      if (savedPartsRef.current.record?.key === recordKey) {
+        record = savedPartsRef.current.record.record;
       } else {
-        const unofficialEventReq: UnofficialEventCreateRequestType = {
-          title: eventTitle.trim() || "対戦記録",
-          date: eventDateISO,
-        };
-        const eventRes = await fetch("/api/unofficial_events", {
+        let recordReq: RecordCreateRequestType;
+        if (eventType === "official" && officialEventId !== null) {
+          recordReq = {
+            official_event_id: officialEventId,
+            tonamel_event_id: "",
+            friend_id: "",
+            deck_id: selectedDeckId,
+            deck_code_id: selectedDeckCodeId,
+            private_flg: true,
+            ignore_stats_flg: false,
+            regulation_id: officialEventRegulationId,
+            tcg_meister_url: "",
+            memo: "",
+            event_date: eventDateISO,
+            unofficial_event_id: "",
+            // タグは大会順位のように結果が出てから付けるものが多いため、
+            // 作成時は空にして記録詳細から付けてもらう。
+            tag_ids: [],
+          };
+        } else if (eventType === "tonamel") {
+          recordReq = {
+            official_event_id: 0,
+            tonamel_event_id: tonamelEventId.trim(),
+            friend_id: "",
+            deck_id: selectedDeckId,
+            deck_code_id: selectedDeckCodeId,
+            private_flg: true,
+            ignore_stats_flg: false,
+            regulation_id: DEFAULT_REGULATION_ID,
+            tcg_meister_url: "",
+            memo: "",
+            event_date: eventDateISO,
+            unofficial_event_id: "",
+            // タグは大会順位のように結果が出てから付けるものが多いため、
+            // 作成時は空にして記録詳細から付けてもらう。
+            tag_ids: [],
+          };
+        } else {
+          const unofficialEventReq: UnofficialEventCreateRequestType = {
+            title: eventTitle.trim() || "対戦記録",
+            date: eventDateISO,
+          };
+          // 前回の失敗で同じ内容の自由形式イベントを作ってあれば、それを使う
+          const eventKey = JSON.stringify(unofficialEventReq);
+          let unofficialEventId =
+            savedPartsRef.current.unofficialEvent?.key === eventKey
+              ? savedPartsRef.current.unofficialEvent.id
+              : "";
+
+          if (!unofficialEventId) {
+            const eventRes = await fetch("/api/unofficial_events", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(unofficialEventReq),
+            });
+            if (!eventRes.ok) {
+              const t = await eventRes.json();
+              throw new Error(`HTTP error: ${eventRes.status} Message: ${t.message}`);
+            }
+            const unofficialEvent: UnofficialEventCreateResponseType = await eventRes.json();
+            unofficialEventId = unofficialEvent.id;
+            savedPartsRef.current.unofficialEvent = { key: eventKey, id: unofficialEventId };
+          }
+          recordReq = {
+            official_event_id: 0,
+            tonamel_event_id: "",
+            friend_id: "",
+            deck_id: selectedDeckId,
+            deck_code_id: selectedDeckCodeId,
+            private_flg: true,
+            ignore_stats_flg: false,
+            regulation_id: DEFAULT_REGULATION_ID,
+            tcg_meister_url: "",
+            memo: "",
+            event_date: eventDateISO,
+            unofficial_event_id: unofficialEventId,
+            // タグは大会順位のように結果が出てから付けるものが多いため、
+            // 作成時は空にして記録詳細から付けてもらう。
+            tag_ids: [],
+          };
+        }
+
+        const recordRes = await fetch("/api/records", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(unofficialEventReq),
+          body: JSON.stringify(recordReq),
         });
-        if (!eventRes.ok) {
-          const t = await eventRes.json();
-          throw new Error(`HTTP error: ${eventRes.status} Message: ${t.message}`);
+        if (!recordRes.ok) {
+          const t = await recordRes.json();
+          throw new Error(`HTTP error: ${recordRes.status} Message: ${t.message}`);
         }
-        const unofficialEvent: UnofficialEventCreateResponseType = await eventRes.json();
-        recordReq = {
-          official_event_id: 0,
-          tonamel_event_id: "",
-          friend_id: "",
-          deck_id: selectedDeckId,
-          deck_code_id: selectedDeckCodeId,
-          private_flg: true,
-          ignore_stats_flg: false,
-          regulation_id: DEFAULT_REGULATION_ID,
-          tcg_meister_url: "",
-          memo: "",
-          event_date: eventDateISO,
-          unofficial_event_id: unofficialEvent.id,
-          // タグは大会順位のように結果が出てから付けるものが多いため、
-          // 作成時は空にして記録詳細から付けてもらう。
-          tag_ids: [],
-        };
+        record = await recordRes.json();
+        // 自由形式イベントはこの記録に紐づいたので、覚えておくのは記録だけでよい
+        savedPartsRef.current = { record: { key: recordKey, record } };
       }
-
-      const recordRes = await fetch("/api/records", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(recordReq),
-      });
-      if (!recordRes.ok) {
-        const t = await recordRes.json();
-        throw new Error(`HTTP error: ${recordRes.status} Message: ${t.message}`);
-      }
-      const record: RecordCreateResponseType = await recordRes.json();
 
       // 2. 記録に紐づく対戦を1件作成する(BO1)。
       //    サイド数などの隠し項目は既定値、勝敗・先後・相手デッキ・スプライトをユーザー入力から反映する。
@@ -416,6 +467,10 @@ export default function TemplateQuickRecordCreate({
         const t = await matchRes.json();
         throw new Error(`HTTP error: ${matchRes.status} Message: ${t.message}`);
       }
+
+      // 記録と対戦がそろった。ここから先で失敗しても、もう一度押して作り直させない
+      savedRecordId = record.id;
+      savedPartsRef.current = {};
 
       if (toastId) closeToast(toastId);
 
@@ -485,6 +540,27 @@ export default function TemplateQuickRecordCreate({
       }
     } catch (error) {
       console.error(error);
+
+      /*
+       * 記録と対戦は保存できていて、そのあとの後処理(計測・環境の取得など)で例外が出た場合。
+       * 失敗と出すと、もう一度押されて同じ記録と対戦が二重にできる。保存は済んでいるので、
+       * 成功として記録の画面へ進む。
+       */
+      if (savedRecordId) {
+        if (toastId) closeToast(toastId);
+        addToast({
+          title: "記録作成完了",
+          description: "最初の1件を記録しました",
+          color: "success",
+          timeout: 3000,
+        });
+        submittingRef.current = false;
+        setIsSubmitting(false);
+        setIsNavigating(true);
+        router.push("/records/" + savedRecordId);
+        return;
+      }
+
       const errorMessage =
         error instanceof Error ? error.message : "不明なエラーが発生しました";
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type RefObject, type Dispatch, type SetStateAction } from "react";
+import { useRef, useState, type RefObject, type Dispatch, type SetStateAction } from "react";
 
 import {
   Table,
@@ -87,6 +87,40 @@ function buildSections(matches: MatchGetResponseType[]): Section[] {
       items: matches.filter((m) => sectionKeyOf(m) === key),
     }))
     .filter((section) => section.items.length > 0);
+}
+
+/*
+ * 並び替えに失敗したとき、サーバが受け付けた最後の並び(confirmed)へ戻す。
+ *
+ * confirmed をそのまま入れ直さないのは、送信しているあいだに対戦が足された・直された場合に、
+ * そのぶんを巻き戻さないため。いまの一覧(current)の中身は保ち、順番と、セクションを跨いだ移動で
+ * 付け替えた予選/決勝のしるしだけを戻す。confirmed に無い対戦(あとから足されたもの)は末尾に残す。
+ */
+export function restoreMatchOrder(
+  current: MatchGetResponseType[] | null,
+  confirmed: MatchGetResponseType[],
+): MatchGetResponseType[] | null {
+  if (!current) return current;
+
+  const confirmedById = new Map(confirmed.map((m, index) => [m.id, { match: m, index }]));
+
+  return current
+    .map((m, index) => {
+      const hit = confirmedById.get(m.id);
+
+      return hit
+        ? {
+            order: hit.index,
+            match: {
+              ...m,
+              qualifying_round_flg: hit.match.qualifying_round_flg,
+              final_tournament_flg: hit.match.final_tournament_flg,
+            },
+          }
+        : { order: confirmed.length + index, match: m };
+    })
+    .sort((x, y) => x.order - y.order)
+    .map(({ match }) => match);
 }
 
 // 指定した対戦を1つ上/下に移動する。セクションの境界を跨ぐ場合は、
@@ -215,6 +249,25 @@ export default function Matches({
   const resolveTags = useTagResolver();
   const [selectedMatch, setSelectedMatch] = useState<MatchGetResponseType | null>(null);
 
+  /*
+   * 並び替えの送信の状態。
+   *
+   * 矢印は続けて押される(3 つ上へ動かすなら 3 回)。以前は押すたびに、その時点の全体の並びを
+   * 別々の PUT で送っていた。届く順番は保証されないので、後から押したぶんが先に届くと、
+   * サーバには古い並びが残り、画面は新しい並びのままになる(読み込み直すと並びが変わる)。
+   * 先に送ったぶんが失敗した場合は、後のぶんがサーバに通っているのに画面だけ昔の並びへ戻っていた。
+   *
+   * そこで送信は 1 本ずつにする。送っている最中に押されたぶんは画面にだけ反映しておき、
+   * 終わったら最新の並びを 1 回で送る(途中の並びは送らない)。
+   *   confirmed … サーバが受け付けた最後の並び(失敗したときに戻す先)
+   *   pending   … まだ送っていない最新の並び
+   */
+  const orderSyncRef = useRef<{
+    confirmed: MatchGetResponseType[] | null;
+    pending: MatchGetResponseType[] | null;
+    sending: boolean;
+  }>({ confirmed: null, pending: null, sending: false });
+
   const {
     isOpen: isOpenForUpdateMatchModal,
     onOpen: onOpenForUpdateMatchModal,
@@ -289,39 +342,59 @@ export default function Matches({
     return items;
   })();
 
-  // 並び替え結果をAPIへ反映する。失敗時は直前の状態に戻す。
+  // 並び替えを画面に反映し、API へ送る(送信の順序の扱いは orderSyncRef を参照)
   const handleMove = async (matchId: string, direction: "up" | "down") => {
     if (!matches || !record) return;
 
     const reordered = moveMatch(matches, matchId, direction);
     if (!reordered) return;
 
-    const previous = matches;
+    const sync = orderSyncRef.current;
+
+    // 送信中でなければ、いまの並びがサーバと一致している並び
+    if (!sync.sending) sync.confirmed = matches;
+    sync.pending = reordered;
     setMatches(reordered);
 
+    // 送信中なら、終わったあとに最新の並びが続けて送られる
+    if (sync.sending) return;
+
+    sync.sending = true;
+
     try {
-      const body: { matches: MatchOrderItemType[] } = {
-        matches: reordered.map((m) => ({
-          id: m.id,
-          qualifying_round_flg: m.qualifying_round_flg,
-          final_tournament_flg: m.final_tournament_flg,
-        })),
-      };
+      while (sync.pending) {
+        const target = sync.pending;
+        sync.pending = null;
 
-      const res = await fetch(`/api/records/${record.id}/matches/order`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-      });
+        const body: { matches: MatchOrderItemType[] } = {
+          matches: target.map((m) => ({
+            id: m.id,
+            qualifying_round_flg: m.qualifying_round_flg,
+            final_tournament_flg: m.final_tournament_flg,
+          })),
+        };
 
-      if (!res.ok) {
-        throw new Error(`HTTP error: ${res.status}`);
+        const res = await fetch(`/api/records/${record.id}/matches/order`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+        });
+
+        if (!res.ok) {
+          throw new Error(`HTTP error: ${res.status}`);
+        }
+
+        sync.confirmed = target;
       }
     } catch (err) {
       console.error(err);
-      setMatches(previous);
+
+      // 送れなかったぶん(送信待ちも含む)は捨て、サーバが受け付けた最後の並びへ戻す
+      sync.pending = null;
+      const confirmed = sync.confirmed;
+      if (confirmed) setMatches((current) => restoreMatchOrder(current, confirmed));
 
       addToast({
         title: "並び替えに失敗",
@@ -329,6 +402,8 @@ export default function Matches({
         color: "danger",
         timeout: 5000,
       });
+    } finally {
+      sync.sending = false;
     }
   };
 

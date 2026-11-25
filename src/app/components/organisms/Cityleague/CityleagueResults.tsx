@@ -101,6 +101,20 @@ async function fetchCityleagueResultsByTerm(
 }
 
 /*
+ * 最初から Swiper を作るカードの枚数(残りは画面に近づいてから。CityleagueResult の deferSwiper)。
+ *
+ * 1 日ぶんの一覧は数十枚のカードを最初から並べる(2026-11-15 のオープンリーグで 40 枚)。全部に Swiper を
+ * 作ると、サーバ描画でも Swiper の本体が枚数ぶん組み立てられ、作業機の本番ビルドの CPU プロファイルで
+ * 一覧ページの処理時間の 7% を占めていた(2026-11-25)。ブラウザ側でも、ハイドレーション直後に全部の
+ * Swiper が続けて作られる(開催日ページで長いタスクになっていたのと同じ。そちらは 10/29 に対策済み)。
+ * 仮置きの HTML は Swiper がサーバ描画で出すものと同じ形なので、差し替えても見た目は変わらない。
+ *
+ * 開いた時点で画面に入る先頭のカードまで遅らせると、表示した直後に作り直すことになるので、
+ * 開催日ページ(CityleagueDateEventTabs)と同じ枚数だけ最初から作る。
+ */
+const EAGER_SWIPER_COUNT = 3;
+
+/*
  * タブを切り替えて別のリーグ区分を初めて開いたとき、league_type によらない同じ
  * スケジュールAPIをそれぞれが叩く。進行中の Promise をモジュールスコープで共有して
  * 1本にまとめる。完了したら消すので、マウントのたびに取り直す従来の鮮度は変わらない。
@@ -884,7 +898,7 @@ export default function CityleagueResults({
       )}
 
       <div ref={listRef} className="flex flex-col w-full gap-3">
-        {items.map((event_result) => (
+        {items.map((event_result, index) => (
           <div
             key={event_result.official_event_id}
             id={`cityleague-result-${event_result.official_event_id}`}
@@ -894,6 +908,7 @@ export default function CityleagueResults({
               event_result={event_result}
               official_event={eventsById.get(event_result.official_event_id)}
               deck_archetypes={deckArchetypes}
+              deferSwiper={index >= EAGER_SWIPER_COUNT}
             />
           </div>
         ))}

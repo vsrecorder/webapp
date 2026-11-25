@@ -102,7 +102,7 @@ describe("CityleagueResult の deferSwiper", () => {
     ]);
   });
 
-  it("指定しなければ最初から Swiper を作る(一覧の既定)", () => {
+  it("指定しなければ最初から Swiper を作る(既定。モーダルなど、開いた時点で見るもの)", () => {
     render(<CityleagueResult event_result={EVENT_RESULT} official_event={EVENT} />);
 
     expect(screen.getByTestId("swiper")).toBeTruthy();

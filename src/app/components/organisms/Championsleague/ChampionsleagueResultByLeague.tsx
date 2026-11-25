@@ -107,6 +107,61 @@ export function formatChampionsleagueWinner(
 }
 
 /**
+ * 区分の優勝を載せるイベント。要約文と検索結果の説明文が同じ人を挙げるよう、ここで選ぶ。
+ *
+ * 1日目大会と2日目大会は別々の大会で、それぞれに優勝がいるので両方を載せる(label 付き)。
+ * 予選の組(グループA〜C)と Day2 のように1つの大会の途中が並ぶ区分や、大会名が引けず
+ * どちらか分からないときは、区分の優勝として通りが良い最終日だけにする(label なし)。
+ * イベントの並び順に左右されないよう、開催日の古い順に並べてから選ぶ。
+ */
+export function findHeadlineEvents(
+  schedule: ChampionsleagueScheduleType,
+  eventResults: ChampionsleagueEventResultType[],
+  officialEvents: Record<number, OfficialEventType>,
+): { eventResult: ChampionsleagueEventResultType; label: string | null }[] {
+  const sorted = [...eventResults].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+  );
+  const labeled = sorted.map((eventResult) => ({
+    eventResult,
+    label: buildEventLabel(
+      buildEventHeading(schedule, eventResult, officialEvents[eventResult.official_event_id]),
+      eventResult,
+    ),
+  }));
+
+  if (labeled.length > 1 && labeled.every(({ label }) => /^\d+日目大会$/.test(label))) {
+    return labeled;
+  }
+
+  return sorted.slice(-1).map((eventResult) => ({ eventResult, label: null }));
+}
+
+// 「優勝は△△選手（デッキ分類名）。」。1日目大会と2日目大会に分かれた区分は
+// 「優勝は、1日目大会が△△選手（…）、2日目大会が○○選手（…）。」。優勝が無ければ空文字。
+export function formatHeadlineWinners(
+  schedule: ChampionsleagueScheduleType,
+  eventResults: ChampionsleagueEventResultType[],
+  officialEvents: Record<number, OfficialEventType>,
+  deckSummaries: Record<string, DeckSummaryType>,
+  deckArchetypes: DeckArchetypeMap = {},
+): string {
+  const winners = findHeadlineEvents(schedule, eventResults, officialEvents).flatMap(
+    ({ eventResult, label }) => {
+      const winner = eventResult.results.find((result) => result.rank === 1);
+      if (!winner) return [];
+
+      return [
+        (label ? `、${label}が` : "") +
+          formatChampionsleagueWinner(winner, deckSummaries, deckArchetypes),
+      ];
+    },
+  );
+
+  return winners.length > 0 ? `優勝は${winners.join("")}。` : "";
+}
+
+/**
  * リーグ区分ごとの結果ページ本体。
  *
  * 大会単位で1ページにまとめると入賞者が最大64名になり、マスターだけを見に来た人にも
@@ -151,16 +206,16 @@ export default function ChampionsleagueResultByLeague({
     .find((value) => !!value);
 
   // 検索結果から直接開かれたとき、何のページなのかを冒頭の1文で伝える。
-  // 1日目/2日目に分かれた区分には優勝が2人いるので、代表として最終日のほうを載せる。
-  const winner = eventResults[eventResults.length - 1]?.results.find(
-    (result) => result.rank === 1,
-  );
   const summary =
     `${formatTermRange(schedule)}に${venue ? `${venue}で` : ""}開催された${scheduleTitle}` +
     `${leagueTitle ? `（${leagueTitle}リーグ）` : ""}の結果です。` +
-    (winner
-      ? `優勝は${formatChampionsleagueWinner(winner, deckSummaries, deckArchetypes)}。`
-      : "") +
+    formatHeadlineWinners(
+      schedule,
+      eventResults,
+      officialEvents,
+      deckSummaries,
+      deckArchetypes,
+    ) +
     `入賞${resultCount}名のうち、${deckCodeCount}名のデッキコードとカードリストを掲載しています。`;
 
   return (

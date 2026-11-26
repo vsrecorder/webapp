@@ -120,8 +120,11 @@ export default function CreateDeckCodeModal({
   }, [newdeckcode]);
 
   // 新しいバージョンは、元にした(最新)バージョンのタグを引き継いで初期選択する。
-  // モーダルを開くたびに、継承元 deckcode の付与タグでタグ選択状態を初期化する
-  // (継承元が無い＝最初のバージョン作成時は空のまま)。
+  // モーダルを開くたびに、継承元 deckcode の付与タグでタグ選択状態を初期化する。
+  // 継承元が無い(最初のバージョン)ときはデッキのタグで始める。作ったバージョンのタグで
+  // デッキのタグが置き換わる(サーバが揃える。core-apiserver の syncDeckTagsWithCreatedVersion)ので、
+  // 空で始めると、デッキ登録時に付けたタグが最初のバージョンを作っただけで消えてしまう。
+  // バージョンの無いデッキは latest_deck_code に id の空のものを持つことがあるため、id で見分ける。
   // effect で初期化すると前回の選択での描画が一度挟まるので、前回の値を控えて描画中に初期化する
   //
   // スプライトも同じく、元にしたバージョンの設定を引き継ぐ(その場で変えられる)。
@@ -130,7 +133,8 @@ export default function CreateDeckCodeModal({
   // 変えてもこのバージョンに反映されなくなる(未設定ならデッキのスプライトが表示される)。
   useSyncOnChange({ isOpen, deckcode }, () => {
     if (isOpen) {
-      setTagIds((deckcode?.tags ?? []).map((tag) => tag.id));
+      const initialTags = deckcode?.id ? deckcode.tags : deck?.tags;
+      setTagIds((initialTags ?? []).map((tag) => tag.id));
       setSprites(deckcode?.pokemon_sprites ?? []);
     }
   });
@@ -205,12 +209,16 @@ export default function CreateDeckCodeModal({
       // (サーバが揃えている。usecase/deck_sprite_sync.go)ので、手元のデッキにも当てる。
       // デッキが持つ最新バージョンも入れ替える(デッキ詳細はデッキが差し替わるたびに、
       // 表示中のバージョンをここから入れ直す)
+      // タグも同じく、デッキのタグを作ったバージョンのタグで置き換える(サーバが揃えている。
+      // usecase/deck_code.go の syncDeckTagsWithCreatedVersion)。空でも置き換える(タグを外した結果)。
+      // 応答にタグが無い(想定外の形)ときだけ手元のまま残す
       const applied = applyLatestVersionSprites(deck.pokemon_sprites, [], ret.id, ret.pokemon_sprites);
       setDeck((prev) =>
         prev && prev.id === deck.id
           ? {
               ...prev,
               pokemon_sprites: applied ? applied.deckSprites : prev.pokemon_sprites,
+              tags: ret.tags ?? prev.tags,
               latest_deck_code: ret,
             }
           : prev,

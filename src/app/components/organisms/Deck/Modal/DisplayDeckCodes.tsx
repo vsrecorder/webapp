@@ -148,6 +148,8 @@ export default function DisplayDeckCodesModal({
    * デッキのスプライトと最新バージョンのスプライトは常に同じにする。サーバは最新バージョンの
    * 編集・削除のたびにデッキのスプライトを置き換え、未設定だった過去のバージョンには置き換える前の
    * デッキのスプライトを書き残す(usecase/deck_sprite_sync.go)。ここでは同じ規則を手元に当てる。
+   * タグも同じく、デッキのタグを最新バージョンのタグにする(usecase/deck_tag_sync.go)。
+   * スプライトと違い空(タグなし)でも写し、過去のバージョンへの書き残しは無い。
    * 揃えたあとの一覧を返す(変わらなければ versions をそのまま返す)。
    */
   const syncDeckWithLatestVersion = (versions: DeckCodeType[]): DeckCodeType[] => {
@@ -168,6 +170,8 @@ export default function DisplayDeckCodesModal({
         ? {
             ...prev,
             pokemon_sprites: applied ? applied.deckSprites : prev.pokemon_sprites,
+            // 一覧のバージョンにタグが無い(想定外の形)ときだけ手元のまま残す
+            tags: latest.tags ?? prev.tags,
             latest_deck_code: latest,
           }
         : prev,
@@ -433,15 +437,14 @@ export default function DisplayDeckCodesModal({
           : dc,
       );
 
-      // 最新バージョンのスプライトを変えたら、デッキのスプライトもそれに揃える
       const spritesChanged =
         JSON.stringify(editMemoDeckCode.pokemon_sprites ?? []) !== JSON.stringify(updatedSprites);
       const editedLatest = edited[0]?.id === updated.id;
 
+      // 最新バージョンを編集したら、デッキのタグ・スプライトもそれに揃える(サーバも最新バージョンの
+      // 保存のたびに揃える)。メモやタグだけの保存でも、デッキのタグと持っている最新バージョンを入れ替える
       if (displayDeckCodes) {
-        setDisplayDeckCodes(
-          spritesChanged && editedLatest ? syncDeckWithLatestVersion(edited) : edited,
-        );
+        setDisplayDeckCodes(editedLatest ? syncDeckWithLatestVersion(edited) : edited);
       }
 
       // 表示中のデッキコードが編集対象なら同期する

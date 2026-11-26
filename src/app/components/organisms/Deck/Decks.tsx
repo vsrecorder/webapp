@@ -156,6 +156,16 @@ export default function Decks({
   const [isRefreshing, setIsRefreshing] = useState(
     initialStep !== null && !isInitialFresh,
   );
+  /*
+   * 上の取り直しで一覧を差し替えた回数。DeckCard へ渡し、増えたときだけカードの手元の状態
+   * (デッキ・表示中のバージョン)を取り直した内容で入れ直させる。
+   *
+   * カードは自分のモーダルで行った変更(新バージョンの作成など)を自分の state にだけ持ち、
+   * 一覧(items)には返さない。そのため「渡されるデータが変わったら入れ直す」にすると、
+   * お気に入りの切り替え(items を作り直す)のたびに、作ったばかりのバージョンが古いものへ戻る。
+   * サーバから取り直したとき、つまりこの回数が増えたときだけ入れ直す。
+   */
+  const [refreshCount, setRefreshCount] = useState(0);
   // デッキ一覧の取得に失敗したか。失敗した位置（初回か追加読み込みか）に関わらず、
   // 一覧の末尾にエラーと再読み込みボタンを出す。
   const [error, setError] = useState(false);
@@ -394,6 +404,7 @@ export default function Decks({
         loadedDeckIds.clear();
         step.appended.forEach((d) => loadedDeckIds.add(d.data.id));
         setItems(step.appended);
+        setRefreshCount((n) => n + 1);
         setNextCursor(step.nextCursor);
         setHasMore(step.hasNext);
       } catch (err) {
@@ -668,6 +679,7 @@ export default function Decks({
                 priorityImage={view === "gallery" && index < 2}
                 deckData={deck.data}
                 deckcodeData={deck.data.latest_deck_code}
+                refreshCount={refreshCount}
                 deckUsageStat={deckUsageStats.get(deck.data.id) ?? null}
                 kizunaLevel={kizunaDecks.get(deck.data.id)?.level ?? null}
                 onRemove={handleRemove}

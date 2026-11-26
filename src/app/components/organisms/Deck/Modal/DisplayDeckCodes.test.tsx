@@ -151,3 +151,40 @@ describe("DisplayDeckCodesModal のバージョン編集", () => {
     expect(putCount()).toBe(1);
   });
 });
+
+/*
+ * デッキのタグと最新バージョンのタグは常に揃える(サーバが揃える。usecase/deck_tag_sync.go)。
+ * 最新バージョンのタグを編集したら、手元のデッキのタグもそれに揃え、デッキ情報モーダル・一覧カードに出す。
+ */
+describe("DisplayDeckCodesModal のタグの同期", () => {
+  const newTag = { id: "01KZNTTDTF88D814T7GQHGTAG2", name: "新しいACE SPEC", color: "", text_color: "", preset_flg: false };
+
+  it("最新バージョンを保存したら、デッキのタグをそのバージョンのタグにする", async () => {
+    stubVersionPut(() => new Response(JSON.stringify({ ...version, tags: [newTag] }), { headers: json }));
+    const setDeck = vi.fn();
+    render(
+      <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
+        <DisplayDeckCodesModal
+          deck={deck}
+          setDeck={setDeck}
+          deckcode={version}
+          setDeckCode={() => {}}
+          isOpen
+          onOpenChange={() => {}}
+          onClose={() => {}}
+        />
+      </SWRConfig>,
+    );
+    await openEdit();
+
+    fireEvent.click(saveButton());
+
+    await waitFor(() => expect(setDeck).toHaveBeenCalled());
+    const update = setDeck.mock.calls.at(-1)![0] as (
+      prev: DeckGetByIdResponseType,
+    ) => DeckGetByIdResponseType;
+    const next = update(deck);
+    expect(next.tags).toEqual([newTag]);
+    expect(next.latest_deck_code.tags).toEqual([newTag]);
+  });
+});

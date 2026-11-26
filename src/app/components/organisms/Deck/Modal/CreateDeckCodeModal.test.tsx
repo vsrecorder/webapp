@@ -6,6 +6,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import CreateDeckCodeModal from "@app/components/organisms/Deck/Modal/CreateDeckCodeModal";
 
 import { DeckGetByIdResponseType } from "@app/types/deck";
+import { DeckCodeType } from "@app/types/deck_code";
+import { TagType } from "@app/types/tag";
 
 // jsdom は ResizeObserver を持たない。タグの候補行(HScrollRow)が溢れ判定に使う
 globalThis.ResizeObserver = class {
@@ -122,5 +124,133 @@ describe("CreateDeckCodeModal", () => {
     await waitFor(() => expect(setDeckCode).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(onOpenChange).toHaveBeenCalled());
     expect(postCount()).toBe(1);
+  });
+
+  /*
+   * 新しいバージョンを作ると、デッキのタグもそのバージョンのタグに置き換わる(サーバが揃える)。
+   * 手元のデッキにも当て、デッキ情報モーダル・一覧カードのタグをその場で揃える。
+   */
+  describe("デッキのタグを作ったバージョンのタグに揃える", () => {
+    const tag = (id: string, name: string) =>
+      ({ id, name, color: "", text_color: "", preset_flg: false }) as unknown as TagType;
+    const oldTag = tag("01KZNTTDTF88D814T7GQHGTAG1", "前のACE SPEC");
+    const newTag = tag("01KZNTTDTF88D814T7GQHGTAG2", "新しいACE SPEC");
+
+    const renderWith = (props: {
+      deck: DeckGetByIdResponseType;
+      deckcode: DeckCodeType | null;
+      setDeck: (update: unknown) => void;
+    }) =>
+      render(
+        <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
+          <CreateDeckCodeModal
+            deck={props.deck}
+            setDeck={props.setDeck as never}
+            deckcode={props.deckcode}
+            setDeckCode={() => {}}
+            isOpen
+            onOpenChange={() => {}}
+          />
+        </SWRConfig>,
+      );
+
+    // POST /api/deckcodes に送った本文
+    const postedBody = () => {
+      const call = vi
+        .mocked(fetch)
+        .mock.calls.find(
+          ([url, init]) => String(url) === "/api/deckcodes" && init?.method === "POST",
+        );
+
+      return JSON.parse(String(call?.[1]?.body));
+    };
+
+    it("成功したら、手元のデッキのタグを作ったバージョンのタグで置き換える", async () => {
+      stubDeckCodePost(
+        () =>
+          new Response(
+            JSON.stringify({
+              id: "01KZNTTDTF88D814T7GQHGYNC1",
+              deck_id: deck.id,
+              code: DECK_CODE,
+              tags: [newTag],
+            }),
+            { status: 201, headers: json },
+          ),
+      );
+      const setDeck = vi.fn();
+      const deckWithOldTag = { ...deck, tags: [oldTag] } as DeckGetByIdResponseType;
+      renderWith({ deck: deckWithOldTag, deckcode: null, setDeck });
+
+      fireEvent.change(codeInput(), { target: { value: DECK_CODE } });
+      fireEvent.click(createButton());
+
+      await waitFor(() => expect(setDeck).toHaveBeenCalledTimes(1));
+      const update = setDeck.mock.calls[0][0] as (
+        prev: DeckGetByIdResponseType,
+      ) => DeckGetByIdResponseType;
+      expect(update(deckWithOldTag).tags).toEqual([newTag]);
+    });
+
+    it("作ったバージョンがタグなしなら、デッキのタグも外す", async () => {
+      stubDeckCodePost(
+        () =>
+          new Response(
+            JSON.stringify({
+              id: "01KZNTTDTF88D814T7GQHGYNC1",
+              deck_id: deck.id,
+              code: DECK_CODE,
+              tags: [],
+            }),
+            { status: 201, headers: json },
+          ),
+      );
+      const setDeck = vi.fn();
+      const deckWithOldTag = { ...deck, tags: [oldTag] } as DeckGetByIdResponseType;
+      // 元にしたバージョンがタグなしなら、タグなしで作られる
+      const base = { id: "01KZNTTDTF88D814T7GQHGYNB1", deck_id: deck.id, code: DECK_CODE, tags: [] };
+      renderWith({ deck: deckWithOldTag, deckcode: base as unknown as DeckCodeType, setDeck });
+
+      fireEvent.change(codeInput(), { target: { value: DECK_CODE } });
+      fireEvent.click(createButton());
+
+      await waitFor(() => expect(setDeck).toHaveBeenCalledTimes(1));
+      expect(postedBody().tag_ids).toEqual([]);
+      const update = setDeck.mock.calls[0][0] as (
+        prev: DeckGetByIdResponseType,
+      ) => DeckGetByIdResponseType;
+      expect(update(deckWithOldTag).tags).toEqual([]);
+    });
+
+    /*
+     * 最初のバージョンは元にするバージョンが無い。空のタグで作ると、デッキ登録時に付けたタグが
+     * 消えてしまうので、デッキのタグで始める。
+     * バージョンの無いデッキは id の空の latest_deck_code を持つことがあり、それも「元が無い」と扱う
+     */
+    it.each([
+      ["null", null],
+      ["id の空のもの", { id: "", code: "", tags: null } as unknown as DeckCodeType],
+    ])("元にするバージョンが無い(%s)ときは、デッキのタグを付けて作る", async (_, deckcode) => {
+      stubDeckCodePost(
+        () =>
+          new Response(
+            JSON.stringify({
+              id: "01KZNTTDTF88D814T7GQHGYNC1",
+              deck_id: deck.id,
+              code: DECK_CODE,
+              tags: [oldTag],
+            }),
+            { status: 201, headers: json },
+          ),
+      );
+      const setDeck = vi.fn();
+      renderWith({ deck: { ...deck, tags: [oldTag] } as DeckGetByIdResponseType, deckcode, setDeck });
+
+      fireEvent.change(codeInput(), { target: { value: DECK_CODE } });
+      fireEvent.click(createButton());
+
+      await waitFor(() => expect(setDeck).toHaveBeenCalledTimes(1));
+      expect(postedBody().tag_ids).toEqual([oldTag.id]);
+    });
   });
 });

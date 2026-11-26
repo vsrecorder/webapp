@@ -56,6 +56,12 @@ export type DeckCardView = "gallery" | "list";
 type Props = {
   deckData: DeckGetByIdResponseType | null;
   deckcodeData: DeckCodeType | null;
+  /*
+   * 一覧(Decks)がサーバから取り直して差し替えた回数。増えたら deckData / deckcodeData で
+   * 手元の状態を入れ直す。増えないあいだは、渡されるデータが変わっても入れ直さない
+   * (理由は Decks の refreshCount を参照)。
+   */
+  refreshCount?: number;
   deckUsageStat?: DeckUsageItemType | null;
   /*
    * きずなLv.（0〜255）。灯の濃さ・スプライトの揺れ方と、数値の表示に使う。
@@ -112,6 +118,7 @@ function formatPercentInt(rate: number): string {
 export default function DeckCard({
   deckData,
   deckcodeData,
+  refreshCount = 0,
   deckUsageStat,
   kizunaLevel,
   onRemove,
@@ -124,6 +131,23 @@ export default function DeckCard({
 }: Props) {
   const [deck, setDeck] = useState<DeckGetByIdResponseType | null>(deckData);
   const [deckcode, setDeckCode] = useState<DeckCodeType | null>(deckcodeData);
+
+  /*
+   * 一覧がサーバから取り直したら、手元の状態を取り直した内容で入れ直す。
+   *
+   * ブラウザの「戻る」では一覧の初期データ(サーバ描画の結果)が使い回され、カードはその古い
+   * データで state を作る。一覧はマウント直後に取り直して差し替えるが、state は初期値しか
+   * 見ないので、入れ直さないと古いまま残る。デッキ詳細ページで新しいバージョンを作って戻ると、
+   * 自動で開き直したデッキ情報モーダルが前のバージョンを出し続けていた
+   * (件数だけは SWR から取り直されて増えるので、件数とデッキコードが食い違う)。
+   * effect で入れ直すと古い内容での描画が一度挟まるので、前回の回数を控えて描画中に入れ直す
+   */
+  const [syncedRefreshCount, setSyncedRefreshCount] = useState(refreshCount);
+  if (syncedRefreshCount !== refreshCount) {
+    setSyncedRefreshCount(refreshCount);
+    setDeck(deckData);
+    setDeckCode(deckcodeData);
+  }
 
   // 段階的開示の開閉状態はリスト表示とギャラリー表示で独立させる。
   // リスト表示は先攻/後攻の内訳・デッキコード画像、ギャラリー表示はヒーロー画像より

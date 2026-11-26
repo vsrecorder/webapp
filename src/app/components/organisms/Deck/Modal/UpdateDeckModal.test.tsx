@@ -195,4 +195,45 @@ describe("UpdateDeckModal", () => {
       expect(putCount()).toBe(1);
     });
   });
+
+  /*
+   * デッキのタグと最新バージョンのタグは常に揃える。サーバはデッキを更新すると最新バージョンの
+   * タグも同じものにして返す(usecase/deck_tag_sync.go)。表示中のバージョンにも当てる。
+   */
+  it("デッキのタグを変えたら、表示中の最新バージョンのタグも揃える", async () => {
+    const json = { "content-type": "application/json" };
+    const tag = { id: "t1", name: "大会用", color: "", text_color: "", preset_flg: false };
+    const latest = { id: "v1", deck_id: deck.id, code: "gnLgHn-ZzZzZz-QQLLgg", tags: [], pokemon_sprites: [] };
+    const deckWithLatest = { ...deck, latest_deck_code: latest } as unknown as DeckGetByIdResponseType;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string, init?: RequestInit) =>
+        String(url) === `/api/decks/${deck.id}` && init?.method === "PUT"
+          ? new Response(
+              JSON.stringify({ ...deckWithLatest, tags: [tag], latest_deck_code: { ...latest, tags: [tag] } }),
+              { headers: json },
+            )
+          : new Response("[]", { headers: json }),
+      ),
+    );
+    const setDeckCode = vi.fn();
+    render(
+      <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
+        <UpdateDeckModal
+          deck={deckWithLatest}
+          setDeck={() => {}}
+          setDeckCode={setDeckCode}
+          isOpen
+          onOpenChange={() => {}}
+        />
+      </SWRConfig>,
+    );
+
+    fireEvent.change(deckNameInput(), { target: { value: "変更後のデッキ名" } });
+    fireEvent.click(screen.getByRole("button", { name: "更新" }));
+
+    await waitFor(() => expect(setDeckCode).toHaveBeenCalledTimes(1));
+    const update = setDeckCode.mock.calls[0][0] as (prev: unknown) => { tags: unknown };
+    expect(update(latest).tags).toEqual([tag]);
+  });
 });

@@ -250,24 +250,41 @@ export default function UpdateDeckModal({
       });
 
       /*
-       * デッキのスプライトと最新バージョンのスプライトは常に揃える。最新バージョンに設定があると、
-       * サーバはデッキと同じものへ置き換えて返す(usecase/deck_sprite_sync.go)。
+       * デッキのタグ・スプライトと最新バージョンのそれは常に揃える。サーバは最新バージョンの
+       * タグをデッキと同じものへ置き換え(usecase/deck_tag_sync.go)、スプライトも最新バージョンに
+       * 設定があれば置き換えて返す(usecase/deck_sprite_sync.go)。
        * 変わっていたら、そのバージョンを出している場所(表示中のバージョン・バージョン履歴・
        * 記録一覧のカードなど)へ行き渡らせる。
        */
       const latest = ret.latest_deck_code;
       const previous = deck.latest_deck_code;
-      if (
-        latest?.id &&
-        previous?.id === latest.id &&
-        !sameSprites(previous.pokemon_sprites, latest.pokemon_sprites)
-      ) {
-        const sprites = latest.pokemon_sprites ?? [];
-        setDeckCode?.((prev) =>
-          prev && prev.id === latest.id ? { ...prev, pokemon_sprites: sprites } : prev,
-        );
-        revalidateDeckCodes(deck.id);
-        notifyDeckCodeSpritesChanged({ id: latest.id, pokemon_sprites: sprites });
+      if (latest?.id && previous?.id === latest.id) {
+        const spritesChanged = !sameSprites(previous.pokemon_sprites, latest.pokemon_sprites);
+        // 応答の最新バージョンにタグが無い(想定外の形)ときは、変わっていないものとして扱う
+        const tagsChanged =
+          !!latest.tags &&
+          !sameStringList(
+            (previous.tags ?? []).map((tag) => tag.id),
+            latest.tags.map((tag) => tag.id),
+          );
+
+        if (spritesChanged || tagsChanged) {
+          const sprites = latest.pokemon_sprites ?? [];
+          setDeckCode?.((prev) =>
+            prev && prev.id === latest.id
+              ? {
+                  ...prev,
+                  pokemon_sprites: spritesChanged ? sprites : prev.pokemon_sprites,
+                  tags: tagsChanged ? latest.tags : prev.tags,
+                }
+              : prev,
+          );
+          revalidateDeckCodes(deck.id);
+          // 記録一覧のカードなどはバージョンのスプライトだけを見ている(タグは出していない)
+          if (spritesChanged) {
+            notifyDeckCodeSpritesChanged({ id: latest.id, pokemon_sprites: sprites });
+          }
+        }
       }
 
       onClose();

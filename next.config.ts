@@ -233,6 +233,9 @@ const nextConfig: NextConfig = {
   },
   reactStrictMode: false,
   output: "standalone",
+  // 応答に「x-powered-by: Next.js」を付けない。使っている仕組みを名乗っても得が無く、
+  // 攻撃する側の下調べを楽にするだけなので外す(2026-10-31 のセキュリティ精査 L-5)
+  poweredByHeader: false,
   // undici はサーバ起動時(src/instrumentation.ts)に fetch の keep-alive を延ばすために使う。
   // Node 専用の内部モジュールを含むため、バンドルせず node_modules から読む
   serverExternalPackages: ["undici"],

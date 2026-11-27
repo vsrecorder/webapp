@@ -20,7 +20,11 @@ const cdnUrl = process.env.SAKURA_OBJECTSTORAGE_CDN_URL;
 // アップロードを受け付ける上限サイズ。
 // クライアント(UpdateNameModal)はcanvasで切り抜いた数百KB程度のPNGしか送らないが、
 // このAPIは直接叩けるため、サーバ側でも上限を持つ。
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+// 受け付けるのは 400×400 の PNG だけで、圧縮の効かない雑音の画像でも 650KB に届かない。
+// 本番の nginx は client_max_body_size が既定の 1MB で、それを超える本文はここまで届かずに
+// 413 になる。以前は 5MB にしていて数字が食い違っていたので、nginx と同じ 1MB に揃える
+// (2026-10-31 のセキュリティ精査 L-4)
+const MAX_IMAGE_BYTES = 1 * 1024 * 1024;
 
 // PNGのシグネチャ(先頭8バイト)。
 // クライアントのaccept="image/*"やContentTypeの指定は、APIを直接叩かれれば意味がない。

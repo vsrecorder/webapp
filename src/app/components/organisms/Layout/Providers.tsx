@@ -18,10 +18,13 @@ import UpdateOverlay from "@app/components/organisms/Layout/UpdateOverlay";
 export default function Providers({
   children,
   session,
+  nonce,
 }: Readonly<{
   children: React.ReactNode;
   // ルートレイアウトが auth() で取得済みのセッション。下記の理由で必ず渡すこと。
   session: Session | null;
+  // CSP の nonce。next-themes がテーマ初期化のインラインスクリプトに付ける(下記)
+  nonce?: string;
 }>) {
   return (
     // session: サーバで取得済みの値を渡して、初回の /api/auth/session 取得を無くす。
@@ -54,11 +57,15 @@ export default function Providers({
             自動追従する。手動トグルで切り替えた場合はその選択を保存して優先する。 */}
         {/* disableTransitionOnChange: 切替の瞬間だけ全要素のトランジションを止め、
             要素ごとの変化タイミングのズレ（ちらつき）を防いで一斉に切り替える */}
+        {/* nonce: next-themes は、描画前に <html> へ .dark を付けるインラインスクリプトを出す。
+            CSP の script-src は nonce の付いたスクリプトしか通さないので(utils/csp.ts)、
+            渡さないとこのスクリプトが止められ、ダーク設定の人に最初の一瞬ライトの画面が出る */}
         <NextThemesProvider
           attribute="class"
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
+          nonce={nonce}
         >
           <UserAvatarProvider>
             {/* ToastProviderはポータルせず、その場にトースト領域(z-100)を描画する。

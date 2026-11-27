@@ -7,6 +7,10 @@ import { GoogleAnalytics } from "@next/third-parties/google";
 type Props = {
   gaId: string;
   debugMode: boolean;
+  // CSP の nonce(layout.tsx が x-nonce ヘッダから読んで渡す)。この部品は load 後に
+  // gtag の初期化(インライン)と gtag/js(外部)の <script> を差し込むので、どちらにも付ける。
+  // 付けないと、インラインの初期化が script-src に止められて計測が始まらない
+  nonce?: string;
 };
 
 /*
@@ -20,7 +24,7 @@ type Props = {
  * この部品がマウントされたときに dataLayer の名前を控える仕組みなので、置き換えると
  * イベントが届かなくなる。
  */
-export default function LazyGoogleAnalytics({ gaId, debugMode }: Props) {
+export default function LazyGoogleAnalytics({ gaId, debugMode, nonce }: Props) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -47,5 +51,5 @@ export default function LazyGoogleAnalytics({ gaId, debugMode }: Props) {
     };
   }, []);
 
-  return ready ? <GoogleAnalytics gaId={gaId} debugMode={debugMode} /> : null;
+  return ready ? <GoogleAnalytics gaId={gaId} debugMode={debugMode} nonce={nonce} /> : null;
 }

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { preconnect } from "react-dom";
 
 import "./globals.css";
@@ -12,6 +13,7 @@ import { getStatusBarColor } from "@app/utils/pwaColors";
 import { OG_SIZE, renderSiteOgImage } from "@app/utils/ogImage";
 import { ogImageUrlFor } from "@app/utils/ogStorage";
 import { CDN_ORIGIN } from "@app/utils/cdn";
+import { NONCE_HEADER } from "@app/utils/csp";
 import { SITE_DESCRIPTION, SITE_TITLE } from "@app/utils/siteMeta";
 
 const domain = process.env.VSRECORDER_DOMAIN;
@@ -67,11 +69,18 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // CSP の nonce(src/proxy.ts が要求ごとに作る)。このレイアウトが自分で出すインラインスクリプト、
+  // Google アナリティクスの初期化、next-themes のテーマ初期化(Providers)に付ける。
+  // 付けないと script-src に止められる(utils/csp.ts)。
+  // Next.js が出すスクリプトには Next.js が自分で付けるので、ここで渡す必要は無い。
+  // headers() を読むので全ページが要求ごとの描画になるが、もともと全ページがそうなっている
+  const nonce = (await headers()).get(NONCE_HEADER) ?? undefined;
+
   // 画像 CDN へ先に接続しておく(<head> に <link rel="preconnect"> が入る)。
   // ほぼ全ページがスプライトかデッキ画像をこの CDN から読み、最初の1枚で DNS と TLS の確立を
   // 待っていた(モバイル回線で 100〜300ms)。画像は CORS 無しの <img> なので crossOrigin は付けない。
@@ -97,6 +106,7 @@ export default function RootLayout({
           内容と理由は platformDetectScript.ts を参照。
         */}
         <script
+          nonce={nonce}
           dangerouslySetInnerHTML={{
             __html: platformDetectScript(getStatusBarColor()),
           }}
@@ -105,8 +115,8 @@ export default function RootLayout({
           dev環境では debugMode を有効にし、GA4のDebugViewでイベントを即時検証できるようにする。
           (gtag('config') に debug_mode を渡すだけで、本番の計測には影響しない)
         */}
-        {gaId ? <LazyGoogleAnalytics gaId={gaId} debugMode={isDevEnv()} /> : null}
-        <Layout>{children}</Layout>
+        {gaId ? <LazyGoogleAnalytics gaId={gaId} debugMode={isDevEnv()} nonce={nonce} /> : null}
+        <Layout nonce={nonce}>{children}</Layout>
       </body>
     </html>
   );

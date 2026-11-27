@@ -23,15 +23,18 @@ const DevToolsDragFix =
 
 export default async function TemplateLayout({
   children,
+  nonce,
 }: Readonly<{
   children: React.ReactNode;
+  // CSP の nonce(ルートレイアウトが x-nonce ヘッダから読む)。Providers の next-themes へ渡す
+  nonce?: string;
 }>) {
   const session = await auth();
   // ホーム画面追加バナーはmanifest.tsのPWAアイコンと同じローカルファイルを使う
   const homeScreenIconUrl = isDevEnv() ? "/icon_dev-192x192.png" : "/icon-192x192.png";
 
   return (
-    <Providers session={session}>
+    <Providers session={session} nonce={nonce}>
       <div className="flex">
         <Navigation />
 

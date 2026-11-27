@@ -1,8 +1,6 @@
 import type { NextConfig } from "next";
 
-// 画像・スプライト・バッジを配信しているCDN（SAKURA_OBJECTSTORAGE_CDN_URL と同じ）。
-// この値はクライアントに出るURLとして既にコード中に散在しているため、ここでも直に書く。
-const CDN_ORIGIN = "https://xx8nnpgt.user.webaccel.jp";
+import { staticCsp } from "./src/app/utils/csp";
 
 // Next.js 16 から Turbopack が dev/build の既定バンドラになったが、
 // このプロジェクトは package.json の scripts で --webpack を付けて明示的に降りている。
@@ -20,41 +18,10 @@ const CDN_ORIGIN = "https://xx8nnpgt.user.webaccel.jp";
 // バンドルサイズには効くが、この Turbopack のクラッシュは回避できないことを確認済み。
 // 解消するには HeroUI 3.x への移行が要る（現在 2.8 系、メジャー跨ぎ）。
 //
-// 開発時のみ webpack の HMR が eval を使う
-const isDev = process.env.NODE_ENV !== "production";
-
-// Content-Security-Policy。
-// script-src / style-src の 'unsafe-inline' は現状の作りでは外せない:
-//   - layout.tsx が iOS PWA 判定のインラインスクリプトをペイント前に実行している
-//   - GoogleAnalytics(@next/third-parties)がインラインスクリプトを出す
-//   - experimental.inlineCss で CSS を <style> として埋め込んでいる
-// nonce化にはリクエストごとの middleware が要るため、ここでは
-// 「どこへ通信できるか」「誰に埋め込ませるか」を絞ることを主眼に置く。
-const CSP = [
-  `default-src 'self'`,
-  `script-src 'self' 'unsafe-inline' ${isDev ? `'unsafe-eval' ` : ""}https://www.googletagmanager.com https://apis.google.com`,
-  `style-src 'self' 'unsafe-inline'`,
-  `font-src 'self' data:`,
-  // 画像の読み込み元と、canvasで画像を組み立てるためのdata:/blob:。
-  // 最適化APIを通さない素の<img>(利用者のアイコン等)も対象なので、images.remotePatterns より広い。
-  // tonamel.com はイベントのog:image(core-apiserverが競技ページから抽出した値)を
-  // そのまま<img>で表示するため。カバー画像がサブドメインのCDNから配信される場合に
-  // 備えてワイルドカードも許可する。
-  `img-src 'self' data: blob: ${CDN_ORIGIN} https://lh3.googleusercontent.com https://pbs.twimg.com https://www.pokemon-card.com https://players.pokemon-card.com https://tonamel.com https://*.tonamel.com https://s3.isk01.sakurastorage.jp https://www.googletagmanager.com https://*.google-analytics.com https://*.google.com https://*.g.doubleclick.net`,
-  // Firebase Authentication(identitytoolkit/securetoken)、GA、スプライトCDNへのfetch。
-  // GAの計測ビーコンは region1.google-analytics.com や analytics.google.com にも飛ぶ。
-  // さらにGoogleシグナル有効時は www.google.com/g/collect や *.g.doubleclick.net にも
-  // ビーコンが飛ぶ(Google公式CSPガイドの推奨に従い両ディレクティブへ許可)。
-  // pokemon-card.com はデッキコードの有効性チェック(deckIDCheck.php)をブラウザから直接叩くため。
-  `connect-src 'self' ${CDN_ORIGIN} https://www.pokemon-card.com https://*.googleapis.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://*.google.com https://*.g.doubleclick.net`,
-  // Firebase Authenticationのログインポップアップ/iframe
-  `frame-src 'self' https://*.firebaseapp.com https://accounts.google.com https://apis.google.com`,
-  `object-src 'none'`,
-  `base-uri 'self'`,
-  `form-action 'self'`,
-  // X-Frame-Optionsの後継。埋め込みを一切許可しない。
-  `frame-ancestors 'none'`,
-].join("; ");
+// Content-Security-Policy。組み立ては src/app/utils/csp.ts にまとめてある。
+// ここで付けるのは nonce の無い版で、API や public のファイルなど、src/proxy.ts を通らない応答に届く。
+// ページ(HTML)は proxy.ts が要求ごとの nonce を載せた版に差し替える。
+const CSP = staticCsp();
 
 /*
  * webapp のビルドごとに変わる値。公式イベント一覧の Data Cache のキーに混ぜる

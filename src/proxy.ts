@@ -1,16 +1,18 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { NONCE_HEADER, generateNonce, pageCsp } from "@app/utils/csp";
 import { hasSessionCookie } from "@app/utils/sessionCookie";
 import { signInQuery } from "@app/utils/signInReturn";
 
-// このファイルは2つの役目を持つ。
+// このファイルは3つの役目を持つ。
 //
 //   1. ログイン必須ページへの未認証アクセスを、描画に入る前に 307 で / へ返す
 //      (/?next=<元のパスとクエリ> で返し、ログイン後に元のページへ戻す。utils/signInReturn)
 //   2. UTM付きリンクからの着地で、流入元を first-party Cookie に保存する(施策0-4)
+//   3. ページの応答に、要求ごとの nonce を載せた Content-Security-Policy を付ける
 //
 // Next.js 16 では middleware.ts が proxy.ts に改名された。1プロジェクトに1ファイルしか
-// 置けないため、両方をここに集約している(utm-attribution-plan.md §3.3 は middleware.ts を
+// 置けないため、すべてをここに集約している(utm-attribution-plan.md §3.3 は middleware.ts を
 // 新規に作る前提だが、このプロジェクトでは既存の proxy.ts に相乗りさせる)。
 
 // ---------------------------------------------------------------------------
@@ -199,11 +201,45 @@ export function proxy(request: NextRequest) {
     return saveAttribution(request, NextResponse.redirect(url, 307));
   }
 
-  return saveAttribution(request, NextResponse.next());
+  return saveAttribution(request, nextWithCsp(request));
+}
+
+// ---------------------------------------------------------------------------
+// 3. ページの Content-Security-Policy(nonce)
+// ---------------------------------------------------------------------------
+//
+// 要求ごとに nonce を作り、CSP の script-src に載せる(方針は utils/csp.ts のコメント)。
+//
+// 同じ CSP を要求ヘッダと応答ヘッダの両方に置く。
+//   - 要求ヘッダ: Next.js が描画のときに 'nonce-…' を読み取り、自分の出す <script> に付ける。
+//     x-nonce は layout.tsx が読む(インラインスクリプト・Google アナリティクス・next-themes に渡す)。
+//     利用者が送ってきた同名のヘッダは、ここで上書きされる
+//   - 応答ヘッダ: ブラウザが従う
+//
+// next.config.ts の headers() も全経路に CSP(nonce 無し)を付けているが、ここで付けた応答ヘッダが
+// 優先され、ページには 1 本だけ届く(本番ビルドで確認済み。2 本届くとブラウザは両方を満たす
+// スクリプトしか動かさないので、nonce 付きのスクリプトまで止まる)。
+function nextWithCsp(request: NextRequest): NextResponse {
+  const nonce = generateNonce();
+  const csp = pageCsp(nonce);
+
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set(NONCE_HEADER, nonce);
+  requestHeaders.set("Content-Security-Policy", csp);
+
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
+  response.headers.set("Content-Security-Policy", csp);
+  return response;
 }
 
 export const config = {
   // 全ページを対象にする(UTM の着地はトップページなど未ログインのページで起きる)。
-  // API ルート・Next.js の内部アセット・拡張子付きのファイル(sitemap.xml など)は除く。
-  matcher: ["/((?!api|_next|.*\\..*).*)"],
+  // API ルート・Next.js の内部アセット・ファイル(sw.js・アイコン・sitemap.xml など)は除く。
+  //
+  // 以前は「ドットを含むパス」をすべて除いていた。それだと /foo.php のような存在しないパスの
+  // 404 ページ(HTML)がここを通らず、nonce の無い CSP でスクリプトが止まる。除くのは
+  // ファイルの拡張子で終わるパスだけにする。
+  matcher: [
+    "/((?!api|_next|.*\\.(?:png|jpg|jpeg|gif|webp|avif|svg|ico|txt|xml|js|json|map|css|webmanifest|woff|woff2)$).*)",
+  ],
 };

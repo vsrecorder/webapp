@@ -743,7 +743,7 @@ export async function renderCityleagueDateOgImage(
   );
 }
 
-// data URI に埋め込む画像の上限。CDN のデッキ画像(JPEG)とアイコン(PNG、アップロード上限 5MB)が
+// data URI に埋め込む画像の上限。CDN のデッキ画像(JPEG)とアイコン(PNG、アップロード上限 1MB)が
 // 収まればよく、それを超える応答は取得先の異常とみなして埋め込まない(メモリを食わせないため)。
 const MAX_EMBED_IMAGE_BYTES = 8 * 1024 * 1024;
 

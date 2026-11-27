@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { randomBytes } from "node:crypto";
+
 import { NextRequest } from "next/server";
 import sharp from "sharp";
 
@@ -142,6 +144,34 @@ describe("POST /api/users/{id}/images", () => {
 
     expect(res.status).toBe(200);
     expect(send).toHaveBeenCalledTimes(1);
+  });
+
+  it("圧縮の効かない 400×400 の PNG(いちばん大きくなる場合)も上限に収まって受け付ける", async () => {
+    signInAs("user-noisepng");
+    // 雑音の RGBA は PNG の圧縮がほぼ効かない。canvas の出力で起こりうる最大に近い大きさになる
+    const pixels = randomBytes(400 * 400 * 4);
+    const body = await sharp(pixels, { raw: { width: 400, height: 400, channels: 4 } })
+      .png()
+      .toBuffer();
+    expect(body.length).toBeGreaterThan(500 * 1024);
+    expect(body.length).toBeLessThan(1024 * 1024);
+
+    const res = await upload("user-noisepng", new Uint8Array(body));
+
+    expect(res.status).toBe(200);
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+
+  it("1MB を超える本文は 413 で、ストレージへは書かない", async () => {
+    signInAs("user-toolarge");
+    // 先頭は正しい 400×400 の PNG。大きさだけで弾かれることを確かめる
+    const body = new Uint8Array(1024 * 1024 + 1);
+    body.set(pngHeader(400, 400));
+
+    const res = await upload("user-toolarge", body);
+
+    expect(res.status).toBe(413);
+    expect(send).not.toHaveBeenCalled();
   });
 
   it.each([
